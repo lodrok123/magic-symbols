@@ -1,0 +1,216 @@
+bioma	pack	id	accion	familia	descripcion	medida	tris_objetivo	prioridad	prompt	nota
+comun	pack_comun	luz_desierto	codigo	luz	Preset de LuzZona3D «desierto»: sol alto blanco cálido, sombra corta y dura, ambiente arena	-	-	1	-	nueva fila en presentacion/luz_zona_3d.gd ZONAS; paleta §2 ARTE.md
+comun	pack_comun	luz_pantano	codigo	luz	Preset «pantano»: sol bajo verdoso filtrado, ambiente frío verde-malva, niebla baja	-	-	1	-	reutilizar niebla_foso_3d.gd para la bruma
+comun	pack_comun	luz_rocoso	codigo	luz	Preset «rocoso»: sol frío de altura, cielo pálido, ambiente gris-azulado	-	-	1	-	encaja con el estado vendaval
+comun	pack_comun	arena_arriba	conseguir	suelo	Textura de suelo de arena fina con ondas suaves de viento	1024² repetible	-	1	Seamless tileable top-down stylized hand-painted desert sand texture, warm ochre #D29850 to #DBA256, soft wind ripples, a few tiny pebbles, no harsh shadows, flat even lighting	arte/suelo_meshy/; canal del shader del suelo (como path_arriba)
+comun	pack_comun	barro_arriba	conseguir	suelo	Textura de barro húmedo de pantano con charquitos y hojas	1024² repetible	-	1	Seamless tileable top-down stylized hand-painted swamp mud texture, dark olive-brown #887F69 and moss green #346A60, small glossy puddles, scattered tiny leaves, flat even lighting	el brillo húmedo lo da el shader (roughness), no pintado
+comun	pack_comun	roca_montana_arriba	conseguir	suelo	Textura de suelo de roca de montaña con grietas y gravilla	1024² repetible	-	1	Seamless tileable top-down stylized hand-painted mountain rock ground texture, cool grey with ochre lichen patches, fine cracks and gravel, flat even lighting	sustituye a stone_arriba en el bioma rocoso
+comun	pack_comun	losas_mazmorra_arriba	conseguir	suelo	Textura de losas de mazmorra antiguas, gastadas, con juntas y musgo en las juntas	1024² repetible	-	1	Seamless tileable top-down stylized hand-painted ancient dungeon floor tiles, worn grey-beige square slabs in a 3x3 grid, moss in the joints, a few cracks, flat even lighting	el grid 3x3 casa con la casilla de 2,3 u (como losas_piedra)
+desertico	pack_desertico	prov_rock_cliff_01	adaptar	roca	Acantilado Provencal teñido de arenisca	1 casilla	1500	1	-	solo cambia el color en tabla_provencal.gd (familia arenisca D59958)
+desertico	pack_desertico	prov_rock_cliff_02	adaptar	roca	Acantilado Provencal teñido de arenisca	1 casilla	1400	1	-	ídem
+desertico	pack_desertico	prov_rock_cliff_03	adaptar	roca	Acantilado Provencal teñido de arenisca	1 casilla	1900	1	-	ídem
+desertico	pack_desertico	prov_rock_cliff_04	adaptar	roca	Acantilado Provencal teñido de arenisca	1 casilla	1400	1	-	ídem
+desertico	pack_desertico	prov_rock_large_01	adaptar	roca	Roca grande teñida de arenisca	1,5 casillas	3000	2	-	ídem
+desertico	pack_desertico	prov_rock_small_01	adaptar	roca	Piedra pequeña teñida de arenisca	0,25 casilla	200	2	-	ídem
+desertico	pack_desertico	jarron	reutilizar	atrezo	Jarrón rompible	0,6 u	-	1	-	botín por zona: tabla jarron_desierto nueva en botin_tablas.tsv
+desertico	pack_desertico	jarron_alto	reutilizar	atrezo	Jarrón alto rompible	1,0 u	-	1	-	ídem
+desertico	pack_desertico	jarron_roto	reutilizar	atrezo	Jarrón roto de decorado	0,5 u	-	2	-	-
+desertico	pack_desertico	prov_jar_02	reutilizar	atrezo	Ánfora panzuda	0,85 u	900	2	-	-
+desertico	pack_desertico	prov_cart	reutilizar	atrezo	Carro de mercader	1 casilla	4600	2	-	-
+desertico	pack_desertico	prov_crate_01	reutilizar	atrezo	Caja de mercancía	0,8 u	450	2	-	-
+desertico	pack_desertico	puesto_mercado	adaptar	edificio	Puesto de mercado con toldo, teñido a tela ocre/roja	1,9 u	-	2	-	toldo azul de la paleta ciudad: retintar a ocre
+desertico	pack_desertico	arco_ruina	reutilizar	ruina	Arco de ruina (enterrado en arena)	3,4 u	-	1	-	-
+desertico	pack_desertico	columna_agrietada	reutilizar	ruina	Columna agrietada (pulso)	2,5 u	-	2	-	-
+desertico	pack_desertico	estatua_piedra	reutilizar	ruina	Estatua de piedra	1,7 u	-	2	-	-
+desertico	pack_desertico	brasero	reutilizar	luz	Brasero	1,4 u	-	2	-	-
+desertico	pack_desertico	fogata	reutilizar	luz	Fogata de campamento	-	-	2	-	-
+desertico	pack_desertico	campamento_tienda	adaptar	edificio	Tienda de campamento retintada a tela clara	1,7 u	-	3	-	-
+desertico	pack_desertico	duna_baja	conseguir	suelo	Duna baja de arena que cubre media casilla y se pisa	1 × 0,5 casillas, 0,4 u	1500	1	A low gentle sand dune mound with soft wind ripples on top, warm ochre sand #D29850, smooth rounded shape, one sharp crest line on one side. 2.3 units long, 1.2 wide, 0.4 tall	se pisa: sin colisión de bloqueo
+desertico	pack_desertico	duna_alta	conseguir	roca	Duna alta que bloquea, borde de mapa	2 casillas, 1,6 u	3000	2	A tall sweeping sand dune with a sharp curved crest and wind ripples, warm ochre sand, smooth sculpted surface, a few small pebbles at the foot. 4.6 units long, 2.3 deep, 1.6 tall	borde de mapa
+desertico	pack_desertico	cactus_columna	conseguir	vegetacion	Cactus saguaro de columna con dos brazos	2,2 u	2500	1	A cute chunky saguaro cactus with a thick main column and two rounded upturned arms, soft vertical ribs, tiny pale spines as dots, one small pink flower on top, sage green #6E9A5A. 0.8 units wide, 2.2 tall	inflamable; el hielo no le hace nada
+desertico	pack_desertico	cactus_pala	conseguir	vegetacion	Chumbera de palas redondas	1,0 u	1800	1	A cute prickly pear cactus made of five rounded flat paddle pads stacked at angles, tiny spine dots, two small red fruits on the top pads, sage green. 1.0 unit wide, 1.0 tall	-
+desertico	pack_desertico	cactus_bola	conseguir	vegetacion	Cactus bola pequeño en grupo de tres	0,5 u	1200	2	A cluster of three small round barrel cacti of different sizes, soft ribs, tiny spine dots, one yellow flower, sage green, sitting on a few pebbles. 0.7 units wide, 0.5 tall	reactivo: con agua florece (idea de puzle)
+desertico	pack_desertico	palmera	conseguir	vegetacion	Palmera de oasis alta, tronco curvado	4,0 u	4500	1	A stylized date palm tree with a gently curved segmented trunk and a crown of eight broad drooping fronds, a cluster of dates under the crown, warm trunk brown and fresh green fronds. 2.5 units wide, 4.0 tall	se repite: sombra reducida (MallaReducida3D)
+desertico	pack_desertico	palmera_baja	conseguir	vegetacion	Palmera baja de abanico	1,6 u	2500	2	A short fan palm bush with a thick stubby trunk and a spray of fan-shaped leaves, fresh green with sun-yellowed tips. 1.6 units wide, 1.6 tall	-
+desertico	pack_desertico	matorral_seco	conseguir	vegetacion	Matorral seco y estepicursor	0,6 u	1500	2	A dry desert shrub, a tangled round ball of thin twisted brown twigs with a few tiny grey-green leaves, light and airy. 0.8 units wide, 0.6 tall	el viento lo hace rodar (idea: estepicursor empujable)
+desertico	pack_desertico	esqueleto_bestia	conseguir	atrezo	Esqueleto de una bestia gigante semienterrado (hito)	3 casillas	8000	2	A giant half-buried creature skeleton in sand: a large horned skull and a curved row of rib bones arching out of the ground, bleached ivory bone, sand piled at the base, cute and not scary. 6.9 units long, 2.3 wide, 2.4 tall	hito de navegación; las costillas se pueden recorrer
+desertico	pack_desertico	craneo_cuernos	conseguir	atrezo	Cráneo con cuernos suelto	0,6 u	1500	3	A bleached ivory animal skull with two curved horns resting on sand, cute rounded shapes, not scary. 0.9 units wide, 0.6 tall	-
+desertico	pack_desertico	arco_arenisca	conseguir	roca	Arco natural de arenisca erosionada (hito)	2 casillas, 3 u	6000	2	A natural sandstone rock arch eroded by wind, layered horizontal strata in warm ochre and rust bands, smooth rounded holes, sand at the base. 4.6 units wide, 1.6 deep, 3.0 tall	se pasa por debajo
+desertico	pack_desertico	pilar_arenisca	conseguir	roca	Pilar de roca estratificada (hoodoo)	2,4 u	2500	2	A tall sandstone hoodoo pillar with stacked layered strata in ochre and rust, a wider cap rock on top, smooth wind-eroded shapes. 1.0 unit wide, 2.4 tall	-
+desertico	pack_desertico	obelisco	conseguir	ruina	Obelisco tallado con runas apagadas	3,0 u	2500	2	An ancient sandstone obelisk with a pyramid tip, a few engraved monochrome runes on one face, slightly chipped edges, sand around the base. 0.8 units wide, 3.0 tall	las runas las enciende el motor (emisión), no pintadas
+desertico	pack_desertico	pozo_desierto	conseguir	agua	Pozo de piedra con polea y cubo	1 casilla, 2 u	4000	1	A round desert stone well with a short wall of fitted sandstone blocks, a wooden frame on top with a rope pulley and a hanging bucket, a little water visible inside. 2.0 units wide, 2.0 tall	pieza de puzle: agua de la simulación dentro
+desertico	pack_desertico	oasis_orilla	conseguir	agua	Orilla de oasis: piedras planas y juncos para rodear una charca	1 casilla	2000	1	A curved border segment of an oasis pond: flat smooth sandstone slabs, a few tufts of reeds and small green plants, sand fading into it. One tile, 2.3 by 2.3, 0.3 tall	modular, rodea el agua de la simulación
+desertico	pack_desertico	toldo_tela	conseguir	edificio	Toldo de tela entre dos postes	1 casilla, 2 u	2000	2	A cloth sun canopy stretched between four wooden poles, warm red and cream striped fabric gently sagging, ropes tied to the poles. 2.3 units wide, 2.3 deep, 2.0 tall	-
+desertico	pack_desertico	tienda_nomada	conseguir	edificio	Tienda nómada redonda (casa del NPC del desierto)	2 casillas, 2,4 u	6000	2	A round nomad tent with a conical cloth roof, cream and terracotta patterned fabric, a rolled-up entrance flap facing front, wooden poles and ropes, a small rug at the door. 4.0 units wide, 2.4 tall	frente hacia +Z
+desertico	pack_desertico	alfombra	conseguir	atrezo	Alfombra tejida en el suelo	1 × 0,6 casillas	400	3	A woven rug lying flat on the ground with a simple geometric pattern in terracotta, cream and teal, fringed ends. 1.6 units long, 1.0 wide, flat	se pisa
+desertico	pack_desertico	vasija_grande	conseguir	atrezo	Vasija grande de barro medio enterrada	1,2 u	1500	2	A large terracotta storage jar half-buried in sand, wide round belly, small handles, a faded painted band, chipped rim. 0.9 units wide, 1.2 tall	rompible con explosión
+pantano	pack_pantano	sauce	reutilizar	vegetacion	Sauce llorón	3,8 u	-	1	-	-
+pantano	pack_pantano	nenufar	reutilizar	agua	Nenúfar	1,0 u	-	1	-	-
+pantano	pack_pantano	nenufar_flor	reutilizar	agua	Nenúfar con flor	-	-	1	-	-
+pantano	pack_pantano	juncos	reutilizar	agua	Juncos	-	-	1	-	inflamable
+pantano	pack_pantano	canas	reutilizar	agua	Cañas	-	-	1	-	-
+pantano	pack_pantano	planta_agua	reutilizar	agua	Planta de agua	-	-	2	-	-
+pantano	pack_pantano	tronco_musgoso	reutilizar	madera	Tronco con musgo	-	-	1	-	-
+pantano	pack_pantano	tronco_enredadera	reutilizar	madera	Tronco con enredadera	-	-	2	-	-
+pantano	pack_pantano	tocon_hueco	reutilizar	madera	Tocón hueco	-	-	2	-	-
+pantano	pack_pantano	raices_musgo	reutilizar	vegetacion	Raíces con musgo	-	-	1	-	-
+pantano	pack_pantano	raiz_mundo	reutilizar	vegetacion	Raíz grande	-	-	2	-	-
+pantano	pack_pantano	musgo_colgante	reutilizar	vegetacion	Musgo colgante	-	-	1	-	-
+pantano	pack_pantano	setas_marrones	reutilizar	vegetacion	Setas (recolectable)	-	-	1	-	-
+pantano	pack_pantano	telarana	reutilizar	combustible	Telaraña (arde, se hiela)	-	-	2	-	-
+pantano	pack_pantano	enredadera	reutilizar	combustible	Enredadera viva/quemada (GLB enredadera.glb)	-	-	1	-	-
+pantano	pack_pantano	prov_vines_group_02	reutilizar	vegetacion	Enredadera colgante Provencal	1 casilla de alto	1100	2	-	-
+pantano	pack_pantano	prov_woodenplank_01	reutilizar	madera	Tablón suelto	0,6 casilla	24	2	-	-
+pantano	pack_pantano	bosque_orilla	reutilizar	agua	Lámina de orilla: juncos_a/b, tocon_musgo, nenufar_a/b, roca_musgo_g/m/p	-	-	1	-	arte/meshy/bosque/bosque_orilla.glb
+pantano	pack_pantano	roca_est_musgo_0	reutilizar	roca	Rocas estilizadas con musgo (familia LeLu)	1,4 u	-	1	-	rocas_estilizadas.gd elige la variante musgo
+pantano	pack_pantano	nube_veneno	reutilizar	ambiente	Nube de veneno (NubeVeneno3D)	-	-	1	-	estado veneno de estados_mundo.tsv
+pantano	pack_pantano	arbol_manglar	conseguir	vegetacion	Árbol de manglar sobre raíces zancudas (árbol tipo del pantano)	3,5 u	5000	1	A stylized mangrove tree standing on tall arching stilt roots above the water line, a rounded dark green canopy #346A60 with lighter tips #8CAF80, twisted grey-brown trunk, a few hanging moss strands. 2.5 units wide, 3.5 tall	se repite: sombra reducida; las raíces dejan pasar agua
+pantano	pack_pantano	cipres_calvo	conseguir	vegetacion	Ciprés de los pantanos con musgo español colgando	4,2 u	5000	1	A tall bald cypress swamp tree with a flared buttressed base, layered flat feathery green foliage, long grey-green Spanish moss hanging from the branches, a few knobby knees roots around the base. 2.0 units wide, 4.2 tall	el musgo colgante: tarjetas con alfa
+pantano	pack_pantano	arbol_muerto	conseguir	vegetacion	Árbol muerto retorcido sin hojas	3,0 u	3000	1	A dead twisted swamp tree with no leaves, gnarled grey trunk splitting into crooked bare branches, a hollow knot, a bit of pale moss, eerie but cute. 2.0 units wide, 3.0 tall	inflamable: arde y deja paso
+pantano	pack_pantano	raices_arco	conseguir	vegetacion	Arco de raíces gigantes que se pasa por debajo	1 casilla, 2 u	4000	1	A huge arch of tangled mangrove roots rising out of muddy water and bending over to form a passage, moss and small ferns on top, dark wet bark. 2.3 units wide, 1.4 deep, 2.0 tall	se pasa por debajo; puede ser bloqueo que se quema
+pantano	pack_pantano	pasarela_recta	conseguir	madera	Pasarela de tablones sobre pilotes, tramo recto	1 casilla	1500	1	A straight wooden boardwalk segment over swamp water: weathered planks of uneven length on two log stringers, supported by four short round posts, rope tied around two posts. One tile, 2.3 long, 1.4 wide, 0.6 tall	modular: recta, codo, fin y rota; se pisa
+pantano	pack_pantano	pasarela_codo	conseguir	madera	Pasarela en esquina de 90°	1 casilla	1800	1	A 90 degree corner segment of the same weathered wooden boardwalk on round posts. One tile, 2.3 by 2.3, 0.6 tall	-
+pantano	pack_pantano	muro_curvo_piedra	conseguir	ruina	Muro bajo curvo de bloques de piedra con musgo (tres hiladas)	1,8 u de ancho	1700	2	-	de la lámina Rustic Marshland (era la «pasarela_curva»: no es de madera)
+pantano	pack_pantano	pasarela_rota	conseguir	madera	Pasarela con tablas rotas (hueco que se repara o se hiela)	1 casilla	1500	1	A broken segment of the same wooden boardwalk with a gap of missing planks in the middle and two snapped planks hanging into the water. One tile, 2.3 long, 1.4 wide	puzle: el hielo o la tierra tapan el hueco
+pantano	pack_pantano	pilote	conseguir	madera	Pilote de madera suelto con cuerda	1,2 u	600	2	A single weathered round wooden post sticking out of the water, a rope coiled around it, a little moss at the waterline. 0.3 units wide, 1.2 tall	-
+pantano	pack_pantano	cabana_palafito	conseguir	edificio	Cabaña sobre pilotes (casa de la bruja o del NPC)	2 casillas, 3 u	10000	1	A cozy swamp stilt hut: a small wooden cabin with a patched thatch roof raised on crooked posts above the water, a little porch with a ladder down, a round window, hanging herbs and a lantern by the door facing front. 4.6 units wide, 3.0 tall	hito; frente hacia +Z
+pantano	pack_pantano	muelle	conseguir	madera	Muelle pequeño con barca amarrada	1 casilla	3000	2	A short wooden jetty of a few planks on posts ending over the water, a small rowing boat tied to it with a rope, a lantern on a pole at the end. 2.3 long, 1.4 wide	-
+pantano	pack_pantano	barca_rota	conseguir	atrezo	Barca medio hundida	1 casilla	2500	3	A small wooden rowing boat half sunk and tilted in swamp water, a broken oar, moss on the hull. 2.0 units long, 0.9 wide	-
+pantano	pack_pantano	juncos_altos	conseguir	vegetacion	Matojo alto de eneas (tifas) que tapa la vista	1,4 u	1500	1	A dense clump of tall cattails with brown velvety seed heads and long thin green leaves, some bent. 0.8 units wide, 1.4 tall	inflamable; tarjetas con alfa
+pantano	pack_pantano	lirio_pantano	conseguir	vegetacion	Lirio de agua morado	0,6 u	800	1	A clump of purple swamp irises with long sword-like leaves and three open flowers, violet #8C6BB3 petals with yellow centers. 0.5 units wide, 0.6 tall	CONSEGUIDA: de la lámina Whimsical Woodland; recolectable posible
+pantano	pack_pantano	flor_carnivora	conseguir	vegetacion	Planta carnívora grande (reactiva: se cierra con rayo)	1,0 u	2500	1	A cute oversized venus flytrap plant with two open toothed jaw leaves facing up, pink inside, green outside, soft rounded teeth, a cluster of small leaves at the base. 0.9 units wide, 1.0 tall	planta reactiva: idea de puzle (el rayo la cierra y se pisa)
+pantano	pack_pantano	seta_luminosa	conseguir	vegetacion	Grupo de setas bioluminiscentes de pantano	0,5 u	1000	1	A cluster of five slender swamp mushrooms with translucent bell caps in pale teal, thin stems, growing from a mossy log stub. 0.5 units wide, 0.5 tall	la luz la pone el motor (emisión en las sombrerillas); reusar en cueva
+pantano	pack_pantano	setas_pantano	conseguir	vegetacion	Grupo de tres setas de sombrerillo beige (una grande y dos pequeñas)	0,5 u	3300	2	-	de la lámina Whimsical Woodland; recolectable posible
+pantano	pack_pantano	hongo_estante	conseguir	vegetacion	Hongos de repisa en un tronco	0,6 u	800	3	Three flat bracket shelf fungi growing in a stack on a short piece of dark wet log, cream and orange bands. 0.6 units wide, 0.6 tall	-
+pantano	pack_pantano	charca_burbujas	conseguir	agua	Charca de barro con burbujas (veneno)	1 casilla	800	2	A small round bubbling mud pool with a raised muddy rim, greenish surface with a few round bubbles, a couple of reeds at the edge. 1.6 units wide, 0.2 tall	las burbujas y el humo los pone el VFX; fuente del estado veneno
+pantano	pack_pantano	caldero_bruja	conseguir	atrezo	Caldero sobre trébedes con raíces y frascos alrededor	1,0 u	3000	2	A cute black iron cauldron on a small tripod over a ring of stones, a wooden ladle inside, two small potion bottles and a bundle of herbs beside it. 1.0 unit wide, 1.0 tall	síntesis de campo (donde=hoguera) en el pantano
+pantano	pack_pantano	totem_pantano	conseguir	ruina	Tótem de madera tallada con plumas y huesos	2,0 u	2500	2	A carved swamp totem pole of dark wood with a cute frog face on top, feathers and small bones tied with string, moss at the base. 0.6 units wide, 2.0 tall	reactivo (activable) como totem_runico
+pantano	pack_pantano	farolillo_pantano	conseguir	luz	Farolillo colgado de un poste torcido	1,6 u	1200	1	A crooked wooden pole with a small hanging glass lantern on a hook, a candle inside, rope wrapped around the pole. 0.5 units wide, 1.6 tall	OmniLight + LuzTitila3D; es la luz guía del pantano
+pantano	pack_pantano	jaula_colgante	conseguir	atrezo	Jaula colgada de una rama	1,2 u	1500	3	A small round iron cage hanging from a crooked branch by a chain, rusty bars, empty. 0.6 units wide, 1.2 tall	-
+pantano	pack_pantano	puente_cuerda	conseguir	madera	Puente colgante de cuerda y tablas (2 casillas)	2 casillas	4000	2	A rope bridge with wooden planks hanging between two posts, slightly sagging in the middle, rope handrails, moss on the posts. 4.6 units long, 1.2 wide	la cuerda arde: el puente cae (como Cuerda3D)
+pantano	pack_pantano	isla_hierba	conseguir	suelo	Islote de hierba y raíces que asoma del agua	1 casilla	1500	2	A small grassy hummock island rising from swamp water, tufts of long grass, roots and a small stone on top, muddy edges. 2.0 units wide, 0.5 tall	se pisa; hace de pasadero
+pantano	pack_pantano	lianas_colgantes	conseguir	vegetacion	Cortina de lianas colgantes (bloqueo que se quema)	1 casilla, 2,4 u	2500	2	A curtain of thick hanging vines and lianas dropping from above, some leaves and small flowers, dense enough to block a passage. 2.3 units wide, 2.4 tall	alternativa al bloqueo de enredaderas del bosque
+rocoso	pack_rocoso	roca_est_0	reutilizar	roca	Rocas estilizadas neutras (LeLu, 5 variantes)	1,4 u	-	1	-	variante neutra de rocas_estilizadas.gd
+rocoso	pack_rocoso	piedra_est_0	reutilizar	roca	Piedras estilizadas neutras	0,5 u	-	1	-	-
+rocoso	pack_rocoso	prov_rock_cliff_01	reutilizar	roca	Acantilado (4 variantes)	1 casilla	1500	1	-	-
+rocoso	pack_rocoso	prov_rock_wall_01	reutilizar	roca	Muro de roca	1 casilla	990	1	-	-
+rocoso	pack_rocoso	prov_rock_large_01	reutilizar	roca	Roca grande	1,5 casillas	3000	1	-	-
+rocoso	pack_rocoso	prov_rockbrick_medium_01	reutilizar	roca	Bloque de piedra	0,5 casilla	84	2	-	-
+rocoso	pack_rocoso	roca_hueca	reutilizar	roca	Roca hueca	-	-	2	-	-
+rocoso	pack_rocoso	laja_piedra	reutilizar	roca	Laja	-	-	2	-	-
+rocoso	pack_rocoso	basalto_suelto	reutilizar	roca	Basalto suelto	-	-	3	-	-
+rocoso	pack_rocoso	muro_agrietado	reutilizar	ruina	Muro agrietado (tierra lo rompe)	1 casilla	-	1	-	-
+rocoso	pack_rocoso	pino_2	reutilizar	vegetacion	Pino	4,6 u	1800	1	-	-
+rocoso	pack_rocoso	tocon_roca	reutilizar	madera	Tocón con roca	-	-	3	-	-
+rocoso	pack_rocoso	prov_woodenbeam_01	reutilizar	madera	Viga (andamios y entibado)	1 casilla	44	2	-	-
+rocoso	pack_rocoso	cascote_0	reutilizar	roca	Cascotes de tierra (VFX)	-	-	3	-	-
+rocoso	pack_rocoso	golem_piedra_rig	reutilizar	enemigo	Gólem de piedra (enemigo del bioma)	-	-	1	-	-
+rocoso	pack_rocoso	risco_pared	conseguir	roca	Pared de risco modular (1 casilla, 2 niveles)	1 casilla, 2,1 u	2500	1	A modular cliff wall block for a grid game: a chunky slab of layered grey mountain rock with ochre lichen, flat back and flat sides so it tiles, front face (+Z) with horizontal strata ledges and cracks, a few small plants in the cracks. 2.3 wide, 2.3 deep, 2.1 tall	kit modular como cueva_pared: pared, esquina int/ext, escalón
+rocoso	pack_rocoso	risco_esquina_ext	conseguir	roca	Esquina exterior del risco	1 casilla	2500	1	The outside corner of the same modular layered mountain cliff wall, rounded rock corner where two walls turn away. One tile, 2.3 by 2.3, 2.1 tall	-
+rocoso	pack_rocoso	risco_esquina_int	conseguir	roca	Esquina interior del risco	1 casilla	2800	1	The inside corner of the same modular mountain cliff wall: two layered rock faces meeting at 90 degrees, facing +Z and +X. One tile, 2.3 by 2.3, 2.1 tall	-
+rocoso	pack_rocoso	risco_escalon	conseguir	roca	Escalón de roca de un nivel (rampa natural)	1 casilla, 1,04 u	2000	1	A natural rock step for a grid game: a chunky layered grey rock block one level high with a worn flat top and a few stair-like ledges on the front (+Z) so it reads as climbable. 2.3 by 2.3, 1.04 tall	casa con el salto de altura de 1,04 u
+rocoso	pack_rocoso	cornisa	conseguir	roca	Cornisa saliente sobre el vacío	1 casilla	2000	2	A rock ledge jutting out from a cliff, flat walkable top with a few pebbles, rough underside tapering down, lichen on the edge. 2.3 long, 1.6 deep, 0.8 thick	-
+rocoso	pack_rocoso	arco_roca	conseguir	roca	Arco de roca natural (hito)	2 casillas, 3 u	5000	2	A natural grey rock arch with layered strata, a smooth rounded opening, small plants and lichen on top. 4.6 wide, 1.6 deep, 3.0 tall	-
+rocoso	pack_rocoso	pilar_roca	conseguir	roca	Pináculo de roca alto y estrecho	3,0 u	2500	2	A tall narrow rock spire with layered grey strata, a slightly wider top, lichen patches. 1.0 unit wide, 3.0 tall	-
+rocoso	pack_rocoso	roca_equilibrio	conseguir	roca	Roca en equilibrio sobre otra (cae con viento o tierra)	1,8 u	2000	1	A large round boulder balanced on top of a smaller flat rock, looking like it could tip over, grey rock with ochre lichen. 1.2 units wide, 1.8 tall	puzle: el empujón la tumba y hace de puente o de presa
+rocoso	pack_rocoso	desprendimiento	conseguir	roca	Montón de rocas de derrumbe que tapa un paso	1 casilla	3000	1	A pile of fallen rocks and boulders blocking a mountain path, mixed sizes, dust at the base, one big boulder on top. 2.3 wide, 1.6 deep, 1.5 tall	se rompe con explosión o tierra (como muro_agrietado)
+rocoso	pack_rocoso	puente_colgante	conseguir	madera	Puente colgante de montaña entre dos postes de piedra	2 casillas	4500	1	A mountain rope suspension bridge: wooden planks hanging between two stone-and-wood anchor posts, sagging gently, rope handrails, a few prayer flags tied to the ropes. 4.6 long, 1.2 wide	el vendaval lo balancea (estado vendaval)
+rocoso	pack_rocoso	pino_achaparrado	conseguir	vegetacion	Pino achaparrado inclinado por el viento	2,2 u	3000	1	A short windswept mountain pine leaning to one side, twisted trunk gripping a rock, flattened tufts of dark green needles all swept in one direction. 1.8 units wide, 2.2 tall	se repite: sombra reducida
+rocoso	pack_rocoso	arbusto_montana	conseguir	vegetacion	Arbusto bajo de montaña con flores pequeñas	0,6 u	1200	2	A low round alpine shrub with tiny grey-green leaves and small white and purple flowers, growing between pebbles. 0.8 units wide, 0.6 tall	-
+rocoso	pack_rocoso	cairn	conseguir	ruina	Montón de piedras apiladas que marca el camino	1,0 u	800	1	A small cairn of five flat stones stacked in a careful tower, grey with lichen, a tiny ribbon tied around it. 0.5 units wide, 1.0 tall	señal de navegación
+rocoso	pack_rocoso	banderas_viento	conseguir	ambiente	Cuerda con banderines de oración entre dos postes	2 casillas, 2 u	1500	2	A string of small colorful prayer flags in red, yellow, green, blue and white strung between two thin wooden poles, gently fluttering. 4.6 units long, 2.0 tall	enseña la dirección del vendaval (animación de viento por shader)
+rocoso	pack_rocoso	vagoneta	conseguir	atrezo	Vagoneta de mina con mineral (empujable)	0,9 u	2500	2	A small wooden mine cart with iron bands and four small wheels, filled with blue-grey ore chunks, sitting on rails. 1.0 unit long, 0.8 wide, 0.9 tall	empujable por raíles (idea de puzle)
+rocoso	pack_rocoso	railes	conseguir	madera	Tramo de raíles de mina (recto y curva)	1 casilla	800	2	A straight segment of narrow mine rails on wooden sleepers lying on gravel. One tile, 2.3 long, 1.0 wide, flat	modular: recto y curva
+rocoso	pack_rocoso	entibado	conseguir	madera	Entibado de mina: marco de vigas en una boca	1 casilla, 2,4 u	1500	2	A mine tunnel entrance frame made of three thick wooden beams, two posts and a lintel, with a hanging lantern and a few stones at the foot. 2.3 wide, 0.6 deep, 2.4 tall	-
+ruinas	pack_ruinas	arco_ruina	reutilizar	ruina	Arco de ruina	3,4 u	-	1	-	-
+ruinas	pack_ruinas	muro_ruina	reutilizar	ruina	Muro de ruina	1 casilla	-	1	-	-
+ruinas	pack_ruinas	muro_agrietado	reutilizar	ruina	Muro agrietado (se rompe)	1 casilla	-	1	-	-
+ruinas	pack_ruinas	columna_agrietada	reutilizar	ruina	Columna agrietada (pulso) / columna-puente	2,5 u	-	1	-	-
+ruinas	pack_ruinas	estatua_piedra	reutilizar	ruina	Estatua (secuencia de pulsos)	1,7 u	-	1	-	-
+ruinas	pack_ruinas	totem_runico	reutilizar	ruina	Tótem rúnico (activable)	1,8 u	-	1	-	-
+ruinas	pack_ruinas	pilar	reutilizar	ruina	Pilar	-	-	2	-	-
+ruinas	pack_ruinas	cuenco_piedra	reutilizar	ruina	Cuenco de piedra	-	-	2	-	-
+ruinas	pack_ruinas	receptor_runico	reutilizar	ruina	Receptor rúnico	-	-	1	-	-
+ruinas	pack_ruinas	prisma_orientable	reutilizar	ruina	Prisma orientable	-	-	1	-	-
+ruinas	pack_ruinas	bloque_enlace	reutilizar	ruina	Bloque de enlace (empujable de piedra)	-	-	1	-	-
+ruinas	pack_ruinas	losa_runas_ovalo	reutilizar	ruina	Losas rúnicas (llana, óvalo, remaches)	0,85 casilla	-	1	-	-
+ruinas	pack_ruinas	bloque_runa_roja	reutilizar	ruina	Bloques de runa por elemento (×6)	0,8 u	-	1	-	-
+ruinas	pack_ruinas	cartel_runa_roja	reutilizar	ruina	Carteles de runa por elemento (×6)	1,2 u	-	2	-	-
+ruinas	pack_ruinas	puerta_llave_marco	reutilizar	ruina	Puerta con llave (marco y hoja)	-	-	1	-	-
+ruinas	pack_ruinas	portal_salida	reutilizar	ruina	Portal de salida	3 u	-	1	-	-
+ruinas	pack_ruinas	cofre_legendario	reutilizar	contenedor	Cofre legendario (el del glifo)	-	-	1	-	-
+ruinas	pack_ruinas	cofre_epico	reutilizar	contenedor	Cofre épico	-	-	1	-	-
+ruinas	pack_ruinas	jarron	reutilizar	atrezo	Jarrones (jarron, jarron_alto, jarron_roto)	-	-	1	-	-
+ruinas	pack_ruinas	puzle_dungeon	reutilizar	mecanismo	Lámina puzle_dungeon: compuerta, pulsador, placa	-	-	1	-	-
+ruinas	pack_ruinas	puzle_forgotten	reutilizar	mecanismo	Lámina puzle_forgotten: reja, poste farolillo, tapón de hielo	-	-	1	-	-
+ruinas	pack_ruinas	antorcha_pared	reutilizar	luz	Antorcha de pared y de pie (fuego_medieval.glb)	-	-	1	-	-
+ruinas	pack_ruinas	trampa_flechas	reutilizar	mecanismo	Trampas de flechas y de dragón	-	-	2	-	-
+ruinas	pack_ruinas	tinaja_ruina	reutilizar	agua	Tinaja y canales de ruina	-	-	2	-	-
+ruinas	pack_ruinas	prov_shrine	reutilizar	ruina	Santuario Provencal	1,8 casillas	3800	3	-	-
+ruinas	pack_ruinas	prov_vines_group_01	reutilizar	vegetacion	Enredaderas sobre muros	-	1400	2	-	-
+ruinas	pack_ruinas	mazmorra_muro	conseguir	ruina	Muro de mazmorra modular, tramo recto	1 casilla, 2,6 u	3000	1	A modular ancient dungeon wall block: fitted grey-beige stone blocks of uneven sizes, slightly worn edges, a carved border band near the top, moss in a few joints, flat back and sides so it tiles, front face +Z. 2.3 wide, 0.8 deep, 2.6 tall	kit base de todas las mazmorras de glifo
+ruinas	pack_ruinas	mazmorra_esquina_int	conseguir	ruina	Esquina interior del muro de mazmorra	1 casilla	3500	1	The inside corner of the same modular dungeon wall: two stone faces meeting at 90 degrees facing +Z and +X, a pilaster in the corner. One tile, 2.3 by 2.3, 2.6 tall	-
+ruinas	pack_ruinas	mazmorra_esquina_ext	conseguir	ruina	Esquina exterior del muro de mazmorra	1 casilla	3000	1	The outside corner of the same modular dungeon wall: a squared stone pillar corner where two walls turn away. One tile, 2.3 by 2.3, 2.6 tall	-
+ruinas	pack_ruinas	mazmorra_muro_roto	conseguir	ruina	Muro de mazmorra derrumbado a media altura	1 casilla, 1,3 u	3500	1	The same dungeon wall block collapsed to half height, broken top edge, a few fallen blocks at the foot, a small plant growing from the rubble. 2.3 wide, 1.0 deep, 1.3 tall	ventana a la sala vecina; no bloquea la vista
+ruinas	pack_ruinas	mazmorra_hornacina	conseguir	ruina	Muro con hornacina para estatua o vela	1 casilla	3500	1	The same dungeon wall block with an arched niche carved in its front face (+Z), a small stone shelf inside. 2.3 wide, 0.8 deep, 2.6 tall	en la hornacina va una vela, estatua o el glifo
+ruinas	pack_ruinas	mazmorra_puerta	conseguir	ruina	Portón de mazmorra con hoja de piedra que baja	1 casilla, 2,6 u	4000	1	A dungeon doorway in the same stone style: a thick carved stone frame with a keystone and an empty socket for a rune above, and a separate heavy slab door that can slide down into the floor. 2.3 wide, 0.8 deep, 2.6 tall	dos nodos: marco y hoja (como puerta_llave); la runa del hueco la enciende el motor
+ruinas	pack_ruinas	escalinata	conseguir	ruina	Escalinata de un nivel	1 casilla, 1,04 u	2500	1	A short flight of four worn stone steps going up one level, carved side walls, a cracked step, moss at the edges, rising toward -Z. 2.3 by 2.3, 1.04 tall	casa con el salto de 1,04 u
+ruinas	pack_ruinas	columna_entera	conseguir	ruina	Columna clásica entera con capitel	2,6 u	2500	1	A complete ancient stone column with a simple carved capital and base, slightly weathered, a few small chips. 0.7 units wide, 2.6 tall	-
+ruinas	pack_ruinas	columna_caida	conseguir	ruina	Columna tumbada partida en tres trozos	1,5 casillas	3000	2	A fallen ancient stone column lying on its side broken into three drums, the capital rolled a bit away, moss and small grass around. 3.5 units long, 0.7 tall	-
+ruinas	pack_ruinas	pedestal_glifo	conseguir	ruina	Pedestal del glifo (donde aparece el glifo al final)	1,2 u	3000	1	An ornate stone pedestal with a round top plate and carved runic bands around it, three steps around its base, an empty round socket on top. 1.2 units wide, 1.2 tall	el glifo flota encima (motor); uno por mazmorra, cambia la runa
+ruinas	pack_ruinas	sarcofago	conseguir	ruina	Sarcófago de piedra con tapa (empujable)	1 casilla	3500	2	A stone sarcophagus with a heavy carved lid slightly ajar, a sleeping knight figure carved on the lid, worn edges. 2.0 units long, 0.9 wide, 1.0 tall	la tapa es un nodo aparte (se empuja)
+ruinas	pack_ruinas	brasero_pie	conseguir	luz	Brasero de piedra de pie (sin llama)	1,3 u	2000	1	A tall stone brazier on a carved column foot with a wide shallow bowl full of unlit charcoal, carved runic band. 0.7 units wide, 1.3 tall	llama y luz las pone el motor (Reactivo3D brasero)
+ruinas	pack_ruinas	cadenas	conseguir	atrezo	Cadenas colgando del muro	1,5 u	1200	3	Two heavy iron chains hanging from rings fixed to a stone block, rusty, loose ends. 0.6 units wide, 1.5 tall	-
+ruinas	pack_ruinas	puente_piedra_roto	conseguir	ruina	Puente de piedra roto sobre un foso	2 casillas	4000	1	An old stone bridge over a pit with a missing middle section, carved parapet on both sides, cracks and moss. 4.6 units long, 1.4 wide	puzle: el hueco se tapa con tierra, hielo o columna caída
+ruinas	pack_ruinas	foso_borde	conseguir	ruina	Borde de foso modular con losas rotas	1 casilla	2000	2	A modular edge segment of a dungeon pit: floor slabs breaking off into darkness, a few loose stones on the lip. One tile, 2.3 by 2.3, 0.6 deep	-
+ruinas	pack_ruinas	mosaico_suelo	conseguir	suelo	Losa de mosaico circular con un hueco de runa en el centro	1 casilla	1500	1	A round floor mosaic panel of small stone tiles in beige and faded teal forming a radial pattern, an empty rune socket in the middle, slightly cracked. 2.3 by 2.3, flat	una por mazmorra, cambia el motivo del glifo
+ruinas	pack_ruinas	tema_flecha_diana	conseguir	ruina	Tema ᛇ flecha: diana de piedra en un muro	1,2 u	1500	2	A round stone target disc with concentric carved rings mounted on a short stone post, a bullseye socket in the middle. 1.0 unit wide, 1.2 tall	pulsador que se activa con proyectil; galería de tiro
+ruinas	pack_ruinas	tema_flecha_arquero	conseguir	ruina	Tema ᛇ flecha: estatua de arquero	2,0 u	4000	2	A stone statue of a hooded archer drawing a bow, simple chunky forms, weathered, on a square base. 0.9 units wide, 2.0 tall	-
+ruinas	pack_ruinas	tema_barrera_escudo	conseguir	ruina	Tema ○ barrera: estatua de guardián con escudo	2,0 u	4000	2	A stone guardian statue holding a large round shield in front of it, simple chunky forms, weathered, on a square base. 1.0 unit wide, 2.0 tall	-
+ruinas	pack_ruinas	tema_barrera_cupula	conseguir	ruina	Tema ○ barrera: cúpula de piedra con columnas	2 casillas, 3 u	6000	3	A small round stone pavilion with six columns and a dome roof, carved band under the dome, moss on top. 3.5 units wide, 3.0 tall	-
+ruinas	pack_ruinas	tema_rebote_espejo	conseguir	ruina	Tema ᚢ rebote: panel de piedra pulida inclinado	1,5 u	1500	2	A tall slanted panel of polished pale stone in a carved frame, set at a 45 degree angle on a base, smooth reflective face. 1.2 units wide, 1.5 tall	el proyectil rebota (idea de puzle)
+ruinas	pack_ruinas	tema_repeticion_eco	conseguir	ruina	Tema ᚠ repetición: tres estatuas gemelas en fila	1,8 u	5000	3	A row of three identical small stone statues of a praying figure on one long base, weathered. 2.3 units wide, 1.8 tall	-
+ruinas	pack_ruinas	tema_pulso_gong	conseguir	ruina	Tema ᚷ pulso: gong de piedra y bronce en un marco	2,0 u	3000	2	A large round bronze gong hanging in a carved stone frame, a wooden mallet leaning on the frame. 1.6 units wide, 2.0 tall	emite un pulso al golpearlo (CristalPulso3D)
+ruinas	pack_ruinas	tema_permanencia_reloj	conseguir	ruina	Tema ᛉ permanencia: reloj de arena gigante de piedra	1,6 u	3000	2	A large hourglass made of carved stone frame and thick glass, pale sand inside, on a round base. 0.8 units wide, 1.6 tall	-
+ruinas	pack_ruinas	tema_altura_escalones	conseguir	ruina	Tema ⊥ altura: bloques escalonados de piedra con runas	1 casilla	2500	2	A set of three stacked carved stone blocks of decreasing size like a stepped altar, rune bands on each block. 2.0 units wide, 1.6 tall	-
+ruinas	pack_ruinas	tema_linea_pasillo	conseguir	ruina	Tema ᛁ línea: arco de pasillo con runa larga	1 casilla, 2,6 u	3500	3	A narrow stone corridor arch with a long single vertical rune carved down both pillars, keystone on top. 2.3 wide, 0.6 deep, 2.6 tall	-
+cueva	pack_cueva	cueva_pared	reutilizar	cueva	Kit de paredes de cueva (pared, baja, esquinas)	1 casilla	-	1	-	-
+cueva	pack_cueva	boca_cueva	reutilizar	cueva	Boca de cueva	2 casillas	-	1	-	-
+cueva	pack_cueva	estalagmitas_a	reutilizar	cueva	Estalagmitas a y b	-	-	1	-	-
+cueva	pack_cueva	estalagmita_resonante	reutilizar	cueva	Estalagmita resonante y rota	-	-	1	-	-
+cueva	pack_cueva	cristal_resonante	reutilizar	cueva	Cristal resonante (emisor)	1,5 u	-	1	-	el brillo lo hace BrilloPulso3D
+cueva	pack_cueva	geoda_resonante	reutilizar	cueva	Geoda	-	-	1	-	-
+cueva	pack_cueva	roca_cristal	reutilizar	cueva	Roca con cristal incrustado	1,4 u	-	1	-	-
+cueva	pack_cueva	cristal_elemental	reutilizar	cueva	Cristal elemental	-	-	2	-	-
+cueva	pack_cueva	brasero_cueva	reutilizar	luz	Brasero de cueva	-	-	1	-	luz=2.2 en la Cueva
+cueva	pack_cueva	poste_farolillo	reutilizar	luz	Poste con farolillo (puzle_forgotten.glb)	-	-	1	-	-
+cueva	pack_cueva	musgo_colgante	reutilizar	vegetacion	Musgo colgante	-	-	1	-	-
+cueva	pack_cueva	helechos_cueva	reutilizar	vegetacion	Helechos de cueva	-	-	1	-	-
+cueva	pack_cueva	alga_cueva	reutilizar	agua	Alga de cueva	-	-	2	-	-
+cueva	pack_cueva	setas_azules	reutilizar	vegetacion	Setas azules	-	-	1	-	-
+cueva	pack_cueva	roca_est_0	reutilizar	roca	Rocas estilizadas neutras	-	-	1	-	-
+cueva	pack_cueva	veta	reutilizar	cueva	Veta mineral (VetaPulso3D)	-	-	1	-	-
+cueva	pack_cueva	pilar_cascada	reutilizar	agua	Cascada (pilar, labio, salpicadura)	-	-	2	-	-
+cueva	pack_cueva	seta_luminosa	reutilizar	luz	Setas bioluminiscentes (las del pack pantano)	0,5 u	1000	1	-	compartida con pantano
+cueva	pack_cueva	mineral_veta	conseguir	cueva	Trozo de veta mineral (PENDIENTE desde la Cueva)	0,5 u	1500	1	A chunk of blue-grey ore rock with bright light-blue crystal veins running across its faces, rough rounded shape. 0.6 units wide, 0.5 tall	pedido en PROMPTS_CUEVA D3; venas como máscara de emisión
+cueva	pack_cueva	setas_cueva	conseguir	vegetacion	Setas de cueva (PENDIENTE)	0,4 u	1000	1	A cluster of pale cave mushrooms with wide flat caps in lavender and cream, thin stems, growing from a damp rock. 0.5 units wide, 0.4 tall	pedido en PROMPTS_CUEVA C6
+cueva	pack_cueva	cristal_cargado	conseguir	cueva	Cristal resonante cargado de rayo (PENDIENTE)	1,5 u	1500	2	A resonant crystal shard cluster with jagged yellow lightning-like streaks inside light-blue crystal, on a rock base. 0.8 units wide, 1.5 tall	variante del cristal_resonante
+cueva	pack_cueva	racimo_cristal_s	conseguir	luz	Racimo de cristales de suelo pequeño (fuente de luz)	0,6 u	1200	1	A small cluster of five pointed crystals growing out of a dark rock, pale blue #6583B5 crystal, clean facets, no painted glow. 0.6 units wide, 0.6 tall	EMISIÓN por máscara (el motor la enciende y le pone OmniLight pequeña); tamaños S/M/L
+cueva	pack_cueva	racimo_cristal_l	conseguir	luz	Racimo de cristales grande (hito de luz)	2,0 u	3500	1	A large cluster of tall pointed crystals of different heights growing from a rock mound, pale blue crystal, clean facets, no painted glow. 1.6 units wide, 2.0 tall	ídem; uno por sala como luz principal
+cueva	pack_cueva	cristal_pared	conseguir	luz	Cristales que brotan de la pared	1 casilla	2500	1	A cluster of crystals growing horizontally out of a cave wall face, pale blue, pointing toward +Z, on a flat back to stick to a wall. 1.6 wide, 0.8 deep, 1.4 tall	se pega a cueva_pared
+cueva	pack_cueva	hongo_gigante	conseguir	luz	Hongo luminoso gigante (hito y lámpara)	2,4 u	3000	1	A giant cave mushroom with a wide dome cap in soft teal, the underside gills visible, a thick pale stem, smaller mushrooms at the foot. 1.8 units wide, 2.4 tall	emisión en las láminas; luz de sala
+cueva	pack_cueva	hongos_pared	conseguir	luz	Hongos luminosos de repisa en la pared	0,8 u	1000	2	A group of small round shelf mushrooms growing out of a rock wall surface in soft teal, flat back to stick to a wall. 0.8 wide, 0.3 deep, 0.6 tall	-
+cueva	pack_cueva	lampara_minera	conseguir	luz	Lámpara de minero colgada de una viga	1,4 u	1500	1	A miner's oil lantern hanging from a short wooden beam bracket on a rope, glass and iron cage, small candle inside. 0.6 wide, 1.4 tall	OmniLight + LuzTitila3D (luz cálida que contrasta con el azul)
+cueva	pack_cueva	velas_racimo	conseguir	luz	Racimo de velas sobre una piedra	0,5 u	1000	2	A cluster of seven melted candles of different heights on a flat stone, wax drips, unlit wicks. 0.5 units wide, 0.5 tall	llamas y luz las pone el motor
+cueva	pack_cueva	tragaluz	conseguir	luz	Grieta en el techo con raíces (por donde entra un haz de luz)	1 casilla	2000	1	A cave ceiling opening seen from below: a jagged hole in rock with roots and a few hanging vines around the edge, a few leaves falling. 2.3 wide, 1.0 tall	el haz de luz es un VFX de volumen + SpotLight; puzle de luz/sombra
+cueva	pack_cueva	charca_brillante	conseguir	agua	Borde de charca con algas luminosas	1 casilla	1500	2	A curved border of a cave pool with smooth wet stones and small glowing algae tufts in teal at the waterline. One tile, 2.3 by 2.3, 0.3 tall	emisión en las algas
+cueva	pack_cueva	raices_luminosas	conseguir	luz	Raíces colgantes con bulbos luminosos	1,8 u	1500	2	A curtain of thin roots hanging down from above with small round glowing bulbs along them, soft amber bulbs. 1.2 wide, 1.8 tall	-
+cueva	pack_cueva	estalagmita_hito	conseguir	cueva	Estalagmita gigante y columna natural	3,5 u	3000	2	A huge cave stalagmite merging into a natural rock column reaching up, smooth flowing mineral shapes, damp grey-blue rock with pale mineral drips. 1.6 units wide, 3.5 tall	hito
+cueva	pack_cueva	puente_roca	conseguir	cueva	Puente natural de roca sobre un foso	2 casillas	3500	2	A natural rock bridge arching over a dark pit, smooth worn top, mineral drips underneath, a few small crystals on the side. 4.6 long, 1.4 wide	-
+ruinas	pack_ruinas	anfora_asas_a	conseguir	atrezo	Ánfora de terracota de dos asas (rompible como el jarrón)	0,9 u	2100	2	-	de la lámina Ancient Artifact Collection
+ruinas	pack_ruinas	anfora_asas_b	conseguir	atrezo	Ánfora gemela de dos asas (rompible como el jarrón)	0,9 u	2200	2	-	de la lámina Ancient Artifact Collection
+ruinas	pack_ruinas	pila_ofrenda	conseguir	ruina	Pila de piedra baja e irregular con cubeta oscura	1,2 u de ancho	1100	2	-	de la lámina Ancient Artifact Collection
+ruinas	pack_ruinas	idolo_a	conseguir	atrezo	Estatuilla de ídolo chibi	0,8 u	5200	2	-	de la lámina Ancient Artifact Collection
+ruinas	pack_ruinas	idolo_b	conseguir	atrezo	Estatuilla de ídolo chibi gemela	0,8 u	4900	2	-	de la lámina Ancient Artifact Collection
+desertico	pack_desertico	anfora_asas_a	reutilizar	atrezo	Ánfora de terracota de dos asas	0,9 u	2100	2	-	la misma pieza de pack_ruinas
+desertico	pack_desertico	anfora_asas_b	reutilizar	atrezo	Ánfora gemela de dos asas	0,9 u	2200	2	-	la misma pieza de pack_ruinas

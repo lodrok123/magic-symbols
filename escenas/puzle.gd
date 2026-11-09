@@ -437,7 +437,7 @@ const CLAVES: Dictionary = {
 	"receptor": {"elemento": "s:fuego|agua|hielo|rayo|tierra|viento", "flag": "flag", "rearme": "f"},
 	"prisma": {"dir": "s:n|e|s|o"},
 	"pared_hueca": {"flag": "flag", "mira": "s:n|e|s|o"},
-	"jarron": {"botin": "botin", "cantidad": "f", "alto": "b", "celdas": "celdas", "modelo": "s:caja|jarron"},
+	"jarron": {"botin": "botin", "cantidad": "f", "alto": "b", "celdas": "celdas", "modelo": "s:caja|jarron|anfora_asas_a|anfora_asas_b"},
 	"caja": {"botin": "botin", "cantidad": "f", "pequena": "b", "celdas": "celdas"},
 	"salida": {"a": "destino", "escena": "nombre", "entrada": "nombre", "modelo": "nombre", "celdas": "celdas", "modo": "s:pisar|usar", "marca": "b"},
 	"entrada": {"mira": "s:n|e|s|o"},
@@ -2076,6 +2076,8 @@ func _crear(pz: Pieza) -> void:
 			for i in range(cs.size()):
 				var ro := Rompible3D.new()
 				ro.name = pz.id if i == 0 else "%s_%d" % [pz.id, i + 1]
+				if String(pz.p.get("modelo", "")).begins_with("anfora_"):
+					ro.modelo_forzado = String(pz.p.get("modelo", ""))       # 8/11: las anforas de la lamina Ancient Artifact (rompibles como el jarron)
 				ro.preparar(cs[i] as Vector2i, tipo_r, String(pz.p.get("botin", Rompible3D.BOTIN_ORO)), int(pz.p.get("cantidad", 0.0)), otro, nivel, mundo as Node)
 				cont.add_child(ro)
 				if i == 0:
@@ -2590,6 +2592,10 @@ func _colocar_pieza_arte(id: String, cont: Node, nombre: String, pos: Vector3, g
 	n.rotation.y = deg_to_rad(giro)
 	n.scale = escala
 	cont.add_child(n)
+	if mundo is Object and String((mundo as Object).get("estilo")) == "pantano":      # 8/11: el tinte de Paleta3D.PIEZAS (la copa del manglar) tambien en los decorados del pantano
+		var tinte_p: Color = Paleta3D.tinte_de_pieza(id)
+		if tinte_p != Color.WHITE:
+			Paleta3D.tintar(n, tinte_p)
 	if mundo is Object and bool((mundo as Object).get("transparencia_jugador")):
 		for h in n.find_children("*", "MeshInstance3D", true, false):
 			var mi: MeshInstance3D = h as MeshInstance3D

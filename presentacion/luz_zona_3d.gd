@@ -105,6 +105,13 @@ const ZONAS: Dictionary = {
 		"sol_color": Color(0.62, 0.86, 0.66), "sol_energia": 0.6, "sol_pitch": -66.0, "sol_yaw": 20.0,
 		"ambiente_arriba": Color(0.48, 0.66, 0.54), "ambiente_abajo": Color(0.22, 0.34, 0.26), "ambiente_energia": 0.5,
 	},
+	# Pantano (8/11, docs/ARTE.md §2: #346A60 #8CAF80 #887F69 #55434F #2B253C): sol bajo y filtrado entre el follaje (verde claro #8CAF80 hacia el blanco, algo apagado), ambiente frío verde-azulado arriba
+	# (el dosel) y rebote malva oscuro abajo (#55434F, el barro y el agua turbia). Más oscuro que el bosque (ambiente 0,6 y colores claros) y bastante por encima de la cueva (sol 0,38): se juega bien.
+	# La bruma baja sobre el agua NO es del Environment: son las láminas de `NieblaFoso3D.montar_agua` (`niebla_agua` en la escena del mapa).
+	"pantano": {
+		"sol_color": Color(0.76, 0.90, 0.78), "sol_energia": 0.80, "sol_pitch": -58.0, "sol_yaw": 20.0,
+		"ambiente_arriba": Color(0.44, 0.64, 0.62), "ambiente_abajo": Color(0.34, 0.26, 0.34), "ambiente_energia": 0.50,
+	},
 	# Cueva / hielo: luz azul pálida, ambiente oscuro con rebote azul.
 	"hielo": {
 		"sol_color": Color(0.80, 0.90, 1.0), "sol_energia": 0.85, "sol_pitch": -70.0, "sol_yaw": 0.0,
@@ -113,7 +120,7 @@ const ZONAS: Dictionary = {
 }
 
 ## Orden fijo para recorrerlas con una tecla.
-const ORDEN: Array = ["bosque", "clasico", "atardecer", "ruinas", "hielo", "agua", "fuego", "cueva", "santuario", "cueva_lava", "cueva_goblin", "cueva_hielo", "cueva_ruinas"]
+const ORDEN: Array = ["bosque", "clasico", "atardecer", "ruinas", "hielo", "agua", "fuego", "cueva", "santuario", "cueva_lava", "cueva_goblin", "cueva_hielo", "cueva_ruinas", "pantano"]
 
 
 static func nombres() -> Array:

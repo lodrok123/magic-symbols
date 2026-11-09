@@ -35,7 +35,9 @@ const S: float = 2.3                       ## lado de una casilla (el de PruebaT
 const CARPETA_PIEZAS: String = "res://arte/meshy/piezas/"
 
 const BIBLIOTECAS: Array = ["res://arte/meshy/arboles_2.glb", "res://arte/meshy/mercado.glb",
-	"res://arte/meshy/bosque.glb", "res://arte/meshy/objetos.glb", "res://arte/meshy/magia.glb"]
+	"res://arte/meshy/bosque.glb", "res://arte/meshy/objetos.glb", "res://arte/meshy/magia.glb",
+	# 8/11 (Pantano): lo monta `arte/meshy/montar_pack_bioma.py pantano` con las piezas de `arte/meshy/entrada/` (un nodo por pieza, con el id por nombre). Sin el archivo no pasa nada.
+	"res://arte/meshy/packs/pack_pantano.glb", "res://arte/meshy/packs/pack_ruinas.glb"]
 
 const SUSTITUTAS: Dictionary = {
 	"arbol_redondo": "arbol_redondo_2", "pino": "pino_2", "seto_seco": "arbusto_otono",
@@ -93,6 +95,13 @@ const MEDIDA: Dictionary = {
 	"pilar_cascada": 3.1, "pilar_cascada_ancho": 3.1, "rocas_salpicadura": 0.6, "musgo_colgante": 0.9, "helechos_cueva": 0.6,
 	"geoda_resonante": 1.0, "estalagmita_resonante": 1.8, "estalagmita_rota": 0.7, "brasero_cueva": 0.9,
 	"alga_cueva": 0.5, "basalto_suelto": 0.35, "esquirla_cristal": 0.3, "jarron_roto": 0.35,     # el alga salió de pie (se pidió tumbada): 0,5 de alto
+	# 8/11 · el PANTANO (arte/meshy/PROMPTS_PANTANO.md; columna `medida` de assets_biomas.tsv = ALTO en u). Aún sin modelo: las entradas esperan a `pack_pantano.glb` (BIBLIOTECAS).
+	# Las piezas que se miden por planta (pasarelas, muelle, barca, charca, isla, puente de cuerda) van en MEDIDA_ANCHO.
+	"arbol_manglar": 3.5, "cipres_calvo": 4.2, "arbol_muerto": 3.0, "raices_arco": 2.0, "juncos_altos": 1.4, "flor_carnivora": 1.0,
+	"seta_luminosa": 0.5, "setas_pantano": 0.5, "farolillo_pantano": 1.6, "pilote": 1.2, "lirio_pantano": 0.6, "hongo_estante": 0.6, "caldero_bruja": 1.0, "totem_pantano": 2.0,
+	"jaula_colgante": 1.2, "lianas_colgantes": 2.4,
+	# 8/11 · lamina Ancient Artifact Collection (pack_ruinas): anforas 0,9 u de alto (jarron_alto mide 0,95), idolos 0,8; la pila va por ancho.
+	"anfora_asas_a": 0.9, "anfora_asas_b": 0.9, "idolo_a": 0.8, "idolo_b": 0.8,
 }
 
 const MEDIDA_ANCHO: Dictionary = {"fogata": S * 0.6, "puente": S * 1.05, "puente_runico": S * 1.3,      # 11/10: el puente de piedra rúnica: casilla de agua + un poco de cada orilla
@@ -119,7 +128,10 @@ const MEDIDA_ANCHO: Dictionary = {"fogata": S * 0.6, "puente": S * 1.05, "puente
 	"puerta_goblin": S * 1.6, "empalizada_goblin": S,
 	# 20/10: piezas nuevas anchas o planas (diario 213): se miden por ancho para conservar la proporción real. Valores de partida.
 	"nenufar": 1.0, "nenufar_flor": 0.5, "laja_piedra": 1.4, "cuenco_piedra": 0.8, "hojas_monton": 0.9, "raices_musgo": 1.4, "raices_secas": 1.6,
-	"ramas_suelo": 1.2, "tocon_roca": 1.6, "tronco_seco": 1.8}
+	"ramas_suelo": 1.2, "tocon_roca": 1.6, "tronco_seco": 1.8,
+	# 8/11 · LAMINA «Rustic Marshland» (Meshy): pasarela_recta, muro_curvo_piedra, muelle y cabana_palafito comparten UNA escala (x5,16: la recta mide 2,3 u); la cabana se subio de 2,1 a 2,6 de ancho.
+	# 8/11 · el PANTANO, piezas por planta (lado mayor, columna `medida` de assets_biomas.tsv): tramos de pasarela y muelle = 1 casilla; barca 2,0; charca 1,6; isla 2,0; puente de cuerda 2 casillas (4,6).
+	"pasarela_recta": 2.3, "muro_curvo_piedra": 1.76, "pasarela_codo": S, "pasarela_rota": S, "muelle": 2.14, "cabana_palafito": 2.6, "barca_rota": 2.0, "charca_burbujas": 1.6, "isla_hierba": 2.0, "puente_cuerda": S * 2.0, "pila_ofrenda": 1.2}
 
 ## Giro (grados, sobre Y) que se le da al modelo suelto para que mire como espera el juego (+Z local = hacia donde apunta el marcador).
 ## 11/10 puse 180 al cristal de la fuente eléctrica creyendo que su canal azul salía por -Z: era al revés (visto desde arriba, el canal

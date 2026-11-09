@@ -1,0 +1,187 @@
+; PANTANO (8/11/2026): mapa de muestra para revisar el bioma en el juego. 40 x 30. Escena escenas/PruebaPantano.tscn (F6) o el nivel «Pantano» de Niveles.ESCENAS.
+; Diseno: arte/meshy/PROMPTS_PANTANO.md y docs/PROPUESTA_BIOMAS.md. Luz «pantano» (LuzZona3D), suelo de BARRO (estilo=pantano), bruma baja sobre el agua (niebla_agua).
+; Letras: # limite · . suelo · g barro · , hierba corta · v hierba alta (arde) · ~ agua · b pasarela sobre el agua (se pisa) · z enredadera/seto que se quema · r telarana · S jugadora (orilla SO).
+; RUTAS. Sur -> norte: (1) la PASARELA sobre el canal (cruza por x 10..14; el tramo ROTO (12,14) es agua: lo tapa el hielo o la tierra), (2) el paso del ESTE (34,14), cerrado por la enredadera `z` (fuego).
+; El nicho del sur (15..24, 20..27) solo se abre por la TELARANA `r` (20,19): fuego o hielo. La cabana (isla del lago NE) se alcanza por la pasarela corta (30,8..9). Nube de veneno permanente en el rincon NO (4,3).
+; Camara fija al norte (CAMARA_GIRA = false): las piezas miran a +Z (giro 0).
+########################################
+#gggggggggggg.g..g...g.................#
+#gggggggggggg..,,,,.,,.......gg,,,,g,g.#
+#gggggggggggg.,,,,,,,,.ggggggg~~~~~~~gg#
+#gggg~~~~gggg.,,,.,,,,gg~~~~gggg~~~~~~g#
+#gggg~~~~gggg....vvvvv~~~~~~ggggg~~gg~g#
+#gggg~~~~gggg....vvv~~~~~~~~ggggg~~gg~~#
+#gggggggggggg...gvvv~~~~~~~~~ggg~~~~~~g#
+#gggggggggggg.....vvg~~~~~~~~~b~~~~~~gg#
+#g~~gg.g......g..vvvvgggggg~~~b~~~gggg.#
+#g~~g.vv.v.v..ggg.........gggggggg,.,.,#
+#gggg.vgvvvvvgg~ggg.....g.gggg.....,,,,#
+#gg...gg~~~~~~b~~~g..gggggg~~ggg...,,,,#
+#~ggggg~~~~~~~b~~~gggg~~~~~~~~g.g.g....#
+#~~~g~~~~~bb~bb~~~gg~~~~~~~~~~####z#####
+#~~~~~~~~~b~~~~~~~~~~~~~~gg~~~g...g..g.#
+#~~~~~~~~~b~~~~~~~~~~~~~ggggg~gg.......#
+#gggggggggg~~~ggggvv~~gvv.gvvgg.....g.g#
+#.g...g...ggggg..g.vgvvv..vvv..g.......#
+#.vvvvv....g..######r#####vvvv...ggggg.#
+#.v.vvv...gggg#vvvv.vvv.v#vvvv...g~~~g.#
+#.vv.vvgggg~~g#.ggvvvggvv#.....gggg~~gg#
+#..g..gg~~~~~~#gg~~~~~gg.#g,.,,g~~~~~~g#
+#......g~~~vv~#g~~~~~~~gg#.g,.,g~~~~ggg#
+#gg....g~~~~~g#g~~~~~~~~g#,,,.g,ggggg.g#
+#.ggSg.gg~~~gg#ggg~~~~~gg#,,g,,,....gg.#
+#,,.,,,,gggggg#..ggggggg.#,,,,,,.......#
+#,,,,,.,.g....#....,...,.#,.,,.,.......#
+#,,,,,,,......#.......g..#,....,g......#
+########################################
+; --------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+; ZONAS: luz «pantano» en todo el mapa; humedad (fuego x0,7, rayo x1,5) salvo en el paso del este, donde la enredadera arde como siempre.
+; --------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+; zona 1,1..38,28 pantano mezcla=0 id=pantano estado=humedad
+; zona 30,10..38,18 pantano mezcla=0 id=paso_este
+; --------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+; PIEZAS «reutilizar» del pantano (assets_biomas.tsv): decorado de arte/piezas, sin mecanica. Todas de frente a +Z.
+; --------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+; pieza d_sauce_1 decorado 5 17 modelo=sauce
+; pieza d_sauce_2 decorado 19 17 modelo=sauce
+; pieza d_sauce_3 decorado 27 17 modelo=sauce
+; pieza d_sauce_4 decorado 2 12 modelo=sauce
+; pieza d_sauce_5 decorado 17 11 modelo=sauce
+; pieza d_sauce_6 decorado 26 11 modelo=sauce
+; pieza d_sauce_7 decorado 7 10 modelo=sauce
+; pieza d_sauce_8 decorado 24 10 modelo=sauce
+; pieza d_sauce_9 decorado 33 10 modelo=sauce
+; pieza d_sauce_10 decorado 3 19 modelo=sauce
+; pieza d_tronco_musgoso_1 decorado 8 18 modelo=tronco_musgoso
+; pieza d_tronco_musgoso_2 decorado 22 12 modelo=tronco_musgoso
+; pieza d_tronco_musgoso_3 decorado 30 12 modelo=tronco_musgoso
+; pieza d_tronco_musgoso_4 decorado 16 20 modelo=tronco_musgoso
+; pieza d_tocon_hueco_1 decorado 3 22 modelo=tocon_hueco
+; pieza d_tronco_enredadera_1 decorado 33 16 modelo=tronco_enredadera
+; pieza d_raices_musgo_1 decorado 12 18 modelo=raices_musgo
+; pieza d_raices_musgo_2 decorado 19 12 modelo=raices_musgo
+; pieza d_raices_musgo_3 decorado 25 17 modelo=raices_musgo
+; pieza d_raices_musgo_4 decorado 9 11 modelo=raices_musgo
+; pieza d_raices_musgo_5 decorado 31 10 modelo=raices_musgo
+; pieza d_raiz_mundo_1 decorado 36 11 modelo=raiz_mundo
+; pieza d_raiz_mundo_2 decorado 15 3 modelo=raiz_mundo
+; pieza d_musgo_colgante_1 decorado 6 18 modelo=musgo_colgante
+; pieza d_musgo_colgante_2 decorado 22 17 modelo=musgo_colgante
+; pieza d_musgo_colgante_3 decorado 28 11 modelo=musgo_colgante
+; pieza d_musgo_colgante_4 decorado 18 10 modelo=musgo_colgante
+; pieza d_nenufar_1 decorado 3 14 modelo=nenufar
+; pieza d_nenufar_2 decorado 6 14 modelo=nenufar
+; pieza d_nenufar_3 decorado 22 14 modelo=nenufar
+; pieza d_nenufar_4 decorado 26 13 modelo=nenufar
+; pieza d_nenufar_5 decorado 27 15 modelo=nenufar
+; pieza d_nenufar_6 decorado 10 22 modelo=nenufar
+; pieza d_nenufar_7 decorado 12 24 modelo=nenufar
+; pieza d_nenufar_8 decorado 19 23 modelo=nenufar
+; pieza d_nenufar_9 decorado 21 24 modelo=nenufar
+; pieza d_nenufar_10 decorado 24 5 modelo=nenufar
+; pieza d_nenufar_11 decorado 27 8 modelo=nenufar
+; pieza d_nenufar_12 decorado 34 7 modelo=nenufar
+; pieza d_nenufar_13 decorado 7 5 modelo=nenufar
+; pieza d_nenufar_flor_1 decorado 4 15 modelo=nenufar_flor
+; pieza d_nenufar_flor_2 decorado 24 14 modelo=nenufar_flor
+; pieza d_nenufar_flor_3 decorado 20 24 modelo=nenufar_flor
+; pieza d_nenufar_flor_4 decorado 35 7 modelo=nenufar_flor
+; pieza d_nenufar_flor_5 decorado 6 5 modelo=nenufar_flor
+; pieza d_nenufar_flor_6 decorado 9 22 modelo=nenufar_flor
+; pieza d_juncos_1 decorado 2 16 modelo=juncos
+; pieza d_juncos_2 decorado 9 17 modelo=juncos
+; pieza d_juncos_3 decorado 16 17 modelo=juncos
+; pieza d_juncos_4 decorado 28 16 modelo=juncos
+; pieza d_juncos_5 decorado 13 20 modelo=juncos
+; pieza d_juncos_6 decorado 25 10 modelo=juncos
+; pieza d_juncos_7 decorado 1 12 modelo=juncos
+; pieza d_canas_1 decorado 8 16 modelo=canas
+; pieza d_canas_2 decorado 17 16 modelo=canas
+; pieza d_canas_3 decorado 29 15 modelo=canas
+; pieza d_canas_4 decorado 12 21 modelo=canas
+; pieza d_canas_5 decorado 23 9 modelo=canas
+; pieza d_canas_6 decorado 31 9 modelo=canas
+; pieza d_planta_agua_1 decorado 16 23 modelo=planta_agua
+; pieza d_planta_agua_2 decorado 18 25 modelo=planta_agua
+; pieza d_planta_agua_3 decorado 36 21 modelo=planta_agua
+; pieza d_planta_agua_4 decorado 3 9 modelo=planta_agua
+; pieza d_setas_marrones_1 decorado 16 21 modelo=setas_marrones
+; pieza d_setas_marrones_2 decorado 23 26 modelo=setas_marrones
+; pieza d_roca_est_musgo_2_1 decorado 30 12 modelo=roca_est_musgo_2
+; pieza d_roca_est_musgo_3_1 decorado 36 17 modelo=roca_est_musgo_3
+; pieza d_roca_est_musgo_4_1 decorado 2 27 modelo=roca_est_musgo_4
+; pieza d_roca_est_musgo_0_1 decorado 26 24 modelo=roca_est_musgo_0
+; pieza d_roca_est_musgo_3_2 decorado 13 5 modelo=roca_est_musgo_3
+; pieza d_prov_vines_group_02_1 decorado 34 15 modelo=prov_vines_group_02
+; pieza d_prov_woodenplank_01_1 decorado 11 15 modelo=prov_woodenplank_01
+; pieza d_arbol_manglar_1 decorado 4 12 modelo=arbol_manglar
+; pieza d_arbol_manglar_2 decorado 25 12 modelo=arbol_manglar
+; pieza d_juncos_altos_1 decorado 2 17 modelo=juncos_altos
+; pieza d_juncos_altos_2 decorado 27 16 modelo=juncos_altos
+; pieza d_juncos_altos_3 decorado 12 20 modelo=juncos_altos
+; pieza d_cabana_palafito_1 decorado 30 5 modelo=cabana_palafito
+; pieza d_muelle_1 decorado 30 7 modelo=muelle
+; pieza d_muro_curvo_piedra_1 decorado 33 11 modelo=muro_curvo_piedra
+; pieza d_muro_curvo_piedra_2 decorado 8 19 modelo=muro_curvo_piedra
+; pieza d_lirio_pantano_1 decorado 5 17 modelo=lirio_pantano
+; pieza d_lirio_pantano_2 decorado 24 16 modelo=lirio_pantano
+; pieza d_lirio_pantano_3 decorado 16 11 modelo=lirio_pantano
+; pieza d_lirio_pantano_4 decorado 31 11 modelo=lirio_pantano
+; pieza d_lirio_pantano_5 decorado 2 18 modelo=lirio_pantano
+; pieza d_setas_pantano_1 decorado 9 18 modelo=setas_pantano
+; pieza d_setas_pantano_2 decorado 23 12 modelo=setas_pantano
+; pieza d_setas_pantano_3 decorado 5 11 modelo=setas_pantano
+; pieza d_setas_pantano_4 decorado 18 17 modelo=setas_pantano
+; pieza d_pasarela_recta_1 decorado 10 16 modelo=pasarela_recta giro=90
+; pieza d_pasarela_recta_2 decorado 10 15 modelo=pasarela_recta giro=90
+; pieza d_pasarela_recta_3 decorado 11 14 modelo=pasarela_recta
+; pieza d_pasarela_recta_4 decorado 13 14 modelo=pasarela_recta
+; pieza d_pasarela_recta_5 decorado 14 13 modelo=pasarela_recta giro=90
+; pieza d_pasarela_recta_6 decorado 14 12 modelo=pasarela_recta giro=90
+; pieza d_pasarela_recta_7 decorado 30 9 modelo=pasarela_recta giro=90
+; pieza d_pasarela_recta_8 decorado 30 8 modelo=pasarela_recta giro=90
+; nube de veneno permanente en el rincon NO (el estado `veneno` de la zona lo da la nube)
+; pieza nube_rincon nube_veneno 4 3 vida=0 radio=2
+; --------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+; HUECOS de las piezas NUEVAS de prioridad 1 (aun no existen; vienen de Meshy). Cada `; hueco <id> x y [giro=<g>]` lo dibuja escenas/pantano_huecos.gd como un POSTE con rotulo.
+; CUANDO LLEGUE LA PIEZA: 1) dejar el GLB en arte/meshy/entrada/<id>.glb, 2) python arte/meshy/montar_pack_bioma.py pantano, 3) GENERAR_ESCENAS_PIEZAS.cmd <id> (= godot --headless --path . --script res://herramientas/generar_piezas_ids.gd -- <id>; crea arte/piezas/<id>.tscn),
+;                       4) en este archivo, quitar el `# ` de las lineas `; # pieza ...` de ese id (y borrar sus lineas `; hueco`). Las pasarelas: giro 0 = a lo largo de X (E-O); 90 = a lo largo de Z (provisional: afinar al verlas).
+; --------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+; hueco pasarela_codo 10 14
+; # pieza h_pasarela_codo_1 decorado 10 14 modelo=pasarela_codo
+; hueco pasarela_rota 12 14
+; # pieza h_pasarela_rota_1 decorado 12 14 modelo=pasarela_rota
+; hueco pasarela_codo 14 14 giro=180
+; # pieza h_pasarela_codo_2 decorado 14 14 modelo=pasarela_codo giro=180
+; hueco cipres_calvo 18 10
+; # pieza h_cipres_calvo_1 decorado 18 10 modelo=cipres_calvo
+; hueco cipres_calvo 9 17
+; # pieza h_cipres_calvo_2 decorado 9 17 modelo=cipres_calvo
+; hueco cipres_calvo 36 12
+; # pieza h_cipres_calvo_3 decorado 36 12 modelo=cipres_calvo
+; hueco arbol_muerto 9 3
+; # pieza h_arbol_muerto_1 decorado 9 3 modelo=arbol_muerto
+; hueco arbol_muerto 3 25
+; # pieza h_arbol_muerto_2 decorado 3 25 modelo=arbol_muerto
+; hueco arbol_muerto 22 26
+; # pieza h_arbol_muerto_3 decorado 22 26 modelo=arbol_muerto
+; hueco raices_arco 14 11
+; # pieza h_raices_arco_1 decorado 14 11 modelo=raices_arco
+; hueco flor_carnivora 33 12
+; # pieza h_flor_carnivora_1 decorado 33 12 modelo=flor_carnivora
+; hueco flor_carnivora 20 22
+; # pieza h_flor_carnivora_2 decorado 20 22 modelo=flor_carnivora
+; hueco seta_luminosa 16 24
+; # pieza h_seta_luminosa_1 decorado 16 24 modelo=seta_luminosa
+; hueco seta_luminosa 8 8
+; # pieza h_seta_luminosa_2 decorado 8 8 modelo=seta_luminosa
+; hueco seta_luminosa 22 26
+; # pieza h_seta_luminosa_3 decorado 22 26 modelo=seta_luminosa
+; hueco farolillo_pantano 6 24
+; # pieza h_farolillo_pantano_1 decorado 6 24 modelo=farolillo_pantano
+; hueco farolillo_pantano 10 17
+; # pieza h_farolillo_pantano_2 decorado 10 17 modelo=farolillo_pantano
+; hueco farolillo_pantano 30 10
+; # pieza h_farolillo_pantano_3 decorado 30 10 modelo=farolillo_pantano
+; hueco farolillo_pantano 20 20
+; # pieza h_farolillo_pantano_4 decorado 20 20 modelo=farolillo_pantano
