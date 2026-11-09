@@ -90,8 +90,18 @@ const GRIMORIO_JUGADORA_GIRO: Vector3 = Vector3(24.5, 180.0, 0.0)
 ## mide 0,34 de alto en un personaje de 0,95.
 ## El puño del esqueleto nuevo cae en (−0,007, +0,058, −0,002) en el espacio de RightHand (medidas_mano_equipo.gd), y a eso se le
 ## suma bajar la pieza por su propio eje para que el puño quede sobre el MANGO: «abajo del mundo» es ahí (−0,32, +0,64, +0,70).
-const CRUZ_ESCALA: float = 0.75
-const CRUZ_POS: Vector3 = Vector3(-0.026, 0.096, 0.040)     # puño + 6 cm hacia abajo (0,08 de la pieza a esta escala)
+## 9/11 (Pablo: «haz que la cruz sea como un bastón»): a 1,45 mide 0,66 de alto, dos tercios del personaje, y el mango llega casi al
+## suelo como una cruz procesional. El agarre sube al 0,30 de la pieza (antes 0,08): el puño va en MITAD del mango, no en su punta,
+## que es como se lleva un bastón.
+const CRUZ_ESCALA: float = 1.15
+const CRUZ_POS: Vector3 = Vector3(-0.007, 0.058, -0.002)    # el puño; de bajarla hasta el agarre se encarga PiezaVertical3D
+## Las dos se llevan DE PIE pase lo que pase con la mano. «agarre_y» va en unidades de la PIEZA, SIN escalar: PiezaVertical3D ya
+## lo multiplica por la escala. La cruz mide 0,454 y se agarra a 0,13 de su base, o sea en el tercio bajo del mango, como un
+## bastón: por encima del puño quedan 44 cm de cruz y por debajo 19 de mango.
+## «desplaz» las separa del cuerpo en el espacio del personaje (x = su izquierda, z = su frente), porque en la vertical exacta del
+## puño la cruz se mete dentro de la capa.
+const CRUZ_VERTICAL: Dictionary = {"vertical": true, "agarre_y": 0.13, "desplaz": Vector3(-0.01, 0.0, 0.05)}
+const VELA_VERTICAL: Dictionary = {"vertical": true, "agarre_y": 0.03, "desplaz": Vector3(-0.02, 0.0, 0.04)}
 const CRUZ_GIRO: Vector3 = Vector3(-44.6, 119.4, -153.1)
 ## La palmatoria va también en la mano DERECHA (cada miembro de la procesión porta una sola cosa), así que usa el giro de esa mano,
 ## el mismo que la cruz. Mide 0,398 de ancho con el asa: a 0,8 tapaba medio cuerpo.
@@ -170,10 +180,10 @@ const EQUIPO: Dictionary = {
 	# 9/11 (Pablo): la procesión son VARIOS iguales seguidos y cada uno porta UNA sola cosa. Por eso no hay un «santa_compana_rig»
 	# que lleve las dos: son dos variantes del mismo GLB (Pj3D.MODELO_DE), y cada una equipa su pieza en la mano DERECHA.
 	"santa_compana_cruz": [
-		["cruz_santa", "RightHand", CRUZ_POS, CRUZ_GIRO, Vector3(CRUZ_ESCALA, CRUZ_ESCALA, CRUZ_ESCALA)],
+		["cruz_santa", "RightHand", CRUZ_POS, CRUZ_GIRO, Vector3(CRUZ_ESCALA, CRUZ_ESCALA, CRUZ_ESCALA), CRUZ_VERTICAL],
 	],
 	"santa_compana_vela": [
-		["vela_santa", "RightHand", VELA_POS_DERECHA, VELA_GIRO_DERECHA, Vector3(VELA_ESCALA, VELA_ESCALA, VELA_ESCALA)],
+		["vela_santa", "RightHand", VELA_POS_DERECHA, VELA_GIRO_DERECHA, Vector3(VELA_ESCALA, VELA_ESCALA, VELA_ESCALA), VELA_VERTICAL],
 	],
 }
 
@@ -220,11 +230,24 @@ static func equipar(id: String, modelo: Node3D) -> Array[Node3D]:
 		p.set_meta("equipo_id", String(datos[0]))     # para que quien lo necesite lo encuentre (Pj3D.poner_equipo_visible)
 		at.add_child(p)
 		if datos.size() > 5 and datos[5] is Dictionary:
-			# Sexto dato opcional: pieza APOYADA en el suelo y vertical, que solo sigue a la mano (PiezaApoyada3D).
-			var apoyo := PiezaApoyada3D.new()
-			apoyo.name = "Apoyo"
-			at.add_child(apoyo)
-			apoyo.preparar(p, modelo, sk, hueso, datos[5] as Dictionary)
+			var extra: Dictionary = datos[5] as Dictionary
+			if extra.get("vertical", false):
+				# Pieza que se lleva SIEMPRE DE PIE aunque la mano gire (PiezaVertical3D). Hace falta en la cruz-bastón de la
+				# Santa Compaña: su andar es el de quien porta una lanza, y colgada del hueso sin más salía horizontal.
+				# Se SACA del BoneAttachment3D y se cuelga del modelo: si siguiera siendo hija del hueso, al actualizarse este
+				# la pieza heredaría su giro otra vez y volvería a torcerse, por mucho que se le fije la transformación global.
+				at.remove_child(p)
+				modelo.add_child(p)
+				var vert := PiezaVertical3D.new()
+				vert.name = "Vertical"
+				modelo.add_child(vert)
+				vert.preparar(p, modelo, sk, hueso, extra)
+			else:
+				# Sexto dato opcional: pieza APOYADA en el suelo y vertical, que solo sigue a la mano (PiezaApoyada3D).
+				var apoyo := PiezaApoyada3D.new()
+				apoyo.name = "Apoyo"
+				at.add_child(apoyo)
+				apoyo.preparar(p, modelo, sk, hueso, extra)
 		puestas.append(p)
 	return puestas
 

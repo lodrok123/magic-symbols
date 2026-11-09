@@ -387,9 +387,12 @@ func _poner_clips_de_familia(glb_id: String) -> AnimationPlayer:
 		var sk_g: Skeleton3D = sks[0] as Skeleton3D
 		clips = AnimacionesGolem.construir(sk_g, String(_modelo.get_path_to(sk_g)) + ":")
 	else:
-		if not ClipsFamilia.tiene_fuente(glb_id):
+		# Dos variantes pueden compartir GLB y querer clips DISTINTOS (la Santa Compaña: el de la cruz anda como quien lleva una
+		# lanza y el de la vela no), así que primero se mira si hay fuentes para el id del personaje y si no, para su modelo.
+		var clave: String = id if ClipsFamilia.tiene_fuente(id) else glb_id
+		if not ClipsFamilia.tiene_fuente(clave):
 			return null
-		clips = ClipsFamilia.clips_para(glb_id, _modelo, sks[0] as Skeleton3D)
+		clips = ClipsFamilia.clips_para(clave, _modelo, sks[0] as Skeleton3D)
 	if clips.is_empty():
 		push_warning("Pj3D[%s]: no se pudieron traer los clips de la familia" % id)
 		return null
