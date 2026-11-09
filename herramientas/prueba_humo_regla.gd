@@ -68,11 +68,14 @@ func _limpiar() -> void:
 # ------------------------------------------------------------------ 3. interruptores ------------------------------------------------------------------
 
 func _defecto() -> void:
-	print("== interruptores apagados por defecto")
+	print("== interruptores de serie (impacto_bola, barril, suelo y vapor encendidas; el resto apagadas)")
 	_ok("hay diez capas", HumoRegla.capas.size() == 10)
-	_ok("TODAS apagadas por defecto", not HumoRegla.hay_alguna())
+	var serie: Array = ["impacto_bola", "barril", "suelo", "vapor"]
 	for k in ["impacto_bola", "muro", "pilar", "barril", "haz", "dragon", "suelo", "vapor", "polvo_tierra", "polvo_viento"]:
-		_ok("existe la capa «%s»" % k, HumoRegla.capas.has(k) and not bool(HumoRegla.capas[k]))
+		_ok("capa «%s» de serie %s" % [k, "encendida" if k in serie else "apagada"], HumoRegla.capas.has(k) and bool(HumoRegla.capas[k]) == (k in serie))
+	# el resto de la prueba parte de todo apagado
+	HumoRegla.poner_todas(false)
+	_ok("con poner_todas(false), todas apagadas", not HumoRegla.hay_alguna())
 	_ok("las capas viejas de FuegoToy siguen apagadas y sin tocar", not FuegoToy.formas_extra["humo_cima_muro"] and not FuegoToy.formas_extra["humo_cima_pilar"] and FuegoToy.formas_extra.size() == 7)
 	# con todo apagado, los enganches no crean nada
 	var padre: Node3D = Node3D.new()

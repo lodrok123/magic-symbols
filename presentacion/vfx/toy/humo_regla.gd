@@ -13,7 +13,8 @@ extends Node3D
 ## Lo que se VE: el tamaño y el tono salen del hollín (la cantidad de materia). Una bocanada limpia (hollín ≈ 0) no se dibuja: el chorro rápido queda limpio y el humo nace donde el fuego se frena.
 ## Se dibuja con el HUMO TOON del juego (humo_regla.gdshader = copia de humo_toon.gdshader con el tono por bocanada: pompas, dos tonos planos, borde duro, erosión al morir) en un MultiMesh.
 ## Tres MATERIAS: HUMO (pardo, fuego), VAPOR (blanco: agua sobre fuego) y POLVO (terroso: tierra y viento a ras de suelo).
-## INTERRUPTORES: `capas` (una clave por efecto) TODAS APAGADAS por defecto en el juego; el lab las enciende con la tecla 8 (`poner_todas`). Ver `enganchar_*` (cada efecto llama a la suya con UNA línea).
+## INTERRUPTORES: `capas` (una clave por efecto). De serie (Pablo, 10/11/2026: «las recomendadas») van encendidas `DE_SERIE`: impacto_bola, barril, suelo y vapor; las demás
+## apagadas. El lab las enciende o apaga todas con la tecla 8 (`poner_todas`). Ver `enganchar_*` (cada efecto llama a la suya con UNA línea).
 ## TOPES: `MAX_VIVAS` bocanadas vivas en toda la escena y `MAX_EMISORES` emisores a la vez.
 
 const HumoToy = preload("res://presentacion/vfx/toy/humo_toy.gd")
@@ -29,8 +30,9 @@ enum Materia { HUMO, VAPOR, POLVO }
 ##   barril         ExplosionFuegoToy                                                                           haz            el haz de fuego donde choca (FuegoToy HAZ con `choques`)
 ##   dragon         la punta del chorro de la trampa del dragón                                                 suelo          la hierba ardiendo (Vfx3D.llamas)
 ##   vapor          agua sobre fuego (Vfx3D.vapor, VfxPuzle3D.vapor e ImpactoAguaToy.sobre_fuego)               polvo_tierra / polvo_viento   impactos de tierra y viento contra el suelo
-static var capas: Dictionary = {"impacto_bola": false, "muro": false, "pilar": false, "barril": false, "haz": false, "dragon": false, "suelo": false, "vapor": false,
+const DE_SERIE: Dictionary = {"impacto_bola": true, "muro": false, "pilar": false, "barril": true, "haz": false, "dragon": false, "suelo": true, "vapor": true,
 	"polvo_tierra": false, "polvo_viento": false}
+static var capas: Dictionary = DE_SERIE.duplicate()
 static var _registro: Array = []
 
 # ---- la regla (números de la demo; velocidades ÷ 3,2) ----
