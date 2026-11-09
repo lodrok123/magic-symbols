@@ -76,6 +76,22 @@ const GRIMORIO_JUGADORA_GIRO: Vector3 = Vector3(24.5, 180.0, 0.0)
 
 ## Por personaje: [id de la pieza, hueso (final del nombre), posición, giro en grados, (opcional) multiplicador de escala por eje] en el espacio del hueso.
 ## Los huesos de mano de Mixamo apuntan con +Y hacia los dedos.
+## Santa Compaña (9/11). Las dos piezas salen de separar_piezas.py con el origen en el centro de la planta y la base en Y = 0, y su
+## eje largo en +Y. La cruz mide 0,454 de alto en el GLB y la palmatoria 0,197.
+## Los giros NO son a ojo: con el modelo en reposo, el +Y del hueso RightHand apunta en el mundo a (−0,76, −0,63, +0,12) y el de
+## LeftHand a (+0,74, −0,66, +0,11), o sea hacia abajo y hacia fuera. Estos son los giros que llevan el +Y de la pieza a la vertical
+## del mundo con los brazos caídos (medidos con el script de manos; ver DIARIO). Como van colgados del hueso, siguen a la mano.
+## El centro del puño (media de los cuatro nudillos, herramientas/medidas_mano_equipo.gd) cae a (−0,006, +0,050, −0,002) en el
+## espacio de RightHand y a (−0,006, +0,052, −0,001) en el de LeftHand. A eso se le suma bajar la pieza por su propio eje para que
+## el puño quede sobre el MANGO y no en su extremo: en el espacio del hueso, «abajo del mundo» es (−0,32, +0,64, +0,70) por la
+## derecha y (−0,04, +0,66, −0,75) por la izquierda.
+const CRUZ_ESCALA: float = 0.8
+const CRUZ_POS: Vector3 = Vector3(-0.027, 0.091, 0.043)     # puño + 6,4 cm hacia abajo: el mango dentro de la mano
+const CRUZ_GIRO: Vector3 = Vector3(-44.6, 119.4, -153.1)
+const VELA_ESCALA: float = 0.55          # la palmatoria mide 0,398 de ancho con el asa: a 0,8 tapaba medio cuerpo
+const VELA_POS: Vector3 = Vector3(-0.007, 0.072, -0.023)    # puño + 3 cm hacia abajo: el platillo justo bajo la mano
+const VELA_GIRO: Vector3 = Vector3(48.3, -171.8, -176.3)
+
 const EQUIPO: Dictionary = {
 	# Marimanta (anciana duende, NPC): el bastón (arte/modelos/baston_marimanta.glb) en la mano DERECHA, vertical y apoyado en el suelo. Medidas en BASTON_*.
 	"marimanta": [
@@ -140,6 +156,13 @@ const EQUIPO: Dictionary = {
 	"goblin_warrior": [
 		["garrote", "RightHand", Vector3(0.0, 0.07, 0.03), Vector3(0.0, 0.0, 90.0)],
 		["escudo", "LeftForeArm", Vector3(0.0, 0.12, -0.07), Vector3(90.0, 0.0, 0.0)],
+	],
+	# Santa Compaña (9/11): la cruz de campanillas en la mano DERECHA y la palmatoria con la vela en la IZQUIERDA. Las dos salen de
+	# arte/modelos/reliquias.glb (lámina de cuatro objetos de Meshy) partida con tools/separar_piezas.py; las otras dos piezas (el
+	# brocal del pozo y la losa con musgo) son de escenario y están en arte/modelos. Medidas en CRUZ_* y VELA_*.
+	"santa_compana_rig": [
+		["cruz_santa", "RightHand", CRUZ_POS, CRUZ_GIRO, Vector3(CRUZ_ESCALA, CRUZ_ESCALA, CRUZ_ESCALA)],
+		["vela_santa", "LeftHand", VELA_POS, VELA_GIRO, Vector3(VELA_ESCALA, VELA_ESCALA, VELA_ESCALA)],
 	],
 }
 

@@ -38,6 +38,10 @@ func _initialize() -> void:
 	var modelo: Node3D = (load(GLB) as PackedScene).instantiate()
 	root.add_child(modelo)
 	var sk: Skeleton3D = modelo.find_children("*", "Skeleton3D", true, false)[0]
+	# Si el modelo tiene equipo (cruz, vela, bastón…), se monta igual que en el juego para verlo en la mano con los clips.
+	var equipo: Array[Node3D] = Equipo3D.equipar(_id, modelo)
+	if not equipo.is_empty():
+		print("equipo puesto: ", equipo.map(func(n): return String(n.get_meta("equipo_id", n.name))))
 	var ap := AnimationPlayer.new()
 	modelo.add_child(ap)
 	var lib := AnimationLibrary.new()
