@@ -46,6 +46,7 @@ const TIEMPO_LANZAR: float = 0.3           ## Engine.time_scale mientras se apun
 const TIEMPO_LIBRO: float = 0.3             ## Engine.time_scale con el libro abierto: ya no pausa, los goblins siguen (5.2)
 const RALENTIZADO: float = TIEMPO_LANZAR
 const ALCANCE_ORIGEN: float = 3.0           ## casillas: radio del anillo que se dibuja al apuntar (el hechizo NO nace ahí: 5.1)
+const RADIO_MIN_POSICION: float = 1.0       ## casillas libres alrededor de la jugadora al usar el glifo Posición
 const TOLERANCIA_ALCANCE_U: float = 0.05    ## u: holgura al comparar el origen con el borde del anillo (el origen vivo se recorta justo en el borde)
 const ARRASTRE_MINIMO: float = 0.45        ## casillas: menos que esto es un clic, no un arrastre
 const TIEMPO_MAX_MODO: float = 12.0         ## segundos de reloj: pasado esto se cancela solo
@@ -187,6 +188,7 @@ var _punto_vivo: Vector3 = Vector3.ZERO
 var _marca_origen: MeshInstance3D = null
 var _marca_flecha: MeshInstance3D = null
 var _marca_alcance: MeshInstance3D = null
+var _marca_radio_minimo: MeshInstance3D = null
 var _prev_casillas: Array = []                 ## 8.8: una caja por casilla que ocupará el hechizo (previsualización al apuntar)
 var _prev_color: Color = Color.WHITE
 var _apuntado: Apuntado3D = null              ## 28/10: el recorrido real, las retículas y el motivo de «no se puede» del indicador (vive lo que el modo de lanzar)
@@ -210,12 +212,19 @@ var lanzamiento_inteligente: bool:
 	set(v):
 		Estado.i().lanzamiento_inteligente = v
 
+## Fichas temporales de una sala de prueba. Solo las consulta el lanzamiento rápido.
+var fichas_combate: Array[Dictionary] = []
+## Tope opcional para el agua física de un muro quieto, en casillas cúbicas.
+var limite_agua_muro: float = INF
+
 ## --- Lo vivo ---
 var _campos: Array = []                 ## Campo: muros, corros, ondas, tierra...
 var _bloques: Array = []                ## tierra construida: {celda, niveles, nodos, resta, v2}
 var _zonas_v2: Array = []               ## zonas V2 vivas (plasma, gas, campo): ZonaV2
 var zonas_cruce: Array = []             ## 6/11 (B5): zonas SIN pulso que otro hechizo reconoce al cruzarlas (el charco del agua): ZonaV2. Aparte de `_zonas_v2` a propósito: el limo y las pruebas cuentan esas como zonas de pulso
 var _solideces_v2: Array = []           ## SolidezV2 vivas: lo que bloquea proyectiles y aguanta golpes (propiedad `solidez`)
+var _plataformas_tierra: Array[Dictionary] = []
+const ALTO_PLATAFORMA_TIERRA: float = 0.45
 var _columnas: Array = []               ## alturas temporales de columnas: {celda, niveles, resta, nodo}
 var _hielo: Dictionary = {}             ## Vector2i -> {agua}: casillas heladas por un hechizo, para soltar el vapor al acabar (SIN contador: C2, 3/11)
 var _t_hielo: float = 0.0
@@ -271,6 +280,7 @@ var conjuro_actual: Dictionary = {}     ## A1: {hechizo: Hechizo, carga: float} 
 signal hechizo_v2(estado: String, elemento: String, g: Dictionary, origen: Vector3, dir: Vector3, props: Dictionary)
 ## 6/11 (entrada 422): un bloque de tierra de la casilla se deshace (caducó, o lo echó el tope FIFO). Solo para el dibujo: el TierraToy que lo representa se hunde en ese momento.
 signal tierra_deshecha(celda: Vector2i)
+signal plataforma_tierra_lanzada
 
 
 ## =====================================================================================================
@@ -857,6 +867,8 @@ static func receta_de_ficha(ficha: Dictionary, rune: RuneData, tinta_: Tinta = n
 		receta.origin = 0.0
 	receta.calidad = calidad
 	var hechizo: Hechizo = receta.hechizo(rune)
+	if hechizo != null and hechizo.en_punto and bool(ficha.get("origen_explicito", false)) and not glifos.has("posicion"):
+		hechizo.con({"en_punto": false})
 	if hechizo != null and tinta_ != null and rune != null:
 		hechizo.dano *= tinta_.mult_dano(Objetos.elemento_de(rune))
 	return {"receta": receta, "rune": rune, "calidad": calidad, "glifos": glifos, "hechizo": hechizo}      # `rune`: la runa con que se construyó (el derivado, si lo hay)
@@ -904,6 +916,10 @@ static func notas_de(hechizo: Hechizo) -> Array[String]:
 	var salida: Array[String] = []
 	if hechizo != null and hechizo.en_punto:
 		salida.append("Nace donde apuntas")
+	if hechizo != null:
+		var largo: int = hechizo.longitud_plataforma_tierra()
+		if largo > 1:
+			salida.append("Puente: hasta %d casillas de suelo firme" % largo)
 	return salida
 
 
@@ -927,7 +943,7 @@ func cast_page(indice: int) -> void:
 
 ## Todas las comprobaciones de `cast_page` (recarga, tinta, altura, glifos sin uso…) y, si pasan, deja la página lista en `_preparado`. Devuelve false si se negó
 ## (con su aviso). No toca el tiempo ni la jugadora: de ahí cuelgan los dos modos, el de siempre (`cast_page`) y el rápido (`pulsar_pagina`).
-func _preparar_pagina(indice: int) -> bool:
+func _preparar_pagina(indice: int, rapida: bool = false) -> bool:
 	if indice < 0 or indice >= Repertoire.pages_available(PAGES):
 		return false
 	if modo_lanzar:
@@ -938,7 +954,8 @@ func _preparar_pagina(indice: int) -> bool:
 		Sensacion3D.no_puedes(self, indice)
 		return false
 
-	var ficha: Dictionary = pages[indice]
+	var de_combate: bool = rapida and indice < fichas_combate.size()
+	var ficha: Dictionary = fichas_combate[indice] if de_combate else pages[indice]
 	var element_data: RuneData = rune_database.get(ficha["element"])
 	var componentes: Array = ficha["components"]
 	if element_data == null:
@@ -963,7 +980,7 @@ func _preparar_pagina(indice: int) -> bool:
 		return false
 	if String(pareja["estado"]) == CombosSellos.REACCION:
 		element_data = pareja["rune"]
-	if componentes.is_empty():
+	if componentes.is_empty() and Objetos.elemento_de(element_data) != "tierra":
 		_feedback("A la página %d le falta algún glifo" % (indice + 1))
 		return false
 	if cooldown_left[indice] > 0.0:
@@ -981,7 +998,7 @@ func _preparar_pagina(indice: int) -> bool:
 	var calidad: float = float(montada["calidad"])
 	var glifos_pagina: Array = montada["glifos"]
 	for s in glifos_pagina:
-		if not Repertoire.sigil_active(Sigils.repertorio_de(s)):
+		if not Repertoire.sigil_active(Sigils.repertorio_de(s)) and not (de_combate and s == "posicion"):
 			_feedback("Un glifo de la página ya no está activo")
 			return false
 	if String(pareja["estado"]) == CombosSellos.SIN_REACCION:
@@ -1036,9 +1053,9 @@ func pulsar_pagina(indice: int) -> void:
 		_buffer_t = BUFFER_PULSACION
 		_buffer_soltada = false
 		return
-	if not _preparar_pagina(indice):
+	if not _preparar_pagina(indice, true):
 		return
-	if lanzamiento_inteligente:
+	if lanzamiento_inteligente and indice >= fichas_combate.size():
 		_lanzar_al_instante()
 		return
 	_entrar_modo_lanzar(true, indice)
@@ -1137,6 +1154,7 @@ func _entrar_modo_lanzar(rapido: bool = false, pagina: int = -1) -> void:
 	Sensacion3D.carga(self, Objetos.elemento_de(rune))     # gamefeel lote 4: el aro que se cierra en la mano y el zumbido que sube
 	if rapido:
 		_actualizar_raton_rapido()                # ya desde el primer fotograma: un toque corto lanza hacia el ratón de ahora
+		_pintar_marcadores()
 	if _guia != null:
 		_guia.text = ("Suelta [%d] para lanzar · clic derecho o Esc cancela" % (pagina + 1)) if rapido \
 			else "Apunta con el ratón · arrastra para dirigir · suelta para lanzar · clic derecho o Esc cancela"
@@ -1156,12 +1174,13 @@ func _salir_modo(lanzando: bool = false) -> void:
 	Engine.time_scale = TiempoBruja.ESCALA if TiempoBruja.activa() else (1.0 if _ts_antes <= 0.0 else _ts_antes)
 	if _guia != null:
 		_guia.visible = false
-	for m in [_marca_origen, _marca_flecha, _marca_alcance]:
+	for m in [_marca_origen, _marca_flecha, _marca_alcance, _marca_radio_minimo]:
 		if m != null and is_instance_valid(m):
 			(m as Node).queue_free()
 	_marca_origen = null
 	_marca_flecha = null
 	_marca_alcance = null
+	_marca_radio_minimo = null
 	if _vista_reaccion != null and is_instance_valid(_vista_reaccion):
 		_vista_reaccion.queue_free()
 	_vista_reaccion = null
@@ -1224,6 +1243,9 @@ func punto_en_suelo(pos_pantalla: Vector2) -> Vector3:
 	var o: Vector3 = camara.project_ray_origin(pos_pantalla)
 	var d: Vector3 = camara.project_ray_normal(pos_pantalla)
 	var y: float = float(jugador.call("y_pies_actual"))
+	var hechizo: Hechizo = _preparado.get("hechizo") as Hechizo
+	if hechizo != null and hechizo.glifos.has("posicion"):
+		y = y_pies(celda_de((jugador as Node3D).position))
 	if absf(d.y) < 0.0001:
 		return Vector3(o.x, y, o.z)
 	var t: float = (y - o.y) / d.y
@@ -1244,6 +1266,10 @@ func _calcular_origen_vivo() -> void:
 	# 18/10: salvo un hechizo con `en_punto` (la barrera): nace en el punto apuntado, pero sin salir del anillo de ALCANCE_ORIGEN (no se lanza a cualquier parte).
 	_origen_vivo = yo
 	if bool(_preparado.get("en_punto", false)):
+		var hechizo: Hechizo = _preparado.get("hechizo") as Hechizo
+		if hechizo != null and hechizo.glifos.has("posicion"):
+			_origen_vivo = yo + hacia
+			return
 		var tope: float = ALCANCE_ORIGEN * Terreno3D.casilla
 		if hacia.length() > tope:
 			hacia = hacia.normalized() * tope
@@ -1357,7 +1383,7 @@ func _soltar() -> void:
 	var datos: Dictionary = _preparado
 	# Un sólido quieto que no cabe donde apuntas se avisa y se SIGUE apuntando (sin salir del modo, sin cobrar): el jugador reapunta o cancela.
 	if not datos.is_empty():
-		var motivo: String = rechazo_de_construccion(datos, origen)
+		var motivo: String = rechazo_de_construccion(datos, origen, dir)
 		if motivo != "":
 			_avisar_sin_construir(motivo)
 			if _rapido:
@@ -1386,7 +1412,7 @@ func _avisar_sin_construir(motivo: String) -> void:
 ## `con_conjuro` false = el disparo sale en el mismo fotograma, como antes de la Fase 14.5.
 ## Devuelve false si un sólido quieto no cabe donde nace (aviso y NADA se cobra: ni tinta ni recarga); true si se lanzó.
 func lanzar_ahora(datos: Dictionary, origen: Vector3, dir: Vector3, con_conjuro: bool = false) -> bool:
-	var motivo_no: String = rechazo_de_construccion(datos, origen)
+	var motivo_no: String = rechazo_de_construccion(datos, origen, dir)
 	if motivo_no != "":
 		_avisar_sin_construir(motivo_no)
 		return false
@@ -1756,6 +1782,10 @@ func _crear_marcadores(color: Color) -> void:
 	mundo.add_child(_marca_origen)
 	_marca_alcance = Apuntado3D.disco(2.0 * ALCANCE_ORIGEN * Terreno3D.casilla, Color(_prev_color, 0.6), 0.06, 64.0, false, false, 0.02)
 	mundo.add_child(_marca_alcance)
+	var hechizo: Hechizo = _preparado.get("hechizo") as Hechizo
+	if hechizo != null and hechizo.glifos.has("posicion"):
+		_marca_radio_minimo = Apuntado3D.disco(2.0 * RADIO_MIN_POSICION * Terreno3D.casilla, Apuntado3D.COLOR_NO, 0.06, 24.0)
+		mundo.add_child(_marca_radio_minimo)
 	_marca_flecha = MeshInstance3D.new()          # se queda (lo miran las pruebas de A1), pero la flecha la dibuja ya `Apuntado3D` siguiendo el vuelo real
 	_marca_flecha.visible = false
 	mundo.add_child(_marca_flecha)
@@ -1791,6 +1821,8 @@ func _pintar_marcadores() -> void:
 	var o: Vector3 = _origen_fijo if _fijado else _origen_vivo
 	_marca_origen.position = Vector3(o.x, y_pies(celda_de(o)) + 0.1, o.z)
 	_marca_alcance.position = Vector3(yo.x, y_pies(celda_de(yo)) + 0.07, yo.z)
+	if _marca_radio_minimo != null:
+		_marca_radio_minimo.position = _marca_alcance.position
 	var d: Vector3 = _direccion_actual()
 	var largo: float = 1.1 * Terreno3D.casilla
 	_marca_flecha.position = o + d * largo * 0.5 + Vector3(0, 0.1, 0)
@@ -1806,19 +1838,25 @@ func _pintar_previsualizacion(origen: Vector3, dir: Vector3) -> void:
 	var receta: Receta3D = _preparado.get("receta") as Receta3D
 	if receta == null:
 		return
-	var g: Dictionary = receta.geo()
+	var hechizo: Hechizo = _preparado.get("hechizo") as Hechizo
+	var g: Dictionary = hechizo.geo() if hechizo != null else receta.geo()
 	var viaja: float = float((g["props"] as Dictionary).get("viaja", 0.0))
 	var largo_flecha: float = viaja * Terreno3D.casilla          # lo que se desplaza lo que no vuela como proyectil (0 = nace y se queda)
 	var valido: bool = GeometriaV2.aviso_materia(g, _preparado.get("rune") as RuneData) == ""
 	var alto: float = Terreno3D.ALTO_NIVEL * float(GeometriaV2.niveles(g) - 1)
 	var motivo: String = ""
+	var plataforma: bool = hechizo != null and hechizo.es_plataforma_tierra()
 	if valido and (alto > 0.0 or bool(_preparado.get("en_punto", false))):
-		motivo = rechazo_de_construccion(_preparado, origen)
+		motivo = rechazo_de_construccion(_preparado, origen, dir)
 	var prevision: Array = PrevisionHechizo.prever_rapido(self, _preparado, origen, dir) if valido and motivo == "" else []
 	var recorrido: Dictionary = PrevisionHechizo.ultimo_recorrido if valido and motivo == "" else {}
 	var vuela: bool = not (recorrido.get("caminos", []) as Array).is_empty()
 	_marca_alcance.visible = bool(_preparado.get("en_punto", false))
 	var cs: Array = [] if vuela else GeometriaV2.celdas(g, Vector2(origen.x, origen.z), Vector2(dir.x, dir.z), Terreno3D.casilla)
+	if plataforma:
+		cs = celdas_plataforma_tierra(hechizo, origen, dir)
+		if cs.is_empty():
+			cs = [celda_de(origen)]
 	var no_vale: bool = not valido or motivo != ""
 	while _prev_casillas.size() < cs.size():
 		var mi := MeshInstance3D.new()
@@ -1834,14 +1872,15 @@ func _pintar_previsualizacion(origen: Vector3, dir: Vector3) -> void:
 		if not mi.visible:
 			continue
 		var c: Vector2i = cs[i]
-		var h: float = 0.06 + alto
+		var h: float = ALTO_PLATAFORMA_TIERRA if plataforma else 0.06 + alto
 		var tam := Vector3(Terreno3D.casilla * 0.9, h, Terreno3D.casilla * 0.9)
 		(mi.mesh as BoxMesh).size = tam
 		mi.set_instance_shader_parameter("tam", tam)
 		var mat: ShaderMaterial = mi.material_override as ShaderMaterial
 		mat.set_shader_parameter("color", Apuntado3D.COLOR_NO if no_vale else _prev_color)
 		mat.set_shader_parameter("invalido", no_vale)
-		mi.position = Vector3((float(c.x) + 0.5) * Terreno3D.casilla, y_pies(c) + h * 0.5 + 0.02, (float(c.y) + 0.5) * Terreno3D.casilla)
+		var base: float = y_pies(celda_de(origen)) if plataforma and motivo == "" else y_pies(c)
+		mi.position = Vector3((float(c.x) + 0.5) * Terreno3D.casilla, base + h * 0.5 + 0.02, (float(c.y) + 0.5) * Terreno3D.casilla)
 	Apuntado3D.pintar_disco(_marca_origen, Apuntado3D.COLOR_NO if no_vale else _prev_color)
 	_poner_cursor(Apuntado3D.COLOR_NO if no_vale else _prev_color, no_vale)
 	if _apuntado != null and is_instance_valid(_apuntado):
@@ -2127,6 +2166,30 @@ func _barrera_en(p: Vector3, nivel: int, excepto: Object = null) -> bool:
 	var propia: Vector2i = celda_de((jugador as Node3D).position) if jugador != null else Vector2i(-99999, -99999)
 	for s in _solideces_v2:
 		if is_instance_valid(s) and not (excepto != null and (s as SolidezV2).linaje == excepto) and (s as SolidezV2).bloquea_a(p, nivel, propia):
+			return true
+	return false
+
+
+func muros_tacticos() -> Dictionary:
+	var celdas: Dictionary = {}
+	for muro: SolidezV2 in _solideces_v2:
+		if is_instance_valid(muro) and not muro.is_queued_for_deletion() and muro.niveles > 0 and not muro.retraida():
+			celdas.merge(muro.celdas)
+	if jugador != null:
+		celdas.erase(celda_de(jugador.position))
+	return celdas
+
+
+func muro_entre(a: Vector3, b: Vector3) -> bool:
+	var celdas: Dictionary = muros_tacticos()
+	if celdas.is_empty():
+		return false
+	var d := Vector2(b.x - a.x, b.z - a.z)
+	var pasos: int = maxi(1, ceili(d.length() / (Terreno3D.casilla * 0.25)))
+	var inicio: Vector2i = celda_de(a)
+	for i in range(1, pasos + 1):
+		var c: Vector2i = celda_de(a.lerp(b, float(i) / pasos))
+		if c != inicio and celdas.has(c):
 			return true
 	return false
 
@@ -2625,6 +2688,10 @@ static func reaccion_burbuja(barrera: String, recibido: String, punto: Vector3) 
 func puede_construir_en(c: Vector2i, niveles: int = 1, sobre_agua: bool = false) -> String:
 	if not en_mapa(c):
 		return "fuera del mapa"
+	if Terreno3D.es_vacio(c):
+		return "no hay suelo"
+	if Terreno3D.plataformas_tierra.has(c):
+		return "ya hay una plataforma"
 	# El agua de un río está «bloqueada» por sí misma: el hielo que la hiela no se rechaza por eso (hielo quieto sobre agua = helarla, como antes), la tierra sí.
 	var hiela_agua: bool = sobre_agua and es_agua(c)
 	if not sobre_agua:
@@ -2648,23 +2715,132 @@ func puede_construir_en(c: Vector2i, niveles: int = 1, sobre_agua: bool = false)
 
 ## ¿El sólido quieto que se va a lanzar (`datos` de `cast_page`) puede construirse donde nace (`origen`)? "" = sí (o no es un sólido quieto: no hay nada que mirar); si no, el motivo.
 ## Se pregunta ANTES de cobrar tinta y recarga. Mira la casilla apuntada (la que el rasterizado incluye siempre) y que no esté más lejos del anillo de alcance (`ALCANCE_ORIGEN`).
-func rechazo_de_construccion(datos: Dictionary, origen: Vector3) -> String:
+func rechazo_de_construccion(datos: Dictionary, origen: Vector3, dir: Vector3 = Vector3.ZERO) -> String:
 	var receta: Receta3D = datos.get("receta")
 	var rune: RuneData = datos.get("rune")
 	if receta == null or rune == null or jugador == null:
 		return ""
 	var h: Hechizo = hechizo_de(datos)      # H1: el de `_preparar_pagina` (copiado); sin él (laboratorios, pruebas), se construye
-	if h == null or not h.solido_quieto:
+	if h == null:
+		return ""
+	if h.glifos.has("posicion"):
+		var yo: Vector3 = (jugador as Node3D).position
+		var distancia: float = Vector2(origen.x - yo.x, origen.z - yo.z).length()
+		var destino: Vector2i = celda_de(origen)
+		if distancia < RADIO_MIN_POSICION * Terreno3D.casilla or destino == celda_de(yo):
+			return "Posición: apunta al menos a una casilla de ti"
+		if distancia > ALCANCE_ORIGEN * Terreno3D.casilla + TOLERANCIA_ALCANCE_U:
+			return "queda fuera de tu alcance"
+		if not en_mapa(destino) or Terreno3D.es_vacio(destino) or bloqueada(destino):
+			return "el punto necesita suelo libre"
+		if not linea_libre(yo, origen):
+			return "algo tapa el punto"
+		if h.solidez > 0.0 and not h.viaja and dir != Vector3.ZERO:
+			for c in GeometriaV2.celdas(h.geo(), Vector2(origen.x, origen.z), Vector2(dir.x, dir.z), Terreno3D.casilla):
+				var motivo: String = puede_construir_en(c, h.niveles)
+				if motivo != "":
+					return motivo
+	if not h.solido_quieto:
 		return ""
 	# Una barrera (solidez > 0) protege con su SolidezV2 aunque el bloque de tierra de debajo no quepa (el muro que nace en tu propia casilla y te cubre: escenario_bosque_01_v01 4.6): se lanza como siempre.
-	if h.solidez > 0.0:
+	if h.solidez > 0.0 and not h.es_plataforma_tierra():
 		return ""
 	if h.en_punto:
 		var lejos: Vector3 = origen - (jugador as Node3D).position
 		lejos.y = 0.0
 		if lejos.length() > ALCANCE_ORIGEN * Terreno3D.casilla + TOLERANCIA_ALCANCE_U:
 			return "queda fuera de tu alcance"
-	return puede_construir_en(celda_de(origen), h.niveles, rune.deja == "helado")
+	var c: Vector2i = celda_de(origen)
+	if h.es_plataforma_tierra():
+		return _rechazo_anclaje_tierra(c)
+	return puede_construir_en(c, h.niveles, rune.deja == "helado")
+
+
+func _rechazo_anclaje_tierra(c: Vector2i) -> String:
+	var motivo: String = puede_construir_en(c)
+	if motivo != "":
+		return motivo
+	return "la plataforma necesita suelo firme" if Terreno3D.hielo_fisico(c) or Terreno3D.altura_en(c) != 0 else ""
+
+
+## Se extiende por casillas contiguas de suelo firme en el eje dominante del apuntado.
+func celdas_plataforma_tierra(h: Hechizo, origen: Vector3, dir: Vector3) -> Array[Vector2i]:
+	var c: Vector2i = celda_de(origen)
+	var celdas: Array[Vector2i] = []
+	var largo: int = h.longitud_plataforma_tierra()
+	if largo == 0 or _rechazo_anclaje_tierra(c) != "":
+		return celdas
+	celdas.append(c)
+	var paso := Vector2i(0, -1)
+	if absf(dir.x) > absf(dir.z):
+		paso = Vector2i(1 if dir.x > 0.0 else -1, 0)
+	elif dir.z > 0.0:
+		paso.y = 1
+	var base: float = y_pies(c)
+	for i in range(1, largo):
+		c += paso
+		if _rechazo_anclaje_tierra(c) != "" or not is_equal_approx(y_pies(c), base):
+			break
+		celdas.append(c)
+	return celdas
+
+
+func levantar_plataforma_tierra(celdas: Array[Vector2i], vida: float) -> void:
+	var base: float = y_pies(celdas[0])
+	var centro: Vector3 = (centro_de(celdas[0], base) + centro_de(celdas.back(), base)) * 0.5
+	var ext: Vector2i = (celdas.back() - celdas[0]).abs() + Vector2i.ONE
+	var tamano := Vector3(float(ext.x) * Terreno3D.casilla, ALTO_PLATAFORMA_TIERRA, float(ext.y) * Terreno3D.casilla)
+	var pieza := Area3D.new()
+	pieza.name = "PlataformaTierra"
+	pieza.collision_layer = 1
+	pieza.collision_mask = 0
+	pieza.monitoring = false
+	pieza.add_to_group("peso")
+	var forma := BoxShape3D.new()
+	forma.size = tamano
+	var colision := CollisionShape3D.new()
+	colision.shape = forma
+	pieza.add_child(colision)
+	var visual := MeshInstance3D.new()
+	visual.mesh = TierraToy.malla_roca(TierraToy.MALLA_LOSA)
+	visual.material_override = TierraToy.material_roca({"base_tierra": 1.0})
+	visual.transform = TierraToy.asentar(visual.mesh, Basis.IDENTITY, tamano.x, tamano.y, tamano.z, Vector3.DOWN * tamano.y * 0.5)
+	pieza.add_child(visual)
+	mundo.add_child(pieza)
+	pieza.global_position = centro - Vector3.UP * ALTO_PLATAFORMA_TIERRA * 0.5
+	pieza.create_tween().tween_property(pieza, "global_position:y", centro.y + ALTO_PLATAFORMA_TIERRA * 0.5, 0.25)
+	for c in celdas:
+		Terreno3D.plataformas_tierra[c] = base + ALTO_PLATAFORMA_TIERRA
+	_plataformas_tierra.append({"celdas": celdas, "nodo": pieza, "resta": maxf(vida, 1.0)})
+
+
+func _avanzar_plataformas_tierra(delta: float) -> void:
+	for plataforma in _plataformas_tierra.duplicate():
+		plataforma["resta"] = float(plataforma["resta"]) - delta
+		var resta: float = plataforma["resta"]
+		var pieza: Area3D = plataforma["nodo"]
+		pieza.visible = resta > AVISO_CADUCA or int(resta * 6.0) % 2 == 0
+		if resta <= 0.0:
+			_deshacer_plataforma_tierra(plataforma)
+
+
+func _deshacer_plataforma_tierra(plataforma: Dictionary) -> void:
+	var celdas: Array[Vector2i] = plataforma["celdas"]
+	for c in celdas:
+		Terreno3D.plataformas_tierra.erase(c)
+	_plataformas_tierra.erase(plataforma)
+	var pj: Jugador3D = jugador as Jugador3D
+	if is_instance_valid(pj):
+		var c: Vector2i = celda_de(pj.position)
+		if celdas.has(c) and (Terreno3D.es_vacio(c) or es_agua(c)):
+			pj.caer_de_plataforma(c, celdas[0])
+	var pieza: Area3D = plataforma["nodo"]
+	pieza.visible = true
+	pieza.remove_from_group("peso")
+	pieza.set_deferred("monitorable", false)
+	var tw: Tween = pieza.create_tween()
+	tw.tween_property(pieza, "position:y", pieza.position.y - ALTO_PLATAFORMA_TIERRA, 0.2)
+	tw.tween_callback(pieza.queue_free)
 
 
 ## Un bloque de tierra en la casilla. Se apila hasta MAX_TIERRA_APILADA, caduca a los 25 s y hay un tope de
@@ -2834,6 +3010,7 @@ func _recalcular(c: Vector2i) -> void:
 ## =====================================================================================================
 
 func _avanzar_caducidades(delta: float) -> void:
+	_avanzar_plataformas_tierra(delta)
 	for b in _bloques.duplicate():
 		b["resta"] = float(b["resta"]) - delta
 		var aviso: bool = float(b["resta"]) < AVISO_CADUCA

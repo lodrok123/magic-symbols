@@ -37,7 +37,9 @@ func _initialize() -> void:
 	for e in ELEMENTOS:
 		runes[e] = load("res://nucleo/%s_rune.tres" % e)
 	var combos: Array = []
-	_generar(Sigils.GLIFOS.keys(), MAX_GLIFOS, 0, [], combos)
+	var glifos: Array = Sigils.GLIFOS.keys()
+	glifos.erase("posicion")  # Experimental. La foto fija sigue cubriendo el catálogo de campaña.
+	_generar(glifos, MAX_GLIFOS, 0, [], combos)
 	var completo: Dictionary = {}
 	for combo in combos:
 		var c: Dictionary = {}

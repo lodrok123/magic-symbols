@@ -4891,3 +4891,27 @@ Pablo miró el haz en el juego y pidió cuatro cosas: color más parecido a la t
 **Pruebas.** `prueba_viento_tierra_toy`, `prueba_magma_toy` y `prueba_vfx_toy` 0. El total de vértices del haz baja a 5.649 (las lajas perdieron el fondo). Capturas rehechas del lab y del juego.
 **Pendiente.** El caso `magma_haz` del juego sigue sin dibujar nada (de antes). Las bocanadas de polvo están ajustadas a ojo. Queda por revisar si el fallo del `custom_aabb` afecta a los toys de los demás elementos.
 **La programación la hizo Sonnet**; aquí se decidieron el criterio visual y los umbrales con los que se juzga cada captura.
+
+## 432 — VFX (7/11) · Primera pasada de estilo para rayo y tierra
+
+Fuego y agua son las referencias aprobadas. El rayo conserva su núcleo crema y su cuerpo amarillo. La bola y los trazos ganan un filo azul profundo en mezcla normal para que se distingan sobre la hierba clara. Las púas y lajas de tierra llevan tres bandas mate, del pardo del suelo al ocre del polvo. La altura de la banda superior varía por instancia. La lógica, los tiempos de aparición y los presupuestos de luces y partículas siguen siendo los del juego.
+
+Las pruebas `prueba_rayo_toy` y `prueba_viento_tierra_toy` dieron cero fallos de aserción. Godot informó de recursos sin liberar al salir de la prueba de rayo. La revisión visual se centró en los dos haces en el Bosque. Queda una revisión visual de la bola de rayo y del resto de figuras.
+
+## 433 — VFX (7/11) · Reacciones de agua y fuego con el estilo toy
+
+El fogonazo de encendido reutiliza el impacto breve de fuego. Goblins, escudos y flechas llevan una llama adherida de FuegoToy, con escala propia y pocas chispas. Al apagarse se retira con la animación del toy y libera el nombre para un encendido posterior. Mojar usa gotas de AguaToy sin anillo. Apagar combina esas gotas con cuatro bocanadas de vapor toon por CPU. Secado y vapor puntual del suelo y del agua del mapa comparten esa bocanada. Las señales, los estados y el audio mantienen el contrato anterior.
+
+Se actualizó `prueba_reacciones_vfx` para comprobar los toys, la limpieza y la posibilidad de volver a prender. También se ejecutaron `prueba_suelo_impactos` y `prueba_vfx_en_juego`. Las capturas del Bosque dispararon las reacciones sobre la jugadora para revisar el aspecto en la cámara habitual.
+
+## 434 — VFX (7/11) · Llama vertical al prender
+
+El encendido breve y el fuego sostenido comparten la figura PILAR de FuegoToy, con base y altura ajustadas al blanco. Las hogueras, los braseros y los objetos combustibles usan esa llama en su base o en el cuenco. Las fuentes conservan su luz de mapa y el apagado anima la retirada de la llama. Las hogueras decorativas usan la misma figura.
+
+La prueba de reacciones y el escenario de puzles de fuego por botones dieron cero fallos. El escenario con hechizos confirmó la llama vertical en el cuenco y falló en F1.9. La comprobación aislada apagó el brasero con agua, observó un charco activo que impidió el reencendido inmediato y volvió a encenderlo tras dejar caducar el charco.
+
+## 435 — VFX (7/11) · La línea de tierra brota del terreno
+
+La referencia en vídeo muestra púas bajas al inicio, picos inclinados hacia delante y polvo que sale de cada base. En la línea de tierra, cada púa y laja toma su propia cota del terreno y la malla queda ligeramente enterrada para mantener el contacto. El polvo y los cascotes nacen en esa base. Las púas se retiran del inicio a la punta. Se retiró la grieta corrida de tierra. El recorrido, el alcance y los golpes siguen los datos del hechizo. Magma conserva su grieta ígnea.
+
+La prueba de tierra cubre el anclaje en dos cotas, el brote y el hundimiento escalonados y el presupuesto. Captura de la línea en el Bosque con la cámara de juego.

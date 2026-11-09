@@ -40,13 +40,17 @@ const SOMBRA: Color = Color(0.68, 0.87, 0.77)
 const VIEJO: Color = Color(0.64, 0.80, 0.72)
 const HOJA: Color = Color(0.62, 0.88, 0.5)            ## Vfx3D.COLOR_DE["hoja"]
 
+## La ráfaga se dibuja más grande que su semieje (que sale del Hechizo y es pequeño: 0,12-0,23 m): sin esto era una raya al lado de la bola de agua o la de fuego. Solo es dibujo.
+const RADIO_RAFAGA_MIN: float = 0.55
+const ESCALA_RAFAGA: float = 1.3
+
 const T_SOLTAR: float = 0.14
 const T_APAGAR: float = 0.45
 const T_CANCELAR: float = 0.2
 const RESPIRO_HZ: float = 1.4
 const T_NACER: float = 0.35
 const T_MORIR: float = 0.5
-const HUMO_BOLA: int = 10                             ## bocanadas de cada reserva
+const HUMO_BOLA: int = 14                             ## bocanadas de cada reserva
 const HUMO_ESTELA: int = 16
 const HUMO_MURO: int = 20
 const HUMO_PILAR: int = 14
@@ -721,6 +725,10 @@ func _construir() -> void:
 			cuerpo.add_child(_bola_viento)
 		elif figura == Figura.PILAR:
 			_hojas = _hojas_de(cuerpo, HOJAS_FIG, false, -0.5)
+		elif figura == Figura.MURO:
+			_hojas = _hojas_de(cuerpo, HOJAS_FIG, false, -0.5)    # suben con la cortina
+		elif figura == Figura.HAZ:
+			_hojas = _hojas_de(cuerpo, HOJAS_FIG, false, 0.2)     # arrastradas hacia delante
 	_anim_si_hace_falta()
 
 
@@ -755,8 +763,11 @@ func _cinta(c: Node3D, nombre: String, tam: float, pos: Vector3, giro: float) ->
 
 ## BOLA = RÁFAGA: núcleo de jirones alargados por -Z (local al cuerpo), dos cintas en espiral que giran en sentidos opuestos, hojas; en vuelo, estela de jirones que se quedan en el mundo.
 func _bola(c: Node3D) -> void:
-	var r: float = maxf(semieje_x, semieje_z)
-	_humo = _humo_local(c, "Nucleo", HUMO_BOLA, humo_params(r * 0.5, r * 1.25, 0.42, Vector3.ZERO, false, 0.45))
+	var r: float = _radio_rafaga()
+	# NÚCLEO BLANDO: pocos jirones anchos y muy transparentes (opacidad) que van DETRÁS de las cintas y les dan cuerpo; prioridad baja para que las cintas se pinten encima.
+	var q: Dictionary = humo_params(r * 1.8, r * 3.0, 0.6, Vector3.ZERO, false, 0.8)
+	q.merge({"opacidad": 0.6, "prioridad": -2, "erosion": 0.5, "friccion": 2.0}, true)
+	_humo = _humo_local(c, "Nucleo", HUMO_BOLA, q)
 	_cinta(c, "Cinta0", r * 1.7, Vector3(0, -r * 0.8, 0), 4.0)
 	_cinta(c, "Cinta1", r * 1.3, Vector3(0, -r * 0.5, 0), -3.1)
 	_hojas = _hojas_de(c, 8, false, 0.0)
@@ -846,11 +857,12 @@ func _aplicar_vuelo(v: bool) -> void:
 	if _estela != null and is_instance_valid(_estela):
 		_estela.visible = v and _corrientes == null
 	if _corrientes != null and figura == Figura.BOLA:
-		var mostrar_jirones: bool = not v and _est != EstadoCarga.CARGANDO
-		_humo.visible = mostrar_jirones
-		_hojas.visible = mostrar_jirones
+		# La ráfaga (quieta o en vuelo) es la envoltura + las cintas orbitales de CorrientesViento; las cintas planas de `remolino` y los jirones se ven
+		# como un folio, así que no se enseñan. Las HOJAS sí: son lo único verde del viento.
+		_humo.visible = _est != EstadoCarga.CARGANDO      # el núcleo blando: jirones de humo_toy muy transparentes detrás de las cintas
+		_hojas.visible = _est != EstadoCarga.CARGANDO
 		for cinta: MeshInstance3D in _cintas:
-			cinta.visible = mostrar_jirones
+			cinta.visible = false
 
 
 func _process(delta: float) -> void:
@@ -859,21 +871,29 @@ func _process(delta: float) -> void:
 	_t_fig += delta
 	if _bola_viento != null:
 		var en_carga: bool = _est == EstadoCarga.CARGANDO or _est == EstadoCarga.CANCELANDO
-		var radio: float = maxf(0.17, maxf(semieje_x, semieje_z))
-		_bola_viento.visible = proyectil or en_carga
-		_bola_viento.scale = Vector3.ONE * radio * 0.99
+		var radio: float = _radio_rafaga()
+		_bola_viento.visible = true     # también quieta: con la envoltura la ráfaga tiene silueta de esfera desde cualquier ángulo
+		_bola_viento.scale = Vector3.ONE * radio * 1.45     # la malla mide 1 m de diámetro: la envoltura tiene radio 0,72 · semieje, y las cintas orbitales la rodean un poco por fuera
 		_bola_viento.position.z = -radio * 0.68 * smoothstep(0.0, 0.10, _edad_rafaga) if proyectil else 0.0
 		if en_carga:
 			return
-	if _corrientes != null and (figura != Figura.BOLA or proyectil):
+	if _corrientes != null:
 		_actualizar_corrientes(delta)
+		if figura == Figura.BOLA:
+			_emitir_figura(delta)   # solo cuentan las hojas (los jirones no se ven)
 		return
 	_girar_cintas(delta)
 	_emitir_figura(delta)
 
 
+func _radio_rafaga() -> float:
+	return maxf(RADIO_RAFAGA_MIN, maxf(semieje_x, semieje_z) * ESCALA_RAFAGA)
+
+
 func _actualizar_corrientes(delta: float) -> void:
 	var ejes := Vector3(semieje_x, semieje_y * altura, semieje_z)
+	if figura == Figura.BOLA:
+		ejes = Vector3.ONE * _radio_rafaga()
 	if figura == Figura.HAZ:
 		ejes = Vector3(semieje_x * 2.0, maxf(semieje_y, 0.4), semieje_z * FuegoToy.HAZ_ABRE)
 	elif figura == Figura.BARRERA:
@@ -882,17 +902,29 @@ func _actualizar_corrientes(delta: float) -> void:
 	var estela: float = 1.0
 	if figura == Figura.BOLA:
 		_edad_rafaga += delta
-		estela = smoothstep(0.02, 0.22, _edad_rafaga)
+		estela = smoothstep(0.02, 0.22, _edad_rafaga) if proyectil else 0.0   # quieta no deja cola
 	_corrientes.dibujar(StringName(Figura.keys()[figura]), ejes, _t_fig * velocidad, opacidad, ancho, estela)
-	if figura != Figura.PILAR or _hojas == null or opacidad < 0.10:
+	if figura == Figura.BOLA or figura == Figura.BARRERA or _hojas == null or opacidad < 0.10:
 		return
-	_acc_h += delta * 10.0 * clampf(chispas, 0.0, 1.0)
+	# Las HOJAS son lo único verde del viento: el aire en sí es blanco frío (ver viento_corriente.gdshader). Cada figura las arrastra a su manera.
+	_acc_h += delta * (10.0 if figura == Figura.PILAR else 7.0) * clampf(chispas, 0.0, 1.0)
 	while _acc_h >= 1.0:
 		_acc_h -= 1.0
-		var a: float = randf() * TAU
-		var pie := Vector3(cos(a) * ejes.x * 0.46, 0.08, sin(a) * ejes.z * 0.46)
-		var empuje := Vector3(-sin(a) * ejes.x * 2.0, ejes.y * 0.68, cos(a) * ejes.z * 2.0)
-		_hojas.emitir(pie, empuje, 0.7, 0.16, Vector3.ZERO, 4.0)
+		match figura:
+			Figura.PILAR:
+				var a: float = randf() * TAU
+				var pie := Vector3(cos(a) * ejes.x * 0.46, 0.08, sin(a) * ejes.z * 0.46)
+				var empuje := Vector3(-sin(a) * ejes.x * 2.0, ejes.y * 0.68, cos(a) * ejes.z * 2.0)
+				_hojas.emitir(pie, empuje, 0.7, 0.16, Vector3.ZERO, 4.0)
+			Figura.MURO:
+				var x: float = randf_range(-0.9, 0.9) * ejes.x
+				_hojas.emitir(Vector3(x, 0.1, 0.1), Vector3(randf_range(-0.5, 0.5), ejes.y * randf_range(0.5, 0.9), randf_range(-0.2, 0.3)), 1.1, 0.16, Vector3.ZERO, 2.0)
+			Figura.HAZ:
+				var u: float = randf_range(0.0, 0.5)
+				var radio: float = ejes.z * 0.4
+				var vel_z: float = -ejes.x / 0.6 * randf_range(0.8, 1.1)
+				_hojas.emitir(Vector3(randf_range(-1.0, 1.0) * radio, ejes.y + randf_range(-1.0, 1.0) * radio, -u * ejes.x),
+					Vector3(randf_range(-0.5, 0.5), randf_range(0.0, 0.5), vel_z), 0.65, 0.14, Vector3.ZERO, 3.0)
 
 
 func _girar_cintas(delta: float) -> void:
@@ -922,11 +954,11 @@ func _emitir_figura(delta: float) -> void:
 	var tr: Transform3D = global_transform
 	match figura:
 		Figura.BOLA:
-			var r: float = maxf(semieje_x, semieje_z) * clampf(_c_escala, 0.1, 1.5)
+			var r: float = _radio_rafaga() * clampf(_c_escala, 0.1, 1.5)
 			_acc += 22.0 * k * delta
 			while _acc >= 1.0:
 				_acc -= 1.0
-				var loc: Vector3 = Vector3(randf_range(-0.5, 0.5) * r, randf_range(-0.4, 0.4) * r, randf_range(-0.3, 0.5) * r)
+				var loc: Vector3 = Vector3(randf_range(-0.4, 0.4) * r, randf_range(-0.35, 0.35) * r, randf_range(-0.7, 0.1) * r)
 				_humo.call("emitir", loc, Vector3(randf_range(-0.3, 0.3), randf_range(-0.2, 0.3), 1.2) * r * 2.0, 1.0, 1.0, PI * 0.5, 2.2)
 			_acc_h += 5.0 * k * delta
 			while _acc_h >= 1.0 and _hojas != null:

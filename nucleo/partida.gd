@@ -145,6 +145,7 @@ static func reunir(ranura: int, extra: Dictionary = {}) -> Dictionary:
 			"aguante": float(extra.get("aguante", 100.0)),       # F4: el aguante de Jugador3D (0–100)
 			"ropa_puesta": _cadenas(extra.get("ropa_puesta", [])),
 			"consumible_equipado": est["consumible_equipado"],
+			"bosque_retorno_cueva": est["bosque_retorno_cueva"],
 			"opciones": est["opciones"],
 		},
 		"tinta": t.a_dic(),
@@ -183,6 +184,7 @@ static func cargar(ranura: int = -1) -> Dictionary:
 	var est: Dictionary = {
 		"bolsa": d.get("bolsa", {}), "mejoras": d.get("mejoras", {}),
 		"consumible_equipado": (d.get("jugadora", {}) as Dictionary).get("consumible_equipado", "") if d.get("jugadora", {}) is Dictionary else "",
+		"bosque_retorno_cueva": _dic(d.get("jugadora", {})).get("bosque_retorno_cueva", ""),
 		"opciones": (d.get("jugadora", {}) as Dictionary).get("opciones", {}) if d.get("jugadora", {}) is Dictionary else {},
 	}
 	Estado.i().desde_dic(est)                      # primero: la barra de tinta máxima sale de las mejoras

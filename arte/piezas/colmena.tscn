@@ -1,0 +1,14 @@
+[gd_scene format=3]
+
+[ext_resource type="PackedScene" path="res://arte/meshy/piezas/colmena.glb" id="1_ru0lp"]
+
+[node name="colmena" type="Node3D" unique_id=2019558028]
+metadata/id = "colmena"
+metadata/bloquea = false
+metadata/reactivo = false
+metadata/inflamable = false
+
+[node name="modelo" type="Node3D" parent="." unique_id=702153083]
+
+[node name="colmena2" type="Node3D" parent="modelo" unique_id=1524391923 instance=ExtResource("1_ru0lp")]
+transform = Transform3D(1.7292907, 0, 0, 0, 1.7292907, 0, 0, 0, 1.7292907, 0, 0, 0)

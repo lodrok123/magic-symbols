@@ -116,6 +116,7 @@ const GLIFO: Dictionary = {
 	"retorno": "Retorno: al acabar la ida, el proyectil vuelve y golpea de nuevo. Un segundo ᛃ no suma nada más.",
 	"buscar": "Buscar: el proyectil se imanta al enemigo vivo más cercano de su cono. Cada ᚨ abre más el cono: ±60°, ±90° y ±120° (tope 3).",
 	"retardo": "Carga: lo que sale tarda 1 s más por glifo en salir (tope 3 s) y a cambio nace un 20 % más grande y con un 25 % más de daño por glifo.",
+	"posicion": "Posición: el hechizo nace en el punto de suelo que señalas dentro del anillo de alcance.",
 	"atraccion": "Atracción: lo que toca es tirado hacia ti si viaja, o hacia el centro si se queda.",
 	"espejo": "Espejo: lo que viaja o nace lejos sale también hacia atrás.",
 	"amplificar": "Amplificar: duplica el daño del hechizo y sube la intensidad de su efecto.",

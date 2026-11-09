@@ -468,6 +468,9 @@ const GLIFOS: Dictionary = {
 	"retardo": {"cuenta_dano": CARGA_PESO_DANO, "repertorio": "retardo", "cooldown": 1.0, "tinta": {"por_glifo": 0.0, "tope": 0.0}, "momento": "inicio", "paso": 3, "modificadores": [{"campo": "retardo", "op": "suma", "valor": 1.0, "tope": 3.0},
 		{"campo": "semiejes.x", "op": "multiplica", "valor": CRECER_TOPE_V2 * CRECER_TOPE_V2, "hasta": CARGA_RANGO_V2}, {"campo": "semiejes.y", "op": "multiplica", "valor": CRECER_TOPE_V2 * CRECER_TOPE_V2, "hasta": CARGA_RANGO_V2},
 		{"campo": "semiejes.z", "op": "multiplica", "valor": CRECER_TOPE_V2 * CRECER_TOPE_V2, "hasta": CARGA_RANGO_V2}, {"campo": "potencia", "op": "multiplica", "valor": CARGA_POTENCIA_V2, "hasta": CARGA_RANGO_V2}]},
+	# Experimental. La Sala del Chamán lo añade desde su página de combate.
+	"posicion": {"cuenta_dano": false, "repertorio": "posicion", "cooldown": 0.0, "tinta": {"por_glifo": 4.0, "tope": 4.0}, "momento": "inicio", "paso": 1,
+		"modificadores": [{"campo": "en_punto", "op": "fija", "valor": true}]},
 }
 
 

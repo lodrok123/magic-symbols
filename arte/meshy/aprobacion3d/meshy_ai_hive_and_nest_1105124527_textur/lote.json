@@ -1,0 +1,42 @@
+{
+ "colmena": {
+  "estado": "procesado",
+  "directo": true,
+  "objetivo": 5000,
+  "niveles": {
+   "5000": {
+    "archivo": "colmena.glb",
+    "tris": 4872,
+    "kb": 974
+   },
+   "2500": {
+    "archivo": "colmena_2500.glb",
+    "tris": 2499,
+    "kb": 999
+   }
+  },
+  "origen": "Meshy_AI_Hive_and_Nest_1105124527_texture.glb",
+  "nota": "colmena colgando de su rama, con 4 abejas",
+  "seg": 1.0
+ },
+ "nido": {
+  "estado": "procesado",
+  "directo": true,
+  "objetivo": 6000,
+  "niveles": {
+   "6000": {
+    "archivo": "nido.glb",
+    "tris": 6000,
+    "kb": 1339
+   },
+   "2500": {
+    "archivo": "nido_2500.glb",
+    "tris": 2499,
+    "kb": 1069
+   }
+  },
+  "origen": "Meshy_AI_Hive_and_Nest_1105124527_texture.glb",
+  "nota": "nido de ramitas con 3 huevos azules y una pluma",
+  "seg": 1.4
+ }
+}

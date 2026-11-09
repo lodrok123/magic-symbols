@@ -216,6 +216,14 @@ static func entradas() -> Array:
 enum Pestana { RECETA, CAST_POINT, IMPACTO, VFX, ESTADOS }
 
 var pestana: int = Pestana.RECETA
+var catalogo_activo: bool = true
+var _capa_catalogo: CanvasLayer
+var _elemento_catalogo: OptionButton
+var _receta_catalogo: OptionButton
+var _detalle_catalogo: Label
+var _fichas_catalogo: Array[Dictionary] = []
+var _perfil_cargado: bool = false
+var _bases_herramientas: Dictionary = {}
 var modo_completo: bool = false
 var tinta_infinita: bool = true
 var recarga_activa: bool = false
@@ -262,7 +270,6 @@ func iniciar(mundo: Variant) -> void:
 	for e in entradas():
 		impacto_inicial[String(e["n"])] = impacto_valor(String(e["n"]))
 	_registrar_agua()
-	_l.cambios_hechizo = cambios_hechizo           # el mismo diccionario: lo que se toque aquí lo ve el lanzador al instante
 	_montar_panel_modos()
 	_montar_f2()
 	_montar_f4()
@@ -271,14 +278,133 @@ func iniciar(mundo: Variant) -> void:
 	_quitar_paleta()
 	_montar_ui_compacta()
 	_montar_diseno()
+	_montar_catalogo()
 	if cargar_al_abrir:
 		cargar_recetas()
-		cargar()
 	else:
 		recetas = RecetasLab.por_defecto()
+	_l.cambios_hechizo = {}
 	poner_atacar(false)
 	_refrescar_hud()
 	_aplicar_ui()
+
+
+func _montar_catalogo() -> void:
+	_capa_catalogo = CanvasLayer.new()
+	_capa_catalogo.layer = 11
+	add_child(_capa_catalogo)
+	var panel := PanelContainer.new()
+	_capa_catalogo.add_child(panel)
+	panel.set_anchors_and_offsets_preset(Control.PRESET_TOP_RIGHT)
+	panel.offset_left = -312
+	panel.offset_right = -16
+	panel.offset_top = 16
+	panel.grow_horizontal = Control.GROW_DIRECTION_BEGIN
+	var margen := MarginContainer.new()
+	for lado in ["left", "top", "right", "bottom"]:
+		margen.add_theme_constant_override("margin_" + lado, 12)
+	panel.add_child(margen)
+	var columna := VBoxContainer.new()
+	columna.add_theme_constant_override("separation", 6)
+	margen.add_child(columna)
+	var titulo := Label.new()
+	titulo.text = "Laboratorio de hechizos"
+	columna.add_child(titulo)
+	_elemento_catalogo = OptionButton.new()
+	_receta_catalogo = OptionButton.new()
+	for selector in [_elemento_catalogo, _receta_catalogo]:
+		selector.fit_to_longest_item = false
+		columna.add_child(selector)
+	for id in RecetasLab.ELEMENTOS_CATALOGO:
+		_elemento_catalogo.add_item(RecetasLab.ELEMENTOS_CATALOGO[id])
+		_elemento_catalogo.set_item_metadata(_elemento_catalogo.item_count - 1, id)
+	_detalle_catalogo = Label.new()
+	_detalle_catalogo.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	columna.add_child(_detalle_catalogo)
+	var apuntar := Button.new()
+	apuntar.text = "Apuntar"
+	apuntar.pressed.connect(apuntar_catalogo)
+	columna.add_child(apuntar)
+	var ayuda := Label.new()
+	ayuda.text = "R Reiniciar sala · F1 Herramientas"
+	ayuda.add_theme_font_size_override("font_size", 13)
+	columna.add_child(ayuda)
+	_elemento_catalogo.item_selected.connect(_seleccionar_elemento_catalogo)
+	_receta_catalogo.item_selected.connect(_mostrar_receta_catalogo)
+	_l.modo_cambiado.connect(func(activo: bool) -> void: _capa_catalogo.visible = catalogo_activo and not activo)
+	_seleccionar_elemento_catalogo(0)
+
+
+func _seleccionar_elemento_catalogo(i: int) -> void:
+	_fichas_catalogo = RecetasLab.catalogo(String(_elemento_catalogo.get_item_metadata(i)))
+	_receta_catalogo.clear()
+	for ficha in _fichas_catalogo:
+		_receta_catalogo.add_item(ficha["nombre"])
+	_receta_catalogo.select(0)
+	_mostrar_receta_catalogo(0)
+
+
+func _mostrar_receta_catalogo(i: int) -> void:
+	var ficha: Dictionary = _fichas_catalogo[i]
+	var partes: PackedStringArray = [RecetasLab.ELEMENTOS_CATALOGO[ficha["elemento"]]]
+	for glifo in ficha["glifos"]:
+		var nombre: String = "línea" if glifo == "linea_x" or glifo == "linea_z" else Sigils.nombre_visible(glifo)
+		partes.append(nombre)
+	_detalle_catalogo.text = " + ".join(partes)
+
+
+func datos_catalogo(ficha: Dictionary) -> Dictionary:
+	var rune: RuneData = load("res://nucleo/%s_rune.tres" % ficha["elemento"]) as RuneData
+	var receta := Lanzador3D.Receta3D.new(Vector2.RIGHT)
+	for glifo in ficha["glifos"]:
+		receta.apply(glifo)
+	var hechizo: Hechizo = receta.hechizo(rune)
+	if hechizo == null:
+		return {}
+	return {"indice": 0, "receta": receta, "rune": rune, "calidad": 1.0, "glifos": ficha["glifos"],
+		"elemento_nombre": hechizo.elemento, "hechizo": hechizo, "en_punto": hechizo.en_punto}
+
+
+func apuntar_catalogo() -> void:
+	if not catalogo_activo or _l.modo_lanzar:
+		return
+	if _l.conjurando or not _jug.puede_lanzar():
+		_l.avisar("Ahora no puedes lanzar")
+		return
+	var datos: Dictionary = datos_catalogo(_fichas_catalogo[_receta_catalogo.selected])
+	if datos.is_empty():
+		return
+	if _l.tinta != null:
+		_l.tinta.actual = _l.tinta.maxima
+	_l.cooldown_left[0] = 0.0
+	_l._preparado = datos
+	_l._entrar_modo_lanzar()
+
+
+func poner_catalogo(activo: bool) -> void:
+	if catalogo_activo == activo:
+		return
+	catalogo_activo = activo
+	if activo:
+		parar_barrido()
+		_bases_herramientas = CapaBases.copia()
+		CapaBases.limpiar()
+		_l.cambios_hechizo = {}
+		poner_atacar(false)
+		poner_camara_lateral(false)
+		if f4 != null:
+			f4.call("activar", false)
+		if f5 != null:
+			f5.call("activar", false)
+		pestana = Pestana.RECETA
+	else:
+		_l.cambios_hechizo = cambios_hechizo
+		CapaBases.restaurar(_bases_herramientas)
+		if not _perfil_cargado and cargar_al_abrir:
+			cargar()
+		_perfil_cargado = true
+	_aplicar_ui()
+	_refrescar_hud()
 
 
 ## Cuarto goblin: el que está en GOBLIN_ATACANTE queda libre (según `atacar_goblin`); los demás, quietos. Devuelve cuántos quedaron quietos.
@@ -449,6 +575,9 @@ func limpiar_sala() -> Dictionary:
 	var r: Dictionary = {"bloques": 0, "zonas": 0, "solideces": 0, "estados": 0, "agua": 0.0}
 	for b in _l._bloques.duplicate():           # TODOS los bloques, también los de volumen V2 (bloques_de_tierra() solo cuenta los antiguos)
 		_l._deshacer_bloque(b)
+		r["bloques"] += 1
+	for plataforma in _l._plataformas_tierra.duplicate():
+		_l._deshacer_plataforma_tierra(plataforma)
 		r["bloques"] += 1
 	for z in _l._zonas_v2.duplicate():
 		if is_instance_valid(z):
@@ -808,6 +937,8 @@ func poner_camara_lateral(si: bool) -> void:
 # ---------------------------------------------------------------------------------------------------------------------
 
 func poner_pestana(p: int) -> void:
+	if catalogo_activo:
+		poner_catalogo(false)
 	var antes_estados: bool = pestana == Pestana.ESTADOS
 	pestana = clampi(p, Pestana.RECETA, Pestana.ESTADOS)
 	if f5 != null and (pestana == Pestana.ESTADOS) != antes_estados:
@@ -823,6 +954,14 @@ func _unhandled_input(ev: InputEvent) -> void:
 		return
 	var k: InputEventKey = ev as InputEventKey
 	if not k.pressed:
+		return
+	if _l != null and _l.modo_lanzar:
+		return
+	if not k.echo and k.keycode == KEY_F7:
+		poner_catalogo(true)
+		get_viewport().set_input_as_handled()
+		return
+	if catalogo_activo and not [KEY_F1, KEY_F2, KEY_F3, KEY_F4, KEY_F5, KEY_R].has(k.keycode):
 		return
 	var atendida: bool = true
 	# Con F2 abierta, sus teclas mandan (también las repeticiones: las flechas y Q/A se dejan pulsadas).
@@ -1029,6 +1168,8 @@ func _actualizar_panel_modos() -> void:
 
 
 func _refrescar_hud() -> void:
+	if catalogo_activo:
+		return
 	super._refrescar_hud()
 	if _tabla_label != null:
 		_tabla_label.visible = pestana == Pestana.RECETA and (not _compacta_activa() or nivel == Nivel.BASES)        # «Bases» se ve también con la interfaz compacta
@@ -1045,7 +1186,7 @@ func _refrescar_hud() -> void:
 
 func texto_hud() -> String:
 	var lineas: PackedStringArray = []
-	lineas.append("[%s]  F1 Receta · F2 Cast point · F3 Impacto · F4 VFX · F5 Estados        MODO: %s        tinta %s · recarga %s · goblin %s" % [
+	lineas.append("[%s]  F1 Receta · F2 Cast point · F3 Impacto · F4 VFX · F5 Estados · F7 Catálogo        MODO: %s        tinta %s · recarga %s · goblin %s" % [
 		["F1 RECETA", "F2 CAST POINT", "F3 IMPACTO", "F4 VFX", "F5 ESTADOS"][pestana], "CONJURO COMPLETO" if modo_completo else "rápido",
 		"infinita" if tinta_infinita else "real", "real" if recarga_activa else "apagada", "ATACA" if atacar_goblin else "quieto"])
 	match pestana:
@@ -1215,22 +1356,31 @@ func _exit_tree() -> void:
 
 
 func _compacta_activa() -> bool:
-	return ui_compacta and pestana == Pestana.RECETA
+	return not catalogo_activo and ui_compacta and pestana == Pestana.RECETA
 
 
 ## Enseña la interfaz que toca: la compacta en F1 (salvo F4) o los paneles de siempre.
 func _aplicar_ui() -> void:
 	var c: bool = _compacta_activa()
+	var herramientas: bool = not catalogo_activo
+	if _capa_catalogo != null:
+		_capa_catalogo.visible = catalogo_activo and not _l.modo_lanzar
+	if _marcas != null:
+		_marcas.visible = herramientas
+	if _l != null and _l._page_hud is Control:
+		(_l._page_hud as Control).visible = herramientas
 	if _capa_compacta != null:
 		_capa_compacta.visible = c
 	if _hud != null:
-		_hud.visible = not c
+		_hud.visible = herramientas and not c
 	if _caja_glifos != null:
-		_caja_glifos.visible = not c
+		_caja_glifos.visible = herramientas and not c
 	if _caja_modos != null:
-		_caja_modos.visible = not c
+		_caja_modos.visible = herramientas and not c
 	if _tabla_label != null:
-		_tabla_label.visible = pestana == Pestana.RECETA and (not c or nivel == Nivel.BASES)
+		_tabla_label.visible = herramientas and pestana == Pestana.RECETA and (not c or nivel == Nivel.BASES)
+	if _lbl_diseno != null:
+		_lbl_diseno.visible = herramientas and pestana == Pestana.RECETA
 	_refrescar_ui_compacta()
 
 
@@ -2053,7 +2203,7 @@ func _tecla_diseno(k: InputEventKey) -> bool:
 
 
 func _input(ev: InputEvent) -> void:
-	if ev is InputEventKey and m != null and (ev as InputEventKey).pressed and not (ev as InputEventKey).echo:
+	if not catalogo_activo and ev is InputEventKey and m != null and (ev as InputEventKey).pressed and not (ev as InputEventKey).echo:
 		if _tecla_diseno(ev as InputEventKey):
 			get_viewport().set_input_as_handled()
 			_refrescar_hud()

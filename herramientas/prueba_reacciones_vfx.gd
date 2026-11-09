@@ -88,32 +88,22 @@ func _correr() -> void:
 	gob.position = Vector3(2, 0, 3)
 	var fila: Dictionary = ReaccionesVfx3D.reproducir("prendido", gob.global_position, gob, _mundo)
 	_ok(fila.get("vfx", "") == "llamas_cuerpo", "reproducir devuelve la fila resuelta")
-	var llamas: Node3D = gob.get_node_or_null(VfxReaccion3D.NOMBRE_LLAMAS) as Node3D
-	_ok(llamas != null, "las llamas CUELGAN del goblin (se mueven con él)")
-	_ok(llamas != null and _contar(llamas, "GPUParticles3D") == 3, "3 emisores: lengüetas, brasas y humo (%d)" % (_contar(llamas, "GPUParticles3D") if llamas else -1))
-	_ok(llamas != null and llamas.get_node_or_null("Luz") is OmniLight3D and not (llamas.get_node("Luz") as OmniLight3D).shadow_enabled, "una luz sin sombra")
-	var lengua: GPUParticles3D = null
-	if llamas != null:
-		for p in llamas.find_children("*", "GPUParticles3D", true, false):
-			if (p as GPUParticles3D).lifetime > 0.7 and (p as GPUParticles3D).lifetime < 0.8:
-				lengua = p
-	_ok(lengua != null and lengua.emitting and not lengua.one_shot, "las llamas son continuas (arden hasta que algo las apaga)")
-	_ok(lengua != null and not lengua.local_coords, "en coordenadas de mundo: dejan estela cuando se mueve")
-	_ok(lengua != null and (lengua.draw_pass_1 as QuadMesh).size.x > 0.3, "tamaño proporcional a su altura (0,85 → lengüeta %.2f)" % ((lengua.draw_pass_1 as QuadMesh).size.x if lengua else 0.0))
+	var llamas: FuegoToy = gob.get_node_or_null(VfxReaccion3D.NOMBRE_LLAMAS) as FuegoToy
+	_ok(llamas != null and llamas.get_parent() == gob, "el toy de fuego cuelga del goblin")
+	_ok(llamas != null and llamas.figura == FuegoToy.Figura.PILAR and llamas.chispas == 0.25 and _contar(llamas, "OmniLight3D") == 1, "llama vertical de cuerpo con chispas reducidas y una luz")
+	var ancho_g: float = llamas.semieje_x if llamas != null else 0.0
 	var alto: FalsoGoblin = FalsoGoblin.new()
 	alto.altura = 1.7
 	_mundo.add_child(alto)
-	var l2: Node3D = VfxReaccion3D.llamas_cuerpo(alto)
-	var mayor: bool = false
-	for p in l2.find_children("*", "GPUParticles3D", true, false):
-		if (p as GPUParticles3D).lifetime > 0.7 and (p as GPUParticles3D).lifetime < 0.8:
-			mayor = ((p as GPUParticles3D).process_material as ParticleProcessMaterial).emission_sphere_radius > ((lengua.process_material as ParticleProcessMaterial).emission_sphere_radius * 1.5)
-	_ok(mayor, "un enemigo del doble de alto arde con llamas más anchas")
+	var l2: FuegoToy = VfxReaccion3D.llamas_cuerpo(alto) as FuegoToy
+	_ok(l2 != null and l2.semieje_x > ancho_g * 1.5, "un enemigo del doble de alto arde con llamas más anchas")
 	var otra: Node3D = VfxReaccion3D.llamas_cuerpo(gob)
 	_ok(otra == llamas and gob.get_children().filter(func(c): return String(c.name).begins_with("LlamasCuerpo")).size() == 1, "arder dos veces no duplica las llamas")
 	_ok(ReaccionesVfx3D.suena_bucle(gob), "suena el crepitar en bucle mientras arde")
+	await create_timer(0.7).timeout
+	_ok(is_instance_valid(llamas) and llamas.aparicion > 0.95, "la llama sigue encendida hasta recibir el apagado")
 	_ok(VfxReaccion3D.apagar_llamas(gob, true), "apagar_llamas devuelve true si ardía")
-	_ok(not lengua.emitting, "las llamas dejan de emitir")
+	_ok(is_instance_valid(llamas) and llamas.name != VfxReaccion3D.NOMBRE_LLAMAS, "las llamas entran en el apagado del toy")
 	_ok(not VfxReaccion3D.apagar_llamas(gob), "apagar dos veces: la segunda no hace nada")
 	_ok(gob.get_node_or_null(VfxReaccion3D.NOMBRE_LLAMAS) == null, "el nombre queda libre: si vuelve a arder se crea otro")
 	await create_timer(2.3).timeout
@@ -123,6 +113,10 @@ func _correr() -> void:
 	ReaccionesVfx3D.reproducir("apagado_agua", gob.global_position, gob, _mundo)
 	_ok(gob.get_node_or_null(VfxReaccion3D.NOMBRE_LLAMAS) == null, "«apagado_agua» apaga las llamas del goblin")
 	_ok(not ReaccionesVfx3D.suena_bucle(gob), "…y corta el crepitar")
+	var gotas: Array[Node] = _mundo.find_children("*", "Node3D", false, false).filter(func(n: Node) -> bool: return n is ImpactoAguaToy)
+	var vapor: Node = _mundo.get_node_or_null("VaporReaccion")
+	_ok(gotas.size() == 1 and (gotas[0] as ImpactoAguaToy).variante == ImpactoAguaToy.Variante.FIN, "el apagado deja gotas toy sin anillo de choque")
+	_ok(vapor != null and _contar(vapor, "MultiMeshInstance3D") == 1 and _contar(vapor, "GPUParticles3D") == 0, "el apagado deja una bocanada toon por CPU")
 	ReaccionesVfx3D.reproducir("prendido", gob.global_position, gob, _mundo)
 	var id_gob: int = gob.get_instance_id()
 	gob.queue_free()
@@ -135,9 +129,9 @@ func _correr() -> void:
 	flecha.set_meta("tipo", "flecha")
 	_mundo.add_child(flecha)
 	ReaccionesVfx3D.reproducir("prendido", Vector3.ZERO, flecha, _mundo)
-	var lf: Node3D = flecha.get_node_or_null(VfxReaccion3D.NOMBRE_LLAMAS) as Node3D
-	_ok(lf != null and _contar(lf, "GPUParticles3D") == 2, "llama y brasas, colgando de la flecha")
-	_ok(lf != null and (lf.get_node("Luz") as OmniLight3D).omni_range < 2.0, "luz pequeña (la flecha no ilumina como un goblin)")
+	var lf: FuegoToy = flecha.get_node_or_null(VfxReaccion3D.NOMBRE_LLAMAS) as FuegoToy
+	_ok(lf != null and lf.figura == FuegoToy.Figura.PILAR and not lf.viaja, "llama corta colgada de la flecha, sin modo proyectil")
+	_ok(lf != null and lf.luz == 0.0, "la llama de la flecha no añade luz")
 	_ok(not ReaccionesVfx3D.suena_bucle(flecha), "la flecha no usa bucle (suena una vez al prender)")
 	flecha.queue_free()
 	await process_frame
@@ -166,14 +160,9 @@ func _correr() -> void:
 	var n1: int = _contar(_mundo, "GPUParticles3D")
 	_ok(fg["vfx"] == "escudo_golpe" and n1 - n0 == 2, "ENTERO: un golpe → destello y chispas (+%d emisores)" % (n1 - n0))
 	ReaccionesVfx3D.reproducir("prendido", Vector3(0, 1, 0), escudo, _mundo)
-	var le: Node3D = escudo.get_node_or_null(VfxReaccion3D.NOMBRE_LLAMAS) as Node3D
-	_ok(le != null and _contar(le, "GPUParticles3D") == 3, "ARDIENDO: llamas colgando del escudo")
-	var ancho_g: float = ((lengua.process_material as ParticleProcessMaterial).emission_sphere_radius) if lengua != null and is_instance_valid(lengua) else 0.0
-	var ancho_e: float = 0.0
-	for p in le.find_children("*", "GPUParticles3D", true, false):
-		if (p as GPUParticles3D).lifetime > 0.7 and (p as GPUParticles3D).lifetime < 0.8:
-			ancho_e = ((p as GPUParticles3D).process_material as ParticleProcessMaterial).emission_sphere_radius
-	_ok(ancho_e > 0.0 and (ancho_g == 0.0 or ancho_e < ancho_g), "…más pequeñas que las del goblin (escala 0,5: %.3f < %.3f)" % [ancho_e, ancho_g])
+	var le: FuegoToy = escudo.get_node_or_null(VfxReaccion3D.NOMBRE_LLAMAS) as FuegoToy
+	_ok(le != null and le.get_parent() == escudo, "ARDIENDO: toy de fuego colgado del escudo")
+	_ok(le != null and le.semieje_x < ancho_g, "llama de escudo más pequeña que la del goblin")
 	_ok(ReaccionesVfx3D.suena_bucle(escudo), "…con su crepitar")
 	var n2: int = _contar(_mundo, "GPUParticles3D")
 	ReaccionesVfx3D.reproducir("consumido", Vector3(0, 1, 0), escudo, _mundo)
@@ -184,6 +173,11 @@ func _correr() -> void:
 	print("== Cada reacción de la plantilla deja algo en el árbol ==")
 	var muestra := Node3D.new()
 	_mundo.add_child(muestra)
+	ReaccionesVfx3D.reproducir("prendido", Vector3.ZERO, muestra, _mundo)
+	_ok(_mundo.get_children().any(func(n: Node) -> bool: return n is FuegoToy and n.figura == FuegoToy.Figura.PILAR), "prendido breve usa una llama vertical")
+	var antes_mojar: int = _mundo.get_children().filter(func(n: Node) -> bool: return n is ImpactoAguaToy).size()
+	ReaccionesVfx3D.reproducir("mojado", Vector3.ZERO, muestra, _mundo)
+	_ok(_mundo.get_children().filter(func(n: Node) -> bool: return n is ImpactoAguaToy).size() == antes_mojar + 1, "mojado usa las gotas del toy de agua")
 	for r in ReaccionesVfx3D.CATALOGO:
 		var a: int = _mundo.find_children("*", "", true, false).size()
 		var res: Dictionary = ReaccionesVfx3D.reproducir(r, Vector3(1, 0.5, 1), muestra, _mundo)

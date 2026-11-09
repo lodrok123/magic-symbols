@@ -42,6 +42,7 @@ func _initialize() -> void:
 	_plantilla()
 	_errores()
 	await _sala()
+	_bancales()
 	print("FALLOS: %d" % _fallos)
 	quit(1 if _fallos > 0 else 0)
 
@@ -218,3 +219,67 @@ func _sala() -> void:
 	Terreno3D.estados.poner(c6, "mojada", false)
 	for c in cs:
 		Terreno3D.estados.poner(c, "mojada", false)
+
+
+func _bancales() -> void:
+	var m := MundoFalso.new()
+	m._props = Node3D.new()
+	m.add_child(m._props)
+	root.add_child(m)
+	Lanzador3D.configurar(m)
+	Flags.nuevo()
+	var mal: Dictionary = Puzle3D.parsear("; pieza bancal_a bancal 2 4 flag=mal")
+	_ok("20 bancal sin una flag válida: aviso y pieza ignorada", mal["piezas"].is_empty() and not mal["avisos"].is_empty())
+	var txt: String = """
+; pieza bancal_a bancal 2 4 flag=prueba.jardin.a
+; pieza bancal_b bancal 3 4 flag=prueba.jardin.b
+; pieza bancal_c bancal 4 4 flag=prueba.jardin.c
+; pieza vivero puerta 5 4
+; puzle fin_a cuando=bancal_a.germino si=bancal_b.germinado+bancal_c.germinado hace=flag.poner(prueba.jardin.abierto)
+; puzle fin_b cuando=bancal_b.germino si=bancal_a.germinado+bancal_c.germinado hace=flag.poner(prueba.jardin.abierto)
+; puzle fin_c cuando=bancal_c.germino si=bancal_a.germinado+bancal_b.germinado hace=flag.poner(prueba.jardin.abierto)
+; puzle abrir_vivero cuando=flag.prueba.jardin.abierto hace=vivero.abrir
+"""
+	var montar: Callable = func() -> Puzle3D:
+		var puzle := Puzle3D.new()
+		root.add_child(puzle)
+		puzle.iniciar(m, "JardinPrueba", txt)
+		return puzle
+	var z: Puzle3D = montar.call()
+	var suelo: EstadosSuelo3D = Terreno3D.estados
+	var a := Vector2i(2, 4)
+	var b := Vector2i(3, 4)
+	var c := Vector2i(4, 4)
+	_ok("20 jardín montado sin avisos", z.avisos.is_empty(), str(z.avisos))
+	suelo.aplicar(a, "brota")
+	suelo.aplicar(a, "agua")
+	_ok("20 Naturaleza en seco y Agua sola dejan el bancal pendiente", not Flags.i().tiene("prueba.jardin.a"))
+	suelo.poner_material(Vector2i(2, 3), "hierba")
+	suelo.aplicar(Vector2i(3, 3), "agua")
+	suelo.aplicar(Vector2i(3, 3), "brota")
+	_ok("20 la hierba pintada o germinada fuera de los bancales no cuenta", not Flags.i().tiene("prueba.jardin.a") and not Flags.i().tiene("prueba.jardin.b"))
+	suelo.aplicar(a, "brota")
+	suelo.aplicar(a, "brota")
+	_ok("20 la primera germinación cuenta una vez y deja cerrado el vivero", Flags.i().tiene("prueba.jardin.a") and not z.nodo("vivero").abierta and z.puzle("fin_a")["ignoradas"] == 1)
+	z.free()
+	m._props.free()
+	m._props = Node3D.new()
+	m.add_child(m._props)
+	var guardado: Dictionary = Flags.i().a_dic()
+	Flags.nuevo().desde_dic(guardado)
+	Lanzador3D.configurar(m)
+	z = montar.call()
+	_ok("20 al cargar se restaura el bancal y la hierba, con el vivero cerrado", z.nodo("bancal_a").germinado and suelo.material_de(a) == "hierba" and not z.nodo("vivero").abierta)
+	for celda in [c, b]:
+		suelo.aplicar(celda, "agua")
+		suelo.aplicar(celda, "brota")
+	_ok("20 el último bancal abre el vivero aunque se germine fuera de orden", z.nodo("vivero").abierta and Flags.i().tiene("prueba.jardin.abierto"))
+	z.free()
+	m._props.free()
+	m._props = Node3D.new()
+	m.add_child(m._props)
+	Lanzador3D.configurar(m)
+	z = montar.call()
+	_ok("20 al volver se mantienen el jardín y el vivero abierto", z.nodo("vivero").abierta and suelo.material_de(b) == "hierba" and suelo.material_de(c) == "hierba")
+	z.free()
+	m.free()

@@ -140,6 +140,8 @@ extends Node
 ##   nube_veneno  vida=<s> (6; 0 = permanente)  radio=<casillas> (1)                 NubeVeneno3D (F4, 29/10): una nube de veneno con vida propia. Envenena a quien esté dentro (2 de vida/s y 3 s después; el antídoto, la capucha de musgo y el
 ##              limo, el chamán y el gólem no se envenenan), el VIENTO la empuja y la dispersa (8 s) y el FUEGO la consume (4 s). Se guarda en la partida. Señal `disipada`
 ##   nido       (sin claves)                                                        Nido3D (F1): el viento suelta una `pluma`, como mucho cada 45 s. Señal `suelta`
+##   bancal     flag=<nivel.sala.hecho> (obligatoria)                                Tierra o arena. Agua → Naturaleza germina la casilla y guarda la flag.
+##              Señal `germino`; condiciones `germinado` y `pendiente`. La flag restaura la hierba al volver al mapa.
 ##   arbol      modelo=arbol_redondo|arbol_redondo_2|pino|pino_2 (arbol_redondo)    Reactivo3D `arbol` (F1): bloquea su casilla; un golpe cuerpo a cuerpo (F) lo sacude y suelta la tabla `tronco_golpe`, cada 30 s
 ##   musgo, helecho_cueva, seta_palida   coge_si=<expresión>  rebrota=<s> (0)        Recolectable3D (F1): como `alga`, con la pieza de la columna `modelo` de su objeto (o una esfera si no la hay)
 ##   cofre (da=)  da=<objeto>:<n>[+<objeto>:<n>…] (`oro` es oro)  o  da=tabla:<id> (una tirada de `botin_tablas.tsv`; se mezcla con «+»). `abre_si=tener.<objeto>`: la condición `tener.<objeto>` vale mientras
@@ -265,6 +267,7 @@ const SENAL_DEFECTO: Dictionary = {
 	"columna": "cae", "estatuas": "completa", "estalagmita": "cae", "geoda": "explota", "bloque": "movido", "roca_empujable": "movido",
 	"guardian": "levanta", "puente": "tendido", "trampa_dragon": "escupe", "trampa_flechas": "dispara",
 	"colmena": "cae_panal", "nube_veneno": "disipada", "nido": "suelta", "musgo": "recogida", "helecho_cueva": "recogida", "seta_palida": "recogida",
+	"bancal": "germino",
 }
 ## Señal de usuario → [señal de Godot, cuántos argumentos trae, filtro]: un filtro `true`/`false` deja pasar solo ese valor del primer argumento.
 const SENALES: Dictionary = {
@@ -312,11 +315,13 @@ const SENALES: Dictionary = {
 	"colmena": {"cae_panal": ["panal_cae", 0, null], "arde": ["arde", 0, null]},
 	"nube_veneno": {"disipada": ["disipada", 0, null]},
 	"nido": {"suelta": ["suelta", 0, null]},
+	"bancal": {"germino": ["germino", 0, null]},
 	"musgo": {"recogida": ["recogido", 1, null]},
 	"helecho_cueva": {"recogida": ["recogido", 1, null]},
 	"seta_palida": {"recogida": ["recogido", 1, null]},
 }
 const CONDICIONES: Dictionary = {
+	"bancal": {"germinado": ["germinado", true], "pendiente": ["germinado", false]},
 	"compuerta": {"abierta": ["abierta", true], "cerrada": ["abierta", false]},
 	"puerta": {"abierta": ["abierta", true], "cerrada": ["abierta", false]},
 	"nivel": {"alcanzado": ["alcanzado", true], "perdido": ["alcanzado", false]},
@@ -405,7 +410,7 @@ const CLAVES: Dictionary = {
 	"manantial": {"caudal": "f", "volumen": "f", "rampa": "b", "inicia": "b", "celdas": "celdas", "sin_piedra": "b", "bloque": "celdas", "terraza": "f", "pilares": "b", "espuma": "f"},
 	"tinaja": {"canal": "celdas"},
 	"totem": {},
-	"brasero": {"rele": "id", "espera": "f", "dura": "f", "luz": "f", "modelo": "s:cueva"},
+	"brasero": {"rele": "id", "espera": "f", "dura": "f", "luz": "f", "modelo": "s:cueva", "por_hierba": "b"},
 	# 27/10: todo el kit de la Cueva se puede poner de adorno desde el mapa (estalagmitas, pared baja, boca, llave, bloque de enlace, rocas y raíces con musgo)
 	"decorado": {"modelo": "decorado:geoda_resonante|estalagmita_resonante|estalagmita_rota|rocas_salpicadura|helechos_cueva|musgo_colgante|estalagmitas_a|estalagmitas_b|cueva_pared_baja|boca_cueva|llave_pequena|bloque_enlace|roca_musgosa|raices_musgo", "giro": "f", "escala": "f"},
 	"seto": {"mojable": "b"},
@@ -423,6 +428,7 @@ const CLAVES: Dictionary = {
 	"helecho_cueva": {"coge_si": "expr", "rebrota": "f"},
 	"seta_palida": {"coge_si": "expr", "rebrota": "f"},
 	"colmena": {},
+	"bancal": {"flag": "flag"},
 	"nube_veneno": {"vida": "f", "radio": "f"},
 	"nido": {},
 	"arbol": {"modelo": "s:arbol_redondo|arbol_redondo_2|pino|pino_2"},
@@ -504,6 +510,30 @@ class Pieza extends RefCounted:
 	var nodos: Array = []                        ## las piezas que crea una línea con `celdas=` (jarrones, cajas): `nodo` es la primera
 	var n: int = 0                               ## línea del .txt
 	var activa: bool = false                     ## manantial: ya está echando agua
+
+
+## Registra la germinación del suelo de una casilla y la recuerda entre visitas.
+class BancalPuzle extends Node:
+	signal germino
+
+	var celda: Vector2i
+	var flag: String
+	var germinado: bool = false
+
+	func _ready() -> void:
+		germinado = Flags.i().tiene(flag)
+		if germinado:
+			Terreno3D.estados.poner_material(celda, "hierba")
+		else:
+			Terreno3D.estados.germino.connect(_al_germinar)
+
+	func _al_germinar(c: Vector2i) -> void:
+		if c != celda:
+			return
+		Terreno3D.estados.germino.disconnect(_al_germinar)
+		germinado = true
+		Flags.i().poner(flag)
+		germino.emit()
 
 
 ## Losa que bloquea su casilla hasta que el puzle se cumple (y vuelve a cerrarse si deja de cumplirse). Antes vivía en el laboratorio.
@@ -1425,6 +1455,9 @@ static func _leer_pieza(p: PackedStringArray, n: int, l: String, por_id: Diction
 			bien = false
 			continue
 		pz.p[kv[0]] = v[1]
+	if bien and tipo == "bancal" and not pz.p.has("flag"):
+		_aviso_linea(avisos, n, l, "el bancal necesita flag=<nivel.sala.hecho>")
+		return null
 	return pz if bien else null
 
 
@@ -1976,6 +2009,17 @@ func _crear(pz: Pieza) -> void:
 		if not _casilla_valida(pz, c as Vector2i):
 			return
 	match pz.tipo:
+		"bancal":
+			var material: String = Terreno3D.estados.material_de(pz.celda)
+			if material not in ["tierra", "arena"]:
+				_avisar_pieza(pz, "un bancal necesita tierra o arena, hay «%s»" % material)
+				return
+			var bancal := BancalPuzle.new()
+			bancal.name = pz.id
+			bancal.celda = pz.celda
+			bancal.flag = String(pz.p["flag"])
+			cont.add_child(bancal)
+			pz.nodo = bancal
 		"pulsador":
 			var b := Pulsador3D.new()
 			b.name = pz.id
@@ -2169,6 +2213,9 @@ func _crear(pz: Pieza) -> void:
 				_avisar_pieza(pz, "no hay brasero de la maqueta en %s (letra «T»)" % pz.celda)
 				return
 			br.mult_luz = maxf(float(pz.p.get("luz", 1.0)), 0.1)
+			br.enciende_por_hierba = bool(pz.p.get("por_hierba", false))
+			if br.enciende_por_hierba:
+				br.add_to_group(Reactivo3D.GRUPO_ARDE)
 			if String(pz.p.get("modelo", "")) == "cueva":
 				# 24/10 (tercera tanda): el brasero de la Cueva (`brasero_cueva`, 0,9 de alto) en vez del del Bosque (1,4). Solo cambia el modelo: sigue siendo el mismo Reactivo3D, con su luz, su
 				# pulso de fuego y su caja de acierto; la llama y la luz bajan a la altura del cuenco nuevo.

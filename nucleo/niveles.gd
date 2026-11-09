@@ -103,9 +103,19 @@ static func ir_a(mundo: Node, destino: String) -> bool:
 	if p.is_empty():
 		_avisar("destino «%s» mal escrito: se escribe <Nivel>:<entrada>" % destino)
 		return false
+	var origen: String = String(mundo.get("nivel")) if mundo.get("nivel") != null else ""
+	var estado: Estado = Estado.i()
+	if origen == "Cueva" and destino == "Bosque_02:boca_cueva":
+		if estado.bosque_retorno_cueva == "Bosque_01_v01" and existe("Bosque_01_v01"):
+			p[0] = "Bosque_01_v01"
 	if not existe(p[0]):
 		_avisar("el nivel «%s» todavía no existe (hay: %s; escena %s)" % [p[0], ", ".join(ESCENAS.keys()), escena_de(p[0]) if escena_de(p[0]) != "" else "sin fila en Niveles.ESCENAS"])
 		return false
+	# Antes del autoguardado del viaje: una partida cargada dentro conserva la boca de origen.
+	if p[0] == "Cueva":
+		estado.bosque_retorno_cueva = origen if p[1] == "desde_bosque" and origen in ["Bosque_01_v01", "Bosque_02"] else ""
+	elif origen == "Cueva":
+		estado.bosque_retorno_cueva = ""
 	en_curso = true
 	_viaje(mundo, p[0], p[1])
 	return true

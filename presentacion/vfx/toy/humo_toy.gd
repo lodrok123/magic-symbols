@@ -45,6 +45,7 @@ static func material(q: Dictionary = {}, prioridad: int = 1) -> ShaderMaterial:
 	m.set_shader_parameter("estirado", float(q.get("estirado", POR_DEFECTO["estirado"])))
 	m.set_shader_parameter("umbral", float(q.get("umbral", POR_DEFECTO["umbral"])))
 	m.set_shader_parameter("ruido_borde", float(q.get("ruido_borde", POR_DEFECTO["ruido_borde"])))
+	m.set_shader_parameter("opacidad", float(q.get("opacidad", 1.0)))
 	return m
 
 
@@ -124,7 +125,7 @@ func poner_param(nombre: String, v: Variant) -> void:
 			"claro": m.set_shader_parameter("color_claro", v)
 			"sombra": m.set_shader_parameter("color_sombra", v)
 			"viejo": m.set_shader_parameter("color_viejo", v)
-			"erosion", "estirado", "umbral", "ruido_borde": m.set_shader_parameter(nombre, float(v))
+			"erosion", "estirado", "umbral", "ruido_borde", "opacidad": m.set_shader_parameter(nombre, float(v))
 
 
 ## Una bocanada nueva en `pos` (mundo si `mundo`, si no local) con velocidad `vel`. `vida_k` y `tam_k` multiplican la vida y el tamaño de la reserva; `giro` = orientación inicial en pantalla (rad);

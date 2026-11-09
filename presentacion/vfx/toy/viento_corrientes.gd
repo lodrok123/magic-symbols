@@ -13,8 +13,9 @@ func _ready() -> void:
 	mesh = ArrayMesh.new()
 	var material := ShaderMaterial.new()
 	material.shader = preload("res://presentacion/vfx/toy/viento_corriente.gdshader")
-	material.set_shader_parameter("claro", Color("#dcffb0"))
-	material.set_shader_parameter("sombra", Color("#83be70"))
+	# El aire no lleva color propio (ver viento_corriente.gdshader): la paleta fria del toy, no verde. El verde es de las hojas.
+	material.set_shader_parameter("claro", VientoToy.CLARO)
+	material.set_shader_parameter("sombra", VientoToy.SOMBRA)
 	material_override = material
 	cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 
@@ -55,17 +56,25 @@ func _guardar(puntos: PackedVector3Array, grosor: float, alfa: float, tinte: flo
 
 func _rafaga(ejes: Vector3, tiempo: float, alfa: float, estela: float) -> void:
 	var radio: float = maxf(0.17, maxf(ejes.x, ejes.z))
-	var grosor: float = clampf(radio * 0.20, 0.035, 0.10)
-	for i in 5:
-		var z: float = (float(i) - 2.0) * radio * 0.26
-		var r: float = radio * (0.69 + 0.26 * sin(float(i) / 4.0 * PI))
-		var arco: PackedVector3Array = _anillo_rafaga(z, r, tiempo * 10.0 + float(i) * 1.51, 5.25, radio * 0.20)
-		_guardar(arco, grosor * 1.9, alfa * 0.24)
-		_guardar(arco, grosor, alfa * (0.76 + 0.22 * sin(tiempo * 16.0 + float(i))))
+	var grosor: float = clampf(radio * 0.22, 0.055, 0.11)
+	# VOLUMEN: tres cintas ORBITALES en planos distintos (como un astrolabio) que se cruzan y se solapan. Una sola lamina vista de canto es una raya; tres planos
+	# que no coinciden dan silueta de esfera desde cualquier angulo. La cabeza de cada cinta va por delante (ancha) y la cola se afina.
+	var centro := Vector3(0.0, 0.0, -radio * 0.68 * smoothstep(0.0, 0.5, estela))   # la envoltura se adelanta al arrancar (ver _process en viento_toy.gd)
+	var giro_global: Basis = Basis(Vector3.BACK, tiempo * 1.7)                           # todo el conjunto gira sobre el eje del vuelo
+	for i in 3:
+		var plano: Basis = giro_global * Basis(Vector3.BACK, float(i) * TAU / 3.0) * Basis(Vector3.RIGHT, deg_to_rad(58.0))   # tres planos a 58 grados del eje y repartidos a 120: ninguno queda de canto
+		var cabeza: float = tiempo * (9.0 + float(i) * 2.0) * (1.0 if i != 1 else -1.0) + float(i) * 2.1
+		var arco := PackedVector3Array()
+		for j in 26:
+			var a: float = cabeza - 5.0 * float(j) / 25.0 * (1.0 if i != 1 else -1.0)
+			var r: float = radio * (0.98 + 0.07 * sin(a * 2.0 + float(i)))
+			arco.append(centro + plano * Vector3(cos(a) * r, sin(a) * r, 0.0))
+		_guardar(arco, grosor * 2.7, alfa * 0.30, 0.0)
+		_guardar(arco, grosor * 1.7, alfa * (0.80 + 0.18 * sin(tiempo * 14.0 + float(i))), 0.0)
 	for i in 3:
 		var fase: float = fposmod(tiempo * 3.25 + float(i) / 3.0, 1.0)
-		var z: float = radio * (1.2 + 6.8 * fase) * estela
-		var arco: PackedVector3Array = _anillo_rafaga(z, radio * (0.88 + 1.5 * fase),
+		var z: float = radio * (1.1 + 3.4 * fase) * estela
+		var arco: PackedVector3Array = _anillo_rafaga(z, radio * (0.88 + 0.7 * fase),
 			tiempo * 3.0 + float(i) * 2.2, 5.5, radio * (0.62 + 0.32 * fase))
 		_guardar(arco, grosor * 0.86, alfa * estela * sin(PI * fase) * 0.68)
 	for i in 4:
@@ -75,7 +84,7 @@ func _rafaga(ejes: Vector3, tiempo: float, alfa: float, estela: float) -> void:
 		for j in 9:
 			var u: float = float(j) / 8.0
 			var deriva: float = 0.16 * sin(u * TAU + tiempo * 12.0 + float(i))
-			puntos.append((lado * (lerpf(0.58, 0.24, u) + deriva) + Vector3.BACK * u * 7.5 * estela) * radio)
+			puntos.append((lado * (lerpf(0.58, 0.24, u) + deriva) + Vector3.BACK * u * 4.0 * estela) * radio)
 		_guardar(puntos, grosor * 0.52, alfa * estela * 0.43)
 
 
@@ -111,37 +120,61 @@ func _salida(radio: float, alfa: float, progreso: float) -> void:
 		_guardar(arco, clampf(r * 0.105, 0.048, 0.13), alfa * (1.0 - progreso) * 0.82)
 
 
-func _haz(ejes: Vector3, tiempo: float, alfa: float) -> void:
-	var radio: float = ejes.z * 0.55
-	for i in 11:
-		var puntos := PackedVector3Array()
-		var giro: float = float(i) * 2.39996
-		var fase: float = fposmod(tiempo * 4.8 + float(i) * 0.38197, 1.0)
-		var inicio: float = 0.0 if i < 5 else fase * 0.78
-		var fin: float = 1.0 if i < 5 else minf(inicio + 0.30, 1.0)
-		for j in 57:
-			var u: float = lerpf(inicio, fin, float(j) / 56.0)
-			var onda: float = u * 29.0 - tiempo * 20.0
-			var angulo: float = giro + u * (10.0 + float(i % 4) * 2.7) - tiempo * 18.0
-			angulo += sin(onda + giro) * 0.58
-			var perfil: float = 0.38 + 0.25 * sin(PI * u) + 0.13 * sin(onda * 0.62 + giro)
-			var apertura: float = radio * perfil * (0.54 + 0.19 * float(i % 4))
-			var lado := Vector3(cos(angulo), sin(angulo) * 0.78, 0.0)
-			var eje := Vector3(sin(onda * 0.49) * radio * 0.10, ejes.y, -u * ejes.x)
-			puntos.append(eje + lado * apertura)
-		var grosor: float = clampf(radio * (0.10 + 0.04 * float(i % 3)), 0.038, 0.13)
-		var fuerza: float = alfa * (0.64 + 0.24 * sin(tiempo * 18.0 + giro)) if i < 5 else alfa * sin(PI * fase)
-		_guardar(puntos, grosor * 2.9, fuerza * 0.24)
-		_guardar(puntos, grosor, fuerza)
-	for i in 7:
-		var fase: float = fposmod(tiempo * 3.4 + float(i) / 7.0, 1.0)
-		var z: float = -ejes.x * (0.90 + 0.10 * fase) if i < 5 else -ejes.x * fase * 0.12
-		var arco := _anillo_rafaga(z, radio * (0.25 + 1.12 * fase), tiempo * 9.0 + float(i) * 2.4,
-			2.25 + float(i % 3) * 0.45, radio * 0.26)
-		for j in arco.size():
-			arco[j].y += ejes.y
-		_guardar(arco, clampf(radio * 0.18, 0.04, 0.14), alfa * sin(PI * fase) * 0.90)
+## HAZ = LANZA DE AIRE que apunta hacia -Z: nace en un punto en la mano, se ensancha hasta el primer tercio y se cierra en una PUNTA al frente (como la lanza del fuego, y
+## no un aro). Las cintas largas son las lineas de corriente; las cortas son cometas que viajan hacia delante con la cabeza gruesa por delante y la cola afinada; los
+## CHEVRONES (V con el vertice al frente, en dos planos cruzados) recorren el haz de la mano a la punta y son lo que hace que se lea la direccion sin pensar.
+## El haz arranca un poco DETRÁS del origen (la mano): las cintas entran con alfa desde su primer punto y, empezando justo en la mano, quedaba un hueco entre la jugadora y el primer trazo.
+const HAZ_ATRAS: float = 0.14
 
+func _z_haz(u: float, largo: float) -> float:
+	return (u * (1.0 + HAZ_ATRAS) - HAZ_ATRAS) * largo
+
+
+func _haz(ejes: Vector3, tiempo: float, alfa: float) -> void:
+	var radio: float = ejes.z * 0.8
+	var largo: float = ejes.x
+	for i in 12:
+		var giro: float = float(i) * 2.39996
+		var fase: float = fposmod(tiempo * 3.6 + float(i) * 0.38197, 1.0)
+		var larga: bool = i < 6
+		var inicio: float = 0.0 if larga else fase * 0.58
+		var fin: float = 1.0 if larga else minf(inicio + 0.42, 1.0)
+		var puntos := PackedVector3Array()
+		for j in 44:
+			var t: float = float(j) / 43.0
+			var u: float = lerpf(inicio, fin, t if larga else 1.0 - t)   # las cometas van cabeza (delante) primero
+			var onda: float = u * 17.0 - tiempo * 14.0
+			var angulo: float = giro + u * (1.5 + float(i % 4) * 0.5) - tiempo * 4.0 + sin(onda + giro) * 0.25   # poco giro: lineas de corriente, no un muelle
+			var perfil: float = (0.10 + 0.90 * smoothstep(0.0, 0.35, u)) * (1.0 - pow(u, 1.8)) * (1.0 + 0.14 * sin(onda * 0.62 + giro))
+			var apertura: float = radio * perfil * (0.45 + 0.17 * float(i % 4))
+			var lado := Vector3(cos(angulo), sin(angulo) * 0.78, 0.0)
+			puntos.append(Vector3(0.0, ejes.y, -_z_haz(u, largo)) + lado * apertura)
+		var grosor: float = clampf(radio * (0.20 + 0.08 * float(i % 3)), 0.042, 0.10)
+		var fuerza: float = alfa * (0.68 + 0.22 * sin(tiempo * 15.0 + giro)) if larga else alfa * sin(PI * fase)
+		_guardar(puntos, grosor * 2.6, fuerza * 0.24)
+		_guardar(puntos, grosor, fuerza)
+	# El asta de la lanza: dos cintas rectas y gruesas por el eje que se afinan hasta la PUNTA del frente, siempre por delante de todo lo demas.
+	for k in 2:
+		var asta := PackedVector3Array()
+		for j in 20:
+			var u: float = lerpf(0.04, 1.0, float(j) / 19.0)
+			var perfil_a: float = (0.10 + 0.90 * smoothstep(0.0, 0.35, u)) * (1.0 - pow(u, 1.8))
+			var vaiven: float = sin(tiempo * 9.0 + u * 7.0 + float(k) * PI) * radio * 0.12 * perfil_a
+			asta.append(Vector3(vaiven, ejes.y + (float(k) - 0.5) * radio * 0.18 * perfil_a, -_z_haz(u, largo)))
+		_guardar(asta, clampf(radio * 0.55, 0.09, 0.22) * 1.7, alfa * 0.30, 0.0)
+		_guardar(asta, clampf(radio * 0.55, 0.09, 0.22), alfa * 0.95, 0.0)
+	# Los chevrones: V que se abren hacia atras, con el vertice al frente.
+	for i in 5:
+		var fase: float = fposmod(tiempo * 1.9 + float(i) / 5.0, 1.0)
+		var perfil: float = (0.10 + 0.90 * smoothstep(0.0, 0.35, fase)) * (1.0 - pow(fase, 1.8))
+		var abre: float = radio * (0.45 + 0.9 * perfil)
+		for plano in 2:
+			var giro_v := Basis(Vector3.BACK, float(i) * 0.9 + float(plano) * PI * 0.5 + tiempo * 1.3)
+			var uve := PackedVector3Array()
+			for j in 11:
+				var s: float = lerpf(-1.0, 1.0, float(j) / 10.0)
+				uve.append(Vector3(0.0, ejes.y, -_z_haz(fase, largo)) + giro_v * Vector3(s * abre, 0.0, absf(s) * abre * 1.15))
+			_guardar(uve, clampf(radio * 0.40, 0.07, 0.16), alfa * sin(PI * fase), 0.0)
 
 func _tornado(ejes: Vector3, tiempo: float, alfa: float) -> void:
 	for i in 23:
@@ -284,7 +317,7 @@ func _borde_tornado(ejes: Vector3, tiempo: float, opacidad: float) -> void:
 		_contorno_tornado.custom_aabb = AABB(Vector3(-1.4, -0.5, -1.4), Vector3(2.8, 1.0, 2.8))
 		var material := _contorno_tornado.material_override as ShaderMaterial
 		material.set_shader_parameter("tornado", true)
-		material.set_shader_parameter("color_borde", Color("#c9f3a3"))
+		material.set_shader_parameter("color_borde", VientoToy.CLARO.lerp(VientoToy.SOMBRA, 0.35))
 	_contorno_tornado.position.y = 0.06 + ejes.y * 0.55
 	_contorno_tornado.scale = Vector3(ejes.x * 2.0, ejes.y * 1.1, ejes.z * 2.0)
 	var material := _contorno_tornado.material_override as ShaderMaterial

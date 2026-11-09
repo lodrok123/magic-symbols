@@ -118,6 +118,8 @@ static func conectar(lanzador: Object, mundo: Node3D) -> VfxToyJuego:
 		lanzador.connect("hechizo_v2", v._en_hechizo)
 	if lanzador != null and lanzador.has_signal("tierra_deshecha"):
 		lanzador.connect("tierra_deshecha", v._al_tierra_deshecha)
+	if lanzador != null and lanzador.has_signal("plataforma_tierra_lanzada"):
+		lanzador.connect("plataforma_tierra_lanzada", v._retirar_carga)
 	if lanzador is Node:
 		(lanzador as Node).child_entered_tree.connect(v._en_nodo)
 	v._enganchar_estados()
@@ -501,7 +503,7 @@ func _en_hechizo(_estado: String, elemento: String, g: Dictionary, origen: Vecto
 	var d: Vector3 = Vector3(dir.x, 0.0, dir.z)
 	d = d.normalized() if d.length() > 0.01 else Vector3.RIGHT
 	if g.has("haz"):
-		_haz(elemento, hv.h, g["haz"] as Dictionary, suelo, float(g.get("vida_total", Hechizo.HAZ_DURA_S)))
+		_haz(elemento, hv.h, g["haz"] as Dictionary, suelo, float(g.get("vida_total", Hechizo.HAZ_DURA_S)), origen)
 		return
 	if g.has("orbita"):
 		_orbes(elemento, hv, g["orbita"] as Dictionary)       # 3/11 (R3): ᛃ + ᚠ sin flecha: un toy BOLA por orbe, siguiendo su posición
@@ -718,7 +720,7 @@ func _orbes(elemento: String, hv: HechizoVivo, o: Dictionary) -> void:
 
 
 ## Un haz (ᛁ): del cast point a la punta que calculó la lógica; su largo es el recorrido real (se para en un muro), la altura de su eje la de la mano.
-func _haz(elemento: String, h: Hechizo, hz: Dictionary, suelo: float, vida: float) -> void:
+func _haz(elemento: String, h: Hechizo, hz: Dictionary, suelo: float, vida: float, origen: Vector3) -> void:
 	if _vivos >= MAX_VIVOS:
 		return
 	var desde: Vector3 = hz["desde"] as Vector3
@@ -726,12 +728,19 @@ func _haz(elemento: String, h: Hechizo, hz: Dictionary, suelo: float, vida: floa
 	var largo: float = maxf(float(hz.get("largo", desde.distance_to(hasta))), 0.3)
 	var t: Node3D = _nuevo(elemento)
 	t.call("desde_hechizo", h)
-	t.call("definir", FuegoToy.Figura.HAZ, largo * 0.5, maxf(desde.y - suelo, 0.4), Hechizo.HAZ_ANCHO * Terreno3D.casilla * 0.5, false)
+	var tierra: TierraToy = t as TierraToy
+	var inicio: Vector3 = origen if tierra != null else desde
+	var alto: float = TierraToy.REF_HAZ.y if tierra != null else maxf(desde.y - suelo, 0.4)
+	t.call("definir", FuegoToy.Figura.HAZ, largo * 0.5, alto, Hechizo.HAZ_ANCHO * Terreno3D.casilla * 0.5, false)
 	_colgar(t)
-	t.global_position = Vector3(desde.x, suelo, desde.z)
-	var al: Vector3 = Vector3(hasta.x - desde.x, 0.0, hasta.z - desde.z)
+	t.global_position = Vector3(inicio.x, suelo, inicio.z)
+	var al: Vector3 = Vector3(hasta.x - inicio.x, 0.0, hasta.z - inicio.z)
 	if al.length() > 0.01:
 		t.look_at(t.global_position + al, Vector3.UP)
+	if tierra != null:
+		tierra.anclar_linea_al_suelo(func(pie: Vector3) -> float:
+			var celda: Vector2i = Terreno3D.celda_de(pie)
+			return Terreno3D.y_pies(celda) if Terreno3D.en_mapa(celda) else suelo)
 	t.call("lanzar", -1.0)
 	_ritmo_nacer(t, float(h.get_meta(META_RITMO_NACER, 1.0)))
 	# 7/11: la vida del haz (HAZ_DURA_S 0,9 s) puede ser MENOR que su «nacer» (el haz de tierra con 14 púas tarda 0,94 s en brotar): el hundimiento empezaba antes de que salieran las últimas y nunca

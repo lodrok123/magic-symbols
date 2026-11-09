@@ -352,6 +352,15 @@ static func tiempo_caida(geo: Dictionary) -> float:
 
 ## Hace que ocurra lo que dice el Hechizo: avisa al VFX, y cada tanda de casillas cobra vida a su hora. Devuelve cuántas casillas ocupa (0 = rechazado).
 func _materializar(origen: Vector3, dir: Vector3) -> int:
+	if h.es_plataforma_tierra():
+		var celdas: Array[Vector2i] = lanz.celdas_plataforma_tierra(h, origen, dir)
+		if not seco:
+			lanz.plataforma_tierra_lanzada.emit()
+			if not celdas.is_empty():
+				lanz._sonar_fase_v2("impacto", elemento, String(g.get("nombre", "")), origen)
+				lanz.levantar_plataforma_tierra(celdas, h.persiste + h.permanencia)
+		_celdas_volumen = celdas
+		return celdas.size()
 	if h.orbita:
 		return _materializar_orbita(origen, dir)          # 3/11 (R3): ᛃ sin flecha y con ᚠ: las copias orbitan al lanzador
 	if h.haz:
@@ -1140,7 +1149,10 @@ func _materia_liquido(ctx: Dictionary) -> int:
 			libres.append(c)
 	if libres.is_empty():
 		return 0
-	var total: float = Sigils.volumen_agua_v2(ctx["g"]) * pow(Terreno3D.casilla, 3.0) * float(ctx.get("fraccion", 1.0))   # R3: copias y tandas reparten el volumen
+	var volumen: float = Sigils.volumen_agua_v2(ctx["g"])
+	if lanz != null and h.solidez > 0.0 and h.glifos_linea() > 0 and not h.viaja:
+		volumen = minf(volumen, lanz.limite_agua_muro)
+	var total: float = volumen * pow(Terreno3D.casilla, 3.0) * float(ctx.get("fraccion", 1.0))   # R3: copias y tandas reparten el volumen
 	var parte: float = total / float(libres.size())
 	# El agua entra en la simulación cuando la masa del VFX por estado ha caído (t_caida); la solidez, si hay, protege desde el principio.
 	var echar: Callable = func() -> void:

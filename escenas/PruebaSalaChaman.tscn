@@ -2,6 +2,7 @@
 
 [ext_resource type="Script" path="res://presentacion/prueba_test2.gd" id="1_poc"]
 [ext_resource type="Script" path="res://escenas/puzle.gd" id="2_pz"]
+[ext_resource type="Script" path="res://escenas/paginas_combate_prueba.gd" id="3_combate"]
 
 [node name="PruebaSalaChaman" type="Node3D"]
 script = ExtResource("1_poc")
@@ -15,3 +16,7 @@ kit = "pruebas"
 
 [node name="Puzles" type="Node" parent="."]
 script = ExtResource("2_pz")
+
+[node name="PaginasCombatePrueba" type="CanvasLayer" parent="."]
+layer = 4
+script = ExtResource("3_combate")

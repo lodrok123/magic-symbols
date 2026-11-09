@@ -8,7 +8,7 @@ extends SceneTree
 ##   2. HUMO TOON: una bocanada NACE pequeña, CRECE (~×2,5), se EROSIONA al final (erosion sube con la edad) y MUERE en su vida; deriva en curva
 ##   3. FIGURAS: las dos clases se crean y las 5 figuras y `desde_hechizo` no fallan; sin luces ni GPUParticles3D; piezas esperadas (cintas, hojas, bloques, roca...)
 ##   4. TIERRA: los bloques SUBEN del suelo con anticipación, sobrepaso y asentamiento (`subida`), sueltan polvo y fragmentos al asentarse y se HUNDEN al morir; la BARRERA cierra la
-##      cúpula con losas de techo y un destello; el HAZ (6/11 noche) brota PÚAS en secuencia de la mano a la punta, de menor a mayor, con lajas y grietas que existen y se van, y se hunde al revés
+##      cúpula con losas de techo y un destello; la línea brota PÚAS en secuencia de menor a mayor, con lajas en cada base.
 ##   5. CARGA: progreso 0 → 1 sin bajar la escala; convergencia; `soltar` sin salto; `cancelar_carga` libera
 ##   6. IMPACTOS: `impactar_en` crea el impacto y se libera solo; variantes GOLPE / FIN / REBOTE / AREA; piedras en el hemisferio de la normal que caen; soplo de jirones; sin destello
 ##   7. API: rebotar, terminar_sin_choque, finalizar; describir / desde_hechizo = los del fuego
@@ -343,7 +343,7 @@ func _tierra_sube() -> void:
 # ------------------------------------------------------------------ 4b. tierra: el haz de púas en secuencia ------------------------------------------------------------------
 
 func _tierra_haz() -> void:
-	print("== tierra: HAZ = grietas + púas que brotan en secuencia de la mano a la punta, de menor a mayor, con lajas; se hunden al revés y las grietas se van")
+	print("== tierra: púas que brotan y se hunden en secuencia, de menor a mayor, con lajas")
 	var e: TierraToy = _nueva("tierra") as TierraToy
 	await process_frame
 	e.definir(TierraToy.Figura.HAZ, 1.5, 0.5, 0.15, false)
@@ -357,8 +357,8 @@ func _tierra_haz() -> void:
 		elif String(bd["malla"]).begins_with("laja_"):
 			lajas.append(bd)
 	var t_n: float = e._t_nacer_haz()
-	_ok("púas (%d) + lajas (%d) ≤ 24 piezas, ≤ 5 MultiMesh (%d), 1-2 lajas por púa, y hay un quad «Grietas» y ninguna roca del mapa" % [puas.size(), lajas.size(), e._bloques_mms.size()],
-		puas.size() >= 4 and lajas.size() >= puas.size() and puas.size() + lajas.size() <= 24 and puas.size() + lajas.size() == e._bloques.size() and e._bloques_mms.size() <= 5 and e.find_child("Grietas", true, false) != null)
+	_ok("púas (%d) + lajas (%d) ≤ 24 piezas, ≤ 5 MultiMesh (%d), 1-2 lajas por púa" % [puas.size(), lajas.size(), e._bloques_mms.size()],
+		puas.size() >= 4 and lajas.size() >= puas.size() and puas.size() + lajas.size() <= 24 and puas.size() + lajas.size() == e._bloques.size() and e._bloques_mms.size() <= 5)
 	var mats_planos: bool = true
 	for mi in e._bloques_mms:
 		mats_planos = mats_planos and float(((mi as MultiMeshInstance3D).material_override as ShaderMaterial).get_shader_parameter("plano")) > 0.99
@@ -387,37 +387,37 @@ func _tierra_haz() -> void:
 			crecen += 1
 	_ok("brotan EN SECUENCIA de la mano a la punta (paso %.3f-%.3f s, nacer dura %.2f s)" % [paso_min, paso_max, t_n], orden_ok and pasos_ok and t_n > 0.3 and t_n < 1.2)
 	_ok("de MENOR a MAYOR: la última mide %.2f y la primera %.2f (crecen %d de %d pasos)" % [float(puas[puas.size() - 1]["h"]), float(puas[0]["h"]), crecen, puas.size() - 1], float(puas[puas.size() - 1]["h"]) > float(puas[0]["h"]) * 1.4 and crecen >= (puas.size() - 1) * 0.7)
-	# a medio nacer: las primeras fuera, las últimas aún bajo tierra; las grietas ya corren por delante
+	var z_escalon: float = (float((puas[0]["pos"] as Vector3).z) + float((puas.back()["pos"] as Vector3).z)) * 0.5
+	e.anclar_linea_al_suelo(func(p: Vector3) -> float: return 1.0 if p.z < z_escalon else 0.0)
+	_ok("las bases se anclan por separado a ambos niveles del terreno", is_zero_approx((puas[0]["pos"] as Vector3).y) and is_equal_approx((puas.back()["pos"] as Vector3).y, 1.0))
+	_ok("la línea de tierra no dibuja la grieta corrida", float(e.estado_grietas()["avance"]) < 0.0)
+	# A medio nacer: las primeras fuera y las últimas bajo su propio suelo.
 	e.sube = 0.45
 	e._avanzar_bloques(0.0)
 	var ys: Array = e.alturas_actuales()
 	var primera_fuera: bool = float(ys[e._bloques.find(puas[0])]) > -0.1 * float(puas[0]["h"])
 	var ultima_dentro: bool = float(ys[e._bloques.find(puas[puas.size() - 1])]) <= -0.9 * float(puas[puas.size() - 1]["h"])
-	var g1: Dictionary = e.estado_grietas()
-	_ok("a mitad (sube 0,45): la primera púa fuera, la última aún bajo tierra; las grietas van por delante (avance %.2f) y se ven (vida %.2f)" % [g1["avance"], g1["vida"]], primera_fuera and ultima_dentro and float(g1["avance"]) > 0.45 and float(g1["vida"]) > 0.9)
+	_ok("a mitad (sube 0,45): la primera púa fuera, la última aún bajo tierra", primera_fuera and ultima_dentro)
 	e.sube = 1.0
 	e._avanzar_bloques(0.0)
 	var todas: bool = true
 	for y in e.alturas_actuales():
 		todas = todas and absf(float(y)) < 0.001
-	var g2: Dictionary = e.estado_grietas()
-	_ok("con sube = 1 todas en su sitio y las grietas llegan a la punta (avance %.2f)" % g2["avance"], todas and float(g2["avance"]) >= 0.99)
-	# se hunden en orden inverso: la punta antes que la mano; las grietas se desvanecen
+	_ok("con sube = 1 todas asentadas en su propio suelo", todas)
+	# La retirada avanza en el mismo sentido que el brote.
 	e.hunde = 0.35
 	e._avanzar_bloques(0.0)
 	var ys2: Array = e.alturas_actuales()
 	var y_mano: float = float(ys2[e._bloques.find(puas[0])])
 	var y_punta: float = float(ys2[e._bloques.find(puas[puas.size() - 1])])
-	var g3: Dictionary = e.estado_grietas()
-	_ok("con hunde = 0,35 la punta ya baja (%.2f m) y la mano aún no (%.2f m); las grietas se van (vida %.2f)" % [y_punta, y_mano, g3["vida"]], y_punta < -0.05 and y_mano > -0.01 and float(g3["vida"]) < 0.9)
+	_ok("con hunde = 0,35 el inicio ya baja (%.2f m) y la punta aún no (%.2f m)" % [y_mano, y_punta], y_mano < -0.05 and y_punta > -0.01)
 	e.hunde = 1.0
 	e._avanzar_bloques(0.0)
-	var g4: Dictionary = e.estado_grietas()
 	var hundidas: bool = true
 	var ys4: Array = e.alturas_actuales()
 	for j4 in ys4.size():
 		hundidas = hundidas and float(ys4[j4]) < -0.99 * float((e._bloques[j4] as Dictionary)["h"])
-	_ok("con hunde = 1 todas bajo tierra (y < −su alto) y las grietas apagadas (vida %.2f)" % g4["vida"], hundidas and float(g4["vida"]) < 0.02)
+	_ok("con hunde = 1 todas bajo su propio suelo", hundidas)
 	e.queue_free()
 	await process_frame
 	# de verdad: nacer y mirar que las púas salgan una a una con cascotes y polvo

@@ -77,6 +77,108 @@ func construir(bordes: Array, lado: float, material_falda: Material, material_la
 		_montar_labio(bordes, lado, material_labio)
 
 
+## Una repisa visual que se prolonga bajo el agua. La superficie del río
+## corta la pendiente y dibuja la silueta, también cuando cambia el nivel.
+static func malla_ribera_curva(bordes: Array, lado: float, material: Material, ruido: FastNoiseLite, ancho_base: float, amplitud: float) -> ArrayMesh:
+	const PASOS: int = 8
+	var tramos: Dictionary = {}
+	for borde in bordes:
+		var celda: Vector2i = borde["c"]
+		var direccion: Vector2i = borde["v"]
+		tramos[Vector4i(celda.x, celda.y, direccion.x, direccion.y)] = true
+	var st := SurfaceTool.new()
+	st.begin(Mesh.PRIMITIVE_TRIANGLES)
+	st.set_material(material)
+	for borde in bordes:
+		var celda: Vector2i = borde["c"]
+		var direccion: Vector2i = borde["v"]
+		var tangente := Vector2i(absi(direccion.y), absi(direccion.x))
+		var clave := Vector4i(celda.x, celda.y, direccion.x, direccion.y)
+		var paso := Vector4i(tangente.x, tangente.y, 0, 0)
+		var hacia_agua := Vector3(direccion.x, 0.0, direccion.y)
+		var eje := Vector3(tangente.x, 0.0, tangente.y)
+		var altura: float = borde["y_alto"]
+		var inicio := Vector3(celda.x + 0.5, 0.0, celda.y + 0.5) * lado + (hacia_agua - eje) * lado * 0.5
+		var anterior: Array[Vector3] = []
+		for i in range(PASOS + 1):
+			var t: float = float(i) / PASOS
+			var centro: Vector3 = inicio + eje * t * lado
+			var ancho: float = _ancho_ribera(centro, hacia_agua, lado, ruido, ancho_base, amplitud)
+			if not tramos.has(clave - paso):
+				ancho *= smoothstep(0.0, 0.65, t)
+			if not tramos.has(clave + paso):
+				ancho *= smoothstep(0.0, 0.65, 1.0 - t)
+			var perfil: Array[Vector3] = [
+				centro - hacia_agua * 0.27 + Vector3.UP * (altura + 0.006),
+				centro + hacia_agua * (ancho * 0.72) + Vector3.UP * (altura - 0.015),
+				centro + hacia_agua * (ancho * 1.45) + Vector3.UP * (altura - 0.27),
+			]
+			if not anterior.is_empty():
+				for j in range(2):
+					var p: Vector3 = anterior[j]
+					var q: Vector3 = perfil[j]
+					var r: Vector3 = perfil[j + 1]
+					var s: Vector3 = anterior[j + 1]
+					for triangulo in [[p, q, r], [p, r, s]]:
+						var geo: Vector3 = (triangulo[1] - triangulo[0]).cross(triangulo[2] - triangulo[0])
+						if geo.length_squared() < 0.000001:
+							continue
+						var orden: Array = [0, 1, 2] if geo.dot(hacia_agua + Vector3.UP) < 0.0 else [0, 2, 1]
+						for indice in orden:
+							st.add_vertex(triangulo[indice])
+			anterior = perfil
+	st.index()
+	st.generate_normals()
+	return st.commit()
+
+
+
+static func _ancho_ribera(centro: Vector3, hacia_agua: Vector3, lado: float, ruido: FastNoiseLite, ancho: float, amplitud: float) -> float:
+	if ruido != null:
+		# Misma muestra en mundo en el remate de dos tramos consecutivos.
+		var muestra: Vector3 = centro - hacia_agua * lado * 0.6
+		ancho += clampf(ruido.get_noise_2d(muestra.x, muestra.z) * 1.6, -1.0, 1.0) * amplitud
+	return clampf(ancho, 0.06, lado * 0.37)
+
+
+## Cantos agrupados en ensanchamientos del perfil. Los estrechamientos quedan libres.
+func cantos_ribera(bordes: Array, lado: float, ruido: FastNoiseLite, ancho: float, amplitud: float) -> MultiMesh:
+	var transformaciones: Array[Transform3D] = []
+	var colores: Array[Color] = []
+	for borde in bordes:
+		var c: Vector2i = borde["c"]
+		var v: Vector2i = borde["v"]
+		var normal := Vector3(v.x, 0.0, v.y)
+		var tangente := Vector3(-v.y, 0.0, v.x)
+		var centro := Vector3(c.x + 0.5, 0.0, c.y + 0.5) * lado + normal * lado * 0.5
+		var sal: int = _hash(c, v, 29)
+		if sal % 5 > 3:
+			continue
+		var y: float = borde["y_alto"]
+		var rng := RandomNumberGenerator.new()
+		rng.seed = sal
+		for i in range(2 + sal % 3):
+			var p: Vector3 = centro + tangente * rng.randf_range(-0.42, 0.42)
+			var anchura: float = _ancho_ribera(p, normal, lado, ruido, ancho, amplitud)
+			if anchura < 0.28:
+				continue
+			var diametro: float = rng.randf_range(0.18, 0.48)
+			p += normal * anchura * rng.randf_range(0.60, 1.11)
+			p.y = y - 0.035 - anchura * rng.randf_range(0.04, 0.13)
+			var giro := Basis(Vector3.UP, rng.randf() * TAU)
+			transformaciones.append(Transform3D(giro.scaled(Vector3(diametro, diametro * 0.57, diametro * 0.79)), p))
+			colores.append(Color("777564").lerp(Color("AEA48A"), rng.randf()))
+	var mm := MultiMesh.new()
+	mm.transform_format = MultiMesh.TRANSFORM_3D
+	mm.use_colors = true
+	mm.mesh = _malla_canto(true)
+	mm.instance_count = transformaciones.size()
+	for i in transformaciones.size():
+		mm.set_instance_transform(i, transformaciones[i])
+		mm.set_instance_color(i, colores[i])
+	return mm
+
+
 ## Triángulos del labio (V3): 4 por borde con pared suficiente.
 func n_triangulos_labio() -> int:
 	return _n_tris_labio
@@ -265,7 +367,7 @@ func _montar_piedras(bordes: Array, lado: float) -> void:
 ## cantos de un mismo MultiMesh comparten malla, así que la variedad real viene del escalado no uniforme de cada copia) y las
 ## normales recalculadas planas por cara: el aspecto facetado del low-poly pastel del resto del mundo.
 ## Diámetro 1 en x/z y alto 1.0 (la escala de cada copia pone el tamaño real).
-static func _malla_canto() -> ArrayMesh:
+static func _malla_canto(normales_exteriores: bool = false) -> ArrayMesh:
 	var esfera := SphereMesh.new()
 	esfera.radius = 0.5
 	esfera.height = 1.0
@@ -291,7 +393,7 @@ static func _malla_canto() -> ArrayMesh:
 		if n == Vector3.ZERO:
 			continue
 		for q in tri:
-			st.set_normal(n)
+			st.set_normal(-n if normales_exteriores else n)
 			st.add_vertex(q)
 	var malla: ArrayMesh = st.commit()
 	var mat := StandardMaterial3D.new()

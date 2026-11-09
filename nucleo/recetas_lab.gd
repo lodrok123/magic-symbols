@@ -8,6 +8,51 @@ extends RefCounted
 
 const RUTA: String = "user://lab_recetas.json"
 
+## Muestrario de recetas del juego. Separado del archivo de recetas personales.
+const ELEMENTOS_CATALOGO: Dictionary = {
+	"fire": "Fuego", "water": "Agua", "earth": "Tierra", "lightning": "Rayo",
+	"ice": "Hielo", "wind": "Viento", "magma": "Magma", "naturaleza": "Naturaleza",
+}
+
+
+static func catalogo(elemento: String) -> Array[Dictionary]:
+	if not ELEMENTOS_CATALOGO.has(elemento):
+		return []
+	var fichas: Array[Dictionary] = []
+	var base: Dictionary = {
+		"fire": "Bola quieta", "water": "Charco", "earth": "Escalón", "lightning": "Descarga quieta",
+		"ice": "Bloque", "wind": "Ráfaga quieta", "magma": "Magma quieto", "naturaleza": "Veneno en suelo",
+	}
+	fichas.append(nueva(base[elemento], [], elemento))
+	fichas.append(nueva("Proyectil", ["flecha"], elemento))
+	fichas.append(nueva("Proyectil cargado", ["flecha", "retardo"], elemento))
+	fichas.append(nueva("Proyectil con rebote", ["flecha", "rebote"], elemento))
+	fichas.append(nueva("Proyectil perforante", ["flecha", "perforar"], elemento))
+	fichas.append(nueva("Proyectil guiado", ["flecha", "buscar"], elemento))
+	fichas.append(nueva("Proyectil de ida y vuelta", ["flecha", "retorno"], elemento))
+	fichas.append(nueva("Ráfaga de proyectiles", ["flecha", "repeticion", "repeticion"], elemento))
+	fichas.append(nueva("Pulso al chocar", ["flecha", "raido"], elemento))
+	var linea: String = "Línea de púas" if elemento == "earth" else ("Bloque alargado" if elemento == "ice" else "Haz")
+	fichas.append(nueva(linea, ["linea_z", "linea_z"], elemento))
+	var muro: Array = ["barrera", "linea_x", "linea_x", "linea_x"]
+	if elemento == "earth":
+		muro.append("altura")
+	fichas.append(nueva("Muro", muro, elemento))
+	var barrera: Array = ["barrera", "linea_x", "linea_z", "permanencia"]
+	if elemento == "earth":
+		barrera = ["barrera", "permanencia"]
+	fichas.append(nueva("Barrera", barrera, elemento))
+	fichas.append(nueva("Pilar", ["altura", "altura", "altura", "permanencia"], elemento))
+	fichas.append(nueva("Pilar ascendente", ["altura", "altura", "pulso", "permanencia"], elemento))
+	fichas.append(nueva("Órbita", ["repeticion", "retorno", "permanencia"], elemento))
+	if elemento == "water":
+		fichas.append(nueva("Estallido de agua", ["pulso", "pulso", "permanencia"], elemento))
+	if elemento == "earth":
+		for n in range(1, 4):
+			fichas.append(nueva("Puente · %d casillas" % (1 + n), ["barrera"] + _repetir("linea_z", n), elemento))
+		fichas.append(nueva("Puente duradero · 4 casillas", ["barrera", "linea_x", "linea_z", "linea_z", "permanencia"], elemento))
+	return fichas
+
 
 static func _repetir(glifo: String, n: int) -> Array:
 	var r: Array = []

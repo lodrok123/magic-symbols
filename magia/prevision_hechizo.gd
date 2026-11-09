@@ -62,7 +62,7 @@ static func prever(lanzador: Lanzador3D, datos: Dictionary, origen: Vector3, dir
 	ultimo_recorrido = {}
 	if h == null:
 		return res
-	if h.solido_quieto and lanzador.rechazo_de_construccion(datos, origen) != "":
+	if (h.solido_quieto or h.glifos.has("posicion")) and lanzador.rechazo_de_construccion(datos, origen, dir) != "":
 		return res                                           # el lanzamiento se negaría: no pasa nada
 	var rune: RuneData = datos["rune"]
 	var cas: float = Terreno3D.casilla

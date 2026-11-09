@@ -98,8 +98,9 @@ const DIALOGO_GUARDA: Array = [
 	"Bienvenida a la linde. Enciende los dos braseros con una chispa de fuego y mira qué guarda el bosque.",
 	"El tronco seco de la orilla cae con una llama y hace de puente. Cruza y sigue el camino de tierra.",
 	"Al norte de la linde hay un muro agrietado. La tierra lo rompe, y detrás alguien escondió algo.",
+	"Junto a la linde hay dos ramales de hierba. Moja el extremo que da al camino y prende la bifurcación para guiar la llama hacia el brasero.",
 	"Más allá del arroyo está la pradera alta: goblins, lobernos y hierba que arde. No les des fuego donde pisas.",
-	"El campamento goblin cierra su puerta en cuanto entra alguien. Sal con vida y la llave del santuario será tuya.",
+	"El arquero vigila la puerta del campamento. Por el hueco lateral verás un cuenco de agua. Con fuego puedes levantar vapor y avanzar a cubierto.",
 ]
 const DIALOGO_GUARDA_BRASEROS: String = "¡Los dos braseros! Así se hace. Ahora el tronco: un fuego sobre él y cae sobre el arroyo."
 const DIALOGO_GUARDA_FIN: String = "El corazón del Bosque late otra vez. Gracias, de parte de todos los que vivimos aquí."
@@ -408,11 +409,11 @@ func _definir_misiones() -> void:
 	mi.definir({"id": MISION_CAMPAMENTO, "titulo": "Destruir el campamento", "tipo": "secundaria",
 		"texto": "Los goblins del este se han hecho fuertes tras una empalizada de madera seca. Dentro guardan un cofre que brilla.",
 		"origen": "Campamento goblin", "recompensa": {"oro": 50},
-		"objetivos": ["Quema la puerta y derrota a todos los goblins del campamento", "Abre el cofre épico del campamento"]})
+		"objetivos": ["Derrota a todos los goblins del campamento", "Abre el cofre épico del campamento"]})
 	mi.definir({"id": MISION_MOLINO, "titulo": "La corriente del molino", "tipo": "secundaria",
-		"texto": "El molino del estanque lleva años parado. Si el agua corre, la rueda gira; y con el lago electrificado, el cofre del borde se deja abrir.",
+		"texto": "El pulsador abre el agua hacia la pila. Quema la cuerda para desviar el agua a la rueda. Cuando el lago se electrifique, podrás abrir el cofre del borde.",
 		"origen": "Estanque del molino", "recompensa": {"oro": 50},
-		"objetivos": ["Abre la compuerta del molino (el pulsador pide agua)", "Haz girar la rueda", "Abre el cofre épico del estanque mientras el lago está electrificado"]})
+		"objetivos": ["Abre la compuerta del molino (el pulsador pide agua)", "Quema la cuerda para llevar el caudal a la rueda", "Abre el cofre épico del estanque mientras el lago está electrificado"]})
 	mi.definir({"id": MISION_PIEDRA, "titulo": "El peso de la piedra", "tipo": "secundaria",
 		"texto": "En la plaza de las ruinas hay una piedra suelta y una placa en el suelo. Pesa lo bastante para abrir una trastienda.",
 		"origen": "Ruinas de los tótems", "recompensa": {"oro": 50},

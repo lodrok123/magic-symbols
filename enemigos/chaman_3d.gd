@@ -229,6 +229,8 @@ func _sitio_ritual(grupo: Array) -> Dictionary:
 	spot.y = position.y
 	if not _puede_estar(spot):
 		spot = position
+	if combate_tactico and lanz != null and lanz.muro_entre(jugador.position, position):
+		spot = position
 	var mira: Vector3 = _plano(c - spot)
 	mira = mira.normalized() if mira.length() > 0.05 else -lejos
 	return {"spot": spot, "mira": mira}
@@ -313,7 +315,8 @@ func _ia_vigila(delta: float) -> void:
 		_mover_paso(_dir_hacia(jugador.position, delta) * _v_avance * delta, false, true)
 	# 3) bolas de veneno (v2: flechas de veneno, y la bola solo si ella está quieta o escondida)
 	if CHAMAN_V2:
-		var ataque: String = decidir_ataque(dist, ve)
+		var tiro_libre: bool = ve and not (combate_tactico and lanz != null and lanz.muro_entre(position, jugador.position))
+		var ataque: String = decidir_ataque(dist, tiro_libre)
 		if ataque != "":
 			_empezar_lanzar(ataque)
 	elif _cd_bola <= 0.0 and ve and dist <= ALCANCE_BOLA:

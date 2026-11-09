@@ -146,7 +146,10 @@ static func reproducir(nombre: String, punto: Vector3, nodo: Node = null, padre_
 		_cortar_bucle(cuerpo)                                       # lo que ardía deja de crepitar
 	var vfx: String = String(fila.get("vfx", ""))
 	match vfx:
-		"llamarada": VfxReaccion3D.llamarada(padre, punto, esc)
+		"llamarada":
+			# Las piezas que acaban de prender montan su propia llama en su base.
+			if nombre != "prendido" or not cuerpo is Reactivo3D or not (cuerpo as Reactivo3D).esta_ardiendo():
+				VfxReaccion3D.llamarada(padre, punto, esc)
 		"llamas_cuerpo": VfxReaccion3D.llamas_cuerpo(cuerpo, esc)
 		"llamas_flecha": VfxReaccion3D.llamas_flecha(cuerpo)
 		"apagar_vapor": VfxReaccion3D.apagar_vapor(padre, punto, cuerpo, esc)

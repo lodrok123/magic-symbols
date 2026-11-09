@@ -71,8 +71,21 @@ static func reiniciar() -> void:
 
 
 ## Ruta de casilla a casilla, INCLUYENDO la de salida y la de llegada (`desde == hasta` → solo esa). Vacía si no hay.
-static func camino(desde: Vector2i, hasta: Vector2i) -> Array[Vector2i]:
-	return compartido().buscar(desde, hasta)
+static func camino(desde: Vector2i, hasta: Vector2i, obstaculos: Dictionary = {}) -> Array[Vector2i]:
+	var red: Caminos3D = compartido()
+	if red._a == null:
+		return []
+	var cambios: Array[Vector2i] = []
+	for c: Vector2i in obstaculos:
+		if red._a.region.has_point(c) and not red._a.is_point_solid(c):
+			red._a.set_point_solid(c)
+			red._solida[c.y * red._lado + c.x] = 1
+			cambios.append(c)
+	var ruta: Array[Vector2i] = red.buscar(desde, hasta)
+	for c in cambios:
+		red._a.set_point_solid(c, false)
+		red._solida[c.y * red._lado + c.x] = 0
+	return ruta
 
 
 ## ¿Se puede estar de pie en esta casilla? (la regla de la IA para andar, sin empuje.)

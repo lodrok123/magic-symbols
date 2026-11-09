@@ -83,7 +83,7 @@ func _tabla() -> void:
 	for tipo in ["fogata", "brasero"]:
 		_ok("1 %s: fuente de fuego que se deja apagar" % tipo, _igual(_nuevo(tipo), [Reactivo3D.P_FUENTE_FUEGO, Reactivo3D.P_APAGA]))
 	_ok("1 totem: activable", _igual(_nuevo("totem", "fuego"), [Reactivo3D.P_ACTIVABLE]))
-	_ok("1 surtidor: recibe agua", _igual(_nuevo("surtidor"), [Reactivo3D.P_RECIBE_AGUA]))
+	_ok("1 surtidor: recibe agua", _igual(_nuevo("surtidor"), [Reactivo3D.P_RECIBE_AGUA, Reactivo3D.P_HACE_VAPOR]))
 	_ok("1 emisor_rayo: conduce", _igual(_nuevo("emisor_rayo"), [Reactivo3D.P_CONDUCE]))
 	_ok("1 puente y placa no reaccionan a hechizos (sin papeles de reacción)", _igual(_nuevo("puente"), []) and (Reactivo3D.PAPELES_POR_TIPO["placa"] as Array).is_empty())
 	var validos: bool = true

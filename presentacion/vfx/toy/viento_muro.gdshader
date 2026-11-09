@@ -1,8 +1,11 @@
 shader_type spatial;
 render_mode unshaded, cull_disabled, depth_draw_never, blend_mix, shadows_disabled;
 
-uniform vec4 verde : source_color = vec4(0.37, 0.70, 0.36, 1.0);
-uniform vec4 claro : source_color = vec4(0.81, 0.99, 0.66, 1.0);
+// EL AIRE NO LLEVA COLOR PROPIO: la cortina del muro es aire, y el aire se ve por lo que arrastra, no por un tinte. Por eso va en blanco roto con un punto FRIO
+// (la paleta de viento_toy.gd: CLARO y SOMBRA) y no en verde: con el verde se leia como un seto y en el Bosque se perdia contra la hierba. El verde del viento
+// es solo el de las HOJAS que sube (VientoToy.HOJA).
+uniform vec4 sombra_aire : source_color = vec4(0.62, 0.80, 0.88, 1.0);   // las vetas hondas: un poco mas frias que VientoToy.SOMBRA para que la cortina tenga dibujo
+uniform vec4 claro_aire : source_color = vec4(0.90, 0.99, 0.97, 1.0);    // VientoToy.CLARO, algo enfriado
 uniform float tiempo = 0.0;
 uniform float opacidad = 1.0;
 
@@ -18,6 +21,6 @@ void fragment() {
 	float techo = 1.0 - smoothstep(cresta - 0.19, cresta + 0.15, altura);
 	float pie = smoothstep(0.0, 0.055, altura);
 
-	ALBEDO = mix(verde.rgb, claro.rgb, vetas * 0.61);
+	ALBEDO = mix(sombra_aire.rgb, claro_aire.rgb, vetas * 0.61 + 0.25);
 	ALPHA = lateral * techo * pie * (0.25 + vetas * 0.25) * opacidad;
 }

@@ -14,11 +14,8 @@ extends EfectoToy
 ## FIGURAS: BOLA = una piedra_est_0 (la más redonda) que gira al volar y suelta terrones (piedra_est_1) y polvo. MURO = hilera de roca_est_1 / 2 / 0 escaladas al ancho y alto de los
 ## semiejes, a trompicones, con piedras pequeñas al pie. PILAR = una roca_est_4 alta con cuatro roca_est_1 / 0 más bajas alrededor y piedras al pie. BARRERA = corona de rocas inclinadas hacia
 ## dentro sobre la elipse del suelo, CERRADA ARRIBA con 2-3 losas (cúpula) y un destello de polvo al cerrarse. HAZ = PÚAS que brotan en secuencia (abajo).
-## 3.ª versión (6/11 noche, referencias de Pablo en docs/capturas/referencias/tierra_pack/, solo la SECUENCIA, nunca el estilo realista):
-##   HAZ («en vez de una línea tipo lanzallamas usa unas puntas que desplazan»): GRIETAS pardas finas (el color de la tierra del nivel) que corren por el suelo de la mano a la punta (tierra_grietas.gdshader en un quad)
-##   y detrás PÚAS de tierra con la FORMA de tres rocas del pack de LeLu (`arte/rocas_lelu/sm_rocks_objects.glb`: `pua_0` = stone5 cono, `pua_1` = stone6 cuña, `pua_2` = stone4 esquirla; 426 / 588 / 620 vértices, normalizadas a base en y = 0, alto 1, radio <= 0,5; color plano pardo, `plano` = 1 del shader: solo la forma, no su textura) que brotan EN SECUENCIA
-##   de la mano a la punta (~0,05 s cada una), de MENOR a MAYOR, con 1-2 LAJAS (losas facetadas `laja_0..1`) que se levantan inclinadas en la base y cascotes que saltan; se quedan lo que
-##   dura el haz y se HUNDEN en orden inverso (la punta primero); las grietas se desvanecen. ≤ MAX_BLOQUES instancias en ≤ 5 MultiMesh, como antes.
+## La línea usa tres rocas estilizadas del pack de LeLu como púas. Cada púa brota inclinada desde el terreno con sus lajas, polvo y cascotes.
+## Las púas crecen y se retiran en secuencia del origen hacia la punta. ≤ MAX_BLOQUES instancias en ≤ 5 MultiMesh.
 ##   CARGA: además de la convergencia, un ANILLO DE AVISO de N_AVISO piedrecitas que gira a ras de suelo bajo los pies (`pies`) mientras se carga.
 ##   El empuje lo hace la lógica (`fuerza_golpe` de la runa): el toy solo lo representa.
 ## Ciclo de vida de un proyectil de tierra, sobre UN SOLO nodo (igual que las hermanas):
@@ -36,7 +33,8 @@ const RUTA_ROCA: String = "res://arte/meshy/piezas/%s.glb"                      
 const TEX_ALBEDO: String = "res://arte/meshy/piezas/tex_rocas_est/rocas_albedo.png"
 const MALLA_BOLA: String = "piedra_est_0"          ## la más redonda (0,82 × 0,80 × 0,74 m)
 const MALLA_TERRON: String = "piedra_est_1"        ## terrones, piedrecitas y fragmentos (0,69 m, 426 vértices)
-const MALLAS_MURO: Array = ["roca_est_1", "roca_est_2", "roca_est_1", "roca_est_0", "roca_est_2", "roca_est_0"]   ## bloque, losa, bloque, redonda, losa, redonda (la alta roca_est_4 salía como una púa en el muro: solo en el pilar)
+const MALLA_LOSA: String = "roca_est_2"            ## losa facetada compartida por el muro y la plataforma
+const MALLAS_MURO: Array = ["roca_est_1", MALLA_LOSA, "roca_est_1", "roca_est_0", MALLA_LOSA, "roca_est_0"]   ## bloque, losa, bloque, redonda, losa, redonda (la alta roca_est_4 salía como una púa en el muro: solo en el pilar)
 const MALLAS_PIE: Array = ["piedra_est_1", "piedra_est_3"]           ## dos tipos: con los 3 del muro / pilar hacen los 5 MultiMesh de tope
 const MAX_TIPOS: int = 5                                              ## MultiMesh (tipos de roca) por figura como mucho
 const MALLAS_PUA: Array = ["pua_0", "pua_1", "pua_2"]                ## púas con la forma de las rocas de LeLu (malla_pua), color plano pardo
@@ -48,7 +46,7 @@ const SH_DECAL: String = "res://presentacion/vfx/toy/decal_suelo.gdshader"      
 const TEX_MARCA_SUELO: String = "res://assets/vfx/lelu_noise/T_Groundmark19.png"   ## mascara de grieta radial del pack de LeLu (negro opaco sobre fondo transparente)
 const COLOR_PUA: Color = Color(0.56, 0.38, 0.24)                     ## pardo tierra del suelo del bosque, subido el 7/11 (en el juego la pua quedaba muy oscura contra la hierba)
 const COLOR_LAJA: Color = Color(0.56, 0.38, 0.24)               ## 7/11: igual que la púa (antes más oscura: las lajas inclinadas enseñaban su cara en sombra como un trazo negro)
-const PUAS_MAX: int = 14                                              ## púas de un haz (el resto hasta MAX_BLOQUES, lajas)
+const PUAS_MAX: int = 14                                              ## púas de una línea (el resto hasta MAX_BLOQUES, lajas)
 const ACLARA_PUA: float = 1.15                                        ## x el albedo de la pua y la laja (7/11: en el Bosque salian casi negras contra la hierba)
 const ANCHO_PUA: float = 0.42                                        ## ancho de la pua = este x su alto (7/11, video de tierra: roca estirada, no lamina)
 const PUA_ANCHO_MAX_R: float = 2.6                                    ## x el radio del haz: tope de ese ancho (que no se salga del corredor mas de la cuenta)
@@ -64,7 +62,8 @@ const REF_BOLA: Vector3 = Vector3(0.4, 0.4, 0.4)
 const REF_MURO: Vector3 = Vector3(3.45, 1.5, 0.3)
 const REF_PILAR: Vector3 = Vector3(0.5, 4.0, 0.5)
 const REF_BARRERA: Vector3 = Vector3(1.5, 1.5, 1.5)
-const REF_HAZ: Vector3 = Vector3(1.5, 0.5, 0.15)
+const REF_HAZ: Vector3 = Vector3(1.5, 0.70, 0.15)
+const ENTIERRO_LINEA: float = 0.09
 
 ## Polvo pardo: dos tonos al color de la tierra del suelo del bosque (arte/suelo_meshy, en juego ≈ 0,62·0,40·0,22; docs/capturas/hierba_bloques/llanura_despues.png): claro = esa tierra
 ## aclarada por el polvo en el aire; sombra = la tierra húmeda; viejo = más apagado y gris. Menos naranja que la 1.ª versión (0,82·0,70·0,52).
@@ -271,7 +270,7 @@ class Piedras extends Node3D:
 				k += 1
 		return k
 
-	func emitir(pos: Vector3, vel: Vector3, vida: float, tam: float, giro: Vector3 = Vector3.ZERO) -> int:
+	func emitir(pos: Vector3, vel: Vector3, vida: float, tam: float, giro: Vector3 = Vector3.ZERO, piso: float = NAN) -> int:
 		if _s.is_empty():
 			return -1
 		var hueco: int = -1
@@ -285,7 +284,7 @@ class Piedras extends Node3D:
 		_cursor = (hueco + 1) % _s.size()
 		var g: Vector3 = giro if giro.length() > 0.01 else Vector3(randf_range(-8, 8), randf_range(-8, 8), randf_range(-8, 8))
 		_s[hueco] = {"vivo": true, "pos": pos, "vel": vel, "edad": 0.0, "vida": maxf(vida, 0.05), "tam": tam, "giro": g, "tono": randf(),
-			"rot": Basis.from_euler(Vector3(randf() * TAU, randf() * TAU, randf() * TAU)), "rebotes": 0, "quieta": false}
+			"rot": Basis.from_euler(Vector3(randf() * TAU, randf() * TAU, randf() * TAU)), "rebotes": 0, "quieta": false, "piso": piso}
 		return hueco
 
 	func vaciar() -> void:
@@ -315,8 +314,11 @@ class Piedras extends Node3D:
 				var v: Vector3 = d["vel"]
 				v.y -= gravedad * delta
 				var p: Vector3 = (d["pos"] as Vector3) + v * delta
-				if p.y < suelo_y:
-					p.y = suelo_y
+				var piso: float = float(d["piso"])
+				if is_nan(piso):
+					piso = suelo_y
+				if p.y < piso:
+					p.y = piso
 					if int(d["rebotes"]) < 1 and v.y < -1.0:
 						v.y = -v.y * 0.22
 						v.x *= 0.45
@@ -483,6 +485,7 @@ var _haz_r: float = 0.36
 var _haz_n: int = 0                     ## púas del haz (fija cuánto dura «nacer»: anticipación + n × PASO_PUA_S + SUBE_PUA_S)
 var _t_nacer_act: float = -1.0          ## duración de «nacer» con la que se montó la animación (para rehacerla si cambia)
 var _grietas: MeshInstance3D = null     ## HAZ: quad de grietas en el suelo
+var linea_ignea: bool = false      ## Variante ígnea de MagmaToy.
 var _brillo: MeshInstance3D = null      ## BARRERA: disco pardo-naranja tenue dentro de la cúpula que se apaga al cerrarse
 var _t_cerrada: float = -1.0            ## BARRERA: instante (s de vida) en que se cerró la cúpula
 var _c_aviso: MultiMeshInstance3D = null  ## CARGA: anillo de piedrecitas que gira a ras de suelo bajo los pies
@@ -1135,9 +1138,8 @@ func _barrera(c: Node3D) -> void:
 	c.add_child(_brillo)
 
 
-## HAZ (3.ª versión): PÚAS con la forma de las rocas stone5 / stone6 / stone4 del pack de LeLu (pua_0..2, color plano) que BROTAN del suelo hacia -Z EN SECUENCIA de la mano a la punta (cada una PASO_PUA_S s después de la anterior, cada
-## una tarda SUBE_PUA_S s en salir), de MENOR a MAYOR, inclinadas hacia delante, con 1-2 LAJAS inclinadas en su base (salen con su púa). Se hunden en orden inverso (`ret_hunde`: la punta
-## primero). Delante corren las GRIETAS (quad `Grietas`, tierra_grietas.gdshader: `avance` va por delante de las púas; `vida` se apaga al hundirse). ≤ MAX_BLOQUES piezas.
+## Línea de púas: cada roca brota en su sitio con sus lajas y polvo, en orden hacia -Z.
+## En tierra, la retirada también avanza del inicio a la punta.
 func _haz(c: Node3D) -> void:
 	_haz_largo = semieje_x * 2.0
 	_haz_r = semieje_z * FuegoToy.HAZ_ABRE
@@ -1162,10 +1164,17 @@ func _haz(c: Node3D) -> void:
 		var id: String = MALLAS_PUA[i % MALLAS_PUA.size()]
 		var ret: float = (0.05 + PASO_PUA_S * float(i)) / t_nacer
 		var pos: Vector3 = Vector3(lado, 0.0, -f * _haz_largo)
-		var b: Dictionary = _b(id, pos, HieloMallas._inclinar(Vector3(0, 0, -1), rng.randf_range(0.12, 0.3), rng.randf_range(-0.35, 0.35) + (PI if rng.randf() < 0.5 else 0.0)), w, alto, w * rng.randf_range(0.85, 1.0), ret, rng)
+		var inclinacion: float = rng.randf_range(0.12, 0.30)
+		var giro: float = rng.randf_range(-0.35, 0.35) + (PI if rng.randf() < 0.5 else 0.0)
+		var fondo: float = w * rng.randf_range(0.85, 1.0)
+		if not linea_ignea:
+			inclinacion += lerpf(0.10, 0.43, f)
+			fondo *= 1.35
+		var b: Dictionary = _b(id, pos, HieloMallas._inclinar(Vector3.FORWARD, inclinacion, giro), w, alto, fondo, ret, rng)
 		b["dur"] = dur_f * rng.randf_range(0.85, 1.2)                                               # cada púa tarda lo suyo en salir, no todas lo mismo
 		b["sobre"] = rng.randf_range(SOBREPASO * 0.6, SOBREPASO * 1.9)                              # …y se pasa de su sitio lo suyo: el easing por clave del vídeo
-		b["ret_hunde"] = (1.0 - f) * 0.5
+		var ret_hunde: float = (1.0 - f if linea_ignea else f) * 0.5
+		b["ret_hunde"] = ret_hunde
 		capa.append(b)
 		# lajas: 1-2 losas en la base, a un lado y a otro, levantadas hacia fuera (la losa del suelo se rompe y se alza)
 		var nl: int = 2 if (i % 3 != 1) else 1
@@ -1177,12 +1186,22 @@ func _haz(c: Node3D) -> void:
 			var wl: float = w * rng.randf_range(0.9, 1.4)
 			var bl: Dictionary = _b(MALLAS_LAJA[(i + q) % MALLAS_LAJA.size()], pos + dl * (w * 0.55 + wl * 0.3) + Vector3(0, 0, rng.randf_range(-0.05, 0.05)), HieloMallas._inclinar(-dl, rng.randf_range(0.12, 0.3), rng.randf() * TAU), wl, wl * rng.randf_range(0.14, 0.2), wl, ret + 0.015, rng)
 			bl["dur"] = dur_f
-			bl["ret_hunde"] = (1.0 - f) * 0.5 + 0.03
+			bl["ret_hunde"] = ret_hunde + 0.03
 			lajas.append(bl)
 	_montar_bloques(c, capa + lajas)
-	_grietas = crear_quad_suelo("Grietas", maxf(_haz_r * 2.6, 0.5), _haz_largo * 1.04, SH_GRIETAS, {"avance": 0.0, "vida": 1.0, "semilla": 0.37, "grosor": 0.02}, Vector3(0, 0.02, -_haz_largo * 0.5))      # ~2 cm: una costura, no un pelo
-	_grietas.rotation.y = PI                                                                      # UV.y = 0 en la mano (z = 0), 1 en la punta (z = -largo)
-	c.add_child(_grietas)
+	if linea_ignea:
+		_grietas = crear_quad_suelo("Grietas", maxf(_haz_r * 2.6, 0.5), _haz_largo * 1.04, SH_GRIETAS, {"avance": 0.0, "vida": 1.0, "semilla": 0.37, "grosor": 0.02}, Vector3(0, 0.02, -_haz_largo * 0.5))
+		_grietas.rotation.y = PI
+		c.add_child(_grietas)
+
+
+## Ancla cada púa y laja una vez que la línea ya tiene su posición y dirección.
+func anclar_linea_al_suelo(cota: Callable) -> void:
+	for b: Dictionary in _bloques:
+		var pie: Vector3 = to_global(b["pos"])
+		pie.y = cota.call(pie)
+		b["pos"] = to_local(pie)
+	_avanzar_bloques(0.0)
 
 
 ## Lo que dura «nacer» en el haz: anticipación + una púa tras otra + la última saliendo.
@@ -1261,6 +1280,7 @@ func _avanzar_bloques(delta: float) -> void:
 	var tt: float = Time.get_ticks_msec() * 0.001
 	_y_act = []
 	var es_haz: bool = figura == Figura.HAZ
+	var entierro: float = ENTIERRO_LINEA if es_haz and not linea_ignea else 0.0
 	var k_ant: float = ANTICIPO if not es_haz else 0.0
 	var asentados: int = 0
 	var techo_puesto: bool = true
@@ -1269,7 +1289,7 @@ func _avanzar_bloques(delta: float) -> void:
 		var ret: float = float(b["retraso"])
 		var h: float = float(b["h"]) * altura
 		var pos: Vector3 = b["pos"]
-		var alto_sube: float = h + maxf(pos.y, 0.0)                                 # lo que tiene que recorrer desde bajo tierra hasta su sitio (las losas del techo, más)
+		var alto_sube: float = h if es_haz else h + maxf(pos.y, 0.0)
 		var dur: float = float(b.get("dur", -1.0))
 		var s: float
 		if dur > 0.0:
@@ -1306,7 +1326,7 @@ func _avanzar_bloques(delta: float) -> void:
 		var mm: MultiMesh = mi.multimesh
 		var idx: int = int(b["idx"])
 		if visible:
-			mm.set_instance_transform(idx, asentar(mm.mesh, b["rot"], float(b["wx"]) * ancho, h, float(b["wz"]) * ancho, pos + Vector3(0, y, 0)))
+			mm.set_instance_transform(idx, asentar(mm.mesh, b["rot"], float(b["wx"]) * ancho, h, float(b["wz"]) * ancho, pos + Vector3(0, y - entierro, 0)))
 			mm.set_instance_custom_data(idx, Color(float(b["tono"]), 1.0, 0.0, 0.0))
 		else:
 			HieloMallas.ocultar(mm, idx)
@@ -1393,7 +1413,6 @@ func _cascotes_de(b: Dictionary) -> void:
 	var w: float = float(b["wx"]) * ancho
 	var p0: Vector3 = b["pos"]
 	var es_laja: bool = String(b["malla"]).begins_with("laja_")
-	_piedras.set("suelo_y", global_position.y + 0.01)
 	for q in (1 if es_laja else 2):
 		var a: float = randf() * TAU
 		var d: Vector3 = Vector3(cos(a), 0.0, sin(a))
@@ -1401,7 +1420,7 @@ func _cascotes_de(b: Dictionary) -> void:
 	if not es_laja and randf() < 0.9 * k:
 		var a2: float = randf() * TAU
 		var d2: Vector3 = Vector3(cos(a2), 0.0, sin(a2))
-		_piedras.call("emitir", tr * (p0 + Vector3(0, 0.1, 0) + d2 * w * 0.4), tr.basis * (d2 * randf_range(0.8, 1.8) + Vector3(0, randf_range(1.2, 2.2), 0)), randf_range(0.9, 1.4), randf_range(0.04, 0.08) * sqrt(maxf(w, 0.3)))
+		_piedras.call("emitir", tr * (p0 + Vector3(0, 0.1, 0) + d2 * w * 0.4), tr.basis * (d2 * randf_range(0.8, 1.8) + Vector3(0, randf_range(1.2, 2.2), 0)), randf_range(0.9, 1.4), randf_range(0.04, 0.08) * sqrt(maxf(w, 0.3)), Vector3.ZERO, (tr * p0).y + 0.01)
 
 
 ## El polvo de la construcción: en la anticipación sale de la base; al asentarse, polvo radial bajo + fragmentos que ruedan (una vez); al hundirse, polvo mientras baja.

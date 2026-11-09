@@ -43,6 +43,9 @@ func _escenario() -> void:
 	_ok("0 el laboratorio cuelga de la escena y se ha iniciado", lab != null and lab.get("tiempo") != null and lab.get("_l") != null)
 	if lab == null or lab.get("tiempo") == null:
 		return
+	_ok("0 el catálogo abre sin los paneles de ajuste", lab.catalogo_activo and lab._capa_catalogo.visible and not lab._hud.visible and not lab._marcas.visible)
+	_tecla_lab(KEY_F1)
+	_ok("0 F1 abre las herramientas del laboratorio", not lab.catalogo_activo and not lab._capa_catalogo.visible and lab._marcas.visible)
 	_ok("0 el mapa tiene lo que el lab espera (sin avisos de Puzle3D)", (lab.get("_avisos") as Array).is_empty(), str(lab.get("_avisos")))
 	_ok("0 Espacio no salta (salto_activo = false)", jugador.get("salto_activo") == false)
 

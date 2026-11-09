@@ -1,0 +1,14 @@
+#####################
+#...................#
+#.S.....#....#A.....#
+#.......#...........#
+#.......#.....W.....#
+#.......#...........#
+#.............W.....#
+#.........~~........#
+#.........~~........#
+#####################
+; zona 1,1..19,8 cueva mezcla=0.8 rotulo=El_patio_del_chaman
+; pieza chaman_a chaman 17 3
+; pieza vigia_patio vigia 8 4 de=1,1..19,8 flag=patiochaman.limpio
+; pieza cofre_patio cofre 2 7 aparece_si=flag.patiochaman.limpio abierto=patiochaman.cofre da=oro:30

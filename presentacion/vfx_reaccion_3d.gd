@@ -7,16 +7,10 @@ extends RefCounted
 ## `secado`), y la tabla debe poder cambiarse sin tocar un solo GPUParticles3D. Es la separación de EoW (la lógica emite una señal, una tabla elige el
 ## efecto): el Juego nunca decide qué partículas salen.
 ##
-## LO QUE ARDE SE QUEDA ARDIENDO. `llamas_cuerpo` y `llamas_flecha` CUELGAN del nodo que arde (un hijo `LlamasCuerpo`): se mueven con él, y si el
-## nodo se libera, las llamas se van con él (no quedan fuegos huérfanos). Las brasas nacen en coordenadas de mundo (`local_coords = false`), así que dejan
-## estela cuando el goblin corre. Apagarlas es `apagar_llamas(nodo)`: las llamas dejan de emitir, la luz baja y el hijo se libera al acabar la última partícula.
-## Todas las funciones son SOLO PRESENTACIÓN: no leen ni cambian la lógica de quien arde.
-##
-## Las funciones se apoyan en `VfxPuzle3D._emisor` (misma carpeta y mismo dueño) para no duplicar el emisor genérico. Si falta una textura se usa un
-## punto suave: un efecto nunca falla por un PNG que no esté.
+## Las llamas siguen al nodo que arde y se liberan con él. Las reacciones solo dibujan el estado del juego.
 
 const NOMBRE_LLAMAS: String = "LlamasCuerpo"
-const COLOR_LLAMA: Color = Color(1.0, 0.62, 0.22, 0.95)
+const HumoToy = preload("res://presentacion/vfx/toy/humo_toy.gd")
 const COLOR_MADERA: Color = Color(0.55, 0.36, 0.2, 1.0)
 const HUESO_MANO_QUEMADA: String = "LeftHand"      ## la mano del escudo (final del nombre del hueso, como en Equipo3D)
 const VIDA_RESTO_MANO_QUEMADA: float = 1.4         ## s que sigue ahí (sin emitir) lo que ya había salido, antes de quitar el attachment
@@ -30,117 +24,78 @@ static func _alto(nodo: Node) -> float:
 
 ## ---- Arder ----
 
-## Llamas que cuelgan de `nodo` y lo siguen: lengüetas, brasas que dejan estela, un hilo de humo y una luz que parpadea. `escala` agranda o encoge todo
-## (0,5 para un escudo). `dura` > 0: se apagan solas pasados esos segundos; 0: arden hasta `apagar_llamas`. Una sola vez por nodo: si ya arde, devuelve las que hay.
+## Llama sostenida que sigue al cuerpo y se apaga con el ciclo del toy.
 static func llamas_cuerpo(nodo: Node3D, escala: float = 1.0, dura: float = 0.0) -> Node3D:
 	if nodo == null:
 		return null
-	var previo: Node3D = nodo.get_node_or_null(NOMBRE_LLAMAS) as Node3D
-	if previo != null:
-		return previo
 	var h: float = _alto(nodo) * escala
-	var raiz := Node3D.new()
-	raiz.name = NOMBRE_LLAMAS
-	nodo.add_child(raiz)
-	# Lengüetas: la textura de llama aditiva y por encima de 1 (el bloom la hace brillar); suben porque la «gravedad» es positiva.
-	VfxPuzle3D._emisor(raiz, Vector3(0.0, h * 0.45, 0.0), "llama", 14, 0.75, 0.62 * h, 0.35 * h,
-		{"color": COLOR_LLAMA, "aditivo": true, "hdr": 1.8, "gravedad": 1.6, "abanico": 25.0, "continuo": true, "radio_emision": 0.3 * h})
-	# Brasas: puntitos que se sueltan y suben; en coordenadas de mundo dejan estela cuando el goblin se mueve.
-	VfxPuzle3D._emisor(raiz, Vector3(0.0, h * 0.5, 0.0), "brasa", 10, 1.1, 0.1 * h, 0.8 * h,
-		{"color": Color(1.0, 0.55, 0.15, 1.0), "aditivo": true, "hdr": 2.2, "gravedad": 1.2, "abanico": 60.0, "continuo": true, "radio_emision": 0.32 * h})
-	# Humo oscuro: sube por encima de la cabeza, se ensancha y se deshace.
-	VfxPuzle3D._emisor(raiz, Vector3(0.0, h * 0.95, 0.0), "humo", 6, 1.6, 0.55 * h, 0.4,
-		{"color": Color(0.2, 0.18, 0.17, 0.5), "gravedad": 0.8, "abanico": 20.0, "crece": true, "continuo": true, "radio_emision": 0.2 * h})
-	var luz := OmniLight3D.new()
-	luz.name = "Luz"
-	luz.light_color = Color(1.0, 0.6, 0.25)
-	luz.light_energy = 1.1
-	luz.omni_range = 2.6 * h
-	luz.shadow_enabled = false                       # una luz con sombra por goblin ardiendo costaría más de lo que aporta
-	luz.position = Vector3(0.0, h * 0.5, 0.0)
-	raiz.add_child(luz)
-	VfxKit3D.parpadeo(luz)
-	if dura > 0.0 and nodo.is_inside_tree():
-		nodo.get_tree().create_timer(dura, false).timeout.connect(func() -> void: apagar_llamas(nodo))
-	return raiz
+	return _llama_adherida(nodo, Vector3.UP * h * 0.04, 0.34 * h, 1.05 * h, 0.45, dura)
 
 
-## Apaga las llamas de `nodo`: dejan de emitir, la luz se va y el hijo se libera cuando se acaba la última partícula. `con_vapor`: bocanada de vapor
-## (agua) en vez de apagarse sin más. Devuelve false si no ardía.
+static func llamas_flecha(flecha: Node3D) -> Node3D:
+	return _llama_adherida(flecha, Vector3.ZERO, 0.09, 0.28, 0.0, -1.0)
+
+
+static func _llama_adherida(nodo: Node3D, pos: Vector3, radio: float, alto: float, luz: float, dura: float) -> Node3D:
+	if nodo == null:
+		return null
+	var previa: Node3D = nodo.get_node_or_null(NOMBRE_LLAMAS) as Node3D
+	if previa != null:
+		return previa
+	var llama := llama_vertical(nodo, pos, radio, alto, luz, dura)
+	llama.name = NOMBRE_LLAMAS
+	return llama
+
+
+## Llama vertical con origen en su base, en coordenadas del padre.
+static func llama_vertical(padre: Node3D, base: Vector3, radio: float, alto: float, luz: float = 0.0, dura: float = -1.0) -> FuegoToy:
+	var llama := FuegoToy.new()
+	llama.position = base
+	llama.definir(FuegoToy.Figura.PILAR, radio, alto, radio)
+	llama.luz = luz
+	llama.chispas = 0.25
+	padre.add_child(llama)
+	llama.lanzar(dura if dura > 0.0 else -1.0)
+	return llama
+
+
+## Libera el nombre al empezar el apagado, para permitir que el blanco vuelva a prender.
 static func apagar_llamas(nodo: Node3D, con_vapor: bool = false) -> bool:
-	if nodo == null or not is_instance_valid(nodo):
+	if not is_instance_valid(nodo):
 		return false
-	var raiz: Node3D = nodo.get_node_or_null(NOMBRE_LLAMAS) as Node3D
-	if raiz == null or raiz.has_meta("apagando"):
+	var llama: FuegoToy = nodo.get_node_or_null(NOMBRE_LLAMAS) as FuegoToy
+	if llama == null:
 		return false
-	raiz.set_meta("apagando", true)
-	raiz.name = NOMBRE_LLAMAS + "_apagando"          # libera el nombre: si vuelve a arder se crea otro sin chocar con este
-	for hijo in raiz.get_children():
-		if hijo is GPUParticles3D:
-			(hijo as GPUParticles3D).emitting = false
-	var luz: OmniLight3D = raiz.get_node_or_null("Luz") as OmniLight3D
-	if luz != null:
-		var tw: Tween = luz.create_tween()
-		tw.tween_property(luz, "light_energy", 0.0, 0.3)
-	if con_vapor and raiz.is_inside_tree():
-		VfxPuzle3D.vapor(raiz, Vector3(0.0, _alto(nodo) * 0.6, 0.0), _alto(nodo))
-	if raiz.is_inside_tree():
-		raiz.get_tree().create_timer(2.0, false).timeout.connect(raiz.queue_free)   # la partícula más larga vive 1,6 s
-	else:
-		raiz.queue_free()
+	llama.name = NOMBRE_LLAMAS + "_apagando"
+	if con_vapor and nodo.is_inside_tree():
+		vapor(nodo, nodo.global_position + Vector3.UP * _alto(nodo) * 0.6, _alto(nodo))
+	llama.morir()
 	return true
 
 
-## Una flecha ardiendo: llama pequeña en la punta y un rastro de brasas. Cuelga de la flecha: desaparece con ella. Devuelve el nodo, o el que ya había.
-static func llamas_flecha(flecha: Node3D) -> Node3D:
-	if flecha == null:
-		return null
-	var previo: Node3D = flecha.get_node_or_null(NOMBRE_LLAMAS) as Node3D
-	if previo != null:
-		return previo
-	var raiz := Node3D.new()
-	raiz.name = NOMBRE_LLAMAS
-	flecha.add_child(raiz)
-	VfxPuzle3D._emisor(raiz, Vector3.ZERO, "llama", 8, 0.35, 0.28, 0.2,
-		{"color": COLOR_LLAMA, "aditivo": true, "hdr": 2.0, "gravedad": 1.0, "abanico": 15.0, "continuo": true, "radio_emision": 0.05})
-	VfxPuzle3D._emisor(raiz, Vector3.ZERO, "brasa", 12, 0.6, 0.07, 0.3,
-		{"color": Color(1.0, 0.55, 0.15, 1.0), "aditivo": true, "hdr": 2.2, "gravedad": -1.5, "abanico": 30.0, "continuo": true, "radio_emision": 0.04})
-	var luz := OmniLight3D.new()
-	luz.name = "Luz"
-	luz.light_color = Color(1.0, 0.6, 0.25)
-	luz.light_energy = 0.6
-	luz.omni_range = 1.4
-	luz.shadow_enabled = false
-	raiz.add_child(luz)
-	VfxKit3D.parpadeo(luz)
-	return raiz
-
-
-## Un fogonazo breve de algo que acaba de prender (sin quedarse ardiendo: para piezas, que ya tienen su fuego): destello, brasas y luz que baja.
+## Llama breve de algo que empieza a arder.
 static func llamarada(padre: Node3D, punto: Vector3, esc: float = 1.0) -> void:
-	VfxPuzle3D._emisor(padre, punto, "llama", 10, 0.5, 0.5 * esc, 1.0 * esc,
-		{"color": COLOR_LLAMA, "aditivo": true, "hdr": 2.0, "gravedad": 1.5, "abanico": 40.0, "radio_emision": 0.15 * esc})
-	VfxPuzle3D._emisor(padre, punto, "brasa", 12, 0.8, 0.09 * esc, 2.2 * esc,
-		{"color": Color(1.0, 0.55, 0.15, 1.0), "aditivo": true, "hdr": 2.2, "gravedad": -2.0, "abanico": 80.0, "radio_emision": 0.12 * esc})
-	var luz := OmniLight3D.new()
-	luz.light_color = Color(1.0, 0.6, 0.25)
-	luz.light_energy = 2.0
-	luz.omni_range = 2.5 * esc
-	luz.shadow_enabled = false
-	luz.position = punto
-	padre.add_child(luz)
-	var tw: Tween = luz.create_tween()
-	tw.tween_property(luz, "light_energy", 0.0, 0.45).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
-	tw.tween_callback(luz.queue_free)
+	llama_vertical(padre, padre.to_local(punto), 0.20 * esc, 0.70 * esc, 0.25, 1.1)
 
 
-## ---- Apagar ----
-
-## Agua sobre fuego: vapor y gotas. Si `nodo` ardía (llamas que cuelgan de él), las apaga con la bocanada.
+## Agua sobre fuego: apaga las llamas y dibuja vapor y gotas en el punto de reacción.
 static func apagar_vapor(padre: Node3D, punto: Vector3, nodo: Node3D = null, esc: float = 1.0) -> void:
-	if nodo == null or not apagar_llamas(nodo, true):
-		VfxPuzle3D.vapor(padre, punto, esc)
-	VfxPuzle3D.salpicadura(padre, punto, 0.6 * esc)
+	apagar_llamas(nodo)
+	vapor(padre, punto, esc)
+	mojar(padre, punto, 0.6 * esc)
+
+
+## Bocanada breve en coordenadas locales del efecto, anclada al punto de reacción.
+static func vapor(padre: Node3D, punto: Vector3, esc: float = 1.0) -> void:
+	var humo := HumoToy.new()
+	humo.name = "VaporReaccion"
+	padre.add_child(humo)
+	humo.global_position = punto
+	humo.montar(4, {"mundo": false, "vida": 0.65, "tam_ini": 0.21 * esc, "tam_fin": 0.58 * esc})
+	for i in range(4):
+		var radial := Vector3.RIGHT.rotated(Vector3.UP, float(i) * TAU / 4.0)
+		humo.emitir((radial * 0.18 + Vector3.UP * 0.12) * esc, (radial * 0.6 + Vector3.UP * 0.7) * esc)
+	padre.get_tree().create_timer(0.7, false).timeout.connect(humo.queue_free)
 
 
 ## El viento se lleva la llama: humo gris que sale disparado y chispas que se dispersan. También apaga las llamas de `nodo`.
@@ -163,14 +118,17 @@ static func ceniza(padre: Node3D, punto: Vector3, esc: float = 1.0) -> void:
 
 ## ---- Agua, hielo, rayo ----
 
-## Algo se moja: salpicadura (la de las piezas de puzle).
+## Gotas breves sin anillo, para que la reacción pueda ocurrir en el cuerpo.
 static func mojar(padre: Node3D, punto: Vector3, esc: float = 1.0) -> void:
-	VfxPuzle3D.salpicadura(padre, punto, esc)
+	var efecto := ImpactoAguaToy.crear(ImpactoAguaToy.Variante.FIN, Vector3.UP, 0.22 * esc)
+	padre.add_child(efecto)
+	efecto.global_position = punto
+	efecto.lanzar()
 
 
 ## Se seca: bocanada suave de vapor.
 static func secar(padre: Node3D, punto: Vector3, esc: float = 1.0) -> void:
-	VfxPuzle3D.vapor(padre, punto, 0.7 * esc)
+	vapor(padre, punto, 0.7 * esc)
 
 
 ## Se congela: copos y cristalitos azules que saltan y se quedan flotando un momento.

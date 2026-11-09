@@ -4,6 +4,12 @@
 [ext_resource type="Script" path="res://escenas/bosque_01_v01_3d.gd" id="2_b01"]
 [ext_resource type="Script" path="res://escenas/puzle.gd" id="3_pz"]
 
+[sub_resource type="FastNoiseLite" id="FastNoiseLite_ribera"]
+noise_type = 0
+seed = 314
+frequency = 0.18
+fractal_octaves = 3
+
 [node name="PruebaBosque01_v01" type="Node3D"]
 script = ExtResource("1_poc")
 fuego_nuevo = true
@@ -12,6 +18,7 @@ agua_fisica = true
 arqueros = true
 kit = "pruebas"
 zona_luz = "bosque"
+ribera_ruido = SubResource("FastNoiseLite_ribera")
 
 [node name="Reglas" type="Node" parent="."]
 script = ExtResource("2_b01")
