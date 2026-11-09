@@ -1,0 +1,151 @@
+// PORT A GODOT de lejrimostfa/force-field-vfx-threejs (MIT, Copyright (c) 2026 lejrimostfa; aviso completo en laboratorios/haz_gas/LICENSE_force_field_vfx.txt).
+// Origen: src/gas/grid.js (rejilla, uvw, world, near, flow), src/gas/params.js (parametros), src/gas/sources.js (beamAt, windAt, outside, spongeAt)
+// y src/render/optics.js (smokeDensity, extinction, softLight, fireColor, holdHue). Todo lo comparten los kernels con  #include "gas_comun.glslinc".
+//
+// Diferencia con la demo: el escudo esferico pasa a ser un OBSTACULO con SDF (esfera o caja orientada o nada) para poder probar el muro del lab;
+// con la esfera, obst_sd() da exactamente lo mismo que length(w - shieldC) - shieldR de la demo.
+
+// Parametros vivos (makeParams). std140: todo en vec4. Lo rellena HazGasSolver._subir_parametros().
+layout(set = 1, binding = 0, std140) uniform Parametros {
+	vec4 nozzle;     // xyz boquilla, w beamOn
+	vec4 target;     // xyz objetivo, w beamSpeed
+	vec4 obst_c;     // xyz centro del obstaculo, w tipo (0 esfera, 1 caja, 2 nada)
+	vec4 obst_h;     // xyz semiejes de la caja, w radio de la esfera
+	vec4 obst_ex;    // xyz eje x de la caja, w wrap
+	vec4 obst_ey;    // xyz eje y de la caja, w tiempo
+	vec4 obst_ez;    // xyz eje z de la caja, w dt
+	vec4 contacto;   // xyz punto de alimentacion en la piel (demo: shieldC + normalize(nozzle - shieldC) * (R + 0.35)), w beamR0
+	vec4 k0;         // beamR1, burnRate, heat, sootYield
+	vec4 k1;         // expansion, cool, sootFade, dustFade
+	vec4 k2;         // buoyancy, weight, drag, wind
+	vec4 k3;         // push, confine, subgrid, viscosity
+	vec4 k4;         // turbulence, -, -, -
+	vec4 key_pos;    // xyz lampara azul (keyPos), w -
+	vec4 mundo_lo;   // WORLD.min
+	vec4 mundo_tam;  // WORLD.size
+} P;
+
+// Rejilla de ESTE kernel (gas entera, velocidad media, luz cuarto u octavo): res y lado de celda h.
+layout(push_constant, std430) uniform Rejilla {
+	ivec4 res;
+	vec4 extra;      // x = h (WORLD.size.x / res.x)
+} R;
+
+#define BEAM_ON    P.nozzle.w
+#define BEAM_SPEED P.target.w
+#define OBST_TIPO  P.obst_c.w
+#define OBST_R     P.obst_h.w
+#define WRAP       P.obst_ex.w
+#define TIEMPO     P.obst_ey.w
+#define DT         P.obst_ez.w
+#define BEAM_R0    P.contacto.w
+#define BEAM_R1    P.k0.x
+#define BURN_RATE  P.k0.y
+#define HEAT       P.k0.z
+#define SOOT_YIELD P.k0.w
+#define EXPANSION  P.k1.x
+#define COOL       P.k1.y
+#define SOOT_FADE  P.k1.z
+#define DUST_FADE  P.k1.w
+#define BUOYANCY   P.k2.x
+#define WEIGHT     P.k2.y
+#define DRAG       P.k2.z
+#define WIND       P.k2.w
+#define PUSH       P.k3.x
+#define CONFINE    P.k3.y
+#define SUBGRID    P.k3.z
+#define VISCOSITY  P.k3.w
+#define TURBULENCE P.k4.x
+#define WLO        P.mundo_lo.xyz
+#define WTAM       P.mundo_tam.xyz
+#define H          R.extra.x
+
+// grid.js
+ivec3 celda() { return ivec3(gl_GlobalInvocationID); }
+bool fuera_de_rejilla(ivec3 c) { return any(greaterThanEqual(c, R.res.xyz)); }
+vec3 uvw_de(ivec3 c) { return (vec3(c) + 0.5) / vec3(R.res.xyz); }
+vec3 mundo_de(vec3 uvw) { return uvw * WTAM + WLO; }
+ivec3 cerca(ivec3 c, int x, int y, int z) { return clamp(c + ivec3(x, y, z), ivec3(0), R.res.xyz - 1); }
+
+// Remolino sin divergencia, de -1 a 1, que se repite cada `periodo` unidades (grid.js: flow).
+#define FLUJO(tex, w, periodo, shift) (textureLod(tex, (w) / (periodo) + (shift), 0.0).xyz * 2.0 - 1.0)
+
+// Obstaculo: distancia con signo (negativa dentro) y normal hacia fuera.
+float obst_sd(vec3 w, out vec3 n) {
+	if (OBST_TIPO < 0.5) {
+		vec3 d = w - P.obst_c.xyz;
+		float l = length(d);
+		n = d / max(l, 0.001);
+		return l - OBST_R;
+	}
+	if (OBST_TIPO > 1.5) {
+		n = vec3(0.0, 1.0, 0.0);
+		return 1000.0;
+	}
+	vec3 d = w - P.obst_c.xyz;
+	vec3 q = vec3(dot(d, P.obst_ex.xyz), dot(d, P.obst_ey.xyz), dot(d, P.obst_ez.xyz));
+	vec3 hq = abs(q) - P.obst_h.xyz;
+	float afuera = length(max(hq, vec3(0.0)));
+	float dentro = min(max(hq.x, max(hq.y, hq.z)), 0.0);
+	vec3 gl;
+	if (afuera > 0.0) {
+		gl = sign(q) * max(hq, vec3(0.0)) / afuera;
+	} else if (hq.x > hq.y && hq.x > hq.z) {
+		gl = vec3(sign(q.x), 0.0, 0.0);
+	} else if (hq.y > hq.z) {
+		gl = vec3(0.0, sign(q.y), 0.0);
+	} else {
+		gl = vec3(0.0, 0.0, sign(q.z));
+	}
+	n = P.obst_ex.xyz * gl.x + P.obst_ey.xyz * gl.y + P.obst_ez.xyz * gl.z;
+	return afuera + dentro;
+}
+
+// sources.js: outside — 0 dentro del escudo, 1 fuera, con una piel blanda.
+float fuera_obst(float sd) { return smoothstep(-0.12, 0.12, sd); }
+
+// sources.js: spongeAt — cae a 0 junto a las caras abiertas. El suelo queda cerrado.
+float esponja(vec3 uvw) {
+	float edge = min(min(uvw.x, 1.0 - uvw.x), min(uvw.z, min((1.0 - uvw.z) * 0.45, 1.0 - uvw.y)));
+	return smoothstep(0.0, 0.09, edge);
+}
+
+// sources.js: windAt — viento a lo largo del chorro, en el plano del suelo.
+vec3 dir_viento() {
+	vec3 flat_ = (P.target.xyz - P.nozzle.xyz) * vec3(1.0, 0.0, 1.0);
+	return normalize(flat_);
+}
+vec3 viento() { return dir_viento() * WIND; }
+
+// sources.js: beamAt — punto mas cercano del segmento boquilla->objetivo, con un bamboleo lento para que el chorro nunca parezca un tubo.
+struct Haz { float core; float pulse; float t; vec3 dir; };
+Haz haz_en(vec3 w, sampler3D ruido) {
+	Haz hz;
+	vec3 ab = P.target.xyz - P.nozzle.xyz;
+	float t = clamp(dot(w - P.nozzle.xyz, ab) / dot(ab, ab), 0.0, 1.0);
+	vec3 wob = (textureLod(ruido, vec3(t * 0.12, TIEMPO * 0.05, 0.3), 0.0).xyz - 0.5) * t * 1.3;
+	vec3 axis = P.nozzle.xyz + ab * t + wob;
+	// El radio respira a lo largo del chorro: las llamas lamen en vez de formar un tubo parejo.
+	float licks = textureLod(ruido, vec3(t * 0.6 - TIEMPO * 0.55, TIEMPO * 0.12, 0.5), 0.0).x * 1.3 + 0.35;
+	float radius = mix(BEAM_R0, BEAM_R1, t) * licks;
+	hz.core = (1.0 - smoothstep(radius * 0.3, radius, length(w - axis))) * BEAM_ON;
+	hz.pulse = textureLod(ruido, vec3(t * 0.4 - TIEMPO * 0.4, 0.2, 0.7), 0.0).x * 1.6;
+	hz.t = t;
+	hz.dir = normalize(ab);
+	return hz;
+}
+
+// optics.js
+float densidad_humo(vec4 s) { return s.y * 1.9 + s.z * 0.7; }                 // smokeDensity: el hollin es denso, el polvo fino
+float extincion(vec4 s) { return s.y * 1.9 + s.z * 0.7 + s.x * 0.4; }        // extinction: el gas caliente queda casi claro
+vec3 luz_suave(vec3 c) { return c / (c.x * 1.6 + 1.0); }                      // softLight
+vec3 color_fuego(float T) {                                                    // fireColor: rojo en el borde, naranja casi todo; blanco solo en el nucleo mas caliente
+	const vec3 red = vec3(1.0, 0.03, 0.015);
+	const vec3 orange = vec3(1.0, 0.2, 0.015);
+	const vec3 yellow = vec3(1.0, 0.42, 0.05);
+	const vec3 white = vec3(1.0, 0.72, 0.32);
+	vec3 c = mix(mix(mix(red, orange, smoothstep(0.16, 0.5, T)), yellow, smoothstep(0.75, 1.25, T)), white, smoothstep(1.4, 2.1, T));
+	return c * pow(max(T - 0.2, 0.0), 1.9);
+}
+// holdHue: comprime la luz brillante A LO LARGO DE SU COLOR (divide los tres canales por el pico) para que el fuego espeso se quede naranja y no se vaya a crema.
+vec3 sostener_tono(vec3 c) { return c / (max(max(c.x, c.y), c.z) * 0.22 + 1.0); }

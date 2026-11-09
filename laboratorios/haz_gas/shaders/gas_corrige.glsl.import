@@ -1,0 +1,14 @@
+[remap]
+
+importer="glsl"
+type="RDShaderFile"
+uid="uid://cie2n8rrty5p5"
+path="res://.godot/imported/gas_corrige.glsl-09f0c22c35eced82fa76a53fac9c7128.res"
+
+[deps]
+
+source_file="res://laboratorios/haz_gas/shaders/gas_corrige.glsl"
+dest_files=["res://.godot/imported/gas_corrige.glsl-09f0c22c35eced82fa76a53fac9c7128.res"]
+
+[params]
+

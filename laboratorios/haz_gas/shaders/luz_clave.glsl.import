@@ -1,0 +1,14 @@
+[remap]
+
+importer="glsl"
+type="RDShaderFile"
+uid="uid://bsenum1te8frc"
+path="res://.godot/imported/luz_clave.glsl-5b1f1e7204f37dcc58da3840c90f4bab.res"
+
+[deps]
+
+source_file="res://laboratorios/haz_gas/shaders/luz_clave.glsl"
+dest_files=["res://.godot/imported/luz_clave.glsl-5b1f1e7204f37dcc58da3840c90f4bab.res"]
+
+[params]
+

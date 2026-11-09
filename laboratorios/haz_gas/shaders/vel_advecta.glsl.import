@@ -1,0 +1,14 @@
+[remap]
+
+importer="glsl"
+type="RDShaderFile"
+uid="uid://b4e26o21wg814"
+path="res://.godot/imported/vel_advecta.glsl-547918902cf49592cda4633504e906fb.res"
+
+[deps]
+
+source_file="res://laboratorios/haz_gas/shaders/vel_advecta.glsl"
+dest_files=["res://.godot/imported/vel_advecta.glsl-547918902cf49592cda4633504e906fb.res"]
+
+[params]
+

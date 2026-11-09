@@ -1,0 +1,21 @@
+// PORT de src/gas/advect.js (lejrimostfa/force-field-vfx-threejs, MIT). Retroceso RK2 en espacio uvw y el del gas con remolino bajo la rejilla de velocidad.
+// El gas usa MacCormack (paso adelante, paso atras para medir el error y correccion recortada a las celdas de origen: conserva los filamentos).
+// La velocidad se queda semi-Lagrangiana A PROPOSITO: MacCormack en la velocidad la recorta a las 8 esquinas, deja mesetas con bordes alineados con la
+// rejilla y el gas se pliega en ladrillos. La velocidad suave tambien da los pliegues gordos: un flujo suave estirando gas afilado se lee como viscoso.
+
+// RK2 hacia atras en uvw. escala pasa de unidades/s a uvw por paso.
+vec3 retroceso(sampler3D vel, vec3 uvw, vec3 escala) {
+	vec3 v1 = textureLod(vel, uvw, 0.0).xyz;
+	vec3 v2 = textureLod(vel, uvw - v1 * escala * 0.5, 0.0).xyz;
+	return uvw - v2 * escala;
+}
+
+// Igual, mas remolino por debajo de la rejilla de velocidad. Crece con la rapidez local: el gas rapido se desgarra, el tranquilo queda liso.
+vec3 retroceso_gas(sampler3D vel, sampler3D flujo, vec3 uvw) {
+	vec3 escala = vec3(DT) / WTAM;
+	vec3 w = uvw * WTAM;
+	float t = TIEMPO;
+	vec3 fino = FLUJO(flujo, w, 4.5, vec3(t * 0.09)) + FLUJO(flujo, w.zxy, 2.3, vec3(t * -0.13)) * 0.7;
+	float amp = (length(textureLod(vel, uvw, 0.0).xyz) * 0.06 + 0.15) * SUBGRID;
+	return retroceso(vel, uvw, escala) - fino * amp * escala;
+}

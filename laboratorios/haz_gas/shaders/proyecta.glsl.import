@@ -1,0 +1,14 @@
+[remap]
+
+importer="glsl"
+type="RDShaderFile"
+uid="uid://d3ojiqybriocg"
+path="res://.godot/imported/proyecta.glsl-91fbd8eee4b370d7da08eb01a799b714.res"
+
+[deps]
+
+source_file="res://laboratorios/haz_gas/shaders/proyecta.glsl"
+dest_files=["res://.godot/imported/proyecta.glsl-91fbd8eee4b370d7da08eb01a799b714.res"]
+
+[params]
+

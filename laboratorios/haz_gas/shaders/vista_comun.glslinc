@@ -1,0 +1,14 @@
+// PORT de src/render/volume.js (lejrimostfa/force-field-vfx-threejs, MIT): datos de la vista para el raymarch y su filtro temporal.
+// Todo en coordenadas del DOMINIO (las de la demo, 1 unidad = 1 m de la demo): HazGasRaymarch pasa la inversa de vista-proyeccion ya llevada al dominio,
+// asi el nodo HazGas puede ir escalado, girado y movido en el mundo de Godot.
+#ifndef SET_VISTA
+#define SET_VISTA 2
+#endif
+layout(set = SET_VISTA, binding = 0, std140) uniform Vista {
+	mat4 inv_vp;       // NDC de Godot RD (z de 0 a 1, invertida) -> dominio
+	vec4 tam;          // xy tamano del volumen (media resolucion), zw tamano de la pantalla completa
+	vec4 marcha;       // x pasos, y fotograma % 64, z ¿hay profundidad?, w -
+	vec4 look0;        // thickness, relief, edge, smokeAlbedo
+	vec4 look1;        // flameBody, emitGain, fireOnSmoke, farOnSmoke
+	vec4 look2;        // lampOnSmoke, saturacion, vineta, -
+} V;

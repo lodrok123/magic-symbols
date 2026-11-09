@@ -1,0 +1,14 @@
+[remap]
+
+importer="glsl"
+type="RDShaderFile"
+uid="uid://c4l3rmky2amb5"
+path="res://.godot/imported/rizo.glsl-387c64cc283e44cb2e4cc01cc0e164ef.res"
+
+[deps]
+
+source_file="res://laboratorios/haz_gas/shaders/rizo.glsl"
+dest_files=["res://.godot/imported/rizo.glsl-387c64cc283e44cb2e4cc01cc0e164ef.res"]
+
+[params]
+

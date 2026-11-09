@@ -1,0 +1,14 @@
+[remap]
+
+importer="glsl"
+type="RDShaderFile"
+uid="uid://7j1hicwg7hv6"
+path="res://.godot/imported/confina.glsl-d4b402c794df387e8a8ed7c332227933.res"
+
+[deps]
+
+source_file="res://laboratorios/haz_gas/shaders/confina.glsl"
+dest_files=["res://.godot/imported/confina.glsl-d4b402c794df387e8a8ed7c332227933.res"]
+
+[params]
+

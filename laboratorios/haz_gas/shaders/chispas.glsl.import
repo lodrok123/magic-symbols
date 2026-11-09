@@ -1,0 +1,14 @@
+[remap]
+
+importer="glsl"
+type="RDShaderFile"
+uid="uid://dy41pmiogjucy"
+path="res://.godot/imported/chispas.glsl-2581b7ccb79f80a8eafb2d69808dab05.res"
+
+[deps]
+
+source_file="res://laboratorios/haz_gas/shaders/chispas.glsl"
+dest_files=["res://.godot/imported/chispas.glsl-2581b7ccb79f80a8eafb2d69808dab05.res"]
+
+[params]
+

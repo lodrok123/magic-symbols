@@ -1,0 +1,14 @@
+[remap]
+
+importer="glsl"
+type="RDShaderFile"
+uid="uid://dy8r1r6t4yrci"
+path="res://.godot/imported/luz_difunde.glsl-89e9823e03856bcef709919d73f50c09.res"
+
+[deps]
+
+source_file="res://laboratorios/haz_gas/shaders/luz_difunde.glsl"
+dest_files=["res://.godot/imported/luz_difunde.glsl-89e9823e03856bcef709919d73f50c09.res"]
+
+[params]
+

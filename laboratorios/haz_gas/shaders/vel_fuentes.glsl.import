@@ -1,0 +1,14 @@
+[remap]
+
+importer="glsl"
+type="RDShaderFile"
+uid="uid://bxw63ocfhqov2"
+path="res://.godot/imported/vel_fuentes.glsl-262f2671a0d85742d1e9b82e29711ac6.res"
+
+[deps]
+
+source_file="res://laboratorios/haz_gas/shaders/vel_fuentes.glsl"
+dest_files=["res://.godot/imported/vel_fuentes.glsl-262f2671a0d85742d1e9b82e29711ac6.res"]
+
+[params]
+

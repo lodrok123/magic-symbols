@@ -1,0 +1,14 @@
+[remap]
+
+importer="glsl"
+type="RDShaderFile"
+uid="uid://je6ap1goq7gi"
+path="res://.godot/imported/luz_lejos.glsl-c25f0e7a80d9bd46d0a80a4326502f36.res"
+
+[deps]
+
+source_file="res://laboratorios/haz_gas/shaders/luz_lejos.glsl"
+dest_files=["res://.godot/imported/luz_lejos.glsl-c25f0e7a80d9bd46d0a80a4326502f36.res"]
+
+[params]
+

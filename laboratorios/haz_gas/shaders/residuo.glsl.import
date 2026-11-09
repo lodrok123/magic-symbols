@@ -1,0 +1,14 @@
+[remap]
+
+importer="glsl"
+type="RDShaderFile"
+uid="uid://chvesxcw28gli"
+path="res://.godot/imported/residuo.glsl-c1c2c43f48e0da14ea09d4ed3c6e9e46.res"
+
+[deps]
+
+source_file="res://laboratorios/haz_gas/shaders/residuo.glsl"
+dest_files=["res://.godot/imported/residuo.glsl-c1c2c43f48e0da14ea09d4ed3c6e9e46.res"]
+
+[params]
+

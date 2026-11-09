@@ -1,0 +1,14 @@
+[remap]
+
+importer="glsl"
+type="RDShaderFile"
+uid="uid://bau1adnb4m6af"
+path="res://.godot/imported/compone.glsl-4f152dc442914050b9db6681fc3d2f24.res"
+
+[deps]
+
+source_file="res://laboratorios/haz_gas/shaders/compone.glsl"
+dest_files=["res://.godot/imported/compone.glsl-4f152dc442914050b9db6681fc3d2f24.res"]
+
+[params]
+

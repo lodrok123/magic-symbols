@@ -1,0 +1,14 @@
+[remap]
+
+importer="glsl"
+type="RDShaderFile"
+uid="uid://d23h28nwfphow"
+path="res://.godot/imported/gas_avanza.glsl-7c207aa85e262ccd1bb3c502d55bcb18.res"
+
+[deps]
+
+source_file="res://laboratorios/haz_gas/shaders/gas_avanza.glsl"
+dest_files=["res://.godot/imported/gas_avanza.glsl-7c207aa85e262ccd1bb3c502d55bcb18.res"]
+
+[params]
+

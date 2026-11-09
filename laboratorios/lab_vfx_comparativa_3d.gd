@@ -7,6 +7,7 @@ extends Node3D
 ##          C cámara (juego → cerca 2 m → lejos 10 m) · flechas / WASD andar · H oculta el panel · F alterna un MURO de prueba a 2/3 del largo del haz (los haces F7/F9 reciben su choque: salpicadura).
 ## Prueba 2 (fuego toon, docs/PRUEBA2_VFX_TOON_2026-11-01.md): 5 muro de fuego toon · 6 columna toon · 7 bola toon · 9 diez muros toon · RePág / AvPág eligen uno de los diez mandos · + / − lo suben y bajan ·
 ##          Retroceso lo devuelve a su valor de origen · el panel enseña los diez con su valor (el elegido va con «>»). Valen para los muros toon que nazcan después y para el vivo.
+## Mayús+F12: PORT de la demo de gas 3D de three.js (laboratorios/haz_gas/, HazGas): esfera → muro → nada. Dentro: ESPACIO chorro, C cámara, O obstáculo, 1-4 calidad, ratón orbita.
 ## El panel muestra fps, luces y partículas vivas (el mismo recuento que LabVfx3D._luces_y_particulas) y las teclas.
 ## Abrir: laboratorios/LabVfxComparativa3D.tscn y F6. Capturas: herramientas/captura_vfx_comparativa.gd.
 
@@ -216,7 +217,7 @@ func _process(delta: float) -> void:
 		_masa.alimentar()                       # mientras el haz viva, la masa se alimenta (si el haz se rehace, la masa sigue)
 	if _panel != null:
 		var lp: Array = luces_y_particulas()
-		_panel.text = ("fps %d · luces %d · partículas %d · efectos %d · cámara %s\n1 bola · 2 muro · 3 columna · 5 muro toon · 6 columna toon · 7 bola toon · 0 diez muros · 9 diez toon · X limpia · F muro del haz · F12 masa de fuego (muro / esfera / nada) · C cámara · flechas andar · H panel\n%s"
+		_panel.text = ("fps %d · luces %d · partículas %d · efectos %d · cámara %s\n1 bola · 2 muro · 3 columna · 5 muro toon · 6 columna toon · 7 bola toon · 0 diez muros · 9 diez toon · X limpia · F muro del haz · F12 masa de fuego (muro / esfera / nada) · Mayús+F12 GAS 3D (port de la demo: esfera / muro / nada) · C cámara · flechas andar · H panel\n%s"
 			% [int(Engine.get_frames_per_second()), lp[0], lp[1], _efectos.get_child_count(), CAMARAS[camara_actual], _texto_mandos_toon()] + _texto_param() + _texto_carga()) if _panel_visible else ""
 
 
@@ -268,7 +269,11 @@ func _unhandled_input(ev: InputEvent) -> void:
 		KEY_0: diez_muros()
 		KEY_X: limpiar()
 		KEY_F: alternar_muro_haz()
-		KEY_F12: haz_masa((_masa_modo + 1) % 3)
+		KEY_F12:
+			if (ev as InputEventKey).shift_pressed:
+				haz_gas((_gas_modo + 1) % 3)
+			else:
+				haz_masa((_masa_modo + 1) % 3)
 		KEY_C: poner_camara((camara_actual + 1) % CAMARAS.size())
 		KEY_H: _panel_visible = not _panel_visible
 
@@ -526,6 +531,70 @@ func haz_masa(modo: int) -> void:
 	fuego_param(4)
 
 
+## Mayús+F12: PORT FIEL de la demo de gas de three.js (laboratorios/haz_gas/, HazGas: simulación 3D en compute + raymarch + luz por volúmenes + chispas GPU).
+## 0 apagado · 1 contra la esfera escudo de la demo · 2 contra el muro (caja). vista: «demo» (la escena y la cámara de la demo) o «juego» (el dominio escalado con la
+## boquilla en la mano de la jugadora y la cámara del juego). Mientras está puesto se esconden el suelo, los cubos, el sol y el panel del lab y el entorno pasa a
+## negro con ACES y glow (como la demo); al quitarlo vuelve todo. F12 sin Mayús sigue siendo la «versión CPU» (bocanadas) para comparar.
+var _gas: HazGas = null
+var _gas_modo: int = 0
+var _gas_ocultos: Array = []
+var _gas_env_previo: Environment = null
+
+
+func haz_gas(modo: int, vista: String = "demo") -> HazGas:
+	_gas_modo = clampi(modo, 0, 2)
+	if _gas_modo == 0:
+		_quitar_gas()
+		return null
+	if _gas == null or not is_instance_valid(_gas):
+		limpiar()
+		_gas_modo = clampi(modo, 0, 2)
+		_gas = HazGas.new()
+		_gas.name = "HazGas"
+		_gas.camara_juego = _cam
+		_gas.mano_juego = _mano()
+		_gas.dir_juego = _dir
+		_gas.jugadora_juego = _pj
+		_gas.obstaculo = "esfera" if _gas_modo == 1 else "muro"
+		_gas.vista = vista
+		_gas_ocultos.clear()
+		for n in get_children():
+			if n is VisualInstance3D and (n.name == "Suelo" or String(n.name).begins_with("Cubo") or n.name == "Sol") and n.visible:
+				n.visible = false
+				_gas_ocultos.append(n)
+		var we: WorldEnvironment = get_node_or_null("Ambiente") as WorldEnvironment
+		add_child(_gas)
+		if we != null:
+			_gas_env_previo = we.environment
+			we.environment = _gas.entorno()
+		_panel_visible = false
+		poner_camara(0)
+	else:
+		_gas.poner_obstaculo("esfera" if _gas_modo == 1 else "muro")
+		if vista != _gas.vista:
+			_gas.poner_vista(vista)
+	return _gas
+
+
+func _quitar_gas() -> void:
+	_gas_modo = 0
+	if _gas != null and is_instance_valid(_gas):
+		remove_child(_gas)
+		_gas.queue_free()
+		var we: WorldEnvironment = get_node_or_null("Ambiente") as WorldEnvironment
+		if we != null and _gas_env_previo != null:
+			we.environment = _gas_env_previo
+		for n in _gas_ocultos:
+			if is_instance_valid(n):
+				n.visible = true
+		_gas_ocultos.clear()
+		if _pj != null:
+			_pj.visible = true
+		_cam.make_current()
+		_panel_visible = true
+	_gas = null
+
+
 func _quitar_masa() -> void:
 	if _masa != null and is_instance_valid(_masa):
 		_masa.queue_free()
@@ -763,6 +832,7 @@ func limpiar() -> void:
 	_pared = null
 	_quitar_muro_haz()
 	_quitar_masa()
+	_quitar_gas()
 
 
 # ---------------------------------------------------------------- carga e impacto del fuego (FuegoToy / ImpactoFuegoToy) ----------------------------------------------------------------
