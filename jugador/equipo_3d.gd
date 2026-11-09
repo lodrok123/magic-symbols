@@ -85,15 +85,18 @@ const GRIMORIO_JUGADORA_GIRO: Vector3 = Vector3(24.5, 180.0, 0.0)
 ## espacio de RightHand y a (−0,006, +0,052, −0,001) en el de LeftHand. A eso se le suma bajar la pieza por su propio eje para que
 ## el puño quede sobre el MANGO y no en su extremo: en el espacio del hueso, «abajo del mundo» es (−0,32, +0,64, +0,70) por la
 ## derecha y (−0,04, +0,66, −0,75) por la izquierda.
-## 9/11 (Pablo: «no queda, es demasiado alargado»): la cruz iba a 0,8, o sea 0,36 de alto en un personaje de 0,95, y llegaba de la
-## cintura a por encima de la capucha. A 0,55 mide 0,25, un cuarto del personaje, que es lo que se lleva en una mano.
-const CRUZ_ESCALA: float = 0.55
-const CRUZ_POS: Vector3 = Vector3(-0.020, 0.078, 0.029)     # puño + 4,4 cm hacia abajo (0,08 de la pieza a esta escala)
+## La cruz fue a 0,8 («demasiado alargado», Pablo), luego a 0,55 y ahora a 0,75: aquello se midió sobre el modelo de brazos largos,
+## que ya no se usa; sobre el encapuchado de brazos cortos, más compacto, la cruz aguanta más tamaño sin comerse la silueta. A 0,75
+## mide 0,34 de alto en un personaje de 0,95.
+## El puño del esqueleto nuevo cae en (−0,007, +0,058, −0,002) en el espacio de RightHand (medidas_mano_equipo.gd), y a eso se le
+## suma bajar la pieza por su propio eje para que el puño quede sobre el MANGO: «abajo del mundo» es ahí (−0,32, +0,64, +0,70).
+const CRUZ_ESCALA: float = 0.75
+const CRUZ_POS: Vector3 = Vector3(-0.026, 0.096, 0.040)     # puño + 6 cm hacia abajo (0,08 de la pieza a esta escala)
 const CRUZ_GIRO: Vector3 = Vector3(-44.6, 119.4, -153.1)
 ## La palmatoria va también en la mano DERECHA (cada miembro de la procesión porta una sola cosa), así que usa el giro de esa mano,
 ## el mismo que la cruz. Mide 0,398 de ancho con el asa: a 0,8 tapaba medio cuerpo.
 const VELA_ESCALA: float = 0.55
-const VELA_POS_DERECHA: Vector3 = Vector3(-0.011, 0.060, 0.010)   # puño + 1,7 cm hacia abajo: el platillo justo bajo la mano
+const VELA_POS_DERECHA: Vector3 = Vector3(-0.012, 0.068, 0.010)   # puño + 1,7 cm hacia abajo: el platillo justo bajo la mano
 const VELA_GIRO_DERECHA: Vector3 = Vector3(-44.6, 119.4, -153.1)
 
 const EQUIPO: Dictionary = {
