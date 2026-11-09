@@ -98,6 +98,10 @@ var _valores_carga: Dictionary = {}                ## mandos de la carga movidos
 var _mando_carga: int = 0                          ## el elegido con T
 var _muro_haz_activo: bool = false                  ## F: muro de prueba del haz puesto
 var _muro_haz_nodo: Node3D = null
+var _obst_esfera: bool = false                     ## F12: el obstáculo del haz es una ESFERA en vez del muro
+var _masa_modo: int = 0                           ## F12: prototipo de la MASA DE FUEGO (0 apagado · 1 contra el muro · 2 contra la esfera), docs/HAZ_FUEGO_VS_DEMO_2026-11-09.md
+var _masa: HazMasaVista = null
+var masa_sin_lamina: bool = true                   ## con la masa se quita la salpicadura plana del toy (para juzgar la masa sola)
 var _pared: Node3D = null                          ## la pared de prueba de los impactos (la crea G / B / R, la quita X)
 var camara_fija: Dictionary = {}                   ## {desde, mira}: si no está vacío, las cámaras cerca / lejos usan esto (lo usan las capturas)
 
@@ -208,9 +212,11 @@ func _process(delta: float) -> void:
 	_mover_bolas(delta)
 	_mover_naturaleza(delta)
 	_seguir_camara()
+	if _masa != null and is_instance_valid(_masa) and _param != null and is_instance_valid(_param) and _param.is_inside_tree():
+		_masa.alimentar()                       # mientras el haz viva, la masa se alimenta (si el haz se rehace, la masa sigue)
 	if _panel != null:
 		var lp: Array = luces_y_particulas()
-		_panel.text = ("fps %d · luces %d · partículas %d · efectos %d · cámara %s\n1 bola · 2 muro · 3 columna · 5 muro toon · 6 columna toon · 7 bola toon · 0 diez muros · 9 diez toon · X limpia · F muro del haz · C cámara · flechas andar · H panel\n%s"
+		_panel.text = ("fps %d · luces %d · partículas %d · efectos %d · cámara %s\n1 bola · 2 muro · 3 columna · 5 muro toon · 6 columna toon · 7 bola toon · 0 diez muros · 9 diez toon · X limpia · F muro del haz · F12 masa de fuego (muro / esfera / nada) · C cámara · flechas andar · H panel\n%s"
 			% [int(Engine.get_frames_per_second()), lp[0], lp[1], _efectos.get_child_count(), CAMARAS[camara_actual], _texto_mandos_toon()] + _texto_param() + _texto_carga()) if _panel_visible else ""
 
 
@@ -262,6 +268,7 @@ func _unhandled_input(ev: InputEvent) -> void:
 		KEY_0: diez_muros()
 		KEY_X: limpiar()
 		KEY_F: alternar_muro_haz()
+		KEY_F12: haz_masa((_masa_modo + 1) % 3)
 		KEY_C: poner_camara((camara_actual + 1) % CAMARAS.size())
 		KEY_H: _panel_visible = not _panel_visible
 
@@ -454,6 +461,7 @@ func _poner_param(e, giro: float) -> void:
 	e.lanzar(-1.0)
 	_param = e
 	ultimo_efecto = e
+	_actualizar_masa(e)
 	if e.viaja:
 		_lanzar_param_en_vuelo()
 
@@ -482,17 +490,73 @@ func _muro_haz(e, largo: float, desde: Vector3, dir: Vector3) -> void:
 	_quitar_muro_haz()
 	_muro_haz_nodo = MeshInstance3D.new()
 	_muro_haz_nodo.name = "MuroHaz"
-	var bm: BoxMesh = BoxMesh.new()
-	bm.size = Vector3(1.0, 2.4, 0.3)
-	_muro_haz_nodo.mesh = bm
 	var mt: StandardMaterial3D = StandardMaterial3D.new()
 	mt.albedo_color = Color(0.5, 0.5, 0.52)
 	mt.roughness = 0.95
 	_muro_haz_nodo.material_override = mt
-	add_child(_muro_haz_nodo)
-	_muro_haz_nodo.global_position = Vector3(punto.x, 1.2, punto.z) + dir * 0.15       # la cara delantera queda justo en el punto
+	if _obst_esfera:
+		var sm: SphereMesh = SphereMesh.new()
+		sm.radius = RADIO_ESFERA_HAZ
+		sm.height = RADIO_ESFERA_HAZ * 2.0
+		_muro_haz_nodo.mesh = sm
+		add_child(_muro_haz_nodo)
+		_muro_haz_nodo.global_position = Vector3(punto.x, 0.5, punto.z) + dir * RADIO_ESFERA_HAZ       # el ecuador a la altura del chorro; la piel queda en el punto
+	else:
+		var bm: BoxMesh = BoxMesh.new()
+		bm.size = Vector3(1.0, 2.4, 0.3)
+		_muro_haz_nodo.mesh = bm
+		add_child(_muro_haz_nodo)
+		_muro_haz_nodo.global_position = Vector3(punto.x, 1.2, punto.z) + dir * 0.15       # la cara delantera queda justo en el punto
 	_muro_haz_nodo.look_at(_muro_haz_nodo.global_position + dir, Vector3.UP)
 	e.choques = VfxToyJuego._choques_locales([{"punto": Vector3(punto.x, 1.0, punto.z), "normal": -dir, "tipo": "muro"}], desde, dir * largo)
+
+
+const RADIO_ESFERA_HAZ: float = 0.8
+
+
+## F12: PROTOTIPO de la masa de fuego (docs/HAZ_FUEGO_VS_DEMO_2026-11-09.md). 0 apagado (el haz de siempre), 1 haz contra el muro + masa, 2 haz contra una esfera + masa.
+## El chorro es el FuegoToy de siempre (cortado en el obstáculo); la masa es un nodo propio (HazMasaVista) que se alimenta mientras el haz vive y sobrevive a su rehacer (V).
+func haz_masa(modo: int) -> void:
+	_masa_modo = clampi(modo, 0, 2)
+	_obst_esfera = _masa_modo == 2
+	_muro_haz_activo = _masa_modo > 0
+	if _masa_modo == 0:
+		_quitar_masa()
+		_quitar_muro_haz()
+	fuego_param(4)
+
+
+func _quitar_masa() -> void:
+	if _masa != null and is_instance_valid(_masa):
+		_masa.queue_free()
+	_masa = null
+	_masa_modo = 0
+	_obst_esfera = false
+
+
+## Tras colocar un haz: pone la masa (si hay modo) con el origen, la dirección y el obstáculo de ESTE haz, y le quita al toy la salpicadura plana.
+func _actualizar_masa(e) -> void:
+	if _masa_modo == 0 or e.figura != FuegoToy.Figura.HAZ:
+		return
+	if _masa == null or not is_instance_valid(_masa):
+		_masa = HazMasaVista.new()
+		_masa.name = "HazMasa"
+		add_child(_masa)
+	var dir: Vector3 = -e.global_basis.z
+	var h: float = maxf(e.semieje_y, 0.4)
+	_masa.sim.configurar(e.global_position + Vector3(0, h, 0), dir, e.semieje_x * 2.0)
+	if _muro_haz_nodo != null and is_instance_valid(_muro_haz_nodo) and _muro_haz_activo:
+		if _obst_esfera:
+			_masa.sim.poner_esfera(_muro_haz_nodo.global_position, RADIO_ESFERA_HAZ)
+		else:
+			_masa.sim.poner_caja(_muro_haz_nodo.global_position, Vector3(0.5, 1.2, 0.15), _muro_haz_nodo.global_basis)
+	else:
+		_masa.sim.quitar_obstaculo()
+	if masa_sin_lamina:
+		for patron in ["Salpicadura*", "ChispasChoque*", "Brasas*"]:
+			for n in e.find_children(patron, "", true, false):
+				n.queue_free()
+	_masa.alimentar()
 
 
 func _quitar_muro_haz() -> void:
@@ -698,6 +762,7 @@ func limpiar() -> void:
 		_pared.queue_free()
 	_pared = null
 	_quitar_muro_haz()
+	_quitar_masa()
 
 
 # ---------------------------------------------------------------- carga e impacto del fuego (FuegoToy / ImpactoFuegoToy) ----------------------------------------------------------------
