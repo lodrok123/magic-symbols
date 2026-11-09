@@ -4,6 +4,7 @@
 // caen y rebotan en el suelo y en el escudo. Estado en una imagen rgba32f de N x 2: fila 0 = posicion (w = vida que queda), fila 1 = velocidad (w = grosor aleatorio).
 // Diferencia: el escudo es el obstaculo con SDF (esfera, caja o nada); la direccion «(1.2, 0, 0)» de la demo (hacia el lanzador) sale aqui de la boquilla.
 layout(local_size_x = 64, local_size_y = 1, local_size_z = 1) in;
+#define CON_SOLIDO
 #include "gas_comun.glslinc"
 
 layout(set = 0, binding = 0) uniform sampler3D vel;

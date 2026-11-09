@@ -48,6 +48,14 @@ var ruido: RID
 var flujo: RID
 var chispas: RID                       ## rgba32f N x 2
 var residuo: RID                       ## solo para la prueba
+var solido: RID                        ## campo de sólidos reales (sd, normal), resolución del gas: lo hace solido.glsl con las primitivas de `primitivas`
+var primitivas: RID                    ## búfer std430: vec4 n + N × 3 vec4 (ver solido.glsl)
+const MAX_PRIMITIVAS: int = 1024
+## Los kernels que leen el campo de sólidos (llevan #define CON_SOLIDO y el set 2).
+const CON_SOLIDO: PackedStringArray = ["gas_fuentes", "vel_fuentes", "divergencia", "residuo", "chispas"]
+var _set_solido: Dictionary = {}       ## nombre del shader -> uniform set 2
+var _solido_paso: Dictionary = {}
+var n_primitivas: int = 0
 var ubo: RID                           ## Parametros (gas_comun.glslinc)
 var muestreo_lineal: RID
 var muestreo_repite: RID
@@ -102,6 +110,9 @@ func crear() -> bool:
 	curl = _tex3d(half, f16)
 	clave = _tex3d(half, f16)
 	residuo = _tex3d(half, f32)
+	solido = _tex3d(res, f16)
+	primitivas = rd.storage_buffer_create(16 + MAX_PRIMITIVAS * 48)
+	_todas.append(primitivas)
 	ruido = _tex3d(Vector3i(32, 32, 32), RenderingDevice.DATA_FORMAT_R8G8B8A8_UNORM, _datos_ruido())
 	var fl: PackedByteArray = FileAccess.get_file_as_bytes(FLUJO_BIN)
 	if fl.size() != 48 * 48 * 48 * 4:
@@ -112,13 +123,14 @@ func crear() -> bool:
 	for t in [vel[0], vel[1], gas[0], gas[1], gas_tmp, prs[0], prs[1], curl, luz[0], luz[1], luz_lejos[0], luz_lejos[1], clave, residuo]:
 		rd.texture_clear(t, Color(0, 0, 0, 0), 0, 1, 0, 1)
 	rd.texture_clear(clave, Color(1, 0, 0, 1), 0, 1, 0, 1)
+	rd.texture_clear(solido, Color(1000, 0, 1, 0), 0, 1, 0, 1)
 	muestreo_lineal = _muestreo(RenderingDevice.SAMPLER_FILTER_LINEAR, RenderingDevice.SAMPLER_REPEAT_MODE_CLAMP_TO_EDGE)
 	muestreo_repite = _muestreo(RenderingDevice.SAMPLER_FILTER_LINEAR, RenderingDevice.SAMPLER_REPEAT_MODE_REPEAT)
 	muestreo_cercano = _muestreo(RenderingDevice.SAMPLER_FILTER_NEAREST, RenderingDevice.SAMPLER_REPEAT_MODE_CLAMP_TO_EDGE)
 	ubo = rd.uniform_buffer_create(16 * 16)
 	_todas.append(ubo)
 	for n in ["gas_avanza", "gas_corrige", "gas_fuentes", "vel_advecta", "vel_fuentes", "rizo", "confina", "divergencia", "jacobi", "proyecta",
-			"luz_difunde", "luz_lejos", "luz_clave", "chispas", "residuo"]:
+			"luz_difunde", "luz_lejos", "luz_clave", "chispas", "residuo", "solido"]:
 		if not _cargar(n):
 			return false
 	_montar_cadena(half, quarter, eighth)
@@ -166,6 +178,11 @@ func _montar_cadena(half: Vector3i, quarter: Vector3i, eighth: Vector3i) -> void
 	pc["grupos"] = Vector3i(ceili(N_CHISPAS / 64.0), 1, 1)
 	_chispas_pasos = [pc]
 	_residuo_paso = _paso("residuo", [_s(0, vel[0]), _s(1, vel[1]), _i(2, residuo)], half)
+	var ub: RDUniform = RDUniform.new()
+	ub.uniform_type = RenderingDevice.UNIFORM_TYPE_STORAGE_BUFFER
+	ub.binding = 0
+	ub.add_id(primitivas)
+	_solido_paso = _paso("solido", [ub, _i(1, solido)], res)
 
 
 ## Un paso de simulación (DT = 1/60 s) más luz y chispas, como simulate() de main.js (sin el raymarch, que va en HazGasRaymarch).
@@ -197,6 +214,19 @@ func solo_parametros(parametros: PackedFloat32Array) -> void:
 		rd.buffer_update(ubo, 0, parametros.size() * 4, parametros.to_byte_array())
 
 
+## Sube las primitivas (PackedFloat32Array de 12 floats cada una, ver solido.glsl) y rehace el campo de sólidos. En el hilo de render. Necesita el UBO ya subido
+## (mundo_lo / mundo_tam): se llama después de `solo_parametros` o de un `paso`.
+func rehacer_solido(prims: PackedFloat32Array) -> void:
+	if not valido:
+		return
+	n_primitivas = mini(prims.size() / 12, MAX_PRIMITIVAS)
+	var cab: PackedFloat32Array = PackedFloat32Array([float(n_primitivas), 0.0, 0.0, 0.0])
+	var datos: PackedByteArray = cab.to_byte_array()
+	datos.append_array(prims.slice(0, n_primitivas * 12).to_byte_array())
+	rd.buffer_update(primitivas, 0, datos.size(), datos)
+	_correr([_solido_paso])
+
+
 func calcular_residuo() -> void:
 	if valido:
 		_correr([_residuo_paso])
@@ -208,6 +238,8 @@ func _correr(lista: Array) -> void:
 		rd.compute_list_bind_compute_pipeline(cl, p["pipeline"])
 		rd.compute_list_bind_uniform_set(cl, p["set0"], 0)
 		rd.compute_list_bind_uniform_set(cl, p["set1"], 1)
+		if p.has("set2"):
+			rd.compute_list_bind_uniform_set(cl, p["set2"], 2)
 		var pcb: PackedByteArray = p["pc"]
 		rd.compute_list_set_push_constant(cl, pcb, pcb.size())
 		var g: Vector3i = p["grupos"]
@@ -321,7 +353,29 @@ func _datos_chispas() -> PackedByteArray:
 
 ## SPIR-V de un compute shader de DIR_SH. Se compila desde el TEXTO (con los #include expandidos aquí): el importador de Godot no vuelve a compilar un .glsl
 ## cuando solo cambia un .glslinc que incluye (mira el md5 del .glsl), y se quedaban versiones viejas. Si no se puede leer el texto (exportado), el importado.
+static var _cache_spirv: Dictionary = {}       ## nombre -> RDShaderSPIRV: en el juego se crean instancias a menudo; se compila una vez por sesión
+
+
 static func spirv(r: RenderingDevice, nombre: String) -> RDShaderSPIRV:
+	if _cache_spirv.has(nombre):
+		return _cache_spirv[nombre]
+	var sp: RDShaderSPIRV = _spirv_sin_cache(r, nombre)
+	if sp.compile_error_compute == "" and not sp.bytecode_compute.is_empty():
+		_cache_spirv[nombre] = sp
+	return sp
+
+
+## Compila todos los shaders del gas (al cargar el nivel, para que el primer haz no dé tirón).
+static func precompilar() -> void:
+	var r: RenderingDevice = RenderingServer.get_rendering_device()
+	if r == null:
+		return
+	for n in ["gas_avanza", "gas_corrige", "gas_fuentes", "vel_advecta", "vel_fuentes", "rizo", "confina", "divergencia", "jacobi", "proyecta", "luz_difunde", "luz_lejos",
+			"luz_clave", "chispas", "residuo", "solido", "raymarch", "raymarch_toon", "temporal", "compone"]:
+		spirv(r, n)
+
+
+static func _spirv_sin_cache(r: RenderingDevice, nombre: String) -> RDShaderSPIRV:
 	var texto: String = FileAccess.get_file_as_string(DIR_SH + nombre + ".glsl")
 	if texto != "" and r != null:
 		var fuente: RDShaderSource = RDShaderSource.new()
@@ -360,6 +414,8 @@ func _cargar(nombre: String) -> bool:
 	u.add_id(ubo)
 	var su: RID = rd.uniform_set_create([u], sh, 1)
 	_shaders[nombre] = {"shader": sh, "pipeline": pl, "set_ubo": su}
+	if nombre in CON_SOLIDO:
+		_set_solido[nombre] = rd.uniform_set_create([_s(0, solido)], sh, 2)
 	return true
 
 
@@ -388,5 +444,8 @@ func _paso(nombre: String, uniformes: Array, tam: Vector3i) -> Dictionary:
 	pc.encode_s32(4, tam.y)
 	pc.encode_s32(8, tam.z)
 	pc.encode_float(16, mundo_tam.x / float(tam.x))
-	return {"pipeline": sh["pipeline"], "set0": rd.uniform_set_create(uniformes, sh["shader"], 0), "set1": sh["set_ubo"], "pc": pc,
+	var r: Dictionary = {"pipeline": sh["pipeline"], "set0": rd.uniform_set_create(uniformes, sh["shader"], 0), "set1": sh["set_ubo"], "pc": pc,
 		"grupos": Vector3i(ceili(tam.x / 4.0), ceili(tam.y / 4.0), ceili(tam.z / 4.0))}
+	if _set_solido.has(nombre):
+		r["set2"] = _set_solido[nombre]
+	return r

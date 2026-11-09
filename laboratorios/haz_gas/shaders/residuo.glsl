@@ -3,6 +3,7 @@
 // SOLO PARA LA PRUEBA (herramientas/prueba_gas_haz.gd): divergencia que queda tras proyectar, con la misma regla de caras que divergencia.glsl.
 // (vel0 proyectada, vel1 con la expansion en w) -> dst: x = div(vel0) - expansion, y = |vel0|, z = solido.
 layout(local_size_x = 4, local_size_y = 4, local_size_z = 4) in;
+#define CON_SOLIDO
 #include "gas_comun.glslinc"
 
 layout(set = 0, binding = 0) uniform sampler3D vel_fin;

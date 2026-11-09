@@ -33,6 +33,10 @@ var res_dominio: Vector3i = Vector3i.ZERO   ## rejilla de gas propia (ZERO = la 
 var haz_cfg: Dictionary = {}                ## entrada del modo procedural (vacío = la demo tal cual); ver derivar_haz
 var haz_der: Dictionary = {}                ## lo que se deriva de haz_cfg
 var _target_base: Vector3 = Vector3(-1.2, 2.0, 0.0)
+## EN EL JUEGO (HazGasJuego): sin escena de la demo, sin HUD, sin cámara propia ni teclas; el obstáculo es el CAMPO de sólidos reales (obstaculo «campo»,
+## primitivas en coordenadas del dominio: `prims_dom`, 12 floats cada una, ver solido.glsl) y el nodo se coloca con `colocar`.
+var modo_juego: bool = false
+var prims_dom: PackedFloat32Array = PackedFloat32Array()
 
 ## params.js makeParams (valores de la demo)
 var params: Dictionary = {
@@ -109,6 +113,9 @@ var _acum_gpu: Dictionary = {}
 func _ready() -> void:
 	_montar_escena()
 	_montar_hud()
+	if modo_juego:
+		_hud.visible = false
+		mostrar_hud = false
 	_cam = Camera3D.new()
 	_cam.name = "CamaraDemo"
 	_cam.fov = 32.0
@@ -245,9 +252,19 @@ static func derivar_haz(cfg: Dictionary) -> Dictionary:
 		lejos_x = centro.x - semi.x
 		arriba = semi.y * 2.0
 		lado = semi.z
+	elif tipo == "campo" and d_u < L_CHORRO * 1.2:
+		# EN EL JUEGO: el sólido real (las casillas, la barrera...) lo pone el campo de sólidos; aquí solo su tamaño típico (tam = media casilla) y la altura de su
+		# cara de arriba (alto_solido, m sobre el suelo) para el dominio y la escala de la masa. La cara está a `dist` (el tope de la lógica).
+		var alto_u: float = maxf(float(c.get("alto_solido", c["tam"] * 2.0)) / s, nz_y)
+		centro = Vector3(-(d_u + tam_u), alto_u * 0.5, 0.0)
+		objetivo = Vector3(-(d_u + minf(1.1, tam_u * 0.5)), nz_y, 0.0)
+		obst_tam_rel = tam_u / 2.1
+		lejos_x = centro.x - tam_u
+		arriba = alto_u
+		lado = tam_u
 	else:
 		tipo = "nada"
-		objetivo = Vector3(-L_CHORRO, nz_y + 0.5, 0.0)
+		objetivo = Vector3(-L_CHORRO, nz_y + (0.0 if c.get("juego", false) else 0.5), 0.0)
 		lejos_x = objetivo.x
 		arriba = nz_y
 		lado = 0.0
@@ -271,7 +288,7 @@ static func derivar_haz(cfg: Dictionary) -> Dictionary:
 	var lo: Vector3 = Vector3(x_hi - tam_real.x, 0.0, -tam_real.z * 0.5)
 	return {"cfg": c, "s": s, "w": w, "M": m, "beamR0": r0, "beamR1": r1, "nozzle": noz, "target": objetivo, "obstaculo": tipo,
 		"centro": centro, "radio": radio, "semi": semi, "res": res, "h": h, "lo": lo, "tam": tam_real, "celda_crecida": crecida,
-		"keyPos": Vector3(lo.x - 0.5, 1.8 * m, 1.5 * m)}
+		"keyPos": Vector3(lo.x - 0.5, 1.8 * m, 1.5 * m), "d_u": d_u}
 
 
 ## Configuración procedural de un Hechizo REAL de haz: FuegoToy.describir (la misma regla que el juego) da el largo (x = semilargo), el eje (y) y el radio (z).
@@ -309,7 +326,7 @@ func configurar_haz(cfg: Dictionary) -> void:
 		res_dominio = d["res"]
 		escala_masa = d["M"]
 		metros_por_unidad = d["s"]
-		obstaculo = {"esfera": "esfera", "caja": "muro"}.get(String(d["obstaculo"]), "nada")
+		obstaculo = {"esfera": "esfera", "caja": "muro", "campo": "campo"}.get(String(d["obstaculo"]), "nada")
 		if obstaculo == "muro":
 			muro_c = d["centro"]
 			muro_h = d["semi"]
@@ -325,7 +342,26 @@ func configurar_haz(cfg: Dictionary) -> void:
 	if is_inside_tree():
 		_aplicar_geometria()
 		crear_solver(calidad)
-		poner_vista(vista)
+		if modo_juego:
+			rehacer_solido()
+		else:
+			poner_vista(vista)
+
+
+## EN EL JUEGO: coloca el dominio en el mundo: la boquilla en `mano`, el chorro a lo largo de `dir` (en el plano) y el suelo del dominio en `suelo`.
+func colocar(mano: Vector3, dir: Vector3, suelo: float) -> void:
+	var sm: float = metros_por_unidad
+	var x: Vector3 = -Vector3(dir.x, 0.0, dir.z).normalized()
+	var b: Basis = Basis(x * sm, Vector3.UP * sm, x.cross(Vector3.UP) * sm)
+	global_transform = Transform3D(b, Vector3(mano.x, suelo, mano.z) - b * ((params["nozzle"] as Vector3) * Vector3(1, 0, 1)))
+
+
+## Sube las primitivas (prims_dom) al campo de sólidos. Hace falta el UBO con el dominio: se sube antes.
+func rehacer_solido() -> void:
+	if not listo():
+		return
+	RenderingServer.call_on_render_thread(solver.solo_parametros.bind(parametros_gpu(frame * DT)))
+	RenderingServer.call_on_render_thread(solver.rehacer_solido.bind(prims_dom))
 
 
 ## Rehace las mallas del obstáculo, el defensor y el acantilado con el dominio y el obstáculo de ahora.
@@ -453,6 +489,9 @@ func _aplicar_dibujo() -> void:
 	_muro.material_override = _mat_lab if toon else _mat_muro_roca
 	_chispas_mi.material_override = _mat_chispas_toon if toon else _mat_chispas_real
 	_mat_chispas = _chispas_mi.material_override as ShaderMaterial
+	if modo_juego:                                   # en el juego solo se ve el gas y sus chispas: el resto de la escena de la demo no existe
+		for n in [_suelo, _acantilado, _atacante, _defensor, _esfera, _muro]:
+			(n as Node3D).visible = false
 
 
 func chorro(encendido: bool) -> void:
@@ -547,8 +586,8 @@ func parametros_gpu(t: float) -> PackedFloat32Array:
 	var p: Dictionary = params
 	var noz: Vector3 = p["nozzle"]
 	var tg: Vector3 = p["target"]
-	var tipo: float = {"esfera": 0.0, "muro": 1.0}.get(obstaculo, 2.0)
-	var c: Vector3 = p["shieldC"] if obstaculo != "muro" else muro_c
+	var tipo: float = {"esfera": 0.0, "muro": 1.0, "campo": 3.0}.get(obstaculo, 2.0)
+	var c: Vector3 = muro_c if obstaculo == "muro" else p["shieldC"]
 	var h: Vector3 = muro_h
 	var cont: Vector3 = contacto()
 	var kp: Vector3 = p["keyPos"]
@@ -577,6 +616,8 @@ func sd_obstaculo(w: Vector3) -> Array:
 		var d: Vector3 = w - (params["shieldC"] as Vector3)
 		var l: float = d.length()
 		return [l - float(params["shieldR"]), d / maxf(l, 0.001)]
+	if obstaculo == "campo":
+		return sd_prims(prims_dom, w)
 	if obstaculo != "muro":
 		return [1000.0, Vector3.UP]
 	var q: Vector3 = w - muro_c
@@ -595,11 +636,53 @@ func sd_obstaculo(w: Vector3) -> Array:
 	return [afuera + dentro, n]
 
 
+## La misma distancia que solido.glsl, en la CPU (pruebas y punto de contacto): [sd, n] del mínimo sobre las primitivas.
+static func sd_prims(pr: PackedFloat32Array, w: Vector3) -> Array:
+	var mejor: float = 1000.0
+	var nm: Vector3 = Vector3.UP
+	for i in range(0, pr.size() - 11, 12):
+		var a: Vector3 = Vector3(pr[i], pr[i + 1], pr[i + 2])
+		var b: Vector3 = Vector3(pr[i + 4], pr[i + 5], pr[i + 6])
+		var sd: float
+		var n: Vector3
+		if pr[i + 3] < 0.5:
+			var ex: Vector3 = Vector3(pr[i + 8], 0.0, pr[i + 9])
+			var ez: Vector3 = Vector3(pr[i + 10], 0.0, pr[i + 11])
+			var d: Vector3 = w - a
+			var l: Vector3 = Vector3(d.dot(ex), d.y, d.dot(ez))
+			var hq: Vector3 = l.abs() - b
+			var afuera: float = hq.max(Vector3.ZERO).length()
+			sd = afuera + minf(maxf(hq.x, maxf(hq.y, hq.z)), 0.0)
+			var gl: Vector3
+			if afuera > 0.0:
+				gl = l.sign() * hq.max(Vector3.ZERO) / afuera
+			elif hq.x > hq.y and hq.x > hq.z:
+				gl = Vector3(signf(l.x), 0, 0)
+			elif hq.y > hq.z:
+				gl = Vector3(0, signf(l.y), 0)
+			else:
+				gl = Vector3(0, 0, signf(l.z))
+			n = ex * gl.x + Vector3(0, gl.y, 0) + ez * gl.z
+		else:
+			var pa: Vector3 = w - a
+			var ba: Vector3 = b - a
+			var hh: float = clampf(pa.dot(ba) / maxf(ba.dot(ba), 1e-6), 0.0, 1.0)
+			var v: Vector3 = pa - ba * hh
+			n = v.normalized() if v.length() > 1e-4 else Vector3.UP
+			sd = v.length() - pr[i + 7]
+		if sd < mejor:
+			mejor = sd
+			nm = n
+	return [mejor, nm]
+
+
 ## sources.js: contact = shieldC + normalize(nozzle - shieldC) * (R + 0,35). Con SDF: el punto de la piel más cercano a la boquilla, a 0,35 m hacia fuera.
 func contacto() -> Vector3:
 	var noz: Vector3 = params["nozzle"]
 	if obstaculo == "nada":
 		return params["target"]
+	if obstaculo == "campo" and not haz_der.is_empty():
+		return Vector3(-(float(haz_der["d_u"]) - 0.35 * escala_masa), noz.y, 0.0)          # 0,35 M delante de la cara que dice la lógica
 	var r: Array = sd_obstaculo(noz)
 	return noz - (r[1] as Vector3) * (float(r[0]) - 0.35 * escala_masa)
 
@@ -659,6 +742,8 @@ func camara_en(desde: Vector3, mira: Vector3, fov: float = 32.0) -> void:
 
 
 func _input(ev: InputEvent) -> void:
+	if modo_juego:
+		return
 	if ev is InputEventKey and ev.pressed and not ev.echo:
 		var k: InputEventKey = ev as InputEventKey
 		if k.keycode == KEY_F12:
@@ -722,6 +807,8 @@ func _input(ev: InputEvent) -> void:
 
 
 func _unhandled_input(ev: InputEvent) -> void:
+	if modo_juego:
+		return
 	if vista == "juego":
 		return
 	if ev is InputEventMouseButton:

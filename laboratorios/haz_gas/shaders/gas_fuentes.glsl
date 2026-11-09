@@ -4,6 +4,7 @@
 // El humo es en lo que se convierte el fuego: el gas que se frena pierde calor mas deprisa y el calor perdido se vuelve hollin negro y espeso.
 // El chorro rapido queda limpio solo, sin zona puesta a mano, y el humo crece directamente de las llamas.
 layout(local_size_x = 4, local_size_y = 4, local_size_z = 4) in;
+#define CON_SOLIDO
 #include "gas_comun.glslinc"
 
 layout(set = 0, binding = 0) uniform sampler3D gas_in;

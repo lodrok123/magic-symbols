@@ -9,7 +9,7 @@
 layout(set = 1, binding = 0, std140) uniform Parametros {
 	vec4 nozzle;     // xyz boquilla, w beamOn
 	vec4 target;     // xyz objetivo, w beamSpeed
-	vec4 obst_c;     // xyz centro del obstaculo, w tipo (0 esfera, 1 caja, 2 nada)
+	vec4 obst_c;     // xyz centro del obstaculo, w tipo (0 esfera, 1 caja, 2 nada, 3 campo de sólidos reales: textura de solido.glsl)
 	vec4 obst_h;     // xyz semiejes de la caja, w radio de la esfera
 	vec4 obst_ex;    // xyz eje x de la caja, w wrap
 	vec4 obst_ey;    // xyz eje y de la caja, w tiempo
@@ -74,15 +74,31 @@ ivec3 cerca(ivec3 c, int x, int y, int z) { return clamp(c + ivec3(x, y, z), ive
 // Remolino sin divergencia, de -1 a 1, que se repite cada `periodo` unidades (grid.js: flow).
 #define FLUJO(tex, w, periodo, shift) (textureLod(tex, (w) / (periodo) + (shift), 0.0).xyz * 2.0 - 1.0)
 
+// CAMPO DE SÓLIDOS REALES (OBST_TIPO 3, el haz de gas en el JUEGO): textura (sd, normal) que hace solido.glsl. Solo la declaran los kernels que usan obst_sd
+// (#define CON_SOLIDO antes del include), en el set 2.
+#ifdef CON_SOLIDO
+layout(set = 2, binding = 0) uniform sampler3D campo_solido;
+#endif
+
 // Obstaculo: distancia con signo (negativa dentro) y normal hacia fuera.
 float obst_sd(vec3 w, out vec3 n) {
+	if (OBST_TIPO > 2.5) {
+#ifdef CON_SOLIDO
+		vec4 s = textureLod(campo_solido, (w - WLO) / WTAM, 0.0);
+		n = normalize(s.yzw + vec3(0.0, 1e-4, 0.0));
+		return s.x;
+#else
+		n = vec3(0.0, 1.0, 0.0);
+		return 1000.0;
+#endif
+	}
 	if (OBST_TIPO < 0.5) {
 		vec3 d = w - P.obst_c.xyz;
 		float l = length(d);
 		n = d / max(l, 0.001);
 		return l - OBST_R;
 	}
-	if (OBST_TIPO > 1.5) {
+	if (OBST_TIPO > 1.5 && OBST_TIPO < 2.5) {
 		n = vec3(0.0, 1.0, 0.0);
 		return 1000.0;
 	}

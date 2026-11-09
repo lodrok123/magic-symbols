@@ -1,0 +1,14 @@
+[remap]
+
+importer="glsl"
+type="RDShaderFile"
+uid="uid://dkqdhnota4h2t"
+path="res://.godot/imported/solido.glsl-4189c654f5ae079403963e8259b23995.res"
+
+[deps]
+
+source_file="res://laboratorios/haz_gas/shaders/solido.glsl"
+dest_files=["res://.godot/imported/solido.glsl-4189c654f5ae079403963e8259b23995.res"]
+
+[params]
+

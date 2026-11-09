@@ -3,6 +3,7 @@
 // PORT de src/gas/sources.js: velSources (lejrimostfa/force-field-vfx-threejs, MIT). Media resolucion: chorro, flotacion, arrastre al viento, empuje de un sentido,
 // piel del escudo + wrap, expansion de la combustion y tope de velocidad (CFL). (gas0, vel1) -> vel0.
 layout(local_size_x = 4, local_size_y = 4, local_size_z = 4) in;
+#define CON_SOLIDO
 #include "gas_comun.glslinc"
 
 layout(set = 0, binding = 0) uniform sampler3D vel_in;

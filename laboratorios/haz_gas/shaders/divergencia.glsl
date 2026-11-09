@@ -4,6 +4,7 @@
 // lo que da deslizamiento libre en el escudo. El suelo tambien es solido. Las otras caras estan abiertas (presion 0 alli).
 // (vel1, prs0) -> prs1: x presion de arranque (la del paso anterior * 0,96), y divergencia - expansion, z solido.
 layout(local_size_x = 4, local_size_y = 4, local_size_z = 4) in;
+#define CON_SOLIDO
 #include "gas_comun.glslinc"
 
 layout(set = 0, binding = 0) uniform sampler3D vel_in;
