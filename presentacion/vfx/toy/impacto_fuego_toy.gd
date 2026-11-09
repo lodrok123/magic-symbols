@@ -349,6 +349,7 @@ func recuento_chispas() -> Array:
 
 ## Chispas: pocas, hacia fuera de la superficie y hacia arriba, con gravedad; en coordenadas de mundo (la caja no gira con la normal). Solo estilos A y B.
 func _arrancar() -> void:
+	HumoRegla.enganchar_impacto_fuego(self)           # humo por regla (apagado por defecto): donde la bocanada del choque se frena
 	if _estilo == Estilo.C:
 		return
 	var cant: int = int(_p["chispas"])

@@ -67,6 +67,27 @@ func _correr() -> void:
 	var sc: MeshInstance3D = b.find_child("SalpicaduraSuelo0", true, false) as MeshInstance3D
 	if sc != null:
 		_ok("3 la del suelo está tumbada y delante de lo golpeado (hacia el lado de la normal)", (sc.mesh as QuadMesh).orientation == PlaneMesh.FACE_Y and sc.position.x < 0.2 and sc.position.y < 0.3)
+	# 3b. salpicadura CRUZADA: varias láminas verticales con normales distintas (se lee desde cualquier ángulo) y ninguna con puntos detrás de la cara del muro
+	var verts: Array = []
+	for hijo in b.find_children("Salpicadura*", "MeshInstance3D", true, false):
+		if String(hijo.name).begins_with("Salpicadura") and not String(hijo.name).begins_with("SalpicaduraSuelo"):
+			verts.append(hijo)
+	_ok("3b con choque hay >= 2 laminas verticales de salpicadura (%d)" % verts.size(), verts.size() >= 2)
+	var ang_max: float = 0.0
+	var atras_min: float = 1e9
+	var punto: Vector3 = Vector3(0.2, 0.6, -3.5)
+	for u in verts:
+		var mu: MeshInstance3D = u as MeshInstance3D
+		ang_max = maxf(ang_max, rad_to_deg(mu.transform.basis.z.angle_to(sp.transform.basis.z)))
+		var mitad: Vector2 = (mu.mesh as QuadMesh).size * 0.5
+		for sx in [-1.0, 1.0]:
+			for sy in [-1.0, 1.0]:
+				var v: Vector3 = mu.transform * Vector3(mitad.x * sx, mitad.y * sy, 0.0)
+				atras_min = minf(atras_min, (v - punto).dot(n_loc))
+	_ok("3b dos laminas con normales a >= 40 grados (%.0f)" % ang_max, ang_max >= 40.0)
+	_ok("3b ninguna lamina con puntos detras de la cara del muro (min %.3f >= 0.06)" % atras_min, atras_min >= 0.055)
+	_ok("3b las laterales no pasan de 1.3x el tamaño de la principal", verts.all(func(w): return (w.mesh as QuadMesh).size.x <= (sp.mesh as QuadMesh).size.x * 1.3))
+	_ok("3b el grupo del tope cuenta UNA salpicadura por choque (%d)" % get_nodes_in_group(FuegoToy.HAZ_GRUPO_SALPICADURA).size(), get_nodes_in_group(FuegoToy.HAZ_GRUPO_SALPICADURA).size() <= 1)
 	# 4. el decal
 	var luz_suelo: MeshInstance3D = b.find_child("LuzSuelo", true, false) as MeshInstance3D
 	var m: ShaderMaterial = luz_suelo.material_override as ShaderMaterial if luz_suelo != null else null

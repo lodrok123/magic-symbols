@@ -148,6 +148,8 @@ func tiempo() -> float:
 
 
 func _process(delta: float) -> void:
+	if _t == 0.0:
+		HumoRegla.enganchar_barril(self)          # humo por regla (apagado por defecto): el anillo donde la onda se frena
 	_t += delta
 	avanzar_a(_t)
 	if _t >= T_TOTAL:

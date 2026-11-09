@@ -191,6 +191,7 @@ func _process(delta: float) -> void:
 		return
 	if _t < 0.0:
 		_t = 0.0
+		HumoRegla.enganchar_polvo(self, "polvo_tierra")       # polvo por regla (apagado por defecto): aire rápido a ras de suelo
 	_t += delta
 	avanzar_a(_t)
 	if _t >= _fin_t:

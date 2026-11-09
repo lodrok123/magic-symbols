@@ -45,6 +45,8 @@ const HAZ_TOPE_NUCLEO: float = 0.62               ## el núcleo puede llegar un 
 const HAZ_LUZ_ANCHO: float = 3.6                 ## m de ancho de la caja del decal de luz del suelo
 const HAZ_LUZ_ALTO_MAX: float = 0.45             ## m sobre el suelo: lo más alto (hombros, cabezas) no se pinta
 const HAZ_GRUPO_SALPICADURA: StringName = &"salpicadura_haz"
+const HAZ_SALPIC_ANGULO: float = 55.0              ## grados que se giran sobre la vertical las dos láminas laterales de la salpicadura (cruzadas con la principal)
+const HAZ_SALPIC_ESCALA_LATERAL: float = 0.9     ## tamaño de las laterales respecto a la principal
 const HAZ_GRUPO_LUZ_SUELO: StringName = &"luz_suelo_haz"
 const SH_CABEZA: String = "res://presentacion/vfx/toy/cabeza_toy.gdshader"
 const SH_HALO: String = "res://presentacion/vfx/toy/halo_toy.gdshader"
@@ -1093,14 +1095,19 @@ func _formas_extra(c: Node3D) -> void:
 	if viejo != null:
 		remove_child(viejo)
 		viejo.free()
+	HumoRegla.quitar_de(self)           # humo por regla (HumoRegla.capas, apagado por defecto): se rehace con la figura
 	match figura:
+		Figura.HAZ:
+			HumoRegla.enganchar_haz(self, choques, maxf(semieje_y, 0.4))
 		Figura.MURO:
+			HumoRegla.enganchar_cima(self, "muro")
 			if formas_extra.get("luz_suelo_muro", false):
 				_luz_forma(Vector2(2.0 * semieje_x + 1.8, 2.0 * semieje_z + 1.8), 0.6)
 			if formas_extra.get("humo_cima_muro", false):
 				var gp: GPUParticles3D = _humo_generico(c, "HumoCima", Vector3(0, semieje_y * 0.95, 0), Vector3(semieje_x * 0.8, 0.05, semieje_z), _cant(5.0, semieje_x / REF_MURO.x, 3, 12), 0.7)
 				gp.emitting = true
 		Figura.PILAR:
+			HumoRegla.enganchar_cima(self, "pilar")
 			if formas_extra.get("luz_suelo_pilar", false):
 				var d: float = 2.0 * maxf(semieje_x, semieje_z) + 2.2
 				_luz_forma(Vector2(d, d), 0.6)
@@ -1248,6 +1255,24 @@ func _salpicadura(c: Node3D, ch: Dictionary, h: float, r: float, i: int) -> void
 	mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	mi.add_to_group(HAZ_GRUPO_SALPICADURA, true)
 	c.add_child(mi)
+	# 9/11 (salpicadura cruzada): desde un lado la lámina principal queda DE CANTO y no se ve. Dos láminas más, giradas ±55º sobre la vertical y abiertas hacia los lados de la pared (como llamas que
+	# la lamen a izquierda y derecha); cada una se adelanta lo justo para que su mitad trasera no asome por detrás del muro. Solo la principal cuenta para el tope (grupo).
+	var lado: Vector3 = Vector3.UP.cross(n).normalized()
+	for sg in [-1.0, 1.0]:
+		var zc: Vector3 = n.rotated(Vector3.UP, deg_to_rad(HAZ_SALPIC_ANGULO) * float(sg))
+		var xc: Vector3 = Vector3.UP.cross(zc).normalized()
+		var anc: float = tam * HAZ_SALPIC_ESCALA_LATERAL
+		var qc: QuadMesh = QuadMesh.new()
+		qc.size = Vector2(anc, anc)
+		var mc: MeshInstance3D = MeshInstance3D.new()
+		mc.name = "Salpicadura%d%s" % [i, "D" if sg > 0.0 else "I"]
+		mc.mesh = qc
+		mc.material_override = _mat_fuego(SH_SALPICADURA, {"semilla": randf() * 4.0 + float(i) * 0.37 + (2.1 if sg > 0.0 else 3.4), "tope_calor": HAZ_TOPE_CALOR}, 1, _rampa_de_bola())
+		var delante: float = 0.06 + anc * 0.5 * absf(xc.dot(n))
+		mc.transform = Transform3D(Basis(xc, Vector3.UP, zc), p + lado * float(sg) * anc * 0.3 + n * delante)
+		mc.extra_cull_margin = 1.0
+		mc.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		c.add_child(mc)
 	# la misma salpicadura TUMBADA en el suelo delante de lo golpeado: la cámara del juego mira a lo largo de Z, y una lámina vertical de normal X se vería de canto
 	var qs: QuadMesh = QuadMesh.new()
 	qs.size = Vector2(tam * 0.55, tam * 0.55)
