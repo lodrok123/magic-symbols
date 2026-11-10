@@ -1,0 +1,14 @@
+[gd_scene format=3]
+
+[ext_resource type="PackedScene" path="res://arte/meshy/piezas/nido.glb" id="1_moff3"]
+
+[node name="nido" type="Node3D" unique_id=2038241663]
+metadata/id = "nido"
+metadata/bloquea = false
+metadata/reactivo = false
+metadata/inflamable = false
+
+[node name="modelo" type="Node3D" parent="." unique_id=503365895]
+
+[node name="nido2" type="Node3D" parent="modelo" unique_id=1448802419 instance=ExtResource("1_moff3")]
+transform = Transform3D(1.0984375, 0, 0, 0, 1.0984375, 0, 0, 0, 1.0984375, 0, 0, 0)

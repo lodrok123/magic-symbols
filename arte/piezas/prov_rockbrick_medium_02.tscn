@@ -1,0 +1,39 @@
+[gd_scene format=3]
+
+[ext_resource type="ArrayMesh" path="res://arte/provencal/obj/SM_RockBrick_Medium_02.obj" id="1_d7l0s"]
+[ext_resource type="Texture2D" path="res://arte/provencal/detalle/T_Rocks_Bricks_B.png" id="2_qr8ja"]
+[ext_resource type="Texture2D" path="res://arte/provencal/detalle/T_Rocks_Bricks_N.png" id="3_wxpu2"]
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_s6je4"]
+albedo_color = Color(0.55625, 0.55625, 0.50625, 1)
+albedo_texture = ExtResource("2_qr8ja")
+normal_enabled = true
+normal_texture = ExtResource("3_wxpu2")
+
+[sub_resource type="ConvexPolygonShape3D" id="ConvexPolygonShape3D_o32cl"]
+points = PackedVector3Array(-0.20574549, 0.48330766, -0.34181488, 0.41099775, 0.1544187, 0.3026039, 0.41185284, 0.09351517, 0.30323702, -0.1486361, 0.033876207, 0.4831825, 0.13797267, 0.019084265, -0.4523804, 0.33241913, 0.5155303, 0.3150984, -0.39010486, 0.003756418, -0.2716796, -0.1503259, 0.5199297, 0.4274704, 0.3150024, 0.48377782, -0.029765429, -0.40128437, 0.48457038, -0.23915544, 0.3801775, 0.0033676503, 0.31736082, 0.01734457, 0.27543995, -0.46958455, -0.37347415, 0.515919, -0.30060464, -0.088355355, 0.4567776, 0.48349154, 0.18073858, 0.08193144, -0.46100125, -0.37452132, 0.064402744, -0.34667754, -0.19142295, 0.036815498, 0.43218973, 0.3780636, 0.485856, 0.33065373, -0.16221075, 0.0060091987, 0.41889217, 0.18110682, 0.27519494, -0.40229452, 0.03165294, 0.51019084, -0.20566985, -0.17826402, 0.42595366, 0.45155853, 0.16865972, 0.0032443022, -0.42344558, -0.3755838, 0.45687988, -0.3476551, 0.19877936, 0.033612467, 0.39301923, -0.40280947, 0.050342627, -0.24005918, 0.06295226, 0.06302689, -0.48577008, 0.39004678, 0.46916234, 0.20875639, 0.03204542, 0.39438203, -0.37224343, 0.31490454, 0.037022203, -0.029756112, -0.31774896, 0.016497787, -0.36584112, -0.088293575, 0.033885825, 0.483162)
+
+[node name="prov_rockbrick_medium_02" type="Node3D" unique_id=1074299237]
+metadata/id = "prov_rockbrick_medium_02"
+metadata/bloquea = true
+metadata/reactivo = false
+metadata/inflamable = false
+metadata/origen = "Fantasy Provencal (Leartes Studios)"
+metadata/pieza_original = "SM_RockBrick_Medium_02"
+metadata/lod = 0
+metadata/triangulos = 72
+metadata/categoria = "roca"
+
+[node name="modelo" type="Node3D" parent="." unique_id=758765644]
+
+[node name="malla" type="MeshInstance3D" parent="modelo" unique_id=1724807321]
+transform = Transform3D(0.68, 0, 0, 0, 0.68, 0, 0, 0, 0.68, 0, -0.0098022, 0)
+mesh = ExtResource("1_d7l0s")
+surface_material_override/0 = SubResource("StandardMaterial3D_s6je4")
+
+[node name="cuerpo" type="StaticBody3D" parent="." unique_id=605866741]
+collision_layer = 1024
+collision_mask = 0
+
+[node name="forma_0" type="CollisionShape3D" parent="cuerpo" unique_id=1929444102]
+shape = SubResource("ConvexPolygonShape3D_o32cl")

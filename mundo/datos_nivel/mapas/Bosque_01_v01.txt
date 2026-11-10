@@ -163,7 +163,7 @@
 ; pieza veta_h1 veta 40 16 celdas=40,16..41,16+41,15
 ; pieza eco_h1 pared_hueca 41 14 flag=bosque01v1.hondonada.eco
 ; pieza cofre_eco cofre 41 12 modelo=epico abierto=bosque01v1.hondonada.cofre da=geoda_resonante:1
-; La boca: la Cueva guarda su salida en `a_bosque` (Bosque_01_v01:boca_cueva) y entra por `desde_bosque`. Aquí se llega a la entrada `boca_cueva` (45,18, mirando al oeste) y se sale pisando (46,18).
+; La Cueva recuerda el bosque por el que se entra. Aquí se vuelve a `boca_cueva` (45,18, mirando al oeste) y se entra en la Cueva pisando (46,18).
 ; pieza boca_salida salida 46 18 a=Cueva:desde_bosque
 ; pieza boca_cueva entrada 45 18 mira=o
 ; ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------

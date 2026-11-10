@@ -1,0 +1,39 @@
+[gd_scene format=3]
+
+[ext_resource type="ArrayMesh" path="res://arte/provencal/obj/SM_WoodenBeam_04.obj" id="1_ri0e1"]
+[ext_resource type="Texture2D" path="res://arte/provencal/detalle/T_WoodenMeshes_B.png" id="2_80115"]
+[ext_resource type="Texture2D" path="res://arte/provencal/detalle/T_WoodenMeshes_N.png" id="3_ilvj4"]
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_37iqc"]
+albedo_color = Color(0.6862745, 0.4509804, 0.25, 1)
+albedo_texture = ExtResource("2_80115")
+normal_enabled = true
+normal_texture = ExtResource("3_ilvj4")
+
+[sub_resource type="ConvexPolygonShape3D" id="ConvexPolygonShape3D_fnn6g"]
+points = PackedVector3Array(0.16090249, 2.2252822, 0.1661493, -0.18965, -0.018253932, -0.1844032, -0.17139612, 0.09857097, 0.16242078, -0.18965, 2.3182445, -0.1844032, 0.17542787, -0.018253932, -0.1844032, 0.17542787, 2.3182445, -0.1844032, 0.16090249, 0.07470851, 0.1661493, -0.17139612, 2.2014196, 0.16242078)
+
+[node name="prov_woodenbeam_04" type="Node3D" unique_id=588310116]
+metadata/id = "prov_woodenbeam_04"
+metadata/bloquea = true
+metadata/reactivo = false
+metadata/inflamable = true
+metadata/origen = "Fantasy Provencal (Leartes Studios)"
+metadata/pieza_original = "SM_WoodenBeam_04"
+metadata/lod = 0
+metadata/triangulos = 12
+metadata/categoria = "madera_y_paso"
+
+[node name="modelo" type="Node3D" parent="." unique_id=469554110]
+
+[node name="malla" type="MeshInstance3D" parent="modelo" unique_id=334104337]
+transform = Transform3D(1.3453385, 0, 0, 0, 1.3453385, 0, 0, 0, 1.3453385, 0, 0, 0)
+mesh = ExtResource("1_ri0e1")
+surface_material_override/0 = SubResource("StandardMaterial3D_37iqc")
+
+[node name="cuerpo" type="StaticBody3D" parent="." unique_id=176467049]
+collision_layer = 1024
+collision_mask = 0
+
+[node name="forma_0" type="CollisionShape3D" parent="cuerpo" unique_id=556745682]
+shape = SubResource("ConvexPolygonShape3D_fnn6g")

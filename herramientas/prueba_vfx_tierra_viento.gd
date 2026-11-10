@@ -25,6 +25,8 @@ var _vfx: VfxElemento3D = null
 
 
 func _initialize() -> void:
+	# 6/11 (DIARIO 419): la tierra va con TierraToy de serie y VfxElemento3D se calla; esta prueba mide el dibujo de VfxTierra/VfxViento, así que apaga el toy.
+	ProjectSettings.set_setting(VfxToyJuego.AJUSTE, false)
 	_correr()
 
 

@@ -6,6 +6,8 @@ uniform float brillo : hint_range(0.0, 3.0) = 1.2;
 uniform sampler2D lenguas : hint_default_white, filter_linear, repeat_enable;
 varying float semilla_p;
 
+#include "res://presentacion/vfx/toy/nucleo_toy.gdshaderinc"
+
 void vertex() {
 	semilla_p = fract(float(INSTANCE_ID) * 0.6180339);
 	vec3 esc = vec3(length(MODEL_MATRIX[0].xyz), length(MODEL_MATRIX[1].xyz), length(MODEL_MATRIX[2].xyz));
@@ -17,7 +19,7 @@ void vertex() {
 		v.y += 0.5;
 	}
 	VERTEX = vec3(v.x * e.y + v.y * e.x, -v.x * e.x + v.y * e.y, 0.0);
-	MODELVIEW_MATRIX = VIEW_MATRIX * mat4(vec4(INV_VIEW_MATRIX[0].xyz * esc.x, 0.0), vec4(INV_VIEW_MATRIX[1].xyz * esc.x, 0.0), vec4(INV_VIEW_MATRIX[2].xyz * esc.x, 0.0), MODEL_MATRIX[3]);
+	MODELVIEW_MATRIX = nucleo_billboard(vec3(esc.x), VIEW_MATRIX, INV_VIEW_MATRIX, MODEL_MATRIX);
 }
 
 void fragment() {

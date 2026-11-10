@@ -22,6 +22,7 @@ const COS_SUELO: float = 0.7
 @export var normal: Vector3 = Vector3.UP
 @export_range(0.05, 4.0, 0.01, "or_greater") var radio: float = 0.4
 @export var altura_suelo: float = 0.7
+var paleta_verde: bool = false
 
 var _t: float = -1.0
 var _p: Dictionary = {}
@@ -101,7 +102,11 @@ func _construir() -> void:
 	_humo.name = "Soplo"
 	_plano.add_child(_humo)
 	var vida: float = 0.75 if variante != Variante.AREA else 1.0
-	_humo.call("montar", n_h, VientoToy.humo_params(r * 0.6, r * (1.9 if variante != Variante.AREA else 1.2), vida, Vector3(0, 0.3, 0), false, 0.5))
+	var humo: Dictionary = VientoToy.humo_params(r * 0.6, r * (1.9 if variante != Variante.AREA else 1.2),
+		vida, Vector3(0, 0.3, 0), false, 0.5)
+	if paleta_verde:
+		humo.merge({"claro": Color("#dcffb0"), "sombra": Color("#83be70"), "viejo": Color("#adc989")}, true)
+	_humo.call("montar", n_h, humo)
 	for i in n_h:
 		var ang: float = TAU * float(i) / float(n_h) + _rng.randf_range(-0.25, 0.25)
 		var d: Vector3 = Vector3(cos(ang), 0.0, sin(ang))

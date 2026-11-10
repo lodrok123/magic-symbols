@@ -9,19 +9,19 @@
 ########################################
 ##############~~########################
 #####RRRR#RRLu~~RR#k#R##ggggggggg-######
-#####RRRR#RR-R~~RR#R#rj#g.~~~~,.,-######
+#####RRRR#RR-R~~RR#R#rj#g.~~~~,cc-######
 #######R##cccR~~RRRRRRr#ge~~~~...-######
 #####RDRRRcccR~~RRRRRTRgg.~~~~,..-######
-####,RRRRRRRRR~~RRRRRRR#g,.,,,...-######
+####,RRRRRRRRR~~RRRRRRRRg,.,,,...-######
 ####,RRRRKRRRR~~RecRciR#ggggggggg-######
 #####RRRRRMRRR~~######,#################
 ########R#####~~vvvvvvgvfv..x..,,,,,####
 #####RRRRRRR##~~vvvvvvgvvv..x,t.t,o,####
 #####RRRRRRR##~~vvvWvvgvvA,,x,.W.W,,####
 #####RRRRRRR##~~vsvvvTgvvv,,x,,.F,,,####
-#####RRRGRRR##~~vvggggggggggygggggg.####
-#####RRRRRRR##~~vvgvvvvv,,..x,,,,,A.####
-#####RRRRRRR##~~vvgvvvvvvv.,x,,tAV..####
+#####RRvGRRR##~~vvggggggggggyggCggg.####
+#####RRvRRRR##~~vvgvvvvv,,..g,,,,,A.####
+#####RRvRRRR##~~vvgvvvvvvv.,x,,tAV..####
 #####RRRRRRR##~~vvgvqvvvWv,,x,o.....####
 ##############~~vvgvvvvvvv,,############
 #######....###~~vvgvvvvvvv,,############
@@ -31,9 +31,9 @@
 ######.,,,####~~#.g.##########,..,,,####
 ########g#####~~#.g.##########,,.,,,####
 ########g#####~~#.gT##########.,..######
-####,...g..,,,~~,,g,,,########......####
-####..s...,,h,~~r,g,,.....,,.,##########
-####.....,T,,,~~..g,,...,s,.s.##########
+####,Tvvg..,,,~~,,g,,,########......####
+####...v..,,h,~~r,g,,.....,,.,##########
+####...v.,T,,,~~..g,,...,s,.s.##########
 ####h..,,m,.g,~~ggggggggggghg,##########
 ####...Sggggg.~~..........,,g,##########
 ####.s......,,~~,,,,..,h,,s.,.##########
@@ -64,18 +64,19 @@
 ; nombre 9 31 guardabosques_02
 ; nombre 10 11 librera_02
 ; nombre 28 16 puerta_goblin_02
+; nombre 31 16 cuenco_camp
 ; nombre 22 7 telarana_totem
 ; nombre 21 6 telarana_totem_b
 ; nombre 22 24 tronco_pasillo
 ; nombre 26 24 seto_pasillo_a
 ; nombre 27 24 seto_pasillo_b
 ; marcador tronco_puente - 13 31 giro=0 nombre=tronco_puente_02
-; marcador loberno - 17 19 nombre=loberno_01
+; marcador loberno - 19 19 nombre=loberno_01
 ; marcador loberno - 26 20 nombre=loberno_02
-; marcador asesino - 20 8 nombre=asesino_02
+; marcador asesino - 17 7 nombre=asesino_02
 ; 6/11 (canouro v2): dos canouros en el bosque denso (zona bosque_denso, 16,22..35,35), a pie desde el tronco-puente por el camino de tierra; lejos de la balanza de rocas (19..22, 30..34), las setas, los jarrones y los goblins.
-; marcador canouro - 26 29 nombre=canouro_01
-; marcador canouro - 25 34 nombre=canouro_02
+; marcador canouro - 24 29 nombre=canouro_01
+; marcador canouro - 27 34 nombre=canouro_02
 ; decorado cartel 9 33
 ; decorado cartel 20 28
 ; decorado cartel 23 15
@@ -84,6 +85,8 @@
 ; decorado campamento_cazo 33 12
 ; decorado campamento_rocas 35 18
 ; decorado campamento_rocas 29 12
+; decorado roca_est_musgo_0 29 15
+; decorado roca_est_musgo_4 32 17
 ; decorado estatua_piedra 6 11
 ; decorado pilar 12 11
 ; decorado pilar 6 15
@@ -152,6 +155,11 @@
 ; puzle linde_marca cuando=cont_linde.todos hace=flag.poner(bosque02.linde.braseros)
 ; pieza cofre_linde cofre 11 33 aparece_si=flag.bosque02.linde.braseros abierto=bosque02.linde.cofre da=tabla:cofre_pequeno
 ; pieza jarrones_linde jarron 5 29 celdas=5,29+11,28+5,34+11,35 botin=zona
+; Cortafuegos opcional: moja el extremo del camino (7,32) y lleva fuego al brasero.
+; El brasero vuelve a apagarse y admite fuego directo si se quemó la hierba.
+; pieza brasero_cortafuegos brasero 5 28 dura=6 por_hierba=si
+; puzle cortafuegos_marca cuando=brasero_cortafuegos.encendido si=casilla(7,32).mojada hace=flag.poner(bosque02.linde.cortafuegos)
+; pieza cofre_cortafuegos cofre 4 28 aparece_si=flag.bosque02.linde.cortafuegos abierto=bosque02.linde.cortafuegos.cofre da=oro:20
 ; pieza cajas_linde jarron 6 30 celdas=6,30+8,34 modelo=caja botin=zona
 ; --------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 ; 2 · EL ESCONDITE (norte de la linde): el muro agrietado (8,27) lo rompen dos golpes de tierra o una explosión. Detrás, el cofre común 7 y dos telarañas (hielo = seda).
@@ -225,7 +233,20 @@
 ; pieza arroyo_molino cuenca 33 5 celdas=33,5..33,10
 ; pieza desague_molino cuenca 33 10 fijo=0.02
 ; pieza manantial_molino manantial 33 5 caudal=1.5 inicia=no
-; pieza compuerta_molino compuerta 33 6 vertical=no
+; pieza compuerta_molino compuerta 33 6 vertical=no estrecha=no
+; La cuerda cierra la derivación y abre el paso hacia la rueda.
+; pieza pila_molino cuenca 31 6
+; pieza nivel_pila_molino nivel 31 6 objetivo=0.25
+; pieza desvio_molino compuerta 32 6 abierta=si estrecha=no
+; pieza paso_rueda compuerta 33 7 vertical=no estrecha=no
+; pieza cuerda_molino cuerda 32 8 sostiene=desvio_molino
+; puzle desvio_marca cuando=cuerda_molino.rota hace=flag.poner(bosque02.estanque.desvio)
+; puzle desvio_restaura cuando=flag.bosque02.estanque.desvio hace=cuerda_molino.quemar
+; puzle desvio_rueda cuando=flag.bosque02.estanque.desvio hace=paso_rueda.abrir
+; puzle desvio_partida_anterior cuando=flag.bosque02.estanque.molino hace=cuerda_molino.quemar
+; puzle pila_marca cuando=nivel_pila_molino.alcanzado hace=flag.poner(bosque02.estanque.pila)
+; pieza cofre_pila cofre 30 9 aparece_si=flag.bosque02.estanque.pila abierto=bosque02.estanque.pila.cofre da=oro:25
+; pieza atajo_molino puerta 23 9 modelo=reja
 ; pieza molino_estanque molino 33 8 umbral=0.3
 ; pieza pulsador_molino pulsador 31 8 modo=agua
 ; puzle grifo_abre cuando=compuerta_molino.abierta hace=manantial_molino.abrir_cauce
@@ -234,6 +255,7 @@
 ; puzle compuerta_marca cuando=compuerta_molino.abierta hace=flag.poner(bosque02.estanque.compuerta)
 ; puzle compuerta_vuelve cuando=flag.bosque02.estanque.compuerta hace=compuerta_molino.abrir
 ; puzle molino_marca cuando=molino_estanque.girando hace=flag.poner(bosque02.estanque.molino)
+; puzle atajo_molino_abre cuando=flag.bosque02.estanque.molino hace=atajo_molino.abrir
 ; pieza cofre_molino cofre 32 5 aparece_si=flag.bosque02.estanque.compuerta abierto=bosque02.molino.cofre da=tabla:cofre_pequeno
 ; pieza cofre_estanque cofre 27 9 modelo=epico aparece_si=flag.bosque02.estanque.molino abre_si=casilla(27,8).electrificada abierto=bosque02.estanque.cofre da=capa_escarcha:1
 ; pieza alga_estanque alga 28 7 coge_si=casilla(28,7).helada
@@ -241,9 +263,12 @@
 ; --------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 ; 12 · EL CAMPAMENTO GOBLIN (28..35, 12..19). La puerta goblin (28,16) arde; el vigía cuenta a los goblins y al chamán (el cofre aparece al limpiar la sala). Cofre ÉPICO 1 (llave del santuario). Cofre común 5 tras quemar la torre este.
 ; 5/11 (Pablo, playtest): en zona abierta no hay cerrojo que encierre (`cerr_camp` y `cerr_sant` quitados, con sus puzles `*_abre`); el código del cerrojo se queda para las mazmorras.
+; 7/11 (Pablo, «el cuenco»): la `C` de la fila 16 (31,16; letra de Marcador3D, Reactivo3D `cuenco`, nombre `cuenco_camp`) es un cuenco de piedra con agua a 3,2 casillas del arquero de puesto (34,17), con línea libre por las filas 16-17. El fuego lo revienta: 9 casillas de vapor
+; (30..32, 15..17) ~9 s que cortan la vista del arquero a quien esté en ellas (el vapor en la casilla de ella o en la suya). Va en el camino `g` de la puerta, pero el campamento se rodea por las filas 14-15.
 ; --------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+; El hueco lateral (28,17) lleva al cuenco desde el sur de la puerta.
 ; pieza vig_camp vigia 30 12 de=30,12..35,19 flag=bosque02.campamento.limpio
-; pieza chaman_camp chaman 32 14
+; pieza chaman_camp chaman 33 13
 ; pieza barril_camp_a barril 31 17
 ; pieza barril_camp_b barril 35 15
 ; pieza cofre_campamento cofre 34 16 modelo=epico aparece_si=flag.bosque02.campamento.limpio abierto=bosque02.campamento.cofre da=capucha_musgo:1

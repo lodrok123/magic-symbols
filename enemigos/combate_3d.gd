@@ -109,6 +109,7 @@ const VEL_PERSEGUIR: float = 2.4                   ## entre andar (1,6) y correr
 const VEL_PATRULLA: float = 1.0
 const DISTANCIA_PATRULLA: float = 2.0
 const RANGO_ATAQUE: float = 1.2
+const ANCHO_CORTE_ASESINO: float = 0.75
 const HISTERESIS_RANGO: float = 1.2              ## empieza a pegar a `rango`, deja de esperar al pasar de rango*1,2 (evita parpadear entre atacar y perseguir)
 const MARGEN_CANCELAR: float = 1.4               ## si el jugador se va más allá de rango*1,4 ANTES de que salga el golpe, se cancela el ataque
 ## 28/10 · RITMO DE LA FAMILIA GOBLIN (guerrero, arquero —también el de puesto—, asesino y chamán; no el elemental, el limo ni el gólem). Pedido de Pablo tras probar el chamán:
@@ -1646,6 +1647,14 @@ func _fuego_por_contacto(delta: float) -> void:
 			arde = prender_por_contacto()
 
 
+var combate_tactico: bool = false
+var puesto_cubierto: Vector3 = Vector3.ZERO
+var puestos_disparo: Array[Vector3] = []
+var _volver_a_cubierto: bool = true
+var _espera_cubierto: float = 0.8
+var _ruta_muros: Dictionary = {}
+
+
 func _ia(delta: float) -> void:
 	# Retroceso por golpes (decae solo)
 	if _empuje.length() > 0.1:
@@ -1700,6 +1709,9 @@ func _ia(delta: float) -> void:
 		else:
 			return
 	if fijo and arquero:
+		if not puestos_disparo.is_empty():
+			_ia_asomarse(delta)
+			return
 		_ia_arquero_fijo(delta)
 		return
 	var vel: float = vel_mult() * (ELEM_VEL if elemental else 1.0) * (ELEM_FURIA_VEL if enfurecido() else 1.0)
@@ -1751,7 +1763,7 @@ func _ia(delta: float) -> void:
 				_en_rango = false
 			if _marcha != null and _marcha.retirada > 0.0:
 				_en_rango = false                  # la hiena se retira tras morder: no espera pegada al jugador
-			if estado == "persigue" and _en_rango:
+			if estado == "persigue" and _en_rango and not (combate_tactico and lanz != null and lanz.muro_entre(position, meta)):
 				moviendo = 0
 				_atacar(delta)
 			elif d.length() > 0.3:
@@ -1836,10 +1848,10 @@ func _atacar(delta: float) -> void:
 		# La invulnerabilidad del jugador tras un golpe (Jugador3D.INVULNERABLE, 0,7 s) hace que el segundo corte solo cuente si el primero falló: ~el mismo daño por ataque.
 		var cortes: Array = pj.momentos_corte("attack") if pj != null else []
 		if cortes.size() >= 2:
-			_iniciar_ataque(VEL_ANIM_GUERRERO, float(cortes[0]), _conectar)
+			_iniciar_ataque(VEL_ANIM_GUERRERO, float(cortes[0]), _conectar_corte)
 			var total: float = _ataque
 			for k in range(1, cortes.size()):
-				get_tree().create_timer(total * float(cortes[k]), false).timeout.connect(_efecto_ataque.bind(_ataque_id, _conectar))
+				get_tree().create_timer(total * float(cortes[k]), false).timeout.connect(_efecto_ataque.bind(_ataque_id, _conectar_corte))
 			return
 		_iniciar_ataque(VEL_ANIM_GUERRERO, MOMENTO_GOLPE_GUERRERO, _conectar)
 
@@ -1878,12 +1890,44 @@ func _ia_arquero(delta: float, vel: float) -> void:
 
 ## Arquero de puesto (`fijo`): se queda donde está, mira al jugador mientras lo ve (hasta ARQUERO_FIJO_ALCANCE, con línea libre) y dispara con el mismo ritmo que el
 ## arquero normal. Si lo pierde de vista deja de cargar y espera.
+func _ia_asomarse(delta: float) -> void:
+	if jugador == null or jugador.muerto:
+		moviendo = 0
+		return
+	var en_alcance: bool = _dist(jugador.position) <= ARQUERO_FIJO_ALCANCE
+	if not en_alcance:
+		_volver_a_cubierto = true
+	var meta: Vector3 = puesto_cubierto
+	if en_alcance and _volver_a_cubierto and _dist(meta) < 0.15:
+		_espera_cubierto -= delta
+		if _espera_cubierto <= 0.0:
+			_volver_a_cubierto = false
+	if not _volver_a_cubierto:
+		for punto in puestos_disparo:
+			if Terreno3D.linea_libre(punto, jugador.position) and not (lanz != null and lanz.muro_entre(punto, jugador.position)):
+				meta = punto
+				break
+		if meta == puesto_cubierto:
+			_carga = 0.0
+			_volver_a_cubierto = true
+			_espera_cubierto = 0.8
+	if _dist(meta) < 0.15:
+		moviendo = 0
+		if not _volver_a_cubierto:
+			_ia_arquero_fijo(delta)
+		return
+	_carga = 0.0
+	_v_avance = v_base("run") * vel_mult()
+	mirada = _dir_hacia(meta, delta)
+	moviendo = 2 if _mover_paso(mirada * minf(_dist(meta), _v_avance * delta), false, true) else 0
+
+
 func _ia_arquero_fijo(delta: float) -> void:
 	moviendo = 0
 	var d: Vector3 = jugador.position - position if jugador != null and is_instance_valid(jugador) else Vector3.ZERO
 	d.y = 0.0
-	var ve: bool = jugador != null and is_instance_valid(jugador) and not jugador.muerto and d.length() <= ARQUERO_FIJO_ALCANCE \
-		and Terreno3D.linea_libre(position, jugador.position)
+	# 7/11: pasa a usar `_ve` (antes solo miraba distancia y línea libre y se saltaba el cegado B2, el vapor B3 y la oscuridad F4: no había forma de romperle la vista).
+	var ve: bool = _ve(ARQUERO_FIJO_ALCANCE)
 	if jugador != null and is_instance_valid(jugador):
 		var v: Vector3 = (jugador.position - _pos_jug_prev) / maxf(delta, 0.0001)
 		_vel_jug = _vel_jug.lerp(v, SUAVIZADO_VEL_JUGADOR) if objetivo != null else Vector3.ZERO
@@ -1952,7 +1996,7 @@ func _efecto_ataque(id: int, efecto: Callable) -> void:
 
 
 ## C3: saca el aviso del ataque que empieza, con la MISMA zona que comprueba su golpe y el mismo tiempo (`t_golpe` s hasta el golpe):
-##   · guerrero y asesino (`_conectar`): un círculo de radio RANGO_ATAQUE + 0,5 alrededor de él;
+##   · guerrero (`_conectar`): un círculo alrededor de él. Los cortes del asesino son frontales.
 ##   · elemental (`_golpe_elemental`): el rectángulo del puñetazo, delante de él (ELEM_ALCANCE_GOLPE × ELEM_ANCHO_GOLPE a cada lado, desde 0,3 por detrás);
 ##   · arquero (`_soltar_flecha`): un círculo de RADIO_IMPACTO_FLECHA que sigue a la jugadora mientras tensa y se queda donde suelta (`_soltar_flecha` lo fija con el vuelo).
 ## El asesino da dos cortes: el aviso marca el primero (el segundo solo cuenta si el primero falla).
@@ -1969,6 +2013,8 @@ func _avisar_ataque(efecto: Callable, t_golpe: float) -> void:
 	elif efecto == _golpe_elemental:
 		var k: float = _k_ref()
 		_aviso = AvisoAtaque3D.rectangulo(mundo, position, mirada, ELEM_ALCANCE_GOLPE * k, ELEM_ANCHO_GOLPE * k, t_golpe, self, 0.3)
+	elif efecto == _conectar_corte:
+		_aviso = AvisoAtaque3D.rectangulo(mundo, position, mirada, RANGO_ATAQUE + 0.5, ANCHO_CORTE_ASESINO, t_golpe, self, 0.0)
 	else:
 		_aviso = AvisoAtaque3D.circulo(mundo, position, RANGO_ATAQUE + 0.5, t_golpe, self)
 	avisos_dados += 1
@@ -2004,8 +2050,14 @@ func _cancelar_ataque() -> void:
 
 ## La flecha sale hacia donde ESTÁ el jugador ahora y tarda en llegar: si se ha movido, falla.
 func _soltar_flecha() -> void:
+	if not puestos_disparo.is_empty():
+		_volver_a_cubierto = true
+		_espera_cubierto = 1.4
 	if muerto or jugador == null or not is_instance_valid(jugador) or jugador.muerto or stun_timer > 0.0 \
 			or interrupcion > 0.0 or congelado > 0.0:
+		return
+	if fijo and not _ve(ARQUERO_FIJO_ALCANCE):
+		_quitar_aviso()
 		return
 	var origen: Vector3 = position + Vector3(0.0, altura * 0.65, 0.0)
 	var destino: Vector3 = jugador.position + Vector3(0.0, 0.8, 0.0)
@@ -2039,11 +2091,14 @@ func _vuelo_flecha(k: float, flecha: Node3D, origen: Vector3, destino: Vector3) 
 	if not is_instance_valid(flecha) or flecha.has_meta("parada"):
 		return
 	var p: Vector3 = origen.lerp(destino, k)
+	var anterior: Vector3 = flecha.position
 	flecha.position = p
 	if lanz != null and lanz.burbuja_contiene(p):
 		flecha.set_meta("parada", true)            # `_flecha_llega` (si el tween llega a llamarla en este mismo paso) no hace daño
 		lanz.burbuja_recibe("", p, self)
 		flecha.queue_free()
+	elif lanz != null and _desviar_flecha(flecha, anterior, destino - origen, p):
+		return
 	elif lanz != null and lanz.solidez_para(p, DANO_FLECHA):
 		flecha.set_meta("parada", true)            # R3: un volumen con solidez (propiedad de la receta V2) para la flecha y aguanta el golpe
 		flecha.queue_free()
@@ -2053,6 +2108,21 @@ func _vuelo_flecha(k: float, flecha: Node3D, origen: Vector3, destino: Vector3) 
 			_encender_flecha(flecha)
 		if flecha.has_meta("ardiendo"):
 			_prender_en(p, RADIO_FLECHA_FUEGO)
+
+
+func _desviar_flecha(flecha: Node3D, anterior: Vector3, trayectoria: Vector3, contacto: Vector3) -> bool:
+	var normal: Vector3 = lanz.normal_rebote_flecha(contacto)
+	if normal == Vector3.ZERO:
+		return false
+	var salida: Vector3 = trayectoria.normalized().bounce(normal)
+	flecha.set_meta("parada", true)
+	flecha.set_meta("desviada", true)
+	flecha.position = anterior
+	flecha.look_at(flecha.global_position + salida, Vector3.UP)
+	var desvio: Tween = flecha.create_tween()
+	desvio.tween_property(flecha, "position", anterior + salida * VEL_FLECHA * 0.2, 0.2)
+	desvio.tween_callback(flecha.queue_free)
+	return true
 
 
 ## ¿Toca la flecha, en `p`, algo que ESTÁ ARDIENDO y pasa la llama? Objetos (fogata/brasero encendidos, seto en llamas…) y otros enemigos ardiendo.
@@ -2153,6 +2223,8 @@ func _prender_en(p: Vector3, radio: float) -> void:
 func _flecha_llega(flecha: Node3D, destino: Vector3, bloqueada: bool) -> void:
 	var ardiendo: bool = false
 	if is_instance_valid(flecha):
+		if flecha.has_meta("desviada"):
+			return
 		var parada: bool = flecha.has_meta("parada")
 		ardiendo = flecha.has_meta("ardiendo")
 		flecha.queue_free()
@@ -2172,14 +2244,24 @@ func _flecha_llega(flecha: Node3D, destino: Vector3, bloqueada: bool) -> void:
 			_prender_en(destino, RADIO_FLECHA_FUEGO)
 
 
-func _conectar() -> void:
+func _conectar_corte() -> void:
+	_conectar(true)
+
+
+func _conectar(corte_frontal: bool = false) -> void:
 	if _cv2 != null:
 		_cv2.al_conectar()                          # 6/11: el mordisco del canouro (12 de daño; si la burbuja lo para, rebota y se aturde)
 		return
 	if muerto or jugador == null or not is_instance_valid(jugador) or stun_timer > 0.0 or interrupcion > 0.0 \
 			or congelado > 0.0:
 		return
-	if _dist(jugador.position) <= RANGO_ATAQUE + 0.5 and absf(jugador.position.y - position.y) < Terreno3D.ALTO_NIVEL * 0.9:
+	var en_alcance: bool = _dist(jugador.position) <= RANGO_ATAQUE + 0.5
+	if corte_frontal:
+		var rel: Vector3 = jugador.position - position
+		var delante: float = rel.dot(mirada)
+		var lado: float = absf(rel.dot(Vector3(-mirada.z, 0.0, mirada.x)))
+		en_alcance = delante >= 0.0 and delante <= RANGO_ATAQUE + 0.5 and lado <= ANCHO_CORTE_ASESINO
+	if en_alcance and absf(jugador.position.y - position.y) < Terreno3D.ALTO_NIVEL * 0.9:
 		jugador.recibir_dano(DANO_GOLPE, position)
 
 
@@ -2196,7 +2278,9 @@ func _dir_hacia(meta: Vector3, delta: float) -> Vector3:
 	if recto.length() < 0.0001:
 		return Vector3.ZERO
 	recto = recto.normalized()
-	if elemental or (Terreno3D.linea_libre(position, meta) and Caminos3D.recta_andable(position, meta)):
+	var muros: Dictionary = lanz.muros_tacticos() if combate_tactico and lanz != null else {}
+	var muro_en_medio: bool = not muros.is_empty() and lanz.muro_entre(position, meta)
+	if elemental or (not muro_en_medio and Terreno3D.linea_libre(position, meta) and Caminos3D.recta_andable(position, meta)):
 		_ruta.clear()
 		return recto
 	var c_ini: Vector2i = Terreno3D.celda_de(position)
@@ -2204,8 +2288,9 @@ func _dir_hacia(meta: Vector3, delta: float) -> Vector3:
 	_t_ruta -= delta
 	var pos_en_ruta: int = _ruta.find(c_ini)
 	# Sin ruta (no la hay) también espera al periodo: si no, la buscaría en cada fotograma.
-	if _t_ruta <= 0.0 or c_fin != _ruta_meta or (pos_en_ruta == -1 and not _ruta.is_empty()):
-		_ruta = Caminos3D.camino(c_ini, c_fin)
+	if _t_ruta <= 0.0 or c_fin != _ruta_meta or muros != _ruta_muros or (pos_en_ruta == -1 and not _ruta.is_empty()):
+		_ruta = Caminos3D.camino(c_ini, c_fin, muros)
+		_ruta_muros = muros
 		_ruta_meta = c_fin
 		_t_ruta = PERIODO_CAMINO
 		rutas_calculadas += 1
@@ -2265,6 +2350,8 @@ func _puede_estar(p: Vector3, empujado: bool = false, por_ruta: bool = false) ->
 ## 28/10 · A2: `_puede_estar` mirando desde una posición cualquiera `desde` (la del cuerpo, o la simulada de `prever_empuje`): una sola regla para el paso real y la previsión.
 func _puede_estar_desde(desde: Vector3, p: Vector3, empujado: bool = false, por_ruta: bool = false) -> bool:
 	var c: Vector2i = Terreno3D.celda_de(p)
+	if combate_tactico and lanz != null and c != Terreno3D.celda_de(desde) and lanz.muros_tacticos().has(c):
+		return false
 	# A3: un cuerpo EMPUJADO entra en el agua honda no helada (no hay suelo que lo frene: por eso se hunde en `_ajustar_al_suelo`). Con sus piernas, nunca:
 	# por eso esta salida va antes de las comprobaciones de suelo y solo existe con `empujado`. Misma regla de agua que el jugador usa para nadar (`_es_agua_honda`).
 	if empujado and c != Terreno3D.celda_de(desde) and _es_agua_honda(c):
@@ -2946,6 +3033,7 @@ func _quitar_raices_vis() -> void:
 func _golpe_elemental() -> void:
 	if muerto or jugador == null or not is_instance_valid(jugador):
 		return
+	_descanso = maxf(_descanso, _ataque + 0.65)
 	var f: Vector3 = Vector3(mirada.x, 0.0, mirada.z)
 	f = f.normalized() if f.length() > 0.01 else Vector3(0, 0, 1)
 	var k: float = _k_ref()

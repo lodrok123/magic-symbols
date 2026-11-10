@@ -126,6 +126,13 @@ vec2 apartar_de(vec2 o, vec2 p, float peso) {
 	return normalize(d + vec2(0.001, 0.0)) * (1.0 - smoothstep(0.0, radio_pisar, length(d))) * peso;
 }
 varying float alto;
+uniform sampler2D contacto_suelo : filter_linear, repeat_disable;
+uniform float fuerza_contacto = 0.0;
+varying vec3 color_contacto;
+uniform sampler2D manta_bosque : hint_default_black, filter_linear, repeat_disable;
+uniform bool manta_bosque_activa = false;
+varying float cobertura_copa;
+// FUNCIONES_CONTACTO
 varying vec3 tinte;
 varying float quemado;
 varying float mojado;
@@ -136,6 +143,11 @@ void vertex() {
 	vec3 origen = MODEL_MATRIX[3].xyz;
 	vec2 uv_e = origen.xz / (celda * lado);
 	vec4 e = texture(estado, uv_e);
+	cobertura_copa = manta_bosque_activa ? textureLod(manta_bosque, uv_e, 0.0).r : 0.0;
+	color_contacto = vec3(0.0);
+	if (fuerza_contacto > 0.0) {
+		color_contacto = textureLod(contacto_suelo, uv_e, 0.0).rgb;
+	}
 	quemado = e.r;
 	// Mojada y escarcha: lo que pinta la maqueta o, cuando llegue, el estado oficial (G mojada, B helada): manda el mayor.
 	vec2 hu = texture(humedad, uv_e).rg;
@@ -168,6 +180,9 @@ void vertex() {
 	vec2 apartar = ap * alto * alto * fuerza_apartar * (1.0 - 0.7 * escarcha);
 	VERTEX.x += apartar.x * inv_x;
 	VERTEX.z += apartar.y * inv_z;
+	if (fuerza_contacto > 0.0) {
+		VERTEX *= escala_contacto(origen.xz);
+	}
 }
 void fragment() {
 	// La normal se fija aquí (no en vertex) porque con cull_disabled la cara de atrás la invertiría.
@@ -175,10 +190,11 @@ void fragment() {
 	vec3 c = mix(base, punta, smoothstep(0.0, 1.0, alto));
 	vec3 media_b = 0.5 * (base + punta);
 	c = (media_b + (c - media_b) * alb_hierba.x) * alb_hierba.y;     // albedos
+	c = mix(c, color_contacto, fuerza_contacto * mix(1.0, 0.42, smoothstep(0.0, 1.0, alto)));
 	c = mix(c, vec3(0.55, 0.49, 0.30), quemado * 0.7);   // 6.14: rastrojo pajizo, no negro
 	c *= mix(1.0, 0.6, mojado);                                                   // mojada: más oscura (EoW: −30 a −40 %)
 	c = mix(c, vec3(0.80, 0.88, 0.94), escarcha * mix(0.2, 0.6, alto));          // escarcha: blanco azulado, más en las puntas (sin llegar a nieve)
-	ALBEDO = c * tinte * brillo;
+	ALBEDO = c * tinte * brillo * mix(vec3(1.0), vec3(0.76, 0.77, 0.67), cobertura_copa);
 	ROUGHNESS = mix(1.0, 0.45, max(mojado, escarcha * 0.8));
 	SPECULAR = max(mojado * 0.35, escarcha * 0.4);                              // un brillo: mojada y escarcha reflejan algo de luz
 }
@@ -213,6 +229,13 @@ vec2 apartar_de(vec2 o, vec2 p, float peso) {
 	vec2 d = o - p;
 	return normalize(d + vec2(0.001, 0.0)) * (1.0 - smoothstep(0.0, radio_pisar, length(d))) * peso;
 }
+uniform sampler2D contacto_suelo : filter_linear, repeat_disable;
+uniform float fuerza_contacto = 0.0;
+varying vec3 color_contacto;
+uniform sampler2D manta_bosque : hint_default_black, filter_linear, repeat_disable;
+uniform bool manta_bosque_activa = false;
+varying float cobertura_copa;
+// FUNCIONES_CONTACTO
 varying vec3 tinte;
 varying float quemado;
 varying float mojado;
@@ -227,6 +250,11 @@ void vertex() {
 	vec3 origen = MODEL_MATRIX[3].xyz;
 	vec2 uv_e = origen.xz / (celda * lado);
 	vec4 e = texture(estado, uv_e);
+	cobertura_copa = manta_bosque_activa ? textureLod(manta_bosque, uv_e, 0.0).r : 0.0;
+	color_contacto = vec3(0.0);
+	if (fuerza_contacto > 0.0) {
+		color_contacto = textureLod(contacto_suelo, uv_e, 0.0).rgb;
+	}
 	quemado = e.r;
 	vec2 hu = texture(humedad, uv_e).rg;
 	mojado = max(hu.r, e.g);
@@ -247,7 +275,8 @@ void vertex() {
 	float t = TIME * 1.7 + origen.x * 0.55 + origen.z * 0.35;
 	float rigidez = mix(1.0, 0.6, mojado) * (1.0 - 0.85 * escarcha);
 	float meneo = (sin(t) * 0.6 + sin(t * 2.3 + 1.7) * 0.25) * viento * alto * alto * 0.12 * rigidez;
-	vec3 mundo = origen + (der * (VERTEX.x + meneo + tumbar) + arr * VERTEX.y * escala_y) * esc;
+	float porte = fuerza_contacto > 0.0 ? escala_contacto(origen.xz) : 1.0;
+	vec3 mundo = origen + (der * (VERTEX.x + meneo + tumbar) + arr * VERTEX.y * escala_y) * esc * porte;
 	VERTEX = (inverse(MODEL_MATRIX) * vec4(mundo, 1.0)).xyz;
 }
 void fragment() {
@@ -257,10 +286,11 @@ void fragment() {
 		discard;
 	}
 	vec3 rgb = (alb_media + (c.rgb - alb_media) * alb_hierba.x) * alb_hierba.y;     // albedos: compresión hacia la media del atlas + valor
-	vec3 col = mix(rgb * tinte, vec3(0.55, 0.49, 0.30), quemado * 0.7);   // 6.14: pajizo, no negro
+	vec3 base_col = mix(rgb * tinte, color_contacto, fuerza_contacto * mix(1.0, 0.42, smoothstep(0.0, 1.0, alto_v)));
+	vec3 col = mix(base_col, vec3(0.55, 0.49, 0.30), quemado * 0.7);   // 6.14: pajizo, no negro
 	col *= mix(1.0, 0.6, mojado);                                                // mojada: más oscura
 	col = mix(col, vec3(0.80, 0.88, 0.94), escarcha * mix(0.2, 0.6, alto_v));    // escarcha: más en las puntas (sin llegar a nieve)
-	ALBEDO = col * brillo;
+	ALBEDO = col * brillo * mix(vec3(1.0), vec3(0.76, 0.77, 0.67), cobertura_copa);
 	ROUGHNESS = mix(1.0, 0.45, max(mojado, escarcha * 0.8));
 	SPECULAR = max(mojado * 0.35, escarcha * 0.4);
 }
@@ -388,9 +418,28 @@ func _dentro(b: Vector2i) -> bool:
 	return b.x >= 0 and b.y >= 0 and float(b.x) * lado_bloque < _zona.size.x and float(b.y) * lado_bloque < _zona.size.y
 
 
+## Variación suave en espacio de mundo. Las dos clases de hierba se abren en los mismos claros.
+const FUNCIONES_CONTACTO: String = """
+float azar_contacto(vec2 p) {
+	return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453);
+}
+
+float escala_contacto(vec2 origen) {
+	vec2 p = origen * 0.75;
+	vec2 cel = floor(p);
+	vec2 f = smoothstep(vec2(0.0), vec2(1.0), fract(p));
+	float a = mix(azar_contacto(cel), azar_contacto(cel + vec2(1.0, 0.0)), f.x);
+	float b = mix(azar_contacto(cel + vec2(0.0, 1.0)), azar_contacto(cel + vec2(1.0)), f.x);
+	float claro = mix(a, b, f.y);
+	return 0.67 * smoothstep(0.36, 0.66, claro);
+}
+"""
+
+
 ## El código del shader según `RECIBE_SOMBRA`: igual que `base` (sin sombra) o sin el `shadows_disabled` del render_mode.
 static func _codigo(base: String) -> String:
-	return base.replace(", shadows_disabled", "") if RECIBE_SOMBRA else base
+	var codigo: String = base.replace("// FUNCIONES_CONTACTO", FUNCIONES_CONTACTO)
+	return codigo.replace(", shadows_disabled", "") if RECIBE_SOMBRA else codigo
 
 
 ## Cambia `RECIBE_SOMBRA` y reescribe el código de los tres materiales ya creados (todos los bloques los comparten), para verlo en caliente.
@@ -447,6 +496,20 @@ func _preparar() -> void:
 	_quad_flor.orientation = PlaneMesh.FACE_Y
 	_quad_flor.material = _mat_flor
 	Albedos3D.aplicar_hierba(_mat_matojo, _mat_tarjeta, (load(atlas_tarjetas) as Texture2D) if _mat_tarjeta != null else null, albedos_eow)
+
+
+func poner_contacto_suelo(mapa: Texture2D, activo: bool) -> void:
+	for mat in [_mat_matojo, _mat_tarjeta]:
+		if mat != null:
+			mat.set_shader_parameter("contacto_suelo", mapa)
+			mat.set_shader_parameter("fuerza_contacto", 0.85 if activo else 0.0)
+
+
+func poner_manta_bosque(mapa: Texture2D, activo: bool) -> void:
+	for mat in [_mat_matojo, _mat_tarjeta]:
+		if mat != null:
+			mat.set_shader_parameter("manta_bosque", mapa)
+			mat.set_shader_parameter("manta_bosque_activa", activo)
 
 
 ## Un bloque: briznas, tarjetas y flores de su rectángulo, con semilla propia (sale igual si se vuelve a crear).

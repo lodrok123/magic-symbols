@@ -17,6 +17,7 @@ uniform float umbral : hint_range(0.1, 0.9) = 0.42;             // umbral de la 
 uniform float ruido_borde : hint_range(0.0, 0.6) = 0.22;        // cuánto rompe el ruido el borde de las pompas
 uniform float sombra_desp : hint_range(0.0, 0.5) = 0.16;        // desplazamiento de la sombra (fracción del quad)
 uniform float estirado : hint_range(0.2, 1.0) = 1.0;            // < 1: pompas más finas a lo ancho del quad (jirones de viento)
+uniform float opacidad : hint_range(0.0, 1.0) = 1.0;           // < 1: el humo se ve a traves (el nucleo blando de la rafaga de viento); 1 = como siempre
 uniform float edad_viejo : hint_range(0.0, 1.0) = 0.35;         // a partir de qué edad empieza a virar al color viejo
 uniform sampler2D ruido : filter_linear_mipmap, repeat_enable;  // T_CloudNoise_Tiled
 
@@ -84,4 +85,5 @@ void fragment() {
 	vec3 osc = mix(color_sombra, color_viejo * 0.72, vieja);
 	ALBEDO = mix(claro, osc, sombra);
 	ALPHA = 1.0;
+	ALPHA *= opacidad;   // 1 salvo en el nucleo blando de la rafaga de viento
 }

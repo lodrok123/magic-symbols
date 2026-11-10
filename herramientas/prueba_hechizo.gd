@@ -73,7 +73,7 @@ func _tablas() -> void:
 	# H5 (30/10): GLIFOS_V2 está en desuso y no recibe los glifos nuevos (perforar, retorno, buscar, retardo): los de V2 son los primeros de GLIFOS, en el mismo orden, y lo que sobra es solo H5.
 	var claves_v2: Array = Sigils.GLIFOS_V2.keys()
 	_ok(Sigils.GLIFOS.keys().slice(0, claves_v2.size()) == claves_v2, "GLIFOS y GLIFOS_V2 no tienen los mismos glifos / orden")
-	_ok(Sigils.GLIFOS.keys().slice(claves_v2.size()) == ["perforar", "retorno", "buscar", "retardo"], "GLIFOS tiene, además de los de GLIFOS_V2, exactamente los cuatro de H5")
+	_ok(Sigils.GLIFOS.keys().slice(claves_v2.size()) == ["perforar", "retorno", "buscar", "retardo", "posicion"], "GLIFOS añade los cuatro de H5 y la posición experimental")
 	for nombre in Sigils.GLIFOS_V2:
 		var v: Dictionary = Sigils.GLIFOS_V2[nombre]
 		var n: Dictionary = Sigils.GLIFOS[nombre]
@@ -173,7 +173,7 @@ func _igual_que_hoy(c: Dictionary, rune: RuneData, calidad: float, et: String) -
 	# en_punto: desde el 24/10, un sólido quieto (30/10: ya NO la barrera: nace en el lanzador; un sólido con barrera sigue en el punto por ser sólido quieto)
 	# antes: la barrera (glifo) o un sólido quieto (tierra/hielo que ni es haz ni flecha: no puede nacer en la casilla de quien lo lanza)
 	var lineas_c: int = int(c.get("linea_x", 0)) + int(c.get("linea_z", 0))
-	var haz_c: bool = lineas_c > 0 and int(c.get("barrera", 0)) == 0 and int(c.get("flecha", 0)) == 0 and h.estado_materia != "solido"     # 29/10: un sólido con ᛁ no es haz
+	var haz_c: bool = lineas_c > 0 and int(c.get("barrera", 0)) == 0 and int(c.get("flecha", 0)) == 0 and (h.estado_materia != "solido" or Hechizo.SOLIDOS_CON_HAZ.has(h.elemento))     # 29/10: un sólido con ᛁ no es haz · 6/11: salvo la tierra (haz de púas)
 	var solido_quieto_c: bool = h.estado_materia == "solido" and int(c.get("flecha", 0)) == 0 and not haz_c
 	_ok(h.en_punto == solido_quieto_c, "%s: en_punto solo con un sólido quieto (30/10: la barrera ya no es apuntable, nace en el lanzador)" % et)
 	_ok(h.velocidad == vel_esperada and h.aceleracion == 0.0 and not h.retorna and h.busca == 0.0 and h.perfora == 0 and h.radio_explosion == 0.0 \
@@ -254,13 +254,23 @@ func _casos_sueltos(runes: Dictionary) -> void:
 	# el origen distingue defecto, elemento, glifo y calidad
 	_ok(String(a.origen.get("solidez", "")) == "glifo:barrera" and String(a.origen.get("dano", "")) == "potencia" and String(a.origen.get("persiste", "")) == "calidad", "origen: %s (6/11, bloque A1: el daño del hielo, como el de todos, viene de la potencia; antes del .tres: «elemento»)" % str(a.origen))
 	_ok(Hechizo.defecto("copias") == 1 and Hechizo.defecto("semiejes") == Vector3(1, 1, 1) * Sigils.RADIO_BASE_V2, "defecto() lee del var")
+	# 7/11: lo que cambia un PAR de orden (C2) lleva el nombre del glifo que lo completa, no una etiqueta «orden» sin dueño: así `diferencia()` (que solo entiende «glifo:…») puede atribuirlo en el grimorio
+	var raf: Hechizo = Hechizo.construir(runes["fire"], {"flecha": 1, "repeticion": 1}, 1.0, false, ["flecha", "repeticion"])
+	_ok(raf.rafaga and String(raf.origen.get("dispersion", "")) == "glifo:repeticion" and String(raf.origen.get("separacion", "")) == "glifo:repeticion" and raf.dispersion == 0.0 and raf.separacion == 0.0,
+		"orden ᛇ antes de ᚠ: ráfaga, y dispersión y separación a 0 apuntadas a ᚠ (origen «%s»)" % String(raf.origen.get("dispersion", "")))
+	var sin_orden: Hechizo = Hechizo.construir(runes["fire"], {"flecha": 1, "repeticion": 1})
+	_ok(not sin_orden.rafaga and sin_orden.dispersion > 0.0, "sin orden de dibujo no hay ráfaga: la dispersión sigue en su defecto (%.1f)" % sin_orden.dispersion)
+	# …y `con()` NO recalcula el coste: la tinta es la de los glifos dibujados (lo que ya prometía su documentación). De esto vivía el desajuste de las copias de la ráfaga, que salen con `con({"copias": 1})`
+	var tinta_raf: float = raf.coste_tinta
+	_ok(is_equal_approx(raf.copiar().con({"copias": 1}).coste_tinta, tinta_raf) and is_equal_approx(raf.copiar().con({"copias": 4}).coste_tinta, tinta_raf),
+		"con(): tocar las copias no cambia el coste_tinta (%.2f, con 1 y con 4 copias)" % tinta_raf)
 	# la barrera ya NO tiene radio mínimo (18/10): el tamaño lo ponen solo los ejes; nace donde apuntas y cada glifo sucesivo suma 1 s
 	var barrera: Hechizo = Hechizo.construir(runes["earth"], {"barrera": 1})
 	_ok(_casi(barrera.semiejes.x, Sigils.RADIO_BASE_V2) and _casi(barrera.semiejes.z, Sigils.RADIO_BASE_V2) and _casi(barrera.semiejes.y, Sigils.RADIO_BASE_V2), "barrera: sin ejes, x y z = radio base")
 	_ok(barrera.en_punto and _casi(barrera.persiste, runes["earth"].persiste * Sigils.quality_factor(1.0)) and barrera.permanencia == 0.0, "barrera ×1: en_punto, persiste del elemento y sin permanencia")
 	var barrera3: Hechizo = Hechizo.construir(runes["earth"], {"barrera": 3, "linea_x": 2})
 	_ok(_casi(barrera3.persiste, runes["earth"].persiste * Sigils.quality_factor(1.0)) and _casi(barrera3.permanencia, 2.0 * Sigils.quality_factor(1.0)) and _casi(barrera3.semiejes.x, Sigils.semieje_horizontal_v2(2)), "barrera ×3: permanencia +2 s y la anchura solo la dan los ejes (%.2f s, x %.2f)" % [barrera3.permanencia, barrera3.semiejes.x])
-	_ok(not Hechizo.construir(runes["fire"], {"linea_x": 2}).en_punto and Hechizo.construir(runes["earth"], {"linea_x": 2}).en_punto, "sin barrera: el fuego no nace en el punto; la tierra con ᛁ sí (29/10: es un sólido quieto, no un haz)")
+	_ok(not Hechizo.construir(runes["fire"], {"linea_x": 2}).en_punto and not Hechizo.construir(runes["earth"], {"linea_x": 2}).en_punto and Hechizo.construir(runes["ice"], {"linea_x": 2}).en_punto, "sin barrera: ni el fuego ni la tierra con ᛁ nacen en el punto (6/11: la tierra es un haz de púas); el hielo con ᛁ sí (sigue siendo su bloque)")
 	# 24/10: un SÓLIDO QUIETO (tierra/hielo con solo ᛏ, ᚢ o ᚱ) nace donde apuntas; una flecha, un haz o un elemento que no es sólido, no
 	for elem in ["earth", "ice"]:
 		for g in [{"altura": 1}, {"rebote": 1}, {"raido": 1}, {"pulso": 1}]:

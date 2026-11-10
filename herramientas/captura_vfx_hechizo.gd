@@ -49,6 +49,8 @@ func _correr() -> void:
 	var solo: String = a[2] if a.size() > 2 else ""
 	_con_estado = a.size() > 3 and a[3] == "estado"
 	var con_img: bool = modo == "captura"
+	if OS.get_environment("VFX_EROSION") != "":
+		VfxKit3D.usar_erosion = true       # opcional: enciende la erosion de las bolas (nucleo_toy.gdshaderinc)
 	await process_frame
 	if con_img:
 		_vp = SubViewport.new()

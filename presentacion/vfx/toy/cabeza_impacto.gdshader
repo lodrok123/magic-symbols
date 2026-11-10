@@ -16,9 +16,11 @@ uniform float radio = 0.22;
 uniform float semilla = 0.0;
 uniform sampler2D ruido : hint_default_white, filter_linear, repeat_enable;
 
+#include "res://presentacion/vfx/toy/nucleo_toy.gdshaderinc"
+
 void vertex() {
 	vec3 esc = vec3(length(MODEL_MATRIX[0].xyz), length(MODEL_MATRIX[1].xyz), length(MODEL_MATRIX[2].xyz));
-	MODELVIEW_MATRIX = VIEW_MATRIX * mat4(vec4(INV_VIEW_MATRIX[0].xyz * esc.x, 0.0), vec4(INV_VIEW_MATRIX[1].xyz * esc.y, 0.0), vec4(INV_VIEW_MATRIX[2].xyz * esc.z, 0.0), MODEL_MATRIX[3]);
+	MODELVIEW_MATRIX = nucleo_billboard(esc, VIEW_MATRIX, INV_VIEW_MATRIX, MODEL_MATRIX);
 }
 
 void fragment() {

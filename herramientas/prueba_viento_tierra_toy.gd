@@ -3,10 +3,12 @@ extends SceneTree
 ## PRUEBA del viento y la tierra «toy» (6/11/2026; a imagen de prueba_hielo_toy.gd). Sin ventana (los class_name son nuevos: antes, `--headless --import`):
 ##   godot --headless --fixed-fps 30 --path . --script res://herramientas/prueba_viento_tierra_toy.gd
 ## Comprueba, con VientoToy / ImpactoVientoToy, TierraToy / ImpactoTierraToy y el humo toon (humo_toy.gd):
-##   1. ESTILO: los shaders nuevos no son aditivos ni emisivos; el humo toon es blend_mix, unshaded y de borde duro (discard); la roca es opaca y unshaded
+##   1. ESTILO: los shaders nuevos no son aditivos ni emisivos; el humo toon es blend_mix, unshaded y de borde duro (discard); la roca es opaca, con la textura de las rocas del mapa
+##      (rocas_albedo.png) y la luz de la escena (NO unshaded; mate, sin especular), y las figuras usan las mallas piedra_est_* / roca_est_* del mapa (6/11 tarde: «la piedra del mundo»)
 ##   2. HUMO TOON: una bocanada NACE pequeña, CRECE (~×2,5), se EROSIONA al final (erosion sube con la edad) y MUERE en su vida; deriva en curva
 ##   3. FIGURAS: las dos clases se crean y las 5 figuras y `desde_hechizo` no fallan; sin luces ni GPUParticles3D; piezas esperadas (cintas, hojas, bloques, roca...)
-##   4. TIERRA: los bloques SUBEN del suelo con anticipación, sobrepaso y asentamiento (`subida`), sueltan polvo y fragmentos al asentarse y se HUNDEN al morir
+##   4. TIERRA: los bloques SUBEN del suelo con anticipación, sobrepaso y asentamiento (`subida`), sueltan polvo y fragmentos al asentarse y se HUNDEN al morir; la BARRERA cierra la
+##      cúpula con losas de techo y un destello; la línea brota PÚAS en secuencia de menor a mayor, con lajas en cada base.
 ##   5. CARGA: progreso 0 → 1 sin bajar la escala; convergencia; `soltar` sin salto; `cancelar_carga` libera
 ##   6. IMPACTOS: `impactar_en` crea el impacto y se libera solo; variantes GOLPE / FIN / REBOTE / AREA; piedras en el hemisferio de la normal que caen; soplo de jirones; sin destello
 ##   7. API: rebotar, terminar_sin_choque, finalizar; describir / desde_hechizo = los del fuego
@@ -39,6 +41,8 @@ var _log: Contador = null
 
 
 func _initialize() -> void:
+	# Las aserciones de humo y convergencia usan el toy clásico.
+	VientoToy.prueba_corrientes = false
 	_log = Contador.new()
 	OS.add_logger(_log)
 	_correr()
@@ -64,6 +68,8 @@ func _correr() -> void:
 		await _impactos(cl)
 		await _api(cl)
 	await _tierra_sube()
+	await _tierra_haz()
+	await _tierra_cupula_y_aviso()
 	await _lab()
 	print("máximo visto: %d luces, %d GPUParticles3D, %d partículas (MultiMesh), %d materiales aditivos" % [_max_luces, _max_gpu, _max_part, _aditivos])
 	_ok("presupuesto: 0 luces, 0 GPUParticles3D, ≤ %d partículas, 0 aditivos" % MAX_PARTICULAS, _max_luces == 0 and _max_gpu == 0 and _max_part <= MAX_PARTICULAS and _aditivos == 0)
@@ -132,19 +138,44 @@ func _limpiar_impactos() -> void:
 
 func _estilo() -> void:
 	print("== shaders")
-	for s in ["humo_toon.gdshader", "tierra_roca.gdshader"]:
+	var codigos: Dictionary = {}
+	for s in ["humo_toon.gdshader", "tierra_roca.gdshader", "tierra_grietas.gdshader", "tierra_anillo.gdshader"]:
 		var txt: String = FileAccess.get_file_as_string("res://presentacion/vfx/toy/" + s)
 		var cuerpo: PackedStringArray = PackedStringArray()
 		for l in txt.split("\n"):
 			if not l.strip_edges().begins_with("//"):
 				cuerpo.append(l)
-		var codigo: String = "\n".join(cuerpo)
-		_ok(s + ": sin blend_add, sin EMISSION, unshaded", codigo.find("blend_add") < 0 and codigo.find("EMISSION") < 0 and codigo.find("unshaded") >= 0)
-	var humo: String = FileAccess.get_file_as_string("res://presentacion/vfx/toy/humo_toon.gdshader")
+		codigos[s] = "\n".join(cuerpo)
+	var humo: String = codigos["humo_toon.gdshader"]
+	_ok("humo_toon: sin blend_add, sin EMISSION, unshaded", humo.find("blend_add") < 0 and humo.find("EMISSION") < 0 and humo.find("unshaded") >= 0)
 	_ok("humo_toon: borde duro (discard, ALPHA = 1.0), dos tonos (color_claro / color_sombra), color viejo y erosión por edad", humo.find("discard") >= 0 and humo.find("ALPHA = 1.0") >= 0
 		and humo.find("color_sombra") >= 0 and humo.find("color_viejo") >= 0 and humo.find("erosion") >= 0)
-	var roca: String = FileAccess.get_file_as_string("res://presentacion/vfx/toy/tierra_roca.gdshader")
-	_ok("tierra_roca: opaca (no escribe ALPHA) con tres tonos planos", roca.find("ALPHA =") < 0 and roca.find("color_sombra") >= 0 and roca.find("color_medio") >= 0)
+	var roca: String = codigos["tierra_roca.gdshader"]
+	_ok("tierra_roca: sin blend_add, sin EMISSION, con la LUZ de la escena (no unshaded), mate (ROUGHNESS = 1.0) y sin especular", roca.find("blend_add") < 0 and roca.find("EMISSION") < 0
+		and roca.find("unshaded") < 0 and roca.find("ROUGHNESS = 1.0") >= 0 and roca.find("specular_disabled") >= 0)
+	_ok("tierra_roca: opaca (no escribe ALPHA) y pinta la TEXTURA de las rocas del mapa (albedo_tex) con un velo (tinte), no color plano", roca.find("ALPHA =") < 0 and roca.find("albedo_tex") >= 0
+		and roca.find("texture(albedo_tex, UV)") >= 0 and roca.find("tinte") >= 0)
+	_ok("tierra_roca: modo `plano` (color plano pardo para púas y lajas)", roca.find("uniform float plano") >= 0 and roca.find("color_plano") >= 0)
+	for s2 in ["tierra_grietas.gdshader", "tierra_anillo.gdshader"]:
+		var c2: String = codigos[s2]
+		_ok("%s: sin blend_add, sin EMISSION, unshaded, borde duro (discard)" % s2, c2.find("blend_add") < 0 and c2.find("EMISSION") < 0 and c2.find("unshaded") >= 0 and c2.find("discard") >= 0)
+	var pua: Mesh = TierraToy.malla_roca("pua_0")
+	var laja: Mesh = TierraToy.malla_roca("laja_0")
+	# 7/11: las púas ya no son conos generados a mano (≤ 120 vértices) sino las rocas stone5 / stone6 / stone4 del pack de LeLu (arte/rocas_lelu: 426 / 588 / 620 vértices), normalizadas a base en y = 0,
+	# alto 1 y radio <= 0,5; por eso el tope POR MALLA es 700. Lo que de verdad acota el coste es el total del haz (comprobación «un HAZ completo» más abajo).
+	var v_pua: Array = []
+	var puas_ok: bool = true
+	for k in 3:
+		var mp: Mesh = TierraToy.malla_roca("pua_%d" % k)
+		v_pua.append((mp.surface_get_arrays(0)[Mesh.ARRAY_VERTEX] as PackedVector3Array).size())
+		puas_ok = puas_ok and mp is ArrayMesh and absf(mp.get_aabb().position.y) < 0.001 and absf(mp.get_aabb().size.y - 1.0) < 0.01 and int(v_pua[k]) <= 700 and mp.get_aabb().size.x <= 1.001 and mp.get_aabb().size.z <= 1.001
+	_ok("las púas son las rocas stone5 / stone6 / stone4 del pack (pua_0..2: %s vértices, tope 700 por malla), normalizadas (base en y = 0, alto 1, ancho <= 1) y las lajas son mallas propias (laja_0 %d), cacheadas" % [str(v_pua), (laja.surface_get_arrays(0)[Mesh.ARRAY_VERTEX] as PackedVector3Array).size()],
+		pua is ArrayMesh and laja is ArrayMesh and puas_ok
+		and laja.get_aabb().size.y < 0.2 and TierraToy.malla_roca("pua_0") == pua and TierraToy.es_plana("pua_2") and TierraToy.es_plana("laja_1") and not TierraToy.es_plana("roca_est_1"))
+	_ok("las rocas del mapa existen (piedra_est_0..4, roca_est_0..4 y rocas_albedo.png)", ResourceLoader.exists(TierraToy.TEX_ALBEDO) and range(5).all(func(i: int) -> bool: return ResourceLoader.exists(TierraToy.RUTA_ROCA % ("piedra_est_%d" % i)) and ResourceLoader.exists(TierraToy.RUTA_ROCA % ("roca_est_%d" % i))))
+	var mb: Mesh = TierraToy.malla_roca("piedra_est_0")
+	_ok("malla_roca carga la piedra_est_0 del GLB (%d vértices, base en y = 0, %.2f m de lado) y la cachea" % [(mb.surface_get_arrays(0)[Mesh.ARRAY_VERTEX] as PackedVector3Array).size(), TierraToy.lado_malla(mb)],
+		mb is ArrayMesh and absf(mb.get_aabb().position.y) < 0.01 and TierraToy.lado_malla(mb) > 0.5 and TierraToy.malla_roca("piedra_est_0") == mb)
 	_ok("el ruido del humo existe (T_CloudNoise_Tiled.png)", ResourceLoader.exists(HumoToy.TEX_RUIDO))
 
 
@@ -212,10 +243,27 @@ func _figuras(cl: String) -> void:
 		else:
 			var bl: MultiMeshInstance3D = e.find_child("Bloques", true, false) as MultiMeshInstance3D
 			if int(f[1]) == 0:
-				_ok("[tierra BOLA] pedrusco facetado (Roca) con material de roca", e.find_child("Roca", true, false) is MeshInstance3D and ((e.find_child("Roca", true, false) as MeshInstance3D).material_override as ShaderMaterial).shader.resource_path.ends_with("tierra_roca.gdshader"))
+				var roca: MeshInstance3D = e.find_child("Roca", true, false) as MeshInstance3D
+				_ok("[tierra BOLA] la roca es la piedra_est_0 del mapa con el material de roca (textura rocas_albedo)", roca != null and roca.mesh == TierraToy.malla_roca("piedra_est_0")
+					and (roca.material_override as ShaderMaterial).shader.resource_path.ends_with("tierra_roca.gdshader") and (roca.material_override as ShaderMaterial).get_shader_parameter("albedo_tex") is Texture2D)
 			else:
-				var n: int = (e.get("_bloques") as Array).size()
-				_ok("[tierra %s] %d bloques facetados en un MultiMesh (≤ 24) y polvo + terrones en reserva" % [f[0], n], bl != null and n >= 3 and n <= 24 and e.find_child("Polvo", true, false) != null and e.find_child("Terrones", true, false) != null)
+				var bloques: Array = e.get("_bloques")
+				var n: int = bloques.size()
+				var mms: Array = e.get("_bloques_mms")
+				var mallas: Dictionary = {}
+				var inst: int = 0
+				var del_mapa: bool = true
+				for b in bloques:
+					mallas[String((b as Dictionary)["malla"])] = true
+					var idm: String = String((b as Dictionary)["malla"])
+					del_mapa = del_mapa and (idm.begins_with("roca_est_") or idm.begins_with("piedra_est_") or (int(f[1]) == 4 and TierraToy.es_plana(idm)))      # el haz: púas y lajas propias
+				for mi in mms:
+					inst += (mi as MultiMeshInstance3D).multimesh.instance_count
+					del_mapa = del_mapa and (mi as MultiMeshInstance3D).multimesh.mesh is ArrayMesh and ((mi as MultiMeshInstance3D).material_override as ShaderMaterial).get_shader_parameter("albedo_tex") is Texture2D
+				_ok("[tierra %s] %d piezas (%s) en %d MultiMesh (≤ 5, uno por tipo; ≤ 24 piezas) y polvo + terrones en reserva" % [f[0], n, ", ".join(mallas.keys()), mms.size()],
+					bl != null and n >= 3 and n <= 24 and inst == n and mms.size() == mallas.size() and mms.size() <= 5 and del_mapa and e.find_child("Polvo", true, false) != null and e.find_child("Terrones", true, false) != null)
+				var terr: MultiMeshInstance3D = e.find_child("Terrones", true, false).get_child(0) as MultiMeshInstance3D
+				_ok("[tierra %s] los terrones son la piedra_est_1 del mapa" % f[0], terr != null and terr.multimesh.mesh == TierraToy.malla_roca("piedra_est_1"))
 		e.queue_free()
 		await process_frame
 	# desde_hechizo: la misma regla que el fuego
@@ -245,9 +293,10 @@ func _tierra_sube() -> void:
 	e.sube = 0.1
 	e._avanzar_bloques(0.0)
 	var bajo: bool = true
-	for y in e.alturas_actuales():
-		bajo = bajo and float(y) <= -0.5
-	_ok("con sube = 0,1 (anticipación) todos los bloques siguen bajo tierra (y ≤ −0,5 m)", bajo)
+	var ys: Array = e.alturas_actuales()
+	for j in ys.size():
+		bajo = bajo and float(ys[j]) <= -0.5 * float((e._bloques[j] as Dictionary)["h"])        # las piedras del pie son bajas: se mide contra el alto de cada roca
+	_ok("con sube = 0,1 (anticipación) todas las rocas siguen bajo tierra (y ≤ −½ de su alto)", bajo and ys.size() >= 3)
 	e.sube = 1.0
 	e._avanzar_bloques(0.0)
 	var arriba: bool = true
@@ -289,6 +338,169 @@ func _tierra_sube() -> void:
 	await _esperar(0.6)
 	_ok("…y la figura se libera sola", not is_instance_valid(m))
 	await _esperar(2.2)
+
+
+# ------------------------------------------------------------------ 4b. tierra: el haz de púas en secuencia ------------------------------------------------------------------
+
+func _tierra_haz() -> void:
+	print("== tierra: púas que brotan y se hunden en secuencia, de menor a mayor, con lajas")
+	var e: TierraToy = _nueva("tierra") as TierraToy
+	await process_frame
+	e.definir(TierraToy.Figura.HAZ, 1.5, 0.5, 0.15, false)
+	await process_frame
+	var puas: Array = []
+	var lajas: Array = []
+	for b in e._bloques:
+		var bd: Dictionary = b
+		if String(bd["malla"]).begins_with("pua_"):
+			puas.append(bd)
+		elif String(bd["malla"]).begins_with("laja_"):
+			lajas.append(bd)
+	var t_n: float = e._t_nacer_haz()
+	_ok("púas (%d) + lajas (%d) ≤ 24 piezas, ≤ 5 MultiMesh (%d), 1-2 lajas por púa" % [puas.size(), lajas.size(), e._bloques_mms.size()],
+		puas.size() >= 4 and lajas.size() >= puas.size() and puas.size() + lajas.size() <= 24 and puas.size() + lajas.size() == e._bloques.size() and e._bloques_mms.size() <= 5)
+	var mats_planos: bool = true
+	for mi in e._bloques_mms:
+		mats_planos = mats_planos and float(((mi as MultiMeshInstance3D).material_override as ShaderMaterial).get_shader_parameter("plano")) > 0.99
+	_ok("las púas y las lajas se pintan con color PLANO pardo (plano = 1), no con la textura", mats_planos)
+	# 7/11: coste de un HAZ completo = suma, por MultiMesh, de instancias × vértices de su malla; con las púas del pack (426-620 vértices) 14 púas dan ~7.550, el margen es corto a propósito
+	var vert_haz: int = 0
+	for mi in e._bloques_mms:
+		var mmh: MultiMesh = (mi as MultiMeshInstance3D).multimesh
+		vert_haz += mmh.instance_count * (mmh.mesh.surface_get_arrays(0)[Mesh.ARRAY_VERTEX] as PackedVector3Array).size()
+	_ok("un HAZ completo no pasa de 9.000 vértices sumando todas sus instancias (mide %d en %d MultiMesh)" % [vert_haz, e._bloques_mms.size()], vert_haz > 0 and vert_haz <= 9000)
+	# secuencia: de la mano (z = 0) a la punta (z = -largo): retraso creciente con paso de 0,04-0,06 s; alturas crecientes
+	var orden_ok: bool = true
+	var pasos_ok: bool = true
+	var crecen: int = 0
+	var paso_min: float = 9.0
+	var paso_max: float = 0.0
+	for i in range(1, puas.size()):
+		var a: Dictionary = puas[i - 1]
+		var b: Dictionary = puas[i]
+		orden_ok = orden_ok and (b["pos"] as Vector3).z < (a["pos"] as Vector3).z and float(b["retraso"]) > float(a["retraso"])
+		var paso: float = (float(b["retraso"]) - float(a["retraso"])) * t_n
+		paso_min = minf(paso_min, paso)
+		paso_max = maxf(paso_max, paso)
+		pasos_ok = pasos_ok and paso >= 0.035 and paso <= 0.065
+		if float(b["h"]) > float(a["h"]):
+			crecen += 1
+	_ok("brotan EN SECUENCIA de la mano a la punta (paso %.3f-%.3f s, nacer dura %.2f s)" % [paso_min, paso_max, t_n], orden_ok and pasos_ok and t_n > 0.3 and t_n < 1.2)
+	_ok("de MENOR a MAYOR: la última mide %.2f y la primera %.2f (crecen %d de %d pasos)" % [float(puas[puas.size() - 1]["h"]), float(puas[0]["h"]), crecen, puas.size() - 1], float(puas[puas.size() - 1]["h"]) > float(puas[0]["h"]) * 1.4 and crecen >= (puas.size() - 1) * 0.7)
+	var z_escalon: float = (float((puas[0]["pos"] as Vector3).z) + float((puas.back()["pos"] as Vector3).z)) * 0.5
+	e.anclar_linea_al_suelo(func(p: Vector3) -> float: return 1.0 if p.z < z_escalon else 0.0)
+	_ok("las bases se anclan por separado a ambos niveles del terreno", is_zero_approx((puas[0]["pos"] as Vector3).y) and is_equal_approx((puas.back()["pos"] as Vector3).y, 1.0))
+	_ok("la línea de tierra no dibuja la grieta corrida", float(e.estado_grietas()["avance"]) < 0.0)
+	# A medio nacer: las primeras fuera y las últimas bajo su propio suelo.
+	e.sube = 0.45
+	e._avanzar_bloques(0.0)
+	var ys: Array = e.alturas_actuales()
+	var primera_fuera: bool = float(ys[e._bloques.find(puas[0])]) > -0.1 * float(puas[0]["h"])
+	var ultima_dentro: bool = float(ys[e._bloques.find(puas[puas.size() - 1])]) <= -0.9 * float(puas[puas.size() - 1]["h"])
+	_ok("a mitad (sube 0,45): la primera púa fuera, la última aún bajo tierra", primera_fuera and ultima_dentro)
+	e.sube = 1.0
+	e._avanzar_bloques(0.0)
+	var todas: bool = true
+	for y in e.alturas_actuales():
+		todas = todas and absf(float(y)) < 0.001
+	_ok("con sube = 1 todas asentadas en su propio suelo", todas)
+	# La retirada avanza en el mismo sentido que el brote.
+	e.hunde = 0.35
+	e._avanzar_bloques(0.0)
+	var ys2: Array = e.alturas_actuales()
+	var y_mano: float = float(ys2[e._bloques.find(puas[0])])
+	var y_punta: float = float(ys2[e._bloques.find(puas[puas.size() - 1])])
+	_ok("con hunde = 0,35 el inicio ya baja (%.2f m) y la punta aún no (%.2f m)" % [y_mano, y_punta], y_mano < -0.05 and y_punta > -0.01)
+	e.hunde = 1.0
+	e._avanzar_bloques(0.0)
+	var hundidas: bool = true
+	var ys4: Array = e.alturas_actuales()
+	for j4 in ys4.size():
+		hundidas = hundidas and float(ys4[j4]) < -0.99 * float((e._bloques[j4] as Dictionary)["h"])
+	_ok("con hunde = 1 todas bajo su propio suelo", hundidas)
+	e.queue_free()
+	await process_frame
+	# de verdad: nacer y mirar que las púas salgan una a una con cascotes y polvo
+	var m: TierraToy = _nueva("tierra") as TierraToy
+	await process_frame
+	m.definir(TierraToy.Figura.HAZ, 1.5, 0.5, 0.15, false)
+	await process_frame
+	m.lanzar(-1.0)
+	await _esperar(0.2)
+	var fuera_02: int = 0
+	var ys3: Array = m.alturas_actuales()
+	for j in ys3.size():
+		if String((m._bloques[j] as Dictionary)["malla"]).begins_with("pua_") and float(ys3[j]) > -0.5 * float((m._bloques[j] as Dictionary)["h"]):
+			fuera_02 += 1
+	await _esperar(0.3)
+	var terr: Node = m.find_child("Terrones", true, false)
+	var polvo: Node = m.find_child("Polvo", true, false)
+	_ok("nacer de verdad: a los 0,2 s solo asoman las primeras púas (%d de %d) y a los 0,5 s hay cascotes (%d) y polvo (%d)" % [fuera_02, puas.size(), int(terr.call("vivas")), int(polvo.call("vivas"))],
+		fuera_02 >= 1 and fuera_02 < puas.size() and int(terr.call("vivas")) >= 2 and int(polvo.call("vivas")) >= 2)
+	await _esperar(0.4)
+	m.morir()
+	await _esperar(1.2)
+	_ok("…y el haz se libera solo al hundirse", not is_instance_valid(m))
+	await _esperar(2.2)
+
+
+# ------------------------------------------------------------------ 4c. tierra: cúpula de la barrera y anillo de aviso de la carga ------------------------------------------------------------------
+
+func _tierra_cupula_y_aviso() -> void:
+	print("== tierra: BARRERA = corona cerrada arriba (cúpula) con destello al cerrarse; CARGA = anillo de aviso que gira bajo los pies")
+	var e: TierraToy = _nueva("tierra") as TierraToy
+	await process_frame
+	e.definir(TierraToy.Figura.BARRERA, 1.5, 1.5, 1.5, false)
+	await process_frame
+	var techo: Array = []
+	for b in e._bloques:
+		if bool((b as Dictionary).get("techo", false)):
+			techo.append(b)
+	var techo_alto: bool = true
+	var techo_tarde: bool = true
+	for t in techo:
+		techo_alto = techo_alto and ((t as Dictionary)["pos"] as Vector3).y > 0.6 * 1.5 and ((t as Dictionary)["pos"] as Vector3).length() < 1.5
+		for b2 in e._bloques:
+			if not bool((b2 as Dictionary).get("techo", false)):
+				techo_tarde = techo_tarde and float((t as Dictionary)["retraso"]) > float((b2 as Dictionary)["retraso"])
+	_ok("la corona lleva %d losas de TECHO sobre el centro (y > 0,9 m) que suben las últimas; %d piezas ≤ 24; hay un disco «Brillo» sin luz" % [techo.size(), e._bloques.size()],
+		techo.size() >= 2 and techo.size() <= 3 and techo_alto and techo_tarde and e._bloques.size() <= 24 and e.find_child("Brillo", true, false) != null and e.find_children("*", "Light3D", true, false).is_empty())
+	e.sube = 0.1
+	e._avanzar_bloques(0.0)
+	var bajo: bool = true
+	var ys: Array = e.alturas_actuales()
+	for j in ys.size():
+		var b3: Dictionary = e._bloques[j]
+		bajo = bajo and float(ys[j]) + (b3["pos"] as Vector3).y <= -0.5 * float(b3["h"])
+	_ok("con sube = 0,1 también las losas del techo están bajo tierra (suben desde el suelo)", bajo)
+	e.lanzar(-1.0)
+	await _esperar(0.3)
+	var br0: Dictionary = e.estado_brillo()
+	await _esperar(0.45)
+	var br1: Dictionary = e.estado_brillo()
+	await _esperar(0.5)
+	var br2: Dictionary = e.estado_brillo()
+	_ok("al cerrarse la cúpula (≈0,6 s) el brillo interior se enciende tenue (antes %.2f, al cerrar %.2f ≤ 0,35) y se apaga en 0,4 s (después %.2f)" % [br0["alfa"], br1["alfa"], br2["alfa"]],
+		float(br0["alfa"]) < 0.01 and float(br1["alfa"]) > 0.03 and float(br1["alfa"]) <= 0.35 and float(br2["alfa"]) < 0.01 and float(br2["cerrada_hace"]) > 0.4)
+	e.queue_free()
+	await process_frame
+	# carga: anillo de aviso
+	var c: TierraToy = _nueva("tierra") as TierraToy
+	await process_frame
+	c.global_position = Vector3(0, 1, 0)
+	c.empezar_carga(0.8, 0.4)
+	await _esperar(0.3)
+	var av0: Dictionary = c.estado_aviso()
+	await _esperar(0.2)
+	var av1: Dictionary = c.estado_aviso()
+	var aviso: MultiMeshInstance3D = c.find_child("Aviso", true, false) as MultiMeshInstance3D
+	_ok("en la carga hay un anillo «Aviso» de %d piedrecitas (radio %.2f m) que GIRA a ras de suelo bajo los pies (%.2f → %.2f rad en 0,2 s)" % [int(av1["n"]), av1["radio"], av0["ang"], av1["ang"]],
+		aviso != null and aviso.multimesh.instance_count == TierraToy.N_AVISO and bool(av1["vivo"]) and float(av1["ang"]) > float(av0["ang"]) + 0.3 and float(av1["radio"]) > 0.5)
+	c.soltar(Vector3(0, 0, -1))
+	await process_frame
+	_ok("al soltar el aviso se retira (oculto)", not is_instance_valid(aviso) or not aviso.visible)
+	c.queue_free()
+	await _esperar(0.8)
 
 
 # ------------------------------------------------------------------ 5. carga ------------------------------------------------------------------
@@ -382,6 +594,38 @@ func _impactos(cl: String) -> void:
 			_ok("[tierra %s] las piedras salen en el hemisferio de la normal (0 por debajo: %d) y CAEN (%d de %d)" % [c[0], bajo, cae, tot], bajo == 0 and tot > 0 and cae == tot)
 			var pv: Node = imp.find_child("Polvo", true, false)
 			_ok("[tierra %s] nube de polvo toon pardo (%d bocanadas)" % [c[0], int(pv.call("vivas"))], pv != null and int(pv.call("vivas")) >= 4)
+			if int(c[1]) == 0:
+				# GOLPE: anillo que se abre (0 → 1 en 0,15 s) y se va (≈0,6 s), púas que asoman en el centro y se retiran
+				imp.call("avanzar_a", 0.02)
+				var an0: Dictionary = imp.call("anillo_estado")
+				var p0: Array = imp.call("puas_estado", 0.0)
+				imp.call("avanzar_a", 0.16)
+				var an1: Dictionary = imp.call("anillo_estado")
+				var p1: Array = imp.call("puas_estado", 0.25)
+				imp.call("avanzar_a", 1.15)
+				var an2: Dictionary = imp.call("anillo_estado")
+				var p2: Array = imp.call("puas_estado", 0.85)
+				_ok("[tierra %s] ANILLO en la superficie (radio %.2f m): apertura %.2f → %.2f (0,15 s) y vida %.2f → %.2f (1,15 s)" % [c[0], an1.get("radio", 0.0), an0.get("apertura", -1.0), an1.get("apertura", -1.0), an1.get("vida", -1.0), an2.get("vida", -1.0)],
+					bool(an0["hay"]) and float(an0["apertura"]) < 0.3 and float(an1["apertura"]) > 0.99 and float(an1["vida"]) > 0.99 and float(an2["vida"]) < 0.05 and float(an1["radio"]) > 0.4)
+				_ok("[tierra %s] %d púas que ASOMAN (0 → %.2f m a 0,25 s) y se RETIRAN (%.2f m a 0,85 s); el polvo + cascotes no suben de la cuenta (%d + %d)" % [c[0], p1.size(), p1[0], p2[0], rc[0], rc[1]],
+					p0.size() == 3 and float(p0[0]) < 0.001 and float(p1[0]) > 0.3 and float(p2[0]) < 0.001 and int(rc[0]) <= 12 and int(rc[1]) <= 14 and imp.find_child("Puas", true, false) != null)
+			elif int(c[1]) == 3:
+				# AREA: cascotes en ESPIRAL baja (velocidad sobre todo tangente) y la nube con el centro más claro
+				var esp: int = 0
+				var tot2: int = 0
+				for g in imp.call("piedras_estado", 0.02):
+					var gd: Dictionary = g
+					var p: Vector3 = (gd["pos"] as Vector3) - imp.global_position
+					var pr: Vector2 = Vector2(p.x, p.z).normalized()
+					var vd: Vector3 = gd["dir"]
+					var vh: Vector2 = Vector2(vd.x, vd.z)
+					if vh.length() > 0.01 and pr.length() > 0.01:
+						tot2 += 1
+						if absf(vh.normalized().cross(pr)) > 0.5:
+							esp += 1
+				var pc: Node = imp.find_child("PolvoCentro", true, false)
+				_ok("[tierra AREA] los cascotes salen en ESPIRAL (%d de %d con más tangente que radial) y la nube lleva un centro más claro (%d bocanadas)" % [esp, tot2, int(pc.call("vivas")) if pc != null else -1],
+					tot2 >= 10 and esp >= tot2 * 0.8 and pc != null and int(pc.call("vivas")) >= 4 and (pc.get_child(0) as MultiMeshInstance3D).material_override.get_shader_parameter("color_claro").r > TierraToy.POLVO_CLARO.r)
 		elif cl == "viento":
 			var est: Dictionary = imp.call("estado")
 			var humo: Array = est["humo"]

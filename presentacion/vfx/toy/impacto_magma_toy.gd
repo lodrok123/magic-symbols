@@ -39,6 +39,12 @@ const T_ESQUIRLA: float = 1.0           ## s en que una esquirla pasa de calor 1
 const T_ESQUIRLA_FIN: float = 1.25      ## s en que se ha encogido y ya no se ve
 const T_ENFRIAR: float = 2.0            ## s en que el cráter pasa de amarillo a gris
 const T_CRATER: float = 3.0             ## s en que el cráter se ha desvanecido
+const TEX_MARCA: String = "res://assets/vfx/lelu_noise/T_Groundmark19.png"   ## 7/11: la tierra partida de alrededor del crater (pack de LeLu)
+const COLOR_MARCA: Color = Color(0.34, 0.05, 0.03)   ## carmesi oscuro: la grieta en si
+const COLOR_MARCA_EMISION: Color = Color(0.95, 0.22, 0.05)  ## lo que arde dentro de esa grieta (rojo anaranjado)
+const EMISION_MARCA: float = 1.6
+const ALTO_DECAL: float = 1.6                         ## m de alto de la caja del decal
+var _marca: MeshInstance3D = null                     ## la tierra partida, como decal pegado al relieve
 const REBOTE_K: float = 0.32            ## cuánto conserva la esquirla al rebotar
 const COS_SUELO: float = 0.7
 const N_PETALOS: int = 5
@@ -272,6 +278,12 @@ func _construir() -> void:
 		_crater.position = Vector3(0, 0.025, 0)
 		_crater.rotation.y = _giro0
 		_plano.add_child(_crater)
+		# 7/11 (Pablo: «en magma, para darle identidad, usa tonos rojos y carmesís y aspecto más ígneo»): fuera del cráter, la TIERRA PARTIDA como decal, que se pega al relieve igual
+		# que la del golpe de tierra pero en CARMESÍ y ENCENDIDA (`emision`), como si la roca se hubiera abierto al rojo. Se enfría con el cráter (misma `vida`).
+		_marca = TierraToy.crear_decal_suelo("Marca", 2.2 * rc, 2.2 * rc, ALTO_DECAL, {"mascara": load(TEX_MARCA), "color": COLOR_MARCA,
+			"color_emision": COLOR_MARCA_EMISION, "emision": EMISION_MARCA, "vida": 1.0, "fuerza": 1.0}, Vector3(0, 0.0, 0), -3)
+		_marca.rotation.y = _rng.randf() * TAU
+		_plano.add_child(_marca)
 		var np: int = N_PETALOS if variante != Variante.AREA else 8
 		for j in np:
 			var a: float = TAU * float(j) / float(np) + _rng.randf_range(-0.2, 0.2)
@@ -400,7 +412,13 @@ func avanzar_a(t: float) -> void:
 	var calor_c: float = calor_crater(t)
 	if _mat_crater != null:
 		_mat_crater.set_shader_parameter("calor", calor_c)
-		_mat_crater.set_shader_parameter("vida", smoothstep(0.0, 0.04, t) * (1.0 - smoothstep(T_ENFRIAR, T_CRATER, t)))
+		var v_crater: float = smoothstep(0.0, 0.04, t) * (1.0 - smoothstep(T_ENFRIAR, T_CRATER, t))
+		_mat_crater.set_shader_parameter("vida", v_crater)
+		if _marca != null and is_instance_valid(_marca):
+			# la tierra partida se enfría con el cráter: se apaga antes de irse (la emisión cae con el calor, el carmesí aguanta un poco más)
+			var mmc: ShaderMaterial = _marca.material_override as ShaderMaterial
+			mmc.set_shader_parameter("vida", v_crater)
+			mmc.set_shader_parameter("emision", EMISION_MARCA * calor_c)
 	if _pet_mm != null:
 		var mm: MultiMesh = _pet_mm.multimesh
 		var sal: float = smoothstep(0.0, 0.12, t)                                 # los pétalos se levantan en 0,12 s

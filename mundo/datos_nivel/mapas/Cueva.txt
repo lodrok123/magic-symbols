@@ -38,7 +38,7 @@
 ; zona 19,11..25,18 cueva_hielo mezcla=0.8 nombre=hielo
 ; zona 10,11..17,18 cueva_ruinas mezcla=0.8 nombre=ruinas
 ; --- Conexión con el Bosque (23/10, transición entre niveles): se entra por `desde_bosque` (la casilla de inicio, mirando al interior) y se vuelve pisando la boca, justo debajo ---
-; La boca del Bosque 01 v01 se llama `boca_cueva`: si ese nivel aún no existe, pisar la salida avisa y no pasa nada.
+; La salida devuelve al bosque de origen. Sin origen guardado, usa la boca de Bosque 02.
 ; pieza desde_bosque entrada 4 17
 ; pieza a_bosque salida 3 18 celdas=3,18..5,18 a=Bosque_02:boca_cueva
 ; --- Jarrones (mapas abiertos, 23/10): el botín lo decide la zona (`cueva`: oro, y a veces una esquirla de cristal) ---

@@ -1,0 +1,49 @@
+[gd_scene format=3]
+
+[ext_resource type="ArrayMesh" path="res://arte/provencal/obj/SM_Tree_Cypress.obj" id="1_vwtfd"]
+[ext_resource type="Texture2D" path="res://arte/provencal/detalle/T_Flora_Atlas_02_B.png" id="2_osu4l"]
+[ext_resource type="Texture2D" path="res://arte/provencal/detalle/T_WoodTrunk_B.png" id="3_c0un3"]
+[ext_resource type="Texture2D" path="res://arte/provencal/detalle/T_WoodTrunk_N.png" id="4_jc6f3"]
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_6lc35"]
+transparency = 2
+alpha_scissor_threshold = 0.5
+alpha_antialiasing_mode = 0
+cull_mode = 2
+albedo_color = Color(0.375, 0.65, 0.29999998, 1)
+albedo_texture = ExtResource("2_osu4l")
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_x6gtw"]
+albedo_color = Color(0.6862745, 0.4509804, 0.25, 1)
+albedo_texture = ExtResource("3_c0un3")
+normal_enabled = true
+normal_texture = ExtResource("4_jc6f3")
+
+[sub_resource type="ConvexPolygonShape3D" id="ConvexPolygonShape3D_odwmw"]
+points = PackedVector3Array(-0.4730365, 0.7545977, 0.108198576, -0.23167275, 3.6487904, -0.072517216, 0.19031231, 0.63369155, 0.47019696, 0.2505824, 0.5736163, -0.4345156, -0.050768033, 3.708866, 0.22883321, 0.19031231, 3.7693188, -0.19315186, -0.17140266, 0.8751261, -0.49488014, 0.4920406, 0.7545977, 0.16856313, -0.11103812, -0.029403452, -0.1327873, -0.23167275, 0.7545977, 0.47019696, 0.19031231, -0.029403452, 0.16856313, 0.2505824, 3.0453928, 0.16856313, 0.43167606, 0.7545977, -0.3137865, -0.4730365, 0.8751261, 0.28919777, -0.4730365, 0.8751261, -0.19315186, -0.17140266, -0.029403452, 0.108198576, 0.31094694, 3.2263741, -0.072517216, 0.19031231, 0.93557924, -0.49488014, 0.31094694, 1.2370892, 0.40983242, -0.17140266, 3.4678092, -0.19315186, 0.19031231, -0.029403452, -0.1327873, -0.23167275, 0.51316315, -0.4345156, 0.06967767, 1.2370892, 0.47019696, 0.37121704, 2.1408632, -0.25342196, 0.4920406, 0.51316315, 0.108198576, -0.23167275, 3.6487904, 0.04792849, -0.41267195, 0.81467307, -0.3137865, 0.12994777, 0.51316315, -0.49488014, -0.050768033, 3.3469026, -0.25342196, 0.4920406, 0.93557924, -0.072517216, 0.2505824, 3.5278842, 0.04792849, -0.17140266, 0.4530879, 0.40983242)
+
+[node name="prov_tree_cypress" type="Node3D" unique_id=718832273]
+metadata/id = "prov_tree_cypress"
+metadata/bloquea = true
+metadata/reactivo = false
+metadata/inflamable = false
+metadata/origen = "Fantasy Provencal (Leartes Studios)"
+metadata/pieza_original = "SM_Tree_Cypress"
+metadata/lod = 0
+metadata/triangulos = 4210
+metadata/categoria = "vegetacion"
+
+[node name="modelo" type="Node3D" parent="." unique_id=2033247970]
+
+[node name="malla" type="MeshInstance3D" parent="modelo" unique_id=1083280219]
+transform = Transform3D(0.38143712, 0, 0, 0, 0.38143712, 0, 0, 0, 0.38143712, -0.0012880862, 0, -0.006882459)
+mesh = ExtResource("1_vwtfd")
+surface_material_override/0 = SubResource("StandardMaterial3D_6lc35")
+surface_material_override/1 = SubResource("StandardMaterial3D_x6gtw")
+
+[node name="cuerpo" type="StaticBody3D" parent="." unique_id=1849834909]
+collision_layer = 1024
+collision_mask = 0
+
+[node name="forma_0" type="CollisionShape3D" parent="cuerpo" unique_id=10704256]
+shape = SubResource("ConvexPolygonShape3D_odwmw")

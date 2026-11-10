@@ -1,0 +1,39 @@
+[gd_scene format=3]
+
+[ext_resource type="ArrayMesh" path="res://arte/provencal/obj/SM_Shrine_Candle.obj" id="1_uhq01"]
+[ext_resource type="Texture2D" path="res://arte/provencal/detalle/T_Shrine_Candle_B.png" id="2_p3y0n"]
+[ext_resource type="Texture2D" path="res://arte/provencal/detalle/T_Shrine_Candle_N.png" id="3_sy8uk"]
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_t6epf"]
+albedo_color = Color(1.1862745, 1.137255, 0.9852941, 1)
+albedo_texture = ExtResource("2_p3y0n")
+normal_enabled = true
+normal_texture = ExtResource("3_sy8uk")
+
+[sub_resource type="ConvexPolygonShape3D" id="ConvexPolygonShape3D_404ao"]
+points = PackedVector3Array(0.15659924, 0.4438764, 0.2789466, -0.3022492, 0.38274455, -0.11869809, -0.3022492, 0.38274455, 0.095335364, -0.057434216, 1.9424697, 0.003649518, 0.2177431, 0.38274455, -0.2410457, 0.034191746, -0.015283346, 0.034191508, -0.11869785, 0.38274455, -0.30224943, 0.3095487, 0.4438764, 0.06473349, -0.08803609, 0.38274455, 0.30954847, 0.034191746, 1.9424697, -0.026892468, 0.034191746, 1.8506761, 0.06473349, 0.3095487, 0.38274455, -0.08803633, -0.21044359, 0.4438764, 0.24834473, 0.0953356, 0.38274455, -0.30224943, -0.02689223, -0.015283346, -0.026892468, 0.27894685, 0.38274455, 0.156599, -0.057434216, 1.9424697, 0.034191508, -0.17978182, 0.4438764, -0.27164757, 0.06473373, 0.38274455, 0.30954847, -0.24104546, 0.38274455, 0.21774286, -0.3022492, 0.4438764, -0.11869809, -0.11869785, 0.4438764, -0.30224943, -0.08803609, 0.4438764, 0.30954847, 0.0953356, 0.4438764, -0.30224943, 0.24834497, 0.4438764, -0.21044382, -0.3022492, 0.4438764, 0.095335364, 0.034191746, -0.015283346, -0.026892468, 0.3095487, 0.4438764, -0.08803633, -0.27164733, 0.4438764, -0.17978206, -0.02689223, 1.9424697, -0.026892468, 0.27894685, 0.4438764, 0.156599, 0.06473373, 0.4438764, 0.30954847)
+
+[node name="prov_shrine_candle" type="Node3D" unique_id=652178729]
+metadata/id = "prov_shrine_candle"
+metadata/bloquea = true
+metadata/reactivo = false
+metadata/inflamable = false
+metadata/origen = "Fantasy Provencal (Leartes Studios)"
+metadata/pieza_original = "SM_Shrine_Candle"
+metadata/lod = 0
+metadata/triangulos = 3364
+metadata/categoria = "atrezo"
+
+[node name="modelo" type="Node3D" parent="." unique_id=257506277]
+
+[node name="malla" type="MeshInstance3D" parent="modelo" unique_id=871897848]
+transform = Transform3D(0.5402, 0, 0, 0, 0.5402, 0, 0, 0, 0.5402, 0, 1.9180455, -2.3841858e-07)
+mesh = ExtResource("1_uhq01")
+surface_material_override/0 = SubResource("StandardMaterial3D_t6epf")
+
+[node name="cuerpo" type="StaticBody3D" parent="." unique_id=330007568]
+collision_layer = 1024
+collision_mask = 0
+
+[node name="forma_0" type="CollisionShape3D" parent="cuerpo" unique_id=1832608734]
+shape = SubResource("ConvexPolygonShape3D_404ao")

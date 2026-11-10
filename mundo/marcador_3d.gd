@@ -84,6 +84,8 @@ const LETRAS: Dictionary = {
 	# qué hace al abrirse (botín) lo decide el Juego con la señal `abierto`. Grupo propio: no es un Reactivo3D.
 	"Z": {"grupo": "cofre", "tipo": "cofre", "rotulo": "COFRE", "color": Color(1.0, 0.8, 0.25), "pieza": "cofre"},
 	"u": {"grupo": "reactivo", "tipo": "surtidor", "rotulo": "TINAJA", "color": Color(0.4, 0.7, 1.0), "pieza": "tinaja_ruina"},
+	# 7/11: cuenco de piedra con agua. Sin `pieza`: el visual lo monta el propio Reactivo3D (pila del puzle); `cuenco_piedra.glb` es una laja plana y en el editor engañaría.
+	"C": {"grupo": "reactivo", "tipo": "cuenco", "rotulo": "CUENCO DE AGUA", "color": Color(0.4, 0.7, 1.0)},
 	# 10/10: campamento goblin. Estos dos ARDEN (tienda, empalizada y estandarte son decorado puro: letras t, x y V, sin marcador).
 	"y": {"grupo": "reactivo", "tipo": "puerta_goblin", "rotulo": "PUERTA GOBLIN", "color": Color(0.8, 0.3, 0.2), "pieza": "puerta_goblin"},
 	"o": {"grupo": "reactivo", "tipo": "torre_goblin", "rotulo": "TORRE GOBLIN", "color": Color(0.8, 0.3, 0.2), "pieza": "torre_goblin"},

@@ -3,6 +3,8 @@ render_mode unshaded, cull_back, depth_draw_never, blend_mix, fog_disabled;
 
 // ESFERA DE AGUA (cara delantera). Translúcida: el centro deja ver lo de detrás, el borde se aclara por fresnel y el interior lleva la red de cáusticas en movimiento; un núcleo algo más
 // claro hacia el centro. Sin emisión ni luz. La cara trasera (agua_esfera_atras.gdshader) va debajo para dar volumen. Ver agua_toy.gdshaderinc.
+#define AGUA_CON_EROSION
+#define AGUA_ERO_ESCALA 2.5
 #include "res://presentacion/vfx/toy/agua_toy.gdshaderinc"
 
 uniform float radio = 0.4;               // radio de la malla en metros (normaliza la posición del objeto)
@@ -34,7 +36,11 @@ void fragment() {
 	vec3 col = agua_tonos(v, 0.40, 0.88, 0.07);
 	col = agua_cau_color(col, cau, 0.35);
 	col = agua_borde(col, fres, 0.55);
-	ALBEDO = col * brillo;
+	// con la erosion encendida la esfera no baja de alfa al morir: se COME por ruido (avance = 1 - vida) y el filo se tiñe con la espuma (tono_c)
+	float vv = agua_fade(vida);
+	float av = agua_ero_av(1.0 - vida);
+	vec3 pe = p_obj + vec3(semilla * 13.0);
+	ALBEDO = agua_ero_tinte(col, pe, av) * brillo;
 	float a = mix(opacidad, 0.93, fres) + 0.2 * cau * (1.0 - fres) + 0.1 * nucleo + 0.18 * espuma;
-	ALPHA = clamp(a, 0.0, 0.94) * vida * agua_prof(SCREEN_UV, VERTEX.z, suave_prof, INV_PROJECTION_MATRIX);
+	ALPHA = agua_ero_alfa(clamp(a, 0.0, 0.94) * vv * agua_prof(SCREEN_UV, VERTEX.z, suave_prof, INV_PROJECTION_MATRIX), pe, av);
 }

@@ -123,6 +123,7 @@ func _escenario() -> void:
 	await _b1_prevision()
 	await _b2_llamarada()
 	await _b2_cegado()
+	await _b2_arquero_fijo()
 	await _b2_prevision()
 	await _b7_fuego_amigo()
 	_b7_rayo()
@@ -521,6 +522,40 @@ func _b2_cegado() -> void:
 	d.cegado = Combate3D.CEGADO_S
 	await avanzar_s(0.3)
 	_ok("2 si ya la perseguía y se queda ciego, la pierde: «%s» → «%s»" % ["persigue" if perseguia else d.estado, d.estado], perseguia and d.estado == "busca")
+	await _limpiar()
+
+
+## 7/11 · el arquero de PUESTO (`fijo`) pasa por `_ve` como el resto: a tiro y con línea libre la ve; cegado o con vapor (suyo o de ella) no. Se llama a su IA a mano (`_ia_arquero_fijo`).
+func _b2_arquero_fijo() -> void:
+	var est: EstadosSuelo3D = Terreno3D.estados
+	var j: Jugador3D = _jugadora(Vector2i(11, FILA))
+	var a: Combate3D = _goblin(j.position + Vector3(3.5, 0, 0))      # 3,5 u: la distancia con línea libre ya probada en R4 y 2 (a 6 u algo de la fila la cortaba)
+	a.arquero = true
+	a.fijo = true
+	a.quieto = false
+	var ca: Vector2i = Terreno3D.celda_de(a.position)
+	var cj: Vector2i = Terreno3D.celda_de(j.position)
+	a._ia_arquero_fijo(1.0 / 30.0)
+	_ok("2 arquero fijo (control): a tiro y con línea libre la ve", a.objetivo == j)
+	a.cegado = Combate3D.CEGADO_S
+	a._ia_arquero_fijo(1.0 / 30.0)
+	_ok("2 arquero fijo cegado: no la ve y suelta el objetivo", a.objetivo == null and a._carga == 0.0)
+	a.cegado = 0.0
+	a._ia_arquero_fijo(1.0 / 30.0)
+	_ok("2 arquero fijo, pasado el cegado: la vuelve a ver", a.objetivo == j)
+	est.poner(cj, EstadosSuelo3D.VAPOR, true)
+	a._ia_arquero_fijo(1.0 / 30.0)
+	_ok("2 arquero fijo con vapor en la casilla de ella: no la ve", a.objetivo == null)
+	est.poner(cj, EstadosSuelo3D.VAPOR, false)
+	est.poner(ca, EstadosSuelo3D.VAPOR, true)
+	a._ia_arquero_fijo(1.0 / 30.0)
+	_ok("2 arquero fijo con vapor en su casilla: no la ve", a.objetivo == null)
+	est.poner(ca, EstadosSuelo3D.VAPOR, false)
+	a._ia_arquero_fijo(1.0 / 30.0)
+	_ok("2 arquero fijo sin vapor: la vuelve a ver", a.objetivo == j)
+	var p0: Vector3 = a.position
+	a._ia_arquero_fijo(1.0 / 30.0)
+	_ok("2 arquero fijo no se mueve del sitio", a.position == p0 and a.moviendo == 0)
 	await _limpiar()
 
 

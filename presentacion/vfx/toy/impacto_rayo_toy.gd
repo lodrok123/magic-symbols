@@ -283,21 +283,28 @@ func avanzar_a(t: float) -> void:
 	var grueso: float = 0.07 * sqrt(maxf(r / 0.4, 0.4)) + 0.04
 	match variante:
 		Variante.GOLPE, Variante.REBOTE:
+			var toon: bool = variante == Variante.GOLPE and RayoTrazos.prueba_toon
 			var env: float = 1.0 - smoothstep(0.1, T_DESCARGA_GOLPE if variante == Variante.GOLPE else T_DESCARGA, t)
 			var hasta: float = clampf(t / 0.04, 0.0, 1.0)                 # salen disparadas en los primeros 0,04 s
 			var nd: int = int(_p["descargas"])
 			for k in nd:
 				var ang: float = TAU * float(k) / float(nd) + _rng.randf_range(-0.4, 0.4)
 				var elev: float = _rng.randf_range(0.45, 0.97) if variante == Variante.GOLPE else _rng.randf_range(0.12, 0.85)       # el GOLPE: ramas casi verticales (referencia en vídeo, «Impact»)
+				if toon:
+					elev = lerpf(0.2, 0.65, elev)
 				var dir: Vector3 = Vector3(cos(ang) * (1.0 - elev), elev, sin(ang) * (1.0 - elev)).normalized()
-				var largo: float = r * _rng.randf_range(1.8, 3.2)
+				var largo: float = r * _rng.randf_range(1.8, 3.2) * (1.55 if toon else 1.0)
 				var pts: PackedVector3Array = RayoTrazos.camino(Vector3(0, 0.03, 0), dir * largo, 5, 0.28 * r + 0.03, _rng)
 				for q in pts.size():
 					var pq: Vector3 = pts[q]
 					pq.y = maxf(pq.y, 0.0)                                 # nada bajo la superficie
 					pts[q] = pq
-				RayoTrazos.trazar(lista, pts, grueso, env, hasta, 1.0, 0.5, float(k))
-				RayoTrazos.ramas(lista, pts, 1, largo * 0.4, grueso * 0.6, env * 0.8, hasta, _rng, 2)
+				if toon:
+					var ancho_raiz: float = grueso * (1.85 if k % 2 == 0 else 1.15)
+					RayoTrazos.trazar(lista, pts, ancho_raiz, env, hasta, 0.82, 0.25, float(k), 0.12)
+				else:
+					RayoTrazos.trazar(lista, pts, grueso, env, hasta, 1.0, 0.5, float(k))
+					RayoTrazos.ramas(lista, pts, 1, largo * 0.4, grueso * 0.6, env * 0.8, hasta, _rng, 2)
 		Variante.FIN:
 			var env2: float = 1.0 - smoothstep(0.08, T_DESCARGA, t)
 			for k in int(_p["descargas"]):
@@ -335,7 +342,9 @@ func avanzar_a(t: float) -> void:
 		var u: float = clampf(t / T_DESTELLO, 0.0, 1.0)
 		var d: float = r * float(_p["dest"])
 		var pos_d: Vector3 = Vector3(0, 0.3 * r, 0) if variante != Variante.FIN else Vector3.ZERO
-		RayoTrazos.poner_destello(mb, n_ch, pos_d, d * lerpf(0.5, 1.1, sqrt(u)), (1.0 - u) if u < 1.0 else 0.0, 0.9, _giro0 + t * 2.0, 0.2)
+		var toon: bool = variante == Variante.GOLPE and RayoTrazos.prueba_toon
+		var estrella: float = 0.0 if toon else 0.9
+		RayoTrazos.poner_destello(mb, n_ch, pos_d, d * lerpf(0.5, 1.1, sqrt(u)), (1.0 - u) if u < 1.0 else 0.0, estrella, _giro0 + t * 2.0, 0.2)
 		var u_h: float = clampf(t / (T_DESTELLO * 0.8), 0.0, 1.0)
 		RayoTrazos.poner_destello(mb, n_ch + 1, pos_d, d * 1.7 * lerpf(0.5, 1.0, u_h), 0.45 * (1.0 - u_h) if u_h < 1.0 else 0.0, 0.0, 0.0, 0.5)
 		i_b = 2

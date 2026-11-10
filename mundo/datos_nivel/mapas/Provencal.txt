@@ -1,0 +1,150 @@
+; MAPA DE MUESTREO del pack Fantasy Provencal (Leartes Studios), 7/11/2026. 65 x 44. Lo GENERA herramientas/generar_mapa_provencal.gd (no editar a mano: se pisa al regenerar).
+; Para pasear con la jugadora y revisar las piezas en el juego: escena escenas/PruebaProvencal.tscn (F6 en el editor) o el nivel «Provencal» de Niveles.ESCENAS.
+; Zonas (2 x 3, separadas por caminos): fila 1 ATREZO · MADERA_Y_PASO; fila 2 ROCA · EDIFICIO; fila 3 VEGETACION. Cada pieza en su casilla con 1 libre alrededor; tras cada prov_* van
+; sus equivalentes del proyecto (barril, caja, jarron, valla, puente, arbusto, arbol_redondo, hierba_alta, roca_grande, rocas_pequenas, roca_musgosa, puesto, arco_ruina, estatua_piedra).
+; # limite · , hierba corta · g camino · S jugadora (camino central).
+#################################################################
+#ggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggg#
+#ggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggg#
+#gg,,,,,,,,,,,,,,,,,,,,,,,,,,,,ggg,,,,,,,,,,,,,,,,,,,,,,,,,,,,gg#
+#gg,,,,,,,,,,,,,,,,,,,,,,,,,,,,ggg,,,,,,,,,,,,,,,,,,,,,,,,,,,,gg#
+#gg,,,,,,,,,,,,,,,,,,,,,,,,,,,,ggg,,,,,,,,,,,,,,,,,,,,,,,,,,,,gg#
+#gg,,,,,,,,,,,,,,,,,,,,,,,,,,,,ggg,,,,,,,,,,,,,,,,,,,,,,,,,,,,gg#
+#gg,,,,,,,,,,,,,,,,,,,,,,,,,,,,ggg,,,,,,,,,,,,,,,,,,,,,,,,,,,,gg#
+#gg,,,,,,,,,,,,,,,,,,,,,,,,,,,,ggg,,,,,,,,,,,,,,,,,,,,,,,,,,,,gg#
+#ggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggg#
+#ggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggg#
+#ggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggg#
+#gg,,,,,,,,,,,,,,,,,,,,,,,,,,,,ggg,,,,,,,,,,,,,,,,,,,,,,,,,,,,gg#
+#gg,,,,,,,,,,,,,,,,,,,,,,,,,,,,ggg,,,,,,,,,,,,,,,,,,,,,,,,,,,,gg#
+#gg,,,,,,,,,,,,,,,,,,,,,,,,,,,,ggg,,,,,,,,,,,,,,,,,,,,,,,,,,,,gg#
+#gg,,,,,,,,,,,,,,,,,,,,,,,,,,,,ggg,,,,,,,,,,,,,,,,,,,,,,,,,,,,gg#
+#gg,,,,,,,,,,,,,,,,,,,,,,,,,,,,ggg,,,,,,,,,,,,,,,,,,,,,,,,,,,,gg#
+#gg,,,,,,,,,,,,,,,,,,,,,,,,,,,,ggg,,,,,,,,,,,,,,,,,,,,,,,,,,,,gg#
+#gg,,,,,,,,,,,,,,,,,,,,,,,,,,,,ggg,,,,,,,,,,,,,,,,,,,,,,,,,,,,gg#
+#gg,,,,,,,,,,,,,,,,,,,,,,,,,,,,ggg,,,,,,,,,,,,,,,,,,,,,,,,,,,,gg#
+#gg,,,,,,,,,,,,,,,,,,,,,,,,,,,,gSg,,,,,,,,,,,,,,,,,,,,,,,,,,,,gg#
+#gg,,,,,,,,,,,,,,,,,,,,,,,,,,,,ggg,,,,,,,,,,,,,,,,,,,,,,,,,,,,gg#
+#gg,,,,,,,,,,,,,,,,,,,,,,,,,,,,ggg,,,,,,,,,,,,,,,,,,,,,,,,,,,,gg#
+#gg,,,,,,,,,,,,,,,,,,,,,,,,,,,,ggg,,,,,,,,,,,,,,,,,,,,,,,,,,,,gg#
+#gg,,,,,,,,,,,,,,,,,,,,,,,,,,,,ggg,,,,,,,,,,,,,,,,,,,,,,,,,,,,gg#
+#gg,,,,,,,,,,,,,,,,,,,,,,,,,,,,ggg,,,,,,,,,,,,,,,,,,,,,,,,,,,,gg#
+#gg,,,,,,,,,,,,,,,,,,,,,,,,,,,,ggg,,,,,,,,,,,,,,,,,,,,,,,,,,,,gg#
+#gg,,,,,,,,,,,,,,,,,,,,,,,,,,,,ggg,,,,,,,,,,,,,,,,,,,,,,,,,,,,gg#
+#gg,,,,,,,,,,,,,,,,,,,,,,,,,,,,ggg,,,,,,,,,,,,,,,,,,,,,,,,,,,,gg#
+#ggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggg#
+#ggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggg#
+#ggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggg#
+#gg,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,gg#
+#gg,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,gg#
+#gg,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,gg#
+#gg,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,gg#
+#gg,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,gg#
+#gg,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,gg#
+#gg,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,gg#
+#gg,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,gg#
+#gg,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,gg#
+#ggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggg#
+#ggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggg#
+#################################################################
+; rotulo 17 2 ATREZO
+; rect ATREZO 3 3 28 6
+; pieza d_prov_barrel decorado 4 4 modelo=prov_barrel
+; pieza d_barril decorado 6 4 modelo=barril
+; pieza d_prov_barrel_open decorado 8 4 modelo=prov_barrel_open
+; pieza d_prov_bench decorado 10 4 modelo=prov_bench
+; pieza d_prov_cart decorado 14 4 modelo=prov_cart
+; pieza d_prov_crate_01 decorado 17 4 modelo=prov_crate_01
+; pieza d_caja decorado 19 4 modelo=caja
+; pieza d_prov_crate_02 decorado 21 4 modelo=prov_crate_02
+; pieza d_prov_crate_03 decorado 23 4 modelo=prov_crate_03
+; pieza d_prov_jar_01 decorado 25 4 modelo=prov_jar_01
+; pieza d_jarron decorado 27 4 modelo=jarron
+; pieza d_prov_jar_02 decorado 4 6 modelo=prov_jar_02
+; pieza d_prov_shrine_candle decorado 6 6 modelo=prov_shrine_candle
+; pieza d_prov_stool decorado 8 6 modelo=prov_stool
+; rotulo 48 2 MADERA_Y_PASO
+; rect MADERA_Y_PASO 34 3 28 6
+; pieza d_prov_bridge decorado 37 4 modelo=prov_bridge
+; pieza d_puente decorado 40 4 modelo=puente
+; pieza d_prov_door decorado 42 4 modelo=prov_door
+; pieza d_prov_fence_01 decorado 44 4 modelo=prov_fence_01
+; pieza d_valla decorado 46 4 modelo=valla
+; pieza d_prov_fence_02 decorado 48 4 modelo=prov_fence_02
+; pieza d_prov_watermill_wheel decorado 50 4 modelo=prov_watermill_wheel
+; pieza d_prov_woodenbeam_01 decorado 52 4 modelo=prov_woodenbeam_01
+; pieza d_prov_woodenbeam_02 decorado 54 4 modelo=prov_woodenbeam_02
+; pieza d_prov_woodenbeam_03 decorado 56 4 modelo=prov_woodenbeam_03
+; pieza d_prov_woodenbeam_04 decorado 58 4 modelo=prov_woodenbeam_04
+; pieza d_prov_woodenbeam_05 decorado 35 6 modelo=prov_woodenbeam_05
+; pieza d_prov_woodenplank_01 decorado 37 6 modelo=prov_woodenplank_01
+; pieza d_prov_woodenplank_02 decorado 39 6 modelo=prov_woodenplank_02
+; pieza d_prov_woodenplank_03 decorado 41 6 modelo=prov_woodenplank_03
+; rotulo 17 11 ROCA
+; rect ROCA 3 12 28 9
+; pieza d_prov_rock_cliff_01 decorado 4 13 modelo=prov_rock_cliff_01
+; pieza d_roca_musgosa decorado 6 13 modelo=roca_musgosa
+; pieza d_prov_rock_cliff_02 decorado 8 13 modelo=prov_rock_cliff_02
+; pieza d_prov_rock_cliff_03 decorado 10 13 modelo=prov_rock_cliff_03
+; pieza d_prov_rock_cliff_04 decorado 12 13 modelo=prov_rock_cliff_04
+; pieza d_prov_rock_large_01 decorado 14 15 modelo=prov_rock_large_01
+; pieza d_roca_grande decorado 16 15 modelo=roca_grande
+; pieza d_prov_rock_large_02 decorado 18 13 modelo=prov_rock_large_02
+; pieza d_prov_rock_small_01 decorado 20 13 modelo=prov_rock_small_01
+; pieza d_rocas_pequenas decorado 22 13 modelo=rocas_pequenas
+; pieza d_prov_rock_small_02 decorado 24 13 modelo=prov_rock_small_02
+; pieza d_prov_rock_small_03 decorado 26 13 modelo=prov_rock_small_03
+; pieza d_prov_rock_wall_01 decorado 28 13 modelo=prov_rock_wall_01
+; pieza d_prov_rock_wall_02 decorado 4 18 modelo=prov_rock_wall_02
+; pieza d_prov_rockbrick_medium_01 decorado 6 18 modelo=prov_rockbrick_medium_01
+; pieza d_prov_rockbrick_medium_02 decorado 8 18 modelo=prov_rockbrick_medium_02
+; pieza d_prov_rockbrick_small_01 decorado 10 18 modelo=prov_rockbrick_small_01
+; pieza d_prov_rockbrick_small_02 decorado 12 18 modelo=prov_rockbrick_small_02
+; pieza d_prov_rockbrick_small_03 decorado 14 18 modelo=prov_rockbrick_small_03
+; rotulo 48 11 EDIFICIO
+; rect EDIFICIO 34 12 28 17
+; pieza d_prov_house_01 decorado 38 15 modelo=prov_house_01
+; pieza d_prov_house_02 decorado 44 15 modelo=prov_house_02
+; pieza d_estatua_piedra decorado 47 13 modelo=estatua_piedra
+; pieza d_prov_house_barn decorado 51 15 modelo=prov_house_barn
+; pieza d_puesto decorado 54 13 modelo=puesto
+; pieza d_prov_house_passage decorado 38 20 modelo=prov_house_passage
+; pieza d_prov_house_tower decorado 44 20 modelo=prov_house_tower
+; pieza d_prov_shrine decorado 49 20 modelo=prov_shrine
+; pieza d_arco_ruina decorado 54 18 modelo=arco_ruina
+; pieza d_prov_watermill_house decorado 38 25 modelo=prov_watermill_house
+; pieza d_prov_windmill decorado 44 25 modelo=prov_windmill
+; pieza d_prov_wooden_arch_tunnel decorado 47 23 modelo=prov_wooden_arch_tunnel
+; rotulo 32 31 VEGETACION
+; rect VEGETACION 3 32 59 9
+; pieza d_prov_bush_01 decorado 4 33 modelo=prov_bush_01
+; pieza d_arbusto decorado 6 33 modelo=arbusto
+; pieza d_prov_bush_02 decorado 8 33 modelo=prov_bush_02
+; pieza d_prov_bush_03 decorado 10 33 modelo=prov_bush_03
+; pieza d_prov_bush_04 decorado 12 33 modelo=prov_bush_04
+; pieza d_prov_flower_01_c decorado 14 33 modelo=prov_flower_01_c
+; pieza d_prov_flower_02_c decorado 16 33 modelo=prov_flower_02_c
+; pieza d_prov_flower_03_a decorado 18 33 modelo=prov_flower_03_a
+; pieza d_prov_flower_pot decorado 20 33 modelo=prov_flower_pot
+; pieza d_prov_grass_small_01_a decorado 22 33 modelo=prov_grass_small_01_a
+; pieza d_prov_grass_small_02_b decorado 24 33 modelo=prov_grass_small_02_b
+; pieza d_prov_grassfield_01_b decorado 26 33 modelo=prov_grassfield_01_b
+; pieza d_hierba_alta decorado 28 33 modelo=hierba_alta
+; pieza d_prov_grassfield_02_a decorado 30 33 modelo=prov_grassfield_02_a
+; pieza d_prov_grassfield_02_b decorado 32 33 modelo=prov_grassfield_02_b
+; pieza d_prov_tree_cypress decorado 34 33 modelo=prov_tree_cypress
+; pieza d_arbol_redondo decorado 38 35 modelo=arbol_redondo
+; pieza d_prov_vine_01 decorado 41 33 modelo=prov_vine_01
+; pieza d_prov_vine_01_b decorado 43 33 modelo=prov_vine_01_b
+; pieza d_prov_vine_02 decorado 45 33 modelo=prov_vine_02
+; pieza d_prov_vine_03 decorado 47 33 modelo=prov_vine_03
+; pieza d_prov_vine_05 decorado 49 33 modelo=prov_vine_05
+; pieza d_prov_vine_06 decorado 51 33 modelo=prov_vine_06
+; pieza d_prov_vines_group_01 decorado 53 33 modelo=prov_vines_group_01
+; pieza d_prov_vines_group_01_b decorado 55 33 modelo=prov_vines_group_01_b
+; pieza d_prov_vines_group_02 decorado 57 33 modelo=prov_vines_group_02
+; pieza d_prov_vines_group_02_b decorado 59 33 modelo=prov_vines_group_02_b
+; pieza d_prov_vines_group_03 decorado 6 38 modelo=prov_vines_group_03
+; pieza d_prov_vines_group_03_b decorado 11 38 modelo=prov_vines_group_03_b
+; pieza d_prov_vines_group_04 decorado 14 38 modelo=prov_vines_group_04
+; pieza d_prov_vines_group_04_b decorado 16 38 modelo=prov_vines_group_04_b

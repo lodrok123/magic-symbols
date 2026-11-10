@@ -232,6 +232,10 @@ const MODELO_DE: Dictionary = {
 	# 16/10 (Pablo, Bosque 01) se había elegido `loberno.glb`; 17/10 Pablo dice que es una versión antigua y que el bueno es `emberheart` (Meshy,
 	# esqueleto «Wolf», DIARIO 56): vuelve aquí. `loberno.glb` y `emberstride.glb` quedan sin uso (a borrar por el Pipeline, dueño de arte/modelos).
 	"loberno": "emberheart",
+	# Santa Compaña (9/11): la procesión son VARIOS iguales seguidos y cada uno porta UNA cosa, así que el cuerpo es el mismo
+	# GLB y lo único que cambia es la pieza de Equipo3D.EQUIPO: la cruz de campanillas o la palmatoria con la vela.
+	"santa_compana_cruz": "santa_compana_rig",
+	"santa_compana_vela": "santa_compana_rig",
 	# Sin entrada aquí el id carga el GLB de su mismo nombre.
 }
 
@@ -262,7 +266,7 @@ static var sombra_contacto_activa: bool = true     ## la mancha suave bajo los p
 static var pbr_juguete_activo: bool = true         ## rugosidad media-alta en vez de 1,0 (sin ello no hay brillo de plástico)
 
 ## V5 punto 5: shader de juguete (rampa de 3 tonos + matcap, sin PBR) en lugar del StandardMaterial3D. false = lo de antes. Constantes en MaterialPersonaje3D
-## (MATCAP_INTENSIDAD, SOMBRA_JUGUETE_COLOR, PISO_SOMBRA, BRILLO_LUZ). Hay que fijarlo ANTES de cargar() el personaje.
+## (MATCAP_INTENSIDAD, PISO_SOMBRA, BRILLO_LUZ; el color de la sombra es el global `amb_sombra_pers` de Ambiente3D). Hay que fijarlo ANTES de cargar() el personaje.
 static var material_juguete: bool = true
 var _juguete: Array = []                           ## [material de control, ShaderMaterial, último estado copiado] por superficie opaca
 
@@ -383,9 +387,12 @@ func _poner_clips_de_familia(glb_id: String) -> AnimationPlayer:
 		var sk_g: Skeleton3D = sks[0] as Skeleton3D
 		clips = AnimacionesGolem.construir(sk_g, String(_modelo.get_path_to(sk_g)) + ":")
 	else:
-		if not ClipsFamilia.tiene_fuente(glb_id):
+		# Dos variantes pueden compartir GLB y querer clips DISTINTOS (la Santa Compaña: el de la cruz anda como quien lleva una
+		# lanza y el de la vela no), así que primero se mira si hay fuentes para el id del personaje y si no, para su modelo.
+		var clave: String = id if ClipsFamilia.tiene_fuente(id) else glb_id
+		if not ClipsFamilia.tiene_fuente(clave):
 			return null
-		clips = ClipsFamilia.clips_para(glb_id, _modelo, sks[0] as Skeleton3D)
+		clips = ClipsFamilia.clips_para(clave, _modelo, sks[0] as Skeleton3D)
 	if clips.is_empty():
 		push_warning("Pj3D[%s]: no se pudieron traer los clips de la familia" % id)
 		return null
@@ -697,10 +704,10 @@ func sincronizar_juguete() -> void:
 			e[2] = [base.albedo_color, base.emission_enabled, base.emission, base.emission_energy_multiplier, base.shading_mode]
 
 
-## Color de la sombra suave de los personajes de juguete (frío o cálido según la zona).
+## Color de la sombra suave de los personajes de juguete (frío o cálido según la zona). Desde el bloque de ambiente es un global
+## (`amb_sombra_pers`): cambia para TODOS los personajes y criaturas a la vez, no por material. Nadie lo llama en el juego, solo la prueba.
 func set_sombra_juguete(c: Color) -> void:
-	for e in _juguete:
-		(e[1] as ShaderMaterial).set_shader_parameter("sombra_color", Vector3(c.r, c.g, c.b))
+	Ambiente3D.poner_sombra_pers(c, Ambiente3D.sombra_pers().w)
 
 
 func set_modo_luz(m: int) -> void:
@@ -1513,6 +1520,28 @@ func _aplicar_factor_zancada() -> void:
 ## TODOS los clips del personaje: q_nueva = giro · q_clip (giro en el espacio del hueso padre, mismo orden de ejes que Quaternion.from_euler,
 ## igual que el laboratorio). Arregla la postura del modelo de Meshy sin tocar el GLB, así que sobrevive a re-exportarlo.
 const CORRECCION_POSTURA: Dictionary = {
+	# Santa Compaña (9/11, Pablo: «los brazos están muy pegados al cuerpo, tienen que estar más separados»). Medido con
+	# herramientas/medidas_giro_brazo.gd sobre este esqueleto: con los brazos colgando, CUALQUIER giro del hueso Arm los levanta,
+	# y el eje X es el que más los separa por grado (a 25° abre 0,111 y sube 0,119; el eje Y abre más, 0,149, pero sube 0,271).
+	# 9/11: el brazo DERECHO sale del panel del LabHumanoide3D (Pablo), que es como se resolvió Marimanta. Sustituye al ajuste
+	# anterior de 14° en el hombro: el giro de RightShoulder ya abre el brazo, y el del antebrazo (80,5° en Y) es el que lo dobla
+	# para sostener el bastón, que es lo que no conseguí midiendo.
+	"santa_compana_cruz": {
+		"mixamorig_RightShoulder": Vector3(-70.0, 0.0, 0.0),
+		"mixamorig_RightArm": Vector3(2.0, -3.0, -1.5),
+		"mixamorig_RightForeArm": Vector3(18.5, 80.5, -12.0),
+		"mixamorig_RightHand": Vector3(12.0, 0.0, -0.5),
+		"mixamorig_LeftArm": Vector3(14.0, 0.0, 0.0),
+	},
+	# 9/11: el de la vela también sale del panel del LabHumanoide3D (Pablo), con la postura de «sostener una bandera». El brazo
+	# derecho se abre desde el HOMBRO (RightShoulder −37,5) y el codo solo lo acompaña (−5): medido con medidas_giro_brazo.gd,
+	# en este esqueleto NINGÚN eje del antebrazo sube la mano más de 0,015 a 25°, así que el codo no es donde hay que tocar y
+	# mis intentos de doblarlo (RightArm −30, codo +22 en X) no valían.
+	"santa_compana_vela": {
+		"mixamorig_LeftShoulder": Vector3(17.0, 0.0, -2.0),
+		"mixamorig_RightShoulder": Vector3(-37.5, 0.0, 0.0),
+		"mixamorig_RightForeArm": Vector3(-5.0, 0.0, 0.0),
+	},
 	"woodland_wanderer": {
 		"mixamorig_LeftShoulder": Vector3(0.0, 19.0, 0.0),
 		"mixamorig_LeftHand": Vector3(0.0, 0.0, 31.5),

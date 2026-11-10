@@ -39,6 +39,7 @@ var capacidad_base: int = CAPACIDAD_INICIAL
 ## `Tinta`; empieza con los de `Tinta.FRASCOS_INICIALES`). `consumible_equipado`: el consumible que gasta Q ("" = ninguno; lo gestiona `Consumibles`).
 var frascos_tinta: int = 3          ## = Tinta.FRASCOS_INICIALES (literal para no cruzar las dos clases en un inicializador)
 var consumible_equipado: String = ""
+var bosque_retorno_cueva: String = "" ## Bosque desde el que se entró en Cueva.
 ## ASISTENCIA AL TRAZO (Fase 14.4): 0 = dibujar como siempre (no se calcula nada); 1 = ayuda máxima. La guía fantasma y el imán del
 ## trazo (tope 0,6 de fuerza) escalan con esto. Empieza en 0,5: ayuda sin quitarle protagonismo a la mano. Es una opción del jugador,
 ## no una mejora: no se pierde ni se compra.
@@ -132,13 +133,14 @@ func subir_capacidad(n: int) -> void:
 
 ## --- Guardado (F2 de PLAN_BASE_DATOS, 29/10) ---
 ## `Partida` pide `a_dic()` y reparte cada trozo en su sección del archivo: `bolsa` (oro, capacidad, items), `mejoras`, y, dentro de `jugadora`,
-## `consumible_equipado` y `opciones`. Lo derivado de las mejoras (`vida_max`, `cura_pocion`, `defensa`, `vel_extra`) NO se guarda: `Mejoras.aplicar_todas()` lo recalcula
+## `consumible_equipado`, `bosque_retorno_cueva` y `opciones`. Lo derivado de las mejoras (`vida_max`, `cura_pocion`, `defensa`, `vel_extra`) NO se guarda: `Mejoras.aplicar_todas()` lo recalcula
 ## desde `mejoras` al cargar (F3). Los frascos de tinta viajan en la sección `tinta` (`Tinta.a_dic`), que a su vez los deja en `frascos_tinta`.
 func a_dic() -> Dictionary:
 	return {
 		"bolsa": {"oro": oro, "capacidad": capacidad, "items": items.duplicate()},
 		"mejoras": mejoras.duplicate(),
 		"consumible_equipado": consumible_equipado,
+		"bosque_retorno_cueva": bosque_retorno_cueva,
 		"opciones": {"asistencia": asistencia, "trazo_recto": trazo_recto, "lanzamiento_inteligente": lanzamiento_inteligente},
 	}
 
@@ -160,6 +162,7 @@ func desde_dic(d: Dictionary) -> void:
 	for id in mj:
 		mejoras[String(id)] = int(mj[id])
 	consumible_equipado = String(d.get("consumible_equipado", ""))
+	bosque_retorno_cueva = String(d.get("bosque_retorno_cueva", ""))
 	var o: Dictionary = d.get("opciones", {}) if d.get("opciones", {}) is Dictionary else {}
 	asistencia = clampf(float(o.get("asistencia", 0.5)), 0.0, 1.0)
 	trazo_recto = bool(o.get("trazo_recto", true))

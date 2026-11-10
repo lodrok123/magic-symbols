@@ -52,6 +52,8 @@ const CANAL: Dictionary = {"quemada": 0, "mojada": 1, "helada": 2, "segada": 3}
 const CANAL_EXTRA: Dictionary = {"escombro": 0}
 ## El material de una casilla cambió de verdad (la naturaleza germina la tierra → «hierba»). Lo oye la maqueta para pintar la hierba y meterla en su autómata de fuego.
 signal material_cambiado(c: Vector2i, material: String)
+## Solo lo emite la reacción de Naturaleza sobre suelo húmedo.
+signal germino(c: Vector2i)
 
 ## Transiciones por acción sobre UNA casilla. Se recorren en orden y gana la PRIMERA fila que encaja (como el `match` que
 ## sustituyen, sacado de `_impacto_en_suelo` de la maqueta). Columnas:
@@ -439,6 +441,8 @@ func aplicar(c: Vector2i, accion: String) -> Dictionary:
 			algo = poner(c, String(e), true, 1.0, dura) or algo
 		if fila.has("material") and material_de(c) != String(fila["material"]):
 			poner_material(c, String(fila["material"]))     # R1: la naturaleza germina: la tierra pasa a ser hierba
+			if fila.get("clave_material") == "germina":
+				germino.emit(c)
 			algo = true
 		return {"cambio": algo, "efecto": String(fila["efecto"])}
 	return {"cambio": false, "efecto": ""}

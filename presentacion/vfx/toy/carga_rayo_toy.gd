@@ -40,8 +40,9 @@ func montar(r_final: float, n_gotas: int, brillo: float = 1.0, radio_mult: float
 	_rng.seed = 4711
 	_mm = RayoTrazos.crear_destellos("Chispas", MAX_GOTAS + 1)
 	add_child(_mm)
-	_arcos = RayoTrazos.crear_trazos("Arcos", N_ARCOS * SEG_ARCO)
-	add_child(_arcos)
+	if not RayoTrazos.prueba_reeboo:
+		_arcos = RayoTrazos.crear_trazos("Arcos", N_ARCOS * SEG_ARCO)
+		add_child(_arcos)
 	actualizar(0.0, 0.12, 0.0)
 
 
@@ -63,6 +64,8 @@ func n_gotas() -> int:
 
 ## Cuántas chispas hay a la vez (de las `n_gotas`) con el progreso actual: pocas al empezar, todas al final.
 func n_visibles() -> int:
+	if RayoTrazos.prueba_reeboo:
+		return roundi(float(mini(_n, 18)) * lerpf(0.45, 1.0, clampf(_prog, 0.0, 1.0)))
 	return clampi(int(round(float(_n) * lerpf(0.25, 1.0, pow(clampf(_prog, 0.0, 1.0), 0.8)))), 0, MAX_GOTAS)
 
 
@@ -83,6 +86,8 @@ static func _hash(a: float) -> float:
 ## Estado de la chispa `i` en el instante `t` con el progreso `p`: {pos, dir, mov, u (edad 0..1), r0 (radio de nacimiento), rad (radio actual), vel}.
 func _gotita(i: int, t: float, p: float) -> Dictionary:
 	var periodo: float = lerpf(0.7, 0.4, p)
+	if RayoTrazos.prueba_reeboo:
+		periodo = lerpf(0.32, 0.21, p)
 	var fase: float = float(i) / float(MAX_GOTAS) + _hash(float(i) * 7.3) * 0.5
 	var x: float = t / periodo + fase
 	var c: float = floorf(x)
@@ -93,6 +98,9 @@ func _gotita(i: int, t: float, p: float) -> Dictionary:
 	var d0: Vector3 = Vector3(sin(th) * cos(fi), cos(th), sin(th) * sin(fi))
 	var r0: float = _r_final * lerpf(3.0, 2.1, p) * _radio_mult * (0.75 + 0.5 * _hash(sd + 3.0))
 	var r_bola: float = _r_final * clampf(_esc, 0.05, 1.3) * 0.9
+	if RayoTrazos.prueba_reeboo:
+		r0 = clampf(_r_final * 1.65, 0.26, 0.54) * _radio_mult * lerpf(0.66, 1.18, _hash(sd + 3.0))
+		r_bola = r0 * 0.24
 	var k: float = u * u * (3.0 - 2.0 * u) * 0.55 + u * 0.45
 	var rad: float = lerpf(r0, r_bola, k)
 	var giro: float = 1.7 * u * (0.6 + _hash(sd + 4.0))
@@ -137,7 +145,12 @@ func actualizar(delta: float, escala: float, progreso: float) -> void:
 		var e: Dictionary = _gotita(i, _t, p)
 		var u: float = float(e["u"])
 		var alfa: float = smoothstep(0.0, 0.12, u) * (1.0 - smoothstep(0.8, 1.0, u)) * _vida * clampf(_brillo, 0.0, 1.5) * 0.85
-		RayoTrazos.poner_destello(mm, i, e["pos"], (0.1 + 0.08 * _hash(float(i) * 3.7)) * sqrt(k), alfa, 0.9, _t * 3.0 + float(i), float(i) * 0.13)
+		var tam: float = (0.1 + 0.08 * _hash(float(i) * 3.7)) * sqrt(k)
+		if RayoTrazos.prueba_reeboo:
+			tam = clampf(tam * 1.45, 0.13, 0.23) * (1.0 - 0.30 * u)
+		RayoTrazos.poner_destello(mm, i, e["pos"], tam, alfa, 0.9, _t * 3.0 + float(i), float(i) * 0.13)
+	if RayoTrazos.prueba_reeboo:
+		return
 	# el halo del suelo late con la carga
 	var late: float = 0.55 + 0.45 * sin(_t * lerpf(9.0, 18.0, p))
 	RayoTrazos.poner_destello(mm, MAX_GOTAS, _pies, _r_final * lerpf(2.2, 3.4, p) * 2.0, smoothstep(0.0, 0.3, p) * late * _vida * clampf(_brillo, 0.0, 1.5) * 0.22, 0.0, 0.0, 0.0)

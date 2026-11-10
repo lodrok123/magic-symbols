@@ -1066,7 +1066,8 @@ static func impacto_mundo(lanz: Lanzador3D, p: Vector3, dir: Vector3, elemento: 
 	var fx: Variant = lanz.get("fx")
 	if fx is Vfx3D and is_instance_valid(fx):
 		var v: Vfx3D = fx as Vfx3D
-		v.golpe_estrella(p, elemento, ESTRELLA_MUNDO * tam, 0.09)
+		if elemento != "rayo" or not preload("res://presentacion/vfx/toy/rayo_trazos.gd").prueba_toon or not VfxToyJuego.usa_toy(elemento):
+			v.golpe_estrella(p, elemento, ESTRELLA_MUNDO * tam, 0.09)
 		if not suelo:
 			v.golpe_direccional(p, -dir, elemento, 0.8 * tam)       # las piezas rebotan hacia atrás: vienen de la pared
 		v.temblor(TEMBLOR_MUNDO * tam * (0.5 if suelo else 1.0))

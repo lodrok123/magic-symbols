@@ -76,6 +76,50 @@ const GRIMORIO_JUGADORA_GIRO: Vector3 = Vector3(24.5, 180.0, 0.0)
 
 ## Por personaje: [id de la pieza, hueso (final del nombre), posición, giro en grados, (opcional) multiplicador de escala por eje] en el espacio del hueso.
 ## Los huesos de mano de Mixamo apuntan con +Y hacia los dedos.
+## Santa Compaña (9/11). Las dos piezas salen de separar_piezas.py con el origen en el centro de la planta y la base en Y = 0, y su
+## eje largo en +Y. La cruz mide 0,454 de alto en el GLB y la palmatoria 0,197.
+## Los giros NO son a ojo: con el modelo en reposo, el +Y del hueso RightHand apunta en el mundo a (−0,76, −0,63, +0,12) y el de
+## LeftHand a (+0,74, −0,66, +0,11), o sea hacia abajo y hacia fuera. Estos son los giros que llevan el +Y de la pieza a la vertical
+## del mundo con los brazos caídos (medidos con el script de manos; ver DIARIO). Como van colgados del hueso, siguen a la mano.
+## El centro del puño (media de los cuatro nudillos, herramientas/medidas_mano_equipo.gd) cae a (−0,006, +0,050, −0,002) en el
+## espacio de RightHand y a (−0,006, +0,052, −0,001) en el de LeftHand. A eso se le suma bajar la pieza por su propio eje para que
+## el puño quede sobre el MANGO y no en su extremo: en el espacio del hueso, «abajo del mundo» es (−0,32, +0,64, +0,70) por la
+## derecha y (−0,04, +0,66, −0,75) por la izquierda.
+## La cruz fue a 0,8 («demasiado alargado», Pablo), luego a 0,55 y ahora a 0,75: aquello se midió sobre el modelo de brazos largos,
+## que ya no se usa; sobre el encapuchado de brazos cortos, más compacto, la cruz aguanta más tamaño sin comerse la silueta. A 0,75
+## mide 0,34 de alto en un personaje de 0,95.
+## El puño del esqueleto nuevo cae en (−0,007, +0,058, −0,002) en el espacio de RightHand (medidas_mano_equipo.gd), y a eso se le
+## suma bajar la pieza por su propio eje para que el puño quede sobre el MANGO: «abajo del mundo» es ahí (−0,32, +0,64, +0,70).
+## 9/11 (Pablo: «haz que la cruz sea como un bastón»): a 1,45 mide 0,66 de alto, dos tercios del personaje, y el mango llega casi al
+## suelo como una cruz procesional. El agarre sube al 0,30 de la pieza (antes 0,08): el puño va en MITAD del mango, no en su punta,
+## que es como se lleva un bastón.
+## El GLB de la cruz salía de Meshy con el MANGO a 38° de la vertical dentro del propio archivo. Colgada de la mano no se nota,
+## pero plantada en el suelo con PiezaApoyada3D, que pone la pieza recta, lo que se veía torcido era el palo. Enderezada con
+## tools/enderezar_pieza.py queda a 1,3° y mide 0,514 de alto (antes 0,454, porque el palo ya no va en diagonal).
+const CRUZ_ESCALA: float = 1.73                             # 0,514 × 1,73 = 0,89: del suelo a por encima de la capucha
+const CRUZ_POS: Vector3 = Vector3(-0.007, 0.058, -0.002)    # el puño; de bajarla hasta el agarre se encarga PiezaVertical3D
+## La cruz se SOSTIENE como el bastón de Marimanta y el del chamán: PiezaApoyada3D, que la planta en el suelo, la deja vertical y
+## solo la hace seguir a la mano. Es lo que hacía falta aquí: engancharse a `skeleton_updated` (o sea, colocar la pieza DESPUÉS de
+## que el esqueleto termine la pose) es justo lo que no conseguía hacer bien a mano.
+## `agarre_y` es la altura de la palma sobre el pie EN UNIDADES DE LA PIEZA: la mano cae a unos 0,35 del suelo y la escala es 1,95,
+## así que 0,35/1,95 = 0,179. Con esa escala la cruz mide 0,89, del suelo a por encima de la capucha, como una cruz procesional.
+const CRUZ_APOYO: Dictionary = {
+	# `dist_min_cuerpo` separa el PIE del eje del cuerpo. Puesto corto (0,11) el pie se planta pegado al personaje mientras la mano
+	# va 0,30 afuera, y el palo se inclina casi 30° para unirlos: a 0,30 el pie cae BAJO la mano y la cruz queda recta.
+	# 9/11 (Pablo, con una línea roja sobre la captura): con el brazo ya en su sitio, la cruz se plantaba por DELANTE de la mano
+	# y el palo pasaba rozando los dedos en vez de entre ellos. `desplaz_adelante` la lleva hacia el frente del personaje hasta
+	# el puño, y `z_max` tiene que dar margen para eso (a 0,20 topaba antes de llegar).
+	"agarre_y": 0.202, "giro": 0.0, "dist_min_cuerpo": 0.12, "desplaz_adelante": 0.22, "desplaz_lateral": -0.02,
+	"lado": -1.0, "z_min": 0.0, "z_max": 0.40}
+## La palmatoria NO se apoya en el suelo: se lleva en la mano, solo que siempre de pie para que no se vuelque la vela.
+const VELA_VERTICAL: Dictionary = {"vertical": true, "agarre_y": 0.03, "desplaz": Vector3(-0.02, 0.0, 0.04)}
+const CRUZ_GIRO: Vector3 = Vector3(-44.6, 119.4, -153.1)
+## La palmatoria va también en la mano DERECHA (cada miembro de la procesión porta una sola cosa), así que usa el giro de esa mano,
+## el mismo que la cruz. Mide 0,398 de ancho con el asa: a 0,8 tapaba medio cuerpo.
+const VELA_ESCALA: float = 0.55
+const VELA_POS_DERECHA: Vector3 = Vector3(-0.012, 0.068, 0.010)   # puño + 1,7 cm hacia abajo: el platillo justo bajo la mano
+const VELA_GIRO_DERECHA: Vector3 = Vector3(-44.6, 119.4, -153.1)
+
 const EQUIPO: Dictionary = {
 	# Marimanta (anciana duende, NPC): el bastón (arte/modelos/baston_marimanta.glb) en la mano DERECHA, vertical y apoyado en el suelo. Medidas en BASTON_*.
 	"marimanta": [
@@ -141,6 +185,17 @@ const EQUIPO: Dictionary = {
 		["garrote", "RightHand", Vector3(0.0, 0.07, 0.03), Vector3(0.0, 0.0, 90.0)],
 		["escudo", "LeftForeArm", Vector3(0.0, 0.12, -0.07), Vector3(90.0, 0.0, 0.0)],
 	],
+	# Santa Compaña (9/11): la cruz de campanillas en la mano DERECHA y la palmatoria con la vela en la IZQUIERDA. Las dos salen de
+	# arte/modelos/reliquias.glb (lámina de cuatro objetos de Meshy) partida con tools/separar_piezas.py; las otras dos piezas (el
+	# brocal del pozo y la losa con musgo) son de escenario y están en arte/modelos. Medidas en CRUZ_* y VELA_*.
+	# 9/11 (Pablo): la procesión son VARIOS iguales seguidos y cada uno porta UNA sola cosa. Por eso no hay un «santa_compana_rig»
+	# que lleve las dos: son dos variantes del mismo GLB (Pj3D.MODELO_DE), y cada una equipa su pieza en la mano DERECHA.
+	"santa_compana_cruz": [
+		["cruz_santa", "RightHand", CRUZ_POS, CRUZ_GIRO, Vector3(CRUZ_ESCALA, CRUZ_ESCALA, CRUZ_ESCALA), CRUZ_APOYO],
+	],
+	"santa_compana_vela": [
+		["vela_santa", "RightHand", VELA_POS_DERECHA, VELA_GIRO_DERECHA, Vector3(VELA_ESCALA, VELA_ESCALA, VELA_ESCALA), VELA_VERTICAL],
+	],
 }
 
 const MADERA: Color = Color(0.62, 0.42, 0.26)
@@ -186,11 +241,24 @@ static func equipar(id: String, modelo: Node3D) -> Array[Node3D]:
 		p.set_meta("equipo_id", String(datos[0]))     # para que quien lo necesite lo encuentre (Pj3D.poner_equipo_visible)
 		at.add_child(p)
 		if datos.size() > 5 and datos[5] is Dictionary:
-			# Sexto dato opcional: pieza APOYADA en el suelo y vertical, que solo sigue a la mano (PiezaApoyada3D).
-			var apoyo := PiezaApoyada3D.new()
-			apoyo.name = "Apoyo"
-			at.add_child(apoyo)
-			apoyo.preparar(p, modelo, sk, hueso, datos[5] as Dictionary)
+			var extra: Dictionary = datos[5] as Dictionary
+			if extra.get("vertical", false):
+				# Pieza que se lleva SIEMPRE DE PIE aunque la mano gire (PiezaVertical3D). Hace falta en la cruz-bastón de la
+				# Santa Compaña: su andar es el de quien porta una lanza, y colgada del hueso sin más salía horizontal.
+				# Se SACA del BoneAttachment3D y se cuelga del modelo: si siguiera siendo hija del hueso, al actualizarse este
+				# la pieza heredaría su giro otra vez y volvería a torcerse, por mucho que se le fije la transformación global.
+				at.remove_child(p)
+				modelo.add_child(p)
+				var vert := PiezaVertical3D.new()
+				vert.name = "Vertical"
+				modelo.add_child(vert)
+				vert.preparar(p, modelo, sk, hueso, extra)
+			else:
+				# Sexto dato opcional: pieza APOYADA en el suelo y vertical, que solo sigue a la mano (PiezaApoyada3D).
+				var apoyo := PiezaApoyada3D.new()
+				apoyo.name = "Apoyo"
+				at.add_child(apoyo)
+				apoyo.preparar(p, modelo, sk, hueso, extra)
 		puestas.append(p)
 	return puestas
 

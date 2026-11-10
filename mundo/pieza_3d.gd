@@ -93,6 +93,10 @@ const MEDIDA: Dictionary = {
 	"pilar_cascada": 3.1, "pilar_cascada_ancho": 3.1, "rocas_salpicadura": 0.6, "musgo_colgante": 0.9, "helechos_cueva": 0.6,
 	"geoda_resonante": 1.0, "estalagmita_resonante": 1.8, "estalagmita_rota": 0.7, "brasero_cueva": 0.9,
 	"alga_cueva": 0.5, "basalto_suelto": 0.35, "esquirla_cristal": 0.3, "jarron_roto": 0.35,     # el alga salió de pie (se pidió tumbada): 0,5 de alto
+	# 5/11 · «Hive and Nest» de Meshy (arte/meshy/piezas/colmena.glb y nido.glb, partidos con recibir_assets.py). La colmena trae su rama y cuatro abejas:
+	# 0,85 de alto en total (la colmena sola queda en ~0,73 y 0,6 de ancho); se cuelga de la copa de un árbol poniéndola en el nivel con y > 0.
+	# El nido (ramitas, tres huevos azules y una pluma) va en el suelo: 0,4 de alto, ~0,5 de ancho; ninguno bloquea (no están en ColisionPieza.MODO).
+	"colmena": 0.85, "nido": 0.4,
 }
 
 const MEDIDA_ANCHO: Dictionary = {"fogata": S * 0.6, "puente": S * 1.05, "puente_runico": S * 1.3,      # 11/10: el puente de piedra rúnica: casilla de agua + un poco de cada orilla

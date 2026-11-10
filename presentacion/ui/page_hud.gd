@@ -72,6 +72,8 @@ func _draw() -> void:
 		return
 
 	var total: int = Repertoire.pages_available(caster.PAGES)
+	var lanzador := caster as Lanzador3D
+	var de_combate: bool = lanzador != null and not lanzador.libro_abierto() and not lanzador.fichas_combate.is_empty()
 	var y: float = size.y - 44.0
 	var x0: float = size.x * 0.5 - float(total - 1) * 0.5 * SEPARACION
 
@@ -86,9 +88,13 @@ func _draw() -> void:
 
 		draw_circle(centro, radio + 2.0, Color(0.05, 0.05, 0.08, 0.65))
 		var datos: RuneData = caster.page_element_data(i)
+		var preparada: bool = caster.page_ready(i)
+		if de_combate and i < lanzador.fichas_combate.size():
+			datos = lanzador.rune_database.get(lanzador.fichas_combate[i]["element"])
+			preparada = datos != null
 		if datos != null:
 			var tinte: Color = datos.color
-			if not caster.page_ready(i):
+			if not preparada:
 				tinte.a = 0.35
 			draw_circle(centro, radio, tinte)
 		else:

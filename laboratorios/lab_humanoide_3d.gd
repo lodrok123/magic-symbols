@@ -29,7 +29,10 @@ extends Node3D
 ## Personajes humanoides y su alto en el juego (igual que ALTO_PJ de prueba_test2.gd, para que las velocidades sean las del juego).
 const PERSONAJES: Dictionary = {
 	"chibi_elf": 1.0, "elfo_base": 1.0, "alchemist_elf": 0.95, "bookseller_chibi": 0.95, "goblin_warrior_chibi": 0.85, "goblin_archer_chibi": 0.85, "goblin_base": 0.85, "marimanta": 0.8,"goblin_asesino": 0.85, "jugadora_base": 1.0,
-	"ranger_human": 1.1, "grandmaster": 1.0, "woodland_wanderer": 1.0, "woodland_wanderer_v1": 1.0, "woodland_wanderer_orig": 1.0}
+	"ranger_human": 1.1, "grandmaster": 1.0, "woodland_wanderer": 1.0, "woodland_wanderer_v1": 1.0, "woodland_wanderer_orig": 1.0,
+	# Santa Compaña (9/11): las dos variantes comparten GLB (Pj3D.MODELO_DE) y solo cambian la pieza que portan y el andar, así
+	# que entran las DOS para poder compararlas aquí. Con «como el juego» marcado salen con su cruz o su vela y su propio walk.
+	"santa_compana_cruz": 0.85, "santa_compana_vela": 0.85, "fantasma_elfo_rig": 0.9}
 const COLOR_PIERNAS: Color = Color(0.35, 1.0, 0.45)
 const COLOR_BRAZOS: Color = Color(0.35, 0.65, 1.0)
 const COLOR_RESTO: Color = Color(0.95, 0.95, 0.95)
@@ -271,7 +274,10 @@ func _elegir_personaje(id: String, juego: int = -1) -> void:
 ## cambiar lo que ya se usaba (los GLB con reproductor propio se ven como siempre). 5/11: también donde ClipsFamilia.EXTRAS añade clips de más (los goblins, Marimanta y el
 ## alquimista traen alternativas de Mixamo, Mixamo_*, que solo se ven por esta ruta).
 func _modo_juego_de_serie(id: String) -> bool:
-	return ClipsFamilia.tiene_fuente(Pj3D.glb_de(id)) or ClipsFamilia.tiene_extras(Pj3D.glb_de(id))
+	# Igual que Pj3D: una variante puede tener fuentes propias con su ID aunque comparta GLB (la Santa Compaña, cuyos dos
+	# portadores andan distinto), así que se mira primero por el id y luego por el modelo.
+	return (ClipsFamilia.tiene_fuente(id) or ClipsFamilia.tiene_fuente(Pj3D.glb_de(id))
+			or ClipsFamilia.tiene_extras(Pj3D.glb_de(id)))
 
 
 ## El Pj3D manda sobre el reproductor con su árbol de animación (ArbolAnimPj); el laboratorio lleva el clip a mano (play, speed_scale, seek), así que el árbol se apaga

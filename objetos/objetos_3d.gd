@@ -45,6 +45,8 @@ extends Area3D
 ##                              (T_LLENADO s, sube el agua dentro) → inclinándose (T_INCLINA s, de INCLINA_DESDE° a INCLINA_HASTA°)
 ##                              → vertiendo (chorro por el pico, gotas y arroyo hacia +Z local hasta la casilla de
 ##                              delante). Emite `activado` AL EMPEZAR a verter, una sola vez; se queda vertiendo.
+##   cuenco                     7/11 · pila de piedra CON AGUA a la vista (letra `C`): papeles `recibe_agua` + `hace_vapor`, material piedra (no arde). El calor revienta el agua:
+##                              desaparece del cuenco y suelta una bocanada gorda de vapor y la nube grande de VAPOR_POR_TIPO["cuenco"]; el agua lo vuelve a llenar. Emite `activado("cuenco", "agua")`.
 ##
 ## Quien lo coloca (PruebaTest2._reactivo) pone antes `fx`, `celda` y `visual`, y conecta `consumido` para liberar la casilla.
 
@@ -124,8 +126,10 @@ const P_RECIBE_AGUA: String = "recibe_agua"        ## el agua lo llena y brota (
 ## F1 (29/10, PLAN_BASE_DATOS §3.2): dos papeles más, los que hacen que reaccionar DÉ algo.
 const P_SACUDIBLE: String = "sacudible"            ## un golpe cuerpo a cuerpo (F) lo sacude y suelta la tabla `tronco_golpe`, no más de una vez cada T_SACUDIR s (el árbol)
 const P_HELABLE: String = "helable"                ## el hielo lo hiela: deja de bloquear su casilla, ya no arde y se recoge con E dando lo de `reactivos_mapa.tsv` (la telaraña → `seda`)
+## 7/11: un recipiente de agua que el calor revienta.
+const P_HACE_VAPOR: String = "hace_vapor"          ## el calor lo revienta y suelta una nube de vapor en su casilla y las de alrededor; se queda vacío y se puede volver a llenar con agua
 const PAPELES_VALIDOS: Array = [
-	P_INFLAMABLE, P_PROPAGA_LLAMA, P_APAGA, P_MOJABLE, P_PESADO, P_CONDUCE, P_CONGELABLE, P_FUENTE_FUEGO, P_ACTIVABLE, P_RECIBE_AGUA, P_SACUDIBLE, P_HELABLE,
+	P_INFLAMABLE, P_PROPAGA_LLAMA, P_APAGA, P_MOJABLE, P_PESADO, P_CONDUCE, P_CONGELABLE, P_FUENTE_FUEGO, P_ACTIVABLE, P_RECIBE_AGUA, P_SACUDIBLE, P_HELABLE, P_HACE_VAPOR,
 ]
 const T_SACUDIR: float = 30.0                     ## s que el mismo árbol tarda en volver a soltar algo
 const ALCANCE_HOGUERA: float = 2.7               ## u: a cuánto hay que estar de una fogata / un brasero encendidos para usarlos con E (la casilla mide 2,3)
@@ -146,7 +150,8 @@ const PAPELES_POR_TIPO: Dictionary = {
 	"fogata": [P_FUENTE_FUEGO, P_APAGA],
 	"brasero": [P_FUENTE_FUEGO, P_APAGA],
 	"totem": [P_ACTIVABLE, P_CONGELABLE],
-	"surtidor": [P_RECIBE_AGUA],
+	"surtidor": [P_RECIBE_AGUA, P_HACE_VAPOR],
+	"cuenco": [P_RECIBE_AGUA, P_HACE_VAPOR],                                             # 7/11: pila de piedra con agua; sin papeles de fuego, así que el calor no lo quema
 	"emisor_rayo": [P_CONDUCE],
 	"puente": [],
 	"placa": [],
@@ -157,7 +162,7 @@ const PAPELES_POR_TIPO: Dictionary = {
 const MATERIAL_POR_TIPO: Dictionary = {
 	"seto": "vegetal", "tronco": "madera", "puerta_goblin": "madera", "torre_goblin": "madera", "puente": "madera", "telarana": "tela",
 	"cuerda": "tela", "barril": "madera", "placa": "piedra", "pulsador": "piedra", "nexo_rayo": "metal",
-	"totem": "piedra", "arbol": "vegetal", "emisor_rayo": "metal",       # R2: sin material no hay respaldo (naturaleza enreda tótem y árbol; el magma calienta el metal)
+	"cuenco": "piedra", "totem": "piedra", "arbol": "vegetal", "emisor_rayo": "metal",       # R2: sin material no hay respaldo (naturaleza enreda tótem y árbol; el magma calienta el metal)
 }
 
 ## --- R2 (6/11/2026, docs/REACCIONES_ENTORNO_2026-11-06.md): relojes y dosis de los papeles `conduce`, `congelable` y del respaldo por material ---
@@ -167,6 +172,25 @@ const ENREDADO_S: float = 8.0              ## s que la naturaleza traba lo activ
 const ESCARCHA_S: float = 6.0              ## s de escarcha del hielo sobre metal (no conduce ni se activa) o tela (la cuerda no cae aunque arda; ver Cuerda3D)
 const CALIENTE_S: float = 3.0              ## s que el magma deja al rojo el metal: no se puede activar
 const DOSIS_CALOR_MOJADO: int = 2          ## calores seguidos que pide prender algo `mojable` MOJADO (el primero lo seca); seco prende al primero. El magma salta la dosis
+## Vapor de un recipiente (`hace_vapor`): marca su casilla y las 8 de alrededor (radio 1) y sigue humeando. Una casilla de vapor vive `EstadosSuelo3D.VAPOR_S` (4 s) y cada marcado le renueva el reloj:
+## con VAPOR_MARCADOS marcados, uno cada VAPOR_INTERVALO_S s, la nube dura (VAPOR_MARCADOS - 1) * VAPOR_INTERVALO_S + VAPOR_S = 7 s. El tope global (`MAX_CASILLAS_VIVAS["vapor"]` = 20) no se toca: son 9 casillas.
+## Esta es la vía de SERIE (el surtidor y cualquier pieza con `+hace_vapor`). Cada tipo puede tener la suya en VAPOR_POR_TIPO, sin tocar estas tres.
+const VAPOR_RADIO: int = 1
+const VAPOR_MARCADOS: int = 3
+const VAPOR_INTERVALO_S: float = 1.5
+## Vapor del CUENCO (7/11, Pablo: «mucho vapor»): el MISMO radio (9 casillas: deja margen en el tope de 20 para el vapor de la jugadora) pero dura más, y la bocanada que se ve es más gorda.
+##   · duración: (VAPOR_CUENCO_MARCADOS - 1) * VAPOR_CUENCO_INTERVALO_S + VAPOR_S = 4 * 1,25 + 4 = 9 s (el surtidor, 7).
+##   · bocanada: `ArteEntorno3D.vapor_emisor` ya recibe escala (`esc`) y radio de emisión; la CANTIDAD de bocanadas no es parámetro suyo, así que se sube en el emisor que devuelve (`amount`).
+const ARTE_ENTORNO = preload("res://presentacion/arte_entorno_3d.gd")     ## sin class_name: el vapor de la hoja vapor.png (`vapor_emisor`)
+const VAPOR_CUENCO_MARCADOS: int = 5
+const VAPOR_CUENCO_INTERVALO_S: float = 1.25
+const VAPOR_CUENCO_ESCALA: float = 2.2          ## × la escala del Vfx3D (el vapor de siempre es 1)
+const VAPOR_CUENCO_RADIO_EMISION: float = 0.7   ## u antes de la escala (el de siempre, 0,4)
+const VAPOR_CUENCO_CANTIDAD: int = 24           ## bocanadas por marcado (el de siempre, 8)
+## tipo -> [marcados, segundos entre marcados, escala de la bocanada, radio de emisión, bocanadas]. Lo que no está aquí usa la vía de serie (VAPOR_MARCADOS, VAPOR_INTERVALO_S y el `fx.vapor` de siempre).
+const VAPOR_POR_TIPO: Dictionary = {
+	"cuenco": [VAPOR_CUENCO_MARCADOS, VAPOR_CUENCO_INTERVALO_S, VAPOR_CUENCO_ESCALA, VAPOR_CUENCO_RADIO_EMISION, VAPOR_CUENCO_CANTIDAD],
+}
 const COLOR_HIELO: Color = Color(0.72, 0.9, 1.0)
 const COLOR_ENREDO: Color = Color(0.55, 0.85, 0.45)
 const COLOR_AL_ROJO: Color = Color(1.0, 0.55, 0.4)
@@ -182,6 +206,7 @@ var start_lit: bool = false          ## fogata: nace encendida
 ## 24/10 (Cueva, fase 3): cuánto más luz da la llama de una fuente de fuego (brasero, fogata) que la de siempre. Lo pone el mapa (`; pieza … brasero luz=<x>`): en la Cueva, casi a oscuras, el brasero tiene
 ## que alumbrar de verdad. Multiplica la energía y abre un poco el alcance (la mitad de lo que sube).
 var mult_luz: float = 1.0
+var enciende_por_hierba: bool = false
 var datos_fuente: Array = []            ## 24/10: [alto de las llamas, escala, radio, alto del cuerpo] propios de este brasero (si el modelo no mide lo de siempre); vacío = la fila de FUENTES
 ## Lo que el nivel hace para que el fuego de un objeto prenda la hierba: (posicion: Vector3, radio: float, viento: Vector3).
 var hierba_cerca: Callable = Callable()
@@ -230,13 +255,16 @@ var _congelado_s: float = 0.0        ## R2 (`congelable`): s que le quedan conge
 var _enredado_s: float = 0.0         ## R2: s que le quedan enredado
 var _escarcha_s: float = 0.0         ## R2: s de escarcha (hielo sobre metal / tela)
 var _caliente_s: float = 0.0         ## R2: s al rojo (magma sobre metal)
+var _lleno_agua: bool = false        ## `hace_vapor`: el recipiente tiene agua (la pone `brotar`, la quita `_vaporizar`). La tinaja no lo usa: vierte y se queda vacía
+var _vapor_faltan: int = 0           ## `hace_vapor`: marcados de vapor que le quedan por hacer
+var _vapor_s: float = 0.0            ## `hace_vapor`: s hasta el siguiente marcado
 var _conduciendo: bool = false       ## R2: está registrado en Terreno3D.conductores ahora (para emitir `conduce_cambio` solo al cambiar)
 
 var _quemado_v: float = 0.0        ## V6: último valor de `quemado` aplicado (0..1)
 var _disolver_v: float = 0.0       ## V6: último valor de `disolver` aplicado (0..1)
 var _mats: Array = []            ## [material copiado (StandardMaterial3D o el ShaderMaterial de Ocluso3D), Color original]
 var _sprites: Array = []             ## [SpriteBase3D, Color original]
-var _llama: Node3D = null
+var _llama: FuegoToy = null
 var _snd_fuego: AudioStreamPlayer3D = null   ## el crepitar en bucle mientras arde / está encendido (Sfx3D); se apaga con la llama
 var _luz: OmniLight3D = null
 var _t: float = 0.0
@@ -359,6 +387,9 @@ func cambiar_visual(nuevo: Node3D, datos: Array = []) -> void:
 			_ajustar_cuerpo(caja, _forma_cuerpo)
 		if is_lit and _luz != null and is_instance_valid(_luz):
 			_luz.position.y = float(datos[0]) + 0.7
+		if is_lit and is_instance_valid(_llama) and tiene_papel(P_FUENTE_FUEGO):
+			_llama.position.y = float(datos[0])
+			_llama.definir(FuegoToy.Figura.PILAR, float(datos[2]), 1.15 * float(datos[1]), float(datos[2]))
 	_pintar_tinte(0.0 if is_lit else 1.0)
 
 
@@ -403,6 +434,8 @@ func _ready() -> void:
 			_montar_emisor()
 		"surtidor":
 			_montar_surtidor()
+		"cuenco":
+			_montar_cuenco()
 	set_process(false)
 	set_physics_process(tipo == "placa")
 
@@ -425,6 +458,8 @@ func _alto_cuerpo() -> float:
 			return 1.4
 		"surtidor":
 			return 2.0       # la tinaja mide 1,5 y su boca sube al inclinarse
+		"cuenco":
+			return 0.8       # el borde del cuenco queda a ~0,53 u; un poco más para que un tiro a la altura de la mano también lo acierte
 	return 1.0
 
 
@@ -509,7 +544,7 @@ func punto_activacion() -> Vector3:
 	return to_global(Vector3(0.0, _alto_cuerpo() * 0.5, 0.0))
 
 ## 28/10 · A2 (previsión): QUÉ le haría este hechizo a esta pieza AHORA, sin tocarla: «prende», «apaga» (el agua o el frío a lo que arde, o a un fuego de mapa encendido), «moja» (el agua a la
-## leña mojable), «aviva» (el viento lleva la llama de lo que arde), «enciende» (calor a un brasero o fogata apagados), «activa» (un tótem con su elemento), «brota» (el agua a un surtidor) o
+## leña mojable), «aviva» (el viento lleva la llama de lo que arde), «enciende» (calor a un brasero o fogata apagados), «activa» (un tótem con su elemento), «brota» (el agua a un surtidor), «vaporiza» (calor a un recipiente lleno: `hace_vapor`) o
 ## «» (nada: o no le toca, o no puede, como prender lo que ya está mojado o ardiendo). `on_spell_hit` APLICA lo que dice esto; la previsión del indicador lo enseña.
 func reaccion_a(rune_data: RuneData, hechizo: Hechizo = null) -> String:
 	if rune_data == null:
@@ -596,6 +631,8 @@ func _reaccion_papeles(m: Dictionary) -> String:
 		return "congela"                                    # R2: tótem o árbol (lo que no arde) + hielo
 	if tiene_papel(P_ACTIVABLE):
 		return "activa" if (not activo and not _trabado() and _le_toca(m)) else ""
+	if tiene_papel(P_HACE_VAPOR) and calor and _lleno_agua:
+		return "vaporiza"                                   # recipiente CON agua + calor; vacío no hace nada (se nota que hay que llenarlo)
 	if tiene_papel(P_RECIBE_AGUA):
 		return "brota" if agua else ""
 	if tiene_papel(P_CONDUCE):
@@ -680,6 +717,8 @@ func on_spell_hit(rune_data: RuneData, direccion: Vector3 = Vector3.ZERO, hechiz
 			_activar_totem()
 		"brota":
 			brotar()
+		"vaporiza":
+			_vaporizar()
 
 
 ## H6: el material de esta pieza ("" si el catálogo no le da uno).
@@ -731,6 +770,8 @@ func _spell_reacts_papeles(m: Dictionary) -> bool:
 		return true
 	if tiene_papel(P_ACTIVABLE):
 		return not activo and not _trabado() and _le_toca(m)
+	if tiene_papel(P_HACE_VAPOR) and calor and _lleno_agua:
+		return true
 	if tiene_papel(P_RECIBE_AGUA):
 		return agua
 	if tiene_papel(P_CONDUCE):
@@ -967,7 +1008,7 @@ func ignite(_desde: Vector3 = Vector3.INF) -> void:
 	_t = 0.0
 	_t_contagio = 0.0
 	var d: Array = _num_combustible()
-	_llama = fx.llamas(global_position, float(d[1]), float(d[2]))
+	_llama = VfxReaccion3D.llama_vertical(self, Vector3.ZERO, float(d[2]), 1.15 * float(d[1]))
 	_luz = _crear_luz(Color(1.0, 0.6, 0.3), 0.9, 3.0, Vector3(0.0, 0.8, 0.0))
 	LuzTitila3D.aplicar(_luz)
 	_snd_fuego = Sfx3D.ambiente(self, "fuego")
@@ -1009,13 +1050,19 @@ func _process(delta: float) -> void:
 
 ## R2: cuenta atrás de los estados con reloj (conducción, congelado, enredado, escarcha, al rojo); al acabar cada uno avisa su señal y devuelve el color.
 func _hay_relojes() -> bool:
-	return _conduce_s > 0.0 or _congelado_s > 0.0 or _enredado_s > 0.0 or _escarcha_s > 0.0 or _caliente_s > 0.0
+	return _vapor_faltan > 0 or _conduce_s > 0.0 or _congelado_s > 0.0 or _enredado_s > 0.0 or _escarcha_s > 0.0 or _caliente_s > 0.0
 
 
 func _avanzar_relojes(delta: float) -> void:
 	if not _hay_relojes():
 		return
 	var cambio_tinte: bool = false
+	if _vapor_faltan > 0:
+		_vapor_s -= delta
+		if _vapor_s <= 0.0:
+			_vapor_faltan -= 1
+			_vapor_s += float(_num_vapor()[1])
+			_marcar_vapor()
 	if _conduce_s > 0.0:
 		_conduce_s = maxf(0.0, _conduce_s - delta)
 		if _conduce_s <= 0.0:
@@ -1102,7 +1149,7 @@ func _quitar_fuego() -> void:
 	Sfx3D.parar(_snd_fuego)
 	_snd_fuego = null
 	if _llama != null and is_instance_valid(_llama):
-		fx.apagar(_llama)
+		_llama.morir()
 	_llama = null
 	if _luz != null and is_instance_valid(_luz):
 		_luz.queue_free()
@@ -1200,14 +1247,13 @@ func _encender(con_efectos: bool) -> void:
 	if con_efectos:
 		_reaccionar(Mundo3D.R_PRENDIDO)             # encenderse al montar el nivel (start_lit) no es un cambio: no avisa
 	var d: Array = _num_fuente()
-	_llama = fx.llamas(global_position + Vector3(0.0, float(d[0]), 0.0), float(d[1]), float(d[2]), 1)   # 6.15: una sola lengua
+	_llama = VfxReaccion3D.llama_vertical(self, Vector3.UP * float(d[0]), float(d[2]), 1.15 * float(d[1]))
 	_luz = _crear_luz(Color(1.0, 0.6, 0.3), 1.1 * mult_luz, 3.0 * (1.0 + (mult_luz - 1.0) * 0.5), Vector3(0.0, float(d[0]) + 0.7, 0.0))
 	LuzTitila3D.aplicar(_luz)
 	_snd_fuego = Sfx3D.ambiente(self, "fuego")
 	_pintar_tinte(0.0)
 	_pintar_emision(Color(1.0, 0.55, 0.25), 0.25)
 	if con_efectos:
-		fx.chispazo(global_position + Vector3(0.0, float(d[0]) + 0.3, 0.0), "fuego")
 		activado.emit(tipo, "fuego")
 	llama.emit(true)
 	if rele_activo:
@@ -1355,21 +1401,110 @@ func _montar_surtidor() -> void:
 	add_child(_agua_pila)
 
 
+## --- Cuenco de piedra con agua (7/11) ---
+## Tipo `cuenco`: es el camino del surtidor con otra pila. `_agua_pila` es la lámina de agua, `_lleno_agua` lo que dice si hay agua (`brotar` la llena, `_vaporizar` la quita) y la nube es la de `hace_vapor`.
+## La diferencia con el surtidor es que NACE LLENO y con el agua a la vista: lo que enseña «aquí hay agua» es lo que dice qué le hará el fuego.
+## Modelo: la pila de piedra del puzle (`pila_piedra`, 1,1 de ancho × 0,38 de alto, hueco de radio ~0,4 con el fondo a 0,11 y el borde a 0,37). `cuenco_piedra.glb` NO sirve: es una laja plana (0,175 × 0,03 sin escalar, sin hueco).
+const CUENCO_MODELO: String = "pila_piedra"
+const CUENCO_ESCALA: float = 1.4                 ## la pila mide 1,1: a 1,4 ocupa 1,54 de una casilla de 2,3 y su borde queda a 0,53
+const CUENCO_AGUA_Y: float = 0.30 * CUENCO_ESCALA       ## altura de la lámina (el hueco llega a 0,37 sin escalar)
+const CUENCO_AGUA_RADIO: float = 0.36 * CUENCO_ESCALA   ## menos que el hueco (~0,4): a 0,40 la lámina asomaba por la pared (visto en captura)
+
+
+func _montar_cuenco() -> void:
+	var malla: Mesh = PiezaPuzle3D.malla_modelo(CUENCO_MODELO)
+	var cuerpo := MeshInstance3D.new()
+	cuerpo.name = "cuenco_piedra"
+	if malla != null:
+		cuerpo.mesh = malla
+		cuerpo.scale = Vector3.ONE * CUENCO_ESCALA
+	else:                                      # sin el GLB del puzle (o con `usar_modelos` apagado): una pila de piedra de primitivas
+		var borde := CylinderMesh.new()
+		borde.top_radius = 0.5 * CUENCO_ESCALA
+		borde.bottom_radius = 0.55 * CUENCO_ESCALA
+		borde.height = 0.37 * CUENCO_ESCALA
+		var piedra := StandardMaterial3D.new()
+		piedra.albedo_color = Color(0.58, 0.56, 0.52)
+		piedra.roughness = 0.95
+		borde.material = piedra
+		cuerpo.mesh = borde
+		cuerpo.position = Vector3(0.0, borde.height * 0.5, 0.0)
+	cambiar_visual(cuerpo)                     # quita el visual que traiga (la pieza de `_reactivo_pieza`), recoge los materiales de este
+	_pintar_tinte(0.0)                         # `cambiar_visual` lo deja con el tinte de «apagado» (pensado para el brasero): la piedra va con su color
+	if _forma_cuerpo != null and _forma_cuerpo.shape is BoxShape3D:
+		_ajustar_cuerpo(_forma_cuerpo.shape as BoxShape3D, _forma_cuerpo)         # `_ready` ya la ajustó al visual de antes
+	# La lámina de agua: el mismo agua de la boca de la tinaja (`material_caudal`, opaca) pero casi quieta, que es un cuenco y no un arroyo.
+	var disco := CylinderMesh.new()
+	disco.top_radius = CUENCO_AGUA_RADIO
+	disco.bottom_radius = CUENCO_AGUA_RADIO
+	disco.height = 0.01
+	disco.radial_segments = 24
+	disco.rings = 1
+	disco.material = material_caudal(false, 0.35, 2.0, true)
+	_agua_pila = MeshInstance3D.new()
+	_agua_pila.mesh = disco
+	_agua_pila.position = Vector3(0.0, CUENCO_AGUA_Y, 0.0)
+	_agua_pila.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	add_child(_agua_pila)
+	_lleno_agua = true                         # nace lleno: se ve el agua antes del primer golpe
+
+
+## `hace_vapor`: el calor revienta el recipiente. El primer marcado es ya; los demás, cada VAPOR_INTERVALO_S s (en `_avanzar_relojes`). Queda vacío hasta que `brotar` lo llene.
+func _vaporizar() -> void:
+	_lleno_agua = false
+	if _agua_pila != null:
+		_agua_pila.visible = false
+	var num: Array = _num_vapor()
+	_vapor_faltan = int(num[0]) - 1
+	_vapor_s = float(num[1])
+	_marcar_vapor()
+	set_process(true)
+
+
+## [marcados, segundos entre marcados, escala de la bocanada, radio de emisión, bocanadas] de ESTA pieza: su fila de VAPOR_POR_TIPO, o la vía de serie (escala 0 = el `fx.vapor` de siempre).
+func _num_vapor() -> Array:
+	if VAPOR_POR_TIPO.has(tipo):
+		return VAPOR_POR_TIPO[tipo] as Array
+	return [VAPOR_MARCADOS, VAPOR_INTERVALO_S, 0.0, 0.0, 0]
+
+
+## Marca `vapor` en la casilla de la pieza y en las de radio VAPOR_RADIO, con el `Terreno3D.estados.poner` de los demás estados de suelo (sobre una casilla viva le renueva el reloj).
+## Además suelta la bocanada: la de serie (`fx.vapor`) o, si el tipo tiene fila propia, una más gorda.
+func _marcar_vapor() -> void:
+	for dx in range(-VAPOR_RADIO, VAPOR_RADIO + 1):
+		for dy in range(-VAPOR_RADIO, VAPOR_RADIO + 1):
+			Terreno3D.estados.poner(celda + Vector2i(dx, dy), EstadosSuelo3D.VAPOR, true)
+	if fx == null:
+		return
+	var num: Array = _num_vapor()
+	if float(num[2]) <= 0.0:
+		fx.vapor(global_position + Vector3(0.0, 0.5, 0.0))
+		return
+	# Mismo emisor que `Vfx3D.vapor` (el flipbook de vapor.png), con más escala, más radio y más bocanadas.
+	var gp: GPUParticles3D = ARTE_ENTORNO.vapor_emisor(fx, global_position + Vector3(0.0, 0.7, 0.0), maxf(fx.escala, 0.1) * float(num[2]), false, float(num[3]))
+	gp.amount = int(num[4])
+
+
 ## El surtidor echa agua: columna de agua de 2 s, salpicadura en la pila y la pila se llena (se queda llena). Público para que
 ## el Juego lo dispare también sin hechizo (p. ej. al cargar una partida con el cauce ya lleno).
 func brotar(instantaneo: bool = false) -> void:
 	if _es_tinaja:
 		_brotar_tinaja(instantaneo)
 		return
+	var es_cuenco: bool = tipo == "cuenco"
 	if fx != null:
-		fx.lanzar_forma("columna", "agua", global_position, global_position, {"dura": 2.0})
-		fx.salpicadura(global_position + Vector3(0.0, 0.32, 0.0), 0.6)
+		if es_cuenco:
+			fx.salpicadura(global_position + Vector3(0.0, CUENCO_AGUA_Y, 0.0), 0.7)      # el cuenco solo se llena: salpicadura en la lámina, sin la columna del surtidor
+		else:
+			fx.lanzar_forma("columna", "agua", global_position, global_position, {"dura": 2.0})
+			fx.salpicadura(global_position + Vector3(0.0, 0.32, 0.0), 0.6)
 	if _agua_pila != null and not _agua_pila.visible:
 		_agua_pila.visible = true
 		_agua_pila.scale = Vector3(0.2, 1.0, 0.2)
 		_agua_pila.create_tween().tween_property(_agua_pila, "scale", Vector3.ONE, 0.8).set_trans(Tween.TRANS_SINE)
 	usado = true
-	activado.emit("surtidor", "agua")
+	_lleno_agua = true
+	activado.emit(tipo if es_cuenco else "surtidor", "agua")      # el cuenco avisa con su nombre: lo que escucha «surtidor» (el cauce del Bosque 1) no es suyo
 
 
 ## --- Tinaja de ruinas (10/10): vacía → llenándose → vertiendo ---

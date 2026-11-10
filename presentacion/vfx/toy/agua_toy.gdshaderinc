@@ -19,7 +19,47 @@ uniform float brillo : hint_range(0.3, 3.0) = 1.0;
 uniform float vida : hint_range(0.0, 1.0) = 1.0;
 uniform float velocidad : hint_range(0.1, 4.0) = 1.0;
 uniform float suave_prof : hint_range(0.0, 3.0) = 0.0;
-uniform sampler2D tex_prof : hint_depth_texture, repeat_disable, filter_nearest;
+#define NUCLEO_CON_PROF
+#ifdef AGUA_CON_EROSION
+#define NUCLEO_CON_EROSION
+#ifndef AGUA_ERO_ESCALA
+#define AGUA_ERO_ESCALA 3.0
+#endif
+#endif
+#include "res://presentacion/vfx/toy/nucleo_toy.gdshaderinc"      // declara tex_prof y nucleo_prof (y, con AGUA_CON_EROSION, usar_erosion y erosion_alfa3 / erosion_borde3)
+
+// EROSION DEL AGUA (8/11/2026, docs/estudios/VFX_DIAGNOSTICO_2026-11-07.md §8). Un shader la lleva SI define AGUA_CON_EROSION antes de incluir este fichero (y, si quiere otro tiling, AGUA_ERO_ESCALA).
+// Los uniforms ero_* se declaran aqui, una vez; cada material puede sobrescribirlos. El shader solo añade: (1) `muerte` = su variable de muerte 0..1 (1 - vida en las bolas; un smoothstep de `corte` /
+// `caida` en las figuras que mueren por geometria), (2) `float av = agua_ero_av(muerte)`, (3) agua_fade(...) en el desvanecido por alfa que la erosion sustituye, (4) agua_ero_alfa / agua_ero_tinte
+// al final. Garantias: av = 0 -> el alfa sale igual que entra; av = 1 -> sale 0; con VfxKit3D.usar_erosion apagado av = 0 y agua_fade(f) = f, o sea, el shader da EXACTAMENTE lo de antes.
+#ifdef AGUA_CON_EROSION
+uniform float ero_escala = AGUA_ERO_ESCALA;   // tiling del ruido (por metro, o por el espacio que use el shader)
+uniform float ero_dureza = 1.4;               // pow del ruido: mayor = islas y huecos mas marcados
+uniform float ero_inicio : hint_range(0.0, 0.9) = 0.15;   // la silueta aguanta hasta que `muerte` pasa de aqui; avance = smoothstep(ero_inicio, 1, muerte)
+uniform float ero_brillo = 0.4;               // el filo que se come SUMA ero_brillo * tono_c: conserva el tono
+uniform float ero_ancho = 0.35;               // ancho del borde teñido de espuma
+
+float agua_ero_av(float muerte) {
+	return usar_erosion ? smoothstep(ero_inicio, 1.0, clamp(muerte, 0.0, 1.0)) : 0.0;
+}
+
+// El desvanecido por alfa que la erosion sustituye: con la erosion encendida vale 1 (el efecto no baja de alfa, se come por ruido).
+float agua_fade(float f) {
+	return usar_erosion ? 1.0 : f;
+}
+
+float agua_ero_alfa(float alfa, vec3 pe, float av) {
+	return erosion_alfa3(alfa, pe, av, ero_escala, ero_dureza);
+}
+
+vec3 agua_ero_tinte(vec3 col, vec3 pe, float av) {
+	if (av <= 0.0) {
+		return col;
+	}
+	float bo = erosion_borde3(pe, av, ero_escala, ero_dureza, ero_ancho);
+	return mix(col, tono_c, bo) + tono_c * ero_brillo * bo;
+}
+#endif
 
 
 // Redondeo a escalones con borde casi duro (como `floor(x * n + 0.5) / n` del agua del mundo, pero con un filo de 0,06 para que no haya dientes de sierra).
@@ -63,13 +103,5 @@ float agua_cau3(vec3 p, vec3 n, float t) {
 
 // 0 pegado a la geometría de detrás, 1 a `dist` m o más. `vz` = VERTEX.z del fragmento.
 float agua_prof(vec2 suv, float vz, float dist, mat4 inv_proy) {
-	if (dist <= 0.0) {
-		return 1.0;
-	}
-	float dp = texture(tex_prof, suv).r;
-	if (dp > 0.00001) {
-		vec4 w = inv_proy * vec4(suv * 2.0 - 1.0, dp, 1.0);
-		return clamp((-w.z / w.w + vz) / dist, 0.0, 1.0);
-	}
-	return 1.0;
+	return nucleo_prof(suv, vz, dist, inv_proy);
 }

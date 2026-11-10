@@ -1,0 +1,59 @@
+[gd_scene format=3]
+
+[ext_resource type="ArrayMesh" path="res://arte/provencal/obj/SM_Bush_04.obj" id="1_4pbgl"]
+[ext_resource type="Texture2D" path="res://arte/provencal/detalle/T_Flora_Atlas_02_B.png" id="2_sdc0n"]
+[ext_resource type="Texture2D" path="res://arte/provencal/detalle/T_Flora_Atlas_01_B.png" id="3_thk0l"]
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_i6sfo"]
+transparency = 2
+alpha_scissor_threshold = 0.5
+alpha_antialiasing_mode = 0
+cull_mode = 2
+albedo_color = Color(0.41250002, 0.7, 0.3375, 1)
+albedo_texture = ExtResource("2_sdc0n")
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_8mul1"]
+transparency = 2
+alpha_scissor_threshold = 0.5
+alpha_antialiasing_mode = 0
+cull_mode = 2
+albedo_color = Color(1.1862745, 0.98039216, 0.36764708, 1)
+albedo_texture = ExtResource("3_thk0l")
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_a6jbv"]
+transparency = 2
+alpha_scissor_threshold = 0.5
+alpha_antialiasing_mode = 0
+cull_mode = 2
+albedo_color = Color(1.1862745, 0.98039216, 0.36764708, 1)
+albedo_texture = ExtResource("3_thk0l")
+
+[sub_resource type="ConvexPolygonShape3D" id="ConvexPolygonShape3D_xyljn"]
+points = PackedVector3Array(1.3783574e-06, 0.5242165, 0.46809933, 0.21753518, 0.16821407, -0.5804166, 0.21753518, 0.20785898, -0.5804166, -0.6331397, 0.20785898, -0.06587133, -0.079079285, 0.8210634, -0.24389964, 0.61331034, 0.18808107, 0.34937572, -0.079079285, -0.009876221, 0.40868038, 0.41548473, 0.76172966, -0.06587133, 0.5143975, 0.16830316, -0.42204222, -0.415482, -0.009787142, -0.22424568, -0.39564985, 0.46488273, -0.40227398, -0.415482, 0.7023068, 0.11204272, 0.2967398, 0.70239586, 0.3692582, -0.23736456, 0.20785898, 0.5077501, 0.37582046, 0.029768668, -0.24389964, 0.3362801, 0.08910242, 0.527404, 0.37582046, 0.70239586, -0.32308683, 0.07908204, 0.9002641, 0.09216022, -0.47473046, 0.06932451, 0.2703028, -0.019706812, 0.6034172, -0.4813469, -0.23736456, 0.16830316, -0.5209976, 0.5143975, 0.66275096, 0.05262377, 0.21753518, 0.46488273, 0.54717225, -0.4351902, 0.7023068, -0.08563955, 0.45502508, 0.029768668, 0.19111563, -0.5539351, 0.44519395, 0.13169667, -0.23736456, 0.7023068, 0.2703028, 0.57377, 0.22763689, -0.34296933, 0.13845451, 0.08910242, -0.56053406, -0.51427084, 0.30674854, -0.34296933, -0.019706812, 0.16830316, 0.58693725, -0.2571967, 0.425416, 0.4483311)
+
+[node name="prov_bush_04" type="Node3D" unique_id=398091545]
+metadata/id = "prov_bush_04"
+metadata/bloquea = true
+metadata/reactivo = false
+metadata/inflamable = false
+metadata/origen = "Fantasy Provencal (Leartes Studios)"
+metadata/pieza_original = "SM_Bush_04"
+metadata/lod = 0
+metadata/triangulos = 4470
+metadata/categoria = "vegetacion"
+
+[node name="modelo" type="Node3D" parent="." unique_id=1165816629]
+
+[node name="malla" type="MeshInstance3D" parent="modelo" unique_id=443586543]
+transform = Transform3D(0.38713476, 0, 0, 0, 0.38713476, 0, 0, 0, 0.38713476, 0.019396842, 0.13713978, 0.017959774)
+mesh = ExtResource("1_4pbgl")
+surface_material_override/0 = SubResource("StandardMaterial3D_i6sfo")
+surface_material_override/1 = SubResource("StandardMaterial3D_8mul1")
+surface_material_override/2 = SubResource("StandardMaterial3D_a6jbv")
+
+[node name="cuerpo" type="StaticBody3D" parent="." unique_id=1348235882]
+collision_layer = 1024
+collision_mask = 0
+
+[node name="forma_0" type="CollisionShape3D" parent="cuerpo" unique_id=1914083109]
+shape = SubResource("ConvexPolygonShape3D_xyljn")

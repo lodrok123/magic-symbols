@@ -73,6 +73,11 @@ static var alto_agua: float = 2.3 * 0.45 * 0.6
 static var alturas: Dictionary = {}
 ## Alturas FIJAS que pone el nivel (una cornisa de un nivel): Vector2i -> int. No caducan.
 static var permanentes: Dictionary = {}
+## 6/11 (entrada 422): las casillas cuya altura de `alturas` viene de la tierra TEMPORAL del Lanzador (bloques `BloqueTierra` y columnas de barrera;
+## el hielo sólido y las cornisas fijas NO cuentan): Vector2i -> niveles. Solo lectura para el dibujo: cuando el TierraToy representa la tierra
+## (`VfxToyJuego.usa_toy("tierra")`), la maqueta no pinta terrazas en estas casillas. La escribe `Lanzador3D._recalcular`; la lógica no la lee.
+static var alturas_temporales: Dictionary = {}
+static var plataformas_tierra: Dictionary = {}  ## Casilla → cota de la superficie pisable.
 ## Altura a la que se pisa una casilla de puente «b» cuando el puente NO es una losa a ras del agua (el tronco-puente: se anda sobre
 ## su cara de arriba, 0,35 u por encima de la orilla). Vector2i -> y. Sin entrada, la «b» de siempre (alto_agua + 0,12).
 static var y_puentes: Dictionary = {}
@@ -439,7 +444,11 @@ static func es_agua(c: Vector2i) -> bool:
 ## el fondo de la pieza (0,48 como mucho con la tinaja) y se vadea. Seguirá siendo `es_agua` (conduce el rayo), pero nadar la
 ## hundía los pies hasta `alto_agua - HUNDIDO` (≈0,27), 0,9 u por debajo del suelo de la pieza, y la casilla siguiente los subía (P3).
 static func se_nada(c: Vector2i) -> bool:
-	return es_agua(c) and not es_canal_ruinas(c)
+	return not plataformas_tierra.has(c) and es_agua(c) and not es_canal_ruinas(c)
+
+
+static func es_vacio(c: Vector2i) -> bool:
+	return not en_mapa(c) or letra_de(c) == " "
 
 
 ## ¿Es un cauce seco que el surtidor llenará? La letra «c» o un tramo de CANAL de la maqueta (`-`, `L` o las piezas canal_* de un
@@ -536,6 +545,8 @@ static func fijar_y_puente(c: Vector2i, y: float) -> void:
 
 ## y de los pies de quien está en la casilla `c`: el suelo, más sus niveles; el agua y el puente, más bajo.
 static func y_pies(c: Vector2i) -> float:
+	if plataformas_tierra.has(c):
+		return float(plataformas_tierra[c])
 	var n: int = altura_en(c)
 	if n > 0:
 		return alto_suelo + float(n) * ALTO_NIVEL
@@ -721,7 +732,9 @@ static func choca_huella(c: Vector2i, p: Vector3) -> bool:
 ## ¿Puede ESTAR alguien de pie en `c`? Lo usan el jugador y los goblins. `nivel` es en el que está;
 ## `sube` si puede subir uno (saltando); `max_nivel` lo más alto donde se puede estar; `nada` si puede entrar en agua.
 static func pisable(c: Vector2i, nivel: int, sube: bool, max_nivel: int, nada: bool, ignora_bloqueo: bool = false) -> bool:
-	if not en_mapa(c):
+	if plataformas_tierra.has(c):
+		return true
+	if es_vacio(c):
 		return false
 	var l: String = letra_de(c)
 	if l == "~":
@@ -775,6 +788,8 @@ static func configurar(p_mundo: Node3D) -> void:
 	alto_agua = float(k.get("ALTO_AGUA", alto_agua))
 	PROF_CAUCE = alto_suelo - fondo_cauce()
 	alturas.clear()
+	alturas_temporales.clear()
+	plataformas_tierra.clear()
 	permanentes.clear()
 	y_puentes.clear()
 	estados.limpiar()                    # nivel nuevo: ni hielo ni electricidad de antes

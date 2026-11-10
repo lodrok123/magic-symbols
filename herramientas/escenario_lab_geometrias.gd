@@ -157,15 +157,31 @@ func _escenario() -> void:
 	await _caso_pulso_contacto()
 
 
-## 4 · (29/10) los sólidos con ᛁ construyen (no son haz) y sus bloques siguen el perfil del volumen. Con ᛁ ×9 (30/10; antes ×2) en la base, el carril Base es una tierra ancha.
+## 4 · (29/10) los sólidos con ᛁ construyen (no son haz) y sus bloques siguen el perfil del volumen. Con ᛁ ×9 (30/10; antes ×2) en la base, el carril Base es un hielo ancho.
+## 7/11 (Pablo, «sí, haz de púas»): el sólido que construye con ᛁ es ya solo el HIELO; la tierra con ᛁ es un haz (`Hechizo.SOLIDOS_CON_HAZ`) y no deja bloques — se comprueba aquí mismo.
 func _caso_solidos() -> void:
 	lab.call("poner_elemento", "earth")
 	lab.call("sumar", "linea_x", Sigils.GLIFOS_ANCHO_MURO_3_V2)      # 30/10: con la serie decreciente, tres filas de ancho piden 9 ᛁ (antes 2)
+	var b_tierra: int = lanzador._bloques.size()
+	var i_base: int = _carril("Base")
+	var hz_t: Hechizo = (lab.call("receta_de", i_base) as Lanzador3D.Receta3D).hechizo(lab.call("runa") as RuneData)
+	_ok("4 la tierra con ᛁ ×9 es un HAZ de púas: sale de la mano (no en el punto) y no construye", hz_t.haz and not hz_t.en_punto)
+	_tecla_lab(KEY_SPACE)
+	await avanzar_s(1.0)
+	# el lab lanza TODOS los carriles a la vez y los de variación (barrera, altura) sí construyen: aquí se mira solo la fila del carril Base, la del haz
+	var fila_base: int = (lab.call("celda_de", i_base) as Vector2i).y
+	var en_fila: Array = []
+	for b in lanzador._bloques:
+		if (b["celda"] as Vector2i).y == fila_base:
+			en_fila.append(b["celda"])
+	_ok("4 …y no deja ni un bloque en la fila del carril Base (el haz no construye): %s" % str(en_fila), en_fila.is_empty())
+	lab.call("limpiar")
+	lab.call("poner_elemento", "ice")
+	lab.call("sumar", "linea_x", Sigils.GLIFOS_ANCHO_MURO_3_V2)
 	var b0: int = lanzador._bloques.size()
 	var rune: RuneData = lab.call("runa")
-	var i_base: int = _carril("Base")
 	var hz: Hechizo = (lab.call("receta_de", i_base) as Lanzador3D.Receta3D).hechizo(rune)
-	_ok("4 la tierra con ᛁ ×2: no es haz y nace donde apuntas", not hz.haz and hz.en_punto)
+	_ok("4 el hielo con ᛁ ×9: no es haz y nace donde apuntas", not hz.haz and hz.en_punto)
 	_tecla_lab(KEY_SPACE)
 	await avanzar_s(1.0)
 	var c_base: Vector2i = lab.call("celda_de", i_base)
@@ -174,7 +190,7 @@ func _caso_solidos() -> void:
 		var c: Vector2i = b["celda"]
 		if absi(c.y - c_base.y) <= 2 and c.x < 8:
 			filas[c.y] = true
-	_ok("4 la tierra ancha del carril Base deja bloques en tres filas", lanzador._bloques.size() > b0 + 2 and filas.has(c_base.y - 1) and filas.has(c_base.y) and filas.has(c_base.y + 1), str(filas.keys()))
+	_ok("4 el hielo ancho del carril Base deja bloques en tres filas", lanzador._bloques.size() > b0 + 2 and filas.has(c_base.y - 1) and filas.has(c_base.y) and filas.has(c_base.y + 1), str(filas.keys()))
 	var ctx: Dictionary = {"origen": Vector3(5.5, 0.0, 5.5) * Terreno3D.casilla, "dir": Vector3.RIGHT, "g": {"x": 1.1, "y": 0.1, "z": 0.1}}
 	var centro: Dictionary = HechizoVivo.perfil_solido(Vector2i(5, 5), ctx)
 	var borde: Dictionary = HechizoVivo.perfil_solido(Vector2i(5, 6), ctx)

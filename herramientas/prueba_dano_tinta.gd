@@ -212,7 +212,9 @@ func _pura_tinta_h4() -> void:
 		if t.is_empty():
 			sin_dato.append(k)
 		por_glifo[k] = float(t.get("por_glifo", -1.0))
-	_ok("4b los 14 glifos (10 + los 4 de H5) llevan «tinta»", sin_dato.is_empty() and Sigils.GLIFOS.size() == 14, str(sin_dato))
+	_ok("4b los glifos del catálogo llevan «tinta»", sin_dato.is_empty(), str(sin_dato))
+	_ok("4b el muro remoto cuesta 4 más que el local",
+		_c(_tinta("fuego", {"barrera": 1, "linea_x": 3, "posicion": 1}) - _tinta("fuego", {"barrera": 1, "linea_x": 3}), 4.0))
 	_ok("4b aportes del juego: flecha 2 · barrera 4 · repetición 3 · rebote 2 · permanencia 3 · raido 4 · pulso 2", por_glifo["flecha"] == 2.0 and por_glifo["barrera"] == 4.0 and por_glifo["repeticion"] == 3.0 and por_glifo["rebote"] == 2.0 \
 			and por_glifo["permanencia"] == 3.0 and por_glifo["raido"] == 4.0 and por_glifo["pulso"] == 2.0, str(por_glifo))
 	_ok("4b ejes (ᛁ x y z) y altura (ᛏ) aportan 0", por_glifo["linea_x"] == 0.0 and por_glifo["linea_z"] == 0.0 and por_glifo["altura"] == 0.0)
@@ -282,12 +284,14 @@ func _pura_tinta_h4() -> void:
 	_ok("4b desglose sin ajustes = la tinta del juego (total = tinta_de, con los aportes de barrera y raido)", _c(float(Dano.desglose_tinta(junto)["total"]), Dano.tinta_de(junto)) and _c(float((Dano.desglose_tinta(junto)["aportes"] as Dictionary).get("barrera", -1.0)), 4.0) and _c(float((Dano.desglose_tinta(junto)["aportes"] as Dictionary).get("raido", -1.0)), 4.0))
 	# la decisión pendiente: continuo por Hechizo.persistente (tierra/hielo sin barrera cuestan el recargo; el haz con permanencia no)
 	var por_h: Dictionary = {"continuo_por_hechizo": true, "k_copia": 0.0, "k_hijo": 0.0, "aportes": nulos}
-	_ok("4b [CONTINUO_POR_HECHIZO] tierra + ᚱ sin barrera: 18 → 22,5 (cierra PENDIENTES 62)", _c(_tinta("tierra", {"linea_x": 2, "raido": 1}, por_h), 22.5) and _c(_tinta("hielo", {"linea_x": 2, "raido": 1}, por_h), 22.5))
+	# 6/11: la tierra con ᛁ ya no se queda (es el haz de púas): el sólido que cuesta el recargo es el que SE CONSTRUYE (ᛏ de tierra, ᛁ de hielo)
+	_ok("4b [CONTINUO_POR_HECHIZO] el sólido que se queda + ᚱ: 18 → 22,5 (cierra PENDIENTES 62)", _c(_tinta("tierra", {"altura": 2, "raido": 1}, por_h), 22.5) and _c(_tinta("hielo", {"linea_x": 2, "raido": 1}, por_h), 22.5))
+	_ok("4b [CONTINUO_POR_HECHIZO] tierra + ᛁᛁ + ᚱ (el haz de púas no se queda): 18 sin recargo", _c(_tinta("tierra", {"linea_x": 2, "raido": 1}, por_h), 18.0))
 	_ok("4b [CONTINUO_POR_HECHIZO] barrera + ᚱ y permanencia + ᚱ siguen en 22,5 y flecha + ᚱ en 18", _c(_tinta("agua", {"barrera": 1, "raido": 1}, por_h), 22.5) and _c(_tinta("agua", {"permanencia": 1, "raido": 1}, por_h), 22.5) and _c(_tinta("fuego", {"flecha": 1, "raido": 1}, por_h), 18.0))
 	_ok("4b [CONTINUO_POR_HECHIZO] ᛁᛁ + permanencia + ᚱ (un haz, no se queda): 34 → 34 sin recargo", _c(_tinta("fuego", {"linea_x": 2, "permanencia": 1, "raido": 1}, por_h), 34.0) and _c(_tinta("fuego", {"linea_x": 2, "permanencia": 1, "raido": 1}, {"k_copia": 0.0, "k_hijo": 0.0, "aportes": nulos}), 42.5))
 
 
-## A3 (6/11): recorre todos los multiconjuntos de 6 glifos del catálogo (14 glifos: 27 132 recetas) y comprueba que ninguna pasa de la barra inicial (`Tinta.MAXIMA_INICIAL` = 100).
+## A3 (6/11): recorre todos los multiconjuntos de 6 glifos del catálogo y comprueba que ninguna pasa de la barra inicial (`Tinta.MAXIMA_INICIAL` = 100).
 ## Si alguna la pasa es FALLO y se listan las peores; se imprime siempre la más cara.
 func _recetas_de_6_glifos() -> void:
 	var nombres: Array = Sigils.GLIFOS.keys()

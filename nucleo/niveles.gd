@@ -23,6 +23,7 @@ const ESCENAS: Dictionary = {
 	"GrutaBatida": "res://escenas/PruebaGrutaBatida.tscn",            # 27/10: el nivel de la barrera (docs/GRUTA_BATIDA.md)
 	"SalaEmpuje": "res://escenas/PruebaSalaEmpuje.tscn",            # 27/10: la sala de los bloques empujables (docs/EMPUJAR_BLOQUES.md)
 	"Bosque_01_v01": "res://escenas/PruebaBosque01_v01.tscn",     # el mapa lo diseña otro agente (docs/PLAN_BOSQUE_01_V01.md): hasta que exista la escena, la salida avisa
+	"Provencal": "res://escenas/PruebaProvencal.tscn",            # 7/11: mapa de muestreo del pack Fantasy Provencal (generado por herramientas/generar_mapa_provencal.gd)
 	"Bosque_02": "res://escenas/PruebaBosque02.tscn",             # 3/11: «El corazón del Bosque», 40 × 40 (docs/PLAN_BOSQUE_02.md)
 }
 const NIVEL_INICIAL: String = "Bosque_02"   ## donde entra «Nueva partida» del menú principal (era Bosque_01_v01 hasta el 3/11; antes, la `run/main_scene`)
@@ -102,9 +103,19 @@ static func ir_a(mundo: Node, destino: String) -> bool:
 	if p.is_empty():
 		_avisar("destino «%s» mal escrito: se escribe <Nivel>:<entrada>" % destino)
 		return false
+	var origen: String = String(mundo.get("nivel")) if mundo.get("nivel") != null else ""
+	var estado: Estado = Estado.i()
+	if origen == "Cueva" and destino == "Bosque_02:boca_cueva":
+		if estado.bosque_retorno_cueva == "Bosque_01_v01" and existe("Bosque_01_v01"):
+			p[0] = "Bosque_01_v01"
 	if not existe(p[0]):
 		_avisar("el nivel «%s» todavía no existe (hay: %s; escena %s)" % [p[0], ", ".join(ESCENAS.keys()), escena_de(p[0]) if escena_de(p[0]) != "" else "sin fila en Niveles.ESCENAS"])
 		return false
+	# Antes del autoguardado del viaje: una partida cargada dentro conserva la boca de origen.
+	if p[0] == "Cueva":
+		estado.bosque_retorno_cueva = origen if p[1] == "desde_bosque" and origen in ["Bosque_01_v01", "Bosque_02"] else ""
+	elif origen == "Cueva":
+		estado.bosque_retorno_cueva = ""
 	en_curso = true
 	_viaje(mundo, p[0], p[1])
 	return true

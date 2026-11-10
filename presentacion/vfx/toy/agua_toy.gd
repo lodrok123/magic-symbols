@@ -381,6 +381,8 @@ func _avanzar_carga(delta: float) -> void:
 			_c_t += delta
 			var u3: float = clampf(_c_t / T_APAGAR, 0.0, 1.0)
 			_c_escala = lerpf(_c_desde, 0.0, u3 * u3)
+			if figura == Figura.BOLA or _marcador:      # haz, pilar y ola mueren por `corte` y llevan la erosion en el shader: aqui no se les toca `vida`
+				_vida_erosion(1.0 - u3 * u3)                  # la misma rampa que el encogido: la bola se come por ruido mientras se encoge
 			_aplicar_escala_carga()
 			if u3 >= 1.0:
 				_est = EstadoCarga.NINGUNA

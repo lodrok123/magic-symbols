@@ -109,6 +109,23 @@ const EXTRAS: Dictionary = {
 ##   · «clips»: {nombre en el destino: nombre en la fuente}. Vacío = todos los de la fuente con su propio nombre;
 ##   · «centrar» (opcional): nombres de clip de la fuente cuya cadera se centra sobre el personaje (`_centrar_cadera`).
 ## Si dos fuentes dan el mismo nombre de clip, gana la primera.
+## SANTA COMPAÑA (9/11): la Willow Fernstep de Meshy pasada por Mixamo (los mismos huesos que jugadora_base), recortada a esqueleto
+## y clips con arte/meshy/solo_clips.py (0,3 MB; el GLB con malla son 19 MB y no entra en el repo). Trae cuatro, y de ellos importan
+## dos, uno para cada portador de la procesión:
+##   Spear_Walk     anda con la mano CERRADA sobre un mango, como quien lleva una lanza: el que porta la cruz-bastón
+##   Unsteady_Walk  anda tambaleándose, de ánima: el que porta la vela
+## Las entradas van por ID DE PERSONAJE, no por GLB, porque las dos variantes comparten modelo (ver Pj3D.MODELO_DE).
+const RUTA_CLIPS_SANTA: String = "res://arte/meshy/santa_compana_clips.glb"
+## 9/11 (Pablo: «mira cómo no está bien al andar»): el andar va con el nombre «Walking», NO con el rol «walk». Pj3D.SINONIMOS
+## busca el rol walk como ["walking", "walk"] EN ESE ORDEN, así que mientras el clip se llamó «walk» el juego seguía andando con
+## el «Walking» de la elfa y el andar de cada portador no se usaba nunca. Y ese Walking es el que se ve cruzado: medido con
+## herramientas/medidas_piernas_clip.gd, junta los pies a 0,045 cuando en reposo están a 0,196 (anda sobre una línea, y con la
+## túnica ancha las piernas se solapan). Unsteady_Walk los separa 0,12-0,26 y Spear_Walk, 0,068.
+const FUENTE_SANTA_CRUZ: Dictionary = {
+	"ruta": RUTA_CLIPS_SANTA, "referencia": "Spear_Walk", "clips": {"Walking": "Spear_Walk", "run": "Running"}}
+const FUENTE_SANTA_VELA: Dictionary = {
+	"ruta": RUTA_CLIPS_SANTA, "referencia": "Walking", "clips": {"Walking": "Unsteady_Walk", "run": "Running"}}
+
 const FUENTES: Dictionary = {
 	"elfo_base": [
 		{"ruta": "res://arte/modelos/chibi_elf.glb", "referencia": "Idle", "clips": {}},
@@ -129,6 +146,16 @@ const FUENTES: Dictionary = {
 			"hit": "SlapReaction", "death": "Die", "drowning": "Drowning",
 		}},
 		FUENTE_MIXAMO_ANCIANA,       # 5/11: Mixamo_Rezar, alternativa para mirar (los Old_Man_* se retiraron: no sujetan el bastón)
+	],
+	# Santa Compaña (9/11): el rig sale de tools/autorig_fantasma.py con el fantasma de donante, así que su esqueleto es el de
+	# elfo_base y hereda los 22 clips de la elfa. Lo único que cambia entre las dos variantes es el ANDAR, y por eso van por id.
+	"santa_compana_cruz": [
+		FUENTE_SANTA_CRUZ,
+		{"ruta": "res://arte/modelos/chibi_elf.glb", "referencia": "Idle", "clips": {}},
+	],
+	"santa_compana_vela": [
+		FUENTE_SANTA_VELA,
+		{"ruta": "res://arte/modelos/chibi_elf.glb", "referencia": "Idle", "clips": {}},
 	],
 	# Goblin asesino (22/10): el movimiento sale de «Gribble the Goblin, All Animations» (Meshy; solo su esqueleto y sus clips) y las reacciones, de los
 	# clips del goblin guerrero (el mismo rig de Meshy). Nombres de destino = los de los roles de Pj3D.SINONIMOS.
@@ -154,6 +181,26 @@ const CADERA_MIN: float = 0.01
 const HUESOS_SUELA: PackedStringArray = ["Foot", "ToeBase", "Toe_End"]
 ## Clip de la fuente con el que se mide la altura de los pies si la fuente no dice otro (el reposo de pie).
 const CLIP_REFERENCIA: String = "Idle"
+
+## TOPE DE HUNDIMIENTO (9/11, Pablo: «sí, arréglalo»). El retarget sube o baja cada clip una cantidad FIJA, medida con el clip de referencia
+## (el reposo de pie). Eso vale mientras el personaje esté de pie, pero no cuando el clip lo tumba o lo arrodilla: ahí las proporciones del
+## destino no son las de la fuente y el cuerpo acaba por debajo del suelo. Medido con herramientas/medidas_hundimiento.gd (fracción del alto):
+##   Dead                -0,229  al caer, el cuerpo TUMBADO entero se mete bajo el suelo
+##   ChargedGroundSlam   -0,057  se arrodilla y la rodilla queda enterrada
+##   RollDodge           -0,083  la voltereta
+## Y no es cosa de un personaje: la jugadora se hunde en los mismos tres (Dead -0,130). Así que en cada fotograma se sube lo justo para que
+## nada quede bajo el suelo. SOLO SUBE, nunca baja: un clip puede estar en el aire (saltos, nadar) y eso no se toca.
+## Qué cuenta para el tope: NO vale mirar solo la «suela», porque en una muerte de espaldas lo que toca el suelo es la espalda y subir la
+## figura por el pie la dejaría flotando. Tampoco vale mirar TODOS los huesos: al rodar, las manos pasan por el suelo y los dedos llegan a
+## -0,24, así que la voltereta botaría 0,24 por culpa de un meñique. Se miran el tronco y las piernas, y se deja fuera la cadena del brazo.
+## Lo que esto cuesta: en la voltereta el mayor salto vertical de la cadera entre dos fotogramas pasa de 0,097 a 0,121 del alto (el tope
+## levanta mientras el cuerpo rueda). A cambio, en la muerte BAJA de 0,452 a 0,288: la caída queda menos brusca que antes.
+const APOYO_FUERA: PackedStringArray = ["Shoulder", "Arm", "Hand", "Thumb", "Index", "Middle", "Ring", "Pinky"]
+## El suelo está en y = 0 en el espacio del esqueleto (el reposo apoya ahí los pies). Los huesos van DENTRO de la carne, así que dejar el más
+## bajo justo en 0 todavía mete algo de malla bajo el suelo; es mucho mejor que los 0,23 de antes y no levanta la figura de más.
+const SUELO_Y: float = 0.0
+## false = sin tope (para medir el antes y el después en las pruebas; hay que vaciar la caché con `vaciar_cache()`).
+static var tope_hundimiento_activo: bool = true
 ## Tolerancia (en grados) de la rotación del nodo del esqueleto respecto al modelo: por encima, el retarget asume que fuente y destino difieren y avisa.
 const GIRO_NODO_TOL: float = 1.0
 
@@ -317,6 +364,10 @@ static func _traer_de(f: Dictionary, modelo_d: Node3D, sk_d: Skeleton3D, res: Di
 		var medido: Array = c.traducir(ap_s.get_animation(referencia), base)
 		sube = c.suela_reposo - float(medido[1])
 	c.sube = sube
+	# El tope de hundimiento se enciende AQUÍ, no antes: la pasada de arriba mide con el clip de referencia cuánto hay que subir el
+	# clip entero, y si el tope ya estuviera puesto falsearía esa medida. No se usa en `traducir_clip` (el empujado y levantarse de
+	# Pj3D), que reescribe la cadera con sus propias alturas y no quiere que nadie le toque la vertical.
+	c.tope = tope_hundimiento_activo
 	# 2) los clips pedidos (o todos, con su nombre)
 	var pedidos: Dictionary = (f.get("clips", {}) as Dictionary).duplicate()
 	if pedidos.is_empty():
@@ -379,6 +430,8 @@ class _Ctx:
 	var cadera_d: int = -1
 	var escala_cadera: float = 1.0
 	var suela_d: Array = []                       ## huesos destino que cuentan como suela
+	var apoyo_d: Array = []                       ## huesos destino que cuentan para el tope de hundimiento (tronco y piernas: ver APOYO_FUERA)
+	var tope: bool = false                        ## true = en cada fotograma sube lo justo para que ningún hueso de `apoyo_d` quede bajo el suelo
 	var suela_reposo: float = 0.0                 ## altura del hueso de suela más bajo con el esqueleto destino en reposo
 	var sube: float = 0.0                         ## cuánto se desplaza en vertical la cadera destino en todos los clips
 	var plantar: bool = false                     ## true = en CADA fotograma la cadera sube o baja lo justo para que la suela más baja quede a `suela_objetivo` (agachadas, empujar)
@@ -407,6 +460,17 @@ class _Ctx:
 					suela_d.append(i)
 					min_y = minf(min_y, sk_d.get_bone_global_rest(i).origin.y)
 					break
+			# Tope de hundimiento: cuentan el tronco y las piernas, no la cadena del brazo (ver APOYO_FUERA). Y solo huesos que la
+			# FUENTE también tiene, o sea, los que el clip anima de verdad: los de la capa y demás añadidos del destino los mueve
+			# otro (la ropa), el retarget no responde de ellos, y una capa que roza el suelo al rodar es normal. Contándolos, la
+			# voltereta de la jugadora levantaba al personaje 0,18 del alto por un pliegue de tela.
+			var del_brazo: bool = false
+			for fuera in APOYO_FUERA:
+				if sk_d.get_bone_name(i).contains(fuera):
+					del_brazo = true
+					break
+			if not del_brazo and sk_s.find_bone(sk_d.get_bone_name(i)) >= 0:
+				apoyo_d.append(i)
 		suela_reposo = min_y if min_y != INF else 0.0
 		alin.resize(sk_d.get_bone_count())
 		alin.fill(Quaternion.IDENTITY)
@@ -478,6 +542,7 @@ class _Ctx:
 				p_cad = r_cad_d + rd.inverse() * (rs * delta_p) * escala_cadera
 			p_cad.y += sube
 			var suelo: float = INF
+			var apoyo: float = INF
 			for i in orden_d:
 				var p: int = sk_d.get_bone_parent(i)
 				var j: int = int(mapa[i])
@@ -495,11 +560,18 @@ class _Ctx:
 					pos[i] = (pos[p] as Vector3) + (rd.inverse() * (ga_d[p] as Quaternion)) * sk_d.get_bone_rest(i).origin
 				if suela_d.has(i):
 					suelo = minf(suelo, (pos[i] as Vector3).y)
+				if apoyo_d.has(i):
+					apoyo = minf(apoyo, (pos[i] as Vector3).y)
 			if plantar and suelo != INF:
 				# Pies en el suelo en cada fotograma: toda la figura sube o baja lo que la suela más baja se aleja de su sitio.
 				var corrige: float = (suela_reposo if is_nan(suela_objetivo) else suela_objetivo) - suelo
 				p_cad.y += corrige
 				suelo += corrige
+			elif tope and apoyo != INF and apoyo < SUELO_Y:
+				# Tope de hundimiento (ver arriba): nada del tronco ni de las piernas por debajo del suelo. SOLO SUBE.
+				var sube_tope: float = SUELO_Y - apoyo
+				p_cad.y += sube_tope
+				suelo += sube_tope
 			if t_pos >= 0:
 				dest.position_track_insert_key(t_pos, tiempo, p_cad)
 			suma_suela += (suelo if suelo != INF else 0.0) - sube

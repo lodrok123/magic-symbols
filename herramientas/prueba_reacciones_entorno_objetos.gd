@@ -40,6 +40,8 @@ func _initialize() -> void:
 	_naturaleza()
 	_cuerda()
 	_datos()
+	_vapor()
+	_cuenco()
 	Terreno3D.conductores.clear()
 	print("FALLOS: %d" % _fallos)
 	quit(1 if _fallos > 0 else 0)
@@ -274,6 +276,119 @@ func _cuerda() -> void:
 	d.on_spell_hit(_rune("fire"))
 	_avanzar(d, 1.2)
 	_ok("6 si el fuego llega DESPUÉS de la escarcha, cae como siempre", d.rota_ya)
+
+
+## 8 hace_vapor: un recipiente (el surtidor) lleno + calor suelta vapor en su casilla y las 8 vecinas, sigue humeando VAPOR_MARCADOS veces y se queda vacío; vacío no hace nada.
+func _vapor() -> void:
+	var e: EstadosSuelo3D = Terreno3D.estados
+	var s: Reactivo3D = _pieza("surtidor")
+	var c: Vector2i = s.celda
+	_ok("8 el surtidor lleva hace_vapor de serie", s.tiene_papel(Reactivo3D.P_HACE_VAPOR))
+	_ok("8 vacío + calor: no reacciona ni deja vapor", s.reaccion_a(_rune("fire")) == "" and not s.spell_reacts(_rune("fire")))
+	s.on_spell_hit(_rune("fire"))
+	_ok("8 (y en efecto no hay vapor en su casilla)", not e.hay_vapor(c))
+	s.on_spell_hit(_rune("water"))
+	_ok("8 con agua + agua sigue siendo «brota» (llenar)", s.usado)
+	_ok("8 lleno + calor: «vaporiza»", s.reaccion_a(_rune("fire")) == "vaporiza" and s.spell_reacts(_rune("fire")))
+	_ok("8 lleno + agua no vaporiza (sigue siendo «brota»)", s.reaccion_a(_rune("water")) == "brota")
+	s.on_spell_hit(_rune("fire"))
+	var todas: bool = true
+	for dx in range(-1, 2):
+		for dy in range(-1, 2):
+			todas = todas and e.hay_vapor(c + Vector2i(dx, dy))
+	_ok("8 deja vapor en su casilla y en las 8 de alrededor", todas)
+	_ok("8 no se pasa de radio 1", not e.hay_vapor(c + Vector2i(2, 0)) and not e.hay_vapor(c + Vector2i(0, -2)))
+	_ok("8 queda vacío: otro calor no hace nada", s.reaccion_a(_rune("fire")) == "")
+	# La nube se sostiene: 3 marcados (0 · 1,5 · 3,0 s) y cada uno le da VAPOR_S (4 s) a las casillas
+	var paso: float = 0.0
+	var viva_hasta: float = 0.0
+	while paso < 9.0:
+		e.avanzar(0.1)
+		s._process(0.1)
+		paso += 0.1
+		if e.hay_vapor(c):
+			viva_hasta = paso
+	var total: float = float(Reactivo3D.VAPOR_MARCADOS - 1) * Reactivo3D.VAPOR_INTERVALO_S + EstadosSuelo3D.VAPOR_S
+	_ok("8 sigue humeando más allá de VAPOR_S (4 s): dura ~%.1f s (medido %.1f s)" % [total, viva_hasta], viva_hasta > EstadosSuelo3D.VAPOR_S + 2.0 and absf(viva_hasta - total) < 0.3)
+	_ok("8 pasados los segundos no queda vapor en ninguna casilla", not e.hay_vapor(c) and not e.hay_vapor(c + Vector2i(1, 1)) and not e.hay_vapor(c + Vector2i(-1, -1)))
+	_ok("8 respeta el tope de casillas vivas de vapor", Reactivo3D.VAPOR_MARCADOS >= 1 and 9 <= int(EstadosSuelo3D.MAX_CASILLAS_VIVAS["vapor"]))
+	s.on_spell_hit(_rune("water"))
+	_ok("8 con agua vuelve a estar lleno y el calor lo vuelve a reventar", s.reaccion_a(_rune("fire")) == "vaporiza")
+	s.on_spell_hit(_rune("fire"))
+	_ok("8 segunda vez: vuelve a haber vapor", e.hay_vapor(c))
+	var q: Reactivo3D = _pieza("surtidor")
+	q.papeles = PackedStringArray(["-hace_vapor"])
+	q.on_spell_hit(_rune("water"))
+	_ok("8 con -hace_vapor un surtidor lleno no revienta con el calor", q.reaccion_a(_rune("fire")) == "")
+	var w: Reactivo3D = _pieza("seto")
+	w.papeles = PackedStringArray(["+hace_vapor"])
+	_ok("8 +hace_vapor en otra pieza sin agua: el calor sigue prendiéndola", w.tiene_papel(Reactivo3D.P_HACE_VAPOR) and w.reaccion_a(_rune("fire")) == "prende")
+
+
+## 9 el cuenco de piedra con agua (7/11, «mucho vapor»): nace lleno y con el agua a la vista; el calor la revienta (desaparece), deja la nube de 9 casillas ~9 s (más que el surtidor, con el mismo radio y bajo el tope),
+## queda vacío y el agua lo vuelve a llenar; el fuego no lo quema (es piedra) y la vía del surtidor sigue igual.
+func _cuenco() -> void:
+	var e: EstadosSuelo3D = Terreno3D.estados
+	_celda_n += 30                                  # lejos del vapor que dejó la prueba 8 (el surtidor, que aún humea)
+	var k: Reactivo3D = _pieza("cuenco", "agua")
+	var c: Vector2i = k.celda
+	var avisos: Array = []
+	k.activado.connect(func(t: String, el: String) -> void: avisos.append("%s/%s" % [t, el]))
+	_ok("9 el cuenco lleva recibe_agua + hace_vapor (y nada de fuego) y es de piedra", k.tiene_papel(Reactivo3D.P_RECIBE_AGUA) and k.tiene_papel(Reactivo3D.P_HACE_VAPOR) and not k.tiene_papel(Reactivo3D.P_INFLAMABLE) and not k.tiene_papel(Reactivo3D.P_FUENTE_FUEGO) and k.material() == "piedra")
+	_ok("9 tiene su modelo de cuenco (la pila de piedra, con escala) y no es la laja", k.visual is MeshInstance3D and (k.visual as MeshInstance3D).mesh != null and (k.visual as MeshInstance3D).scale.is_equal_approx(Vector3.ONE * Reactivo3D.CUENCO_ESCALA) and k.visual.name == "cuenco_piedra")
+	_ok("9 NACE LLENO: el agua se ve antes del primer golpe", k._lleno_agua and k._agua_pila != null and k._agua_pila.visible)
+	_ok("9 el agua cabe dentro del borde del cuenco", k._agua_pila.position.y < 0.38 * Reactivo3D.CUENCO_ESCALA and k._agua_pila.position.y > 0.11 * Reactivo3D.CUENCO_ESCALA and Reactivo3D.CUENCO_AGUA_RADIO < 0.45 * Reactivo3D.CUENCO_ESCALA)
+	_ok("9 lleno + calor: «vaporiza»; + agua: «brota» (se puede volver a llenar)", k.reaccion_a(_rune("fire")) == "vaporiza" and k.spell_reacts(_rune("fire")) and k.reaccion_a(_rune("water")) == "brota")
+	_ok("9 el fuego no lo prende, ni lo arde: sigue sano y fuera de lo que arde", k.estado == Reactivo3D.EstadoObj.SANO and not k.is_lit and not k.can_burn() and not k.is_in_group(Reactivo3D.GRUPO_ARDE))
+	var antes_total: int = 0
+	for dx in range(-3, 4):
+		for dy in range(-3, 4):
+			antes_total += 1 if e.hay_vapor(c + Vector2i(dx, dy)) else 0
+	_ok("9 antes del golpe no hay vapor alrededor", antes_total == 0)
+	k.on_spell_hit(_rune("fire"))
+	_ok("9 el fuego revienta el agua: DESAPARECE del cuenco y queda vacío", not k._lleno_agua and not k._agua_pila.visible and k.reaccion_a(_rune("fire")) == "" and not k.spell_reacts(_rune("fire")))
+	_ok("9 y el cuenco sigue sano tras el fuego (no arde, no se consume)", k.estado == Reactivo3D.EstadoObj.SANO and not k.is_lit and is_instance_valid(k.visual))
+	var dentro: int = 0
+	var fuera: int = 0
+	for dx in range(-3, 4):
+		for dy in range(-3, 4):
+			if e.hay_vapor(c + Vector2i(dx, dy)):
+				if absi(dx) <= 1 and absi(dy) <= 1:
+					dentro += 1
+				else:
+					fuera += 1
+	_ok("9 deja vapor en las 9 casillas (radio 1) y en ninguna más", dentro == 9 and fuera == 0, "dentro %d fuera %d" % [dentro, fuera])
+	_ok("9 las 9 casillas caben en el tope de vapor (%d) con margen para el de la jugadora" % int(EstadosSuelo3D.MAX_CASILLAS_VIVAS["vapor"]), 9 <= int(EstadosSuelo3D.MAX_CASILLAS_VIVAS["vapor"]) - 10 and int(EstadosSuelo3D.MAX_CASILLAS_VIVAS["vapor"]) == 20)
+	var paso: float = 0.0
+	var viva_hasta: float = 0.0
+	var max_vivas: int = 0
+	while paso < 13.0:
+		e.avanzar(0.1)
+		k._process(0.1)
+		paso += 0.1
+		var n: int = 0
+		for dx in range(-2, 3):
+			for dy in range(-2, 3):
+				n += 1 if e.hay_vapor(c + Vector2i(dx, dy)) else 0
+		max_vivas = maxi(max_vivas, n)
+		if e.hay_vapor(c):
+			viva_hasta = paso
+	var total: float = float(Reactivo3D.VAPOR_CUENCO_MARCADOS - 1) * Reactivo3D.VAPOR_CUENCO_INTERVALO_S + EstadosSuelo3D.VAPOR_S
+	var del_surtidor: float = float(Reactivo3D.VAPOR_MARCADOS - 1) * Reactivo3D.VAPOR_INTERVALO_S + EstadosSuelo3D.VAPOR_S
+	_ok("9 la nube del cuenco dura ~%.1f s (medido %.1f s): entre 8,5 y 10,5 y más que la del surtidor (%.1f s)" % [total, viva_hasta, del_surtidor], absf(viva_hasta - total) < 0.3 and viva_hasta >= 8.5 and viva_hasta <= 10.5 and viva_hasta > del_surtidor + 1.0)
+	_ok("9 el pico de casillas vivas es 9 (nunca más)", max_vivas == 9, str(max_vivas))
+	_ok("9 pasado el tiempo no queda vapor", not e.hay_vapor(c) and not e.hay_vapor(c + Vector2i(1, 1)) and not e.hay_vapor(c + Vector2i(-1, -1)))
+	k.on_spell_hit(_rune("fire"))
+	_ok("9 vacío + otro calor: nada (ni vapor ni quemado)", not e.hay_vapor(c) and k.estado == Reactivo3D.EstadoObj.SANO and not k.is_lit)
+	k.on_spell_hit(_rune("water"))
+	_ok("9 con agua VUELVE: se ve el agua, está lleno y avisa «cuenco/agua» (no «surtidor»)", k._lleno_agua and k._agua_pila.visible and avisos == ["cuenco/agua"], str(avisos))
+	_ok("9 lleno otra vez: el calor lo vuelve a reventar", k.reaccion_a(_rune("fire")) == "vaporiza")
+	k.on_spell_hit(_rune("fire"))
+	_ok("9 segunda vez: vuelve a haber vapor y vuelve a estar vacío", e.hay_vapor(c) and not k._lleno_agua and not k._agua_pila.visible)
+	_ok("9 la vía del surtidor no cambió: 3 marcados cada 1,5 s (7 s)", Reactivo3D.VAPOR_MARCADOS == 3 and is_equal_approx(Reactivo3D.VAPOR_INTERVALO_S, 1.5) and is_equal_approx(del_surtidor, 7.0))
+	var gorda: Array = Reactivo3D.VAPOR_POR_TIPO["cuenco"] as Array
+	_ok("9 la bocanada del cuenco es más gorda que la de serie (escala, radio de emisión y cantidad mayores)", float(gorda[2]) > 1.0 and float(gorda[3]) > 0.4 and int(gorda[4]) > 8)
+	_ok("9 el surtidor sigue con la bocanada de serie (sin fila en VAPOR_POR_TIPO)", not Reactivo3D.VAPOR_POR_TIPO.has("surtidor"))
 
 
 func _datos() -> void:

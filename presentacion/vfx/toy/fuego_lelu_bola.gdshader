@@ -46,6 +46,11 @@ uniform float escala_rampa = 1.0;
 uniform float contraste = 1.0;
 uniform float calor_extra = 0.32;                 // núcleo claro en el centro
 uniform float semilla = 0.0;
+uniform float ero_escala = 18.0;           // EROSION (nucleo_toy.gdshaderinc, solo con VfxKit3D.usar_erosion): tiling del ruido sobre el UV del quad (la llama ocupa ~0,3 de el: por eso alto)
+uniform float ero_dureza = 1.4;            // pow del ruido: mayor = islas y huecos mas marcados
+uniform float ero_inicio : hint_range(0.0, 0.9) = 0.15;   // la silueta aguanta hasta que (1 - vida) pasa de aqui; avance = smoothstep(ero_inicio, 1, 1 - vida)
+uniform float ero_brillo = 0.4;            // el filo que se come SUMA ero_brillo * (color del filo): conserva el tono (multiplicar saturaba el rojo y viraba a lima)
+uniform float ero_ancho = 0.35;           // ancho del borde teñido (extremo caliente de la rampa)
 uniform float deform : hint_range(0.0, 1.0) = 0.42;            // cuánto deforma el contorno el ruido de baja frecuencia que gira
 uniform float deform_vuelo : hint_range(0.0, 1.0) = 0.6;
 uniform float desplaza = 0.1;
@@ -60,13 +65,16 @@ group_uniforms;
 
 // Fundido contra la geometría de detrás (revisión de Pablo): apagado por defecto (0); FuegoToy lo enciende.
 uniform float suave_prof : hint_range(0.0, 3.0) = 0.0;
-uniform sampler2D tex_prof : hint_depth_texture, repeat_disable, filter_nearest;
+#define NUCLEO_CON_PROF
+#define NUCLEO_CON_EROSION
 
 varying vec2 eje;
 
+#include "res://presentacion/vfx/toy/nucleo_toy.gdshaderinc"
+
 void vertex() {
 	vec3 esc = vec3(length(MODEL_MATRIX[0].xyz), length(MODEL_MATRIX[1].xyz), length(MODEL_MATRIX[2].xyz));
-	MODELVIEW_MATRIX = VIEW_MATRIX * mat4(vec4(INV_VIEW_MATRIX[0].xyz * esc.x, 0.0), vec4(INV_VIEW_MATRIX[1].xyz * esc.y, 0.0), vec4(INV_VIEW_MATRIX[2].xyz * esc.z, 0.0), MODEL_MATRIX[3]);
+	MODELVIEW_MATRIX = nucleo_billboard(esc, VIEW_MATRIX, INV_VIEW_MATRIX, MODEL_MATRIX);
 	vec3 vd = (VIEW_MATRIX * vec4(vel_dir, 0.0)).xyz;
 	vec2 cola = -normalize(vd.xy + vec2(0.00001, 0.0));
 	eje = normalize(mix(vec2(0.0, 1.0), cola, inclin) + vec2(0.00001, 0.0));
@@ -110,15 +118,21 @@ void fragment() {
 	float idx = clamp((f - umbral) * escala_rampa + calor_extra * calor_k * (1.0 - smoothstep(0.0, 0.85, g)), 0.0, 1.0);
 	idx = pow(idx, contraste);
 	vec3 col = mix(texture(rampa, vec2(idx, 0.5)).rgb, texture(rampa_azul, vec2(idx, 0.5)).rgb, tono);
-	float titila = 1.0 + 0.14 * chisporroteo * (sin(TIME * 9.3 + semilla * 31.0) * 0.6 + sin(TIME * 14.1 + semilla * 17.0) * 0.4);
-	ALBEDO = col * brillo * titila;
-	float suave = 1.0;
-	if (suave_prof > 0.0) {
-		float dp = texture(tex_prof, SCREEN_UV).r;
-		if (dp > 0.00001) {
-			vec4 w = INV_PROJECTION_MATRIX * vec4(SCREEN_UV * 2.0 - 1.0, dp, 1.0);
-			suave = clamp((-w.z / w.w + VERTEX.z) / suave_prof, 0.0, 1.0);
-		}
+	// con la erosion encendida la bola no baja de alfa al morir: se COME por ruido (avance = 1 - vida) y el filo se tiñe con el extremo caliente de SU rampa
+	float vv = usar_erosion ? 1.0 : vida;
+	float av = usar_erosion ? smoothstep(ero_inicio, 1.0, 1.0 - vida) : 0.0;
+	vec3 pe = vec3(UV, semilla * 13.0);
+	float bo = 0.0;
+	vec3 caliente_filo = vec3(0.0);
+	if (av > 0.0) {
+		vec3 caliente = mix(texture(rampa, vec2(0.92, 0.5)).rgb, texture(rampa_azul, vec2(0.92, 0.5)).rgb, tono);
+		caliente_filo = caliente;
+		bo = erosion_borde3(pe, av, ero_escala, ero_dureza, ero_ancho);
+		col = mix(col, caliente, bo);
 	}
-	ALPHA = clamp(a * transparencia * vida * suave, 0.0, 1.0);
+	float titila = 1.0 + 0.14 * chisporroteo * (sin(TIME * 9.3 + semilla * 31.0) * 0.6 + sin(TIME * 14.1 + semilla * 17.0) * 0.4);
+	ALBEDO = (col + caliente_filo * ero_brillo * bo) * brillo * titila;
+	float suave = nucleo_prof(SCREEN_UV, VERTEX.z, suave_prof, INV_PROJECTION_MATRIX);
+
+	ALPHA = erosion_alfa3(clamp(a * transparencia * vv * suave, 0.0, 1.0), pe, av, ero_escala, ero_dureza);
 }

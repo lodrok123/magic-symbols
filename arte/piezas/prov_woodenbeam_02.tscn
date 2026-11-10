@@ -1,0 +1,39 @@
+[gd_scene format=3]
+
+[ext_resource type="ArrayMesh" path="res://arte/provencal/obj/SM_WoodenBeam_02.obj" id="1_civkd"]
+[ext_resource type="Texture2D" path="res://arte/provencal/detalle/T_WoodenMeshes_B.png" id="2_miyu3"]
+[ext_resource type="Texture2D" path="res://arte/provencal/detalle/T_WoodenMeshes_N.png" id="3_46088"]
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_swfyy"]
+albedo_color = Color(0.6862745, 0.4509804, 0.25, 1)
+albedo_texture = ExtResource("2_miyu3")
+normal_enabled = true
+normal_texture = ExtResource("3_46088")
+
+[sub_resource type="ConvexPolygonShape3D" id="ConvexPolygonShape3D_kxllh"]
+points = PackedVector3Array(0.14175963, 0.9515761, 0.07991925, -0.20007709, 2.207371, -0.09018665, -0.20007709, 2.207371, 0.09463488, 0.0052479953, -0.010268344, 0.09463488, 0.19010168, -0.010268344, -0.09018665, 0.0052479953, 2.2280414, -0.09018665, 0.0052479953, -0.010268344, -0.09018665, -0.015223406, 2.3102686, 0.09463488, 0.19010168, -0.010268344, 0.09463488, 0.16544919, 0.7463654, -0.078509144, -0.20007709, 2.3102686, -0.09018665, 0.025795784, 2.063814, 0.09463488, -0.20007709, 2.3102686, 0.09463488, -0.015223406, 2.3102686, -0.09018665, 0.15903535, 0.7615549, 0.07991925, 0.025795784, 2.063814, -0.09018665, 0.0052479953, 2.2280414, 0.09463488, 0.14479358, 0.9474737, -0.07707734)
+
+[node name="prov_woodenbeam_02" type="Node3D" unique_id=1560782148]
+metadata/id = "prov_woodenbeam_02"
+metadata/bloquea = true
+metadata/reactivo = false
+metadata/inflamable = true
+metadata/origen = "Fantasy Provencal (Leartes Studios)"
+metadata/pieza_original = "SM_WoodenBeam_02"
+metadata/lod = 0
+metadata/triangulos = 28
+metadata/categoria = "madera_y_paso"
+
+[node name="modelo" type="Node3D" parent="." unique_id=1367548521]
+
+[node name="malla" type="MeshInstance3D" parent="modelo" unique_id=1344960653]
+transform = Transform3D(0.44797656, 0, 0, 0, 0.44797656, 0, 0, 0, 0.44797656, 0.08247092, -4.4797656e-07, 2.30968e-07)
+mesh = ExtResource("1_civkd")
+surface_material_override/0 = SubResource("StandardMaterial3D_swfyy")
+
+[node name="cuerpo" type="StaticBody3D" parent="." unique_id=1007447913]
+collision_layer = 1024
+collision_mask = 0
+
+[node name="forma_0" type="CollisionShape3D" parent="cuerpo" unique_id=1821537877]
+shape = SubResource("ConvexPolygonShape3D_kxllh")

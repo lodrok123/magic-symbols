@@ -290,7 +290,7 @@ func _montaje() -> void:
 	for pz2 in z.piezas():
 		if (pz2 as Puzle3D.Pieza).tipo == "cofre":
 			cofres.append((pz2 as Puzle3D.Pieza).id)
-	_ok("0.7 el mapa declara 12 cofres (8 comunes, 3 épicos y 1 legendario; el 8.º común es el de la balanza del claro)", cofres.size() == 12, str(cofres.size()))
+	_ok("0.7 el mapa declara 14 cofres, incluidos el cortafuegos y la pila del molino", cofres.size() == 14, str(cofres.size()))
 	_ok("0.8 la jugadora nace en la linde (7,32)", celda_jugador() == INICIO, str(celda_jugador()))
 	var graves: Array = (maqueta.get("_avisos") as Array).filter(func(a: Variant) -> bool: return (String(a).contains("sin pieza") or String(a).contains("fuera del suelo") or String(a).contains("sin personaje")) and not String(a).contains("losa_runas_ovalo"))
 	_ok("0.9 la maqueta no avisa de piezas ni personajes que falten (salvo la losa del guardián, que ya faltaba en la Gruta Batida)", graves.is_empty(), str(graves))
@@ -330,10 +330,17 @@ func _linde() -> void:
 	_ok("1.3 hay guardabosques (linde) y librera (plaza) con su personaje", not guarda.is_empty() and not librera.is_empty())
 	await avanzar_s(1.0)
 	var textos: Array = []
-	for i in range(5):
+	for i in range(6):
 		textos.append(str(reglas.call("hablar", guarda, jugador.position)))
-	_ok("1.4 la guardabosques da cinco pistas distintas (braseros, tronco, muro, pradera, campamento)", textos.size() == 5 and textos.has(textos[0]) and String(textos[0]).contains("braseros") and String(textos[1]).contains("tronco") and String(textos[2]).contains("muro")
-		and String(textos[3]).contains("pradera") and String(textos[4]).contains("campamento"), str(textos))
+	_ok("1.4 la guardabosques explica la linde, el cortafuegos y el campamento", String(textos[0]).contains("braseros") and String(textos[1]).contains("tronco") and String(textos[2]).contains("muro")
+		and String(textos[3]).contains("ramales") and String(textos[4]).contains("pradera") and String(textos[5]).contains("campamento"), str(textos))
+	# El recorrido lanza flechas horizontales. Para los dos impactos de suelo se usa la entrada normal de la reacción.
+	var mojado := Vector2i(7, 32)
+	var bifurcacion := Vector2i(7, 29)
+	lanzador.impacto_filtrado("agua", Terreno3D.centro_de(mojado, Terreno3D.y_pies(mojado)))
+	lanzador.impacto_filtrado("fuego", Terreno3D.centro_de(bifurcacion, Terreno3D.y_pies(bifurcacion)))
+	var cortafuegos: bool = await esperar(func() -> bool: return _flag("bosque02.linde.cortafuegos"), 8.0)
+	_ok("1a la llama llega al brasero por la hierba seca y deja intacto el ramal mojado", cortafuegos and not Terreno3D.estados.tiene(Vector2i(7, 30), EstadosSuelo3D.QUEMADA))
 	# braseros: fuego y flecha, uno a uno
 	await disparar("fuego", ["flecha"], Vector2i(10, 32), Vector2i(10, 30), "1.5")
 	await avanzar_s(1.5)
@@ -627,8 +634,13 @@ func _estanque() -> void:
 	await avanzar_s(0.5)
 	_ok("8.5 aparece el cofre común del molino", molinero.es_cerrado)
 	await abrir_cofre("cofre_molino", "8.6")
+	var llena: bool = await esperar(func() -> bool: return _flag("bosque02.estanque.pila"), 40.0)
+	_ok("8.6a el agua llena la pila antes de que gire el molino", llena and not bool(molino.get("activo")))
+	await disparar("fuego", ["flecha"], Vector2i(32, 10), Vector2i(32, 8), "8.6b")
+	_ok("8.6c la cuerda desvía el agua hacia el molino", await esperar(func() -> bool: return _flag("bosque02.estanque.desvio"), 5.0))
 	var gira: bool = await esperar(func() -> bool: return _flag("bosque02.estanque.molino"), 120.0)
 	_ok("8.7 el arroyo corre, la rueda del molino gira (`bosque02.estanque.molino`) y aparece el cofre ÉPICO del lago", gira and bool(molino.get("activo")) and epico.es_cerrado)
+	_ok("8.7a el molino abre la reja del atajo", bool(z.nodo("atajo_molino").get("abierta")))
 	# el lago: sellado hasta que la fuente lo electrifica (casilla (27,8)); la fuente descarga cada ~5,6 s
 	var camino_epico: bool = await caminar(Vector2i(27, 10), "8.8")
 	_ok("8.9 llegar a la orilla del lago fue posible a pie", camino_epico)
@@ -662,7 +674,7 @@ func _campamento() -> void:
 	var vig: Puzle3D.VigiaPuzle = _vigia("vig_camp")
 	var epico: Puzle3D.CofrePuzle = _cofre("cofre_campamento")
 	var torre_cofre: Puzle3D.CofrePuzle = _cofre("cofre_torre")
-	_ok("9.1 ANTES: la puerta goblin (28,16) cierra el campamento: no hay camino a (29,16) ni al cofre; el vigía vigila a 5 (dos guerreros, dos arqueros y el chamán)", not hay_camino(Vector2i(30, 16)) and vig.vistos.size() == 5 and epico.es_oculto and torre_cofre.es_oculto)
+	_ok("9.1 ANTES: la puerta frontal bloquea su casilla, pero el acceso lateral permite entrar", not _libre(Vector2i(28, 16)) and hay_camino(Vector2i(30, 16)) and vig.vistos.size() == 5 and epico.es_oculto and torre_cofre.es_oculto)
 	await disparar("fuego", ["flecha"], Vector2i(26, 16), Vector2i(28, 16), "9.2")
 	var arde: bool = await esperar(func() -> bool: return _libre(Vector2i(28, 16)), 30.0)
 	_ok("9.3 la puerta goblin arde y se consume (flag de lo quemado)", arde and _flag("bosque02.quemado.c28_16"))
@@ -671,6 +683,10 @@ func _campamento() -> void:
 	_ok("9.5 uno de los dos arqueros es de puesto (no persigue)", arq_fijo != null and bool(arq_fijo.fijo))
 	await caminar(Vector2i(30, 16), "9.6")
 	await avanzar_s(0.6)
+	await disparar("fuego", ["flecha"], Vector2i(29, 16), Vector2i(31, 16), "9.6a")
+	var vapor: bool = await esperar(func() -> bool: return Terreno3D.estados.hay_vapor(Vector2i(30, 16)), 4.0)
+	await caminar(Vector2i(30, 16), "9.6b")
+	_ok("9.6c el cuenco cubre el avance con vapor y el arquero de puesto pierde la visión", vapor and arq_fijo != null and not bool(arq_fijo.call("_ve", Combate3D.ARQUERO_FIJO_ALCANCE)))
 	_ok("9.7 SIN CERROJO (zona abierta, 5/11): dentro de la sala la casilla (29,16) sigue libre, hay camino de vuelta al exterior (27,16) y el mapa ya no trae `cerr_camp`", _libre(Vector2i(29, 16)) and hay_camino(Vector2i(27, 16)) and z.nodo("cerr_camp") == null)
 	_matar(vig.vistos)                                    # [muerto=true]
 	await avanzar_s(1.2)

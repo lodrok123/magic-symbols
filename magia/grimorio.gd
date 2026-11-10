@@ -420,7 +420,7 @@ func _avisos_de_pagina(i: int, ficha: Dictionary, rune: RuneData, h: Hechizo, ig
 		return avisos
 	if rune == null:
 		avisos.append("Sin elemento")
-	elif (ficha["components"] as Array).is_empty():
+	elif (ficha["components"] as Array).is_empty() and Objetos.elemento_de(rune) != "tierra":
 		avisos.append("A la página %d le falta algún glifo" % (i + 1))
 	avisos.append_array(Lanzador3D.avisos_de(h, rune, ignorados, t))
 	return avisos
@@ -1007,7 +1007,10 @@ func page_ready(indice: int) -> bool:
 	var p: Dictionary = pages[indice]
 	if pagina_anulada(indice):
 		return false          # dos opuestos: la pestaña no se pinta como lista, no se puede lanzar
-	return p["element"] != Runes.Type.NONE and not p["components"].is_empty()
+	if p["element"] == Runes.Type.NONE:
+		return false
+	var rune: RuneData = rune_de_ficha(p)["rune"]
+	return not p["components"].is_empty() or (rune != null and Objetos.elemento_de(rune) == "tierra")
 
 
 ## El elemento de una página cualquiera, para pintar su pestaña del color

@@ -33,6 +33,7 @@ const REF_MURO: Vector3 = Vector3(3.45, 1.5, 0.3)
 const REF_PILAR: Vector3 = Vector3(0.5, 4.0, 0.5)
 const REF_BARRERA: Vector3 = Vector3(1.5, 1.5, 1.5)
 const REF_HAZ: Vector3 = Vector3(1.5, 0.5, 0.15)
+const COLOR_GRIETA_MAGMA: Color = Color(0.85, 0.28, 0.06)             ## 7/11: la grieta del suelo del haz de magma tira a naranja, no al negro de la de tierra
 
 const T_SOLTAR: float = 0.14
 const T_APAGAR: float = 0.55            ## s en que la roca se enfría a gris al agotarse en el aire (mientras cae)
@@ -88,6 +89,8 @@ var _pop: bool = false
 var _roca: MeshInstance3D = null            ## BOLA: la roca
 var _mat_roca: ShaderMaterial = null
 var _fuego: FuegoToy = null                 ## MURO / PILAR / BARRERA / HAZ: el FuegoToy hijo
+var _puas: Node3D = null                    ## HAZ (7/11): el TierraToy hijo que pone las puas, con la roca de magma
+var _mat_pua: ShaderMaterial = null         ## el material de magma de esas puas
 var _mat_base: ShaderMaterial = null        ## las piedras de la base de las figuras de volumen
 var _brasas_mm: MultiMeshInstance3D = null  ## BOLA en vuelo: la estela de brasas (top_level: se quedan en el mundo)
 var _brasas: Array = []                     ## [{p (mundo), v, edad, vida, tam}]
@@ -580,7 +583,7 @@ func _volumen(c: Node3D) -> void:
 				var kz: float = semieje_z * (1.05 if figura == Figura.PILAR else 0.95)
 				sitios.append([Vector3(cos(a) * kx, 0.0, sin(a) * kz), tam * _rng.randf_range(0.8, 1.2)])
 		Figura.HAZ:
-			pass                                     # un haz de magma no apoya en el suelo: solo el fuego rojo
+			_puas_igneas(c)                          # 7/11 (Pablo: «magma puede ser algo parecido a tierra pero con sus púas más ígneas y transmitiendo calor»)
 	for j in sitios.size():
 		var s: Array = sitios[j]
 		var mi: MeshInstance3D = MeshInstance3D.new()
@@ -594,6 +597,27 @@ func _volumen(c: Node3D) -> void:
 		mi.position = (s[0] as Vector3) + Vector3(0, -0.01, 0)
 		mi.rotation.y = _rng.randf() * TAU
 		c.add_child(mi)
+
+
+## 7/11/2026 (Pablo: «magma puede ser algo parecido a tierra pero con sus púas más ígneas y transmitiendo calor. Tómalo como referencia»): el HAZ de magma son las MISMAS PÚAS que las de
+## tierra —la misma malla, la misma secuencia de brote, el mismo hundirse al revés— pero de ROCA DE MAGMA: casi negra, con las grietas al rojo del `magma_roca.gdshader`. No se duplica la
+## máquina: se cuelga un `TierraToy` con la figura HAZ y se le cambia el material de sus MultiMesh de púas y lajas por el de magma. El fuego rojo del `FuegoToy` sigue por encima, que es el
+## calor que transmite. Las púas de magma no se manchan de tierra en la base (ahí es donde más calientan) y su grieta del suelo tira a naranja en vez de a negro.
+func _puas_igneas(c: Node3D) -> void:
+	var t := TierraToy.new()
+	t.name = "PuasIgneas"
+	t.linea_ignea = true
+	t.definir(TierraToy.Figura.HAZ, semieje_x, semieje_y, semieje_z, false)
+	t.aparicion = aparicion
+	c.add_child(t)
+	_puas = t
+	_mat_pua = ImpactoMagmaToy.material_roca(false)
+	_mat_pua.set_shader_parameter("calor", clampf(0.55 + 0.45 * calor, 0.0, 1.0))
+	for n in t.find_children("Bloques*", "MultiMeshInstance3D", true, false):
+		(n as MultiMeshInstance3D).material_override = _mat_pua
+	var gr: Node = t.find_child("Grietas", true, false)
+	if gr != null and (gr as MeshInstance3D).material_override is ShaderMaterial:
+		((gr as MeshInstance3D).material_override as ShaderMaterial).set_shader_parameter("color_grieta", COLOR_GRIETA_MAGMA)
 
 
 ## La estela de brasas (MultiMesh de SpriteToy; el nodo es top_level: las brasas viven en el mundo y la bola se aleja).

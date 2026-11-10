@@ -3,6 +3,8 @@
 [ext_resource type="Script" uid="uid://chcoctbeeesis" path="res://presentacion/prueba_test2.gd" id="1_poc"]
 [ext_resource type="Script" path="res://escenas/puzle.gd" id="2_pz"]
 
+[ext_resource type="Script" path="res://presentacion/luz_portatil_cueva.gd" id="3_luz"]
+
 [node name="PruebaCueva" type="Node3D"]
 script = ExtResource("1_poc")
 fuego_nuevo = true
@@ -12,6 +14,25 @@ zona_luz = "cueva"
 agua_fisica = true
 agua_corre = false
 kit = "pruebas"
+
+[node name="LuzBocaCueva" type="SpotLight3D" parent="."]
+position = Vector3(10.35, 3.35, 43.1)
+rotation_degrees = Vector3(-24, 0, 0)
+light_color = Color(0.89, 0.97, 0.77, 1)
+light_energy = 1.05
+light_specular = 0.0
+spot_range = 8.6
+spot_attenuation = 0.9
+spot_angle = 52.0
+spot_angle_attenuation = 1.4
+
+[node name="LuzPortatilCueva" type="OmniLight3D" parent="."]
+light_color = Color(1, 0.91, 0.72, 1)
+light_energy = 1.0
+light_specular = 0.0
+shadow_enabled = true
+omni_attenuation = 0.48
+script = ExtResource("3_luz")
 
 [node name="Puzles" type="Node" parent="."]
 script = ExtResource("2_pz")

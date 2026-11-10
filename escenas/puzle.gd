@@ -140,6 +140,8 @@ extends Node
 ##   nube_veneno  vida=<s> (6; 0 = permanente)  radio=<casillas> (1)                 NubeVeneno3D (F4, 29/10): una nube de veneno con vida propia. Envenena a quien esté dentro (2 de vida/s y 3 s después; el antídoto, la capucha de musgo y el
 ##              limo, el chamán y el gólem no se envenenan), el VIENTO la empuja y la dispersa (8 s) y el FUEGO la consume (4 s). Se guarda en la partida. Señal `disipada`
 ##   nido       (sin claves)                                                        Nido3D (F1): el viento suelta una `pluma`, como mucho cada 45 s. Señal `suelta`
+##   bancal     flag=<nivel.sala.hecho> (obligatoria)                                Tierra o arena. Agua → Naturaleza germina la casilla y guarda la flag.
+##              Señal `germino`; condiciones `germinado` y `pendiente`. La flag restaura la hierba al volver al mapa.
 ##   arbol      modelo=arbol_redondo|arbol_redondo_2|pino|pino_2 (arbol_redondo)    Reactivo3D `arbol` (F1): bloquea su casilla; un golpe cuerpo a cuerpo (F) lo sacude y suelta la tabla `tronco_golpe`, cada 30 s
 ##   musgo, helecho_cueva, seta_palida   coge_si=<expresión>  rebrota=<s> (0)        Recolectable3D (F1): como `alga`, con la pieza de la columna `modelo` de su objeto (o una esfera si no la hay)
 ##   cofre (da=)  da=<objeto>:<n>[+<objeto>:<n>…] (`oro` es oro)  o  da=tabla:<id> (una tirada de `botin_tablas.tsv`; se mezcla con «+»). `abre_si=tener.<objeto>`: la condición `tener.<objeto>` vale mientras
@@ -265,6 +267,7 @@ const SENAL_DEFECTO: Dictionary = {
 	"columna": "cae", "estatuas": "completa", "estalagmita": "cae", "geoda": "explota", "bloque": "movido", "roca_empujable": "movido",
 	"guardian": "levanta", "puente": "tendido", "trampa_dragon": "escupe", "trampa_flechas": "dispara",
 	"colmena": "cae_panal", "nube_veneno": "disipada", "nido": "suelta", "musgo": "recogida", "helecho_cueva": "recogida", "seta_palida": "recogida",
+	"bancal": "germino",
 }
 ## Señal de usuario → [señal de Godot, cuántos argumentos trae, filtro]: un filtro `true`/`false` deja pasar solo ese valor del primer argumento.
 const SENALES: Dictionary = {
@@ -312,11 +315,13 @@ const SENALES: Dictionary = {
 	"colmena": {"cae_panal": ["panal_cae", 0, null], "arde": ["arde", 0, null]},
 	"nube_veneno": {"disipada": ["disipada", 0, null]},
 	"nido": {"suelta": ["suelta", 0, null]},
+	"bancal": {"germino": ["germino", 0, null]},
 	"musgo": {"recogida": ["recogido", 1, null]},
 	"helecho_cueva": {"recogida": ["recogido", 1, null]},
 	"seta_palida": {"recogida": ["recogido", 1, null]},
 }
 const CONDICIONES: Dictionary = {
+	"bancal": {"germinado": ["germinado", true], "pendiente": ["germinado", false]},
 	"compuerta": {"abierta": ["abierta", true], "cerrada": ["abierta", false]},
 	"puerta": {"abierta": ["abierta", true], "cerrada": ["abierta", false]},
 	"nivel": {"alcanzado": ["alcanzado", true], "perdido": ["alcanzado", false]},
@@ -405,9 +410,9 @@ const CLAVES: Dictionary = {
 	"manantial": {"caudal": "f", "volumen": "f", "rampa": "b", "inicia": "b", "celdas": "celdas", "sin_piedra": "b", "bloque": "celdas", "terraza": "f", "pilares": "b", "espuma": "f"},
 	"tinaja": {"canal": "celdas"},
 	"totem": {},
-	"brasero": {"rele": "id", "espera": "f", "dura": "f", "luz": "f", "modelo": "s:cueva"},
+	"brasero": {"rele": "id", "espera": "f", "dura": "f", "luz": "f", "modelo": "s:cueva", "por_hierba": "b"},
 	# 27/10: todo el kit de la Cueva se puede poner de adorno desde el mapa (estalagmitas, pared baja, boca, llave, bloque de enlace, rocas y raíces con musgo)
-	"decorado": {"modelo": "s:geoda_resonante|estalagmita_resonante|estalagmita_rota|rocas_salpicadura|helechos_cueva|musgo_colgante|estalagmitas_a|estalagmitas_b|cueva_pared_baja|boca_cueva|llave_pequena|bloque_enlace|roca_musgosa|raices_musgo", "giro": "f", "escala": "f"},
+	"decorado": {"modelo": "decorado:geoda_resonante|estalagmita_resonante|estalagmita_rota|rocas_salpicadura|helechos_cueva|musgo_colgante|estalagmitas_a|estalagmitas_b|cueva_pared_baja|boca_cueva|llave_pequena|bloque_enlace|roca_musgosa|raices_musgo", "giro": "f", "escala": "f"},
 	"seto": {"mojable": "b"},
 	"contador": {"de": "celdas", "minimo": "f"},
 	"cuerda": {"sostiene": "id"},
@@ -423,6 +428,7 @@ const CLAVES: Dictionary = {
 	"helecho_cueva": {"coge_si": "expr", "rebrota": "f"},
 	"seta_palida": {"coge_si": "expr", "rebrota": "f"},
 	"colmena": {},
+	"bancal": {"flag": "flag"},
 	"nube_veneno": {"vida": "f", "radio": "f"},
 	"nido": {},
 	"arbol": {"modelo": "s:arbol_redondo|arbol_redondo_2|pino|pino_2"},
@@ -504,6 +510,30 @@ class Pieza extends RefCounted:
 	var nodos: Array = []                        ## las piezas que crea una línea con `celdas=` (jarrones, cajas): `nodo` es la primera
 	var n: int = 0                               ## línea del .txt
 	var activa: bool = false                     ## manantial: ya está echando agua
+
+
+## Registra la germinación del suelo de una casilla y la recuerda entre visitas.
+class BancalPuzle extends Node:
+	signal germino
+
+	var celda: Vector2i
+	var flag: String
+	var germinado: bool = false
+
+	func _ready() -> void:
+		germinado = Flags.i().tiene(flag)
+		if germinado:
+			Terreno3D.estados.poner_material(celda, "hierba")
+		else:
+			Terreno3D.estados.germino.connect(_al_germinar)
+
+	func _al_germinar(c: Vector2i) -> void:
+		if c != celda:
+			return
+		Terreno3D.estados.germino.disconnect(_al_germinar)
+		germinado = true
+		Flags.i().poner(flag)
+		germino.emit()
 
 
 ## Losa que bloquea su casilla hasta que el puzle se cumple (y vuelve a cerrarse si deja de cumplirse). Antes vivía en el laboratorio.
@@ -1363,6 +1393,13 @@ static func _aviso_linea(avisos: Array, n: int, linea: String, msg: String) -> v
 	avisos.append("línea %d: %s  [%s]" % [n, msg, linea.strip_edges()])
 
 
+const RUTA_PIEZAS_ARTE: String = "res://arte/piezas/"
+
+## ¿Existe la escena `arte/piezas/<id>.tscn`? (decorado con una pieza que no es de la lista cerrada de CLAVES).
+static func _pieza_arte_existe(id: String) -> bool:
+	return _id_valido(id) and ResourceLoader.exists(RUTA_PIEZAS_ARTE + id + ".tscn")
+
+
 static func _id_valido(s: String) -> bool:
 	if s == "":
 		return false
@@ -1418,6 +1455,9 @@ static func _leer_pieza(p: PackedStringArray, n: int, l: String, por_id: Diction
 			bien = false
 			continue
 		pz.p[kv[0]] = v[1]
+	if bien and tipo == "bancal" and not pz.p.has("flag"):
+		_aviso_linea(avisos, n, l, "el bancal necesita flag=<nivel.sala.hecho>")
+		return null
 	return pz if bien else null
 
 
@@ -1503,6 +1543,12 @@ static func _valor(tipo: String, t: String) -> Array:
 		if dos.size() != 2 or not dos[0].is_valid_float() or not dos[1].is_valid_float() or float(dos[0]) < 0.0 or float(dos[1]) < 0.0:
 			return [false, null, "tiene que ser «<s>,<s>» (dos números ≥ 0 separados por coma, p. ej. 2.0,1.5)"]
 		return [true, [float(dos[0]), float(dos[1])], ""]
+	if tipo.begins_with("decorado:"):
+		# 7/11: los modelos de siempre (lista cerrada) o el id de CUALQUIER pieza que exista en arte/piezas (p. ej. las prov_* del pack Fantasy Provencal). Un id inventado sigue avisando.
+		var vale_d: PackedStringArray = tipo.substr(9).split("|")
+		if not (t in vale_d) and not _pieza_arte_existe(t):
+			return [false, null, "tiene que ser uno de: %s, o el id de una pieza de arte/piezas (p. ej. prov_barrel)" % ", ".join(vale_d)]
+		return [true, t, ""]
 	if tipo.begins_with("s:"):
 		var vale: PackedStringArray = tipo.substr(2).split("|")
 		if not (t in vale):
@@ -1963,6 +2009,17 @@ func _crear(pz: Pieza) -> void:
 		if not _casilla_valida(pz, c as Vector2i):
 			return
 	match pz.tipo:
+		"bancal":
+			var material: String = Terreno3D.estados.material_de(pz.celda)
+			if material not in ["tierra", "arena"]:
+				_avisar_pieza(pz, "un bancal necesita tierra o arena, hay «%s»" % material)
+				return
+			var bancal := BancalPuzle.new()
+			bancal.name = pz.id
+			bancal.celda = pz.celda
+			bancal.flag = String(pz.p["flag"])
+			cont.add_child(bancal)
+			pz.nodo = bancal
 		"pulsador":
 			var b := Pulsador3D.new()
 			b.name = pz.id
@@ -2156,6 +2213,9 @@ func _crear(pz: Pieza) -> void:
 				_avisar_pieza(pz, "no hay brasero de la maqueta en %s (letra «T»)" % pz.celda)
 				return
 			br.mult_luz = maxf(float(pz.p.get("luz", 1.0)), 0.1)
+			br.enciende_por_hierba = bool(pz.p.get("por_hierba", false))
+			if br.enciende_por_hierba:
+				br.add_to_group(Reactivo3D.GRUPO_ARDE)
 			if String(pz.p.get("modelo", "")) == "cueva":
 				# 24/10 (tercera tanda): el brasero de la Cueva (`brasero_cueva`, 0,9 de alto) en vez del del Bosque (1,4). Solo cambia el modelo: sigue siendo el mismo Reactivo3D, con su luz, su
 				# pulso de fuego y su caja de acierto; la llama y la luz bajan a la altura del cuenco nuevo.
@@ -2360,8 +2420,16 @@ func _crear(pz: Pieza) -> void:
 			pz.nodo = pr
 		"decorado":
 			# 24/10 (tercera tanda): una pieza de adorno sin mecánica (la geoda de C3, las estalagmitas de C4…): solo el modelo, en su casilla, a ras de suelo. No bloquea.
-			var dec: Node3D = _colocar_pieza(String(pz.p["modelo"]) if pz.p.has("modelo") else "", cont, pz.id,
-				Terreno3D.centro_de(pz.celda, Terreno3D.y_pies(pz.celda) - 0.02), float(pz.p.get("giro", 0.0)), Vector3.ONE * float(pz.p.get("escala", 1.0)))
+			var modelo_dec: String = String(pz.p["modelo"]) if pz.p.has("modelo") else ""
+			var clasicos: PackedStringArray = String((CLAVES["decorado"] as Dictionary)["modelo"]).substr(9).split("|")
+			var dec: Node3D = null
+			if modelo_dec != "" and not (modelo_dec in clasicos) and _pieza_arte_existe(modelo_dec):
+				# 7/11: una pieza de arte/piezas fuera de la lista cerrada (las prov_*): la ESCENA tal cual (ya a su medida y con su colision), no la copia normalizada de la maqueta.
+				dec = _colocar_pieza_arte(modelo_dec, cont, pz.id, Terreno3D.centro_de(pz.celda, Terreno3D.y_pies(pz.celda) - 0.02),
+					float(pz.p.get("giro", 0.0)), Vector3.ONE * float(pz.p.get("escala", 1.0)))
+			else:
+				dec = _colocar_pieza(modelo_dec, cont, pz.id,
+					Terreno3D.centro_de(pz.celda, Terreno3D.y_pies(pz.celda) - 0.02), float(pz.p.get("giro", 0.0)), Vector3.ONE * float(pz.p.get("escala", 1.0)))
 			if dec == null:
 				_avisar_pieza(pz, "decorado necesita «modelo=<pieza>» y que la pieza exista")
 				return
@@ -2553,6 +2621,60 @@ func _colocar_pieza(id: String, cont: Node, nombre: String, pos: Vector3, giro: 
 	if id in ["pilar_cascada", "pilar_cascada_ancho", "musgo_colgante"]:
 		_apagar_verde(n)
 	return n
+
+
+## 7/11: instancia `arte/piezas/<id>.tscn` tal cual (su escala y su `cuerpo` ya vienen horneados) en `pos`. Si la maqueta tiene el circulo de transparencia (`transparencia_jugador`),
+## sus materiales pasan por `Ocluso3D.convertir` como los del decorado en lotes (`PruebaTest2._plantilla`); las copias son propias de esta pieza.
+func _colocar_pieza_arte(id: String, cont: Node, nombre: String, pos: Vector3, giro: float, escala: Vector3) -> Node3D:
+	var ps: PackedScene = load(RUTA_PIEZAS_ARTE + id + ".tscn") as PackedScene
+	if ps == null:
+		return null
+	var n: Node3D = ps.instantiate() as Node3D
+	if n == null:
+		return null
+	n.name = nombre
+	n.position = pos
+	n.rotation.y = deg_to_rad(giro)
+	n.scale = escala
+	cont.add_child(n)
+	if mundo is Object and bool((mundo as Object).get("transparencia_jugador")):
+		for h in n.find_children("*", "MeshInstance3D", true, false):
+			var mi: MeshInstance3D = h as MeshInstance3D
+			if mi.mesh == null:
+				continue
+			for s in range(mi.mesh.get_surface_count()):
+				var m: Material = mi.get_active_material(s)
+				if m != null:
+					mi.set_surface_override_material(s, Ocluso3D.convertir(m.duplicate() as Material))
+	if bool(n.get_meta("bloquea", false)):
+		_bloquear_huella(n)
+	return n
+
+
+## Las casillas que toca la colision de la pieza (la caja XZ de sus cascos convexos, con >= 0,3 u de solape en cada eje) quedan bloqueadas para quien camina: la solidez de los mapas de letras es por casillas
+## (FuenteCasillas), no por la colision fisica, que solo ven los hechizos.
+func _bloquear_huella(n: Node3D) -> void:
+	var ini := Vector2(INF, INF)
+	var fin := Vector2(-INF, -INF)
+	for h in n.find_children("*", "CollisionShape3D", true, false):
+		var cs: CollisionShape3D = h as CollisionShape3D
+		if cs.shape is ConvexPolygonShape3D:
+			for p in (cs.shape as ConvexPolygonShape3D).points:
+				var w: Vector3 = cs.global_transform * p
+				ini = Vector2(minf(ini.x, w.x), minf(ini.y, w.z))
+				fin = Vector2(maxf(fin.x, w.x), maxf(fin.y, w.z))
+	if ini.x == INF:
+		return
+	var a: Vector2i = Terreno3D.celda_de(Vector3(ini.x, 0.0, ini.y))
+	var b: Vector2i = Terreno3D.celda_de(Vector3(fin.x, 0.0, fin.y))
+	var cas: float = Terreno3D.casilla
+	for cy in range(a.y, b.y + 1):
+		for cx in range(a.x, b.x + 1):
+			var solape_x: float = minf(fin.x, float(cx + 1) * cas) - maxf(ini.x, float(cx) * cas)
+			var solape_y: float = minf(fin.y, float(cy + 1) * cas) - maxf(ini.y, float(cy) * cas)
+			if solape_x >= 0.3 and solape_y >= 0.3:
+				Terreno3D.bloquear_celda(Vector2i(cx, cy))
+	return
 
 
 ## El musgo de estas piezas sale verde brillante, fuera de la paleta azul de la Cueva: se multiplica el albedo de sus materiales por un tinte azulado (rojo y verde abajo, azul casi igual), así el

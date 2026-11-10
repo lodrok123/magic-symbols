@@ -1,0 +1,39 @@
+[gd_scene format=3]
+
+[ext_resource type="ArrayMesh" path="res://arte/provencal/obj/SM_Barrel.obj" id="1_bbc3k"]
+[ext_resource type="Texture2D" path="res://arte/provencal/detalle/T_Barrel_Jar_B.png" id="2_cm3x5"]
+[ext_resource type="Texture2D" path="res://arte/provencal/detalle/T_Barrel_Jar_N.png" id="3_t44t7"]
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_81hqk"]
+albedo_color = Color(0.6862745, 0.4509804, 0.25, 1)
+albedo_texture = ExtResource("2_cm3x5")
+normal_enabled = true
+normal_texture = ExtResource("3_t44t7")
+
+[sub_resource type="ConvexPolygonShape3D" id="ConvexPolygonShape3D_gcc11"]
+points = PackedVector3Array(0.28567988, 0.120322786, 0.022382645, -0.29636183, 0.18260618, -0.0139533905, -0.29695472, 0.18217066, 0.010153965, 0.24801514, 0.76332575, 0.034335382, 0.054291278, 0.59383225, -0.29254955, -0.1146764, 0.7496589, 0.22703858, 0.054234765, 0.08560982, 0.27631775, -0.066398256, 0.014825161, -0.24278322, -0.19832513, 0.76026565, -0.15797895, 0.15021178, 0.5685578, 0.2627959, -0.1545534, 0.005006312, 0.19561037, 0.1983432, 0.015226427, -0.15829256, 0.1981537, 0.760645, -0.1581433, -0.28502914, 0.5576586, 0.10716127, -0.17387883, 0.19658677, -0.2414593, 0.19954446, 0.012897268, 0.15541524, -0.15053958, 0.5684238, 0.26270387, 0.25775257, 0.5800335, -0.14584416, 0.15056716, 0.17108804, -0.255174, 0.2829538, 0.5687232, 0.106512114, -0.2337007, 0.016945308, -0.0976327, -0.2711609, 0.5806998, -0.12232806, -0.24810953, 0.7628229, 0.03428519, 0.14968285, 0.75972354, 0.20186451, -0.13870424, 0.5686947, -0.2669534, -0.054773487, 0.18182062, -0.2930944, -0.16260026, 0.195668, 0.25070307, -0.06633589, 0.7610252, -0.24255633, -0.05446766, 0.6051244, 0.28763938, 0.21021892, 0.099604316, 0.19047843, -0.2607039, 0.060915127, 0.09494272, 0.26978642, 0.18417338, -0.12185535)
+
+[node name="prov_barrel" type="Node3D" unique_id=1716201949]
+metadata/id = "prov_barrel"
+metadata/bloquea = true
+metadata/reactivo = false
+metadata/inflamable = true
+metadata/origen = "Fantasy Provencal (Leartes Studios)"
+metadata/pieza_original = "SM_Barrel"
+metadata/lod = 0
+metadata/triangulos = 1382
+metadata/categoria = "atrezo"
+
+[node name="modelo" type="Node3D" parent="." unique_id=2027701774]
+
+[node name="malla" type="MeshInstance3D" parent="modelo" unique_id=1095863192]
+transform = Transform3D(0.682, 0, 0, 0, 0.682, 0, 0, 0, 0.682, 0, 0, 0)
+mesh = ExtResource("1_bbc3k")
+surface_material_override/0 = SubResource("StandardMaterial3D_81hqk")
+
+[node name="cuerpo" type="StaticBody3D" parent="." unique_id=1549660004]
+collision_layer = 1024
+collision_mask = 0
+
+[node name="forma_0" type="CollisionShape3D" parent="cuerpo" unique_id=1561636744]
+shape = SubResource("ConvexPolygonShape3D_gcc11")

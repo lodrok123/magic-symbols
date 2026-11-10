@@ -5,6 +5,8 @@ extends Node3D
 ## presentacion/vfx/efectos instanciados DIRECTAMENTE (sin pasar por el sistema de hechizos: aquí se juzga el aspecto, no la integración).
 ## Teclas:  1 bola de fuego · 2 muro de fuego · 3 columna de fuego · 0 diez muros a la vez (medida de fps) · X limpia ·
 ##          C cámara (juego → cerca 2 m → lejos 10 m) · flechas / WASD andar · H oculta el panel · F alterna un MURO de prueba a 2/3 del largo del haz (los haces F7/F9 reciben su choque: salpicadura).
+##          4 PARRILLA de los 7 elementos (otra vez = figura siguiente) · 8 (integración 10/11, la tecla la querían las dos ramas): con la parrilla puesta la REHACE con los mandos
+##          de ahora; sin parrilla alterna el HUMO POR REGLA (HumoRegla). Mayús+8 alterna SIEMPRE el humo por regla (también con la parrilla puesta).
 ## Prueba 2 (fuego toon, docs/PRUEBA2_VFX_TOON_2026-11-01.md): 5 muro de fuego toon · 6 columna toon · 7 bola toon · 9 diez muros toon · RePág / AvPág eligen uno de los diez mandos · + / − lo suben y bajan ·
 ##          Retroceso lo devuelve a su valor de origen · el panel enseña los diez con su valor (el elegido va con «>»). Valen para los muros toon que nazcan después y para el vivo.
 ## Mayús+F12: PORT de la demo de gas 3D de three.js (laboratorios/haz_gas/, HazGas): esfera → muro → nada. Dentro: ESPACIO chorro, C cámara, O obstáculo, 1-4 calidad, ratón orbita.
@@ -217,8 +219,8 @@ func _process(delta: float) -> void:
 		_masa.alimentar()                       # mientras el haz viva, la masa se alimenta (si el haz se rehace, la masa sigue)
 	if _panel != null:
 		var lp: Array = luces_y_particulas()
-		_panel.text = ("fps %d · luces %d · partículas %d · efectos %d · cámara %s\n1 bola · 2 muro · 3 columna · 5 muro toon · 6 columna toon · 7 bola toon · 0 diez muros · 9 diez toon · X limpia · F muro del haz · F12 masa de fuego (muro / esfera / nada) · Mayús+F12 GAS 3D (port de la demo: esfera / muro / nada) · C cámara · flechas andar · H panel\n%s"
-			% [int(Engine.get_frames_per_second()), lp[0], lp[1], _efectos.get_child_count(), CAMARAS[camara_actual], _texto_mandos_toon()] + _texto_param() + _texto_carga() + "\n8 humo por regla (HumoRegla): %s" % ("SÍ" if HumoRegla.hay_alguna() else "no")) if _panel_visible else ""
+		_panel.text = ("fps %d · luces %d · partículas %d · efectos %d · cámara %s\n1 bola · 2 muro · 3 columna · 4 PARRILLA de los 7 elementos (con parrilla, 8 la rehace) · 5 muro toon · 6 columna toon · 7 bola toon · 0 diez muros · 9 diez toon · X limpia · F muro del haz · F12 masa de fuego (muro / esfera / nada) · Mayús+F12 GAS 3D (port de la demo: esfera / muro / nada) · C cámara · flechas andar · H panel\n%s"
+			% [int(Engine.get_frames_per_second()), lp[0], lp[1], _efectos.get_child_count(), CAMARAS[camara_actual], _texto_mandos_toon()] + _texto_param() + _texto_carga() + "\n8 humo por regla (HumoRegla; con parrilla puesta, Mayús+8): %s" % ("SÍ" if HumoRegla.hay_alguna() else "no")) if _panel_visible else ""
 
 
 func _unhandled_input(ev: InputEvent) -> void:
@@ -228,6 +230,8 @@ func _unhandled_input(ev: InputEvent) -> void:
 		KEY_1: efecto("bola")
 		KEY_2: efecto("muro")
 		KEY_3: efecto("columna")
+		KEY_4: parrilla(((_param_i + 1) % FIGURAS_PARAM.size()) if hay_parrilla() else maxi(_param_i, 0))     # 7/11: la parrilla de los siete elementos (otra vez = figura siguiente)
+		KEY_8: tecla_8((ev as InputEventKey).shift_pressed)                                                   # integración 10/11: con parrilla, la rehace; si no (o con Mayús), humo por regla
 		KEY_5: _toy = false; efecto("muro_toon")
 		KEY_6: _toy = false; efecto("columna_toon")
 		KEY_7: _toy = false; efecto("bola_toon")
@@ -274,7 +278,6 @@ func _unhandled_input(ev: InputEvent) -> void:
 				haz_gas((_gas_modo + 1) % 3)
 			else:
 				haz_masa((_masa_modo + 1) % 3)
-		KEY_8: alternar_humo_regla()
 		KEY_C: poner_camara((camara_actual + 1) % CAMARAS.size())
 		KEY_H: _panel_visible = not _panel_visible
 
@@ -472,6 +475,15 @@ func _poner_param(e, giro: float) -> void:
 	_actualizar_masa(e)
 	if e.viaja:
 		_lanzar_param_en_vuelo()
+
+
+## Tecla 8 (integración 10/11 de main con claude/vfx-erosion: las dos ramas la usaban). Con la PARRILLA puesta y sin Mayús, la rehace con la misma figura y los mandos de
+## ahora (lo de vfx-erosion); en cualquier otro caso alterna el HUMO POR REGLA (lo de main). Así ninguna de las dos funciones se pierde.
+func tecla_8(mayus: bool = false) -> void:
+	if not mayus and hay_parrilla():
+		parrilla(maxi(_param_i, 0))
+	else:
+		alternar_humo_regla()
 
 
 ## 8: HUMO POR REGLA (presentacion/vfx/toy/humo_regla.gd) encendido / apagado en TODAS sus capas (HumoRegla.capas) para lo que se cree a partir de ahora; la figura viva de F7 / F9 / Z se rehace para que lo dibuje.
@@ -683,6 +695,85 @@ func _quitar_muro_haz() -> void:
 		_muro_haz_nodo.queue_free()
 	_muro_haz_nodo = null
 
+
+## 7/11/2026 (Pablo: «integra todo en un laboratorio para revisar todos los elementos»): LA PARRILLA. Los SIETE elementos con toy a la vez, uno al lado de otro, todos con la MISMA figura y
+## el mismo tamaño, para compararlos de un vistazo en lugar de ir ciclando con Z y acordarse del anterior. Cada uno con su rótulo delante. 4 la monta (y la rehace con la figura de al lado si ya
+## está puesta), 8 cambia de figura sin moverse (bola → muro → pilar → barrera → haz). X la quita, como a todo lo demás. No inventa nada: cada toy se crea con el mismo `definir` que usa F7.
+const META_PARRILLA: StringName = &"parrilla_lab"   ## marca de lo que montó la parrilla, para quitarlo sin tocar el resto
+const PARRILLA_PASO: float = 2.6                   ## m entre un elemento y el siguiente
+const PARRILLA_HUECO: float = 1.2                  ## m de aire entre un elemento y el de al lado (el paso sale del ancho de la figura mas esto)
+const PARRILLA_CAMARA_ATRAS: float = 0.72          ## x el ancho de la fila: lo justo para que entren los siete (con 96 grados de campo horizontal, media anchura / tan(48) y un margen)
+const PARRILLA_CAMARA_ALTO: float = 0.14           ## x el ancho de la fila: la altura de esa camara (minimo PARRILLA_CAMARA_ALTO_MIN)
+const PARRILLA_CAMARA_ALTO_MIN: float = 3.0        ## m
+const PARRILLA_ALTO_ROTULO: float = 2.6            ## m sobre el suelo a los que va el nombre
+
+func parrilla(fig_i: int) -> void:
+	_toy = true
+	_param_i = clampi(fig_i, 0, FIGURAS_PARAM.size() - 1)
+	_quitar_parrilla()
+	var d: Array = FIGURAS_PARAM[_param_i]
+	var s: Vector3 = d[2]
+	var pie: Vector3 = _pj.global_position
+	var lado := Vector3(_dir.z, 0.0, -_dir.x)                                   # la derecha de la jugadora: la fila se abre a lo ancho de la cámara
+	var paso: float = maxf(PARRILLA_PASO, s.x * 2.0 + PARRILLA_HUECO)           # el muro mide 3,45 de semieje: con un paso fijo los siete se tocaban y parecían una sola cinta
+	var centro: float = float(ELEMENTOS_TOY.size() - 1) * 0.5
+	for i in ELEMENTOS_TOY.size():
+		var el: String = ELEMENTOS_TOY[i]
+		var e = _nuevo_toy_de(el)
+		e.definir(d[0], s.x, s.y, s.z, false)
+		_aplicar_mandos_toy(e)
+		_efectos.add_child(e)
+		e.set_meta(META_PARRILLA, true)
+		var sitio: Vector3 = pie + _dir * DISTANCIA_EFECTO + lado * ((float(i) - centro) * paso)
+		match int(d[0]):
+			FuegoToy.Figura.BOLA:
+				e.global_position = sitio + Vector3(0, 1.0, 0)
+			FuegoToy.Figura.HAZ:
+				e.global_position = sitio - _dir * (DISTANCIA_EFECTO - 0.5)     # el haz sale de la altura de la mano hacia delante, como en F7
+				e.look_at(e.global_position + _dir, Vector3.UP)
+			_:
+				e.global_position = sitio
+				e.look_at(e.global_position + _dir, Vector3.UP)
+		e.lanzar(-1.0)
+		var r := Label3D.new()
+		r.text = el.to_upper()
+		r.billboard = BaseMaterial3D.BILLBOARD_ENABLED
+		r.pixel_size = 0.005
+		r.modulate = Color(1, 1, 1)
+		r.outline_size = 10
+		_efectos.add_child(r)
+		r.set_meta(META_PARRILLA, true)
+		r.global_position = sitio + Vector3(0, PARRILLA_ALTO_ROTULO, 0)
+		ultimo_efecto = e
+	# la cámara, FIJA y echada atrás lo que haga falta para que entren los siete: si siguiera a `ultimo_efecto` se iría al del extremo y la fila se saldría de cuadro
+	var ancho: float = float(ELEMENTOS_TOY.size() - 1) * paso
+	var centro_fila: Vector3 = pie + _dir * DISTANCIA_EFECTO + Vector3(0, 0.9, 0)
+	camara_fija = {"desde": centro_fila - _dir * (ancho * PARRILLA_CAMARA_ATRAS) + Vector3(0, maxf(ancho * PARRILLA_CAMARA_ALTO, PARRILLA_CAMARA_ALTO_MIN), 0), "mira": centro_fila}
+
+
+## ¿Hay parrilla puesta? (para que 4 la rehaga con la figura siguiente en vez de amontonar otra encima)
+func hay_parrilla() -> bool:
+	for n in _efectos.get_children():
+		if (n as Node).has_meta(META_PARRILLA):
+			return true
+	return false
+
+
+func _quitar_parrilla() -> void:
+	for n in _efectos.get_children():
+		if (n as Node).has_meta(META_PARRILLA):
+			(n as Node).queue_free()
+
+
+## Un toy del elemento que se le pida (no del activo): lo que necesita la parrilla para tenerlos todos a la vez.
+func _nuevo_toy_de(el: String) -> Node3D:
+	var antes: String = elemento
+	elemento = el
+	var e: Node3D = _nuevo_toy()
+	elemento = antes
+	return e
+
+
 func _quitar_param() -> void:
 	if _param != null and is_instance_valid(_param):
 		_bolas = _bolas.filter(func(b: Dictionary) -> bool: return b["nodo"] != _param)
@@ -877,6 +968,7 @@ func limpiar() -> void:
 		h.queue_free()
 	_bolas.clear()
 	ultimo_efecto = null
+	camara_fija = {}                       # 7/11: si estaba puesta la parrilla, la cámara vuelve a seguir a la jugadora
 	if _pared != null and is_instance_valid(_pared):
 		_pared.queue_free()
 	_pared = null

@@ -436,7 +436,7 @@ func _nace_donde_debe() -> void:
 func _lab() -> void:
 	print("== lab: la tecla 8")
 	var src: String = FileAccess.get_file_as_string("res://laboratorios/lab_vfx_comparativa_3d.gd")
-	_ok("el lab tiene la tecla 8", src.find("KEY_8: alternar_humo_regla()") >= 0)
+	_ok("el lab tiene la tecla 8 (sin parrilla, o con Mayús: humo por regla)", src.find("KEY_8: tecla_8(") >= 0 and src.find("		alternar_humo_regla()") >= 0)
 	HumoRegla.poner_todas(false)
 	var lab: Node3D = (load("res://laboratorios/LabVfxComparativa3D.tscn") as PackedScene).instantiate() as Node3D
 	root.add_child(lab)

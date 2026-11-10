@@ -76,6 +76,18 @@ func _correr() -> void:
 	_lab.call("diez_muros")
 	await _esperar(90)
 	_guardar("diez_muros.png")
+	_lab.call("limpiar")
+	await _esperar(10)
+
+	# 7/11 (Pablo: «integra todo en un laboratorio para revisar todos los elementos»): LA PARRILLA, una foto por figura, con los siete elementos a la vez y la cámara de lejos.
+	var figuras: Array = _lab.get_script().get_script_constant_map().get("FIGURAS_PARAM", [])
+	_lab.call("poner_camara", 2)
+	for i in figuras.size():
+		_lab.call("parrilla", i)
+		await _esperar(ESPERA_NACER)
+		_guardar("parrilla_%s.png" % String(figuras[i][1]))
+		await _esperar(3)
+	_lab.call("limpiar")
 	print("CAPTURAS en " + _dir)
 	quit()
 

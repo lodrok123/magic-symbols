@@ -15,10 +15,12 @@ uniform float latido : hint_range(0.0, 0.5) = 0.08;   // titileo suave
 uniform float semilla = 0.0;
 uniform float anillo : hint_range(0.0, 1.0) = 0.0;    // 1 = disco hueco (para el borde de la barrera en el suelo)
 
+#include "res://presentacion/vfx/toy/nucleo_toy.gdshaderinc"
+
 void vertex() {
 	if (billboard == 2) {
 		vec3 esc = vec3(length(MODEL_MATRIX[0].xyz), length(MODEL_MATRIX[1].xyz), length(MODEL_MATRIX[2].xyz));
-		MODELVIEW_MATRIX = VIEW_MATRIX * mat4(vec4(INV_VIEW_MATRIX[0].xyz * esc.x, 0.0), vec4(INV_VIEW_MATRIX[1].xyz * esc.y, 0.0), vec4(INV_VIEW_MATRIX[2].xyz * esc.z, 0.0), MODEL_MATRIX[3]);
+		MODELVIEW_MATRIX = nucleo_billboard(esc, VIEW_MATRIX, INV_VIEW_MATRIX, MODEL_MATRIX);
 	}
 }
 

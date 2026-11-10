@@ -37,6 +37,13 @@ const MARGEN_PROFUNDIDAD: float = 0.5   ## lo que está a menos de esto por detr
 ## escudo se las pide aquí (`convertir_nodo`), así que no se duplica nada; y un instance uniform afectaría a todos los materiales de la malla.
 ## Con `usar_quemado_disolver = false` el Juego vuelve al comportamiento anterior (tinte uniforme CHAMUSCADO y encoger al consumirse).
 static var usar_quemado_disolver: bool = true
+
+## Bloque de ambiente: la rampa toon del decorado (la de suelo, agua y lecho). alse vuelve a la luz Lambert de antes SIN recompilar:
+## es un global (amb_rampa), asi que cambia a la vez todos los materiales ya creados (para comparar A/B en la misma escena).
+static var usar_rampa: bool = true:
+	set(v):
+		usar_rampa = v
+		Ambiente3D.poner_rampa(v)
 const QUEMADO_CARBON: Color = Color(0.11, 0.095, 0.085)     ## lo que multiplica al albedo donde ya pasó el frente
 const QUEMADO_CENIZA: Color = Color(0.52, 0.51, 0.49)       ## color al que tiende lo quemado al final (ceniza gris)
 const QUEMADO_BRASA: Color = Color(1.0, 0.42, 0.08)         ## brasas en el frente
@@ -57,6 +64,9 @@ shader_type spatial;
 render_mode CULL;
 
 global uniform vec4 oc_jugador;
+// Bloque de ambiente (Ambiente3D): amb_sombra = (rgb lo que llega a la sombra, ya en lineal; a = contraste base de la rampa); amb_rampa.x = 1 rampa toon, 0 luz Lambert de siempre.
+global uniform vec4 amb_sombra;
+global uniform vec4 amb_rampa;
 // W5 (2/11): arbustos y helechos se apartan al pasar la jugadora. `ap_p` = (pie xyz, radio; 0 = apagado) y `ap_r1..5` = rastro (xyz, peso del muelle), que escribe `Caminar3D`.
 global uniform vec4 ap_p;
 global uniform vec4 ap_r1;
@@ -64,6 +74,8 @@ global uniform vec4 ap_r2;
 global uniform vec4 ap_r3;
 global uniform vec4 ap_r4;
 global uniform vec4 ap_r5;
+uniform float rampa_contraste = 1.0;   // offset por FAMILIA dentro de la rampa comun (no hay rampa propia): multiplica a amb_sombra.a
+uniform float rampa_sombra = 1.0;      // 1 = tinte de sombra completo, 0 = sin tinte (la sombra no se enfria)
 uniform float apartar = 0.0;            // 0 = no se aparta; > 0 = fuerza (1 = arbusto). Solo `poner_apartar` lo sube
 
 uniform sampler2D tex_albedo : source_color, filter_linear_mipmap, repeat_enable;
@@ -80,6 +92,7 @@ uniform float usa_orm = 0.0;
 uniform float usa_normal = 0.0;
 uniform float usa_vertex = 0.0;
 uniform float alfa_min = 0.12;
+uniform float recorte = 0.0;            // 7/11: recorte por alfa de la textura (follaje de tarjetas). 0 = sin recorte (todo lo que no era alpha scissor); > 0 = umbral del material de origen
 uniform float margen = 0.5;
 uniform vec3 uv_escala = vec3(1.0);
 uniform vec3 uv_desp = vec3(0.0);
@@ -100,6 +113,17 @@ uniform float disolver_energia = 3.0;
 uniform float corte_y = -1000.0;        // V6 restos: por debajo de esta altura del MUNDO no se dibuja (la enredadera brota de la tierra). -1000 = sin efecto
 uniform vec2 caja_y = vec2(0.0, 0.0);   // y mínima y alto de la malla (espacio local): da la altura para que el fuego suba
 uniform float viento = 0.0;             // bloque 1 EoW: árboles y arbustos se mecen (0 = quieto). Necesita caja_y para saber qué es copa y qué es pie
+
+uniform sampler2D contacto_suelo : filter_linear, repeat_disable;
+uniform vec2 contacto_altura = vec2(0.0);
+uniform float contacto_extension = 1.0;
+uniform float fuerza_contacto = 0.0;
+uniform vec3 paleta_copa : source_color = vec3(0.5);
+uniform float fuerza_paleta_copa = 0.0;
+uniform float piedra_mate = 0.0;
+uniform float musgo_ruina = 0.0;
+uniform vec2 musgo_altura = vec2(0.0, 1.0);
+varying vec2 contacto_xz;
 
 varying vec3 po;    // posición en el objeto, a escala de mundo (la celda no cambia si lo escalan)
 varying float vy;   // altura local
@@ -159,6 +183,9 @@ void vertex() {
 	po = VERTEX * length(MODEL_MATRIX[0].xyz);
 	vy = VERTEX.y;
 	wy = (MODEL_MATRIX * vec4(VERTEX, 1.0)).y;
+	if (fuerza_contacto > 0.0) {
+		contacto_xz = (MODEL_MATRIX * vec4(VERTEX, 1.0)).xz;
+	}
 	// VIENTO (como la vegetación de EoW: toda la mata se balancea y las puntas aletean). El peso sale de la altura dentro de la malla: el pie
 	// no se mueve y la copa sí. Se mide en metros del mundo (sirve igual con piezas escaladas) y la fase sale de la posición de la copia, para
 	// que dos árboles vecinos no se muevan a la vez. Va después de po/vy/wy: el quemado y el disolver no «bailan» con la copa.
@@ -195,8 +222,38 @@ void fragment() {
 	}
 	vec2 uv = UV * uv_escala.xy + uv_desp.xy;
 	vec4 a = texture(tex_albedo, uv) * color;
+	if (recorte > 0.0 && a.a < recorte) {
+		discard;
+	}
 	if (usa_vertex > 0.5) {
 		a *= COLOR;
+	}
+	if (fuerza_contacto > 0.0) {
+		float base = 1.0 - smoothstep(contacto_altura.x, contacto_altura.y, vy);
+		vec3 suelo = texture(contacto_suelo, contacto_xz / contacto_extension).rgb;
+		a.rgb = mix(a.rgb, suelo, base * fuerza_contacto);
+	}
+	if (fuerza_paleta_copa > 0.0) {
+		// Selecciona verdes y turquesas de la textura. Las cortezas cálidas quedan fuera.
+		float pico = max(max(a.r, a.g), max(a.b, 0.001));
+		float verde = smoothstep(-0.025, 0.09, (a.g - a.r) / pico);
+		verde *= smoothstep(-0.12, 0.10, (a.g - a.b) / pico);
+		const vec3 pesos = vec3(0.2126, 0.7152, 0.0722);
+		float valor = dot(a.rgb, pesos);
+		float referencia = dot(paleta_copa, pesos);
+		float ajuste = mix(valor, referencia, 0.28 * smoothstep(0.04, 0.20, valor));
+		vec3 hoja = paleta_copa * (ajuste / max(referencia, 0.001));
+		a.rgb = mix(a.rgb, hoja, verde * fuerza_paleta_copa);
+	}
+	if (musgo_ruina > 0.0) {
+		float altura = clamp((vy - musgo_altura.x) / musgo_altura.y, 0.0, 1.0);
+		float base = 1.0 - smoothstep(0.05, 0.53, altura);
+		float arriba = max((INV_VIEW_MATRIX * vec4(NORMAL, 0.0)).y, 0.0);
+		float manchas = ruido3(po * 4.3) * 0.73 + ruido3(po * 13.0) * 0.27;
+		float cobertura = smoothstep(0.43, 0.68, manchas + base * 0.38 + arriba * 0.22);
+		float valor = dot(a.rgb, vec3(0.2126, 0.7152, 0.0722));
+		vec3 musgo = vec3(0.60, 0.82, 0.32) * (valor + 0.08 * manchas);
+		a.rgb = mix(a.rgb, musgo, cobertura * musgo_ruina);
 	}
 	vec3 brillo_extra = vec3(0.0);
 
@@ -247,6 +304,10 @@ void fragment() {
 		ROUGHNESS = rugosidad;
 		METALLIC = metalico;
 	}
+	if (piedra_mate > 0.0) {
+		ROUGHNESS = mix(ROUGHNESS, max(ROUGHNESS, 0.88), piedra_mate);
+		SPECULAR *= mix(1.0, 0.42, piedra_mate);
+	}
 	if (usa_normal > 0.5) {
 		NORMAL_MAP = texture(tex_normal, uv).rgb;
 	}
@@ -273,6 +334,24 @@ void fragment() {
 		}
 	}
 }
+
+// Luz con la MISMA rampa toon que el suelo (Ambiente3D): tapa clara y sombra tintada, en vez del Lambert continuo de Godot.
+// Al tener light() propio Godot deja de calcular su iluminacion, asi que el especular se rehace aqui respetando ROUGHNESS y METALLIC.
+void light() {
+	float nl = dot(NORMAL, LIGHT);
+	if (LIGHT_IS_DIRECTIONAL && amb_rampa.x > 0.5) {
+		float luz = smoothstep(0.0, 1.0, clamp(nl * (amb_sombra.a * rampa_contraste), 0.0, 1.0)) * ATTENUATION;
+		DIFFUSE_LIGHT += mix(mix(vec3(1.0), amb_sombra.rgb, rampa_sombra), vec3(1.0), luz) * LIGHT_COLOR / PI;
+	} else {
+		DIFFUSE_LIGHT += max(nl, 0.0) * ATTENUATION * LIGHT_COLOR / PI;
+	}
+	// Especular modesto: el exponente va de brillo estrecho (liso) a ancho y suave (rugoso); el metal lo tine con su albedo.
+	vec3 h = normalize(VIEW + LIGHT);
+	float exponente = mix(80.0, 5.0, ROUGHNESS);
+	float fuerza = (1.0 - ROUGHNESS) * (1.0 - ROUGHNESS) * SPECULAR_AMOUNT * mix(0.5, 1.5, METALLIC);
+	float cara = clamp(nl * 4.0, 0.0, 1.0);
+	SPECULAR_LIGHT += pow(max(dot(NORMAL, h), 0.0), exponente) * fuerza * cara * mix(vec3(1.0), ALBEDO, METALLIC) * LIGHT_COLOR * ATTENUATION;
+}
 """
 
 
@@ -280,6 +359,8 @@ static func preparar() -> void:
 	if _listo:
 		return
 	_listo = true
+	Ambiente3D.poner_rampa(usar_rampa)
+	Ambiente3D.preparar_global()    # bloque de ambiente: amb_sombra (lo lee la rampa del shader común)
 	RenderingServer.global_shader_parameter_add(PARAM, RenderingServer.GLOBAL_VAR_TYPE_VEC4, Vector4(0.0, 0.0, 0.0, 0.0))
 	for n in PARAMS_APARTAR:      # W5: apartado de arbustos y helechos (todo a 0 = apagado)
 		RenderingServer.global_shader_parameter_add(n, RenderingServer.GLOBAL_VAR_TYPE_VEC4, Vector4(0.0, 0.0, 0.0, 0.0))
@@ -293,6 +374,7 @@ static func actualizar(pos: Vector3, radio: float) -> void:
 
 
 static func _shader(cull: String) -> Shader:
+	Ambiente3D.preparar_global()    # el shader declara amb_sombra y amb_rampa: han de existir antes de compilar
 	if not _shaders.has(cull):
 		var sh := Shader.new()
 		sh.code = CODIGO.replace("render_mode CULL;", "render_mode %s;" % cull)
@@ -305,7 +387,9 @@ static func convertir(origen: Material) -> Material:
 	if not _listo or not (origen is StandardMaterial3D):
 		return origen
 	var m: StandardMaterial3D = origen as StandardMaterial3D
-	if m.transparency != BaseMaterial3D.TRANSPARENCY_DISABLED or m.shading_mode == BaseMaterial3D.SHADING_MODE_UNSHADED \
+	# 7/11: el alpha scissor (follaje de tarjetas) SI se convierte: conserva su umbral (`recorte`) y su culling. Cualquier otra transparencia sigue sin convertirse.
+	var scissor: bool = m.transparency == BaseMaterial3D.TRANSPARENCY_ALPHA_SCISSOR
+	if (m.transparency != BaseMaterial3D.TRANSPARENCY_DISABLED and not scissor) or m.shading_mode == BaseMaterial3D.SHADING_MODE_UNSHADED \
 			or m.billboard_mode != BaseMaterial3D.BILLBOARD_DISABLED or m.next_pass != null:
 		return origen
 	var cull: String = "cull_back"
@@ -343,6 +427,8 @@ static func convertir(origen: Material) -> Material:
 		sm.set_shader_parameter("usa_vertex", 1.0)
 	sm.set_shader_parameter("uv_escala", m.uv1_scale)
 	sm.set_shader_parameter("uv_desp", m.uv1_offset)
+	if scissor:
+		sm.set_shader_parameter("recorte", m.alpha_scissor_threshold)
 	sm.set_shader_parameter("alfa_min", ALFA_MIN)
 	sm.set_shader_parameter("margen", MARGEN_PROFUNDIDAD)
 	sm.set_shader_parameter("carbon_color", QUEMADO_CARBON)
