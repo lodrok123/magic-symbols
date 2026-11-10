@@ -1,17 +1,27 @@
 id	nombre	tipo	requiere	ancla	oro	da	donde	se_conoce	nota
-pocion	Poción de vida	consumible	vital>=3	-	0	pocion:1	alquimista,hoguera	siempre	bayas + helecho + seta
-pocion_grande	Poción grande	consumible	vital>=6,agua>=2	-	5	pocion_grande:1	alquimista	flag:bosque1.alquimista.grande	
+pocion	Poción de vida (menor)	consumible	vital>=3	-	0	pocion:1	alquimista,hoguera	siempre	bayas + helecho + seta
+pocion_grande	Poción grande (normal)	consumible	vital>=6,agua>=2	-	5	pocion_grande:1	alquimista	flag:bosque1.alquimista.grande	
+pocion_mayor	Poción mayor	consumible	vital>=10,agua>=3,tinta>=2	-	0	pocion_mayor:1	alquimista	al tener los ingredientes	10/11: la tercera calidad; panal, flor de luna, musgo, alga
 infusion_brezo	Infusión de brezo	consumible	vital>=4,viento>=1	helecho	0	infusion_brezo:1	alquimista,hoguera	siempre	el helecho es la base (texto de Objetos)
 balsamo_protector	Bálsamo protector	consumible	tierra>=3,proteccion>=2	-	0	balsamo_protector:1	alquimista,hoguera	al tener los ingredientes	colmillo + raíz + corteza
 tonico_tinta	Tónico de tinta	consumible	tinta>=3,agua>=1	-	0	tonico_tinta:1	alquimista,hoguera	siempre	flor de rocío + flor silvestre
 antidoto	Antídoto	consumible	toxico>=2,vital>=2	-	0	antidoto:1	alquimista,hoguera	al tener los ingredientes	baba de limo + bayas
 frescor	Frasco de frescor	consumible	frio>=3,agua>=1	-	0	frescor:1	alquimista,hoguera	al entrar en una zona con calor	seta helada + alga
 abrigo	Brasa embotellada	consumible	calor>=3,vital>=1	-	0	abrigo:1	alquimista,hoguera	al entrar en una zona con frio	seta asada + resina
+savia_aislante	Savia aislante	consumible	proteccion>=2,tierra>=2	-	0	savia_aislante:1	alquimista,hoguera	al tener los ingredientes	10/11: antídoto del rayo; resina y corteza
+elixir_filtro	Elixir del filtro	consumible	toxico>=2,proteccion>=2	-	0	elixir_filtro:1	alquimista	al tener los ingredientes	10/11: mixto veneno + rayo (tóxico contra el veneno, protección contra el rayo)
+elixir_templado	Elixir templado	consumible	calor>=2,frio>=2	-	0	elixir_templado:1	alquimista	al tener los ingredientes	10/11: mixto frío + calor
 pigmento_carmesi	Pigmento Resina Carmesí	pigmento	tinta>=2,calor>=3	-	0	pigmento_carmesi:1	alquimista	al tener los ingredientes	resina + flor ardiente
 pigmento_ocre	Pigmento Ocre del Túmulo	pigmento	tinta>=2,tierra>=3	-	0	pigmento_ocre:1	alquimista	al tener los ingredientes	
 pigmento_musgo	Pigmento Verde de Musgo	pigmento	tinta>=2,viento>=3	-	0	pigmento_musgo:1	alquimista	al tener los ingredientes	
 pigmento_ambar	Pigmento Ámbar Volcánico	pigmento	tinta>=2,electrico>=3	-	0	pigmento_ambar:1	alquimista	al tener los ingredientes	
+pigmento_rocio	Pigmento Azul de Rocío	pigmento	tinta>=2,agua>=3	-	0	pigmento_rocio:1	alquimista	al tener los ingredientes	10/11: flor de rocío + alga
+pigmento_escarcha	Pigmento Blanco de Escarcha	pigmento	tinta>=2,frio>=3	-	0	pigmento_escarcha:1	alquimista	al tener los ingredientes	10/11: flor de escarcha + seda
 pigmento_eco	Pigmento Azul de Eco	pigmento	tinta>=2,resonante>=3	polvo_cristal	0	pigmento_eco:1	alquimista	al tener los ingredientes	polvo de cristal + esporas luminosas
+bulbo_luz	Bulbo de luz	lanzable	resonante>=2,tinta>=1	-	0	bulbo_luz:1	alquimista,hoguera	al tener los ingredientes	10/11: lanzable; esporas luminosas + resina
+bomba_resina	Bomba de resina	lanzable	calor>=3,tinta>=1	-	0	bomba_resina:1	alquimista,hoguera	al tener los ingredientes	10/11: lanzable; resina + carbón
+bola_helada	Bola helada	lanzable	frio>=3,proteccion>=1	-	0	bola_helada:1	alquimista,hoguera	al tener los ingredientes	10/11: lanzable; seta helada + seda
+fruto_chispa	Fruto chispa	lanzable	electrico>=3	-	0	fruto_chispa:1	alquimista,hoguera	al tener los ingredientes	10/11: lanzable; flor cargada + alga cargada
 vida_1	Corazón robusto I	mejora	vital>=6,tierra>=2	-	20	mejora:vida_max	alquimista	siempre	+20 de vida máxima
 vida_2	Corazón robusto II	mejora	vital>=8,tierra>=3	-	40	mejora:vida_max	alquimista	mejora:vida_max>=1	+20
 vida_3	Corazón robusto III	mejora	vital>=8,raro>=4	savia_elemental	60	mejora:vida_max	alquimista	mejora:vida_max>=2	+20; pide el épico del elemental

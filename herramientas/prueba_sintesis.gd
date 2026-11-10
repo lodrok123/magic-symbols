@@ -113,7 +113,7 @@ func _alcanza_sin_epicos(r: Dictionary) -> bool:
 
 func _recetas_una_a_una() -> void:
 	var filas: int = BD.recetas().size()
-	_ok("1 la tabla trae 29 recetas", filas == 29, str(filas))
+	_ok("1 la tabla trae 39 recetas", filas == 39, str(filas))      # 10/11: +10 de la primera tanda de consumibles
 	# Bolsa vacía: ninguna sale (todas piden algo).
 	var ninguna: bool = true
 	for id in BD.recetas():
@@ -286,10 +286,10 @@ func _se_conoce() -> void:
 	# al tener los ingredientes
 	_ok("4 al tener los ingredientes: el bálsamo no se conoce con la bolsa vacía", not Sintesis.conocidas().has("balsamo_protector"))
 	e.items = {"colmillo_goblin": 2}                    # tierra 4, proteccion 4
-	_ok("4 con 2 colmillos de goblin el bálsamo aparece", Sintesis.conocidas("hoguera").has("balsamo_protector") and nuevas == ["balsamo_protector"], str(nuevas))
+	_ok("4 con 2 colmillos de goblin el bálsamo aparece (y la savia aislante, que pide lo mismo: 10/11)", Sintesis.conocidas("hoguera").has("balsamo_protector") and nuevas == ["balsamo_protector", "savia_aislante"], str(nuevas))
 	e.items = {}
 	_ok("4 y se queda para siempre (lo descubierto viaja en recetas_conocidas)", Sintesis.conocidas().has("balsamo_protector") and Partida.recetas_conocidas.has("balsamo_protector"))
-	_ok("4 no se avisa dos veces", nuevas.size() == 1)
+	_ok("4 no se avisa dos veces", nuevas.size() == 2)
 	# flag
 	_ok("4 flag: la poción grande no aparece sin su flag", not Sintesis.conocidas().has("pocion_grande"))
 	Flags.i().poner("bosque1.alquimista.grande")
@@ -427,13 +427,13 @@ func _consumibles() -> void:
 	c.jugador = jf
 	e.items = {"antidoto": 2, "frescor": 1, "abrigo": 1, "pocion_grande": 1}
 	_ok("8 los consumibles nuevos están en la rueda", Objetos.CONSUMIBLES.has("antidoto") and Objetos.CONSUMIBLES.has("frescor") and Objetos.CONSUMIBLES.has("abrigo") and Objetos.CONSUMIBLES.has("pocion_grande"))
-	_ok("8 el antídoto se usa: quita el veneno, protege 60 s y gasta una unidad", c.usar("antidoto") and not jf.veneno and Consumibles.protegido("veneno") and is_equal_approx(Consumibles.tiempo_proteccion("veneno"), 60.0) and e.cuenta("antidoto") == 1)
+	_ok("8 el antídoto se usa: quita el veneno, protege 90 s y gasta una unidad", c.usar("antidoto") and not jf.veneno and Consumibles.protegido("veneno") and is_equal_approx(Consumibles.tiempo_proteccion("veneno"), 90.0) and e.cuenta("antidoto") == 1)
 	_ok("8 con la protección puesta y sin veneno, otro antídoto no se gasta", not c.usar("antidoto") and e.cuenta("antidoto") == 1)
 	c.actualizar(25.0)
-	_ok("8 la protección cuenta atrás (25 s → quedan 35)", is_equal_approx(Consumibles.tiempo_proteccion("veneno"), 35.0))
-	c.actualizar(40.0)
-	_ok("8 y se acaba a los 60 s", not Consumibles.protegido("veneno") and Consumibles.tiempo_proteccion("veneno") == 0.0)
-	_ok("8 el frasco de frescor da resistencia al calor 90 s (no al frío, no es inmunidad)", c.usar("frescor") and Consumibles.resiste("calor") and not Consumibles.protegido("calor") and not Consumibles.resiste("frio") and is_equal_approx(Consumibles.tiempo_proteccion("calor"), 90.0))
+	_ok("8 la protección cuenta atrás (25 s → quedan 65)", is_equal_approx(Consumibles.tiempo_proteccion("veneno"), 65.0))
+	c.actualizar(70.0)
+	_ok("8 y se acaba a los 90 s", not Consumibles.protegido("veneno") and Consumibles.tiempo_proteccion("veneno") == 0.0)
+	_ok("8 el frasco de frescor protege del calor 90 s (10/11: inmunidad, como un antídoto; no del frío)", c.usar("frescor") and Consumibles.resiste("calor") and Consumibles.protegido("calor") and not Consumibles.resiste("frio") and is_equal_approx(Consumibles.tiempo_proteccion("calor"), 90.0))
 	_ok("8 la brasa embotellada, la del frío", c.usar("abrigo") and Consumibles.resiste("frio") and e.cuenta("abrigo") == 0)
 	c.actualizar(89.0)
 	_ok("8 a falta de 1 s sigue y luego no", Consumibles.resiste("calor"))
@@ -460,19 +460,20 @@ func _pigmentos() -> void:
 			n += 1
 			if not Tinta.PIGMENTOS.has(String((o["efecto"] as Dictionary).get("pigmento", ""))):
 				mal.append(String(id))
-	_ok("9 los cinco objetos pigmento apuntan a pigmentos que existen en Tinta.PIGMENTOS", n == 5 and mal.is_empty(), "%d %s" % [n, str(mal)])
+	_ok("9 los siete objetos pigmento apuntan a pigmentos que existen en Tinta.PIGMENTOS", n == 7 and mal.is_empty(), "%d %s" % [n, str(mal)])
 	var t := Tinta.new()
 	e.items = {"pigmento_ocre": 2, "pigmento_eco": 1, "seta": 1}
-	_ok("9 aplicar un pigmento gasta 1 unidad y activa el de la tinta", Sintesis.aplicar_pigmento("pigmento_ocre", t) and t.pigmento == "ocre_tumulo" and e.cuenta("pigmento_ocre") == 1 and t.tiempo_pigmento() > 59.0)
+	_ok("9 aplicar un pigmento gasta 1 unidad y lo carga en la tinta (10/11: una carga, no caduca)", Sintesis.aplicar_pigmento("pigmento_ocre", t) and t.pigmento == "ocre_tumulo" and e.cuenta("pigmento_ocre") == 1 and t.pigmento_cargado())
+	_ok("9 el mismo pigmento ya cargado no gasta otro", not Sintesis.aplicar_pigmento("pigmento_ocre", t) and e.cuenta("pigmento_ocre") == 1)
 	_ok("9 el Azul de Eco: quita el recargo de ᚱ (raido) y de nada más", Sintesis.aplicar_pigmento("pigmento_eco", t) and t.pigmento == "azul_eco" and t.quita_recargo("raido") and not t.quita_recargo("pulso") and not t.quita_recargo(""))
-	_ok("9 y sustituye al anterior (el ocre ya no rebaja)", is_equal_approx(t.coste_efectivo(20.0, "tierra"), 20.0) and is_equal_approx(t.mult_dano("fuego"), 1.0))
+	_ok("9 y sustituye al anterior: el ocre ya no potencia la tierra y su frasco vuelve a la mochila", is_equal_approx(t.mult_dano("tierra"), 1.0) and e.cuenta("pigmento_ocre") == 2)
 	_ok("9 sin unidades, o un objeto que no es pigmento, no se aplica", not Sintesis.aplicar_pigmento("pigmento_eco", t) and not Sintesis.aplicar_pigmento("seta", t) and e.cuenta("seta") == 1)
 	_ok("9 sin tinta tampoco", not Sintesis.aplicar_pigmento("pigmento_ocre", null))
 	var c := Consumibles.new()
 	var jf := JugadorFalso.new()
 	jf.tinta = Tinta.new()
 	c.jugador = jf
-	_ok("9 Consumibles.aplicar_pigmento lo hace con la tinta del jugador", c.aplicar_pigmento("pigmento_ocre") and jf.tinta.pigmento == "ocre_tumulo" and e.cuenta("pigmento_ocre") == 0)
+	_ok("9 Consumibles.aplicar_pigmento lo hace con la tinta del jugador", c.aplicar_pigmento("pigmento_ocre") and jf.tinta.pigmento == "ocre_tumulo" and e.cuenta("pigmento_ocre") == 1)
 	_ok("9 los pigmentos no entran en la rueda de R", not Objetos.CONSUMIBLES.has("pigmento_ocre"))
 	jf.free()
 	# Las recetas de pigmento dan el objeto.

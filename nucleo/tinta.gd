@@ -20,6 +20,14 @@ extends RefCounted
 ## coste, p. ej. 0,5 = la mitad) o «dano» (hacen `valor` veces su daño, p. ej. 1,5 = +50 %). Al acabar el tiempo vuelve el azul arcano
 ## (base, sin efecto). Activar otro sustituye al anterior. Además tiñe la barra, como antes. La asignación de abajo es una PROPUESTA.
 ##
+## 10/11 (docs/PROPUESTA_CONSUMIBLES.md §6, decisiones de Pablo): los pigmentos pasan a ser de UNA CARGA (`efecto` «carga», `dura` 0): se carga uno y el
+## SIGUIENTE hechizo de SU elemento sale con `valor` (1,5) de daño (`mult_dano`) y de geometría (`mult_geometria`). Si se lanza otro elemento la carga se
+## queda. Solo uno cargado: cargar otro sustituye al anterior (`Sintesis.aplicar_pigmento` devuelve el frasco anterior a la mochila). Siete: uno por
+## elemento y el de eco (que quita el recargo de ᚱ a un hechizo). «rebaja» y «dano» con `dura` siguen funcionando por si se quiere un pigmento temporal.
+## CUÁNDO SE GASTA: lo ideal es que el Lanzador llame a `consumir_pigmento(elemento)` después de construir el hechizo (Hechizos). Mientras no lo haga,
+## `gastar` lo consume al cobrar el hechizo de ese elemento y deja la carga «en vuelo» T_VUELO_PIGMENTO s: el Lanzador cobra ANTES de construir
+## (`Lanzador3D.lanzar_ahora` → `_disparar` → `hechizo_de`, que multiplica el daño), así que sin esa ventana el ×1,5 no llegaría a ese hechizo.
+##
 ## REGLA DEL 1/3 (plan EOW): ninguna rebaja baja un coste de menos de `REBAJA_MINIMA` (1/3) de su coste de partida, por mucho que
 ## valga `valor`: así un pigmento nunca vuelve gratis un hechizo y el coste sigue siendo una decisión.
 ##
@@ -56,7 +64,9 @@ const MEJORA_SECRETO: String = "tinta_secreto"
 
 const MAXIMA: float = MAXIMA_INICIAL          ## alias antiguo = la barra de partida (es el techo de `coste_receta`: los costes se miden contra ella)
 const REBAJA_MINIMA: float = 1.0 / 3.0        ## ninguna rebaja baja un coste de este tanto por uno de su coste de partida
-const PIGMENTO_DURA: float = 60.0             ## s por defecto que dura un pigmento
+const PIGMENTO_DURA: float = 60.0             ## s por defecto que dura un pigmento temporal (los de la tabla de hoy son de una carga: `dura` 0)
+const PIGMENTO_X: float = 1.5                 ## 10/11: lo que multiplica un pigmento de carga el daño y la geometría del siguiente hechizo de su elemento
+const T_VUELO_PIGMENTO: float = 0.8           ## s que el pigmento ya cobrado sigue valiendo para el hechizo en construcción: cubre el conjuro más lento (tierra, 0,56 s) y es menos que la recarga mínima (1 s), así no potencia dos
 const REGEN: float = 3.0                      ## tinta/s fuera de combate: llenar entera tarda ~33 s
 const REGEN_COMBATE: float = 1.0              ## con enemigos encima, a un tercio
 const ESPERA_TRAS_GASTAR: float = 1.2         ## s sin recuperar justo después de lanzar (si no, el coste real sería menor)
@@ -92,13 +102,16 @@ const COSTES: Dictionary = {
 ## PROPUESTA de asignación (ajustable): carmesí -> fuego, daño ×1,5 · ocre -> tierra, rebaja ×0,5 · musgo -> viento, rebaja ×0,5 · ámbar -> rayo, daño ×1,5.
 const PIGMENTOS: Dictionary = {
 	"azul_arcano": {"nombre": "Azul Arcano", "color": Color(0.30, 0.55, 1.0), "zona": "", "elemento": "", "efecto": "", "valor": 1.0, "dura": 0.0},
-	"resina_carmesi": {"nombre": "Resina Carmesí", "color": Color(0.85, 0.20, 0.22), "zona": "bosque", "elemento": "fuego", "efecto": "dano", "valor": 1.5, "dura": PIGMENTO_DURA},
-	"ocre_tumulo": {"nombre": "Ocre del Túmulo", "color": Color(0.80, 0.58, 0.22), "zona": "tumulo", "elemento": "tierra", "efecto": "rebaja", "valor": 0.5, "dura": PIGMENTO_DURA},
-	"verde_musgo": {"nombre": "Verde de Musgo", "color": Color(0.38, 0.72, 0.30), "zona": "bosque_humedo", "elemento": "viento", "efecto": "rebaja", "valor": 0.5, "dura": PIGMENTO_DURA},
-	"ambar_volcanico": {"nombre": "Ámbar Volcánico", "color": Color(0.95, 0.55, 0.12), "zona": "volcan", "elemento": "rayo", "efecto": "dano", "valor": 1.5, "dura": PIGMENTO_DURA},
-	# F3 (29/10): el quinto pigmento, que sale de la síntesis (receta `pigmento_eco`, objeto `pigmento_eco`). Efecto «sin_recargo»: durante `dura` s el glifo `glifo` (ᚱ, id `raido`) no paga su
-	# recargo del 25 % de tinta. Aquí solo está el DATO y la pregunta `quita_recargo(glifo)`; quien calcula el coste (`Dano.tinta`, Hechizos) tiene que llamarla. `elemento` va vacío (no es de ningún sello).
-	"azul_eco": {"nombre": "Azul de Eco", "color": Color(0.42, 0.72, 1.0), "zona": "cueva", "elemento": "", "efecto": "sin_recargo", "glifo": "raido", "valor": 1.0, "dura": PIGMENTO_DURA},
+	# 10/11: los siete de la tabla son de UNA CARGA (×PIGMENTO_X al daño y a la geometría del siguiente hechizo de su elemento; `dura` 0 = no caducan).
+	"resina_carmesi": {"nombre": "Resina Carmesí", "color": Color(0.85, 0.20, 0.22), "zona": "bosque", "elemento": "fuego", "efecto": "carga", "valor": PIGMENTO_X, "dura": 0.0},
+	"azul_rocio": {"nombre": "Azul de Rocío", "color": Color(0.35, 0.71, 0.94), "zona": "bosque", "elemento": "agua", "efecto": "carga", "valor": PIGMENTO_X, "dura": 0.0},
+	"ocre_tumulo": {"nombre": "Ocre del Túmulo", "color": Color(0.80, 0.58, 0.22), "zona": "tumulo", "elemento": "tierra", "efecto": "carga", "valor": PIGMENTO_X, "dura": 0.0},
+	"blanco_escarcha": {"nombre": "Blanco de Escarcha", "color": Color(0.85, 0.94, 1.0), "zona": "cumbre", "elemento": "hielo", "efecto": "carga", "valor": PIGMENTO_X, "dura": 0.0},
+	"ambar_volcanico": {"nombre": "Ámbar Volcánico", "color": Color(0.95, 0.55, 0.12), "zona": "volcan", "elemento": "rayo", "efecto": "carga", "valor": PIGMENTO_X, "dura": 0.0},
+	"verde_musgo": {"nombre": "Verde de Musgo", "color": Color(0.38, 0.72, 0.30), "zona": "bosque_humedo", "elemento": "viento", "efecto": "carga", "valor": PIGMENTO_X, "dura": 0.0},
+	# El de eco: una carga que quita el recargo del 25 % de tinta del glifo `glifo` (ᚱ, id `raido`) a UN hechizo. `elemento` va vacío (no es de ningún sello). Quien
+	# calcula el coste (`Dano.tinta`, Hechizos) tiene que preguntar `quita_recargo(glifo)` y gastarla con `consumir_pigmento("", glifo)`.
+	"azul_eco": {"nombre": "Azul de Eco", "color": Color(0.42, 0.72, 1.0), "zona": "cueva", "elemento": "", "efecto": "sin_recargo", "glifo": "raido", "valor": 1.0, "dura": 0.0},
 }
 const PIGMENTO_BASE: String = "azul_arcano"
 
@@ -108,7 +121,9 @@ var pigmento: String = PIGMENTO_BASE
 var frascos: int = FRASCOS_INICIALES            ## frascos de reserva llenos (0..FRASCOS_MAX); lo cambian `gastar`, `recargar_frasco` y `rellenar`
 var partida: Estado = null                    ## de dónde salen los jefes/secretos ganados; null = el de la partida (`Estado.i()`). Las pruebas inyectan uno propio
 var _espera: float = 0.0
-var _t_pigmento: float = 0.0                  ## s que le quedan al pigmento activo (0 con el base)
+var _t_pigmento: float = 0.0                  ## s que le quedan al pigmento activo (0 con el base y con los de carga, que no caducan)
+var _vuelo: String = ""                       ## el pigmento de carga ya cobrado que aún vale para el hechizo en construcción ("" = ninguno)
+var _t_vuelo: float = 0.0
 
 
 func _init() -> void:
@@ -235,12 +250,57 @@ func coste_efectivo(coste: float, elemento: String = "") -> float:
 	return coste
 
 
-## El factor de daño de un hechizo de `elemento` con el pigmento activo (1 = sin cambio). Lo aplica `Lanzador3D._disparar`.
+## El factor de daño de un hechizo de `elemento` con el pigmento activo (1 = sin cambio). Lo aplica `Lanzador3D._disparar`. Cuenta el de carga y el que está «en vuelo».
 func mult_dano(elemento: String) -> float:
+	if elemento == "":
+		return 1.0
 	var p: Dictionary = PIGMENTOS[pigmento]
-	if elemento != "" and String(p["efecto"]) == "dano" and String(p["elemento"]) == elemento:
+	if (String(p["efecto"]) == "dano" or String(p["efecto"]) == "carga") and String(p["elemento"]) == elemento:
 		return float(p["valor"])
+	if _t_vuelo > 0.0 and String(PIGMENTOS[_vuelo]["elemento"]) == elemento:
+		return float(PIGMENTOS[_vuelo]["valor"])
 	return 1.0
+
+
+## 10/11: el factor de GEOMETRÍA (alcance, semiejes, radio) del siguiente hechizo de `elemento` (1 = sin cambio). Solo los pigmentos de carga. Lo tiene que
+## aplicar quien construye el hechizo (Hechizos); hasta entonces el ×1,5 solo llega al daño.
+func mult_geometria(elemento: String) -> float:
+	if elemento == "":
+		return 1.0
+	var p: Dictionary = PIGMENTOS[pigmento]
+	if String(p["efecto"]) == "carga" and String(p["elemento"]) == elemento:
+		return float(p["valor"])
+	if _t_vuelo > 0.0 and String(PIGMENTOS[_vuelo]["elemento"]) == elemento:
+		return float(PIGMENTOS[_vuelo]["valor"])
+	return 1.0
+
+
+## 10/11: ¿hay un pigmento de carga cargado? (el HUD tiñe la barra y el aro del libro mientras lo haya).
+func pigmento_cargado() -> bool:
+	return pigmento != PIGMENTO_BASE and String(PIGMENTOS[pigmento]["efecto"]) in ["carga", "sin_recargo"] and float(PIGMENTOS[pigmento]["dura"]) <= 0.0
+
+
+## El elemento del pigmento activo ("" con el base o con el de eco).
+func elemento_pigmento() -> String:
+	return String(PIGMENTOS[pigmento]["elemento"])
+
+
+## 10/11: gasta la carga si es de `elemento` (el de eco: `elemento` vacío y `glifo` = ᚱ). Devuelve si gastó algo. La carga queda «en vuelo» T_VUELO_PIGMENTO s
+## para el hechizo que se está construyendo. Lo llama `gastar` (puente) y, cuando Hechizos lo conecte, el Lanzador tras construir el hechizo.
+func consumir_pigmento(elemento: String, glifo: String = "") -> bool:
+	if not pigmento_cargado():
+		return false
+	var p: Dictionary = PIGMENTOS[pigmento]
+	var es_suyo: bool = (elemento != "" and String(p["elemento"]) == elemento) or (String(p["efecto"]) == "sin_recargo" and glifo != "" and String(p.get("glifo", "")) == glifo)
+	if not es_suyo:
+		return false
+	var gastado: String = pigmento
+	_vuelo = gastado
+	_t_vuelo = T_VUELO_PIGMENTO
+	pigmento = PIGMENTO_BASE
+	cambiada.emit()
+	pigmento_acabado.emit(gastado)
+	return true
 
 
 ## Segundos que le quedan al pigmento temporal (0 con el base).
@@ -271,6 +331,7 @@ func gastar(forma: String, coste: float = -1.0, elemento: String = "") -> bool:
 	if actual <= 1e-4 and frascos > 0:
 		_vaciar_frasco()
 	_espera = ESPERA_TRAS_GASTAR
+	consumir_pigmento(elemento)            # 10/11: el pigmento de carga de ese elemento se gasta con este hechizo (puente: ver «CUÁNDO SE GASTA»)
 	cambiada.emit()
 	return true
 
@@ -323,6 +384,10 @@ func rellenar() -> void:
 
 ## Regeneración natural. `en_combate` la frena a un tercio.
 func actualizar(delta: float, en_combate: bool) -> void:
+	if _t_vuelo > 0.0:
+		_t_vuelo = maxf(0.0, _t_vuelo - delta)
+		if _t_vuelo <= 0.0:
+			_vuelo = ""
 	if _t_pigmento > 0.0:                       # el reloj del pigmento corre siempre (también durante la espera de tras gastar)
 		_t_pigmento = maxf(0.0, _t_pigmento - delta)
 		if _t_pigmento <= 0.0:
@@ -400,6 +465,8 @@ func desde_dic(d: Dictionary) -> void:
 	_guardar_frascos()
 	var p: String = String(d.get("pigmento", PIGMENTO_BASE))
 	pigmento = p if PIGMENTOS.has(p) else PIGMENTO_BASE
-	_t_pigmento = maxf(0.0, float(d.get("pigmento_s", 0.0))) if pigmento != PIGMENTO_BASE else 0.0
+	_t_pigmento = maxf(0.0, float(d.get("pigmento_s", 0.0))) if pigmento != PIGMENTO_BASE and float(PIGMENTOS[pigmento]["dura"]) > 0.0 else 0.0
+	_vuelo = ""
+	_t_vuelo = 0.0
 	_espera = 0.0
 	cambiada.emit()

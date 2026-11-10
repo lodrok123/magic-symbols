@@ -265,7 +265,8 @@ static func _texto_motivo(motivo: String) -> String:
 
 ## --- Pigmentos como objetos ---
 
-## Un objeto de uso «pigmento» (`efecto.pigmento = <id de Tinta.PIGMENTOS>`) se aplica a la tinta: gasta UNA unidad y activa el pigmento (60 s, sustituye al anterior).
+## Un objeto de uso «pigmento» (`efecto.pigmento = <id de Tinta.PIGMENTOS>`) se CARGA en la tinta: gasta UNA unidad y el siguiente hechizo de su elemento sale ×1,5 (10/11).
+## Solo uno cargado: si había otro, su frasco vuelve a la mochila. Si ya está cargado ese mismo, no hace nada (false).
 ## `tinta` = la de la jugadora (por defecto `Partida.tinta`). false si no es un pigmento, el id no existe en `Tinta.PIGMENTOS`, no hay tinta o no lo llevas.
 static func aplicar_pigmento(objeto: String, tinta: Tinta = null, e: Estado = null) -> bool:
 	var est: Estado = e if e != null else Estado.i()
@@ -276,7 +277,22 @@ static func aplicar_pigmento(objeto: String, tinta: Tinta = null, e: Estado = nu
 	if not Tinta.PIGMENTOS.has(pig):
 		push_warning("Sintesis: el objeto %s pide el pigmento «%s», que no existe en Tinta.PIGMENTOS" % [objeto, pig])
 		return false
+	var anterior: String = t.pigmento if t.pigmento_cargado() else ""
+	if anterior == pig:
+		return false                          # 10/11: ya está cargado ese: no se gasta otro
 	if not t.activar_pigmento(pig):
 		return false
 	est.quitar(objeto)
+	if anterior != "":
+		var frasco: String = objeto_de_pigmento(anterior)
+		if frasco != "":
+			est.agregar(frasco, 1)            # 10/11: solo uno cargado; el anterior vuelve a la mochila (no se pierde)
 	return true
+
+
+## El objeto de la tabla cuyo efecto es `pigmento=<id>` ("" si ninguno).
+static func objeto_de_pigmento(id: String) -> String:
+	for o in Objetos.DATOS:
+		if String(Objetos.efecto(String(o)).get("pigmento", "")) == id:
+			return String(o)
+	return ""

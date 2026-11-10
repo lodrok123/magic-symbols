@@ -54,19 +54,29 @@ nucleo_eco	Núcleo de eco	mineral	epico	5	resonante,raro	5	ingrediente	-	cueva	c
 geoda_resonante	Geoda resonante	mineral	epico	5	resonante,tierra,raro	4	ingrediente	-	cueva	cristal	#9E5CF2	geoda_resonante	hay	Hueca y cantarina. Mejora al personaje	-
 savia_elemental	Savia del elemental	planta	epico	5	vital,raro	5	ingrediente	-	bosque	cristal	#7AD96B	savia_elemental	nuevo	La deja el elemental del bosque al caer. Mejora al personaje	-
 glifo_resonancia	Glifo de resonancia	glifo	legendario	1	-	0	glifo	glifo=raido	cueva	cristal	#FFD14D	glifo_resonancia	hay	El cofre legendario de C6: escribe ᚱ en el libro	-
-pocion	Poción de vida	consumible	comun	9	-	0	equipar	cura=40	todas	frasco	#FF594D	pocion	hay	Cura vida. Equípala y usa Q	Cura 40 de vida al beberla (1,5 s quieto)|Se interrumpe si te golpean
-pocion_grande	Poción grande	consumible	comun	9	-	0	equipar	cura=80	todas	frasco	#FF3333	pocion_grande	nuevo	Cura el doble. Tarda lo mismo en beberse	-
+pocion	Poción de vida	consumible	comun	9	-	0	equipar	cura=40	todas	frasco	#FF594D	pocion	hay	Poción menor: cura 40. Equípala y usa Q	Cura 40 de vida al beberla (1,5 s quieto)|Se interrumpe si te golpean
+pocion_grande	Poción grande	consumible	comun	9	-	0	equipar	cura=80	todas	frasco	#FF3333	pocion_grande	nuevo	Poción normal: cura 80. Tarda lo mismo en beberse	-
+pocion_mayor	Poción mayor	consumible	epico	9	-	0	equipar	cura=120;regen=2;dura=10	todas	frasco	#E0143C	pocion_grande	nuevo	Cura 120 y regenera 2 de vida por segundo durante 10 s	-
 tonico_tinta	Tónico de tinta	consumible	comun	9	-	0	equipar	frascos=1	todas	tonico	#4D8CFF	tonico_tinta	hay	Recarga un frasco de tinta vacío	Recarga 1 frasco de reserva de tinta|Solo sirve si falta algún frasco
 balsamo_protector	Bálsamo protector	consumible	comun	9	-	0	equipar	dura=20	todas	tarro	#F2BD47	balsamo_protector	hay	Absorbe el próximo golpe durante 20 s	Absorbe por completo el próximo golpe|Dura 20 s; si nadie te pega, se pierde
 infusion_brezo	Infusión de brezo	consumible	comun	9	-	0	equipar	dura=12;tasa=3	todas	infusion	#A86BDB	infusion_brezo	hay	Regenera 3 de vida por segundo durante 12 s	Regenera 3 de vida por segundo durante 12 s|Un golpe no corta el efecto
-antidoto	Antídoto	consumible	comun	9	-	0	equipar	cura_estado=veneno;inmune=veneno;dura=60	todas	frasco	#8CD96B	antidoto	nuevo	Quita el veneno y protege 60 s	-
-frescor	Frasco de frescor	consumible	comun	9	-	0	equipar	resiste=calor;dura=90	todas	frasco	#7ACCFF	frescor	nuevo	Aguanta el calor del volcán 90 s	-
-abrigo	Brasa embotellada	consumible	comun	9	-	0	equipar	resiste=frio;dura=90	todas	frasco	#FF9E47	abrigo	nuevo	Aguanta el frío de la cumbre 90 s	-
-pigmento_carmesi	Pigmento Resina Carmesí	pigmento	comun	9	-	0	pigmento	pigmento=resina_carmesi	bosque	tonico	#D93338	pigmento_carmesi	nuevo	Tinta roja: el fuego hace ×1,5 de daño 60 s	-
-pigmento_ocre	Pigmento Ocre del Túmulo	pigmento	comun	9	-	0	pigmento	pigmento=ocre_tumulo	tumulo	tonico	#CC9438	pigmento_ocre	nuevo	Tinta ocre: la tierra cuesta la mitad 60 s	-
-pigmento_musgo	Pigmento Verde de Musgo	pigmento	comun	9	-	0	pigmento	pigmento=verde_musgo	bosque_humedo	tonico	#61B84D	pigmento_musgo	nuevo	Tinta verde: el viento cuesta la mitad 60 s	-
-pigmento_ambar	Pigmento Ámbar Volcánico	pigmento	comun	9	-	0	pigmento	pigmento=ambar_volcanico	volcan	tonico	#F28C1F	pigmento_ambar	nuevo	Tinta ámbar: el rayo hace ×1,5 de daño 60 s	-
-pigmento_eco	Pigmento Azul de Eco	pigmento	comun	9	-	0	pigmento	pigmento=azul_eco	cueva	tonico	#6BB8FF	pigmento_eco	nuevo	Tinta de pulso: el recargo de ᚱ desaparece 60 s	-
+antidoto	Antídoto	consumible	comun	9	-	0	equipar	cura_estado=veneno;inmune=veneno;dura=90	todas	frasco	#8CD96B	antidoto	nuevo	Quita el veneno y protege de él 90 s	-
+frescor	Frasco de frescor	consumible	comun	9	-	0	equipar	cura_estado=calor;inmune=calor;dura=90	todas	frasco	#7ACCFF	frescor	nuevo	Quita la quemadura y protege del calor 90 s	-
+abrigo	Brasa embotellada	consumible	comun	9	-	0	equipar	cura_estado=frio;inmune=frio;dura=90	todas	frasco	#FF9E47	abrigo	nuevo	Quita el frío y protege de él 90 s	-
+savia_aislante	Savia aislante	consumible	comun	9	-	0	equipar	cura_estado=rayo;inmune=rayo;dura=90	todas	frasco	#E8C547	antidoto	nuevo	Quita el aturdimiento del rayo y protege de él 90 s	-
+elixir_filtro	Elixir del filtro	consumible	comun	9	-	0	equipar	inmune=veneno,rayo;dura=60	todas	frasco	#9BCB5A	antidoto	nuevo	Protege del veneno y del rayo 60 s (no los quita)	-
+elixir_templado	Elixir templado	consumible	comun	9	-	0	equipar	inmune=frio,calor;dura=60	todas	frasco	#D98CB3	frescor	nuevo	Protege del frío y del calor 60 s (no los quita)	-
+pigmento_carmesi	Pigmento Resina Carmesí	pigmento	comun	9	-	0	pigmento	pigmento=resina_carmesi	bosque	tonico	#D93338	pigmento_carmesi	nuevo	Tiñe la tinta: el siguiente hechizo de fuego sale ×1,5 de daño y de tamaño	-
+pigmento_ocre	Pigmento Ocre del Túmulo	pigmento	comun	9	-	0	pigmento	pigmento=ocre_tumulo	tumulo	tonico	#CC9438	pigmento_ocre	nuevo	Tiñe la tinta: el siguiente hechizo de tierra sale ×1,5 de daño y de tamaño	-
+pigmento_musgo	Pigmento Verde de Musgo	pigmento	comun	9	-	0	pigmento	pigmento=verde_musgo	bosque_humedo	tonico	#61B84D	pigmento_musgo	nuevo	Tiñe la tinta: el siguiente hechizo de viento sale ×1,5 de daño y de tamaño	-
+pigmento_ambar	Pigmento Ámbar Volcánico	pigmento	comun	9	-	0	pigmento	pigmento=ambar_volcanico	volcan	tonico	#F28C1F	pigmento_ambar	nuevo	Tiñe la tinta: el siguiente hechizo de rayo sale ×1,5 de daño y de tamaño	-
+pigmento_rocio	Pigmento Azul de Rocío	pigmento	comun	9	-	0	pigmento	pigmento=azul_rocio	bosque	tonico	#59B4F0	pigmento_eco	nuevo	Tiñe la tinta: el siguiente hechizo de agua sale ×1,5 de daño y de tamaño	-
+pigmento_escarcha	Pigmento Blanco de Escarcha	pigmento	comun	9	-	0	pigmento	pigmento=blanco_escarcha	cumbre	tonico	#D9F0FF	pigmento_eco	nuevo	Tiñe la tinta: el siguiente hechizo de hielo sale ×1,5 de daño y de tamaño	-
+pigmento_eco	Pigmento Azul de Eco	pigmento	comun	9	-	0	pigmento	pigmento=azul_eco	cueva	tonico	#6BB8FF	pigmento_eco	nuevo	Tiñe la tinta: el siguiente hechizo con ᚱ no paga su recargo	-
+bulbo_luz	Bulbo de luz	lanzable	comun	5	-	0	lanzar	lanza=luz;dura=60	todas	esfera	#FFF2A8	-	nuevo	Lánzalo: ilumina 3 casillas alrededor de donde cae durante 60 s	-
+bomba_resina	Bomba de resina	lanzable	comun	5	-	0	lanzar	lanza=fuego;dano=10	todas	esfera	#D9772B	-	nuevo	Lánzala: prende lo inflamable de la casilla donde cae y hace 10 de daño	-
+bola_helada	Bola helada	lanzable	comun	5	-	0	lanzar	lanza=hielo	todas	esfera	#A8DDF5	-	nuevo	Lánzala: hiela la casilla de agua donde cae, como un hechizo de hielo pequeño	-
+fruto_chispa	Fruto chispa	lanzable	comun	5	-	0	lanzar	lanza=rayo;dano=4	todas	esfera	#F5E04A	-	nuevo	Lánzalo: electrifica el agua donde cae y activa lo que se activa con rayo. También te alcanza a ti	-
 llave	Llave de la Cueva	clave	comun	1	-	0	clave	abre=cueva.c4.puerta	cueva	cristal	#D9B861	llave_pequena	nuevo	Abre la puerta de C4	-
 llave_goblin	Llave goblin	clave	comun	1	-	0	clave	abre=bosque1.campamento.puerta	bosque	cristal	#B3A07A	llave_pequena	hay	La llave del campamento goblin	-
 perla	Perla	clave	comun	1	-	0	clave	-	bosque	cristal	#F2F2FF	perla	hay	Objeto de misión	-
