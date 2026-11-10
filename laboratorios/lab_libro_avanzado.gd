@@ -6,16 +6,20 @@ extends Node
 ## Se dibuja con el ratón en los dos círculos de ABAJO: el de la izquierda es de SELLOS (elementos) y el de la derecha de GLIFOS. Lo reconocido se coloca solo en el
 ## círculo mágico de ARRIBA: un sello en el medallón 1 o 2 (el tercero sustituye al más antiguo) y un glifo en el primer hueco libre de la corona.
 ## Fuego + agua y tierra + viento se anulan; agua + viento = hielo, fuego + viento = rayo, fuego + tierra = magma, agua + tierra = naturaleza (veneno).
-## Las medidas de todo (círculo mágico, medallones, huecos, zonas) están en `LIBROS["avanzado"]` de `presentacion/ui/spellbook.gd`: se ajustan ahí y se vuelve a abrir.
+## F1–F5 seleccionan las láminas de revisión. Las medidas están en laminas_grimorio.gd.
 ##
 ## Sin lanzador del juego: la página es la de un `Grimorio` pelado (no lanza nada ni gasta tinta); el resumen de arriba sale de él. Para probar el LANZAMIENTO (que los
 ## opuestos no lancen, que magma salga de fuego + tierra) está `herramientas/prueba_libro_avanzado.gd`.
 
-const AYUDA: String = "LIBRO AVANZADO · dibuja en los círculos de abajo: SELLO a la izquierda, GLIFO a la derecha · clic derecho o Z deshacen · Retroceso vacía la página · 1 2 3 cambian de página"
+const Laminas = preload("res://laboratorios/laminas_grimorio.gd")
+const AYUDA: String = "F1 Botánico · F2 Rojo 1 sello · F3 Rojo 2 sellos · F4 Azul 1 sello · F5 Azul 2 sellos  |  1 / 2 / 3 pasan página"
 
 var _grimorio: Grimorio = null
 var _libro: Control = null
 var _texto: Label = null
+var _edicion: int = 4
+var _grimorios: Dictionary = {}
+var _laminas: Dictionary = {}
 
 
 func _ready() -> void:
@@ -28,18 +32,16 @@ func _ready() -> void:
 	get_tree().paused = false
 	Engine.time_scale = 1.0
 
-	_grimorio = Grimorio.new()
-	add_child(_grimorio)
-
 	var capa := CanvasLayer.new()
 	add_child(capa)
 	_libro = Control.new()
 	_libro.process_mode = Node.PROCESS_MODE_ALWAYS
 	_libro.set_script(load("res://presentacion/ui/spellbook.gd"))
+	_libro.giro_hoja_avanzado = true
 	capa.add_child(_libro)
 	_libro.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	_libro.is_open = true
-	_libro.visible = true
+	_elegir_edicion(_edicion)
+	_abrir_en_el_banco()
 
 	_texto = Label.new()
 	_texto.add_theme_font_size_override("font_size", 15)
@@ -58,17 +60,49 @@ func _ready() -> void:
 func _process(_delta: float) -> void:
 	# La tecla del libro lo cerraría (y despausaría): en este laboratorio siempre está abierto.
 	if not _libro.is_open:
-		_libro.is_open = true
-		_libro.visible = true
-		_libro.modulate.a = 1.0
-		_libro.scale = Vector2.ONE
+		_abrir_en_el_banco()
 	if get_tree().paused:
 		get_tree().paused = false
-	_texto.text = "%s\n%s" % [AYUDA, _estado()]
+	_texto.text = "%s\n%s  |  %s" % [AYUDA, Laminas.NOMBRES[_edicion], _estado()]
+
+
+func _abrir_en_el_banco() -> void:
+	var fundido: Tween = _libro.get("_tw_libro")
+	if fundido != null and fundido.is_valid():
+		fundido.kill()
+	_libro.is_open = true
+	_libro.visible = true
+	_libro.modulate.a = 1.0
+	_libro.scale = Vector2.ONE
+	_libro.mano.mostrar()
+
+
+func _elegir_edicion(indice: int) -> void:
+	if not _laminas.has(indice):
+		_laminas[indice] = Laminas.cargar(indice)
+	var lamina: Dictionary = _laminas[indice]
+	if lamina.is_empty() and _grimorio != null:
+		return
+	if not _grimorios.has(indice):
+		var grimorio := Grimorio.new()
+		grimorio.guardar_paginas = false
+		if not lamina.is_empty():
+			grimorio.sellos_por_pagina = (lamina["avanzado"]["medallones"] as Array).size()
+		add_child(grimorio)
+		_grimorios[indice] = grimorio
+	_edicion = indice
+	_grimorio = _grimorios[indice]
+	_libro.montar_lamina_avanzada(lamina, _grimorio)
 
 
 func _unhandled_key_input(event: InputEvent) -> void:
-	if event is InputEventKey and event.pressed and not event.echo and event.keycode == KEY_Z:
+	if not event is InputEventKey or not event.pressed or event.echo:
+		return
+	if event.keycode >= KEY_F1 and event.keycode <= KEY_F5:
+		if not _libro.pasando_pagina() and not _libro.is_drawing:
+			_elegir_edicion(event.keycode - KEY_F1)
+		get_viewport().set_input_as_handled()
+	elif event.keycode == KEY_Z:
 		_grimorio.undo_last()
 		_libro.queue_redraw()
 

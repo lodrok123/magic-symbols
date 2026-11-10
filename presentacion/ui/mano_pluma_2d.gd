@@ -119,6 +119,15 @@ func apuntar(punto: Vector2, dibujando: bool, ahora: float = -1.0) -> void:
 	_dibujando = dibujando
 
 
+## Durante el giro la mano va unida al borde y no usa el retardo de la tinta.
+func seguir_hoja(punto: Vector2) -> void:
+	_buffer.clear()
+	apuntar(punto, false)
+	_punta_actual = punto
+	_cambiar_pose(pose_forzada)
+	_aplicar()
+
+
 ## Dónde estaba el punto hace `RETARDO` s (interpolando entre las dos muestras que lo rodean). Estática y pura para poder probarla.
 static func punto_con_retardo(buffer: Array, ahora: float, retardo: float = RETARDO) -> Vector2:
 	if buffer.is_empty():

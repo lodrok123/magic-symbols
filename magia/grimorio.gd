@@ -18,6 +18,8 @@ extends Node3D
 ## El trazo que se está reconociendo ahora mismo. Lo rellena el grimorio
 ## a través de add_stroke(); este nodo ya no captura ratón.
 var stroke_points: Array[Vector2] = []
+var guardar_paginas: bool = true
+var sellos_por_pagina: int = 2
 
 # Conteo de esquinas: el reconocedor ANTIGUO, y solo de emergencia.
 #
@@ -178,8 +180,9 @@ func _ready() -> void:
 		})
 	# Las páginas guardadas (partida cargada, cambio de nivel, cambio de libro) se leen aquí: antes `Repertoire.paginas` se guardaba pero nadie lo devolvía al libro y la
 	# partida cargada abría las tres páginas en blanco.
-	cargar_paginas()
-	Repertoire.avisos.libro_cambiado.connect(_al_cambiar_libro)
+	if guardar_paginas:
+		cargar_paginas()
+		Repertoire.avisos.libro_cambiado.connect(_al_cambiar_libro)
 
 
 func _exit_tree() -> void:
@@ -197,7 +200,7 @@ var _cargando: bool = false
 
 ## Pasa las páginas del Grimorio a `Repertoire.paginas` (elemento, elemento2 y glifos EN ORDEN DE DIBUJO: el sector ya no importa). Se llama solo cuando una página cambia.
 func volcar_paginas() -> void:
-	if _cargando:
+	if _cargando or not guardar_paginas:
 		return
 	var lista: Array = []
 	for i in range(mini(PAGES, pages.size())):
@@ -688,7 +691,7 @@ func _add_element(strokes: Array) -> void:
 func _poner_sello(rune: Runes.Type, calidad: float) -> void:
 	var p: Dictionary = pages[page]
 	var foto: Dictionary = {"kind": "element", "previous": p["element"], "previous_q": p["element_q"]}
-	if not es_avanzado():
+	if not es_avanzado() or sellos_por_pagina == 1:
 		undo_history.append(foto)
 		current_element = rune
 		p["element_q"] = calidad
