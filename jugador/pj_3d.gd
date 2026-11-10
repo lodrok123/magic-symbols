@@ -214,7 +214,8 @@ const POSTURAS: Dictionary = {
 ## dedos en el reposo de Mixamo quedaban estirados detrás del mango, como apoyando la mano en él. Grados medidos con herramientas/medidas_palma_pieza.gd.
 const MANO_RELAJADA: Dictionary = {
 	"jugadora_base": [22.0, 8.0],
-	"santa_compana_cruz": [14.0, 6.0, 30.0, 14.0],
+	# 11/11: con el mango afinado (radio 0,019) cada falange, de 0,017, gira lo que abarca de su contorno: 0,017 / 0,023 rad ≈ 40°.
+	"santa_compana_cruz": [14.0, 6.0, 40.0, 18.0],
 }
 const DEDOS: PackedStringArray = ["Index", "Middle", "Ring", "Pinky"]
 const EJE_CIERRE_DEDO: Vector3 = Vector3.RIGHT

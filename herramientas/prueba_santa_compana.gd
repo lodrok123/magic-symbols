@@ -43,8 +43,8 @@ const PIEZA_MANO_MAX: float = 0.15
 const PIEZA_CABEZA_MIN: float = 0.12
 ## La cruz respecto a la palma (u de mundo): el eje del palo a 0,022 por delante (Equipo3D.CRUZ_APOYO["palma"]), con algo de holgura
 ## porque la pieza suaviza su seguimiento. Negativo sería por el dorso de la mano.
-const CRUZ_DELANTE_MIN: float = 0.020     ## como poco, casi el radio del mango (0,029): menos y el palo atraviesa la palma
-const CRUZ_DELANTE_MAX: float = 0.055
+const CRUZ_DELANTE_MIN: float = 0.015     ## como poco, casi el radio del mango (0,019 desde que se afinó): menos y el palo atraviesa la palma
+const CRUZ_DELANTE_MAX: float = 0.040
 
 var _fallos: int = 0
 

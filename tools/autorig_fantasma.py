@@ -553,6 +553,7 @@ def calcular_pesos(obj, huesos, pre, vs_don, pesos_don, tris_don, pos, k, alto, 
     dist = [1e18] * len(gpos)
     origen = [-1] * len(gpos)
     forzada = [False] * len(gpos)
+    no_semilla_en_el_brazo = set(pre + l + n for l in ("Left", "Right") for n in ("UpLeg", "Leg", "Foot", "ToeBase"))
     for gi in range(len(gpos)):
         loc, nor, idx, d = cerca[gi]
         if loc is None or lila[gi] or d > LEJOS_TELA:
@@ -562,7 +563,9 @@ def calcular_pesos(obj, huesos, pre, vs_don, pesos_don, tris_don, pos, k, alto, 
             continue
         # Una posicion pegada al TRONCO del maniqui pero en territorio del brazo (mas cerca de su eje que K_MANGA veces del de la
         # columna) no es tronco: es la bocamanga, que cuelga rozando la cadera. No vale de semilla; heredara de la manga, como el resto.
-        if max(w, key=w.get) in tronco:
+        # 11/11: tambien si esta pegada a una PIERNA del maniqui. La bocamanga cuelga junto al muslo y esas posiciones heredaban su
+        # peso: con los brazos arriba se quedaban en la cadera y la manga se estiraba en una lamina de la muñeca al muslo.
+        if max(w, key=w.get) in tronco or max(w, key=w.get) in no_semilla_en_el_brazo:
             p = gpos[gi]
             db0 = min(dist_segmento(p, *segs[n]) for n in brazos)
             dc0 = min(dist_segmento(p, *segs[n]) for n in columna)

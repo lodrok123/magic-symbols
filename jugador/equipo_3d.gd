@@ -116,8 +116,11 @@ const CRUZ_APOYO: Dictionary = {
 	# siga a la mano cuando va un poco atrás al andar.
 	# `eje_malla`: el MANGO no pasa por el origen del GLB (se ve desde arriba), así que lo que se pone ante la palma es el eje medido
 	# en la malla. Sin esto, la primera versión de `palma` dejaba el origen clavado a 0,022 de la palma y el mango, desplazado, seguía
-	# quedando por DETRÁS de la mano; y mi medida, hecha sobre el origen, decía que estaba bien. `palma` = el radio del mango (0,029) y un pelo.
-	"agarre_y": 0.202, "giro": 0.0, "dist_min_cuerpo": 0.12, "palma": 0.033, "palma_hacia_dedos": 0.6, "eje_malla": true, "empunar": true, "empunar_palma_hacia": Vector3(0.0, 0.0, 1.0),
+	# quedando por DETRÁS de la mano; y mi medida, hecha sobre el origen, decía que estaba bien.
+	# 11/11 (Pablo: «sí, afina el mango»): el mango se afinó a la mitad en la malla (tools/afinar_mango.py: de 0,038 a 0,019 de radio en el
+	# juego) porque los dedos, de 0,05, solo abarcaban un cuarto de su contorno. `palma` = el radio nuevo y medio dedo; el palo va casi en
+	# los nudillos (`palma_hacia_dedos` 0,85) para que los dedos lo rodeen desde ahí, y Pj3D.MANO_RELAJADA los cierra siguiendo su curva.
+	"agarre_y": 0.202, "giro": 0.0, "dist_min_cuerpo": 0.12, "palma": 0.023, "palma_hacia_dedos": 0.85, "eje_malla": true, "empunar": true, "empunar_palma_hacia": Vector3(0.0, 0.0, 1.0),
 	"lado": -1.0, "z_min": -0.12, "z_max": 0.40}
 ## La palmatoria NO se apoya en el suelo: se lleva en la mano, solo que siempre de pie para que no se vuelque la vela.
 const VELA_VERTICAL: Dictionary = {"vertical": true, "agarre_y": 0.03, "desplaz": Vector3(-0.02, 0.0, 0.04)}
