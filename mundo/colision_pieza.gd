@@ -51,6 +51,8 @@ const TROZOS_MAX: int = 16
 ##   "ninguna"  → se pisa (decorado, plantas, losas, nenúfares)
 ## Las piezas que no salen aquí se tratan como «ninguna», igual que `GeneradorPiezas.COLISION`.
 const MODO: Dictionary = {
+	# 8/11 · Pantano (laminas de Meshy): el manglar sera un tronco bajo (como arbol_redondo_2) y la cabana una masa; pasarelas, muelle, eneas, lirio y setas se pisan (sin entrada = sin cuerpo).
+	"arbol_manglar": "tronco_bajo", "cabana_palafito": "contorno", "muro_curvo_piedra": "contorno",
 	# --- ya horneadas (mismos ids y misma intención que GeneradorPiezas.COLISION; "convexa" y "mesa" pasan a "contorno") ---
 	"arbol_redondo": "tronco", "arbol_redondo_2": "tronco_bajo", "pino": "tronco_bajo", "pino_2": "tronco",
 	"arbusto": "contorno", "arbusto_flores": "contorno", "arbusto_otono": "contorno", "seto_seco": "contorno",

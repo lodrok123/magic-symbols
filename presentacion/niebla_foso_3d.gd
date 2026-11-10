@@ -65,6 +65,33 @@ var _mm: MultiMesh = null
 var _celdas: Array[Vector2i] = []
 var _vis: PackedFloat32Array = PackedFloat32Array()
 var _t: float = 0.0
+## 8/11 (Pantano): modo AGUA. La bruma va sobre las casillas con agua (visible con agua, no sin ella), con su propio color, alfa y alturas.
+var _sobre_agua: bool = false
+var _color: Color = COLOR
+var _alfa: float = ALFA
+var _alturas: Array = ALTURAS
+
+
+## Bruma baja SOBRE EL AGUA de la simulación (el pantano): las mismas láminas, en las casillas que tienen agua al montar; se desvanece si se secan. null si no hay agua.
+static func montar_agua(maqueta: Node3D, color: Color = Color(0.66, 0.82, 0.74), alfa: float = 0.16, alturas: Array = [0.10, 0.32]) -> NieblaFoso3D:
+	var lado: int = int(maqueta.get("_lado"))
+	var celdas: Array[Vector2i] = []
+	for y in range(lado):
+		for x in range(lado):
+			var c := Vector2i(x, y)
+			if Terreno3D.es_agua(c):
+				celdas.append(c)
+	if celdas.is_empty():
+		return null
+	var n := NieblaFoso3D.new()
+	n.name = "NieblaAgua3D"
+	n._celdas = celdas
+	n._sobre_agua = true
+	n._color = color
+	n._alfa = alfa
+	n._alturas = alturas
+	maqueta.add_child(n)
+	return n
 
 
 ## Crea la niebla de los cauces hondos de la maqueta. Devuelve el nodo (o null si no hay ningún cauce hondo).
@@ -94,23 +121,23 @@ func _ready() -> void:
 	sh.code = CODIGO
 	var mat := ShaderMaterial.new()
 	mat.shader = sh
-	mat.set_shader_parameter("color", COLOR)
-	mat.set_shader_parameter("alfa", ALFA)
+	mat.set_shader_parameter("color", _color)
+	mat.set_shader_parameter("alfa", _alfa)
 	mat.set_shader_parameter("borde_fundido", BORDE_FUNDIDO)
 	q.material = mat
 	_mm = MultiMesh.new()
 	_mm.transform_format = MultiMesh.TRANSFORM_3D
 	_mm.use_custom_data = true
 	_mm.mesh = q
-	_mm.instance_count = _celdas.size() * ALTURAS.size()
+	_mm.instance_count = _celdas.size() * _alturas.size()
 	_vis.resize(_celdas.size())
 	for i in range(_celdas.size()):
 		var c: Vector2i = _celdas[i]
-		_vis[i] = 0.0 if Terreno3D.es_agua(c) else 1.0
-		for k in range(ALTURAS.size()):
-			var p: Vector3 = Terreno3D.centro_de(c, Terreno3D.y_pies(c) + float(ALTURAS[k]))
-			_mm.set_instance_transform(i * ALTURAS.size() + k, Transform3D(Basis.IDENTITY, p))
-			_mm.set_instance_custom_data(i * ALTURAS.size() + k, Color(0.0, 0.0, 0.0, _vis[i]))
+		_vis[i] = _visible_para(Terreno3D.es_agua(c))
+		for k in range(_alturas.size()):
+			var p: Vector3 = Terreno3D.centro_de(c, Terreno3D.y_pies(c) + float(_alturas[k]))
+			_mm.set_instance_transform(i * _alturas.size() + k, Transform3D(Basis.IDENTITY, p))
+			_mm.set_instance_custom_data(i * _alturas.size() + k, Color(0.0, 0.0, 0.0, _vis[i]))
 	var mi := MultiMeshInstance3D.new()
 	mi.name = "niebla"
 	mi.multimesh = _mm
@@ -126,12 +153,19 @@ func _process(delta: float) -> void:
 	for i in range(_celdas.size()):
 		var objetivo: float = _vis[i]
 		if mirar:
-			objetivo = 0.0 if Terreno3D.es_agua(_celdas[i]) else 1.0
-		var actual: float = _mm.get_instance_custom_data(i * ALTURAS.size()).a
+			objetivo = _visible_para(Terreno3D.es_agua(_celdas[i]))
+		var actual: float = _mm.get_instance_custom_data(i * _alturas.size()).a
 		if is_equal_approx(actual, objetivo):
 			_vis[i] = objetivo
 			continue
 		var v: float = move_toward(actual, objetivo, VEL_FUNDIDO * delta)
 		_vis[i] = objetivo
-		for k in range(ALTURAS.size()):
-			_mm.set_instance_custom_data(i * ALTURAS.size() + k, Color(0.0, 0.0, 0.0, v))
+		for k in range(_alturas.size()):
+			_mm.set_instance_custom_data(i * _alturas.size() + k, Color(0.0, 0.0, 0.0, v))
+
+
+## Visibilidad de una casilla según tenga agua: en los fosos se ve SIN agua; en modo agua, CON agua.
+func _visible_para(hay_agua: bool) -> float:
+	if _sobre_agua:
+		return 1.0 if hay_agua else 0.0
+	return 0.0 if hay_agua else 1.0

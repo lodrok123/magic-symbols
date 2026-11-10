@@ -141,7 +141,7 @@ const T_CRECER: float = 0.6          ## s que tarda la hierba en brotar al regar
 const SIN_SOMBRA: Array = ["arbusto", "arbusto_flores", "arbusto_otono", "seto_seco", "piedras", "piedra", "setas",
 	"seta", "tocon", "cartel", "pasadero", "juncos", "matas", "flores", "caja_pequena", "baldosa_guardado", "pocion"]
 ## Bloque 4 EoW: piezas del decorado cuya sombra la proyecta una copia reducida (≈ 1/8 de triángulos, MallaReducida3D) y no la malla entera.
-const SOMBRA_REDUCIDA: Array = ["arbol_redondo", "arbol_redondo_2", "pino", "pino_2", "cueva_pared", "cueva_esquina_ext", "cueva_esquina_int"]
+const SOMBRA_REDUCIDA: Array = ["arbol_redondo", "arbol_redondo_2", "pino", "pino_2", "arbol_manglar", "cueva_pared", "cueva_esquina_ext", "cueva_esquina_int"]
 const FRACCION_SOMBRA: float = 0.125
 ## Bloque 1 EoW: piezas del decorado que se mecen con el viento y con cuánta fuerza (1 = árbol de copa redonda). El pino, más rígido.
 ## Solo en las piezas de los lotes (el decorado que no reacciona): un seto que arde lleva los materiales de Reactivo3D.
@@ -828,13 +828,15 @@ void fragment() {
 @export var viento_decorado: float = 1.0
 ## La Cueva (23/10): «bosque» (de serie: árboles en las paredes, hierba) o «cueva» (paredes de roca del kit de cueva según sus vecinas, suelo de
 ## roca y basalto, estalagmitas). Ver `_pared_cueva`.
-@export var estilo: String = "bosque"
+@export var estilo: String = "bosque"      ## «pantano» (8/11): suelo de BARRO (ver `_textura_barro`); el resto del estilo es el del bosque
 ## Bloque 4 EoW: escala del render 3D (1 = nativa). Medido en una Intel UHD 620 (Bosque): 0,75 da ≈ +20 % de FPS; el HUD sigue nítido.
 @export_range(0.5, 1.0, 0.05) var escala_render: float = 1.0
 ## Bloque 4 EoW: la sombra de árboles y pinos la proyecta una copia reducida (`SOMBRA_REDUCIDA`). Desmarcar = la malla entera, como antes.
 @export var sombra_reducida: bool = true
 ## Bloque 3 EoW: bruma baja en el fondo de los cauces secos hondos (NieblaFoso3D). Desmarcar = sin niebla.
 @export var niebla_fosos: bool = true
+## 8/11 (Pantano): bruma baja sobre el AGUA de la simulación (NieblaFoso3D.montar_agua: las mismas láminas que los fosos, en las casillas con agua). Desmarcada por defecto.
+@export var niebla_agua: bool = false
 ## Quita la parte delantera del toldo del puesto de mercado (desde la cámara tapaba al tendero).
 @export var recortar_toldo: bool = true
 ## Hierba de todo el mapa a la vez (el prerender 2D la necesita entera). Si no, solo alrededor de la chibi.
@@ -1381,6 +1383,8 @@ func _ready() -> void:
 	# Bloque 3 EoW: bruma baja en el fondo de los cauces secos hondos (NieblaFoso3D); se va cuando se llenan.
 	if niebla_fosos:
 		NieblaFoso3D.montar(self)
+	if niebla_agua:
+		NieblaFoso3D.montar_agua(self)
 	_ocultar_correa_mochila()
 	if _modo_escena or _modo_nivel:
 		_activar_solidez_por_nodos()
@@ -1883,6 +1887,21 @@ func _construir_suelo() -> void:
 		mat_suelo.set_shader_parameter("tinte_mojado", MOJADO_CUEVA_TINTE)
 		mat_suelo.set_shader_parameter("espec_mojado", MOJADO_CUEVA_ESPEC)
 		mat_suelo.set_shader_parameter("rug_mojado", MOJADO_CUEVA_RUG)
+	# El Pantano (8/11): la tierra (letra `g`) y la orilla de las aguas (el «camino» de arena) pasan a BARRO: `barro_arriba.png` si ya ha llegado de Meshy; si no, la tierra
+	# oscurecida y teñida de verde pantano (`_textura_barro`). Los demás estilos no pasan por aquí.
+	if estilo == "pantano":
+		mat_suelo.set_shader_parameter("t_hierba", _tintar(_tex(SUELO + "hierba_arriba.png"), HIERBA_PANTANO_TINTE, HIERBA_PANTANO_FUERZA, HIERBA_PANTANO_VALOR))
+		# la orilla MOJADA (estado del suelo junto al agua) oscurece a barro húmedo; con el brillo y el tinte de siempre salia un pretil gris pálido
+		mat_suelo.set_shader_parameter("tinte_mojado", Vector3(0.52, 0.56, 0.44))
+		mat_suelo.set_shader_parameter("espec_mojado", 0.12)
+		mat_suelo.set_shader_parameter("rug_mojado", 0.6)
+		if ResourceLoader.exists(SUELO + "hierba_borde.png"):
+			mat_suelo.set_shader_parameter("borde_fuerza", 0.3)       # el borde de hierba es lima del bosque: aquí solo un toque
+		var barro: Texture2D = _textura_barro()
+		if barro != null:
+			mat_suelo.set_shader_parameter("t_tierra", barro)
+			mat_suelo.set_shader_parameter("t_camino", barro)
+			mat_suelo.set_shader_parameter("usa_normal_tierra", 0.0)
 	mat_suelo.set_shader_parameter("celda", S)
 	mat_suelo.set_shader_parameter("respetar_especular_luz", has_node("LuzPortatilCueva"))
 	mat_suelo.set_shader_parameter("lado", float(_lado))
@@ -1919,6 +1938,8 @@ func _construir_suelo() -> void:
 		mat_lado.albedo_color = mat_lado.albedo_color * PARED_FOSO_BRILLO
 	else:
 		mat_lado = _mat_triplanar(SUELO + "cuerpo.png", Color(0.85, 0.66, 0.5))
+		if estilo == "pantano":          # 8/11: los costados (la pared de las charcas, el borde del mapa) son barro oscuro, no la franja anaranjada del bosque
+			mat_lado.albedo_color = mat_lado.albedo_color * Color(0.55, 0.62, 0.52)
 	Ambiente3D.preparar_global()
 	var sha := Shader.new()
 	sha.code = CODIGO_AGUA
@@ -1956,6 +1977,9 @@ func _construir_suelo() -> void:
 	if agua_fisica:
 		# agua filtro: el bloque del lecho lleva su propio material (cantos + cáusticas) en vez del del suelo; `aplicar_agua_filtro` lo cambia en vivo con `surface_set_material`.
 		_mat_lecho_agua = LechoRio3D.crear_material(OSCURECER_SUELO)
+		if estilo == "pantano":          # 8/11: agua turbia: casi sin las redes de luz (cáusticas) del lecho
+			_mat_lecho_agua.set_shader_parameter("causticas", 0.02)
+			_mat_lecho_agua.set_shader_parameter("caus_color", Color(0.55, 0.65, 0.52))
 		_mat_suelo_lecho = mat_suelo
 		_malla_lecho_agua = _malla_bloque(ALTO_AGUA - Lanzador3D.LECHO_AGUA, _mat_lecho_agua if (agua_filtro and not Engine.is_editor_hint()) else mat_suelo, mat_lado)
 		_multimalla(_malla_lecho_agua, agua)   # solo el lecho (el mismo de la simulación): el agua la dibuja AguaRender3D
@@ -2948,6 +2972,43 @@ func _tex(ruta: String) -> Texture2D:
 	return null
 
 
+## Tinte del FALLBACK del barro (estilo «pantano»): oliva pardo hacia #887F69 con algo del verde pantano #346A60, sobre la tierra, y cuánto (0 = tierra tal cual).
+const BARRO_FALLBACK_TINTE: Color = Color(0.36, 0.40, 0.30)
+const BARRO_FALLBACK_FUERZA: float = 0.55
+const BARRO_FALLBACK_VALOR: float = 0.92
+## La hierba del suelo en el pantano: se enfría hacia el verde salvia/pantano (#346A60 sobre el lima del bosque) y se apaga un poco.
+const HIERBA_PANTANO_TINTE: Color = Color(0.20, 0.42, 0.36)
+const HIERBA_PANTANO_FUERZA: float = 0.50
+const HIERBA_PANTANO_VALOR: float = 0.82
+
+
+## Textura del suelo de barro: `arte/suelo_meshy/barro_arriba.png` si existe; si no, la tierra teñida (`_tintar`).
+func _textura_barro() -> Texture2D:
+	if ResourceLoader.exists(SUELO + "barro_arriba.png"):
+		return load(SUELO + "barro_arriba.png") as Texture2D
+	var base: Texture2D = load(SUELO + "tierra_arriba.png") as Texture2D if ResourceLoader.exists(SUELO + "tierra_arriba.png") else _tex(SUELO + "dirt_arriba.png")
+	return _tintar(base, BARRO_FALLBACK_TINTE, BARRO_FALLBACK_FUERZA, BARRO_FALLBACK_VALOR)
+
+
+## Una copia de `base` mezclada con `tinte` (alfa `fuerza`) y multiplicada por `valor` (nativo con `blend_rect`, sin bucle por píxel). Si no se puede leer, devuelve `base`.
+func _tintar(base: Texture2D, tinte: Color, fuerza: float, valor: float) -> Texture2D:
+	if base == null:
+		return null
+	var img: Image = base.get_image()
+	if img == null:
+		return base
+	if img.is_compressed():
+		img.decompress()
+	img.convert(Image.FORMAT_RGBA8)
+	var r := Rect2i(0, 0, img.get_width(), img.get_height())
+	var capa := Image.create_empty(img.get_width(), img.get_height(), false, Image.FORMAT_RGBA8)
+	capa.fill(Color(tinte.r, tinte.g, tinte.b, fuerza))
+	img.blend_rect(capa, r, Vector2i.ZERO)
+	capa.fill(Color(0.0, 0.0, 0.0, 1.0 - valor))
+	img.blend_rect(capa, r, Vector2i.ZERO)
+	img.generate_mipmaps()
+	return ImageTexture.create_from_image(img)
+
 func _mat_triplanar(ruta: String, color_si_falta: Color) -> StandardMaterial3D:
 	var m := StandardMaterial3D.new()
 	m.roughness = 1.0
@@ -3173,10 +3234,28 @@ func _es_tramo(c: Vector2i) -> bool:
 	return ["x", "y"].has(String(_mapa[c.y])[c.x])
 
 
+## 8/11 (Pantano): el muro # NO es una fila de iguales: manglar (la mayoria), sauce al fondo, arbol muerto si ya existe la pieza, y de vez en cuando un matojo de eneas o unas raices (huecos),
+## cada uno con giro libre por casilla y la escala de _poner (0,88-1,12).
+func _muro_pantano(c: Vector2i, h: int) -> void:
+	var k: int = (h >> 3) % 10
+	var id: String = "arbol_manglar"
+	if k == 4 and not _borde_de_muro(c):
+		id = "sauce"
+	elif k == 5 and ResourceLoader.exists("res://arte/piezas/arbol_muerto.tscn"):
+		id = "arbol_muerto"
+	elif k == 6:
+		id = "juncos_altos"
+	elif k == 7:
+		id = "raices_musgo"
+	_poner(id, c, ALTO, true, true, float((h >> 5) % 360))
+
+
 ## El árbol viejo y el sauce tienen el TRONCO descentrado (las raíces y el tronco hueco salen hacia un lado del modelo): girados, invaden la
 ## casilla de al lado. Pegado a algo que se pisa solo va el pino (tronco centrado) y los otros dos quedan para el fondo del muro.
 ## (4/11: con ellos en el borde, el pasillo del escondite (8,26) del Bosque 02 quedaba tapado.)
 func _arbol_de_muro(h: int, c: Vector2i = Vector2i(-1, -1)) -> String:
+	if estilo == "pantano":          # 8/11: los muros del pantano son manglares (el sauce, de vez en cuando, en el fondo)
+		return "arbol_manglar" if (c.x >= 0 and _borde_de_muro(c)) or (h >> 3) % 4 != 0 else "sauce"
 	if c.x >= 0 and _borde_de_muro(c):
 		return "pino"
 	var total: int = 0
@@ -3949,6 +4028,8 @@ func _colocar_letras() -> void:
 						_bloqueadas[c] = true      # en modo escena el borde sigue cerrado; el resto lo deciden las piezas del .tscn
 					if estilo == "cueva":
 						_pared_cueva(c)
+					elif estilo == "pantano":
+						_muro_pantano(c, h)
 					elif h % 6 == 0:
 						_poner("arbusto" if h % 2 == 0 else "roca_grande", c, ALTO, true)
 					else:
@@ -6557,6 +6638,7 @@ func _montar_agua_fisica() -> void:
 	_agua_render.agua_refraccion = agua_refraccion          # agua EoW: refracción y tercera escala de olas (interruptores de la maqueta)
 	_agua_render.olas_tercera_escala = agua_olas_tercera
 	_agua_render.agua_filtro = agua_filtro                 # agua filtro (22/10): el agua como filtro turquesa sobre el lecho real
+	_agua_render.estilo_pantano = estilo == "pantano"      # 8/11: agua turbia verde parda (AguaRender3D.PANTANO)
 	if _mat_lecho_agua != null:
 		_agua_render.enlazar_lecho(_mat_lecho_agua)         # el lecho lee la profundidad del agua para sus cáusticas
 	if _adornos_lecho != null:

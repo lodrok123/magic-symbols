@@ -1271,6 +1271,18 @@ func enlazar(p_sim: AguaSim3D) -> void:
 
 ## Agua EoW: vuelca al sombreado los interruptores y las constantes de la refracción y de la tercera escala de olas (y la prioridad de dibujo). Se llama al enlazar y
 ## cada vez que cambia un interruptor; sin material todavía no hace nada.
+## 8/11 (Pantano): AGUA TURBIA. Valores que sustituyen a los FILTRO_* en el sombreado cuando estilo_pantano (solo lo pone el mapa con estilo = pantano; el resto del juego no pasa por aqui): absorcion fuerte,
+## poca profundidad visible, albedo propio verde pardo (de #346A60 y #887F69, mas oscuro que la orilla), sin vetas de corriente, sin crestas ni brillo.
+const PANTANO: Dictionary = {
+	"filtro_k": Vector3(2.6, 1.7, 2.4), "filtro_dens": 3.2, "filtro_hondo": Color(0.16, 0.26, 0.21), "filtro_prof_max": 0.40, "filtro_opacidad": 0.92,
+	"filtro_manchas": 0.08, "filtro_crestas": 0.12, "filtro_espec": 0.18, "filtro_franjas": 0.0, "filtro_fresnel": 0.05, "filtro_velo": 0.0,
+}
+var estilo_pantano: bool = false:
+	set(v):
+		estilo_pantano = v
+		_aplicar_eow()
+
+
 func _aplicar_eow() -> void:
 	if _mat == null:
 		return
@@ -1344,6 +1356,11 @@ func _aplicar_eow() -> void:
 		_mat_pared.set_shader_parameter("filtro_prof_max", FILTRO_PROF_MAX)
 		_mat_pared.set_shader_parameter("filtro_alfa", FILTRO_ALFA_PARED)
 		_mat_pared.set_shader_parameter("filtro_tinte_visto", FILTRO_TINTE_VISTO)
+	if estilo_pantano:
+		for k in PANTANO:
+			_mat.set_shader_parameter(String(k), PANTANO[k])
+		if _mat_pared != null:
+			_mat_pared.set_shader_parameter("filtro_hondo", PANTANO["filtro_hondo"])
 	_aplicar_lecho()
 
 

@@ -58,6 +58,7 @@ var tipo: String = "jarron"
 var botin: String = BOTIN_ORO
 var cantidad: int = 0                       ## 0 = la de la zona
 var alternativo: bool = false               ## alto=si / pequena=si
+var modelo_forzado: String = ""             ## 8/11: `modelo=anfora_asas_a|b` en un jarron: el mismo rompible (botin, trozos, cogerlo) con ESA pieza en vez de `jarron`
 var nivel: String = ""
 var roto_ya: bool = false
 var soltado: Array = []                     ## lo que soltó al romperse: [{"que": "oro"|id, "n": int}] (las pruebas lo leen)
@@ -129,6 +130,8 @@ func _alto() -> float:
 
 
 func _id_modelo() -> String:
+	if modelo_forzado != "":
+		return modelo_forzado
 	var m: Dictionary = MODELOS[tipo]
 	return String(m["otra"] if alternativo else m["normal"])
 

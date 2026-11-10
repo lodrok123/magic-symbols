@@ -59,6 +59,8 @@ const PIEZAS: Dictionary = {
 	"flores_blancas": [Color("8BAD4D"), HIERBA, 0.5],
 	"hierba_alta": [Color("99BB66"), HIERBA, 0.5],
 	"hojas_caidas": [Color("C85F24"), TIERRA_FLANCO, 0.5],
+	# 8/11 (Pantano): la copa del manglar sale lima saturado (#96CD3C medido a ojo en la lámina de Meshy); se lleva hacia el verde pantano #5E9A6A (entre #346A60 y #8CAF80). Solo se usa en estilo pantano.
+	"arbol_manglar": [Color("96CD3C"), Color("5E9A6A"), 0.85],
 }
 
 
