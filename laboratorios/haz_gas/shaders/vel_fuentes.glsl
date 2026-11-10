@@ -22,7 +22,8 @@ void main() {
 	Haz hz = haz_en(w, ruido);
 	u = mix(u, hz.dir * BEAM_SPEED, hz.core * 0.92);
 
-	u.y += (BUOYANCY * gs.x - WEIGHT * gs.y) * DT;
+	// Fuego: flota con el calor y pesa el hollin. Agua (10/11): no flota; pesa el AGUA (canal x), asi que cae y se escurre por la pared.
+	u.y += (BUOYANCY * gs.x - WEIGHT * (AGUA ? gs.x : gs.y)) * DT;
 	vec3 wind = viento();
 	u = mix(wind, u, exp(-DRAG * DT));
 	// Empuje de UN sentido. Lo que se queda detras del viento o vuelve hacia el lanzador se empuja hacia delante, tambien tras el choque:
