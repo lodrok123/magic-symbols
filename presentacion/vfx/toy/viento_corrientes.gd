@@ -7,6 +7,17 @@ var _contorno_escudo: MeshInstance3D
 var _contorno_tornado: MeshInstance3D
 var _cortina: MeshInstance3D
 var _ejes_cortina := Vector3.ZERO
+## CAMPO DE VIENTO (11/11, CampoViento; null = las cintas de siempre). Si lo hay, los PUNTOS de cada cinta se desplazan con lo que el campo desvía respecto al viento de la figura
+## (turbulencia sin divergencia + rodeo de los sólidos): `campo_tau` s de recorrido en la punta de la cinta. Y ningún punto queda dentro de un sólido.
+var campo: CampoViento = null
+var campo_tau: float = 0.35
+var campo_max: float = 0.3            ## m: tope del desvío de un punto (el rodeo de cerca lo hace la piel, no el desvío)
+var puntos_desviados: int = 0          ## (las pruebas) puntos movidos en el último dibujo
+var _ult_in := PackedVector3Array()
+var _ult_out := PackedVector3Array()
+var _offs_cache: Array = []            ## desvíos de los puntos de control de cada cinta (se rehacen la mitad por dibujo, alternas)
+var _n_cinta: int = 0
+var _paridad: int = 0
 
 
 func _ready() -> void:
@@ -22,6 +33,10 @@ func _ready() -> void:
 
 func dibujar(figura: StringName, ejes: Vector3, tiempo: float, opacidad: float, ancho: float, avance: float = 1.0) -> void:
 	_trazos.clear()
+	puntos_desviados = 0
+	_ult_in = PackedVector3Array()
+	_n_cinta = 0
+	_paridad = 1 - _paridad
 	if opacidad > 0.01:
 		match figura:
 			&"BOLA":
@@ -50,6 +65,8 @@ func dibujar(figura: StringName, ejes: Vector3, tiempo: float, opacidad: float, 
 
 
 func _guardar(puntos: PackedVector3Array, grosor: float, alfa: float, tinte: float = 1.0) -> void:
+	if campo != null and is_inside_tree():
+		puntos = _desviar(puntos)
 	_trazos.append({"puntos": puntos, "ancho": grosor, "punta": grosor * 0.35,
 		"alfa": alfa, "alfa_punta": alfa * 0.73, "tinte": tinte})
 
@@ -352,3 +369,84 @@ func _aura(ejes: Vector3, tiempo: float, alfa: float, elevacion: float) -> void:
 		var fuerza: float = alfa * sin(PI * fase)
 		_guardar(puntos, grosor * 2.25, fuerza * 0.25, 0.0)
 		_guardar(puntos, grosor, fuerza, 0.0)
+
+
+## Desplaza los puntos de una cinta con el CAMPO (ver `campo`): se muestrea en K puntos de control (el desvío crece hacia la punta de la cinta; la mitad de las cintas se
+## remuestrea en cada dibujo, alternas) y se interpola entre ellos. Si la cinta pasa cerca de un sólido, uno de cada PASO_PIEL puntos se saca a la piel y el empuje se reparte
+## entre ellos (la cinta lo rodea); al final, solo los puntos junto a uno empujado miran la SDF. El brillo y el núcleo de una cinta comparten polilínea.
+const PASO_PIEL: int = 4
+
+func _desviar(puntos: PackedVector3Array) -> PackedVector3Array:
+	var n: int = puntos.size()
+	if n < 2:
+		return puntos
+	if puntos == _ult_in:
+		return _ult_out
+	var xf: Transform3D = global_transform
+	var inv: Transform3D = xf.affine_inverse()
+	var k: int = mini(n, 5)
+	var paso_k: float = float(n - 1) / float(k - 1)
+	var offs := PackedVector3Array()
+	offs.resize(k)
+	var centro := Vector3.ZERO
+	var mundo := PackedVector3Array()
+	mundo.resize(k)
+	var cual: int = _n_cinta
+	_n_cinta += 1
+	var rehacer: bool = cual >= _offs_cache.size() or (_offs_cache[cual] as PackedVector3Array).size() != k or (cual + _paridad) % 2 == 0
+	for m in k:
+		var j: int = int(round(float(m) * paso_k))
+		var pw: Vector3 = xf * puntos[j]
+		mundo[m] = pw
+		centro += pw
+		if rehacer:
+			offs[m] = inv.basis * (campo.desvio(pw) * campo_tau * (0.3 + 0.7 * float(j) / float(n - 1))).limit_length(campo_max)
+	if rehacer:
+		while _offs_cache.size() <= cual:
+			_offs_cache.append(PackedVector3Array())
+		_offs_cache[cual] = offs
+	else:
+		offs = _offs_cache[cual]
+	centro /= float(k)
+	var r: float = 0.0
+	for m in k:
+		r = maxf(r, mundo[m].distance_to(centro))
+	var esferas: PackedVector4Array = campo.esferas_cerca(centro, r + 0.5)
+	var ne: int = esferas.size()
+	var out := PackedVector3Array()
+	out.resize(n)
+	var inv_k: float = 1.0 / paso_k
+	if ne == 0:
+		for j in n:
+			var f: float = float(j) * inv_k
+			var m0: int = mini(int(f), k - 2)
+			out[j] = puntos[j] + offs[m0].lerp(offs[m0 + 1], f - float(m0))
+	else:
+
+		var nc: int = (n - 1) / PASO_PIEL + 2
+		var empujes := PackedVector3Array()
+		empujes.resize(nc)
+		for c in nc:
+			var jc: int = mini(c * PASO_PIEL, n - 1)
+			var fcc: float = float(jc) * inv_k
+			var mc: int = mini(int(fcc), k - 2)
+			var pwc: Vector3 = xf * (puntos[jc] + offs[mc].lerp(offs[mc + 1], fcc - float(mc)))
+			empujes[c] = inv.basis * (campo.contener(pwc, 0.08) - pwc)
+		var inv_p: float = 1.0 / float(PASO_PIEL)
+		for j in n:
+			var f: float = float(j) * inv_k
+			var m0: int = mini(int(f), k - 2)
+			var fc: float = float(j) * inv_p
+			var c0: int = mini(int(fc), nc - 2)
+			var p: Vector3 = puntos[j] + offs[m0].lerp(offs[m0 + 1], f - float(m0)) + empujes[c0].lerp(empujes[c0 + 1], minf(fc - float(c0), 1.0))
+			if empujes[c0].length_squared() > 1.0e-8 or empujes[c0 + 1].length_squared() > 1.0e-8:
+				# entre dos puntos que se han sacado a la piel: este también puede rozarla
+				var pw2: Vector3 = xf * p
+				var pc: Vector3 = campo.contener(pw2, 0.06)
+				if not pc.is_equal_approx(pw2):
+					p = inv * pc
+			out[j] = p
+	puntos_desviados += n
+	_ult_in = puntos
+	_ult_out = out
+	return out

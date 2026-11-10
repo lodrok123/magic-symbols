@@ -114,6 +114,12 @@ var _haz_r: float = 0.36
 var _corrientes: CorrientesViento = null
 var _bola_viento: MeshInstance3D = null
 var _edad_rafaga: float = 0.0
+## CAMPO DE VIENTO compartido (11/11, CampoViento; solo si `CampoViento.en_viento_toy`): hojas, jirones y puntos de las cintas siguen el MISMO campo (turbulencia sin divergencia + viento de la figura +
+## rodeo de casillas, enemigos y bloques). Apagado, el toy es el de siempre.
+var _campo: CampoViento = null
+var _campo_sol_t: float = 0.0
+var _campo_ult: Vector3 = Vector3.ZERO
+var _campo_tiene_ult: bool = false
 
 
 # ================================================================== HOJAS POR CPU ==================================================================
@@ -869,6 +875,7 @@ func _process(delta: float) -> void:
 	super._process(delta)
 	_avanzar_carga(delta)
 	_t_fig += delta
+	_campo_paso(delta)
 	if _bola_viento != null:
 		var en_carga: bool = _est == EstadoCarga.CARGANDO or _est == EstadoCarga.CANCELANDO
 		var radio: float = _radio_rafaga()
@@ -888,6 +895,91 @@ func _process(delta: float) -> void:
 
 func _radio_rafaga() -> float:
 	return maxf(RADIO_RAFAGA_MIN, maxf(semieje_x, semieje_z) * ESCALA_RAFAGA)
+
+
+## El campo de viento de esta figura (null si el interruptor está apagado). Lo pueden muestrear otros (CampoViento.velocidad en mundo).
+func campo() -> CampoViento:
+	return _campo
+
+
+## Un paso del CAMPO DE VIENTO: lo configura con la figura (en mundo), recoge los sólidos cercanos cada 0,3 s y arrastra con él hojas y jirones; las cintas lo leen al dibujarse.
+func _campo_paso(delta: float) -> void:
+	if not CampoViento.en_viento_toy or not is_inside_tree() or delta <= 0.0:
+		if _campo != null:
+			_campo = null
+			if _corrientes != null and is_instance_valid(_corrientes):
+				_corrientes.campo = null
+		return
+	if _campo == null:
+		_campo = CampoViento.new(int(figura) * 31 + 7)
+		_campo_sol_t = 0.0
+		_campo_tiene_ult = false
+	var tr: Transform3D = global_transform
+	var v_marco: Vector3 = (tr.origin - _campo_ult) / delta if _campo_tiene_ult else Vector3.ZERO
+	_campo_ult = tr.origin
+	_campo_tiene_ult = true
+	_configurar_campo(tr, v_marco)
+	_campo.avanzar(delta)
+	_campo_sol_t -= delta
+	if _campo_sol_t <= 0.0:
+		_campo_sol_t = 0.3
+		_campo.recoger_de(self, tr.origin, extension() + 1.5, tr.origin.y - (altura_suelo if figura == Figura.BOLA else 0.0))
+	if _corrientes != null and is_instance_valid(_corrientes):
+		_corrientes.campo = _campo
+	for h in [_humo, _hojas, _estela]:
+		if h == null or not is_instance_valid(h) or not (h as Node3D).is_visible_in_tree():
+			continue
+		var lista: Variant = h.get("_s")
+		if not (lista is Array):
+			continue
+		var mundo: bool = (h as Node3D).top_level
+		_campo.arrastrar_lista(lista, Transform3D.IDENTITY if mundo else (h as Node3D).global_transform, Vector3.ZERO if mundo else v_marco, delta)
+
+
+## El viento dirigido de cada figura (lo que ya dibujan sus cintas): BOLA = el aire que lleva la ráfaga; HAZ = chorro hacia delante; MURO = cortina que sube y se inclina; PILAR y BARRERA = remolino.
+func _configurar_campo(tr: Transform3D, v_marco: Vector3) -> void:
+	var c: CampoViento = _campo
+	var b: Basis = tr.basis.orthonormalized()
+	var frente: Vector3 = Vector3(-b.z.x, 0.0, -b.z.z)
+	frente = frente.normalized() if frente.length() > 0.01 else Vector3.FORWARD
+	c.dir = Vector3.ZERO
+	c.fuerza = 0.0
+	c.sube = 0.0
+	c.remolino = 0.0
+	c.centro_remolino = tr.origin
+	c.eje_remolino = Vector3.UP
+	var w: float = maxf(semieje_x, semieje_z)
+	match figura:
+		Figura.BOLA:
+			var r: float = _radio_rafaga()
+			c.escala = maxf(r * 4.0, 1.5)
+			c.turbulencia = 0.5
+			if v_marco.length() > 0.3:
+				c.dir = v_marco.normalized()
+				c.fuerza = v_marco.length()
+		Figura.HAZ:
+			c.escala = maxf(semieje_z * FuegoToy.HAZ_ABRE * 4.0, 1.5)
+			c.turbulencia = 0.9
+			c.dir = frente
+			c.fuerza = semieje_x * 2.0 / 0.6 * velocidad
+		Figura.MURO:
+			c.escala = maxf(semieje_y * 1.5, 1.5)
+			c.turbulencia = 0.7
+			c.dir = -frente
+			c.fuerza = 0.6 * velocidad
+			c.sube = semieje_y * 1.1 * altura
+		Figura.PILAR:
+			c.escala = maxf(semieje_y * 0.8, 1.5)
+			c.turbulencia = 0.6
+			c.remolino = w * 3.0 * velocidad
+			c.radio_remolino = w * 1.2
+			c.sube = semieje_y * 0.5 * altura
+		_:
+			c.escala = maxf(w * 1.5, 1.5)
+			c.turbulencia = 0.5
+			c.remolino = w * 1.6 * velocidad
+			c.radio_remolino = w
+	c.un_sentido = c.fuerza > 0.0
 
 
 func _actualizar_corrientes(delta: float) -> void:

@@ -32,6 +32,18 @@ const AMARILLO_QUEMA: Color = Color(0.80, 0.86, 0.30)      ## la nube que arde s
 const CHISPA: Color = Color(0.95, 0.42, 0.10)              ## naranja de fuego (el de las hojas que arden)
 const CENIZA: Color = Color(0.30, 0.28, 0.20)
 
+## GAS PESADO (11/11, docs/TECNICAS_REPO_GAS_OTROS_ELEMENTOS_2026-11-10.md top 5 nº 4; apagado de serie: ajuste `magic_symbols/vfx_veneno_gas_pesado` o `-- veneno-pesado`):
+## las bocanadas dejan de orbitar y siguen un CampoViento propio (turbulencia sin divergencia que, ceñida al SUELO, solo gira en horizontal; el viento es la deriva de la nube; rodean casillas,
+## enemigos y bloques), con arrastre 0,7 (el de la demo: con viento se quedan atrás y se deshilachan solas), un muelle blando a su sitio y PESO (se quedan a ras de suelo). Mismos verdes y misma mancha.
+static var gas_pesado: bool = OS.get_cmdline_user_args().has("veneno-pesado") or bool(ProjectSettings.get_setting("magic_symbols/vfx_veneno_gas_pesado", false))
+## HUMO AL ARDER (apagado de serie: `magic_symbols/vfx_veneno_humo` o `-- veneno-humo`): la nube que arde (`NubeVeneno3D.quemar`, la interacción veneno + fuego que ya había) suelta humo PARDO
+## de HumoRegla (materia HUMO, sus colores): el gas que arde se frena y da hollín. Sigue a la nube y, al irse ella, lo ya soltado se acaba solo.
+static var humo_al_arder: bool = OS.get_cmdline_user_args().has("veneno-humo") or bool(ProjectSettings.get_setting("magic_symbols/vfx_veneno_humo", false))
+const MUELLE: float = 1.4            ## 1/s²: tirón horizontal hacia el sitio de cada bocanada (sin él el viento se la llevaría entera)
+const PESO: float = 3.0              ## 1/s²: tirón hacia su altura (gas pesado: no sube sola)
+const AMORT_Y: float = 2.2           ## 1/s
+const T_SOLIDOS: float = 0.4         ## s entre dos recogidas de sólidos
+
 static var completos: int = 0
 
 var radio_u: float = 2.3
@@ -55,6 +67,15 @@ var _tams: PackedFloat32Array = PackedFloat32Array()
 var _pos_boc: PackedVector3Array = PackedVector3Array()
 var _col_boc: Array = []
 var _est: Dictionary = {}
+## Gas pesado: el campo que muestrean las bocanadas, su posición (local a la nube) y su velocidad (mundo).
+var campo: CampoViento = null
+var _gp_pos: PackedVector3Array = PackedVector3Array()
+var _gp_vel: PackedVector3Array = PackedVector3Array()
+var _gp_listo: bool = false
+var _gp_sol_t: float = 0.0
+var _gp_ult: Vector3 = Vector3.ZERO
+var _humo: HumoRegla = null
+var _humo_hecho: bool = false
 
 
 func montar(p_radio_u: float) -> void:
@@ -145,6 +166,13 @@ func avanzar(dt: float, p_mundo: Vector3, edad: float, vida: float, vida_max: fl
 	var viento: float = clampf(_vel.length() / V_VIENTO, 0.0, 1.0)
 	var disolver: float = 1.0 - desv
 	var refuerzo: float = 1.5 if ligero else 1.0
+	var gas: bool = gas_pesado
+	if gas:
+		_mover_gas(dt, p_mundo, nacer, consumo, disolver)
+	else:
+		_gp_listo = false
+	if ardiendo and humo_al_arder:
+		_humo_veneno(quema, consumo)
 	# --- bocanadas ---
 	var mm: MultiMesh = _mm_boc.multimesh
 	var tonos: Array = [VERDE_OSCURO, VERDE, VERDE_CLARO]
@@ -159,10 +187,21 @@ func avanzar(dt: float, p_mundo: Vector3, edad: float, vida: float, vida_max: fl
 		var x: float = cos(ang) * rr + 0.05 * radio_u * sin(_t * 0.7 + fase) - _vel.x * lag
 		var z: float = sin(ang) * rr + 0.05 * radio_u * cos(_t * 0.6 + fase) - _vel.z * lag
 		var y: float = float(b["h0"]) + 0.07 * sin(_t * 0.9 + fase) + disolver * 0.45 + consumo * 0.3 + (1.0 - nacer) * -0.1
-		var tam: float = float(b["tam"]) * radio_u * (0.4 + 0.6 * nacer) * (1.0 + 0.3 * disolver) * (1.0 - 0.4 * viento * lag) * (1.0 - 0.3 * consumo)
+		var k_tam: float = 1.0 - 0.4 * viento * lag
+		var k_alfa: float = 1.0 - 0.65 * viento * lag
+		if gas:
+			# gas pesado: la posición sale del campo (ver _mover_gas); lo que el viento ha sacado del radio se estira y se apaga (se deshilacha)
+			var q: Vector3 = _gp_pos[i]
+			x = q.x
+			y = q.y
+			z = q.z
+			var fuera: float = smoothstep(1.0, 1.7, Vector2(x, z).length() / radio_u)
+			k_tam = 1.0 - 0.3 * fuera
+			k_alfa = 1.0 - fuera
+		var tam: float = float(b["tam"]) * radio_u * (0.4 + 0.6 * nacer) * (1.0 + 0.3 * disolver) * k_tam * (1.0 - 0.3 * consumo)
 		var orden: float = float(b["orden"])
 		var vivo: float = 1.0 - smoothstep(orden * 0.7, orden * 0.7 + 0.3, consumo)
-		var a: float = ALFA_BOCANADA * refuerzo * smoothstep(0.0, 0.6, edad / T_NACER) * desv * (1.0 - 0.65 * viento * lag) * vivo
+		var a: float = ALFA_BOCANADA * refuerzo * smoothstep(0.0, 0.6, edad / T_NACER) * desv * k_alfa * vivo
 		if not permanente:
 			a *= 1.0 + 0.1 * sin(_t * 1.3 + fase)               # (respira un poco; la permanente, quieta)
 		a = clampf(a, 0.0, ALFA_MAX)
@@ -183,6 +222,7 @@ func avanzar(dt: float, p_mundo: Vector3, edad: float, vida: float, vida_max: fl
 	_mat_suelo.set_shader_parameter("alfa", smoothstep(0.0, 0.5, edad / T_NACER) * desv * (1.0 - consumo * 0.85))
 	_mat_suelo.set_shader_parameter("crece", maxf(nacer, 0.02))
 	_mat_suelo.set_shader_parameter("tiempo", _t)
+	_mat_suelo.set_shader_parameter("remolino", 1.0 if gas else 0.0)
 	# --- burbujas y motas ---
 	var gen: float = nacer * desv
 	var burb_vivas: int = 0
@@ -247,7 +287,97 @@ func avanzar(dt: float, p_mundo: Vector3, edad: float, vida: float, vida_max: fl
 			mo.set_instance_transform(k, Transform3D(Basis.IDENTITY.scaled(Vector3(tam_m, tam_m, tam_m)), Vector3(mx - _vel.x * 0.3, my, mz - _vel.z * 0.3)))
 			cm.a = amota
 			mo.set_instance_color(k, cm.srgb_to_linear())
-	_est = {"nacer": nacer, "desv": desv, "consumo": consumo, "quema": quema, "viento": viento, "alfa_max": amax, "burbujas": burb_vivas, "motas": mota_vivas, "vel": _vel}
+	_est = {"nacer": nacer, "desv": desv, "consumo": consumo, "quema": quema, "viento": viento, "alfa_max": amax, "burbujas": burb_vivas, "motas": mota_vivas, "vel": _vel,
+		"gas_pesado": gas, "muestras": campo.muestras if campo != null else 0, "solidos": campo.solidos() if campo != null else 0,
+		"humo": _humo if _humo != null and is_instance_valid(_humo) else null, "humo_emitidas": _humo.emitidas if _humo != null and is_instance_valid(_humo) else 0}
+
+
+## GAS PESADO: un paso de las bocanadas por el campo. Viento = la deriva de la nube (lo que la lógica la mueve); sólidos = los de alrededor y el suelo.
+func _mover_gas(dt: float, p_mundo: Vector3, nacer: float, consumo: float, disolver: float) -> void:
+	var n: int = _bocanadas.size()
+	if campo == null:
+		campo = CampoViento.new(4211 + int(radio_u * 10.0))
+		campo.escala = maxf(radio_u * 2.2, 2.0)
+		campo.turbulencia = 0.5
+		campo.alcance = 0.8                  # a ras de suelo el remolino solo gira en horizontal (la rampa de Bridson con el suelo)
+		campo.piel = 0.3
+		campo.usar_suelo = true
+		campo.un_sentido = false
+		campo.empuje = 0.0                   # sin empuje: con viento se quedan atrás por el arrastre (0,7) y se deshilachan
+		_gp_sol_t = 0.0
+	var vv: Vector3 = Vector3(_vel.x, 0.0, _vel.z)
+	var hay_viento: bool = vv.length() > 0.05
+	campo.y_suelo = p_mundo.y
+	campo.dir = vv.normalized() if hay_viento else Vector3.ZERO
+	campo.fuerza = vv.length() if hay_viento else 0.0
+	campo.avanzar(dt)
+	_gp_sol_t -= dt
+	if _gp_sol_t <= 0.0 and is_inside_tree():
+		_gp_sol_t = T_SOLIDOS
+		campo.recoger_de(self, p_mundo, radio_u + 1.5, p_mundo.y)
+	if not _gp_listo or _gp_pos.size() != n:
+		_gp_pos.resize(n)
+		_gp_vel.resize(n)
+		for i in n:
+			_gp_pos[i] = _ancla(i, nacer, consumo, disolver)
+			_gp_vel[i] = vv
+		_gp_listo = true
+		_gp_ult = p_mundo
+	var salto: Vector3 = p_mundo - _gp_ult           # lo que la lógica movió la nube: las bocanadas NO se mueven con ella (las lleva el aire)
+	_gp_ult = p_mundo
+	if salto.length() > radio_u * 2.0:
+		salto = Vector3.ZERO                         # un teletransporte (recrear, cargar partida): se van con ella
+	var muelle: float = MUELLE * (1.0 - 0.6 * clampf(vv.length() / V_VIENTO, 0.0, 1.0))     # con viento el muelle cede: se deshilacha
+	for i in n:
+		var anc: Vector3 = _ancla(i, nacer, consumo, disolver)
+		var q: Vector3 = _gp_pos[i] - salto
+		var pw: Vector3 = p_mundo + q
+		# cada bocanada tiene su inercia (su `lag`): unas siguen el viento antes que otras y la nube se estira en jirones
+		var k_arr: float = lerpf(2.0, 0.3, clampf((float(_bocanadas[i]["lag"]) - 0.2) / 1.4, 0.0, 1.0))
+		var v: Vector3 = campo.arrastrar(pw, _gp_vel[i], dt, k_arr)
+		var dq: Vector3 = anc - q
+		v.x += dq.x * muelle * dt
+		v.z += dq.z * muelle * dt
+		v.y += (dq.y * PESO - v.y * AMORT_Y) * dt
+		pw = campo.contener(pw + v * dt, 0.1)
+		_gp_pos[i] = pw - p_mundo
+		_gp_vel[i] = v
+
+
+## El sitio de la bocanada `i` (local): en su anillo, sin girar, más bajo que la nube de siempre (pesa).
+func _ancla(i: int, nacer: float, consumo: float, disolver: float) -> Vector3:
+	var b: Dictionary = _bocanadas[i]
+	var ang: float = float(b["ang0"])
+	var rr: float = float(b["rad"]) * radio_u * nacer * (1.0 - 0.18 * consumo) * (1.0 + 0.12 * disolver)
+	return Vector3(cos(ang) * rr, float(b["h0"]) * 0.7 + disolver * 0.45 + consumo * 0.3, sin(ang) * rr)
+
+
+## HUMO AL ARDER: crea (una vez) el emisor de HumoRegla HUMO que sigue a la nube y le pasa el ritmo (cuánto arde) y el viento.
+var _humo_k: float = 0.0
+func _humo_veneno(quema: float, consumo: float) -> void:
+	_humo_k = quema * (1.0 - 0.5 * consumo)
+	if _humo != null and is_instance_valid(_humo):
+		_humo.viento = Vector3(_vel.x, 0.0, _vel.z) * 0.8
+		return
+	if _humo_hecho or not is_inside_tree():
+		return
+	_humo_hecho = true
+	var nube: Node = get_parent()
+	var padre: Node = nube.get_parent() if nube != null and nube.get_parent() != null else nube
+	if padre == null:
+		return
+	var k: float = clampf(radio_u / 2.3, 0.7, 1.5)
+	_humo = HumoRegla.crear(HumoRegla.Materia.HUMO, padre, global_position, {"n": 48, "escala": k, "arrastre": 1.1, "vida": 2.4})
+	if _humo == null:
+		return
+	_humo.name = "HumoVeneno"
+	_humo.sigue = self
+	var ref: WeakRef = weakref(self)
+	var ritmo: Callable = func() -> float:
+		var o: Object = ref.get_ref()
+		return float(o.get("_humo_k")) if o != null else 0.0
+	_humo.anadir_fuente({"local": Vector3(0, 0.35, 0), "caja": Vector3(radio_u * 0.55, 0.12, radio_u * 0.55), "dir": Vector3.UP, "v": Vector2(0.3, 0.8), "abanico": 20.0,
+		"ritmo": 10.0 * k, "temp": HumoRegla.T_SALIDA, "tam_k": 0.9, "escala_fn": ritmo})
 
 
 ## Para las pruebas: lo último dibujado.

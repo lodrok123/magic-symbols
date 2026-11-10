@@ -15,6 +15,7 @@ extends Node3D
 ## Abrir: laboratorios/LabVfxComparativa3D.tscn y F6. Capturas: herramientas/captura_vfx_comparativa.gd.
 
 const ESCENA_BOLA: String = "res://presentacion/vfx/efectos/BolaFuego.tscn"
+const LabVientoVeneno = preload("res://laboratorios/lab_viento_veneno.gd")     ## 11/11: teclas «,» y «.» (campo de viento y nube de veneno como gas pesado)
 const ESCENA_MURO: String = "res://presentacion/vfx/efectos/MuroFuego.tscn"
 const ESCENA_COLUMNA: String = "res://presentacion/vfx/efectos/ColumnaFuego.tscn"
 const ESCENA_MURO_TOON: String = "res://presentacion/vfx/toon/MuroFuegoToon.tscn"
@@ -221,7 +222,7 @@ func _process(delta: float) -> void:
 	if _panel != null:
 		var lp: Array = luces_y_particulas()
 		_panel.text = ("fps %d · luces %d · partículas %d · efectos %d · cámara %s\n1 bola · 2 muro · 3 columna · 4 PARRILLA de los 7 elementos (con parrilla, 8 la rehace) · 5 muro toon · 6 columna toon · 7 bola toon · 0 diez muros · 9 diez toon · X limpia · F muro del haz · F12 masa de fuego (muro / esfera / nada) · Mayús+F12 GAS 3D (port de la demo: esfera / muro / nada) · C cámara · flechas andar · H panel\n%s"
-			% [int(Engine.get_frames_per_second()), lp[0], lp[1], _efectos.get_child_count(), CAMARAS[camara_actual], _texto_mandos_toon()] + _texto_param() + _texto_carga() + "\n8 humo por regla (HumoRegla; con parrilla puesta, Mayús+8): %s (magma: %s)" % ["SÍ" if HumoRegla.hay_alguna() else "no", "sí" if HumoRegla.capas.get("magma", false) else "no"] + "\n. chispas tipo repo (ChispasRepo: rayo, electrificado, brasas de magma): %s · , electrificar un muñeco y una casilla de agua (arcos en su cápsula: %s)" % ["SÍ" if ChispasRepo.hay_alguna() else "no", "sí" if ChispasRepo.activa("electrificado_capsula") else "no"]) if _panel_visible else ""
+			% [int(Engine.get_frames_per_second()), lp[0], lp[1], _efectos.get_child_count(), CAMARAS[camara_actual], _texto_mandos_toon()] + _texto_param() + _texto_carga() + "\n8 humo por regla (HumoRegla; con parrilla puesta, Mayús+8): %s (magma: %s)" % ["SÍ" if HumoRegla.hay_alguna() else "no", "sí" if HumoRegla.capas.get("magma", false) else "no"] + "\n. chispas tipo repo (ChispasRepo: rayo, electrificado, brasas de magma): %s · , electrificar un muñeco y una casilla de agua (arcos en su cápsula: %s)" % ["SÍ" if ChispasRepo.hay_alguna() else "no", "sí" if ChispasRepo.activa("electrificado_capsula") else "no"] + LabVientoVeneno.texto()) if _panel_visible else ""
 
 
 func _unhandled_input(ev: InputEvent) -> void:
@@ -283,6 +284,8 @@ func _unhandled_input(ev: InputEvent) -> void:
 		KEY_H: _panel_visible = not _panel_visible
 		KEY_PERIOD: alternar_chispas_repo()                                                                   # 11/11: chispas tipo repo de gas (ChispasRepo) sí / no
 		KEY_COMMA: electrificar()                                                                             # 11/11: un muñeco con cápsula electrificado y una casilla de agua electrificada
+		KEY_HOME: LabVientoVeneno.alternar_campo(self, _pj.global_position, _dir)                                     # 11/11: campo de viento (laboratorios/lab_viento_veneno.gd); Inicio (las teclas , y . son de las chispas)
+		KEY_END: LabVientoVeneno.paso_veneno(_efectos, _pj.global_position, _dir, (ev as InputEventKey).shift_pressed)   # 11/11: nube de veneno como gas pesado; Fin (Mayús+Fin: gas pesado sí / no)
 
 
 # ---------------------------------------------------------------- efectos ----------------------------------------------------------------
