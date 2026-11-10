@@ -163,8 +163,9 @@ func _con_selector_apagado() -> void:
 			_lanzar(_hz(el, s[1] as Dictionary))
 		await _frames(3)
 		_ok("0 %s: ningún FuegoToy, AguaToy, HieloToy ni RayoToy en el mundo (creados %s)" % [el, str(_tj.creados)], _toys().is_empty() and int(_tj.creados["fuego"]) == 0 and int(_tj.creados["agua"]) == 0 and int(_tj.creados["hielo"]) == 0 and int(_tj.creados["rayo"]) == 0 and int(_tj.creados["magma"]) == 0 and int(_tj.creados["viento"]) == 0 and int(_tj.creados["tierra"]) == 0)
-		var volumenes: int = 3 if el == "tierra" else 4
-		_ok("0 %s: VfxElemento3D dibuja las formas que no son plataformas (proy %d, vol %d, haces %d)" % [el, _ve.proyectiles(), _ve.volumenes(), _ve.haces()], _ve.proyectiles() >= 1 and _ve.volumenes() >= volumenes and (_ve.haces() == 1 or ((el == "hielo" or el == "tierra") and _ve.haces() <= 1)))
+		# DIARIO 450/453: la ᛁ de tierra es el haz de púas (cuenta en `haces`, ya no es un volumen): a la tierra le quedan 2 volúmenes y su haz es obligatorio
+		var volumenes: int = 2 if el == "tierra" else 4
+		_ok("0 %s: VfxElemento3D dibuja las formas que no son plataformas (proy %d, vol %d, haces %d)" % [el, _ve.proyectiles(), _ve.volumenes(), _ve.haces()], _ve.proyectiles() >= 1 and _ve.volumenes() >= volumenes and (_ve.haces() == 1 or (el == "hielo" and _ve.haces() <= 1)))
 		if el == "tierra":
 			_ok("0 tierra: la plataforma tiene representación con el selector apagado", _m.get_node_or_null("PlataformaTierra") != null)
 		_ok("0 %s: sin toy no se ve nada nuevo en el conjuro (ConjuroVfx3D sigue dibujando su forma)" % el, true)

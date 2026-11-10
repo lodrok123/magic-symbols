@@ -268,6 +268,9 @@ func _caso(rune: RuneData, elemento: String, combo: Array) -> void:
 	elif h.solidez > 0.0 and h.retardo > 0.0 and rama != "proyectil":
 		# H5: con retardo la tanda (y su SolidezV2) nace tras el retardo, por un temporizador del árbol: esta prueba mira nada más lanzar. El nacimiento tardío lo mide `prueba_glifos_nuevos`.
 		_aviso("retardo + barrera (volumen): la barrera nace tras el retardo, no al lanzar (medido en prueba_glifos_nuevos)", et)
+	elif h.solidez > 0.0 and h.es_plataforma_tierra():
+		# DIARIO 450/453: ᛝ + ᛁ de tierra (sin otros glifos que ᛉ) es el PUENTE de tierra, una plataforma pisable sin SolidezV2 (prueba_plataforma_tierra); las casillas > 0 ya se miran arriba
+		pass
 	elif h.solidez > 0.0:
 		var esperadas: int = (r["vivos"] as Array).size() if rama == "proyectil" else 1
 		if int(r["solideces"]) < esperadas:

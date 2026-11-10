@@ -69,6 +69,7 @@ func _montar() -> void:
 			n.free()
 	Terreno3D.alturas.clear()
 	Terreno3D.conductores.clear()
+	Terreno3D.plataformas_tierra.clear()          # el puente de tierra (ᛝ + ᛁ) de un caso no se queda para el siguiente
 	var filas: PackedStringArray = []
 	for y in range(LADO):
 		var f: String = ""
@@ -271,8 +272,14 @@ func _barrera_y_linea() -> void:
 	for el in ["tierra", "agua", "hielo"]:
 		_montar()
 		var antes: int = _l._solideces_v2.size()
-		_lanzar(_hz(el, {"barrera": 1, "linea_x": 2}))
-		_ok("5 barrera + linea (%s) crea un muro: SolidezV2 +%d" % [el, _l._solideces_v2.size() - antes], _l._solideces_v2.size() == antes + 1)
+		var bl: Hechizo = _hz(el, {"barrera": 1, "linea_x": 2})
+		_lanzar(bl)
+		if el == "tierra":
+			# DIARIO 450/453: la ᛁ sola de tierra es el haz de púas; con ᛝ es el PUENTE de tierra (`Hechizo.es_plataforma_tierra`, prueba_plataforma_tierra), no un muro de solidez
+			_ok("5 barrera + linea (tierra) levanta el puente de tierra: no es haz, sin SolidezV2, plataforma en %d casilla(s)" % Terreno3D.plataformas_tierra.size(),
+				not bl.haz and bl.es_plataforma_tierra() and _l._solideces_v2.size() == antes and not Terreno3D.plataformas_tierra.is_empty())
+		else:
+			_ok("5 barrera + linea (%s) crea un muro: SolidezV2 +%d" % [el, _l._solideces_v2.size() - antes], _l._solideces_v2.size() == antes + 1)
 		_montar()
 		var bloq_antes: int = _m._bloqueadas.size()
 		var alt_antes: int = Terreno3D.alturas.size()
@@ -346,11 +353,15 @@ func _haz_de_puas() -> void:
 	_lanzar(_hz("tierra", {"linea_x": 4}))
 	_ok("7 se para en un bloque sólido: no hiere (%.0f → %.1f) ni empuja (%.2f u/s) a lo que hay detrás" % [v_detras, detras.health, (detras.get("_empuje") as Vector3).length()],
 		detras.health == v_detras and (detras.get("_empuje") as Vector3).length() < 0.01)
-	# con barrera sigue siendo el MURO que se construye (no un haz)
+	# con barrera no es un haz: SÍ construye. DIARIO 450/453: ᛝ + ᛁ de tierra es el PUENTE de tierra (`es_plataforma_tierra`, prueba_plataforma_tierra);
+	# la barrera de tierra sin ᛁ sigue siendo el muro de solidez.
 	_montar()
-	var alt_muro: int = Terreno3D.alturas.size()
 	var muro: Hechizo = _hz("tierra", {"barrera": 1, "linea_x": 2})
 	_lanzar(muro)
-	_ok("7 ᛝ + ᛁ de tierra sigue siendo el MURO: no es haz y SÍ construye (solideces %d, alturas %d → %d)" % [_l._solideces_v2.size(), alt_muro, Terreno3D.alturas.size()],
-		not muro.haz and (not _l._solideces_v2.is_empty() or Terreno3D.alturas.size() > alt_muro))
+	_ok("7 ᛝ + ᛁ de tierra no es haz y SÍ construye: el puente de tierra (plataforma en %d casilla(s))" % Terreno3D.plataformas_tierra.size(),
+		not muro.haz and muro.es_plataforma_tierra() and not Terreno3D.plataformas_tierra.is_empty())
+	_montar()
+	var barrera_t: Hechizo = _hz("tierra", {"barrera": 1})
+	_lanzar(barrera_t)
+	_ok("7 ᛝ de tierra sin ᛁ sigue siendo el MURO de solidez (solideces %d)" % _l._solideces_v2.size(), not barrera_t.haz and not barrera_t.es_plataforma_tierra() and not _l._solideces_v2.is_empty())
 
