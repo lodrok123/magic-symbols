@@ -47,11 +47,11 @@ const TABLA: Dictionary = {
 	# Suave: un tono de «pista» y un pulso pequeño. Sin texto: no debe interrumpir.
 	"paso_puzle":       {"sfx": "logro_pista", "motas": 5, "anillo": 0.9, "color": CELESTE},
 	# Lo que más veces se verá: acierto claro pero breve.
-	"puzle_resuelto":   {"sfx": "logro_acierto", "motas": 22, "anillo": 1.9, "luz": 1.6, "color": ORO, "texto": "¡Puzle resuelto!", "texto_dura": 2.2, "radial": 0.2},
+	"puzle_resuelto":   {"sfx": "puzle_resuelto", "motas": 22, "anillo": 1.9, "luz": 1.6, "color": ORO, "texto": "¡Puzle resuelto!", "texto_dura": 2.2, "radial": 0.2},
 	# Sala cerrada: pausa de impacto al caer el último enemigo y un pequeño acercamiento.
 	"sala_limpia":      {"sfx": "logro_acierto", "motas": 18, "anillo": 2.8, "luz": 1.2, "color": BLANCO_CALIDO, "texto": "Sala despejada", "texto_dura": 2.2, "hitstop": 0.08, "zoom": 0.10, "radial": 0.5},
 	"cofre_aparece":    {"sfx": "logro_brillo", "motas": 16, "anillo": 1.3, "luz": 1.2, "color": ORO},
-	"cofre_abierto":    {"sfx": "logro_fanfarria", "motas": 36, "anillo": 2.3, "luz": 2.2, "color": ORO, "texto": "¡Cofre abierto!", "texto_dura": 2.4, "radial": 0.3},
+	"cofre_abierto":    {"sfx": "cofre_revelado", "motas": 36, "anillo": 2.3, "luz": 2.2, "color": ORO, "texto": "¡Cofre abierto!", "texto_dura": 2.4, "radial": 0.3},
 	# Una puerta de sala que se abre: su sonido de siempre y un polvillo de luz; el texto lo da «sala_limpia», que ocurre en el mismo instante.
 	"puerta_abierta":   {"sfx": "puerta_abre", "motas": 8, "anillo": 1.5, "color": BLANCO_CALIDO},
 	# Lo emitirá el nivel (pedestal final); la fila ya está lista.
@@ -116,6 +116,12 @@ static func reproducir(nombre: String, punto: Vector3, nodo: Node = null, padre_
 		return fila                                                     # sin árbol no hay dónde sonar ni dibujar: se devuelve la fila y ya
 	var color: Color = fila["color"]
 	var origen: Node = nodo if nodo is Node3D and is_instance_valid(nodo) and nodo.is_inside_tree() else padre
+	if is_instance_valid(nodo) and nodo.name == &"cont_linde":
+		match nombre:
+			"paso_puzle":
+				fila["sfx"] = "brasero_linde_paso"
+			"puzle_resuelto":
+				fila["sfx"] = "brasero_linde_resuelto"
 	for clave in ["sfx", "sfx2"]:
 		if String(fila[clave]) != "":
 			Sfx.play(origen, String(fila[clave]))

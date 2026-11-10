@@ -8,6 +8,7 @@ Solo biblioteca estándar (sin numpy): `python audio/gen_sfx_logros.py`. Campana
   logro_fanfarria.wav arpegio largo do-mi-sol-do con acorde final (cofre abierto, nivel completado)
 """
 import math, os, struct, wave
+from random import Random
 
 SR = 44100
 
@@ -83,8 +84,64 @@ def logro_fanfarria():
     return x
 
 
+def objetivo_cumplido():
+    x = campana(DO5, 0.20, 0.55)
+    mezclar(x, campana(MI5, 0.25), 0.075)
+    return x
+
+
+def puzle_resuelto():
+    x = []
+    for inicio, frecuencia, duracion, volumen in (
+        (0.00, DO5, 0.28, 0.75),
+        (0.09, MI5, 0.30, 0.85),
+        (0.19, DO6, 0.53, 1.00),
+    ):
+        mezclar(x, campana(frecuencia, duracion, volumen), inicio)
+    return x
+
+
+def mision_completada():
+    x = campana(SOL5 / 2, 0.30, 0.8)
+    mezclar(x, campana(MI5, 0.35, 0.85), 0.14)
+    for frecuencia, volumen in ((DO5 / 2, 0.65), (DO5, 1.0), (SOL5, 0.45)):
+        mezclar(x, campana(frecuencia, 0.75, volumen), 0.30)
+    return x
+
+
+def cofre_revelado():
+    parciales = ((1.0, 1.0, 9.0), (2.0, 0.30, 16.0), (3.7, 0.18, 25.0))
+    x = campana(SOL5, 0.22, 0.7, parciales)
+    mezclar(x, campana(MI6, 0.36, 1.0, parciales), 0.06)
+    return x
+
+
+def brasero_linde(resuelto=False):
+    # Un roce seco que da paso al mismo pulso de metal en los dos braseros.
+    azar = Random(19)
+    roce = []
+    anterior = 0.0
+    for i in range(int(SR * 0.085)):
+        t = i / SR
+        grano = azar.uniform(-1.0, 1.0)
+        envolvente = math.sin(math.pi * t / 0.085) ** 2
+        roce.append(0.16 * (grano - anterior) * envolvente)
+        anterior = grano
+    metal = ((1.0, 1.0, 8.0), (2.76, 0.24, 19.0), (4.08, 0.14, 28.0))
+    mezclar(roce, campana(SOL5, 0.34, 0.8, metal), 0.042)
+    if resuelto:
+        mezclar(roce, campana(DO5, 0.66, 1.0, metal), 0.16)
+    return roce
+
+
 if __name__ == "__main__":
     guardar("logro_pista.wav", logro_pista())
     guardar("logro_acierto.wav", logro_acierto())
     guardar("logro_brillo.wav", logro_brillo())
     guardar("logro_fanfarria.wav", logro_fanfarria())
+    guardar("objetivo_cumplido.wav", objetivo_cumplido(), 0.10)
+    guardar("puzle_resuelto.wav", puzle_resuelto())
+    guardar("mision_completada.wav", mision_completada())
+    guardar("cofre_revelado.wav", cofre_revelado(), 0.10)
+    guardar("brasero_linde_paso.wav", brasero_linde(), 0.09)
+    guardar("brasero_linde_resuelto.wav", brasero_linde(True), 0.12)

@@ -176,12 +176,18 @@ static var CATALOGO: Dictionary = {
 	# (`Mundo3D.logro`). Campanas sintetizadas, tono casi fijo (son música: un do-mi-sol desafinado al azar suena a error). SE AFINA ESCUCHANDO.
 	"logro_pista":     {"f": ["logro_pista.wav"],     "db": -14.0, "tono": 0.01},
 	"logro_acierto":   {"f": ["logro_acierto.wav"],   "db": -9.0,  "tono": 0.01},
+	"objetivo_cumplido": {"f": ["objetivo_cumplido.wav"], "db": -12.0, "tono": 0.0},
+	"puzle_resuelto": {"f": ["puzle_resuelto.wav"], "db": -8.0, "tono": 0.0},
+	"mision_completada": {"f": ["mision_completada.wav"], "db": -8.0, "tono": 0.0},
 	"logro_brillo":    {"f": ["logro_brillo.wav"],    "db": -12.0, "tono": 0.01},
 	"logro_fanfarria": {"f": ["logro_fanfarria.wav"], "db": -7.0,  "tono": 0.0},
+	"cofre_revelado": {"f": ["cofre_revelado.wav"], "db": -11.0, "tono": 0.0},
 
 	# --- Interfaz (31/10, gamefeel tarea M; audio/gen_sfx_interfaz.py). Suenan por `Sfx.play_ui` (bus «Interfaz», sin posición). Son los cinco de `nucleo/sonidos.gd` (que queda como alias)
 	# más los de la mochila. «pitch» (solo `play_ui`) es el tono base del archivo: `pocion_fin` es la poción +15 %. «moneda» (arriba) también se toca por `play_ui` al subir el oro.
-	"bolsa":      {"f": ["kenney_bolsa_0.ogg", "kenney_bolsa_1.ogg"], "f_sint": ["bolsa.wav"], "db": -10.0, "tono": 0.04},
+	"bolsa":      {"f": ["bolsa_tela.ogg", "kenney_bolsa_1.ogg"], "f_sint": ["bolsa.wav"], "db": -10.0, "tono": 0.04},
+	"brasero_linde_paso": {"f": ["brasero_linde_paso.wav"], "db": -10.0, "tono": 0.0},
+	"brasero_linde_resuelto": {"f": ["brasero_linde_resuelto.wav"], "db": -8.0, "tono": 0.0},
 	"pocion":     {"f": ["pocion.wav"],     "db": -8.0,  "tono": 0.0},
 	"pocion_fin": {"f": ["pocion.wav"],     "db": -8.0,  "tono": 0.0, "pitch": 1.15},
 	"recoger":    {"f": ["kenney_recoger_0.ogg", "kenney_recoger_1.ogg", "kenney_recoger_2.ogg", "kenney_recoger_3.ogg"], "f_sint": ["recoger.wav"], "db": -10.0, "tono": 0.04},
