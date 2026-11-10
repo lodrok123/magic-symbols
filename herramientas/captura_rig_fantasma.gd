@@ -5,8 +5,10 @@ extends SceneTree
 ##   Godot --path . --resolution 1280x720 --script res://herramientas/captura_rig_fantasma.gd [-- esqueleto]
 ## Salida en res://docs/capturas/fantasma_rig/: rig_<pose>.png. Con `-- esqueleto` dibuja los huesos encima (rig_<pose>_huesos.png).
 
-const DIR: String = "res://docs/capturas/fantasma_rig"
-const GLB: String = "res://arte/modelos/fantasma_elfo_rig.glb"
+## Con `-- modelo=<id>` fotografía res://arte/modelos/<id>.glb y guarda en res://docs/capturas/<id>_poses/ (para pasar OTRO rig por
+## las mismas poses: la Santa Compaña sale del mismo autorig y hay que mirarla igual).
+var DIR: String = "res://docs/capturas/fantasma_rig"
+var GLB: String = "res://arte/modelos/fantasma_elfo_rig.glb"
 const POSES: Dictionary = {
 	"reposo": {},
 	"brazos_arriba": {"LeftArm": Vector3(-150, 0, 0), "RightArm": Vector3(-150, 0, 0), "LeftForeArm": Vector3(-15, 0, 0), "RightForeArm": Vector3(-15, 0, 0)},
@@ -27,6 +29,11 @@ var _lineas: MeshInstance3D = null
 func _initialize() -> void:
 	await process_frame
 	_esqueleto = OS.get_cmdline_user_args().has("esqueleto")
+	for a in OS.get_cmdline_user_args():
+		if String(a).begins_with("modelo="):
+			var id_m: String = String(a).trim_prefix("modelo=")
+			GLB = "res://arte/modelos/%s.glb" % id_m
+			DIR = "res://docs/capturas/%s_poses" % id_m
 	DirAccess.make_dir_recursive_absolute(DIR)
 	_entorno()
 	_cam = Camera3D.new()
