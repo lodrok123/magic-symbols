@@ -69,9 +69,9 @@ func _limpiar() -> void:
 
 func _defecto() -> void:
 	print("== interruptores de serie (impacto_bola, barril, suelo y vapor encendidas; el resto apagadas)")
-	_ok("hay diez capas", HumoRegla.capas.size() == 10)
+	_ok("hay once capas (11/11: «magma»)", HumoRegla.capas.size() == 11)
 	var serie: Array = ["impacto_bola", "barril", "suelo", "vapor"]
-	for k in ["impacto_bola", "muro", "pilar", "barril", "haz", "dragon", "suelo", "vapor", "polvo_tierra", "polvo_viento"]:
+	for k in ["impacto_bola", "muro", "pilar", "barril", "haz", "dragon", "suelo", "vapor", "polvo_tierra", "polvo_viento", "magma"]:
 		_ok("capa «%s» de serie %s" % [k, "encendida" if k in serie else "apagada"], HumoRegla.capas.has(k) and bool(HumoRegla.capas[k]) == (k in serie))
 	# el resto de la prueba parte de todo apagado
 	HumoRegla.poner_todas(false)

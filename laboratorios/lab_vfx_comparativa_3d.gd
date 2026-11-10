@@ -7,6 +7,7 @@ extends Node3D
 ##          C cámara (juego → cerca 2 m → lejos 10 m) · flechas / WASD andar · H oculta el panel · F alterna un MURO de prueba a 2/3 del largo del haz (los haces F7/F9 reciben su choque: salpicadura).
 ##          4 PARRILLA de los 7 elementos (otra vez = figura siguiente) · 8 (integración 10/11, la tecla la querían las dos ramas): con la parrilla puesta la REHACE con los mandos
 ##          de ahora; sin parrilla alterna el HUMO POR REGLA (HumoRegla). Mayús+8 alterna SIEMPRE el humo por regla (también con la parrilla puesta).
+##          . (punto, 11/11) CHISPAS TIPO REPO (ChispasRepo: rayo, electrificado, brasas de magma) todas sí / todas no · , (coma) un muñeco con cápsula ELECTRIFICADO y una casilla de agua electrificada.
 ## Prueba 2 (fuego toon, docs/PRUEBA2_VFX_TOON_2026-11-01.md): 5 muro de fuego toon · 6 columna toon · 7 bola toon · 9 diez muros toon · RePág / AvPág eligen uno de los diez mandos · + / − lo suben y bajan ·
 ##          Retroceso lo devuelve a su valor de origen · el panel enseña los diez con su valor (el elegido va con «>»). Valen para los muros toon que nazcan después y para el vivo.
 ## Mayús+F12: PORT de la demo de gas 3D de three.js (laboratorios/haz_gas/, HazGas): esfera → muro → nada. Dentro: ESPACIO chorro, C cámara, O obstáculo, 1-4 calidad, ratón orbita.
@@ -220,7 +221,7 @@ func _process(delta: float) -> void:
 	if _panel != null:
 		var lp: Array = luces_y_particulas()
 		_panel.text = ("fps %d · luces %d · partículas %d · efectos %d · cámara %s\n1 bola · 2 muro · 3 columna · 4 PARRILLA de los 7 elementos (con parrilla, 8 la rehace) · 5 muro toon · 6 columna toon · 7 bola toon · 0 diez muros · 9 diez toon · X limpia · F muro del haz · F12 masa de fuego (muro / esfera / nada) · Mayús+F12 GAS 3D (port de la demo: esfera / muro / nada) · C cámara · flechas andar · H panel\n%s"
-			% [int(Engine.get_frames_per_second()), lp[0], lp[1], _efectos.get_child_count(), CAMARAS[camara_actual], _texto_mandos_toon()] + _texto_param() + _texto_carga() + "\n8 humo por regla (HumoRegla; con parrilla puesta, Mayús+8): %s" % ("SÍ" if HumoRegla.hay_alguna() else "no")) if _panel_visible else ""
+			% [int(Engine.get_frames_per_second()), lp[0], lp[1], _efectos.get_child_count(), CAMARAS[camara_actual], _texto_mandos_toon()] + _texto_param() + _texto_carga() + "\n8 humo por regla (HumoRegla; con parrilla puesta, Mayús+8): %s (magma: %s)" % ["SÍ" if HumoRegla.hay_alguna() else "no", "sí" if HumoRegla.capas.get("magma", false) else "no"] + "\n. chispas tipo repo (ChispasRepo: rayo, electrificado, brasas de magma): %s · , electrificar un muñeco y una casilla de agua (arcos en su cápsula: %s)" % ["SÍ" if ChispasRepo.hay_alguna() else "no", "sí" if ChispasRepo.activa("electrificado_capsula") else "no"]) if _panel_visible else ""
 
 
 func _unhandled_input(ev: InputEvent) -> void:
@@ -280,6 +281,8 @@ func _unhandled_input(ev: InputEvent) -> void:
 				haz_masa((_masa_modo + 1) % 3)
 		KEY_C: poner_camara((camara_actual + 1) % CAMARAS.size())
 		KEY_H: _panel_visible = not _panel_visible
+		KEY_PERIOD: alternar_chispas_repo()                                                                   # 11/11: chispas tipo repo de gas (ChispasRepo) sí / no
+		KEY_COMMA: electrificar()                                                                             # 11/11: un muñeco con cápsula electrificado y una casilla de agua electrificada
 
 
 # ---------------------------------------------------------------- efectos ----------------------------------------------------------------
@@ -493,6 +496,53 @@ func alternar_humo_regla() -> void:
 	if _param != null and is_instance_valid(_param):
 		fuego_param(maxi(_param_i, 0))
 
+
+## . (11/11): CHISPAS TIPO REPO DE GAS (presentacion/vfx/toy/chispas_repo.gd, ChispasRepo.capas). De serie van encendidas las que solo añaden (rayo, electrificado y brasas de magma) y apagada
+## «electrificado_capsula» (los arcos en la cápsula real cambian el dibujo de siempre). La tecla las pone TODAS en sí (también la cápsula) o TODAS en no. Se ve con Z = rayo o magma:
+## B / N impacto, G bola en vuelo, F7 pilar (rayo); con «,» el estado electrificado.
+func alternar_chispas_repo() -> void:
+	var todas: bool = true
+	for k in ChispasRepo.capas:
+		todas = todas and bool(ChispasRepo.capas[k])
+	ChispasRepo.poner_todas(not todas)
+	if _param != null and is_instance_valid(_param):
+		fuego_param(maxi(_param_i, 0))
+
+
+## , (11/11): un MUÑECO (cápsula visible con su CapsuleShape3D, como los enemigos) delante de la jugadora con el ESTADO ELECTRIFICADO (EstadoRayoToy ENTIDAD, 6 s) y, a su lado, una casilla de agua
+## electrificada (EstadoRayoToy SUPERFICIE, 6 s). Con «.» se ven las chispas del repo y los arcos agarrados a la cápsula real.
+func electrificar() -> Node3D:
+	_toy = true
+	var m: StaticBody3D = StaticBody3D.new()
+	m.name = "Muneco"
+	var f: CapsuleShape3D = CapsuleShape3D.new()
+	f.radius = 0.32
+	f.height = 1.3
+	var cs: CollisionShape3D = CollisionShape3D.new()
+	cs.shape = f
+	cs.position = Vector3(0, f.height * 0.5, 0)
+	m.add_child(cs)
+	var vis: MeshInstance3D = MeshInstance3D.new()
+	var cm: CapsuleMesh = CapsuleMesh.new()
+	cm.radius = f.radius
+	cm.height = f.height
+	vis.mesh = cm
+	vis.position = cs.position
+	var mat: StandardMaterial3D = StandardMaterial3D.new()
+	mat.albedo_color = Color(0.45, 0.5, 0.4)
+	vis.material_override = mat
+	m.add_child(vis)
+	_efectos.add_child(m)
+	m.global_position = Vector3(_pj.global_position.x, 0.0, _pj.global_position.z) + _dir * DISTANCIA_EFECTO
+	var e: EstadoRayoToy = EstadoRayoToy.para_entidad(f.height, f.radius, 6.0)
+	e.name = "EstadoElectrificado"
+	m.add_child(e)
+	var s: EstadoRayoToy = EstadoRayoToy.para_superficie(2.0, 2.0)
+	s.dur = 6.0
+	_efectos.add_child(s)
+	s.global_position = m.global_position + _dir.cross(Vector3.UP).normalized() * 1.8 + Vector3(0, 0.02, 0)
+	ultimo_efecto = m
+	return m
 
 ## F: alterna el MURO de prueba del haz. Con muro, todo haz (F7 / F9 / Z / V / ejes) recibe un choque en su cara; se rehace el haz vivo para que lo dibuje.
 func alternar_muro_haz() -> void:
