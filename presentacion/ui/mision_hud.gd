@@ -47,7 +47,7 @@ func _enganchar() -> void:
 	_pintar()
 
 
-## GAMEFEEL U3 (31/10): recibir, avanzar y completar una misión se oyen y se ven. `logro_pista` al activar y al marcar un objetivo, `logro_acierto` al completar (la interfaz suena
+## GAMEFEEL U3 (31/10): recibir, avanzar y completar una misión tienen sonidos propios (la interfaz suena
 ## SIEMPRE; con `Sensacion3D.ACTIVA = false` solo se apagan el deslizamiento y el destello). La línea entra deslizándose desde la izquierda y destella.
 static var T_ENTRA_S: float = 0.2            ## s que tarda la línea en llegar a su sitio
 static var DESPLAZA_PX: float = 36.0         ## px a la izquierda de donde parte
@@ -62,13 +62,13 @@ func _on_activada(_id: String) -> void:
 
 
 func _on_objetivo(id: String, _indice: int) -> void:
-	Sfx.play_ui("logro_pista")
+	Sfx.play_ui("objetivo_cumplido")
 	if id == _m.seguida_id():
 		_animar_entrada()
 
 
 func _on_completada(_id: String) -> void:
-	Sfx.play_ui("logro_acierto")
+	Sfx.play_ui("mision_completada")
 	_animar_entrada()
 
 

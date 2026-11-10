@@ -59,6 +59,9 @@ static var CURAN: PackedStringArray = PackedStringArray()
 ## Los consumibles del HUD, en el orden en que R los recorre (los de `uso = equipar`). Q usa el equipado (ver `Consumibles`). Van en la categoría de pociones.
 ## Primero los que el juego ya tenía (`estado = hay`, en el orden de la tabla: poción, tónico, bálsamo, infusión) y luego los nuevos, para que R no cambie de orden.
 static var CONSUMIBLES: PackedStringArray = PackedStringArray()
+## 10/11 (docs/PROPUESTA_CONSUMIBLES.md §8): los objetos que se LANZAN (`uso = lanzar`), en el orden de la tabla. No están en CONSUMIBLES (R no los recorre):
+## van a la rueda de lanzables (`Estado.rueda`) y la G lanza el elegido (`Lanzables`). En la bolsa van con las pociones.
+static var LANZABLES: PackedStringArray = PackedStringArray()
 
 
 ## Se ejecuta una vez, al cargar el script: rellena DATOS, PLANTAS, MINERALES, CLAVE, CURAN y CONSUMIBLES desde `BD`.
@@ -72,6 +75,7 @@ static func _construir() -> void:
 	var curan: PackedStringArray = PackedStringArray()
 	var consumibles_hay: PackedStringArray = PackedStringArray()
 	var consumibles_nuevos: PackedStringArray = PackedStringArray()
+	var lanzables: PackedStringArray = PackedStringArray()
 	var objs: Dictionary = BD.objetos()
 	for id in objs:
 		var o: Dictionary = objs[id]
@@ -90,6 +94,8 @@ static func _construir() -> void:
 		var ef: Dictionary = o["efecto"]
 		if ef.has("cura") or ef.has("tasa"):
 			curan.append(id)
+		if String(o["uso"]) == "lanzar":
+			lanzables.append(id)
 		if String(o["uso"]) == "equipar":
 			if String(o["estado"]) == "hay":
 				consumibles_hay.append(id)
@@ -98,6 +104,7 @@ static func _construir() -> void:
 	CLAVE = clave
 	CURAN = curan
 	CONSUMIBLES = consumibles_hay + consumibles_nuevos
+	LANZABLES = lanzables
 	_construir_plantas()
 	_construir_minerales()
 
@@ -181,7 +188,7 @@ static func mineral_de(reactivo: String, via: String) -> String:
 ## consumible + pigmento → pociones; clave + ropa + glifo → clave; todo lo demás (hongos, plantas, raíces, minerales, animales, botín) → componentes.
 static func categoria(id: String) -> String:
 	match categoria_bd(id):
-		"consumible", "pigmento":
+		"consumible", "pigmento", "lanzable":
 			return "pociones"
 		"clave", "ropa", "glifo":
 			return "clave"
@@ -218,6 +225,10 @@ static func es_ingrediente(id: String) -> bool:
 
 static func es_consumible(id: String) -> bool:
 	return CONSUMIBLES.has(id)
+
+
+static func es_lanzable(id: String) -> bool:
+	return LANZABLES.has(id)
 
 
 ## «Usos conocidos» de un objeto (frases para el panel de detalle del Inventario); vacío si aún no se le conoce ninguno.

@@ -38,5 +38,30 @@ func _initialize() -> void:
 	_ok("3 el agua corriendo (.ogg) sale en bucle", agua != null and bool(agua.get("loop")))
 	var original: AudioStream = load(Sfx3D.CARPETA + String(Sfx3D.AMBIENTES["fuego"]["f"]))
 	_ok("3 el recurso importado no se toca (el bucle va en una copia)", original is AudioStreamWAV and (original as AudioStreamWAV).loop_mode != AudioStreamWAV.LOOP_FORWARD)
+	# 10/11: foley de Sonniss («f_sn»). Los archivos sn_* no viajan en el repositorio: o están TODOS los de una entrada (y entonces suenan) o ninguno (y suena «f»).
+	var n_sn: int = 0
+	var a_medias: Array = []
+	var mal_elegido: Array = []
+	for cat in [Sfx.CATALOGO, Sfx3D.CATALOGO]:
+		for clave in cat:
+			var cfg: Dictionary = cat[clave]
+			if not cfg.has("f_sn"):
+				continue
+			var hay: int = 0
+			for f in cfg["f_sn"]:
+				if ResourceLoader.exists(Sfx.CARPETA + String(f)) and load(Sfx.CARPETA + String(f)) != null:
+					hay += 1
+			if hay != 0 and hay != (cfg["f_sn"] as Array).size():
+				a_medias.append(clave)
+			n_sn += hay
+			Sfx.SONNISS = true
+			var con: Array = Sfx.archivos_de(cfg)
+			Sfx.SONNISS = false
+			var sin: Array = Sfx.archivos_de(cfg)
+			Sfx.SONNISS = true
+			if con != (cfg["f_sn"] if hay > 0 else cfg["f"]) or sin != cfg["f"]:
+				mal_elegido.append(clave)
+	_ok("4 las entradas con «f_sn» tienen todos sus archivos o ninguno", a_medias.is_empty(), "%d archivos sn_ aquí · a medias %s" % [n_sn, str(a_medias)])
+	_ok("4 archivos_de: «f_sn» si están y SONNISS encendido; «f» si no", mal_elegido.is_empty(), str(mal_elegido))
 	print("FALLOS: %d" % _fallos)
 	quit(1 if _fallos > 0 else 0)

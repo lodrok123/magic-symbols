@@ -1,0 +1,38 @@
+{
+ "p0": {
+  "trozos": [
+   0
+  ],
+  "id": "cueva_pared",
+  "tris": 3000,
+  "directo": true,
+  "nota": "pared de roca de una casilla (kit de cueva)"
+ },
+ "p1": {
+  "trozos": [
+   1
+  ],
+  "id": "cueva_esquina_ext",
+  "tris": 3000,
+  "directo": true,
+  "nota": "esquina exterior"
+ },
+ "p2": {
+  "trozos": [
+   2
+  ],
+  "id": "cueva_pared_baja",
+  "tris": 1500,
+  "directo": true,
+  "nota": "pared baja / borde"
+ },
+ "p3": {
+  "trozos": [
+   3
+  ],
+  "id": "cueva_esquina_int",
+  "tris": 3500,
+  "directo": true,
+  "nota": "esquina interior en L"
+ }
+}

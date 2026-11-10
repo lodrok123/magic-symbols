@@ -1,0 +1,38 @@
+{
+ "p0": {
+  "trozos": [
+   0
+  ],
+  "id": "jarron",
+  "tris": 1200,
+  "directo": true,
+  "nota": "jarrón rompible"
+ },
+ "p1": {
+  "trozos": [
+   1
+  ],
+  "id": "muro_ruina",
+  "tris": 3000,
+  "directo": true,
+  "nota": "muro de sillares de ruina"
+ },
+ "p2": {
+  "trozos": [
+   2
+  ],
+  "id": "jarron_alto",
+  "tris": 1200,
+  "directo": true,
+  "nota": "ánfora rompible"
+ },
+ "p3": {
+  "trozos": [
+   3
+  ],
+  "id": "boca_cueva",
+  "tris": 6000,
+  "directo": true,
+  "nota": "boca de la cueva (dos casillas)"
+ }
+}

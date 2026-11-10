@@ -16,15 +16,17 @@ const X_PX: float = 14.0
 const ANCHO_PX: float = 262.0
 const SEP_FILA_PX: float = 36.0                ## de la barra de vida a la fila de frascos + tinta
 const ANCHO_FRASCOS_PX: float = 96.0
+const SEP_TINTA_PX: float = 6.0
+const CRECIMIENTO_BARRA_PX: float = 0.8       ## px extra por cada punto de capacidad ganado
 const LADO_CIRCULO_PX: float = 120.0
 const MARGEN_CIRCULO_PX: float = 14.0
 const T_AVISO_TINTA_S: float = 0.35
 const T_FLOTA_S: float = 1.3                    ## s que dura el «+20» flotando junto a la barra de tinta
 const ROTULOS_GOLPE: Dictionary = {GolpeCuerpo.TIPO_TINTA_GOLPE: "", GolpeCuerpo.TIPO_TINTA_GOLPE_ESCUDO: "¡Escudo roto!"}    ## C5: rótulos de la tinta del golpe F ("" = solo el «+5»)
 const T_SUBE_PX: float = 16.0                 ## px que sube mientras se desvanece
-const COLOR_VIDA_ALTA: Color = Color(0.35, 0.85, 0.4)
-const COLOR_VIDA_MEDIA: Color = Color(1.0, 0.8, 0.25)
-const COLOR_VIDA_BAJA: Color = Color(1.0, 0.3, 0.25)
+const COLOR_VIDA_ALTA: Color = Color("a44738")
+const COLOR_VIDA_MEDIA: Color = Color("9c5423")
+const COLOR_VIDA_BAJA: Color = Color("951e2a")
 const COLOR_TINTA_BAJA: Color = Color(1.0, 0.3, 0.25)
 const COLOR_TINTA_SIN: Color = Color(0.5, 0.5, 0.55)
 const COLOR_ESCUDO: Color = Color(1.0, 0.85, 0.4)
@@ -82,8 +84,8 @@ func _ready() -> void:
 	_frascos.position = Vector2(X_PX, y0 + SEP_FILA_PX)
 	raiz.add_child(_frascos)
 	_tinta = BarraHud.new()
-	_tinta.position = Vector2(X_PX + ANCHO_FRASCOS_PX + 6.0, y0 + SEP_FILA_PX)
-	_tinta.poner_ancho(ANCHO_PX - ANCHO_FRASCOS_PX - 6.0)
+	_tinta.position = Vector2(X_PX + ANCHO_FRASCOS_PX + SEP_TINTA_PX, y0 + SEP_FILA_PX)
+	_tinta.poner_ancho(ANCHO_PX - ANCHO_FRASCOS_PX - SEP_TINTA_PX)
 	raiz.add_child(_tinta)
 	_circulo = Circulo.new()
 	_circulo.consumibles = consumibles
@@ -148,6 +150,7 @@ func actualizar() -> void:
 	if _vida == null or jugador == null:
 		return
 	var vmax: float = maxf(Estado.i().vida_max, 1.0)
+	_vida.poner_ancho(_ancho_barra(ANCHO_PX, vmax - Estado.VIDA_BASE))
 	var v: float = float(jugador.get("vida"))
 	var fr: float = clampf(v / vmax, 0.0, 1.0)
 	aviso_vida_baja = Sensacion3D.ACTIVA and v > 0.0 and fr < Sensacion3D.VIDA_BAJA and not bool(jugador.get("muerto"))
@@ -159,8 +162,9 @@ func actualizar() -> void:
 	var t: Tinta = _tinta_jugador()
 	if t == null:
 		return
+	_tinta.poner_ancho(_ancho_barra(ANCHO_PX - ANCHO_FRASCOS_PX - SEP_TINTA_PX, t.maxima - Tinta.MAXIMA_INICIAL))
 	_tinta.poner_fraccion(t.fraccion())
-	var col: Color = t.color()
+	var col: Color = t.color().darkened(0.25)
 	var est: String = t.estado()
 	if est == "baja":
 		col = COLOR_TINTA_BAJA
@@ -174,6 +178,12 @@ func actualizar() -> void:
 		texto += " · %s %d s" % [t.nombre_pigmento(), int(ceil(t.tiempo_pigmento()))]
 	_tinta.poner_rotulo(texto)
 	_frascos.poner(t.frascos, Tinta.FRASCOS_MAX, t.color())
+
+
+## La capacidad amplía la barra hacia la derecha sin mover el origen ni los frascos.
+func _ancho_barra(ancho_base: float, capacidad_extra: float) -> float:
+	var espacio_extra: float = maxf(0.0, get_viewport().get_visible_rect().size.x * 0.5 - X_PX - ANCHO_PX)
+	return ancho_base + clampf(capacidad_extra * CRECIMIENTO_BARRA_PX, 0.0, espacio_extra)
 
 
 ## C2 (28/10): «¡Hundido! +20» junto a la barra de tinta: sube unos píxeles y se desvanece (sutil, ~1,3 s) con un tintineo suave.
@@ -436,10 +446,10 @@ class Circulo extends Control:
 			draw_set_transform(Vector2(fx_tembl, 0.0), 0.0, Vector2.ONE)
 		var id: String = consumibles.equipado()
 		var n: int = consumibles.cantidad(id) if id != "" else 0
-		# Sombra, fondo oscuro y marco dorado con filete interior (como el resto de marcos de la interfaz).
+		# Sombra, pergamino y marco cálido con filete interior.
 		draw_circle(c + Vector2(0, 3), RADIO_PX + 3.0, Color(0, 0, 0, 0.5))
 		draw_circle(c, RADIO_PX + 2.0, TemaInterfaz.BORDE_CALIDO_OSCURO)
-		draw_circle(c, RADIO_PX, Color(0.07, 0.06, 0.11, 0.94))
+		draw_circle(c, RADIO_PX, TemaInterfaz.PERGAMINO_HUD)
 		draw_arc(c, RADIO_PX - 1.0, 0.0, TAU, 48, TemaInterfaz.BORDE_CALIDO, 3.0, true)
 		draw_arc(c, RADIO_PX - 5.0, 0.0, TAU, 48, Color(TemaInterfaz.BORDE_CALIDO, 0.25), 1.2, true)
 		# El icono (apagado si no queda ninguno).
@@ -453,7 +463,7 @@ class Circulo extends Control:
 			if n <= 0:
 				draw_circle(c, RADIO_PX - 2.0, Color(0.05, 0.05, 0.08, 0.62))
 		else:
-			draw_string(f, c + Vector2(-8, 8), "—", HORIZONTAL_ALIGNMENT_CENTER, 16.0, 26, Color(1, 1, 1, 0.35))
+			draw_string(f, c + Vector2(-8, 8), "—", HORIZONTAL_ALIGNMENT_CENTER, 16.0, 26, TemaInterfaz.TINTA_PERGAMINO)
 		if fx_destello > 0.0:
 			draw_circle(c, RADIO_PX, Color(1.0, 0.95, 0.7, 0.5 * fx_destello))
 			draw_arc(c, RADIO_PX + 3.0, 0.0, TAU, 48, Color(1.0, 0.9, 0.5, fx_destello), 4.0, true)
@@ -466,9 +476,9 @@ class Circulo extends Control:
 		if id != "":
 			var p := c + Vector2(RADIO_PX * 0.72, RADIO_PX * 0.66)
 			draw_circle(p, 13.0, TemaInterfaz.BORDE_CALIDO_OSCURO)
-			draw_circle(p, 11.5, Color(0.07, 0.06, 0.11, 0.97))
+			draw_circle(p, 11.5, TemaInterfaz.PERGAMINO_HUD)
 			draw_arc(p, 11.5, 0.0, TAU, 20, TemaInterfaz.BORDE_CALIDO, 1.6, true)
-			draw_string(f, p + Vector2(-13.0, 6.0), str(n), HORIZONTAL_ALIGNMENT_CENTER, 26.0, 16, TemaInterfaz.TEXTO if n > 0 else Color(1.0, 0.5, 0.45))
+			draw_string(f, p + Vector2(-13.0, 6.0), str(n), HORIZONTAL_ALIGNMENT_CENTER, 26.0, 16, TemaInterfaz.TINTA_PERGAMINO if n > 0 else HudEoW.COLOR_VIDA_BAJA)
 		# Las teclas: Q (usar) a la izquierda y R (siguiente) arriba a la derecha.
 		_tecla(f, c + Vector2(-RADIO_PX - 6.0, -4.0), "Q", 24.0)
 		_tecla(f, c + Vector2(RADIO_PX * 0.8, -RADIO_PX * 0.95), "R", 20.0)
@@ -489,7 +499,7 @@ class Circulo extends Control:
 	## Una placa pequeña con la letra de la tecla, centrada en `p`.
 	func _tecla(f: Font, p: Vector2, letra: String, lado: float) -> void:
 		var caja := StyleBoxFlat.new()
-		caja.bg_color = Color(0.07, 0.06, 0.11, 0.95)
+		caja.bg_color = TemaInterfaz.PERGAMINO_DIALOGO
 		caja.border_color = TemaInterfaz.BORDE_CALIDO
 		caja.set_border_width_all(2)
 		caja.set_corner_radius_all(int(lado * 0.28))
@@ -497,4 +507,4 @@ class Circulo extends Control:
 		var r := Rect2(p - Vector2(lado, lado) * 0.5, Vector2(lado, lado))
 		caja.draw(get_canvas_item(), r)
 		var cuerpo: int = int(lado * 0.62)
-		draw_string(f, Vector2(r.position.x, r.position.y + lado * 0.5 + cuerpo * 0.36), letra, HORIZONTAL_ALIGNMENT_CENTER, lado, cuerpo, TemaInterfaz.TEXTO)
+		draw_string(f, Vector2(r.position.x, r.position.y + lado * 0.5 + cuerpo * 0.36), letra, HORIZONTAL_ALIGNMENT_CENTER, lado, cuerpo, TemaInterfaz.TINTA_PERGAMINO)

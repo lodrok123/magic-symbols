@@ -197,10 +197,22 @@ var _libro_cache: String = "?"
 var _libro_datos: Dictionary = {}
 var _libro_tex: Texture2D = null
 var _hueco_tex: Texture2D = null
+var _lamina_revision: Dictionary = {}
+
+
+func montar_lamina_avanzada(datos: Dictionary, caster: Node) -> void:
+	_lamina_revision = datos
+	spellcaster = caster
+	_av_anim.clear()
+	_av_prev_pagina = -1
+	elegir_glifo("")
+	queue_redraw()
 
 
 ## Los datos de la lámina alternativa activa, o {} si toca la de siempre (también si falta el PNG).
 func _libro() -> Dictionary:
+	if not _lamina_revision.is_empty():
+		return _lamina_revision
 	if _libro_cache != Repertoire.libro:
 		_libro_cache = Repertoire.libro
 		_libro_datos = {}
@@ -301,9 +313,22 @@ func _av_sector_glifo() -> Vector2:
 	return Grimorio.dir_corona(n - 1)
 
 
+## 10/11: el hueco de la corona bajo `punto` (px de pantalla, los del ratón) que tiene un glifo, o -1. Un poco más generoso que el aro dibujado.
+func _av_hueco_en(punto: Vector2) -> int:
+	if not _avanzado():
+		return -1
+	var radio: float = _lam(float(_av()["hueco_radio"])) * 1.4
+	for i in range(Grimorio.CORONA_ANGULOS.size()):
+		if _av_glifo_del_hueco(i) != "" and punto.distance_to(_on_page(_av_pos_hueco(i))) <= radio:
+			return i
+	return -1
+
+
 ## Posición (en px de LÁMINA) del hueco `i` de la corona.
 func _av_pos_hueco(i: int) -> Vector2:
 	var av: Dictionary = _av()
+	if av.has("huecos"):
+		return av["huecos"][i]
 	return (av["circulo"]["centro"] as Vector2) + Grimorio.dir_corona(i) * float(av["corona_radio"])
 
 
@@ -330,7 +355,7 @@ func _page_block() -> Rect2:
 
 ## De px de lámina a px de pantalla para una MEDIDA suelta (no un punto: eso es `_on_page`).
 func _lam(px: float) -> float:
-	return px * (_book_rect().size.x / BOOK_SIZE.x)
+	return px * (_book_rect().size.x / _medidas_lamina().x)
 
 
 ## Radio del núcleo en unidades de diseño.
@@ -615,7 +640,10 @@ func _manejar_raton(event: InputEvent) -> void:
 		# cerrar el libro y lanzar algo que no querías.
 		var caster := _spellcaster()
 		if caster:
-			caster.undo_last()
+			# 10/11: en el libro avanzado, el clic derecho SOBRE un hueco de la corona quita ese glifo (aunque no sea el último); en cualquier otro sitio, deshace.
+			var hueco: int = _av_hueco_en(event.position) if _avanzado() else -1
+			if hueco < 0 or not bool(caster.call("quitar_glifo_hueco", hueco)):
+				caster.undo_last()
 		queue_redraw()
 		get_viewport().set_input_as_handled()
 
@@ -642,6 +670,12 @@ static var HOJA_MIN: float = 0.02            ## escala X de la hoja plegada
 static var CAMBIA_AL_CERRAR: bool = true     ## true = la página cambia con la hoja plegada · false = al final de la animación
 static var MANO_BORDE_U: float = 40.0        ## unidades de diseño que la mano agarra por dentro del borde derecho de las páginas
 const COLA_RATON_MAX: int = 4000
+const HojaGrimorio = preload("res://presentacion/ui/hoja_grimorio.gd")
+const DURACION_GIRO_CURVO: float = 2.0
+
+var giro_hoja_avanzado: bool = false
+var _hoja_giro: HojaGrimorio
+var _pasar_sentido: float = 1.0
 
 var _pasando: bool = false
 var _pasar_pend: Array = []                  ## páginas pedidas durante la animación, en orden
@@ -693,7 +727,8 @@ func pasar_pagina(n: int) -> void:
 func _duraciones_pasar() -> Array:
 	var suma: float = T_MANO_IR + T_HOJA_CIERRA + T_HOJA_ABRE
 	var k: float = minf(1.0, T_PASAR_MAX / maxf(suma, 0.0001))
-	return [T_MANO_IR * k, T_HOJA_CIERRA * k, T_HOJA_ABRE * k]
+	var giro: float = DURACION_GIRO_CURVO if giro_hoja_avanzado and _avanzado() else 1.0
+	return [T_MANO_IR * k, T_HOJA_CIERRA * k * giro, T_HOJA_ABRE * k * giro]
 
 
 func _lomo_x() -> float:
@@ -714,7 +749,14 @@ func _empezar_pasar(n: int) -> void:
 	_pasar_t = 0.0
 	hoja_min_visto = 1.0
 	_pasar_ini_ms = Time.get_ticks_msec()
-	pivot_offset = Vector2(_lomo_x(), size.y * 0.5)
+	if giro_hoja_avanzado and _avanzado():
+		_pasar_sentido = 1.0 if n > int(_spellcaster().get("page")) else -1.0
+		if _hoja_giro == null:
+			_hoja_giro = HojaGrimorio.new()
+			_hoja_giro.z_index = 1
+			add_child(_hoja_giro)
+	else:
+		pivot_offset = Vector2(_lomo_x(), size.y * 0.5)
 	_pasar_mano_ini = get_local_mouse_position()
 	_pasar_mano_punto = _pasar_mano_ini
 	_arrancar_bucle_paginas()
@@ -738,6 +780,9 @@ func _pasar_paso(t: float) -> void:
 	var d: Array = _duraciones_pasar()
 	var t1: float = float(d[0])
 	var t2: float = t1 + float(d[1])
+	if giro_hoja_avanzado and _avanzado() and _hoja_giro != null:
+		_pasar_paso_curvo(t, t1, t2, float(d[2]))
+		return
 	var kx: float = 1.0
 	var borde: Vector2 = _borde_mano()
 	if t < t1:
@@ -760,6 +805,28 @@ func _pasar_paso(t: float) -> void:
 	hoja_min_visto = minf(hoja_min_visto, kx)
 	scale.x = kx * scale.y
 	mano.scale = Vector2(1.0 / maxf(kx, 0.0001), 1.0)               # contraescala: la mano no se aplasta con la hoja
+
+
+func _pasar_paso_curvo(t: float, t1: float, t2: float, apertura: float) -> void:
+	var avance: float = 0.0
+	if t >= t2:
+		if CAMBIA_AL_CERRAR and not _pasar_cambiada:
+			_pasar_aplicar()
+		var queda: float = 1.0 - clampf((t - t2) / maxf(apertura, 0.0001), 0.0, 1.0)
+		avance = 1.0 - 0.5 * queda * queda
+	elif t >= t1:
+		var u: float = clampf((t - t1) / maxf(t2 - t1, 0.0001), 0.0, 1.0)
+		avance = 0.5 * u * u
+	var contorno: Rect2 = _libro().get("contorno_hoja", Rect2())
+	var borde: Vector2 = _hoja_giro.mostrar(_textura_libro(), _book_rect(), _lam(1.0), _pasar_sentido, avance, contorno)
+	if t < t1:
+		mano.pose_forzada = ManoPluma2D.Pose.LEVANTADA
+		_pasar_mano_punto = _pasar_mano_ini.lerp(borde, smoothstep(0.0, 1.0, t / maxf(t1, 0.0001)))
+	else:
+		mano.pose_forzada = ManoPluma2D.Pose.PINZA if avance < 0.9 else ManoPluma2D.Pose.LEVANTADA
+		_pasar_mano_punto = borde
+	mano.seguir_hoja(_pasar_mano_punto)
+	hoja_min_visto = minf(hoja_min_visto, absf(cos(PI * avance)))
 
 
 func _pasar_aplicar() -> void:
@@ -786,6 +853,8 @@ func _pasar_fin() -> void:
 func _pasar_restaurar() -> void:
 	_pasando = false
 	_parar_bucle_paginas()
+	if _hoja_giro != null:
+		_hoja_giro.hide()
 	scale.x = scale.y
 	pivot_offset = size * 0.5
 	if mano != null:
@@ -1435,17 +1504,21 @@ func _record_sample() -> void:
 ## escala que lo hace caber entero. Lo que sobra de tapa se sale por los
 ## bordes: un libro abierto a pantalla completa se lee mejor que un libro
 ## pequeño y centrado con fondo alrededor.
+func _medidas_lamina() -> Vector2:
+	return _libro().get("medidas", BOOK_SIZE)
+
+
 func _book_rect() -> Rect2:
 	var pb: Rect2 = _page_block()
 	var fit: float = minf(size.x / pb.size.x, size.y / pb.size.y)
 	var block_centre: Vector2 = (pb.position + pb.size * 0.5) * fit
-	return Rect2(size * 0.5 - block_centre, BOOK_SIZE * fit)
+	return Rect2(size * 0.5 - block_centre, _medidas_lamina() * fit)
 
 
 ## De píxel de lámina a píxel de pantalla.
 func _on_page(point: Vector2) -> Vector2:
 	var book: Rect2 = _book_rect()
-	return book.position + point * (book.size.x / BOOK_SIZE.x)
+	return book.position + point * (book.size.x / _medidas_lamina().x)
 
 
 ## Cuánto mide en pantalla una unidad de las de siempre.
@@ -1457,7 +1530,7 @@ func _on_page(point: Vector2) -> Vector2:
 ## RADIUS pasa a medir lo que mide el círculo impreso.
 func _ui() -> float:
 	var book: Rect2 = _book_rect()
-	return (book.size.x / BOOK_SIZE.x) * _circ_r() / RADIUS
+	return (book.size.x / _medidas_lamina().x) * _circ_r() / RADIUS
 
 
 ## Lo mismo para una medida suelta. Se llama así de corto porque aparece
@@ -1569,7 +1642,8 @@ func _draw() -> void:
 	_draw_core(_on_page(_core_c()))
 	_draw_components(c)
 	_draw_pages(c)
-	_draw_resumen(c)
+	if _lamina_revision.is_empty():
+		_draw_resumen(c)
 
 	var ink: Color = RECORD_INK if is_recording else STROKE_INK
 	var grosor: float = _u(4.0)
@@ -1620,7 +1694,7 @@ func _draw_pie_glifo() -> void:
 func _mano_actualizar() -> void:
 	if mano == null or not is_open:
 		return
-	var relativa: float = _book_rect().size.x / BOOK_SIZE.x
+	var relativa: float = _book_rect().size.x / _medidas_lamina().x
 	mano.escala = relativa if mano is ManoPluma3D else MANO_ESCALA_2D * relativa
 	var punto: Vector2 = get_local_mouse_position()
 	if is_drawing and not stroke_visible.is_empty():
@@ -1698,11 +1772,14 @@ func _draw_huecos() -> void:
 		_draw_texture_centred(_hueco_tex, _on_page(abiertos[k]), lado)
 
 
+func _textura_libro() -> Texture2D:
+	if _libro().is_empty():
+		return BOOK_TEXTURE
+	return _libro().get("arte", _libro_tex)
+
+
 func _draw_book() -> void:
-	var tex: Texture2D = BOOK_TEXTURE
-	if not _libro().is_empty():
-		tex = _libro_tex
-	draw_texture_rect(tex, _book_rect(), false)
+	draw_texture_rect(_textura_libro(), _book_rect(), false)
 
 
 ## --- LA PÁGINA DE LA DERECHA: LO QUE SABE EL JUGADOR ---
@@ -1812,7 +1889,8 @@ func _draw_legend_avanzado(caster) -> void:
 		var at: Vector2 = _on_page(ley_s[punto])
 		var descubierto: bool = Repertoire.derivado_descubierto(id)
 		var clave: String = Repertoire.PREFIJO_DERIVADO + id
-		draw_arc(at, tam * 0.62, 0.0, TAU, 40, INK_SOFT if not descubierto else Color(runa.color.darkened(0.2), 0.55), _u(1.5), true)
+		if _lamina_revision.is_empty():
+			draw_arc(at, tam * 0.62, 0.0, TAU, 40, INK_SOFT if not descubierto else Color(runa.color.darkened(0.2), 0.55), _u(1.5), true)
 		if descubierto and _escribiendo.has(clave):
 			if _draw_escritura(clave, runa.glyph, at, tam, runa.color.darkened(CORE_GLYPH_DARKEN)):
 				continue
@@ -2412,18 +2490,21 @@ func _av_rotulo(centro: Vector2, texto: String) -> void:
 func _draw_avanzado() -> void:
 	var caster := _spellcaster()
 	var av: Dictionary = _av()
+	var aros_impresos: bool = not _lamina_revision.is_empty()
 	# --- Las dos zonas de dibujo (abajo): un círculo tenue con su rótulo hasta que haya lámina pintada ---
 	for nombre in ZONAS_AV:
 		var z: Dictionary = av[ZONAS_AV[nombre]]
 		var zc: Vector2 = _on_page(z["centro"])
 		var zr: float = _lam(float(z["radio"]))
-		draw_circle(zc, zr, Color(INK.r, INK.g, INK.b, 0.05))
-		draw_arc(zc, zr, 0.0, TAU, 72, INK_SOFT, _u(2.0), true)
+		if not aros_impresos:
+			draw_circle(zc, zr, Color(INK.r, INK.g, INK.b, 0.05))
+			draw_arc(zc, zr, 0.0, TAU, 72, INK_SOFT, _u(2.0), true)
 		_av_rotulo(zc + Vector2(0.0, zr * 0.62), nombre)
 	# --- El círculo mágico (arriba): marco, núcleo, medallones y huecos ---
 	var cc: Vector2 = _on_page(av["circulo"]["centro"])
-	draw_arc(cc, _lam(float(av["circulo"]["radio"])), 0.0, TAU, 96, INK_SOFT, _u(2.0), true)
-	draw_arc(cc, _lam(float(av["nucleo_radio"])), 0.0, TAU, 64, INK_FAINT, _u(1.5), true)
+	if not aros_impresos:
+		draw_arc(cc, _lam(float(av["circulo"]["radio"])), 0.0, TAU, 96, INK_SOFT, _u(2.0), true)
+		draw_arc(cc, _lam(float(av["nucleo_radio"])), 0.0, TAU, 64, INK_FAINT, _u(1.5), true)
 	if caster == null:
 		return
 	var ficha: Dictionary = caster.pages[caster.page]
@@ -2435,7 +2516,8 @@ func _draw_avanzado() -> void:
 	for j in range(meds.size()):
 		var mc: Vector2 = _on_page(meds[j])
 		var ocupado: bool = int(tipos[j]) != Runes.Type.NONE
-		draw_arc(mc, radio_med, 0.0, TAU, 40, INK_SOFT if ocupado else INK_FAINT, _u(1.5), true)
+		if not aros_impresos:
+			draw_arc(mc, radio_med, 0.0, TAU, 40, INK_SOFT if ocupado else INK_FAINT, _u(1.5), true)
 		if not ocupado:
 			continue
 		var datos: RuneData = caster.rune_database.get(int(tipos[j]))
@@ -2448,16 +2530,30 @@ func _draw_avanzado() -> void:
 		var d: float = radio_med * 0.7
 		draw_line(a + Vector2(-d, -d), b + Vector2(d, d), RECORD_INK, _u(3.0), true)
 		draw_line(a + Vector2(-d, d), b + Vector2(d, -d), RECORD_INK, _u(3.0), true)
+	var abiertos: int = Grimorio.huecos_abiertos()
 	for i in range(Grimorio.CORONA_ANGULOS.size()):
 		var hc: Vector2 = _on_page(_av_pos_hueco(i))
 		var radio_h: float = _lam(float(av["hueco_radio"]))
 		var nombre_g: String = _av_glifo_del_hueco(i)
-		draw_arc(hc, radio_h, 0.0, TAU, 32, INK_SOFT if nombre_g != "" else INK_FAINT, _u(1.5), true)
+		if i >= abiertos and nombre_g == "":
+			_av_hueco_cerrado(hc, radio_h)          # 10/11: la progresión aún no lo ha abierto (engarces): tapado, también sobre las láminas que lo traen impreso
+			continue
+		if not aros_impresos:
+			draw_arc(hc, radio_h, 0.0, TAU, 32, INK_SOFT if nombre_g != "" else INK_FAINT, _u(1.5), true)
 		if nombre_g == "":
 			continue
 		var glyph: Texture2D = Sigils.GLYPHS.get(nombre_g)
 		var angulo: float = EjesRecetaUi.giro_linea(nombre_g) if EjesRecetaUi.exenta_del_giro(nombre_g) else GestureLibrary.giro_glifo(Grimorio.dir_corona(i))
 		_av_pintar_runa("h%d" % i, glyph, hc, origen_glifo, radio_h * 1.75, INK, angulo)
+
+
+## Un hueco de la corona que la progresión aún no ha abierto: una tapa de tinta con un pasador cruzado. Se ve que existe y que todavía no se puede usar.
+func _av_hueco_cerrado(centro: Vector2, radio: float) -> void:
+	draw_circle(centro, radio * 1.05, Color(INK.r, INK.g, INK.b, 0.42))
+	draw_arc(centro, radio * 1.05, 0.0, TAU, 32, INK, _u(1.5), true)
+	var d: float = radio * 0.45
+	draw_line(centro + Vector2(-d, 0.0), centro + Vector2(d, 0.0), Color(1.0, 0.95, 0.85, 0.55), _u(2.0), true)
+	draw_circle(centro + Vector2(0.0, -d * 0.15), radio * 0.16, Color(1.0, 0.95, 0.85, 0.55))
 
 
 func _draw_hint(c: Vector2) -> void:
@@ -2472,7 +2568,7 @@ func _draw_hint(c: Vector2) -> void:
 			_draw_centered_text(Vector2(c.x, y1), lanz.feedback_text, RECORD_INK)
 		else:
 			_draw_centered_text(Vector2(c.x, y1), "T cierra y lanza · 1 2 3 pasan página", INK_SOFT)
-		_draw_centered_text(Vector2(c.x, y1 + _lam(20.0)), "dibuja abajo: sello a la izquierda, glifo a la derecha · clic derecho deshace", INK_SOFT)
+		_draw_centered_text(Vector2(c.x, y1 + _lam(20.0)), "dibuja abajo: sello a la izquierda, glifo a la derecha · clic derecho sobre un glifo lo quita, fuera deshace", INK_SOFT)
 		return
 
 	# DOS LÍNEAS, NO TRES. La ventana mide 648 px de alto: con el centro
@@ -2698,6 +2794,8 @@ func _draw_pages(c: Vector2) -> void:
 
 	var total: int = Repertoire.pages_available(caster.PAGES)     # solo las páginas que ya tienes
 	var arriba: Vector2 = c - Vector2(0.0, _u(RADIUS + 34.0))
+	if _libro().has("pestanas"):
+		arriba = _on_page(_libro()["pestanas"])
 
 	for i in range(total):
 		var x: float = (float(i) - float(total - 1) * 0.5) * _u(PAGE_TAB_GAP)

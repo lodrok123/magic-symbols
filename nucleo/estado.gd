@@ -39,6 +39,13 @@ var capacidad_base: int = CAPACIDAD_INICIAL
 ## `Tinta`; empieza con los de `Tinta.FRASCOS_INICIALES`). `consumible_equipado`: el consumible que gasta Q ("" = ninguno; lo gestiona `Consumibles`).
 var frascos_tinta: int = 3          ## = Tinta.FRASCOS_INICIALES (literal para no cruzar las dos clases en un inicializador)
 var consumible_equipado: String = ""
+## 10/11 (docs/PROPUESTA_CONSUMIBLES.md §2): la RUEDA DE LANZABLES, acceso rápido de HUECOS_RUEDA huecos (uno por dirección; "" = vacío). Lo que va en cada hueco se
+## elige en la mochila (`poner_en_rueda`); el hueco recuerda el objeto aunque se acabe. `rueda_elegido` = el hueco que lanza la G. `rueda_vistos`: los lanzables
+## que ya se han cogido alguna vez (el primero de cada uno entra solo en un hueco libre; luego, la jugadora manda).
+const HUECOS_RUEDA: int = 6
+var rueda: Array = ["", "", "", "", "", ""]
+var rueda_elegido: int = 0
+var rueda_vistos: Array = []
 var bosque_retorno_cueva: String = "" ## Bosque desde el que se entró en Cueva.
 ## ASISTENCIA AL TRAZO (Fase 14.4): 0 = dibujar como siempre (no se calcula nada); 1 = ayuda máxima. La guía fantasma y el imán del
 ## trazo (tope 0,6 de fuerza) escalan con esto. Empieza en 0,5: ayuda sin quitarle protagonismo a la mano. Es una opción del jugador,
@@ -89,6 +96,7 @@ func agregar(id: String, n: int = 1) -> int:
 	if cabe <= 0:
 		return 0
 	items[id] = cuenta(id) + cabe
+	_rueda_al_coger(id)
 	objeto_conseguido.emit(id)
 	cambiado.emit()
 	return cabe
@@ -140,6 +148,7 @@ func a_dic() -> Dictionary:
 		"bolsa": {"oro": oro, "capacidad": capacidad, "items": items.duplicate()},
 		"mejoras": mejoras.duplicate(),
 		"consumible_equipado": consumible_equipado,
+		"rueda": {"huecos": rueda.duplicate(), "elegido": rueda_elegido, "vistos": rueda_vistos.duplicate()},
 		"bosque_retorno_cueva": bosque_retorno_cueva,
 		"opciones": {"asistencia": asistencia, "trazo_recto": trazo_recto, "lanzamiento_inteligente": lanzamiento_inteligente},
 	}
@@ -162,6 +171,15 @@ func desde_dic(d: Dictionary) -> void:
 	for id in mj:
 		mejoras[String(id)] = int(mj[id])
 	consumible_equipado = String(d.get("consumible_equipado", ""))
+	var r: Dictionary = d.get("rueda", {}) if d.get("rueda", {}) is Dictionary else {}
+	rueda = []
+	var huecos: Array = r.get("huecos", []) if r.get("huecos", []) is Array else []
+	for k in range(HUECOS_RUEDA):
+		rueda.append(String(huecos[k]) if k < huecos.size() else "")
+	rueda_elegido = clampi(int(r.get("elegido", 0)), 0, HUECOS_RUEDA - 1)
+	rueda_vistos = []
+	for v in (r.get("vistos", []) if r.get("vistos", []) is Array else []):
+		rueda_vistos.append(String(v))
 	bosque_retorno_cueva = String(d.get("bosque_retorno_cueva", ""))
 	var o: Dictionary = d.get("opciones", {}) if d.get("opciones", {}) is Dictionary else {}
 	asistencia = clampf(float(o.get("asistencia", 0.5)), 0.0, 1.0)
@@ -170,3 +188,56 @@ func desde_dic(d: Dictionary) -> void:
 	capacidad_base = clampi(capacidad - int(Mejoras.valor("capacidad", self)), 1, CAPACIDAD_MAX)
 	Mejoras.aplicar_todas(self, false)           # vida máxima, cura, defensa, velocidad, bolsa, frascos y libro salen de las mejoras
 	cambiado.emit()
+
+
+## --- Rueda de lanzables (10/11) ---
+
+## Pone `id` en el hueco `hueco` (0..HUECOS_RUEDA-1). Un objeto solo está en un hueco: si ya estaba en otro, sale de él; si el hueco estaba ocupado, los dos
+## cambian de sitio. false si `id` no es un lanzable o el hueco no existe.
+func poner_en_rueda(id: String, hueco: int) -> bool:
+	if not Objetos.es_lanzable(id) or hueco < 0 or hueco >= HUECOS_RUEDA:
+		return false
+	var antes: int = rueda.find(id)
+	var habia: String = String(rueda[hueco])
+	rueda[hueco] = id
+	if antes >= 0 and antes != hueco:
+		rueda[antes] = habia
+	if not rueda_vistos.has(id):
+		rueda_vistos.append(id)
+	cambiado.emit()
+	return true
+
+
+## Quita `id` de la rueda (su hueco queda vacío). false si no estaba.
+func quitar_de_rueda(id: String) -> bool:
+	var k: int = rueda.find(id)
+	if k < 0:
+		return false
+	rueda[k] = ""
+	cambiado.emit()
+	return true
+
+
+## El lanzable del hueco elegido ("" si está vacío).
+func lanzable_elegido() -> String:
+	return String(rueda[clampi(rueda_elegido, 0, HUECOS_RUEDA - 1)])
+
+
+func elegir_hueco(hueco: int) -> void:
+	rueda_elegido = clampi(hueco, 0, HUECOS_RUEDA - 1)
+	cambiado.emit()
+
+
+## La primera vez que se coge un lanzable entra solo en el primer hueco libre (y, si el elegido estaba vacío, pasa a ser el elegido).
+func _rueda_al_coger(id: String) -> void:
+	if not Objetos.es_lanzable(id) or rueda_vistos.has(id):
+		return
+	rueda_vistos.append(id)
+	if rueda.has(id):
+		return
+	var libre: int = rueda.find("")
+	if libre < 0:
+		return
+	rueda[libre] = id
+	if lanzable_elegido() == "":
+		rueda_elegido = libre

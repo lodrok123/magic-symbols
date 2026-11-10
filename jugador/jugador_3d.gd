@@ -124,6 +124,7 @@ var _t_inv: float = 0.0
 var _t_enraizada: float = 0.0
 var _t_est_vel: float = 0.0                       ## 6/11 (`aplicar_estado`): s que le quedan al estado que la frena (mojada, ralentizada, aturdida)
 var _x_est_vel: float = 1.0                       ## ... y por cuánto multiplica su velocidad (el más fuerte de los activos)
+var _nombre_est_vel: String = ""                  ## 10/11: cuál de los tres es («mojada», «ralentizada», «aturdida»), para que un antídoto lo quite
 var _t_quemada: float = 0.0                       ## s que le quedan de quemada (2 de daño ambiental cada QUEMADA_TICK)
 var _tick_quemada: float = 0.0
 var _tick_electrica: float = 0.0                  ## s hasta la proxima descarga del suelo electrificado (0 = la siguiente es inmediata)
@@ -565,18 +566,53 @@ func _viento_paso(delta: float, zona: Array) -> Vector3:
 	return EstadoZona3D.actual.viento_en(c) * delta
 
 
+## 10/11: el estado de personaje que corresponde a cada protección de los antídotos (frio → ralentizada por el hielo, rayo → aturdida). El calor es la quemada.
+const ESTADO_DE_PROTECCION: Dictionary = {"frio": "ralentizada", "rayo": "aturdida"}
+## ... y la protección que frena cada elemento de `aplicar_estado` (el agua no tiene: mojarse no es un estado dañino).
+const PROTECCION_DE_ELEMENTO: Dictionary = {"hielo": "frio", "fuego": "calor", "rayo": "rayo"}
+
+
+## ¿Tiene ahora el estado del que protege `estado` (veneno, frio, calor, rayo)? El frío y el calor de zona (el aguante a medias) cuentan también.
 func tiene_estado(estado: String) -> bool:
-	return estado == "veneno" and (_veneno_t > 0.0 or not _pilas_veneno.is_empty())
-
-
-## Quita un estado dañino (hoy solo el veneno). true si había algo que quitar. Lo llama el antídoto (`Consumibles.curar_estado`).
-func curar_estado(estado: String) -> bool:
-	if estado == "veneno" and (_veneno_t > 0.0 or not _pilas_veneno.is_empty()):
-		_veneno_t = 0.0
-		_veneno_dps = 0.0
-		_pilas_veneno.clear()               # 6/11: el antídoto quita también las pilas del chamán
-		return true
+	match estado:
+		"veneno":
+			return _veneno_t > 0.0 or not _pilas_veneno.is_empty()
+		"calor":
+			return esta_quemada() or (aguante_activo and aguante < AGUANTE_MAX - 0.01 and _aguante_de_zona("calor"))
+		"frio":
+			return (_t_est_vel > 0.0 and _nombre_est_vel == "ralentizada") or (aguante_activo and aguante < AGUANTE_MAX - 0.01 and _aguante_de_zona("frio"))
+		"rayo":
+			return _t_est_vel > 0.0 and _nombre_est_vel == "aturdida"
 	return false
+
+
+## ¿El aguante que baja ahora es el de esa zona? (en una zona con calor el frasco de frescor rellena; la brasa, no).
+func _aguante_de_zona(estado: String) -> bool:
+	return EstadoZona3D.actual != null and EstadoZona3D.actual.estados_en(Terreno3D.celda_de(position)).has(estado)
+
+
+## Quita un estado dañino: veneno, frio (la ralentizada del hielo y el aguante del frío), calor (la quemada y el aguante del calor) o rayo (la aturdida).
+## true si había algo que quitar. Lo llaman los antídotos (`Consumibles.curar_estado`).
+func curar_estado(estado: String) -> bool:
+	if not tiene_estado(estado):
+		return false
+	match estado:
+		"veneno":
+			_veneno_t = 0.0
+			_veneno_dps = 0.0
+			_pilas_veneno.clear()               # 6/11: el antídoto quita también las pilas del chamán
+		"calor":
+			_t_quemada = 0.0
+			if _aguante_de_zona("calor"):
+				aguante = AGUANTE_MAX
+		"frio", "rayo":
+			if _nombre_est_vel == String(ESTADO_DE_PROTECCION[estado]):
+				_t_est_vel = 0.0
+				_x_est_vel = 1.0
+				_nombre_est_vel = ""
+			if estado == "frio" and _aguante_de_zona("frio"):
+				aguante = AGUANTE_MAX
+	return true
 
 
 ## 6/11: la sujetan unas raíces `segundos` s (ver `_t_enraizada`). No hace nada si está muerta.
@@ -641,6 +677,8 @@ func recibir_dano(cantidad: float, desde: Vector3 = Vector3.ZERO) -> void:
 func dano_ambiental(cantidad: float, elemento: String = "") -> float:
 	if muerto or _t_inv > 0.0 or cantidad <= 0.0:
 		return 0.0
+	if PROTECCION_DE_ELEMENTO.has(elemento) and inmune_a(String(PROTECCION_DE_ELEMENTO[elemento])):
+		return 0.0                              # 10/11: la llama propia o el suelo electrificado no dañan con su protección puesta
 	cantidad = Dano.tras_defensa(cantidad, defensa_total())
 	var antes: float = vida
 	vida = maxf(0.0, vida - cantidad) if AMBIENTAL_PUEDE_MATAR else minf(vida, maxf(1.0, vida - cantidad))
@@ -662,6 +700,8 @@ func dano_ambiental(cantidad: float, elemento: String = "") -> float:
 func aplicar_estado(elemento: String, segundos: float) -> String:
 	if muerto or segundos <= 0.0:
 		return ""
+	if PROTECCION_DE_ELEMENTO.has(elemento) and inmune_a(String(PROTECCION_DE_ELEMENTO[elemento])):
+		return ""                               # 10/11: un antídoto o un elixir activo (o la ropa) lo para
 	var nombre: String = ""
 	var x: float = 1.0
 	var dur: float = segundos
@@ -687,6 +727,7 @@ func aplicar_estado(elemento: String, segundos: float) -> String:
 	if x < 1.0:
 		if _t_est_vel <= 0.0 or x <= _x_est_vel:
 			_x_est_vel = x                      # se queda el estado más lento que esté activo
+			_nombre_est_vel = nombre
 		_t_est_vel = maxf(_t_est_vel, dur)
 	Combate3D.flotante(mundo, position + Vector3(0, 1.9, 0), nombre.capitalize(), COLOR_AMBIENTAL.get(elemento, Color(0.8, 0.9, 1.0)), 0.9)
 	return nombre
@@ -1259,6 +1300,35 @@ func _esquiva_con_premio() -> void:
 
 
 ## Beber una poción (la usa `Consumibles` cuando Q tiene la poción equipada). Devuelve si empezó a beber.
+## 10/11 (docs/PROPUESTA_CONSUMIBLES.md §2): la G (acción `lanzar_objeto`) lanza el lanzable elegido de la rueda (`Estado.lanzable_elegido`) hacia el punto del
+## suelo bajo el ratón (`Lanzador3D.punto_en_suelo`; sin lanzador, 4 u hacia donde mira). Se marca como atendida para que no llegue a las teclas de depuración de
+## la maqueta (allí la G enseña u oculta la hierba). La rueda que se abre con Alt es del Pipeline; hasta entonces se elige con `Estado.elegir_hueco`.
+func _unhandled_input(ev: InputEvent) -> void:
+	if ev is InputEventKey and (ev as InputEventKey).pressed and not (ev as InputEventKey).echo and ev.is_action("lanzar_objeto"):
+		get_viewport().set_input_as_handled()
+		lanzar_objeto()
+
+
+## Lanza el elegido de la rueda. `hacia` = dónde apunta (Vector3.INF = el ratón). Devuelve el proyectil o null (y avisa por qué).
+func lanzar_objeto(hacia: Vector3 = Vector3.INF) -> Lanzable3D:
+	if muerto or _t_beber > 0.0 or _t_roll > 0.0 or lleva_carga() or nadando:
+		return null
+	var id: String = Estado.i().lanzable_elegido()
+	var motivo: String = Lanzables.motivo_no(id)
+	if motivo != "":
+		if lanz != null and lanz.has_method("avisar"):
+			lanz.call("avisar", motivo, Color(1.0, 0.75, 0.55))
+		return null
+	var objetivo: Vector3 = hacia
+	if objetivo == Vector3.INF:
+		if lanz != null and lanz.has_method("punto_en_suelo") and is_inside_tree():
+			objetivo = lanz.call("punto_en_suelo", get_viewport().get_mouse_position())
+		else:
+			objetivo = position + _mirada.normalized() * 4.0
+	var desde: Vector3 = position + Vector3(0.0, 1.1, 0.0)
+	return Lanzables.lanzar(mundo, lanz, self, id, desde, objetivo)
+
+
 func usar_pocion(id: String = "pocion") -> bool:
 	var ocupado: bool = _lanzando or _t_golpe > 0.0 or _t_gesto > 0.0 or _t_pegar > 0.0 or (lanz != null and lanz.modo_lanzar)
 	if _t_beber <= 0.0 and _t_roll <= 0.0 and not ocupado and not nadando and en_suelo and not muerto \
@@ -1374,6 +1444,9 @@ func _terminar_beber() -> void:
 	if Estado.i().quitar(_beber_id):
 		var cura: float = Mejoras.cura_de(_beber_id) if Objetos.efecto(_beber_id).has("cura") else CURA_POCION   # F3: la de la tabla + la mejora «Poción más dulce»
 		curar(cura)
+		var ef: Dictionary = Objetos.efecto(_beber_id)
+		if ef.has("regen") and hud_eow != null and hud_eow.get("consumibles") is Consumibles:
+			(hud_eow.get("consumibles") as Consumibles).iniciar_regen(float(ef["regen"]), float(ef.get("dura", 10.0)))   # 10/11: la poción mayor
 		Combate3D.flotante(mundo, position + Vector3(0, 1.6, 0), "+%d" % int(cura), Color(0.5, 1.0, 0.55))
 		Sfx.play_ui("pocion_fin")                                       # M4: el último trago (la poción +15 %)
 		destello_color(COLOR_DESTELLO_BEBER, T_DESTELLO_BEBER_S, ENERGIA_DESTELLO_BEBER)

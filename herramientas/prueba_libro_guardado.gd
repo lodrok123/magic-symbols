@@ -137,7 +137,7 @@ func _cambio_de_libro() -> void:
 	var extra: int = int(Mejoras.valor("huecos_glifo", Estado.i()))
 	Repertoire.cambiar_libro("avanzado")
 	_ok(Repertoire.libro == "avanzado" and Repertoire.libro_conseguido, "cambiar_libro fija el libro y marca libro_conseguido")
-	_ok(Repertoire.max_sigils_per_page == 4 + extra, "el avanzado abre 4 huecos de base (+ %d de Mejoras)" % extra, str(Repertoire.max_sigils_per_page))
+	_ok(Repertoire.max_sigils_per_page == maxi(4, mini(1 + extra, 6)), "el avanzado abre 4 huecos de base (o 1 + %d engarces si es más)" % extra, str(Repertoire.max_sigils_per_page))
 	_ok(g.pages[0]["element"] == Runes.Type.SHAPE_TRIANGLE and _glifo_corona(g, 0, 0) == "flecha" and _glifo_corona(g, 0, 1) == "barrera", "el Grimorio se entera por la señal y rehace la página 1: fuego en el sello 1, los glifos en la corona")
 	_ok(g.pages[1]["element"] == Runes.Type.SHAPE_CIRCLE and _glifo_corona(g, 1, 0) == "rebote", "y la página 2 (agua, rebote)")
 	_ok(Repertoire.paginas[0]["glifos"] == ["flecha", "barrera"], "y lo guardado sigue igual")
@@ -145,11 +145,17 @@ func _cambio_de_libro() -> void:
 	Estado.i().mejoras = {"huecos_glifo": 2}
 	var con_mejora: int = int(Mejoras.valor("huecos_glifo", Estado.i()))
 	Repertoire.cambiar_libro("avanzado")
-	_ok(Repertoire.max_sigils_per_page == 4 + con_mejora, "con huecos ganados (+%d) se suman a la base" % con_mejora, str(Repertoire.max_sigils_per_page))
+	# 10/11 (diario 458): los engarces FIJAN EL TOTAL: máx(base del libro, 1 + engarces), tope 6.
+	_ok(Repertoire.max_sigils_per_page == 4, "con 2 engarces el avanzado sigue en su base: máx(4, 1 + 2) = 4", str(Repertoire.max_sigils_per_page))
 	Repertoire.cambiar_libro("avanzado")
-	_ok(Repertoire.max_sigils_per_page == 4 + con_mejora, "y cambiar otra vez no los suma dos veces", str(Repertoire.max_sigils_per_page))
+	_ok(Repertoire.max_sigils_per_page == 4, "y cambiar otra vez no cambia nada", str(Repertoire.max_sigils_per_page))
 	Repertoire.cambiar_libro("bosque")
-	_ok(Repertoire.max_sigils_per_page == 1 + con_mejora, "volver a «bosque» deja su base (1) más lo ganado", str(Repertoire.max_sigils_per_page))
+	_ok(Repertoire.max_sigils_per_page == 1 + con_mejora, "volver a «bosque» deja 1 + los engarces (3): ninguno se pierde", str(Repertoire.max_sigils_per_page))
+	Estado.i().mejoras = {"huecos_glifo": 5}
+	Repertoire.cambiar_libro("avanzado")
+	_ok(Repertoire.max_sigils_per_page == 6, "con los 5 engarces, 6 en cualquier libro", str(Repertoire.max_sigils_per_page))
+	Repertoire.cambiar_libro("bosque")
+	_ok(Repertoire.max_sigils_per_page == 6, "también en el del bosque", str(Repertoire.max_sigils_per_page))
 	g.free()
 	Repertoire.cambiar_libro("avanzado")       # sin Grimorio vivo: la señal ya no apunta a un nodo liberado
 	_ok(true, "cambiar de libro con el Grimorio liberado no falla (la señal se soltó)")

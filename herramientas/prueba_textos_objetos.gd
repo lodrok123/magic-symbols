@@ -68,14 +68,18 @@ func _objetos() -> void:
 	_ok("2 el bálsamo dice 20 s y su efecto dura 20", int(c["balsamo_protector"]["dura"]) == 20 and TextosObjetos.descripcion("balsamo_protector").contains("20 s"))
 	_ok("2 la infusión dice 3 de vida por segundo durante 12 s y su efecto tasa 3 dura 12", int(c["infusion_brezo"]["tasa"]) == 3 and int(c["infusion_brezo"]["dura"]) == 12
 		and TextosObjetos.descripcion("infusion_brezo").contains("3 de vida") and TextosObjetos.descripcion("infusion_brezo").contains("12 s"))
-	_ok("2 el antídoto dice 60 s y su efecto dura 60", int(c["antidoto"]["dura"]) == 60 and TextosObjetos.descripcion("antidoto").contains("60 s"))
+	_ok("2 el antídoto dice 90 s y su efecto dura 90", int(c["antidoto"]["dura"]) == 90 and TextosObjetos.descripcion("antidoto").contains("90 s"))      # 10/11: los antídotos protegen 90 s
+	_ok("2 la poción mayor dice 120 y 2 por segundo durante 10 s, como su efecto", int(c["pocion_mayor"]["cura"]) == 120 and int(c["pocion_mayor"]["regen"]) == 2
+		and int(c["pocion_mayor"]["dura"]) == 10 and TextosObjetos.descripcion("pocion_mayor").contains("120") and TextosObjetos.descripcion("pocion_mayor").contains("10 s"))
+	_ok("2 la savia aislante y los dos elixires dicen su duración", TextosObjetos.descripcion("savia_aislante").contains("%d s" % int(c["savia_aislante"]["dura"]))
+		and TextosObjetos.descripcion("elixir_filtro").contains("%d s" % int(c["elixir_filtro"]["dura"])) and TextosObjetos.descripcion("elixir_templado").contains("%d s" % int(c["elixir_templado"]["dura"])))
 	_ok("2 frescor y abrigo dicen 90 s y sus efectos duran 90", int(c["frescor"]["dura"]) == 90 and int(c["abrigo"]["dura"]) == 90
 		and TextosObjetos.descripcion("frescor").contains("90 s") and TextosObjetos.descripcion("abrigo").contains("90 s"))
 	var pig_ok: bool = true
-	for id in ["pigmento_carmesi", "pigmento_ocre", "pigmento_musgo", "pigmento_ambar", "pigmento_eco"]:
-		if not TextosObjetos.descripcion(id).contains("60 s"):
+	for id in ["pigmento_carmesi", "pigmento_rocio", "pigmento_ocre", "pigmento_escarcha", "pigmento_ambar", "pigmento_musgo", "pigmento_eco"]:
+		if not TextosObjetos.descripcion(id).contains("siguiente hechizo"):
 			pig_ok = false
-	_ok("2 los cinco pigmentos dicen 60 s", pig_ok)
+	_ok("2 los siete pigmentos dicen que valen para el siguiente hechizo (10/11: una carga)", pig_ok)
 	var ropa_ok: bool = TextosObjetos.descripcion("capa_escarcha").contains("frío") and TextosObjetos.descripcion("tunica_salamandra").contains("calor") and TextosObjetos.descripcion("capucha_musgo").contains("veneno")
 	_ok("2 la ropa épica dice de qué protege (frío, calor, veneno) como su `inmune`", ropa_ok)
 	var ing_ok: bool = true

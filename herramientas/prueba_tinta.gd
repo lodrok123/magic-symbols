@@ -95,74 +95,66 @@ func _e1_maxima() -> void:
 	_ok("E1.10 las compras (oro, otras mejoras) no suben el máximo", is_equal_approx(tc.maxima_calculada(), 100.0))
 
 
-## E1: pigmento = aumento temporal sobre un sello. Rebaja de coste (con suelo de 1/3), duración y vuelta al base.
+## E1: pigmento. 10/11 (docs/PROPUESTA_CONSUMIBLES.md §6): los de la tabla son de UNA CARGA: ×1,5 al daño y a la geometría del SIGUIENTE hechizo de su elemento;
+## otro elemento no la gasta; al cobrar el suyo se gasta y queda «en vuelo» T_VUELO_PIGMENTO s (el Lanzador cobra antes de construir). La rebaja con suelo de 1/3
+## sigue existiendo para un pigmento temporal, aunque hoy ninguno la use.
 func _e1_pigmentos() -> void:
 	var t := Tinta.new()
 	t.partida = Estado.new()
-	_ok("E1.11 sin pigmento el coste de cualquier elemento es el de partida", is_equal_approx(t.coste_efectivo(20.0, "tierra"), 20.0) and is_equal_approx(t.coste_efectivo(20.0), 20.0))
+	_ok("E1.11 sin pigmento el coste y el daño de cualquier elemento son los de partida", is_equal_approx(t.coste_efectivo(20.0, "tierra"), 20.0) and is_equal_approx(t.mult_dano("tierra"), 1.0) and not t.pigmento_cargado())
 	t.activar_pigmento("ocre_tumulo")
-	_ok("E1.12 rebaja de tierra: su coste baja a la mitad", is_equal_approx(t.coste_efectivo(20.0, "tierra"), 10.0), "%.2f" % t.coste_efectivo(20.0, "tierra"))
-	_ok("E1.13 el coste de OTRO elemento no cambia", is_equal_approx(t.coste_efectivo(20.0, "fuego"), 20.0) and is_equal_approx(t.coste_efectivo(20.0, "agua"), 20.0))
-	_ok("E1.14 gastar de verdad cobra el rebajado (y puede_pagar lo usa)", t.gastar("x", 20.0, "tierra") and is_equal_approx(t.actual, 90.0) and t.gastar("x", 20.0, "fuego") and is_equal_approx(t.actual, 70.0))
-	var u := Tinta.new()
-	u.partida = Estado.new()
-	u.actual = 10.0
-	u.frascos = 0                                        # sin reserva (24/10): se mide la barra sola
-	u.activar_pigmento("ocre_tumulo")
-	_ok("E1.15 con 10 de tinta paga un hechizo de 20 de tierra (cuesta 10) pero no uno de fuego", u.puede_pagar("x", 20.0, "tierra") and not u.puede_pagar("x", 20.0, "fuego"))
-	_ok("E1.16 la regla del 1/3: una rebaja exagerada (×0,1) se queda en 1/3", is_equal_approx(Tinta.rebajar(30.0, 0.1), 10.0) and is_equal_approx(Tinta.rebajar(30.0, 0.0), 10.0) and is_equal_approx(Tinta.rebajar(30.0, 0.5), 15.0))
-	var minimo_ok: bool = true
-	for id in Tinta.PIGMENTOS:
-		var p: Dictionary = Tinta.PIGMENTOS[id]
-		if String(p["efecto"]) == "rebaja":
-			t.activar_pigmento(String(id))
-			minimo_ok = minimo_ok and t.coste_efectivo(30.0, String(p["elemento"])) >= 30.0 * Tinta.REBAJA_MINIMA - 1e-4
-	_ok("E1.17 ningún pigmento real baja un coste de 1/3", minimo_ok)
-	t.activar_pigmento("resina_carmesi")
-	_ok("E1.18 un pigmento de DAÑO no abarata nada", is_equal_approx(t.coste_efectivo(20.0, "fuego"), 20.0))
-	t.activar_pigmento("verde_musgo")
-	_ok("E1.19 activar otro sustituye al anterior (viento rebaja, tierra ya no)", is_equal_approx(t.coste_efectivo(20.0, "viento"), 10.0) and is_equal_approx(t.coste_efectivo(20.0, "tierra"), 20.0))
+	_ok("E1.12 ocre cargado: el siguiente de tierra sale ×1,5 de daño y de geometría", is_equal_approx(t.mult_dano("tierra"), 1.5) and is_equal_approx(t.mult_geometria("tierra"), 1.5) and t.pigmento_cargado(), "%.2f" % t.mult_dano("tierra"))
+	_ok("E1.13 los de OTRO elemento no cambian (ni coste ni daño)", is_equal_approx(t.mult_dano("fuego"), 1.0) and is_equal_approx(t.mult_geometria("agua"), 1.0) and is_equal_approx(t.coste_efectivo(20.0, "tierra"), 20.0))
+	_ok("E1.14 lanzar otro elemento NO gasta la carga", t.gastar("x", 20.0, "fuego") and t.pigmento == "ocre_tumulo" and is_equal_approx(t.actual, 80.0))
 	var fin: Array = [""]
 	t.pigmento_acabado.connect(func(id: String) -> void: fin[0] = id)
-	var ruido: Array = [0]
-	t.cambiada.connect(func() -> void: ruido[0] += 1)
-	t.activar_pigmento("ocre_tumulo")
-	_avanza(t, Tinta.PIGMENTO_DURA - 1.0, true)
-	_ok("E1.20 a falta de 1 s sigue activo", t.pigmento == "ocre_tumulo" and is_equal_approx(t.coste_efectivo(20.0, "tierra"), 10.0) and t.tiempo_pigmento() > 0.5, "%.2f" % t.tiempo_pigmento())
-	ruido[0] = 0
-	_avanza(t, 1.5, true)
-	_ok("E1.21 a los %d s acaba: vuelve el azul, el coste, la señal y el repintado" % int(Tinta.PIGMENTO_DURA), t.pigmento == "azul_arcano" and is_equal_approx(t.coste_efectivo(20.0, "tierra"), 20.0) and fin[0] == "ocre_tumulo" and ruido[0] >= 1 and t.tiempo_pigmento() == 0.0)
-	var v := Tinta.new()
-	v.partida = Estado.new()
-	v.activar_pigmento("ocre_tumulo")
-	v.gastar("x", 10.0)                                  # la espera de tras gastar no congela el reloj del pigmento
-	_avanza(v, 2.0, false)
-	_ok("E1.22 el reloj corre aunque haya espera tras gastar", v.tiempo_pigmento() < Tinta.PIGMENTO_DURA - 1.5)
-	v.activar_pigmento("azul_arcano")
-	_avanza(v, 5.0, false)
-	_ok("E1.23 el azul base no caduca ni avisa", v.pigmento == "azul_arcano" and v.tiempo_pigmento() == 0.0)
-	var m := Tinta.new()
-	m.partida = Estado.new()
-	m.activar_pigmento("ocre_tumulo")
-	m.rellenar()
-	_ok("E1.24 todos los pigmentos de efecto tienen elemento, valor y duración", _pigmentos_bien())
+	_ok("E1.15 lanzar el suyo la gasta (vuelve el azul y avisa), pero sigue valiendo «en vuelo» para ese hechizo", t.gastar("x", 20.0, "tierra") and t.pigmento == Tinta.PIGMENTO_BASE and fin[0] == "ocre_tumulo"
+		and is_equal_approx(t.mult_dano("tierra"), 1.5) and not t.pigmento_cargado())
+	_avanza(t, Tinta.T_VUELO_PIGMENTO + 0.1, true)
+	_ok("E1.16 pasado el vuelo, el siguiente de tierra ya es normal", is_equal_approx(t.mult_dano("tierra"), 1.0) and is_equal_approx(t.mult_geometria("tierra"), 1.0))
+	_ok("E1.17 el vuelo es más corto que la recarga mínima de un hechizo (1 s) y cubre el conjuro más lento (0,56 s)", Tinta.T_VUELO_PIGMENTO < 1.0 and Tinta.T_VUELO_PIGMENTO > 0.56)
+	_ok("E1.18 la regla del 1/3 de la rebaja sigue: ×0,1 se queda en 1/3", is_equal_approx(Tinta.rebajar(30.0, 0.1), 10.0) and is_equal_approx(Tinta.rebajar(30.0, 0.5), 15.0))
+	t.activar_pigmento("resina_carmesi")
+	t.activar_pigmento("verde_musgo")
+	_ok("E1.19 cargar otro sustituye al anterior (viento sí, fuego ya no)", is_equal_approx(t.mult_dano("viento"), 1.5) and is_equal_approx(t.mult_dano("fuego"), 1.0))
+	_avanza(t, 300.0, false)
+	_ok("E1.20 una carga no caduca con el tiempo", t.pigmento == "verde_musgo" and t.tiempo_pigmento() == 0.0)
+	var d: Dictionary = t.a_dic()
+	var g := Tinta.new()
+	g.partida = Estado.new()
+	g.desde_dic(d)
+	_ok("E1.21 la carga viaja con la partida", g.pigmento == "verde_musgo" and g.pigmento_cargado())
+	var e := Tinta.new()
+	e.partida = Estado.new()
+	e.activar_pigmento("azul_eco")
+	_ok("E1.22 eco: quita el recargo de ᚱ y se gasta con consumir_pigmento(\"\", \"raido\"), no con un elemento", e.quita_recargo("raido") and not e.consumir_pigmento("fuego") and e.consumir_pigmento("", "raido") and not e.quita_recargo("raido"))
+	e.activar_pigmento("azul_arcano")
+	_avanza(e, 5.0, false)
+	_ok("E1.23 el azul base no caduca, no carga ni avisa", e.pigmento == "azul_arcano" and not e.pigmento_cargado() and e.tiempo_pigmento() == 0.0)
+	_ok("E1.24 todos los pigmentos de efecto tienen elemento, valor y forma válidos (siete de carga)", _pigmentos_bien())
 
 
 func _pigmentos_bien() -> bool:
 	var elementos: Array = ["fuego", "agua", "tierra", "rayo", "hielo", "viento"]
+	var de_carga: Array = []
 	for id in Tinta.PIGMENTOS:
 		var p: Dictionary = Tinta.PIGMENTOS[id]
 		if String(id) == Tinta.PIGMENTO_BASE:
 			if String(p["efecto"]) != "":
 				return false
 			continue
-		if String(p["efecto"]) == "sin_recargo":         # F3: el Azul de Eco no es de ningún sello; quita el recargo de un glifo
-			if String(p.get("glifo", "")) == "" or float(p["dura"]) <= 0.0:
+		if String(p["efecto"]) == "sin_recargo":         # el Azul de Eco no es de ningún sello; quita el recargo de un glifo
+			if String(p.get("glifo", "")) == "":
 				return false
 			continue
-		if not elementos.has(String(p["elemento"])) or not ["rebaja", "dano"].has(String(p["efecto"])) or float(p["valor"]) <= 0.0 or float(p["dura"]) <= 0.0:
+		if not elementos.has(String(p["elemento"])) or not ["rebaja", "dano", "carga"].has(String(p["efecto"])) or float(p["valor"]) <= 0.0:
 			return false
-	return true
+		if String(p["efecto"]) == "carga":
+			de_carga.append(String(p["elemento"]))
+		elif float(p["dura"]) <= 0.0:
+			return false
+	de_carga.sort()
+	return de_carga == ["agua", "fuego", "hielo", "rayo", "tierra", "viento"]
 
 
 ## E1: el daño. Camino real: `Lanzador3D._disparar` construye el Hechizo y le aplica el pigmento; ese Hechizo golpea a un goblin de verdad.
@@ -214,17 +206,18 @@ func _e1_dano() -> void:
 	# 29/10, DANO_Y_TINTA: el pigmento multiplica el daño BASE del Hechizo (B·E) y la defensa del goblin (2) se resta DESPUÉS, así que lo que quita el golpe real ya no es «×1,5 del de antes»: es Dano.aplicar(daño del Hechizo con pigmento, R, DEF). 6/11 (bloque A2): el goblin YA NO resiste el fuego por defecto (R = 1; antes ×0,75): esta escena no es del Bosque.
 	_ok("E1.27 carmesí: el golpe REAL a un goblin quita lo que dice Dano.aplicar con el daño ×1,5", absf(float(f_con[0]) - Dano.aplicar(float(f_con[1]), 1.0, 1.0, 1.0, Dano.DEF_GOBLIN)) < 0.05 and float(f_con[0]) > float(sin["fuego"][0]), "%.2f vs %.2f" % [f_con[0], sin["fuego"][0]])
 	_ok("E1.28 carmesí: rayo y tierra NO cambian", absf(float(r_con[0]) - float(sin["rayo"][0])) < 0.01 and absf(float(e_con[0]) - float(sin["tierra"][0])) < 0.01)
-	t.activar_pigmento("ocre_tumulo")                     # rebaja: no toca el daño
+	t.activar_pigmento("ocre_tumulo")                     # 10/11: ocre es de carga de tierra: tierra ×1,5, el fuego vuelve a lo normal
 	var f_reb: Array = _golpe_real(lanz, mundo, "fire", "fuego")
 	var e_reb: Array = _golpe_real(lanz, mundo, "earth", "tierra")
-	_ok("E1.29 un pigmento de rebaja no cambia el daño de nadie", absf(float(f_reb[0]) - float(sin["fuego"][0])) < 0.01 and absf(float(e_reb[0]) - float(sin["tierra"][0])) < 0.01)
+	_ok("E1.29 ocre: la tierra sale ×1,5 y el fuego, sin el carmesí, vuelve a lo normal", absf(float(f_reb[0]) - float(sin["fuego"][0])) < 0.01 and absf(float(e_reb[1]) - float(sin["tierra"][1]) * 1.5) < 0.01)
 	t.activar_pigmento("ambar_volcanico")                 # rayo ×1,5
 	var r_amb: Array = _golpe_real(lanz, mundo, "lightning", "rayo")
 	var f_amb: Array = _golpe_real(lanz, mundo, "fire", "fuego")
 	_ok("E1.30 ámbar: rayo ×1,5 (en el daño del Hechizo; la defensa se resta después, 29/10) y el fuego vuelve a lo normal", absf(float(r_amb[0]) - Dano.aplicar(float(r_amb[1]), 1.0, 1.0, 1.0, Dano.DEF_GOBLIN)) < 0.05 and absf(float(r_amb[1]) - float(sin["rayo"][1]) * 1.5) < 0.01 and absf(float(f_amb[0]) - float(sin["fuego"][0])) < 0.01, "%.2f vs %.2f" % [r_amb[0], sin["rayo"][0]])
-	_avanza(t, Tinta.PIGMENTO_DURA + 1.0, false)
+	t.consumir_pigmento("rayo")                           # 10/11: la carga se gasta con el hechizo de rayo; pasado el vuelo, vuelve el daño base
+	_avanza(t, Tinta.T_VUELO_PIGMENTO + 0.1, false)
 	var r_fin: Array = _golpe_real(lanz, mundo, "lightning", "rayo")
-	_ok("E1.31 al acabar el pigmento, el daño vuelve al base", absf(float(r_fin[0]) - float(sin["rayo"][0])) < 0.01)
+	_ok("E1.31 gastada la carga, el daño vuelve al base", absf(float(r_fin[0]) - float(sin["rayo"][0])) < 0.01)
 	lanz.tinta = null
 	var r_nul: Array = _golpe_real(lanz, mundo, "lightning", "rayo")
 	_ok("E1.32 sin tinta (laboratorios, pruebas) no hay bonus ni fallo", absf(float(r_nul[0]) - float(sin["rayo"][0])) < 0.01)

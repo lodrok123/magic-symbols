@@ -13,7 +13,7 @@ const AJUSTES: String = "user://ajustes_prueba_input_map.cfg"
 const ESPERADAS: Dictionary = {
 	"mover_adelante": [KEY_W, KEY_UP], "mover_atras": [KEY_S, KEY_DOWN], "mover_izquierda": [KEY_A, KEY_LEFT], "mover_derecha": [KEY_D, KEY_RIGHT],
 	"correr": [KEY_SHIFT], "saltar": [KEY_SPACE], "voltereta": [KEY_CTRL], "golpe": [KEY_F], "interactuar": [KEY_E],
-	"usar_consumible": [KEY_Q], "cambiar_consumible": [KEY_R], "mochila": [KEY_I], "misiones": [KEY_J], "libro": [KEY_T],
+	"usar_consumible": [KEY_Q], "cambiar_consumible": [KEY_R], "lanzar_objeto": [KEY_G], "mochila": [KEY_I], "misiones": [KEY_J], "libro": [KEY_T],
 	"pagina_1": [KEY_1], "pagina_2": [KEY_2], "pagina_3": [KEY_3],
 	"pausa": [KEY_ESCAPE], "pestana_anterior": [KEY_Q], "pestana_siguiente": [KEY_E],
 }
@@ -73,7 +73,7 @@ func _sin_escena() -> void:
 			todas_estan = false
 			mal.append("%s %s ≠ %s" % [id, str(tiene), str(quiere)])
 	_ok("1 las %d acciones están en el InputMap de project.godot con su tecla de fábrica" % ESPERADAS.size(), todas_estan, ", ".join(mal))
-	_ok("1 Controles lista %d acciones remapeables y %d fijas" % [Controles.ACCIONES.size(), Controles.FIJAS.size()], Controles.ACCIONES.size() == 17 and Controles.FIJAS.size() == 3)
+	_ok("1 Controles lista %d acciones remapeables y %d fijas" % [Controles.ACCIONES.size(), Controles.FIJAS.size()], Controles.ACCIONES.size() == 18 and Controles.FIJAS.size() == 3)
 	var fabrica_ok: bool = true
 	for id in Controles.ids():
 		if Controles.de_fabrica(id) != (ESPERADAS[id] as Array):

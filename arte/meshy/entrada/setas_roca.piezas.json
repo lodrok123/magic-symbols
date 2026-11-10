@@ -1,0 +1,47 @@
+{
+ "p0": {
+  "trozos": [
+   0
+  ],
+  "id": "setas_rojas",
+  "tris": 1500,
+  "directo": true,
+  "nota": "setas recolectables, variante roja"
+ },
+ "p1": {
+  "trozos": [
+   1
+  ],
+  "id": "setas_azules",
+  "tris": 1500,
+  "directo": true,
+  "nota": "setas recolectables, variante azul"
+ },
+ "p2": {
+  "trozos": [
+   2
+  ],
+  "id": "setas_marrones",
+  "tris": 1500,
+  "directo": true,
+  "nota": "setas recolectables, variante marrón"
+ },
+ "p3": {
+  "trozos": [
+   3
+  ],
+  "id": "estalagmitas_a",
+  "tris": 2000,
+  "directo": true,
+  "nota": "estalagmitas de cueva"
+ },
+ "p4": {
+  "trozos": [
+   4
+  ],
+  "id": "estalagmitas_b",
+  "tris": 2000,
+  "directo": true,
+  "nota": "estalagmitas de cueva, más altas"
+ }
+}

@@ -19,6 +19,8 @@ const TEXTO_SUAVE: Color = Color(0.86, 0.82, 0.74)           ## texto secundario
 const CONTORNO: Color = Color(0.0, 0.0, 0.0, 0.95)
 const SOMBRA: Color = Color(0.0, 0.0, 0.0, 0.55)
 const TINTA_PERGAMINO: Color = Color("4e3a26")               ## texto sobre el pergamino de la mochila y el libro
+const PERGAMINO_HUD: Color = Color("f2dfba")
+const PERGAMINO_DIALOGO: Color = Color("fff2d7")
 
 ## --- Medidas (px de diseño) ---
 const ESQUINA_PX: int = 12

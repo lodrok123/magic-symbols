@@ -18,6 +18,8 @@ extends Node3D
 ## El trazo que se está reconociendo ahora mismo. Lo rellena el grimorio
 ## a través de add_stroke(); este nodo ya no captura ratón.
 var stroke_points: Array[Vector2] = []
+var guardar_paginas: bool = true
+var sellos_por_pagina: int = 2
 
 # Conteo de esquinas: el reconocedor ANTIGUO, y solo de emergencia.
 #
@@ -178,8 +180,9 @@ func _ready() -> void:
 		})
 	# Las páginas guardadas (partida cargada, cambio de nivel, cambio de libro) se leen aquí: antes `Repertoire.paginas` se guardaba pero nadie lo devolvía al libro y la
 	# partida cargada abría las tres páginas en blanco.
-	cargar_paginas()
-	Repertoire.avisos.libro_cambiado.connect(_al_cambiar_libro)
+	if guardar_paginas:
+		cargar_paginas()
+		Repertoire.avisos.libro_cambiado.connect(_al_cambiar_libro)
 
 
 func _exit_tree() -> void:
@@ -197,7 +200,7 @@ var _cargando: bool = false
 
 ## Pasa las páginas del Grimorio a `Repertoire.paginas` (elemento, elemento2 y glifos EN ORDEN DE DIBUJO: el sector ya no importa). Se llama solo cuando una página cambia.
 func volcar_paginas() -> void:
-	if _cargando:
+	if _cargando or not guardar_paginas:
 		return
 	var lista: Array = []
 	for i in range(mini(PAGES, pages.size())):
@@ -688,7 +691,7 @@ func _add_element(strokes: Array) -> void:
 func _poner_sello(rune: Runes.Type, calidad: float) -> void:
 	var p: Dictionary = pages[page]
 	var foto: Dictionary = {"kind": "element", "previous": p["element"], "previous_q": p["element_q"]}
-	if not es_avanzado():
+	if not es_avanzado() or sellos_por_pagina == 1:
 		undo_history.append(foto)
 		current_element = rune
 		p["element_q"] = calidad
@@ -780,9 +783,9 @@ func add_sigil(sector: Vector2, sigil_name: String, calidad: float = 1.0) -> voi
 	var limite: int = Repertoire.max_sigils_per_page
 	if limite > 0 and sigils_used() >= limite:
 		Sfx.play(self, "sello_no")
-		print("Ya has usado los ", limite, " sellos de esta página.",
-			" Deshaz uno (clic derecho) si quieres cambiarlo.")
-		_feedback("Página llena: %d sellos" % limite)
+		print("Ya has usado los ", limite, " glifos de esta página.",
+			" Quita uno (clic derecho sobre él) si quieres cambiarlo.")
+		_feedback("Página llena: %d glifos" % limite)
 		return
 
 	# LA REGLA DEL LIBRO (3.1, DISENO_FUTURO §3): con el raton apuntando, UN GLIFO POR SECTOR.
@@ -859,10 +862,10 @@ func _sector_ocupado(sector: Vector2) -> bool:
 ## El primer sector sin glifo; si estan todos llenos, la derecha (add_sigil lo rechazara).
 func _primer_hueco_libre() -> Vector2:
 	if es_avanzado():
-		for i in range(CORONA_ANGULOS.size()):
+		for i in range(huecos_abiertos()):
 			if not _sector_ocupado(dir_corona(i)):
 				return dir_corona(i)
-		return dir_corona(CORONA_ANGULOS.size() - 1)       # todos llenos: `add_sigil` lo rechaza con «Hueco ocupado»
+		return dir_corona(CORONA_ANGULOS.size() - 1)       # todos llenos: `add_sigil` lo rechaza («Página llena» u «Hueco ocupado»)
 	for i in range(HUECOS):
 		var angulo: float = TAU / float(HUECOS) * float(i)
 		var dir := Vector2(cos(angulo), sin(angulo))
@@ -928,6 +931,32 @@ func current_element_data() -> RuneData:
 ## el glifo que toca en cada sector ocupado.
 func components() -> Array:
 	return current_components
+
+
+## 10/11: cuántos huecos de la corona están ABIERTOS en el libro avanzado (los primeros N, en el orden de CORONA_ANGULOS). Los demás se ven tapados y no admiten
+## glifo. Sale de la progresión (`Repertoire.max_sigils_per_page`, que fija el libro y suben los engarces: `Mejoras`); 0 = sin límite, los seis.
+static func huecos_abiertos() -> int:
+	var n: int = Repertoire.max_sigils_per_page
+	return CORONA_ANGULOS.size() if n <= 0 else clampi(n, 0, CORONA_ANGULOS.size())
+
+
+## 10/11: quita el glifo del hueco `i` de la corona (libro avanzado), sea el último puesto o no. Lo que se deshaga después ya no lo cuenta. Devuelve si había algo.
+func quitar_glifo_hueco(i: int) -> bool:
+	if i < 0 or i >= CORONA_ANGULOS.size():
+		return false
+	var dir: Vector2 = dir_corona(i)
+	for component in current_components:
+		if (component["direction"] as Vector2).is_equal_approx(dir) and not (component["sigils"] as Array).is_empty():
+			current_components.erase(component)
+			var hist: Array = undo_history                # la de la página (propiedad sin setter): se limpia en su sitio
+			for k in range(hist.size() - 1, -1, -1):
+				var paso: Dictionary = hist[k]
+				if String(paso.get("kind", "")) == "sigil" and (paso["direction"] as Vector2).is_equal_approx(dir):
+					hist.remove_at(k)
+			Sfx.play_ui("pagina", DB_DESHACER)
+			_actualizar_resumen(page)
+			return true
+	return false
 
 
 ## Volumen (dB) del «pagina» al deshacer y del «barrido» al vaciar la página (tarea U1).

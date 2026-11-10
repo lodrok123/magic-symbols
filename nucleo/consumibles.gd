@@ -13,6 +13,10 @@ extends RefCounted
 ## F3 (29/10): los otros consumibles de la tabla (`objetos.tsv`, uso = equipar) por la columna `efecto`, SIN un `match` por id:
 ##   pocion_grande      cura 80 (lo bebe el jugador igual que la poción: `usar_pocion(id)`)      antidoto  `cura_estado=veneno;inmune=veneno;dura=60`
 ##   frescor / abrigo   `resiste=calor|frio;dura=90`
+## 10/11 (docs/PROPUESTA_CONSUMIBLES.md, primera tanda): TODO lo que lleva `cura` en su efecto se BEBE como la poción (`pocion`, `pocion_grande`, `pocion_mayor`;
+## la mayor además regenera con `regen` y `dura` al terminar de beber: `iniciar_regen`, lo llama `Jugador3D._terminar_beber`). `inmune` admite una LISTA separada por
+## comas (`inmune=veneno,rayo`: los elixires mixtos, que previenen sin quitar). `cura_estado` acepta veneno, frio, calor y rayo (antídoto, brasa embotellada,
+## frasco de frescor, savia aislante).
 ## Quitar un estado (`cura_estado`) llama a `Jugador3D.curar_estado`. Las protecciones (`inmune`, `resiste`) viven en `inmunidades` / `resistencias`: estado -> segundos
 ## que quedan, y `actualizar(delta)` las cuenta atrás. Son ESTÁTICAS (un solo reloj para toda la partida, como `Estado`): F4 las lee con `Consumibles.protegido(estado)` y
 ## `Consumibles.resiste(estado)` desde donde haga falta (el calor, el frío, el veneno). Los pigmentos (uso = pigmento) NO pasan por aquí: ver `aplicar_pigmento`.
@@ -98,10 +102,11 @@ func motivo_no(id: String) -> String:
 		return "Ahora no"
 	if cantidad(id) <= 0:
 		return "No te quedan"
+	if Objetos.efecto(id).has("cura"):
+		if _vida() >= _vida_max() - 0.01:
+			return "Ya tienes la vida llena"
+		return ""
 	match id:
-		"pocion", "pocion_grande":
-			if _vida() >= _vida_max() - 0.01:
-				return "Ya tienes la vida llena"
 		"infusion_brezo":
 			if _vida() >= _vida_max() - 0.01:
 				return "Ya tienes la vida llena"
@@ -116,11 +121,12 @@ func motivo_no(id: String) -> String:
 				return "Ya llevas el bálsamo puesto"
 		_:
 			var ef: Dictionary = Objetos.efecto(id)
-			if ef.has("inmune") and protegido(String(ef["inmune"])) and not ef.has("cura_estado"):
+			var todos: bool = ef.has("inmune") and _todos_protegidos(lista(ef["inmune"]))
+			if todos and not ef.has("cura_estado"):
 				return "Ya estás protegido"
 			if ef.has("resiste") and resiste(String(ef["resiste"])):
 				return "Ya aguantas eso"
-			if ef.has("inmune") and ef.has("cura_estado") and protegido(String(ef["inmune"])) and not tiene_estado(String(ef["cura_estado"])):
+			if todos and ef.has("cura_estado") and not tiene_estado(String(ef["cura_estado"])):
 				return "Ya estás protegido"
 	return ""
 
@@ -147,8 +153,8 @@ func usar(id: String) -> bool:
 		_rechazar(motivo)
 		return false
 	var ef: Dictionary = Objetos.efecto(id)
-	match id:
-		"pocion", "pocion_grande":
+	match ("pocion" if ef.has("cura") else id):       # todo lo que cura se bebe igual que la poción
+		"pocion":
 			# Beber lo hace el jugador (animación, 1,5 s, cura y gasta la poción al terminar). Si está ocupado (rodando, lanzando...) dice que no.
 			# La poción de siempre se llama sin argumentos (los jugadores de mentira de las pruebas no los tienen); la grande dice cuál es.
 			var bebe: bool = bool(jugador.call("usar_pocion")) if id == "pocion" else bool(jugador.call("usar_pocion", id))
@@ -188,14 +194,42 @@ func _efecto_generico(id: String, ef: Dictionary) -> bool:
 	if ef.has("cura_estado"):
 		curar_estado(String(ef["cura_estado"]))
 	if ef.has("inmune"):
-		inmunidades[String(ef["inmune"])] = dura
+		for estado in lista(ef["inmune"]):
+			inmunidades[estado] = dura
 	if ef.has("resiste"):
 		resistencias[String(ef["resiste"])] = dura
 	aviso.emit("%s: %d s" % [String(Objetos.DATOS.get(id, {}).get("nombre", id)), int(dura)], Color(0.65, 0.95, 0.7))
 	return true
 
 
-## Quita el estado (hoy solo el veneno) a la jugadora. El gancho de F4: si el jugador tiene `curar_estado`, lo llama. Devuelve si había algo que quitar.
+## Un valor de `efecto` como lista: «veneno,rayo» → ["veneno", "rayo"] (un valor suelto, lista de uno).
+static func lista(v: Variant) -> Array:
+	var r: Array = []
+	for t in String(v).split(","):
+		if t.strip_edges() != "":
+			r.append(t.strip_edges())
+	return r
+
+
+func _todos_protegidos(estados: Array) -> bool:
+	for e in estados:
+		if not protegido(String(e)):
+			return false
+	return not estados.is_empty()
+
+
+## La poción mayor (10/11): al terminar de beberla regenera `tasa` de vida por segundo durante `dura` s, como la infusión (si ya hay una infusión, se queda la más fuerte).
+func iniciar_regen(tasa: float, dura: float) -> void:
+	if tasa <= 0.0 or dura <= 0.0:
+		return
+	if regen_t <= 0.0 or tasa >= regen_tasa:
+		regen_tasa = tasa
+		_acum = 0.0
+	regen_t = maxf(regen_t, dura)
+	cambiado.emit()
+
+
+## Quita el estado a la jugadora (veneno, frio, calor, rayo). El gancho de F4: si el jugador tiene `curar_estado`, lo llama. Devuelve si había algo que quitar.
 func curar_estado(estado: String) -> bool:
 	if jugador != null and jugador.has_method("curar_estado"):
 		return bool(jugador.call("curar_estado", estado))

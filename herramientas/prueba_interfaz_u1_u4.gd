@@ -2,7 +2,7 @@ extends "res://herramientas/escenario_base.gd"
 ## GAMEFEEL, TAREA U (31/10; U1 grimorio · U2 muerte y reaparición · U3 misiones · U4 tienda y oro): la interfaz que faltaba se oye y se ve. Nada cambia reglas.
 ##   U1  spellbook.gd: abrir/cerrar con tween (escala 0,96 → 1 y fundido, 0,15 s); grimorio.gd: `sello_no` en los dos rechazos mudos, `pagina` (−14 dB) al deshacer, `barrido` al vaciar.
 ##   U2  jugador_3d.gd: el golpe que mata también llama a `Sensacion3D.dano_recibido`; pantalla_muerte.gd suena `muerte` (−8); `reaparecer` suena y abre una viñeta clara 0,6 s.
-##   U3  mision_hud.gd + misiones.gd: `logro_pista` al activar y al marcar un objetivo, `logro_acierto` al completar; la línea entra deslizándose y destella.
+##   U3  mision_hud.gd + misiones.gd: `logro_pista` al activar, `objetivo_cumplido` al avanzar y `mision_completada` al completar; la línea entra deslizándose y destella.
 ##   U4  bosque_3d.gd: `comprar` / `no_puedes` en la tienda; `moneda` con el oro de cofres (puzle.gd, bosque_01_3d.gd) y de misiones.
 ## Los sonidos se miran con `Sfx.REGISTRAR` / `ULTIMOS` (headless no se oye nada); entre dos sonidos iguales se espera más que la veda de 70 ms.
 ##   godot --headless --fixed-fps 30 --path . --script res://herramientas/prueba_interfaz_u1_u4.gd
@@ -125,20 +125,20 @@ func _u3_misiones() -> void:
 	_ok("3 activar: la línea parte desplazada a la izquierda y destellando (>1)", hud.position.x < MisionHud.POS.x - 1.0 and hud.modulate.r > 1.2, "%s %s" % [hud.position, hud.modulate])
 	await avanzar(int(ceil(MisionHud.T_DESTELLO_S * 30.0)) + 4)
 	_ok("3 activar: llega a su sitio y recupera su color", hud.position.is_equal_approx(MisionHud.POS) and hud.modulate.is_equal_approx(Color.WHITE), "%s %s" % [hud.position, hud.modulate])
-	_ok("3 activar: no suena el acierto ni la moneda", Sfx.veces("logro_acierto") == 0 and Sfx.veces("moneda") == 0)
+	_ok("3 activar: no suena el acierto ni la moneda", Sfx.veces("mision_completada") == 0 and Sfx.veces("moneda") == 0)
 
 	await _pausa()
 	m.objetivo_hecho("u3", 0)
-	_ok("3 objetivo: suena logro_pista otra vez", Sfx.veces("logro_pista") == 2, str(Sfx.CONTEO))
+	_ok("3 objetivo: suena objetivo_cumplido", Sfx.veces("objetivo_cumplido") == 1, str(Sfx.CONTEO))
 	tw = hud.get("_tw")
 	_ok("3 objetivo: la línea vuelve a entrar con tween", tw is Tween and (tw as Tween).is_running())
-	_ok("3 objetivo: aún no suena el acierto", Sfx.veces("logro_acierto") == 0)
+	_ok("3 objetivo: aún no suena el acierto", Sfx.veces("mision_completada") == 0)
 	await avanzar(int(ceil(MisionHud.T_DESTELLO_S * 30.0)) + 4)
 
 	await _pausa()
 	m.objetivo_hecho("u3", 1)
-	_ok("3 completar: suena logro_acierto", Sfx.veces("logro_acierto") == 1, str(Sfx.CONTEO))
-	_ok("3 completar: el último objetivo NO suma además un logro_pista (solo el acierto)", Sfx.veces("logro_pista") == 2, str(Sfx.CONTEO))
+	_ok("3 completar: suena mision_completada", Sfx.veces("mision_completada") == 1, str(Sfx.CONTEO))
+	_ok("3 completar: el último objetivo solo reproduce el cierre", Sfx.veces("objetivo_cumplido") == 1 and Sfx.veces("logro_pista") == 1, str(Sfx.CONTEO))
 	_ok("3 completar: la recompensa en oro suena moneda y se paga igual", Sfx.veces("moneda") == 1 and Estado.i().oro == oro0 + 12, "oro %d -> %d" % [oro0, Estado.i().oro])
 	tw = hud.get("_tw")
 	_ok("3 completar: tween vivo", tw is Tween and (tw as Tween).is_valid())
@@ -148,7 +148,7 @@ func _u3_misiones() -> void:
 	m.definir({"id": "u3b", "titulo": "Sin objetivos", "estado": "activa"})
 	await _pausa()
 	m.completar("u3b")
-	_ok("3 completar a mano: logro_acierto de nuevo", Sfx.veces("logro_acierto") == 2, str(Sfx.CONTEO))
+	_ok("3 completar a mano: mision_completada de nuevo", Sfx.veces("mision_completada") == 2, str(Sfx.CONTEO))
 
 	# ACTIVA = false: sonidos sí, tweens no.
 	Sensacion3D.ACTIVA = false
@@ -161,10 +161,10 @@ func _u3_misiones() -> void:
 	_ok("3 ACTIVA=false: sin tween ni deslizamiento ni destello", hud.get("_tw") == null and hud.position.is_equal_approx(MisionHud.POS) and hud.modulate.is_equal_approx(Color.WHITE), "%s %s" % [hud.position, hud.modulate])
 	await _pausa()
 	m.objetivo_hecho("u3c", 0)
-	_ok("3 ACTIVA=false: el objetivo suena logro_pista", Sfx.veces("logro_pista") == 2)
+	_ok("3 ACTIVA=false: el objetivo suena objetivo_cumplido", Sfx.veces("objetivo_cumplido") == 1)
 	await _pausa()
 	m.objetivo_hecho("u3c", 1)
-	_ok("3 ACTIVA=false: completar suena logro_acierto", Sfx.veces("logro_acierto") == 1)
+	_ok("3 ACTIVA=false: completar suena mision_completada", Sfx.veces("mision_completada") == 1)
 	_ok("3 ACTIVA=false: sigue sin tween", hud.get("_tw") == null)
 	Sensacion3D.ACTIVA = true
 	hud.queue_free()

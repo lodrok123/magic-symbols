@@ -1,0 +1,38 @@
+{
+ "p0": {
+  "trozos": [
+   0
+  ],
+  "id": "muro_agrietado",
+  "tris": 3000,
+  "directo": true,
+  "nota": "bloque de sillares que se rompe (MuroAgrietado3D)"
+ },
+ "p1": {
+  "trozos": [
+   1
+  ],
+  "id": "puerta_llave_marco",
+  "tris": 2500,
+  "directo": true,
+  "nota": "marco de la puerta con llave"
+ },
+ "p2": {
+  "trozos": [
+   2
+  ],
+  "id": "llave_pequena",
+  "tris": 800,
+  "directo": true,
+  "nota": "la llave"
+ },
+ "p3": {
+  "trozos": [
+   3
+  ],
+  "id": "puerta_llave_hoja",
+  "tris": 2000,
+  "directo": true,
+  "nota": "hoja con cerradura (baja al abrir)"
+ }
+}

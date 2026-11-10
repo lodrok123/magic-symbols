@@ -21,6 +21,7 @@ const ACCIONES: Array = [
 	{"id": "interactuar", "texto": "Interactuar", "teclas": [KEY_E]},
 	{"id": "usar_consumible", "texto": "Usar consumible", "teclas": [KEY_Q]},
 	{"id": "cambiar_consumible", "texto": "Cambiar consumible", "teclas": [KEY_R]},
+	{"id": "lanzar_objeto", "texto": "Lanzar objeto de la rueda", "teclas": [KEY_G]},     # 10/11: lanza el lanzable elegido hacia el ratón (`Lanzables`)
 	{"id": "mochila", "texto": "Mochila", "teclas": [KEY_I]},
 	{"id": "misiones", "texto": "Misiones", "teclas": [KEY_J]},
 	{"id": "libro", "texto": "Libro de hechizos", "teclas": [KEY_T]},

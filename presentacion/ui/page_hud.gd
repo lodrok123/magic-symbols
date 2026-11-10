@@ -9,12 +9,14 @@ extends Control
 ##
 ## Es solo interfaz: lee del Spellcaster y del jugador, no decide nada.
 
-const RADIO: float = 17.0
-const SEPARACION: float = 48.0
+const RADIO: float = 12.0
+const SEPARACION: float = 55.0
 const TINTA: Color = Color(0.96, 0.94, 0.88, 0.95)
 const TINTA_SUAVE: Color = Color(0.96, 0.94, 0.88, 0.55)
 const VELO: Color = Color(0.0, 0.0, 0.0, 0.6)
 
+var _pestana: StyleBoxFlat
+var _pestana_activa: StyleBoxFlat
 
 ## El destello de la runa al conjurar (Fase 14.5): la página que se lanza brilla un instante. Lo pide el Lanzador3D.
 var _destello_i: int = -1
@@ -60,9 +62,16 @@ func destello(indice: int, dur: float = 0.25) -> void:
 
 func _ready() -> void:
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_pestana = TemaInterfaz.caja_panel(TemaInterfaz.PERGAMINO_HUD, TemaInterfaz.BORDE_CALIDO_OSCURO, 1)
+	_pestana.set_corner_radius_all(8)
+	_pestana.shadow_size = 3
+	_pestana_activa = _pestana.duplicate() as StyleBoxFlat
+	_pestana_activa.set_border_width_all(2)
 
 
 func _process(_delta: float) -> void:
+	var dialogo := get_tree().get_first_node_in_group("dialogo_pergamino") as Control
+	modulate.a = 0.4 if dialogo != null and dialogo.is_visible_in_tree() else 1.0
 	queue_redraw()
 
 
@@ -74,7 +83,7 @@ func _draw() -> void:
 	var total: int = Repertoire.pages_available(caster.PAGES)
 	var lanzador := caster as Lanzador3D
 	var de_combate: bool = lanzador != null and not lanzador.libro_abierto() and not lanzador.fichas_combate.is_empty()
-	var y: float = size.y - 44.0
+	var y: float = size.y - 49.0
 	var x0: float = size.x * 0.5 - float(total - 1) * 0.5 * SEPARACION
 
 	for i in range(total):
@@ -86,7 +95,8 @@ func _draw() -> void:
 		var activa: bool = i == caster.page
 		var radio: float = RADIO * (1.15 if activa else 1.0)
 
-		draw_circle(centro, radio + 2.0, Color(0.05, 0.05, 0.08, 0.65))
+		var pestana := _pestana_activa if activa else _pestana
+		pestana.draw(get_canvas_item(), Rect2(centro - Vector2(23.0, 17.0), Vector2(46.0, 52.0)))
 		var datos: RuneData = caster.page_element_data(i)
 		var preparada: bool = caster.page_ready(i)
 		if de_combate and i < lanzador.fichas_combate.size():
@@ -97,6 +107,9 @@ func _draw() -> void:
 			if not preparada:
 				tinte.a = 0.35
 			draw_circle(centro, radio, tinte)
+			if datos.glyph != null:
+				var lado := Vector2.ONE * radio * 1.35
+				draw_texture_rect(datos.glyph, Rect2(centro - lado * 0.5, lado), false, Color("33251a"))
 		else:
 			draw_circle(centro, radio, Color(0.3, 0.3, 0.34, 0.5))
 			# Libro avanzado: dos sellos opuestos (fuego + agua, tierra + viento) se anulan: la página sale apagada con una cruz roja, no como «vacía».
@@ -122,7 +135,7 @@ func _draw() -> void:
 				var k: float = clampf(queda / _destello_dur, 0.0, 1.0)
 				draw_circle(centro, radio * (1.0 + 0.6 * (1.0 - k)), Color(1.0, 0.97, 0.85, 0.55 * k))
 				draw_arc(centro, radio * (1.2 + 0.8 * (1.0 - k)), 0.0, TAU, 32, Color(1.0, 0.97, 0.85, k), 3.0, true)
-		_texto(centro + Vector2(0.0, 5.0), str(i + 1), TINTA)
+		_texto(centro + Vector2(0.0, 28.0), Controles.texto_teclas("pagina_%d" % (i + 1)), TemaInterfaz.TINTA_PERGAMINO, 42.0)
 
 	# La voltereta.
 	var jugador = get_tree().get_first_node_in_group("player")
@@ -133,11 +146,13 @@ func _draw() -> void:
 		draw_circle(c, RADIO * 0.7, Color(0.62, 0.78, 0.95, 0.9 if listo <= 0.0 else 0.35))
 		if listo > 0.0:
 			draw_arc(c, RADIO * 0.35, -PI * 0.5, -PI * 0.5 + TAU * listo, 24, VELO, RADIO * 0.7, true)
-		_texto(c + Vector2(0.0, 22.0 + RADIO * 0.5), "Espacio", TINTA_SUAVE)
+		_texto(c + Vector2(0.0, 22.0 + RADIO * 0.5), Controles.texto_teclas("voltereta"), TINTA)
 
 
-func _texto(pos: Vector2, texto: String, color: Color) -> void:
-	var fuente: Font = ThemeDB.fallback_font
+func _texto(pos: Vector2, texto: String, color: Color, ancho_max: float = -1.0) -> void:
+	var fuente: Font = TemaInterfaz.fuente()
 	var ancho: float = fuente.get_string_size(texto, HORIZONTAL_ALIGNMENT_LEFT, -1, 14).x
+	if ancho_max > 0.0:
+		ancho = minf(ancho, ancho_max)
 	draw_string(fuente, pos - Vector2(ancho * 0.5, 0.0), texto,
-		HORIZONTAL_ALIGNMENT_LEFT, -1, 14, color)
+		HORIZONTAL_ALIGNMENT_LEFT, ancho, 14, color)

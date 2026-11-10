@@ -323,6 +323,15 @@ func _npc(tipo: String) -> Dictionary:
 	return {}
 
 
+func _texto_dialogo() -> String:
+	var panel := reglas.get("_dialogo") as PanelContainer
+	if panel == null or not panel.visible:
+		return ""
+	var nombre := reglas.get("_dialogo_nombre") as Label
+	var texto := reglas.get("_dialogo_texto") as Label
+	return "%s: «%s»" % [nombre.text, texto.text]
+
+
 func _texto_aviso() -> String:
 	var etiqueta: Label = reglas.get("_aviso") as Label
 	return etiqueta.text if etiqueta != null else ""
@@ -389,7 +398,7 @@ func _gente() -> void:
 	var hacia_j: Vector3 = jugador.position - pg.position
 	_ok("5.6 a ≤ 2,7 u el goblin deja de talar, se queda en idle y mira a la jugadora", bool(gob["atento"]) and pg.animacion_actual == "idle" and absf(angle_difference(pg.rotation.y, atan2(hacia_j.x, hacia_j.z))) < 0.35, "%s / yaw %.2f" % [pg.animacion_actual, pg.rotation.y])
 	await _pulsar_e()
-	_ok("5.7 con E habla (clip talk): «Mis primos del este cierran el campamento…»", pg.animacion_actual == "talk" and _texto_aviso().begins_with("Goblin leñador: «Mis primos del este"), _texto_aviso())
+	_ok("5.7 con E habla (clip talk): «Mis primos del este cierran el campamento…»", pg.animacion_actual == "talk" and _texto_dialogo().begins_with("Goblin leñador: «Mis primos del este"), _texto_dialogo())
 	_ok("5.8 antes de caer el campamento no da la poción", not Flags.i().tiene("bosque01v1.goblin.pocion"))
 	colocar_jugador(Vector2i(8, 10))
 	await avanzar_s(3.0)
@@ -412,14 +421,14 @@ func _gente() -> void:
 	colocar_jugador(Vector2i(18, 15))
 	await avanzar_s(0.4)
 	await _pulsar_e()
-	_ok("5.14 con E da las pistas de los tótems: «Tres tótems de fuego abren esta puerta…»", _texto_aviso().begins_with("Elfo: «Tres tótems de fuego"), _texto_aviso())
+	_ok("5.14 con E da las pistas de los tótems: «Tres tótems de fuego abren esta puerta…»", _texto_dialogo().begins_with("Elfo: «Tres tótems de fuego"), _texto_dialogo())
 	await avanzar_s(T_HABLA_MIN)
 	await _pulsar_e()
 	await avanzar_s(T_HABLA_MIN)
 	await _pulsar_e()
 	await avanzar_s(T_HABLA_MIN)
 	await _pulsar_e()
-	_ok("5.15 y la cuarta pista habla de la llave del campamento del este", _texto_aviso().contains("llave está en el campamento"), _texto_aviso())
+	_ok("5.15 y la cuarta pista habla de la llave del campamento del este", _texto_dialogo().contains("llave está en el campamento"), _texto_dialogo())
 	# --- Marimanta: anda despacio entre dos extremos y piensa ---
 	var pm: Pj3D = mari["pj"]
 	colocar_jugador(Vector2i(44, 17))
@@ -444,15 +453,15 @@ func _gente() -> void:
 	colocar_jugador(Terreno3D.celda_de(pm.position) + Vector2i(0, 1))
 	await avanzar_s(0.5)
 	await _pulsar_e()
-	_ok("5.18 antes de la Cueva dice «Esta piedra canta cuando el cristal late…»", _texto_aviso().contains("Esta piedra canta"), _texto_aviso())
+	_ok("5.18 antes de la Cueva dice «Esta piedra canta cuando el cristal late…»", _texto_dialogo().contains("Esta piedra canta"), _texto_dialogo())
 	Flags.i().poner("cueva.c6.glifo")
 	await avanzar_s(T_HABLA_MIN)
 	await _pulsar_e()
-	_ok("5.19 con el glifo de la Cueva (`cueva.c6.glifo`) dice «Haz tú que suene»", _texto_aviso().contains("Haz tú que suene"), _texto_aviso())
+	_ok("5.19 con el glifo de la Cueva (`cueva.c6.glifo`) dice «Haz tú que suene»", _texto_dialogo().contains("Haz tú que suene"), _texto_dialogo())
 	Flags.i().poner("bosque01v1.hondonada.eco")
 	await avanzar_s(T_HABLA_MIN)
 	await _pulsar_e()
-	_ok("5.20 con la pared H1 abierta habla de la otra, junto a la explanada", _texto_aviso().contains("junto a la explanada"), _texto_aviso())
+	_ok("5.20 con la pared H1 abierta habla de la otra, junto a la explanada", _texto_dialogo().contains("junto a la explanada"), _texto_dialogo())
 	Flags.i().quitar("bosque01v1.hondonada.eco")
 	Flags.i().quitar("cueva.c6.glifo")
 	# --- Alquimista (sin cambios) ---
@@ -460,7 +469,7 @@ func _gente() -> void:
 	await avanzar_s(0.4)
 	var pociones: int = Estado.i().cuenta("pocion")
 	await _pulsar_e()
-	_ok("5.21 el alquimista habla y la primera vez da la muestra (una poción) y la recuerda en `bosque01v1.alquimista.muestra`", _texto_aviso().begins_with("Alquimista:") and Estado.i().cuenta("pocion") == pociones + 1 and Flags.i().tiene("bosque01v1.alquimista.muestra"), _texto_aviso())
+	_ok("5.21 el alquimista habla y la primera vez da la muestra (una poción) y la recuerda en `bosque01v1.alquimista.muestra`", _texto_dialogo().begins_with("Alquimista:") and Estado.i().cuenta("pocion") == pociones + 1 and Flags.i().tiene("bosque01v1.alquimista.muestra"), _texto_dialogo())
 	# --- El asesino en la hierba alta ---
 	var ase: Combate3D = reglas.get("_asesino") as Combate3D
 	if ase == null:
@@ -629,7 +638,7 @@ func _campamento() -> void:
 	await avanzar_s(0.5)
 	var pociones: int = Estado.i().cuenta("pocion")
 	await _pulsar_e()
-	_ok("8.19 y ahora dice «¿Los has echado?…» y da una poción (una vez)", _texto_aviso().contains("¿Los has echado?") and Estado.i().cuenta("pocion") == pociones + 1 and Flags.i().tiene("bosque01v1.goblin.pocion"), _texto_aviso())
+	_ok("8.19 y ahora dice «¿Los has echado?…» y da una poción (una vez)", _texto_dialogo().contains("¿Los has echado?") and Estado.i().cuenta("pocion") == pociones + 1 and Flags.i().tiene("bosque01v1.goblin.pocion"), _texto_dialogo())
 	await avanzar_s(T_HABLA_MIN)
 	await _pulsar_e()
 	_ok("8.20 la poción no se da dos veces", Estado.i().cuenta("pocion") == pociones + 1)
@@ -732,7 +741,7 @@ func _totems_y_puerta() -> void:
 	_junto_a(pe, Vector3(0.0, 0.0, -1.6))
 	await avanzar_s(0.4)
 	await _pulsar_e()
-	_ok("7.14 y dice «¡La puerta se ha abierto!…»", _texto_aviso().contains("La puerta se ha abierto"), _texto_aviso())
+	_ok("7.14 y dice «¡La puerta se ha abierto!…»", _texto_dialogo().contains("La puerta se ha abierto"), _texto_dialogo())
 
 
 # ---------------------------------------------------------------------------------------------------------------------

@@ -44,7 +44,7 @@ func _initialize() -> void:
 func _carga() -> void:
 	BD.recargar()
 	_ok("1 las siete tablas cargan sin filas mal formadas", BD.errores().is_empty(), str(BD.errores()))
-	_ok("1 objetos: 77 filas", BD.objetos().size() == 77, str(BD.objetos().size()))
+	_ok("1 objetos: 88 filas", BD.objetos().size() == 88, str(BD.objetos().size()))      # 10/11: +11 de la primera tanda de consumibles
 	_ok("1 las demás tablas no están vacías", not BD.fuentes().is_empty() and not BD.recetas().is_empty() and not BD.mejoras().is_empty()
 		and not BD.estados_mundo().is_empty() and not BD.tabla("goblin").is_empty() and not BD.reactivos("arbol").is_empty())
 	var pocion: Dictionary = BD.objeto("pocion")
@@ -53,7 +53,7 @@ func _carga() -> void:
 	_ok("1 «-» es vacío: oro sin etiquetas ni efecto, color de la fuente sin condición", (BD.objeto("oro")["etiquetas"] as Array).is_empty()
 		and (BD.objeto("oro")["efecto"] as Dictionary).is_empty() and String(BD.fuentes_de("seta")[0]["condicion"]) == "")
 	var ant: Dictionary = BD.objeto("antidoto")["efecto"]
-	_ok("1 efecto con texto y números: antidoto", ant == {"cura_estado": "veneno", "inmune": "veneno", "dura": 60}, str(ant))
+	_ok("1 efecto con texto y números: antidoto", ant == {"cura_estado": "veneno", "inmune": "veneno", "dura": 90}, str(ant))      # 10/11: los antídotos protegen 90 s
 	_ok("1 decimales: mejoras.por_nivel de tinta_frasco es 0,1", is_equal_approx(float(BD.mejora("tinta_frasco")["por_nivel"]), 0.1))
 	_ok("1 un id que no existe da {} y [] (sin romper)", BD.objeto("no_existe").is_empty() and BD.receta("x").is_empty() and BD.tabla("x").is_empty()
 		and BD.fuentes_de("x").is_empty() and BD.reactivos("x").is_empty() and BD.mejora("x").is_empty() and BD.estado_mundo("x").is_empty())
