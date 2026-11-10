@@ -18,6 +18,11 @@ Es el mismo flujo que tools/autorig_chaman.py (docs/PLAN_RIGGING.md Â§3), con 
      capa, asi que sus picos quedan lejos del maniqui y, por cercania, los cogerian las PIERNAS: al andar, la tela se rasgaria entre las dos.
      Los vertices de tela por debajo de la cadera se pesan a Hips (con una rampa hacia las piernas segun lo cerca que esten de ellas), que es como
      se resuelve una falda: cuelga rigida de la cadera en vez de romperse. Los de arriba (la capa sobre los hombros) los coge la transferencia normal.
+     10/11: la regla se rehizo tras auditar los dos rigs (ver las constantes UMBRAL_LILA ... A_FALDA y calcular_pesos). La CAPA se reconoce por
+     el color, con el corte calculado para cada modelo, y siempre es tela; las MANGAS se reconocen por conectividad y siguen al brazo; los PIES
+     nunca son tela; la falda de la tunica acompaña a las piernas hacia el bajo; y del maniqui se quita la tela del donante. El donante de la
+     Santa Compaña es el propio fantasma: hay que regenerar PRIMERO el fantasma y DESPUES la Santa Compaña (con `sin_brazos`).
+     Lo fija herramientas/prueba_rigs_autorig.gd; `AUTORIG_DEPURA=1` en el entorno imprime el reparto de la zona de mangas.
 
 Pasos: 1) lee el donante (huesos, malla y pesos) 2) encaja el esqueleto escalado 3) transfiere los pesos deformando la malla del donante hasta el
 esqueleto nuevo (maniqui) y tomando para cada vertice el punto mas cercano de esa superficie 4) reduce texturas y exporta GLB sin animaciones.
@@ -52,6 +57,23 @@ R_BRAZO = 0.050               # un vertice a menos de esto del eje del brazo nun
 UMBRAL_PIEL = 0.015           # verde - azul por encima de esto = piel (beige); por debajo, tela lila. Ver color_por_vertice
 K_MANO_MAX = 1.20             # si la mano saliera escalada mas que esto, el eje medido no es el brazo: se descarta la medida
 F_PEGADO_PIERNA = 0.045       # a menos de esto del eje de una pierna, la tela sigue a la pierna; mas lejos, a la cadera
+
+# 10/11 (Pablo: «ambos estan mal, revisalos»). La auditoria (herramientas/medidas_pesos_rig.gd y las 8 poses de
+# herramientas/captura_rig_fantasma.gd) encontro cuatro defectos, los cuatro de la regla de tela de arriba:
+#   - un PICO que salia del talon al dar una zancada: la regla mandaba a Hips todo lo que quedara a mas de LEJOS_TELA del maniqui por
+#     debajo de la cadera, tambien la PIEL del pie (el pie del destino no coincide con el del maniqui), y solo mezclaba con UpLeg/Leg;
+#   - las MANGAS anchas se rasgaban al subir los brazos: quedan a mas de R_BRAZO del eje, asi que eran «tela» y se iban a la cadera;
+#   - la CAPA subia con los brazos como una sabana: la franja de capa a menos de R_BRAZO del eje se pesaba como brazo;
+#   - la falda de la tunica era 100 % Hips y las rodillas la atravesaban.
+# La capa se reconoce por el COLOR (lila: azul por encima de verde); la tunica y las mangas tienen el color de la piel, asi que esas
+# se separan por geometria.
+UMBRAL_LILA = 0.04            # azul - verde por encima de esto = capa/capucha lila
+F_SUELO_PIE = 0.03            # (fraccion del alto) por encima del tobillo; de ahi para abajo nada que no sea lila es tela: es el pie
+K_MANGA = 0.60                # ver «MANGAS POR CONECTIVIDAD»: cuanto mas cerca del eje del brazo que del de la columna para ser bocamanga
+LEJOS_TRONCO = 0.14          # (m) un punto del donante dominado por Hips/Spine* a mas de esto de ese hueso es tela, no tronco
+A_FALDA = 0.60               # cuanto sigue a las piernas el BAJO de la tunica (0 en la cadera, esto en el bajo): asi la rodilla
+                              # empuja la tela en vez de atravesarla. La capa lila no: cuelga de la cadera como una pieza
+C_CENTRO = 0.03               # (m) media anchura de la franja central de la falda en la que se reparten las dos piernas
 
 PRINCIPALES = ["Hips", "Spine", "Spine1", "Spine2", "Neck", "Head", "HeadTop_End"] + [
     l + p for l in ("Left", "Right") for p in ("Shoulder", "Arm", "ForeArm", "Hand", "UpLeg", "Leg", "Foot", "ToeBase", "Toe_End")]
@@ -422,42 +444,205 @@ def soldar(obj):
     return et, pos, vec
 
 
-def calcular_pesos(obj, huesos, pre, vs_don, pesos_don, tris_don, pos, k, alto):
+def umbral_capa(cols):
+    """Corte de (azul - verde) que separa la CAPA del resto, calculado para ESTE modelo (Otsu sobre el histograma).
+
+    Un umbral fijo no vale (medido el 10/11): la capa del fantasma es lila (azul - verde = +0,10) y su piel y su tunica, blancas (0,00);
+    la de la Santa Compaña es malva (0,00) y su piel y su tunica, crema (-0,10). En los dos la capa es lo MAS azulado, pero el corte cae
+    en +0,05 en uno y en -0,05 en el otro. Con el umbral antiguo (verde >= azul + 0,015 = piel) el fantasma solo tenia 1280 vertices de
+    «piel» de 22738 y el eje del brazo no se podia medir.
+    """
+    n = 64
+    lo, hi = -0.3, 0.3
+    h = [0] * n
+    for c in cols:
+        d = min(hi - 1e-6, max(lo, c[2] - c[1]))
+        h[int((d - lo) / (hi - lo) * n)] += 1
+    total = float(len(cols))
+    centro = [lo + (i + 0.5) * (hi - lo) / n for i in range(n)]
+    suma = sum(h[i] * centro[i] for i in range(n))
+    mejor, corte = -1.0, UMBRAL_LILA
+    w0 = s0 = 0.0
+    for i in range(n - 1):
+        w0 += h[i]
+        s0 += h[i] * centro[i]
+        w1 = total - w0
+        if w0 < 1 or w1 < 1:
+            continue
+        entre = w0 * w1 * (s0 / w0 - (suma - s0) / w1) ** 2
+        if entre > mejor:
+            mejor, corte = entre, lo + (i + 1) * (hi - lo) / n
+    return corte
+
+
+def calcular_pesos(obj, huesos, pre, vs_don, pesos_don, tris_don, pos, k, alto, capa_v=None):
     et, gpos, vecinos = soldar(obj)
+    # capa por posicion soldada (la del primer vertice del grupo). Sin textura legible, nada es capa y no se distingue de la tunica.
+    lila = [False] * len(gpos)
+    if capa_v:
+        visto = [False] * len(gpos)
+        for vi, g in enumerate(et):
+            if not visto[g]:
+                visto[g] = True
+                lila[g] = capa_v[vi]
     print("vertices %d, posiciones soldadas %d" % (len(et), len(gpos)))
     mq = maniqui(vs_don, pesos_don, huesos, pos, k)
-    bvh = BVHTree.FromPolygons([tuple(p) for p in mq], tris_don)
     hijos = hijos_de(huesos)
     segs = {}
     for n in huesos:
         h = pos[n]
         t = (sum((pos[c] for c in hijos[n]), Vector()) / len(hijos[n])) if hijos[n] else (h + huesos[n]["R"].col[1] * 0.02)
         segs[n] = (h, t)
+    # EL MANIQUI SIN LA TELA DEL DONANTE (10/11). Cuando el donante es otro rig de este mismo script (la Santa Compaña se hace con el
+    # fantasma), su capa y su falda cuelgan de la cadera y la columna, y todo lo que en el destino quede cerca de ellas hereda esos
+    # pesos: las MANGAS de la Santa Compaña caen justo sobre la capa del fantasma y 1191 posiciones salian con peso de Hips, asi que
+    # al subir el brazo la bocamanga se quedaba en la cadera. La tela del donante se reconoce sin color: un punto cuyo hueso
+    # dominante es de la columna pero esta a mas de LEJOS_TRONCO de ese hueso no es tronco, es tela que cuelga de el.
+    tronco = set(pre + n for n in ("Hips", "Spine", "Spine1", "Spine2"))
+    tela_don = []
+    for i, w in enumerate(pesos_don):
+        dom = max(w, key=w.get) if w else None
+        tela_don.append(dom in tronco and dom in segs and dist_segmento(mq[i], *segs[dom]) > LEJOS_TRONCO)
+    tris_bvh = [t for t in tris_don if not any(tela_don[i] for i in t)]
+    print("maniqui: %d de %d triangulos del donante se descartan por ser tela que cuelga del tronco" % (len(tris_don) - len(tris_bvh), len(tris_don)))
+    tris_don = tris_bvh
+    bvh = BVHTree.FromPolygons([tuple(p) for p in mq], tris_don)
     piernas = [(pre + l + p) for l in ("Left", "Right") for p in ("UpLeg", "Leg")]
     columna = [pre + n for n in ("Hips", "Spine", "Spine1", "Spine2")]
     brazos = [(pre + l + p) for l in ("Left", "Right") for p in ("Arm", "ForeArm", "Hand")]
     z_cadera = pos[pre + "Hips"].z
     z_cuello = pos[pre + "Neck"].z
+    z_pie = max(pos[pre + "LeftFoot"].z, pos[pre + "RightFoot"].z) + alto * F_SUELO_PIE
+    por_lado = {"Left": [pre + "Left" + n for n in ("UpLeg", "Leg")], "Right": [pre + "Right" + n for n in ("UpLeg", "Leg")]}
+    brazo_de = {l: [pre + l + n for n in ("Arm", "ForeArm", "Hand")] for l in ("Left", "Right")}
+    # el bajo de la tela: lo mas bajo que hay por encima del pie, para la rampa de la falda
+    z_bajo = z_pie
+
+    def piernas_de_su_lado(p):
+        """Pesos entre las piernas: cada lado con las suyas y, en la franja central, las dos repartidas."""
+        s = min(1.0, max(0.0, (p.x + C_CENTRO) / (2.0 * C_CENTRO)))       # 0 = derecha (x < 0), 1 = izquierda
+        s = s * s * (3.0 - 2.0 * s)
+        w = {}
+        for lado, parte in (("Left", s), ("Right", 1.0 - s)):
+            if parte <= 0.0:
+                continue
+            for n, x in pesos_por_segmento(p, {n: segs[n] for n in por_lado[lado]}).items():
+                w[n] = w.get(n, 0.0) + x * parte
+        return w
+
+    def transferir(loc, idx):
+        tri = tris_don[idx]
+        wb = poly_3d_calc([mq[i] for i in tri], loc)
+        w = {}
+        for i, b in zip(tri, wb):
+            for n, x in pesos_don[i].items():
+                w[n] = w.get(n, 0.0) + x * b
+        s = sum(w.values())
+        return {n: x / s for n, x in w.items()} if s > 1e-6 else None
+
+    # MANGAS POR CONECTIVIDAD. Una manga ancha no se distingue de la falda por distancias (probado el 10/11: con un radio alrededor
+    # del eje del brazo solo caian 9 posiciones, y abriendolo se llevaba el vuelo de la falda, que cuelga junto a la mano). Lo que
+    # si las distingue es A QUE ESTAN COSIDAS: la manga es un tubo que sale del brazo y la falda sale del tronco. Las SEMILLAS son
+    # las posiciones que no son capa y estan pegadas al maniqui (reciben sus pesos por transferencia, que es fiable); desde ellas se
+    # propaga por las aristas de la malla, sin pasar por la capa, y cada posicion despegada hereda la semilla que tiene mas cerca
+    # ANDANDO POR LA TELA. Si esa semilla es del brazo, es manga y se queda con sus pesos.
+    import heapq
+    cerca = [bvh.find_nearest(p) for p in gpos]
+    semilla_w = {}
+    cola = []
+    dist = [1e18] * len(gpos)
+    origen = [-1] * len(gpos)
+    forzada = [False] * len(gpos)
+    for gi in range(len(gpos)):
+        loc, nor, idx, d = cerca[gi]
+        if loc is None or lila[gi] or d > LEJOS_TELA:
+            continue
+        w = transferir(loc, idx)
+        if w is None:
+            continue
+        # Una posicion pegada al TRONCO del maniqui pero en territorio del brazo (mas cerca de su eje que K_MANGA veces del de la
+        # columna) no es tronco: es la bocamanga, que cuelga rozando la cadera. No vale de semilla; heredara de la manga, como el resto.
+        if max(w, key=w.get) in tronco:
+            p = gpos[gi]
+            db0 = min(dist_segmento(p, *segs[n]) for n in brazos)
+            dc0 = min(dist_segmento(p, *segs[n]) for n in columna)
+            if db0 < dc0 * K_MANGA:
+                forzada[gi] = True
+                continue
+        semilla_w[gi] = w
+        dist[gi] = 0.0
+        origen[gi] = gi
+        heapq.heappush(cola, (0.0, gi))
+    while cola:
+        dd, i = heapq.heappop(cola)
+        if dd > dist[i]:
+            continue
+        for j in vecinos[i]:
+            if lila[j]:
+                continue
+            nd = dd + (gpos[i] - gpos[j]).length
+            if nd < dist[j]:
+                dist[j] = nd
+                origen[j] = origen[i]
+                heapq.heappush(cola, (nd, j))
+
+    def es_del_brazo(w):
+        n = max(w, key=w.get)[len(pre):]
+        return ("Arm" in n or "Hand" in n) and "Shoulder" not in n
+
+    if os.environ.get("AUTORIG_DEPURA"):
+        from collections import Counter
+        cuenta = Counter()
+        for gi, p in enumerate(gpos):
+            if abs(p.x) < 0.12 or not (alto * 0.30 < p.z < alto * 0.62):
+                continue
+            d = cerca[gi][3]
+            if lila[gi]:
+                cuenta["capa"] += 1
+            elif d <= LEJOS_TELA:
+                cuenta["semilla:" + max(semilla_w[gi], key=semilla_w[gi].get)[len(pre):] if gi in semilla_w else "semilla sin pesos"] += 1
+            elif origen[gi] < 0:
+                cuenta["despegada SIN CAMINO a una semilla"] += 1
+            else:
+                cuenta["despegada -> " + max(semilla_w[origen[gi]], key=semilla_w[origen[gi]].get)[len(pre):]] += 1
+        print("DEPURA zona de mangas (|x| > 0,12, altura 0,30-0,62):")
+        for kk, nn in cuenta.most_common(14):
+            print("DEPURA   %5d  %s" % (nn, kk))
 
     W = []
-    lejos = tela = 0
+    lejos = tela = mangas = pies = 0
     maxd = 0.0
-    for p in gpos:
-        loc, nor, idx, d = bvh.find_nearest(p)
+    for gi, p in enumerate(gpos):
+        loc, nor, idx, d = cerca[gi]
         d = d if loc is not None else 1e9
         maxd = max(maxd, d if d < 1e8 else 0.0)
-        # TELA: despegada del cuerpo (el donante no lleva capa, asi que su piel SI esta en el maniqui y la tela no) y por debajo del
-        # cuello, para no robarle el pelo ni las orejas a la cabeza.
+        capa = lila[gi]
         db = min(dist_segmento(p, *segs[n]) for n in brazos)
-        if p.z < z_cuello and d > LEJOS_TELA and db > R_BRAZO:
+        # MANGA (ver arriba). Va ANTES que la regla de tela y sin mirar la altura: la bocamanga cuelga por debajo de la cadera.
+        if (not capa) and p.z < z_cuello and (d > LEJOS_TELA or forzada[gi]) and origen[gi] >= 0 and es_del_brazo(semilla_w[origen[gi]]):
+            W.append(dict(semilla_w[origen[gi]]))
+            mangas += 1
+            continue
+        # TELA: por debajo del cuello (para no robarle el pelo ni las orejas a la cabeza) y, o bien es CAPA por su color —este
+        # pegada o despegada, pase o no junto al brazo—, o bien esta despegada del maniqui y lejos del eje del brazo.
+        # Lo que queda a la altura del pie y no es capa NO es tela: es el pie, que no coincide con el del maniqui.
+        es_tela = p.z < z_cuello and (capa or (d > LEJOS_TELA and db > R_BRAZO))
+        if es_tela and (not capa) and p.z < z_pie:
+            es_tela = False
+            pies += 1
+        if es_tela:
             if p.z < z_cadera:
                 # falda y picos bajos: cuelgan de la cadera, con mezcla hacia la pierna que tengan al lado
                 dp = min(dist_segmento(p, *segs[n]) for n in piernas)
                 t = min(1.0, max(0.0, (dp - F_PEGADO_PIERNA) / F_PEGADO_PIERNA))
                 t = t * t * (3.0 - 2.0 * t)
-                w = pesos_por_segmento(p, {n: segs[n] for n in piernas})
-                w = {n: x * (1.0 - t) for n, x in w.items()}
-                w[pre + "Hips"] = w.get(pre + "Hips", 0.0) + t
+                a = 1.0 - t                                   # por cercania a la pierna, como antes
+                if not capa:
+                    # la tunica ademas acompaña a las piernas hacia el bajo, aunque no las toque
+                    h = min(1.0, max(0.0, (z_cadera - p.z) / max(z_cadera - z_bajo, 1e-6)))
+                    a = max(a, A_FALDA * h * h * (3.0 - 2.0 * h))
+                w = {n: x * a for n, x in piernas_de_su_lado(p).items()}
+                w[pre + "Hips"] = w.get(pre + "Hips", 0.0) + (1.0 - a)
             else:
                 # capa sobre los hombros: cuelga de la COLUMNA. Sin esto se la llevan los brazos, que pasan justo por dentro de ella,
                 # y al levantarlos la capa sube como un ala.
@@ -469,16 +654,10 @@ def calcular_pesos(obj, huesos, pre, vs_don, pesos_don, tris_don, pos, k, alto):
             W.append(pesos_por_segmento(p, segs))
             lejos += 1
             continue
-        tri = tris_don[idx]
-        wb = poly_3d_calc([mq[i] for i in tri], loc)
-        w = {}
-        for i, b in zip(tri, wb):
-            for n, x in pesos_don[i].items():
-                w[n] = w.get(n, 0.0) + x * b
-        s = sum(w.values())
-        W.append({n: x / s for n, x in w.items()} if s > 1e-6 else pesos_por_segmento(p, segs))
-    print("transferencia: %d posiciones de TELA a la cadera, %d lejos del maniqui por segmento de hueso; distancia maxima %.3f"
-          % (tela, lejos, maxd))
+        w = transferir(loc, idx)
+        W.append(w if w is not None else pesos_por_segmento(p, segs))
+    print("transferencia: %d posiciones de TELA (cadera/columna), %d de MANGA al brazo, %d de pie rescatadas de la regla de tela, "
+          "%d lejos del maniqui por segmento de hueso; distancia maxima %.3f" % (tela, mangas, pies, lejos, maxd))
 
     # cabeza rigida (cara, orejas, melena, diadema) con rampa hacia el cuello
     head = pre + "Head"
@@ -563,9 +742,14 @@ def main():
 
     cols = color_por_vertice(obj)
     piel = None
+    capa_v = None
     if cols:
-        piel = [es_piel(c) for c in cols]
-        print("color: %d vertices de piel, %d de tela (de %d)" % (sum(piel), len(piel) - sum(piel), len(piel)))
+        corte = umbral_capa(cols)
+        capa_v = [(c[2] - c[1]) > corte for c in cols]
+        # para medir el eje del brazo, «piel» es todo lo que no es capa (la manga tambien vale: rodea al brazo)
+        piel = [not x for x in capa_v]
+        print("color: corte de capa en azul-verde > %+.3f; %d vertices de capa, %d de piel/tunica (de %d)"
+              % (corte, sum(capa_v), len(piel) - sum(capa_v), len(piel)))
     else:
         print("color: sin textura legible, el eje del brazo se mide solo por geometria")
 
@@ -573,7 +757,11 @@ def main():
     if sin_brazos:
         print("brazos: SIN medir, se deja el escalado del donante")
     else:
-        pos = encajar_brazos(huesos, pre, pos, vs, alto, piel)
+        # El eje del brazo se mide SOLO POR GEOMETRIA (piel=None), que es como se hizo el rig bueno del fantasma. Filtrar por color
+        # (10/11, probado) lo rompe de dos maneras: con el umbral antiguo la piel blanca del fantasma no contaba como piel y no habia
+        # rebanadas; y con «todo lo que no es capa» entra el vuelo de la tunica por debajo de la mano, la polilinea se alarga y la
+        # mano saldria x1,48. En los dos casos se caia al escalado del donante y la muñeca quedaba 9 cm por encima de la real.
+        pos = encajar_brazos(huesos, pre, pos, vs, alto, None)
     for n in ("Hips", "Spine2", "Neck", "Head", "LeftArm", "LeftForeArm", "LeftHand", "LeftUpLeg", "LeftLeg", "LeftFoot"):
         p = pos[pre + n]
         print("  %-12s (%6.3f, %6.3f, %6.3f)" % (n, p.x, p.y, p.z))
@@ -586,7 +774,7 @@ def main():
     print("diferencia maxima de base de hueso respecto al donante: %.6f" % peor)
 
     k = escalas_hueso(huesos, pos)
-    et, W = calcular_pesos(obj, huesos, pre, vs_don, pesos_don, tris_don, pos, k, alto)
+    et, W = calcular_pesos(obj, huesos, pre, vs_don, pesos_don, tris_don, pos, k, alto, capa_v)
     aplicar_pesos(obj, ao, huesos, et, W)
 
     inf = [len(w) for w in W]
