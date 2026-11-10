@@ -32,21 +32,22 @@ const CATALOGO: Dictionary = {
 	"paso_roca": {"f": ["oga_paso_piedra_0.ogg", "oga_paso_grava_0.ogg"], "db": -16.0, "tono": 0.10, "unidad": 3.0, "alcance": 10.0},
 	"paso_madera": {"f": ["oga_paso_madera_0.ogg", "oga_paso_madera_1.ogg", "oga_paso_madera_2.ogg"], "db": -16.0, "tono": 0.08,
 		"unidad": 3.0, "alcance": 10.0},
-	"goblin_grito": {"f": ["goblin_grito_0.ogg", "goblin_grito_1.ogg", "goblin_grito_2.ogg"],
+	# 10/11: «f_sn» = voces de criatura del lote GDC 2026 de Sonniss (subidas de tono al cocerlas: de orco a goblin). Solo suenan si los archivos están en esta máquina (`Sfx.archivos_de`).
+	"goblin_grito": {"f": ["goblin_grito_0.ogg", "goblin_grito_1.ogg", "goblin_grito_2.ogg"], "f_sn": ["sn_goblin_grito_0.ogg", "sn_goblin_grito_1.ogg", "sn_goblin_grito_2.ogg"],
 		"db": -6.0, "tono": 0.10},
 	# Al morir: los mismos gritos, más graves y más cortos de oído (tono 0,8) para que no se confunda con el aviso.
-	"goblin_muere": {"f": ["goblin_grito_0.ogg", "goblin_grito_1.ogg", "goblin_grito_2.ogg"],
+	"goblin_muere": {"f": ["goblin_grito_0.ogg", "goblin_grito_1.ogg", "goblin_grito_2.ogg"], "f_sn": ["sn_goblin_muere_0.ogg"],
 		"db": -5.0, "tono": 0.05, "base": 0.8},
 	# 29/10 (gamefeel lote 4, audio/gen_sfx_sensacion.py): el CUERPO que encaja un hechizo (`Combate3D.snd_golpe`: carne, piedra del gólem, chapoteo del limo) y el limo
 	# que revienta. Aquí y no en Sfx porque son del enemigo: con distancia y veda por emisor (tres goblins golpeados a la vez suenan tres veces).
 	# 2/11 (tarea R): «f» grabado (Kenney Impact, CC0), «f_sint» lo sintetizado de antes (suena con Sfx.GRABADOS = false).
-	"golpe_carne":  {"f": ["kenney_golpe_carne_0.ogg", "kenney_golpe_carne_1.ogg", "kenney_golpe_carne_2.ogg"], "f_sint": ["golpe_carne_0.wav", "golpe_carne_1.wav"], "db": -9.0, "tono": 0.12},
+	"golpe_carne":  {"f": ["kenney_golpe_carne_0.ogg", "kenney_golpe_carne_1.ogg", "kenney_golpe_carne_2.ogg"], "f_sn": ["sn_golpe_carne_0.ogg", "sn_golpe_carne_1.ogg", "sn_golpe_carne_2.ogg", "sn_golpe_carne_3.ogg"], "f_sint": ["golpe_carne_0.wav", "golpe_carne_1.wav"], "db": -9.0, "tono": 0.12},
 	"golpe_piedra": {"f": ["kenney_golpe_piedra_0.ogg", "kenney_golpe_piedra_1.ogg", "kenney_golpe_piedra_2.ogg"], "f_sint": ["golpe_piedra.wav"], "db": -8.0, "tono": 0.08},
 	# Pasos de los enemigos (tarea R): el gólem pesa (concreto, tono ×0,6, fuerte); el goblin es ligero (hierba y madera, tono ×1,2). Los dispara el propio enemigo al andar (`PasosEnemigo3D`).
 	"paso_golem":   {"f": ["kenney_paso_golem_0.ogg", "kenney_paso_golem_1.ogg", "kenney_paso_golem_2.ogg", "kenney_paso_golem_3.ogg"], "db": -4.0, "tono": 0.06, "base": 0.6, "unidad": 4.0, "alcance": 16.0},
 	"paso_goblin":  {"f": ["kenney_paso_goblin_0.ogg", "kenney_paso_goblin_1.ogg", "kenney_paso_goblin_2.ogg", "kenney_paso_goblin_3.ogg"], "db": -14.0, "tono": 0.08, "base": 1.2, "unidad": 3.0, "alcance": 11.0},
-	"limo_golpe":   {"f": ["limo_golpe.wav"],   "db": -9.0, "tono": 0.12},
-	"limo_muere":   {"f": ["limo_muere.wav"],   "db": -7.0, "tono": 0.06},
+	"limo_golpe":   {"f": ["limo_golpe.wav"], "f_sn": ["sn_limo_golpe_0.ogg"], "db": -9.0, "tono": 0.12},
+	"limo_muere":   {"f": ["limo_muere.wav"], "f_sn": ["sn_limo_muere_0.ogg"], "db": -7.0, "tono": 0.06},
 	"gato_maullido": {"f": ["oga_gato_maullido_0.wav", "oga_gato_maullido_1.wav", "oga_gato_maullido_2.ogg"], "f_sint": ["gato_maullido_0.ogg", "gato_maullido_1.ogg"],
 		"db": -9.0, "tono": 0.08},
 	"conversacion_voz": {"f": ["conversacion_voz_0.ogg", "conversacion_voz_1.ogg", "conversacion_voz_2.ogg"],

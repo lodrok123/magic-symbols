@@ -119,6 +119,7 @@ const DB_BUS_OCLUIDO: String = "dB:Ocluido (bus)"
 ## 2/11 (tercera tanda, N): el ciclo día/noche (CicloDia3D). Van al FINAL de F3, tras los buses, para no mover ningún índice; con prefijo «S:» pero se enrutan a CicloDia3D, no a Sensacion3D.
 const CICLO_HORA: String = "S:HORA"
 const CICLO_DURACION: String = "S:DURACION_DIA_S"
+const SON_SONNISS: String = "S:SONNISS"                ## 10/11: se enruta a Sfx.SONNISS (foley del lote GDC 2026, solo si los archivos están en esta máquina)
 const SON_GRABADOS: String = "S:GRABADOS"              ## 2/11 (tarea R): se enruta a Sfx.GRABADOS (no a Sensacion3D)
 const DB_NUEVOS: Array = ["no_puedes_ui", "paginas_bucle", "pluma_bucle"]   ## entradas del catálogo de la tarea R: sus filas dB van al final
 ## 2/11 (tareas L y W): filas de otras clases, con prefijo propio y enrutadas por `get`/`set` como las «S:». Van al FINAL de F3, tras las dB nuevas.
@@ -201,6 +202,7 @@ static func entradas() -> Array:
 		_entradas_cache.append({"n": CICLO_DURACION, "paso": 30.0, "min": 0.0, "max": 1200.0})
 		# 2/11 (tarea R): S:GRABADOS (1 = grabaciones, 0 = sintetizados de antes: para comparar de oído con el mando dB) y los sonidos nuevos del catálogo.
 		_entradas_cache.append({"n": SON_GRABADOS, "paso": 1.0, "min": 0.0, "max": 1.0})
+		_entradas_cache.append({"n": SON_SONNISS, "paso": 1.0, "min": 0.0, "max": 1.0})
 		for nombre in DB_NUEVOS:
 			_entradas_cache.append({"n": DB_PREFIJO + String(nombre), "paso": DB_PASO, "min": DB_MIN, "max": DB_MAX})
 		# 2/11 (tareas L y W): la mano pasando página y el caminar satisfactorio, al final.
@@ -641,6 +643,8 @@ static func impacto_valor(nombre: String) -> float:
 			return CicloDia3D.DURACION_DIA_S
 		SON_GRABADOS:
 			return 1.0 if Sfx.GRABADOS else 0.0
+		SON_SONNISS:
+			return 1.0 if Sfx.SONNISS else 0.0
 	if nombre.begins_with(DB_PREFIJO):
 		if nombre == DB_IMPRIMIR:
 			return 0.0                                     # una acción: siempre vuelve a 0
@@ -672,6 +676,8 @@ static func impacto_poner(nombre: String, v: float) -> void:
 			CicloDia3D.DURACION_DIA_S = maxf(v, 0.0)
 		SON_GRABADOS:
 			Sfx.GRABADOS = v >= 0.5
+		SON_SONNISS:
+			Sfx.SONNISS = v >= 0.5
 		_:
 			if nombre.begins_with(DB_PREFIJO):
 				if nombre == DB_IMPRIMIR:
@@ -728,7 +734,7 @@ func impacto_restaurar() -> void:
 func impacto_tabla() -> Dictionary:
 	var d: Dictionary = {}
 	for e in entradas():
-		if String(e["n"]) == "S:ACTIVA" or String(e["n"]) == DB_IMPRIMIR or String(e["n"]) == CICLO_HORA or String(e["n"]) == SON_GRABADOS:
+		if String(e["n"]) == "S:ACTIVA" or String(e["n"]) == DB_IMPRIMIR or String(e["n"]) == CICLO_HORA or String(e["n"]) == SON_GRABADOS or String(e["n"]) == SON_SONNISS:
 			continue                                   # «comparar» no se guarda: el lab no debe volver a abrir con la sensación apagada (es static: todo el proceso)
 		if String(e["n"]).begins_with(DB_PREFIJO) and is_equal_approx(impacto_valor(String(e["n"])), float(impacto_inicial.get(String(e["n"]), 0.0))):
 			continue                                   # los volúmenes solo si los has tocado: son ~100 y no ensucian el archivo

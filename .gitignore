@@ -70,3 +70,7 @@ videos/
 salida*.txt
 pruebas_resultado.txt
 tools/godot_local.txt
+
+# Foley del lote GDC 2026 de Sonniss (10/11): se usa en el juego pero su licencia no deja publicarlo como archivos sueltos y este repo es público.
+# Sin ellos el catálogo cae a lo de antes (Sfx.archivos_de). Cómo regenerarlos: audio/LICENCIAS.md.
+audio/sn_*

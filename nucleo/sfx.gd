@@ -61,7 +61,7 @@ static var CATALOGO: Dictionary = {
 	"prender":  {"f": ["prender.wav"],  "db": -9.0,  "tono": 0.12},
 	"congelar": {"f": ["oga_congelar_0.wav", "oga_congelar_1.wav"], "db": -6.0, "tono": 0.06},
 	"chispa":   {"f": ["chispa.wav"],   "db": -12.0, "tono": 0.14},
-	"derrumbe": {"f": ["derrumbe.wav"], "db": -7.0,  "tono": 0.10},
+	"derrumbe": {"f": ["derrumbe.wav"], "f_sn": ["sn_derrumbe_0.ogg"], "db": -7.0,  "tono": 0.10},
 	"rodar":    {"f": ["rodar.wav"],    "db": -8.0,  "tono": 0.08},
 	"arco":     {"f": ["arco.wav"],     "db": -9.0,  "tono": 0.08},
 	"pira":     {"f": ["pira.wav"],     "db": -6.0,  "tono": 0.0},
@@ -116,9 +116,9 @@ static var CATALOGO: Dictionary = {
 	"boton_clic":        {"f": ["boton_clic.wav"],        "db": -8.0,  "tono": 0.05},
 	"placa_hunde":       {"f": ["placa_hunde.wav"],       "db": -7.0,  "tono": 0.06},
 	"compuerta_baja":    {"f": ["compuerta_baja.wav"],    "db": -7.0,  "tono": 0.05},
-	"hielo_quiebra":     {"f": ["hielo_quiebra.wav"],     "db": -9.0,  "tono": 0.08},
+	"hielo_quiebra":     {"f": ["hielo_quiebra.wav"], "f_sn": ["sn_hielo_quiebra_0.ogg", "sn_hielo_quiebra_1.ogg", "sn_hielo_quiebra_2.ogg"], "db": -9.0,  "tono": 0.08},
 	"mecha":             {"f": ["mecha.wav"],             "db": -11.0, "tono": 0.04},
-	"explosion":         {"f": ["explosion.wav"],         "db": -6.0,  "tono": 0.06},
+	"explosion":         {"f": ["explosion.wav"], "f_sn": ["sn_explosion_0.ogg"], "db": -6.0,  "tono": 0.06},
 	"rueda_chirria":     {"f": ["rueda_chirria.wav"],     "db": -13.0, "tono": 0.1},
 	"zumbido_electrico": {"f": ["zumbido_electrico.wav"], "db": -12.0, "tono": 0.03},
 	"llenado":           {"f": ["llenado.wav"],           "db": -10.0, "tono": 0.0},
@@ -143,7 +143,7 @@ static var CATALOGO: Dictionary = {
 	# (`Mundo3D.reaccion`); el Juego no los llama. «arde_bucle» se pide con `Sfx.bucle` (suena mientras algo arde). Primera versión sintetizada: SE AFINA ESCUCHANDO.
 	"siseo_apagado":    {"f": ["siseo_apagado.wav"],    "db": -9.0,  "tono": 0.08},
 	"chapoteo":         {"f": ["chapoteo.wav"],         "db": -8.0,  "tono": 0.10},
-	"hundido_burbujas": {"f": ["hundido_burbujas.wav"], "db": -8.0,  "tono": 0.05},
+	"hundido_burbujas": {"f": ["hundido_burbujas.wav"], "f_sn": ["sn_hundido_burbujas_0.ogg"], "db": -8.0,  "tono": 0.05},
 	"arde_bucle":       {"f": ["oga_fuego_crepita_loop.wav"], "db": -12.0, "tono": 0.0},     # 27/10: el crepitar grabado (CC0)
 	"escudo_golpe":     {"f": ["escudo_golpe.wav"],     "db": -8.0,  "tono": 0.10},
 	"escudo_roto":      {"f": ["escudo_roto.wav"],      "db": -6.0,  "tono": 0.06},
@@ -163,9 +163,9 @@ static var CATALOGO: Dictionary = {
 	# 29/10 (gamefeel lote 4, Juego; audio/gen_sfx_sensacion.py). El cuerpo que encaja un golpe (`Combate3D.snd_golpe` por familia), la jugadora que lo encaja, el latido
 	# de la vida baja (bucle, `Sensacion3D.DirectorSensacion`), la voltereta, el clic de «ya puedes otra vez», el proyectil contra el mundo y el aro de carga (bucle).
 	# (golpe_carne, golpe_piedra, limo_golpe y limo_muere están en Sfx3D.CATALOGO: son del cuerpo del enemigo y llevan distancia, como su grito.)
-	"dano_jugadora":    {"f": ["dano_jugadora.wav"],    "db": -7.0,  "tono": 0.08},
+	"dano_jugadora":    {"f": ["dano_jugadora.wav"], "f_sn": ["sn_dano_jugadora_0.ogg"], "db": -7.0,  "tono": 0.08},
 	"latido":           {"f": ["latido.wav"],           "db": -8.0,  "tono": 0.0},
-	"voltereta":        {"f": ["voltereta.wav"],        "db": -14.0, "tono": 0.10},
+	"voltereta":        {"f": ["voltereta.wav"], "f_sn": ["sn_voltereta_0.ogg", "sn_voltereta_1.ogg", "sn_voltereta_2.ogg"], "db": -14.0, "tono": 0.10},
 	"recarga_lista":    {"f": ["recarga_lista.wav"],    "db": -16.0, "tono": 0.03},
 	"golpe_mundo":      {"f": ["golpe_mundo.wav"],      "db": -11.0, "tono": 0.10},
 	"carga_bucle":      {"f": ["carga_bucle.wav"],      "db": -18.0, "tono": 0.0},
@@ -224,10 +224,24 @@ static var VELOCIDAD_PLUMA: float = 900.0     ## px/s del ratón que cuentan com
 static var SUAVIZADO_PLUMA: float = 0.05      ## s de suavizado del volumen
 
 
-## Los archivos que suenan para una entrada de catálogo (de Sfx o de Sfx3D): «f_sint» si GRABADOS está apagado y la entrada la tiene; si no, «f».
+## 10/11 (Juego, gamefeel): true = las entradas con clave «f_sn» suenan con el foley del lote GDC 2026 de Sonniss (archivos `audio/sn_*.ogg`) SI ESTÁN en esta máquina.
+## Esos archivos NO viajan en el repositorio (`.gitignore`): la licencia de Sonniss permite usarlos en el juego pero no publicarlos como archivos sueltos, y el repo es público.
+## En un clon sin ellos, o con SONNISS = false, suena «f» como siempre. Para compararlos de oído: fila S:SONNISS del panel F3. Cómo regenerarlos: audio/LICENCIAS.md.
+static var SONNISS: bool = true
+static var _sn_hay: Dictionary = {}          ## primer archivo de «f_sn» -> ¿está importado aquí? (se mira una vez)
+
+
+## Los archivos que suenan para una entrada de catálogo (de Sfx o de Sfx3D): «f_sint» si GRABADOS está apagado y la entrada la tiene; «f_sn» si la entrada la tiene,
+## SONNISS está encendido y los archivos existen aquí; si no, «f».
 static func archivos_de(cfg: Dictionary) -> Array:
 	if not GRABADOS and cfg.has("f_sint"):
 		return cfg["f_sint"] as Array
+	if SONNISS and cfg.has("f_sn"):
+		var primero: String = String((cfg["f_sn"] as Array)[0])
+		if not _sn_hay.has(primero):
+			_sn_hay[primero] = ResourceLoader.exists(CARPETA + primero)
+		if bool(_sn_hay[primero]):
+			return cfg["f_sn"] as Array
 	return cfg["f"] as Array
 
 

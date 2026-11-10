@@ -116,6 +116,47 @@ el 27/10/2026 y se renombraron con el prefijo `oga_`. Los usan `Sfx.CATALOGO` y 
 Los sintetizados a los que sustituyen (`agua_loop`, `fuego_loop`, `elem_hielo`, `elem_rayo`, `congelar`, `arde_bucle`
 y las pisadas `paso_*`) siguen en esta carpeta por si se quiere volver atrás: basta con cambiar el nombre en el catálogo.
 
+## Lote GDC 2026 de Sonniss — `audio/sn_*.ogg` (10/11) · NO están en el repositorio
+
+Foley profesional del muestrario gratuito «GDC 2026 Game Audio Bundle» (https://gdc.sonniss.com/, 347 pistas de 17 librerías, 8 GB).
+**Licencia** (https://sonniss.com/gdc-bundle-license/): uso libre y comercial en juegos, sin atribución, proyectos ilimitados; **prohibido
+distribuir los sonidos como sonidos** (ni editados) y prohibido entrenar IA con ellos. El juego terminado sí puede llevarlos.
+Como este repositorio es público, los `audio/sn_*` van en `.gitignore`: cada máquina los genera. Sin ellos el juego suena con lo de antes
+(`Sfx.archivos_de`: la clave «f_sn» solo cuenta si el archivo existe; `Sfx.SONNISS = false` o la fila S:SONNISS del panel F3 los apaga para comparar).
+
+**Cómo regenerarlos:** bajar los cinco zip de https://gdc.sonniss.com/ y extraerlos en una carpeta FUERA del proyecto (hay nombres de más de 260
+caracteres: extraer con rutas largas). En esta máquina están en `C:\Users\paranda\Documents\magic-symbols-sonidos-fuente\sonniss_gdc2026`. Después
+`python audio/procesa_sonniss.py <esa carpeta> audio` (pide numpy, scipy y soundfile) y `godot --headless --import --path .`.
+El script recorta la toma, pasa a mono 44,1 kHz, funde, iguala el pico a −3 dB y, en las voces de goblin, sube el tono (de orco a goblin).
+
+| archivo en audio/ | entrada del catálogo | pista original | librería |
+|---|---|---|---|
+| `sn_golpe_carne_0.ogg` | Sfx3D `golpe_carne` | `FGHTImpt_4 x Punch, Body 02_344 Audio_Cinematic Fight Vol 1.wav` | 344 Audio - Cinematic Fight Vol. 1 |
+| `sn_golpe_carne_1.ogg` | Sfx3D `golpe_carne` | `FGHTImpt_4 x Punch, Body 02_344 Audio_Cinematic Fight Vol 1.wav` | 344 Audio - Cinematic Fight Vol. 1 |
+| `sn_golpe_carne_2.ogg` | Sfx3D `golpe_carne` | `FGHTImpt_4 x Punch, Body 02_344 Audio_Cinematic Fight Vol 1.wav` | 344 Audio - Cinematic Fight Vol. 1 |
+| `sn_golpe_carne_3.ogg` | Sfx3D `golpe_carne` | `FGHTImpt_4 x Punch, Body 02_344 Audio_Cinematic Fight Vol 1.wav` | 344 Audio - Cinematic Fight Vol. 1 |
+| `sn_dano_jugadora_0.ogg` | Sfx `dano_jugadora` | `VOXReac_British Detective Pain Vocal Female Dying High Grunt Breath_ESM_AAAGCBFD.wav` | Epic Stock Media - AAA Game Character British Female Detective |
+| `sn_goblin_grito_0.ogg` | Sfx3D `goblin_grito` | `HMNBrth_Construction Kit Male Screeching Breath Inhale Weak Squeal 05_ESM_HC4.wav` | Epic Stock Media - Humanoid Creatures Vol 4 - Monstrous and Undead Creature Vocalization Sound Sets |
+| `sn_goblin_grito_1.ogg` | Sfx3D `goblin_grito` | `CREAHmn_Designed Orc Male Attack Long Heavy Hit Charged Up 03_ESM_HC4.wav` | Epic Stock Media - Humanoid Creatures Vol 4 - Monstrous and Undead Creature Vocalization Sound Sets |
+| `sn_goblin_grito_2.ogg` | Sfx3D `goblin_grito` | `CREAHmn_Violent Humanoid Creature Exhale Short 4_SNDBTS_VB-SE.wav` | SoundBits - Vox Bestiae - Source Elements |
+| `sn_goblin_muere_0.ogg` | Sfx3D `goblin_muere` | `VOXReac_Construction Kit Male Flutter Death Vocal Stuttered Long 05_ESM_HC4.wav` | Epic Stock Media - Humanoid Creatures Vol 4 - Monstrous and Undead Creature Vocalization Sound Sets |
+| `sn_hielo_quiebra_0.ogg` | Sfx `hielo_quiebra` | `ice, crack, ice block snapping-001.wav` | Alexander Kopeikin - 100 kHz Designed Ice |
+| `sn_hielo_quiebra_1.ogg` | Sfx `hielo_quiebra` | `ice, surface cracking, fissure, fast, hard-003.wav` | Alexander Kopeikin - 100 kHz Designed Ice |
+| `sn_hielo_quiebra_2.ogg` | Sfx `hielo_quiebra` | `ice, block of ice crushed, heavy-015.wav` | Alexander Kopeikin - 100 kHz Designed Ice |
+| `sn_derrumbe_0.ogg` | Sfx `derrumbe` | `Woosh Debris.wav` | Cinematic Sound Design - Colossal Impacts |
+| `sn_explosion_0.ogg` | Sfx `explosion` | `EXPLDsgn_Explosion Small Blast Enemy Death Crunchy Boom Cartoon Noisy Crash Impact Delay 03_ESM_AG.wav` | Epic Stock Media - Anime Game |
+| `sn_hundido_burbujas_0.ogg` | Sfx `hundido_burbujas` | `WATRImpt_Impact Water Deep Submerge Bubble Drown Ship Hit 05_ESM_EMWI.wav` | Epic Stock Media - Elemental Mutation Whooshes and Impacts |
+| `sn_limo_golpe_0.ogg` | Sfx3D `limo_golpe` | `WOODImpt_Hit Blood Spill Splat Wood Impact Light Hit Squelch Small Thump 03_ESM_TDG.wav` | Epic Stock Media - Tower Defense Game |
+| `sn_limo_muere_0.ogg` | Sfx3D `limo_muere` | `GORESplt_Gore Designed Transient Heavy Impact Smash 01_ESM_HALG.wav` | Epic Stock Media - Halloween Game - Haunted House and Horror Audio Scare Kit |
+| `sn_voltereta_0.ogg` | Sfx `voltereta` | `FOLYClth_ClothMovement24_InMotionAudio_FoleyT-Shirt.wav` | InMotionAudio - Foley T-Shirt |
+| `sn_voltereta_1.ogg` | Sfx `voltereta` | `FOLYClth_ClothMovement24_InMotionAudio_FoleyT-Shirt.wav` | InMotionAudio - Foley T-Shirt |
+| `sn_voltereta_2.ogg` | Sfx `voltereta` | `FOLYClth_ClothMovement29_InMotionAudio_FoleyT-Shirt.wav` | InMotionAudio - Foley T-Shirt |
+
+Elegidos por el nombre de la pista y medidos (duración, pico y RMS parecidos a lo que sustituyen), **sin escucharlos**: valida Pablo de oído
+con `docs/escucha_sonniss.html` (antes y después de cada uno).
+Del lote también servirían, sin usar aún: murmullo de gente en español (Sonik, «Spanish Wallas»), hoguera (Ivo Vicic), golpes de lanza en madera y
+espada (344 Audio, «Historical Weapons»), 21 golpes de arma con zumbido (David Dumais), pasar páginas de libro antiguo (344 Audio) y arco eléctrico (InMotionAudio).
+
 ## Fuentes descargadas sin usar todavía — `audio/fuentes/` (2/11)
 
 Packs completos bajados el 2/11/2026 para sustituir sintetizados por grabaciones. **Nada de esto está en el catálogo aún**:
@@ -135,4 +176,4 @@ y se anota aquí en la tabla de arriba. Los packs enteros no se cargan en Godot 
 Vistos y NO bajados (CC-BY 4.0, exigen acreditar; decide Pablo): «Magic Spell SFX» de The Soundrack (425, nueve elementos,
 carga/lanzar/vuelo; 1,5 GB), «Reading & Writing Sound Pack» de The Soundrack (266: libros, páginas, lápiz), «Free Monster Sounds»
 de Coucassi (8 criaturas con aparecer/ataque/daño/muerte/pasos; trae limo y orco). De pago: «Monster Vocalizations» de Morphonaut
-(CC0, 2 $, el único con goblin, gólem y goo). Los bundles GDC de Sonniss (gratis, sin atribución, sin redistribuir) no caben en el disco.
+(CC0, 2 $, el único con goblin, gólem y goo). Los bundles GDC de Sonniss anteriores (2015–2024, 9–48 GB cada uno; gratis, sin atribución, sin redistribuir) siguen sin bajar; el de 2026 sí (arriba).
