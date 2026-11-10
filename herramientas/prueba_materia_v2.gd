@@ -150,6 +150,13 @@ func _caso(estado: String, nombre: String) -> void:
 	var aviso_esperado: bool = false      # 3/11 (Pablo: «no capear la altura»): ya no hay rechazo por altura; un bloque más alto de lo que se sube se construye y no se pisa
 	var suelo_esp: float = Terreno3D.y_pies(Terreno3D.celda_de(_origen()))      # ANTES de lanzar: un sólido levanta la casilla del origen
 	var n: int = _l._materializar(receta, rune, _origen(), Vector3.RIGHT, rune.cinematico)
+	var hz_rec: Hechizo = receta.hechizo(rune)
+	if hz_rec != null and hz_rec.es_plataforma_tierra():
+		# DIARIO 453: la tierra SOLA (sin glifos) ya no es la esfera sólida del volumen genérico: levanta el escalón de tierra (`Hechizo.es_plataforma_tierra`,
+		# prueba_plataforma_tierra). No pasa por `hechizo_v2` (lo dibuja el Lanzador como PlataformaTierra), así que aquí solo se mira que el escalón salga.
+		_ok("%s: la tierra sola levanta el escalón de tierra (plataforma en %d casilla(s), sin señal hechizo_v2)" % [et, Terreno3D.plataformas_tierra.size()],
+			n >= 1 and not Terreno3D.plataformas_tierra.is_empty() and _senales.is_empty())
+		return
 	if aviso_esperado:
 		_ok("%s: no se lanza (aviso de altura, %d niveles > %d)" % [et, niv, Jugador3D.MAX_NIVELES_SUBIBLES], n == 0 and _senales.is_empty() and Terreno3D.alturas.is_empty() and Lanzador3D.GeometriaV2.aviso_materia(g, rune) != "")
 		return

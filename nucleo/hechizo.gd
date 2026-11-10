@@ -345,6 +345,11 @@ func es_plataforma_tierra() -> bool:
 	var barreras: int = int(glifos.get("barrera", 0))
 	if n_glifos != lineas + barreras + int(glifos.get("permanencia", 0)):
 		return false
+	# 10/11 (DIARIO 453): la regla es de la receta del LIBRO. Un hechizo de tierra al que el laboratorio le da la forma o la solidez (`con`, origen «lab»:
+	# la parrilla de LabVfx3D, las pruebas que montan «muro de tierra con solidez») es ese volumen o ese muro, no un escalón de una casilla.
+	for campo in ["solidez", "semiejes.x", "semiejes.y", "semiejes.z"]:
+		if String(origen.get(campo, "")) == "lab":
+			return false
 	return (lineas == 0 and barreras == 0) or (lineas > 0 and barreras > 0)
 
 

@@ -114,7 +114,8 @@ func _escenario() -> void:
 	print("    tiempo de pared del barrido: %.1f s (total del escenario %.1f s)" % [t_total, float(Time.get_ticks_msec() - t0) / 1000.0])
 	_ok("4 se barrieron todas las combinaciones", cuantas == recetas.size() * ELEMENTOS.size(), "%d" % cuantas)
 	_ok("5 ninguna receta falla (cada una sale o se rechaza con un aviso conocido)", falladas == 0, "%d falladas" % falladas)
-	_ok("5b las páginas vacías son rechazadas por «sin glifos» (una por elemento)", int(rechazos[R_VACIA]) == ELEMENTOS.size(), str(rechazos[R_VACIA]))
+	# DIARIO 453: la página de TIERRA sin glifos ya no se rechaza: levanta el escalón de tierra (`Lanzador3D._preparar_pagina`, prueba_plataforma_tierra). Las otras cinco, sí.
+	_ok("5b las páginas vacías son rechazadas por «sin glifos» (una por elemento salvo la tierra, que levanta su escalón)", int(rechazos[R_VACIA]) == ELEMENTOS.size() - 1, str(rechazos[R_VACIA]))
 	_ok("5c con la tinta llena ninguna receta se rechaza por tinta", int(rechazos[R_TINTA]) == 0, "%d (114 de las 990 cuestan la barra entera: debería alcanzar)" % int(rechazos[R_TINTA]))
 	_ok("5d salieron todas las demás (990 − vacías − altura − sin cabida)", salen + int(rechazos[R_VACIA]) + int(rechazos[R_ALTURA]) + int(rechazos[R_TINTA]) + int(rechazos[R_NO_CABE]) + falladas == cuantas)
 	if int(rechazos[R_NO_CABE]) > 0:
@@ -277,6 +278,10 @@ func _limpiar_zona(r: Rect2i) -> void:
 	# una herramienta de pruebas, igual que escenario_base lee PlayLog._file).
 	for b in lanzador._bloques.duplicate():
 		lanzador._deshacer_bloque(b)
+	# DIARIO 453: igual con el escalón / puente de tierra (tierra sola, ᛝ + ᛁ): dura `persiste` s y, mientras está, `puede_construir_en` dice «ya hay una plataforma»
+	# y la barrera de tierra siguiente en esa casilla no nacía (18 «tierra + barrera no nace»). Es lo que hace también `LabHechizos3D.limpiar_sala`.
+	for p in lanzador._plataformas_tierra.duplicate():
+		lanzador._deshacer_plataforma_tierra(p)
 	for k in lanzador._columnas.duplicate():
 		if is_instance_valid(k["nodo"]):
 			(k["nodo"] as Node).queue_free()
