@@ -41,6 +41,10 @@ const PIEZA_MANO_MAX: float = 0.15
 ## en la esquiva) y 0,31 (la cruz en el golpe al suelo); en las capturas la vela parece taparle la cara en el cast, pero es la
 ## perspectiva de la cámara, no un cruce.
 const PIEZA_CABEZA_MIN: float = 0.12
+## La cruz respecto a la palma (u de mundo): el eje del palo a 0,022 por delante (Equipo3D.CRUZ_APOYO["palma"]), con algo de holgura
+## porque la pieza suaviza su seguimiento. Negativo sería por el dorso de la mano.
+const CRUZ_DELANTE_MIN: float = 0.020     ## como poco, casi el radio del mango (0,029): menos y el palo atraviesa la palma
+const CRUZ_DELANTE_MAX: float = 0.055
 
 var _fallos: int = 0
 
@@ -103,6 +107,22 @@ func _initialize() -> void:
 		await _pieza_en_clips(p, sk, ap, bool(esperado["en_mano"]), String(id))
 		p.queue_free()
 
+	# 6) la CRUZ va DELANTE DE LA PALMA (10/11, Pablo: «queda por detrás de la mano, cósela delante de la palma»). Se mide en el
+	# esqueleto, como herramientas/medidas_palma_pieza.gd: distancia del eje del palo al plano de la palma, positiva hacia donde mira.
+	# Antes daba −0,020 en reposo (por el dorso) y al andar el palo ni seguía a la mano.
+	await _cruz_en_la_palma(mundo)
+
+	# 7) el FANTASMA tiene clips y anda como un zombi (10/11): se metió en el laboratorio sin fuente de clips y cargaba con cero,
+	# clavado en reposo sin que nada fallara. Su andar es el tambaleante, el mismo clip que el portador de la vela.
+	var f := Pj3D.new()
+	mundo.add_child(f)
+	_ok(f.cargar("fantasma_elfo_rig"), "fantasma_elfo_rig carga")
+	await process_frame
+	_ok(f.lista_clips().size() >= 20, "fantasma: tiene clips (%d)" % f.lista_clips().size())
+	_ok(absf(f.duracion("walk") - float(PORTADORES["santa_compana_vela"]["dura"])) <= TOL_DURA,
+		"fantasma: anda con el tambaleante (%s, %.2f s)" % [f.clip_de("walk"), f.duracion("walk")])
+	f.queue_free()
+
 	# 5) los dos de la procesión andan DISTINTO: junto con la pieza, es lo único que los diferencia.
 	_ok(andares.size() == 2 and absf(float(andares[0]) - float(andares[1])) > TOL_DURA,
 		"los dos portadores andan distinto (%s)" % [andares])
@@ -149,6 +169,56 @@ func _pieza_en_clips(p: Pj3D, sk: Skeleton3D, ap: AnimationPlayer, en_mano: bool
 				"%s · %s (%s): la pieza no se le escapa de la mano (máx %.3f ≤ %.3f)" % [id, rol, clip, mano, PIEZA_MANO_MAX])
 		_ok(cabeza >= PIEZA_CABEZA_MIN,
 			"%s · %s (%s): la pieza no se le mete en la capucha (mín %.3f ≥ %.3f)" % [id, rol, clip, cabeza, PIEZA_CABEZA_MIN])
+
+
+func _cruz_en_la_palma(mundo: Node3D) -> void:
+	var p := Pj3D.new()
+	mundo.add_child(p)
+	p.cargar("santa_compana_cruz")
+	p.set_alto(ALTO)
+	await process_frame
+	var sk: Skeleton3D = (p.find_children("*", "Skeleton3D", true, false)[0]) as Skeleton3D
+	var ap: AnimationPlayer = p._ap
+	var pieza: Node3D = null
+	for n in p.find_children("*", "Node3D", true, false):
+		if (n as Node3D).has_meta("equipo_id"):
+			pieza = n as Node3D
+	if p._arbol != null:
+		p._arbol.active = false
+	ap.active = true
+	var eje: Vector3 = (load("res://herramientas/medidas_palma_pieza.gd") as GDScript)._eje_mango(pieza)
+	var i_w: int = sk.find_bone("mixamorig_RightHand")
+	var i_m: int = sk.find_bone("mixamorig_RightHandMiddle1")
+	var i_i: int = sk.find_bone("mixamorig_RightHandIndex1")
+	var i_p: int = sk.find_bone("mixamorig_RightHandPinky1")
+	for rol in ["idle", "walk", "run"]:
+		var clip: String = p.clip_de(rol)
+		var largo: float = p.duracion(rol)
+		var peor: float = INF
+		var mejor: float = -INF
+		for k in range(6):
+			ap.play(clip)
+			ap.seek(largo * float(k) / 6.0, true)
+			for i in 30:            # la pieza apoyada suaviza su posición: se le deja asentar
+				await process_frame
+			var w: Vector3 = sk.global_transform * sk.get_bone_global_pose(i_w).origin
+			var m: Vector3 = sk.global_transform * sk.get_bone_global_pose(i_m).origin
+			var a: Vector3 = sk.global_transform * sk.get_bone_global_pose(i_i).origin - w
+			var b: Vector3 = sk.global_transform * sk.get_bone_global_pose(i_p).origin - w
+			var normal: Vector3 = a.cross(b).normalized()
+			var centro: Vector3 = (w + m) * 0.5
+			var arriba: Vector3 = pieza.global_basis.y.normalized()
+			# el eje del MANGO medido en la malla, no el origen del GLB (que no está en el mango: medir sobre el origen daba por buena
+			# una cruz que en la foto quedaba detrás de la mano)
+			var o: Vector3 = pieza.global_transform * eje
+			var palo: Vector3 = o + arriba * ((centro.y - o.y) / maxf(arriba.y, 0.001))
+			var delante: float = (palo - centro).dot(normal)
+			peor = minf(peor, delante)
+			mejor = maxf(mejor, delante)
+		_ok(peor >= CRUZ_DELANTE_MIN and mejor <= CRUZ_DELANTE_MAX,
+			"cruz · %s (%s): el palo va por delante de la palma (entre %+.3f y %+.3f; debe estar entre %+.3f y %+.3f)" % [
+				rol, clip, peor, mejor, CRUZ_DELANTE_MIN, CRUZ_DELANTE_MAX])
+	p.queue_free()
 
 
 ## Separación lateral mínima de los pies y cuántos fotogramas cruzan el eje del cuerpo, a lo largo del clip.

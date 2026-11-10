@@ -149,6 +149,14 @@ const FUENTES: Dictionary = {
 	],
 	# Santa Compaña (9/11): el rig sale de tools/autorig_fantasma.py con el fantasma de donante, así que su esqueleto es el de
 	# elfo_base y hereda los 22 clips de la elfa. Lo único que cambia entre las dos variantes es el ANDAR, y por eso van por id.
+	# Fantasma elfo (10/11, Pablo: «el fantasma se bloquea en el laboratorio»). Su esqueleto es el de elfo_base (tools/autorig_fantasma.py),
+	# pero se añadió al LabHumanoide3D sin esta entrada: cargaba con CERO clips y se quedaba clavado en reposo, sin que nada fallara.
+	# Hereda los clips de la elfa, igual que elfo_base, salvo el ANDAR (Pablo, 10/11: «ponle el andar tipo zombi»): el tambaleante
+	# Unsteady_Walk, que entra como «Walking» por la misma razón que en la procesión (ver FUENTE_SANTA_VELA). Va primero y gana.
+	"fantasma_elfo_rig": [
+		FUENTE_SANTA_VELA,
+		{"ruta": "res://arte/modelos/chibi_elf.glb", "referencia": "Idle", "clips": {}},
+	],
 	"santa_compana_cruz": [
 		FUENTE_SANTA_CRUZ,
 		{"ruta": "res://arte/modelos/chibi_elf.glb", "referencia": "Idle", "clips": {}},

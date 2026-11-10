@@ -27,7 +27,12 @@ const K_DESPLAZ_LATERAL: String = "desplaz_lateral"      ## u de juego: desplaza
 const K_GIRO_MUNDO: String = "giro_mundo"                ## true: `giro` es absoluto (grados sobre el eje vertical del MUNDO: 90 = el +X de la pieza mira al norte, −Z), no respecto al personaje
 const K_EJE_MALLA: String = "eje_malla"                  ## true: el palo no pasa por el origen del GLB; se mide su eje (centro XZ de los vértices de la mitad de abajo) y ESE eje es el que se pone bajo la mano
 
-const K_Z_MIN: String = "z_min"                         ## u de juego: lo más atrás (eje Z del personaje, +Z = delante) que puede quedar el pie
+## 10/11 (Pablo, cruz de la Santa Compaña: «queda por detrás de la mano, cose la cruz delante de la palma»). u de juego: el palo se pone a
+## esta distancia POR DELANTE DE LA PALMA, medida en el esqueleto en cada fotograma (ver `actualizar`). Sin esta clave el agarre es el de
+## siempre: un punto fijo en el espacio del hueso, sacado de cómo cuelga la pieza de la mano. Ese punto deja de valer en cuanto se le corrige
+## la postura a la muñeca (Pj3D.CORRECCION_POSTURA): la cruz quedaba 2 cm por el DORSO de la mano y 9 cm hacia el cuerpo, y al andar ni la seguía.
+const K_PALMA: String = "palma"
+const K_Z_MIN: String = "z_min"                        ## u de juego: lo más atrás (eje Z del personaje, +Z = delante) que puede quedar el pie
 const K_Z_MAX: String = "z_max"                         ## y lo más adelante: la mano puede ir al pecho y el palo se queda a su costado, inclinado hacia ella
 
 const INCLINACION_MAX: float = 12.0             ## grados máximos de desvío de la vertical (hacia la mano)
@@ -55,7 +60,12 @@ var eje_local: Vector3 = Vector3.ZERO           ## desvío XZ del palo respecto 
 var lado: float = -1.0
 var z_min: float = -INF
 var z_max: float = INF
-var suelta: bool = false                        ## true = la mano está lejos y el bastón se queda plantado a su aire
+var con_palma: bool = false                     ## true = el agarre se mide en la palma del esqueleto (K_PALMA)
+var palma_delante: float = 0.0
+var _palma_medio: int = -1
+var _palma_indice: int = -1
+var _palma_menique: int = -1
+var suelta: bool = false                      ## true = la mano está lejos y el bastón se queda plantado a su aire
 var inclinacion: float = 0.0                    ## grados actuales respecto a la vertical (para las pruebas)
 var distancia_mano: float = 0.0                 ## u de mundo, horizontal, de la palma al palo en el último fotograma (para las pruebas)
 var _pie_local: Vector3 = Vector3.ZERO          ## el sitio plantado, en el espacio del personaje girado (sin escala): vive con él
@@ -86,6 +96,16 @@ func preparar(p_pieza: Node3D, p_modelo: Node3D, p_esqueleto: Skeleton3D, p_hues
 	eje_local = _eje_malla(pieza) if bool(datos.get(K_EJE_MALLA, false)) else Vector3.ZERO
 	_transform_mano = pieza.transform
 	agarre_local = pieza.transform * Vector3(0.0, float(datos.get(K_AGARRE_Y, 0.0)), 0.0)
+	if datos.has(K_PALMA):
+		palma_delante = float(datos[K_PALMA])
+		# los huesos de la palma de ESA mano: se buscan por el nombre del hueso de agarre (…RightHand -> …RightHandMiddle1)
+		var base_n: String = String(esqueleto.get_bone_name(hueso))
+		_palma_medio = esqueleto.find_bone(base_n + "Middle1")
+		_palma_indice = esqueleto.find_bone(base_n + "Index1")
+		_palma_menique = esqueleto.find_bone(base_n + "Pinky1")
+		con_palma = _palma_medio >= 0 and _palma_indice >= 0 and _palma_menique >= 0
+		if not con_palma:
+			push_warning("PiezaApoyada3D: «palma» pedido pero %s no tiene dedos (Middle1/Index1/Pinky1); se usa el agarre de siempre" % base_n)
 	_largo_local = _largo_malla(pieza)
 	_escala_local = pieza.scale.y
 	pieza.top_level = true
@@ -147,6 +167,16 @@ func actualizar(delta: float, fijar: bool) -> void:
 	var yaw_modelo: float = atan2(zm.x, zm.z)
 	var giro_pers := Basis(Vector3.UP, yaw_modelo)
 	var mano: Vector3 = esqueleto.global_transform * esqueleto.get_bone_global_pose(hueso) * agarre_local
+	if con_palma:
+		# El agarre sale de la PALMA de verdad, en cada fotograma: su centro (entre la muñeca y el nudillo del corazón) más `palma_delante`
+		# hacia donde mira. Así el palo queda siempre del lado de la palma, haga lo que haga la muñeca, y los dedos pueden cerrarse sobre él.
+		var w: Vector3 = esqueleto.global_transform * esqueleto.get_bone_global_pose(hueso).origin
+		var m: Vector3 = esqueleto.global_transform * esqueleto.get_bone_global_pose(_palma_medio).origin
+		var a: Vector3 = esqueleto.global_transform * esqueleto.get_bone_global_pose(_palma_indice).origin - w
+		var b: Vector3 = esqueleto.global_transform * esqueleto.get_bone_global_pose(_palma_menique).origin - w
+		# (índice − muñeca) × (meñique − muñeca) sale de la palma en la mano DERECHA; en la izquierda, al revés
+		var normal: Vector3 = a.cross(b).normalized() * (1.0 if lado < 0.0 else -1.0)
+		mano = (w + m) * 0.5 + normal * palma_delante
 	var rel: Vector3 = giro_pers.inverse() * (mano - raiz)          # la palma en el espacio del personaje girado, en unidades de mundo
 	# 5/11: los desplazamientos mueven el PUNTO DE AGARRE (hacia el cuerpo y hacia delante), no solo el pie: si solo movieran el pie, la inclinación hacia la
 	# mano devolvía el palo al punto original a la altura de la mano (el bastón de Marimanta volvía a la muñeca, al canto del puño).

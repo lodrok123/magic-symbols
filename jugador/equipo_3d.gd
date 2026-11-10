@@ -109,8 +109,16 @@ const CRUZ_APOYO: Dictionary = {
 	# 9/11 (Pablo, con una línea roja sobre la captura): con el brazo ya en su sitio, la cruz se plantaba por DELANTE de la mano
 	# y el palo pasaba rozando los dedos en vez de entre ellos. `desplaz_adelante` la lleva hacia el frente del personaje hasta
 	# el puño, y `z_max` tiene que dar margen para eso (a 0,20 topaba antes de llegar).
-	"agarre_y": 0.202, "giro": 0.0, "dist_min_cuerpo": 0.12, "desplaz_adelante": 0.22, "desplaz_lateral": -0.02,
-	"lado": -1.0, "z_min": 0.0, "z_max": 0.40}
+	# 10/11 (Pablo: «la cruz queda por detrás de la mano, cose la cruz delante de la palma»). Aquel desplazamiento de 0,22 tapaba el
+	# problema a medias: el punto de agarre salía de la postura ANTIGUA de la muñeca, y medido con herramientas/medidas_palma_pieza.gd el
+	# palo quedaba 2 cm por el dorso de la mano en reposo y suelto al andar. Ahora el agarre es la PALMA del esqueleto (`palma`): el eje
+	# del palo va a 0,022 por delante de ella (el radio del mango más un pelo), sin desplazamientos a mano. `z_min` deja que el pie
+	# siga a la mano cuando va un poco atrás al andar.
+	# `eje_malla`: el MANGO no pasa por el origen del GLB (se ve desde arriba), así que lo que se pone ante la palma es el eje medido
+	# en la malla. Sin esto, la primera versión de `palma` dejaba el origen clavado a 0,022 de la palma y el mango, desplazado, seguía
+	# quedando por DETRÁS de la mano; y mi medida, hecha sobre el origen, decía que estaba bien. `palma` = el radio del mango (0,029) y un pelo.
+	"agarre_y": 0.202, "giro": 0.0, "dist_min_cuerpo": 0.12, "palma": 0.034, "eje_malla": true,
+	"lado": -1.0, "z_min": -0.12, "z_max": 0.40}
 ## La palmatoria NO se apoya en el suelo: se lleva en la mano, solo que siempre de pie para que no se vuelque la vela.
 const VELA_VERTICAL: Dictionary = {"vertical": true, "agarre_y": 0.03, "desplaz": Vector3(-0.02, 0.0, 0.04)}
 const CRUZ_GIRO: Vector3 = Vector3(-44.6, 119.4, -153.1)
