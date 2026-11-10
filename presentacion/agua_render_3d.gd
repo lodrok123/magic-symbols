@@ -273,6 +273,9 @@ uniform float prof_lecho = 0.9;               // cuánto se desplaza el lecho po
 uniform vec3 color_lecho : source_color = vec3(0.16, 0.38, 0.55);     // el fondo visto a través: más oscuro y frío que la arena
 uniform vec3 color_causticas : source_color = vec3(0.72, 0.93, 1.0);  // las redes de luz que dibuja el agua sobre el lecho
 uniform float filo_ribera = 1.0;
+uniform sampler2D electricidad_mapa : hint_default_black, filter_linear, repeat_disable;
+uniform float electricidad_extension = 1.0;
+uniform bool electricidad_activa = false;
 uniform float transicion_orilla = 0.08;       // profundidad (u) en la que la espuma de la orilla se funde con el agua
 uniform float orilla_dist_0 = 0.30;           // 22/10: a menos de esta distancia (u) del contorno del agua la espuma y el ruido de borde valen entero…
 uniform float orilla_dist_1 = 0.70;           // …y a más de esta, nada (ver ORILLA_DIST_* en GDScript); el menisco usa 1,5 veces estas distancias
@@ -1000,6 +1003,23 @@ void fragment() {
 	} else {
 		ALBEDO = ce * brillo;
 		ALPHA = alfa_f;
+	}
+	if (electricidad_activa) {
+		vec2 uv_carga = pm.xz / electricidad_extension;
+		ivec2 tam_carga = textureSize(electricidad_mapa, 0);
+		ivec2 celda_carga = clamp(ivec2(floor(uv_carga * vec2(tam_carga))), ivec2(0), tam_carga - ivec2(1));
+		float carga = texelFetch(electricidad_mapa, celda_carga, 0).b;
+		if (carga > 0.0) {
+			// La celda delimita el peligro. El filtrado redondea el borde por dentro.
+			float huella = min(carga, texture(electricidad_mapa, uv_carga).b) * (1.0 - hielo);
+			vec2 traza = pm.xz * vec2(2.4, 4.2);
+			float pliegue = ruido(pm.xz * 4.3 + vec2(TIME * 1.8, 0.0));
+			float veta = abs(ruido(traza + vec2(pliegue, -TIME * 2.2)) - 0.5);
+			float hilo = 1.0 - smoothstep(0.018, 0.11, veta);
+			ALBEDO *= mix(vec3(1.0), vec3(0.60, 0.65, 0.92), huella);
+			EMISSION *= mix(vec3(1.0), vec3(0.52, 0.57, 0.84), huella);
+			EMISSION += vec3(0.34, 0.45, 1.0) * huella * (0.13 + 0.48 * hilo);
+		}
 	}
 	ROUGHNESS = rugosidad;
 	SPECULAR = 0.5 * v_spec;

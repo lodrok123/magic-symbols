@@ -1606,6 +1606,7 @@ var _tramos_ribera: Array = []
 var _forma_ribera_activa: bool = true
 var _contacto_aviso: Label
 var _copas_integradas: bool = true
+var _descarga_integrada: bool = true
 var _materiales_integrados: bool = true
 var _junta_vegetal_suave: bool = true
 var _junta_piedra_suave: bool = true
@@ -1792,6 +1793,7 @@ func _actualizar_aviso_contacto() -> void:
 	var orilla: String = "Orilla integrada" if _ribera_activa else "Orilla original"
 	var forma: String = "Silueta curva" if _forma_ribera_activa else "Silueta recta"
 	var copas: String = "Copas integradas" if _copas_integradas else "Copas originales"
+	var descarga: String = "Descarga integrada" if _descarga_integrada else "Descarga original"
 	var suelo: String = "Suelo y rocas integrados" if _materiales_integrados else "Suelo y rocas originales"
 	var junta: String = "Junta suave" if _junta_vegetal_suave else "Junta original"
 	var piedra: String = "Junta de piedra suave" if _junta_piedra_suave else "Junta de piedra original"
@@ -1799,7 +1801,7 @@ func _actualizar_aviso_contacto() -> void:
 	var tramos: String = "Cantos" if _ribera_con_cantos else "Sin cantos"
 	var vistas: String = "Vistas abiertas" if _vistas_abiertas else "Vistas originales"
 	var cueva: String = "Umbral integrado" if _entrada_cueva_integrada else "Umbral original"
-	_contacto_aviso.text = "Mayús+F7/F8/F9  |  " + tramos + " · " + vistas + " · " + cueva + "\nMayús+F3  |  " + ruina + "\nMayús+F4  |  " + piedra + "\nMayús+F6  |  " + junta + "\nMayús+F2  |  " + suelo + "\nF6  |  " + modo + "\nF5  |  " + orilla + "\nF4  |  " + forma + "\nF2  |  " + copas
+	_contacto_aviso.text = "Mayús+F7/F8/F9  |  " + tramos + " · " + vistas + " · " + cueva + "\nMayús+F3  |  " + ruina + "\nMayús+F4  |  " + piedra + "\nMayús+F6  |  " + junta + "\nMayús+F2  |  " + suelo + "\nF6  |  " + modo + "\nF5  |  " + orilla + "\nF4  |  " + forma + "\nF2  |  " + copas + "\nMayús+F5  |  " + descarga
 
 
 ## Campo de cercanía a la ribera fija, en coordenadas del suelo.
@@ -2558,6 +2560,8 @@ func _subir_estado_juego() -> void:
 	if extra != _tex_estado_extra:
 		_tex_estado_extra = extra
 		_mat_suelo.set_shader_parameter("estado_extra", extra)
+		if _contacto_tex != null and _agua_render != null:
+			_agua_render.ajustar("electricidad_mapa", extra)
 	if tex != _tex_estado_juego:
 		_tex_estado_juego = tex
 		_mat_suelo.set_shader_parameter("estado_juego", tex)
@@ -5993,9 +5997,13 @@ func _unhandled_input(ev: InputEvent) -> void:
 				get_viewport().set_input_as_handled()
 		KEY_F5:
 			if _contacto_tex != null:
-				_ribera_activa = not _ribera_activa
-				_mat_suelo.set_shader_parameter("ribera_activa", _ribera_activa)
-				_ajustar_filo_ribera()
+				if k.shift_pressed and _agua_render != null:
+					_descarga_integrada = not _descarga_integrada
+					_agua_render.ajustar("electricidad_activa", _descarga_integrada)
+				else:
+					_ribera_activa = not _ribera_activa
+					_mat_suelo.set_shader_parameter("ribera_activa", _ribera_activa)
+					_ajustar_filo_ribera()
 				_actualizar_aviso_contacto()
 				get_viewport().set_input_as_handled()
 		KEY_F6:
@@ -6555,7 +6563,10 @@ func _montar_agua_fisica() -> void:
 		_agua_render.enlazar_adornos(_adornos_lecho)        # adornos agua: las algas siguen la corriente
 	add_child(_agua_render)
 	_ajustar_filo_ribera()
-
+	if _contacto_tex != null:
+		_agua_render.ajustar("electricidad_mapa", _tex_estado_extra)
+		_agua_render.ajustar("electricidad_extension", float(_lado) * S)
+		_agua_render.ajustar("electricidad_activa", _descarga_integrada)
 	# 11.10: el suelo lee la textura de mojado de la simulación unas 8 veces por segundo (si la simulación la ofrece: 11.4).
 	var reloj := Timer.new()
 	reloj.wait_time = 0.125

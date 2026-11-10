@@ -44,6 +44,7 @@ static func preparar_global() -> void:
 	if _registrado:
 		return
 	_registrado = true
+	if OS.get_environment("AMB_C") != "": _sombra.w = float(OS.get_environment("AMB_C"))   # TEMP_BARRIDO
 	RenderingServer.global_shader_parameter_add(PARAM_SOMBRA, RenderingServer.GLOBAL_VAR_TYPE_VEC4, _subir_mundo())
 	RenderingServer.global_shader_parameter_add(PARAM_SOMBRA_PERS, RenderingServer.GLOBAL_VAR_TYPE_VEC4, _subir_pers())
 	RenderingServer.global_shader_parameter_add(PARAM_RAMPA, RenderingServer.GLOBAL_VAR_TYPE_VEC4, Vector4(1.0 if _rampa else 0.0, 0.0, 0.0, 0.0))
