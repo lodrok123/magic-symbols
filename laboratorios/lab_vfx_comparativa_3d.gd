@@ -14,6 +14,7 @@ extends Node3D
 ## Abrir: laboratorios/LabVfxComparativa3D.tscn y F6. Capturas: herramientas/captura_vfx_comparativa.gd.
 
 const ESCENA_BOLA: String = "res://presentacion/vfx/efectos/BolaFuego.tscn"
+const LabVientoVeneno = preload("res://laboratorios/lab_viento_veneno.gd")     ## 11/11: teclas «,» y «.» (campo de viento y nube de veneno como gas pesado)
 const ESCENA_MURO: String = "res://presentacion/vfx/efectos/MuroFuego.tscn"
 const ESCENA_COLUMNA: String = "res://presentacion/vfx/efectos/ColumnaFuego.tscn"
 const ESCENA_MURO_TOON: String = "res://presentacion/vfx/toon/MuroFuegoToon.tscn"
@@ -220,7 +221,7 @@ func _process(delta: float) -> void:
 	if _panel != null:
 		var lp: Array = luces_y_particulas()
 		_panel.text = ("fps %d · luces %d · partículas %d · efectos %d · cámara %s\n1 bola · 2 muro · 3 columna · 4 PARRILLA de los 7 elementos (con parrilla, 8 la rehace) · 5 muro toon · 6 columna toon · 7 bola toon · 0 diez muros · 9 diez toon · X limpia · F muro del haz · F12 masa de fuego (muro / esfera / nada) · Mayús+F12 GAS 3D (port de la demo: esfera / muro / nada) · C cámara · flechas andar · H panel\n%s"
-			% [int(Engine.get_frames_per_second()), lp[0], lp[1], _efectos.get_child_count(), CAMARAS[camara_actual], _texto_mandos_toon()] + _texto_param() + _texto_carga() + "\n8 humo por regla (HumoRegla; con parrilla puesta, Mayús+8): %s" % ("SÍ" if HumoRegla.hay_alguna() else "no")) if _panel_visible else ""
+			% [int(Engine.get_frames_per_second()), lp[0], lp[1], _efectos.get_child_count(), CAMARAS[camara_actual], _texto_mandos_toon()] + _texto_param() + _texto_carga() + "\n8 humo por regla (HumoRegla; con parrilla puesta, Mayús+8): %s" % ("SÍ" if HumoRegla.hay_alguna() else "no") + LabVientoVeneno.texto()) if _panel_visible else ""
 
 
 func _unhandled_input(ev: InputEvent) -> void:
@@ -280,6 +281,8 @@ func _unhandled_input(ev: InputEvent) -> void:
 				haz_masa((_masa_modo + 1) % 3)
 		KEY_C: poner_camara((camara_actual + 1) % CAMARAS.size())
 		KEY_H: _panel_visible = not _panel_visible
+		KEY_COMMA: LabVientoVeneno.alternar_campo(self, _pj.global_position, _dir)                                     # 11/11: campo de viento (laboratorios/lab_viento_veneno.gd)
+		KEY_PERIOD: LabVientoVeneno.paso_veneno(_efectos, _pj.global_position, _dir, (ev as InputEventKey).shift_pressed)   # 11/11: nube de veneno como gas pesado
 
 
 # ---------------------------------------------------------------- efectos ----------------------------------------------------------------
