@@ -215,7 +215,8 @@ func _cruz_en_la_palma(mundo: Node3D) -> void:
 			var m: Vector3 = leido[1]
 			var a: Vector3 = leido[2] - w
 			var b: Vector3 = leido[3] - w
-			var normal: Vector3 = a.cross(b).normalized()
+			# hacia donde mira la PALMA: el lado hacia el que se cierran los dedos (ManoEmpuna3D.signo_palma), no un signo supuesto
+			var normal: Vector3 = a.cross(b).normalized() * ManoEmpuna3D.signo_palma(sk, i_w)
 			# el punto de la mano donde va el palo es el de Equipo3D.CRUZ_APOYO (`palma_hacia_dedos`)
 			var centro: Vector3 = w.lerp(m, float(Equipo3D.CRUZ_APOYO.get("palma_hacia_dedos", 0.5)))
 			var arriba: Vector3 = pieza.global_basis.y.normalized()

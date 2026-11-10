@@ -117,7 +117,7 @@ const CRUZ_APOYO: Dictionary = {
 	# `eje_malla`: el MANGO no pasa por el origen del GLB (se ve desde arriba), así que lo que se pone ante la palma es el eje medido
 	# en la malla. Sin esto, la primera versión de `palma` dejaba el origen clavado a 0,022 de la palma y el mango, desplazado, seguía
 	# quedando por DETRÁS de la mano; y mi medida, hecha sobre el origen, decía que estaba bien. `palma` = el radio del mango (0,029) y un pelo.
-	"agarre_y": 0.202, "giro": 0.0, "dist_min_cuerpo": 0.12, "palma": 0.031, "palma_hacia_dedos": 1.0, "eje_malla": true, "empunar": true,
+	"agarre_y": 0.202, "giro": 0.0, "dist_min_cuerpo": 0.12, "palma": 0.033, "palma_hacia_dedos": 0.6, "eje_malla": true, "empunar": true, "empunar_palma_hacia": Vector3(0.0, 0.0, 1.0),
 	"lado": -1.0, "z_min": -0.12, "z_max": 0.40}
 ## La palmatoria NO se apoya en el suelo: se lleva en la mano, solo que siempre de pie para que no se vuelque la vela.
 const VELA_VERTICAL: Dictionary = {"vertical": true, "agarre_y": 0.03, "desplaz": Vector3(-0.02, 0.0, 0.04)}
@@ -273,6 +273,7 @@ static func equipar(id: String, modelo: Node3D) -> Array[Node3D]:
 					var mano := ManoEmpuna3D.new()
 					mano.name = "ManoEmpuna"
 					sk.add_child(mano)
+					mano.palma_hacia = extra.get("empunar_palma_hacia", Vector3.ZERO)
 					mano.preparar(sk, hueso, float(extra.get(PiezaApoyada3D.K_LADO, -1.0)), apoyo, modelo)
 		puestas.append(p)
 	return puestas

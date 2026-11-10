@@ -21,9 +21,33 @@ var lado: float = -1.0                ## -1 = mano derecha de un modelo que mira
 var apoyo: PiezaApoyada3D = null      ## la pieza que sostiene (para saber si está suelta); null = empuña siempre
 var modelo: Node3D = null
 var peso: float = 1.0
+## Hacia dónde mira la palma, en el espacio del PERSONAJE (+Z = su frente). ZERO = hacia donde ya miraba en el clip, aplastado a horizontal.
+## 10/11 (Pablo sobre el primer plano: «la posición de la mano es correcta pero debería ser al revés»): la cruz lleva (0, 0, −1), la palma
+## hacia ATRÁS. La mano agarra el palo por delante: se ve el dorso sobre el mango y los dedos lo rodean hacia atrás. Antes la palma miraba
+## al frente y la mano quedaba escondida detrás del palo. Fijarlo al personaje, y no a cómo viene la mano, lo hace igual en todos los clips.
+var palma_hacia: Vector3 = Vector3.ZERO
+var _pulgar_signo: float = 1.0           ## de qué lado del eje (dedos × palma) cae el pulgar, medido en el reposo
 var _dedos_local: Vector3 = Vector3.UP      ## hacia los dedos, en el espacio del hueso de la mano
 var _palma_local: Vector3 = Vector3.LEFT    ## hacia donde mira la palma, en ese mismo espacio
 var _listo: bool = false
+
+
+## HACIA DÓNDE MIRA LA PALMA, sin suponerlo: +1 o −1 por el que hay que multiplicar (índice − muñeca) × (meñique − muñeca) para que salga
+## de la PALMA y no del dorso. La palma es el lado hacia el que se CIERRAN los dedos, y eso sí se sabe: una falange se cierra girando sobre su
+## +X local (Pj3D.EJE_CIERRE_DEDO, medido con cinemática directa), lo que lleva su punta hacia su +Z local. Así que la palma mira hacia el +Z
+## del primer hueso del dedo corazón.
+## 10/11: lo deduje de memoria («en la mano derecha ese producto sale de la palma») y estaba AL REVÉS en este esqueleto. Todo lo que colgaba de
+## ahí salió invertido durante varias pasadas: el palo «delante de la palma» iba por el dorso, y los dedos, al cerrarse, se alejaban de él.
+static func signo_palma(sk: Skeleton3D, hueso_mano: int) -> float:
+	var base_n: String = String(sk.get_bone_name(hueso_mano))
+	var i_m: int = sk.find_bone(base_n + "Middle1")
+	var i_i: int = sk.find_bone(base_n + "Index1")
+	var i_p: int = sk.find_bone(base_n + "Pinky1")
+	if i_m < 0 or i_i < 0 or i_p < 0:
+		return 1.0
+	var hacia_palma: Vector3 = sk.get_bone_rest(i_m).basis.orthonormalized().z      # en el espacio del hueso de la mano
+	var producto: Vector3 = sk.get_bone_rest(i_i).origin.cross(sk.get_bone_rest(i_p).origin)
+	return 1.0 if producto.dot(hacia_palma) >= 0.0 else -1.0
 
 
 func preparar(p_esqueleto: Skeleton3D, p_hueso: int, p_lado: float, p_apoyo: PiezaApoyada3D, p_modelo: Node3D) -> void:
@@ -43,9 +67,13 @@ func preparar(p_esqueleto: Skeleton3D, p_hueso: int, p_lado: float, p_apoyo: Pie
 	var a: Vector3 = p_esqueleto.get_bone_rest(i_i).origin
 	var b: Vector3 = p_esqueleto.get_bone_rest(i_p).origin
 	_dedos_local = m.normalized()
-	# (índice − muñeca) × (meñique − muñeca) sale de la palma en la mano DERECHA; en la izquierda, al revés
-	var n: Vector3 = a.cross(b) * (1.0 if lado < 0.0 else -1.0)
+	var n: Vector3 = a.cross(b) * signo_palma(p_esqueleto, hueso)      # ver signo_palma: hacia donde se cierran los dedos
 	_palma_local = (n - _dedos_local * n.dot(_dedos_local)).normalized()      # perpendicular a los dedos
+	var i_t: int = p_esqueleto.find_bone(base_n + "Thumb1")
+	if i_t >= 0:
+		_pulgar_signo = signf(p_esqueleto.get_bone_rest(i_t).origin.dot(_dedos_local.cross(_palma_local)))
+		if _pulgar_signo == 0.0:
+			_pulgar_signo = 1.0
 	_listo = true
 
 
@@ -67,10 +95,22 @@ func _process_modification() -> void:
 		palma = (modelo.global_basis.z if modelo != null else Vector3.BACK)
 		palma.y = 0.0
 	palma = palma.normalized()
-	# los dedos: horizontales y perpendiculares a la palma; de los dos sentidos, el que más se parece a como venían
+	if palma_hacia != Vector3.ZERO and modelo != null:
+		# dirección FIJA respecto al personaje: no depende de cómo traiga la mano el clip
+		var zm: Vector3 = modelo.global_basis.z
+		palma = Basis(Vector3.UP, atan2(zm.x, zm.z)) * palma_hacia
+		palma.y = 0.0
+		palma = palma.normalized()
+	# los dedos: horizontales y perpendiculares a la palma. De los dos sentidos, el que CONTINÚA EL ANTEBRAZO (del codo a la muñeca):
+	# así la mano nunca queda plegada hacia atrás sobre el brazo. Probado y descartado el 10/11: «el que más se parece a como venían»
+	# daba la vuelta a la mano de un clip a otro y al cambiar la postura del hombro; y «el que deja el pulgar arriba», con la palma
+	# hacia atrás y el brazo saliendo hacia fuera, doblaba la mano 180° sobre el antebrazo.
 	var dedos: Vector3 = palma.cross(Vector3.UP).normalized()
-	var venian: Vector3 = actual * _dedos_local
-	if dedos.dot(venian) < 0.0:
+	var padre: int = sk.get_bone_parent(hueso)
+	var antebrazo: Vector3 = actual * _dedos_local
+	if padre >= 0:
+		antebrazo = giro_sk * (g.origin - sk.get_bone_global_pose(padre).origin)
+	if dedos.dot(antebrazo) < 0.0:
 		dedos = -dedos
 	var marco_local := Basis(_dedos_local, _palma_local, _dedos_local.cross(_palma_local))
 	var marco_mundo := Basis(dedos, palma, dedos.cross(palma))

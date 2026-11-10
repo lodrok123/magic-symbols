@@ -66,6 +66,7 @@ var z_max: float = INF
 var con_palma: bool = false                     ## true = el agarre se mide en la palma del esqueleto (K_PALMA)
 var palma_delante: float = 0.0
 var palma_hacia_dedos: float = 0.5
+var _palma_signo: float = 1.0
 var _palma_medio: int = -1
 var _palma_indice: int = -1
 var _palma_menique: int = -1
@@ -109,6 +110,7 @@ func preparar(p_pieza: Node3D, p_modelo: Node3D, p_esqueleto: Skeleton3D, p_hues
 		_palma_indice = esqueleto.find_bone(base_n + "Index1")
 		_palma_menique = esqueleto.find_bone(base_n + "Pinky1")
 		con_palma = _palma_medio >= 0 and _palma_indice >= 0 and _palma_menique >= 0
+		_palma_signo = ManoEmpuna3D.signo_palma(esqueleto, hueso)
 		if not con_palma:
 			push_warning("PiezaApoyada3D: «palma» pedido pero %s no tiene dedos (Middle1/Index1/Pinky1); se usa el agarre de siempre" % base_n)
 	_largo_local = _largo_malla(pieza)
@@ -179,8 +181,7 @@ func actualizar(delta: float, fijar: bool) -> void:
 		var m: Vector3 = esqueleto.global_transform * esqueleto.get_bone_global_pose(_palma_medio).origin
 		var a: Vector3 = esqueleto.global_transform * esqueleto.get_bone_global_pose(_palma_indice).origin - w
 		var b: Vector3 = esqueleto.global_transform * esqueleto.get_bone_global_pose(_palma_menique).origin - w
-		# (índice − muñeca) × (meñique − muñeca) sale de la palma en la mano DERECHA; en la izquierda, al revés
-		var normal: Vector3 = a.cross(b).normalized() * (1.0 if lado < 0.0 else -1.0)
+		var normal: Vector3 = a.cross(b).normalized() * _palma_signo      # ManoEmpuna3D.signo_palma: hacia donde se cierran los dedos
 		mano = w.lerp(m, palma_hacia_dedos) + normal * palma_delante
 	var rel: Vector3 = giro_pers.inverse() * (mano - raiz)          # la palma en el espacio del personaje girado, en unidades de mundo
 	# 5/11: los desplazamientos mueven el PUNTO DE AGARRE (hacia el cuerpo y hacia delante), no solo el pie: si solo movieran el pie, la inclinación hacia la

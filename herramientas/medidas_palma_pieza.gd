@@ -77,7 +77,7 @@ func _initialize() -> void:
 			var m: Vector3 = _g(sk, int(h["HandMiddle1"]))
 			var a: Vector3 = _g(sk, int(h["HandIndex1"])) - w
 			var b: Vector3 = _g(sk, int(h["HandPinky1"])) - w
-			var normal: Vector3 = a.cross(b).normalized()
+			var normal: Vector3 = a.cross(b).normalized() * ManoEmpuna3D.signo_palma(sk, int(h["Hand"]))
 			var centro: Vector3 = (w + m) * 0.5
 			# el eje del palo: pasa por el origen de la pieza con su vertical
 			var arriba: Vector3 = pieza.global_basis.y.normalized()
@@ -101,7 +101,7 @@ func _initialize() -> void:
 		var arr: Vector3 = pieza.global_basis.y.normalized()
 		var o2: Vector3 = pieza.global_transform * eje
 		var w2: Vector3 = _g(sk, int(h["Hand"]))
-		var nrm: Vector3 = (_g(sk, int(h["HandIndex1"])) - w2).cross(_g(sk, int(h["HandPinky1"])) - w2).normalized()
+		var nrm: Vector3 = (_g(sk, int(h["HandIndex1"])) - w2).cross(_g(sk, int(h["HandPinky1"])) - w2).normalized() * ManoEmpuna3D.signo_palma(sk, int(h["Hand"]))
 		var linea: String = ""
 		for dedo in ["Thumb", "Index", "Middle", "Ring", "Pinky"]:
 			var i_y: int = sk.find_bone("mixamorig_RightHand%s4" % dedo)
