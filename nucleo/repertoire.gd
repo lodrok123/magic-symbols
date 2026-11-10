@@ -42,7 +42,14 @@ static var _sigils: PackedStringArray = PackedStringArray(["flecha", "barrera"])
 ##
 ## Empieza en 0 y lo fija cada nivel al arrancar (el blockout pone 2), para
 ## que el resto del juego siga como estaba.
-static var max_sigils_per_page: int = 0
+static var max_sigils_per_page: int = 0:
+	set(v):
+		max_sigils_per_page = v
+		if not _desde_mejoras:
+			base_sigils_per_page = v          # 10/11: lo fija el nivel o el libro: esa es la BASE (los engarces de `Mejoras` no la cambian)
+## 10/11: los huecos que fijó el nivel o el libro, SIN engarces. `Mejoras` calcula el total desde aquí (máx(base, 1 + engarces)) en vez de adivinarlo.
+static var base_sigils_per_page: int = 0
+static var _desde_mejoras: bool = false      ## true mientras escribe `Mejoras` (no es una base nueva)
 
 
 ## CUÁNTAS PÁGINAS (libros) TIENES. 0 = todas las del Spellcaster. Lo fija cada nivel como `max_sigils_per_page`: el primero

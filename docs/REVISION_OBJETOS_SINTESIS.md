@@ -250,7 +250,7 @@ Las cuatro que propones, más dos que ya existen. La idea de fondo es que cada f
 | Vida | 100 → 200 en cinco mejoras de +20 | cuatro fragmentos por mejora |
 | Mochila | 8 → 20 como referencia inicial | materiales comunes y coste moderado |
 
-**Regla de los huecos (decidido el 10/11, Pablo): los engarces fijan el total.** Huecos por página = el mayor entre la base del libro y 1 + engarces, con tope 6. Hay 5 engarces en la campaña. Con el libro del bosque (base 1), cada engarce suma un hueco. Con el libro avanzado (base 4), los engarces solo se notan a partir del cuarto. Ningún engarce se pierde al cambiar de libro: cuenta para el total. Hoy `Mejoras._sumar` suma la mejora encima de la base del libro, así que hay que cambiarlo a «el mayor de los dos».
+**Regla de los huecos (decidido el 10/11, Pablo): los engarces fijan el total.** Huecos por página = el mayor entre la base del libro y 1 + engarces, con tope 6. Hay 5 engarces en la campaña. Con el libro del bosque (base 1), cada engarce suma un hueco. Con el libro avanzado (base 4), los engarces solo se notan a partir del cuarto. Ningún engarce se pierde al cambiar de libro: cuenta para el total. Implementado el 10/11 (diario 463): `Mejoras._fijar_huecos` calcula el total desde la base que apunta `Repertoire.base_sigils_per_page`.
 
 **Valores de hoy y el primer borrador:**
 

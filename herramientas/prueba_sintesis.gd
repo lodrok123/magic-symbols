@@ -383,15 +383,19 @@ func _idempotente() -> void:
 	Mejoras.aplicar_todas()
 	var foto2: Array = [e.vida_max, e.cura_pocion, e.defensa, e.vel_extra, e.capacidad, e.frascos_tinta, Repertoire.max_sigils_per_page, Repertoire.max_pages]
 	_ok("7 aplicar_todas tres veces deja lo mismo que una", foto1 == foto2, "%s %s" % [str(foto1), str(foto2)])
-	_ok("7 los valores: vida 140, poción +10, DEF 1, velocidad +10, bolsa 12, libro 4 glifos y 4 páginas", foto1.slice(0, 5) == [140.0, 50.0, 1.0, 10.0, 12] and foto1[6] == 4 and foto1[7] == 4, str(foto1))
+	_ok("7 los valores: vida 140, poción +10, DEF 1, velocidad +10, bolsa 12, libro 3 glifos (máx(2, 1 + 2 engarces)) y 4 páginas", foto1.slice(0, 5) == [140.0, 50.0, 1.0, 10.0, 12] and foto1[6] == 3 and foto1[7] == 4, str(foto1))
 	# El nivel de juego vuelve a fijar el libro (otra sala): la mejora suma sobre la base nueva, no sobre la suma anterior.
 	Repertoire.max_sigils_per_page = 3
 	Repertoire.max_pages = 3
 	Mejoras.aplicar_todas()
-	_ok("7 si el nivel vuelve a fijar el libro, la base es la suya (3 + 2 = 5)", Repertoire.max_sigils_per_page == 5 and Repertoire.max_pages == 4)
+	_ok("7 si el nivel vuelve a fijar el libro, la base es la suya (glifos: máx(3, 1 + 2) = 3; páginas: 3 + 1 = 4)", Repertoire.max_sigils_per_page == 3 and Repertoire.max_pages == 4)
+	e.mejoras["huecos_glifo"] = 4
+	Mejoras.aplicar_todas()
+	_ok("7 con 4 engarces el total pasa la base: 1 + 4 = 5", Repertoire.max_sigils_per_page == 5, str(Repertoire.max_sigils_per_page))
+	e.mejoras["huecos_glifo"] = 2
 	e.mejoras = {}
 	Mejoras.aplicar_todas()
-	_ok("7 sin mejoras todo vuelve a la base", is_equal_approx(e.vida_max, 100.0) and is_equal_approx(e.defensa, 0.0) and e.capacidad == 8 and Repertoire.max_sigils_per_page == 3 and Repertoire.max_pages == 3)
+	_ok("7 sin mejoras todo vuelve a la base", is_equal_approx(e.vida_max, 100.0) and is_equal_approx(e.defensa, 0.0) and e.capacidad == 8 and Repertoire.max_sigils_per_page == 3 and Repertoire.max_pages == 3, str([e.vida_max, e.defensa, e.capacidad, Repertoire.max_sigils_per_page, Repertoire.max_pages]))
 	# 0 = sin límite no se toca.
 	Repertoire.max_sigils_per_page = 0
 	e.mejoras = {"huecos_glifo": 3}
@@ -518,7 +522,7 @@ func _guardado() -> void:
 	e.items = {"colmillo_goblin": 2}
 	Sintesis.conocidas()                                 # descubre el bálsamo (por los ingredientes) y las que piden una mejora ya subida (II, III...)
 	var conocidas_antes: Array = Partida.recetas_conocidas.duplicate()
-	_ok("10 antes de guardar: capacidad 14, vida 140, libro de 3 glifos, 4 frascos", e.capacidad == 14 and is_equal_approx(e.vida_max, 140.0) and Repertoire.max_sigils_per_page == 3 and Tinta.frascos_max() == 4
+	_ok("10 antes de guardar: capacidad 14, vida 140, libro de 2 glifos (máx(2, 1 + 1 engarce)), 4 frascos", e.capacidad == 14 and is_equal_approx(e.vida_max, 140.0) and Repertoire.max_sigils_per_page == 2 and Tinta.frascos_max() == 4
 		and conocidas_antes.has("balsamo_protector") and conocidas_antes.has("vida_2") and not conocidas_antes.has("pocion"), "%d %s" % [e.capacidad, str(conocidas_antes)])
 	_ok("10 se guarda", Partida.guardar(1, {"mapa_actual": "x", "punto": "x.1_1"}))
 	# Otra partida, otra sala con su libro.
@@ -533,7 +537,7 @@ func _guardado() -> void:
 	_ok("10 las mejoras viajan", e.nivel("vida_max") == 2 and e.nivel("capacidad") == 1 and e.nivel("defensa") == 1 and e.nivel("huecos_glifo") == 1 and e.nivel("frascos_tinta") == 1, str(e.mejoras))
 	_ok("10 lo derivado se recalcula al cargar: vida 140, DEF 1, bolsa 14 (base 10 + 4), 4 frascos", is_equal_approx(e.vida_max, 140.0) and is_equal_approx(e.defensa, 1.0) and e.capacidad == 14 and e.capacidad_base == 10 and Tinta.frascos_max() == 4,
 		"%s %s %d" % [str(e.vida_max), str(e.defensa), e.capacidad])
-	_ok("10 el libro: la base del nivel (2) + la mejora (1)", Repertoire.max_sigils_per_page == 3, str(Repertoire.max_sigils_per_page))
+	_ok("10 el libro: la base del nivel (2) y el engarce (1 + 1 = 2): se queda en 2", Repertoire.max_sigils_per_page == 2 and Repertoire.base_sigils_per_page == 2, str(Repertoire.max_sigils_per_page))
 	_ok("10 las recetas conocidas viajan (y la bolsa)", Partida.recetas_conocidas == conocidas_antes and Sintesis.conocidas().has("balsamo_protector") and e.cuenta("colmillo_goblin") == 2, str(Partida.recetas_conocidas))
 	_ok("10 la tinta cargada admite 4 frascos", Partida.tinta.maxima_frascos() == 4)
 	var json: String = FileAccess.get_file_as_string(CARPETA + "ranura_1.json")

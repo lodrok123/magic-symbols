@@ -126,4 +126,4 @@ func _estado() -> String:
 			reaccion = "SE ANULAN"
 		CombosSellos.SIN_REACCION:
 			reaccion = "sin reacción (se lanzaría el sello 1)"
-	return "Página %d · %s%s · glifos %d/6" % [_grimorio.page + 1, sellos, "" if reaccion == "" else " · " + reaccion, _grimorio.sigils_used()]
+	return "Página %d · %s%s · glifos %d/%d" % [_grimorio.page + 1, sellos, "" if reaccion == "" else " · " + reaccion, _grimorio.sigils_used(), Grimorio.huecos_abiertos()]      # 10/11: los abiertos por la progresión, no siempre 6

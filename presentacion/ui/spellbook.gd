@@ -313,6 +313,17 @@ func _av_sector_glifo() -> Vector2:
 	return Grimorio.dir_corona(n - 1)
 
 
+## 10/11: el hueco de la corona bajo `punto` (px de pantalla, los del ratón) que tiene un glifo, o -1. Un poco más generoso que el aro dibujado.
+func _av_hueco_en(punto: Vector2) -> int:
+	if not _avanzado():
+		return -1
+	var radio: float = _lam(float(_av()["hueco_radio"])) * 1.4
+	for i in range(Grimorio.CORONA_ANGULOS.size()):
+		if _av_glifo_del_hueco(i) != "" and punto.distance_to(_on_page(_av_pos_hueco(i))) <= radio:
+			return i
+	return -1
+
+
 ## Posición (en px de LÁMINA) del hueco `i` de la corona.
 func _av_pos_hueco(i: int) -> Vector2:
 	var av: Dictionary = _av()
@@ -629,7 +640,10 @@ func _manejar_raton(event: InputEvent) -> void:
 		# cerrar el libro y lanzar algo que no querías.
 		var caster := _spellcaster()
 		if caster:
-			caster.undo_last()
+			# 10/11: en el libro avanzado, el clic derecho SOBRE un hueco de la corona quita ese glifo (aunque no sea el último); en cualquier otro sitio, deshace.
+			var hueco: int = _av_hueco_en(event.position) if _avanzado() else -1
+			if hueco < 0 or not bool(caster.call("quitar_glifo_hueco", hueco)):
+				caster.undo_last()
 		queue_redraw()
 		get_viewport().set_input_as_handled()
 
@@ -2516,10 +2530,14 @@ func _draw_avanzado() -> void:
 		var d: float = radio_med * 0.7
 		draw_line(a + Vector2(-d, -d), b + Vector2(d, d), RECORD_INK, _u(3.0), true)
 		draw_line(a + Vector2(-d, d), b + Vector2(d, -d), RECORD_INK, _u(3.0), true)
+	var abiertos: int = Grimorio.huecos_abiertos()
 	for i in range(Grimorio.CORONA_ANGULOS.size()):
 		var hc: Vector2 = _on_page(_av_pos_hueco(i))
 		var radio_h: float = _lam(float(av["hueco_radio"]))
 		var nombre_g: String = _av_glifo_del_hueco(i)
+		if i >= abiertos and nombre_g == "":
+			_av_hueco_cerrado(hc, radio_h)          # 10/11: la progresión aún no lo ha abierto (engarces): tapado, también sobre las láminas que lo traen impreso
+			continue
 		if not aros_impresos:
 			draw_arc(hc, radio_h, 0.0, TAU, 32, INK_SOFT if nombre_g != "" else INK_FAINT, _u(1.5), true)
 		if nombre_g == "":
@@ -2527,6 +2545,15 @@ func _draw_avanzado() -> void:
 		var glyph: Texture2D = Sigils.GLYPHS.get(nombre_g)
 		var angulo: float = EjesRecetaUi.giro_linea(nombre_g) if EjesRecetaUi.exenta_del_giro(nombre_g) else GestureLibrary.giro_glifo(Grimorio.dir_corona(i))
 		_av_pintar_runa("h%d" % i, glyph, hc, origen_glifo, radio_h * 1.75, INK, angulo)
+
+
+## Un hueco de la corona que la progresión aún no ha abierto: una tapa de tinta con un pasador cruzado. Se ve que existe y que todavía no se puede usar.
+func _av_hueco_cerrado(centro: Vector2, radio: float) -> void:
+	draw_circle(centro, radio * 1.05, Color(INK.r, INK.g, INK.b, 0.42))
+	draw_arc(centro, radio * 1.05, 0.0, TAU, 32, INK, _u(1.5), true)
+	var d: float = radio * 0.45
+	draw_line(centro + Vector2(-d, 0.0), centro + Vector2(d, 0.0), Color(1.0, 0.95, 0.85, 0.55), _u(2.0), true)
+	draw_circle(centro + Vector2(0.0, -d * 0.15), radio * 0.16, Color(1.0, 0.95, 0.85, 0.55))
 
 
 func _draw_hint(c: Vector2) -> void:
@@ -2541,7 +2568,7 @@ func _draw_hint(c: Vector2) -> void:
 			_draw_centered_text(Vector2(c.x, y1), lanz.feedback_text, RECORD_INK)
 		else:
 			_draw_centered_text(Vector2(c.x, y1), "T cierra y lanza · 1 2 3 pasan página", INK_SOFT)
-		_draw_centered_text(Vector2(c.x, y1 + _lam(20.0)), "dibuja abajo: sello a la izquierda, glifo a la derecha · clic derecho deshace", INK_SOFT)
+		_draw_centered_text(Vector2(c.x, y1 + _lam(20.0)), "dibuja abajo: sello a la izquierda, glifo a la derecha · clic derecho sobre un glifo lo quita, fuera deshace", INK_SOFT)
 		return
 
 	# DOS LÍNEAS, NO TRES. La ventana mide 648 px de alto: con el centro
