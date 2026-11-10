@@ -20,7 +20,7 @@ layout(set = 1, binding = 0, std140) uniform Parametros {
 	vec4 k2;         // buoyancy, weight, drag, wind
 	vec4 k3;         // push, confine, subgrid, viscosity
 	vec4 k4;         // turbulence, paleta (0 demo, 1 pablo), acantilado (1 si se dibuja), M = escala transversal del modo procedural (1 = la demo)
-	vec4 key_pos;    // xyz lampara azul (keyPos), w -
+	vec4 key_pos;    // xyz lampara azul (keyPos), w ELEMENTO (10/11): 0 fuego (la demo), 1 agua (ver AGUA)
 	vec4 mundo_lo;   // WORLD.min
 	vec4 mundo_tam;  // WORLD.size
 } P;
@@ -56,6 +56,10 @@ layout(push_constant, std430) uniform Rejilla {
 #define SUBGRID    P.k3.z
 #define VISCOSITY  P.k3.w
 #define TURBULENCE P.k4.x
+// MODO AGUA (10/11, item 5 de docs/TECNICAS_REPO_GAS_OTROS_ELEMENTOS_2026-11-10.md): el MISMO solver con otro juego de parametros (HazGas.PARAMS_AGUA). El canal x del gas
+// deja de ser la temperatura y pasa a ser la CANTIDAD DE AGUA; no hay combustible, ni hollin, ni polvo, ni expansion, y el peso tira del agua (no del hollin): cae.
+// Con key_pos.w = 0 (el fuego) ningun kernel cambia.
+#define AGUA (P.key_pos.w > 0.5)
 // MODO PROCEDURAL (9/11): M = tamaño de la masa respecto a la demo (radios del chorro / obstáculo). Escala lo que en la demo es una LONGITUD transversal:
 // bamboleo del eje, radio y ráfagas de la alimentación, piel del escudo, periodos de la turbulencia y del desgarro fino. La unidad de longitud es la del chorro
 // (siempre 10,6 unidades de largo), así que velocidades, viento, empuje, flotación y enfriamiento se quedan como en la demo.

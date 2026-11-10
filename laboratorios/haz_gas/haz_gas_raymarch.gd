@@ -24,6 +24,8 @@ var depurar: bool = false
 var toon: bool = false
 var toon_param: PackedFloat32Array = PackedFloat32Array()
 var toon_tex: Array[RID] = []
+## MODO AGUA (10/11): con toon, el dibujo es raymarch_toon_agua.glsl (lenguaje del AguaToy) con las mismas ataduras; toon_tex = [T_Noise_W5i, T_Noise_Wo14, T_Noise_Wf4, paleta de AguaPaleta].
+var agua: bool = false
 var _muestreo_repite: RID
 
 var _rd: RenderingDevice = null
@@ -60,7 +62,7 @@ func _crear() -> void:
 	_rd = RenderingServer.get_rendering_device()
 	if _rd == null:
 		return
-	for n in ["raymarch", "raymarch_toon", "temporal", "compone"]:
+	for n in ["raymarch", "raymarch_toon", "raymarch_toon_agua", "temporal", "compone"]:
 		var sp: RDShaderSPIRV = HazGasSolver.spirv(_rd, n)
 		if sp.compile_error_compute != "" or sp.bytecode_compute.is_empty():
 			push_error("HazGasRaymarch: %s.glsl no compila:\n%s" % [n, sp.compile_error_compute])
@@ -151,7 +153,7 @@ func _render_callback(_tipo: int, render_data: RenderData) -> void:
 	if es_toon:
 		var u_t: Array = [_s(0, solver.gas[0], _muestreo), _s(1, solver.vel[0], _muestreo), _s(2, profundidad, _muestreo_cercano), _s(3, toon_tex[0], _muestreo_repite),
 			_s(4, toon_tex[1], _muestreo_repite), _s(5, toon_tex[2], _muestreo_repite), _s(6, toon_tex[3], _muestreo), _i(7, _crudo)]
-		_despacha("raymarch_toon", [u_t, [_ubo(0, solver.ubo)], [_ubo(0, _vista_ubo)]], Vector3i(ceili(tv.x / 8.0), ceili(tv.y / 8.0), 1), pc_r)
+		_despacha("raymarch_toon_agua" if agua else "raymarch_toon", [u_t, [_ubo(0, solver.ubo)], [_ubo(0, _vista_ubo)]], Vector3i(ceili(tv.x / 8.0), ceili(tv.y / 8.0), 1), pc_r)
 	else:
 		_despacha("raymarch", [u_gas, [_ubo(0, solver.ubo)], [_ubo(0, _vista_ubo)]], Vector3i(ceili(tv.x / 8.0), ceili(tv.y / 8.0), 1), pc_r)
 	var fuente: RID = _crudo

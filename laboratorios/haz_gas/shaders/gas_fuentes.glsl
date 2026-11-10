@@ -20,6 +20,22 @@ void main() {
 	vec4 gs = texelFetch(gas_in, c, 0);
 	float T = gs.x, soot = gs.y, dust = gs.z, fuel = gs.w;
 
+	if (AGUA) {
+		// MODO AGUA (10/11): x = cantidad de agua. El chorro la pone en su nucleo; en el choque, el chorro que se APLASTA contra la cara alimenta una mancha en
+		// la piel (la misma alimentacion que el fuego, sin calor) de la que nace la lamina que el peso hace caer por la pared. Sin combustion, ni hollin, ni polvo:
+		// el agua solo se va despacio (COOL = evaporacion / lo que se escurre fuera de la vista).
+		Haz ha = haz_en(w, ruido);
+		float agua = max(T, ha.core * (0.85 + 0.25 * ha.pulse));
+		vec3 off_a = w - P.contacto.xyz;
+		float gust_a = textureLod(ruido, w * (0.05 / ESC_M) + vec3(TIEMPO * 0.25, 0.6, 0.1), 0.0).x * 1.4;
+		agua = max(agua, exp(dot(off_a, off_a) * -0.9 / (ESC_M * ESC_M)) * BEAM_ON * gust_a * HEAT);
+		agua *= exp(-COOL * DT);
+		vec3 n_a;
+		float keep_a = fuera_obst(obst_sd(w, n_a)) * esponja(uvw);
+		imageStore(gas_out, c, vec4(min(agua * keep_a, 4.0), 0.0, 0.0, 0.0));
+		return;
+	}
+
 	// El chorro se mantiene caliente en su nucleo y solo lleva combustible en su ultimo tramo: asi queda recto y limpio.
 	Haz hz = haz_en(w, ruido);
 	fuel = max(fuel, hz.core * hz.pulse * smoothstep(0.55, 0.9, hz.t));

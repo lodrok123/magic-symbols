@@ -10,6 +10,7 @@ extends Node3D
 ## Prueba 2 (fuego toon, docs/PRUEBA2_VFX_TOON_2026-11-01.md): 5 muro de fuego toon · 6 columna toon · 7 bola toon · 9 diez muros toon · RePág / AvPág eligen uno de los diez mandos · + / − lo suben y bajan ·
 ##          Retroceso lo devuelve a su valor de origen · el panel enseña los diez con su valor (el elegido va con «>»). Valen para los muros toon que nazcan después y para el vivo.
 ## Mayús+F12: PORT de la demo de gas 3D de three.js (laboratorios/haz_gas/, HazGas): esfera → muro → nada. Dentro: ESPACIO chorro, C cámara, O obstáculo, 1-4 calidad, ratón orbita.
+##          Con el elemento en AGUA (Z, antes o con el gas puesto) es el haz de gas en MODO AGUA (10/11): se aplasta contra la esfera o el muro de prueba y se reparte en lámina.
 ## El panel muestra fps, luces y partículas vivas (el mismo recuento que LabVfx3D._luces_y_particulas) y las teclas.
 ## Abrir: laboratorios/LabVfxComparativa3D.tscn y F6. Capturas: herramientas/captura_vfx_comparativa.gd.
 
@@ -350,6 +351,8 @@ func poner_elemento(nuevo: String) -> void:
 	if nuevo == elemento:
 		return
 	elemento = nuevo
+	if _gas != null and is_instance_valid(_gas):
+		_gas.poner_elemento("agua" if elemento == "agua" else "fuego")      # 10/11: con el gas puesto, Z lo pasa a agua (y de vuelta a fuego)
 	if _param != null and is_instance_valid(_param):
 		var fig: int = _param_i
 		fuego_param(maxi(fig, 0))
@@ -584,6 +587,7 @@ func haz_gas(modo: int, vista: String = "", toon: bool = true, cfg: Dictionary =
 		_gas.jugadora_juego = _pj
 		_gas.obstaculo = "esfera" if _gas_modo == 1 else "muro"
 		_gas.toon = toon
+		_gas.elemento = "agua" if elemento == "agua" else "fuego"      # 10/11: Z en AGUA antes de Mayús+F12 = el haz de gas en modo agua
 		if not cfg.is_empty():
 			_gas.haz_cfg = cfg
 		elif toon:
