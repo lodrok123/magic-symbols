@@ -6,6 +6,14 @@ extends SceneTree
 ## Salida: res://docs/capturas/<id>/mano_<rol>.png
 
 const ALTO: float = 0.85
+var _bolas: Dictionary = {}
+var _sk: Skeleton3D = null
+var _foco_vivo: Vector3 = Vector3.ZERO
+
+
+func _colocar_bolas() -> void:
+	for ib in _bolas:
+		(_bolas[ib] as Node3D).global_position = _sk.global_transform * _sk.get_bone_global_pose(int(ib)).origin
 
 
 func _initialize() -> void:
@@ -49,6 +57,34 @@ func _initialize() -> void:
 	var w: Vector3 = sk.global_transform * sk.get_bone_global_pose(sk.find_bone("mixamorig_RightHand")).origin
 	var m: Vector3 = sk.global_transform * sk.get_bone_global_pose(sk.find_bone("mixamorig_RightHandMiddle1")).origin
 	var foco: Vector3 = (w + m) * 0.5
+	# Con el cuarto argumento «huesos» se pintan encima unas bolitas en las articulaciones, visibles a través de la malla: muñeca
+	# (rojo), nudillos de los cuatro dedos (verde), yemas (azul) y pulgar (amarillo). Hace falta porque la manga ancha tapa media
+	# mano y por la foto sola no se sabe qué trozo de piel es palma y cuál dedos.
+	if args.size() > 3 and String(args[3]) == "huesos":
+		var marcas: Dictionary = {"": Color(1, 0, 0), "Index1": Color(0, 1, 0), "Middle1": Color(0, 1, 0), "Ring1": Color(0, 1, 0), "Pinky1": Color(0, 1, 0),
+			"Index4": Color(0, 0.3, 1), "Middle4": Color(0, 0.3, 1), "Ring4": Color(0, 0.3, 1), "Pinky4": Color(0, 0.3, 1), "Thumb4": Color(1, 1, 0)}
+		for n in marcas:
+			var ib: int = sk.find_bone("mixamorig_RightHand" + String(n))
+			if ib < 0:
+				continue
+			var bola := MeshInstance3D.new()
+			var esf := SphereMesh.new()
+			esf.radius = 0.005
+			esf.height = 0.010
+			bola.mesh = esf
+			var mat := StandardMaterial3D.new()
+			mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+			mat.albedo_color = marcas[n]
+			mat.no_depth_test = true
+			bola.material_override = mat
+			root.add_child(bola)
+			_bolas[ib] = bola
+		# Las bolitas se colocan DENTRO de `skeleton_updated`: un modificador del esqueleto (ManoEmpuna3D, ProporcionChibi) solo deja
+		# su pose puesta mientras se actualiza; leída después, es la pose sin modificar y las bolitas no caerían sobre la mano que se ve.
+		_sk = sk
+		sk.skeleton_updated.connect(_colocar_bolas)
+		for i in 4:
+			await process_frame
 	var hoja := Image.create_empty(640 * 3, 720, false, Image.FORMAT_RGB8)
 	# de frente (el personaje mira a +Z), desde fuera (su derecha es −X) y desde arriba
 	var vistas: Array = [Vector3(0, 0.1, 1), Vector3(-1, 0.1, 0.15), Vector3(0.0, 1, 0.12)]

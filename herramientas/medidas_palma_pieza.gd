@@ -9,6 +9,9 @@ extends SceneTree
 ##   delante < 0  el palo está por el DORSO de la mano: se ve detrás de la mano, que es lo que no vale
 ## `lateral` es lo que se desvía del centro de la palma a lo ancho (hacia el índice en positivo).
 ## Todo en unidades de mundo con el personaje a ALTO; x,z en el espacio del personaje (+z = delante).
+## OJO (10/11): esta herramienta lee los huesos FUERA de `skeleton_updated`. Con un personaje que lleve ManoEmpuna3D (la muñeca girada por
+## un modificador del esqueleto) lee la muñeca SIN girar y sus números no valen: para ese caso manda herramientas/prueba_santa_compana.gd,
+## que lee dentro de la actualización, y el primer plano de herramientas/captura_mano_pieza.gd.
 
 const ALTO: float = 0.85
 const MUESTRAS: int = 8
@@ -45,6 +48,17 @@ func _initialize() -> void:
 	# origen esta herramienta decía «+0,022 por delante de la palma» mientras en la foto el palo estaba detrás de la mano.
 	var eje: Vector3 = _eje_mango(pieza)
 	print("%s · pieza %s · el mango pasa a (%+.3f, %+.3f) del origen de la pieza (unidades de la pieza)" % [id, pieza.get_meta("equipo_id"), eje.x, eje.z])
+	# Tamaño de la mano en el mundo: de la muñeca al nudillo y el largo de cada dedo (suma de falanges). Dice si los dedos dan para rodear el mango.
+	var txt: String = "  mano: muñeca→nudillo del corazón %.3f · dedos:" % _g(sk, int(h["Hand"])).distance_to(_g(sk, int(h["HandMiddle1"])))
+	for dedo in ["Thumb", "Index", "Middle", "Ring", "Pinky"]:
+		var l: float = 0.0
+		for f in [1, 2, 3]:
+			var ia: int = sk.find_bone("mixamorig_RightHand%s%d" % [dedo, f])
+			var ib: int = sk.find_bone("mixamorig_RightHand%s%d" % [dedo, f + 1])
+			if ia >= 0 and ib >= 0:
+				l += sk.get_bone_global_rest(ia).origin.distance_to(sk.get_bone_global_rest(ib).origin) * sk.global_transform.basis.get_scale().x
+		txt += " %s %.3f" % [dedo, l]
+	print(txt)
 	for rol in roles:
 		var clip: String = p.clip_de(String(rol))
 		if clip == "":
@@ -82,6 +96,21 @@ func _initialize() -> void:
 			print("                 %.2f   (%+.3f, %.3f, %+.3f)   (%+.2f, %+.2f)    (%+.3f, %+.3f)    %+.3f    %+.3f" % [
 				largo * float(k) / float(MUESTRAS), c.x, c.y, c.z, nl.x, nl.z, pl.x, pl.z, delante, lateral])
 		print("                 media: delante %+.3f, lateral %+.3f" % [s_del / float(MUESTRAS), s_lat / float(MUESTRAS)])
+		# ¿EMPUÑA? Distancia de cada yema al EJE del mango, y de qué lado de la palma queda. Empuñar = las yemas a un radio de mango
+		# del eje (ni dentro del palo ni lejos) y por delante de la palma, rodeándolo; con la mano abierta quedan lejos y en su plano.
+		var arr: Vector3 = pieza.global_basis.y.normalized()
+		var o2: Vector3 = pieza.global_transform * eje
+		var w2: Vector3 = _g(sk, int(h["Hand"]))
+		var nrm: Vector3 = (_g(sk, int(h["HandIndex1"])) - w2).cross(_g(sk, int(h["HandPinky1"])) - w2).normalized()
+		var linea: String = ""
+		for dedo in ["Thumb", "Index", "Middle", "Ring", "Pinky"]:
+			var i_y: int = sk.find_bone("mixamorig_RightHand%s4" % dedo)
+			if i_y < 0:
+				continue
+			var y: Vector3 = _g(sk, i_y)
+			var r: Vector3 = (y - o2) - arr * (y - o2).dot(arr)
+			linea += "  %s %.3f (%+.3f)" % [dedo, r.length(), (y - w2).dot(nrm)]
+		print("                 yemas, distancia al eje del mango (y delante de la palma):", linea)
 	quit(0)
 
 

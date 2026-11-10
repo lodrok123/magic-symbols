@@ -32,6 +32,9 @@ const K_EJE_MALLA: String = "eje_malla"                  ## true: el palo no pas
 ## siempre: un punto fijo en el espacio del hueso, sacado de cómo cuelga la pieza de la mano. Ese punto deja de valer en cuanto se le corrige
 ## la postura a la muñeca (Pj3D.CORRECCION_POSTURA): la cruz quedaba 2 cm por el DORSO de la mano y 9 cm hacia el cuerpo, y al andar ni la seguía.
 const K_PALMA: String = "palma"
+## Con `palma`: en qué punto de la mano, de la muñeca (0) al nudillo del corazón (1), se pone el palo. 0,5 = el centro de la palma. Un mango
+## GRUESO para la mano hay que llevarlo hacia los nudillos: los dedos solo abarcan parte de su contorno y, desde el centro de la palma, se hunden en él.
+const K_PALMA_HACIA_DEDOS: String = "palma_hacia_dedos"
 const K_Z_MIN: String = "z_min"                        ## u de juego: lo más atrás (eje Z del personaje, +Z = delante) que puede quedar el pie
 const K_Z_MAX: String = "z_max"                         ## y lo más adelante: la mano puede ir al pecho y el palo se queda a su costado, inclinado hacia ella
 
@@ -62,6 +65,7 @@ var z_min: float = -INF
 var z_max: float = INF
 var con_palma: bool = false                     ## true = el agarre se mide en la palma del esqueleto (K_PALMA)
 var palma_delante: float = 0.0
+var palma_hacia_dedos: float = 0.5
 var _palma_medio: int = -1
 var _palma_indice: int = -1
 var _palma_menique: int = -1
@@ -98,6 +102,7 @@ func preparar(p_pieza: Node3D, p_modelo: Node3D, p_esqueleto: Skeleton3D, p_hues
 	agarre_local = pieza.transform * Vector3(0.0, float(datos.get(K_AGARRE_Y, 0.0)), 0.0)
 	if datos.has(K_PALMA):
 		palma_delante = float(datos[K_PALMA])
+		palma_hacia_dedos = float(datos.get(K_PALMA_HACIA_DEDOS, 0.5))
 		# los huesos de la palma de ESA mano: se buscan por el nombre del hueso de agarre (…RightHand -> …RightHandMiddle1)
 		var base_n: String = String(esqueleto.get_bone_name(hueso))
 		_palma_medio = esqueleto.find_bone(base_n + "Middle1")
@@ -176,7 +181,7 @@ func actualizar(delta: float, fijar: bool) -> void:
 		var b: Vector3 = esqueleto.global_transform * esqueleto.get_bone_global_pose(_palma_menique).origin - w
 		# (índice − muñeca) × (meñique − muñeca) sale de la palma en la mano DERECHA; en la izquierda, al revés
 		var normal: Vector3 = a.cross(b).normalized() * (1.0 if lado < 0.0 else -1.0)
-		mano = (w + m) * 0.5 + normal * palma_delante
+		mano = w.lerp(m, palma_hacia_dedos) + normal * palma_delante
 	var rel: Vector3 = giro_pers.inverse() * (mano - raiz)          # la palma en el espacio del personaje girado, en unidades de mundo
 	# 5/11: los desplazamientos mueven el PUNTO DE AGARRE (hacia el cuerpo y hacia delante), no solo el pie: si solo movieran el pie, la inclinación hacia la
 	# mano devolvía el palo al punto original a la altura de la mano (el bastón de Marimanta volvía a la muñeca, al canto del puño).

@@ -209,8 +209,12 @@ const POSTURAS: Dictionary = {
 ## separados. Al cargar se cierra cada falange unos grados sobre su eje local +X (medido con cinemática directa: 40° sobre +X acercan la punta del índice al pulgar
 ## y a la muñeca; −X la alejan), girando el REPOSO del hueso, que es lo que un clip sin pista para ese hueso deja puesto. id -> [grados por falange de índice,
 ## corazón, anular y meñique (falanges 1–3), grados por falange del pulgar (2–3)]. El pulgar se cierra menos: si no, cruza la palma. Las puntas (4) no se tocan.
+## 10/11 (Pablo, cruz de la Santa Compaña: «sí, ciérralos»): dos datos más, opcionales, para la mano DERECHA sola: [.., .., dedos derecha, pulgar derecha].
+## El portador de la cruz la EMPUÑA con la derecha (el mango va delante de la palma, Equipo3D.CRUZ_APOYO) y lleva la izquierda suelta; con los
+## dedos en el reposo de Mixamo quedaban estirados detrás del mango, como apoyando la mano en él. Grados medidos con herramientas/medidas_palma_pieza.gd.
 const MANO_RELAJADA: Dictionary = {
 	"jugadora_base": [22.0, 8.0],
+	"santa_compana_cruz": [14.0, 6.0, 30.0, 14.0],
 }
 const DEDOS: PackedStringArray = ["Index", "Middle", "Ring", "Pinky"]
 const EJE_CIERRE_DEDO: Vector3 = Vector3.RIGHT
@@ -530,11 +534,15 @@ func _relajar_manos() -> int:
 	var sk: Skeleton3D = sks[0] as Skeleton3D
 	var n: int = 0
 	for lado in ["Left", "Right"]:
+		# la derecha puede llevar su propio cierre (empuñar algo): ver MANO_RELAJADA
+		var propia: bool = lado == "Right" and grados.size() >= 4
+		var g_dedo: float = float(grados[2 if propia else 0])
+		var g_pulgar: float = float(grados[3 if propia else 1])
 		for dedo in DEDOS:
 			for f in [1, 2, 3]:
-				n += _cerrar_falange(sk, "mixamorig_%sHand%s%d" % [lado, dedo, f], float(grados[0]))
+				n += _cerrar_falange(sk, "mixamorig_%sHand%s%d" % [lado, dedo, f], g_dedo)
 		for f in [2, 3]:
-			n += _cerrar_falange(sk, "mixamorig_%sHandThumb%d" % [lado, f], float(grados[1]))
+			n += _cerrar_falange(sk, "mixamorig_%sHandThumb%d" % [lado, f], g_pulgar)
 	return n
 
 
@@ -1464,6 +1472,8 @@ const VEL_CLIP_PJ: Dictionary = {"gato_guardabosques": {"walk": 0.405}, "lince":
 ## laboratorio, y se aplica ANTES de CORRECCION_POSTURA (el giro fijo va encima, como allí). El nombre del clip es el del GLB (exacto).
 const FACTOR_ZANCADA: Dictionary = {
 	"woodland_wanderer": {"Walking": {"brazos": 0.44}},
+	# 10/11 (Pablo, LabHumanoide3D): el portador de la cruz mueve algo más los brazos al andar (su «Walking» es el Spear_Walk).
+	"santa_compana_cruz": {"Walking": {"brazos": 1.26}},
 }
 
 
@@ -1527,7 +1537,10 @@ const CORRECCION_POSTURA: Dictionary = {
 	# anterior de 14° en el hombro: el giro de RightShoulder ya abre el brazo, y el del antebrazo (80,5° en Y) es el que lo dobla
 	# para sostener el bastón, que es lo que no conseguí midiendo.
 	"santa_compana_cruz": {
-		"mixamorig_RightShoulder": Vector3(-70.0, 0.0, 0.0),
+		# 10/11 (Pablo: «he tocado un poco el hombro derecho»): +38 en el panel. OJO al leer el panel: en modo «como el juego» parte
+		# de CERO y va ENCIMA de esta tabla (lab_humanoide_3d.gd lo dice), así que sus números se SUMAN a los de aquí cuando son del
+		# mismo eje, no los sustituyen: −70 + 38 = −32.
+		"mixamorig_RightShoulder": Vector3(-32.0, 0.0, 0.0),
 		"mixamorig_RightArm": Vector3(2.0, -3.0, -1.5),
 		"mixamorig_RightForeArm": Vector3(18.5, 80.5, -12.0),
 		"mixamorig_RightHand": Vector3(12.0, 0.0, -0.5),

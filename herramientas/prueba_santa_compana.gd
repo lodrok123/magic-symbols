@@ -191,6 +191,13 @@ func _cruz_en_la_palma(mundo: Node3D) -> void:
 	var i_m: int = sk.find_bone("mixamorig_RightHandMiddle1")
 	var i_i: int = sk.find_bone("mixamorig_RightHandIndex1")
 	var i_p: int = sk.find_bone("mixamorig_RightHandPinky1")
+	var leido: Array[Vector3] = [Vector3.ZERO, Vector3.ZERO, Vector3.ZERO, Vector3.ZERO]
+	var leer := func() -> void:
+		leido[0] = sk.global_transform * sk.get_bone_global_pose(i_w).origin
+		leido[1] = sk.global_transform * sk.get_bone_global_pose(i_m).origin
+		leido[2] = sk.global_transform * sk.get_bone_global_pose(i_i).origin
+		leido[3] = sk.global_transform * sk.get_bone_global_pose(i_p).origin
+	sk.skeleton_updated.connect(leer)
 	for rol in ["idle", "walk", "run"]:
 		var clip: String = p.clip_de(rol)
 		var largo: float = p.duracion(rol)
@@ -201,12 +208,16 @@ func _cruz_en_la_palma(mundo: Node3D) -> void:
 			ap.seek(largo * float(k) / 6.0, true)
 			for i in 30:            # la pieza apoyada suaviza su posición: se le deja asentar
 				await process_frame
-			var w: Vector3 = sk.global_transform * sk.get_bone_global_pose(i_w).origin
-			var m: Vector3 = sk.global_transform * sk.get_bone_global_pose(i_m).origin
-			var a: Vector3 = sk.global_transform * sk.get_bone_global_pose(i_i).origin - w
-			var b: Vector3 = sk.global_transform * sk.get_bone_global_pose(i_p).origin - w
+			# La mano se lee DENTRO de `skeleton_updated` (ver `leer`): ManoEmpuna3D gira la muñeca como modificador del esqueleto y esa
+			# pose solo existe mientras se actualiza. Leída aquí fuera sería la muñeca sin girar, y la prueba mediría contra una mano que
+			# no es la que se dibuja (así falló al correr: +0,010 cuando el palo estaba bien puesto).
+			var w: Vector3 = leido[0]
+			var m: Vector3 = leido[1]
+			var a: Vector3 = leido[2] - w
+			var b: Vector3 = leido[3] - w
 			var normal: Vector3 = a.cross(b).normalized()
-			var centro: Vector3 = (w + m) * 0.5
+			# el punto de la mano donde va el palo es el de Equipo3D.CRUZ_APOYO (`palma_hacia_dedos`)
+			var centro: Vector3 = w.lerp(m, float(Equipo3D.CRUZ_APOYO.get("palma_hacia_dedos", 0.5)))
 			var arriba: Vector3 = pieza.global_basis.y.normalized()
 			# el eje del MANGO medido en la malla, no el origen del GLB (que no está en el mango: medir sobre el origen daba por buena
 			# una cruz que en la foto quedaba detrás de la mano)
