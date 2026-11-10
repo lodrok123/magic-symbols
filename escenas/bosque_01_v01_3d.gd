@@ -141,6 +141,11 @@ var m: Variant = null                       ## la maqueta (PruebaTest2); sin tip
 var _jug: Jugador3D = null
 var _aviso: Label = null
 var _t_aviso: float = 0.0
+var _dialogo: PanelContainer
+var _dialogo_nombre: Label
+var _dialogo_texto: Label
+var _dialogo_tecla: Label
+var _interlocutor: Pj3D
 var _acum: float = 0.0
 var _montado: bool = false                  ## `iniciar` terminó: a partir de aquí un cambio de flag es algo que pasa JUGANDO (no una restauración)
 var _totems: Dictionary = {}                ## Vector2i -> Reactivo3D (los tres tótems)
@@ -436,6 +441,73 @@ func _montar_aviso() -> void:
 	_aviso.add_theme_color_override("font_outline_color", Color.BLACK)
 	_aviso.add_theme_constant_override("outline_size", 8)
 	capa.add_child(_aviso)
+	_montar_dialogo()
+
+
+func _montar_dialogo() -> void:
+	var capa := CanvasLayer.new()
+	capa.layer = 11
+	add_child(capa)
+	var raiz := Control.new()
+	capa.add_child(raiz)
+	raiz.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	raiz.mouse_filter = Control.MOUSE_FILTER_IGNORE
+
+	_dialogo = PanelContainer.new()
+	raiz.add_child(_dialogo)
+	_dialogo.add_to_group("dialogo_pergamino")
+	_dialogo.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_dialogo.anchor_left = 0.5
+	_dialogo.anchor_right = 0.5
+	_dialogo.anchor_top = 1.0
+	_dialogo.anchor_bottom = 1.0
+	_dialogo.offset_top = -76.0
+	_dialogo.offset_bottom = -76.0
+	_dialogo.grow_vertical = Control.GROW_DIRECTION_BEGIN
+	var papel := TemaInterfaz.caja_panel(TemaInterfaz.PERGAMINO_DIALOGO, Color("947047"), 1)
+	papel.content_margin_left = 20.0
+	papel.content_margin_right = 20.0
+	papel.content_margin_top = 12.0
+	papel.content_margin_bottom = 12.0
+	_dialogo.add_theme_stylebox_override("panel", papel)
+
+	var columna := VBoxContainer.new()
+	columna.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	columna.add_theme_constant_override("separation", 5)
+	_dialogo.add_child(columna)
+	_dialogo_nombre = _linea_dialogo(columna, 19, Color("6b4827"))
+	var serif := SystemFont.new()
+	serif.font_names = PackedStringArray(["Georgia", "Noto Serif", "DejaVu Serif"])
+	serif.font_weight = 700
+	_dialogo_nombre.add_theme_font_override("font", serif)
+	_dialogo_texto = _linea_dialogo(columna, 21, Color("32271e"))
+	_dialogo_texto.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_dialogo_tecla = _linea_dialogo(columna, 15, TemaInterfaz.TINTA_PERGAMINO)
+	_dialogo_tecla.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	raiz.resized.connect(_ajustar_ancho_dialogo.bind(raiz))
+	_ajustar_ancho_dialogo(raiz)
+	_dialogo.hide()
+
+
+func _ajustar_ancho_dialogo(raiz: Control) -> void:
+	var mitad: float = minf(raiz.size.x * 0.42, 340.0)
+	_dialogo.offset_left = -mitad
+	_dialogo.offset_right = mitad
+	_dialogo_texto.custom_minimum_size.x = maxf(mitad * 2.0 - 40.0, 0.0)
+	_ajustar_alto_dialogo.call_deferred()
+
+
+func _ajustar_alto_dialogo() -> void:
+	_dialogo.offset_top = _dialogo.offset_bottom - _dialogo.get_combined_minimum_size().y
+
+
+func _linea_dialogo(columna: VBoxContainer, cuerpo: int, color: Color) -> Label:
+	var etiqueta := Label.new()
+	etiqueta.add_theme_font_override("font", TemaInterfaz.fuente())
+	etiqueta.add_theme_font_size_override("font_size", cuerpo)
+	etiqueta.add_theme_color_override("font_color", color)
+	columna.add_child(etiqueta)
+	return etiqueta
 
 
 # ---------------------------------------------------------------------------------------------------------------------
@@ -538,6 +610,12 @@ func _process(delta: float) -> void:
 	_t_aviso = maxf(_t_aviso - delta, 0.0)
 	if _t_aviso <= 0.0 and _aviso != null:
 		_aviso.text = ""
+	if _dialogo.visible:
+		var jugador := m.get("_jugador") as Pj3D
+		var lanz := jugador.get("lanz") as Lanzador3D
+		if not is_instance_valid(_interlocutor) or _dist(_interlocutor.position, jugador.position) > ALCANCE_E \
+				or (lanz != null and lanz.libro_abierto()):
+			_dialogo.hide()
 	_gente_tick(delta)
 	_acum += delta
 	if _acum < T_SONDEO:
@@ -963,6 +1041,8 @@ func _unhandled_input(ev: InputEvent) -> void:
 			mejor = g
 	if not mejor.is_empty():
 		_hablar(mejor, yo)
+	elif _dialogo.visible:
+		_dialogo.hide()
 
 
 func _hablar(g: Dictionary, yo: Vector3) -> void:
@@ -970,7 +1050,15 @@ func _hablar(g: Dictionary, yo: Vector3) -> void:
 	var texto: String = _texto_de(g)
 	if texto == "":
 		return
-	_decir("%s: «%s»" % [String(g["nombre"]), texto], 6.0)
+	if _dialogo.visible and _interlocutor == pj and _dialogo_texto.text == texto:
+		_dialogo.hide()
+	else:
+		_interlocutor = pj
+		_dialogo_nombre.text = String(g["nombre"])
+		_dialogo_texto.text = texto
+		_dialogo_tecla.text = "%s · Continuar" % Controles.texto_teclas("interactuar")
+		_dialogo.show()
+		_ajustar_alto_dialogo.call_deferred()
 	pj.mirar(yo - pj.position, 1.0)
 	pj.animacion_actual = ""
 	pj.jugar("talk")

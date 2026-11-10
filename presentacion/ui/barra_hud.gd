@@ -1,7 +1,7 @@
 class_name BarraHud
 extends Control
 
-## BARRA DE VIDA / TINTA AL ESTILO DE LA INTERFAZ (24/10): pista redondeada oscura, relleno del color de la barra con un brillo arriba y borde cálido,
+## BARRA DE VIDA / TINTA: pista redondeada de pergamino, relleno del color de la barra con un brillo arriba y borde cálido,
 ## y el rótulo ENCIMA con contorno oscuro (así se lee aunque el relleno sea verde claro). Pieza suelta y barata de montar:
 ##     var b := BarraHud.new(); capa.add_child(b); b.configurar("Vida", Color(0.35, 0.85, 0.4), 0.8)
 ##     b.poner_fraccion(0.5)     # cada vez que cambie
@@ -14,7 +14,7 @@ const TAM_ROTULO: int = 14
 const ESQUINA_PX: int = 7
 const BORDE_PX: int = 2
 const MARGEN_RELLENO_PX: float = 2.0
-const FONDO_PISTA: Color = Color(0.03, 0.03, 0.05, 0.88)
+const FONDO_PISTA: Color = Color("cfb591")
 const BRILLO_ARRIBA: Color = Color(1, 1, 1, 0.28)           ## banda clara en la mitad de arriba del relleno
 const T_SUAVIZADO_S: float = 0.18
 
@@ -91,6 +91,8 @@ func poner_color(p_color: Color) -> void:
 
 
 func poner_ancho(ancho: float) -> void:
+	if is_equal_approx(custom_minimum_size.x, ancho) and is_equal_approx(size.x, ancho):
+		return
 	custom_minimum_size.x = ancho
 	size.x = ancho
 	queue_redraw()
@@ -124,7 +126,7 @@ func _draw() -> void:
 	var pista := Rect2(0.0, ALTO_ROTULO_PX, size.x, ALTO_PX)
 	var caja := StyleBoxFlat.new()
 	caja.bg_color = FONDO_PISTA
-	caja.border_color = TemaInterfaz.BORDE_CALIDO
+	caja.border_color = TemaInterfaz.BORDE_CALIDO_OSCURO
 	caja.set_border_width_all(BORDE_PX)
 	caja.set_corner_radius_all(ESQUINA_PX)
 	caja.anti_aliasing = true

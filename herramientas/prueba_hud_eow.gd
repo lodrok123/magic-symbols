@@ -206,6 +206,18 @@ func _hud() -> void:
 	_ok(hud.consumibles.equipado() == "tonico_tinta", "el HUD equipa al montarse el primero que haya (%s)" % hud.consumibles.equipado())
 	_ok(hud._vida.rotulo == "Vida 50/100" and is_equal_approx(hud._vida.fraccion, 0.5), "la barra de vida dice «%s»" % hud._vida.rotulo)
 	_ok(hud._tinta.rotulo.begins_with("Tinta 100/100") and hud._frascos.llenos == 3, "tinta «%s» y 3 frascos llenos" % hud._tinta.rotulo)
+	var ancho_vida: float = hud._vida.size.x
+	var ancho_tinta: float = hud._tinta.size.x
+	var origen_tinta: Vector2 = hud._tinta.position
+	e.vida_max += 20.0
+	j.tinta.maxima += 25.0
+	hud.actualizar()
+	_ok(hud._vida.size.x > ancho_vida and hud._tinta.size.x > ancho_tinta, "las mejoras de capacidad ensanchan ambas barras")
+	_ok(hud._tinta.position == origen_tinta and hud._frascos.llenos == 3, "la ampliación respeta el espacio y el estado de los frascos")
+	e.vida_max = Estado.VIDA_BASE
+	j.tinta.maxima = Tinta.MAXIMA_INICIAL
+	hud.actualizar()
+	_ok(is_equal_approx(hud._vida.size.x, ancho_vida) and is_equal_approx(hud._tinta.size.x, ancho_tinta), "al recuperar los máximos iniciales las barras vuelven a su ancho base")
 	j.tinta.frascos = 1
 	j.tinta.actual = 40.0
 	await process_frame
