@@ -41,6 +41,10 @@ var _bril: Array = []
 var _rng: RandomNumberGenerator = RandomNumberGenerator.new()
 var _n_red: int = 0
 var _huecos_vivos: int = 0
+var _cap_ok: bool = false                  ## 11/11: el cuerpo tiene una CapsuleShape3D (ver `_buscar_capsula`)
+var _cap_a: Vector3 = Vector3.ZERO
+var _cap_b: Vector3 = Vector3.UP
+var _cap_r: float = 0.35
 
 
 static func para_entidad(alto_: float, radio_: float, dur_: float = 1.2) -> EstadoRayoToy:
@@ -67,7 +71,9 @@ func _ready() -> void:
 	add_child(_trazos)
 	_brillos = RayoTrazos.crear_destellos("Chispas", N_BRILLOS)
 	add_child(_brillos)
+	_buscar_capsula()
 	_redibujar()
+	ChispasRepo.enganchar_estado(self)          # 11/11: chispitas tipo repo de gas (ChispasRepo.capas["electrificado"]): una capa más, saltan de la piel, caen y rebotan
 
 
 ## Una descarga nueva: lo alarga `d` s más desde ahora (y lo reenciende si se estaba apagando).
@@ -131,6 +137,7 @@ func _redibujar() -> void:
 		return
 	_t_red = 0.0
 	_n_red += 1
+	_buscar_capsula()
 	var env: float = vida() * (0.7 + 0.3 * _rng.randf()) * brillo
 	var lista: Array = []
 	var bril: Array = []
@@ -150,9 +157,51 @@ func _redibujar() -> void:
 			RayoTrazos.ocultar(_brillos.multimesh, i)
 
 
-## Punto de la piel del cilindro a la altura `h` y el ángulo `a`, a `k` radios.
+## Punto de la piel del cilindro a la altura `h` y el ángulo `a`, a `k` radios. Con ChispasRepo.capas["electrificado_capsula"] (11/11, apagada de serie) y un cuerpo con CapsuleShape3D, la piel es
+## la de ESA cápsula (la misma que lee HazGasJuego): `h` / `alto` recorre la cápsula de punta a punta y en los casquetes el radio se cierra como una esfera.
 func _piel(a: float, h: float, k: float = 1.08) -> Vector3:
+	if _cap_ok and ChispasRepo.activa("electrificado_capsula"):
+		var eje: Vector3 = _cap_b - _cap_a
+		var L: float = eje.length()
+		var u: Vector3 = eje / L if L > 0.0001 else Vector3.UP
+		var s: float = clampf(h / maxf(alto, 0.01), 0.0, 1.0) * (L + 2.0 * _cap_r) - _cap_r          # distancia a lo largo del eje desde `a` (negativa / > L: casquetes)
+		var fuera: float = s - clampf(s, 0.0, L)
+		var r_ef: float = sqrt(maxf(_cap_r * _cap_r - fuera * fuera, 0.0))
+		var e1: Vector3 = u.cross(Vector3.FORWARD if absf(u.z) < 0.9 else Vector3.RIGHT).normalized()
+		var e2: Vector3 = u.cross(e1)
+		return _cap_a + u * s + (e1 * cos(a) + e2 * sin(a)) * maxf(r_ef, _cap_r * 0.25) * k
 	return Vector3(cos(a) * radio * k, h, sin(a) * radio * k)
+
+
+## 11/11: la CapsuleShape3D del cuerpo electrificado (el padre), en el espacio de ESTE nodo: [a, b] extremos del segmento y el radio. Sin cápsula, `_cap_ok` = false.
+func _buscar_capsula() -> void:
+	_cap_ok = false
+	var cuerpo: Node = get_parent()
+	if modo != Modo.ENTIDAD or cuerpo == null or not is_inside_tree():
+		return
+	for c in cuerpo.get_children():
+		if c is CollisionShape3D and (c as CollisionShape3D).shape is CapsuleShape3D and not (c as CollisionShape3D).disabled:
+			var cs: CollisionShape3D = c as CollisionShape3D
+			var f: CapsuleShape3D = cs.shape as CapsuleShape3D
+			var tr: Transform3D = global_transform.affine_inverse() * cs.global_transform
+			var media: float = maxf(f.height * 0.5 - f.radius, 0.0)
+			_cap_a = tr * Vector3(0, -media, 0)
+			_cap_b = tr * Vector3(0, media, 0)
+			_cap_r = f.radius * tr.basis.get_scale().x
+			_cap_ok = true
+			return
+
+
+func tiene_capsula() -> bool:
+	return _cap_ok
+
+
+## La piel en MUNDO como cápsula [a, b, radio] (la real si la hay; si no, el cilindro de siempre: alto × radio). La usan las chispas del repo.
+func capsula_mundo() -> Array:
+	if modo == Modo.ENTIDAD and is_inside_tree() and _cap_ok:
+		return [global_transform * _cap_a, global_transform * _cap_b, _cap_r]
+	var r: float = minf(radio, alto * 0.5)
+	return [global_transform * Vector3(0, r, 0), global_transform * Vector3(0, maxf(alto - r, r), 0), r]
 
 
 ## ENTIDAD: arcos que se agarran a la piel y la recorren (de lado, o subiendo y bajando), con la desviación de un rayo.

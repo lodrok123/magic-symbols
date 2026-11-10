@@ -103,6 +103,8 @@ var _v_caida: float = 0.0                   ## FIN: velocidad vertical de la ca�
 var _en_suelo: float = -1.0                 ## FIN: s que lleva parada en el suelo (< 0: aún cae)
 var _y_suelo: float = 0.0                   ## FIN: altura (mundo) a la que se para el centro de la roca
 var _calor_fin: float = 1.0                 ## FIN: calor del que parte el enfriado
+var _capas_vuelo_puestas: bool = false      ## 11/11: el humo por regla y las chispas del repo de la bola en vuelo ya se engancharon
+var _chispas_vuelo: ChispasRepo = null       ## 11/11: la estela de brasas tipo repo (ChispasRepo «magma_proyectil»)
 var _rng: RandomNumberGenerator = RandomNumberGenerator.new()
 
 
@@ -530,6 +532,13 @@ func _construir() -> void:
 		_volumen(cuerpo)
 	_montar_brasas()
 	_anim_si_hace_falta()
+	HumoRegla.quitar_de(self)                     # 11/11: humo por regla (HumoRegla.capas["magma"], apagado de serie): cima del muro y del pilar; la bola, al volar (_capas_vuelo)
+	_capas_vuelo_puestas = false
+	if _chispas_vuelo != null and is_instance_valid(_chispas_vuelo):
+		_chispas_vuelo.cerrar()
+	_chispas_vuelo = null
+	if figura != Figura.BOLA and is_inside_tree():
+		HumoRegla.enganchar_magma_volumen(self)
 
 
 ## BOLA: la roca (la esfera facetada de ImpactoMagmaToy.malla_bola, centrada y escalada al diámetro 2·r) con magma_roca.gdshader.
@@ -685,8 +694,21 @@ func _process(delta: float) -> void:
 		_ult_pos = global_position
 		_tiene_ult = true
 	_avanzar_brasas(delta)
+	_capas_vuelo()
 	if _luz != null and _listo and figura == Figura.BOLA:
 		_luz.light_energy *= clampf(calor, 0.0, 1.0)                   # la luz sigue al calor (EfectoToy ya ha puesto energía × luz × titileo)
+
+
+## 11/11: capas NUEVAS de la bola en vuelo (cada una con su interruptor; apagadas, la bola es la de siempre): humo oscuro detrás (HumoRegla «magma», apagada de serie) y brasas
+## como las del repo de gas (ChispasRepo «magma_proyectil»: salen con la velocidad de la bola, el aire las frena y se quedan atrás, botan en el suelo).
+func _capas_vuelo() -> void:
+	if _capas_vuelo_puestas or figura != Figura.BOLA or not proyectil or not is_inside_tree() or _est == EstadoCarga.APAGANDO or _est == EstadoCarga.CANCELANDO:
+		return
+	_capas_vuelo_puestas = true
+	HumoRegla.enganchar_magma_bola(self)
+	var yo: MagmaToy = self
+	_chispas_vuelo = ChispasRepo.enganchar_estela(self, "magma_proyectil", ChispasRepo.Paleta.MAGMA, maxf(semieje_x, semieje_z), global_position.y - altura_suelo,
+		func() -> bool: return is_instance_valid(yo) and yo.proyectil and yo._est != EstadoCarga.APAGANDO and yo._est != EstadoCarga.CANCELANDO and yo.chispas > 0.01)
 
 
 ## Rueda: gira el pivote de la roca sobre el eje ⟂ al desplazamiento `d` (mundo), ángulo = distancia / radio.
