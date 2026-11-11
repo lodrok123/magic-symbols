@@ -32,9 +32,9 @@ enum Materia { HUMO, VAPOR, POLVO, MAGMA }
 ##   vapor          agua sobre fuego (Vfx3D.vapor, VfxPuzle3D.vapor e ImpactoAguaToy.sobre_fuego)               polvo_tierra / polvo_viento   impactos de tierra y viento contra el suelo
 ##   magma          (11/11) humo OSCURO donde la lava se enfría: el cráter de ImpactoMagmaToy (GOLPE y AREA, mientras su calor > 0,3), detrás de la bola de MagmaToy que rueda y en la cima
 ##                  del muro y del pilar de magma (sigue al MagmaToy; con ella encendida, las capas «muro» y «pilar» no ponen además el humo del FuegoToy hijo). Materia MAGMA: la MISMA regla
-##                  que HUMO (rend 1,3, olvido 0,45) con los tonos de hollín de la paleta HUMO (nada nuevo). APAGADA de serie.
+##                  que HUMO (rend 1,3, olvido 0,45) con los tonos de hollín de la paleta HUMO (nada nuevo). ENCENDIDA de serie (11/11, Pablo).
 const DE_SERIE: Dictionary = {"impacto_bola": true, "muro": false, "pilar": false, "barril": true, "haz": false, "dragon": false, "suelo": true, "vapor": true,
-	"polvo_tierra": false, "polvo_viento": false, "magma": false}
+	"polvo_tierra": false, "polvo_viento": false, "magma": true}     # 11/11 (Pablo: «enciéndelas todas, están validadas»): «magma» de serie
 static var capas: Dictionary = DE_SERIE.duplicate()
 static var _registro: Array = []
 
@@ -497,8 +497,28 @@ static func enganchar_cima(fuego: Node3D, clave: String, forma: String = "") -> 
 		return null
 	e.anadir_fuente({"local": Vector3(0, y0, 0), "caja": Vector3(ancho, y0 * 0.12, fondo), "dir": Vector3.UP, "v": Vector2(0.45, 1.1) * k, "abanico": 14.0,
 		"ritmo": clampf(12.0 + ancho * 5.0, 16.0, 36.0), "temp": T_SALIDA, "tam_k": 1.0,
-		"escala_fn": func() -> float: return clampf((float(fuego.get("aparicion")) - 0.7) / 0.3, 0.0, 1.0) if is_instance_valid(fuego) else 0.0})
+		"escala_fn": _escala_cima.bind(weakref(fuego))})
 	return e
+
+
+## Las `escala_fn` de las fuentes guardan el toy en un WeakRef, no en la captura de la lambda: si el toy se libera antes que el humo (el cráter de magma cuelga de la escena), una
+## lambda que lo capture suelta «Lambda capture at index 0 was freed» en cada llamada aunque compruebe `is_instance_valid` dentro (11/11, al encender «magma» de serie).
+static func _escala_cima(ref: WeakRef) -> float:
+	var fuego: Object = ref.get_ref()
+	return clampf((float(fuego.get("aparicion")) - 0.7) / 0.3, 0.0, 1.0) if is_instance_valid(fuego) else 0.0
+
+
+static func _escala_crater(ref: WeakRef, t0: float) -> float:
+	var imp: Object = ref.get_ref()
+	var t: float = float(imp.call("tiempo")) if is_instance_valid(imp) else Time.get_ticks_msec() / 1000.0 - t0
+	return 1.0 if ImpactoMagmaToy.calor_crater(t) > 0.3 else 0.0
+
+
+static func _escala_bola(ref: WeakRef) -> float:
+	var bola: Object = ref.get_ref()
+	if not is_instance_valid(bola):
+		return 0.0
+	return 1.0 if bool(bola.get("proyectil")) and float(bola.get("calor")) > 0.3 and float(bola.get("aparicion")) > 0.5 else 0.0
 
 
 ## HAZ de fuego contra un tope: en cada `choque` {d, x, n} (espacio local del toy) el chorro se frena y se abre: ahí, DENTRO de la salpicadura, sale el humo. Sigue al toy.
@@ -594,7 +614,7 @@ static func enganchar_polvo(imp: Node3D, clave: String) -> HumoRegla:
 	e.cerrar()
 	return e
 
-# ---- MAGMA (11/11/2026, capa «magma», apagada de serie): humo OSCURO donde la lava se enfría. La lava va siempre «lenta» (no hay chorro), así que casi todo el calor que pierde sale en hollín. ----
+# ---- MAGMA (11/11/2026, capa «magma», encendida de serie): humo OSCURO donde la lava se enfría. La lava va siempre «lenta» (no hay chorro), así que casi todo el calor que pierde sale en hollín. ----
 
 ## ¿Es `fuego` el FuegoToy hijo de un MagmaToy (Cuerpo/Fuego)?
 static func _dentro_de_magma(fuego: Node) -> bool:
@@ -623,9 +643,7 @@ static func enganchar_magma_crater(imp: Node3D) -> HumoRegla:
 	var t0: float = Time.get_ticks_msec() / 1000.0
 	e.anadir_fuente({"local": bi * (n * 0.12), "caja": Vector3(rc * 0.45, 0.05, rc * 0.45) if n.dot(Vector3.UP) > 0.7 else Vector3(0.3, 0.3, 0.3) * k, "dir": bi * (n + Vector3.UP * 0.6).normalized(),
 		"v": Vector2(0.35, 0.9) * k, "abanico": 30.0, "ritmo": 16.0 + 8.0 * rc, "temp": T_SALIDA, "tam_k": 0.9, "dura": ImpactoMagmaToy.T_ENFRIAR,
-		"escala_fn": func() -> float:
-			var t: float = float(imp.call("tiempo")) if is_instance_valid(imp) else Time.get_ticks_msec() / 1000.0 - t0
-			return 1.0 if ImpactoMagmaToy.calor_crater(t) > 0.3 else 0.0})
+		"escala_fn": _escala_crater.bind(weakref(imp), t0)})
 	e.cerrar()
 	return e
 
@@ -641,10 +659,7 @@ static func enganchar_magma_bola(bola: Node3D) -> HumoRegla:
 		return null
 	e.anadir_fuente({"local": Vector3(0, r * 0.2, r * 0.7), "caja": Vector3(r * 0.4, r * 0.3, r * 0.2), "dir": Vector3(0, 1, 0.4).normalized(), "v": Vector2(0.2, 0.6), "abanico": 30.0,
 		"ritmo": 18.0, "temp": T_SALIDA, "tam_k": 0.8,
-		"escala_fn": func() -> float:
-			if not is_instance_valid(bola):
-				return 0.0
-			return 1.0 if bool(bola.get("proyectil")) and float(bola.get("calor")) > 0.3 and float(bola.get("aparicion")) > 0.5 else 0.0})
+		"escala_fn": _escala_bola.bind(weakref(bola))})
 	return e
 
 

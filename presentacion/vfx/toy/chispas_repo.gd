@@ -17,7 +17,7 @@ extends Node3D
 ##   rayo_proyectil estela de la bola de RayoToy en vuelo                  electrificado   EstadoRayoToy (ENTIDAD: de la cápsula del cuerpo; SUPERFICIE: del agua)
 ##   magma_impacto  ImpactoMagmaToy (brasas que salen del cráter)          magma_proyectil estela de la bola de MagmaToy que rueda
 ##   electrificado_capsula  NO son chispas: los ARCOS de EstadoRayoToy ENTIDAD se agarran a la CapsuleShape3D real del cuerpo en vez del cilindro fijo. Cambia el dibujo de
-##                  siempre, así que va APAGADA de serie (las demás, que solo añaden, encendidas).
+##                  siempre, así que iba APAGADA de serie; desde el 11/11 (Pablo: «enciéndelas todas») va encendida como las demás.
 ## TOPES: `MAX_POR_EMISOR` chispas por emisor y `MAX_VIVAS` en toda la escena. El emisor cuelga de la ESCENA (no del efecto): si el efecto se va, lo ya soltado acaba solo.
 
 const SpriteToy = preload("res://presentacion/vfx/toy/sprite_toy.gd")
@@ -26,7 +26,7 @@ const RayoPaleta = preload("res://presentacion/vfx/toy/rayo_paleta.gd")
 enum Paleta { RAYO, MAGMA }
 enum Piel { PLANO, ESFERA, CAPSULA }
 
-const DE_SERIE: Dictionary = {"rayo_impacto": true, "rayo_pilar": true, "rayo_proyectil": true, "electrificado": true, "electrificado_capsula": false,
+const DE_SERIE: Dictionary = {"rayo_impacto": true, "rayo_pilar": true, "rayo_proyectil": true, "electrificado": true, "electrificado_capsula": true,     # 11/11 (Pablo: «enciéndelas todas»): los arcos en la cápsula de serie
 	"magma_impacto": true, "magma_proyectil": true}
 static var capas: Dictionary = DE_SERIE.duplicate()
 static var _registro: Array = []
