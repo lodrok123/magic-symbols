@@ -23,6 +23,7 @@ layout(set = 1, binding = 0, std140) uniform Parametros {
 	vec4 key_pos;    // xyz lampara azul (keyPos), w ELEMENTO (10/11): 0 fuego (la demo), 1 agua (ver AGUA)
 	vec4 mundo_lo;   // WORLD.min
 	vec4 mundo_tam;  // WORLD.size
+	vec4 k5;         // 12/11: x = k, escala TRANSVERSAL del haz respecto a la de antes (HazGas.ESCALA_BASE..ESCALA_MAX; 1 = la demo y el tamaño de antes)
 } P;
 
 // Rejilla de ESTE kernel (gas entera, velocidad media, luz cuarto u octavo): res y lado de celda h.
@@ -79,6 +80,9 @@ layout(push_constant, std430) uniform Rejilla {
 // bamboleo del eje, radio y ráfagas de la alimentación, piel del escudo, periodos de la turbulencia y del desgarro fino. La unidad de longitud es la del chorro
 // (siempre 10,6 unidades de largo), así que velocidades, viento, empuje, flotación y enfriamiento se quedan como en la demo.
 #define ESC_M max(P.k4.w, 0.05)
+// 12/11 (tamaño de los haces): ESC_K = k, la escala del haz respecto a la de antes (M ya va × k). La usan las chispas, las gotas y los mechones del choque, que
+// nacen con una VELOCIDAD (no con una longitud): velocidad y gravedad × k = la misma duración y un recorrido × k.
+#define ESC_K max(P.k5.x, 0.05)
 #define WLO        P.mundo_lo.xyz
 #define WTAM       P.mundo_tam.xyz
 #define H          R.extra.x

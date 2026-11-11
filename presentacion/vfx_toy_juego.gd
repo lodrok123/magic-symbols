@@ -733,7 +733,11 @@ func _haz(elemento: String, h: Hechizo, hz: Dictionary, suelo: float, vida: floa
 	var tierra: TierraToy = t as TierraToy
 	var inicio: Vector3 = origen if tierra != null else desde
 	var alto: float = TierraToy.REF_HAZ.y if tierra != null else maxf(desde.y - suelo, 0.4)
-	t.call("definir", FuegoToy.Figura.HAZ, largo * 0.5, alto, Hechizo.HAZ_ANCHO * Terreno3D.casilla * 0.5, false)
+	# 12/11 (tamaño de los haces): el grosor y el choque × k (HazGas.escala_de: 0,5 con una ᛁ .. 1 con MAX_GLIFOS glifos). El largo es el de la lógica.
+	var k: float = HazGas.escala_de(h)
+	if "escala_haz" in t:
+		t.set("escala_haz", k)
+	t.call("definir", FuegoToy.Figura.HAZ, largo * 0.5, alto, Hechizo.HAZ_ANCHO * Terreno3D.casilla * 0.5 * k, false)
 	var al: Vector3 = Vector3(hasta.x - inicio.x, 0.0, hasta.z - inicio.z)
 	if "choques" in t:
 		t.set("choques", _choques_locales(hz.get("choques", []) as Array, inicio, al))       # 9/11: la salpicadura y la luz del suelo se dibujan donde la lógica dice que choca

@@ -174,7 +174,9 @@ func _caso(caso: String, c: Vector2i) -> void:
 
 func _evaluar(caso: String, g: HazGas, m: Dictionary, vis: Dictionary) -> void:
 	var con_tope: bool = String(g.haz_der["obstaculo"]) == "campo"
-	var ok_eje: bool = float(m["T_eje"]) > 0.5 and float(m["soot_eje"]) < maxf(float(m["soot_masa"]), 0.02) / 1.5
+	# 12/11 (tamaño de los haces): el haz básico mide la mitad de grueso y al aire se enfría antes, así que su eje lleva más hollín RELATIVO a la punta (0,13 / 0,16).
+	# Vale también si ese hollín queda muy por debajo del humo que se DIBUJA (toon: hollín · 1,9 > umbral_humo 0,9, o sea 0,47): por debajo de 0,25 no se ve.
+	var ok_eje: bool = float(m["T_eje"]) > 0.5 and (float(m["soot_eje"]) < maxf(float(m["soot_masa"]), 0.02) / 1.5 or float(m["soot_eje"]) < 0.25)
 	var ok_cara: bool = (not con_tope) or float(m["pasa"]) > 0.01
 	var ok_vuelve: bool = float(m["vuelve"]) < 0.03
 	var ok_dentro: bool = int(m["dentro"]) == 0

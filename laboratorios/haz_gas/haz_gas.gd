@@ -11,7 +11,7 @@ extends Node3D
 ## (vista «juego»: la boquilla en la mano de la jugadora del lab); todo lo que dibuja recibe mundo_a_dominio.
 ## Lo abre el LabVfxComparativa3D con Mayús+F12 (esfera → muro → nada). Teclas dentro: ver AYUDA.
 
-const AYUDA: String = "arrastrar: orbitar · rueda: zoom · ESPACIO chorro sí/no · C cámara (demo / órbita automática / juego) · U/J largo · I/K alto · O/L ancho · B obstáculo (esfera / caja / nada) · N/M su tamaño · V/F su distancia · 1-4 calidad · R dibujo TOON / realista · Y paleta (pablo / demo) · T filtro temporal · P pausa · G (rayo) un solo destello · Mayús+F12 salir"
+const AYUDA: String = "arrastrar: orbitar · rueda: zoom · ESPACIO chorro sí/no · C cámara (demo / órbita automática / juego) · U/J largo · I/K alto · O/L ancho · E escala (haz básico / máximo) · B obstáculo (esfera / caja / nada) · N/M su tamaño · V/F su distancia · 1-4 calidad · R dibujo TOON / realista · Y paleta (pablo / demo) · T filtro temporal · P pausa · G (rayo) un solo destello · Mayús+F12 salir"
 const DT: float = HazGasSolver.DT
 ## config.js TUNABLES: [nombre en params, etiqueta, máximo]
 const MANDOS: Array = [["wind", "Viento", 30.0], ["push", "Empuje tras el choque", 30.0], ["turbulence", "Turbulencia", 150.0], ["confine", "Remolinos", 80.0],
@@ -28,6 +28,7 @@ var mundo_tam: Vector3 = HazGasSolver.WORLD_SIZE
 var muro_c: Vector3 = MURO_C
 var muro_h: Vector3 = MURO_H
 var escala_masa: float = 1.0                ## M (ver gas_comun.glslinc ESC_M): 1 = la demo
+var escala_k: float = 1.0                   ## k (ESCALA_BASE..ESCALA_MAX, ver escala_de; gas_comun.glslinc ESC_K): 1 = la demo y el tamaño de antes del 12/11
 var metros_por_unidad: float = ESCALA_JUEGO ## en las vistas de juego: metros del lab por unidad del dominio
 var res_dominio: Vector3i = Vector3i.ZERO   ## rejilla de gas propia (ZERO = la de la calidad)
 var haz_cfg: Dictionary = {}                ## entrada del modo procedural (vacío = la demo tal cual); ver derivar_haz
@@ -281,6 +282,31 @@ const L_CHORRO: float = 10.6          ## unidades que mide SIEMPRE el chorro (bo
 const H_DEMO: float = 0.1875          ## celda de gas de la demo en calidad low (24 / 128)
 const RES_MAX: Vector3i = Vector3i(320, 192, 192)
 
+## TAMAÑO DE LOS HACES (12/11, Pablo: «reduce el tamaño en general en todos los haces... aproximadamente un 50 %, así tenemos espacio para que en valores
+## máximos esté como está ahora mismo cada haz»). EL MANDO: k = la escala TRANSVERSAL del dibujo de un haz (fuego, agua, viento, rayo; con gas o con su toy).
+## Sale de la POTENCIA de la receta (Hechizo.n_glifos: los glifos sin contar el elemento, la misma cuenta que la tinta): ESCALA_BASE con una sola ᛁ y
+## ESCALA_MAX con Hechizo.MAX_GLIFOS (6), lineal entre medias (+0,1 por glifo con los valores de serie). k = 1 es el tamaño de antes del 12/11.
+## Escala con k: el grosor del chorro (radio de FuegoToy.describir y del gas), la masa del choque (M: piel, envoltura, alimentación, lazos del vórtice del viento,
+## arcos y zigzag del rayo, márgenes del dominio), la dispersión de chispas, gotas y mechones (velocidad y gravedad × k: misma duración, recorrido × k) y las
+## salpicaduras / hojas del choque de los toys (`escala_haz`). NO cambia: el LARGO del haz (alcance) ni nada de la lógica (daño, choques, colisiones).
+const ESCALA_BASE: float = 0.5        ## k de un haz básico (una ᛁ)
+const ESCALA_MAX: float = 1.0         ## k con MAX_GLIFOS glifos (1 = el tamaño de antes)
+const ESCALA_GLIFOS_MIN: int = 1      ## glifos de la receta con los que k = ESCALA_BASE (un haz necesita al menos su ᛁ)
+## Con k < 1 la celda del gas se encoge con k^CELDA_EXP (no con k): el chorro conserva ~3 celdas de radio (antes 4); la rejilla es más corta a lo ancho y a lo alto pero,
+## con la celda más fina, tiene más celdas a lo largo: en total, de -40 % a +1 % de celdas (prueba_haz_tamano). 1 = la resolución relativa de antes (más celdas);
+## 0 = la celda de antes (la mitad de celdas, pero el chorro básico se queda en ~2 celdas de radio y su núcleo en 0,8: el toon lo rompe a trozos).
+const CELDA_EXP: float = 0.5
+## El RAYO dibuja su trazo analítico (grosor y zigzag × M en raymarch_toon_rayo.glsl): el gas solo lleva el halo de aire cargado y no necesita la celda fina.
+const CELDA_EXP_ELEMENTO: Dictionary = {"rayo": 0.0}
+
+
+## La escala transversal k del dibujo de un haz (ver ESCALA_BASE). Solo dibujo.
+static func escala_de(h: Hechizo) -> float:
+	if h == null:
+		return ESCALA_MAX
+	var t: float = clampf(float(h.n_glifos - ESCALA_GLIFOS_MIN) / float(maxi(Hechizo.MAX_GLIFOS - ESCALA_GLIFOS_MIN, 1)), 0.0, 1.0)
+	return lerpf(ESCALA_BASE, ESCALA_MAX, t)
+
 
 ## MODO PROCEDURAL (9/11, Pablo: «que cambios en la longitud, en el ancho, etc. sigan haciendo que se respete la estructura»). De los datos del haz del juego
 ## {largo (m, = 2 · semieje_x), ancho (m, radio = semieje_z), alto (m, eje = semieje_y), obstaculo ("esfera" | "caja" | "nada"), tam (m: radio de la esfera o
@@ -349,7 +375,10 @@ static func derivar_haz(cfg: Dictionary) -> Dictionary:
 		lejos_x = objetivo.x
 		arriba = nz_y
 		lado = 0.0
-	var m: float = clampf(maxf(r1 / 0.8, obst_tam_rel), 0.4, 3.0)
+	# 12/11 (tamaño de los haces): `escala` = k (escala_de). El radio ya llega × k en `ancho`; el tamaño del obstáculo también se toma × k, así M = k · la de antes
+	# (la masa del choque envuelve y llega la mitad con k = 0,5). La celda se encoge con k^CELDA_EXP.
+	var k: float = clampf(float(c.get("escala", 1.0)), 0.1, 2.0)
+	var m: float = clampf(maxf(r1 / 0.8, obst_tam_rel * k), 0.4 * minf(k, 1.0), 3.0)
 	var agua: bool = bool(c.get("agua", false))
 	var elem: String = String(c.get("elemento", "agua" if agua else "fuego"))
 	var margen_x: float = (6.0 if agua else (10.8 if tipo == "nada" else 7.7)) * m
@@ -369,7 +398,7 @@ static func derivar_haz(cfg: Dictionary) -> Dictionary:
 	elif elem == "rayo":                        # MODO RAYO: caja ceñida al trazo y a la piel del sólido
 		y_hi = maxf(arriba + 2.0 * m, nz_y + 2.8 * m)
 		z_semi = maxf(3.2 * m, lado + 2.4 * m)
-	var h: float = H_DEMO * clampf(minf(m, r1 / 0.8), 0.5, 2.0)
+	var h: float = H_DEMO * clampf(minf(m, r1 / 0.8) / k, 0.5, 2.0) * pow(k, float(CELDA_EXP_ELEMENTO.get(elem, CELDA_EXP)))
 	var tam: Vector3 = Vector3(x_hi - x_lo, y_hi, 2.0 * z_semi)
 	var crecida: bool = false
 	var res: Vector3i = Vector3i(ceili(tam.x / h / 8.0) * 8, ceili(tam.y / h / 8.0) * 8, ceili(tam.z / h / 8.0) * 8)
@@ -383,14 +412,14 @@ static func derivar_haz(cfg: Dictionary) -> Dictionary:
 	var lo: Vector3 = Vector3(x_hi - tam_real.x, 0.0, -tam_real.z * 0.5)
 	return {"cfg": c, "s": s, "w": w, "M": m, "beamR0": r0, "beamR1": r1, "nozzle": noz, "target": objetivo, "obstaculo": tipo,
 		"centro": centro, "radio": radio, "semi": semi, "res": res, "h": h, "lo": lo, "tam": tam_real, "celda_crecida": crecida,
-		"keyPos": Vector3(lo.x - 0.5, 1.8 * m, 1.5 * m), "d_u": d_u}
+		"keyPos": Vector3(lo.x - 0.5, 1.8 * m, 1.5 * m), "d_u": d_u, "k": k}
 
 
 ## Configuración procedural de un Hechizo REAL de haz: FuegoToy.describir (la misma regla que el juego) da el largo (x = semilargo), el eje (y) y el radio (z).
 static func cfg_de_hechizo(h: Hechizo, obstaculo_: String = "esfera", tam: float = 0.8, dist_rel: float = 2.0 / 3.0) -> Dictionary:
 	var d: Dictionary = FuegoToy.describir(h)
 	var largo: float = float(d["x"]) * 2.0
-	return {"largo": largo, "ancho": float(d["z"]), "alto": float(d["y"]), "obstaculo": obstaculo_, "tam": tam, "dist": largo * dist_rel}
+	return {"largo": largo, "ancho": float(d["z"]), "alto": float(d["y"]), "obstaculo": obstaculo_, "tam": tam, "dist": largo * dist_rel, "escala": float(d.get("escala", 1.0))}
 
 
 ## Pone el modo procedural con esta entrada y rehace la simulación (y la geometría y la vista). cfg vacío = la demo tal cual.
@@ -405,6 +434,7 @@ func configurar_haz(cfg: Dictionary) -> void:
 		mundo_tam = HazGasSolver.WORLD_SIZE
 		res_dominio = Vector3i.ZERO
 		escala_masa = 1.0
+		escala_k = 1.0
 		metros_por_unidad = ESCALA_JUEGO
 		muro_c = MURO_C
 		muro_h = MURO_H
@@ -423,6 +453,7 @@ func configurar_haz(cfg: Dictionary) -> void:
 		mundo_tam = d["tam"]
 		res_dominio = d["res"]
 		escala_masa = d["M"]
+		escala_k = d["k"]
 		metros_por_unidad = d["s"]
 		obstaculo = {"esfera": "esfera", "caja": "muro", "campo": "campo"}.get(String(d["obstaculo"]), "nada")
 		if obstaculo == "muro":
@@ -485,13 +516,23 @@ func cambiar_haz(clave: String, f: float) -> void:
 	configurar_haz(c)
 
 
+## 12/11 (tamaño de los haces): pone la escala k (ESCALA_BASE = haz básico, ESCALA_MAX = máximo, el de antes) y rehace. El ancho de la entrada se toma como el del
+## haz con la escala que tenía (el de HAZ_REF es el de k = 1) y se pasa a la nueva, igual que hace FuegoToy.describir con un hechizo. Tecla E.
+func poner_escala(k: float) -> void:
+	var c: Dictionary = HAZ_REF.duplicate() if haz_cfg.is_empty() else haz_cfg.duplicate()
+	var k0: float = float(c.get("escala", 1.0))
+	c["ancho"] = float(c["ancho"]) / maxf(k0, 0.01) * k
+	c["escala"] = k
+	configurar_haz(c)
+
+
 func _texto_haz() -> String:
 	if haz_der.is_empty():
 		return "configuración EXACTA de la demo (U/J I/K O/L para pasar al modo procedural)"
 	var c: Dictionary = haz_der["cfg"]
 	var r: Vector3i = haz_der["res"]
-	return ("" if elemento == "fuego" else elemento.to_upper() + " · ") + "HAZ largo %.2f m (U/J) · alto %.2f (I/K) · ancho %.2f (O/L) · obstáculo %s (B) tam %.2f (N/M) a %.2f m (V/F)  →  %.3f m/u · M %.2f · R %.2f→%.2f u · rejilla %dx%dx%d, celda %.3f u%s" % [
-		float(c["largo"]), float(c["alto"]), float(c["ancho"]), String(haz_der["obstaculo"]), float(c["tam"]), float(c["dist"]), float(haz_der["s"]),
+	return ("" if elemento == "fuego" else elemento.to_upper() + " · ") + "HAZ largo %.2f m (U/J) · alto %.2f (I/K) · ancho %.2f (O/L) · escala %.2f (E: básico / máximo) · obstáculo %s (B) tam %.2f (N/M) a %.2f m (V/F)  →  %.3f m/u · M %.2f · R %.2f→%.2f u · rejilla %dx%dx%d, celda %.3f u%s" % [
+		float(c["largo"]), float(c["alto"]), float(c["ancho"]), float(haz_der.get("k", 1.0)), String(haz_der["obstaculo"]), float(c["tam"]), float(c["dist"]), float(haz_der["s"]),
 		float(haz_der["M"]), float(haz_der["beamR0"]), float(haz_der["beamR1"]), r.x, r.y, r.z, float(haz_der["h"]), " (CELDA CRECIDA: tope de rejilla)" if haz_der["celda_crecida"] else ""]
 
 
@@ -780,7 +821,7 @@ func _process(delta: float) -> void:
 	_medir(delta)
 
 
-## El bloque Parametros de gas_comun.glslinc (16 vec4).
+## El bloque Parametros de gas_comun.glslinc (17 vec4).
 func parametros_gpu(t: float) -> PackedFloat32Array:
 	var p: Dictionary = params
 	var noz: Vector3 = p["nozzle"]
@@ -808,7 +849,8 @@ func parametros_gpu(t: float) -> PackedFloat32Array:
 		p["turbulence"], p["paleta"], 1.0 if _acantilado == null or _acantilado.visible else 0.0, escala_masa,
 		kp.x, kp.y, kp.z, float(CODIGO_ELEMENTO.get(elemento, 0.0)),
 		mundo_lo.x, mundo_lo.y, mundo_lo.z, 0.0 if obstaculo == "nada" else 1.0,          # CHOQUE (gas_comun.glslinc): el haz acaba contra algo
-		mundo_tam.x, mundo_tam.y, mundo_tam.z, 1.0 if elemento == "viento" and bool(toon_viento.get("cintas", false)) else 0.0])      # VIENTO_CINTAS (gas_comun.glslinc)
+		mundo_tam.x, mundo_tam.y, mundo_tam.z, 1.0 if elemento == "viento" and bool(toon_viento.get("cintas", false)) else 0.0,      # VIENTO_CINTAS (gas_comun.glslinc)
+		escala_k, 0.0, 0.0, 0.0])                                                             # ESC_K (12/11, tamaño de los haces)
 
 
 ## Distancia con signo al obstáculo y su normal (la misma que obst_sd de gas_comun.glslinc). [sd, n]
@@ -972,6 +1014,8 @@ func _input(ev: InputEvent) -> void:
 				cambiar_haz("ancho", 1.2)
 			KEY_L:
 				cambiar_haz("ancho", 1.0 / 1.2)
+			KEY_E:
+				poner_escala(ESCALA_MAX if escala_k < (ESCALA_BASE + ESCALA_MAX) * 0.5 else ESCALA_BASE)      # 12/11: haz básico ↔ máximo
 			KEY_N:
 				cambiar_haz("tam", 1.0 / 1.2)
 			KEY_M:

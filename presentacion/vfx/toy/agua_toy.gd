@@ -121,6 +121,8 @@ var _haz_punta: Node3D = null           ## abanico de salpicadura y espuma al fi
 var _haz_largo: float = 3.0
 ## HAZ: dónde choca (lo rellena VfxToyJuego; ver FuegoToy.choques). Vacío = nada: el chorro acaba en su abanico de siempre. Lo dibuja HazChoque.agua (apagable con FuegoToy.haz_ideas).
 var choques: Array = []
+## 12/11 (tamaño de los haces): k = HazGas.escala_de del hechizo (1 = el de antes). El radio ya llega × k en semieje_z; esto escala el CHOQUE del haz (HazChoque). Antes de definir.
+var escala_haz: float = 1.0
 var _haz_alt: float = 0.5
 var _haz_r: float = 0.36
 var _acc_haz: float = 0.0
@@ -526,6 +528,7 @@ func preparar(volumen: Dictionary, dir: Vector3, _elemento: String = "agua") -> 
 ## Elige figura, tamaño y vuelo desde un `Hechizo` (la misma regla que FuegoToy.describir: el elemento no cambia la figura ni el tamaño).
 func desde_hechizo(h: Hechizo) -> void:
 	var d: Dictionary = describir(h, casilla)
+	escala_haz = float(d.get("escala", 1.0))
 	definir(int(d["figura"]), d["x"], d["y"], d["z"], d["viaja"])
 	rotation.y = float(d["giro_y"])
 	# una zona (esfera o elipsoide que no viaja ni es muro, pilar, barrera ni haz) explota en área al acabar; un proyectil, no
@@ -710,7 +713,7 @@ func _haz(c: Node3D) -> void:
 		pf.set_meta("ang", TAU * float(k) / 3.0 + randf())
 		_haz_punta.add_child(pf)
 	if FuegoToy.haz_ideas and not choques.is_empty():
-		HazChoque.agua(c, choques, largo, _haz_alt, r)
+		HazChoque.agua(c, choques, largo, _haz_alt, r, escala_haz)
 
 
 func _mi_agua(c: Node3D, nombre: String, malla: Mesh, mat: ShaderMaterial) -> MeshInstance3D:
