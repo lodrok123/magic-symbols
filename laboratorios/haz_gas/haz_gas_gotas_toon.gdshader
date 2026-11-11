@@ -9,6 +9,7 @@ uniform mat4 dominio_a_mundo;
 uniform vec3 tono_b : source_color = vec3(0.34, 0.74, 0.72);
 uniform vec3 tono_c : source_color = vec3(0.96, 0.99, 1.0);
 uniform int cada = 3;
+uniform float grosor = 1.0;        // 11/11: las hojas del viento, más gordas
 
 varying float v_along;
 
@@ -24,7 +25,7 @@ void vertex() {
 	vec2 na = a.xy / a.w, nb = b.xy / b.w;
 	vec2 d = nb - na;
 	vec2 dir = d / max(length(d), 0.0001);
-	vec2 lado = vec2(-dir.y, dir.x) * VERTEX.y * 0.0042 * (V.w * 0.6 + 0.6);
+	vec2 lado = vec2(-dir.y, dir.x) * VERTEX.y * 0.0042 * grosor * (V.w * 0.6 + 0.6);
 	clip.xy += lado * clip.w;
 	if (INSTANCE_ID % max(cada, 1) != 0 || P.w <= 0.0) clip = vec4(0.0, 0.0, -2.0, 1.0);
 	POSITION = clip;

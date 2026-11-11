@@ -358,7 +358,7 @@ func poner_elemento(nuevo: String) -> void:
 		return
 	elemento = nuevo
 	if _gas != null and is_instance_valid(_gas):
-		_gas.poner_elemento("agua" if elemento == "agua" else "fuego")      # 10/11: con el gas puesto, Z lo pasa a agua (y de vuelta a fuego)
+		_gas.poner_elemento(elemento if elemento in HazGas.ELEMENTOS else "fuego")      # 10/11: con el gas puesto, Z lo pasa a agua (y de vuelta a fuego)
 	if _param != null and is_instance_valid(_param):
 		var fig: int = _param_i
 		fuego_param(maxi(fig, 0))
@@ -641,7 +641,7 @@ func haz_gas(modo: int, vista: String = "", toon: bool = true, cfg: Dictionary =
 		_gas.jugadora_juego = _pj
 		_gas.obstaculo = "esfera" if _gas_modo == 1 else "muro"
 		_gas.toon = toon
-		_gas.elemento = "agua" if elemento == "agua" else "fuego"      # 10/11: Z en AGUA antes de Mayús+F12 = el haz de gas en modo agua
+		_gas.elemento = elemento if elemento in HazGas.ELEMENTOS else "fuego"      # 10/11: Z en AGUA antes de Mayús+F12 = el haz de gas en modo agua
 		if not cfg.is_empty():
 			_gas.haz_cfg = cfg
 		elif toon:

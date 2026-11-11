@@ -61,8 +61,41 @@ const PARAMS_AGUA: Dictionary = {"burnRate": 0.0, "heat": 1.0, "sootYield": 0.0,
 var toon_agua: Dictionary = {"umbral": 0.3, "blandura": 0.22, "contraste": 1.0, "opac_max": 0.88, "k_T": 1.0, "opac_min": 0.55, "amplitud": 0.35, "escala": 0.45,
 	"causticas": 0.35, "fresnel": 0.35, "escala_rampa": 1.2, "flujo": 0.9, "profundidad": 0.6}
 const AguaPaletaGas = preload("res://presentacion/vfx/toy/agua_paleta.gd")
-const ELEMENTOS: PackedStringArray = ["fuego", "agua"]
-var elemento: String = "fuego"              ## «fuego» (la demo) o «agua» (PARAMS_AGUA + dibujo del AguaToy). Se pone antes de entrar en el árbol o con poner_elemento.
+## MODO VIENTO (11/11): una RÁFAGA SOSTENIDA DE AIRE, no un fluido (Pablo, al ver la primera versión: «parece vapor»). x = pulsos de ráfaga que viajan con el aire,
+## y / w = etiquetas de línea de corriente que el gas transporta, z = POLVO levantado a ras de suelo. Sin calor ni peso. «sootYield» es aquí el REMOLINO (u/s en el
+## borde del chorro: las líneas giran un poco); «cool» = lo que tardan en irse los trazos; turbulencia y confinamiento moderados (las líneas se doblan, no se deshacen).
+const PARAMS_VIENTO: Dictionary = {"burnRate": 0.0, "heat": 0.0, "sootYield": 2.5, "expansion": 0.0, "cool": 1.6, "buoyancy": 0.0, "weight": 0.0, "drag": 0.5,
+	"wind": 7.0, "push": 5.0, "confine": 26.0, "subgrid": 0.0, "viscosity": 0.03, "turbulence": 22.0, "dustFade": 0.6, "beamSpeed": 30.0, "wrap": 42.0}
+## MODO RAYO (11/11): x = IONIZACIÓN (aire cargado: dónde puede haber arcos). Núcleo fino, mancha en el choque y carga que repta por la piel del sólido (wrap alto);
+## se apaga en décimas («cool» 6). El aire casi no se mueve (chorro lento, sin viento): lo que corre es el trazo, que lo dibuja raymarch_toon_rayo.glsl.
+const PARAMS_RAYO: Dictionary = {"burnRate": 0.0, "heat": 1.0, "sootYield": 0.0, "expansion": 0.0, "cool": 6.0, "buoyancy": 0.5, "weight": 0.0, "drag": 1.5,
+	"wind": 1.5, "push": 2.0, "confine": 50.0, "subgrid": 14.0, "viscosity": 0.0, "turbulence": 90.0, "dustFade": 0.35, "beamSpeed": 12.0, "wrap": 95.0}
+const PARAMS_ELEMENTO: Dictionary = {"agua": PARAMS_AGUA, "viento": PARAMS_VIENTO, "rayo": PARAMS_RAYO}
+const CODIGO_ELEMENTO: Dictionary = {"fuego": 0.0, "agua": 1.0, "viento": 2.0, "rayo": 3.0}       ## key_pos.w del UBO (gas_comun.glslinc)
+const DIBUJO_ELEMENTO: Dictionary = {"agua": "raymarch_toon_agua", "viento": "raymarch_toon_viento", "rayo": "raymarch_toon_rayo"}
+## Dibujo del viento (raymarch_toon_viento.glsl): solo TRAZOS (líneas de corriente): umbral de la ráfaga, grosor del trazo (en unidades de etiqueta), opacidad,
+## velo (la funda tenue alrededor del trazo) y la franja de polvo.
+var toon_viento: Dictionary = {"umbral": 0.22, "grosor": 0.058, "opacidad": 0.92, "velo": 0.2, "polvo": 0.4}
+## Dibujo del rayo (raymarch_toon_rayo.glsl): grosor y zigzag del trazo (u), halo, arcos, redibujos por segundo, brillo.
+var toon_rayo: Dictionary = {"grosor": 0.06, "zigzag": 0.34, "halo": 0.5, "arcos": 1.0, "k_T": 1.0, "saltos": 14.0, "grosor_arco": 0.035, "periodo": 5.0,
+	"umbral_arco": 0.3, "brillo": 1.25, "ramas": 1.0, "opacidad": 1.0}
+const RayoPaletaGas = preload("res://presentacion/vfx/toy/rayo_paleta.gd")
+## 11/11 (Pablo: «podemos utilizar su color para que se separe visualmente del fuego: azul vs amarillo»): en el haz de gas el trazo del rayo va en AZUL
+## (núcleo blanco azulado y cuerpo con el HALO_BORDE de RayoPaleta), no en el amarillo de RayoPaleta.CUERPO. Los RayoToy no se tocan aquí.
+const RAYO_GAS_NUCLEO: Color = Color(0.93, 0.98, 1.0)
+const RAYO_GAS_CUERPO: Color = Color(0.5, 0.82, 1.0)
+const VIENTO_SOMBRA: Color = Color(0.68, 0.87, 0.77)        ## VientoToy.SOMBRA / CLARO / HOJA y los tonos POLVO de HumoRegla (copiados: este script no carga los toys)
+const VIENTO_CLARO: Color = Color(0.90, 0.99, 0.94)
+const VIENTO_LINEA: Color = Color(0.97, 1.0, 0.98)
+const VIENTO_HOJA: Color = Color(0.62, 0.88, 0.5)
+const POLVO_CLARO: Color = Color(0.82, 0.70, 0.52)
+const POLVO_SOMBRA: Color = Color(0.56, 0.43, 0.28)
+const ELEMENTOS: PackedStringArray = ["fuego", "agua", "viento", "rayo"]
+var elemento: String = "fuego"              ## «fuego» (la demo), «agua», «viento» o «rayo» (PARAMS_ELEMENTO + su dibujo). Se pone antes de entrar en el árbol o con poner_elemento.
+var _toon_tex_viento: Array = []
+var _toon_tex_rayo: Array = []
+var _mat_hojas: ShaderMaterial = null
+var _mat_chispas_rayo: ShaderMaterial = null
 var _params_fuego: Dictionary = {}
 var _toon_tex_agua: Array = []
 var _mat_gotas: ShaderMaterial = null
@@ -148,8 +181,12 @@ func _ready() -> void:
 	FuegoToy._rampas()
 	_toon_tex = [load(TEX_LELU + "T_FirePanningCyl45.png"), load(TEX_LELU + "T_PerlinNoise_Tiled.png"), load(TEX_LELU + "T_Noise1_tiled.png"), FuegoToy._rampa_de_bola()]
 	_toon_tex_agua = [load(TEX_LELU + "T_Noise_W5i.png"), load(TEX_LELU + "T_Noise_Wo14.png"), load(TEX_LELU + "T_Noise_Wf4.png"), paleta_agua()]
+	_toon_tex_viento = [load(TEX_LELU + "T_VFX_WindNoise1.png"), load(TEX_LELU + "T_PerlinNoise_Tiled.png"), load(TEX_LELU + "T_Noise_W5i.png"),
+		paleta_de([VIENTO_SOMBRA, VIENTO_CLARO, VIENTO_LINEA, POLVO_CLARO, POLVO_SOMBRA])]
+	_toon_tex_rayo = [load(TEX_LELU + "T_PerlinNoise_Tiled.png"), load(TEX_LELU + "T_Noise1_tiled.png"), load(TEX_LELU + "T_Noise_W5i.png"),
+		paleta_de([RAYO_GAS_NUCLEO, RAYO_GAS_CUERPO, RayoPaletaGas.HALO_BORDE, RayoPaletaGas.HALO, RayoPaletaGas.HALO_HONDO])]
 	_params_fuego = params.duplicate()
-	if es_agua():
+	if elemento != "fuego":
 		_aplicar_elemento()
 	configurar_haz(haz_cfg)              # crea la simulación, la geometría y la vista (vacío = la demo tal cual)
 
@@ -186,6 +223,8 @@ func crear_solver(q: String, jacobi: int = 0) -> bool:
 	_mat_chispas_real.set_shader_parameter("estado", _tex_chispas)
 	_mat_chispas_toon.set_shader_parameter("estado", _tex_chispas)
 	_mat_gotas.set_shader_parameter("estado", _tex_chispas)
+	_mat_hojas.set_shader_parameter("estado", _tex_chispas)
+	_mat_chispas_rayo.set_shader_parameter("estado", _tex_chispas)
 	frame = 0
 	_acum_gpu.clear()
 	return true
@@ -197,7 +236,7 @@ func _liberar_solver() -> void:
 	for m in _mat_roca:
 		for n in ["luz", "luz_lejos", "clave"]:
 			m.set_shader_parameter(n, null)
-	for mc in [_mat_chispas_real, _mat_chispas_toon, _mat_gotas]:
+	for mc in [_mat_chispas_real, _mat_chispas_toon, _mat_gotas, _mat_hojas, _mat_chispas_rayo]:
 		if mc != null:
 			mc.set_shader_parameter("estado", null)
 	_tex_luz = null
@@ -292,7 +331,12 @@ static func derivar_haz(cfg: Dictionary) -> Dictionary:
 		lado = 0.0
 	var m: float = clampf(maxf(r1 / 0.8, obst_tam_rel), 0.4, 3.0)
 	var agua: bool = bool(c.get("agua", false))
+	var elem: String = String(c.get("elemento", "agua" if agua else "fuego"))
 	var margen_x: float = (6.0 if agua else (10.8 if tipo == "nada" else 7.7)) * m
+	if elem == "viento":
+		margen_x = 8.0 * m                      # el aire sigue más allá del sólido (rizos a sotavento)
+	elif elem == "rayo":
+		margen_x = 3.5 * m                      # la carga no viaja: solo la piel del sólido
 	var x_lo: float = minf(lejos_x, objetivo.x) - margen_x
 	var x_hi: float = 2.6
 	var y_hi: float = maxf(maxf(arriba + 7.9 * m, nz_y + 6.0 * m), nz_y + (10.5 * m if tipo == "nada" else 0.0))
@@ -300,6 +344,11 @@ static func derivar_haz(cfg: Dictionary) -> Dictionary:
 		# MODO AGUA: no sube humo, el agua cae; solo hace falta sitio para la salpicadura por encima del chorro y de la cara del sólido
 		y_hi = maxf(arriba + 2.5 * m, nz_y + 3.5 * m)
 	var z_semi: float = maxf(6.0 * m, lado + 3.9 * m)
+	if elem == "viento":                        # MODO VIENTO: no sube nada; sitio para los rizos por encima y a los lados
+		y_hi = maxf(arriba + 3.0 * m, nz_y + 4.0 * m)
+	elif elem == "rayo":                        # MODO RAYO: caja ceñida al trazo y a la piel del sólido
+		y_hi = maxf(arriba + 2.0 * m, nz_y + 2.8 * m)
+		z_semi = maxf(3.2 * m, lado + 2.4 * m)
 	var h: float = H_DEMO * clampf(minf(m, r1 / 0.8), 0.5, 2.0)
 	var tam: Vector3 = Vector3(x_hi - x_lo, y_hi, 2.0 * z_semi)
 	var crecida: bool = false
@@ -329,6 +378,7 @@ func configurar_haz(cfg: Dictionary) -> void:
 	haz_cfg = cfg.duplicate()
 	if not haz_cfg.is_empty():
 		haz_cfg["agua"] = es_agua()          # el dominio del agua es más bajo (cae en vez de subir): derivar_haz
+		haz_cfg["elemento"] = elemento       # viento y rayo: su propio dominio
 	if haz_cfg.is_empty():
 		haz_der = {}
 		mundo_lo = HazGasSolver.WORLD_MIN
@@ -420,7 +470,7 @@ func _texto_haz() -> String:
 		return "configuración EXACTA de la demo (U/J I/K O/L para pasar al modo procedural)"
 	var c: Dictionary = haz_der["cfg"]
 	var r: Vector3i = haz_der["res"]
-	return ("AGUA · " if es_agua() else "") + "HAZ largo %.2f m (U/J) · alto %.2f (I/K) · ancho %.2f (O/L) · obstáculo %s (B) tam %.2f (N/M) a %.2f m (V/F)  →  %.3f m/u · M %.2f · R %.2f→%.2f u · rejilla %dx%dx%d, celda %.3f u%s" % [
+	return ("" if elemento == "fuego" else elemento.to_upper() + " · ") + "HAZ largo %.2f m (U/J) · alto %.2f (I/K) · ancho %.2f (O/L) · obstáculo %s (B) tam %.2f (N/M) a %.2f m (V/F)  →  %.3f m/u · M %.2f · R %.2f→%.2f u · rejilla %dx%dx%d, celda %.3f u%s" % [
 		float(c["largo"]), float(c["alto"]), float(c["ancho"]), String(haz_der["obstaculo"]), float(c["tam"]), float(c["dist"]), float(haz_der["s"]),
 		float(haz_der["M"]), float(haz_der["beamR0"]), float(haz_der["beamR1"]), r.x, r.y, r.z, float(haz_der["h"]), " (CELDA CRECIDA: tope de rejilla)" if haz_der["celda_crecida"] else ""]
 
@@ -498,7 +548,7 @@ func camara_en_lateral() -> void:
 
 ## R: dibujo toon (lenguaje de FuegoToy, entorno normal del lab) o realista (el de la demo, escenario negro). La simulación no se toca.
 func poner_toon(si: bool) -> void:
-	toon = si or es_agua()                # el agua solo tiene el dibujo toon (el realista es el de la demo de fuego)
+	toon = si or elemento != "fuego"      # agua, viento y rayo solo tienen el dibujo toon (el realista es el de la demo de fuego)
 	_aplicar_dibujo()
 	dibujo_cambiado.emit(toon)
 
@@ -516,6 +566,10 @@ func _aplicar_dibujo() -> void:
 	_esfera.visible = toon and obstaculo == "esfera"
 	_muro.material_override = _mat_lab if toon else _mat_muro_roca
 	_chispas_mi.material_override = _mat_gotas if es_agua() else (_mat_chispas_toon if toon else _mat_chispas_real)       # agua: las chispas son GOTAS
+	if elemento == "viento":
+		_chispas_mi.material_override = _mat_hojas                 # viento: HOJAS que el aire arrastra
+	elif elemento == "rayo":
+		_chispas_mi.material_override = _mat_chispas_rayo
 	_mat_chispas = _chispas_mi.material_override as ShaderMaterial
 	if modo_juego:                                   # en el juego solo se ve el gas y sus chispas: el resto de la escena de la demo no existe
 		for n in [_suelo, _acantilado, _atacante, _defensor, _esfera, _muro]:
@@ -545,9 +599,13 @@ func poner_elemento(e: String) -> void:
 
 ## Los parámetros de la simulación del elemento: los del fuego (los de la demo, tal cual) o los mismos con PARAMS_AGUA encima. El agua se dibuja siempre en toon.
 func _aplicar_elemento() -> void:
-	for k in PARAMS_AGUA:
-		params[k] = PARAMS_AGUA[k] if es_agua() else _params_fuego.get(k, params[k])
-	if es_agua():
+	for e in PARAMS_ELEMENTO:
+		for k in PARAMS_ELEMENTO[e]:
+			params[k] = _params_fuego.get(k, params[k])
+	var pe: Dictionary = PARAMS_ELEMENTO.get(elemento, {})
+	for k in pe:
+		params[k] = pe[k]
+	if elemento != "fuego":
 		toon = true
 	if not modo_juego:                    # en el lab, las barras enseñan los valores del elemento (en el juego no hay HUD: no se tocan, así no redondean nada)
 		for k in _sliders:
@@ -556,10 +614,14 @@ func _aplicar_elemento() -> void:
 
 ## La paleta del agua (AguaPaleta, la del agua del mundo) en una textura de 8 x 1 (sRGB) para raymarch_toon_agua.glsl: 0 HONDO, 1 SOMERO, 2 ESPUMA, 3 CAUSTICAS, 4 LECHO, 5 FRESNEL.
 static func paleta_agua() -> ImageTexture:
+	return paleta_de([AguaPaletaGas.HONDO, AguaPaletaGas.SOMERO, AguaPaletaGas.ESPUMA, AguaPaletaGas.CAUSTICAS, AguaPaletaGas.LECHO, AguaPaletaGas.FRESNEL, AguaPaletaGas.FRESNEL, AguaPaletaGas.FRESNEL])
+
+
+## Una paleta de hasta 8 colores (sRGB) en una textura de 8 x 1 para los raymarch toon de agua, viento y rayo.
+static func paleta_de(cols: Array) -> ImageTexture:
 	var img: Image = Image.create(8, 1, false, Image.FORMAT_RGBA8)
-	var cols: Array = [AguaPaletaGas.HONDO, AguaPaletaGas.SOMERO, AguaPaletaGas.ESPUMA, AguaPaletaGas.CAUSTICAS, AguaPaletaGas.LECHO, AguaPaletaGas.FRESNEL, AguaPaletaGas.FRESNEL, AguaPaletaGas.FRESNEL]
-	for i in cols.size():
-		img.set_pixel(i, 0, cols[i])
+	for i in 8:
+		img.set_pixel(i, 0, cols[mini(i, cols.size() - 1)])
 	return ImageTexture.create_from_image(img)
 
 
@@ -621,17 +683,27 @@ func _process(delta: float) -> void:
 	efecto.temporal = temporal
 	efecto.toon = toon
 	efecto.agua = es_agua()
+	efecto.dibujo = String(DIBUJO_ELEMENTO.get(elemento, ""))
+	efecto.tex_1 = solver.flujo if elemento == "rayo" else RID()
 	if toon:
 		var tp: Dictionary = toon_params
 		if es_agua():
 			var ta: Dictionary = toon_agua
 			efecto.toon_param = PackedFloat32Array([ta["umbral"], ta["blandura"], ta["contraste"], ta["opac_max"], ta["k_T"], ta["opac_min"], ta["amplitud"], float(ta["escala"]) / escala_masa,
 				ta["causticas"], ta["fresnel"], ta["escala_rampa"], frame * DT, ta["flujo"], AguaPaletaGas.BANDAS, ta["profundidad"], mundo_tam.x / float(solver.res.x)])
+		elif elemento == "viento":
+			var tv: Dictionary = toon_viento
+			efecto.toon_param = PackedFloat32Array([tv["umbral"], tv["grosor"], 0.0, tv["opacidad"], 1.0, tv["velo"], 0.0, 0.0,
+				0.0, tv["polvo"], 0.0, frame * DT, 0.0, 0.0, 0.0, mundo_tam.x / float(solver.res.x)])
+		elif elemento == "rayo":
+			var tr: Dictionary = toon_rayo
+			efecto.toon_param = PackedFloat32Array([tr["grosor"], tr["zigzag"], tr["halo"], tr["arcos"], tr["k_T"], tr["saltos"], tr["grosor_arco"], tr["periodo"],
+				tr["umbral_arco"], tr["brillo"], tr["ramas"], frame * DT, tr["opacidad"], 0.0, 0.0, mundo_tam.x / float(solver.res.x)])
 		else:
 			efecto.toon_param = PackedFloat32Array([tp["umbral"], tp["blandura"], tp["contraste"], tp["tope"], tp["k_T"], tp["k_c"], tp["amplitud"], float(tp["escala"]) / escala_masa,
 				tp["umbral_humo"], tp["opacidad_humo"], tp["escala_rampa"], frame * DT, tp["sube"], tp["chisporroteo"], tp["profundidad"], mundo_tam.x / float(solver.res.x)])
 		var rids: Array[RID] = []
-		for tx in (_toon_tex_agua if es_agua() else _toon_tex):
+		for tx in ({"agua": _toon_tex_agua, "viento": _toon_tex_viento, "rayo": _toon_tex_rayo}.get(elemento, _toon_tex) as Array):
 			var r: RID = RenderingServer.texture_get_rd_texture((tx as Texture2D).get_rid()) if tx != null else RID()
 			if r.is_valid():
 				rids.append(r)
@@ -646,7 +718,7 @@ func _process(delta: float) -> void:
 		m.set_shader_parameter("fire_on_rock", params["fireOnRock"])
 		m.set_shader_parameter("lamp_on_rock", params["lampOnRock"])
 		m.set_shader_parameter("key_pos", params["keyPos"])
-	for mc in [_mat_chispas_real, _mat_chispas_toon, _mat_gotas]:
+	for mc in [_mat_chispas_real, _mat_chispas_toon, _mat_gotas, _mat_hojas, _mat_chispas_rayo]:
 		mc.set_shader_parameter("dominio_a_mundo", Projection(global_transform))
 	_mat_chispas.set_shader_parameter("paleta", params["paleta"])
 	_medir(delta)
@@ -678,7 +750,7 @@ func parametros_gpu(t: float) -> PackedFloat32Array:
 		p["buoyancy"], p["weight"], p["drag"], p["wind"],
 		p["push"], p["confine"], p["subgrid"], p["viscosity"],
 		p["turbulence"], p["paleta"], 1.0 if _acantilado == null or _acantilado.visible else 0.0, escala_masa,
-		kp.x, kp.y, kp.z, 1.0 if es_agua() else 0.0,
+		kp.x, kp.y, kp.z, float(CODIGO_ELEMENTO.get(elemento, 0.0)),
 		mundo_lo.x, mundo_lo.y, mundo_lo.z, 0.0,
 		mundo_tam.x, mundo_tam.y, mundo_tam.z, 0.0])
 
@@ -963,6 +1035,16 @@ func _montar_escena() -> void:
 	_mat_gotas.shader = load("res://laboratorios/haz_gas/haz_gas_gotas_toon.gdshader") as Shader
 	_mat_gotas.set_shader_parameter("tono_b", AguaPaletaGas.SOMERO)
 	_mat_gotas.set_shader_parameter("tono_c", AguaPaletaGas.ESPUMA)
+	# viento: hojas (1 de cada 8, más gordas); rayo: chispas amarillas con cabeza blanca (1 de cada 2). El mismo shader de trazos que las gotas.
+	_mat_hojas = _mat_gotas.duplicate() as ShaderMaterial
+	_mat_hojas.set_shader_parameter("tono_b", VIENTO_HOJA)
+	_mat_hojas.set_shader_parameter("tono_c", VIENTO_CLARO)
+	_mat_hojas.set_shader_parameter("cada", 8)
+	_mat_hojas.set_shader_parameter("grosor", 2.2)
+	_mat_chispas_rayo = _mat_gotas.duplicate() as ShaderMaterial
+	_mat_chispas_rayo.set_shader_parameter("tono_b", RAYO_GAS_CUERPO)
+	_mat_chispas_rayo.set_shader_parameter("tono_c", RAYO_GAS_NUCLEO)
+	_mat_chispas_rayo.set_shader_parameter("cada", 2)
 	_mat_chispas = _mat_chispas_real
 	var mm: MultiMesh = MultiMesh.new()
 	mm.transform_format = MultiMesh.TRANSFORM_3D

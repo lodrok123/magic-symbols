@@ -22,6 +22,11 @@ const AJUSTE: String = "magic_symbols/vfx_haz_gas"
 ## El tope MAX_INSTANCIAS es de los dos elementos JUNTOS.
 const AJUSTE_AGUA: String = "magic_symbols/vfx_haz_gas_agua"
 const AGUA_DEFECTO: bool = true
+## 11/11: los haces de VIENTO y de RAYO con el mismo gas (HazGas.PARAMS_VIENTO: bruma en hélice y polvo; HazGas.PARAMS_RAYO: aire cargado + trazo y arcos). Cada uno con
+## su ajuste, APAGADOS de serie hasta que Pablo los vea. El tope MAX_INSTANCIAS es de todos los elementos juntos.
+const AJUSTE_VIENTO: String = "magic_symbols/vfx_haz_gas_viento"
+const AJUSTE_RAYO: String = "magic_symbols/vfx_haz_gas_rayo"
+const AJUSTES_ELEMENTO: Dictionary = {"viento": [AJUSTE_VIENTO, false], "rayo": [AJUSTE_RAYO, false]}
 const MAX_INSTANCIAS: int = 2
 const APAGADO_S: float = 2.5                   ## s que la masa tarda en deshacerse tras el último haz (se libera después)
 const REUSO_DIST_CAS: float = 0.35             ## casillas: un haz nuevo reutiliza el dominio si sale a menos de esto del anterior...
@@ -43,7 +48,10 @@ var _n_efectos: int = -1
 ## ¿Se puede usar? Ajuste `magic_symbols/vfx_haz_gas` (fuego, true por defecto) o `magic_symbols/vfx_haz_gas_agua` (agua, AGUA_DEFECTO), y un RenderingDevice
 ## (Forward+ / Mobile; no Compatibility ni --headless).
 static func disponible(elemento: String = "fuego") -> bool:
-	if elemento == "agua":
+	if AJUSTES_ELEMENTO.has(elemento):
+		if not bool(ProjectSettings.get_setting(AJUSTES_ELEMENTO[elemento][0], AJUSTES_ELEMENTO[elemento][1])):
+			return false
+	elif elemento == "agua":
 		if not bool(ProjectSettings.get_setting(AJUSTE_AGUA, AGUA_DEFECTO)):
 			return false
 	elif not bool(ProjectSettings.get_setting(AJUSTE, true)):
@@ -331,6 +339,13 @@ func _exit_tree() -> void:
 ## Sigue vivo (su vida y su «morir» de siempre) para que VfxToyJuego lo cuente y lo retire igual que sin gas.
 static func ocultar_toy(t: Node3D) -> void:
 	t.visible = false
+
+
+## El RayoToy HAZ que acompaña al gas de rayo: se queda con sus luces (el destello); el trazo, los arcos y las chispas los dibuja el gas.
+static func solo_luces(t: Node3D) -> void:
+	for n in t.find_children("*", "", true, false):
+		if n is GeometryInstance3D:
+			(n as GeometryInstance3D).visible = false
 
 
 ## El FuegoToy HAZ que acompaña al gas: se queda SOLO con su luz (la mancha del suelo, `luz_suelo_haz`, y su OmniLight «Luz», con su vida y su latido de siempre);

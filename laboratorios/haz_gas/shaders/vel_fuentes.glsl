@@ -20,7 +20,15 @@ void main() {
 	vec4 gs = textureLod(gas_now, uvw, 0.0);
 
 	Haz hz = haz_en(w, ruido);
-	u = mix(u, hz.dir * BEAM_SPEED, hz.core * 0.92);
+	vec3 u_chorro = hz.dir * BEAM_SPEED;
+	if (VIENTO) {
+		// Viento (11/11): el chorro GIRA alrededor de su eje (REMOLINO, u/s en el borde): las vetas de bruma salen en helice y se abren en rizos.
+		vec3 ab_v = P.target.xyz - P.nozzle.xyz;
+		vec3 r_v = w - (P.nozzle.xyz + ab_v * hz.t);
+		r_v -= hz.dir * dot(r_v, hz.dir);
+		u_chorro += cross(hz.dir, r_v) / max(mix(BEAM_R0, BEAM_R1, hz.t), 0.05) * REMOLINO;
+	}
+	u = mix(u, u_chorro, hz.core * 0.92);
 
 	// Fuego: flota con el calor y pesa el hollin. Agua (10/11): no flota; pesa el AGUA (canal x), asi que cae y se escurre por la pared.
 	u.y += (BUOYANCY * gs.x - WEIGHT * (AGUA ? gs.x : gs.y)) * DT;

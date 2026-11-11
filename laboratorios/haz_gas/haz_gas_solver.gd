@@ -371,7 +371,7 @@ static func precompilar() -> void:
 	if r == null:
 		return
 	for n in ["gas_avanza", "gas_corrige", "gas_fuentes", "vel_advecta", "vel_fuentes", "rizo", "confina", "divergencia", "jacobi", "proyecta", "luz_difunde", "luz_lejos",
-			"luz_clave", "chispas", "residuo", "solido", "raymarch", "raymarch_toon", "raymarch_toon_agua", "temporal", "compone"]:
+			"luz_clave", "chispas", "residuo", "solido", "raymarch", "raymarch_toon", "raymarch_toon_agua", "raymarch_toon_viento", "raymarch_toon_rayo", "temporal", "compone"]:
 		spirv(r, n)
 
 

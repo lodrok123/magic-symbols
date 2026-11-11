@@ -59,7 +59,16 @@ layout(push_constant, std430) uniform Rejilla {
 // MODO AGUA (10/11, item 5 de docs/TECNICAS_REPO_GAS_OTROS_ELEMENTOS_2026-11-10.md): el MISMO solver con otro juego de parametros (HazGas.PARAMS_AGUA). El canal x del gas
 // deja de ser la temperatura y pasa a ser la CANTIDAD DE AGUA; no hay combustible, ni hollin, ni polvo, ni expansion, y el peso tira del agua (no del hollin): cae.
 // Con key_pos.w = 0 (el fuego) ningun kernel cambia.
-#define AGUA (P.key_pos.w > 0.5)
+#define AGUA (P.key_pos.w > 0.5 && P.key_pos.w < 1.5)
+// MODO VIENTO y MODO RAYO (11/11): mas juegos de parametros del MISMO solver (HazGas.PARAMS_ELEMENTO), elemento 2 y 3.
+//   VIENTO: x = RAFAGA (pulsos que viajan con el aire), y / w = ETIQUETAS de linea de corriente (posicion en la seccion del chorro, que el gas transporta), z = POLVO
+//           que el aire rapido levanta a ras de suelo (la regla de la demo). Sin calor ni peso; el chorro GIRA un poco alrededor de su eje (REMOLINO, en sootYield).
+//   RAYO:   x = IONIZACION (aire cargado: donde puede haber arcos). Nucleo fino, mancha en el choque y carga que REPTA por la piel del solido; se apaga en decimas.
+#define VIENTO (P.key_pos.w > 1.5 && P.key_pos.w < 2.5)
+#define RAYO (P.key_pos.w > 2.5)
+#define REMOLINO P.k0.w
+#define VIENTO_LINEAS 2.0      // lineas de corriente por radio en cada eje de la seccion (las usan gas_fuentes y raymarch_toon_viento)
+#define VIENTO_ANCHO 1.5       // la rafaga es mas ancha que el lapiz de fuego: radios del chorro que ocupan las lineas
 // MODO PROCEDURAL (9/11): M = tamaño de la masa respecto a la demo (radios del chorro / obstáculo). Escala lo que en la demo es una LONGITUD transversal:
 // bamboleo del eje, radio y ráfagas de la alimentación, piel del escudo, periodos de la turbulencia y del desgarro fino. La unidad de longitud es la del chorro
 // (siempre 10,6 unidades de largo), así que velocidades, viento, empuje, flotación y enfriamiento se quedan como en la demo.
