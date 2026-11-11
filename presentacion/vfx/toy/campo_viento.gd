@@ -13,7 +13,7 @@ extends RefCounted
 ## Quién lo muestrea: VientoToy (hojas, jirones y puntos de las cintas de viento_corrientes.gd) si `en_viento_toy`, y NubeVenenoVfx (gas pesado) si `NubeVenenoVfx.gas_pesado`.
 ## Coste: ~6 ondas + las primitivas cercanas por muestra (mídelo con herramientas/prueba_campo_viento.gd).
 
-## INTERRUPTOR del VientoToy (apagado de serie): ajuste `magic_symbols/vfx_campo_viento` o `-- campo-viento` en la línea de órdenes. El lab lo alterna con la tecla «,».
+## INTERRUPTOR del VientoToy (apagado de serie): ajuste `magic_symbols/vfx_campo_viento` o `-- campo-viento` en la línea de órdenes. El lab lo alterna con la tecla Inicio (laboratorios/lab_viento_veneno.gd).
 static var en_viento_toy: bool = OS.get_cmdline_user_args().has("campo-viento") or bool(ProjectSettings.get_setting("magic_symbols/vfx_campo_viento", false))
 
 const N_ONDAS: int = 6

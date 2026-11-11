@@ -567,7 +567,8 @@ func alternar_muro_haz() -> void:
 ## El haz se dibuja con su largo completo y el choque solo marca dónde salpica, como en el juego.
 func _muro_haz(e, largo: float, desde: Vector3, dir: Vector3) -> void:
 	if not _muro_haz_activo:
-		e.choques = []
+		if "choques" in e:         # 11/11: el VientoToy no tiene choques (con VIENTO, F7 hasta HAZ daba un error de script aquí)
+			e.choques = []
 		return
 	var d: float = largo * 2.0 / 3.0
 	var punto: Vector3 = desde + dir * d
