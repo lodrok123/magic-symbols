@@ -736,6 +736,7 @@ func _hablar_alquimista(yo: Vector3) -> void:
 			texto = "Tu bolsa no tiene hueco para la muestra. Vuelve con un sitio libre."
 	_decir("Alquimista: «%s»" % texto, 6.0)
 	Sintesis.abrir("alquimista")                 # F3: su taller (la interfaz es del Pipeline)
+	Tiendas.abrir("alquimista")                  # 11/11: y su tienda (tiendas.tsv)
 	_npc.mirar(yo - _npc.position, 1.0)
 	_npc.jugar("talk")
 	Sfx3D.play(_npc, "conversacion_voz")

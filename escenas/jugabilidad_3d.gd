@@ -601,6 +601,7 @@ func _unhandled_input(ev: InputEvent) -> void:
 	if mejor == "alquimista":
 		sintesis_abierta.emit("alquimista")       # F3: además de charlar, su taller (todas las recetas, cobra oro)
 		Sintesis.abrir("alquimista")
+		Tiendas.abrir("alquimista")               # 11/11: y su tienda (tiendas.tsv)
 	var npc: Pj3D = _npcs[mejor]
 	var lineas: Array = DIALOGOS[mejor]
 	var i: int = int(_lineas_dialogo[mejor])

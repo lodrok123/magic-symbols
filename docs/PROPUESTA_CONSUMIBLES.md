@@ -158,6 +158,8 @@ Azul de rocío y blanco de escarcha son nuevos. Los cinco de hoy cambian de efec
 
 Hoy no hay tiendas: solo la compra suelta de la barrera en `bosque_3d.gd`. Propuesta para hacerlas como el resto, con datos: una tabla `nucleo/datos/tiendas.tsv` con `tienda`, `objeto`, `precio`, `existencias` (o «sin fin») y `se_desbloquea` (una flag o una mejora), y una sola pantalla de compra que lea cualquier tienda. El alquimista y la librera serían las dos primeras.
 
+**Implementado el 11/11 (diario 472):** `nucleo/datos/tiendas.tsv` y `nucleo/tiendas.gd` (oferta, compra, existencias guardadas, desbloqueo por flag). El alquimista vende pociones, antídotos, el tónico e ingredientes comunes; la librera de Bosque_02, flores, polvo de cristal, el bulbo de luz, pociones y antídotos un poco más caros y pigmentos. Hablar con ellos emite `Tiendas.tienda_abierta`: falta la pantalla de compra (Pipeline).
+
 Las salidas que propongo para el oro, de más a menos importante:
 
 1. Comprar consumibles básicos al alquimista: poción menor y antídoto.

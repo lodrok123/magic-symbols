@@ -3,7 +3,7 @@ extends RefCounted
 
 ## LA BASE DE DATOS DEL JUEGO (F0 de docs/PLAN_BASE_DATOS.md, 29/10, Juego).
 ##
-## Lee los siete TSV de `res://nucleo/datos/` UNA sola vez y los sirve como Diccionarios y Arrays. No decide nada: el comportamiento son
+## Lee los ocho TSV de `res://nucleo/datos/` (11/11: + tiendas.tsv) UNA sola vez y los sirve como Diccionarios y Arrays. No decide nada: el comportamiento son
 ## datos (una fila por objeto, fuente, receta, mejora...) y el código pregunta aquí. Todo es estático, como `Flags`/`Objetos`: no hay que
 ## instanciar ni añadir nada a la escena, y las pruebas sin SceneTree lo usan igual.
 ##
@@ -25,7 +25,7 @@ const LISTAS_BARRA: PackedStringArray = ["usos"]
 ## secado_x (× de la duración del mojado) · hielo_dura_x (× de la del hielo) · hiela_sola_s (s para que el mojado se hiele) · fuego_x, hielo_x, rayo_x, viento_x (× de lo que PERSISTE el hechizo) ·
 ## empuje (casillas/s del viento) · viento_cambia_s · rayo_cada_s · rayo_casillas · dura_s (dinámicos) · sigue_s, dispersa_s, consume_s, consume_casillas (la nube de veneno) ·
 ## vista_casillas (la jugadora) · vista_enemigo_casillas · ilumina_s · ilumina_casillas · brasero_casillas (el brasero que protege del frío).
-const NUMEROS: PackedStringArray = ["potencia", "pila", "peso", "min", "max", "oro", "tope", "por_nivel", "prob", "cada_s",
+const NUMEROS: PackedStringArray = ["potencia", "pila", "peso", "min", "max", "oro", "tope", "por_nivel", "prob", "cada_s", "precio", "existencias",
 	"aguante_s", "dano_s", "rellena_s", "mojada_x", "secado_x", "hielo_dura_x", "hiela_sola_s", "fuego_x", "hielo_x", "rayo_x", "viento_x", "empuje", "viento_cambia_s",
 	"rayo_cada_s", "rayo_casillas", "dura_s", "sigue_s", "dispersa_s", "consume_s", "consume_casillas", "vista_casillas", "vista_enemigo_casillas", "ilumina_s", "ilumina_casillas", "brasero_casillas"]
 
@@ -41,6 +41,8 @@ static var _mejoras: Dictionary = {}
 static var _reactivos: Array = []
 static var _reactivos_por_pieza: Dictionary = {}
 static var _estados: Dictionary = {}
+static var _tiendas: Array = []               ## 11/11: filas de tiendas.tsv
+static var _tiendas_por_id: Dictionary = {}   ## tienda -> Array de filas
 
 
 ## Carga las siete tablas si aún no están cargadas (las funciones de acceso lo llaman solas).
@@ -56,9 +58,11 @@ static func cargar() -> void:
 	_fuentes = _leer_filas("fuentes.tsv")
 	_botin = _leer_filas("botin_tablas.tsv")
 	_reactivos = _leer_filas("reactivos_mapa.tsv")
+	_tiendas = _leer_filas("tiendas.tsv")
 	_fuentes_por_objeto = _agrupar(_fuentes, "objeto")
 	_botin_por_tabla = _agrupar(_botin, "tabla")
 	_reactivos_por_pieza = _agrupar(_reactivos, "pieza")
+	_tiendas_por_id = _agrupar(_tiendas, "tienda")
 
 
 ## Vuelve a leer los archivos (las pruebas que cambian una tabla; el juego no lo necesita).
@@ -108,6 +112,17 @@ static func receta(id: String) -> Dictionary:
 static func recetas() -> Dictionary:
 	cargar()
 	return _recetas
+
+
+## 11/11: lo que vende una tienda (`alquimista`, `librera`), en el orden de la tabla; [] si no existe. `existencias` 0 = sin fin. Ver `Tiendas`.
+static func tienda(id: String) -> Array:
+	cargar()
+	return _tiendas_por_id.get(id, [])
+
+
+static func tiendas() -> Dictionary:
+	cargar()
+	return _tiendas_por_id
 
 
 static func mejora(id: String) -> Dictionary:

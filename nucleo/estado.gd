@@ -49,6 +49,8 @@ signal pieza_completada(objeto: String, mejora: String)
 var rueda: Array = ["", "", "", "", "", ""]
 var rueda_elegido: int = 0
 var rueda_vistos: Array = []
+## 11/11: lo comprado en cada tienda ("tienda/objeto" -> unidades), para las existencias limitadas de `tiendas.tsv` (ver `Tiendas`). Viaja con la partida.
+var tiendas_compras: Dictionary = {}
 var bosque_retorno_cueva: String = "" ## Bosque desde el que se entró en Cueva.
 ## ASISTENCIA AL TRAZO (Fase 14.4): 0 = dibujar como siempre (no se calcula nada); 1 = ayuda máxima. La guía fantasma y el imán del
 ## trazo (tope 0,6 de fuerza) escalan con esto. Empieza en 0,5: ayuda sin quitarle protagonismo a la mano. Es una opción del jugador,
@@ -157,6 +159,7 @@ func a_dic() -> Dictionary:
 		"mejoras": mejoras.duplicate(),
 		"consumible_equipado": consumible_equipado,
 		"rueda": {"huecos": rueda.duplicate(), "elegido": rueda_elegido, "vistos": rueda_vistos.duplicate()},
+		"tiendas": tiendas_compras.duplicate(),
 		"bosque_retorno_cueva": bosque_retorno_cueva,
 		"opciones": {"asistencia": asistencia, "trazo_recto": trazo_recto, "lanzamiento_inteligente": lanzamiento_inteligente},
 	}
@@ -185,6 +188,10 @@ func desde_dic(d: Dictionary) -> void:
 	for k in range(HUECOS_RUEDA):
 		rueda.append(String(huecos[k]) if k < huecos.size() else "")
 	rueda_elegido = clampi(int(r.get("elegido", 0)), 0, HUECOS_RUEDA - 1)
+	tiendas_compras = {}
+	var tc: Dictionary = d.get("tiendas", {}) if d.get("tiendas", {}) is Dictionary else {}
+	for k in tc:
+		tiendas_compras[String(k)] = int(tc[k])
 	rueda_vistos = []
 	for v in (r.get("vistos", []) if r.get("vistos", []) is Array else []):
 		rueda_vistos.append(String(v))

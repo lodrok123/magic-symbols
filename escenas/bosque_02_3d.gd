@@ -715,6 +715,8 @@ func hablar(g: Dictionary, yo: Vector3) -> String:
 	pj.jugar("talk")
 	Sfx3D.play(pj, "conversacion_voz")
 	g["t_habla"] = T_HABLA
+	if String(g["tipo"]) == "librera":
+		Tiendas.abrir("librera")                 # 11/11: además de las pistas, su tienda (tiendas.tsv; la pantalla es del Pipeline)
 	return texto
 
 

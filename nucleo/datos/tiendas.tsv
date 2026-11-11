@@ -1,0 +1,24 @@
+tienda	objeto	precio	existencias	se_desbloquea	nota
+alquimista	pocion	15	-	siempre	11/11 (docs/PROPUESTA_CONSUMIBLES.md §7): la poción menor, siempre a mano
+alquimista	pocion_grande	35	-	siempre	-
+alquimista	antidoto	20	-	siempre	-
+alquimista	abrigo	20	-	siempre	-
+alquimista	frescor	20	-	siempre	-
+alquimista	savia_aislante	25	-	siempre	-
+alquimista	tonico_tinta	30	3	siempre	pocas: la tinta no se compra a granel
+alquimista	baya	3	-	siempre	ingredientes comunes para no tener que salir a buscar lo básico
+alquimista	seta	3	-	siempre	-
+alquimista	alga_cueva	5	-	siempre	-
+alquimista	resina	6	-	siempre	-
+alquimista	flor_luna	6	-	siempre	-
+alquimista	seda	8	-	siempre	-
+alquimista	pigmento_carmesi	25	2	siempre	-
+librera	flor_silvestre	4	-	siempre	11/11: la librera de Bosque_02 vende tinta y papel: flores para pigmentos y lanzables de luz
+librera	petalos	6	-	siempre	-
+librera	flor_rocio	6	-	siempre	-
+librera	polvo_cristal	12	3	siempre	-
+librera	bulbo_luz	15	3	siempre	-
+librera	pocion	18	-	siempre	más cara que en el alquimista
+librera	antidoto	22	-	siempre	para el chamán del campamento
+librera	pigmento_rocio	25	2	siempre	-
+librera	pigmento_musgo	25	2	flag:bosque02.ruinas.totems	cuando despiertan los tres tótems de las ruinas
