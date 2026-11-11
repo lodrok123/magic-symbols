@@ -69,10 +69,12 @@ layout(push_constant, std430) uniform Rejilla {
 #define REMOLINO P.k0.w
 // 11/11 (choque y viento): 1 si el haz acaba contra algo (obstaculo o tope de la logica), 0 si acaba al aire. Lo pone HazGas en mundo_lo.w.
 #define CHOQUE (P.mundo_lo.w > 0.5)
-#define VIENTO_LINEAS 1.25     // lineas de corriente por radio en cada eje de la seccion (las usan gas_fuentes y raymarch_toon_viento; 2 hasta el refuerzo del 11/11: pocas cintas anchas)
+// 11/11, mixto: VIENTO_CINTAS (mundo_tam.w, lo pone HazGas con toon_viento.cintas) elige el gas del refuerzo (482: pocas lineas, giro comun, pulsos largos) o el de la 481.
+#define VIENTO_CINTAS (P.mundo_tam.w > 0.5)
+#define VIENTO_LINEAS (VIENTO_CINTAS ? 1.25 : 2.0)      // lineas de corriente por radio en cada eje de la seccion (las usan gas_fuentes y raymarch_toon_viento)
 #define VIENTO_ANCHO 1.5       // la rafaga es mas ancha que el lapiz de fuego: radios del chorro que ocupan las lineas
 #define VIENTO_VORTICE 6.0     // 11/11: fuerza del remolino del choque (vel_fuentes) en BEAM_SPEED / s
-#define VIENTO_HELICE 1.1      // 11/11: vueltas que da cada linea de corriente alrededor del eje de la mano al final (las lineas se retuercen)
+#define VIENTO_HELICE (VIENTO_CINTAS ? 1.1 : 1.6)     // 11/11: vueltas que da cada linea de corriente alrededor del eje de la mano al final (las lineas se retuercen)
 // MODO PROCEDURAL (9/11): M = tamaño de la masa respecto a la demo (radios del chorro / obstáculo). Escala lo que en la demo es una LONGITUD transversal:
 // bamboleo del eje, radio y ráfagas de la alimentación, piel del escudo, periodos de la turbulencia y del desgarro fino. La unidad de longitud es la del chorro
 // (siempre 10,6 unidades de largo), así que velocidades, viento, empuje, flotación y enfriamiento se quedan como en la demo.

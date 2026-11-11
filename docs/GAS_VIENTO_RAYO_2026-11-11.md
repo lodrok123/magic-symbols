@@ -273,3 +273,29 @@ Capturas de ahora en `docs/capturas/vfx_en_juego/haz_gas_elementos/viento_refuer
 
 **Queda.** Los trozos al soltar salen algo recortados (bordes del ruido); el coste del viento sube a ~0,6 ms en el juego (las cintas en cada paso); si molesta, acotar
 las cintas a un cilindro alrededor del eje antes de evaluarlas.
+
+## 9. Mixto: el haz de la 481 con el choque de la 482 (11/11, noche; Pablo, tras verlo en el lab: «deja el impacto como ahora pero el haz como sin el refuerzo»)
+
+Se combinan las dos versiones con INTERRUPTORES (nada se borra; Pablo puede volver al refuerzo):
+
+- `HazGas.toon_viento.cintas` (de serie **false**): apagado, el CUERPO del haz es el de la 481: líneas de corriente del gas en todo el largo, con su hélice
+  (`VIENTO_HELICE` 1,6, giro mayor por fuera), sus pulsos, `VIENTO_LINEAS` 2, su grosor en etiquetas (`grosor` 0,058, `opacidad` 0,92), sus jirones y su disolución al
+  soltar (sin deriva). Encendido, el cuerpo del refuerzo: las 5 cintas analíticas, las líneas de corriente solo junto al sólido con ancho en el mundo, el gas con
+  `PARAMS_VIENTO_CINTAS` (confinamiento 14, turbulencia 12) y la deriva al soltar (`grosor_cintas` 0,15, `opacidad_cintas` 0,95). En la GPU el interruptor viaja
+  en `mundo_tam.w` (`VIENTO_CINTAS` en `gas_comun.glslinc`, que elige `VIENTO_LINEAS`, `VIENTO_HELICE`, el giro y los pulsos en `gas_fuentes.glsl`) y en `toon1.z`
+  del dibujo. Cambiarlo rehace el gas: `poner_elemento("viento")` después.
+- `toon_viento.mano_grande` (de serie **false**): el brillo pequeño de la 481 (disco de 1 M con halo blando en la boquilla); encendido, el grande del refuerzo.
+- El CHOQUE es el del refuerzo con cualquier valor: lazos gruesos ladeados hacia la cámara que giran y sueltan jirones (con su propio grosor,
+  `toon_viento.grosor_lazo` 0,15, ya no el de las líneas), mechones 1 de cada 16 curvos y solo del choque, hojas 1 de cada 24 y más grandes. Los lazos se dibujan
+  encima de las líneas de la 481, así que se leen igual de claros.
+
+Hoja: `docs/capturas/vfx_en_juego/haz_gas_elementos/HOJA_VIENTO_MIXTO.png` (481, 482 y mixto; al aire, contra la esfera y recién soltado; cámara lateral y del
+juego). Capturas en `.../haz_gas_elementos/viento_mixto/`.
+**Coste.** Con el interruptor apagado no se evalúan las cintas, así que el viento vuelve al coste de la 481 más los lazos. La pasada de `COSTE` de esta vez se hizo con
+la GPU ocupada por otro programa (el fuego daba 7,2 / 6,3 ms frente a 2,6–3,0 de siempre), así que solo vale en proporción: viento 0,44 / 1,19 ms (aire / muro),
+agua 2,0 / 2,3, rayo 0,23 / 0,21, fuego 7,2 / 6,3. En el lab (`captura_gas_elementos`), viento al aire 0,22–0,61 ms y contra la esfera 0,62–1,25 ms, lo mismo que la 481.
+
+**Pruebas.** Con ventana: `prueba_haz_gas_viento_rayo` a 0. `prueba_haz_gas_juego` dio 1 fallo (dragón: «chorro limpio y caliente en su primer tramo», T_eje 0,81) con
+la GPU ocupada (12 ms por haz de fuego). Es el mismo caso sensible al reloj real de la 479, y da el MISMO fallo con el código de main sin este cambio (036d8444, misma
+pasada): el fuego no se ha tocado (todo lo nuevo va tras `VIENTO`). Hay que repetirla con la GPU libre. Headless a 0: `prueba_vfx_toy`, `prueba_haz_fuego_ideas`,
+`prueba_vfx_en_juego`, `prueba_agua_toy`, `prueba_lab_vfx_toys`; `prueba_rayo_toy` 16 (los de main).

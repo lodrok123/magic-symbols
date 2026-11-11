@@ -35,6 +35,12 @@ layout(set = 0, binding = 7, rgba16f) uniform restrict writeonly image2D crudo;
 #define K_ANILLOS V.toon3.z        // anillos del vortice del choque (0 = sin; solo si CHOQUE)
 #define DISUELVE V.toon2.x         // s que tardan los trazos en romperse y desaparecer al soltar
 #define TIEMPO_V V.toon2.w
+// 11/11, mixto (Pablo: «deja el impacto como ahora pero el haz como sin el refuerzo»): interruptores. Con CINTAS_ON el cuerpo del haz es el del refuerzo (482:
+// cintas analiticas, lineas de corriente solo junto al solido, deriva al soltar); sin el, el de la 481 (lineas de corriente en todo el haz, su disolucion). El
+// choque (lazos gruesos ladeados) es el del refuerzo en los dos casos, con su propio grosor GROSOR_LAZO. MANO_GRANDE: el brillo grande del refuerzo.
+#define CINTAS_ON (V.toon1.z > 0.5)
+#define MANO_GRANDE (V.toon1.w > 0.5)
+#define GROSOR_LAZO V.toon1.x
 
 // Al soltar, los trozos DERIVAN: el dibujo lee el gas un poco por detras (el aire se los lleva hacia delante y hacia arriba).
 vec3 DERIVA = vec3(0.0);
@@ -159,7 +165,7 @@ void main() {
 	vec3 d_e = eje_dir();
 	// disolucion al soltar: 0 con el chorro encendido, 1 cuando ya no queda trazo
 	float dis = T_CORTE < 0.0 ? 0.0 : clamp(T_CORTE / max(DISUELVE, 0.05), 0.0, 1.0);
-	DERIVA = (d_e * 1.4 + vec3(0.0, 0.45, 0.0)) * ESC_M * dis;
+	if (CINTAS_ON) DERIVA = (d_e * 1.4 + vec3(0.0, 0.45, 0.0)) * ESC_M * dis;
 	vec3 color = vec3(0.0);
 	float trans = 1.0;
 	float a_v = 0.0;
@@ -183,14 +189,14 @@ void main() {
 		for (int k = 0; k < pasos; k++) {
 			vec3 c = linea(ro + rd * t);
 			polvo += c.z * dl;
-			if (dis < 1.0) {
+			if (CINTAS_ON && dis < 1.0) {
 				vec2 ci = cintas(ro + rd * t - DERIVA);
 				if (ci.x < m_ci) { m_ci = ci.x; t_ci = t; }
 			}
 			// las lineas de corriente de verdad solo se dibujan con choque y cerca del final (donde rodean el solido y se abren en abanico): en el chorro
 			// las sustituyen las cintas; al aire, al final se emborronaban en manchas
 			float tt_k = dot(ro + rd * t - P.nozzle.xyz, ab_m) / dot(ab_m, ab_m);
-			if (!CHOQUE || tt_k < 0.7) c.y = 0.0;
+			if (CINTAS_ON && (!CHOQUE || tt_k < 0.7)) c.y = 0.0;
 			vec3 q_an = ro + rd * t - P.contacto.xyz;
 			if (con_anillos && dot(q_an, q_an) < R2_ANILLOS) {        // solo cerca del contacto
 				vec2 an = anillos(ro + rd * t, abre, nrm);
@@ -220,7 +226,26 @@ void main() {
 			float pix = length(p_f - (ro2 + rd2 * dot(p_f - ro2, rd2)));
 			vec3 ab_f = P.target.xyz - P.nozzle.xyz;
 			float tt_f = clamp(dot(p_f - P.nozzle.xyz, ab_f) / dot(ab_f, ab_f), 0.0, 1.0);
-			// ANCHO EN EL MUNDO, no en etiquetas: la distancia en etiquetas se pasa a distancia real con el gradiente de las etiquetas. Dentro del chorro da lo
+			if (!CINTAS_ON) {
+				// CUERPO DE LA 481 (lo que Pablo prefiere): lineas de corriente finas en todo el haz, con su grosor en etiquetas, jirones y su disolucion
+				float aa = 0.5 * pix / (mix(BEAM_R0, BEAM_R1, tt_f) * VIENTO_ANCHO);
+				float fuerza = smoothstep(UMBRAL, UMBRAL + 0.45, f.y);        // 0 en las puntas del trazo, 1 en su cuerpo
+				float jiron = textureLod(ruido_a, vec2(dot(p_f, d_e) * 0.11 / ESC_M - TIEMPO_V * 0.35, dot(p_f, vec3(0.31, 0.71, 0.13)) * 0.2 / ESC_M), 0.0).r;
+				fuerza *= 0.45 + 0.9 * jiron;
+				float rompe = 1.0;
+				if (dis > 0.0) {
+					float trozo = textureLod(ruido_b, p_f.xz * 0.21 / ESC_M + vec2(p_f.y * 0.17 / ESC_M, 0.0), 0.0).r;
+					rompe = smoothstep(dis * 0.95 - 0.05, dis * 0.95 + 0.08, trozo) * (1.0 - smoothstep(0.75, 1.0, dis));
+					fuerza *= 1.0 - 0.6 * dis;
+				}
+				float gr = GROSOR * (0.25 + 0.75 * min(fuerza, 1.0));
+				float borde = max(gr * 0.85, aa);
+				float cob = min(gr * 0.85 / borde, 1.0);
+				float trazo = (1.0 - smoothstep(borde - max(gr * 0.15, aa), borde + aa, f.x)) * cob * smoothstep(UMBRAL, UMBRAL + 0.08, f.y);
+				float velo = (1.0 - smoothstep(gr, gr * 3.2 + aa, f.x)) * fuerza * K_VELO;
+				a_v = max(trazo * OPACIDAD, velo) * rompe;
+				c_v = mix(color_paleta(1), color_paleta(2), trazo);
+			} else {			// ANCHO EN EL MUNDO, no en etiquetas: la distancia en etiquetas se pasa a distancia real con el gradiente de las etiquetas. Dentro del chorro da lo
 			// mismo que antes; donde el aire ha emborronado las etiquetas (gradiente pequeno, al final de la rafaga) la cinta NO engorda hasta hacerse una mancha.
 			float hg = max(V.toon3.w, 1e-3);
 			vec2 gx = (texture_lab(p_f + vec3(hg, 0.0, 0.0)) - texture_lab(p_f - vec3(hg, 0.0, 0.0))) / (2.0 * hg);
@@ -252,6 +277,7 @@ void main() {
 			float orilla = (1.0 - smoothstep(borde - aa, borde + aa, f.x)) * cob * vivo;
 			a_v = max(alma * OPACIDAD, orilla * 0.5) * rompe;
 			c_v = mix(color_paleta(1), color_paleta(2), alma);
+			}
 		}
 		// CINTAS del chorro: la mas cercana al rayo de vista, afinada, con el borde toon en dos escalones. Al soltar se rompen en unos pocos TROZOS largos
 		// (ruido de baja frecuencia fijo en el aire), derivan con el aire (DERIVA) y se apagan.
@@ -289,7 +315,7 @@ void main() {
 			vec3 p_a = ro + rd * (0.5 * (a + b));
 			vec2 an = anillos(p_a, abre, nrm);
 			float pix_a = length(p_a - (ro2 + rd2 * dot(p_a - ro2, rd2)));
-			float gr_a = GROSOR * BEAM_R1 * VIENTO_ANCHO * 1.2 * (0.25 + 0.75 * an.y) * (1.0 - 0.6 * dis);
+			float gr_a = GROSOR_LAZO * BEAM_R1 * VIENTO_ANCHO * 1.2 * (0.25 + 0.75 * an.y) * (1.0 - 0.6 * dis);
 			float borde_a = max(gr_a, 0.5 * pix_a);
 			float cob_a = min(gr_a / borde_a, 1.0);
 			float vivo_a = smoothstep(0.02, 0.15, an.y) * K_ANILLOS * (1.0 - smoothstep(0.0, 0.45, dis));
@@ -304,7 +330,18 @@ void main() {
 	// ~K_MANO · la altura de la mano (unos dos tercios del cuerpo de diametro), un poco por delante de ella, que respira; se apaga en un cuarto de segundo al soltar. Va fuera de la caja del
 	// dominio (puede ser mas grande que ella) y lo tapa lo que haya delante.
 	float k_m = K_MANO * (T_CORTE < 0.0 ? BEAM_ON : max(1.0 - T_CORTE / 0.25, 0.0));
-	if (k_m > 0.0) {
+	if (k_m > 0.0 && !MANO_GRANDE) {
+		// el brillo pequeno de la 481 (el de serie desde el mixto): disco blanco de radio 1 M con halo blando, centrado en la boquilla
+		float t_m = dot(P.nozzle.xyz - ro, rd);
+		if (t_m > 0.0 && t_m < tEscena + 0.5 * ESC_M) {
+			float dm = length(ro + rd * t_m - P.nozzle.xyz);
+			float rm = 1.0 * ESC_M * (1.0 + 0.07 * sin(TIEMPO_V * 11.0)) * (0.7 + 0.3 * k_m);
+			float nucleo_m = 1.0 - smoothstep(rm * 0.24, rm * 0.32, dm);
+			float halo_m = 1.0 - smoothstep(rm * 0.3, rm, dm);
+			float a_m = max(nucleo_m * 0.95, halo_m * halo_m * 0.6) * k_m;
+			encima(c_v, a_v, mix(color_paleta(1), color_paleta(2), max(nucleo_m, 0.4)), a_m);
+		}
+	} else if (k_m > 0.0) {
 		float rm = K_MANO * 1.0 * max(P.nozzle.y, 0.5 * ESC_M) * (1.0 + 0.06 * sin(TIEMPO_V * 9.0)) * (0.6 + 0.4 * k_m);
 		vec3 cm = P.nozzle.xyz + d_e * 0.25 * rm;
 		float t_m = dot(cm - ro, rd);
