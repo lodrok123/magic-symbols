@@ -503,8 +503,8 @@ func alternar_humo_regla() -> void:
 		fuego_param(maxi(_param_i, 0))
 
 
-## . (11/11): CHISPAS TIPO REPO DE GAS (presentacion/vfx/toy/chispas_repo.gd, ChispasRepo.capas). De serie van encendidas las que solo añaden (rayo, electrificado y brasas de magma) y apagada
-## «electrificado_capsula» (los arcos en la cápsula real cambian el dibujo de siempre). La tecla las pone TODAS en sí (también la cápsula) o TODAS en no. Se ve con Z = rayo o magma:
+## . (11/11): CHISPAS TIPO REPO DE GAS (presentacion/vfx/toy/chispas_repo.gd, ChispasRepo.capas). De serie van TODAS encendidas (también «electrificado_capsula»: Pablo, 11/11).
+## La tecla es un todo / nada: si están TODAS encendidas (de serie) las APAGA todas (para comparar con el dibujo de antes); si alguna está apagada, las ENCIENDE todas. Se ve con Z = rayo o magma:
 ## B / N impacto, G bola en vuelo, F7 pilar (rayo); con «,» el estado electrificado.
 func alternar_chispas_repo() -> void:
 	var todas: bool = true

@@ -348,7 +348,7 @@ func _process(delta: float) -> void:
 		return
 	if _t < 0.0:
 		_t = 0.0
-		HumoRegla.enganchar_magma_crater(self)          # 11/11: humo oscuro por regla donde se enfría el cráter (HumoRegla.capas["magma"], apagado de serie)
+		HumoRegla.enganchar_magma_crater(self)          # 11/11: humo oscuro por regla donde se enfría el cráter (HumoRegla.capas["magma"], encendida de serie)
 		ChispasRepo.enganchar_impacto_magma(self)       # 11/11: brasas tipo repo de gas (ChispasRepo.capas["magma_impacto"]): una capa más, las brasas de siempre siguen
 	_t += delta
 	_avanzar_esquirlas(delta)

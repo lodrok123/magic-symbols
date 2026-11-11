@@ -94,7 +94,8 @@ const HAZ_ANCHO: float = 0.35                 ## m de grosor del dibujo (el golp
 const HAZ_DURA_S: float = 0.9                 ## s que se ve el haz (+ `permanencia`)
 ## 6/11/2026 · decisión de Pablo («sí, haz de púas»): elementos SÓLIDOS que SÍ hacen haz con ᛁ. El 29/10 los sólidos quedaron fuera (una ᛁ de tierra o de hielo era un bloque ancho o largo,
 ## porque «el haz no construye»); la TIERRA vuelve a entrar: su ᛁ es un HAZ DE PÚAS que recorre el suelo, golpea y EMPUJA a todo lo del recorrido (`earth_rune.fuerza_golpe`, la más alta), sin
-## levantar terreno — el muro de tierra sigue siendo solo de `barrera` (ᛝ). El HIELO no entra: su ᛁ sigue siendo el bloque largo que se construye. `VientoToy`/`TierraToy` dibujan la figura HAZ.
+## levantar terreno — el muro de tierra sigue siendo solo de `barrera` (ᛝ) SOLA; ᛝ + ᛁ es el PUENTE (`es_plataforma_tierra`; Pablo, 11/11: «permite un casteo remoto,
+## mejor esa para hacer un puente»). El HIELO no entra: su ᛁ sigue siendo el bloque largo que se construye. `VientoToy`/`TierraToy` dibujan la figura HAZ.
 const SOLIDOS_CON_HAZ: PackedStringArray = ["tierra"]
 ## Tamaño EN VUELO de un proyectil (hechizo con `velocidad` > 0, o sea el de la flecha) respecto a sus semiejes. Decisión de Pablo (21/10, tras el playtest): el proyectil de
 ## «flecha + elemento» medía 0,5 casillas de ancho (≈ 1,15 u, más que la chibi) y era demasiado grande; ahora mide la mitad. AJUSTABLE: 1.0 lo deja como estaba.

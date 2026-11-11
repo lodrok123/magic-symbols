@@ -32,13 +32,13 @@ const AMARILLO_QUEMA: Color = Color(0.80, 0.86, 0.30)      ## la nube que arde s
 const CHISPA: Color = Color(0.95, 0.42, 0.10)              ## naranja de fuego (el de las hojas que arden)
 const CENIZA: Color = Color(0.30, 0.28, 0.20)
 
-## GAS PESADO (11/11, docs/TECNICAS_REPO_GAS_OTROS_ELEMENTOS_2026-11-10.md top 5 nº 4; apagado de serie: ajuste `magic_symbols/vfx_veneno_gas_pesado` o `-- veneno-pesado`):
+## GAS PESADO (11/11, docs/TECNICAS_REPO_GAS_OTROS_ELEMENTOS_2026-11-10.md top 5 nº 4; encendido de serie desde el 11/11, se apaga con el ajuste `magic_symbols/vfx_veneno_gas_pesado` o `-- veneno-pesado`):
 ## las bocanadas dejan de orbitar y siguen un CampoViento propio (turbulencia sin divergencia que, ceñida al SUELO, solo gira en horizontal; el viento es la deriva de la nube; rodean casillas,
 ## enemigos y bloques), con arrastre 0,7 (el de la demo: con viento se quedan atrás y se deshilachan solas), un muelle blando a su sitio y PESO (se quedan a ras de suelo). Mismos verdes y misma mancha.
-static var gas_pesado: bool = OS.get_cmdline_user_args().has("veneno-pesado") or bool(ProjectSettings.get_setting("magic_symbols/vfx_veneno_gas_pesado", false))
-## HUMO AL ARDER (apagado de serie: `magic_symbols/vfx_veneno_humo` o `-- veneno-humo`): la nube que arde (`NubeVeneno3D.quemar`, la interacción veneno + fuego que ya había) suelta humo PARDO
+static var gas_pesado: bool = OS.get_cmdline_user_args().has("veneno-pesado") or bool(ProjectSettings.get_setting("magic_symbols/vfx_veneno_gas_pesado", true))     # 11/11 (Pablo: «enciéndelas todas»): de serie
+## HUMO AL ARDER (encendido de serie desde el 11/11; se apaga con `magic_symbols/vfx_veneno_humo` o `-- veneno-humo`): la nube que arde (`NubeVeneno3D.quemar`, la interacción veneno + fuego que ya había) suelta humo PARDO
 ## de HumoRegla (materia HUMO, sus colores): el gas que arde se frena y da hollín. Sigue a la nube y, al irse ella, lo ya soltado se acaba solo.
-static var humo_al_arder: bool = OS.get_cmdline_user_args().has("veneno-humo") or bool(ProjectSettings.get_setting("magic_symbols/vfx_veneno_humo", false))
+static var humo_al_arder: bool = OS.get_cmdline_user_args().has("veneno-humo") or bool(ProjectSettings.get_setting("magic_symbols/vfx_veneno_humo", true))     # 11/11 (Pablo: «enciéndelas todas»): de serie
 const MUELLE: float = 1.4            ## 1/s²: tirón horizontal hacia el sitio de cada bocanada (sin él el viento se la llevaría entera)
 const PESO: float = 3.0              ## 1/s²: tirón hacia su altura (gas pesado: no sube sola)
 const AMORT_Y: float = 2.2           ## 1/s
@@ -206,13 +206,20 @@ func avanzar(dt: float, p_mundo: Vector3, edad: float, vida: float, vida_max: fl
 			a *= 1.0 + 0.1 * sin(_t * 1.3 + fase)               # (respira un poco; la permanente, quieta)
 		a = clampf(a, 0.0, ALFA_MAX)
 		var col: Color = (tonos[int(b["tono"])] as Color).lerp(AMARILLO_QUEMA, quema * (0.6 + 0.3 * float(int(b["tono"]) == 2)))
-		col.a = a
 		_alfas[i] = a
 		_tams[i] = tam
 		_pos_boc[i] = Vector3(x, y, z)
 		_col_boc[i] = col
+	if gas:
+		_limitar_opacidad()
+	for i in _bocanadas.size():
+		var col: Color = _col_boc[i]
+		var a: float = _alfas[i]
+		var tam: float = _tams[i]
+		col.a = a
+		_col_boc[i] = col
 		amax = maxf(amax, a)
-		mm.set_instance_transform(i, Transform3D(Basis.IDENTITY.scaled(Vector3(tam, tam, tam)), Vector3(x, y, z)))
+		mm.set_instance_transform(i, Transform3D(Basis.IDENTITY.scaled(Vector3(tam, tam, tam)), _pos_boc[i]))
 		mm.set_instance_color(i, col.srgb_to_linear())
 	# --- mancha del suelo ---
 	var col_s: Color = VERDE.lerp(AMARILLO_QUEMA, quema * 0.7)
@@ -342,6 +349,38 @@ func _mover_gas(dt: float, p_mundo: Vector3, nacer: float, consumo: float, disol
 		pw = campo.contener(pw + v * dt, 0.1)
 		_gp_pos[i] = pw - p_mundo
 		_gp_vel[i] = v
+
+
+## GAS PESADO · SE VE A TRAVÉS (11/11, al encenderlo de serie): sin órbita, el campo (que a ras de suelo solo gira en horizontal) junta bocanadas y donde se apilan la opacidad
+## ACUMULADA llegaba a ~0,9 (la regla de la nube es ≤ 0,55, prueba_nube_veneno_vfx 1.4). Aquí se mide, con la forma blanda del shader, la opacidad 1 - Π(1 - alfa·forma) en el centro
+## de cada bocanada y, donde pasa de OPACIDAD_GAS, se rebajan SOLO las bocanadas que la tapan: su alfa × ln(1 - tope) / ln(1 - opacidad) (por Bernoulli, el punto queda ≤ tope).
+## Donde no se apilan, el gas pesado se dibuja igual (mismos verdes, misma mancha, mismas bocanadas). 16 bocanadas: 256 parejas por paso.
+const OPACIDAD_GAS: float = 0.42     ## en los centros; entre centros sale algo más (prueba 1.4: ~0,5 con 0,45)
+func _limitar_opacidad() -> void:
+	var n: int = _bocanadas.size()
+	var k_min: PackedFloat32Array = PackedFloat32Array()
+	k_min.resize(n)
+	k_min.fill(1.0)
+	var ln_tope: float = log(1.0 - OPACIDAD_GAS)
+	for i in n:
+		var c: Vector2 = Vector2(_pos_boc[i].x, _pos_boc[i].z)
+		var libre: float = 1.0
+		for j in n:
+			libre *= 1.0 - _alfas[j] * _forma(c, j)
+		if 1.0 - libre <= OPACIDAD_GAS or libre <= 0.0:
+			continue
+		var s: float = ln_tope / log(libre)
+		for j in n:
+			if _forma(c, j) > 0.0:
+				k_min[j] = minf(k_min[j], s)
+	for j in n:
+		_alfas[j] *= k_min[j]
+
+
+## La forma blanda de la bocanada `j` en el punto `c` (plano XZ local): 1 en el centro, borde suave desde la mitad del radio (la del shader).
+func _forma(c: Vector2, j: int) -> float:
+	var d: float = Vector2(_pos_boc[j].x, _pos_boc[j].z).distance_to(c) / maxf(_tams[j] * 0.5, 0.001)
+	return 1.0 - smoothstep(0.45, 1.0, d)
 
 
 ## El sitio de la bocanada `i` (local): en su anillo, sin girar, más bajo que la nube de siempre (pesa).
