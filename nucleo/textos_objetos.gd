@@ -97,6 +97,11 @@ const DESCRIPCION: Dictionary = {
 	"bomba_resina": "Lánzala con G: prende lo inflamable de la casilla donde cae y hace 10 de daño. Poco daño y poca área.",
 	"bola_helada": "Lánzala con G: hiela el agua de la casilla donde cae, como un hechizo de hielo pequeño. Una plataforma breve.",
 	"fruto_chispa": "Lánzalo con G: electrifica el agua donde cae y activa lo que se activa con rayo. Si estás cerca, también te alcanza.",
+	# --- Piezas de mejora (11/11): no ocupan hueco y suben su mejora solas ---
+	"trozo_corazon": "Un trozo de corazón. Al juntar cuatro, tu vida máxima sube 20 (hasta 200).",
+	"frasco_vacio": "Un frasco de reserva para la tinta. Al cogerlo tienes un frasco más, lleno (hasta 6).",
+	"engarce_glifo": "Un engarce para el círculo del libro. Fija los huecos de glifo por página: el mayor entre los del libro y 1 más tus engarces (hasta 6).",
+	"hoja_grimorio": "Una hoja para coser al grimorio: una página más (hasta 8).",
 	# --- Objetos clave ---
 	"llave": "Abre la puerta de la Cueva (C4).",
 	"llave_goblin": "La llave del campamento goblin: abre su puerta.",

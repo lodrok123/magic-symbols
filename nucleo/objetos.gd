@@ -190,7 +190,7 @@ static func categoria(id: String) -> String:
 	match categoria_bd(id):
 		"consumible", "pigmento", "lanzable":
 			return "pociones"
-		"clave", "ropa", "glifo":
+		"clave", "ropa", "glifo", "mejora":
 			return "clave"
 	return "componentes"
 
@@ -229,6 +229,12 @@ static func es_consumible(id: String) -> bool:
 
 static func es_lanzable(id: String) -> bool:
 	return LANZABLES.has(id)
+
+
+## 11/11: ¿es una PIEZA DE MEJORA (`uso = pieza`: trozo de corazón, frasco vacío, engarce, hoja de grimorio)? No ocupa hueco en la mochila y, al juntar las que pide
+## su efecto (`piezas`), sube la mejora (`mejora`): ver `Estado._pieza_al_coger`.
+static func es_pieza(id: String) -> bool:
+	return String((DATOS.get(id, {}) as Dictionary).get("uso", "")) == "pieza"
 
 
 ## «Usos conocidos» de un objeto (frases para el panel de detalle del Inventario); vacío si aún no se le conoce ninguno.

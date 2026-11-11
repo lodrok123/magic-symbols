@@ -44,7 +44,7 @@ func _initialize() -> void:
 func _carga() -> void:
 	BD.recargar()
 	_ok("1 las siete tablas cargan sin filas mal formadas", BD.errores().is_empty(), str(BD.errores()))
-	_ok("1 objetos: 90 filas", BD.objetos().size() == 90, str(BD.objetos().size()))      # 10/11: +11 de la primera tanda de consumibles; 11/11: +2 (pelaje de loberno, garra de canouro)
+	_ok("1 objetos: 94 filas", BD.objetos().size() == 94, str(BD.objetos().size()))      # 10/11: +11 de la primera tanda de consumibles; 11/11: +2 (pelaje, garra) y +4 piezas de mejora
 	_ok("1 las demás tablas no están vacías", not BD.fuentes().is_empty() and not BD.recetas().is_empty() and not BD.mejoras().is_empty()
 		and not BD.estados_mundo().is_empty() and not BD.tabla("goblin").is_empty() and not BD.reactivos("arbol").is_empty())
 	var pocion: Dictionary = BD.objeto("pocion")
@@ -162,7 +162,7 @@ func _recetas_y_botin() -> void:
 				botin_mal.append("%s: %s peso/min/max" % [tabla, o])
 			if String(f.get("independiente", "")) not in ["", "si"]:
 				botin_mal.append("%s: %s independiente «%s»" % [tabla, o, f.get("independiente", "")])
-	_ok("3 botin_tablas: cada objeto existe o es `nada`, peso > 0 (probabilidad <= 1 si es independiente) y min <= max (%d filas de 22 tablas; 11/11: + loberno, canouro, gota del chamán, cofre pequeño e ingredientes de jarrón)" % n_filas, botin_mal.is_empty() and n_filas == 71, str(botin_mal) + " " + str(n_filas))
+	_ok("3 botin_tablas: cada objeto existe o es `nada`, peso > 0 (probabilidad <= 1 si es independiente) y min <= max (%d filas de 22 tablas; 11/11: + loberno, canouro, gota del chamán, cofre pequeño e ingredientes de jarrón)" % n_filas, botin_mal.is_empty() and n_filas == 72, str(botin_mal) + " " + str(n_filas))
 
 
 func _compatibilidad() -> void:

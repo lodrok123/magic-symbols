@@ -77,7 +77,7 @@
 ; pieza pad_c1b veta 7 22
 ; pieza pad_c1c veta 9 22
 ; pieza estatuas_c1 estatuas 5 21 celdas=5,21+7,21+9,21 secuencia=fuego,hielo,fuego flag=cuevap.c1.estatuas
-; pieza cofre_epico cofre 8 21 modelo=epico aparece_si=flag.cuevap.c1.estatuas abierto=cuevap.c1.epico da=nucleo_eco:1
+; pieza cofre_epico cofre 8 21 modelo=epico aparece_si=flag.cuevap.c1.estatuas abierto=cuevap.c1.epico da=nucleo_eco:1+frasco_vacio:1
 ;
 ; ======================================================================================================================================================
 ;  C2 · LAS GRIETAS — PRESENTAR el receptor (R1) y el hueco de veta que se tiende con un bloque de tierra (C2 · enlace).
@@ -93,7 +93,7 @@
 ; OPCIONAL: al oeste, otra veta cortada en (4,3) lleva el pulso a la COLUMNA AGRIETADA (4,2) que tapa el nicho; a los dos pulsos cae y deja ver el cofre (poción y oro).
 ; pieza veta_c2 veta 6 4 celdas=6,4..4,4 enlaces=4,3
 ; pieza columna_c2 columna 4 2 golpes=2 cae=e flag=cuevap.c2.columna
-; pieza cofre_c2 cofre 1 1 abierto=cuevap.c2.cofre da=pocion:1+oro:15
+; pieza cofre_c2 cofre 1 1 abierto=cuevap.c2.cofre da=pocion:1+oro:15+trozo_corazon:1
 ; El filón (7,1..7,3): un hechizo de tierra encima suelta un mineral de veta.
 ; pieza filon_c2 veta 7 3 celdas=7,3..7,1 mineral=si
 ; pieza seta_c2a seta 7 8
@@ -126,7 +126,7 @@
 ; pieza veta_c3_este veta 15 5
 ; pieza receptor_c3 receptor 16 5 flag=cuevap.c3.pulso
 ; pieza reja_c3 puerta 17 3
-; pieza cofre_c3 cofre 17 1 abierto=cuevap.c3.cofre da=oro:25+mineral_veta:1
+; pieza cofre_c3 cofre 17 1 abierto=cuevap.c3.cofre da=oro:25+mineral_veta:1+trozo_corazon:1
 ; puzle abre_reja cuando=flag.cuevap.c3.pulso hace=reja_c3.abrir
 ; El cristal de la orilla (10,1) duerme (`cada=0`): golpéalo y su pulso llega por la veta a la GEODA (11,2), que explota y tumba la COLUMNA (12,2) sobre la lava: puente para siempre.
 ; pieza cristal_geoda cristal 10 1 cada=0
@@ -185,7 +185,7 @@
 ; La puerta del santuario pide la llave de C4.
 ; pieza puerta_llave puerta 15 13 modelo=llave llave=cuevap.c4.llave gasta=no abierto=cuevap.c6.puerta
 ; El cofre legendario da ᚱ «pulso» con su secuencia; mientras está cerrado echa su columna de luz dorada.
-; pieza tesoro cofre 14 11 modelo=legendario abre_si=flag.cuevap.c6.fuego abierto=cueva.c6.glifo glifo=raido
+; pieza tesoro cofre 14 11 modelo=legendario abre_si=flag.cuevap.c6.fuego abierto=cueva.c6.glifo glifo=raido da=engarce_glifo:1
 ; La salida (el atajo a C1) es una PARED HUECA que solo abre el pulso propio (ᚱ): el primer uso del glifo.
 ; pieza salida pared_hueca 9 16 flag=cuevap.c6.salida
 ; pieza jarron_c6a jarron 17 11 botin=oro

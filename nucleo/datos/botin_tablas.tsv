@@ -62,6 +62,7 @@ golem	oro	1	40	40	siempre	si
 golem	polvo_golem	100	1	2	-	-
 elemental	oro	1	150	150	jefe: siempre	si
 elemental	savia_elemental	100	1	1	jefe: siempre	-
+elemental	engarce_glifo	1	1	1	11/11: jefe = hito principal (tabla de mejoras de Pablo)	si
 cofre_pequeno	oro	1	10	20	11/11: siempre (un cofre siempre vale la pena, REVISION_OBJETOS_SINTESIS §4)	si
 cofre_pequeno	pocion	0.4	1	1	tirada propia del 40 %	si
 cofre_pequeno	baya	20	2	3	y uno de estos ingredientes	-
