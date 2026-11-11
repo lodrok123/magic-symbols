@@ -60,6 +60,8 @@ const DESCRIPCION: Dictionary = {
 	# --- Botín de enemigos ---
 	"colmillo_goblin": "Amarillento y astillado. Aporta tierra y protección; va en el Bálsamo protector.",
 	"jiron_escudo": "Cuero chamuscado de un escudo que ardió. Aporta calor y protección.",
+	"pelaje_loberno": "Lo deja un loberno al caer. Aporta frío y protección a las recetas.",
+	"garra_canouro": "La deja un canouro al caer. Aporta viento y tierra a las recetas.",
 	"baba_limo": "Tiembla sola; un limo la deja al caer. Aporta agua y toxicidad; va en el Antídoto.",
 	"pluma_chaman": "Del tocado del chamán goblin. Aporta viento y toxicidad.",
 	"gota_veneno": "Una gota de veneno puro con un aura morada. Aporta toxicidad fuerte a las recetas; no es para beber.",

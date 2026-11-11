@@ -296,3 +296,17 @@
 ; puzle balanza_pesada cuando=placa_pesada.pulsado hace=flag.poner(bosque02.balanza.pesada)
 ; puzle balanza_ligera cuando=placa_ligera.pulsado hace=flag.poner(bosque02.balanza.ligera)
 ; pieza cofre_balanza cofre 22 34 aparece_si=flag.bosque02.balanza.pesada+flag.bosque02.balanza.ligera abierto=bosque02.balanza.cofre da=tabla:cofre_pequeno
+; 15 · PLANTAS DEL BOSQUE (11/11, Juego; docs/REVISION_OBJETOS_SINTESIS.md §4: «lo común se recoge»): se cogen con E y rebrotan a los 90 s. La flor y la raíz se
+; transforman antes con un elemento (fuego: flor ardiente / raíz carbonizada; agua: flor de rocío / raíz hinchada...), como las setas.
+; pieza bayas_linde bayas 5 35 rebrota=90
+; pieza flor_silv_linde flor_silvestre 13 28 rebrota=90
+; pieza helecho_linde helecho 4 33 rebrota=90
+; pieza flor_claro flor 29 29 rebrota=90
+; pieza raiz_claro raiz 29 31 rebrota=90
+; pieza lavanda_pradera_a lavanda 26 14 rebrota=90
+; pieza lavanda_pradera_b lavanda 27 15 rebrota=90
+; pieza flor_pradera flor 23 13 rebrota=90
+; pieza helecho_denso helecho 17 24 rebrota=90
+; pieza raiz_denso raiz 19 26 rebrota=90
+; pieza bayas_denso_a bayas 17 27 rebrota=90
+; pieza bayas_denso_b bayas 16 30 rebrota=90

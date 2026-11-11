@@ -13,7 +13,7 @@ const VIAS_FIJAS: Array = ["pulso", "E", "golpe", "romper", "abrir", "sintesis",
 ## Las `de` de fuentes.tsv que no son un objeto: plantas del mundo, reactivos, enemigos, cofres, vendedores y prendas.
 const PIEZAS: Array = ["seta", "flor", "raiz", "alga", "bayas", "lavanda", "helecho", "flor_silvestre", "rocas_pequenas", "musgo", "helecho_cueva", "seta_palida",
 	"veta", "cristal_resonante", "jarron", "lava", "geoda", "hierba", "arbol", "colmena", "nido", "telarana", "seto", "goblin", "goblin_escudo", "limo", "chaman",
-	"golem", "elemental", "cofre", "cofre_epico", "cofre_legendario", "alquimista", "guardabosques", "basalto", "esquirla_cristal", "seta_resonante", "capa",
+	"golem", "elemental", "loberno", "canouro", "cofre", "cofre_epico", "cofre_legendario", "alquimista", "guardabosques", "basalto", "esquirla_cristal", "seta_resonante", "capa",
 	"tunica", "capucha", ""]
 ## Los 36 ids que tenía `Objetos.DATOS` antes de F0 (sacados de `git show HEAD:nucleo/objetos.gd`).
 const IDS_DE_ANTES: Array = ["oro", "pocion", "tonico_tinta", "balsamo_protector", "infusion_brezo", "lavanda", "baya", "helecho", "piedra", "flor_silvestre",
@@ -44,7 +44,7 @@ func _initialize() -> void:
 func _carga() -> void:
 	BD.recargar()
 	_ok("1 las siete tablas cargan sin filas mal formadas", BD.errores().is_empty(), str(BD.errores()))
-	_ok("1 objetos: 88 filas", BD.objetos().size() == 88, str(BD.objetos().size()))      # 10/11: +11 de la primera tanda de consumibles
+	_ok("1 objetos: 90 filas", BD.objetos().size() == 90, str(BD.objetos().size()))      # 10/11: +11 de la primera tanda de consumibles; 11/11: +2 (pelaje de loberno, garra de canouro)
 	_ok("1 las demás tablas no están vacías", not BD.fuentes().is_empty() and not BD.recetas().is_empty() and not BD.mejoras().is_empty()
 		and not BD.estados_mundo().is_empty() and not BD.tabla("goblin").is_empty() and not BD.reactivos("arbol").is_empty())
 	var pocion: Dictionary = BD.objeto("pocion")
@@ -162,7 +162,7 @@ func _recetas_y_botin() -> void:
 				botin_mal.append("%s: %s peso/min/max" % [tabla, o])
 			if String(f.get("independiente", "")) not in ["", "si"]:
 				botin_mal.append("%s: %s independiente «%s»" % [tabla, o, f.get("independiente", "")])
-	_ok("3 botin_tablas: cada objeto existe o es `nada`, peso > 0 (probabilidad <= 1 si es independiente) y min <= max (%d filas de 20 tablas)" % n_filas, botin_mal.is_empty() and n_filas == 55, str(botin_mal) + " " + str(n_filas))
+	_ok("3 botin_tablas: cada objeto existe o es `nada`, peso > 0 (probabilidad <= 1 si es independiente) y min <= max (%d filas de 22 tablas; 11/11: + loberno, canouro, gota del chamán, cofre pequeño e ingredientes de jarrón)" % n_filas, botin_mal.is_empty() and n_filas == 71, str(botin_mal) + " " + str(n_filas))
 
 
 func _compatibilidad() -> void:
@@ -191,7 +191,7 @@ func _compatibilidad() -> void:
 	_ok("4 PLANTAS.alga igual que antes (la reacción de la charca electrificada espera a su fase)", Objetos.PLANTAS["alga"] == {"base": "alga_cueva", "tabla": {"fuego": "alga_seca"}}, str(Objetos.PLANTAS["alga"]))
 	_ok("4 PLANTAS nuevas: musgo, helecho de cueva y seta pálida, con base y sin tabla", Objetos.PLANTAS["musgo"] == {"base": "musgo_cueva", "tabla": {}}
 		and Objetos.PLANTAS["helecho_cueva"] == {"base": "helecho_cueva", "tabla": {}} and Objetos.PLANTAS["seta_palida"] == {"base": "seta_palida", "tabla": {}}
-		and Objetos.PLANTAS.size() == 7, str(Objetos.PLANTAS.keys()))
+		and Objetos.PLANTAS.size() == 11 and Objetos.PLANTAS["lavanda"]["base"] == "lavanda" and Objetos.PLANTAS["bayas"]["base"] == "baya", str(Objetos.PLANTAS.keys()))      # 11/11: + lavanda, bayas, helecho y flor silvestre
 	_ok("4 MINERALES igual que antes", Objetos.MINERALES == {"veta": {"via": "tierra", "golpes": 1, "da": "mineral_veta"},
 		"cristal_resonante": {"via": "golpe", "golpes": 2, "da": "esquirla_cristal"}, "jarron": {"via": "romper", "golpes": 1, "da": "esquirla_cristal"}}, str(Objetos.MINERALES))
 	_ok("4 mineral_de sigue dando lo mismo", Objetos.mineral_de("veta", "tierra") == "mineral_veta" and Objetos.mineral_de("cristal_resonante", "golpe") == "esquirla_cristal"

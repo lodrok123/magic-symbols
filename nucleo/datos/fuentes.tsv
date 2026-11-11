@@ -94,3 +94,6 @@ bulbo_luz	receta	-	sintesis	-	1	1	1	todas	recetas.tsv (10/11, primera tanda de c
 bomba_resina	receta	-	sintesis	-	1	1	1	todas	recetas.tsv (10/11, primera tanda de consumibles)
 bola_helada	receta	-	sintesis	-	1	1	1	todas	recetas.tsv (10/11, primera tanda de consumibles)
 fruto_chispa	receta	-	sintesis	-	1	1	1	todas	recetas.tsv (10/11, primera tanda de consumibles)
+pelaje_loberno	enemigo	loberno	-	-	0.6	1	1	bosque	tabla `loberno` (11/11)
+garra_canouro	enemigo	canouro	-	-	0.55	1	1	bosque	tabla `canouro` (11/11)
+gota_veneno	enemigo	chaman	-	-	0.3	1	1	todas	tabla `chaman`: tirada propia del 30 % (11/11)

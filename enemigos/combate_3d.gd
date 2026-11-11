@@ -542,6 +542,10 @@ func _ready() -> void:
 	if elemental and not inmune_estados.has("raices"):
 		inmune_estados.append("raices")                 # R3: es vegetal, las raíces de la naturaleza no lo sujetan
 	es_goblin = pj != null and pj.id.begins_with("goblin")
+	# 11/11 (docs/REVISION_OBJETOS_SINTESIS.md §4): los animales y cualquier enemigo con tabla propia en `botin_tablas.tsv` (loberno, canouro...) sueltan lo suyo,
+	# no el colmillo de goblin. Solo si nadie ha fijado otra tabla antes (el chamán, el gólem y el elemental la ponen en su propio código).
+	if pj != null and tabla_botin == "goblin" and not es_goblin and Botin.existe(pj.id):
+		tabla_botin = pj.id
 	if es_goblin:
 		pj.ritmo = RITMO_GOBLIN
 	if MarchaCuadrupedo3D.MARCHA_ANIMAL and pj != null and MarchaCuadrupedo3D.tiene_perfil(pj.id):

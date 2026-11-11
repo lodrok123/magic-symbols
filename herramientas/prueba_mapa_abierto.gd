@@ -97,7 +97,7 @@ func _gramatica() -> void:
 	Botin.tirada_forzada = 0.5
 	var l_camp: Array = Botin.tirar(Botin.tabla_de_zona("jarron", "zona_x", "", "campamento"))
 	Botin.tirada_forzada = -1.0
-	_ok("1 botin=zona toma la tabla de la zona: tirada baja = nada, media = oro, alta = poción", perfil == ["nada", "oro", "pocion"] and not l_camp.is_empty() and String((l_camp[0] as Dictionary)["que"]) == "oro", str(perfil))
+	_ok("1 botin=zona toma la tabla de la zona: tirada baja = nada, media = oro, alta = un ingrediente del bosque (11/11: antes la poción)", perfil == ["nada", "oro", "helecho"] and not l_camp.is_empty() and String((l_camp[0] as Dictionary)["que"]) == "oro", str(perfil))
 
 
 func _zonas_texto() -> void:

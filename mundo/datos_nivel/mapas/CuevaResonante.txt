@@ -207,3 +207,9 @@
 ; pieza adorno_c5_musgo decorado 19 18 modelo=musgo_colgante
 ; pieza adorno_c6_raices decorado 17 12 modelo=raices_musgo
 ; pieza adorno_c6_estalagmitas decorado 10 18 modelo=estalagmitas_a giro=270
+; PLANTAS DE LA CUEVA (11/11, Juego; docs/REVISION_OBJETOS_SINTESIS.md §4): musgo y helecho de cueva para las recetas de tinta y vitalidad, y una seta pálida (tóxica).
+; pieza musgo_c2a musgo 4 7 rebrota=90
+; pieza musgo_c3a musgo 16 8 rebrota=90
+; pieza helecho_c3a helecho_cueva 20 7 rebrota=90
+; pieza helecho_c4a helecho_cueva 11 15 rebrota=90
+; pieza seta_palida_c1 seta_palida 1 18 rebrota=120
