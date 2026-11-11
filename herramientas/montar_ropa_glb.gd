@@ -4,7 +4,8 @@ extends SceneTree
 ## de enlace). Así no hay una reexportación de Blender que reoriente huesos. Sin ventana:
 ##   godot --headless --path . --script res://herramientas/montar_ropa_glb.gd -- <carpeta_blender> <prenda> <glb_salida> [<nombre_malla> [muelles]]
 ## Con `muelles` (la capa) añade al esqueleto exportado las cadenas de CapaMuelles3D y les pasa el peso de la mitad baja (ver `_muelles`).
-## <prenda> = nombre del .json (capa, tunica). Las texturas son las comunes a las dos prendas: ropa_basecolor.png, ropa_normal.png y ropa_rm.png.
+## <prenda> = nombre del .json (capa, tunica, capucha, piernas). Las texturas son las de la carpeta: ropa_basecolor.png y, si las hay, ropa_normal.png y ropa_rm.png
+## (sin ellas la prenda va mate y sin relieve).
 
 const GLB_BASE: String = "res://arte/modelos/jugadora_base.glb"
 const CALIDAD_JPEG: float = 0.9
@@ -82,11 +83,15 @@ func _initialize() -> void:
 	mat.normal_enabled = true
 	mat.normal_texture = _textura("%s/ropa_normal.png" % carpeta)
 	var rm: Texture2D = _textura("%s/ropa_rm.png" % carpeta)
-	mat.roughness_texture = rm
-	mat.roughness_texture_channel = BaseMaterial3D.TEXTURE_CHANNEL_GREEN
-	mat.metallic_texture = rm
-	mat.metallic_texture_channel = BaseMaterial3D.TEXTURE_CHANNEL_BLUE
-	mat.metallic = 1.0
+	if rm != null:
+		mat.roughness_texture = rm
+		mat.roughness_texture_channel = BaseMaterial3D.TEXTURE_CHANNEL_GREEN
+		mat.metallic_texture = rm
+		mat.metallic_texture_channel = BaseMaterial3D.TEXTURE_CHANNEL_BLUE
+		mat.metallic = 1.0
+	else:
+		# 11/11: las prendas de Meshy (uniforme de Sumicio) traen solo el color: lana y cuero mates, nada metálico (con metallic 1,0 y sin textura salían de cromo).
+		mat.metallic = 0.0
 	mat.roughness = 1.0
 	malla.surface_set_material(0, mat)
 	var nuevo := MeshInstance3D.new()

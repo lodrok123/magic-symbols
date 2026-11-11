@@ -111,8 +111,9 @@ const DESCRIPCION: Dictionary = {
 	"perla": "Objeto de misión: guárdala hasta que alguien la pida.",
 	"aletas": "Con ellas puedes nadar.",
 	# --- Ropa ---
-	"capa": "Una capa ligera para la ranura exterior. Se consigue en cofres o misiones; el alquimista puede bordarla con seda helada.",
-	"capucha": "Tapa el pelo y poco más (ranura de cabeza). El alquimista puede forrarla de musgo.",
+	"capa": "La capa-caperuza roja del uniforme de Monte Sumicio (ranura exterior). El alquimista puede bordarla con seda helada.",
+	"capucha": "La capucha roja de punta caída del uniforme: tapa el pelo y poco más (ranura de cabeza). El alquimista puede forrarla de musgo.",
+	"piernas": "Bombachos, polainas y botines del uniforme de Monte Sumicio (ranura de piernas).",
 	"tunica": "Túnica de viaje (ranura del medio). El alquimista puede teñirla con resina y jirones.",
 	"capa_escarcha": "Capa bordada con seda helada: te hace inmune al frío y da 1 de defensa.",
 	"tunica_salamandra": "Túnica teñida con resina y jirones: te hace inmune al calor y da 1 de defensa.",

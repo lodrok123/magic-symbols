@@ -83,8 +83,9 @@ llave	Llave de la Cueva	clave	comun	1	-	0	clave	abre=cueva.c4.puerta	cueva	crist
 llave_goblin	Llave goblin	clave	comun	1	-	0	clave	abre=bosque1.campamento.puerta	bosque	cristal	#B3A07A	llave_pequena	hay	La llave del campamento goblin	-
 perla	Perla	clave	comun	1	-	0	clave	-	bosque	cristal	#F2F2FF	perla	hay	Objeto de misión	-
 aletas	Aletas	clave	comun	1	-	0	clave	nadar=si	bosque	cristal	#4DA6D9	aletas	hay	Permiten nadar	-
-capa	Capa corta	ropa	comun	1	-	0	ropa	ranura=exterior	todas	cristal	#4D6BB3	ropa_capa	hay	Una capa ligera. Se consigue en cofres o misiones	-
-capucha	Capucha	ropa	comun	1	-	0	ropa	ranura=cabeza	todas	cristal	#5C4D80	ropa_capucha	hay	Tapa el pelo y poco más	-
+capa	Capa de Sumicio	ropa	comun	1	-	0	ropa	ranura=exterior	todas	cristal	#9E3444	ropa_capa	hay	La capa-caperuza roja de lana del uniforme de Monte Sumicio, con la orla cosida a mano. Se consigue en cofres o misiones	-
+capucha	Capucha de Sumicio	ropa	comun	1	-	0	ropa	ranura=cabeza	todas	cristal	#7A2838	ropa_capucha	hay	La capucha roja de punta caída del uniforme. Tapa el pelo y poco más	-
+piernas	Bombachos de Sumicio	ropa	comun	1	-	0	ropa	ranura=piernas	todas	cristal	#5C4332	ropa_piernas	hay	Bombachos pardos, polainas de lino y botines con hebilla del uniforme de Monte Sumicio	-
 tunica	Túnica sin mangas	ropa	comun	1	-	0	ropa	ranura=medio	todas	cristal	#8C6BB3	ropa_tunica	hay	Túnica de viaje	-
 capa_escarcha	Capa de escarcha	ropa	epico	1	-	0	ropa	ranura=exterior;inmune=frio;defensa=1	todas	cristal	#B3E6FF	ropa_capa	nuevo	La capa bordada con seda helada: el frío no la atraviesa	-
 tunica_salamandra	Túnica de salamandra	ropa	epico	1	-	0	ropa	ranura=medio;inmune=calor;defensa=1	todas	cristal	#FF7A47	ropa_tunica	nuevo	Túnica teñida con resina y jirones: el calor resbala	-

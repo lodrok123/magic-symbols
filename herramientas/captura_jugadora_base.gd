@@ -1,5 +1,5 @@
 extends SceneTree
-## CAPTURAS de la jugadora base (jugadora_base) sola y vestida (capa con capucha + túnica), en reposo, en las 6 poses de prueba de docs/PLAN_RIGGING.md §3,
+## CAPTURAS de la jugadora base (jugadora_base) sola y vestida (la ropa por defecto de Pj3D: capa, capucha y piernas del uniforme), en reposo, en las 6 poses de prueba de docs/PLAN_RIGGING.md §3,
 ## andando y corriendo, y junto a la jugadora actual (woodland_wanderer). NECESITA VENTANA:
 ##   godot --path . --script res://herramientas/captura_jugadora_base.gd -- <carpeta> [<secciones separadas por coma: vistas,poses,marcha,comparar,cerca,v2,v3> [<prefijo de los ficheros>]]
 ## Las poses de prueba giran los huesos en el espacio del modelo (+Z delante, +X la izquierda del personaje), sin clips: se ve cómo deforma el cuerpo y cómo
@@ -25,8 +25,8 @@ const POSES: Array = [
 	["codos_doblados", [["LeftForeArm", "x", -110.0], ["RightForeArm", "x", -110.0]], 0.0],
 ]
 const VISTAS: Array = [["frente", 0.0], ["tres_cuartos", 40.0], ["espalda", 180.0], ["lado", 90.0]]
-## Prendas de la jugadora vestida (ids de arte/modelos/ropa.json): la capa corta y la capucha van por separado.
-const PRENDAS: Array = ["tunica", "capa", "capucha"]
+## Prendas de la jugadora vestida (ids de arte/modelos/ropa.json): las que lleva en el juego (Pj3D.ROPA_POR_DEFECTO; 11/11: piernas, capa y capucha del uniforme de Sumicio).
+const PRENDAS: Array = Pj3D.ROPA_POR_DEFECTO["jugadora_base"]
 ## Primer plano de las orejas: foco (alto del juego = 1,0; las orejas están a 1,33 / 1,7) y tamaño de la vista.
 const FOCO_OREJAS: float = 0.78
 const TAM_OREJAS: float = 0.34
