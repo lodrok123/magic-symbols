@@ -116,6 +116,13 @@ var _bola_viento: MeshInstance3D = null
 var _edad_rafaga: float = 0.0
 ## CAMPO DE VIENTO compartido (11/11, CampoViento; solo si `CampoViento.en_viento_toy`): hojas, jirones y puntos de las cintas siguen el MISMO campo (turbulencia sin divergencia + viento de la figura +
 ## rodeo de casillas, enemigos y bloques). Apagado, el toy es el de siempre.
+## Con el campo encendido (11/11, «no veo diferencia en viento»): las hojas siguen al campo 3 veces más deprisa que el arrastre de la demo, salen el doble y viven el doble, para
+## que se vean girar con la turbulencia y rodear los obstáculos. Apagado no cambia nada.
+const CAMPO_K_HOJAS: float = 3.0
+const CAMPO_K_JIRONES: float = 2.0
+const CAMPO_HOJAS_TASA: float = 2.0
+const CAMPO_HOJAS_VIDA: float = 1.9
+const CAMPO_HOJAS_VIDA_HAZ: float = 1.3     ## el haz las empuja a 5 m/s: más vida las sacaría muy por delante de la punta
 var _campo: CampoViento = null
 var _campo_sol_t: float = 0.0
 var _campo_ult: Vector3 = Vector3.ZERO
@@ -933,7 +940,8 @@ func _campo_paso(delta: float) -> void:
 		if not (lista is Array):
 			continue
 		var mundo: bool = (h as Node3D).top_level
-		_campo.arrastrar_lista(lista, Transform3D.IDENTITY if mundo else (h as Node3D).global_transform, Vector3.ZERO if mundo else v_marco, delta)
+		# 11/11: con el arrastre de la demo (0,7/s) una hoja que vive 0,65 s apenas cogía un tercio de la turbulencia; hojas ×3 y jirones ×2 para que se vean girar en sus remolinos
+		_campo.arrastrar_lista(lista, Transform3D.IDENTITY if mundo else (h as Node3D).global_transform, Vector3.ZERO if mundo else v_marco, delta, CAMPO_K_HOJAS if h == _hojas else CAMPO_K_JIRONES)
 
 
 ## El viento dirigido de cada figura (lo que ya dibujan sus cintas): BOLA = el aire que lleva la ráfaga; HAZ = chorro hacia delante; MURO = cortina que sube y se inclina; PILAR y BARRERA = remolino.
@@ -959,18 +967,18 @@ func _configurar_campo(tr: Transform3D, v_marco: Vector3) -> void:
 				c.fuerza = v_marco.length()
 		Figura.HAZ:
 			c.escala = maxf(semieje_z * FuegoToy.HAZ_ABRE * 4.0, 1.5)
-			c.turbulencia = 0.9
+			c.turbulencia = 1.5             # 11/11: 0,9 no se distinguía del vaivén propio de las cintas
 			c.dir = frente
 			c.fuerza = semieje_x * 2.0 / 0.6 * velocidad
 		Figura.MURO:
 			c.escala = maxf(semieje_y * 1.5, 1.5)
-			c.turbulencia = 0.7
+			c.turbulencia = 1.2
 			c.dir = -frente
 			c.fuerza = 0.6 * velocidad
 			c.sube = semieje_y * 1.1 * altura
 		Figura.PILAR:
 			c.escala = maxf(semieje_y * 0.8, 1.5)
-			c.turbulencia = 0.6
+			c.turbulencia = 1.1
 			c.remolino = w * 3.0 * velocidad
 			c.radio_remolino = w * 1.2
 			c.sube = semieje_y * 0.5 * altura
@@ -999,7 +1007,9 @@ func _actualizar_corrientes(delta: float) -> void:
 	if figura == Figura.BOLA or figura == Figura.BARRERA or _hojas == null or opacidad < 0.10:
 		return
 	# Las HOJAS son lo único verde del viento: el aire en sí es blanco frío (ver viento_corriente.gdshader). Cada figura las arrastra a su manera.
-	_acc_h += delta * (10.0 if figura == Figura.PILAR else 7.0) * clampf(chispas, 0.0, 1.0)
+	var con_campo: bool = _campo != null
+	var vida_k: float = CAMPO_HOJAS_VIDA if con_campo else 1.0
+	_acc_h += delta * (10.0 if figura == Figura.PILAR else 7.0) * clampf(chispas, 0.0, 1.0) * (CAMPO_HOJAS_TASA if con_campo else 1.0)
 	while _acc_h >= 1.0:
 		_acc_h -= 1.0
 		match figura:
@@ -1007,16 +1017,16 @@ func _actualizar_corrientes(delta: float) -> void:
 				var a: float = randf() * TAU
 				var pie := Vector3(cos(a) * ejes.x * 0.46, 0.08, sin(a) * ejes.z * 0.46)
 				var empuje := Vector3(-sin(a) * ejes.x * 2.0, ejes.y * 0.68, cos(a) * ejes.z * 2.0)
-				_hojas.emitir(pie, empuje, 0.7, 0.16, Vector3.ZERO, 4.0)
+				_hojas.emitir(pie, empuje, 0.7 * vida_k, 0.16, Vector3.ZERO, 4.0)
 			Figura.MURO:
 				var x: float = randf_range(-0.9, 0.9) * ejes.x
-				_hojas.emitir(Vector3(x, 0.1, 0.1), Vector3(randf_range(-0.5, 0.5), ejes.y * randf_range(0.5, 0.9), randf_range(-0.2, 0.3)), 1.1, 0.16, Vector3.ZERO, 2.0)
+				_hojas.emitir(Vector3(x, 0.1, 0.1), Vector3(randf_range(-0.5, 0.5), ejes.y * randf_range(0.5, 0.9), randf_range(-0.2, 0.3)), 1.1 * vida_k, 0.16, Vector3.ZERO, 2.0)
 			Figura.HAZ:
 				var u: float = randf_range(0.0, 0.5)
 				var radio: float = ejes.z * 0.4
 				var vel_z: float = -ejes.x / 0.6 * randf_range(0.8, 1.1)
 				_hojas.emitir(Vector3(randf_range(-1.0, 1.0) * radio, ejes.y + randf_range(-1.0, 1.0) * radio, -u * ejes.x),
-					Vector3(randf_range(-0.5, 0.5), randf_range(0.0, 0.5), vel_z), 0.65, 0.14, Vector3.ZERO, 3.0)
+					Vector3(randf_range(-0.5, 0.5), randf_range(0.0, 0.5), vel_z), 0.65 * (CAMPO_HOJAS_VIDA_HAZ if con_campo else 1.0), 0.14, Vector3.ZERO, 3.0)
 
 
 func _girar_cintas(delta: float) -> void:

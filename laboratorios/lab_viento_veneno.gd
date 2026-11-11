@@ -3,7 +3,8 @@ extends RefCounted
 ## LAB del CAMPO DE VIENTO y de la NUBE DE VENENO como gas pesado (11/11/2026). Va aparte para que lab_vfx_comparativa_3d.gd solo lleve dos teclas y una línea del panel.
 ## Teclas (integración 11/11: «,» y «.» se quedaron para las chispas de ChispasRepo, así que esto va en Inicio / Fin):
 ##   Inicio    alterna CampoViento.en_viento_toy (hojas, jirones y cintas del VientoToy siguen el campo) y pone/quita dos obstáculos delante: un «goblin» (cápsula) y un bloque.
-##             Para verlo: Z hasta VIENTO, F7 hasta HAZ (o PILAR / MURO) e Inicio: las cintas tiemblan con la turbulencia y rodean la cápsula y el bloque en vez de atravesarlos.
+##             Para verlo: Z hasta VIENTO, F7 hasta HAZ (o PILAR / MURO) e Inicio: las cintas se abren alrededor de la cápsula y el bloque y se cierran detrás, y las hojas giran con la turbulencia.
+##             Los obstáculos se colocan por la figura VIVA (posiciones_obstaculos): si cambias de figura con el campo puesto, Inicio dos veces los recoloca.
 ##   Fin       nube de veneno, paso a paso: 1) nube permanente con un bloque y una cápsula dentro de su radio (gas pesado y humo al arder encendidos) · 2) soplo de viento (se deshilacha)
 ##             · 3) fuego (humo pardo de HumoRegla) · 4) la quita.
 ##   Mayús+Fin alterna el gas pesado (y el humo al arder) para comparar con la nube de siempre.
@@ -26,9 +27,41 @@ static func alternar_campo(lab: Node3D, pie: Vector3, dir: Vector3) -> void:
 	raiz.name = "ObstaculosViento"
 	lab.add_child(raiz)
 	var d: Vector3 = Vector3(dir.x, 0.0, dir.z).normalized()
+	for p in posiciones_obstaculos(lab.get("_param"), pie, d):
+		if (p as Array)[0] == "capsula":
+			capsula(raiz, (p as Array)[1], 0.38, 1.3)
+		else:
+			bloque(raiz, (p as Array)[1], Vector3(0.7, 0.9, 0.7))
+
+
+## Dónde van la cápsula y el bloque (pies en el suelo): [["capsula", pie], ["bloque", pie]]. 11/11 («no veo diferencia en viento»): antes iban a 1,9 y 3,1 m de la JUGADORA
+## fuera cual fuera la figura, así que con el PILAR y el MURO (a 3 m) la cápsula quedaba 1,1 m por delante, fuera de las cintas, tapándolas desde la cámara, y el bloque dentro de la
+## cortina o del torbellino; y en el HAZ el bloque caía junto a la punta, donde el haz mide 6 cm, y la cápsula de lleno delante del eje, tapando el rodeo. Ahora van por la figura viva:
+##   HAZ    cápsula al 34 % del largo, casi en el eje (las cintas se abren a los dos lados y se cierran detrás) · bloque al 76 %, a un lado (el haz ya cerrado lo rodea por fuera y por encima).
+##   PILAR  cápsula y bloque a los lados del torbellino, a ~0,6 m del eje: su cara entra en el anillo de las cintas bajas (0,3–0,45 m de radio).
+##   MURO   cápsula y bloque sobre la línea de la cortina, a un lado y a otro del centro.
+## Sin figura viva, lo de antes (por la jugadora).
+static func posiciones_obstaculos(fig: Variant, pie: Vector3, d: Vector3) -> Array:
 	var lado: Vector3 = Vector3.UP.cross(d).normalized()
-	capsula(raiz, Vector3(pie.x, 0.0, pie.z) + d * 1.9 + lado * 0.15, 0.38, 1.3)
-	bloque(raiz, Vector3(pie.x, 0.0, pie.z) + d * 3.1 - lado * 0.55, Vector3(0.7, 0.9, 0.7))
+	var base: Vector3 = Vector3(pie.x, 0.0, pie.z)
+	if fig is VientoToy and is_instance_valid(fig) and (fig as Node3D).is_inside_tree():
+		var vt: VientoToy = fig
+		var o: Vector3 = vt.global_position
+		o.y = 0.0
+		var fd: Vector3 = -vt.global_basis.z
+		fd = Vector3(fd.x, 0.0, fd.z).normalized() if Vector2(fd.x, fd.z).length() > 0.01 else d
+		var fl: Vector3 = Vector3.UP.cross(fd).normalized()
+		match vt.figura:
+			VientoToy.Figura.HAZ:
+				var largo: float = vt.semieje_x * 2.0
+				return [["capsula", o + fd * largo * 0.34 + fl * 0.08], ["bloque", o + fd * largo * 0.76 - fl * 0.3]]
+			VientoToy.Figura.PILAR:
+				var r: float = maxf(vt.semieje_x, 0.3) * 1.2
+				return [["capsula", o + fl * r], ["bloque", o - fl * (r + 0.05) - fd * 0.15]]
+			VientoToy.Figura.MURO:
+				var ancho: float = vt.semieje_x
+				return [["capsula", o + fl * ancho * 0.3 - fd * 0.25], ["bloque", o - fl * ancho * 0.5 - fd * 0.25]]     # un poco hacia la jugadora: la cortina se inclina hacia ella al subir
+	return [["capsula", base + d * 1.9 + lado * 0.15], ["bloque", base + d * 3.1 - lado * 0.55]]
 
 
 static func paso_veneno(efectos: Node3D, pie: Vector3, dir: Vector3, mayus: bool) -> void:

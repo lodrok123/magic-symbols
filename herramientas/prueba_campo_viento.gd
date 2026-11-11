@@ -162,6 +162,10 @@ func _escenario() -> void:
 				if sond.sdf(pw) < -0.02:
 					hoja_ok = false
 	_ok("3.8 las hojas del haz tampoco se meten en la cápsula", hoja_ok)
+	# 11/11 («no veo diferencia en viento»): las cintas no se aplastan contra la cara, la rodean con holgura (viento_corrientes.gd, _rodeo)
+	var hol: Array = _holgura(cor, sond)
+	_ok("3.9 las cintas RODEAN la cápsula con holgura: %d puntos a menos de 0,6 m de su piel, a %.3f m de media (> 0,15) y solo %d pegados a menos de 0,12 m (≤ 10 %%; antes se aplastaban a 0,08 m)" % [hol[0], hol[1], hol[2]],
+		int(hol[0]) > 20 and float(hol[1]) > 0.15 and int(hol[2]) <= int(hol[0]) / 10)
 
 	# coste: el paso del toy con y sin campo (mismo dibujo de cintas)
 	print("--- 5 · coste")
@@ -328,6 +332,23 @@ func _puntos_dentro(cor: Node, sond: CampoViento) -> int:
 			if sond.sdf(xf * p) < -0.01:
 				k += 1
 	return k
+
+
+## [puntos de las cintas a menos de 0,6 m de la piel, su distancia media, cuántos van pegados (< 0,12 m)]
+func _holgura(cor: Node, sond: CampoViento) -> Array:
+	var xf: Transform3D = (cor as Node3D).global_transform
+	var n: int = 0
+	var suma: float = 0.0
+	var rozan: int = 0
+	for tz in (cor.get("_trazos") as Array):
+		for p in ((tz as Dictionary)["puntos"] as PackedVector3Array):
+			var d: float = sond.sdf(xf * p)
+			if d < 0.6:
+				n += 1
+				suma += d
+				if d < 0.12:
+					rozan += 1
+	return [n, suma / float(maxi(n, 1)), rozan]
 
 
 func _medir(vt: VientoToy, pasos: int) -> float:
