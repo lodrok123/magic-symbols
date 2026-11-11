@@ -44,7 +44,7 @@ func _initialize() -> void:
 func _carga() -> void:
 	BD.recargar()
 	_ok("1 las siete tablas cargan sin filas mal formadas", BD.errores().is_empty(), str(BD.errores()))
-	_ok("1 objetos: 94 filas", BD.objetos().size() == 94, str(BD.objetos().size()))      # 10/11: +11 de la primera tanda de consumibles; 11/11: +2 (pelaje, garra) y +4 piezas de mejora
+	_ok("1 objetos: 97 filas", BD.objetos().size() == 97, str(BD.objetos().size()))      # 10/11: +11 de la primera tanda; 11/11: +2 (pelaje, garra), +4 piezas de mejora y +3 lanzables de la segunda tanda
 	_ok("1 las demás tablas no están vacías", not BD.fuentes().is_empty() and not BD.recetas().is_empty() and not BD.mejoras().is_empty()
 		and not BD.estados_mundo().is_empty() and not BD.tabla("goblin").is_empty() and not BD.reactivos("arbol").is_empty())
 	var pocion: Dictionary = BD.objeto("pocion")

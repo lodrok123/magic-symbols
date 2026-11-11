@@ -93,3 +93,6 @@ trozo_corazon	Trozo de corazón	mejora	epico	4	-	0	pieza	mejora=vida_max;piezas=
 frasco_vacio	Frasco de reserva vacío	mejora	epico	1	-	0	pieza	mejora=frascos_tinta;piezas=1	todas	esfera	#7FB8FF	-	nuevo	Un frasco de reserva más para la tinta, lleno (hasta 6)	-
 engarce_glifo	Engarce de glifo	mejora	legendario	1	-	0	pieza	mejora=huecos_glifo;piezas=1	todas	esfera	#E8C547	-	nuevo	Abre un hueco de glifo más en cada página (hasta 6)	-
 hoja_grimorio	Hoja de grimorio	mejora	legendario	1	-	0	pieza	mejora=paginas;piezas=1	todas	esfera	#F2E3B3	-	nuevo	Una página más para el grimorio (hasta 8)	-
+bomba_humo	Bomba de humo	lanzable	comun	5	-	0	lanzar	lanza=humo;dura=4;radio=2	todas	esfera	#9A9A94	-	nuevo	Lánzala: los enemigos cerca pierden de vista 4 s, pero van a buscarte donde te vieron	-
+tarro_baba	Tarro de baba	lanzable	comun	5	-	0	lanzar	lanza=baba;dura=6	todas	esfera	#7FBF4F	-	nuevo	Lánzalo: la casilla y las de alrededor quedan pegajosas 6 s y frenan a quien las pise	-
+cebo_miel	Cebo de miel	lanzable	comun	5	-	0	lanzar	lanza=cebo;dura=8;radio=6;atrae=loberno,canouro	todas	esfera	#E8A93A	-	nuevo	Lánzalo: los lobernos y canouros cercanos van a comérselo 8 s. Los goblins no pican	-

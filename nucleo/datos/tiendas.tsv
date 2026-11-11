@@ -22,3 +22,4 @@ librera	pocion	18	-	siempre	más cara que en el alquimista
 librera	antidoto	22	-	siempre	para el chamán del campamento
 librera	pigmento_rocio	25	2	siempre	-
 librera	pigmento_musgo	25	2	flag:bosque02.ruinas.totems	cuando despiertan los tres tótems de las ruinas
+librera	bomba_humo	18	3	flag:bosque02.pradera.limpia	11/11: tras limpiar la pradera de goblins

@@ -12,6 +12,12 @@ signal tienda_abierta(tienda: String)
 signal comprado(tienda: String, objeto: String, n: int, precio: int)
 
 static var _senal: Tiendas = null
+## 11/11: la tienda NO se abre a la primera: la primera E al personaje da su frase con este aviso, y otra E mientras aún habla (VENTANA_OFRECER_MS) abre la tienda.
+## Así la frase (las pistas de la librera) no queda tapada por la pantalla, y quien llame a «hablar» desde código (las pruebas, los recorridos) nunca la abre.
+const AVISO: String = "   [E: ver la tienda]"
+const VENTANA_OFRECER_MS: int = 6000
+static var _ofrecida: String = ""
+static var _ofrecida_ms: int = -100000
 
 ## Por qué no se puede comprar (`puede`): "" = se puede.
 const NO_VENDE: String = "no_vende"
@@ -37,6 +43,21 @@ static func abrir(tienda: String) -> void:
 		return
 	PlayLog.event("tienda_abierta", {"tienda": tienda})
 	i().tienda_abierta.emit(tienda)
+
+
+## La E del jugador a un personaje que tiene tienda: si es la segunda E seguida a esa tienda (dentro de VENTANA_OFRECER_MS), la abre y devuelve true (quien llama no dice
+## otra frase); si no, apunta la oferta y devuelve false (quien llama dice su frase y añade AVISO).
+static func ofrecer(tienda: String) -> bool:
+	if BD.tienda(tienda).is_empty():
+		return false
+	var ahora: int = Time.get_ticks_msec()
+	if _ofrecida == tienda and ahora - _ofrecida_ms <= VENTANA_OFRECER_MS:
+		_ofrecida = ""
+		abrir(tienda)
+		return true
+	_ofrecida = tienda
+	_ofrecida_ms = ahora
+	return false
 
 
 static func _fila(tienda: String, objeto: String) -> Dictionary:

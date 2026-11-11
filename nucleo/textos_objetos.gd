@@ -96,6 +96,9 @@ const DESCRIPCION: Dictionary = {
 	"bulbo_luz": "Lánzalo con G: ilumina 3 casillas alrededor de donde cae durante 60 s. Para la oscuridad.",
 	"bomba_resina": "Lánzala con G: prende lo inflamable de la casilla donde cae y hace 10 de daño. Poco daño y poca área.",
 	"bola_helada": "Lánzala con G: hiela el agua de la casilla donde cae, como un hechizo de hielo pequeño. Una plataforma breve.",
+	"bomba_humo": "Lánzala con G: los enemigos cerca pierden de vista 4 s. No te olvidan: van a buscarte donde te vieron por última vez.",
+	"tarro_baba": "Lánzalo con G: la casilla y sus cuatro vecinas quedan pegajosas 6 s y frenan mucho a quien las pise. También a ti.",
+	"cebo_miel": "Lánzalo con G: los lobernos y canouros cercanos van a comérselo durante 8 s. Los goblins no pican.",
 	"fruto_chispa": "Lánzalo con G: electrifica el agua donde cae y activa lo que se activa con rayo. Si estás cerca, también te alcanza.",
 	# --- Piezas de mejora (11/11): no ocupan hueco y suben su mejora solas ---
 	"trozo_corazon": "Un trozo de corazón. Al juntar cuatro, tu vida máxima sube 20 (hasta 200).",

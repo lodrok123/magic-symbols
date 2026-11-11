@@ -31,3 +31,6 @@ defensa_2	Piel de corteza II	mejora	proteccion>=6,tierra>=4,raro>=4	-	60	mejora:
 bordado_escarcha	Bordado de escarcha	ropa	frio>=4,proteccion>=2	capa	40	capa_escarcha:1	alquimista	tener:capa	consume la capa; la prenda nueva es inmune al frío
 bordado_salamandra	Tinte de salamandra	ropa	calor>=4,proteccion>=2	tunica	40	tunica_salamandra:1	alquimista	tener:tunica	consume la túnica
 bordado_musgo	Forro de musgo	ropa	toxico>=3,vital>=2,proteccion>=1	capucha	40	capucha_musgo:1	alquimista	tener:capucha	consume la capucha
+bomba_humo	Bomba de humo	lanzable	viento>=4	esporas	0	bomba_humo:1	alquimista,hoguera	al tener los ingredientes	11/11: segunda tanda; esporas ×2
+tarro_baba	Tarro de baba	lanzable	toxico>=4,agua>=2	baba_limo	0	tarro_baba:1	alquimista,hoguera	al tener los ingredientes	11/11: segunda tanda; baba de limo ×2
+cebo_miel	Cebo de miel	lanzable	vital>=3,tinta>=2	panal	0	cebo_miel:1	alquimista,hoguera	al tener los ingredientes	11/11: segunda tanda; panal + bayas

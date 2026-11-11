@@ -1040,6 +1040,8 @@ func _unhandled_input(ev: InputEvent) -> void:
 			d_mejor = d
 			mejor = g
 	if not mejor.is_empty():
+		if String(mejor["tipo"]) == "alquimista" and Tiendas.ofrecer("alquimista"):
+			return                                    # 11/11: la segunda E mientras habla abre su tienda
 		_hablar(mejor, yo)
 	elif _dialogo.visible:
 		_dialogo.hide()
@@ -1074,7 +1076,6 @@ func _texto_de(g: Dictionary) -> String:
 			var texto: String = String(DIALOGO_ALQUIMISTA[n % DIALOGO_ALQUIMISTA.size()])
 			g["lineas"] = n + 1
 			Sintesis.abrir("alquimista")               # F3: su taller (la interfaz es del Pipeline)
-			Tiendas.abrir("alquimista")                # 11/11: y su tienda (tiendas.tsv)
 			if not Flags.i().tiene(F_MUESTRA):
 				if Estado.i().agregar("pocion", 1) > 0:
 					Flags.i().poner(F_MUESTRA)

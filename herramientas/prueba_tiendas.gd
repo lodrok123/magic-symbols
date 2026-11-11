@@ -79,6 +79,11 @@ func _probar() -> void:
 	Tiendas.abrir("librera")
 	Tiendas.abrir("no_existe")
 	_ok("6 abrir avisa a la pantalla (y una tienda que no existe, no)", abiertas == ["librera"], str(abiertas))
+	abiertas.clear()
+	_ok("6 la primera E a la librera no abre la tienda (dice su frase)", not Tiendas.ofrecer("librera") and abiertas.is_empty())
+	_ok("6 la segunda E seguida, sí", Tiendas.ofrecer("librera") and abiertas == ["librera"], str(abiertas))
+	_ok("6 y la siguiente vuelve a empezar (frase primero)", not Tiendas.ofrecer("librera") and abiertas.size() == 1)
+	_ok("6 una E a otra tienda no cuenta como segunda", not Tiendas.ofrecer("alquimista") and not Tiendas.ofrecer("librera") and abiertas.size() == 1)
 	Estado.nuevo()
 	Flags.nuevo()
 

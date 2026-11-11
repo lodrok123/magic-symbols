@@ -700,6 +700,8 @@ func _unhandled_input(ev: InputEvent) -> void:
 			d_mejor = d
 			mejor = g
 	if not mejor.is_empty():
+		if String(mejor["tipo"]) == "librera" and Tiendas.ofrecer("librera"):
+			return                                    # 11/11: la segunda E mientras habla abre su tienda
 		hablar(mejor, yo)
 
 
@@ -709,14 +711,12 @@ func hablar(g: Dictionary, yo: Vector3) -> String:
 	var texto: String = texto_de(g)
 	if texto == "":
 		return ""
-	_decir("%s: «%s»" % [String(g["nombre"]), texto], 6.0)
+	_decir("%s: «%s»%s" % [String(g["nombre"]), texto, Tiendas.AVISO if String(g["tipo"]) == "librera" else ""], 6.0)
 	pj.mirar(yo - pj.position, 1.0)
 	pj.animacion_actual = ""
 	pj.jugar("talk")
 	Sfx3D.play(pj, "conversacion_voz")
 	g["t_habla"] = T_HABLA
-	if String(g["tipo"]) == "librera":
-		Tiendas.abrir("librera")                 # 11/11: además de las pistas, su tienda (tiendas.tsv; la pantalla es del Pipeline)
 	return texto
 
 

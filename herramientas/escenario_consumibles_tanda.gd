@@ -83,6 +83,7 @@ func _escenario() -> void:
 	_rueda()
 	await _lanzables()
 	await _pigmentos()
+	await _segunda_tanda()
 
 
 func _datos() -> void:
@@ -100,7 +101,7 @@ func _datos() -> void:
 		if not hay:
 			sin_receta.append(id)
 	_ok("1 todos tienen receta", sin_receta.is_empty(), str(sin_receta))
-	_ok("1 los cuatro lanzables no entran en la R; los bebibles nuevos sí", Objetos.LANZABLES.size() == 4 and not Objetos.CONSUMIBLES.has("bomba_resina")
+	_ok("1 los siete lanzables (4 de la primera tanda y 3 de la segunda) no entran en la R; los bebibles nuevos sí", Objetos.LANZABLES.size() == 7 and not Objetos.CONSUMIBLES.has("bomba_resina")
 		and Objetos.CONSUMIBLES.has("pocion_mayor") and Objetos.CONSUMIBLES.has("savia_aislante") and Objetos.CONSUMIBLES.has("elixir_filtro"), str(Objetos.LANZABLES))
 	_ok("1 en la bolsa, los lanzables van con las pociones", Objetos.categoria("bola_helada") == "pociones")
 
@@ -256,3 +257,63 @@ func _pigmentos() -> void:
 	lanzar("fuego", ["flecha"], Vector3.RIGHT)
 	await avanzar_s(1.2)
 	_ok("7 el de fuego sí la gasta", t.pigmento == Tinta.PIGMENTO_BASE and not t.pigmento_cargado())
+
+
+## 11/11: SEGUNDA TANDA. Bomba de humo (ciega e investiga, no se rinde), tarro de baba (suelo pegajoso que frena) y cebo de miel (los animales van a comer).
+func _segunda_tanda() -> void:
+	var e: Estado = Estado.i()
+	Consumibles.limpiar_protecciones()
+	_j.vida = 1000.0
+	var enemigos: Array = []
+	for n in get_nodes_in_group("combate3d"):
+		if is_instance_valid(n) and not bool(n.get("muerto")):
+			enemigos.append(n)
+	if enemigos.is_empty():
+		_aviso("8 no hay enemigos en la escena para probar humo y cebo")
+	else:
+		var g: Combate3D = enemigos[0] as Combate3D
+		# HUMO: el goblin la persigue de cerca; el humo a sus pies lo ciega y va a buscarla sin rendirse. (Si ella se aleja más de RADIO_SOLTAR se rinde igual:
+		# huir lejos sigue sirviendo.)
+		colocar_jugador(Terreno3D.celda_de(g.position) + Vector2i(2, 0))
+		await avanzar(2)
+		var pos_j: Vector3 = _j.position
+		g.objetivo = _j
+		g.estado = "persigue"
+		g.ultima_pos = pos_j
+		var r: Dictionary = Lanzables.aplicar(get_root_tree(), lanzador, _j, "bomba_humo", g.position)
+		_ok("8 el humo alcanza al goblin: lo ciega y lo pone a investigar", int(r.get("enemigos", 0)) >= 1 and g.cegado > 3.5 and g.investiga > 3.5 and g.estado == "busca", "%s · cegado %.1f · investiga %.1f · %s" % [str(r), g.cegado, g.investiga, g.estado])
+		await avanzar_s(4.2)
+		_ok("8 pasado el humo (4 s, más que los 3,5 s en que se rendía) NO se ha rendido: sigue alerta", g.objetivo != null and g.estado != "vuelve", "%s · objetivo %s" % [g.estado, str(g.objetivo != null)])
+		# CEBO: un goblin no pica; con su id en la lista de `atrae` sí (la prueba no depende de que haya lobernos en el mapa).
+		var punto: Vector3 = g.position + Vector3(Terreno3D.casilla * 2.0, 0.0, 0.0)
+		var id: String = (g.pj as Pj3D).id
+		var n0: int = Lanzables._cebo(get_root_tree(), punto, 6.0, 8.0, ["loberno", "canouro"])
+		_ok("9 el cebo no atrae a un goblin (no es fauna)", n0 == 0 or not id.begins_with("goblin") or g.cebo_t <= 0.0, "atraídos %d" % n0)
+		var n1: int = Lanzables._cebo(get_root_tree(), punto, 6.0, 3.0, [id])
+		_ok("9 con su id en `atrae` va al cebo: deja a la jugadora", n1 >= 1 and g.estado == "cebo" and g.objetivo == null and g.cebo_t > 2.5, "%d · %s" % [n1, g.estado])
+		var d0: float = Vector2(g.position.x - punto.x, g.position.z - punto.z).length()
+		await avanzar_s(1.5)
+		var d1: float = Vector2(g.position.x - punto.x, g.position.z - punto.z).length()
+		_ok("9 se acerca al cebo", d1 < d0 - 0.3 or d1 <= Combate3D.CEBO_LLEGA * Terreno3D.casilla + 0.05, "%.2f → %.2f" % [d0, d1])
+		await avanzar_s(2.0)
+		_ok("9 acabado el cebo, vuelve a lo suyo", g.cebo_t <= 0.0 and g.estado != "cebo", g.estado)
+	# BABA: la casilla y sus vecinas, pegajosas 6 s; frena a quien la pisa (también a la jugadora).
+	var c := Vector2i(6, 20)
+	var rb: Dictionary = await _lanzar("tarro_baba", c, Vector2i(3, 20))
+	var pegajosas: int = 0
+	for d in [Vector2i.ZERO, Vector2i(1, 0), Vector2i(-1, 0), Vector2i(0, 1), Vector2i(0, -1)]:
+		if Terreno3D.estados.tiene(c + (d as Vector2i), EstadosSuelo3D.PEGAJOSA):
+			pegajosas += 1
+	_ok("10 el tarro de baba deja pegajosas la casilla y sus vecinas libres", rb.get("efecto") == "baba" and pegajosas >= 3 and pegajosas == int(rb.get("casillas", 0)), "%s · %d" % [str(rb), pegajosas])
+	_ok("10 frena ×0,4 a quien la pisa", is_equal_approx(Terreno3D.estados.factor_velocidad(c), 0.4))
+	colocar_jugador(c)
+	await avanzar(2)
+	_ok("10 la jugadora sobre la baba va más lenta", _j.mult_velocidad_estado() < 0.5, "%.2f" % _j.mult_velocidad_estado())
+	await avanzar_s(6.5)
+	_ok("10 a los 6 s la baba se seca", not Terreno3D.estados.tiene(c, EstadosSuelo3D.PEGAJOSA))
+	_ok("10 los tres de la segunda tanda tienen receta y la librera vende humo tras limpiar la pradera", not BD.receta("bomba_humo").is_empty() and not BD.receta("tarro_baba").is_empty()
+		and not BD.receta("cebo_miel").is_empty() and Tiendas.puede("librera", "bomba_humo")["motivo"] == Tiendas.BLOQUEADO)
+
+
+func get_root_tree() -> SceneTree:
+	return self

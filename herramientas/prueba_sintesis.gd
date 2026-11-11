@@ -113,7 +113,7 @@ func _alcanza_sin_epicos(r: Dictionary) -> bool:
 
 func _recetas_una_a_una() -> void:
 	var filas: int = BD.recetas().size()
-	_ok("1 la tabla trae 32 recetas", filas == 32, str(filas))      # 11/11: −7 de vida, frascos, huecos y páginas (ahora son piezas)      # 10/11: +10 de la primera tanda de consumibles
+	_ok("1 la tabla trae 35 recetas", filas == 35, str(filas))      # 11/11: −7 de vida, frascos, huecos y páginas (ahora son piezas); +3 lanzables de la segunda tanda      # 10/11: +10 de la primera tanda de consumibles
 	# Bolsa vacía: ninguna sale (todas piden algo).
 	var ninguna: bool = true
 	for id in BD.recetas():

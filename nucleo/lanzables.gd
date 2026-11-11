@@ -8,6 +8,10 @@ extends RefCounted
 ##   lanza=fuego   el mismo impacto de fuego que un hechizo en esa casilla (`Lanzador3D.impacto_filtrado`: suelo, hierba, agua) + los objetos de la casilla
 ##                 reaccionan como a un hechizo de fuego (`on_spell_hit`, la Materia del fuego) + `dano` a los enemigos de la casilla
 ##   lanza=hielo   lo mismo con hielo: hiela el agua de la casilla y lo que se hiela con hielo
+##   lanza=humo    11/11: los enemigos a ≤ `radio` casillas pierden de vista a la jugadora `dura` s (`Combate3D.perder_de_vista`) y van a buscarla donde la vieron;
+##                 si la jugadora está dentro del humo, también los que la perseguían desde más lejos. No borra la alerta: investigan
+##   lanza=baba    11/11: la casilla y sus cuatro vecinas quedan PEGAJOSAS `dura` s (`EstadosSuelo3D.PEGAJOSA`, frena ×0,4 a quien la pise, también a ti)
+##   lanza=cebo    11/11: los animales de `atrae` (loberno, canouro) a ≤ `radio` casillas dejan lo que hacían y van a comer `dura` s (`Combate3D.atraer`)
 ##   lanza=rayo    lo mismo con rayo (electrifica lo mojado, activa lo que se activa con rayo) + `dano` a los enemigos Y a la jugadora si está a menos de
 ##                 RADIO_PROPIO u (es el riesgo del fruto chispa)
 ## No gasta tinta ni pide glifos: es un hechizo de una casilla, sin más. Gasta UNA unidad de la mochila al lanzarlo (`lanzar`).
@@ -82,6 +86,12 @@ static func aplicar(arbol: SceneTree, lanz: Node, jugador: Node3D, id: String, p
 	match tipo:
 		"luz":
 			Mundo3D.iluminar(c, float(ef.get("dura", 60.0)))
+		"humo":
+			res["enemigos"] = _humo(arbol, jugador, punto, float(ef.get("radio", 2.0)), float(ef.get("dura", 4.0)))
+		"baba":
+			res["casillas"] = _baba(c, float(ef.get("dura", EstadosSuelo3D.PEGAJOSA_S)))
+		"cebo":
+			res["enemigos"] = _cebo(arbol, punto, float(ef.get("radio", 6.0)), float(ef.get("dura", 8.0)), Consumibles.lista(ef.get("atrae", "loberno,canouro")))
 		"fuego", "hielo", "rayo":
 			if lanz != null and lanz.has_method("impacto_filtrado"):
 				lanz.call("impacto_filtrado", tipo, punto)
@@ -124,6 +134,60 @@ static func _objetos(arbol: SceneTree, elemento: String, c: Vector2i) -> int:
 		else:
 			o.call("on_spell_hit", runa, Vector3.ZERO)
 		n += 1
+	return n
+
+
+static func _enemigos(arbol: SceneTree) -> Array:
+	var r: Array = []
+	if arbol == null:
+		return r
+	for e in arbol.get_nodes_in_group("combate3d"):
+		if is_instance_valid(e) and e is Node3D and not bool(e.get("muerto")):
+			r.append(e)
+	return r
+
+
+static func _en_plano(a: Vector3, b: Vector3) -> float:
+	return Vector2(a.x - b.x, a.z - b.z).length()
+
+
+## El humo: ciega e investiga a los de dentro del radio y, si la jugadora se ha metido en él, a todos los que la perseguían.
+static func _humo(arbol: SceneTree, jugador: Node3D, punto: Vector3, radio_casillas: float, dura: float) -> int:
+	var radio: float = radio_casillas * Terreno3D.casilla
+	var jugadora_dentro: bool = jugador != null and is_instance_valid(jugador) and _en_plano(jugador.global_position, punto) <= radio
+	var n: int = 0
+	for e in _enemigos(arbol):
+		var cerca: bool = _en_plano((e as Node3D).global_position, punto) <= radio
+		var la_perseguia: bool = jugadora_dentro and e.get("objetivo") != null
+		if (cerca or la_perseguia) and e.has_method("perder_de_vista"):
+			e.call("perder_de_vista", dura)
+			n += 1
+	return n
+
+
+## La baba: la casilla y sus cuatro vecinas, pegajosas `dura` s. Devuelve cuántas.
+static func _baba(c: Vector2i, dura: float) -> int:
+	if Terreno3D.estados == null:
+		return 0
+	var n: int = 0
+	for d in [Vector2i.ZERO, Vector2i(1, 0), Vector2i(-1, 0), Vector2i(0, 1), Vector2i(0, -1)]:
+		var cc: Vector2i = c + (d as Vector2i)
+		if Terreno3D.en_mapa(cc) and not Terreno3D.es_agua(cc) and not Terreno3D.bloqueada(cc):
+			Terreno3D.estados.poner(cc, EstadosSuelo3D.PEGAJOSA, true, 1.0, dura)
+			n += 1
+	return n
+
+
+## El cebo: los animales de `atrae` cerca van a comer.
+static func _cebo(arbol: SceneTree, punto: Vector3, radio_casillas: float, dura: float, atrae: Array) -> int:
+	var radio: float = radio_casillas * Terreno3D.casilla
+	var n: int = 0
+	for e in _enemigos(arbol):
+		var pj: Variant = e.get("pj")
+		var id: String = String((pj as Pj3D).id) if pj is Pj3D else ""
+		if atrae.has(id) and _en_plano((e as Node3D).global_position, punto) <= radio and e.has_method("atraer"):
+			e.call("atraer", punto, dura)
+			n += 1
 	return n
 
 

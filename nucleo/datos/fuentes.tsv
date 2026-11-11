@@ -101,3 +101,6 @@ trozo_corazon	cofre	cofre	abrir	-	1	1	1	todas	11/11: cofres de secretos y puzles
 frasco_vacio	cofre	cofre_epico	abrir	-	1	1	1	todas	11/11: un cofre épico por zona
 engarce_glifo	enemigo	elemental	-	-	1	1	1	todas	11/11: jefes y cofres legendarios (hitos principales)
 hoja_grimorio	cofre	cofre_legendario	abrir	-	1	1	1	todas	11/11: finales de zona, secretos y misiones
+bomba_humo	receta	-	sintesis	-	1	1	1	todas	recetas.tsv (11/11, segunda tanda)
+tarro_baba	receta	-	sintesis	-	1	1	1	todas	recetas.tsv (11/11, segunda tanda)
+cebo_miel	receta	-	sintesis	-	1	1	1	todas	recetas.tsv (11/11, segunda tanda)

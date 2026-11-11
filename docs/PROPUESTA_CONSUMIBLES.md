@@ -232,6 +232,8 @@ Con todo son unos 33, frente a los 13 de hoy.
 | Pigmentos | los siete |
 | Lanzables | bulbo de luz, bomba de resina, bola helada y fruto chispa |
 
+**Segunda tanda hecha el 11/11** (diario 474): bomba de humo, tarro de baba y cebo de miel, con el estado «investigar» de los enemigos, el suelo pegajoso y el estado «cebo» de los animales.
+
 Los cuatro lanzables son los que no necesitan código nuevo de enemigos ni de suelo. La piedra del primer borrador ya no está en la lista de Pablo, y la bomba de humo, el tarro de baba y el cebo de miel van en la segunda tanda, junto con el estado «investigar», el suelo pegajoso y la IA de ir a un punto que necesitan.
 
 ## 11. Lo que necesito que decidas
