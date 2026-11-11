@@ -599,13 +599,15 @@ func _unhandled_input(ev: InputEvent) -> void:
 	if mejor == "":
 		return
 	if mejor == "alquimista":
+		if Tiendas.ofrecer("alquimista"):
+			return                                # 11/11: la segunda E mientras habla abre su tienda
 		sintesis_abierta.emit("alquimista")       # F3: además de charlar, su taller (todas las recetas, cobra oro)
 		Sintesis.abrir("alquimista")
 	var npc: Pj3D = _npcs[mejor]
 	var lineas: Array = DIALOGOS[mejor]
 	var i: int = int(_lineas_dialogo[mejor])
 	_lineas_dialogo[mejor] = i + 1
-	_decir("%s: «%s»" % [mejor.capitalize(), String(lineas[i % lineas.size()])], 4.0)
+	_decir("%s: «%s»%s" % [mejor.capitalize(), String(lineas[i % lineas.size()]), Tiendas.AVISO if mejor == "alquimista" else ""], 4.0)
 	var hacia: Vector3 = (m._jugador as Pj3D).position - npc.position
 	hacia.y = 0.0
 	npc.mirar(hacia, 1.0)

@@ -664,6 +664,8 @@ func _unhandled_input(ev: InputEvent) -> void:
 				ctrl.abierto.connect(_al_abrir_cofre.bind(i), CONNECT_ONE_SHOT)
 			return
 	if _npc != null and _lejos(_npc.position, yo) <= ALCANCE_E:
+		if Tiendas.ofrecer("alquimista"):
+			return                                    # 11/11: la segunda E mientras habla abre su tienda
 		_hablar_alquimista(yo)
 
 
@@ -734,7 +736,7 @@ func _hablar_alquimista(yo: Vector3) -> void:
 		else:
 			_lineas -= 1
 			texto = "Tu bolsa no tiene hueco para la muestra. Vuelve con un sitio libre."
-	_decir("Alquimista: «%s»" % texto, 6.0)
+	_decir("Alquimista: «%s»%s" % [texto, Tiendas.AVISO], 6.0)
 	Sintesis.abrir("alquimista")                 # F3: su taller (la interfaz es del Pipeline)
 	_npc.mirar(yo - _npc.position, 1.0)
 	_npc.jugar("talk")

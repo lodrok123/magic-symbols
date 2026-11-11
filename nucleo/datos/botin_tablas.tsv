@@ -1,18 +1,22 @@
 tabla	objeto	peso	min	max	nota	independiente
 jarron_bosque	nada	50	0	0	EoW: la mayoría de los jarrones salen vacíos	-
 jarron_bosque	oro	40	3	8		-
-jarron_bosque	pocion	10	1	1		-
+jarron_bosque	baya	4	1	2	11/11: ingrediente de la zona en vez de la poción (REVISION_OBJETOS_SINTESIS §4)	-
+jarron_bosque	helecho	3	1	1	11/11: ingrediente de la zona en vez de la poción (REVISION_OBJETOS_SINTESIS §4)	-
+jarron_bosque	lavanda	3	1	1	11/11: ingrediente de la zona en vez de la poción (REVISION_OBJETOS_SINTESIS §4)	-
 jarron_ruinas	nada	45	0	0		-
 jarron_ruinas	oro	35	6	14		-
-jarron_ruinas	pocion	5	1	1		-
+jarron_ruinas	flor_luna	5	1	1	11/11: ingrediente de la zona en vez de la poción (REVISION_OBJETOS_SINTESIS §4)	-
 jarron_ruinas	esquirla_cristal	15	1	1		-
 jarron_cueva	nada	35	0	0		-
 jarron_cueva	oro	35	5	12		-
-jarron_cueva	pocion	5	1	1		-
+jarron_cueva	musgo_cueva	3	1	1	11/11: ingrediente de la zona en vez de la poción (REVISION_OBJETOS_SINTESIS §4)	-
+jarron_cueva	helecho_cueva	2	1	1	11/11: ingrediente de la zona en vez de la poción (REVISION_OBJETOS_SINTESIS §4)	-
 jarron_cueva	esquirla_cristal	25	1	1		-
 jarron_campamento	nada	40	0	0		-
 jarron_campamento	oro	45	6	12		-
-jarron_campamento	pocion	15	1	1		-
+jarron_campamento	colmillo_goblin	8	1	1	11/11: ingrediente de la zona en vez de la poción (REVISION_OBJETOS_SINTESIS §4)	-
+jarron_campamento	resina	7	1	1	11/11: ingrediente de la zona en vez de la poción (REVISION_OBJETOS_SINTESIS §4)	-
 jarron_santuario	oro	70	8	16		-
 jarron_santuario	pocion	30	2	2		-
 hierba_segada	nada	85	0	0	segar hierba: casi siempre nada (EoW)	-
@@ -23,23 +27,26 @@ tronco_golpe	resina	40	1	1		-
 tronco_golpe	corteza	20	1	1		-
 seto_quemado	nada	70	0	0	al consumirse un seto, tronco o puerta goblin	-
 seto_quemado	carbon	30	1	1		-
-cofre_pequeno	oro	60	10	20		-
-cofre_pequeno	pocion	40	1	1		-
 jarron_clasico	nada	50	0	0	como jarron_bosque con el oro de la zona (cifras de ayer)	-
 jarron_clasico	oro	40	3	8	-	-
-jarron_clasico	pocion	10	1	1	-	-
+jarron_clasico	baya	5	1	2	11/11: ingrediente de la zona en vez de la poción (REVISION_OBJETOS_SINTESIS §4)	-
+jarron_clasico	lavanda	5	1	1	11/11: ingrediente de la zona en vez de la poción (REVISION_OBJETOS_SINTESIS §4)	-
 jarron_atardecer	nada	50	0	0	como jarron_bosque con el oro de la zona (cifras de ayer)	-
 jarron_atardecer	oro	40	4	9	-	-
-jarron_atardecer	pocion	10	1	1	-	-
+jarron_atardecer	flor_silvestre	5	1	2	11/11: ingrediente de la zona en vez de la poción (REVISION_OBJETOS_SINTESIS §4)	-
+jarron_atardecer	raiz	5	1	1	11/11: ingrediente de la zona en vez de la poción (REVISION_OBJETOS_SINTESIS §4)	-
 jarron_agua	nada	50	0	0	como jarron_bosque con el oro de la zona (cifras de ayer)	-
 jarron_agua	oro	40	4	10	-	-
-jarron_agua	pocion	10	1	1	-	-
+jarron_agua	alga_cueva	5	1	1	11/11: ingrediente de la zona en vez de la poción (REVISION_OBJETOS_SINTESIS §4)	-
+jarron_agua	flor_rocio	5	1	1	11/11: ingrediente de la zona en vez de la poción (REVISION_OBJETOS_SINTESIS §4)	-
 jarron_fuego	nada	50	0	0	como jarron_bosque con el oro de la zona (cifras de ayer)	-
 jarron_fuego	oro	40	5	11	-	-
-jarron_fuego	pocion	10	1	1	-	-
+jarron_fuego	carbon	5	1	1	11/11: ingrediente de la zona en vez de la poción (REVISION_OBJETOS_SINTESIS §4)	-
+jarron_fuego	flor_ardiente	5	1	1	11/11: ingrediente de la zona en vez de la poción (REVISION_OBJETOS_SINTESIS §4)	-
 jarron_hielo	nada	50	0	0	como jarron_bosque con el oro de la zona (cifras de ayer)	-
 jarron_hielo	oro	40	5	12	-	-
-jarron_hielo	pocion	10	1	1	-	-
+jarron_hielo	seda	5	1	1	11/11: ingrediente de la zona en vez de la poción (REVISION_OBJETOS_SINTESIS §4)	-
+jarron_hielo	flor_escarcha	5	1	1	11/11: ingrediente de la zona en vez de la poción (REVISION_OBJETOS_SINTESIS §4)	-
 goblin	oro	1	10	10	siempre; `oro` de la instancia (Combate3D.oro) lo sustituye si la pieza lo fija	si
 goblin	colmillo_goblin	0.6	1	1	tirada propia del 60 % (era BotinGoblin.PROB_COLMILLO)	si
 goblin_escudo	jiron_escudo	1	1	1	solo si el escudo ardió: lo decide Escudo3D (escudo_quemado), la tabla solo dice qué cae	si
@@ -50,10 +57,12 @@ chaman	oro	1	15	15	siempre	si
 chaman	pluma_chaman	50	1	1	-	-
 chaman	nada	50	0	0	-	-
 chaman	antidoto	0.5	1	1	6/11 (chamán v2): tirada propia del 50 %	si
+chaman	gota_veneno	0.3	1	1	11/11: tirada propia del 30 %: lo que queda de sus flechas de veneno	si
 golem	oro	1	40	40	siempre	si
 golem	polvo_golem	100	1	2	-	-
 elemental	oro	1	150	150	jefe: siempre	si
 elemental	savia_elemental	100	1	1	jefe: siempre	-
+elemental	engarce_glifo	1	1	1	11/11: jefe = hito principal (tabla de mejoras de Pablo)	si
 mouro	oro	1	12	12	siempre; `oro` de la instancia (MouroEspectro3D.ORO_MOURO) lo sustituye	si
 mouro	esquirla_cristal	30	1	1	-	-
 mouro	nada	70	0	0	-	-
@@ -64,3 +73,17 @@ reliquias	oro	1	40	60	el tesoro de la mámoa (Mamoa3D): al sellarla con el mouro
 reliquias	esquirla_cristal	70	1	2	-	-
 reliquias	pocion	20	1	1	-	-
 reliquias	nada	10	0	0	-	-
+cofre_pequeno	oro	1	10	20	11/11: siempre (un cofre siempre vale la pena, REVISION_OBJETOS_SINTESIS §4)	si
+cofre_pequeno	pocion	0.4	1	1	tirada propia del 40 %	si
+cofre_pequeno	baya	20	2	3	y uno de estos ingredientes	-
+cofre_pequeno	resina	20	1	2	-	-
+cofre_pequeno	seda	15	1	1	-	-
+cofre_pequeno	flor_luna	15	1	2	-	-
+cofre_pequeno	corteza	15	1	2	-	-
+cofre_pequeno	carbon	15	1	2	-	-
+loberno	oro	1	6	6	11/11: siempre	si
+loberno	pelaje_loberno	60	1	1	-	-
+loberno	nada	40	0	0	-	-
+canouro	oro	1	8	8	11/11: siempre	si
+canouro	garra_canouro	55	1	1	-	-
+canouro	nada	45	0	0	-	-

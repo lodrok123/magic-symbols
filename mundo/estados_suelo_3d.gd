@@ -26,16 +26,18 @@ const SEGADA: String = "segada"
 ## enemigos que la usen es de otro agente: aquí solo es el DATO). Ninguno tiene canal en la imagen: no se pintan en el suelo.
 const ESCOMBRO: String = "escombro"
 const VAPOR: String = "vapor"
-const TODOS: PackedStringArray = ["helada", "electrificada", "quemada", "mojada", "segada", "escombro", "vapor"]
+const PEGAJOSA: String = "pegajosa"          ## 11/11: el tarro de baba (FACTOR_VELOCIDAD)
+const TODOS: PackedStringArray = ["helada", "electrificada", "quemada", "mojada", "segada", "escombro", "vapor", "pegajosa"]   # 11/11: + pegajosa (el tarro de baba)
 
 ## Cómo se llama cada estado en `Mundo3D.casilla_cambio(c, que)`, que habla de lo que pasó, no de cómo queda la casilla.
-const QUE: Dictionary = {"helada": "hielo", "electrificada": "rayo", "quemada": "fuego", "mojada": "mojado", "segada": "siega", "escombro": "tierra", "vapor": "nube"}
+const QUE: Dictionary = {"helada": "hielo", "electrificada": "rayo", "quemada": "fuego", "mojada": "mojado", "segada": "siega", "escombro": "tierra", "vapor": "nube", "pegajosa": "baba"}
 
 ## B3: lo que dura el escombro y el vapor (s). Una sola constante cada uno; `DURA` las lee.
 const ESCOMBRO_S: float = 6.0
 const VAPOR_S: float = 4.0
+const PEGAJOSA_S: float = 6.0             ## 11/11: lo que dura el suelo pegajoso del tarro de baba (no se pinta en el suelo: el tarro deja su propia mancha)
 ## B3: a qué velocidad anda quien pisa el estado (×; 1 = normal). El jugador y los enemigos lo leen con `factor_velocidad(celda)` cuando se enganchen.
-const FACTOR_VELOCIDAD: Dictionary = {"escombro": 0.7}
+const FACTOR_VELOCIDAD: Dictionary = {"escombro": 0.7, "pegajosa": 0.4}      ## 11/11: la baba frena mucho más que el escombro, pero dura poco y no inmoviliza
 ## B3: estados que un proyectil NO atraviesa (`bloquea_proyectil`). HechizoVivo lo consultará cuando se enganche.
 const BLOQUEA_PROYECTIL: PackedStringArray = ["escombro"]
 
@@ -132,7 +134,7 @@ const REACCION_MATERIAL: Dictionary = {
 
 ## 6/11 (R1, principio LEGIBLE y rendimiento): tope GLOBAL de casillas con cada estado. Al superarlo, `poner` retira antes la MÁS VIEJA (la que menos reloj le queda) y `avanzar` desaloja
 ## hasta `DESALOJO_POR_TICK` de las que sobren por tick, para que el suelo se limpie poco a poco y no a golpe. Un estado sin tope (quemada, segada) o una casilla sin reloj (permanente) no se desaloja.
-const MAX_CASILLAS_VIVAS: Dictionary = {"mojada": 60, "helada": 40, "escombro": 20, "vapor": 20, "electrificada": 30}
+const MAX_CASILLAS_VIVAS: Dictionary = {"mojada": 60, "helada": 40, "escombro": 20, "vapor": 20, "electrificada": 30, "pegajosa": 20}
 const DESALOJO_POR_TICK: int = 1
 ## Casillas nuevas que puede prender/germinar la propagación del autómata de la maqueta en un tick (el resto espera al siguiente; nunca más de `MAX_ARDIENDO` encendidas a la vez).
 const PROPAGA_POR_TICK: int = 2
@@ -145,7 +147,7 @@ const PROPAGA_POR_TICK: int = 2
 ## 6/11 (bloque A5, decisión de Pablo): la ELECTRIFICADA pasa de 2 s a 6 s (con 2 s no daba tiempo a preparar nada encima) y la QUEMADA deja de ser permanente: caduca a los 8 s.
 ## OJO: el 3/11 Pablo había fijado electrificada 2 s; el 6 s NO es un error, es esta decisión posterior. La helada se queda en 20 s.
 ## 6/11 (bloque B3): escombro 6 s y vapor 4 s (`ESCOMBRO_S`, `VAPOR_S`).
-const DURA: Dictionary = {"helada": 20.0, "electrificada": 6.0, "quemada": 8.0, "mojada": 20.0, "segada": 0.0, "escombro": ESCOMBRO_S, "vapor": VAPOR_S}
+const DURA: Dictionary = {"helada": 20.0, "electrificada": 6.0, "quemada": 8.0, "mojada": 20.0, "segada": 0.0, "escombro": ESCOMBRO_S, "vapor": VAPOR_S, "pegajosa": PEGAJOSA_S}
 
 ## C1 (2/11, lote 3 cambio 1), la columna «al_caducar»: qué estado queda en la casilla cuando OTRO caduca (se quita el que caduca y se pone este; "" o sin fila = nada). Hoy solo hay una fila: lo que
 ## se hiela (una `helada` que caduca) se deshiela y deja la casilla MOJADA. C2 (3/11): ya se usa de verdad (`DURA["helada"]` = 20) y el `Lanzador3D` dejó su contador: oye `caducado` para soltar

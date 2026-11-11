@@ -755,20 +755,27 @@ func _haz(elemento: String, h: Hechizo, hz: Dictionary, suelo: float, vida: floa
 	_expira_en(t, maxf(vida, 0.3))
 	if elemento == "fuego" and _haz_con_gas(h, hz, suelo, vida):
 		HazGasJuego.solo_luz(t)              # el gas dibuja el chorro y la masa; del FuegoToy quedan la luz del suelo y la del hechizo
+	elif elemento == "agua" and t is AguaToy and _haz_con_gas(h, hz, suelo, vida, "agua"):
+		HazGasJuego.ocultar_toy(t)           # 10/11: el gas en modo agua dibuja el chorro, la lámina y las gotas; el AguaToy sigue vivo pero no se ve
+	elif elemento == "viento" and _haz_con_gas(h, hz, suelo, vida, "viento"):
+		HazGasJuego.ocultar_toy(t)           # 11/11: el gas en modo viento dibuja la hélice de bruma, el polvo y las hojas (ajuste vfx_haz_gas_viento, apagado de serie)
+	elif elemento == "rayo" and _haz_con_gas(h, hz, suelo, vida, "rayo"):
+		HazGasJuego.solo_luces(t)            # 11/11: el gas en modo rayo dibuja el trazo, los arcos y el halo; del RayoToy queda la luz (ajuste vfx_haz_gas_rayo, apagado de serie)
 
 
 ## 9/11 (Pablo, prototipo A llevado al juego): el haz de FUEGO se dibuja con la simulación de gas toon (HazGasJuego) contra los sólidos reales, si hay RenderingDevice
 ## (Forward+ / Mobile), el ajuste `magic_symbols/vfx_haz_gas` está encendido (lo está de serie) y no se ha llegado al tope de instancias. Si no, false: el FuegoToy HAZ de siempre.
+## 10/11: el de AGUA igual, con el gas en modo agua y su propio ajuste `magic_symbols/vfx_haz_gas_agua`; si no, el AguaToy HAZ de siempre. El tope es de los dos juntos.
 ## Solo dibuja: lo que hace el haz (daño, alcance, ticks, choques) lo sigue decidiendo HechizoVivo.
 var gas: HazGasJuego = null
 
 
-func _haz_con_gas(h: Hechizo, hz: Dictionary, suelo: float, vida: float) -> bool:
-	if not HazGasJuego.disponible():
+func _haz_con_gas(h: Hechizo, hz: Dictionary, suelo: float, vida: float, elemento: String = "fuego") -> bool:
+	if not HazGasJuego.disponible(elemento):
 		return false
 	if gas == null or not is_instance_valid(gas):
 		gas = HazGasJuego.conectar(_mundo)
-	return gas.haz(h, hz, suelo, vida) != null
+	return gas.haz(h, hz, suelo, vida, elemento) != null
 
 
 ## Los choques del haz (mundo: punto y normal) en el espacio del toy, que mira a -Z desde la mano (`al` = hacia dónde va el haz): [{d: m a lo largo, x: m a un lado, n: normal local}].

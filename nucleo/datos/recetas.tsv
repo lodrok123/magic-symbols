@@ -22,15 +22,8 @@ bulbo_luz	Bulbo de luz	lanzable	resonante>=2,tinta>=1	-	0	bulbo_luz:1	alquimista
 bomba_resina	Bomba de resina	lanzable	calor>=3,tinta>=1	-	0	bomba_resina:1	alquimista,hoguera	al tener los ingredientes	10/11: lanzable; resina + carbón
 bola_helada	Bola helada	lanzable	frio>=3,proteccion>=1	-	0	bola_helada:1	alquimista,hoguera	al tener los ingredientes	10/11: lanzable; seta helada + seda
 fruto_chispa	Fruto chispa	lanzable	electrico>=3	-	0	fruto_chispa:1	alquimista,hoguera	al tener los ingredientes	10/11: lanzable; flor cargada + alga cargada
-vida_1	Corazón robusto I	mejora	vital>=6,tierra>=2	-	20	mejora:vida_max	alquimista	siempre	+20 de vida máxima
-vida_2	Corazón robusto II	mejora	vital>=8,tierra>=3	-	40	mejora:vida_max	alquimista	mejora:vida_max>=1	+20
-vida_3	Corazón robusto III	mejora	vital>=8,raro>=4	savia_elemental	60	mejora:vida_max	alquimista	mejora:vida_max>=2	+20; pide el épico del elemental
-frascos_1	Frasco de reserva I	mejora	tinta>=4,resonante>=2	-	30	mejora:frascos_tinta	alquimista	siempre	+1 frasco de reserva (3 → 4)
-frascos_2	Frasco de reserva II	mejora	tinta>=6,resonante>=4,raro>=4	geoda_resonante	60	mejora:frascos_tinta	alquimista	mejora:frascos_tinta>=1	+1 (4 → 5)
 tinta_frasco_1	Frasco hondo I	mejora	tinta>=4,electrico>=2	-	30	mejora:tinta_frasco	alquimista	siempre	cada frasco recarga +10 % de la barra
 tinta_frasco_2	Frasco hondo II	mejora	tinta>=6,electrico>=3,raro>=5	nucleo_eco	60	mejora:tinta_frasco	alquimista	mejora:tinta_frasco>=1	+10 %
-paginas_1	Página cosida	mejora	tinta>=6,proteccion>=2,raro>=4	-	80	mejora:paginas	alquimista	flag:bosque1.librera.paginas	el grimorio pasa de 3 a 4 páginas (tope 5)
-huecos_1	Hueco de glifo	mejora	resonante>=4,tinta>=3	-	50	mejora:huecos_glifo	alquimista	siempre	+1 glifo por página (Repertoire.max_sigils_per_page, tope 6); hoy lo vende la librera
 bolsa_1	Bolsa más honda	mejora	tierra>=3,proteccion>=2	-	20	mejora:capacidad	alquimista	siempre	+4 huecos de mochila (tope 20); sustituye a la compra de hoy
 cura_1	Poción más dulce	mejora	vital>=5,agua>=2	-	20	mejora:cura_pocion	alquimista	siempre	las pociones curan +10
 defensa_1	Piel de corteza I	mejora	proteccion>=4,tierra>=3	-	30	mejora:defensa	alquimista	siempre	la jugadora gana DEF 1 (la fórmula de Dano, como los enemigos)
@@ -38,3 +31,6 @@ defensa_2	Piel de corteza II	mejora	proteccion>=6,tierra>=4,raro>=4	-	60	mejora:
 bordado_escarcha	Bordado de escarcha	ropa	frio>=4,proteccion>=2	capa	40	capa_escarcha:1	alquimista	tener:capa	consume la capa; la prenda nueva es inmune al frío
 bordado_salamandra	Tinte de salamandra	ropa	calor>=4,proteccion>=2	tunica	40	tunica_salamandra:1	alquimista	tener:tunica	consume la túnica
 bordado_musgo	Forro de musgo	ropa	toxico>=3,vital>=2,proteccion>=1	capucha	40	capucha_musgo:1	alquimista	tener:capucha	consume la capucha
+bomba_humo	Bomba de humo	lanzable	viento>=4	esporas	0	bomba_humo:1	alquimista,hoguera	al tener los ingredientes	11/11: segunda tanda; esporas ×2
+tarro_baba	Tarro de baba	lanzable	toxico>=4,agua>=2	baba_limo	0	tarro_baba:1	alquimista,hoguera	al tener los ingredientes	11/11: segunda tanda; baba de limo ×2
+cebo_miel	Cebo de miel	lanzable	vital>=3,tinta>=2	panal	0	cebo_miel:1	alquimista,hoguera	al tener los ingredientes	11/11: segunda tanda; panal + bayas

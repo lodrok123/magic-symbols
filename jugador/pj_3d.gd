@@ -294,8 +294,10 @@ const SOMBRA_DIAMETRO_ALTURAS: float = 0.7         ## diámetro de la mancha en 
 const SOMBRA_ALFA: float = 0.36
 const IDS_JUGADORA: Array = ["woodland_wanderer", "chibi_elf", "chibi_test", "jugadora_base"]   ## prefijos de id que son la jugadora (rol «jugadora»); jugadora_base (23/10) es la candidata a sustituirla
 ## Ropa por piezas (Ropa3D) que lleva puesta un personaje al cargarlo: id -> [ids de prenda de arte/modelos/ropa.json]. Sin entrada, el modelo va como viene.
+## 11/11 (uniforme de Monte Sumicio, arte/meshy/PROMPTS_UNIFORME_MID.md; decidido por Pablo): capa y capucha granates sobre la base y los bombachos con polainas y
+## botines (`piernas`, que tapa piernas y botas); sin túnica, el chaleco va a la vista.
 const ROPA_POR_DEFECTO: Dictionary = {
-	"jugadora_base": ["tunica", "capa", "capucha"],
+	"jugadora_base": ["piernas", "capa", "capucha"],
 }
 
 var rol_visual: String = "npc"                     ## «jugadora» | «npc» | «enemigo»: decide el color del rim y si lleva silueta

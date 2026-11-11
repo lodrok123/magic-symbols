@@ -104,6 +104,8 @@ const DESTELLO_DANO: float = 0.10              ## destello del daño que no es g
 const RADIO_DETECCION: float = 5.75
 const RADIO_SOLTAR: float = 10.0
 const TIEMPO_PERDER: float = 3.5
+const INVESTIGA_EXTRA_S: float = 3.0         ## 11/11: lo que sigue buscando tras acabarse el humo antes de poder rendirse
+const CEBO_LLEGA: float = 0.4                ## casillas a las que se para a comer el cebo
 const PERIODO_CAMINO: float = 0.5                  ## D2: s entre dos recálculos de la ruta por casillas (también se recalcula si el objetivo cambia de casilla o el goblin se sale de ella). Barato, pero no hace falta cada fotograma
 const VEL_PERSEGUIR: float = 2.4                   ## entre andar (1,6) y correr (3,0) del jugador
 const VEL_PATRULLA: float = 1.0
@@ -325,6 +327,12 @@ var mojado: float = 0.0
 var congelado: float = 0.0
 var lento: float = 0.0
 var cegado: float = 0.0                 ## B2 (6/11): s que le quedan ciego (agua sobre quemado): `_ve` devuelve false
+## 11/11 (bomba de humo, PROPUESTA_CONSUMIBLES §8): s que le quedan INVESTIGANDO. Mientras dure no se rinde aunque no vea a la jugadora: va a buscarla donde la vio por
+## última vez (`ultima_pos`, estado «busca»). Es la contra del humo: corta la vista pero no borra la alerta.
+var investiga: float = 0.0
+## 11/11 (cebo de miel): mientras `cebo_t` > 0 el animal deja a la jugadora y va a `cebo_pos` a comer (estado «cebo»). Lo pone `atraer`.
+var cebo_pos: Vector3 = Vector3.ZERO
+var cebo_t: float = 0.0
 var enraizado: float = 0.0              ## R3 (6/11): s que le quedan sujeto por raíces (naturaleza): `vel_mult` 0 y `push` no lo mueve; el ataque no se le quita
 var stun_timer: float = 0.0
 var interrupcion: float = 0.0
@@ -542,6 +550,10 @@ func _ready() -> void:
 	if elemental and not inmune_estados.has("raices"):
 		inmune_estados.append("raices")                 # R3: es vegetal, las raíces de la naturaleza no lo sujetan
 	es_goblin = pj != null and pj.id.begins_with("goblin")
+	# 11/11 (docs/REVISION_OBJETOS_SINTESIS.md §4): los animales y cualquier enemigo con tabla propia en `botin_tablas.tsv` (loberno, canouro...) sueltan lo suyo,
+	# no el colmillo de goblin. Solo si nadie ha fijado otra tabla antes (el chamán, el gólem y el elemental la ponen en su propio código).
+	if pj != null and tabla_botin == "goblin" and not es_goblin and Botin.existe(pj.id):
+		tabla_botin = pj.id
 	if es_goblin:
 		pj.ritmo = RITMO_GOBLIN
 	if MarchaCuadrupedo3D.MARCHA_ANIMAL and pj != null and MarchaCuadrupedo3D.tiene_perfil(pj.id):
@@ -1466,6 +1478,7 @@ func _efectos(delta: float) -> void:
 	_barra_t = maxf(0.0, _barra_t - delta)
 	_destello = maxf(0.0, _destello - delta)
 	cegado = maxf(0.0, cegado - delta)
+	investiga = maxf(0.0, investiga - delta)
 	enraizado = maxf(0.0, enraizado - delta)
 	if quemando > 0.0:
 		quemando -= delta
@@ -1715,6 +1728,9 @@ func _ia(delta: float) -> void:
 		_ia_arquero_fijo(delta)
 		return
 	var vel: float = vel_mult() * (ELEM_VEL if elemental else 1.0) * (ELEM_FURIA_VEL if enfurecido() else 1.0)
+	if cebo_t > 0.0:
+		_ia_cebo(delta, vel)                       # 11/11: el cebo de miel manda sobre todo lo demás mientras dure
+		return
 	var ve: bool = _ve(RADIO_DETECCION if objetivo == null else RADIO_SOLTAR)
 	if ve:
 		if objetivo == null:
@@ -1729,7 +1745,7 @@ func _ia(delta: float) -> void:
 	elif objetivo != null:
 		vista_perdida += delta
 		var lejos: bool = jugador != null and _dist(jugador.position) > RADIO_SOLTAR
-		if vista_perdida > TIEMPO_PERDER or lejos:
+		if (vista_perdida > TIEMPO_PERDER and investiga <= 0.0) or lejos:
 			objetivo = null
 			estado = "vuelve"
 			PlayLog.event("goblin_se_rinde")
@@ -1806,6 +1822,53 @@ func _ia(delta: float) -> void:
 					estado = "patrulla"
 		_:
 			_patrullar(delta, vel)
+
+
+## 11/11 (bomba de humo): pierde de vista a la jugadora `segundos` s y, si la estaba persiguiendo, va a buscarla a donde la vio por última vez sin rendirse
+## hasta un poco después (`investiga`). Devuelve si estaba alerta (lo usa la prueba).
+func perder_de_vista(segundos: float) -> bool:
+	if muerto or segundos <= 0.0:
+		return false
+	cegado = maxf(cegado, segundos)
+	var alerta: bool = objetivo != null
+	if alerta:
+		investiga = maxf(investiga, segundos + INVESTIGA_EXTRA_S)
+		estado = "busca"
+	return alerta
+
+
+## 11/11 (cebo de miel): deja lo que hacía y va a `pos` a comer durante `segundos` s. Al acabar, vuelve a su sitio (no recuerda a la jugadora).
+func atraer(pos: Vector3, segundos: float) -> void:
+	if muerto or segundos <= 0.0:
+		return
+	cebo_pos = pos
+	cebo_t = maxf(cebo_t, segundos)
+	objetivo = null
+	_cancelar_ataque()
+	estado = "cebo"
+	PlayLog.event("cebo_atrae", {"enemigo": pj.id if pj != null else "", "segundos": segundos})
+
+
+func _ia_cebo(delta: float, vel: float) -> void:
+	cebo_t = maxf(0.0, cebo_t - delta)
+	_carga = 0.0
+	var d: Vector3 = cebo_pos - position
+	d.y = 0.0
+	if cebo_t <= 0.0:
+		estado = "vuelve"
+		moviendo = 0
+		return
+	if d.length() > CEBO_LLEGA * Terreno3D.casilla:
+		mirada = d.normalized()
+		moviendo = 1
+		_v_avance = v_base("walk") * 1.3 * vel
+		_modo_marcha = ""
+		var paso: Vector3 = _dir_hacia(cebo_pos, delta) * _v_avance * delta
+		if _marcha != null:
+			paso = _marcha.paso_suave(paso, delta)
+		_mover_paso(paso, false, true)
+	else:
+		moviendo = 0                               # comiendo
 
 
 func _patrullar(delta: float, vel: float) -> void:

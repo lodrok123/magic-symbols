@@ -20,6 +20,70 @@ void main() {
 	vec4 gs = texelFetch(gas_in, c, 0);
 	float T = gs.x, soot = gs.y, dust = gs.z, fuel = gs.w;
 
+	if (AGUA) {
+		// MODO AGUA (10/11): x = cantidad de agua. El chorro la pone en su nucleo; en el choque, el chorro que se APLASTA contra la cara alimenta una mancha en
+		// la piel (la misma alimentacion que el fuego, sin calor) de la que nace la lamina que el peso hace caer por la pared. Sin combustion, ni hollin, ni polvo:
+		// el agua solo se va despacio (COOL = evaporacion / lo que se escurre fuera de la vista).
+		Haz ha = haz_en(w, ruido);
+		float agua = max(T, ha.core * (0.85 + 0.25 * ha.pulse));
+		vec3 off_a = w - P.contacto.xyz;
+		float gust_a = textureLod(ruido, w * (0.05 / ESC_M) + vec3(TIEMPO * 0.25, 0.6, 0.1), 0.0).x * 1.4;
+		agua = max(agua, exp(dot(off_a, off_a) * -0.9 / (ESC_M * ESC_M)) * BEAM_ON * gust_a * HEAT);
+		agua *= exp(-COOL * DT);
+		vec3 n_a;
+		float keep_a = fuera_obst(obst_sd(w, n_a)) * esponja(uvw);
+		imageStore(gas_out, c, vec4(min(agua * keep_a, 4.0), 0.0, 0.0, 0.0));
+		return;
+	}
+
+	if (VIENTO) {
+		// MODO VIENTO (11/11, rehecho tras ver Pablo las capturas: «parece vapor... un fluido, no una rafaga sostenida de aire»). El aire NO se dibuja como masa.
+		// Lo que se guarda son LINEAS DE CORRIENTE: dos ETIQUETAS (canales y, w) que valen la posicion de cada punto en la seccion del chorro (en radios) y que el gas
+		// transporta sin cambiarlas: las curvas donde las dos etiquetas son constantes son, de verdad, los caminos del aire, tambien cuando rodea un solido.
+		// El canal x es la RAFAGA: pulsos que nacen por linea en la mano y viajan con el aire (trazos largos que corren, aparecen y se van).
+		// Dentro del chorro todo es analitico (nitido); fuera, lo que el aire se lleva queda libre.
+		Haz hv = haz_en(w, ruido);
+		vec3 ab_v = P.target.xyz - P.nozzle.xyz;
+		vec3 r_v = w - (P.nozzle.xyz + ab_v * hv.t);
+		r_v -= hv.dir * dot(r_v, hv.dir);
+		vec3 e1 = normalize(cross(hv.dir, vec3(0.0, 1.0, 0.0)));
+		vec3 e2 = cross(e1, hv.dir);
+		float radio_l = mix(BEAM_R0, BEAM_R1, hv.t) * VIENTO_ANCHO;
+		vec2 et = vec2(dot(r_v, e1), dot(r_v, e2)) / radio_l;
+		float dentro_v = (1.0 - smoothstep(0.95, 1.2, length(et))) * BEAM_ON * step(0.02, hv.t) * step(hv.t, 0.985);
+		vec2 celda_l = floor(et * VIENTO_LINEAS);
+		float fase_v = TIEMPO - hv.t * length(ab_v) / (BEAM_SPEED * 0.9);
+		float pulso = smoothstep(0.54, 0.64, textureLod(ruido, vec3(celda_l.x * 0.31 + 0.13, celda_l.y * 0.37 + 0.29, fase_v * 0.085), 0.0).x);
+		float rafaga = mix(T, pulso, dentro_v * 0.95) * exp(-COOL * DT);
+		vec2 etq = mix(vec2(soot, fuel), et, dentro_v);
+		// polvo: la regla de la demo (el aire rapido a ras de suelo lo levanta en vetas y se despeja con la altura)
+		vec3 aire_v = textureLod(vel, uvw, 0.0).xyz;
+		dust *= exp(-(DUST_FADE + smoothstep(0.15, 0.9, w.y / ESC_M) * 5.0) * DT);
+		dust += max(length(aire_v.xz) - (WIND + 5.0), 0.0) * exp(-w.y * 3.2 / ESC_M) * textureLod(ruido, w * vec3(0.045, 0.1, 0.045) / ESC_M, 0.0).x * DT * 0.3;
+		vec3 n_v;
+		float keep_v = fuera_obst(obst_sd(w, n_v)) * esponja(uvw);
+		imageStore(gas_out, c, vec4(min(rafaga * keep_v, 4.0), etq.x, min(dust * keep_v, 4.0), etq.y));
+		return;
+	}
+
+	if (RAYO) {
+		// MODO RAYO (11/11): x = ionizacion (donde el dibujo puede encender arcos). Nucleo fino del chorro, mancha en el choque y carga que REPTA por la piel del
+		// solido alrededor del contacto (a rafagas). Se apaga en decimas de segundo (COOL alto): al cortar el haz quedan unos arcos que se van.
+		Haz hr = haz_en(w, ruido);
+		float ion = max(T, hr.core * hr.core * (0.4 + 0.3 * hr.pulse));
+		vec3 off_r = w - P.contacto.xyz;
+		float d2 = dot(off_r, off_r) / (ESC_M * ESC_M);
+		float gust_r = textureLod(ruido, w * (0.09 / ESC_M) + vec3(TIEMPO * 0.9, 0.6, 0.1), 0.0).x * 1.5;
+		ion = max(ion, exp(d2 * -1.2) * BEAM_ON * gust_r * HEAT * 1.3);
+		vec3 n_r;
+		float sd_r = obst_sd(w, n_r);
+		float piel_r = (1.0 - smoothstep(0.05, 0.5 * ESC_M, sd_r)) * exp(d2 * -0.09) * BEAM_ON;
+		ion = max(ion, piel_r * smoothstep(0.45, 0.8, textureLod(ruido, w * (0.16 / ESC_M) + vec3(0.2, TIEMPO * 0.7, 0.4), 0.0).y) * HEAT);
+		ion *= exp(-COOL * DT);
+		imageStore(gas_out, c, vec4(min(ion * fuera_obst(sd_r) * esponja(uvw), 4.0), 0.0, 0.0, 0.0));
+		return;
+	}
+
 	// El chorro se mantiene caliente en su nucleo y solo lleva combustible en su ultimo tramo: asi queda recto y limpio.
 	Haz hz = haz_en(w, ruido);
 	fuel = max(fuel, hz.core * hz.pulse * smoothstep(0.55, 0.9, hz.t));

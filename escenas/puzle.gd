@@ -275,6 +275,7 @@ const SENAL_DEFECTO: Dictionary = {
 	"columna": "cae", "estatuas": "completa", "estalagmita": "cae", "geoda": "explota", "bloque": "movido", "roca_empujable": "movido",
 	"guardian": "levanta", "puente": "tendido", "trampa_dragon": "escupe", "trampa_flechas": "dispara",
 	"colmena": "cae_panal", "nube_veneno": "disipada", "nido": "suelta", "musgo": "recogida", "helecho_cueva": "recogida", "seta_palida": "recogida",
+	"flor": "recogida", "raiz": "recogida", "lavanda": "recogida", "bayas": "recogida", "helecho": "recogida", "flor_silvestre": "recogida",
 	"bancal": "germino", "mamoa": "tapada",
 }
 ## Señal de usuario → [señal de Godot, cuántos argumentos trae, filtro]: un filtro `true`/`false` deja pasar solo ese valor del primer argumento.
@@ -328,6 +329,8 @@ const SENALES: Dictionary = {
 	"musgo": {"recogida": ["recogido", 1, null]},
 	"helecho_cueva": {"recogida": ["recogido", 1, null]},
 	"seta_palida": {"recogida": ["recogido", 1, null]},
+	"flor": {"recogida": ["recogido", 1, null]}, "raiz": {"recogida": ["recogido", 1, null]}, "lavanda": {"recogida": ["recogido", 1, null]},
+	"bayas": {"recogida": ["recogido", 1, null]}, "helecho": {"recogida": ["recogido", 1, null]}, "flor_silvestre": {"recogida": ["recogido", 1, null]},
 }
 const CONDICIONES: Dictionary = {
 	"bancal": {"germinado": ["germinado", true], "pendiente": ["germinado", false]},
@@ -368,6 +371,9 @@ const CONDICIONES: Dictionary = {
 	"musgo": {"recogida": ["recogido_ya", true], "en_suelo": ["recogido_ya", false]},
 	"helecho_cueva": {"recogida": ["recogido_ya", true], "en_suelo": ["recogido_ya", false]},
 	"seta_palida": {"recogida": ["recogido_ya", true], "en_suelo": ["recogido_ya", false]},
+	"flor": {"recogida": ["recogido_ya", true], "en_suelo": ["recogido_ya", false]}, "raiz": {"recogida": ["recogido_ya", true], "en_suelo": ["recogido_ya", false]},
+	"lavanda": {"recogida": ["recogido_ya", true], "en_suelo": ["recogido_ya", false]}, "bayas": {"recogida": ["recogido_ya", true], "en_suelo": ["recogido_ya", false]},
+	"helecho": {"recogida": ["recogido_ya", true], "en_suelo": ["recogido_ya", false]}, "flor_silvestre": {"recogida": ["recogido_ya", true], "en_suelo": ["recogido_ya", false]},
 }
 ## Acción → cuántos argumentos admite como máximo.
 const ACCIONES: Dictionary = {
@@ -392,6 +398,7 @@ const ACCIONES: Dictionary = {
 	"musgo": {"recoger": 0},
 	"helecho_cueva": {"recoger": 0},
 	"seta_palida": {"recoger": 0},
+	"flor": {"recoger": 0}, "raiz": {"recoger": 0}, "lavanda": {"recoger": 0}, "bayas": {"recoger": 0}, "helecho": {"recoger": 0}, "flor_silvestre": {"recoger": 0},
 	"cristal": {"latir": 0},
 	"receptor": {"activar": 0, "apagar": 0},
 	"prisma": {"girar": 0},
@@ -438,6 +445,8 @@ const CLAVES: Dictionary = {
 	"musgo": {"coge_si": "expr", "rebrota": "f"},
 	"helecho_cueva": {"coge_si": "expr", "rebrota": "f"},
 	"seta_palida": {"coge_si": "expr", "rebrota": "f"},
+	"flor": {"coge_si": "expr", "rebrota": "f"}, "raiz": {"coge_si": "expr", "rebrota": "f"}, "lavanda": {"coge_si": "expr", "rebrota": "f"},
+	"bayas": {"coge_si": "expr", "rebrota": "f"}, "helecho": {"coge_si": "expr", "rebrota": "f"}, "flor_silvestre": {"coge_si": "expr", "rebrota": "f"},
 	"colmena": {},
 	"bancal": {"flag": "flag"},
 	"nube_veneno": {"vida": "f", "radio": "f"},
@@ -2074,8 +2083,10 @@ func _crear(pz: Pieza) -> void:
 			se.preparar(pz.celda, String(pz.p.get("variante", "")), float(pz.p.get("rebrota", 0.0)), mundo as Node)
 			cont.add_child(se)
 			pz.nodo = se
-		"alga", "basalto", "musgo", "helecho_cueva", "seta_palida":
+		"alga", "basalto", "musgo", "helecho_cueva", "seta_palida", "flor", "raiz", "lavanda", "bayas", "helecho", "flor_silvestre":
 			# Materiales de la Cueva (docs/MATERIALES_CUEVA.md): un Recolectable3D que solo existe mientras se cumple `coge_si`.
+			# 11/11: y las plantas del bosque (REVISION_OBJETOS_SINTESIS §4): flor (de luna), raíz, lavanda, bayas, helecho y flor silvestre. Un elemento lanzado
+			# antes transforma las que tienen tabla (flor y raíz: Objetos.PLANTAS), como la seta.
 			var ma := Recolectable3D.new()
 			ma.name = pz.id
 			ma.coge_si = pz.exprs.get("coge_si", [])

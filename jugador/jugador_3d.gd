@@ -1667,6 +1667,9 @@ func _construir_hud() -> void:
 	hud_eow.name = "HudEoW"
 	hud_eow.jugador = self
 	add_child(hud_eow)
+	var tienda := TiendaUI.new()           # 11/11: la pantalla de tienda; se abre sola cuando el alquimista o la librera avisan (`Tiendas.tienda_abierta`)
+	tienda.name = "TiendaUI"
+	add_child(tienda)
 	_hud_texto = Label.new()
 	_hud_texto.add_theme_font_size_override("font_size", 14)
 	_hud_texto.add_theme_color_override("font_outline_color", Color.BLACK)

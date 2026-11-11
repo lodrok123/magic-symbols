@@ -18,6 +18,11 @@ Qué hace, por cada prenda (se separan por el hueco en X que deja Tripo entre la
   5. escribe `<salida>/<prenda>.json` (geometría en el espacio de la malla de la base, Y arriba, tal cual la espera Godot) y las texturas.
 La malla definitiva la monta Godot (`herramientas/montar_ropa_glb.gd`) sobre el esqueleto y el Skin de la base, para que sea EL MISMO esqueleto sin
 pasar por una reexportación de Blender (que reorienta huesos). Blender 5.x, modo fondo.
+
+11/11 (uniforme de Sumicio, arte/meshy/PROMPTS_UNIFORME_MID.md): el .glb puede traer UNA prenda entera (Meshy: la capa con capucha en un archivo, las piernas en
+otro). En la config, `_prendas` dice qué prendas se procesan (por omisión `capa` y `tunica`) y cada prenda `parte`: "izquierda" / "derecha" (el corte en X del
+vestido de Tripo) o "todo" (la malla entera). La capucha con PUNTA CAÍDA (`capucha.punta`): lo que cuelga por debajo del corte sin estar unido a la capa se va con
+la capucha y pesa entero en Head (`separar_punta`). La textura de color se reconoce por el enchufe al que va (Meshy no la llama «basecolor»).
 """
 import json
 import math
@@ -60,12 +65,15 @@ def soldar_clave(p: Vector) -> tuple:
     return (round(p.x, 5), round(p.y, 5), round(p.z, 5))
 
 
-def separar_prenda(o_vestido: bpy.types.Object, nombre: str, lado_derecho: bool) -> bpy.types.Object:
-    """Copia del vestido con solo las caras de un lado del corte; sin vértices sueltos."""
+def separar_prenda(o_vestido: bpy.types.Object, nombre: str, parte: str) -> bpy.types.Object:
+    """Copia del vestido con solo las caras de un lado del corte ("izquierda" / "derecha"; "todo" = la malla entera); sin vértices sueltos."""
     copia = o_vestido.copy()
     copia.data = o_vestido.data.copy()
     copia.name = nombre
     bpy.context.scene.collection.objects.link(copia)
+    if parte == "todo":
+        return copia
+    lado_derecho = parte == "derecha"
     bm = bmesh.new()
     bm.from_mesh(copia.data)
     borrar = [f for f in bm.faces if (sum(v.co.x for v in f.verts) / len(f.verts) > CORTE_X) != lado_derecho]
@@ -85,6 +93,39 @@ def reducir(o: bpy.types.Object, tris_objetivo: int) -> None:
     m.use_collapse_triangulate = True
     bpy.context.view_layer.objects.active = o
     bpy.ops.object.modifier_apply(modifier=m.name)
+
+
+def quitar_forro(o: bpy.types.Object, cfg: dict, ids: list, excluir: set) -> int:
+    """Quita la PARED INTERIOR de la capa (11/11: la capa de Meshy es de doble pared, con la de dentro a los mismos radios que la de fuera). Con la cámara del
+    juego a 60° nunca se ve, cuesta la mitad de los triángulos y era lo que los antebrazos atravesaban al balancearse (queda entre el brazo y el torso). Por debajo
+    de `z_max` (mundo), las caras cuya normal mira hacia el eje vertical de la prenda (producto con la dirección radial < `radial`); la punta caída (`excluir`) no
+    se toca. El forro de la capucha se ve por la abertura y se queda. Devuelve cuántas caras quita."""
+    z_max, umbral = float(cfg["z_max"]), float(cfg.get("radial", -0.3))
+    bajos = [o.matrix_world @ v.co for v in o.data.vertices if (o.matrix_world @ v.co).z < z_max]
+    cx = (min(p.x for p in bajos) + max(p.x for p in bajos)) * 0.5
+    cy = (min(p.y for p in bajos) + max(p.y for p in bajos)) * 0.5
+    rot = o.matrix_world.to_3x3()
+    bm = bmesh.new()
+    bm.from_mesh(o.data)
+    borrar = []
+    for f in bm.faces:
+        if any(ids[v.index] in excluir for v in f.verts):
+            continue
+        c = o.matrix_world @ f.calc_center_median()
+        if c.z >= z_max:
+            continue
+        dx, dy = c.x - cx, c.y - cy
+        l = math.hypot(dx, dy)
+        if l < 1e-6:
+            continue
+        n = (rot @ f.normal).normalized()
+        if (n.x * dx + n.y * dy) / l < umbral:
+            borrar.append(f)
+    bmesh.ops.delete(bm, geom=borrar, context='FACES')
+    bmesh.ops.delete(bm, geom=[v for v in bm.verts if not v.link_faces], context='VERTS')
+    bm.to_mesh(o.data)
+    bm.free()
+    return len(borrar)
 
 
 def puntos_mundo(o: bpy.types.Object) -> list:
@@ -119,14 +160,16 @@ def colocar_con_perfil(o: bpy.types.Object, cfg: dict) -> None:
         v.co = Vector(((v.co.x - cx) * interpolar(perfil, z, 2) + dx, (v.co.y - cy) * sy + dy + interpolar(perfil, z, 5), interpolar(perfil, z, 1)))
 
 
-def nivelar_borde(o: bpy.types.Object, cfg: dict) -> None:
+def nivelar_borde(o: bpy.types.Object, cfg: dict, ids: list = None, excluir: set = None) -> None:
     """Deja el borde de la capa a la altura `z` en todo el contorno. El borde de Tripo va inclinado (detrás 0,017, de lado 0,05, delante 0,09): sin esto la
     capelina acababa en el codo detrás y en el hombro delante, y el concept la quiere al codo en todo el contorno. Por `sectores` de ángulo alrededor del eje
     vertical de la parte baja se mide el punto más bajo y se baja lo que sobra, interpolando entre los centros de los sectores (el borde no hace escalones);
     entero en el borde y nada desde `z_hasta` (gradiente lineal entre medias)."""
     n = int(cfg["sectores"])
     z_obj, z1 = float(cfg["z"]), float(cfg["z_hasta"])
-    bajos = [v.co for v in o.data.vertices if v.co.z < z1]
+    # La punta caída de la capucha (`excluir`, ver detectar_punta) cuelga por debajo del borde y no es borde: ni se mide ni se mueve.
+    fuera = (lambda v: excluir is not None and ids is not None and ids[v.index] in excluir)
+    bajos = [v.co for v in o.data.vertices if v.co.z < z1 and not fuera(v)]
     cx = (min(p.x for p in bajos) + max(p.x for p in bajos)) * 0.5
     cy = (min(p.y for p in bajos) + max(p.y for p in bajos)) * 0.5
 
@@ -137,7 +180,7 @@ def nivelar_borde(o: bpy.types.Object, cfg: dict) -> None:
         s = int(angulo(p)) % n
         minimo[s] = min(minimo[s], p.z)
     for v in o.data.vertices:
-        if v.co.z >= z1:
+        if v.co.z >= z1 or fuera(v):
             continue
         a = angulo(v.co) - 0.5
         s0 = int(math.floor(a))
@@ -145,7 +188,8 @@ def nivelar_borde(o: bpy.types.Object, cfg: dict) -> None:
         borde = minimo[s0 % n] * (1.0 - f) + minimo[(s0 + 1) % n] * f
         sobra = max(0.0, borde - z_obj)
         t = (z1 - v.co.z) / max(z1 - borde, 1e-6)
-        v.co.z -= sobra * max(0.0, min(1.0, t))
+        # Nunca por debajo de `z`: entre un sector alto y uno vecino ya en el codo, la interpolación bajaba de más los vértices del bajo (11/11: 0,872 -> 0,811).
+        v.co.z -= min(sobra * max(0.0, min(1.0, t)), max(0.0, v.co.z - z_obj))
 
 
 def nudo_perfil(n: list) -> list:
@@ -324,7 +368,7 @@ class CampoFactor:
 
 def sacar_de_la_piel(o: bpy.types.Object, arbol: BVHTree, margen: float, ids: list, vecinos: list, casco: CascoCabeza = None,
                     margen_casco: float = 0.0, suave: NormalSuave = None, profundidad_max: float = math.inf,
-                    suavizado: int = SUAVIZADO_EMPUJE) -> int:
+                    suavizado: int = SUAVIZADO_EMPUJE, sin_casco: set = None, caja_sin_casco: dict = None) -> int:
     """Empuja fuera de la base los vértices que quedan dentro o a menos de `margen` (por la normal del punto más cercano). Solo cuenta como dentro un punto a
     menos de `profundidad_max` de la superficie (por debajo de la cabeza, HULL_Z_MIN; arriba manda el casco): más lejos, el signo de la normal de un pliegue (la
     raja de las nalgas, la punta del codo) no dice nada y un vértice de la orla a 15 cm se arrastraba hasta allí. `suavizado`: pasadas sobre el desplazamiento."""
@@ -342,13 +386,25 @@ def sacar_de_la_piel(o: bpy.types.Object, arbol: BVHTree, margen: float, ids: li
         if loc is not None and not (abs(loc.x) > OREJA_X and loc.z > OREJA_Z) and (p - loc).dot(nor) < margen \
                 and (dist <= profundidad_max or p.z > HULL_Z_MIN):
             d_piel = loc + nor * margen - p
-        if casco is not None and p.z > HULL_Z_MIN:
+        # `caja_sin_casco`: cajas (lista o una) donde el casco no empuja: x < x_max, y > y_min, z < z_max (las que falten no limitan); con `rampa`, el empuje
+        # vuelve suavemente entre z_max y z_max + rampa (sin escalón en la pared de la capucha).
+        con_casco = 1.0
+        for caja in (caja_sin_casco if isinstance(caja_sin_casco, list) else ([caja_sin_casco] if caja_sin_casco else [])):
+            if p.x < float(caja.get("x_max", math.inf)) and p.y > float(caja.get("y_min", -math.inf)):
+                r = float(caja.get("rampa", 0.0))
+                # (`suave` aquí es la NormalSuave: la rampa va escrita a mano)
+                t = max(0.0, min(1.0, (p.z - float(caja.get("z_max", math.inf))) / r)) if r > 0.0 else (0.0 if p.z < float(caja.get("z_max", math.inf)) else 1.0)
+                dentro = 1.0 - t * t * (3.0 - 2.0 * t)
+                con_casco *= 1.0 - dentro
+        if casco is not None and p.z > HULL_Z_MIN and not (sin_casco and g in sin_casco) and con_casco > 1e-4:
             # Un único factor radial por (ángulo, altura), el mismo para el forro y la capa de fuera: conserva el grosor y la forma de la capucha.
+            # La punta caída (`sin_casco`) comparte casillas con la pared de atrás de la capucha y el factor la lanzaba 20 cm hacia atrás: solo la piel. Su raíz, por
+            # encima del corte, es capucha y no está en `sin_casco`: la excluye `caja_sin_casco` (x < x_max, y > y_min, z < z_max: detrás a la derecha, bajo la oreja).
             # Delante (la abertura de la cara) manda la normal de la piel, de lado y detrás el casco del pelo.
             k = campo.factor(p.x - casco.cx, p.y - casco.cy, p.z)
             d_casco = Vector(((p.x - casco.cx) * (k - 1.0), (p.y - casco.cy) * (k - 1.0), 0.0))
             w = CampoFactor.peso_lateral(p.x - casco.cx, p.y - casco.cy)
-            desp[g] = d_casco * w + d_piel * (1.0 - w)
+            desp[g] = d_casco * w * con_casco + d_piel * (1.0 - w * con_casco)
             continue
         desp[g] = d_piel
     for _ in range(suavizado):
@@ -364,6 +420,74 @@ def sacar_de_la_piel(o: bpy.types.Object, arbol: BVHTree, margen: float, ids: li
     for v in o.data.vertices:
         d = desp[ids[v.index]]
         if d.length > 1e-5:
+            v.co = v.co + d
+            movidos += 1
+    return movidos
+
+
+def rellenar_pliegue(o: bpy.types.Object, cfg: dict, ids: list, vecinos: list, excluir: set, cajas: list) -> int:
+    """RELLENA EL PLIEGUE de la espalda de la capucha (11/11, Pablo: «La capucha sale partida en dos»). La capucha de Meshy trae una raja honda en el centro de
+    la espalda entre dos lóbulos y el casco la ahonda (infla más los lóbulos); en el juego el pelo del hueco está apagado y por la raja se ve la capa. Por
+    encima de `z_min` y en la mitad trasera (ángulo desde delante > `angulo_min`), los vértices que miran hacia fuera (producto normal·radial > `radial`)
+    suben de radio hasta el mayor radio de su banda de altura en los `vecinos` sectores a cada lado (un cierre morfológico en ángulo: tapa rajas de hasta
+    2·vecinos sectores); el forro no se toca. La punta (`excluir`) y las cajas sin casco (`cajas`, la raíz de la punta) ni se miden ni se mueven. El
+    desplazamiento se suaviza con los vecinos como en sacar_de_la_piel. Devuelve cuántos vértices sube."""
+    z_min, ang_min = float(cfg["z_min"]), float(cfg.get("angulo_min", 110.0))
+    n_sec, paso_z, n_vec = int(cfg.get("sectores", 48)), float(cfg.get("banda", 0.03)), int(cfg.get("vecinos", 4))
+    umbral = float(cfg.get("radial", 0.3))
+    pts = [o.matrix_world @ v.co for v in o.data.vertices]
+    cabeza = [p for p in pts if p.z > z_min]
+    cx = sum(p.x for p in cabeza) / len(cabeza)
+    cy = sum(p.y for p in cabeza) / len(cabeza)
+    rot = o.matrix_world.to_3x3()
+    normales = {}
+    for v in o.data.vertices:
+        normales[ids[v.index]] = normales.get(ids[v.index], Vector()) + (rot @ v.normal)
+
+    def en_caja(p: Vector) -> bool:
+        for caja in cajas:
+            if p.x < float(caja.get("x_max", math.inf)) and p.y > float(caja.get("y_min", -math.inf)) and p.z < float(caja.get("z_max", math.inf)):
+                return True
+        return False
+
+    def celda(p: Vector) -> tuple:
+        ang = math.degrees(math.atan2(p.x - cx, -(p.y - cy)))   # 0 = delante (-Y)
+        return (int(((ang + 180.0) / 360.0) * n_sec) % n_sec, int((p.z - z_min) / paso_z), abs(ang))
+    cand = {}
+    tabla = {}
+    for v in o.data.vertices:
+        g = ids[v.index]
+        if g in cand:
+            continue
+        p = pts[v.index]
+        if p.z <= z_min or g in excluir or en_caja(p):
+            continue
+        dx, dy = p.x - cx, p.y - cy
+        r = math.hypot(dx, dy)
+        n = normales[g]
+        if r < 1e-6 or n.length < 1e-9 or (n.x * dx + n.y * dy) / (r * n.length) < umbral:
+            continue
+        sec, fila, ang = celda(p)
+        tabla[(sec, fila)] = max(tabla.get((sec, fila), 0.0), r)
+        if ang > ang_min:
+            cand[g] = (v.index, sec, fila, r, dx, dy)
+    desp = {}
+    for g, (vi, sec, fila, r, dx, dy) in cand.items():
+        objetivo = max(tabla.get(((sec + k) % n_sec, fila), 0.0) for k in range(-n_vec, n_vec + 1))
+        if objetivo > r + 1e-4:
+            desp[g] = Vector((dx / r * (objetivo - r), dy / r * (objetivo - r), 0.0))
+    for _ in range(SUAVIZADO_EMPUJE):
+        nuevo = {}
+        for g in set(desp) | {h for g in desp for h in vecinos[g]}:
+            vec = [desp.get(h, Vector()) for h in vecinos[g]]
+            media = sum(vec, Vector()) / len(vec) if vec else Vector()
+            d = desp.get(g, Vector())
+            nuevo[g] = d if d.length > media.length else d * 0.5 + media * 0.5
+        desp = {g: d for g, d in nuevo.items() if d.length > 1e-6 and g not in excluir}
+    movidos = 0
+    for v in o.data.vertices:
+        d = desp.get(ids[v.index])
+        if d is not None and pts[v.index].z > z_min - 0.05 and not en_caja(pts[v.index]):
             v.co = v.co + d
             movidos += 1
     return movidos
@@ -507,7 +631,67 @@ def altura_corte(p: Vector, cfg: dict) -> float:
     return float(cfg["z"]) - float(cfg.get("inclina", 0.0)) * p.y
 
 
-def partir_con_solape(o: bpy.types.Object, pesos: list, corte: dict) -> list:
+def detectar_punta(o: bpy.types.Object, corte: dict, ids: list, vecinos: list) -> set:
+    """La PUNTA CAÍDA de la capucha (11/11, uniforme de Sumicio; decidido por Pablo: rígida, al hueso Head). Cuelga por detrás hasta por debajo del corte
+    capa/capucha, así que por altura se iría con la capa (Spine2 y muelles) y se estiraría entre la cabeza y el torso. Por debajo del corte, los vértices
+    (soldados por posición) que NO están unidos a la pieza mayor (la capa) y cuyo centro cae en x < `x_max` (la punta cae hacia la derecha del personaje, -X) son
+    la punta. Devuelve sus ids soldados (vacío si no hay). Se detecta nada más colocar la prenda: `nivelar_borde` y el casco de `sacar_de_la_piel` la dejan en
+    paz, y al final `separar_punta` la saca de la prenda y `partir_con_solape` la une a la capucha con peso 1 en Head."""
+    pc = corte["punta"]
+    pos = {}
+    for v in o.data.vertices:
+        pos.setdefault(ids[v.index], o.matrix_world @ v.co)
+    abajo = {g for g, p in pos.items() if p.z < altura_corte(p, corte)}
+    visto = set()
+    comps = []
+    for g in abajo:
+        if g in visto:
+            continue
+        pila = [g]
+        visto.add(g)
+        miembros = []
+        while pila:
+            u = pila.pop()
+            miembros.append(u)
+            for w in vecinos[u]:
+                if w in abajo and w not in visto:
+                    visto.add(w)
+                    pila.append(w)
+        comps.append(miembros)
+    comps.sort(key=len, reverse=True)
+    punta = set()
+    for m in comps[1:]:
+        cx = sum(pos[g].x for g in m) / len(m)
+        if cx < float(pc["x_max"]):
+            punta.update(m)
+    if not punta:
+        print("PUNTA: no hay trozos sueltos bajo el corte (%d componentes)" % len(comps))
+    return punta
+
+
+def separar_punta(o: bpy.types.Object, punta: set, ids: list) -> bpy.types.Object:
+    """Saca de `o` las caras de la punta (ver detectar_punta), enteras las que cruzan el corte (así no quedan astillas en la capa), como objeto aparte."""
+    if not punta:
+        return None
+    caras = {p.index for p in o.data.polygons if any(ids[i] in punta for i in p.vertices)}
+    copia = o.copy()
+    copia.data = o.data.copy()
+    copia.name = o.name + "_punta"
+    bpy.context.scene.collection.objects.link(copia)
+    for obj, quedarse in ((copia, True), (o, False)):
+        bm = bmesh.new()
+        bm.from_mesh(obj.data)
+        bm.faces.ensure_lookup_table()
+        bmesh.ops.delete(bm, geom=[f for f in bm.faces if (f.index in caras) != quedarse], context='FACES')
+        bmesh.ops.delete(bm, geom=[v for v in bm.verts if not v.link_faces], context='VERTS')
+        bm.to_mesh(obj.data)
+        bm.free()
+    zs = [(copia.matrix_world @ v.co).z for v in copia.data.vertices]
+    print("PUNTA: %d caras y %d vértices a la capucha (Head); z %.3f..%.3f" % (len(caras), len(copia.data.vertices), min(zs), max(zs)))
+    return copia
+
+
+def partir_con_solape(o: bpy.types.Object, pesos: list, corte: dict, punta: bpy.types.Object = None) -> list:
     """Parte la prenda en capucha y capa con un corte LIMPIO y con SOLAPE (26/10, Pablo: «hay una textura rota ahí», junto a la cara y detrás de la oreja).
     Antes cada triángulo iba entero a una pieza por la altura de su centro: el borde quedaba en dientes, las dos piezas solo se tocaban en esos dientes y, como la
     capucha va con Head y la capa con Spine2 (y con la cabeza encogida a 0,80 encima), al andar y al correr se abrían rendijas por las que se veía el cuello.
@@ -540,6 +724,20 @@ def partir_con_solape(o: bpy.types.Object, pesos: list, corte: dict) -> list:
         bm.free()
         if es_capa:
             print("BANDA %s: %d vértices metidos bajo la capucha" % (parte, meter_banda(copia, corte)))
+        elif punta is not None:
+            # La punta caída se une a la capucha con todo su peso en Head; los vértices de la costura (duplicados al separarla) se vuelven a soldar.
+            g = punta.vertex_groups.new(name="mixamorig_Head")
+            g.add([v.index for v in punta.data.vertices], 1.0, 'REPLACE')
+            bpy.ops.object.select_all(action='DESELECT')
+            copia.select_set(True)
+            punta.select_set(True)
+            bpy.context.view_layer.objects.active = copia
+            bpy.ops.object.join()
+            bm = bmesh.new()
+            bm.from_mesh(copia.data)
+            bmesh.ops.remove_doubles(bm, verts=bm.verts[:], dist=1e-5)
+            bm.to_mesh(copia.data)
+            bm.free()
         res.append((parte, copia, pesos_de_grupos(copia)))
     return res
 
@@ -632,7 +830,16 @@ def guardar_texturas(o: bpy.types.Object, carpeta: str) -> None:
     for m in o.data.materials:
         for n in m.node_tree.nodes:
             if n.type == 'TEX_IMAGE' and n.image is not None:
-                nombre = "basecolor" if "basecolor" in n.image.name else ("normal" if "normal" in n.image.name else "rm")
+                # Por el nombre (Tripo) o, si no dice nada, por el enchufe al que va (Meshy: una sola imagen sin nombre, al Base Color del Principled).
+                enlaces = [l for sal in n.outputs for l in sal.links]
+                enchufes = {l.to_socket.name.lower() for l in enlaces}
+                nombre_img = n.image.name.lower()
+                if "basecolor" in nombre_img or "base color" in enchufes:
+                    nombre = "basecolor"
+                elif "normal" in nombre_img or any(l.to_node.type == 'NORMAL_MAP' for l in enlaces):
+                    nombre = "normal"
+                else:
+                    nombre = "rm"
                 n.image.filepath_raw = os.path.join(carpeta, "ropa_" + nombre + ".png")
                 n.image.file_format = 'PNG'
                 n.image.save()
@@ -686,7 +893,11 @@ def main() -> None:
     if len(a) > 3:
         with open(a[3]) as f:
             for k, v in json.load(f).items():
-                cfg.setdefault(k, {}).update(v)
+                if k.startswith("_"):
+                    cfg[k] = v
+                else:
+                    cfg.setdefault(k, {}).update(v)
+    prendas = list(cfg.get("_prendas", ["capa", "tunica"]))
     os.makedirs(carpeta, exist_ok=True)
     bpy.ops.wm.read_factory_settings(use_empty=True)
     objs_v = importar(ruta_vestido)
@@ -698,21 +909,32 @@ def main() -> None:
         if o.type == 'MESH' and o is not vestido and o is not base:
             bpy.data.objects.remove(o)
     arbol, verts_b, tris_b = arbol_base(base)
-    for nombre, derecha in (("capa", False), ("tunica", True)):
+    for nombre in prendas:
         c = cfg[nombre]
-        o = separar_prenda(vestido, nombre, derecha)
-        reducir(o, int(c["tris"]))
-        colocar(o, c)
-        if "nivela_borde" in c:
-            nivelar_borde(o, c["nivela_borde"])
+        o = separar_prenda(vestido, nombre, str(c.get("parte", "derecha" if nombre == "tunica" else "izquierda")))
+        corte = c.get("capucha")
+        if "quitar_forro" in c:
+            # Antes de reducir (así el presupuesto de triángulos se gasta en lo que se ve) y ya colocada (el corte de la punta es en alturas del mundo).
+            colocar(o, c)
+            ids, vecinos = adyacencia_soldada(o)
+            punta_ids = detectar_punta(o, corte, ids, vecinos) if corte is not None and "punta" in corte else set()
+            print("FORRO %s: %d caras de la pared interior quitadas" % (nombre, quitar_forro(o, c["quitar_forro"], ids, punta_ids)))
+            reducir(o, int(c["tris"]))
+        else:
+            reducir(o, int(c["tris"]))
+            colocar(o, c)
         ids, vecinos = adyacencia_soldada(o)
+        punta_ids = detectar_punta(o, corte, ids, vecinos) if corte is not None and "punta" in corte else set()
+        if "nivela_borde" in c:
+            nivelar_borde(o, c["nivela_borde"], ids, punta_ids)
         # El casco se mide solo con los vértices de la cabeza y el pelo (peso de Head): por encima de HULL_Z_MIN también están los hombros y los brazos.
         g_cabeza = base.vertex_groups["mixamorig_Head"].index
         verts_cabeza = [verts_b[v.index] for v in base.data.vertices if any(g.group == g_cabeza and g.weight > 0.5 for g in v.groups)]
         casco = CascoCabeza(verts_cabeza) if "margen_casco" in c else None
         suave = NormalSuave(base, verts_b, tris_b) if c.get("normal_suave", False) else None
         profundidad = float(c.get("profundidad_max", math.inf))
-        movidos = sacar_de_la_piel(o, arbol, float(c["margen"]), ids, vecinos, casco, float(c.get("margen_casco", 0.0)), suave, profundidad)
+        movidos = sacar_de_la_piel(o, arbol, float(c["margen"]), ids, vecinos, casco, float(c.get("margen_casco", 0.0)), suave, profundidad,
+                                   sin_casco=punta_ids, caja_sin_casco=(corte or {}).get("punta", {}).get("sin_casco"))
         # Con `pasadas_piel` > 1 se repasa solo la piel (sin el casco, que volvería a ensanchar la capucha): el suavizado del desplazamiento mezcla direcciones y
         # deja vértices a pocos milímetros bajo la piel (el cuello de la capa, que abraza el de la jugadora). La última pasada va sin suavizar (cada vértice por
         # su normal). Con 8 pasadas, los vértices dentro de la base bajan de 607 a 25 (informe).
@@ -720,16 +942,22 @@ def main() -> None:
         for i in range(extra):
             sacar_de_la_piel(o, arbol, float(c["margen"]), ids, vecinos, None, 0.0, suave, profundidad, 0 if i == extra - 1 else SUAVIZADO_EMPUJE)
         print("PRENDA %s: %d vértices empujados fuera de la piel" % (nombre, movidos))
+        if "rellenar_pliegue" in c:
+            cajas = (corte or {}).get("punta", {}).get("sin_casco", [])
+            print("PLIEGUE %s: %d vértices subidos de radio" % (nombre, rellenar_pliegue(o, c["rellenar_pliegue"], ids, vecinos, punta_ids,
+                                                                                          cajas if isinstance(cajas, list) else [cajas])))
         informe(o, arbol, nombre, suave, profundidad)
         if nombre == "capa" and os.environ.get("ROPA_DEPURA"):
             perfil_cabeza(o, verts_b)
+        punta = separar_punta(o, punta_ids, ids)
+        if punta is not None:
+            ids, vecinos = adyacencia_soldada(o)
         pesos = pesos_desde_base(o, base, arbol, verts_b, tris_b, ids, vecinos, bool(c.get("atenuar_piernas", False)), c.get("brazo"),
                                  c.get("cabeza"))
         borde = (c.get("brazo") or {}).get("borde")
         if borde is not None:
             pesos, con_gradiente = suavizar_borde_trasero(o, pesos, ids, vecinos, borde)
             print("BORDE %s: %d vértices con gradiente de orla trasera" % (nombre, con_gradiente))
-        corte = c.get("capucha")
         if corte is None:
             d = exportar(o, pesos, base, carpeta, nombre)
             print("EXPORTADA %s: %d vértices, %d triángulos, %d huesos" % (nombre, len(d["pos"]), len(d["idx"]) // 3, len(d["huesos"])))
@@ -743,7 +971,7 @@ def main() -> None:
                 print("EXPORTADA %s: %d vértices, %d triángulos, %d huesos" % (parte, len(d["pos"]), len(d["idx"]) // 3, len(d["huesos"])))
         else:
             # 26/10: corte limpio y con solape (ver `partir_con_solape`).
-            for parte, malla, pesos_parte in partir_con_solape(o, pesos, corte):
+            for parte, malla, pesos_parte in partir_con_solape(o, pesos, corte, punta):
                 d = exportar(malla, pesos_parte, base, carpeta, parte)
                 print("EXPORTADA %s: %d vértices, %d triángulos, %d huesos" % (parte, len(d["pos"]), len(d["idx"]) // 3, len(d["huesos"])))
         guardar_texturas(o, carpeta)

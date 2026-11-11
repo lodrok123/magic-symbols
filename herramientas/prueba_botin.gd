@@ -67,7 +67,7 @@ func _tiradas() -> void:
 	_ok("1 pesos: con 0,6 cae oro, en el rango 3..8 (con la tirada forzada, 3 + floor(0,6 × 6) = 6)", b.size() == 1 and String(b[0]["que"]) == "oro" and int(b[0]["n"]) == 6, _lista_a_texto(b))
 	Botin.tirada_forzada = 0.95
 	var c: Array = Botin.tirar("jarron_bosque")
-	_ok("1 pesos: con 0,95 cae 1 poción", c.size() == 1 and String(c[0]["que"]) == "pocion" and int(c[0]["n"]) == 1, _lista_a_texto(c))
+	_ok("1 pesos: con 0,95 cae un ingrediente del bosque (11/11: ya no la poción): 1 helecho", c.size() == 1 and String(c[0]["que"]) == "helecho" and int(c[0]["n"]) == 1, _lista_a_texto(c))
 	Botin.tirada_forzada = 0.6
 	var d: Array = Botin.tirar("jarron_bosque", 3)
 	_ok("1 n_tiradas: tres tiradas iguales suman (18 de oro en una sola entrada)", d.size() == 1 and int(d[0]["n"]) == 18, _lista_a_texto(d))
@@ -135,9 +135,9 @@ func _cifras_de_ayer() -> void:
 		if Botin.rango("jarron_" + String(z), "oro") != esperado[z]:
 			mal.append("%s %s" % [z, str(Botin.rango("jarron_" + String(z), "oro"))])
 	_ok("3 el oro de los jarrones por zona es el de ayer", mal.is_empty(), str(mal))
-	_ok("3 la poción: 1 en todas menos el santuario (2)", Botin.rango("jarron_bosque", "pocion") == Vector2i(1, 1) and Botin.rango("jarron_cueva", "pocion") == Vector2i(1, 1) and Botin.rango("jarron_santuario", "pocion") == Vector2i(2, 2))
-	_ok("3 el perfil del bosque (50 nada · 40 oro · 10 poción) y el del campamento (40 · 45 · 15) como ayer",
-		_pesos("jarron_bosque") == {"nada": 50.0, "oro": 40.0, "pocion": 10.0} and _pesos("jarron_campamento") == {"nada": 40.0, "oro": 45.0, "pocion": 15.0}, str(_pesos("jarron_bosque")) + str(_pesos("jarron_campamento")))
+	_ok("3 la poción: solo el santuario (2); los demás jarrones dan un ingrediente de su zona (11/11)", Botin.rango("jarron_bosque", "pocion") == Vector2i.ZERO and Botin.rango("jarron_cueva", "pocion") == Vector2i.ZERO and Botin.rango("jarron_santuario", "pocion") == Vector2i(2, 2))
+	_ok("3 el perfil del bosque (50 nada · 40 oro · 10 ingredientes) y el del campamento (40 · 45 · 15) como ayer, con ingredientes en lugar de la poción",
+		_pesos("jarron_bosque") == {"nada": 50.0, "oro": 40.0, "baya": 4.0, "helecho": 3.0, "lavanda": 3.0} and _pesos("jarron_campamento") == {"nada": 40.0, "oro": 45.0, "colmillo_goblin": 8.0, "resina": 7.0}, str(_pesos("jarron_bosque")) + str(_pesos("jarron_campamento")))
 	_ok("3 la cueva y las ruinas añaden esquirla de cristal (lo que antes era el «mineral extra»)", Botin.rango("jarron_cueva", "esquirla_cristal") == Vector2i(1, 1) and Botin.rango("jarron_ruinas", "esquirla_cristal") == Vector2i(1, 1) and Botin.rango("jarron_bosque", "esquirla_cristal") == Vector2i.ZERO)
 	# Enemigos: el oro de cada uno es el que traía su script; el colmillo, la probabilidad de BotinGoblin.
 	_ok("3 oro de los enemigos = el de sus scripts (goblin %d · limo %d · chamán %d · gólem %d · elemental %d)" % [Combate3D.ORO_BOTIN, Limo3D.ORO_LIMO, Chaman3D.ORO_CHAMAN, Golem3D.ORO_GOLEM, Combate3D.ELEM_ORO],

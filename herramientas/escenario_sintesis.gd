@@ -87,11 +87,11 @@ func _escenario() -> void:
 
 	# 4 · la poción en la hoguera
 	var hoguera: Array[String] = Sintesis.conocidas("hoguera")
-	_ok("4 la hoguera enseña la poción y no las mejoras", hoguera.has("pocion") and not hoguera.has("vida_1"))
+	_ok("4 la hoguera enseña la poción y no las mejoras", hoguera.has("pocion") and not hoguera.has("cura_1"))      # 11/11: la vida ya no tiene receta (trozos de corazón)
 	var el: Dictionary = Sintesis.sugerir("pocion")
 	_ok("4 «Sugerir» llena la poción con bayas y helecho", bool(Sintesis.puede("pocion", el, "hoguera")["ok"]), str(el))
 	_ok("4 «Hacer» da la poción y gasta los ingredientes", Sintesis.hacer("pocion", el, "hoguera") and e.cuenta("pocion") == 1 and e.cuenta("baya") + e.cuenta("helecho") == 3, str(e.items))
-	_ok("5 la mejora de vida es del alquimista: en la hoguera no se hace", not Sintesis.hacer("vida_1", {"baya": 6, "cristal_tierra": 1}, "hoguera"))
+	_ok("5 la mejora de la poción es del alquimista: en la hoguera no se hace", not Sintesis.hacer("cura_1", {"baya": 5, "seta_humeda": 1}, "hoguera"))
 	_tecla(KEY_E, true)
 	_tecla(KEY_E, false)
 	await avanzar(5)

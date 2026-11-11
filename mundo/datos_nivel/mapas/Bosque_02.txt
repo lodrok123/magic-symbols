@@ -159,13 +159,13 @@
 ; El brasero vuelve a apagarse y admite fuego directo si se quemó la hierba.
 ; pieza brasero_cortafuegos brasero 5 28 dura=6 por_hierba=si
 ; puzle cortafuegos_marca cuando=brasero_cortafuegos.encendido si=casilla(7,32).mojada hace=flag.poner(bosque02.linde.cortafuegos)
-; pieza cofre_cortafuegos cofre 4 28 aparece_si=flag.bosque02.linde.cortafuegos abierto=bosque02.linde.cortafuegos.cofre da=oro:20
+; pieza cofre_cortafuegos cofre 4 28 aparece_si=flag.bosque02.linde.cortafuegos abierto=bosque02.linde.cortafuegos.cofre da=oro:20+trozo_corazon:1
 ; pieza cajas_linde jarron 6 30 celdas=6,30+8,34 modelo=caja botin=zona
 ; --------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 ; 2 · EL ESCONDITE (norte de la linde): el muro agrietado (8,27) lo rompen dos golpes de tierra o una explosión. Detrás, el cofre común 7 y dos telarañas (hielo = seda).
 ; --------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 ; pieza muro_escondite muro 8 27 golpes=2
-; pieza cofre_escondite cofre 8 22 abierto=bosque02.escondite.cofre da=oro:50+pocion:1
+; pieza cofre_escondite cofre 8 22 abierto=bosque02.escondite.cofre da=oro:50+pocion:1+trozo_corazon:1
 ; pieza jarron_escondite jarron 7 24 botin=zona
 ; --------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 ; 3 · EL ARROYO y la ORILLA ESTE. El tronco-puente (marcador, 13,31) cae con fuego sobre el río. El cofre común 2 aparece al pisar la orilla este (flag bosque02.arroyo.cruzado, la pone el script).
@@ -224,7 +224,7 @@
 ; 10 · EL PESO DE LA PIEDRA: el bloque (5,10) se empuja por la pista (y=10) hasta la placa K (9,10). Cofre ÉPICO 3 (trastienda, tunica_salamandra). La placa K es un Reactivo3D: la flag la pone el script.
 ; --------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 ; pieza bloque_ruinas bloque 5 10 material=piedra
-; pieza cofre_trastienda cofre 11 10 modelo=epico aparece_si=flag.bosque02.ruinas.placa abierto=bosque02.trastienda.cofre da=tunica_salamandra:1
+; pieza cofre_trastienda cofre 11 10 modelo=epico aparece_si=flag.bosque02.ruinas.placa abierto=bosque02.trastienda.cofre da=tunica_salamandra:1+frasco_vacio:1
 ; pieza jarrones_plaza jarron 10 6 celdas=10,6+5,11 botin=zona
 ; --------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 ; 11 · EL ESTANQUE DEL MOLINO. La fuente eléctrica (25,7) electrifica el lago cada ~5,6 s. Canal x=33: manantial (33,5) → compuerta (33,6) → molino (33,8) → desagüe (33,10). El pulsador de agua (31,8) abre la compuerta.
@@ -245,7 +245,7 @@
 ; puzle desvio_rueda cuando=flag.bosque02.estanque.desvio hace=paso_rueda.abrir
 ; puzle desvio_partida_anterior cuando=flag.bosque02.estanque.molino hace=cuerda_molino.quemar
 ; puzle pila_marca cuando=nivel_pila_molino.alcanzado hace=flag.poner(bosque02.estanque.pila)
-; pieza cofre_pila cofre 30 9 aparece_si=flag.bosque02.estanque.pila abierto=bosque02.estanque.pila.cofre da=oro:25
+; pieza cofre_pila cofre 30 9 aparece_si=flag.bosque02.estanque.pila abierto=bosque02.estanque.pila.cofre da=oro:25+trozo_corazon:1
 ; pieza atajo_molino puerta 23 9 modelo=reja
 ; pieza molino_estanque molino 33 8 umbral=0.3
 ; pieza pulsador_molino pulsador 31 8 modo=agua
@@ -281,7 +281,7 @@
 ; pieza puerta_santuario puerta 8 12 modelo=llave llave=bosque02.santuario.llave abierto=bosque02.santuario.puerta
 ; pieza vig_sant vigia 8 16 de=5,13..11,19 flag=bosque02.santuario.limpio
 ; pieza guardian_sant guardian 5 16 en=7,15+9,15 elemento=fuego
-; pieza cofre_corazon cofre 8 18 modelo=legendario glifo=barrera aparece_si=flag.bosque02.santuario.limpio abierto=bosque02.santuario.cofre da=oro:150+pocion_grande:2
+; pieza cofre_corazon cofre 8 18 modelo=legendario glifo=barrera aparece_si=flag.bosque02.santuario.limpio abierto=bosque02.santuario.cofre da=oro:150+pocion_grande:2+hoja_grimorio:1
 ; --------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 ; 14 · LA BALANZA DEL CLARO (5/11/2026, Pablo: «las rocas medianas y pequeñas deberían ser empujables, pequeños puzles de peso»; docs/ROCAS_EMPUJABLES_2026-11-05.md). Junto a la orilla este, al norte del camino (y=31, que
 ; queda libre): DOS placas de peso en x=22. La de arriba (22,30) pide PESO 2; la de abajo (22,32) pide PESO 1. Pista de arriba (y=30): la roca MEDIANA (19,30) y, delante de ella, una piedrecita (21,30)
@@ -295,4 +295,18 @@
 ; pieza piedra_balanza_b roca_empujable 19 32 tam=pequena variante=musgo
 ; puzle balanza_pesada cuando=placa_pesada.pulsado hace=flag.poner(bosque02.balanza.pesada)
 ; puzle balanza_ligera cuando=placa_ligera.pulsado hace=flag.poner(bosque02.balanza.ligera)
-; pieza cofre_balanza cofre 22 34 aparece_si=flag.bosque02.balanza.pesada+flag.bosque02.balanza.ligera abierto=bosque02.balanza.cofre da=tabla:cofre_pequeno
+; pieza cofre_balanza cofre 22 34 aparece_si=flag.bosque02.balanza.pesada+flag.bosque02.balanza.ligera abierto=bosque02.balanza.cofre da=tabla:cofre_pequeno+trozo_corazon:1
+; 15 · PLANTAS DEL BOSQUE (11/11, Juego; docs/REVISION_OBJETOS_SINTESIS.md §4: «lo común se recoge»): se cogen con E y rebrotan a los 90 s. La flor y la raíz se
+; transforman antes con un elemento (fuego: flor ardiente / raíz carbonizada; agua: flor de rocío / raíz hinchada...), como las setas.
+; pieza bayas_linde bayas 5 35 rebrota=90
+; pieza flor_silv_linde flor_silvestre 13 28 rebrota=90
+; pieza helecho_linde helecho 4 33 rebrota=90
+; pieza flor_claro flor 29 29 rebrota=90
+; pieza raiz_claro raiz 29 31 rebrota=90
+; pieza lavanda_pradera_a lavanda 26 14 rebrota=90
+; pieza lavanda_pradera_b lavanda 27 15 rebrota=90
+; pieza flor_pradera flor 23 13 rebrota=90
+; pieza helecho_denso helecho 17 24 rebrota=90
+; pieza raiz_denso raiz 19 26 rebrota=90
+; pieza bayas_denso_a bayas 17 27 rebrota=90
+; pieza bayas_denso_b bayas 16 30 rebrota=90

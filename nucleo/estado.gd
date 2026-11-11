@@ -43,9 +43,14 @@ var consumible_equipado: String = ""
 ## elige en la mochila (`poner_en_rueda`); el hueco recuerda el objeto aunque se acabe. `rueda_elegido` = el hueco que lanza la G. `rueda_vistos`: los lanzables
 ## que ya se han cogido alguna vez (el primero de cada uno entra solo en un hueco libre; luego, la jugadora manda).
 const HUECOS_RUEDA: int = 6
+const PILA_PIEZAS: int = 99                 ## 11/11: lo que cabe de una pieza de mejora (no ocupa hueco)
+## 11/11: se juntaron las piezas de una mejora y ha subido (`mejora` = id de mejoras.tsv). La UI lo anuncia («¡+20 de vida máxima!»).
+signal pieza_completada(objeto: String, mejora: String)
 var rueda: Array = ["", "", "", "", "", ""]
 var rueda_elegido: int = 0
 var rueda_vistos: Array = []
+## 11/11: lo comprado en cada tienda ("tienda/objeto" -> unidades), para las existencias limitadas de `tiendas.tsv` (ver `Tiendas`). Viaja con la partida.
+var tiendas_compras: Dictionary = {}
 var bosque_retorno_cueva: String = "" ## Bosque desde el que se entró en Cueva.
 ## ASISTENCIA AL TRAZO (Fase 14.4): 0 = dibujar como siempre (no se calcula nada); 1 = ayuda máxima. La guía fantasma y el imán del
 ## trazo (tope 0,6 de fuerza) escalan con esto. Empieza en 0,5: ayuda sin quitarle protagonismo a la mano. Es una opción del jugador,
@@ -77,12 +82,16 @@ func cuenta(id: String) -> int:
 func huecos_usados() -> int:
 	var n: int = 0
 	for id in items:
+		if Objetos.es_pieza(String(id)):
+			continue                          # 11/11: las piezas de mejora no ocupan hueco (como las llaves de Zelda)
 		n += int(ceil(float(items[id]) / float(Objetos.pila(String(id)))))
 	return n
 
 
 ## Cuántas unidades de `id` caben todavía: los huecos libres a la pila de ESE objeto, más lo que le falta a su última pila para llenarse.
 func sitio_para(id: String) -> int:
+	if Objetos.es_pieza(id):
+		return PILA_PIEZAS                    # 11/11: una pieza de mejora siempre cabe
 	var pila: int = Objetos.pila(id)
 	var libres: int = capacidad - huecos_usados()
 	var actual: int = cuenta(id)
@@ -98,6 +107,7 @@ func agregar(id: String, n: int = 1) -> int:
 	items[id] = cuenta(id) + cabe
 	_rueda_al_coger(id)
 	objeto_conseguido.emit(id)
+	_pieza_al_coger(id)
 	cambiado.emit()
 	return cabe
 
@@ -149,6 +159,7 @@ func a_dic() -> Dictionary:
 		"mejoras": mejoras.duplicate(),
 		"consumible_equipado": consumible_equipado,
 		"rueda": {"huecos": rueda.duplicate(), "elegido": rueda_elegido, "vistos": rueda_vistos.duplicate()},
+		"tiendas": tiendas_compras.duplicate(),
 		"bosque_retorno_cueva": bosque_retorno_cueva,
 		"opciones": {"asistencia": asistencia, "trazo_recto": trazo_recto, "lanzamiento_inteligente": lanzamiento_inteligente},
 	}
@@ -177,6 +188,10 @@ func desde_dic(d: Dictionary) -> void:
 	for k in range(HUECOS_RUEDA):
 		rueda.append(String(huecos[k]) if k < huecos.size() else "")
 	rueda_elegido = clampi(int(r.get("elegido", 0)), 0, HUECOS_RUEDA - 1)
+	tiendas_compras = {}
+	var tc: Dictionary = d.get("tiendas", {}) if d.get("tiendas", {}) is Dictionary else {}
+	for k in tc:
+		tiendas_compras[String(k)] = int(tc[k])
 	rueda_vistos = []
 	for v in (r.get("vistos", []) if r.get("vistos", []) is Array else []):
 		rueda_vistos.append(String(v))
@@ -241,3 +256,21 @@ func _rueda_al_coger(id: String) -> void:
 	rueda[libre] = id
 	if lanzable_elegido() == "":
 		rueda_elegido = libre
+
+
+## --- Piezas de mejora (11/11, docs/REVISION_OBJETOS_SINTESIS.md §6, tabla de Pablo) ---
+## Al coger una pieza (`uso = pieza`), si ya hay las que pide su efecto (`piezas`: 4 trozos de corazón; 1 frasco, engarce u hoja) se gastan y sube su mejora
+## (`Mejoras.subir`). Con la mejora en su tope las piezas se quedan en la mochila (no se pierden, pero ya no suben nada). No pasa por el alquimista.
+func _pieza_al_coger(id: String) -> void:
+	if not Objetos.es_pieza(id):
+		return
+	var ef: Dictionary = Objetos.efecto(id)
+	var mejora: String = String(ef.get("mejora", ""))
+	var piezas: int = maxi(1, int(ef.get("piezas", 1)))
+	while mejora != "" and cuenta(id) >= piezas and not Mejoras.al_tope(mejora, self):
+		quitar(id, piezas)
+		if not Mejoras.subir(mejora, self):
+			agregar(id, piezas)
+			return
+		PlayLog.event("pieza_mejora", {"objeto": id, "mejora": mejora, "nivel": nivel(mejora)})
+		pieza_completada.emit(id, mejora)

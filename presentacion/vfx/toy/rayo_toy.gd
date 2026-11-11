@@ -122,6 +122,8 @@ var _halo_bola: MultiMeshInstance3D = null  ## BOLA: el halo azul redondo, detr�
 var _nuc: float = 1.0                       ## BOLA: intensidad del núcleo en el último redibujo (0,6 a 1 mientras vive)
 var _chispas_v: Array = []                  ## BOLA en vuelo: chispas que se quedan atrás [{p (mundo), v, edad, vida, tam}]
 var _t_chispa: float = 0.0
+var _repo_hecho: ChispasRepo = null          ## 11/11: la capa de chispas tipo repo de esta vida (estela de la bola o pie del pilar)
+var _repo_tomado: bool = false
 var _trazos: MultiMeshInstance3D = null     ## los tramos de la línea quebrada
 var _cinta: MeshInstance3D = null
 var _cintas: Array = []
@@ -589,6 +591,7 @@ func _construir() -> void:
 	_halo_bola = null
 	_cinta = null
 	_chispas_v = []
+	_quitar_repo()
 	if figura == Figura.BOLA:
 		_halo_bola = RayoTrazos.crear_destellos("Halo", 1, -1)          # detrás de la esfera
 		cuerpo.add_child(_halo_bola)
@@ -748,6 +751,7 @@ func lanzar(v: float = -1.0) -> void:
 	_frame_contacto_haz = -1
 	_inicio_tormenta = -1.0
 	_ultimo_impacto_tormenta = -1
+	_quitar_repo()
 	if _golpe_haz != null or _nube_tormenta != null:
 		crece = 0.0
 		corte = 0.0
@@ -775,6 +779,7 @@ func _process(delta: float) -> void:
 	if _golpe_haz != null:
 		_actualizar_golpe_haz()
 	_avanzar_chispas_vuelo(delta)
+	_capas_repo()
 	_actualizar_luz()
 	if _sello != null and is_instance_valid(_sello) and not _sello_cerrado and (corte > 0.05 or _est == EstadoCarga.APAGANDO):
 		_sello_cerrado = true
@@ -930,6 +935,29 @@ func _avanzar_chispas_vuelo(delta: float) -> void:
 			RayoTrazos.poner_destello(mb, slot, _brillos.to_local(q["p"]), float(q["tam"]) * (1.0 - 0.45 * u), 0.9 * (1.0 - smoothstep(0.5, 1.0, u)) * brillo_chispas() * clampf(_fl + 0.3, 0.0, 1.0), 0.9, float(i) * 1.7 + u * 6.0, float(i) * 0.31)
 		else:
 			RayoTrazos.ocultar(mb, slot)
+
+
+## 11/11: CHISPAS TIPO REPO DE GAS (ChispasRepo; capas NUEVAS con su interruptor: apagadas, el rayo es el de siempre). La bola en vuelo deja una estela que sale con su velocidad, se frena en
+## el aire y rebota en el suelo («rayo_proyectil»); el PILAR, desde que la columna llega al suelo, chispas en su pie mientras vive («rayo_pilar»).
+func _capas_repo() -> void:
+	if _repo_tomado or not is_inside_tree() or corte >= 0.05:
+		return
+	var yo: RayoToy = self
+	if figura == Figura.BOLA and proyectil and _est != EstadoCarga.APAGANDO:
+		_repo_tomado = true
+		_repo_hecho = ChispasRepo.enganchar_estela(self, "rayo_proyectil", ChispasRepo.Paleta.RAYO, maxf(semieje_x, maxf(semieje_y, semieje_z)), global_position.y - altura_suelo,
+			func() -> bool: return is_instance_valid(yo) and yo.proyectil and yo._est != EstadoCarga.APAGANDO and yo.corte < 0.05)
+	elif figura == Figura.PILAR and crece >= 0.98:
+		_repo_tomado = true
+		_repo_hecho = ChispasRepo.enganchar_pilar_rayo(self)
+
+
+## Cierra la capa del repo (al rehacer la figura o al renacer): lo ya soltado acaba solo.
+func _quitar_repo() -> void:
+	if _repo_hecho != null and is_instance_valid(_repo_hecho):
+		_repo_hecho.cerrar()
+	_repo_hecho = null
+	_repo_tomado = false
 
 
 func _dir_azar_libre() -> Vector3:

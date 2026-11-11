@@ -34,8 +34,13 @@ const HOLGURA_BRAZOS: float = 0.02
 ## (c) la anchura a la altura del cuello se mide en ±1 cm alrededor del hueso Neck.
 const MEDIA_BANDA_CUELLO: float = 0.01
 ## (d) capucha.
-const CAPUCHA_CIMA_MAX: float = 1.73
-const CAPUCHA_NUCA_Z_MIN: float = -0.36
+## 11/11: 1,73 era la de Tripo; la de Meshy (uniforme de Sumicio) lleva el arco de la punta caída por encima de la cúpula.
+const CAPUCHA_CIMA_MAX: float = 1.78
+## 11/11: -0,36 era la capucha de Tripo. La de Meshy lleva forro: el casco de encajar_ropa.py saca el aro bajo hasta ×1,3 para que el forro no entre en el pelo (el aro
+## queda a 0,44 detrás del eje con la cabeza a 1,0; en el juego la cabeza y la capucha van al 0,8).
+const CAPUCHA_NUCA_Z_MIN: float = -0.45
+## Altura del corte capa/capucha (`capucha.z` de herramientas/rig/ropa_sumicio_capa.json): por debajo, en la capucha, solo cuelga la punta.
+const CORTE_CAPUCHA_Y: float = 1.22
 ## (e) en reposo: vóxeles de 1 cm, zona del pelo y orejas (ejes de Godot: la Z de Blender es aquí la Y).
 const VOXEL: float = 0.01
 const ZONA_PELO: String = "pelo"
@@ -149,7 +154,10 @@ func _initialize() -> void:
 	var nuca: float = INF
 	for v in capucha:
 		cima = maxf(cima, v.y)
-		nuca = minf(nuca, v.z)
+		# 11/11 (uniforme de Sumicio): la capucha tiene una PUNTA CAÍDA que cuelga por detrás hasta el hombro; lo que está por debajo del corte capa/capucha es la
+		# punta y no cuenta como nuca (la regla es que la capucha no sobresalga por detrás de la CABEZA).
+		if v.y >= CORTE_CAPUCHA_Y:
+			nuca = minf(nuca, v.z)
 	var coronilla: float = (sk_b.get_bone_global_rest(sk_b.find_bone("mixamorig_HeadTop_End")).origin * esc).y
 	_ok(cima <= CAPUCHA_CIMA_MAX, "(d) cima de la capucha %.3f (máx %.2f; coronilla %.3f)" % [cima, CAPUCHA_CIMA_MAX, coronilla])
 	_ok(nuca >= CAPUCHA_NUCA_Z_MIN, "(d) la capucha llega por detrás a z %.3f (mín %.2f)" % [nuca, CAPUCHA_NUCA_Z_MIN])

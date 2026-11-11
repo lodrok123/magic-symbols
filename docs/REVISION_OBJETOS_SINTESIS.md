@@ -331,9 +331,10 @@ Tres huecos de ropa: cabeza, medio (túnica) y exterior (capa). Una prenda por h
 
 ## 9. Orden propuesto para implementarlo
 
-1. **Juego, rápido:** tablas para loberno y canouro, `cofre_pequeno` con ingredientes, jarrones con ingrediente de zona, plantas de la paleta colocadas en Bosque_02 y en la Cueva.
+1. **Juego, rápido:** tablas para loberno y canouro, `cofre_pequeno` con ingredientes, jarrones con ingrediente de zona, plantas de la paleta colocadas en Bosque_02 y en la Cueva. **Hecho el 11/11** (diario 470): pelaje de loberno y garra de canouro, gota de veneno del chamán, cofre pequeño con oro e ingrediente siempre, jarrones sin poción, y 12 plantas en Bosque_02 y 5 en la Cueva Resonante.
 2. **Pipeline:** la pestaña de Síntesis (bloquea todo lo demás) y los 28 iconos que faltan.
-3. **Juego:** piezas de mejora (objetos, recetas, cofres épicos que las dan).
+3. **Juego:** piezas de mejora (objetos, recetas, cofres épicos que las dan). **Hecho el 11/11** (diario 471): trozo de corazón (4 = +20 de vida), frasco vacío, engarce de glifo y hoja de grimorio. Se aplican solas al cogerlas, sin alquimista, y no ocupan hueco; se quitaron las recetas de vida, frascos, huecos y páginas. Colocadas en cofres de Bosque_02 y de la Cueva y en el jefe elemental.
+3b. **Juego: tiendas. Hecho el 11/11** (diario 472): tabla `tiendas.tsv` y `Tiendas` con oferta, compra, existencias y desbloqueos; el alquimista y la librera abren su tienda al hablar. Pantalla hecha el 11/11 (`TiendaUI`, diario 473).
 4. **Juego y Pipeline:** prendas funcionales, una por zona, empezando por la del Bosque.
 5. **Hechizos:** páginas por encima de 3.
 6. **Juego:** consumibles nuevos.

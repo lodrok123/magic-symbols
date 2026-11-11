@@ -73,10 +73,11 @@ func _escenario() -> void:
 		j2.on_spell_hit(agua)                         # si el proyectil no llegó, el contrato directo (como prueba_mapa_abierto)
 		await avanzar_s(0.3)
 	Botin.tirada_forzada = -1.0
-	_ok("1 un hechizo de agua rompe el otro jarrón (salió=%s) y cae una poción" % salio, j2.roto_ya and j2.soltado.size() == 1 and String(j2.soltado[0]["que"]) == "pocion", str(j2.soltado))
-	_ok("1 la poción queda en el suelo como BotinObjeto3D", _suelo_con("Botin_pocion") == 1 and Estado.i().cuenta("pocion") == 0)
+	# 11/11: los jarrones ya no dan poción: la tirada alta del jarrón del bosque es un ingrediente de la zona (helecho).
+	_ok("1 un hechizo de agua rompe el otro jarrón (salió=%s) y cae un helecho" % salio, j2.roto_ya and j2.soltado.size() == 1 and String(j2.soltado[0]["que"]) == "helecho", str(j2.soltado))
+	_ok("1 el helecho queda en el suelo como BotinObjeto3D", _suelo_con("Botin_helecho") == 1 and Estado.i().cuenta("helecho") == 0)
 	await _recoger_en(c_j2 + Vector2i(0, 1))
-	_ok("1 y se coge: +1 poción", Estado.i().cuenta("pocion") == 1, str(Estado.i().items))
+	_ok("1 y se coge: +1 helecho", Estado.i().cuenta("helecho") == 1, str(Estado.i().items))
 
 	# --- 2 · Seto: fuego → se consume y suelta carbón ------------------------------------------------------------------------------------------------
 	var c_seto: Vector2i = Vector2i(10, 19)
@@ -208,12 +209,12 @@ func _escenario() -> void:
 	_ok("7 y se cogen: +5 de oro, +1 baba de limo", Estado.i().oro == oro_antes + 5 and Estado.i().cuenta("baba_limo") == 1, "oro %d, %s" % [Estado.i().oro, str(Estado.i().items)])
 
 	# --- 8 · La bolsa al final -------------------------------------------------------------------------------------------------------------------------
-	var esperado: Dictionary = {"pocion": 1, "carbon": 1, "seda": 1, "panal": 2, "pluma": 1, "obsidiana": 1, "baba_limo": 1}
+	var esperado: Dictionary = {"helecho": 1, "carbon": 1, "seda": 1, "panal": 2, "pluma": 1, "obsidiana": 1, "baba_limo": 1}
 	var igual: bool = true
 	for k in esperado:
 		if Estado.i().cuenta(String(k)) != int(esperado[k]):
 			igual = false
-	_ok("8 la bolsa tiene exactamente lo que cayó: poción, carbón, seda, 2 panales, pluma, obsidiana y baba (y %d de oro)" % Estado.i().oro, igual and Estado.i().items.size() == esperado.size() and Estado.i().oro == 11, str(Estado.i().items) + " oro %d" % Estado.i().oro)
+	_ok("8 la bolsa tiene exactamente lo que cayó: helecho, carbón, seda, 2 panales, pluma, obsidiana y baba (y %d de oro)" % Estado.i().oro, igual and Estado.i().items.size() == esperado.size() and Estado.i().oro == 11, str(Estado.i().items) + " oro %d" % Estado.i().oro)
 	_ok("8 no queda nada suelto en el suelo", _suelo_con("Botin_") == 0 and _suelo_con("Oro") == 0, "objetos %d, oro %d" % [_suelo_con("Botin_"), _suelo_con("Oro")])
 
 	# --- 9 · Las piezas nuevas por la gramática de Puzle3D, el golpe F al árbol, la hierba segada y el cofre con llave -----------------------------------

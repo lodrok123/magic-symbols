@@ -158,6 +158,8 @@ Azul de rocío y blanco de escarcha son nuevos. Los cinco de hoy cambian de efec
 
 Hoy no hay tiendas: solo la compra suelta de la barrera en `bosque_3d.gd`. Propuesta para hacerlas como el resto, con datos: una tabla `nucleo/datos/tiendas.tsv` con `tienda`, `objeto`, `precio`, `existencias` (o «sin fin») y `se_desbloquea` (una flag o una mejora), y una sola pantalla de compra que lea cualquier tienda. El alquimista y la librera serían las dos primeras.
 
+**Implementado el 11/11 (diario 472):** `nucleo/datos/tiendas.tsv` y `nucleo/tiendas.gd` (oferta, compra, existencias guardadas, desbloqueo por flag). El alquimista vende pociones, antídotos, el tónico e ingredientes comunes; la librera de Bosque_02, flores, polvo de cristal, el bulbo de luz, pociones y antídotos un poco más caros y pigmentos. Hablar con ellos emite `Tiendas.tienda_abierta`: falta la pantalla de compra (Pipeline).
+
 Las salidas que propongo para el oro, de más a menos importante:
 
 1. Comprar consumibles básicos al alquimista: poción menor y antídoto.
@@ -229,6 +231,8 @@ Con todo son unos 33, frente a los 13 de hoy.
 | Elixires mixtos | elixir del filtro (veneno y rayo: el chamán y la tormenta del Bosque) y elixir templado (frío y calor: la cueva volcánica y la helada) |
 | Pigmentos | los siete |
 | Lanzables | bulbo de luz, bomba de resina, bola helada y fruto chispa |
+
+**Segunda tanda hecha el 11/11** (diario 474): bomba de humo, tarro de baba y cebo de miel, con el estado «investigar» de los enemigos, el suelo pegajoso y el estado «cebo» de los animales.
 
 Los cuatro lanzables son los que no necesitan código nuevo de enemigos ni de suelo. La piedra del primer borrador ya no está en la lista de Pablo, y la bomba de humo, el tarro de baba y el cebo de miel van en la segunda tanda, junto con el estado «investigar», el suelo pegajoso y la IA de ir a un punto que necesitan.
 

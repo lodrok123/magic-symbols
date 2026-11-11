@@ -23,15 +23,18 @@ const GRUPO: StringName = &"humo_regla"
 const MAX_VIVAS: int = 420
 const MAX_EMISORES: int = 20
 
-enum Materia { HUMO, VAPOR, POLVO }
+enum Materia { HUMO, VAPOR, POLVO, MAGMA }
 
 ## Una clave por capa nueva (todas false = el juego de siempre).
 ##   impacto_bola   la bola de fuego al chocar (ImpactoFuegoToy: solo GOLPE y FIN, no el barril ni el rebote)    muro / pilar   cima de MuroFuego y PilarFuego (FuegoToy)
 ##   barril         ExplosionFuegoToy                                                                           haz            el haz de fuego donde choca (FuegoToy HAZ con `choques`)
 ##   dragon         la punta del chorro de la trampa del dragón                                                 suelo          la hierba ardiendo (Vfx3D.llamas)
 ##   vapor          agua sobre fuego (Vfx3D.vapor, VfxPuzle3D.vapor e ImpactoAguaToy.sobre_fuego)               polvo_tierra / polvo_viento   impactos de tierra y viento contra el suelo
+##   magma          (11/11) humo OSCURO donde la lava se enfría: el cráter de ImpactoMagmaToy (GOLPE y AREA, mientras su calor > 0,3), detrás de la bola de MagmaToy que rueda y en la cima
+##                  del muro y del pilar de magma (sigue al MagmaToy; con ella encendida, las capas «muro» y «pilar» no ponen además el humo del FuegoToy hijo). Materia MAGMA: la MISMA regla
+##                  que HUMO (rend 1,3, olvido 0,45) con los tonos de hollín de la paleta HUMO (nada nuevo). APAGADA de serie.
 const DE_SERIE: Dictionary = {"impacto_bola": true, "muro": false, "pilar": false, "barril": true, "haz": false, "dragon": false, "suelo": true, "vapor": true,
-	"polvo_tierra": false, "polvo_viento": false}
+	"polvo_tierra": false, "polvo_viento": false, "magma": false}
 static var capas: Dictionary = DE_SERIE.duplicate()
 static var _registro: Array = []
 
@@ -57,6 +60,9 @@ const PALETAS: Dictionary = {
 		"rend": 3.0, "olvido": 0.7, "flota": 1.2, "sube": 1.3, "arrastre": 1.1, "tam_ini": 0.25, "tam_fin": 1.0, "vida": 1.3},
 	Materia.POLVO: {"claro": Color(0.82, 0.70, 0.52), "sombra": Color(0.56, 0.43, 0.28), "hollin": Color(0.82, 0.70, 0.52), "hollin_sombra": Color(0.56, 0.43, 0.28), "viejo": Color(0.74, 0.65, 0.52), "opacidad": 0.85, "erosion": 0.4,
 		"rend": 0.0, "olvido": POLVO_OLVIDO, "flota": 0.0, "sube": 0.12, "arrastre": 1.6, "tam_ini": 0.16, "tam_fin": 0.7, "vida": 1.5},
+	# MAGMA: los tonos de HOLLÍN de la paleta HUMO (claro = hollin, sombra = hollin_sombra; viejo = sombra de HUMO): humo oscuro de lava que se enfría. Misma regla que HUMO.
+	Materia.MAGMA: {"claro": Color(0.36, 0.26, 0.22), "sombra": Color(0.25, 0.18, 0.16), "hollin": Color(0.36, 0.26, 0.22), "hollin_sombra": Color(0.25, 0.18, 0.16), "prio": -1, "viejo": Color(0.42, 0.33, 0.30), "opacidad": 0.85, "erosion": 0.4,
+		"rend": 1.3, "olvido": OLVIDO_HOLLIN, "flota": 0.8, "sube": 0.3, "arrastre": 1.3, "tam_ini": 0.2, "tam_fin": 1.0, "vida": 2.4},
 }
 static var _materiales: Dictionary = {}
 
@@ -65,7 +71,8 @@ var p: Dictionary = {}
 var viento: Vector3 = Vector3.ZERO       ## aire en el que están las bocanadas (m/s). Si lo hay, deriva con él y «lento» se mide respecto a él
 var y_suelo: float = 0.0                 ## altura del suelo para el polvo (m, mundo)
 var fuentes: Array = []                  ## emisores continuos (ver `anadir_fuente`)
-var sigue: Node3D = null                 ## si no es null, el emisor copia su transformada cada paso (cima de muro y pilar, choque del haz)
+var sigue: Node3D = null: set = _set_sigue   ## si no es null, el emisor copia su transformada cada paso (cima de muro y pilar, choque del haz)
+var _sigue_puesto: bool = false
 var cerrado: bool = false              ## true: no habrá más fuentes nuevas; el nodo se libera cuando se vaya la última bocanada
 var emitidas: int = 0
 var _n: int = 0
@@ -216,6 +223,11 @@ static func material_de(m: int) -> ShaderMaterial:
 	return sm
 
 
+func _set_sigue(v: Node3D) -> void:
+	sigue = v
+	_sigue_puesto = v != null
+
+
 func vivas() -> int:
 	return _vivas
 
@@ -282,11 +294,12 @@ func avanzar(delta: float) -> void:
 	if _mi == null or delta <= 0.0:
 		return
 	_t += delta
-	if sigue != null:
+	if sigue != null or _sigue_puesto:                 # 11/11: un toy LIBERADO compara igual a null; _sigue_puesto recuerda que lo hubo (si no, el emisor no se cerraba nunca)
 		if is_instance_valid(sigue) and sigue.is_inside_tree():
 			global_transform = sigue.global_transform
 		else:                                  # el toy se fue: no hay más fuentes, lo soltado se acaba
 			sigue = null
+			_sigue_puesto = false
 			fuentes.clear()
 			cerrar()
 	_emitir_fuentes(delta)
@@ -418,12 +431,12 @@ static func _escena_de(nodo: Node) -> Node:
 
 
 ## Un emisor que SIGUE a `fuego` (sus fuentes se colocan con su transformada) pero cuelga de su padre: si el toy muere, deja de emitir y las bocanadas ya sueltas se acaban solas en vez de desaparecer de golpe.
-static func _seguidor(fuego: Node3D, q: Dictionary) -> HumoRegla:
+static func _seguidor(fuego: Node3D, q: Dictionary, materia_: int = Materia.HUMO) -> HumoRegla:
 	quitar_de(fuego)
 	var padre: Node = fuego.get_parent()
 	if padre == null:
 		return null
-	var e: HumoRegla = crear(Materia.HUMO, padre, fuego.global_position, q)
+	var e: HumoRegla = crear(materia_, padre, fuego.global_position, q)
 	if e == null:
 		return null
 	e.name = "HumoReglaForma"
@@ -465,17 +478,21 @@ static func enganchar_impacto_fuego(imp: Node3D) -> HumoRegla:
 
 
 ## CIMA de MURO y PILAR de fuego: nace DENTRO de la parte alta de la llama (solapando sus puntas) y sube desde ahí en un penacho continuo. Sigue al toy y se calla al apagarse él (`aparicion`).
-static func enganchar_cima(fuego: Node3D, clave: String) -> HumoRegla:
+## `forma` («muro» o «pilar»; vacío = la clave) da la geometría; la capa «magma» la usa con el MagmaToy (materia MAGMA) para su muro y su pilar.
+static func enganchar_cima(fuego: Node3D, clave: String, forma: String = "") -> HumoRegla:
 	if not _activa(clave) or not fuego.is_inside_tree() or fuego.get_parent() is ExplosionFuegoToy:       # las lenguas del barril ya llevan su propia capa
 		return null
+	if clave != "magma" and _activa("magma") and _dentro_de_magma(fuego):     # el FuegoToy hijo de un muro / pilar de magma: el humo lo pone la capa «magma» (oscuro), no el del fuego
+		return null
+	var f: String = forma if forma != "" else clave
 	var sx: float = float(fuego.get("semieje_x"))
 	var sy: float = float(fuego.get("semieje_y"))
 	var sz: float = float(fuego.get("semieje_z"))
 	var k: float = clampf(sy / 1.5, 0.6, 1.6)
-	var ancho: float = sx * 0.8 if clave == "muro" else sx * 0.5
-	var fondo: float = sz if clave == "muro" else sz * 0.5
-	var y0: float = sy * (FRAC_LLAMA_MURO if clave == "muro" else FRAC_LLAMA_PILAR)
-	var e: HumoRegla = _seguidor(fuego, {"n": 110, "escala": k, "arrastre": 1.0, "vida": 2.6})
+	var ancho: float = sx * 0.8 if f == "muro" else sx * 0.5
+	var fondo: float = sz if f == "muro" else sz * 0.5
+	var y0: float = sy * (FRAC_LLAMA_MURO if f == "muro" else FRAC_LLAMA_PILAR)
+	var e: HumoRegla = _seguidor(fuego, {"n": 110, "escala": k, "arrastre": 1.0, "vida": 2.6}, Materia.MAGMA if clave == "magma" else Materia.HUMO)
 	if e == null:
 		return null
 	e.anadir_fuente({"local": Vector3(0, y0, 0), "caja": Vector3(ancho, y0 * 0.12, fondo), "dir": Vector3.UP, "v": Vector2(0.45, 1.1) * k, "abanico": 14.0,
@@ -576,3 +593,68 @@ static func enganchar_polvo(imp: Node3D, clave: String) -> HumoRegla:
 	e.anadir_aire(imp.global_position, 0.25 * k + 0.1, (6.0 if clave == "polvo_viento" else 4.5) * sqrt(k), 0.6, 160.0)
 	e.cerrar()
 	return e
+
+# ---- MAGMA (11/11/2026, capa «magma», apagada de serie): humo OSCURO donde la lava se enfría. La lava va siempre «lenta» (no hay chorro), así que casi todo el calor que pierde sale en hollín. ----
+
+## ¿Es `fuego` el FuegoToy hijo de un MagmaToy (Cuerpo/Fuego)?
+static func _dentro_de_magma(fuego: Node) -> bool:
+	var c: Node = fuego.get_parent()
+	return c != null and c.get_parent() is MagmaToy
+
+
+## CRÁTER de ImpactoMagmaToy (GOLPE y AREA, su primer fotograma): una fuente en la grieta que suelta mientras el cráter está caliente (calor > 0,3); cuelga de la escena, así el humo
+## acaba solo aunque el impacto se libere. Sale despacio (la lava no empuja): lento ≈ 1 y el calor que pierde se vuelve hollín enseguida.
+static func enganchar_magma_crater(imp: Node3D) -> HumoRegla:
+	if not _activa("magma") or not imp.is_inside_tree() or imp.has_meta(&"humo_regla"):
+		return null
+	var var_: int = int(imp.get("variante"))
+	if var_ != int(ImpactoMagmaToy.Variante.GOLPE) and var_ != int(ImpactoMagmaToy.Variante.AREA):      # sin cráter (REBOTE, FIN) no hay grieta que se enfríe
+		return null
+	imp.set_meta(&"humo_regla", true)
+	var n: Vector3 = (imp.get("normal") as Vector3).normalized()
+	var r: float = float(imp.get("radio"))
+	var area: bool = var_ == int(ImpactoMagmaToy.Variante.AREA)
+	var k: float = clampf(r / 0.4, 0.6, 2.2) if not area else clampf(r / 1.2, 0.9, 2.0)
+	var rc: float = clampf(r * 3.6, 0.6, 2.6) if not area else r * 1.15            # el radio del cráter (ImpactoMagmaToy._construir)
+	var e: HumoRegla = crear(Materia.MAGMA, _escena_de(imp), imp.global_position, {"n": 70 if not area else 110, "escala": k, "arrastre": 1.6, "vida": 2.4})
+	if e == null:
+		return null
+	var bi: Basis = e.global_transform.basis.inverse()
+	var t0: float = Time.get_ticks_msec() / 1000.0
+	e.anadir_fuente({"local": bi * (n * 0.12), "caja": Vector3(rc * 0.45, 0.05, rc * 0.45) if n.dot(Vector3.UP) > 0.7 else Vector3(0.3, 0.3, 0.3) * k, "dir": bi * (n + Vector3.UP * 0.6).normalized(),
+		"v": Vector2(0.35, 0.9) * k, "abanico": 30.0, "ritmo": 16.0 + 8.0 * rc, "temp": T_SALIDA, "tam_k": 0.9, "dura": ImpactoMagmaToy.T_ENFRIAR,
+		"escala_fn": func() -> float:
+			var t: float = float(imp.call("tiempo")) if is_instance_valid(imp) else Time.get_ticks_msec() / 1000.0 - t0
+			return 1.0 if ImpactoMagmaToy.calor_crater(t) > 0.3 else 0.0})
+	e.cerrar()
+	return e
+
+
+## BOLA de MagmaToy que RUEDA: un penacho fino que nace detrás de la roca mientras vuela caliente (calor > 0,3); sigue a la bola y se calla al chocar o al enfriarse.
+static func enganchar_magma_bola(bola: Node3D) -> HumoRegla:
+	if not _activa("magma") or not bola.is_inside_tree():
+		return null
+	var r: float = maxf(float(bola.get("semieje_x")), float(bola.get("semieje_z")))
+	var k: float = clampf(r / 0.4, 0.6, 1.8)
+	var e: HumoRegla = _seguidor(bola, {"n": 70, "escala": 0.8 * k, "arrastre": 1.4, "vida": 2.0}, Materia.MAGMA)
+	if e == null:
+		return null
+	e.anadir_fuente({"local": Vector3(0, r * 0.2, r * 0.7), "caja": Vector3(r * 0.4, r * 0.3, r * 0.2), "dir": Vector3(0, 1, 0.4).normalized(), "v": Vector2(0.2, 0.6), "abanico": 30.0,
+		"ritmo": 18.0, "temp": T_SALIDA, "tam_k": 0.8,
+		"escala_fn": func() -> float:
+			if not is_instance_valid(bola):
+				return 0.0
+			return 1.0 if bool(bola.get("proyectil")) and float(bola.get("calor")) > 0.3 and float(bola.get("aparicion")) > 0.5 else 0.0})
+	return e
+
+
+## MURO / PILAR de magma (MagmaToy con el FuegoToy oscuro hijo): la cima de `enganchar_cima` con la materia MAGMA; sigue al MagmaToy.
+static func enganchar_magma_volumen(magma: Node3D) -> HumoRegla:
+	match int(magma.get("figura")):
+		int(MagmaToy.Figura.MURO):
+			return enganchar_cima(magma, "magma", "muro")
+		int(MagmaToy.Figura.PILAR):
+			return enganchar_cima(magma, "magma", "pilar")
+		int(MagmaToy.Figura.BOLA):
+			return enganchar_magma_bola(magma)
+	return null

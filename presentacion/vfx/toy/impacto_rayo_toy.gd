@@ -265,6 +265,7 @@ func _process(delta: float) -> void:
 		return
 	if _t < 0.0:
 		_t = 0.0
+		ChispasRepo.enganchar_impacto_rayo(self)        # 11/11: chispas tipo repo de gas (ChispasRepo.capas["rayo_impacto"]): una capa más, las chispas de siempre siguen
 	_t += delta
 	avanzar_a(_t)
 	if _t >= _fin_t:

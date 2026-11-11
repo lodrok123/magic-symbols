@@ -28,6 +28,9 @@ const ORDEN_VARIANTES: Array = ["roja", "azul", "marron"]
 const VISUAL_PLANTA: Dictionary = {"alga": "alga_cueva", "basalto": "basalto_suelto"}
 const VISUAL_PROVISIONAL: Array = []        ## las plantas cuyo modelo es un préstamo teñido (hoy ninguna)
 const ESCALA_VISUAL: Dictionary = {"basalto": 1.5}
+## 11/11: modelos de planta que solo están como escena en `arte/piezas` (no en las bibliotecas de la maqueta): se cargan de ahí sin preguntar a la maqueta,
+## que si no avisaría «sin pieza» (las plantas del bosque: flor de luna, raíz, lavanda, bayas, flor silvestre).
+const SOLO_ESCENA: Array = ["flores_blancas", "raiz_reactiva", "planta_violeta", "arbusto_bayas", "flores_colores"]
 ## F1 (29/10, PLAN_BASE_DATOS): el basalto cogido sobre roca que enfrió el HIELO es OBSIDIANA (`Lava3D.via_de_roca`). Se mira al estar disponible y al cogerlo.
 const OBJETO_ROCA_HIELO: String = "obsidiana"   ## la roca suelta se lee mal a la altura de la cámara: se agranda
 const CADA_CONDICION: float = 0.2      ## s entre mirada y mirada a `coge_si`
@@ -111,7 +114,7 @@ func _poner_visual() -> void:
 	var id: String = _id_visual()
 	var n: Node3D = null
 	if id != "":
-		if _mundo != null and is_instance_valid(_mundo) and _mundo.has_method("_pieza"):
+		if _mundo != null and is_instance_valid(_mundo) and _mundo.has_method("_pieza") and not SOLO_ESCENA.has(id):
 			n = _mundo.call("_pieza", id) as Node3D
 		if n == null:
 			var escena: PackedScene = load("res://arte/piezas/%s.tscn" % id) as PackedScene

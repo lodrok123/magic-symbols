@@ -40,7 +40,7 @@ static var MINERALES: Dictionary = {}
 static var PLANTAS: Dictionary = {}
 
 ## Las piezas de `fuentes.tsv` que son plantas (las demás `de` son enemigos, cofres, reactivos...). Las cuatro de siempre y las tres de la Cueva que llegan con F0.
-const PIEZAS_PLANTA: PackedStringArray = ["seta", "flor", "raiz", "alga", "musgo", "helecho_cueva", "seta_palida"]
+const PIEZAS_PLANTA: PackedStringArray = ["seta", "flor", "raiz", "alga", "musgo", "helecho_cueva", "seta_palida", "lavanda", "bayas", "helecho", "flor_silvestre"]   # 11/11: + las del bosque
 ## Pila por hueco de un objeto que no está en la tabla (lo de siempre: `Estado.PILA_MAX`).
 const PILA_DEFECTO: int = 9
 
@@ -190,7 +190,7 @@ static func categoria(id: String) -> String:
 	match categoria_bd(id):
 		"consumible", "pigmento", "lanzable":
 			return "pociones"
-		"clave", "ropa", "glifo":
+		"clave", "ropa", "glifo", "mejora":
 			return "clave"
 	return "componentes"
 
@@ -229,6 +229,12 @@ static func es_consumible(id: String) -> bool:
 
 static func es_lanzable(id: String) -> bool:
 	return LANZABLES.has(id)
+
+
+## 11/11: ¿es una PIEZA DE MEJORA (`uso = pieza`: trozo de corazón, frasco vacío, engarce, hoja de grimorio)? No ocupa hueco en la mochila y, al juntar las que pide
+## su efecto (`piezas`), sube la mejora (`mejora`): ver `Estado._pieza_al_coger`.
+static func es_pieza(id: String) -> bool:
+	return String((DATOS.get(id, {}) as Dictionary).get("uso", "")) == "pieza"
 
 
 ## «Usos conocidos» de un objeto (frases para el panel de detalle del Inventario); vacío si aún no se le conoce ninguno.

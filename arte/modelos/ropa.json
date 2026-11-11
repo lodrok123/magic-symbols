@@ -1,21 +1,35 @@
 {
 	"capa": {
-		"nombre": "Capa corta",
+		"nombre": "Capa de Sumicio",
 		"glb": "ropa_capa",
 		"capa": "exterior",
 		"oculta": [],
 		"muelles": true
 	},
 	"capucha": {
-		"nombre": "Capucha",
+		"nombre": "Capucha de Sumicio",
 		"glb": "ropa_capucha",
 		"capa": "exterior",
-		"oculta": ["pelo"]
+		"oculta": [
+			"pelo"
+		]
 	},
 	"tunica": {
 		"nombre": "Túnica sin mangas",
 		"glb": "ropa_tunica",
 		"capa": "medio",
-		"oculta": ["chaleco", "cinturon"]
+		"oculta": [
+			"chaleco",
+			"cinturon"
+		]
+	},
+	"piernas": {
+		"nombre": "Bombachos de Sumicio",
+		"glb": "ropa_piernas",
+		"capa": "piernas",
+		"oculta": [
+			"piernas",
+			"botas"
+		]
 	}
 }

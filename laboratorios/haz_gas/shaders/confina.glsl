@@ -32,7 +32,7 @@ void main() {
 	vec3 w = mundo_de(uvw);
 	float t = TIEMPO;
 	vec3 eddies = FLUJO(flujo, w, 16.0 * ESC_M, vec3(0.0, t * -0.05, t * 0.03)) + FLUJO(flujo, w.yzx, 9.0 * ESC_M, vec3(t * 0.07, 0.0, t * -0.04)) * 0.7;
-	float stir = gs.x + gs.y * 0.3 + length(v.xyz) * 0.04;
+	float stir = gs.x + (VIENTO ? 0.0 : gs.y * 0.3) + length(v.xyz) * 0.04;      // viento: el canal y es una etiqueta, no hollin
 	vec3 shred = eddies * stir * TURBULENCE;
 
 	vec3 avg = (vec_cerca(c, 1, 0, 0) + vec_cerca(c, -1, 0, 0) + vec_cerca(c, 0, 1, 0) + vec_cerca(c, 0, -1, 0) + vec_cerca(c, 0, 0, 1) + vec_cerca(c, 0, 0, -1)) / 6.0;

@@ -18,6 +18,15 @@ extends Node
 ## TOPE: MAX_INSTANCIAS a la vez; si se llega, `haz` devuelve null y quien llama dibuja el FuegoToy de siempre.
 
 const AJUSTE: String = "magic_symbols/vfx_haz_gas"
+## 10/11: el haz de AGUA (AguaToy HAZ) con el mismo gas en MODO AGUA (HazGas.PARAMS_AGUA: sin combustión, con peso; dibujo con los tonos del AguaToy). Ajuste aparte.
+## El tope MAX_INSTANCIAS es de los dos elementos JUNTOS.
+const AJUSTE_AGUA: String = "magic_symbols/vfx_haz_gas_agua"
+const AGUA_DEFECTO: bool = true
+## 11/11: los haces de VIENTO y de RAYO con el mismo gas (HazGas.PARAMS_VIENTO: bruma en hélice y polvo; HazGas.PARAMS_RAYO: aire cargado + trazo y arcos). Cada uno con
+## su ajuste, APAGADOS de serie hasta que Pablo los vea. El tope MAX_INSTANCIAS es de todos los elementos juntos.
+const AJUSTE_VIENTO: String = "magic_symbols/vfx_haz_gas_viento"
+const AJUSTE_RAYO: String = "magic_symbols/vfx_haz_gas_rayo"
+const AJUSTES_ELEMENTO: Dictionary = {"viento": [AJUSTE_VIENTO, false], "rayo": [AJUSTE_RAYO, false]}
 const MAX_INSTANCIAS: int = 2
 const APAGADO_S: float = 2.5                   ## s que la masa tarda en deshacerse tras el último haz (se libera después)
 const REUSO_DIST_CAS: float = 0.35             ## casillas: un haz nuevo reutiliza el dominio si sale a menos de esto del anterior...
@@ -36,9 +45,16 @@ var _comp: Compositor = null
 var _n_efectos: int = -1
 
 
-## ¿Se puede usar? Ajuste `magic_symbols/vfx_haz_gas` (true por defecto), un RenderingDevice (Forward+ / Mobile; no Compatibility ni --headless).
-static func disponible() -> bool:
-	if not bool(ProjectSettings.get_setting(AJUSTE, true)):
+## ¿Se puede usar? Ajuste `magic_symbols/vfx_haz_gas` (fuego, true por defecto) o `magic_symbols/vfx_haz_gas_agua` (agua, AGUA_DEFECTO), y un RenderingDevice
+## (Forward+ / Mobile; no Compatibility ni --headless).
+static func disponible(elemento: String = "fuego") -> bool:
+	if AJUSTES_ELEMENTO.has(elemento):
+		if not bool(ProjectSettings.get_setting(AJUSTES_ELEMENTO[elemento][0], AJUSTES_ELEMENTO[elemento][1])):
+			return false
+	elif elemento == "agua":
+		if not bool(ProjectSettings.get_setting(AJUSTE_AGUA, AGUA_DEFECTO)):
+			return false
+	elif not bool(ProjectSettings.get_setting(AJUSTE, true)):
 		return false
 	if RenderingServer.get_rendering_device() == null:
 		return false
@@ -67,8 +83,9 @@ func gases() -> Array:
 	return _gases.map(func(e: Dictionary) -> HazGas: return e["g"])
 
 
-## Dibuja un haz con gas. Devuelve el HazGas (nuevo o reutilizado) o null si no puede (tope de instancias): entonces se dibuja el FuegoToy.
-func haz(h: Hechizo, hz: Dictionary, suelo: float, vida: float) -> HazGas:
+## Dibuja un haz con gas. Devuelve el HazGas (nuevo o reutilizado) o null si no puede (tope de instancias): entonces se dibuja el toy de siempre (FuegoToy / AguaToy).
+## `elemento`: «fuego» o «agua» (HazGas en modo agua). Un dominio vivo solo se reutiliza para un haz del MISMO elemento.
+func haz(h: Hechizo, hz: Dictionary, suelo: float, vida: float, elemento: String = "fuego") -> HazGas:
 	var desde: Vector3 = hz["desde"] as Vector3
 	var hasta: Vector3 = hz["hasta"] as Vector3
 	var dir: Vector3 = Vector3(hasta.x - desde.x, 0.0, hasta.z - desde.z)
@@ -81,7 +98,7 @@ func haz(h: Hechizo, hz: Dictionary, suelo: float, vida: float) -> HazGas:
 	var cas: float = Terreno3D.casilla
 	for e in _gases:
 		var g0: HazGas = e["g"]
-		if not is_instance_valid(g0):
+		if not is_instance_valid(g0) or String(e.get("elemento", "fuego")) != elemento:
 			continue
 		if (e["desde"] as Vector3).distance_to(desde) < REUSO_DIST_CAS * cas and rad_to_deg((e["dir"] as Vector3).angle_to(dir)) < REUSO_ANG_DEG \
 				and absf(float(e["d_tope"]) - d_tope) < REUSO_TOPE_CAS * cas:
@@ -97,6 +114,7 @@ func haz(h: Hechizo, hz: Dictionary, suelo: float, vida: float) -> HazGas:
 	g.name = "HazGas%d" % creados
 	g.modo_juego = true
 	g.toon = true
+	g.elemento = elemento
 	g.haz_cfg = cfg_de(h, hz, suelo, tope)
 	_mundo.add_child(g)                              # _ready: configurar_haz (dominio, rejilla, solver)
 	if not g.listo():
@@ -104,7 +122,7 @@ func haz(h: Hechizo, hz: Dictionary, suelo: float, vida: float) -> HazGas:
 		rechazados += 1
 		return null
 	g.colocar(desde, dir, suelo)
-	var e2: Dictionary = {"g": g, "desde": desde, "dir": dir, "d_tope": d_tope, "fin_haz": ahora + int(maxf(vida, 0.3) * 1000.0), "tope": tope, "suelo": suelo}
+	var e2: Dictionary = {"g": g, "desde": desde, "dir": dir, "d_tope": d_tope, "fin_haz": ahora + int(maxf(vida, 0.3) * 1000.0), "tope": tope, "suelo": suelo, "elemento": elemento}
 	e2["fin_todo"] = int(e2["fin_haz"]) + int(APAGADO_S * 1000.0)
 	e2["est"] = primitivas_estaticas(g, tope, dir, suelo)
 	e2["firma"] = -1
@@ -315,6 +333,19 @@ func _soltar_camara() -> void:
 
 func _exit_tree() -> void:
 	_soltar_camara()
+
+
+## El AguaToy HAZ que acompaña al gas de agua: no tiene luz propia, así que no se ve nada de él (el chorro, la lámina, el abanico y las gotas los dibuja el gas).
+## Sigue vivo (su vida y su «morir» de siempre) para que VfxToyJuego lo cuente y lo retire igual que sin gas.
+static func ocultar_toy(t: Node3D) -> void:
+	t.visible = false
+
+
+## El RayoToy HAZ que acompaña al gas de rayo: se queda con sus luces (el destello); el trazo, los arcos y las chispas los dibuja el gas.
+static func solo_luces(t: Node3D) -> void:
+	for n in t.find_children("*", "", true, false):
+		if n is GeometryInstance3D:
+			(n as GeometryInstance3D).visible = false
 
 
 ## El FuegoToy HAZ que acompaña al gas: se queda SOLO con su luz (la mancha del suelo, `luz_suelo_haz`, y su OmniLight «Luz», con su vida y su latido de siempre);

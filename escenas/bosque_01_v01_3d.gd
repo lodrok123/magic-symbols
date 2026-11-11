@@ -1040,6 +1040,8 @@ func _unhandled_input(ev: InputEvent) -> void:
 			d_mejor = d
 			mejor = g
 	if not mejor.is_empty():
+		if String(mejor["tipo"]) == "alquimista" and Tiendas.ofrecer("alquimista"):
+			return                                    # 11/11: la segunda E mientras habla abre su tienda
 		_hablar(mejor, yo)
 	elif _dialogo.visible:
 		_dialogo.hide()

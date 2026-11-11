@@ -113,7 +113,7 @@ func _alcanza_sin_epicos(r: Dictionary) -> bool:
 
 func _recetas_una_a_una() -> void:
 	var filas: int = BD.recetas().size()
-	_ok("1 la tabla trae 39 recetas", filas == 39, str(filas))      # 10/11: +10 de la primera tanda de consumibles
+	_ok("1 la tabla trae 35 recetas", filas == 35, str(filas))      # 11/11: −7 de vida, frascos, huecos y páginas (ahora son piezas); +3 lanzables de la segunda tanda      # 10/11: +10 de la primera tanda de consumibles
 	# Bolsa vacía: ninguna sale (todas piden algo).
 	var ninguna: bool = true
 	for id in BD.recetas():
@@ -142,7 +142,7 @@ func _recetas_una_a_una() -> void:
 				mal.append("%s no sale ni con un núcleo de eco" % id)
 			con_epico.append(String(id))
 	_ok("1 las 29 recetas son posibles justo como dice su requiere", mal.is_empty(), str(mal))
-	_ok("1 las únicas que piden un épico a mano son las de raro sin ancla", con_epico.size() == 3 or con_epico.size() == 2, str(con_epico))
+	_ok("1 la única que pide un épico a mano es la de raro sin ancla (11/11: defensa_2; las de páginas y frascos ya no existen)", con_epico.size() == 1 and con_epico[0] == "defensa_2", str(con_epico))
 	# Los límites de una receta concreta: pocion = vital>=3.
 	Estado.nuevo()
 	Estado.i().items = {"baya": 5, "seta_asada": 3}
@@ -162,10 +162,10 @@ func _recetas_una_a_una() -> void:
 	# El oro.
 	Estado.i().items = {"baya": 6, "seta_humeda": 3, "raiz": 4, "cristal_tierra": 2}
 	Estado.i().oro = 5
-	var p20: Dictionary = Sintesis.puede("vida_1", {"baya": 6, "cristal_tierra": 1})
-	_ok("1 vida_1 cuesta 20 de oro: con 5 faltan 15", p20["oro_falta"] == 15 and p20["motivo"] == "oro" and p20["falta"].is_empty(), str(p20))
+	var p20: Dictionary = Sintesis.puede("cura_1", {"baya": 5, "seta_humeda": 1})
+	_ok("1 cura_1 cuesta 20 de oro: con 5 faltan 15", p20["oro_falta"] == 15 and p20["motivo"] == "oro" and p20["falta"].is_empty(), str(p20))
 	Estado.i().oro = 20
-	_ok("1 con 20 de oro sale", bool(Sintesis.puede("vida_1", {"baya": 6, "cristal_tierra": 1})["ok"]))
+	_ok("1 con 20 de oro sale", bool(Sintesis.puede("cura_1", {"baya": 5, "seta_humeda": 1})["ok"]))
 
 
 func _sugerir() -> void:
@@ -218,34 +218,36 @@ func _hacer() -> void:
 	Estado.nuevo()
 	e = Estado.i()
 	e.oro = 50
-	e.items = {"baya": 8, "cristal_tierra": 1, "seta": 3}
-	var el: Dictionary = Sintesis.sugerir("vida_1")
-	_ok("3 vida_1 se sugiere solo con la bolsa", bool(Sintesis.puede("vida_1", el)["ok"]), str(el))
+	e.items = {"baya": 8, "seta_humeda": 2, "seta": 3}
+	var el: Dictionary = Sintesis.sugerir("cura_1")
+	_ok("3 cura_1 se sugiere solo con la bolsa", bool(Sintesis.puede("cura_1", el)["ok"]), str(el))
 	var oro_antes: int = e.oro
-	_ok("3 hacer vida_1 sube la mejora", Sintesis.hacer("vida_1", el, "alquimista") and e.nivel("vida_max") == 1)
-	_ok("3 la vida máxima pasa de 100 a 120", is_equal_approx(e.vida_max, 120.0), str(e.vida_max))
-	_ok("3 cobró los 20 de oro y quitó los ingredientes", e.oro == oro_antes - 20 and e.cuenta("baya") + e.cuenta("seta") < 11, "oro %d items %s" % [e.oro, str(e.items)])
-	_ok("3 en la hoguera no se hace (es del alquimista) y no cuesta nada", not Sintesis.hacer("vida_1", el, "hoguera") and e.oro == oro_antes - 20)
-	# El tope.
+	_ok("3 hacer cura_1 sube la mejora", Sintesis.hacer("cura_1", el, "alquimista") and e.nivel("cura_pocion") == 1)
+	_ok("3 la poción pasa de curar 40 a 50", is_equal_approx(e.cura_pocion, 50.0), str(e.cura_pocion))
+	_ok("3 cobró los 20 de oro y quitó los ingredientes", e.oro == oro_antes - 20 and e.cuenta("baya") + e.cuenta("seta_humeda") + e.cuenta("seta") < 13, "oro %d items %s" % [e.oro, str(e.items)])
+	_ok("3 en la hoguera no se hace (es del alquimista) y no cuesta nada", not Sintesis.hacer("cura_1", el, "hoguera") and e.oro == oro_antes - 20)
+	# El tope (la vida, que ya no tiene receta: sube con trozos de corazón).
 	var antes_items: Dictionary
-	for _i in range(4):
+	for _i in range(5):
 		Mejoras.subir("vida_max")
 	_ok("3 la mejora llega a su tope (5 niveles, 200 de vida)", e.nivel("vida_max") == 5 and is_equal_approx(e.vida_max, 200.0))
 	_ok("3 en el tope no sube más", not Mejoras.subir("vida_max") and e.nivel("vida_max") == 5)
-	e.items = {"baya": 8, "cristal_tierra": 1}
+	Mejoras.subir("cura_pocion")
+	Mejoras.subir("cura_pocion")
+	e.items = {"baya": 8, "seta_humeda": 2}
 	e.oro = 100
 	antes_items = e.items.duplicate()
-	var p: Dictionary = Sintesis.puede("vida_1", {"baya": 6, "cristal_tierra": 1})
-	_ok("3 con la mejora en su tope la receta dice «tope» y no se hace", p["motivo"] == "tope" and not Sintesis.hacer("vida_1", {"baya": 6, "cristal_tierra": 1}) and e.items == antes_items and e.oro == 100)
+	var p: Dictionary = Sintesis.puede("cura_1", {"baya": 5, "seta_humeda": 1})
+	_ok("3 con la mejora en su tope la receta dice «tope» y no se hace", p["motivo"] == "tope" and not Sintesis.hacer("cura_1", {"baya": 5, "seta_humeda": 1}) and e.items == antes_items and e.oro == 100)
 	_ok("3 las que ganan otros sistemas no se compran", not Mejoras.subir("tinta_jefe") and not Mejoras.subir("no_existe"))
-	# Una mejora con ancla épica (vida_3 pide savia elemental).
+	# Una mejora con ancla épica (tinta_frasco_2 pide un núcleo de eco).
 	Estado.nuevo()
 	e = Estado.i()
 	e.oro = 100
-	e.mejoras = {"vida_max": 2}
-	e.items = {"savia_elemental": 1, "baya": 10, "seta_humeda": 4}
-	var el3: Dictionary = Sintesis.sugerir("vida_3")
-	_ok("3 vida_3 con savia elemental de ancla: se sugiere y sale", el3.get("savia_elemental", 0) == 1 and Sintesis.hacer("vida_3", el3) and e.nivel("vida_max") == 3 and e.cuenta("savia_elemental") == 0, str(el3))
+	e.mejoras = {"tinta_frasco": 1}
+	e.items = {"nucleo_eco": 1, "flor_chispa": 4}
+	var el3: Dictionary = Sintesis.sugerir("tinta_frasco_2")
+	_ok("3 tinta_frasco_2 con núcleo de eco de ancla: se sugiere y sale", el3.get("nucleo_eco", 0) == 1 and Sintesis.hacer("tinta_frasco_2", el3) and e.nivel("tinta_frasco") == 2 and e.cuenta("nucleo_eco") == 0, str(el3))
 	# Mejoras cuyo efecto es la bolsa: «bolsa_1» por la receta, y la compra de hoy por Estado.subir_capacidad.
 	Estado.nuevo()
 	e = Estado.i()
@@ -295,9 +297,9 @@ func _se_conoce() -> void:
 	Flags.i().poner("bosque1.alquimista.grande")
 	_ok("4 flag: con la flag aparece (solo en el alquimista)", Sintesis.conocidas("alquimista").has("pocion_grande") and not Sintesis.conocidas("hoguera").has("pocion_grande"))
 	# mejora
-	_ok("4 mejora: Corazón II pide la I", not Sintesis.conocidas().has("vida_2"))
-	Mejoras.subir("vida_max")
-	_ok("4 mejora: tras la I aparece la II (y la III aún no)", Sintesis.conocidas().has("vida_2") and not Sintesis.conocidas().has("vida_3"))
+	_ok("4 mejora: Piel de corteza II pide la I", not Sintesis.conocidas().has("defensa_2"))
+	Mejoras.subir("defensa")
+	_ok("4 mejora: tras la I aparece la II", Sintesis.conocidas().has("defensa_2"))
 	# tener
 	_ok("4 tener: el bordado de escarcha pide llevar la capa", not Sintesis.conocidas().has("bordado_escarcha"))
 	e.items = {"capa": 1}
@@ -523,7 +525,7 @@ func _guardado() -> void:
 	Sintesis.conocidas()                                 # descubre el bálsamo (por los ingredientes) y las que piden una mejora ya subida (II, III...)
 	var conocidas_antes: Array = Partida.recetas_conocidas.duplicate()
 	_ok("10 antes de guardar: capacidad 14, vida 140, libro de 2 glifos (máx(2, 1 + 1 engarce)), 4 frascos", e.capacidad == 14 and is_equal_approx(e.vida_max, 140.0) and Repertoire.max_sigils_per_page == 2 and Tinta.frascos_max() == 4
-		and conocidas_antes.has("balsamo_protector") and conocidas_antes.has("vida_2") and not conocidas_antes.has("pocion"), "%d %s" % [e.capacidad, str(conocidas_antes)])
+		and conocidas_antes.has("balsamo_protector") and conocidas_antes.has("defensa_2") and not conocidas_antes.has("pocion"), "%d %s" % [e.capacidad, str(conocidas_antes)])
 	_ok("10 se guarda", Partida.guardar(1, {"mapa_actual": "x", "punto": "x.1_1"}))
 	# Otra partida, otra sala con su libro.
 	Estado.nuevo()
@@ -574,12 +576,13 @@ func _hoguera_y_hecho_cuando() -> void:
 	e.oro = 30
 	e.items = {"baya": 6, "helecho": 2, "cristal_tierra": 1}
 	var hoguera: Array[String] = Sintesis.conocidas("hoguera")
-	_ok("12 en la hoguera se enseña la poción y no la mejora de vida", hoguera.has("pocion") and not hoguera.has("vida_1"))
+	_ok("12 en la hoguera se enseña la poción y no la mejora de la poción", hoguera.has("pocion") and not hoguera.has("cura_1"))
 	var el: Dictionary = Sintesis.sugerir("pocion")
 	_ok("12 la hoguera hace la poción con bayas y helecho", Sintesis.hacer("pocion", el, "hoguera") and e.cuenta("pocion") == 1 and e.cuenta("baya") + e.cuenta("helecho") == 5, str(e.items))
 	var alquimista: Array[String] = Sintesis.conocidas("alquimista")
-	_ok("12 el alquimista enseña Corazón robusto I", alquimista.has("vida_1"))
+	_ok("12 el alquimista enseña Poción más dulce", alquimista.has("cura_1"))
 	e.items["baya"] = 6
-	var el2: Dictionary = Sintesis.sugerir("vida_1")
-	_ok("12 y la hace: +20 de vida máxima, 20 de oro", Sintesis.hacer("vida_1", el2, "alquimista") and is_equal_approx(e.vida_max, 120.0) and e.oro == 10, "%s %d %s" % [str(e.vida_max), e.oro, str(e.items)])
-	_ok("12 y ya se enseña la II", Sintesis.conocidas("alquimista").has("vida_2"))
+	e.items["seta_humeda"] = 2
+	var el2: Dictionary = Sintesis.sugerir("cura_1")
+	_ok("12 y la hace: la poción cura 50, 20 de oro", Sintesis.hacer("cura_1", el2, "alquimista") and is_equal_approx(e.cura_pocion, 50.0) and e.oro == 10, "%s %d %s" % [str(e.cura_pocion), e.oro, str(e.items)])
+	_ok("12 y la sigue enseñando hasta su tope", Sintesis.conocidas("alquimista").has("cura_1"))
