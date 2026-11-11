@@ -1,4 +1,4 @@
-﻿class_name Pj3D
+class_name Pj3D
 extends Node3D
 
 ## Un personaje del pipeline como modelo 3D vivo (la chibi, hero_v2...). Sin sprites ni atlas:
@@ -361,6 +361,7 @@ func cargar(p_id: String) -> bool:
 		_anular_raiz(String(rol))
 	_crear_proporcion()
 	_equipo = Equipo3D.equipar(id, _modelo)
+	_marcar_equipo()
 	for prenda in (ROPA_POR_DEFECTO.get(id, []) as Array):
 		poner_ropa(String(prenda))
 	_crear_sombra()
@@ -502,6 +503,7 @@ func reequipar() -> void:
 		if is_instance_valid(p) and p.get_parent() is BoneAttachment3D:
 			p.get_parent().free()
 	_equipo = Equipo3D.equipar(id, _modelo)
+	_marcar_equipo()
 
 
 ## Cambia el grimorio de la elfa (1 botánico, 2 rúnico, 3 legendario) y la vuelve a equipar.
@@ -700,8 +702,37 @@ func _preparar_materiales(modelo: Node3D) -> void:
 					_juguete.append([copia, sm, [copia.albedo_color, copia.emission_enabled, copia.emission, copia.emission_energy_multiplier, copia.shading_mode]])
 					mi.set_surface_override_material(s, sm)
 				else:
+					MaterialPersonaje3D.marcar_plantilla(copia)      # el pelo también marca dónde se ve el personaje
 					mi.set_surface_override_material(s, copia)
 				_materiales.append(copia)
+
+
+## Las piezas de equipo (el grimorio, un bastón) marcan la plantilla como el cuerpo: son parte de lo que «se ve» del personaje, y la silueta
+## de «tapada» no debe pintarse encima de ellas (ver MaterialPersonaje3D, PLANTILLA). Sus materiales son del GLB de la pieza, compartidos:
+## se duplican antes de tocarlos.
+func _marcar_equipo() -> void:
+	for pieza in _equipo:
+		_marcar_pieza(pieza)
+
+
+## Lo mismo para una pieza suelta: las del equipo fijo y las que se cogen con la mano (`equipar`: el libro abierto al conjurar, una poción).
+func _marcar_pieza(pieza: Node) -> void:
+	if pieza == null or not is_instance_valid(pieza):
+		return
+	var mallas: Array[Node] = pieza.find_children("*", "MeshInstance3D", true, false)
+	if pieza is MeshInstance3D:
+		mallas.append(pieza)
+	for n in mallas:
+		var mi: MeshInstance3D = n as MeshInstance3D
+		if mi.mesh == null:
+			continue
+		for s in range(mi.mesh.get_surface_count()):
+			var mat: Material = mi.get_active_material(s)
+			if mat is BaseMaterial3D and not mat.has_meta("plantilla"):
+				var copia: BaseMaterial3D = mat.duplicate() as BaseMaterial3D
+				MaterialPersonaje3D.marcar_plantilla(copia)
+				copia.set_meta("plantilla", true)
+				mi.set_surface_override_material(s, copia)
 
 
 ## Copia a los shaders de juguete lo que Combate3D (o set_modo_luz) escribió en los materiales de control. Solo toca los uniforms si algo cambió.
@@ -2225,6 +2256,7 @@ func equipar(pieza_id: String) -> Node3D:
 	p.rotation_degrees = d[2] as Vector3
 	p.scale = Vector3.ONE * f / maxf(escala, 0.0001)
 	at.add_child(p)
+	_marcar_pieza(p)
 	_piezas_mano[pieza_id] = at
 	return p
 

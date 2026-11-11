@@ -38,9 +38,22 @@ void fragment() {
 ## (misma prueba de profundidad por textura, ver el párrafo SILUETA de arriba). Godot 4.7 no trae `depth_test_inverted` (ver el informe del diario 351):
 ## el sesgo por textura es lo que permite distinguir «me tapa un árbol» de «mi brazo está detrás de mi torso».
 ## Los dos pases solo cuelgan de la JUGADORA (`Pj3D.set_rol_visual`): enemigos, NPC y VFX no los llevan.
+##
+## PLANTILLA (11/11, Pablo: «revisa la última prenda para ver por qué aparecen manchas violetas al hacer acciones»). Las manchas eran estos dos
+## pases pintándose sobre la PROPIA jugadora: lavanda (relleno) con borde ciruela (contorno). El sesgo de arriba distingue «me tapa un árbol» de
+## «mi brazo está detrás de mi torso» solo mientras ninguna parte del personaje tape a otra por más de 0,4 alturas, y el uniforme de Sumicio lo
+## rompe: la punta caída de la capucha queda detrás de la capucha incluso en reposo, y agachada o rodando el cuerpo queda detrás de la capa.
+## Medido con herramientas/medidas_manchas_color.gd: en reposo, 0 píxeles sin la capucha y 6000 con ella; rodando, el triple con el uniforme.
+## Subir el sesgo lo taparía a costa de perder la silueta junto a muros cercanos. Lo correcto es no pintarla donde el personaje YA SE VE, y eso
+## lo da el búfer de plantilla: el material de juguete escribe 1 en cada píxel donde se dibuja (o sea, donde supera la prueba de profundidad
+## contra el decorado), y el relleno y el contorno solo pintan donde NO hay un 1. La prueba de profundidad con sesgo se queda: es la que evita
+## que el anillo del contorno, que cae fuera de la figura, se pinte alrededor de la jugadora cuando nada la tapa.
+## (El comentario de arriba descarta el stencil por la autooclusión: eso es el «fallo de profundidad». Escribir donde se ve y leer donde no
+## es otra técnica y no lo sufre. Y el búfer existe desde Godot 4.5; el proyecto va en 4.7.)
 const CODIGO_SILUETA: String = """
 shader_type spatial;
 render_mode unshaded, depth_test_disabled, depth_draw_never, cull_back, shadows_disabled, fog_disabled;
+stencil_mode read, compare_not_equal, 1;    // nunca encima de donde el personaje ya se ve
 uniform sampler2D profundidad : hint_depth_texture, repeat_disable, filter_nearest;
 uniform vec4 color : source_color = vec4(1.0, 0.8, 0.5, 0.42);
 uniform float sesgo = 0.4;
@@ -61,6 +74,7 @@ void fragment() {
 const CODIGO_CONTORNO: String = """
 shader_type spatial;
 render_mode skip_vertex_transform, unshaded, depth_test_disabled, depth_draw_never, cull_front, shadows_disabled, fog_disabled;
+stencil_mode read, compare_not_equal, 1;    // nunca encima de donde el personaje ya se ve
 uniform sampler2D profundidad : hint_depth_texture, repeat_disable, filter_nearest;
 uniform vec4 color : source_color = vec4(0.87, 0.71, 0.42, 1.0);
 uniform float sesgo = 0.4;
@@ -104,6 +118,7 @@ void fragment() {
 const CODIGO_JUGUETE: String = """
 shader_type spatial;
 render_mode cull_back, specular_disabled, diffuse_lambert;
+stencil_mode write, compare_always, 1;      // marca los píxeles donde el personaje SE VE: ver PLANTILLA más arriba
 uniform sampler2D albedo_tex : source_color, filter_linear_mipmap, repeat_enable;
 uniform bool tiene_tex = true;
 uniform vec4 albedo_color : source_color = vec4(1.0);
@@ -187,6 +202,16 @@ static func copiar_estado(base: StandardMaterial3D, m: ShaderMaterial) -> void:
 	m.set_shader_parameter("emision", base.emission)
 	m.set_shader_parameter("emision_energia", base.emission_energy_multiplier if base.emission_enabled else 0.0)
 	m.set_shader_parameter("plano", 1.0 if base.shading_mode == BaseMaterial3D.SHADING_MODE_UNSHADED else 0.0)
+
+
+## Hace que un StandardMaterial3D marque la plantilla igual que el material de juguete (ver PLANTILLA). Para lo que el personaje lleva y NO pasa
+## por `juguete()`: el pelo y demás superficies con alfa, y las piezas de equipo (el grimorio en la cadera). Sin esto la silueta del cuerpo se
+## pintaba encima del libro.
+static func marcar_plantilla(m: BaseMaterial3D) -> void:
+	m.stencil_mode = BaseMaterial3D.STENCIL_MODE_CUSTOM
+	m.stencil_flags = BaseMaterial3D.STENCIL_FLAG_WRITE
+	m.stencil_compare = BaseMaterial3D.STENCIL_COMPARE_ALWAYS
+	m.stencil_reference = 1
 
 
 ## Prioridad de dibujo de la silueta: por encima de las transparencias normales (agua, humo, hierba) para que no la tape un velo.
