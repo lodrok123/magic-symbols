@@ -54,3 +54,13 @@ golem	oro	1	40	40	siempre	si
 golem	polvo_golem	100	1	2	-	-
 elemental	oro	1	150	150	jefe: siempre	si
 elemental	savia_elemental	100	1	1	jefe: siempre	-
+mouro	oro	1	12	12	siempre; `oro` de la instancia (MouroEspectro3D.ORO_MOURO) lo sustituye	si
+mouro	esquirla_cristal	30	1	1	-	-
+mouro	nada	70	0	0	-	-
+anima	oro	1	20	20	lo suelta la PROCESIÓN al acabarse (SantaCompana3D), no cada ánima	si
+anima	esquirla_cristal	60	1	2	-	-
+anima	nada	40	0	0	-	-
+reliquias	oro	1	40	60	el tesoro de la mámoa (Mamoa3D): al sellarla con el mouro dentro	si
+reliquias	esquirla_cristal	70	1	2	-	-
+reliquias	pocion	20	1	1	-	-
+reliquias	nada	10	0	0	-	-

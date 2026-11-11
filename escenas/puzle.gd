@@ -100,7 +100,15 @@ extends Node
 ##              lava, muere). `quieto=si`: no persigue ni ataca (un blanco para probar el hielo). Es un Combate3D: el vigía lo cuenta. No bloquea su casilla
 ##   chaman     quieto=si (no)                                                      Chaman3D (E2, 28/10): el chamán goblin. Escuda primero (traza un rombo en el suelo con el bastón, lo clava y una onda verde da un escudo de
 ##              naturaleza a los goblins cercanos; el fuego lo quema) y luego se mantiene lejos tirando bolas de veneno. Si le pegan trazando, la runa se rompe. Es un Combate3D: el vigía lo cuenta
-##   (puerta)   modelo=reja                                                          28/10: una REJA de barrotes que deja ver lo de detrás, sin rótulo (para y se abre igual que la losa)
+##   mamoa      agrietada=si (no)  tapada=si (no)                                   Mamoa3D (E4): el brocal de pozo del que vuelve el mouro. Se TAPA con un bloque empujable encima, la tierra o el hielo de un hechizo vivo, o la
+##              acción `tapar` (la destapa `destapar`); tapada se ve la losa. `agrietada=si` nace en su estado final (el mouro ya no vuelve). Sellada con un mouro dentro suelta las reliquias.
+##              Señales `tapada`, `destapada`, `agrietada`. No bloquea su casilla (el bloque tiene que poder llegar)
+##   mouro      mamoa=<id de la pieza mámoa> (sin ella, un enemigo normal)  quieto=si (no)   MouroEspectro3D (E4): el espectro de elfo. Se desliza hacia ella y la agarra (12 y raíces 1 s, con aviso);
+##              al caer con la mámoa abierta se deshace y vuelve de ella a los 4 s con la vida llena (hasta 3 veces; la tercera agrieta la mámoa); con la mámoa tapada muere de verdad. Es un Combate3D: el vigía lo cuenta
+##   compana    animas=<n> (3)  camino=<casillas> (el de por defecto: 4 casillas al este, al sur...)   SantaCompana3D (E5): la procesión de n ánimas en fila por el camino (el x,y de la pieza es su salida; el
+##              camino se recorre de ida y vuelta). No persiguen: si se les cruza, 10 y ralentiza; si las atacan, el guía (el que lleva la cruz) maldice. Al caer el guía la cruz pasa a la siguiente; si caen
+##              todas en 2,5 s se acaba; si no, se reponen (hasta 3). Cada ánima es un Combate3D: la casilla de la pieza es la de partida para el vigía
+##   (puerta)   modelo=reja                                                       28/10: una REJA de barrotes que deja ver lo de detrás, sin rótulo (para y se abre igual que la losa)
 ##   veta       celdas=<lista> (la propia x,y)  enlaces=<lista>  aturde=<s> (0)  mineral=si (no)   VetaPulso3D: CONDUCTOR del pulso. Una losa por casilla con las vetas de `arte/suelo_meshy/veta_mineral.png`
 ##              (máscara × color del pulso por emisión, casilla a casilla) y un hilo guía entre casillas vecinas. No bloquea; la rejilla de vetas la conoce solo el pulso.
 ##              Fase 3 (24/10): `enlaces` = HUECOS de la veta (C2), casillas que solo conducen con un bloque de tierra encima (hechizo de tierra: el «bloque de enlace»); `aturde=<s>` deja sin
@@ -267,7 +275,7 @@ const SENAL_DEFECTO: Dictionary = {
 	"columna": "cae", "estatuas": "completa", "estalagmita": "cae", "geoda": "explota", "bloque": "movido", "roca_empujable": "movido",
 	"guardian": "levanta", "puente": "tendido", "trampa_dragon": "escupe", "trampa_flechas": "dispara",
 	"colmena": "cae_panal", "nube_veneno": "disipada", "nido": "suelta", "musgo": "recogida", "helecho_cueva": "recogida", "seta_palida": "recogida",
-	"bancal": "germino",
+	"bancal": "germino", "mamoa": "tapada",
 }
 ## Señal de usuario → [señal de Godot, cuántos argumentos trae, filtro]: un filtro `true`/`false` deja pasar solo ese valor del primer argumento.
 const SENALES: Dictionary = {
@@ -310,6 +318,7 @@ const SENALES: Dictionary = {
 	"estatuas": {"completa": ["completa", 0, null], "falla": ["falla", 0, null], "acierta": ["acierta", 2, null]},
 	"guardian": {"levanta": ["levanta", 1, null]},
 	"puente": {"tendido": ["completo", 0, null]},
+	"mamoa": {"tapada": ["tapada", 0, null], "destapada": ["destapada", 0, null], "agrietada": ["agrietada", 0, null]},
 	"trampa_dragon": {"escupe": ["escupe", 0, null], "calla": ["calla", 0, null], "apagada": ["apagada", 0, null]},
 	"trampa_flechas": {"dispara": ["dispara", 0, null], "apagada": ["apagada", 0, null]},
 	"colmena": {"cae_panal": ["panal_cae", 0, null], "arde": ["arde", 0, null]},
@@ -352,6 +361,7 @@ const CONDICIONES: Dictionary = {
 	"roca_empujable": {"quieto": ["moviendo", false], "en_marcha": ["moviendo", true]},
 	"estatuas": {"completa": ["hecha", true], "pendiente": ["hecha", false]},
 	"puente": {"tendido": ["tendido", true], "plegado": ["tendido", false]},
+	"mamoa": {"abierta": ["abierta", true], "tapada": ["abierta", false], "agrietada": ["esta_agrietada", true]},
 	"trampa_dragon": {"activa": ["activa", true], "apagada": ["activa", false]},
 	"trampa_flechas": {"activa": ["activa", true], "apagada": ["activa", false]},
 	"colmena": {"colgada": ["colgada", true], "vacia": ["colgada", false]},
@@ -393,6 +403,7 @@ const ACCIONES: Dictionary = {
 	"columna": {"romper": 0},
 	"guardian": {"levantar": 0},
 	"puente": {"tender": 0},
+	"mamoa": {"tapar": 0, "destapar": 0},
 	"trampa_dragon": {"apagar": 1, "encender": 0},
 	"trampa_flechas": {"apagar": 1, "encender": 0},
 }
@@ -452,6 +463,9 @@ const CLAVES: Dictionary = {
 	"limo": {"elemento": "s:fuego|agua|hielo|rayo|tierra|viento", "grande": "b"},
 	"golem": {"quieto": "b"},
 	"chaman": {"quieto": "b"},
+	"mamoa": {"agrietada": "b", "tapada": "b"},
+	"mouro": {"mamoa": "id", "quieto": "b"},
+	"compana": {"animas": "f", "camino": "celdas"},
 	"trampa_dragon": {"mira": "s:n|e|s|o", "ciclo": "par", "desfase": "f", "alcance": "f", "elemento": "s:fuego|agua|hielo|rayo|tierra|viento", "agua": "b", "cerca": "f"},
 	"trampa_flechas": {"mira": "s:n|e|s|o", "cada": "f", "desfase": "f", "alcance": "f", "vel": "f", "elemento": "s:fuego|ninguno|agua|hielo|rayo|tierra|viento", "agua": "b", "cerca": "f"},
 }
@@ -2346,6 +2360,38 @@ func _crear(pz: Pieza) -> void:
 			ch.quieto = bool(pz.p.get("quieto", false))
 			ch.name = pz.id
 			pz.nodo = ch
+		"mamoa":
+			# E4: el brocal del que vuelve el mouro. Sin su modelo avisa pero funciona igual (la lógica de tapada/abierta no depende del dibujo). Cuelga del decorado, como las demás piezas fijas.
+			if not ResourceLoader.exists(Mamoa3D.BROCAL):
+				_avisar_pieza(pz, "la mámoa no tiene modelo (brocal_pozo.glb)")
+			var mm: Mamoa3D = Mamoa3D.crear(mundo as Node3D, pz.celda, bool(pz.p.get("agrietada", false)), bool(pz.p.get("tapada", false)), cont)
+			mm.name = pz.id
+			pz.nodo = mm
+		"mouro":
+			# E4: como el chamán, colgado del MUNDO. La mámoa se le asigna en `_enlazar` (ya están todas las piezas: puede estar declarada después).
+			var cel_m: Vector2i = pz.celda
+			var mo: MouroEspectro3D = MouroEspectro3D.crear(mundo as Node3D, Terreno3D.centro_de(cel_m, Terreno3D.y_pies(cel_m)))
+			if mo == null:
+				_avisar_pieza(pz, "el mouro no tiene modelo (fantasma_elfo_rig.glb)")
+				return
+			mo.quieto = bool(pz.p.get("quieto", false))
+			mo.name = pz.id
+			pz.nodo = mo
+		"compana":
+			# E5: la procesión (un nodo del MUNDO) con sus ánimas. Sale de la casilla de la pieza; el camino (si lo hay) se valida casilla a casilla y la pieza se antepone si no es su primera casilla.
+			var camino_c: Array = []
+			camino_c.append(pz.celda)
+			for cc in (pz.p.get("camino", []) as Array):
+				if cc != pz.celda:
+					if not _casilla_valida(pz, cc as Vector2i):
+						return
+					camino_c.append(cc)
+			var sc: SantaCompana3D = SantaCompana3D.crear(mundo as Node3D, camino_c if camino_c.size() > 1 else [], int(pz.p.get("animas", SantaCompana3D.N_ANIMAS_DEFECTO)), pz.celda)
+			if sc == null:
+				_avisar_pieza(pz, "la Santa Compaña no tiene modelo (santa_compana_rig.glb)")
+				return
+			sc.name = pz.id
+			pz.nodo = sc
 		"puente":
 			# 28/10 (Gruta Batida): las losas rúnicas de PuenteReactivo3D sobre el agua de `celdas`, plegadas hasta `tender` (una regla o la cuerda que lo sostiene).
 			# Cada losa que sube vuelve su casilla un puente «b» que se pisa.
@@ -2547,6 +2593,14 @@ func _enlazar(pz: Pieza) -> void:
 				else:
 					siguiente = ps.nodo as Reactivo3D
 			(pz.nodo as Reactivo3D).configurar_rele(siguiente, float(pz.p.get("espera", Reactivo3D.T_RELE_ESPERA)), float(pz.p.get("dura", Reactivo3D.T_RELE_DURA)))
+		"mouro":
+			if not pz.p.has("mamoa"):
+				return
+			var pm: Pieza = _piezas.get(pz.p["mamoa"], null)
+			if pm == null or pm.tipo != "mamoa" or not is_instance_valid(pm.nodo):
+				_avisar_pieza(pz, "mamoa=%s: no es una pieza mámoa que se haya montado" % pz.p["mamoa"])
+			else:
+				(pz.nodo as MouroEspectro3D).asignar_mamoa(pm.nodo as Mamoa3D)
 		"cuerda":
 			if not pz.p.has("sostiene"):
 				return
@@ -3300,6 +3354,12 @@ func _ejecutar(a: Dictionary) -> void:
 		"tender":
 			if nd != null:
 				nd.call("tender")
+		"tapar":
+			if nd != null:
+				nd.call("tapar_a_mano")
+		"destapar":
+			if nd != null:
+				nd.call("destapar_a_mano")
 		"levantar":
 			if nd != null:
 				nd.call("levantar")
