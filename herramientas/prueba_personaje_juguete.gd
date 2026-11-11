@@ -66,6 +66,11 @@ func _cuenta(p: Pj3D) -> Array:
 			if o is ShaderMaterial and (o as ShaderMaterial).shader.code.contains("diffuse_lambert"):
 				sh += 1
 			elif o is StandardMaterial3D:
+				# Las piezas de EQUIPO (el grimorio, un arma) nunca han llevado el shader de juguete: van con el material de su GLB. Desde el
+				# 11/11 ese material se duplica y se sobrescribe para que marque la plantilla (Pj3D._marcar_pieza, meta «plantilla»), así que
+				# ahora aparece aquí; antes no estaba sobrescrito y esta cuenta ni lo veía. No es una superficie del CUERPO sin convertir.
+				if o.has_meta("plantilla"):
+					continue
 				if (o as StandardMaterial3D).transparency == BaseMaterial3D.TRANSPARENCY_DISABLED:
 					std_opaca += 1
 				else:
