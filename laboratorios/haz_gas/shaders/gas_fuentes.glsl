@@ -50,6 +50,11 @@ void main() {
 		vec3 e2 = cross(e1, hv.dir);
 		float radio_l = mix(BEAM_R0, BEAM_R1, hv.t) * VIENTO_ANCHO;
 		vec2 et = vec2(dot(r_v, e1), dot(r_v, e2)) / radio_l;
+		// 11/11 (referencia de Pablo: jirones que se RETUERCEN alrededor del eje, como de tornado, no rectas paralelas): las etiquetas GIRAN con el recorrido
+		// (VIENTO_HELICE vueltas de la mano al final) y con el tiempo, y mas deprisa por fuera que por dentro: cada linea de corriente es una HELICE que se
+		// enrosca y corre; como el giro cambia con el radio, las lineas no son copias paralelas sino curvas de paso distinto.
+		float giro_v = 6.2832 * VIENTO_HELICE * hv.t * (0.45 + 0.75 * length(et)) - TIEMPO * 3.2;
+		et = mat2(vec2(cos(giro_v), sin(giro_v)), vec2(-sin(giro_v), cos(giro_v))) * et;
 		float dentro_v = (1.0 - smoothstep(0.95, 1.2, length(et))) * BEAM_ON * step(0.02, hv.t) * step(hv.t, 0.985);
 		// 11/11 (3070): junto a la cara del solido las etiquetas quedan LIBRES (antes se reponian hasta la cara, y los trazos acababan en ella): asi el aire que
 		// el choque abre en abanico se lleva sus lineas por la pared y se ven doblarse y rizarse a los lados.

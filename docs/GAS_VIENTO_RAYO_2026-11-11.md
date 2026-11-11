@@ -52,6 +52,8 @@ La conclusión es que **el aire no se puede pintar como masa**: cualquier cuerpo
 - **Dibujo** (`raymarch_toon_viento.glsl`). Por cada rayo de vista se busca el punto más cercano a una línea de corriente y se afina: trazo blanco nítido, más fino en las
   puntas, con una funda muy tenue alrededor. Sin cuerpo ni contorno. El polvo es una franja terrosa plana (tonos POLVO de HumoRegla) y las chispas del solver se dibujan
   como **hojas** (una de cada ocho).
+- **11/11, noche: hacia la referencia en vídeo de Pablo** (§7): las líneas se **retuercen en hélice**, jirones en vez de rectas paralelas, **brillo blanco en la mano**,
+  **vórtice de lazos** que giran alrededor del contacto, **mechones** que el choque despide y **disolución** en 0,55 s al soltar.
 
 ### Rayo
 
@@ -181,3 +183,60 @@ acababa bajo la mano y el agua pasaba por encima; ahora, solo para el agua, la c
   encima, es quitar `AGUA_TOPE_SOBRE_MANO_CAS`.
 - Coste medido con otras sesiones de Godot usando la misma GPU (de ahí los rangos). Sin medir en gama media.
 - `prueba_rayo_toy`: 16 fallos y un error de índice, IGUAL antes y después (vienen de main, no se han mirado aquí).
+
+## 7. Choque con identidad y viento hacia la referencia de Pablo (11/11, noche; rama `claude/gas-choque-viento`)
+
+Pablo: «Rayo y agua están bien; en el haz mejoraría el choque para darle más identidad. En vez de los "puntitos" del fuego puedes poner chispas para el rayo y gotas
+de agua para el agua» y «te paso el haz de viento para que lo mejores» (un vídeo grabado de un haz de viento, **solo como referencia visual**: no se ha copiado ni
+textura ni recurso; en el repo solo hay un fotograma reducido dentro de la hoja de comparación). Hoja: `docs/capturas/vfx_en_juego/haz_gas_elementos/HOJA_CHOQUE_VIENTO.png`.
+
+**Chispas por elemento** (`chispas.glsl`: una rama por elemento; el FUEGO pasa por el código de siempre, sin un cambio). El compute sabe ahora si el haz acaba contra
+algo (`CHOQUE`, en `mundo_lo.w` del UBO: 0 si el obstáculo es «nada»).
+- **Rayo: chispas eléctricas** (`haz_gas_chispas_rayo.gdshader`, 1 de cada 3). Nacen en el contacto a 15–25 u/s, viven 0,15–0,5 s, casi sin peso ni arrastre, y cada
+  1/24 s de vida **quiebran** la dirección (codos: zigzag en el espacio); rebotan vivas (0,6). Se dibujan como trazos largos (cola = v · 0,06 s) con **zigzag** dentro
+  del quad, una **rama** corta en una de cada tres y **parpadeo** a saltos de 1/30 s. Colores del rayo de gas: núcleo blanco azulado, cuerpo HALO_BORDE y borde HALO
+  (RayoPaleta). Nunca naranja.
+- **Agua: gotas y salpicaduras** (`haz_gas_gotas_toon.gdshader` con `agua`, 1 de cada 7 como antes). Nacen en la salpicadura del contacto y saltan en corona; gravedad
+  de verdad (11 u/s²) y poco aire. Se dibujan como **lágrimas** (cabeza redonda con brillo de ESPUMA, cola SOMERO que se afila con la velocidad), 2,8 veces más gordas
+  que el trazo de antes. Al tocar el **sólido** se parten en una gotita de la mitad de grosor que sale despedida por la cara; al tocar el **suelo** se vuelven una
+  **salpicadura**: anillo plano que se abre en 0,3 s y al final se rompe en cuentas (SOMERO por dentro, ESPUMA por fuera).
+- **Fuego**: igual (mismo shader, mismo compute, mismos números).
+
+**Viento** (sin tocar la idea de §2: el aire NO se pinta como masa, solo trazos):
+- **Hélice**: en `gas_fuentes.glsl` las etiquetas de línea de corriente GIRAN con el recorrido (`VIENTO_HELICE` = 1,6 vueltas de la mano al final) y con el tiempo
+  (3,2 rad/s), y más por fuera que por dentro: cada línea es una hélice de paso distinto que se enrosca y corre, en vez de rectas paralelas.
+- **Jirones**: el grosor del trazo engorda y adelgaza a lo largo (ruido que corre con el haz), como tiras que se retuercen.
+- **Brillo en la mano**: disco blanco con halo blando en la boquilla, que respira; se apaga en 0,25 s al soltar (`toon_viento.mano`).
+- **Vórtice en el choque** (solo con `CHOQUE`): en `vel_fuentes.glsl` un remolino alrededor del EJE del haz en un anillo grueso que envuelve el contacto
+  (`VIENTO_VORTICE`), y en el dibujo tres **lazos** (anillos ladeados y ondulados, rotos en 2–3 arcos que giran cada uno a su ritmo) alrededor del contacto, con el
+  mismo trazo blanco y antialias (`toon_viento.anillos`). Los lazos solo se evalúan cerca del contacto.
+- **Mechones**: 1 de cada 8 chispas son mechones blancos curvos sin peso: con choque, la mitad salen despedidos del contacto girando (el vórtice); el resto nacen a lo
+  largo del chorro y viajan con él. Las hojas (1 de cada 8) siguen igual.
+- **Disolución al soltar** (`toon_viento.disuelve` = 0,55 s): los trazos se rompen en trozos (ruido fijo en el espacio), adelgazan y se van; los lazos se abren y se
+  apagan; el aire se lleva lo que queda. `HazGas` lleva el tiempo desde que se soltó (`_corte_t0`, por tiempo de simulación).
+- Se mantienen las líneas que rodean los sólidos, el abanico por la pared y el polvo.
+
+**Coste** (3070, en el juego: tabla `COSTE` de `prueba_haz_gas_viento_rayo`, una pasada antes y otra después; ms de GPU por haz):
+
+| Haz | Caso | Antes | Después |
+|---|---|---|---|
+| Fuego | aire / muro | 2,73 / 2,49 | 2,63 / 2,54 |
+| Agua | aire / muro | 1,31 / 1,44 | 1,11 / 1,40 |
+| Viento | aire / muro | 0,28 / 0,44 | 0,21 / 0,25 |
+| Rayo | aire / muro | 0,28 / 0,27 | 0,24 / 0,18 |
+
+Dentro del ruido de una pasada. Las marcas miden simulación + chispas (compute) + volumen; el dibujo de los quads de las chispas no está en ellas. En el lab
+(`captura_gas_elementos`, más ruidoso) el viento queda en el mismo rango: esfera 1,46–1,53 ms antes y 0,68–1,12 después; muro 2,32–2,64 antes y 2,45–2,73 después (los lazos solo se evalúan cerca del contacto). Capturas antes / después en `docs/capturas/vfx_en_juego/haz_gas_elementos/choque_viento/`.
+
+**Cómo verlo.** Lab: `LabVfxComparativa3D`, Z hasta RAYO / AGUA / VIENTO, Mayús+F12 (esfera), otra vez (muro), otra vez sale; B obstáculo, C cámara, ESPACIO suelta y
+vuelve a dar el chorro (la disolución del viento se ve al soltar).
+
+**Pruebas nuevas.** `prueba_haz_gas_viento_rayo`: las chispas del choque del rayo son AZULES y nada naranja; las del viento, nada naranja. `prueba_haz_gas_agua`: las
+gotas del choque son turquesa y nada naranja. Las chispas se aíslan con tres fotos en pausa (con chispas y dos sin ellas: lo que cambia entre las dos sin chispas es la escena y no cuenta) y solo junto a las chispas vivas proyectadas
+(`colores_chispas`).
+
+**Resultado (3070).** Con ventana a 0: `prueba_haz_gas_juego`, `prueba_gas_haz`, `prueba_haz_gas_agua`, `prueba_haz_gas_viento_rayo`. Headless a 0: `prueba_vfx_toy`,
+`prueba_haz_fuego_ideas`, `prueba_vfx_en_juego`, `prueba_agua_toy`, `prueba_lab_vfx_toys`; `prueba_rayo_toy` 16 fallos, los de main.
+
+**Queda.** Que Pablo vea la hoja y diga si el vórtice y el brillo de la mano se leen como aire o hay que bajarlos (`toon_viento.anillos` / `mano`); en la cámara del juego
+los lazos se ven casi de canto (se leen mejor desde arriba); los mechones y las hojas juntos pueden ser demasiados puntos alrededor del choque.

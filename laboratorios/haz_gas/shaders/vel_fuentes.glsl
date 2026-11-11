@@ -41,6 +41,18 @@ void main() {
 		vec3 tg_c = r_c / max(l_c, 1e-3);
 		float cerca_c = exp(-l_c * l_c / (9.0 * ESC_M * ESC_M)) * smoothstep(0.0, 0.4 * ESC_M, l_c);
 		u += (tg_c * 0.9 + cross(n_f, tg_c) * 0.35) * BEAM_SPEED * cara * cerca_c * DT * 9.0;
+		// 11/11 (referencia de Pablo: en el choque, un VORTICE de anillos que giran alrededor del contacto): solo si el haz acaba contra algo, un remolino
+		// alrededor del EJE del haz en un anillo grueso que envuelve el contacto (de radio ~1 M, un poco por delante de la cara). Las lineas de corriente
+		// que llegan ahi se enroscan en anillos y el gas despide mechones hacia fuera.
+		if (CHOQUE) {
+			vec3 r_x = w - (P.contacto.xyz - hz.dir * 0.3 * ESC_M);
+			float ax = dot(r_x, hz.dir);
+			vec3 rp = r_x - hz.dir * ax;
+			float lr = length(rp);
+			float k_r = (lr - 0.95 * ESC_M) / (0.6 * ESC_M);
+			float anillo_x = exp(-k_r * k_r) * exp(-ax * ax / (0.7 * ESC_M * ESC_M)) * BEAM_ON;
+			u += (cross(hz.dir, rp / max(lr, 1e-3)) + rp / max(lr, 1e-3) * 0.18) * BEAM_SPEED * anillo_x * DT * VIENTO_VORTICE;
+		}
 	}
 
 	// Fuego: flota con el calor y pesa el hollin. Agua (10/11): no flota; pesa el AGUA (canal x), asi que cae y se escurre por la pared.

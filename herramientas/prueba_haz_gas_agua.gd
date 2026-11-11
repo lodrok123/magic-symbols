@@ -11,6 +11,7 @@ extends "res://herramientas/escenario_base.gd"
 ## Capturas: <carpeta>/<caso>_juego.jpg (cámara del juego), <caso>_juego_16.jpg (1,6 s) y <caso>_lateral.jpg (de lado).
 
 const AguaPaletaP = preload("res://presentacion/vfx/toy/agua_paleta.gd")
+const PruebaVientoRayo = preload("res://herramientas/prueba_haz_gas_viento_rayo.gd")      ## colores_chispas (11/11, gotas del choque)
 const RUTA: String = "res://escenas/PruebaBosque01_v01.tscn"
 const T_MEDIDA: float = 0.8
 
@@ -172,6 +173,16 @@ func _caso(caso: String, c: Vector2i) -> void:
 	_guardar(_recorte(centro), "%s_juego.jpg" % caso)
 	var vis: Dictionary = _analiza_volumen(g)
 	g.pausa = true
+	# 11/11 (choque con identidad, Pablo: «gotas de agua para el agua»): las chispas del choque son GOTAS turquesa (SOMERO, con brillo de ESPUMA), nada naranja
+	var ch: Dictionary = await PruebaVientoRayo.colores_chispas(self, g)
+	var fila_ch: String = "gotas: turquesa %d · blanco %d · azul %d · naranja %d px (cambian %d)" % [int(ch["turquesa"]), int(ch["blanco"]), int(ch["azul"]), int(ch["naranja"]), int(ch["total"])]
+	print("  %s: %s" % [caso, fila_ch])
+	# al aire no hay choque (y a esta hora el chorro puede estar ya cortado por reloj real): ahí solo se pide que no haya nada naranja
+	if String(g.haz_der["obstaculo"]) == "campo":
+		_ok("%s: las chispas del choque son GOTAS de agua turquesa (no los puntitos naranjas del fuego)" % caso,
+			int(ch["turquesa"]) > 15 and int(ch["turquesa"]) >= int(ch["azul"]) and int(ch["naranja"]) == 0, fila_ch)
+	else:
+		_ok("%s: las chispas (gotas) no son naranjas" % caso, int(ch["naranja"]) == 0, fila_ch)
 	var m: Dictionary = _medidas(g)
 	await _lateral(jugador.position, fin, "%s_lateral.jpg" % caso)
 	g.pausa = false

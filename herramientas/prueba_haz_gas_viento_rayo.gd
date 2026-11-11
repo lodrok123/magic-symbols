@@ -108,6 +108,82 @@ func _ok_colores(elem: String, caso: String, g: HazGas) -> void:
 		_ok("rayo %s: el trazo es AZUL (no el amarillo de RayoPaleta.CUERPO) y nada naranja de fuego" % caso, int(col["azul"]) > 150 and int(col["naranja"]) == 0, fila)
 
 
+## 11/11 (choque con identidad): las CHISPAS del gas (su MultiMesh) se aíslan con dos fotos seguidas con la simulación en pausa, con y sin chispas: los píxeles
+## que cambian de verdad son ellas. Rayo: chispas eléctricas AZULES (o su núcleo blanco azulado), nada naranja. Viento: hojas y mechones, nada naranja.
+func _ok_chispas(elem: String, caso: String, g: HazGas) -> void:
+	var col: Dictionary = await colores_chispas(self, g)
+	var fila: String = "chispas: azul %d · blanco %d · turquesa %d · naranja %d px (cambian %d)" % [int(col["azul"]), int(col["blanco"]), int(col["turquesa"]),
+		int(col["naranja"]), int(col["total"])]
+	print("  %s %s: %s" % [elem, caso, fila])
+	if elem == "rayo" and caso == "aire":          # al aire no hay choque: las chispas salen en la punta, casi todas bajo el halo
+		_ok("rayo aire: las chispas no son naranjas", int(col["naranja"]) == 0, fila)
+	elif elem == "rayo":
+		_ok("rayo %s: las chispas del choque son ELÉCTRICAS AZULES (no los puntitos naranjas del fuego)" % caso,
+			int(col["azul"]) > 40 and int(col["azul"]) > int(col["blanco"]) / 4 and int(col["naranja"]) == 0, fila)
+	else:
+		_ok("viento %s: las chispas (hojas y mechones) no son naranjas" % caso, int(col["naranja"]) == 0, fila)
+
+
+## Los colores de lo que dibujan las chispas del gas `g` en la pantalla (compartido con prueba_haz_gas_agua). `p` = el SceneTree de la prueba.
+static func colores_chispas(p: SceneTree, g: HazGas) -> Dictionary:
+	var r: Dictionary = {"azul": 0, "blanco": 0, "turquesa": 0, "naranja": 0, "total": 0}
+	var mi: Node3D = g.get_node_or_null("Chispas") as Node3D
+	if mi == null:
+		return r
+	await p.process_frame
+	await RenderingServer.frame_post_draw
+	var con: Image = p.root.get_viewport().get_texture().get_image()
+	mi.visible = false
+	await p.process_frame
+	await RenderingServer.frame_post_draw
+	var sin: Image = p.root.get_viewport().get_texture().get_image()
+	await p.process_frame
+	await RenderingServer.frame_post_draw
+	var sin2: Image = p.root.get_viewport().get_texture().get_image()       # lo que cambia entre las dos fotos SIN chispas (hierba, personajes) no cuenta
+	mi.visible = true
+	# solo cuenta junto a las chispas vivas (su posición del estado de la GPU, proyectada): la hierba y los personajes también se mueven entre las dos fotos
+	var caja: Array = [PackedByteArray()]
+	RenderingServer.call_on_render_thread(func() -> void: caja[0] = g.solver.leer(g.solver.chispas))
+	await p.process_frame
+	var est: PackedByteArray = caja[0]
+	var cam: Camera3D = p.root.get_viewport().get_camera_3d()
+	var cerca: Dictionary = {}               # celdas de 8 x 8 px de pantalla con alguna chispa
+	var esc: Vector2 = Vector2(con.get_width(), con.get_height()) / p.root.get_viewport().get_visible_rect().size
+	if cam != null and est.size() >= HazGasSolver.N_CHISPAS * 16:
+		for i in HazGasSolver.N_CHISPAS:
+			var pw: float = est.decode_float(i * 16 + 12)
+			var pos: Vector3 = Vector3(est.decode_float(i * 16), est.decode_float(i * 16 + 4), est.decode_float(i * 16 + 8))
+			if pw <= 0.0 or pos.y < -5.0:
+				continue
+			var mundo: Vector3 = g.global_transform * pos
+			if cam.is_position_behind(mundo):
+				continue
+			var s: Vector2 = cam.unproject_position(mundo) * esc
+			for dy in range(-2, 3):
+				for dx in range(-2, 3):
+					cerca[Vector2i(int(s.x / 8.0) + dx, int(s.y / 8.0) + dy)] = true
+	for y in range(0, con.get_height(), 2):
+		for x in range(0, con.get_width(), 2):
+			if not cerca.has(Vector2i(x / 8, y / 8)):
+				continue
+			var a: Color = con.get_pixel(x, y)
+			var b: Color = sin.get_pixel(x, y)
+			var b2: Color = sin2.get_pixel(x, y)
+			if absf(a.r - b.r) + absf(a.g - b.g) + absf(a.b - b.b) < 0.25 or absf(b.r - b2.r) + absf(b.g - b2.g) + absf(b.b - b2.b) > 0.08:
+				continue
+			r["total"] += 1
+			var h: float = a.h * 360.0
+			if a.s < 0.16 and a.v > 0.8:
+				r["blanco"] += 1
+			elif a.s > 0.2 and h > 195.0 and h <= 240.0:
+				r["azul"] += 1
+			elif a.s > 0.2 and h >= 150.0 and h <= 195.0:
+				r["turquesa"] += 1
+			elif a.s > 0.65 and a.v > 0.4 and (h < 40.0 or h > 340.0):
+				r["naranja"] += 1
+	return r
+
+
 ## Rayo contra un goblin en la línea del haz: la rama salta al CUERPO (HazGas.rayo_cuerpos sale de los choques de la lógica) y alrededor de él hay trazo azul.
 func _rayo_cuerpo() -> void:
 	ProjectSettings.set_setting(HazGasJuego.AJUSTE_RAYO, true)
@@ -351,6 +427,7 @@ func _un_haz(elem: String, caso: String, con_gas: bool) -> Dictionary:
 	_guardar(_recorte(centro), "%s_%s_juego.jpg" % [elem, caso])
 	_ok_colores(elem, caso, g)
 	g.pausa = true
+	await _ok_chispas(elem, caso, g)
 	_medir_gas(elem, caso, g)
 	await _lateral(jugador.position, fin, "%s_%s_lateral.jpg" % [elem, caso])
 	g.pausa = false

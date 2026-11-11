@@ -63,6 +63,7 @@ var toon_agua: Dictionary = {"umbral": 0.3, "blandura": 0.22, "contraste": 1.0, 
 const AguaPaletaGas = preload("res://presentacion/vfx/toy/agua_paleta.gd")
 const GOTAS_CADA: int = 7                   ## el agua dibuja 1 de cada 7 chispas como gota (11/11, antes 3: «demasiadas gotas finas»)
 const GOTAS_GROSOR: float = 1.7             ## y más gordas (antes 1)
+const RAYO_CHISPAS_CADA: int = 3            ## 11/11 (choque): el rayo dibuja 1 de cada 3 chispas como CHISPA ELÉCTRICA (viven 0,12-0,45 s: ~100 a la vez)
 ## MODO VIENTO (11/11): una RÁFAGA SOSTENIDA DE AIRE, no un fluido (Pablo, al ver la primera versión: «parece vapor»). x = pulsos de ráfaga que viajan con el aire,
 ## y / w = etiquetas de línea de corriente que el gas transporta, z = POLVO levantado a ras de suelo. Sin calor ni peso. «sootYield» es aquí el REMOLINO (u/s en el
 ## borde del chorro: las líneas giran un poco); «cool» = lo que tardan en irse los trazos; turbulencia y confinamiento moderados (las líneas se doblan, no se deshacen).
@@ -77,7 +78,10 @@ const CODIGO_ELEMENTO: Dictionary = {"fuego": 0.0, "agua": 1.0, "viento": 2.0, "
 const DIBUJO_ELEMENTO: Dictionary = {"agua": "raymarch_toon_agua", "viento": "raymarch_toon_viento", "rayo": "raymarch_toon_rayo"}
 ## Dibujo del viento (raymarch_toon_viento.glsl): solo TRAZOS (líneas de corriente): umbral de la ráfaga, grosor del trazo (en unidades de etiqueta), opacidad,
 ## velo (la funda tenue alrededor del trazo) y la franja de polvo.
-var toon_viento: Dictionary = {"umbral": 0.22, "grosor": 0.058, "opacidad": 0.92, "velo": 0.2, "polvo": 0.4}
+## 11/11 (referencia en vídeo de Pablo): «mano» = brillo blanco en la mano, «anillos» = lazos del vórtice que giran alrededor del contacto (solo con choque),
+## «disuelve» = s en que los trazos se rompen en jirones y se van al soltar.
+var toon_viento: Dictionary = {"umbral": 0.22, "grosor": 0.058, "opacidad": 0.92, "velo": 0.2, "polvo": 0.4, "mano": 1.0, "anillos": 1.0, "disuelve": 0.55}
+var _corte_t0: float = -1.0                  ## tiempo de simulación en que se soltó el chorro (-1 = encendido): la disolución del viento
 ## Dibujo del rayo (raymarch_toon_rayo.glsl): grosor y zigzag del trazo (u), halo, arcos, redibujos por segundo, brillo.
 var toon_rayo: Dictionary = {"grosor": 0.06, "zigzag": 0.34, "halo": 0.5, "arcos": 1.0, "k_T": 1.0, "saltos": 14.0, "grosor_arco": 0.035, "periodo": 5.0,
 	"umbral_arco": 0.3, "brillo": 1.25, "ramas": 1.0, "opacidad": 1.0}
@@ -685,6 +689,10 @@ func _process(delta: float) -> void:
 		tg.y = _target_base.y + sin(t * 0.7) * 0.5 * escala_masa
 		tg.z = _target_base.z + sin(t * 0.43) * 0.7 * escala_masa
 		params["target"] = tg
+		if float(params["beamOn"]) > 0.5:
+			_corte_t0 = -1.0
+		elif _corte_t0 < 0.0:
+			_corte_t0 = t
 		var datos: PackedFloat32Array = parametros_gpu(t)
 		RenderingServer.call_on_render_thread(solver.paso.bind(datos, true, not toon))     # el toon no usa la luz por volúmenes
 		frame += 1
@@ -713,7 +721,8 @@ func _process(delta: float) -> void:
 		elif elemento == "viento":
 			var tv: Dictionary = toon_viento
 			efecto.toon_param = PackedFloat32Array([tv["umbral"], tv["grosor"], 0.0, tv["opacidad"], 1.0, tv["velo"], 0.0, 0.0,
-				0.0, tv["polvo"], 0.0, frame * DT, 0.0, 0.0, 0.0, mundo_tam.x / float(solver.res.x)])
+				tv["disuelve"], tv["polvo"], 0.0, frame * DT, -1.0 if _corte_t0 < 0.0 else frame * DT - _corte_t0, tv["mano"], tv["anillos"],
+				mundo_tam.x / float(solver.res.x)])
 		elif elemento == "rayo":
 			var tr: Dictionary = toon_rayo
 			efecto.toon_param = PackedFloat32Array([tr["grosor"], tr["zigzag"], tr["halo"], tr["arcos"], tr["k_T"], tr["saltos"], tr["grosor_arco"], tr["periodo"],
@@ -787,7 +796,7 @@ func parametros_gpu(t: float) -> PackedFloat32Array:
 		p["push"], p["confine"], p["subgrid"], p["viscosity"],
 		p["turbulence"], p["paleta"], 1.0 if _acantilado == null or _acantilado.visible else 0.0, escala_masa,
 		kp.x, kp.y, kp.z, float(CODIGO_ELEMENTO.get(elemento, 0.0)),
-		mundo_lo.x, mundo_lo.y, mundo_lo.z, 0.0,
+		mundo_lo.x, mundo_lo.y, mundo_lo.z, 0.0 if obstaculo == "nada" else 1.0,          # CHOQUE (gas_comun.glslinc): el haz acaba contra algo
 		mundo_tam.x, mundo_tam.y, mundo_tam.z, 0.0])
 
 
@@ -1082,14 +1091,21 @@ func _montar_escena() -> void:
 	_mat_hojas.set_shader_parameter("tono_c", VIENTO_CLARO)
 	_mat_hojas.set_shader_parameter("cada", 8)
 	_mat_hojas.set_shader_parameter("grosor", 2.2)
-	_mat_chispas_rayo = _mat_gotas.duplicate() as ShaderMaterial
-	_mat_chispas_rayo.set_shader_parameter("tono_b", RAYO_GAS_CUERPO)
-	_mat_chispas_rayo.set_shader_parameter("tono_c", RAYO_GAS_NUCLEO)
-	_mat_chispas_rayo.set_shader_parameter("cada", 2)
+	_mat_hojas.set_shader_parameter("mechones", true)            # 11/11 (choque y viento): y MECHONES de aire blancos (2 de cada 8; chispas.glsl)
+	_mat_hojas.set_shader_parameter("tono_mechon", VIENTO_LINEA)
+	# 11/11 (choque con identidad, Pablo: «chispas para el rayo»): el rayo tiene su propio dibujo de CHISPAS ELÉCTRICAS (zigzag, rama, parpadeo) en los azules
+	# del rayo de gas: núcleo blanco azulado, cuerpo HALO_BORDE, borde HALO.
+	_mat_chispas_rayo = ShaderMaterial.new()
+	_mat_chispas_rayo.shader = load("res://laboratorios/haz_gas/haz_gas_chispas_rayo.gdshader") as Shader
+	_mat_chispas_rayo.set_shader_parameter("nucleo", RAYO_GAS_NUCLEO)
+	_mat_chispas_rayo.set_shader_parameter("cuerpo", RayoPaletaGas.HALO_BORDE)
+	_mat_chispas_rayo.set_shader_parameter("borde", RayoPaletaGas.HALO)
+	_mat_chispas_rayo.set_shader_parameter("cada", RAYO_CHISPAS_CADA)
 	# 11/11 (3070, pendiente del 468: «demasiadas gotas finas»): el agua dibuja 1 de cada GOTAS_CADA (antes 3) y más gordas (GOTAS_GROSOR, antes 1).
-	# Se pone DESPUÉS de duplicar: las hojas y las chispas del rayo no cambian.
+	# Se pone DESPUÉS de duplicar: las hojas no cambian. 11/11 (choque): las gotas son LÁGRIMAS y al tocar el suelo SALPICAN (anillo); `agua` en el shader.
 	_mat_gotas.set_shader_parameter("cada", GOTAS_CADA)
 	_mat_gotas.set_shader_parameter("grosor", GOTAS_GROSOR)
+	_mat_gotas.set_shader_parameter("agua", true)
 	_mat_chispas = _mat_chispas_real
 	var mm: MultiMesh = MultiMesh.new()
 	mm.transform_format = MultiMesh.TRANSFORM_3D
