@@ -240,3 +240,36 @@ gotas del choque son turquesa y nada naranja. Las chispas se aíslan con tres fo
 
 **Queda.** Que Pablo vea la hoja y diga si el vórtice y el brillo de la mano se leen como aire o hay que bajarlos (`toon_viento.anillos` / `mano`); en la cámara del juego
 los lazos se ven casi de canto (se leen mejor desde arriba); los mechones y las hojas juntos pueden ser demasiados puntos alrededor del choque.
+
+## 8. Refuerzo del viento (11/11, noche; Pablo: «Refuerza el viento»)
+
+Lectura de `HOJA_CHOQUE_VIENTO.png` frente a la referencia: al aire, un «garabato» de muchas líneas finas que tiemblan (la referencia tiene POCAS cintas anchas,
+lisas y largas que se enroscan juntas); el brillo de la mano, diminuto; los lazos del choque, finos y de canto desde la cámara del juego; demasiados puntitos
+(mechones y hojas); al soltar, una nube de líneas finas en vez de unos pocos jirones curvos. Hoja: `docs/capturas/vfx_en_juego/haz_gas_elementos/HOJA_VIENTO_REFUERZO.png`
+(antes del refuerzo, b00c548b, frente a ahora; al aire, contra la esfera y recién soltado; cámara lateral y cámara del juego desde arriba; con el mismo fotograma reducido
+de la referencia).
+
+- **Cintas del chorro, analíticas** (`raymarch_toon_viento.glsl`, `cintas()`): 5 hélices alrededor del eje con el MISMO giro (`CINTAS_VUELTAS` 0,7 vueltas) y radios
+  distintos, rotas en tramos de ~0,4 del haz que corren a la velocidad del aire y se afilan en las dos puntas; borde toon en dos escalones (alma LINEA, orilla CLARO
+  medio transparente). Acaban en el contacto. Las líneas de corriente del gas (las que rodean el sólido y se abren en abanico) siguen, pero solo con choque y en el
+  último 30 % del haz, más finas y con su ancho medido en el MUNDO (gradiente de las etiquetas: donde el aire las emborrona no engordan hasta hacer una mancha).
+  En el gas, menos líneas (`VIENTO_LINEAS` 2 → 1,25), pulsos más largos, giro común y menos turbulencia (22 → 12) y confinamiento (26 → 14).
+- **Brillo de la mano**: disco toon en tres escalones (núcleo blanco, halo, orla tenue) de radio igual a la altura de la mano (unos dos tercios del cuerpo de
+  diámetro), fuera de la caja del dominio.
+- **Lazos del vórtice**: más gruesos (el trazo de las cintas · 1,2), radios 1–2,1 R1 · 1,5, ~1–1,6 vueltas por segundo; la cola de cada arco se abre hacia fuera
+  (jirón arrancado) y el plano se LADEA hacia la cámara (normal = haz + 0,9 · dirección de la cámara), así desde la cámara del juego se ven abiertos. Al soltar se
+  van en ~0,25 s.
+- **Menos puntitos**: hojas 1 de cada 24 (antes 8) y más grandes; mechones 1 de cada 16 (antes 8), más gruesos, largos y curvos, y solo del choque (al aire, ninguno).
+- **Al soltar**: las cintas se rompen en unos pocos trozos largos (ruido de baja frecuencia fijo en el aire), derivan con el aire (`DERIVA`: hacia delante y un poco
+  arriba) y se apagan en 0,55 s.
+
+**Coste** (3070, en el juego, tabla `COSTE` de `prueba_haz_gas_viento_rayo`; aire / muro): viento 0,21 / 0,25 ms antes del refuerzo → 0,60 / 0,66 ms ahora (las
+cintas se evalúan en cada paso del raymarch); fuego, agua y rayo sin cambios (3,00 / 2,55, 0,98 / 1,10, 0,52 / 0,27; ruido de pasada). En el lab, viento al aire
+0,4–1,3 ms y contra la esfera o el muro 1,9–4,2 ms (muy ruidoso: otra sesión usaba la GPU).
+Capturas de ahora en `docs/capturas/vfx_en_juego/haz_gas_elementos/viento_refuerzo/` (las de antes del refuerzo son las `choque_viento/despues/`).
+
+**Resultado (3070).** Con ventana a 0: `prueba_haz_gas_viento_rayo`, `prueba_haz_gas_juego`. Headless a 0: `prueba_vfx_toy`, `prueba_haz_fuego_ideas`,
+`prueba_vfx_en_juego`, `prueba_agua_toy`, `prueba_lab_vfx_toys`; `prueba_rayo_toy` 16 (los de main).
+
+**Queda.** Los trozos al soltar salen algo recortados (bordes del ruido); el coste del viento sube a ~0,6 ms en el juego (las cintas en cada paso); si molesta, acotar
+las cintas a un cilindro alrededor del eje antes de evaluarlas.

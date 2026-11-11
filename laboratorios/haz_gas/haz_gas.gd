@@ -68,7 +68,7 @@ const RAYO_CHISPAS_CADA: int = 3            ## 11/11 (choque): el rayo dibuja 1 
 ## y / w = etiquetas de línea de corriente que el gas transporta, z = POLVO levantado a ras de suelo. Sin calor ni peso. «sootYield» es aquí el REMOLINO (u/s en el
 ## borde del chorro: las líneas giran un poco); «cool» = lo que tardan en irse los trazos; turbulencia y confinamiento moderados (las líneas se doblan, no se deshacen).
 const PARAMS_VIENTO: Dictionary = {"burnRate": 0.0, "heat": 0.0, "sootYield": 2.5, "expansion": 0.0, "cool": 1.6, "buoyancy": 0.0, "weight": 0.0, "drag": 0.5,
-	"wind": 7.0, "push": 5.0, "confine": 26.0, "subgrid": 0.0, "viscosity": 0.03, "turbulence": 22.0, "dustFade": 1.4, "beamSpeed": 30.0, "wrap": 42.0}      # dustFade 0,6 → 1,4 (11/11, 3070): el polvo nuevo del suelo se va antes
+	"wind": 7.0, "push": 5.0, "confine": 14.0, "subgrid": 0.0, "viscosity": 0.03, "turbulence": 12.0, "dustFade": 1.4, "beamSpeed": 30.0, "wrap": 42.0}      # dustFade 0,6 → 1,4 (11/11, 3070): el polvo nuevo del suelo se va antes
 ## MODO RAYO (11/11): x = IONIZACIÓN (aire cargado: dónde puede haber arcos). Núcleo fino, mancha en el choque y carga que repta por la piel del sólido (wrap alto);
 ## se apaga en décimas («cool» 6). El aire casi no se mueve (chorro lento, sin viento): lo que corre es el trazo, que lo dibuja raymarch_toon_rayo.glsl.
 const PARAMS_RAYO: Dictionary = {"burnRate": 0.0, "heat": 1.0, "sootYield": 0.0, "expansion": 0.0, "cool": 6.0, "buoyancy": 0.5, "weight": 0.0, "drag": 1.5,
@@ -80,7 +80,7 @@ const DIBUJO_ELEMENTO: Dictionary = {"agua": "raymarch_toon_agua", "viento": "ra
 ## velo (la funda tenue alrededor del trazo) y la franja de polvo.
 ## 11/11 (referencia en vídeo de Pablo): «mano» = brillo blanco en la mano, «anillos» = lazos del vórtice que giran alrededor del contacto (solo con choque),
 ## «disuelve» = s en que los trazos se rompen en jirones y se van al soltar.
-var toon_viento: Dictionary = {"umbral": 0.22, "grosor": 0.058, "opacidad": 0.92, "velo": 0.2, "polvo": 0.4, "mano": 1.0, "anillos": 1.0, "disuelve": 0.55}
+var toon_viento: Dictionary = {"umbral": 0.22, "grosor": 0.15, "opacidad": 0.95, "velo": 0.2, "polvo": 0.4, "mano": 1.0, "anillos": 1.0, "disuelve": 0.55}
 var _corte_t0: float = -1.0                  ## tiempo de simulación en que se soltó el chorro (-1 = encendido): la disolución del viento
 ## Dibujo del rayo (raymarch_toon_rayo.glsl): grosor y zigzag del trazo (u), halo, arcos, redibujos por segundo, brillo.
 var toon_rayo: Dictionary = {"grosor": 0.06, "zigzag": 0.34, "halo": 0.5, "arcos": 1.0, "k_T": 1.0, "saltos": 14.0, "grosor_arco": 0.035, "periodo": 5.0,
@@ -1089,8 +1089,8 @@ func _montar_escena() -> void:
 	_mat_hojas = _mat_gotas.duplicate() as ShaderMaterial
 	_mat_hojas.set_shader_parameter("tono_b", VIENTO_HOJA)
 	_mat_hojas.set_shader_parameter("tono_c", VIENTO_CLARO)
-	_mat_hojas.set_shader_parameter("cada", 8)
-	_mat_hojas.set_shader_parameter("grosor", 2.2)
+	_mat_hojas.set_shader_parameter("cada", 24)                 # refuerzo del viento (11/11): menos hojas (antes 8) y más grandes
+	_mat_hojas.set_shader_parameter("grosor", 4.5)
 	_mat_hojas.set_shader_parameter("mechones", true)            # 11/11 (choque y viento): y MECHONES de aire blancos (2 de cada 8; chispas.glsl)
 	_mat_hojas.set_shader_parameter("tono_mechon", VIENTO_LINEA)
 	# 11/11 (choque con identidad, Pablo: «chispas para el rayo»): el rayo tiene su propio dibujo de CHISPAS ELÉCTRICAS (zigzag, rama, parpadeo) en los azules

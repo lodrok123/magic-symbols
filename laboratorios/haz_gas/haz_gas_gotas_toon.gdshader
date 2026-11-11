@@ -3,7 +3,7 @@
 // mezcla normal, sin luz; tono SOMERO con la cabeza de ESPUMA (los colores los pone HazGas desde AguaPaleta). Solo se dibuja 1 de cada `cada` (las 1000 del fuego son demasiadas gotas).
 // 11/11 (choque con identidad, Pablo: «gotas de agua para el agua»), con `agua`: la gota tiene forma de LÁGRIMA (cabeza redonda con brillo de ESPUMA, cola SOMERO que
 // se afila a lo largo de su velocidad) y, cuando el compute la marca como SALPICADURA (V.w < -0,5: ha tocado el suelo), es un ANILLO plano que se abre y se rompe en
-// cuentas. El mismo shader dibuja las HOJAS del viento (sin `agua`) y, con `mechones`, los MECHONES de aire blancos del viento (chispa 2 de cada 8, chispas.glsl).
+// cuentas. El mismo shader dibuja las HOJAS del viento (sin `agua`) y, con `mechones`, los MECHONES de aire blancos del viento (chispa 2 de cada 16, chispas.glsl).
 shader_type spatial;
 render_mode unshaded, blend_mix, depth_draw_never, cull_disabled, shadows_disabled;
 
@@ -27,7 +27,7 @@ void vertex() {
 	vec4 V = texelFetch(estado, ivec2(INSTANCE_ID, 1), 0);
 	v_modo = 0.0;
 	v_edad = 0.0;
-	bool es_mechon = mechones && INSTANCE_ID % 8 == 2;
+	bool es_mechon = mechones && INSTANCE_ID % 16 == 2;
 	if (agua && V.w < -0.5) {
 		// SALPICADURA: un quad plano sobre el suelo, centrado en la gota, que se abre en 0,3 s
 		float edad = clamp(1.0 - P.w / 0.3, 0.0, 1.0);
@@ -41,7 +41,7 @@ void vertex() {
 		v_lado = VERTEX.y * 2.0;
 		if (INSTANCE_ID % max(cada, 1) != 0 || P.w <= 0.0) POSITION = vec4(0.0, 0.0, -2.0, 1.0);
 	} else {
-		float k_cola = es_mechon ? 0.09 : (agua ? 0.045 : 0.022);
+		float k_cola = es_mechon ? 0.12 : (agua ? 0.045 : 0.022);
 		vec3 cabeza = (dominio_a_mundo * vec4(P.xyz, 1.0)).xyz;
 		vec3 cola = (dominio_a_mundo * vec4(P.xyz - V.xyz * k_cola, 1.0)).xyz;
 		vec4 a = PROJECTION_MATRIX * (VIEW_MATRIX * vec4(cabeza, 1.0));
@@ -51,13 +51,13 @@ void vertex() {
 		vec2 na = a.xy / a.w, nb = b.xy / b.w;
 		vec2 d = nb - na;
 		vec2 dir = d / max(length(d), 0.0001);
-		float gr = es_mechon ? 0.75 : grosor * (agua ? 2.8 : 1.0);
+		float gr = es_mechon ? 1.8 : grosor * (agua ? 2.8 : 1.0);
 		float semi = 0.0042 * gr * (V.w * 0.6 + 0.6);
 		vec2 lado = vec2(-dir.y, dir.x) * VERTEX.y * semi;
 		// gota: el quad tiene al menos el largo de su ancho (una gota lenta es redonda, no un punto aplastado); la cabeza sobresale por delante
 		if (agua) clip.xy += -dir * (along - 0.5) * semi * 1.2 * clip.w;
 		// mechón: se curva (el centro del quad se desvía a un lado, como un jirón de tornado)
-		if (es_mechon) clip.xy += vec2(-dir.y, dir.x) * sin(along * 3.1416) * 0.012 * (float(INSTANCE_ID % 3) - 1.0) * clip.w;
+		if (es_mechon) clip.xy += vec2(-dir.y, dir.x) * sin(along * 3.1416) * 0.03 * (float(INSTANCE_ID % 3) - 1.0) * clip.w;
 		clip.xy += lado * clip.w;
 		bool ve = es_mechon || INSTANCE_ID % max(cada, 1) == 0;
 		if (es_mechon && length(d) < 0.012) ve = false;              // un mechón lento sería un punto: no se dibuja

@@ -88,7 +88,7 @@ void main() {
 			q0 = sacar_en_horizontal(q0, v_tmp);
 			Pp = vec4(q0, hash_tsl(seed + 47.7) * 1.4 + 0.7);
 			V = vec4(front * 2.0 + rnd * vec3(3.2, 1.5, 3.2) + hacia * 1.5 + vec3(0.0, 3.6 + hash_tsl(seed + 8.8) * 2.0, 0.0), hash_tsl(seed + 3.3));
-		} else if (VIENTO && i % 8 == 2) {
+		} else if (VIENTO && i % 16 == 2) {
 			// MECHONES de aire (dibujados como trazos blancos curvos): con choque, la mitad salen despedidos del CONTACTO, girando alrededor del eje del haz (el
 			// vortice); el resto, y todos al aire, nacen a lo largo del chorro y viajan con el.
 			float sale = hash_tsl(seed + 61.0);
@@ -98,7 +98,7 @@ void main() {
 			vec3 radial = e1 * cos(ang) + e2 * sin(ang);
 			vec3 q0;
 			vec3 v0;
-			if (CHOQUE && sale < 0.5) {
+			if (CHOQUE && sale < 0.8) {
 				q0 = P.contacto.xyz - dir_h * 0.25 * ESC_M + radial * (0.35 + 0.4 * hash_tsl(seed + 81.0)) * ESC_M;
 				v0 = radial * 4.5 + cross(dir_h, radial) * 9.0 - dir_h * 1.5;
 			} else {
@@ -110,10 +110,11 @@ void main() {
 			q0.y = max(q0.y, 0.04);
 			q0 = sacar_en_horizontal(q0, v_tmp);
 			Pp = vec4(q0, hash_tsl(seed + 47.7) * 0.35 + 0.35);
+			if (!CHOQUE) Pp.y = -10.0;          // refuerzo (11/11): al aire no hay mechones (eran agujas sueltas: «garabato»)
 			V = vec4(v0, hash_tsl(seed + 3.3));
 		}
 		if (BEAM_ON < 0.5) Pp.y = -10.0;
-	} else if ((RAYO || AGUA || (VIENTO && i % 8 == 2)) && Pp.y < -5.0) {
+	} else if ((RAYO || AGUA || (VIENTO && i % 16 == 2)) && Pp.y < -5.0) {
 		// nacio con el chorro apagado: sigue escondida hasta su proxima vida (no se sube al suelo)
 	} else if (RAYO) {
 		// CHISPA ELECTRICA: casi no la frena el aire, cae poco, y cada 1/24 s de vida QUIEBRA su direccion (un tramo recto y un codo: zigzag). Rebota viva.
@@ -163,7 +164,7 @@ void main() {
 			}
 			V.xyz = v;
 		}
-	} else if (VIENTO && i % 8 == 2) {
+	} else if (VIENTO && i % 16 == 2) {
 		// MECHON: sin peso, sigue al aire de cerca (el vortice del choque lo hace girar y lo despide)
 		vec3 uvw = (Pp.xyz - WLO) / WTAM;
 		vec3 air = textureLod(vel, uvw, 0.0).xyz;
