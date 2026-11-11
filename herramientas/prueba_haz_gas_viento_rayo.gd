@@ -50,7 +50,7 @@ func _escenario() -> void:
 	_c = c
 	for caso in ["aire", "muro"]:
 		for elem in ["viento", "rayo"]:
-			# con el ajuste apagado (lo de serie): el toy de siempre, sin gas, y lo que dice la lógica
+			# con el ajuste apagado (el plan B; de serie está encendido desde el 11/11): el toy de siempre, sin gas, y lo que dice la lógica
 			ProjectSettings.set_setting(HazGasJuego.AJUSTES_ELEMENTO[elem][0], false)
 			var sin: Dictionary = await _un_haz(elem, caso, false)
 			ProjectSettings.set_setting(HazGasJuego.AJUSTES_ELEMENTO[elem][0], true)
@@ -279,7 +279,7 @@ func _costes() -> void:
 
 func _sin_gpu() -> void:
 	for e in ["viento", "rayo"]:
-		_ok("%s: apagado de serie" % e, not bool(HazGasJuego.AJUSTES_ELEMENTO[e][1]) and e in HazGas.ELEMENTOS)
+		_ok("%s: encendido de serie (11/11)" % e, bool(HazGasJuego.AJUSTES_ELEMENTO[e][1]) and bool(ProjectSettings.get_setting(HazGasJuego.AJUSTES_ELEMENTO[e][0], false)) and e in HazGas.ELEMENTOS)
 		var pe: Dictionary = HazGas.PARAMS_ELEMENTO[e]
 		_ok("%s: sin combustión ni expansión ni peso" % e, float(pe["burnRate"]) == 0.0 and float(pe["expansion"]) == 0.0 and float(pe["weight"]) == 0.0)
 		var cf: Dictionary = HazGas.HAZ_REF.duplicate()

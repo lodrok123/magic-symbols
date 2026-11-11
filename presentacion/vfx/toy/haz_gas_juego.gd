@@ -23,10 +23,11 @@ const AJUSTE: String = "magic_symbols/vfx_haz_gas"
 const AJUSTE_AGUA: String = "magic_symbols/vfx_haz_gas_agua"
 const AGUA_DEFECTO: bool = true
 ## 11/11: los haces de VIENTO y de RAYO con el mismo gas (HazGas.PARAMS_VIENTO: bruma en hélice y polvo; HazGas.PARAMS_RAYO: aire cargado + trazo y arcos). Cada uno con
-## su ajuste, APAGADOS de serie hasta que Pablo los vea. El tope MAX_INSTANCIAS es de todos los elementos juntos.
+## su ajuste; ENCENDIDOS de serie desde el 11/11 (Pablo, tras la hoja de la 3070: «Sí, los dos»). Sin GPU o con el tope lleno sale el toy de siempre.
+## El tope MAX_INSTANCIAS es de todos los elementos juntos.
 const AJUSTE_VIENTO: String = "magic_symbols/vfx_haz_gas_viento"
 const AJUSTE_RAYO: String = "magic_symbols/vfx_haz_gas_rayo"
-const AJUSTES_ELEMENTO: Dictionary = {"viento": [AJUSTE_VIENTO, false], "rayo": [AJUSTE_RAYO, false]}
+const AJUSTES_ELEMENTO: Dictionary = {"viento": [AJUSTE_VIENTO, true], "rayo": [AJUSTE_RAYO, true]}
 ## 11/11 (3070): un haz de RAYO que vive esto o menos se dibuja como UN SOLO DESTELLO (HazGas.destello) en vez del trazo que se redibuja.
 const DESTELLO_MAX_S: float = 0.2
 ## 11/11 (3070, pendiente del 468): el AGUA pasaba por encima del muro bajo del Bosque (la lógica la para en la casilla, pero su caja de sólido acababa por debajo
