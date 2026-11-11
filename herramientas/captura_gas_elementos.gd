@@ -32,6 +32,7 @@ func _correr() -> void:
 	if not _dir.is_absolute_path():
 		_dir = ProjectSettings.globalize_path(_dir)
 	DirAccess.make_dir_recursive_absolute(_dir)
+	root.get_window().mode = Window.MODE_WINDOWED          # 11/11: a veces se abría maximizada (2560 × 1369) y el coste del volumen cambiaba
 	root.get_window().size = Vector2i(1280, 720)
 	root.get_window().content_scale_mode = Window.CONTENT_SCALE_MODE_DISABLED
 	var lab: Node3D = (load("res://laboratorios/LabVfxComparativa3D.tscn") as PackedScene).instantiate() as Node3D
@@ -57,7 +58,10 @@ func _correr() -> void:
 					await process_frame
 				await RenderingServer.frame_post_draw
 				root.get_viewport().get_texture().get_image().save_png(_dir.path_join("%s_%s_%s.png" % [elem, caso, vista]))
-				print("captura %s_%s_%s  gpu %.2f ms (%s)" % [elem, caso, vista, float(g.gpu_ms.get("total", 0.0)), g._texto_haz()])
+				var ms: float = float(g.gpu_ms.get("total", 0.0))
+				print("captura %s_%s_%s  gpu %.2f ms (sim %.2f · volumen %.2f) · %.0f fps desde 60 · %.0f desde 120 · pantalla %s (%s)" % [elem, caso, vista, ms,
+					float(g.gpu_ms.get("gas", 0.0)) + float(g.gpu_ms.get("velocidad", 0.0)) + float(g.gpu_ms.get("chispas", 0.0)) + float(g.gpu_ms.get("luz", 0.0)),
+					float(g.gpu_ms.get("volumen", 0.0)), 1000.0 / (1000.0 / 60.0 + ms), 1000.0 / (1000.0 / 120.0 + ms), str(root.get_viewport().get_texture().get_size()), g._texto_haz()])
 				g.chorro(false)
 				var f0: int = g.frame
 				while g.frame < f0 + 15:

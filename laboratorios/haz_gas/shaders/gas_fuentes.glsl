@@ -51,17 +51,29 @@ void main() {
 		float radio_l = mix(BEAM_R0, BEAM_R1, hv.t) * VIENTO_ANCHO;
 		vec2 et = vec2(dot(r_v, e1), dot(r_v, e2)) / radio_l;
 		float dentro_v = (1.0 - smoothstep(0.95, 1.2, length(et))) * BEAM_ON * step(0.02, hv.t) * step(hv.t, 0.985);
+		// 11/11 (3070): junto a la cara del solido las etiquetas quedan LIBRES (antes se reponian hasta la cara, y los trazos acababan en ella): asi el aire que
+		// el choque abre en abanico se lleva sus lineas por la pared y se ven doblarse y rizarse a los lados.
+		vec3 n_v;
+		float sd_v = obst_sd(w, n_v);
+		float libre_v = smoothstep(0.35 * ESC_M, 1.4 * ESC_M, sd_v);
 		vec2 celda_l = floor(et * VIENTO_LINEAS);
 		float fase_v = TIEMPO - hv.t * length(ab_v) / (BEAM_SPEED * 0.9);
 		float pulso = smoothstep(0.54, 0.64, textureLod(ruido, vec3(celda_l.x * 0.31 + 0.13, celda_l.y * 0.37 + 0.29, fase_v * 0.085), 0.0).x);
 		float rafaga = mix(T, pulso, dentro_v * 0.95) * exp(-COOL * DT);
-		vec2 etq = mix(vec2(soot, fuel), et, dentro_v);
+		vec2 etq = mix(vec2(soot, fuel), et, dentro_v * libre_v);
 		// polvo: la regla de la demo (el aire rapido a ras de suelo lo levanta en vetas y se despeja con la altura)
 		vec3 aire_v = textureLod(vel, uvw, 0.0).xyz;
+		float veta = textureLod(ruido, w * vec3(0.045, 0.1, 0.045) / ESC_M, 0.0).x;
 		dust *= exp(-(DUST_FADE + smoothstep(0.15, 0.9, w.y / ESC_M) * 5.0) * DT);
-		dust += max(length(aire_v.xz) - (WIND + 5.0), 0.0) * exp(-w.y * 3.2 / ESC_M) * textureLod(ruido, w * vec3(0.045, 0.1, 0.045) / ESC_M, 0.0).x * DT * 0.3;
-		vec3 n_v;
-		float keep_v = fuera_obst(obst_sd(w, n_v)) * esponja(uvw);
+		dust += max(length(aire_v.xz) - (WIND + 5.0), 0.0) * exp(-w.y * 3.2 / ESC_M) * veta * DT * 0.3;
+		// 11/11 (3070): con el haz a la altura de la mano el aire rapido casi no llega al suelo y apenas salia polvo. La rafaga BARRE el suelo que tiene debajo:
+		// una franja bajo el chorro que crece con el recorrido (el chorro se abre) y, en el choque, el pie del solido, donde el abanico baja hasta el suelo.
+		float lado_v = dot(r_v, e1) / radio_l;
+		float bajo_chorro = smoothstep(0.3, 0.8, hv.t) * step(hv.t, 0.97) * exp(-lado_v * lado_v * 0.8) * exp(-w.y * 4.0 / ESC_M) * BEAM_ON;
+		vec3 off_v = w - P.contacto.xyz;
+		float pie = (1.0 - smoothstep(0.0, 1.0 * ESC_M, sd_v)) * exp(-w.y * 3.0 / ESC_M) * exp(-dot(off_v.xz, off_v.xz) * 0.4 / (ESC_M * ESC_M)) * step(hv.t, 0.999) * BEAM_ON;   // solo la cara del choque, no detrás
+		dust += (bajo_chorro * 2.6 + pie * 0.6) * veta * veta * veta * DT;          // veta³: vetas sueltas, no una manta
+		float keep_v = fuera_obst(sd_v) * esponja(uvw);
 		imageStore(gas_out, c, vec4(min(rafaga * keep_v, 4.0), etq.x, min(dust * keep_v, 4.0), etq.y));
 		return;
 	}

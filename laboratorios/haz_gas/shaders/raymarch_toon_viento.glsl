@@ -88,10 +88,26 @@ void main() {
 				if (linea(ro + rd * m1).x < linea(ro + rd * m2).x) b = m2; else a = m1;
 			}
 			vec3 f = linea(ro + rd * (0.5 * (a + b)));
+			// 11/11 (3070): ANTIALIAS. A media resolucion el trazo (unos 0,06 radios de grueso) cae en uno o dos pixeles y el borde duro salia en escalera.
+			// Se mide lo que ocupa un pixel del volumen a esa distancia (con el rayo del pixel vecino: vale para la camara ortogonal del juego y la de perspectiva
+			// del lab), se pasa a unidades de etiqueta (radios de la rafaga) y el borde se suaviza en ese ancho; si el trazo es mas fino que el pixel, se ensancha
+			// hasta el pixel y se aclara en la misma proporcion (cobertura), en vez de romperse en puntos.
+			vec3 p_f = ro + rd * (0.5 * (a + b));
+			vec2 ndc2 = ndc + vec2(2.0 / V.tam.x, 0.0);
+			vec4 a5 = V.inv_vp * vec4(ndc2, -1.0, 1.0);
+			vec4 b5 = V.inv_vp * vec4(ndc2, 1.0, 1.0);
+			vec3 ro2 = a5.xyz / a5.w;
+			vec3 rd2 = normalize(b5.xyz / b5.w - ro2);
+			float pix = length(p_f - (ro2 + rd2 * dot(p_f - ro2, rd2)));
+			vec3 ab_f = P.target.xyz - P.nozzle.xyz;
+			float tt_f = clamp(dot(p_f - P.nozzle.xyz, ab_f) / dot(ab_f, ab_f), 0.0, 1.0);
+			float aa = 0.5 * pix / (mix(BEAM_R0, BEAM_R1, tt_f) * VIENTO_ANCHO);
 			float fuerza = smoothstep(UMBRAL, UMBRAL + 0.45, f.y);        // 0 en las puntas del trazo, 1 en su cuerpo
 			float gr = GROSOR * (0.25 + 0.75 * fuerza);
-			float trazo = (1.0 - smoothstep(gr * 0.7, gr, f.x)) * smoothstep(UMBRAL, UMBRAL + 0.08, f.y);
-			float velo = (1.0 - smoothstep(gr, gr * 3.2, f.x)) * fuerza * K_VELO;
+			float borde = max(gr * 0.85, aa);                               // radio del trazo (el de antes: la mitad del borde entre 0,7 y 1 gr), al menos medio pixel
+			float cob = min(gr * 0.85 / borde, 1.0);
+			float trazo = (1.0 - smoothstep(borde - max(gr * 0.15, aa), borde + aa, f.x)) * cob * smoothstep(UMBRAL, UMBRAL + 0.08, f.y);
+			float velo = (1.0 - smoothstep(gr, gr * 3.2 + aa, f.x)) * fuerza * K_VELO;
 			a_v = max(trazo * OPACIDAD, velo);
 			c_v = mix(color_paleta(1), color_paleta(2), trazo);
 		}

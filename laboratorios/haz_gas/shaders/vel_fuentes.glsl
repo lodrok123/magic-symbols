@@ -29,6 +29,19 @@ void main() {
 		u_chorro += cross(hz.dir, r_v) / max(mix(BEAM_R0, BEAM_R1, hz.t), 0.05) * REMOLINO;
 	}
 	u = mix(u, u_chorro, hz.core * 0.92);
+	if (VIENTO) {
+		// 11/11 (3070): contra un solido el aire se ABRE EN ABANICO por la cara (desde el contacto hacia fuera, por el plano de la pared) y gira un poco
+		// alrededor de la normal: las lineas de corriente se reparten y se rizan a lo largo del muro en vez de acabar en el.
+		vec3 n_f;
+		float d_f = obst_sd(w, n_f);
+		float cara = (1.0 - smoothstep(0.0, 1.3 * ESC_M, d_f)) * BEAM_ON;
+		vec3 r_c = w - P.contacto.xyz;
+		r_c -= n_f * dot(r_c, n_f);
+		float l_c = length(r_c);
+		vec3 tg_c = r_c / max(l_c, 1e-3);
+		float cerca_c = exp(-l_c * l_c / (9.0 * ESC_M * ESC_M)) * smoothstep(0.0, 0.4 * ESC_M, l_c);
+		u += (tg_c * 0.9 + cross(n_f, tg_c) * 0.35) * BEAM_SPEED * cara * cerca_c * DT * 9.0;
+	}
 
 	// Fuego: flota con el calor y pesa el hollin. Agua (10/11): no flota; pesa el AGUA (canal x), asi que cae y se escurre por la pared.
 	u.y += (BUOYANCY * gs.x - WEIGHT * (AGUA ? gs.x : gs.y)) * DT;

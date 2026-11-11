@@ -1,0 +1,14 @@
+[remap]
+
+importer="glsl"
+type="RDShaderFile"
+uid="uid://cu832b0q5ew4g"
+path="res://.godot/imported/raymarch_toon_viento.glsl-65e2dc10f503e9359aa8e0e2d2147a3e.res"
+
+[deps]
+
+source_file="res://laboratorios/haz_gas/shaders/raymarch_toon_viento.glsl"
+dest_files=["res://.godot/imported/raymarch_toon_viento.glsl-65e2dc10f503e9359aa8e0e2d2147a3e.res"]
+
+[params]
+

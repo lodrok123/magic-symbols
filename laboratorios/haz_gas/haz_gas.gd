@@ -11,7 +11,7 @@ extends Node3D
 ## (vista «juego»: la boquilla en la mano de la jugadora del lab); todo lo que dibuja recibe mundo_a_dominio.
 ## Lo abre el LabVfxComparativa3D con Mayús+F12 (esfera → muro → nada). Teclas dentro: ver AYUDA.
 
-const AYUDA: String = "arrastrar: orbitar · rueda: zoom · ESPACIO chorro sí/no · C cámara (demo / órbita automática / juego) · U/J largo · I/K alto · O/L ancho · B obstáculo (esfera / caja / nada) · N/M su tamaño · V/F su distancia · 1-4 calidad · R dibujo TOON / realista · Y paleta (pablo / demo) · T filtro temporal · P pausa · Mayús+F12 salir"
+const AYUDA: String = "arrastrar: orbitar · rueda: zoom · ESPACIO chorro sí/no · C cámara (demo / órbita automática / juego) · U/J largo · I/K alto · O/L ancho · B obstáculo (esfera / caja / nada) · N/M su tamaño · V/F su distancia · 1-4 calidad · R dibujo TOON / realista · Y paleta (pablo / demo) · T filtro temporal · P pausa · G (rayo) un solo destello · Mayús+F12 salir"
 const DT: float = HazGasSolver.DT
 ## config.js TUNABLES: [nombre en params, etiqueta, máximo]
 const MANDOS: Array = [["wind", "Viento", 30.0], ["push", "Empuje tras el choque", 30.0], ["turbulence", "Turbulencia", 150.0], ["confine", "Remolinos", 80.0],
@@ -61,11 +61,13 @@ const PARAMS_AGUA: Dictionary = {"burnRate": 0.0, "heat": 1.0, "sootYield": 0.0,
 var toon_agua: Dictionary = {"umbral": 0.3, "blandura": 0.22, "contraste": 1.0, "opac_max": 0.88, "k_T": 1.0, "opac_min": 0.55, "amplitud": 0.35, "escala": 0.45,
 	"causticas": 0.35, "fresnel": 0.35, "escala_rampa": 1.2, "flujo": 0.9, "profundidad": 0.6}
 const AguaPaletaGas = preload("res://presentacion/vfx/toy/agua_paleta.gd")
+const GOTAS_CADA: int = 7                   ## el agua dibuja 1 de cada 7 chispas como gota (11/11, antes 3: «demasiadas gotas finas»)
+const GOTAS_GROSOR: float = 1.7             ## y más gordas (antes 1)
 ## MODO VIENTO (11/11): una RÁFAGA SOSTENIDA DE AIRE, no un fluido (Pablo, al ver la primera versión: «parece vapor»). x = pulsos de ráfaga que viajan con el aire,
 ## y / w = etiquetas de línea de corriente que el gas transporta, z = POLVO levantado a ras de suelo. Sin calor ni peso. «sootYield» es aquí el REMOLINO (u/s en el
 ## borde del chorro: las líneas giran un poco); «cool» = lo que tardan en irse los trazos; turbulencia y confinamiento moderados (las líneas se doblan, no se deshacen).
 const PARAMS_VIENTO: Dictionary = {"burnRate": 0.0, "heat": 0.0, "sootYield": 2.5, "expansion": 0.0, "cool": 1.6, "buoyancy": 0.0, "weight": 0.0, "drag": 0.5,
-	"wind": 7.0, "push": 5.0, "confine": 26.0, "subgrid": 0.0, "viscosity": 0.03, "turbulence": 22.0, "dustFade": 0.6, "beamSpeed": 30.0, "wrap": 42.0}
+	"wind": 7.0, "push": 5.0, "confine": 26.0, "subgrid": 0.0, "viscosity": 0.03, "turbulence": 22.0, "dustFade": 1.4, "beamSpeed": 30.0, "wrap": 42.0}      # dustFade 0,6 → 1,4 (11/11, 3070): el polvo nuevo del suelo se va antes
 ## MODO RAYO (11/11): x = IONIZACIÓN (aire cargado: dónde puede haber arcos). Núcleo fino, mancha en el choque y carga que repta por la piel del sólido (wrap alto);
 ## se apaga en décimas («cool» 6). El aire casi no se mueve (chorro lento, sin viento): lo que corre es el trazo, que lo dibuja raymarch_toon_rayo.glsl.
 const PARAMS_RAYO: Dictionary = {"burnRate": 0.0, "heat": 1.0, "sootYield": 0.0, "expansion": 0.0, "cool": 6.0, "buoyancy": 0.5, "weight": 0.0, "drag": 1.5,
@@ -82,6 +84,14 @@ var toon_rayo: Dictionary = {"grosor": 0.06, "zigzag": 0.34, "halo": 0.5, "arcos
 const RayoPaletaGas = preload("res://presentacion/vfx/toy/rayo_paleta.gd")
 ## 11/11 (Pablo: «podemos utilizar su color para que se separe visualmente del fuego: azul vs amarillo»): en el haz de gas el trazo del rayo va en AZUL
 ## (núcleo blanco azulado y cuerpo con el HALO_BORDE de RayoPaleta), no en el amarillo de RayoPaleta.CUERPO. Los RayoToy no se tocan aquí.
+## 11/11 (3070): UN SOLO DESTELLO para los hechizos de rayo muy cortos (≤ HazGasJuego.DESTELLO_MAX_S): el trazo se dibuja UNA vez (sin redibujos) y se apaga en
+## `rayo_destello` s (+ 0,12 s de caída); los arcos y el halo del aire cargado se quedan lo que dure la ionización. 0 = el trazo de siempre (14 redibujos por segundo).
+## Lab: G con el gas de rayo puesto.
+var rayo_destello: float = 0.0
+var _destello_t0: float = 0.0
+## 11/11 (3070): CUERPOS a los que saltan las ramas del rayo (hasta 2; en coordenadas del dominio: xyz centro, w radio). Los pone HazGasJuego con lo que golpea la
+## lógica (choques «enemigo» / «objeto») y, en el lab, la esfera. Sin cuerpos, las ramas son las de siempre (al azar alrededor del trazo).
+var rayo_cuerpos: Array[Vector4] = []
 const RAYO_GAS_NUCLEO: Color = Color(0.93, 0.98, 1.0)
 const RAYO_GAS_CUERPO: Color = Color(0.5, 0.82, 1.0)
 const VIENTO_SOMBRA: Color = Color(0.68, 0.87, 0.77)        ## VientoToy.SOMBRA / CLARO / HOJA y los tonos POLVO de HumoRegla (copiados: este script no carga los toys)
@@ -580,6 +590,15 @@ func chorro(encendido: bool) -> void:
 	params["beamOn"] = 1.0 if encendido else 0.0
 
 
+## RAYO, un solo destello (11/11): el trazo se dibuja una vez desde AHORA y se apaga en `dur` s (dur 0 = vuelve al trazo de siempre). En el lab apaga también
+## el chorro a los `dur` s; en el juego lo apaga HazGasJuego con la vida del hechizo.
+func destello(dur: float = 0.1) -> void:
+	rayo_destello = maxf(dur, 0.0)
+	_destello_t0 = frame * DT
+	if dur > 0.0:
+		chorro(true)
+
+
 func es_agua() -> bool:
 	return elemento == "agua"
 
@@ -698,7 +717,7 @@ func _process(delta: float) -> void:
 		elif elemento == "rayo":
 			var tr: Dictionary = toon_rayo
 			efecto.toon_param = PackedFloat32Array([tr["grosor"], tr["zigzag"], tr["halo"], tr["arcos"], tr["k_T"], tr["saltos"], tr["grosor_arco"], tr["periodo"],
-				tr["umbral_arco"], tr["brillo"], tr["ramas"], frame * DT, tr["opacidad"], 0.0, 0.0, mundo_tam.x / float(solver.res.x)])
+				tr["umbral_arco"], tr["brillo"], tr["ramas"], frame * DT, tr["opacidad"], _destello_t0, rayo_destello, mundo_tam.x / float(solver.res.x)])
 		else:
 			efecto.toon_param = PackedFloat32Array([tp["umbral"], tp["blandura"], tp["contraste"], tp["tope"], tp["k_T"], tp["k_c"], tp["amplitud"], float(tp["escala"]) / escala_masa,
 				tp["umbral_humo"], tp["opacidad_humo"], tp["escala_rampa"], frame * DT, tp["sube"], tp["chisporroteo"], tp["profundidad"], mundo_tam.x / float(solver.res.x)])
@@ -710,6 +729,23 @@ func _process(delta: float) -> void:
 		efecto.toon_tex = rids
 	efecto.aspecto = PackedFloat32Array([params["thickness"], params["relief"], params["edge"], params["smokeAlbedo"], params["flameBody"], params["emitGain"],
 		params["fireOnSmoke"], params["farOnSmoke"], params["lampOnSmoke"], 1.0 if toon else params["saturacion"], 0.0 if toon else params["vineta"]])
+	if elemento == "rayo":
+		# 11/11 (3070): el dibujo del rayo no usa look0 / look1 (los del realista): ahí van los dos CUERPOS a los que saltan las ramas (w = radio; 0 = no hay)
+		if not modo_juego:
+			rayo_cuerpos.clear()
+			if obstaculo == "esfera":
+				var sc: Vector3 = params["shieldC"]
+				rayo_cuerpos.append(Vector4(sc.x, sc.y, sc.z, float(params["shieldR"])))
+			if rayo_destello > 0.0 and frame * DT - _destello_t0 > rayo_destello and float(params["beamOn"]) > 0.5:
+				chorro(false)
+		var asp: PackedFloat32Array = efecto.aspecto
+		for i in 2:
+			var cb: Vector4 = rayo_cuerpos[i] if i < rayo_cuerpos.size() else Vector4.ZERO
+			asp[i * 4] = cb.x
+			asp[i * 4 + 1] = cb.y
+			asp[i * 4 + 2] = cb.z
+			asp[i * 4 + 3] = cb.w
+		efecto.aspecto = asp
 	var m2d_p: Projection = Projection(m2d)
 	for m in _mat_roca:
 		m.set_shader_parameter("mundo_a_dominio", m2d_p)
@@ -894,8 +930,13 @@ func _input(ev: InputEvent) -> void:
 		if k.keycode == KEY_F12:
 			return                       # Mayús+F12 lo maneja el lab (cambia de obstáculo o sale)
 		var usada: bool = true
+		if k.keycode == KEY_G and elemento == "rayo":
+			destello(0.1)                    # 11/11: rayo de un solo destello (hechizo de 0,1 s); ESPACIO vuelve al chorro de siempre
+			get_viewport().set_input_as_handled()
+			return
 		match k.keycode:
 			KEY_SPACE:
+				rayo_destello = 0.0
 				chorro(float(params["beamOn"]) < 0.5)    # main.js beamToggled
 			KEY_C:
 				poner_vista(VISTAS[(VISTAS.find(vista) + 1) % VISTAS.size()] if camara_juego != null else ("orbita" if vista == "demo" else "demo"))
@@ -1045,6 +1086,10 @@ func _montar_escena() -> void:
 	_mat_chispas_rayo.set_shader_parameter("tono_b", RAYO_GAS_CUERPO)
 	_mat_chispas_rayo.set_shader_parameter("tono_c", RAYO_GAS_NUCLEO)
 	_mat_chispas_rayo.set_shader_parameter("cada", 2)
+	# 11/11 (3070, pendiente del 468: «demasiadas gotas finas»): el agua dibuja 1 de cada GOTAS_CADA (antes 3) y más gordas (GOTAS_GROSOR, antes 1).
+	# Se pone DESPUÉS de duplicar: las hojas y las chispas del rayo no cambian.
+	_mat_gotas.set_shader_parameter("cada", GOTAS_CADA)
+	_mat_gotas.set_shader_parameter("grosor", GOTAS_GROSOR)
 	_mat_chispas = _mat_chispas_real
 	var mm: MultiMesh = MultiMesh.new()
 	mm.transform_format = MultiMesh.TRANSFORM_3D

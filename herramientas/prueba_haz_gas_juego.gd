@@ -134,7 +134,21 @@ func _caso(caso: String, c: Vector2i) -> void:
 		await avanzar_s(3.0)
 		return
 	var g: HazGas = v.gas.gases().back()
-	await avanzar_s(T_MEDIDA - 0.3)
+	# 11/11 (3070): HazGasJuego corta el chorro por RELOJ REAL y esta prueba avanza a pasos fijos. Si un fotograma tarda (en el caso del goblin, el primer
+	# «quemado» del enemigo compila lo suyo justo después del lanzamiento), el chorro llegaba a la medida ya cortado y el eje salía frío (T_eje 0,17).
+	# Como en prueba_haz_gas_viento_rayo: se sujeta el chorro hasta que la SIMULACIÓN ha dado los pasos de T_MEDIDA y luego se suelta como siempre.
+	var e_gas: Dictionary = v.gas._gases.back()
+	var fin_real: int = int(e_gas["fin_haz"])
+	e_gas["fin_haz"] = Time.get_ticks_msec() + 600000
+	e_gas["fin_todo"] = int(e_gas["fin_haz"]) + 2500
+	g.chorro(true)
+	var tope: int = 0
+	while g.frame < int((T_MEDIDA - 0.3) * 60.0) + 2 and tope < 900:
+		await avanzar(1)
+		tope += 1
+	var ahora_ms: int = Time.get_ticks_msec()
+	e_gas["fin_haz"] = maxi(fin_real, ahora_ms + int((Hechizo.HAZ_DURA_S - T_MEDIDA) * 1000.0))
+	e_gas["fin_todo"] = int(e_gas["fin_haz"]) + int(HazGasJuego.APAGADO_S * 1000.0)
 	await RenderingServer.frame_post_draw
 	_ocultar_ui(root)
 	var fin: Vector3 = (_hz_ultimo.get("hasta", jugador.position + dir * 4.0) as Vector3)

@@ -27,6 +27,11 @@ const AGUA_DEFECTO: bool = true
 const AJUSTE_VIENTO: String = "magic_symbols/vfx_haz_gas_viento"
 const AJUSTE_RAYO: String = "magic_symbols/vfx_haz_gas_rayo"
 const AJUSTES_ELEMENTO: Dictionary = {"viento": [AJUSTE_VIENTO, false], "rayo": [AJUSTE_RAYO, false]}
+## 11/11 (3070): un haz de RAYO que vive esto o menos se dibuja como UN SOLO DESTELLO (HazGas.destello) en vez del trazo que se redibuja.
+const DESTELLO_MAX_S: float = 0.2
+## 11/11 (3070, pendiente del 468): el AGUA pasaba por encima del muro bajo del Bosque (la lógica la para en la casilla, pero su caja de sólido acababa por debajo
+## de la mano). Para el agua, la casilla del TOPE sube al menos hasta la mano + esto (casillas). El fuego, el viento y el rayo no cambian.
+const AGUA_TOPE_SOBRE_MANO_CAS: float = 0.3
 const MAX_INSTANCIAS: int = 2
 const APAGADO_S: float = 2.5                   ## s que la masa tarda en deshacerse tras el último haz (se libera después)
 const REUSO_DIST_CAS: float = 0.35             ## casillas: un haz nuevo reutiliza el dominio si sale a menos de esto del anterior...
@@ -105,6 +110,7 @@ func haz(h: Hechizo, hz: Dictionary, suelo: float, vida: float, elemento: String
 			e["fin_haz"] = ahora + int(maxf(vida, 0.3) * 1000.0)
 			e["fin_todo"] = int(e["fin_haz"]) + int(APAGADO_S * 1000.0)
 			g0.chorro(true)
+			_rayo_al_lanzar(g0, e, hz, vida)
 			reusados += 1
 			return g0
 	if _gases.size() >= MAX_INSTANCIAS:
@@ -122,14 +128,65 @@ func haz(h: Hechizo, hz: Dictionary, suelo: float, vida: float, elemento: String
 		rechazados += 1
 		return null
 	g.colocar(desde, dir, suelo)
-	var e2: Dictionary = {"g": g, "desde": desde, "dir": dir, "d_tope": d_tope, "fin_haz": ahora + int(maxf(vida, 0.3) * 1000.0), "tope": tope, "suelo": suelo, "elemento": elemento}
+	var e2: Dictionary = {"g": g, "desde": desde, "dir": dir, "d_tope": d_tope, "fin_haz": ahora + int(maxf(vida, 0.3) * 1000.0), "tope": tope, "suelo": suelo,
+		"elemento": elemento}
 	e2["fin_todo"] = int(e2["fin_haz"]) + int(APAGADO_S * 1000.0)
-	e2["est"] = primitivas_estaticas(g, tope, dir, suelo)
+	e2["est"] = primitivas_estaticas(g, tope, dir, suelo, desde.y + AGUA_TOPE_SOBRE_MANO_CAS * cas if elemento == "agua" else -INF)
 	e2["firma"] = -1
 	_gases.append(e2)
 	_actualizar_dinamicas(e2, true)
+	_rayo_al_lanzar(g, e2, hz, vida)
 	creados += 1
 	return g
+
+
+## RAYO (11/11, 3070): un hechizo de ≤ DESTELLO_MAX_S se dibuja como UN SOLO DESTELLO; y las ramas saltan a los CUERPOS que golpea la lógica (choques «enemigo» /
+## «objeto»: el Combate3D más cercano a cada punto, con su cápsula). Los nodos se guardan y sus posiciones se pasan al dibujo cada fotograma (_cuerpos_rayo).
+func _rayo_al_lanzar(g: HazGas, e: Dictionary, hz: Dictionary, vida: float) -> void:
+	if g.elemento != "rayo":
+		return
+	g.destello(vida if vida <= DESTELLO_MAX_S else 0.0)
+	var nodos: Array = []
+	for ch in (hz.get("choques", []) as Array):
+		var tipo: String = String((ch as Dictionary).get("tipo", ""))
+		if tipo == "muro" or nodos.size() >= 2:
+			continue
+		var p: Vector3 = (ch as Dictionary)["punto"]
+		var mejor: Node3D = null
+		var d_mejor: float = Terreno3D.casilla * 1.2
+		for n in get_tree().get_nodes_in_group("combate3d"):
+			if n is Node3D and (n as Node3D).is_inside_tree() and not nodos.has(n):
+				var dd: float = Vector2((n as Node3D).global_position.x - p.x, (n as Node3D).global_position.z - p.z).length()
+				if dd < d_mejor:
+					d_mejor = dd
+					mejor = n
+		if mejor != null:
+			nodos.append(mejor)
+	e["cuerpos"] = nodos
+	_cuerpos_rayo(e)
+
+
+## Centro y radio (en el dominio) de los cuerpos del rayo que siguen vivos y dentro del dominio.
+func _cuerpos_rayo(e: Dictionary) -> void:
+	var g: HazGas = e["g"]
+	var inv: Transform3D = g.global_transform.affine_inverse()
+	var r: Array[Vector4] = []
+	for n in (e.get("cuerpos", []) as Array):
+		if not is_instance_valid(n) or not (n as Node3D).is_inside_tree():
+			continue
+		var radio: float = Combate3D.RADIO_CUERPO_ENEMIGO
+		var centro: Vector3 = (n as Node3D).global_position + Vector3(0, 0.5, 0)
+		var col: Variant = n.get("_col")
+		if col is CollisionShape3D and is_instance_valid(col) and (col as CollisionShape3D).shape is CapsuleShape3D:
+			radio = ((col as CollisionShape3D).shape as CapsuleShape3D).radius * (col as Node3D).global_basis.get_scale().x
+			centro = (col as Node3D).global_position
+		var cd: Vector3 = inv * centro
+		var lo: Vector3 = g.mundo_lo
+		var hi: Vector3 = g.mundo_lo + g.mundo_tam
+		if cd.x < lo.x or cd.x > hi.x or cd.y < lo.y or cd.y > hi.y or cd.z < lo.z or cd.z > hi.z:
+			continue
+		r.append(Vector4(cd.x, cd.y, cd.z, radio / g.metros_por_unidad))
+	g.rayo_cuerpos = r
 
 
 ## El primer tope de la lógica (choques tipo «muro»: casilla sólida o barrera): {d (m a lo largo, en el plano), punto, normal}. Vacío si el haz acaba al aire.
@@ -165,7 +222,8 @@ static func cfg_de(h: Hechizo, hz: Dictionary, suelo: float, tope: Dictionary) -
 
 
 ## Las primitivas que no se mueven: casillas del nivel en el dominio y el tope que la rejilla no explica (barrera). En coordenadas del dominio.
-static func primitivas_estaticas(g: HazGas, tope: Dictionary, dir: Vector3, suelo: float) -> PackedFloat32Array:
+## `y_min_tope` (11/11, solo el agua): la casilla del TOPE de la lógica llega al menos hasta esta altura de mundo (la lógica para el haz ahí: el agua no pasa por encima).
+static func primitivas_estaticas(g: HazGas, tope: Dictionary, dir: Vector3, suelo: float, y_min_tope: float = -INF) -> PackedFloat32Array:
 	var r: PackedFloat32Array = PackedFloat32Array()
 	var cas: float = Terreno3D.casilla
 	var xf: Transform3D = g.global_transform
@@ -181,6 +239,9 @@ static func primitivas_estaticas(g: HazGas, tope: Dictionary, dir: Vector3, suel
 	var c0: Vector2i = Terreno3D.celda_de(mn)
 	var c1: Vector2i = Terreno3D.celda_de(mx)
 	var alto_b: float = ALTO_BLOQUEADA_CAS * cas
+	var cel_tope: Vector2i = Vector2i(-99999, -99999)
+	if not tope.is_empty() and y_min_tope > -INF:
+		cel_tope = Terreno3D.celda_de((tope["punto"] as Vector3) + dir * cas * 0.3)
 	for cz in range(c0.y, c1.y + 1):
 		for cx in range(c0.x, c1.x + 1):
 			var c: Vector2i = Vector2i(cx, cz)
@@ -189,6 +250,8 @@ static func primitivas_estaticas(g: HazGas, tope: Dictionary, dir: Vector3, suel
 				y1 = suelo + alto_b
 			else:
 				y1 = Terreno3D.y_pies(c)
+				if c == cel_tope:
+					y1 = maxf(y1, y_min_tope)            # agua: el muro bajo que para el haz no se salta por encima
 				if y1 <= suelo + 0.05:
 					continue                           # a ras (o más bajo: agua, foso): el suelo del dominio ya está cerrado
 			var y0: float = suelo - cas
@@ -290,6 +353,8 @@ func _process(_delta: float) -> void:
 		if ahora >= int(e["fin_haz"]) and float(g.params["beamOn"]) > 0.5:
 			g.chorro(false)
 		_actualizar_dinamicas(e, false)
+		if e.has("cuerpos"):
+			_cuerpos_rayo(e)
 		quedan.append(e)
 	_gases = quedan
 	_poner_compositor()

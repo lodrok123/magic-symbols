@@ -36,6 +36,13 @@ layout(set = 0, binding = 7, rgba16f) uniform restrict writeonly image2D crudo;
 #define RAMAS V.toon2.z
 #define T_TOON V.toon2.w
 #define OPACIDAD V.toon3.x
+// 11/11 (3070): UN SOLO DESTELLO (hechizos de 0,1 s): toon3.y = instante del destello, toon3.z = cuanto dura (0 = el trazo de siempre, que se redibuja).
+#define DESTELLO_T0 V.toon3.y
+#define DESTELLO V.toon3.z
+// 11/11 (3070): CUERPOS a los que saltan las ramas (los que golpea la logica: HazGas.rayo_cuerpos), en look0 y look1 (este dibujo no usa el aspecto del realista):
+// xyz centro en el dominio, w radio (0 = no hay).
+#define CUERPO_1 V.look0
+#define CUERPO_2 V.look1
 
 vec3 srgb_a_lineal(vec3 c) { return mix(c / 12.92, pow((c + 0.055) / 1.055, vec3(2.4)), step(0.04045, c)); }
 vec3 color_paleta(int i) { return srgb_a_lineal(textureLod(paleta, vec2((float(i) + 0.5) / 8.0, 0.5), 0.0).rgb); }
@@ -51,15 +58,46 @@ vec2 nudo(float k, float semilla) {
 	return mix(hash2(i0 + semilla * 13.0), hash2(i0 + 1.0 + semilla * 13.0), k - i0);
 }
 
+// El punto del trazo principal en tt (0 mano, 1 contacto).
+vec3 punto_principal(float tt) {
+	float s = g_salto * 17.0;
+	vec2 o = nudo(tt * 9.0, s) + nudo(tt * 27.0, s + 5.0) * 0.28;
+	return g_noz + g_ab * tt + (g_e1 * o.x + g_e2 * o.y) * ZIGZAG * ESC_M * pow(sin(3.14159 * tt), 0.55);
+}
+
+// Rama i (1 o 2) que SALTA A UN CUERPO: sale del trazo principal un poco antes del cuerpo y acaba en su hombro (del lado de la rama), en zigzag.
+float dist_rama_cuerpo(vec3 p, int i, vec4 cb) {
+	float tt_c = clamp(dot(cb.xyz - g_noz, g_ab) / dot(g_ab, g_ab), 0.08, 1.0);
+	vec3 f = punto_principal(max(tt_c - (1.5 + 0.6 * float(i)) * ESC_M / length(g_ab), 0.05));     // sale ~1,5 M antes del cuerpo
+	vec3 hombro = normalize(g_e1 * (i == 1 ? 0.85 : -0.85) + vec3(0.0, 0.7, 0.0) - normalize(g_ab) * 0.35);
+	vec3 e = cb.xyz + hombro * cb.w * 1.04;                 // en la piel del cuerpo, del lado de la mano (si acabara dentro, la profundidad lo tapaba)
+	vec3 fe = e - f;
+	float l2 = max(dot(fe, fe), 1e-6);
+	float tb = clamp(dot(p - f, fe) / l2, 0.0, 1.0);
+	vec3 base = f + fe * tb;
+	float amp = ZIGZAG * ESC_M * 0.55 * pow(sin(3.14159 * tb), 0.6);
+	if (length(p - base) > amp * 1.6 + GROSOR * ESC_M * 8.0) return 1e3;
+	vec3 dfe = fe / sqrt(l2);
+	vec3 b1 = normalize(cross(dfe, abs(dfe.y) > 0.9 ? vec3(1.0, 0.0, 0.0) : vec3(0.0, 1.0, 0.0)));
+	vec3 b2 = cross(b1, dfe);
+	float s = g_salto * 17.0 + float(i) * 71.0 + 33.0;
+	vec2 o = nudo(tb * 5.0, s) + nudo(tb * 15.0, s + 5.0) * 0.28;
+	return length(p - (base + (b1 * o.x + b2 * o.y) * amp));
+}
+
 // Distancia de p a cada uno de los tres trazos (principal, rama 1, rama 2).
 vec3 dist_trazos(vec3 p) {
+	vec3 d = vec3(1e3);
+	if (CUERPO_1.w > 0.0) d.y = dist_rama_cuerpo(p, 1, CUERPO_1);
+	if (CUERPO_2.w > 0.0) d.z = dist_rama_cuerpo(p, 2, CUERPO_2);
 	float tt = clamp(dot(p - g_noz, g_ab) / dot(g_ab, g_ab), 0.0, 1.0);
 	vec3 base = g_noz + g_ab * tt;
 	// lejos del eje no hay trazo posible (el desvio maximo es ZIGZAG · 2,2 · 1,28): ni se calcula
-	if (length(p - base) > (ZIGZAG * 3.0 + GROSOR * 8.0) * ESC_M) return vec3(1e3);
+	if (length(p - base) > (ZIGZAG * 3.0 + GROSOR * 8.0) * ESC_M) return d;
 	float env = pow(sin(3.14159 * tt), 0.55);
-	vec3 d;
 	for (int i = 0; i < 3; i++) {
+		if (i == 1 && CUERPO_1.w > 0.0) continue;          // esta rama ya salta a un cuerpo
+		if (i == 2 && CUERPO_2.w > 0.0) continue;
 		// tramos RECTOS entre nudos al azar (9 tramos gordos + 27 finos): un zigzag anguloso, no una onda
 		float s = g_salto * 17.0 + float(i) * 71.0;
 		vec2 o = nudo(tt * 9.0, s) + nudo(tt * 27.0, s + 5.0) * 0.28;
@@ -111,6 +149,11 @@ void main() {
 		g_e1 = normalize(cross(dir, vec3(0.0, 1.0, 0.0)));
 		g_e2 = cross(g_e1, dir);
 		g_salto = floor(T_TOON * SALTOS);
+		float vivo = 1.0;                      // destello: el trazo se dibuja UNA vez (el mismo zigzag) y se apaga a los DESTELLO s
+		if (DESTELLO > 0.0) {
+			g_salto = floor(DESTELLO_T0 * SALTOS);
+			vivo = 1.0 - smoothstep(DESTELLO, DESTELLO + 0.12, T_TOON - DESTELLO_T0);
+		}
 		int pasos = int(V.marcha.x);
 		if (V.toon3.w > 0.0) pasos = clamp(int(ceil((tFar - tNear) / (1.3 * V.toon3.w))), 24, 160);
 		float dl = (tFar - tNear) / float(pasos);
@@ -153,7 +196,8 @@ void main() {
 		// TRAZOS: nucleo (tapa), cuerpo (tapa a medias) y resplandor (se suma). Las ramas, mas finas, parpadean por redibujo.
 		float nucleo = 0.0, cuerpo = 0.0, brillo = 0.0;
 		for (int i = 0; i < 3; i++) {
-			float on = BEAM_ON * (i == 0 ? 1.0 : RAMAS * step(0.35, hash1(g_salto + float(i) * 3.1)));
+			bool a_cuerpo = (i == 1 && CUERPO_1.w > 0.0) || (i == 2 && CUERPO_2.w > 0.0);      // la rama que salta a un cuerpo no parpadea
+			float on = BEAM_ON * vivo * (i == 0 ? 1.0 : RAMAS * (a_cuerpo ? 1.0 : step(0.35, hash1(g_salto + float(i) * 3.1))));
 			float gr = GROSOR * ESC_M * (i == 0 ? 1.0 : 0.5);
 			nucleo = max(nucleo, on * (1.0 - smoothstep(gr * 0.75, gr, d_min[i])));
 			cuerpo = max(cuerpo, on * (1.0 - smoothstep(gr * 1.9, gr * 2.3, d_min[i])));

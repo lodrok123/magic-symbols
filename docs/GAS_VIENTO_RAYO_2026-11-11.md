@@ -91,13 +91,51 @@ mano) y del primer tope de la lógica, contra las casillas, enemigos y bloques r
 - Capturas del lab: `godot --path . --resolution 1280x720 --script res://herramientas/captura_gas_elementos.gd` → `docs/capturas/vfx_en_juego/haz_gas_elementos/`
   (`<elemento>_<muro|esfera|nada>_<lateral|juego>.png` y `_corte.png` con el chorro recién cortado).
 - Prueba y capturas en el Bosque 01 con hechizos reales: `godot --path . --resolution 1280x720 --script res://herramientas/prueba_haz_gas_viento_rayo.gd`
-  (`<elemento>_<aire|muro>_juego.jpg` y `_lateral.jpg` en la misma carpeta).
+  (`<elemento>_<aire|muro>_juego.jpg` y `_lateral.jpg` en la misma carpeta, más `rayo_cuerpo_juego.jpg` y `rayo_destello_juego.jpg`; al final imprime la tabla
+  `COSTE` de los cuatro haces; `-- <carpeta> --sin-costes` se la salta).
+- 11/11 (3070): en el lab, con el gas de RAYO puesto, **G** lanza un solo destello (hechizo de 0,1 s); ESPACIO vuelve al chorro de siempre. Con la ESFERA la rama
+  salta a la esfera (hace de cuerpo).
+- Antes / después en la 3070: `docs/capturas/vfx_en_juego/haz_gas_elementos/antes_3070/` y `despues_3070/` (`lab/` = captura_gas_elementos, `juego*/` = las pruebas
+  en el Bosque), y la hoja `HOJA_RESUMEN_3070.png` (fuego, agua, viento y rayo; al aire y contra el muro; cámara del juego en el Bosque y en el lab).
 
 ## 5. Coste
 
-Medido en esta sesión, 1280×720, calidad low, con hechizos reales en el Bosque 01 (ms de GPU por haz, marcas del RenderingDevice). **Los valores absolutos no valen**:
-en esta máquina el haz de agua ya aprobado mide 34 ms (el diario dice 0,9–1,4 ms en la RTX 3070), así que casi seguro está corriendo en la gráfica integrada. Sirve la
-comparación entre elementos en la misma máquina:
+### 5.1 RTX 3070 (11/11, después del pulido)
+
+ms de GPU **por haz** (marcas del RenderingDevice: simulación + chispas + raymarch + composición; media de 0,5 s con el chorro sujeto encendido tras 1,5 s), calidad low,
+volumen a media resolución. «fps desde 60 / 120» = a qué se quedaría un juego que va justo a 60 o a 120 fps limitado por la GPU si se le suma ese haz
+(1000 / (16,7 + ms) y 1000 / (8,3 + ms)). Ojo: en la máquina corrían a la vez otras sesiones de Godot (otro lab y otra prueba), así que hay ruido entre pasadas;
+la columna «rango» son las tres pasadas de la tabla `COSTE` de `prueba_haz_gas_viento_rayo` (la de referencia es la más tranquila, con el fotograma entero en 3–5 ms).
+
+**En el juego** (Bosque 01, hechizo real `linea_x · linea_x`, 9,2 m; cámara del juego; ventana de 1280 × 720, pantalla interna 1423 × 801):
+
+| Haz | Caso | Total | Simulación | Volumen | fps desde 60 | fps desde 120 | Rango (3 pasadas) |
+|---|---|---|---|---|---|---|---|
+| Fuego | aire | 2,82 | 0,27 | 2,55 | 51 | 90 | 2,8–4,4 |
+| Fuego | muro | 2,09 | 0,20 | 1,89 | 53 | 96 | 2,1–3,9 |
+| Agua | aire | 1,00 | 0,18 | 0,83 | 57 | 107 | 0,8–1,2 |
+| Agua | muro | 0,81 | 0,12 | 0,69 | 57 | 109 | 0,8–1,6 |
+| Viento | aire | 0,30 | 0,21 | 0,08 | 59 | 116 | 0,3–0,6 |
+| Viento | muro | 0,22 | 0,15 | 0,07 | 59 | 117 | 0,2–0,4 |
+| Rayo | aire | 0,28 | 0,12 | 0,16 | 59 | 116 | 0,3–0,4 |
+| Rayo | muro | 0,27 | 0,16 | 0,11 | 59 | 116 | 0,2–0,3 |
+
+**En el lab** (LabVfxComparativa3D, haz de referencia de 3 m, vista «juego», 1280 × 720; `captura_gas_elementos`, «aire» = obstáculo nada, «muro» = el muro de
+prueba de 1 × 2,4 × 0,3 m):
+
+| Haz | Aire | Muro | fps desde 60 (aire / muro) | fps desde 120 (aire / muro) |
+|---|---|---|---|---|
+| Fuego | 2,98 | 4,41 | 51 / 47 | 88 / 78 |
+| Agua | 0,63 | 2,14 | 58 / 53 | 112 / 96 |
+| Viento | 0,20 | 0,57 | 59 / 58 | 117 / 112 |
+| Rayo | 0,21 | 0,35 | 59 / 59 | 117 / 115 |
+
+Lo que se lee: el fuego es el caro (su volumen toon es el que más pasos da); el agua, un tercio; viento y rayo son casi gratis (≤ 0,6 ms) porque su rejilla es más
+pequeña y su dibujo no acumula masa. Con la ventana MAXIMIZADA (2560 × 1369, que es como a veces la abre Windows) el volumen cuesta el doble o más: fuego 6–7 ms, y
+16 ms en el caso «aire_diagonal» de `prueba_haz_gas_juego`. El pulido de este día no cambia el coste de forma medible (viento contra el muro en el juego: 0,24 ms
+antes, 0,22–0,42 después).
+
+### 5.2 Portátil con gráfica integrada (la sesión del 11/11 por la mañana; solo sirve para comparar entre elementos)
 
 | Haz | Total | Simulación | Volumen |
 |---|---|---|---|
@@ -105,16 +143,41 @@ comparación entre elementos en la misma máquina:
 | Viento | 8–13 | 5–9 | 3–4 |
 | Rayo | 6–17 | 2,5–3 | 4–14 (el pico, contra el muro) |
 
-Queda por medir en la máquina de la 3070.
+## 6. Lo que se pulió en la 3070 (11/11, tarde) y lo que queda
 
-## 6. Lo que no está bien todavía
+**Validación.** Las cuatro pruebas con ventana en la 3070: `prueba_haz_gas_viento_rayo`, `prueba_haz_gas_agua` y `prueba_gas_haz` a 0 a la primera;
+`prueba_haz_gas_juego` dio **2 fallos** con el código tal cual (goblin: «chorro limpio y caliente», T_eje 0,17; dragón: hollín en el eje 0,104 frente a un tope de 0,102).
+Causa: la ventana se abrió MAXIMIZADA (2560 × 1369), cada fotograma tardaba más, y `HazGasJuego` corta el chorro por **reloj real** mientras la prueba avanza a pasos
+fijos: en el caso del goblin el primer «quemado» del enemigo daba además un tirón y la foto llegaba con el chorro ya cortado (se ve en la captura: la masa suelta y
+nada junto a la mano). No es un fallo del fuego. Arreglo **en la prueba** (como ya hacía la de viento y rayo): se sujeta el chorro hasta que la simulación ha dado los
+pasos de la medida y luego se suelta. Con eso, 0 fallos (y los números del fuego idénticos antes y después del pulido). Las pruebas que hacen capturas y miden fijan
+ahora la ventana a 1280 × 720 sin maximizar.
 
-- **Viento**: el polvo apenas aparece con el haz a la altura de la mano (el aire rápido no llega al suelo salvo tras un choque). Contra un muro los trazos acaban en
-  la cara y se rizan poco hacia los lados. A media resolución los trazos se ven algo dentados.
-- **Rayo**: el trazo se redibuja entero cada 1/14 s; no hay una versión «un solo destello» para hechizos de 0,1 s. La rama del dibujo no conoce los enemigos: salta al
-  contacto que dice la lógica, no a cada cuerpo.
-- **Los dos**: solo el haz. No hay prueba de píxeles de color como la del agua (turquesa / naranja): la prueba mira la simulación y la lógica, y las capturas se han mirado a ojo.
-- **Coste**: sin medir en la 3070 ni en gama media.
-- **Pruebas de regresión**: `prueba_haz_gas_agua` da 1 fallo y un error de objeto liberado en esta máquina, **igual con el código de antes de este cambio** (comprobado
-  con `git stash`): el gas se apaga por reloj real y aquí cada fotograma tarda demasiado. `prueba_haz_gas_juego` y `prueba_gas_haz` no se han podido dar por buenas aquí
-  por lo mismo; hay que pasarlas en la otra máquina.
+**Viento.**
+- Polvo a la altura de la mano: la ráfaga **barre el suelo** que tiene debajo (una franja bajo el chorro que crece con el recorrido) y, en el choque, el pie del sólido,
+  solo por la cara del choque. Vetas sueltas (ruido al cubo), no una manta; `dustFade` 0,6 → 1,4 para que no se acumule.
+- Contra un muro: junto a la cara las etiquetas de línea de corriente quedan **libres** (antes se reponían hasta la cara y los trazos acababan en ella) y la velocidad
+  se **abre en abanico** por el plano de la pared, desde el contacto hacia fuera, con un giro leve alrededor de la normal (`vel_fuentes.glsl`): los trazos se reparten y
+  se rizan a los dos lados del muro.
+- Dientes a media resolución: el borde del trazo se suaviza en lo que mide un píxel del volumen a esa distancia (rayo del píxel vecino, vale con la cámara ortogonal) y,
+  si el trazo es más fino que el píxel, se ensancha hasta él y se aclara en proporción (cobertura).
+**Rayo.**
+- **Un solo destello** (`HazGas.destello`, `HazGasJuego.DESTELLO_MAX_S` = 0,2 s): un hechizo de rayo que vive eso o menos dibuja el trazo UNA vez (sin redibujos) y lo
+  apaga a los `vida` s + 0,12 s de caída, por tiempo de SIMULACIÓN (si el primer fotograma tarda, el destello se ve igual). El aire cargado (arcos, halo) se queda las
+  décimas que dure la ionización. Hoy ningún haz del juego dura tan poco (HAZ_DURA_S 0,9 s): está listo para cuando lo haya. Lab: G.
+- **Ramas que saltan a los cuerpos**: con los choques «enemigo» / «objeto» de la lógica, `HazGasJuego` busca el Combate3D de cada punto (hasta 2) y pasa su cápsula al
+  dibujo cada fotograma; la rama sale del trazo ~1,5 M antes del cuerpo y acaba en su hombro, en zigzag, sin parpadear. Sin cuerpos, las ramas de siempre.
+**Los dos.** Prueba de píxeles de color en `prueba_haz_gas_viento_rayo`: viento = trazos BLANCOS (~2 700–3 000 px) y 0 naranja; rayo = AZUL (~1 500 px) y 0 naranja;
+el rayo que salta al goblin tiene trazo encima del cuerpo; el destello se ve al salir (~1 500 px azules) y a los 0,4 s queda la quinta parte (arcos).
+**Agua (pendientes del 468).** Gotas: 1 de cada 7 chispas (antes 3) y 1,7 veces más gordas. Muro bajo: la lógica para el haz en la casilla, pero su caja de sólido
+acababa bajo la mano y el agua pasaba por encima; ahora, solo para el agua, la casilla del TOPE llega al menos a la mano + 0,3 casillas (lámina pegada a la cara 29 %
+→ 51 %). El fuego, el viento y el rayo siguen viendo el muro bajo como antes.
+
+**Queda.**
+- Que Pablo decida si enciende viento y rayo de serie (siguen apagados).
+- Viento: detrás del muro del lab queda una mancha de polvo (la regla de la demo con el aire que rodea el muro); se puede bajar si molesta. El muro de tierra de las
+  pruebas del Bosque casi no se ve en las capturas (es bajo y se hunde), así que el abanico se lee mejor en el lab.
+- Agua: con el muro bajo el agua ahora se queda delante aunque el muro visible sea más bajo que la mano (es lo que dice la lógica); si se prefiere que salpique por
+  encima, es quitar `AGUA_TOPE_SOBRE_MANO_CAS`.
+- Coste medido con otras sesiones de Godot usando la misma GPU (de ahí los rangos). Sin medir en gama media.
+- `prueba_rayo_toy`: 16 fallos y un error de índice, IGUAL antes y después (vienen de main, no se han mirado aquí).
