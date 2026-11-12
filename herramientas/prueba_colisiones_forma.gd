@@ -46,6 +46,7 @@ func _initialize() -> void:
 	await _cajas_de_acierto()
 	_f10()
 	await _forma_ancha()
+	await _forma_objeto()
 	print("RESULTADO colisiones_forma · FALLOS: %d" % _fallos)
 	quit(1 if _fallos > 0 else 0)
 
@@ -195,6 +196,82 @@ func _forma_ancha() -> void:
 	_ok(f.bloquea(vecina) and not f.es_parcial(vecina), "bloquear_completa() bloquea entera y deja de ser parcial")
 	Terreno3D.fuente = antes
 	cuerpo.queue_free()
+
+
+## 12/11 (Pablo: «colisiones MUY próximas al tamaño del asset; ni muros invisibles»): un objeto de juego que bloquea su casilla (`Terreno3D.bloquear_celda`) ya no es un
+## cubo de 2,3 u para la jugadora: choca con el contorno de su modelo. Para todo lo demás (hechizos, enemigos, rutas) la casilla sigue bloqueada entera.
+class Objeto extends Node3D:
+	var celda: Vector2i = Vector2i.ZERO
+
+
+func _forma_objeto() -> void:
+	var antes = Terreno3D.fuente
+	var f := Terreno3D.FuenteNodos.new(_mundo)
+	Terreno3D.fuente = f
+	var c := Vector2i(6, 6)
+	var centro: Vector3 = Terreno3D.centro_de(c, Terreno3D.y_pies(c))
+	var o := Objeto.new()
+	o.celda = c
+	var mi := MeshInstance3D.new()
+	var bm := BoxMesh.new()
+	bm.size = Vector3(0.6, 0.6, 0.6)
+	mi.mesh = bm
+	mi.position = Vector3(0.0, 0.3, 0.0)
+	o.add_child(mi)
+	_mundo.add_child(o)
+	o.global_position = centro
+	f.bloquear(c)
+	_ok(f.bloquea(c), "objeto: su casilla sigue bloqueada entera para hechizos, enemigos y rutas")
+	_ok(not f.es_parcial(c), "objeto: para los enemigos NO es parcial (ven la casilla)")
+	_ok(f.es_parcial(c, true), "objeto: para la jugadora SÍ es parcial (choca con el contorno del modelo)")
+	_ok(f.choca_punto(c, centro), "objeto: en el centro del modelo se choca")
+	_ok(f.choca_punto(c, centro + Vector3(0.5, 0.0, 0.0)), "objeto: a 0,5 u del centro (borde del modelo a 0,3 + cuerpo 0,25) se choca")
+	_ok(not f.choca_punto(c, centro + Vector3(0.65, 0.0, 0.0)), "objeto: a 0,65 u del centro ya NO se choca (antes: toda la casilla, hasta 1,15 u)")
+	_ok(not f.choca_punto(c, centro + Vector3(-0.9, 0.0, 0.8)), "objeto: en una esquina de su casilla se puede estar")
+	# el objeto se mueve dentro de su casilla: la forma lo sigue
+	o.global_position = centro + Vector3(0.6, 0.0, 0.0)
+	_ok(f.choca_punto(c, centro + Vector3(0.65, 0.0, 0.0)) and not f.choca_punto(c, centro), "objeto: si se mueve, la forma lo sigue")
+	# cambia de casilla sin avisar: la vieja se queda entera (bloqueo sin forma) hasta que la liberen
+	o.celda = Vector2i(7, 6)
+	_ok(not f.es_parcial(c, true) and f.choca_punto(c, centro + Vector3(-0.9, 0.0, 0.8)), "objeto: si ya no está en la casilla, vuelve a bloquear entera")
+	f.liberar(c)
+	_ok(not f.bloquea(c) and not f.es_parcial(c, true), "objeto: liberar() deja la casilla libre")
+	# un bloqueo sin objeto (tierra, hielo, barrera): la casilla entera, también para la jugadora
+	var sola := Vector2i(8, 8)
+	f.bloquear(sola)
+	_ok(f.bloquea(sola) and not f.es_parcial(sola, true) and f.choca_punto(sola, Terreno3D.centro_de(sola, 0.0) + Vector3(1.0, 0.0, 1.0)), "bloqueo sin objeto: la casilla entera")
+	# NO COLARSE: el mismo objeto en un pasillo (paredes al norte y al sur): por los lados del objeto no se pasa, aunque el modelo no llene la casilla
+	var pas := Vector2i(12, 6)
+	var cp: Vector3 = Terreno3D.centro_de(pas, Terreno3D.y_pies(pas))
+	o.celda = pas
+	o.global_position = cp
+	f.bloquear(pas)
+	_ok(not f.choca_punto(pas, cp + Vector3(0.0, 0.0, -0.9)), "pasillo: en campo abierto se rodea el objeto por el norte de su casilla")
+	f.bloquear(pas + Vector2i(0, -1))
+	f.bloquear(pas + Vector2i(0, 1))
+	_ok(f.choca_punto(pas, cp + Vector3(0.0, 0.0, -0.9)) and f.choca_punto(pas, cp + Vector3(0.0, 0.0, 0.9)), "pasillo: con pared al norte y al sur, entre el objeto y la pared NO se pasa")
+	_ok(f.choca_punto(pas, cp + Vector3(-0.9, 0.0, -0.9)), "pasillo: tampoco por la esquina (rincón sin salida)")
+	_ok(not f.choca_punto(pas, cp + Vector3(-0.9, 0.0, 0.0)) and f.choca_punto(pas, cp + Vector3(-0.5, 0.0, 0.0)), "pasillo: de frente se llega hasta tocar el modelo (a 0,9 u libre, a 0,5 u choca)")
+	f.liberar(pas + Vector2i(0, -1))
+	f.liberar(pas + Vector2i(0, 1))
+	# Lo BAJO no es forma: una placa de 0,2 u de alto en la casilla no cuenta (sola no bloquea; con un bloque encima, la forma es la del bloque)
+	var placa := Objeto.new()
+	placa.celda = pas
+	var mp := MeshInstance3D.new()
+	var bp := BoxMesh.new()
+	bp.size = Vector3(1.8, 0.2, 1.8)
+	mp.mesh = bp
+	mp.position = Vector3(0.0, 0.1, 0.0)
+	placa.add_child(mp)
+	_mundo.add_child(placa)
+	placa.global_position = cp
+	f.bloquear(pas)
+	_ok(not f.choca_punto(pas, cp + Vector3(0.7, 0.0, 0.0)), "placa baja (0,2 u) en la misma casilla: no cuenta como forma (a 0,7 u del centro se puede estar)")
+	f.liberar(pas)
+	placa.queue_free()
+	o.queue_free()
+	Terreno3D.fuente = antes
+	await process_frame
 
 
 class EnvF10 extends MundoFalso:

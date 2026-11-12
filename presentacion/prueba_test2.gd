@@ -1004,6 +1004,15 @@ var _puentes_def: Array = []           ## puentes reactivos del nivel editable (
 var _celdas_pieza: Dictionary = {}     ## casillas bloqueadas por una pieza del .tscn (Vector2i -> true)
 ## 12/10 (Pablo): lo que cuenta como MURO. Su casilla bloquea ENTERA, siempre: no se roza ni se cuela por un hueco de su forma.
 const MUROS_COLISION: Array = ["empalizada_goblin", "puerta_goblin", "arco_ruina", "arco_puerta"]
+## 12/11 (Pablo: «las colisiones MUY próximas al tamaño del asset; ni muros invisibles»): un muro ya NO bloquea su casilla entera (2,3 u para una empalizada de 0,5 de
+## grosor: 0,9 u de pared invisible por cada cara). Los MACIZOS chocan con el casco de la pieza ENTERA (sin huecos por los que colarse, que era lo que se quería el 12/10);
+## los arcos, con sus dos pilares y el paso libre (como dice `ColisionPieza` y la letra `U`: «arco por el que se pasa»). Una puerta cerrada la cierra su objeto, no el arco.
+const MUROS_MACIZOS: Array = ["empalizada_goblin", "puerta_goblin"]
+## 12/11 (Pablo: «los tocones no [se atraviesan]… que un impacto cualquiera de fuego los prenda»): un tocón es SIEMPRE sólido y de madera que arde, lo diga o no el nivel
+## (`bloquea`) y venga de donde venga (pieza del .tscn, letra o decorado sembrado). Antes era decorado: el fuego no le hacía nada (el metadato `inflamable` de las piezas
+## no lo lee nadie) y, según el nivel, se atravesaba. Ahora es un Reactivo3D de tipo `tronco` (inflamable, propaga la llama, el agua lo apaga; arde y se consume, y al
+## consumirse libera su casilla). `tocon_roca` queda fuera: es sobre todo piedra.
+const TOCONES: Array = ["tocon", "tocon_alto", "tocon_hueco", "tocon_seco"]
 var _celdas_muro: Dictionary = {}      ## casillas de muro (Vector2i -> true)
 ## 12/10 (Pablo): NPCs y objetos (reactivos) colisionan por su CONTORNO: un círculo en los pies, no la casilla entera.
 const RADIO_CONTORNO_NPC: float = 0.3
@@ -3301,6 +3310,13 @@ func _poner(id_pedido: String, c: Vector2i, y: float, bloquea: bool, variar: boo
 		# 13/10: el marcador tal cual (posición, giro y escala), como lo dibuja el editor. También en los lotes: el decorado
 		# va por lotes (decorado_por_lotes) y antes el lote se llenaba con el centro de la casilla, sin la escala del marcador.
 		t_pieza = _marca_tf[c]
+	if objetos_reactivos and TOCONES.has(id) and _tocon_reactivo(id_pedido, t_pieza):
+		return null
+	if bloquea and _modo_nivel:
+		# 12/11: una pieza que sale de un MARCADOR del nivel (seta, raíz y flor reactivas, dummy…) bloqueaba su casilla ENTERA: no viene del .tscn como pieza, así que
+		# no traía cuerpo. Ahora lleva el mismo cuerpo medido sobre el modelo que cualquier otra pieza (`_poner_colision`) y la casilla cuenta como «de pieza».
+		_celdas_pieza[c] = true
+		_poner_colision(id_pedido, t_pieza)
 	if decorado_por_lotes:
 		if _plantilla(id).is_empty():
 			return null
@@ -3347,6 +3363,27 @@ func _canal_centro(c: Vector2i) -> Vector3:
 
 
 ## --- Objetos que reaccionan a los hechizos (Reactivo3D, tarea 4.7) ---
+
+## Un tocón como objeto que arde, en la transformación `t` de su pieza. false si no hay modelo (entonces sigue como decorado).
+func _tocon_reactivo(id_pedido: String, t: Transform3D) -> bool:
+	var raiz: Node3D = _pieza(_id_real(id_pedido))
+	if raiz == null:
+		return false
+	if raiz.get_child_count() == 0:
+		raiz.free()
+		return false
+	var modelo: Node3D = raiz.get_child(0) as Node3D
+	raiz.remove_child(modelo)
+	raiz.free()
+	var c: Vector2i = _celda_de(t.origin)
+	_bloqueadas[c] = true
+	var r: Reactivo3D = _nuevo_reactivo("tronco", c, t.origin, modelo, "")
+	r.name = "reactivo_tocon"
+	r.set_meta("tocon", id_pedido)
+	r.transform = t
+	_props.add_child(r)
+	return true
+
 
 ## Pone un Reactivo3D con la pieza de Meshy de visual (ya no va a lotes: hace falta como nodo para tintarla).
 func _reactivo_pieza(tipo: String, id_pedido: String, c: Vector2i, y: float, bloquea: bool, variar: bool = true,
@@ -4013,7 +4050,9 @@ func _junto_a_pared(c: Vector2i) -> bool:
 func _colocar_letras() -> void:
 	# "matas" y "flores" de Meshy salieron mal (rocas de cristal y bolas): retiradas, las pone Hierba3D.
 	# "caja_cristal" también: los empujables son cubos (_colocar_empujables).
-	var decor: Array = ["arbusto", "arbusto_flores", "piedras", "setas", "tocon", "arbusto", "piedras"]
+	# 12/11: sin "tocon" en la siembra al azar. Un tocón ya es un objeto sólido que arde (TOCONES): sembrado por hash cerraba casillas de paso que el mapa no pedía
+	# (en el lab de playtest tapaba (27,6) y desviaba la ruta del goblin). Los tocones los pone el nivel a mano; su hueco en la siembra lo ocupan las setas.
+	var decor: Array = ["arbusto", "arbusto_flores", "piedras", "setas", "setas", "arbusto", "piedras"]
 	for y in range(_lado):
 		for x in range(_mapa[y].length()):
 			var c := Vector2i(x, y)
@@ -4377,6 +4416,9 @@ func _instanciar_escena() -> void:
 		var t: Transform3D = _transform_en(pz, raiz)
 		var p: Vector3 = t.origin
 		var escala: float = t.basis.get_scale().x
+		if objetos_reactivos and TOCONES.has(id) and _tocon_reactivo(id_pedido, t):
+			colocadas += 1
+			continue
 		if pz.bloquea:
 			var cp: Vector2i = _celda_de(p)
 			_bloqueadas[cp] = true
@@ -4437,6 +4479,7 @@ func _poner_colision(id_pedido: String, t: Transform3D) -> void:
 			forma.shape = caja
 		forma.position = (f["centro"] as Vector3) * k
 		cuerpo.add_child(forma)
+	_ajustar_muro(cuerpo, _id_real(id_pedido))
 	_solidos.add_child(cuerpo)
 
 
@@ -4474,15 +4517,8 @@ func _activar_solidez_por_nodos() -> void:
 			var cn: Vector2i = _celda_de((n as Node3D).global_position)
 			_poner_contorno((n as Node3D).global_position, RADIO_CONTORNO_NPC)
 			contorno[cn] = true
-	for r in get_tree().get_nodes_in_group(Reactivo3D.GRUPO_REACTIVO):
-		var ro: Reactivo3D = r as Reactivo3D
-		if ro == null or ro.tipo == "puente" or ro.tipo == "placa" or ro.tipo == "telarana":
-			continue
-		var cr: Vector2i = _celda_de(ro.global_position)
-		if not _bloqueadas.has(cr) or _celdas_pieza.has(cr):
-			continue
-		_poner_contorno(ro.global_position, RADIO_CONTORNO_OBJETO)
-		contorno[cr] = true
+	# 12/11: los objetos reactivos ya NO llevan un círculo fijo de 0,4 u (igual para una seta que para una tinaja): su casilla pasa a la fuente como bloqueo de juego
+	# y la jugadora choca con el contorno de SU modelo (Terreno3D.FuenteNodos._formas_de); hechizos y enemigos siguen viendo la casilla.
 	await get_tree().physics_frame
 	await get_tree().physics_frame
 	if not is_inside_tree() or Terreno3D.mundo_s != self:
@@ -4495,8 +4531,7 @@ func _activar_solidez_por_nodos() -> void:
 	for c in _bloqueadas.keys():
 		if not _celdas_pieza.has(c) and not contorno.has(c):
 			Lanzador3D.bloquear_celda(c)
-	for c in _celdas_muro.keys():
-		Lanzador3D.bloquear_celda_completa(c)      # un muro nunca es «parcial»
+	# 12/11: los muros ya no bloquean su casilla entera: chocan con su cuerpo macizo (`_ajustar_muro`). `_celdas_muro` se sigue apuntando (herramientas de medida).
 	print("Solidez por colisión: ", n, " casillas de piezas, ", _bloqueadas.size() - _celdas_pieza.size(), " extra")
 
 
@@ -4796,11 +4831,14 @@ func _instanciar_nivel() -> void:
 			hundidas += 1
 		var p: Vector3 = t.origin
 		var escala: float = t.basis.get_scale().x
+		if objetos_reactivos and TOCONES.has(id) and _tocon_reactivo(id_pedido, t):
+			colocadas += 1
+			continue
 		var es_muro: bool = MUROS_COLISION.has(id)      # 12/10 (Pablo): un muro bloquea siempre, aunque la pieza no lo marque
 		if bool(pz.get_meta("bloquea", false)) or es_muro:
 			var cuerpo: StaticBody3D = pz.get_node_or_null("cuerpo") as StaticBody3D
 			if cuerpo != null:
-				_poner_cuerpo(cuerpo, t, p)
+				_poner_cuerpo(cuerpo, t, p, id)
 				if es_muro:
 					_marcar_muro(cuerpo, t, p)
 			elif es_muro:
@@ -4843,7 +4881,7 @@ func _instanciar_nivel() -> void:
 
 ## Copia el StaticBody3D de la pieza del .tscn a la maqueta, en su sitio. Las casillas que toca se apuntan en `_bloqueadas`
 ## (lo siguen leyendo la hierba y el reparto de objetos), y como «de pieza» para no traspasarlas luego a `extras`.
-func _poner_cuerpo(modelo: StaticBody3D, t: Transform3D, p: Vector3) -> void:
+func _poner_cuerpo(modelo: StaticBody3D, t: Transform3D, p: Vector3, id: String = "") -> void:
 	if _solidos == null:
 		_solidos = Node3D.new()
 		_solidos.name = "Solidos"
@@ -4851,10 +4889,35 @@ func _poner_cuerpo(modelo: StaticBody3D, t: Transform3D, p: Vector3) -> void:
 	var cuerpo: StaticBody3D = modelo.duplicate() as StaticBody3D
 	cuerpo.transform = t
 	cuerpo.add_to_group("bloquea")
+	_ajustar_muro(cuerpo, id)
 	_solidos.add_child(cuerpo)
 	var cp: Vector2i = _celda_de(p)
 	_bloqueadas[cp] = true
 	_celdas_pieza[cp] = true
+
+
+## 12/11: el cuerpo de un MURO. Macizo (empalizada, puerta): se le añade el casco convexo de TODOS sus cascos juntos, así no queda ningún hueco entre trozos por el que
+## colarse y choca pegado a la pieza, no en la casilla entera. Arco: se marca `paso_libre` (su casilla no cuenta como bloqueada entera: se cruza entre los pilares).
+func _ajustar_muro(cuerpo: StaticBody3D, id: String) -> void:
+	if not MUROS_COLISION.has(id):
+		return
+	if not MUROS_MACIZOS.has(id):
+		cuerpo.set_meta("paso_libre", true)
+		return
+	var pts := PackedVector3Array()
+	for h in cuerpo.get_children():
+		var cs: CollisionShape3D = h as CollisionShape3D
+		if cs != null and cs.shape is ConvexPolygonShape3D:
+			for v in (cs.shape as ConvexPolygonShape3D).points:
+				pts.append(cs.transform * v)
+	if pts.size() < 4:
+		return
+	var lleno := CollisionShape3D.new()
+	lleno.name = "macizo"
+	var sh := ConvexPolygonShape3D.new()
+	sh.points = ColisionPieza.compactar(pts)
+	lleno.shape = sh
+	cuerpo.add_child(lleno)
 
 
 ## Un muro del .tscn: bloquea las casillas que cubre su cuerpo (la de su posición y las que caen dentro de la caja), enteras.

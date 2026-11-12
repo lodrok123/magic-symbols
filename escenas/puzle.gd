@@ -2744,7 +2744,7 @@ func _bloquear_huella(n: Node3D) -> void:
 			var solape_x: float = minf(fin.x, float(cx + 1) * cas) - maxf(ini.x, float(cx) * cas)
 			var solape_y: float = minf(fin.y, float(cy + 1) * cas) - maxf(ini.y, float(cy) * cas)
 			if solape_x >= 0.3 and solape_y >= 0.3:
-				Terreno3D.bloquear_celda(Vector2i(cx, cy))
+				Terreno3D.bloquear_celda(Vector2i(cx, cy), n)      # 12/11: la jugadora choca con los cascos de la pieza, no con la casilla entera
 	return
 
 

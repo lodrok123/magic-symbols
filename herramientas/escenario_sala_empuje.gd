@@ -265,7 +265,9 @@ func _e2() -> bool:
 	if not await _andar_a(Vector2i(10, 2), 6.0, TOL_EXACTA):          # ella misma pisaba la placa al seguir al bloque: se aparta
 		return false
 	await _esperar(func() -> bool: return not puerta.abierta, 2.0)
-	_ok("2 E2 [legible]: empujado hacia la pared, el bloque deja la placa: la placa se suelta y la puerta se CIERRA", b.celda == Vector2i(15, 2) and not placa.activo and not puerta.abierta, "bloque %s mueve %s placa %s puerta %s" % [str(b.celda), str(b.moviendo), str(placa.activo), str(puerta.abierta)])
+	# 12/11: el bloque puede estar aún contra la pared (15,2) o haberse vuelto a formar ya en (11,2) (T_PERDIDO = 3 s): desde que la jugadora choca con el CONTORNO del bloque
+	# y no con su casilla, lo sigue ~0,6 u más adentro y la vuelta a (10,2) tarda un poco más. Lo que se afirma es que deja la placa y la puerta se cierra.
+	_ok("2 E2 [legible]: empujado hacia la pared, el bloque deja la placa: la placa se suelta y la puerta se CIERRA", (b.celda == Vector2i(15, 2) or b.celda == Vector2i(11, 2)) and not placa.activo and not puerta.abierta, "bloque %s mueve %s placa %s puerta %s" % [str(b.celda), str(b.moviendo), str(placa.activo), str(puerta.abierta)])
 	await _esperar(func() -> bool: return b.celda == Vector2i(11, 2), 8.0)
 	_ok("2 E2: el bloque vuelve a (11,2) otra vez", b.celda == Vector2i(11, 2))
 	# 5) Otra vez la solución, y se sale.

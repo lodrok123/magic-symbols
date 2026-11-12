@@ -155,7 +155,8 @@ class FuenteSolidez extends RefCounted:
 	func bloquea(_c: Vector2i) -> bool:
 		return false
 	## Marca / quita un bloqueo en tiempo de juego (tierra que se solidifica, hielo que se derrite, barrera de fuego).
-	func bloquear(_c: Vector2i) -> void:
+	## `de` (12/11, opcional): el nodo que la bloquea, si no tiene propiedad `celda` (una pieza de varias casillas): la jugadora chocará con su forma.
+	func bloquear(_c: Vector2i, _de: Node3D = null) -> void:
 		pass
 	func liberar(_c: Vector2i) -> void:
 		pass
@@ -163,11 +164,301 @@ class FuenteSolidez extends RefCounted:
 	func bloquear_completa(c: Vector2i) -> void:
 		bloquear(c)
 	## ¿Se puede ROZAR la casilla (su forma real es menor que la casilla)? Solo el jugador afina; hechizos y goblins no.
-	func es_parcial(_c: Vector2i) -> bool:
+	## `con_objetos` (12/11): cuenta también la forma de los OBJETOS de juego que bloquean su casilla (rompibles, barriles, bloques, setas, puertas…). Solo la jugadora lo pide.
+	func es_parcial(_c: Vector2i, _con_objetos: bool = false) -> bool:
 		return false
 	## Con casilla parcial: ¿toca el punto `p` (suelo) lo que de verdad hay ahí?
 	func choca_punto(_c: Vector2i, _p: Vector3) -> bool:
 		return true
+
+
+	## ---- 12/11 (Pablo: «las colisiones MUY próximas al tamaño del asset; ni muros invisibles») · la forma de los OBJETOS que bloquean su casilla ----
+	## Un rompible, un barril, un bloque, una seta o una puerta llaman a `Terreno3D.bloquear_celda(su casilla)`: para hechizos, enemigos y rutas eso sigue siendo la
+	## casilla entera (2,3 u), pero la JUGADORA chocaba también con la casilla entera aunque el modelo midiera 0,6 u: un cubo de pared invisible alrededor de cada
+	## objeto, mientras las piezas de decorado (árboles, rocas) chocaban pegadas a su modelo. Ahora, en una casilla de `extras`, la jugadora choca con el CONTORNO DEL
+	## MODELO del objeto que la ocupa: el casco convexo, en planta, de sus mallas visibles a la altura del cuerpo (FORMA_Y_MIN..FORMA_Y_MAX sobre el suelo).
+	## El objeto no tiene que registrarse: es cualquier Node3D del mundo con una propiedad `celda` (Vector2i) igual a la casilla (todos los objetos de `objetos/` y
+	## los de `puzle.gd` la tienen). Se busca la primera vez que la jugadora pregunta por la casilla y se reintenta unas pocas veces (un bloque empujado reserva su
+	## destino antes de llegar). Si se mueve, la forma lo sigue; si deja la casilla o desaparece, se vuelve a buscar. Sin objeto con modelo, la casilla entera.
+	## Quien bloquea por un nodo SIN `celda` (una pieza de arte que ocupa varias casillas: `Puzle3D._bloquear_huella`) lo dice: `bloquear(c, nodo)`. Si el nodo
+	## trae cascos de colisión medidos (ConvexPolygonShape3D de `ColisionPieza`), se usan esos (un polígono por casco: respeta huecos); si no, el casco de sus mallas.
+	## Vive en la clase base: vale igual para la solidez por nodos (niveles .tscn) y por casillas (mapas de letras).
+	const RADIO_CUERPO: float = 0.25                 ## el cuerpo de la jugadora (ver FuenteNodos)
+	const FORMA_Y_MIN: float = 0.12
+	const FORMA_Y_MAX: float = 1.6
+	const FORMA_ESPERAS: Array = [0, 10, 30, 90, 240]   ## fotogramas de física entre intentos de encontrar el objeto de una casilla recién bloqueada
+	var formas: Dictionary = {}                      ## Vector2i -> Array de {"ref": WeakRef, "tf": Transform3D, "local": PackedVector3Array, "poli": PackedVector2Array}
+	var _pend: Dictionary = {}                       ## Vector2i -> [intentos, fotograma de física del próximo intento]
+	var _sin_forma: Dictionary = {}                  ## Vector2i -> true: ya se buscó y no hay objeto con modelo (hasta el próximo bloquear/liberar)
+	var _objetos: Array = []                         ## WeakRef de todos los Node3D con `celda` vistos en el último recorrido del mundo
+	var _fijos: Dictionary = {}                      ## Vector2i -> Array de WeakRef: nodos que dijeron «esta casilla la bloqueo yo» (`bloquear(c, nodo)`)
+
+	## El nodo bajo el que se buscan los objetos.
+	func _raiz_formas() -> Node:
+		return Terreno3D.mundo_s
+
+	## Hay que volver a buscar la forma de `c` (la acaban de bloquear). `de`: el nodo que la bloquea, si lo dice.
+	func _forma_pendiente(c: Vector2i, de: Node3D = null) -> void:
+		formas.erase(c)
+		_sin_forma.erase(c)
+		_pend[c] = [0, 0]
+		if de != null:
+			if not _fijos.has(c):
+				_fijos[c] = []
+			(_fijos[c] as Array).append(weakref(de))
+
+	func _olvidar_forma(c: Vector2i) -> void:
+		formas.erase(c)
+		_pend.erase(c)
+		_sin_forma.erase(c)
+		_fijos.erase(c)
+
+	func _formas_de(c: Vector2i) -> Array:
+		if formas.has(c):
+			var vale: bool = true
+			for f in (formas[c] as Array):
+				var fd: Dictionary = f
+				var n: Node3D = (fd["ref"] as WeakRef).get_ref() as Node3D
+				if n == null or not n.is_inside_tree() or (not bool(fd["fijo"]) and n.get("celda") != c):
+					vale = false
+					break
+				if n.global_transform != (fd["tf"] as Transform3D):
+					fd["tf"] = n.global_transform
+					fd["poli"] = _poligono(fd["local"] as PackedVector3Array, n.global_transform)
+			if vale:
+				return formas[c]
+			formas.erase(c)
+			_pend[c] = [0, 0]
+		if not _sin_forma.has(c):
+			if not _pend.has(c):
+				# bloqueada sin pasar por `bloquear` (el diccionario de la maqueta al cargar): lo que haya ya está puesto; un intento ahora y otro más tarde
+				_pend[c] = [FORMA_ESPERAS.size() - 2, 0]
+			if Engine.get_physics_frames() >= int((_pend[c] as Array)[1]):
+				_resolver_formas()
+		if not formas.has(c):
+			# Los objetos YA conocidos se miran siempre (es barato): un bloque empujado reserva su destino al salir y no cambia su `celda` hasta llegar, segundos después;
+			# sin esto la casilla de llegada se quedaba sin forma (entera) y la jugadora, que ya estaba dentro de ella, la cruzaba por dentro del bloque.
+			for r in _objetos:
+				var n2: Node3D = (r as WeakRef).get_ref() as Node3D
+				if n2 != null and n2.is_inside_tree() and n2.get("celda") == c and n2.is_visible_in_tree():
+					for f2 in _formas_de_nodo(n2, c, false):
+						if not formas.has(c):
+							formas[c] = []
+						(formas[c] as Array).append(f2)
+			if formas.has(c):
+				_pend.erase(c)
+				_sin_forma.erase(c)
+		return formas.get(c, [])
+
+	## Un solo recorrido del mundo resuelve todas las casillas pendientes que ya toquen.
+	func _resolver_formas() -> void:
+		var ahora: int = Engine.get_physics_frames()
+		var toca: Dictionary = {}
+		for c in _pend:
+			if ahora >= int((_pend[c] as Array)[1]):
+				toca[c] = true
+		var raiz: Node = _raiz_formas()
+		if toca.is_empty() or raiz == null or not is_instance_valid(raiz):
+			return
+		# los que se apuntaron a mano
+		for c in toca:
+			for r in (_fijos.get(c, []) as Array):
+				var nf: Node3D = (r as WeakRef).get_ref() as Node3D
+				if nf != null and nf.is_inside_tree() and nf.is_visible_in_tree():
+					for f0 in _formas_de_nodo(nf, c, true):
+						if not formas.has(c):
+							formas[c] = []
+						(formas[c] as Array).append(f0)
+		_objetos.clear()
+		var pila: Array = [raiz]
+		while not pila.is_empty():
+			var n: Node = pila.pop_back()
+			if n is Node3D and "celda" in n and n.get("celda") is Vector2i:
+				_objetos.append(weakref(n))
+			if n is Node3D and "celda" in n and n.get("celda") is Vector2i and toca.has(n.get("celda")) and (n as Node3D).is_visible_in_tree():
+				var cn: Vector2i = n.get("celda")
+				for f in _formas_de_nodo(n as Node3D, cn, false):
+					if not formas.has(cn):
+						formas[cn] = []
+					(formas[cn] as Array).append(f)
+			pila.append_array(n.get_children())
+		for c in toca:
+			if formas.has(c):
+				_pend.erase(c)
+				continue
+			var intentos: int = int((_pend[c] as Array)[0]) + 1
+			if intentos >= FORMA_ESPERAS.size():
+				_pend.erase(c)                           # nadie con modelo en esa casilla (agua, tierra, hielo…): entera hasta el próximo bloquear
+				_sin_forma[c] = true
+			else:
+				_pend[c] = [intentos, ahora + int(FORMA_ESPERAS[intentos])]
+
+	## Las formas de `n`: un polígono por cada casco de colisión medido que traiga; si no trae, el casco convexo en planta de sus mallas visibles a la altura del
+	## cuerpo. Vacía si no tiene modelo ahí.
+	func _formas_de_nodo(n: Node3D, c: Vector2i, fijo: bool) -> Array:
+		var res: Array = []
+		var inv_n: Transform3D = n.global_transform.affine_inverse()
+		for h0 in n.find_children("*", "CollisionShape3D", true, false):
+			var cs: CollisionShape3D = h0 as CollisionShape3D
+			if not (cs.shape is ConvexPolygonShape3D) or cs.disabled:
+				continue
+			var pc := PackedVector2Array()
+			for v in (cs.shape as ConvexPolygonShape3D).points:
+				var w: Vector3 = cs.global_transform * v
+				pc.append(Vector2(w.x, w.z))
+			var casco_c: PackedVector2Array = Geometry2D.convex_hull(pc)
+			if casco_c.size() < 4:
+				continue
+			var local_c := PackedVector3Array()
+			for k in range(casco_c.size() - 1):
+				local_c.append(inv_n * Vector3(casco_c[k].x, n.global_position.y, casco_c[k].y))
+			res.append({"ref": weakref(n), "fijo": fijo, "tf": n.global_transform, "local": local_c, "poli": _poligono(local_c, n.global_transform)})
+		if not res.is_empty():
+			return res
+		var suelo: float = Terreno3D.y_pies(c)
+		var tris := PackedVector3Array()
+		var pila: Array = [n]
+		while not pila.is_empty():
+			var h: Node = pila.pop_back()
+			if h != n and "celda" in h and h.get("celda") is Vector2i and h.get("celda") != c:
+				continue                                 # un hijo que es otro objeto, de otra casilla
+			if h is MeshInstance3D and (h as MeshInstance3D).mesh != null and (h as MeshInstance3D).is_visible_in_tree() \
+					and not ((h as MeshInstance3D).mesh is QuadMesh) and not ((h as MeshInstance3D).mesh is PlaneMesh):
+				var gt: Transform3D = (h as MeshInstance3D).global_transform
+				for v in (h as MeshInstance3D).mesh.get_faces():
+					tris.append(gt * v)
+			pila.append_array(h.get_children())
+		var rec: PackedVector3Array = ColisionPieza._recortar(tris, suelo + FORMA_Y_MIN, suelo + FORMA_Y_MAX)
+		if rec.size() < 3:
+			return res
+		# Lo bajo no es un obstáculo (una placa de presión, una losa, un nido comparten casilla con lo que de verdad bloquea): misma regla que las piezas,
+		# `ColisionPieza.ALTO_MIN_SOLIDO`. Sin esto, al llegar un bloque a la casilla de una placa la «forma» era la placa entera y la jugadora quedaba dentro.
+		var tope: float = -INF
+		for v in rec:
+			tope = maxf(tope, v.y)
+		if tope - suelo <= ColisionPieza.ALTO_MIN_SOLIDO:
+			return res
+		var p2 := PackedVector2Array()
+		for v in rec:
+			p2.append(Vector2(v.x, v.z))
+		var casco: PackedVector2Array = Geometry2D.convex_hull(p2)
+		if casco.size() < 4:
+			return res
+		# El casco se guarda en el espacio del nodo: si el objeto se mueve o gira (un bloque empujado), el polígono se recalcula sin volver a leer las mallas.
+		var inv: Transform3D = n.global_transform.affine_inverse()
+		var local := PackedVector3Array()
+		for k in range(casco.size() - 1):                # convex_hull repite el primer punto al final
+			local.append(inv * Vector3(casco[k].x, n.global_position.y, casco[k].y))
+		res.append({"ref": weakref(n), "fijo": fijo, "tf": n.global_transform, "local": local, "poli": _poligono(local, n.global_transform)})
+		return res
+
+	## ¿Toca el cuerpo de la jugadora, en `p`, alguna de las formas de objeto de `c`? -1 = no hay formas (casilla entera), 0 = no toca, 1 = toca.
+	func _toca_formas(c: Vector2i, p: Vector3) -> int:
+		var lista: Array = _formas_de(c)
+		if lista.is_empty():
+			return -1
+		var p2 := Vector2(p.x, p.z)
+		var lo := Vector2(INF, INF)
+		var hi := Vector2(-INF, -INF)
+		for f in lista:
+			var poli: PackedVector2Array = (f as Dictionary)["poli"]
+			if _toca_poligono(p2, poli):
+				return 1
+			for v in poli:
+				lo = lo.min(v)
+				hi = hi.max(v)
+		return 1 if _sellado(c, p2, lo, hi) else 0
+
+	## Para las herramientas de medida (`prueba_colisiones_mapa`): ¿se choca en `p` SOLO por la regla de no colarse (no toca el modelo de ningún objeto de `c`)?
+	func solo_sellado(c: Vector2i, p: Vector3) -> bool:
+		var lista: Array = _formas_de(c)
+		if lista.is_empty():
+			return false
+		var p2 := Vector2(p.x, p.z)
+		for f in lista:
+			if _toca_poligono(p2, (f as Dictionary)["poli"] as PackedVector2Array):
+				return false
+		return _toca_formas(c, p) == 1
+
+	## ---- 12/11 · NO COLARSE: el hueco entre un objeto y el borde de su casilla solo se abre si no crea un paso que antes no existía ----
+	## Los puzles son de rejilla: un bloque, un seto o una puerta CIERRAN su casilla aunque el modelo mida menos (un bloque de 1 u en un pasillo de 2,3 u). Si la jugadora
+	## chocara solo con el contorno, se colaría entre el bloque y la pared. Regla: la casilla se parte en 8 zonas alrededor de la caja del objeto (4 lados y 4 esquinas) y
+	## cada zona se abre solo si por ella no se unen dos casillas vecinas que no estuvieran ya unidas entre sí por el anillo de las 8 vecinas:
+	##   · un LADO (p. ej. el norte) se abre si la vecina de ese lado está libre;
+	##   · una ESQUINA se abre si sus dos vecinas de lado y la diagonal están libres.
+	## (Los rincones sin salida, entre el objeto y una pared, también se cierran: apretando contra un bloque en un pasillo la jugadora resbalaba hacia ellos y lo rodeaba.)
+	## Así, en campo abierto se rodea el objeto pegado a su modelo; en un pasillo, entre el objeto y la pared no se pasa (y eso sí se ve: no hay sitio «de casilla»).
+	const _ANILLO: Array = [Vector2i(0, -1), Vector2i(1, -1), Vector2i(1, 0), Vector2i(1, 1), Vector2i(0, 1), Vector2i(-1, 1), Vector2i(-1, 0), Vector2i(-1, -1)]   ## N, NE, E, SE, S, SO, O, NO
+
+	## ¿Se anda por la vecina `v` de `c`? Estricto: en caso de duda, no (sellar de más es seguro; de menos abriría un paso).
+	func _vecina_libre(v: Vector2i, c: Vector2i) -> bool:
+		if not Terreno3D.en_mapa(v) or Terreno3D.es_vacio(v) or bloquea(v):
+			return false
+		var l: String = Terreno3D.letra_de(v)
+		if l == "#" or (l == "~" and not Terreno3D.hielo_fisico(v)):
+			return false
+		return Terreno3D.altura_en(v) == Terreno3D.altura_en(c)
+
+	func _sellado(c: Vector2i, p: Vector2, lo: Vector2, hi: Vector2) -> bool:
+		# zona de `p` respecto a la caja del objeto: índice en _ANILLO (pares = lados, impares = esquinas)
+		var dx: int = -1 if p.x < lo.x else (1 if p.x > hi.x else 0)
+		var dz: int = -1 if p.y < lo.y else (1 if p.y > hi.y else 0)
+		if dx == 0 and dz == 0:
+			# dentro de la caja pero fuera del casco (un pico): cuenta el lado más cercano
+			var d: Array = [p.y - lo.y, hi.x - p.x, hi.y - p.y, p.x - lo.x]      # N, E, S, O
+			var k: int = 0
+			for i in range(1, 4):
+				if float(d[i]) < float(d[k]):
+					k = i
+			dx = [0, 1, 0, -1][k]
+			dz = [-1, 0, 1, 0][k]
+		var zona: int = _ANILLO.find(Vector2i(dx, dz))
+		# componentes del anillo: tramos seguidos de vecinas libres (el anillo es un ciclo)
+		var libre: Array = []
+		for d2 in _ANILLO:
+			libre.append(_vecina_libre(c + (d2 as Vector2i), c))
+		var comp: Array = [-1, -1, -1, -1, -1, -1, -1, -1]
+		var n_comp: int = 0
+		for i in range(8):
+			if libre[i] and comp[i] < 0:
+				var j: int = i
+				while libre[j] and comp[j] < 0:
+					comp[j] = n_comp
+					j = (j + 1) % 8
+				j = (i + 7) % 8
+				while libre[j] and comp[j] < 0:
+					comp[j] = n_comp
+					j = (j + 7) % 8
+				n_comp += 1
+		return _zona_de(zona, libre, comp) < 0
+
+	## A qué componente del anillo da la zona `z` (-1 = sellada).
+	func _zona_de(z: int, libre: Array, comp: Array) -> int:
+		if z % 2 == 1:
+			# esquina: entre los lados z-1 y z+1, con la diagonal z
+			var a: int = (z + 7) % 8
+			var b: int = (z + 1) % 8
+			return int(comp[z]) if libre[a] and libre[b] and libre[z] else -1
+		return int(comp[z]) if libre[z] else -1
+
+	func _poligono(local: PackedVector3Array, tf: Transform3D) -> PackedVector2Array:
+		var p2 := PackedVector2Array()
+		for v in local:
+			var w: Vector3 = tf * v
+			p2.append(Vector2(w.x, w.z))
+		return Geometry2D.convex_hull(p2)
+
+	## ¿Toca el cuerpo de la jugadora (círculo de RADIO_CUERPO en `p`) el polígono convexo (cerrado: el último punto repite el primero)?
+	func _toca_poligono(p: Vector2, poli: PackedVector2Array) -> bool:
+		if poli.size() < 4:
+			return false
+		if Geometry2D.is_point_in_polygon(p, poli):
+			return true
+		for k in range(poli.size() - 1):
+			if Geometry2D.get_closest_point_to_segment(p, poli[k], poli[k + 1]).distance_to(p) <= RADIO_CUERPO:
+				return true
+		return false
+
 
 
 ## Lo de siempre: el diccionario `_bloqueadas` del mundo y las huellas aproximadas de `calcular_huellas`.
@@ -178,20 +469,37 @@ class FuenteCasillas extends FuenteSolidez:
 		return Terreno3D.mundo_s.get("_bloqueadas") as Dictionary
 	func bloquea(c: Vector2i) -> bool:
 		return Terreno3D.hay_mundo() and _dic().has(c)
-	func bloquear(c: Vector2i) -> void:
+	func bloquear(c: Vector2i, de: Node3D = null) -> void:
 		_dic()[c] = true
+		_forma_pendiente(c, de)
 	func liberar(c: Vector2i) -> void:
 		_dic().erase(c)
-	func es_parcial(c: Vector2i) -> bool:
-		return Terreno3D.huellas.has(c) and bloquea(c)
-	func choca_punto(c: Vector2i, p: Vector3) -> bool:
-		if not Terreno3D.huellas.has(c):
+		_olvidar_forma(c)
+	## 12/11: el terreno (pared `#`, agua, vacío) no es un objeto: no se le busca forma.
+	func _es_objeto(c: Vector2i) -> bool:
+		var l: String = Terreno3D.letra_de(c)
+		return l != "#" and l != "~" and l != " "
+	func es_parcial(c: Vector2i, con_objetos: bool = false) -> bool:
+		if not bloquea(c):
+			return false
+		if Terreno3D.huellas.has(c):
 			return true
-		for h in (Terreno3D.huellas[c] as Array):
-			var hv: Vector3 = h
-			if Vector2(p.x - hv.x, p.z - hv.y).length() <= hv.z + Terreno3D.MARGEN_HUELLA:
+		return con_objetos and _es_objeto(c) and not _formas_de(c).is_empty()
+	func choca_punto(c: Vector2i, p: Vector3) -> bool:
+		var hay_forma: bool = false
+		if Terreno3D.huellas.has(c):
+			hay_forma = true
+			for h in (Terreno3D.huellas[c] as Array):
+				var hv: Vector3 = h
+				if Vector2(p.x - hv.x, p.z - hv.y).length() <= hv.z + Terreno3D.MARGEN_HUELLA:
+					return true
+		if bloquea(c) and _es_objeto(c):
+			var toca: int = _toca_formas(c, p)
+			if toca == 1:
 				return true
-		return false
+			if toca == 0:
+				hay_forma = true
+		return not hay_forma
 
 
 ## La solidez sale de la FÍSICA: lo que se ve es lo que choca. Una casilla está bloqueada si hay colisión sólida (capa
@@ -201,7 +509,7 @@ class FuenteCasillas extends FuenteSolidez:
 class FuenteNodos extends FuenteSolidez:
 	## 4/11 (auditoría de colisiones): 0,3 → 0,25. La caja de jugadora_base (a su alto de 1,0) mide 0,49 × 0,35 u con los brazos como en idle: medio ancho 0,245. Con 0,3 (0,6 de diámetro) se
 	## chocaba contra el aire a 5 cm de cada árbol, valla y piedra; con 0,25 el cuerpo choca donde acaba el modelo.
-	const RADIO_CUERPO: float = 0.25
+	## (12/11: la constante `RADIO_CUERPO` = 0,25 vive ahora en la clase base, con las formas de los objetos.)
 	## 21/10: qué parte CENTRAL de la casilla ha de tocar una forma para que la casilla cuente como bloqueada ENTERA (la que ven
 	## hechizos, flechas, línea de visión, el BFS de las pruebas). Antes bastaba rozar el 90 % de la casilla: un pino de 1,59 de
 	## radio (cono medido sobre el modelo) metía 0,4 u en cada casilla vecina y las marcaba enteras → pasillos de una casilla
@@ -246,7 +554,8 @@ class FuenteNodos extends FuenteSolidez:
 		# La casilla donde está la pieza (su origen) cuenta siempre, aunque la forma quede descentrada (pieza arrastrada a un borde).
 		for n in mundo.get_tree().get_nodes_in_group("bloquea"):
 			var cuerpo: CollisionObject3D = n as CollisionObject3D
-			if cuerpo != null and (cuerpo.collision_layer & Terreno3D.CAPA_SOLIDO) != 0:
+			# 12/11: un arco (`paso_libre`) tiene su origen en el hueco por el que se pasa: su casilla no cuenta como bloqueada entera
+			if cuerpo != null and (cuerpo.collision_layer & Terreno3D.CAPA_SOLIDO) != 0 and not cuerpo.has_meta("paso_libre"):
 				var co: Vector2i = Terreno3D.celda_de(cuerpo.global_position)
 				if celdas.has(co):
 					cubiertas[co] = true
@@ -254,27 +563,45 @@ class FuenteNodos extends FuenteSolidez:
 
 	func bloquea(c: Vector2i) -> bool:
 		return cubiertas.has(c) or extras.has(c)
-	func bloquear(c: Vector2i) -> void:
+	func _raiz_formas() -> Node:
+		return mundo
+	func bloquear(c: Vector2i, de: Node3D = null) -> void:
 		extras[c] = true
+		_forma_pendiente(c, de)                      # su forma se busca la primera vez que la jugadora pregunte por la casilla
 	func liberar(c: Vector2i) -> void:
 		extras.erase(c)
 		celdas.erase(c)
 		cubiertas.erase(c)
+		_olvidar_forma(c)
 	func bloquear_completa(c: Vector2i) -> void:
 		celdas.erase(c)                              # ya no es «parcial»: sin forma que rozar, la casilla entera es pared
 		cubiertas.erase(c)
 		extras[c] = true
-	func es_parcial(c: Vector2i) -> bool:
+		_olvidar_forma(c)
+		_sin_forma[c] = true
+	func es_parcial(c: Vector2i, con_objetos: bool = false) -> bool:
+		if extras.has(c):
+			# 12/11: un bloqueo de juego SIN forma conocida (tierra, hielo, barrera, agua) es la casilla entera aunque la roce el casco de una pieza vecina
+			# (antes `celdas` mandaba y esa casilla se atravesaba). Con forma (el modelo del objeto), la jugadora la roza; el resto sigue viendo la casilla.
+			return con_objetos and not _formas_de(c).is_empty()
 		return celdas.has(c)                         # la forma real manda: se roza lo que no es la pieza
 	func choca_punto(c: Vector2i, p: Vector3) -> bool:
-		if not celdas.has(c):
-			return true
-		var espacio: PhysicsDirectSpaceState3D = mundo.get_world_3d().direct_space_state
-		var q := PhysicsShapeQueryParameters3D.new()
-		q.shape = _bola
-		q.collision_mask = Terreno3D.CAPA_SOLIDO
-		q.transform = Transform3D(Basis(), Vector3(p.x, Terreno3D.alto_suelo + 0.6, p.z))
-		return not espacio.intersect_shape(q, 1).is_empty()
+		var hay_forma: bool = false
+		if celdas.has(c):
+			hay_forma = true
+			var espacio: PhysicsDirectSpaceState3D = mundo.get_world_3d().direct_space_state
+			var q := PhysicsShapeQueryParameters3D.new()
+			q.shape = _bola
+			q.collision_mask = Terreno3D.CAPA_SOLIDO
+			q.transform = Transform3D(Basis(), Vector3(p.x, Terreno3D.alto_suelo + 0.6, p.z))
+			if not espacio.intersect_shape(q, 1).is_empty():
+				return true
+		if extras.has(c):
+			var toca: int = _toca_formas(c, p)
+			if toca != 0:
+				return true                              # toca la forma, o es un bloqueo sin forma (la casilla entera)
+			hay_forma = true
+		return not hay_forma
 
 
 static var fuente: FuenteSolidez = null
@@ -284,9 +611,10 @@ static func bloqueada(c: Vector2i) -> bool:
 	return fuente != null and fuente.bloquea(c)
 
 
-static func bloquear_celda(c: Vector2i) -> void:
+## `de` (12/11, opcional): el nodo que bloquea la casilla cuando no es un objeto con propiedad `celda` (ver `FuenteSolidez._formas_de`).
+static func bloquear_celda(c: Vector2i, de: Node3D = null) -> void:
 	if fuente != null:
-		fuente.bloquear(c)
+		fuente.bloquear(c, de)
 		_avisar(c, "bloqueo")
 
 
@@ -720,8 +1048,9 @@ static func calcular_huellas(p_mundo: Node3D) -> int:
 
 
 ## ¿Es una casilla bloqueada cuya forma real conocemos (y por tanto se puede rozar)?
-static func es_parcial(c: Vector2i) -> bool:
-	return fuente != null and fuente.es_parcial(c)
+## `con_objetos` (12/11, solo la jugadora): cuenta también el contorno del modelo de los objetos de juego que bloquean su casilla (ver `FuenteNodos._formas_de`).
+static func es_parcial(c: Vector2i, con_objetos: bool = false) -> bool:
+	return fuente != null and fuente.es_parcial(c, con_objetos)
 
 
 ## ¿Está el punto dentro de lo que ocupa de verdad un objeto de esa casilla?

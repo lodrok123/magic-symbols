@@ -84,7 +84,8 @@ const VEL_GIRO_CORRER: float = 720.0         ## °/s corriendo
 ## --- 27/10 Empujar bloques (docs/EMPUJAR_BLOQUES.md) ---
 const T_EMPUJAR: float = 0.35                ## s apretando contra un bloque pegado antes de que ceda
 const EMPUJE_CARDINAL: float = 0.8           ## componente mínima (de la dirección normalizada) para contar como «hacia una cara»: la diagonal (0,71) no empuja
-const EMPUJE_PEGADA: float = 0.3             ## × casilla: lo que hay que haberse adelantado desde el centro de su casilla hacia el bloque (a ≤ 0,7 · S de su centro)
+const EMPUJE_TOQUE: float = 0.30             ## u: con el contorno del bloque conocido, está «pegada» si un paso así de corto hacia él ya choca (12/11)
+const EMPUJE_PEGADA: float = 0.3            ## × casilla: lo que hay que haberse adelantado desde el centro de su casilla hacia el bloque (a ≤ 0,7 · S de su centro)
 const VEL_CLIP_CARGA: float = 0.4           ## velocidad del clip `empujar` mientras carga los T_EMPUJAR s sin moverse (se lee el esfuerzo)
 const ZANCADA_EMPUJAR: float = 0.9          ## u/s de suelo por cada 1,0 de velocidad del clip `empujar` (ESTIMADO, afinar a ojo; como walk x1,6 = 1,6 u/s en commit 93fd42f7): la velocidad del clip = la real del bloque / esto
 
@@ -1098,15 +1099,29 @@ func _gestionar_empuje(delta: float, mov: Vector3) -> bool:
 	if dir != Vector2i.ZERO:
 		var yo: Vector2i = Terreno3D.celda_de(position)
 		var vecina: Vector2i = yo + dir
+		# 12/11: la jugadora choca con el CONTORNO del bloque (Terreno3D.es_parcial(c, true)), no con su casilla entera: para llegar a tocar una roca pequeña entra en la
+		# casilla de la roca. Por eso el bloque puede estar en la casilla vecina o en la suya propia (siempre por delante de ella).
+		var d3 := Vector3(float(dir.x), 0.0, float(dir.y))
 		for n in get_tree().get_nodes_in_group("empujable"):
-			if is_instance_valid(n) and n.get("celda") == vecina:
+			if not is_instance_valid(n) or not (n is Node3D):
+				continue
+			var cb: Variant = n.get("celda")
+			if cb == vecina or (cb == yo and ((n as Node3D).global_position - position).dot(d3) > 0.0):
 				bloque = n
-				break
+				if cb == vecina:
+					break
 		if bloque != null:
-			var centro: Vector3 = Terreno3D.centro_de(yo)
-			var adelantada: float = (position.x - centro.x) * float(dir.x) + (position.z - centro.z) * float(dir.y)
-			if adelantada < EMPUJE_PEGADA * Terreno3D.casilla:
-				bloque = null                    # aún no está pegada a él
+			var c_bloque: Vector2i = bloque.get("celda")
+			if Terreno3D.es_parcial(c_bloque, true):
+				# con forma conocida: pegada = un paso corto más hacia él ya choca con su contorno
+				if not Terreno3D.choca_huella(c_bloque, position + d3 * EMPUJE_TOQUE):
+					bloque = null
+			else:
+				# sin forma (la casilla entera bloquea): lo de siempre, adelantada hacia el borde de su casilla
+				var centro: Vector3 = Terreno3D.centro_de(yo)
+				var adelantada: float = (position.x - centro.x) * float(dir.x) + (position.z - centro.z) * float(dir.y)
+				if c_bloque != vecina or adelantada < EMPUJE_PEGADA * Terreno3D.casilla:
+					bloque = null                    # aún no está pegada a él
 	if bloque != null:
 		empujando = true
 		_vel_clip_empuje = VEL_CLIP_CARGA
@@ -1483,7 +1498,7 @@ func _puede_estar(p: Vector3) -> bool:
 		return false                       # 22/10: el tronco del estanque (aún en el fondo del cauce) no se atraviesa
 	var c: Vector2i = Terreno3D.celda_de(p)
 	var actual: Vector2i = Terreno3D.celda_de(position)
-	var parcial: bool = Terreno3D.es_parcial(c)
+	var parcial: bool = Terreno3D.es_parcial(c, true)      # 12/11: también el contorno del modelo de los objetos (rompibles, barriles, bloques…), no su casilla entera
 	if c == actual:
 		if parcial and Terreno3D.choca_huella(c, p) and not Terreno3D.choca_huella(c, position):
 			return false                   # dentro de una casilla bloqueada solo se roza lo que no es el objeto
