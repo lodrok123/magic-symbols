@@ -14,6 +14,11 @@ que quede más lejos del eje que ese radio menos el margen, lo acerca al eje has
 contaban 1988 vértices «por fuera» y se habrían aplastado los muslos bajo el faldón sin necesidad. Con una rampa en los bordes de la franja
 para que no haga escalón. Solo mueve posiciones: caras, UV, pesos y esqueleto quedan como estaban.
 `medir` no escribe nada: dice cuántos vértices asoman y cuánto.
+
+OJO con `z_interior` (12/11, túnica del loberno): tiene que quedar POR DEBAJO del cinturón, no por encima. Con 0.78 el cinturón
+(z 0,63 a 0,745) caía en la zona de «pared exterior», que en la cadera izquierda es el manto que cuelga lejos, y las mallas
+salían por delante del cinturón en una mancha oscura que se tomó por un hueco de la túnica. Las mallas del juego se hicieron con
+    <mallas originales> ropa_tunica_lobo.glb ropa_piernas_lobo.glb 0.44 1.02 z_interior=0.57
 """
 import math
 import sys
