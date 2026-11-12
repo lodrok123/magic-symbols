@@ -6,12 +6,12 @@ extends Node
 ## Se dibuja con el ratón en los dos círculos de ABAJO: el de la izquierda es de SELLOS (elementos) y el de la derecha de GLIFOS. Lo reconocido se coloca solo en el
 ## círculo mágico de ARRIBA: un sello en el medallón 1 o 2 (el tercero sustituye al más antiguo) y un glifo en el primer hueco libre de la corona.
 ## Fuego + agua y tierra + viento se anulan; agua + viento = hielo, fuego + viento = rayo, fuego + tierra = magma, agua + tierra = naturaleza (veneno).
-## F1–F5 seleccionan las láminas de revisión. Las medidas están en laminas_grimorio.gd.
+## F1–F5 seleccionan las láminas de revisión. Las medidas están en presentacion/ui/laminas_grimorio.gd (desde el 12/11 el juego usa tres de ellas como oficiales).
 ##
 ## Sin lanzador del juego: la página es la de un `Grimorio` pelado (no lanza nada ni gasta tinta); el resumen de arriba sale de él. Para probar el LANZAMIENTO (que los
 ## opuestos no lancen, que magma salga de fuego + tierra) está `herramientas/prueba_libro_avanzado.gd`.
 
-const Laminas = preload("res://laboratorios/laminas_grimorio.gd")
+const Laminas = preload("res://presentacion/ui/laminas_grimorio.gd")
 const AYUDA: String = "F1 Botánico · F2 Rojo 1 sello · F3 Rojo 2 sellos · F4 Azul 1 sello · F5 Azul 2 sellos  |  1 / 2 / 3 pasan página"
 
 var _grimorio: Grimorio = null

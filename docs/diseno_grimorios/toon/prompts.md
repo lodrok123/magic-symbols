@@ -1,3 +1,5 @@
+> 12/11: `botanico-1-sello`, `azul-2-sellos` y `rojo-2-sellos` son ya las láminas del juego y viven en `art/ui/grimorio_toon_{botanico,azul,rojo}.png` (cargador `presentacion/ui/laminas_grimorio.gd`). Aquí quedan las dos de un sello rojo/azul, solo para `LabLibroAvanzado`.
+
 # Grimorios toon
 
 Generados con la herramienta integrada de imágenes a partir de los conceptos de cubierta del proyecto. El botánico usa el concepto 1, el azul el 2 y el rojo el 3. Las láminas son propuestas visuales. El área de interacción y los desbloqueos se definen en Godot.

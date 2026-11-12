@@ -50,7 +50,7 @@ const BASTON_CHAMAN_APOYO: Dictionary = {"agarre_y": BASTON_CHAMAN_AGARRE / BAST
 ## Grimorio de la elfa: equipo/grimorio_<nivel>.glb (Meshy, horneados con meshy en el marco del de código).
 ## 1 botánico (marrón y verde) · 2 rúnico (azul y gris) · 3 legendario (rojo y oro). Cada uno trae su pluma.
 const NIVELES_GRIMORIO: Array = ["", "botánico", "rúnico", "legendario"]
-static var nivel_grimorio: int = 1
+static var nivel_grimorio: int = 2          ## 12/11: el azul (rúnico) es el libro de partida; también manda sobre la lámina del libro abierto (Spellbook, Laminas.POR_NIVEL)
 
 ## Dagas del goblin asesino (daga_goblin.glb: 0,5 de largo con el centro de la empuñadura en el origen y la hoja hacia +Y; hoja = 0,265). El asesino mide 0,977 y
 ## en el juego 0,85, o sea ×0,87: con DAGA_ESCALA 1,3 la hoja mide ~0,30 u en el juego. Posición en el espacio del hueso de la mano (+Y hacia los dedos), giro en grados.

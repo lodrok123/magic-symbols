@@ -93,6 +93,8 @@ const RECORD_INK: Color = Color(0.78, 0.28, 0.10)
 ## dibujo y no de la ventana. Una lámina nueva se ajusta cambiando estos
 ## números y nada más.
 const BOOK_TEXTURE: Texture2D = preload("res://art/ui/grimorio.png")
+## Láminas toon del libro avanzado (12/11): la oficial de cada nivel de grimorio (1 verde, 2 azul, 3 roja) y sus medidas.
+const Laminas = preload("res://presentacion/ui/laminas_grimorio.gd")
 const BOOK_SIZE: Vector2 = Vector2(1470.0, 1070.0)
 
 ## --- LÁMINAS ALTERNATIVAS (una por progresión) ---
@@ -153,7 +155,9 @@ const LIBROS: Dictionary = {
 		"guias": false,
 	},
 	# LIBRO AVANZADO (6/11/2026, Pablo): DOS ZONAS DE DIBUJO en vez de huecos. Se activa con `Repertoire.libro = "avanzado"`; el de «bosque» no cambia.
-	# Desde el 12/11 es EL LIBRO OFICIAL: todas las progresiones de `Lanzador3D.PROGRESIONES` lo ponen («bosque» queda para las pruebas que lo piden a mano).
+	# Desde el 12/11 es EL LIBRO OFICIAL: todas las progresiones de `Lanzador3D.PROGRESIONES` lo ponen («bosque» queda para las pruebas que lo piden a mano), y
+	# en el juego se pinta con la LÁMINA TOON de su nivel (`Laminas.oficial(Equipo3D.nivel_grimorio)`: 1 verde con un medallón, 2 azul, 3 roja): esta entrada
+	# (la genérica dibujada por código) solo vale si faltara el PNG de la toon.
 	# Arriba, el CÍRCULO MÁGICO (resultado, aquí no se dibuja): un núcleo con 2 medallones de sello y una corona con 6 huecos de glifo. Abajo, dos círculos de dibujo:
 	# el de la izquierda es de SELLOS (elementos) y el de la derecha de GLIFOS. Dónde dibujas decide qué es; lo reconocido se coloca solo arriba.
 	# Sin lámina pintada para esta distribución: se usa la genérica (grimorio.png, la de BOOK_TEXTURE, cuya página derecha de 4 × 3 círculos se queda como estaba) y todo
@@ -214,13 +218,17 @@ func montar_lamina_avanzada(datos: Dictionary, caster: Node) -> void:
 func _libro() -> Dictionary:
 	if not _lamina_revision.is_empty():
 		return _lamina_revision
-	if _libro_cache != Repertoire.libro:
-		_libro_cache = Repertoire.libro
+	# El avanzado cambia de lámina con el nivel del grimorio (la N de las pruebas, `Pj3D.set_nivel_grimorio`): la clave de la caché lo lleva.
+	var clave: String = Repertoire.libro
+	if clave == "avanzado":
+		clave += "@%d" % Equipo3D.nivel_grimorio
+	if _libro_cache != clave:
+		_libro_cache = clave
 		_libro_datos = {}
 		_libro_tex = null
 		_hueco_tex = null
-		if LIBROS.has(_libro_cache):
-			var d: Dictionary = LIBROS[_libro_cache]
+		if LIBROS.has(Repertoire.libro):
+			var d: Dictionary = LIBROS[Repertoire.libro]
 			if ResourceLoader.exists(String(d["textura"])):
 				_libro_tex = load(String(d["textura"])) as Texture2D
 				if _libro_tex != null:
@@ -228,7 +236,31 @@ func _libro() -> Dictionary:
 					var sp: String = String(d.get("hueco_sprite", ""))
 					if sp != "" and ResourceLoader.exists(sp):
 						_hueco_tex = load(sp) as Texture2D
+		if Repertoire.libro == "avanzado":
+			var toon: Dictionary = Laminas.oficial(Equipo3D.nivel_grimorio)
+			if not toon.is_empty():
+				_libro_datos = toon
+				_libro_tex = toon["arte"]
+		_ajustar_sellos_por_pagina()
 	return _libro_datos
+
+
+## Sellos por página del Grimorio según la lámina: un medallón en la botánica (nivel 1), dos en la azul y la roja; 2 en la genérica del avanzado y en los
+## libros de sectores (ahí `Grimorio` ignora el segundo). El laboratorio (`montar_lamina_avanzada`) lo fija él mismo.
+func _ajustar_sellos_por_pagina() -> void:
+	if not is_inside_tree():
+		return
+	var c: Node = _spellcaster()
+	if c == null or not ("sellos_por_pagina" in c):
+		return
+	var meds: Array = (_libro_datos.get("avanzado", {}) as Dictionary).get("medallones", [])
+	c.set("sellos_por_pagina", meds.size() if not meds.is_empty() else 2)
+
+
+## ¿El arte de la lámina trae ya pintados el círculo mágico, los medallones, la corona y las zonas? (las de revisión del laboratorio y las toon oficiales: sí;
+## la genérica del avanzado: no, y el código los dibuja).
+func _arte_impreso() -> bool:
+	return not _lamina_revision.is_empty() or bool(_libro().get("aros_impresos", false))
 
 
 func _circ_c() -> Vector2:
@@ -1890,7 +1922,7 @@ func _draw_legend_avanzado(caster) -> void:
 		var at: Vector2 = _on_page(ley_s[punto])
 		var descubierto: bool = Repertoire.derivado_descubierto(id)
 		var clave: String = Repertoire.PREFIJO_DERIVADO + id
-		if _lamina_revision.is_empty():
+		if not _arte_impreso():
 			draw_arc(at, tam * 0.62, 0.0, TAU, 40, INK_SOFT if not descubierto else Color(runa.color.darkened(0.2), 0.55), _u(1.5), true)
 		if descubierto and _escribiendo.has(clave):
 			if _draw_escritura(clave, runa.glyph, at, tam, runa.color.darkened(CORE_GLYPH_DARKEN)):
@@ -2491,7 +2523,7 @@ func _av_rotulo(centro: Vector2, texto: String) -> void:
 func _draw_avanzado() -> void:
 	var caster := _spellcaster()
 	var av: Dictionary = _av()
-	var aros_impresos: bool = not _lamina_revision.is_empty()
+	var aros_impresos: bool = _arte_impreso()
 	# --- Las dos zonas de dibujo (abajo): un círculo tenue con su rótulo hasta que haya lámina pintada ---
 	for nombre in ZONAS_AV:
 		var z: Dictionary = av[ZONAS_AV[nombre]]
