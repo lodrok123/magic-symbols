@@ -5128,3 +5128,27 @@ Están arreglados los 10 casos de la lista. Ninguno nuevo: carga_impacto_toy era
 - prueba_asistencia: las muestras grabadas nuevas de fuego y rayo de b87ca18e bajan los parciales al 74,5 % (mínimo 80 %). Hay que regrabarlas o quitarlas.
 - ¿«posicion» lleva recarga?
 - En main siguen fallando unas 33 pruebas que no estaban en la lista (golpe, jugadora_base, ropa_capa, partida_menu…).
+
+## 487 — Barrera de tierra sobre escalón/puente y el «haz de magma invisible» (12/11)
+
+**Barrera.** Una barrera de tierra (ᛝ sola) apuntada a un escalón o a un puente se lanzaba y cobraba tinta y recarga, pero no aparecía nada: `construir_tierra` no levanta nada sobre una plataforma (`puede_construir_en`).
+- Ahora `Lanzador3D.rechazo_de_construccion` la rechaza antes del cobro si alguna casilla de su huella es una plataforma.
+- Sale el aviso «Ahí no se puede construir: ya hay una plataforma», suena `sello_no` y el apuntado sale en rojo.
+- Se descartó construir encima, porque la plataforma es una cota fija aparte del sistema de niveles.
+- Prueba nueva: `prueba_barrera_tierra_plataforma`.
+
+**Haz de magma.** Lo de «el haz de magma no se ve en el juego» (DIARIO 442) era culpa de la captura.
+- `captura_toys_nuevos_juego` ponía `distancia_max` 9 a todos los casos de magma, y con eso el haz dejaba de ser un haz: salía una bola que viajaba fuera del encuadre.
+- En el juego, por el libro avanzado (fuego + tierra + ᛁ ᛁ), el MagmaToy HAZ sí se dibuja.
+- La captura solo ajusta ya la bola. Las capturas `toys_nuevos/magma_haz_*` están rehechas.
+- Prueba nueva con ventana: `prueba_magma_haz_juego`. Mira el árbol y los píxeles de magma, por HechizoVivo y por el libro con conjuro.
+
+Commit 31df4478.
+
+**Pruebas.** A 0:
+- barrera, barrera_tierra_plataforma, plataforma_tierra, hechizo_golden;
+- magma_haz_juego (con ventana), magma_toy y magma_chispas;
+- vfx_en_juego y vfx_toy;
+- haz_tamano y haz_gas_juego.
+
+No se ha pasado la batería completa.
