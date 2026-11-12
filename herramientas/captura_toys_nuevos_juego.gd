@@ -57,7 +57,9 @@ func _escenario() -> void:
 			await avanzar_s(0.3)
 			var rd: RuneData = load("res://nucleo/%s_rune.tres" % runas[String(caso[1])]) as RuneData
 			var h: Hechizo = Hechizo.construir(rd, caso[2] as Dictionary)
-			if String(caso[1]) == "magma":
+			# 12/11: solo a la BOLA de magma (con flecha). Antes se hacía con todos los casos de magma, y al haz (ᛁ ᛁ) le ponía `distancia_max` > 0: dejaba de ser un
+			# haz (`Hechizo.haz` pide distancia_max 0) y salía un volumen que viaja fuera del encuadre. De ahí el «el haz de magma no se ve en el juego» (DIARIO 442).
+			if String(caso[1]) == "magma" and (caso[2] as Dictionary).has("flecha"):
 				h = h.con({"gravedad": 1.0 if (caso[3] as Vector3).y < 0.0 else 0.0, "distancia_max": 9.0})
 			var origen: Vector3 = jugador.position + Vector3(0.0, 0.8, 0.0) + Vector3.RIGHT * Terreno3D.casilla * float(caso[4])
 			HechizoVivo.crear(h, origen, (caso[3] as Vector3).normalized(), lanzador)
