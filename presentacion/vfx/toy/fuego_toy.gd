@@ -83,6 +83,9 @@ const METROS_POR_REPETICION: float = 2.9
 ## HAZ: dónde choca (lo rellena VfxToyJuego con lo que calcula la lógica; el final del alcance contra el suelo NO es un choque): [{d: m desde la mano a lo largo del haz, x: m a un lado del eje,
 ## n: normal de la superficie en el espacio LOCAL del toy (hacia fuera de lo golpeado)}]. Vacío = sin choque: la punta acaba en humo. Hay que ponerlo ANTES de entrar en el árbol (o llamar a `reconstruir()`).
 var choques: Array = []
+## 12/11 (tamaño de los haces): k = HazGas.escala_de del hechizo (1 = el tamaño de antes). Solo la figura HAZ: el radio ya llega × k en semieje_z; esto escala lo del
+## CHOQUE (salpicadura, chispas, brasas y el charco de luz del suelo). Hay que ponerlo antes de `definir` (lo pone `desde_hechizo` y VfxToyJuego._haz).
+var escala_haz: float = 1.0
 ## Interruptor de las tres ideas de la demo de gas (salpicadura, humo en la punta, luz en el suelo, color sin amarillo, remolino): false = el haz de antes (para las capturas antes/después y por si Pablo prefiere el viejo).
 static var haz_ideas: bool = true
 ## FORMAS (BOLA, MURO, PILAR, BARRERA, validadas por Pablo): capas NUEVAS que solo se AÑADEN, cada una con su interruptor (true = se dibuja), sin tocar nada de lo que ya hay.
@@ -641,6 +644,7 @@ func preparar(volumen: Dictionary, dir: Vector3, _elemento: String = "fuego") ->
 ## Elige figura, tamaÃ±o y vuelo desde un `Hechizo` (ver `describir`).
 func desde_hechizo(h: Hechizo) -> void:
 	var d: Dictionary = describir(h, casilla)
+	escala_haz = float(d.get("escala", 1.0))
 	definir(d["figura"], d["x"], d["y"], d["z"], d["viaja"])
 	rotation.y = float(d["giro_y"])
 
@@ -667,7 +671,7 @@ static func describir(h: Hechizo, casilla_m: float = 2.3) -> Dictionary:
 		# haz (á› lÃ­nea): `nombre_derivado` no distingue el haz (da Â«x_manoÂ»), lo decide `h.haz`. Largo = alcance del haz (m-casilla) Ã— casilla; radio = la mitad del grosor de dibujo.
 		fig = Figura.HAZ
 		y_haz = Hechizo.ALTURA_MANO_U
-		z_haz = Hechizo.HAZ_ANCHO * casilla_m * 0.5
+		z_haz = Hechizo.HAZ_ANCHO * casilla_m * 0.5 * HazGas.escala_de(h)       # 12/11: × k (HazGas.ESCALA_BASE con una ᛁ .. ESCALA_MAX con MAX_GLIFOS): solo dibujo
 	elif vuela:
 		fig = Figura.BOLA
 	elif h.solidez > 0.0:
@@ -688,7 +692,7 @@ static func describir(h: Hechizo, casilla_m: float = 2.3) -> Dictionary:
 		z = s.x
 		giro = PI * 0.5
 	if fig == Figura.HAZ:
-		return {"figura": fig, "x": h.alcance_haz * casilla_m * 0.5, "y": y_haz, "z": z_haz, "viaja": false, "giro_y": 0.0, "nombre": nombre, "nota": ""}
+		return {"figura": fig, "x": h.alcance_haz * casilla_m * 0.5, "y": y_haz, "z": z_haz, "viaja": false, "giro_y": 0.0, "nombre": nombre, "nota": "", "escala": HazGas.escala_de(h)}
 	return {"figura": fig, "x": x, "y": s.y, "z": z, "viaja": vuela and not h.haz, "giro_y": giro, "nombre": nombre, "nota": nota}
 
 
@@ -1242,7 +1246,7 @@ func _salpicadura(c: Node3D, ch: Dictionary, h: float, r: float, i: int) -> void
 	n.y = 0.0
 	n = n.normalized() if n.length() > 0.01 else Vector3(0, 0, 1)
 	var p: Vector3 = Vector3(float(ch.get("x", 0.0)), h, -float(ch["d"]))
-	var tam: float = clampf(r * 1.6, 1.2, 2.2)
+	var tam: float = tam_salpicadura(r, escala_haz)
 	var q: QuadMesh = QuadMesh.new()
 	q.size = Vector2(tam, tam)
 	var mi: MeshInstance3D = MeshInstance3D.new()
@@ -1287,10 +1291,21 @@ func _salpicadura(c: Node3D, ch: Dictionary, h: float, r: float, i: int) -> void
 	ms.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	c.add_child(ms)
 	var gp: GPUParticles3D = _chispas_estela(c, "ChispasChoque%d" % i, p + n * 0.1, n, 8, false)
+	var pmc: ParticleProcessMaterial = gp.process_material as ParticleProcessMaterial
+	pmc.initial_velocity_min *= escala_haz          # 12/11: velocidad y gravedad × k = la misma duración y un recorrido × k
+	pmc.initial_velocity_max *= escala_haz
+	pmc.gravity *= escala_haz
 	_emisores_choque.append(gp)
 	# brasas: puntos que quedan brillando un instante en el suelo, delante de lo golpeado
-	var br: GPUParticles3D = _brasas_suelo(c, "Brasas%d" % i, Vector3(p.x, 0.05, p.z) + n * 0.7, 0.75)
+	var br: GPUParticles3D = _brasas_suelo(c, "Brasas%d" % i, Vector3(p.x, 0.05, p.z) + n * 0.7 * escala_haz, 0.75 * escala_haz)
 	_emisores_choque.append(br)
+
+
+## 12/11 (tamaño de los haces): lado de la lámina de la salpicadura del haz con radio `r` (m, el del chorro, ya × k) y escala `k` (HazGas.escala_de). Con k = 1 es
+## la de antes (r · 1,6 entre 1,2 y 2,2); con k < 1, la de antes × k (los topes también).
+static func tam_salpicadura(r: float, k: float = 1.0) -> float:
+	var kk: float = maxf(k, 0.05)
+	return clampf(r / kk * 1.6, 1.2, 2.2) * kk
 
 
 ## Brasas: puntos que quedan brillando un instante en el suelo (partículas quietas en un disco de `radio`).
@@ -1406,7 +1421,7 @@ func _luz_suelo(c: Node3D, largo: float, cs: Array) -> void:
 	m.set_shader_parameter("alto_max", HAZ_LUZ_ALTO_MAX)
 	for k in cs.size():
 		var ch: Dictionary = cs[k]
-		m.set_shader_parameter("choque_a" if k == 0 else "choque_b", Vector4(float(ch["d"]), float(ch.get("x", 0.0)), 1.5, 0.9))
+		m.set_shader_parameter("choque_a" if k == 0 else "choque_b", Vector4(float(ch["d"]), float(ch.get("x", 0.0)), 1.5 * escala_haz, 0.9))      # 12/11: el charco del choque × k
 	var mi: MeshInstance3D = MeshInstance3D.new()
 	mi.name = "LuzSuelo"
 	var caja: BoxMesh = BoxMesh.new()

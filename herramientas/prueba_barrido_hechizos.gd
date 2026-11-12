@@ -145,7 +145,9 @@ func _comprobar(rune: RuneData, elemento: String, combo: Array, c: Dictionary, r
 	# --- tinta y recarga ---
 	if is_nan(h.coste_tinta) or is_inf(h.coste_tinta) or h.coste_tinta > Tinta.MAXIMA + 1e-6 or h.coste_tinta < 0.0:
 		_anota("coste de tinta finito y ≤ Tinta.MAXIMA", et + " → %s" % str(h.coste_tinta))
-	if combo.size() > 0 and h.recarga <= 0.0:
+	# 12/11/2026: «posicion» (experimental, b87ca18e) tiene "cooldown": 0.0 en Sigils.GLIFOS: solo dice DÓNDE nace el hechizo, así que una página
+	# con solo ese glifo recarga como la página vacía (0). Se exime solo ese caso; cualquier otro glifo sigue obligado a dar recarga > 0.
+	if combo.size() > 0 and h.recarga <= 0.0 and not combo.all(func(g): return String(g) == "posicion"):
 		_anota("recarga > 0 (salvo la página vacía)", et)
 	# --- copiar() y con({}) ---
 	var d0: Dictionary = h.a_diccionario()

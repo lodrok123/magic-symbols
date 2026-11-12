@@ -30,12 +30,23 @@ var _raiz: Node3D = null
 var _max_luces: int = 0
 var _max_gpu: int = 0
 var _max_part: int = 0
+var _max_repo: int = 0
 var _adit: int = 0
 var _no_adit: int = 0
 var _cuerpo: int = 0
 
 
 func _initialize() -> void:
+	# 12/11/2026: estas aserciones describen la variante CLÁSICA del rayo (línea quebrada en el MultiMesh «Trazos», 0 GPUParticles3D). Desde
+	# 5a4ba2bd («Revisar los efectos de rayo y viento», 9/11; `magic_symbols/vfx_rayo_revisado` = true) el juego usa de serie la variante
+	# revisada (nube de tormenta en el PILAR, cúpula en la BARRERA, descargas en cinta en MURO y HAZ, chispas de reeboo con GPUParticles3D),
+	# que no llena `trazos_actuales()`: con ella salían 16 fallos y un índice fuera de rango en `_parpadeo`. La clásica sigue en el código
+	# para el laboratorio (rayo_trazos.gd: «Las variantes anteriores siguen disponibles»), así que se fija aquí, igual que hizo ese mismo
+	# commit en prueba_rayo_ref.gd. La revisada la cubren prueba_rayo_ref (sello, electrificado) y prueba_haz_gas_viento_rayo.
+	RayoTrazos.prueba_reeboo = false
+	RayoTrazos.prueba_descarga = false
+	RayoTrazos.prueba_cinta = false
+	RayoTrazos.prueba_toon = false
 	_correr()
 
 
@@ -64,7 +75,7 @@ func _correr() -> void:
 	await _extremos()
 	await _bola()
 	await _lab()
-	print("máximo visto en todo el ciclo: %d luces, %d GPUParticles3D, %d partículas (MultiMesh), %d materiales aditivos, %d de cuerpo (mezcla), %d otros" % [_max_luces, _max_gpu, _max_part, _adit, _cuerpo, _no_adit])
+	print("máximo visto en todo el ciclo: %d luces, %d GPUParticles3D, %d partículas (MultiMesh), %d materiales aditivos, %d de cuerpo (mezcla), %d otros; aparte, %d instancias de ChispasRepo" % [_max_luces, _max_gpu, _max_part, _adit, _cuerpo, _no_adit, _max_repo])
 	_ok("presupuesto: ≤ 1 luz, 0 GPUParticles3D, ≤ %d partículas, todo aditivo salvo la capa del cuerpo amarillo" % MAX_PARTICULAS, _max_luces <= 1 and _max_gpu == 0 and _max_part <= MAX_PARTICULAS and _adit > 0 and _cuerpo > 0 and _no_adit == 0)
 	print("FALLOS: %d" % _fallos)
 	quit(0 if _fallos == 0 else 1)
@@ -84,11 +95,17 @@ func _medir() -> void:
 	var adit: int = 0
 	var noadit: int = 0
 	var cuerpo: int = 0
+	var repo: int = 0
 	for n in _raiz.find_children("*", "", true, false):
 		if n is Light3D and (n as Light3D).is_visible_in_tree():
 			luces += 1
 		elif n is GPUParticles3D:
 			gpu += (n as GPUParticles3D).amount
+		elif n is MultiMeshInstance3D and n.get_parent() is ChispasRepo:
+			# 12/11/2026: las chispas tipo repo (ChispasRepo, 8681b910, capas rayo_impacto / rayo_pilar / rayo_proyectil encendidas de serie)
+			# son una capa aparte que cuelga de la escena, con su propio tope (MAX_POR_EMISOR, MAX_VIVAS; lo mira prueba_magma_chispas).
+			# No son instancias del RayoToy: se cuentan aparte y se ensenan, sin entrar en el presupuesto de 300 del toy.
+			repo += (n as MultiMeshInstance3D).multimesh.instance_count
 		elif n is MultiMeshInstance3D:
 			part += (n as MultiMeshInstance3D).multimesh.instance_count
 		if n is GeometryInstance3D:
@@ -104,6 +121,7 @@ func _medir() -> void:
 	_max_luces = maxi(_max_luces, luces)
 	_max_gpu = maxi(_max_gpu, gpu)
 	_max_part = maxi(_max_part, part)
+	_max_repo = maxi(_max_repo, repo)
 	_adit = maxi(_adit, adit)
 	_no_adit = maxi(_no_adit, noadit)
 	_cuerpo = maxi(_cuerpo, cuerpo)
@@ -302,7 +320,7 @@ func _parpadeo() -> void:
 	while float(Time.get_ticks_msec() - t0) < 1500.0:
 		await process_frame
 		_medir()
-		if e.redibujos() != ult_n:
+		if e.redibujos() != ult_n and e.trazos_actuales().size() > 1:      # sin tramos (variante revisada) no hay punto que comparar: lo dirá el FALLO de abajo, sin índice fuera de rango
 			ult_n = e.redibujos()
 			var s0: Dictionary = e.trazos_actuales()[1]
 			var a: Vector3 = s0["b"]

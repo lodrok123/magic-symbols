@@ -16,6 +16,7 @@
     "aguante": 100.0,
     "ropa_puesta": ["capa", "tunica"],
     "consumible_equipado": "pocion",
+    "bosque_retorno_cueva": "",
     "opciones": {"asistencia": 0.5, "trazo_recto": true, "lanzamiento_inteligente": false}
   },
   "tinta": {

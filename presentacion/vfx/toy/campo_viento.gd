@@ -13,8 +13,8 @@ extends RefCounted
 ## Quién lo muestrea: VientoToy (hojas, jirones y puntos de las cintas de viento_corrientes.gd) si `en_viento_toy`, y NubeVenenoVfx (gas pesado) si `NubeVenenoVfx.gas_pesado`.
 ## Coste: ~6 ondas + las primitivas cercanas por muestra (mídelo con herramientas/prueba_campo_viento.gd).
 
-## INTERRUPTOR del VientoToy (apagado de serie): ajuste `magic_symbols/vfx_campo_viento` o `-- campo-viento` en la línea de órdenes. El lab lo alterna con la tecla Inicio (laboratorios/lab_viento_veneno.gd).
-static var en_viento_toy: bool = OS.get_cmdline_user_args().has("campo-viento") or bool(ProjectSettings.get_setting("magic_symbols/vfx_campo_viento", false))
+## INTERRUPTOR del VientoToy (encendido de serie desde el 11/11; para apagarlo, el ajuste a false): ajuste `magic_symbols/vfx_campo_viento` o `-- campo-viento` en la línea de órdenes. El lab lo alterna con la tecla Inicio (laboratorios/lab_viento_veneno.gd).
+static var en_viento_toy: bool = OS.get_cmdline_user_args().has("campo-viento") or bool(ProjectSettings.get_setting("magic_symbols/vfx_campo_viento", true))     # 11/11 (Pablo: «enciéndelas todas»): de serie
 
 const N_ONDAS: int = 6
 const GRUPOS_CAJA: Array[StringName] = [&"empujable", &"bloquea", &"solido_viento"]
@@ -234,6 +234,10 @@ func contener(p: Vector3, margen: float = 0.05) -> Vector3:
 func arrastrar_lista(lista: Array, xf: Transform3D, vel_marco: Vector3, dt: float, k: float = 1.0, margen: float = 0.06) -> int:
 	var cuantas: int = 0
 	var b: Basis = xf.basis
+	# 11/11: el dueño a escala 0 (un toy que nace o se va con `scale` = 0) no tiene inversa (Basis.inverse: «det == 0»); en ese fotograma sus partículas ni se ven ni se pueden
+	# llevar al mundo y de vuelta, así que no se arrastran (siguen con su propia velocidad).
+	if absf(b.determinant()) < 1e-9:
+		return 0
 	var bi: Basis = b.inverse()
 	var inv: Transform3D = xf.affine_inverse()
 	var sol: bool = parte_solidos and hay_solidos()

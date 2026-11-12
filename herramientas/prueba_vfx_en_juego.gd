@@ -253,7 +253,7 @@ func _un_hechizo(el: String, nombre: String, glifos: Dictionary, figura: int, vi
 	var sz: float = float(t.get("semieje_z"))
 	var medidas_ok: bool
 	if figura == 4:
-		medidas_ok = sx > 0.5 and sx * 2.0 <= h.alcance_haz * CASILLA + 0.01 and _cerca(sz, Hechizo.HAZ_ANCHO * CASILLA * 0.5, 0.01)
+		medidas_ok = sx > 0.5 and sx * 2.0 <= h.alcance_haz * CASILLA + 0.01 and _cerca(sz, Hechizo.HAZ_ANCHO * CASILLA * 0.5 * HazGas.escala_de(h), 0.01)      # 12/11: el radio × k (tamaño de los haces)
 	elif figura == 1:
 		medidas_ok = _cerca(maxf(sx, sz), maxf(s.x, s.z), 0.01) and _cerca(sy, s.y, 0.01)
 	else:

@@ -159,14 +159,15 @@ static func _encender_tarde(gp: GPUParticles3D, s: float) -> void:
 			g.emitting = true)
 
 
-## AGUA. `padre` = el Cuerpo del toy; h = altura del eje; r = radio del haz; largo = m del haz.
-static func agua(padre: Node3D, choques: Array, largo: float, h: float, r: float) -> void:
+## AGUA. `padre` = el Cuerpo del toy; h = altura del eje; r = radio del haz; largo = m del haz; k = escala del haz (HazGas.escala_de, 12/11: el choque × k).
+static func agua(padre: Node3D, choques: Array, largo: float, h: float, r: float, k: float = 1.0) -> void:
+	var kk: float = maxf(k, 0.05)
 	var cs: Array = validos(choques)
 	var humedo: Dictionary = {"fuerza": 0.34, "late": 0.0}
-	decal(padre, largo, cs, TINTE_HUMEDO, humedo, 0.5, 1.2)          # el suelo bajo el chorro se humedece (oscuro, sin brillo) y el charquito del choque es más fuerte
+	decal(padre, largo, cs, TINTE_HUMEDO, humedo, 0.5, 1.2 * kk)          # el suelo bajo el chorro se humedece (oscuro, sin brillo) y el charquito del choque es más fuerte
 	for i in cs.size():
 		var ch: Dictionary = cs[i]
-		var tam: float = clampf(r * 2.4 + 0.3, 1.6, 3.4)
+		var tam: float = clampf(r / kk * 2.4 + 0.3, 1.6, 3.4) * kk
 		hojas(padre, ch, h, tam, i, func(suelo: float, sem: float) -> ShaderMaterial:
 			return _mat(SH_AGUA, {"semilla": sem * 0.9 + 0.2, "suelo": suelo, "tono_a": AguaPaleta.HONDO, "tono_b": AguaPaleta.SOMERO, "tono_c": AguaPaleta.ESPUMA}))
 		var n: Vector3 = ch.get("n", Vector3(0, 0, 1)) as Vector3
@@ -176,7 +177,7 @@ static func agua(padre: Node3D, choques: Array, largo: float, h: float, r: float
 		# gotas que salen del choque, caen y se apagan al tocar el suelo (un pequeño punto de espuma)
 		var gp: GPUParticles3D = GPUParticles3D.new()
 		gp.name = "GotasChoque%d" % i
-		gp.position = p + n * 0.1
+		gp.position = p + n * 0.1 * kk
 		gp.amount = 10
 		gp.lifetime = 0.7
 		gp.local_coords = true
@@ -187,9 +188,9 @@ static func agua(padre: Node3D, choques: Array, largo: float, h: float, r: float
 		var pm: ParticleProcessMaterial = ParticleProcessMaterial.new()
 		pm.direction = (n + Vector3(0, 0.7, 0)).normalized()
 		pm.spread = 50.0
-		pm.initial_velocity_min = 1.6
-		pm.initial_velocity_max = 3.4
-		pm.gravity = Vector3(0, -9.5, 0)
+		pm.initial_velocity_min = 1.6 * kk          # velocidad y gravedad × k: la misma duración, recorrido × k
+		pm.initial_velocity_max = 3.4 * kk
+		pm.gravity = Vector3(0, -9.5, 0) * kk
 		pm.scale_min = 0.7
 		pm.scale_max = 1.2
 		pm.color_ramp = FuegoToy._gradiente([Color(AguaPaleta.SOMERO, 0.0), Color(AguaPaleta.ESPUMA, 0.95), Color(AguaPaleta.SOMERO, 0.0)], [0.0, 0.2, 1.0])
@@ -210,18 +211,19 @@ static func agua(padre: Node3D, choques: Array, largo: float, h: float, r: float
 		_encender_tarde(gp, 0.3)
 
 
-## RAYO. Arcos por la superficie y destello breve en el suelo en el choque.
-static func rayo(padre: Node3D, choques: Array, largo: float, h: float, r: float) -> void:
+## RAYO. Arcos por la superficie y destello breve en el suelo en el choque. k = escala del haz (HazGas.escala_de, 12/11: el choque × k).
+static func rayo(padre: Node3D, choques: Array, largo: float, h: float, r: float, k: float = 1.0) -> void:
+	var kk: float = maxf(k, 0.05)
 	var cs: Array = validos(choques)
 	if cs.is_empty():
 		return
-	var dm: MeshInstance3D = decal(padre, largo, cs, TINTE_DESTELLO, {"fuerza": 0.0, "late": 0.0, "parpadeo": 1.0, "destello": 1.0}, 0.85, 1.5)
+	var dm: MeshInstance3D = decal(padre, largo, cs, TINTE_DESTELLO, {"fuerza": 0.0, "late": 0.0, "parpadeo": 1.0, "destello": 1.0}, 0.85, 1.5 * kk)
 	if dm != null and padre.is_inside_tree():
 		var mat: ShaderMaterial = dm.material_override as ShaderMaterial
 		var tw: Tween = padre.create_tween()
 		tw.tween_method(func(v: float) -> void: mat.set_shader_parameter("destello", v), 1.0, 0.0, 0.3).set_ease(Tween.EASE_OUT)      # dura muy poco
 	for i in cs.size():
-		var tam: float = clampf(r * 2.0 + 0.4, 1.6, 3.2)
+		var tam: float = clampf(r / kk * 2.0 + 0.4, 1.6, 3.2) * kk
 		hojas(padre, cs[i] as Dictionary, h, tam, i, func(suelo: float, sem: float) -> ShaderMaterial:
 			var m: ShaderMaterial = _mat(SH_ARCOS, {"semilla": sem * 0.7, "suelo": suelo, "c_nucleo": RayoPaleta.NUCLEO, "c_cuerpo": RayoPaleta.CUERPO, "c_halo": RayoPaleta.HALO, "c_borde": RayoPaleta.HALO_BORDE})
 			return m)

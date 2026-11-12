@@ -2743,7 +2743,16 @@ func rechazo_de_construccion(datos: Dictionary, origen: Vector3, dir: Vector3 = 
 	if not h.solido_quieto:
 		return ""
 	# Una barrera (solidez > 0) protege con su SolidezV2 aunque el bloque de tierra de debajo no quepa (el muro que nace en tu propia casilla y te cubre: escenario_bosque_01_v01 4.6): se lanza como siempre.
+	# 12/11: salvo sobre una PLATAFORMA de tierra (escalón o puente): `construir_tierra` no levanta nada encima (`puede_construir_en`), así que la barrera se
+	# lanzaba, cobraba tinta y recarga y no aparecía nada. Ahora se rechaza aquí, antes del cobro, si alguna casilla de su huella es una plataforma.
 	if h.solidez > 0.0 and not h.es_plataforma_tierra():
+		if rune.pisable and not h.viaja:
+			var d2 := Vector2(dir.x, dir.z)
+			if d2.length() < 0.001:
+				d2 = Vector2.RIGHT
+			for c in GeometriaV2.celdas(h.geo(), Vector2(origen.x, origen.z), d2.normalized(), Terreno3D.casilla):
+				if Terreno3D.plataformas_tierra.has(c):
+					return "ya hay una plataforma"
 		return ""
 	if h.en_punto:
 		var lejos: Vector3 = origen - (jugador as Node3D).position

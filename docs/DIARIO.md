@@ -5081,3 +5081,74 @@ La prueba de tierra cubre el anclaje en dos cotas, el brote y el hundimiento esc
 **Hecho.** `toon_viento.cintas` (de serie false): apagado, el cuerpo de la 481 (líneas de corriente del gas en todo el haz, `VIENTO_LINEAS` 2, hélice y pulsos de la 481, turbulencia 22, confinamiento 26, grosor 0,058, su disolución sin deriva); encendido, el del refuerzo (cintas analíticas, líneas solo junto al sólido, `PARAMS_VIENTO_CINTAS`). En la GPU va en `mundo_tam.w` (`VIENTO_CINTAS` en `gas_comun.glslinc` y `gas_fuentes.glsl`) y en `toon1.z` del dibujo. `toon_viento.mano_grande` (de serie false): el brillo pequeño de la 481. Los lazos del choque tienen grosor propio (`grosor_lazo` 0,15) y se dibujan encima de las líneas. Fuego, agua y rayo sin cambios. Coste del viento como en la 481 más los lazos (lab: 0,2–0,6 ms al aire, 0,6–1,3 contra la esfera). Hoja `docs/capturas/vfx_en_juego/haz_gas_elementos/HOJA_VIENTO_MIXTO.png` (481, 482 y mixto).
 **Pruebas.** Con ventana: prueba_haz_gas_viento_rayo 0; prueba_haz_gas_juego 1 fallo (dragón, chorro limpio) con la GPU ocupada por otro programa, el mismo fallo con el código de main sin el cambio (fuego intacto). Headless a 0: prueba_vfx_toy, prueba_haz_fuego_ideas, prueba_vfx_en_juego, prueba_agua_toy, prueba_lab_vfx_toys; prueba_rayo_toy 16 (los de main).
 **Pendiente.** Repetir prueba_haz_gas_juego y la tabla de coste con la GPU libre; que Pablo confirme el mixto en el lab.
+
+## 484 — VFX (12/11): **Capas validadas encendidas de serie y puente de tierra** (rama `claude/capas-serie`; Pablo: «enciéndelas todas, están validadas»)
+**Qué.** Encender de serie las capas de las entradas 466, 467 y 469, que estaban validadas pero iban apagadas, y arreglar lo que salía al encenderlas. Además, fijar la decisión del puente de tierra: ᛝ sola es el muro; ᛝ + ᛁ es el PUENTE (`es_plataforma_tierra`; Pablo: «permite un casteo remoto, mejor esa para hacer un puente»). Queda anotado en `nucleo/hechizo.gd`.
+**Hecho.** De serie quedan encendidos: `HumoRegla.DE_SERIE["magma"]`, `ChispasRepo.DE_SERIE["electrificado_capsula"]`, `CampoViento.en_viento_toy` (`vfx_campo_viento`) y, en `NubeVenenoVfx`, `gas_pesado` y `humo_al_arder`; cada uno se sigue pudiendo apagar con su ajuste. Arreglos: **humo de magma**, las `escala_fn` de las fuentes (cráter, bola y cima) guardan el toy en un WeakRef (antes una lambda que lo capturaba soltaba «Lambda capture at index 0 was freed» cuando el cráter se liberaba antes que su humo); **campo de viento**, `arrastrar_lista` no invierte la base de un dueño a escala 0 (al nacer o al irse), que daba «det == 0»; **nube de veneno en gas pesado**, el campo amontonaba bocanadas y la opacidad acumulada llegaba a 0,88: ahora se mide en el centro de cada bocanada y, donde pasa de 0,42, se rebaja solo el alfa de las que tapan (se sigue viendo a través; donde no se amontonan se dibuja igual); **lab, tecla «.»**, todo o nada: desde todas encendidas (lo de serie) las apaga todas, desde una mezcla las enciende todas.
+**Pruebas.** `prueba_magma_chispas` fija el estado que necesita (la cápsula apagada a propósito y las tres pulsaciones de «.»); `prueba_humo_regla` espera «magma» de serie. A 0: humo_regla, magma_chispas, campo_viento, nube_veneno_vfx (1.4: 0,49 ≤ 0,55), vfx_toy, vfx_en_juego, lab_vfx_toys, viento_tierra_toy, vfx_tierra_viento, estados_mundo, magma_toy, errores_consola, plataforma_tierra, rayo_ref.
+**Pendiente.** Que Pablo mire en el juego la nube de veneno pesada con el tope de opacidad y el coste del campo de viento con todo encendido (469: +1 a +1,6 ms en el lab). Lo que quedó pendiente en 466, 467 y 469 sigue igual.
+
+## 485 — VFX (12/11): **Haces a la mitad de tamaño; el máximo es el de antes** (rama `claude/haces-tamano`; Pablo: «reduce el tamaño en general en todos los haces… aproximadamente un 50 %, así tenemos espacio para que en valores máximos esté como está ahora mismo cada haz»; con el choque más pequeño: «llegue a menos distancia y envuelva menos»)
+**Qué.** Solo dibujo: el largo del haz y la lógica (daño, alcance, choques) no cambian.
+**Hecho.** Antes el grosor del haz era fijo (radio 0,40 m: `Hechizo.HAZ_ANCHO` 0,35 × casilla / 2) para cualquier receta, y la masa del gas también. Ahora `HazGas.escala_de(h)` da k según los glifos de la receta sin contar el elemento: 0,5 con una ᛁ y 1,0 con 6 (`MAX_GLIFOS`), +0,1 por glifo, la misma cuenta que la tinta. Escalan con k el grosor del chorro, toda la masa del choque del gas (piel, envoltura, alimentación, lazos del viento, zigzag y arcos del rayo, márgenes del dominio), y chispas, gotas y mechones (velocidad y gravedad × k, vec4 `k5` en el UBO); en los toys de respaldo, salpicadura, chispas, brasas, charco de luz y hojas/gotas de `HazChoque`. Con k = 1 todo es exactamente lo de antes. Mandos arriba de `laboratorios/haz_gas/haz_gas.gd`: `ESCALA_BASE` 0,5, `ESCALA_MAX` 1,0, `ESCALA_GLIFOS_MIN` 1 y `CELDA_EXP` 0,5 (el rayo 0). `HazGasJuego` solo reutiliza un dominio vivo con la misma k. Lab: en Mayús+F12, la tecla E alterna básico / máximo. No cambian BOLA, MURO, PILAR, BARRERA ni ImpactoBolaToy.
+**Pruebas.** `prueba_haz_tamano` (nueva): básico / máximo en metros contra un muro, chorro / choque: fuego 0,51 / 0,52, agua 0,44 / 0,58, viento 0,53 / 0,41, rayo 0,50 / 0,53; máximo / antes = 1,00 en los cuatro. Con ventana a 0: prueba_gas_haz, prueba_haz_gas_juego (umbral de hollín del «chorro limpio» actualizado: el eje del haz fino lleva 0,13), prueba_haz_gas_agua, prueba_haz_gas_viento_rayo. Sin ventana a 0, golden incluido; prueba_vfx_toy y prueba_vfx_en_juego miden el radio como `HAZ_ANCHO`/2 × k. Hoja `docs/capturas/vfx_en_juego/haz_gas_elementos/HOJA_TAMANO_HACES.png` (antes, básico y máximo por elemento).
+**Pendiente.** El coste no baja en el fuego (2,7 ms) y sube un 14 % en el agua; baja en viento (−31 %) y rayo (−15 %): lo caro es el dibujo del volumen, que avanza por celdas, y la celda básica es más fina. La palanca es `CELDA_EXP` (con 0 la simulación cuesta la mitad, pero el chorro básico de fuego se rompe). El agua básica se ve más pequeña que la mitad (12 % de píxeles). Que Pablo lo mire en el juego.
+
+## 486 — Contador de pruebas fiable y fallos de main tras la integración 451 (12/11)
+
+**Qué.** `tools\pruebas.cmd` podía dar «FALLOS: 0» a una prueba que tenía líneas FALLO. La causa era que todas las baterías escribían en el mismo `%TEMP%\prueba_salida.txt` y, si corrían dos a la vez, se mezclaban. Además, tras la integración 451 fallaban en main estas pruebas: rayo_toy (16 y un SCRIPT ERROR), lab_hechizos, lab_recetas y lab_geometrias (por el glifo «posicion»), ajustes_sfx, bisel_estado, partida, canouro_v2 y barrido_hechizos. prueba_agua_erosion_apagada se colgaba 1800 s sin ventana.
+
+**Hecho.**
+- `resumen_prueba.ps1`:
+  - cada batería y cada prueba escriben en su propio archivo;
+  - fallos = el mayor entre las líneas FALLO y el total impreso más alto;
+  - aviso de DESCUADRE si no cuadran;
+  - un SCRIPT ERROR, crash o código de salida distinto de 0 nunca da BIEN;
+  - un cuelgue es SIN RESULTADO;
+  - veredicto nuevo SALTADA;
+  - `pruebas.cmd` sale con 1 si algo falla. Las reglas están en la cabecera.
+- Pruebas puestas al día:
+  - rayo_toy fija la variante clásica del rayo y cuenta aparte las chispas de ChispasRepo;
+  - los labs y el barrido conocen «posicion» (experimental, sin carril propio ni recarga);
+  - ajustes_sfx tiene en cuenta la fila S:SONNISS y cierra el catálogo F7;
+  - bisel_estado acepta el brillo de la orilla;
+  - partida_ejemplo.json lleva `bosque_retorno_cueva`;
+  - canouro_v2 tiene las casillas (24,29) y (27,34);
+  - agua_erosion_apagada se salta sin ventana.
+
+Commit b778be5a.
+
+**Pruebas.** Batería entera:
+- main: 167 fallos y 44 MAL;
+- esta rama: 134 fallos y 35 MAL.
+
+Están arreglados los 10 casos de la lista. Ninguno nuevo: carga_impacto_toy era ruido de carga. Tras fusionar main (tamaño de haces) dan 0 rayo_toy, haz_tamano, lab_hechizos y partida.
+
+**Pendiente (Pablo).**
+- prueba_asistencia: las muestras grabadas nuevas de fuego y rayo de b87ca18e bajan los parciales al 74,5 % (mínimo 80 %). Hay que regrabarlas o quitarlas.
+- ¿«posicion» lleva recarga?
+- En main siguen fallando unas 33 pruebas que no estaban en la lista (golpe, jugadora_base, ropa_capa, partida_menu…).
+
+## 487 — Barrera de tierra sobre escalón/puente y el «haz de magma invisible» (12/11)
+
+**Barrera.** Una barrera de tierra (ᛝ sola) apuntada a un escalón o a un puente se lanzaba y cobraba tinta y recarga, pero no aparecía nada: `construir_tierra` no levanta nada sobre una plataforma (`puede_construir_en`).
+- Ahora `Lanzador3D.rechazo_de_construccion` la rechaza antes del cobro si alguna casilla de su huella es una plataforma.
+- Sale el aviso «Ahí no se puede construir: ya hay una plataforma», suena `sello_no` y el apuntado sale en rojo.
+- Se descartó construir encima, porque la plataforma es una cota fija aparte del sistema de niveles.
+- Prueba nueva: `prueba_barrera_tierra_plataforma`.
+
+**Haz de magma.** Lo de «el haz de magma no se ve en el juego» (DIARIO 442) era culpa de la captura.
+- `captura_toys_nuevos_juego` ponía `distancia_max` 9 a todos los casos de magma, y con eso el haz dejaba de ser un haz: salía una bola que viajaba fuera del encuadre.
+- En el juego, por el libro avanzado (fuego + tierra + ᛁ ᛁ), el MagmaToy HAZ sí se dibuja.
+- La captura solo ajusta ya la bola. Las capturas `toys_nuevos/magma_haz_*` están rehechas.
+- Prueba nueva con ventana: `prueba_magma_haz_juego`. Mira el árbol y los píxeles de magma, por HechizoVivo y por el libro con conjuro.
+
+Commit 31df4478.
+
+**Pruebas.** A 0:
+- barrera, barrera_tierra_plataforma, plataforma_tierra, hechizo_golden;
+- magma_haz_juego (con ventana), magma_toy y magma_chispas;
+- vfx_en_juego y vfx_toy;
+- haz_tamano y haz_gas_juego.
+
+No se ha pasado la batería completa.

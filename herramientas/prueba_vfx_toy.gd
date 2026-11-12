@@ -436,7 +436,7 @@ func _parametrico() -> void:
 	haz.glifos = {"linea_x": 1}
 	haz.estado_materia = "plasma"
 	var dh: Dictionary = FuegoToy.describir(haz, casilla)
-	_ok("un haz (ᛁ línea) → figura HAZ, largo = alcance del haz (x %.2f m), radio = HAZ_ANCHO / 2 (z %.2f m)" % [dh["x"], dh["z"]], dh["figura"] == F.HAZ and _cerca(float(dh["x"]), haz.alcance_haz * casilla * 0.5, 0.01) and _cerca(float(dh["z"]), Hechizo.HAZ_ANCHO * casilla * 0.5, 0.01) and not dh["viaja"])
+	_ok("un haz (ᛁ línea) → figura HAZ, largo = alcance del haz (x %.2f m), radio = HAZ_ANCHO / 2 × HazGas.escala_de (z %.2f m; 12/11, tamaño de los haces)" % [dh["x"], dh["z"]], dh["figura"] == F.HAZ and _cerca(float(dh["x"]), haz.alcance_haz * casilla * 0.5, 0.01) and _cerca(float(dh["z"]), Hechizo.HAZ_ANCHO * casilla * 0.5 * HazGas.escala_de(haz), 0.01) and not dh["viaja"])
 	var hz: FuegoToy = FuegoToy.new()
 	hz.desde_hechizo(haz)
 	_raiz.add_child(hz)

@@ -115,7 +115,8 @@ func _caso_nivel() -> void:
 	for c in cs:
 		celdas.append(Terreno3D.celda_de((c as Combate3D).casa))
 	celdas.sort_custom(func(a: Vector2i, b: Vector2i) -> bool: return a.x < b.x)
-	_ok("N2 en las casillas (25,34) y (26,29) del mapa", celdas == [Vector2i(25, 34), Vector2i(26, 29)], str(celdas))
+	# 12/11/2026: Pablo movió los dos marcadores en Bosque_02.txt (b87ca18e, 10/11: canouro_01 26,29 → 24,29 y canouro_02 25,34 → 27,34), siguen en bosque_denso.
+	_ok("N2 en las casillas (24,29) y (27,34) del mapa", celdas == [Vector2i(24, 29), Vector2i(27, 34)], str(celdas))
 	var en_zona: bool = zonas != null
 	for ce in celdas:
 		if zonas != null:

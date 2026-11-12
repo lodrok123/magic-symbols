@@ -532,7 +532,7 @@ func _construir() -> void:
 		_volumen(cuerpo)
 	_montar_brasas()
 	_anim_si_hace_falta()
-	HumoRegla.quitar_de(self)                     # 11/11: humo por regla (HumoRegla.capas["magma"], apagado de serie): cima del muro y del pilar; la bola, al volar (_capas_vuelo)
+	HumoRegla.quitar_de(self)                     # 11/11: humo por regla (HumoRegla.capas["magma"], encendida de serie): cima del muro y del pilar; la bola, al volar (_capas_vuelo)
 	_capas_vuelo_puestas = false
 	if _chispas_vuelo != null and is_instance_valid(_chispas_vuelo):
 		_chispas_vuelo.cerrar()
@@ -699,7 +699,7 @@ func _process(delta: float) -> void:
 		_luz.light_energy *= clampf(calor, 0.0, 1.0)                   # la luz sigue al calor (EfectoToy ya ha puesto energía × luz × titileo)
 
 
-## 11/11: capas NUEVAS de la bola en vuelo (cada una con su interruptor; apagadas, la bola es la de siempre): humo oscuro detrás (HumoRegla «magma», apagada de serie) y brasas
+## 11/11: capas NUEVAS de la bola en vuelo (cada una con su interruptor; apagadas, la bola es la de siempre): humo oscuro detrás (HumoRegla «magma», encendida de serie) y brasas
 ## como las del repo de gas (ChispasRepo «magma_proyectil»: salen con la velocidad de la bola, el aire las frena y se quedan atrás, botan en el suelo).
 func _capas_vuelo() -> void:
 	if _capas_vuelo_puestas or figura != Figura.BOLA or not proyectil or not is_inside_tree() or _est == EstadoCarga.APAGANDO or _est == EstadoCarga.CANCELANDO:

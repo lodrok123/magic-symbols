@@ -145,6 +145,8 @@ var _haz_alt: float = 0.5
 var _haz_r: float = 0.36
 ## HAZ: dónde choca (lo rellena VfxToyJuego; ver FuegoToy.choques). Lo dibuja HazChoque.rayo (apagable con FuegoToy.haz_ideas).
 var choques: Array = []
+## 12/11 (tamaño de los haces): k = HazGas.escala_de del hechizo (1 = el de antes). El radio ya llega × k en semieje_z; esto escala el CHOQUE del haz (HazChoque). Antes de definir.
+var escala_haz: float = 1.0
 var _golpe_haz: MultiMeshInstance3D = null
 var _inicio_haz: float = -1.0
 var _contacto_haz: float = -1.0
@@ -541,6 +543,7 @@ func preparar(volumen: Dictionary, dir: Vector3, _elemento: String = "rayo") -> 
 ## Elige figura, tamaño y vuelo desde un `Hechizo` (la misma regla que FuegoToy.describir: el elemento no cambia la figura ni el tamaño).
 func desde_hechizo(h: Hechizo) -> void:
 	var d: Dictionary = describir(h, casilla)
+	escala_haz = float(d.get("escala", 1.0))
 	definir(int(d["figura"]), d["x"], d["y"], d["z"], d["viaja"])
 	rotation.y = float(d["giro_y"])
 	# una zona (esfera o elipsoide que no viaja ni es muro, pilar, barrera ni haz) estalla en área al acabar; un proyectil, no
@@ -636,7 +639,7 @@ func _construir() -> void:
 	luz_nodo.omni_range = clampf(3.0 + 0.7 * extension(), 3.0, 9.0)
 	_montar_sello()
 	if figura == Figura.HAZ and FuegoToy.haz_ideas and not choques.is_empty():
-		HazChoque.rayo(cuerpo, choques, _haz_largo, _haz_alt, _haz_r)
+		HazChoque.rayo(cuerpo, choques, _haz_largo, _haz_alt, _haz_r, escala_haz)
 	_anim_si_hace_falta()
 
 

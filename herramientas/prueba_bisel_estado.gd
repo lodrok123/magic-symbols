@@ -173,7 +173,9 @@ func _shader_y_estado() -> void:
 	_ok("4.5 los parámetros de V4 existen en el shader con nombre (carbón, ceniza, mojado, fresnel del hielo)",
 		sh.contains("uniform vec3 carbon_mult") and sh.contains("uniform float ceniza_gris") and sh.contains("uniform float rug_mojado") and sh.contains("uniform float espec_mojado")
 		and sh.contains("uniform float fresnel_hielo") and sh.contains("uniform float rug_hielo") and sh.contains("uniform float estado_ruido"))
-	_ok("4.6 SPECULAR deja de ser 0 fijo (mojado y hielo reflejan) y el quemado ya pinta", sh.contains("SPECULAR = espec;") and not sh.contains("SPECULAR = 0.0;") and sh.contains("quemado = mix("))
+	# 12/11/2026: desde b87ca18e (codex/cohesion-contacto, integrado en la 451) la orilla húmeda también brilla: «SPECULAR = max(espec, humedad_ribera * 0.22);».
+	# Sigue saliendo de `espec` (mojado y hielo); se acepta esa forma además de la de antes.
+	_ok("4.6 SPECULAR deja de ser 0 fijo (mojado y hielo reflejan) y el quemado ya pinta", (sh.contains("SPECULAR = espec;") or sh.contains("SPECULAR = max(espec,")) and not sh.contains("SPECULAR = 0.0;") and sh.contains("quemado = mix("))
 
 
 # ---------------------------------------------------------------------------------------------------------------------
