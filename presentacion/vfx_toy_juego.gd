@@ -215,6 +215,7 @@ func _nuevo(elemento: String) -> Node3D:
 			t = VientoToy.new()
 		"tierra":
 			t = TierraToy.new()
+			t.set("normal_arriba", TierraToy.NORMAL_ARRIBA_JUEGO)     # 12/11: con el sol casi vertical del juego las púas se veían oscuras contra la hierba (en el lab, no)
 		_:
 			t = FuegoToy.new()
 	t.set("casilla", Terreno3D.casilla)
