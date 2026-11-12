@@ -5093,3 +5093,38 @@ La prueba de tierra cubre el anclaje en dos cotas, el brote y el hundimiento esc
 **Hecho.** Antes el grosor del haz era fijo (radio 0,40 m: `Hechizo.HAZ_ANCHO` 0,35 × casilla / 2) para cualquier receta, y la masa del gas también. Ahora `HazGas.escala_de(h)` da k según los glifos de la receta sin contar el elemento: 0,5 con una ᛁ y 1,0 con 6 (`MAX_GLIFOS`), +0,1 por glifo, la misma cuenta que la tinta. Escalan con k el grosor del chorro, toda la masa del choque del gas (piel, envoltura, alimentación, lazos del viento, zigzag y arcos del rayo, márgenes del dominio), y chispas, gotas y mechones (velocidad y gravedad × k, vec4 `k5` en el UBO); en los toys de respaldo, salpicadura, chispas, brasas, charco de luz y hojas/gotas de `HazChoque`. Con k = 1 todo es exactamente lo de antes. Mandos arriba de `laboratorios/haz_gas/haz_gas.gd`: `ESCALA_BASE` 0,5, `ESCALA_MAX` 1,0, `ESCALA_GLIFOS_MIN` 1 y `CELDA_EXP` 0,5 (el rayo 0). `HazGasJuego` solo reutiliza un dominio vivo con la misma k. Lab: en Mayús+F12, la tecla E alterna básico / máximo. No cambian BOLA, MURO, PILAR, BARRERA ni ImpactoBolaToy.
 **Pruebas.** `prueba_haz_tamano` (nueva): básico / máximo en metros contra un muro, chorro / choque: fuego 0,51 / 0,52, agua 0,44 / 0,58, viento 0,53 / 0,41, rayo 0,50 / 0,53; máximo / antes = 1,00 en los cuatro. Con ventana a 0: prueba_gas_haz, prueba_haz_gas_juego (umbral de hollín del «chorro limpio» actualizado: el eje del haz fino lleva 0,13), prueba_haz_gas_agua, prueba_haz_gas_viento_rayo. Sin ventana a 0, golden incluido; prueba_vfx_toy y prueba_vfx_en_juego miden el radio como `HAZ_ANCHO`/2 × k. Hoja `docs/capturas/vfx_en_juego/haz_gas_elementos/HOJA_TAMANO_HACES.png` (antes, básico y máximo por elemento).
 **Pendiente.** El coste no baja en el fuego (2,7 ms) y sube un 14 % en el agua; baja en viento (−31 %) y rayo (−15 %): lo caro es el dibujo del volumen, que avanza por celdas, y la celda básica es más fina. La palanca es `CELDA_EXP` (con 0 la simulación cuesta la mitad, pero el chorro básico de fuego se rompe). El agua básica se ve más pequeña que la mitad (12 % de píxeles). Que Pablo lo mire en el juego.
+
+## 486 — Contador de pruebas fiable y fallos de main tras la integración 451 (12/11)
+
+**Qué.** `tools\pruebas.cmd` podía dar «FALLOS: 0» a una prueba que tenía líneas FALLO. La causa era que todas las baterías escribían en el mismo `%TEMP%\prueba_salida.txt` y, si corrían dos a la vez, se mezclaban. Además, tras la integración 451 fallaban en main estas pruebas: rayo_toy (16 y un SCRIPT ERROR), lab_hechizos, lab_recetas y lab_geometrias (por el glifo «posicion»), ajustes_sfx, bisel_estado, partida, canouro_v2 y barrido_hechizos. prueba_agua_erosion_apagada se colgaba 1800 s sin ventana.
+
+**Hecho.**
+- `resumen_prueba.ps1`:
+  - cada batería y cada prueba escriben en su propio archivo;
+  - fallos = el mayor entre las líneas FALLO y el total impreso más alto;
+  - aviso de DESCUADRE si no cuadran;
+  - un SCRIPT ERROR, crash o código de salida distinto de 0 nunca da BIEN;
+  - un cuelgue es SIN RESULTADO;
+  - veredicto nuevo SALTADA;
+  - `pruebas.cmd` sale con 1 si algo falla. Las reglas están en la cabecera.
+- Pruebas puestas al día:
+  - rayo_toy fija la variante clásica del rayo y cuenta aparte las chispas de ChispasRepo;
+  - los labs y el barrido conocen «posicion» (experimental, sin carril propio ni recarga);
+  - ajustes_sfx tiene en cuenta la fila S:SONNISS y cierra el catálogo F7;
+  - bisel_estado acepta el brillo de la orilla;
+  - partida_ejemplo.json lleva `bosque_retorno_cueva`;
+  - canouro_v2 tiene las casillas (24,29) y (27,34);
+  - agua_erosion_apagada se salta sin ventana.
+
+Commit b778be5a.
+
+**Pruebas.** Batería entera:
+- main: 167 fallos y 44 MAL;
+- esta rama: 134 fallos y 35 MAL.
+
+Están arreglados los 10 casos de la lista. Ninguno nuevo: carga_impacto_toy era ruido de carga. Tras fusionar main (tamaño de haces) dan 0 rayo_toy, haz_tamano, lab_hechizos y partida.
+
+**Pendiente (Pablo).**
+- prueba_asistencia: las muestras grabadas nuevas de fuego y rayo de b87ca18e bajan los parciales al 74,5 % (mínimo 80 %). Hay que regrabarlas o quitarlas.
+- ¿«posicion» lleva recarga?
+- En main siguen fallando unas 33 pruebas que no estaban en la lista (golpe, jugadora_base, ropa_capa, partida_menu…).
