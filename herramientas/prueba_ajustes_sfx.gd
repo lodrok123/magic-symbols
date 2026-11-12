@@ -123,12 +123,13 @@ func _escenario() -> void:
 	# 2/11 (tareas L y W): detrás de las tres dB nuevas van las filas L:, Mp:, S:BALANCEO, W:, Hb: y Hu: (las static var de la mano pasando página y del caminar), siempre al final.
 	var n_lw: int = LabHechizos3D.FILAS_L.size() + LabHechizos3D.FILAS_MP.size() + LabHechizos3D.FILAS_S_W.size() + LabHechizos3D.FILAS_W.size() + LabHechizos3D.FILAS_HB.size() + LabHechizos3D.FILAS_HU.size()
 	var fin_r: int = nombres_db.size() - n_lw              # índice justo después de la cola de la tarea R
-	_ok("5 hay una entrada «dB:» por sonido del catálogo, más el bus, la acción, (tarea O, 1/11) los buses «Mundo» y «Ocluido» y (tercera tanda N) las dos del ciclo día/noche y (2/11, tarea R) S:GRABADOS y las tres filas dB nuevas, y (tareas L y W) las filas L:/Mp:/S:/W:/Hb:/Hu: del final", nombres_db.size() == Sfx.CATALOGO.size() + 7 + n_lw, "%d vs %d" % [nombres_db.size(), Sfx.CATALOGO.size() + 7 + n_lw])
-	_ok("5 tras los sonidos van «dB:Interfaz (bus)» y «dB:imprimir ajustes», luego (tarea O) «dB:Mundo (bus)» y «dB:Ocluido (bus)», «S:HORA» y «S:DURACION_DIA_S», S:GRABADOS y las tres dB de la tarea R", nombres_db[fin_r - 10] == "dB:Interfaz (bus)" and nombres_db[fin_r - 9] == "dB:imprimir ajustes" and nombres_db[fin_r - 8] == "dB:Mundo (bus)" and nombres_db[fin_r - 7] == "dB:Ocluido (bus)" and nombres_db[fin_r - 6] == "S:HORA" and nombres_db[fin_r - 5] == "S:DURACION_DIA_S" and nombres_db[fin_r - 4] == "S:GRABADOS" and nombres_db[fin_r - 3] == "dB:no_puedes_ui" and nombres_db[fin_r - 2] == "dB:paginas_bucle" and nombres_db[fin_r - 1] == "dB:pluma_bucle")
+	# 12/11/2026: 76d94b95 (10/11, foley de Sonniss) añadió la fila «S:SONNISS» justo detrás de S:GRABADOS: ahora son 8 filas fijas (antes 7).
+	_ok("5 hay una entrada «dB:» por sonido del catálogo, más el bus, la acción, (tarea O, 1/11) los buses «Mundo» y «Ocluido» y (tercera tanda N) las dos del ciclo día/noche y (2/11, tarea R) S:GRABADOS, (10/11) S:SONNISS y las tres filas dB nuevas, y (tareas L y W) las filas L:/Mp:/S:/W:/Hb:/Hu: del final", nombres_db.size() == Sfx.CATALOGO.size() + 8 + n_lw, "%d vs %d" % [nombres_db.size(), Sfx.CATALOGO.size() + 8 + n_lw])
+	_ok("5 tras los sonidos van «dB:Interfaz (bus)» y «dB:imprimir ajustes», luego (tarea O) «dB:Mundo (bus)» y «dB:Ocluido (bus)», «S:HORA» y «S:DURACION_DIA_S», S:GRABADOS, S:SONNISS y las tres dB de la tarea R", nombres_db[fin_r - 11] == "dB:Interfaz (bus)" and nombres_db[fin_r - 10] == "dB:imprimir ajustes" and nombres_db[fin_r - 9] == "dB:Mundo (bus)" and nombres_db[fin_r - 8] == "dB:Ocluido (bus)" and nombres_db[fin_r - 7] == "S:HORA" and nombres_db[fin_r - 6] == "S:DURACION_DIA_S" and nombres_db[fin_r - 5] == "S:GRABADOS" and nombres_db[fin_r - 4] == "S:SONNISS" and nombres_db[fin_r - 3] == "dB:no_puedes_ui" and nombres_db[fin_r - 2] == "dB:paginas_bucle" and nombres_db[fin_r - 1] == "dB:pluma_bucle")
 	_ok("5 (tareas L y W) el bloque del final empieza por «L:PASAR_PAGINA_ANIMADO» y acaba en «Hu:ALTO_HUELLA», y ninguna fila suya es «dB:»", nombres_db[fin_r] == "L:PASAR_PAGINA_ANIMADO" and nombres_db[nombres_db.size() - 1] == "Hu:ALTO_HUELLA" and not nombres_db.slice(fin_r).any(func(n: String) -> bool: return n.begins_with("dB:")))
 	_ok("5 «W:PISADO_CORRER» lee y escribe Caminar3D (0,55 de partida)", is_equal_approx(LabHechizos3D.impacto_valor("W:PISADO_CORRER"), 0.55))
 	var alfabetico: bool = true
-	for i in range(1, fin_r - 10):
+	for i in range(1, fin_r - 11):
 		if String(nombres_db[i - 1]) > String(nombres_db[i]):
 			alfabetico = false
 	_ok("5 los sonidos van en orden alfabético", alfabetico)
@@ -171,6 +172,9 @@ func _escenario() -> void:
 	# Teclas: ↑ desde la primera da la vuelta al final; la ventana sigue a la elegida y no enseña más de VENTANA filas.
 	lab.set("impacto_sel", 0)
 	lab.set("pestana", LabHechizos3D.Pestana.IMPACTO)
+	# 12/11/2026: desde b87ca18e el lab abre con el CATÁLOGO (F7) delante y, mientras está abierto, solo atiende F1–F5 y R: ↑ no llegaba al panel F3.
+	# Se cierra como lo haría Pablo (F3 lo cierra al cambiar de pestaña; aquí, directo).
+	lab.call("poner_catalogo", false)
 	var ev := InputEventKey.new()
 	ev.keycode = KEY_UP
 	ev.pressed = true

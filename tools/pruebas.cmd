@@ -40,7 +40,9 @@ rem        tools\pruebas.cmd solo hechizos      ALIAS (29/10, H0 del PLAN_SISTEM
 set "PATRON="
 set "ARGS=%*"
 if /i "%~1"=="solo" set "PATRON=!ARGS:~5!"
+rem 12/11/2026: las reglas del recuento (lineas FALLO, totales, errores de codigo, codigo de salida, cuelgues) estan en la cabecera de resumen_prueba.ps1.
+rem Sale con 1 si alguna prueba no salio BIEN (MAL o SIN RESULTADO), con 0 si todas BIEN.
 powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0resumen_prueba.ps1" -Godot "!GODOT!" -Patron "!PATRON!"
+set "CODIGO=!ERRORLEVEL!"
 pause
-endlocal
-exit /b 0
+endlocal & exit /b %CODIGO%

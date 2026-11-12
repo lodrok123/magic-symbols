@@ -10,9 +10,16 @@ var _mi: MeshInstance3D
 var _caso: int = -1
 var _f: int = 0
 var _solo: int = -1
+var _sin_imagen: int = 0
 
 
 func _initialize() -> void:
+	# 12/11/2026: sin ventana (--headless, como la corre tools\pruebas.cmd) el SubViewport no pinta, get_image() da null y el _process no llegaba
+	# nunca a quit(): la bateria la cortaba a los 1800 s. Ahora se salta al momento con un motivo claro (el resumen la marca SALTADA).
+	if DisplayServer.get_name() == "headless":
+		print("SALTADA: prueba_agua_erosion_apagada necesita ventana y GPU (pinta shaders y saca su md5); sin ventana no hay imagen. Correla con: godot --rendering-driver opengl3 --fixed-fps 60 --path . --script res://herramientas/prueba_agua_erosion_apagada.gd")
+		quit(0)
+		return
 	_solo = int(OS.get_cmdline_user_args()[0]) if OS.get_cmdline_user_args().size() > 0 else -1
 	_caso = _solo - 1 if _solo >= 0 else -1
 	_vp = SubViewport.new()
@@ -37,7 +44,8 @@ func _initialize() -> void:
 func _siguiente() -> void:
 	_caso += 1
 	if _caso >= CASOS.size() or (_solo >= 0 and _caso != _solo):
-		quit()
+		print("FALLOS: %d" % _sin_imagen)      # aqui solo falla no tener imagen; la comparacion de md5 entre dos arboles la hace quien la lanza
+		quit(1 if _sin_imagen > 0 else 0)
 		return
 	var c: Array = CASOS[_caso]
 	RenderingServer.global_shader_parameter_set("usar_erosion", bool(c[1]))       # directo al global: asi la prueba tambien corre en un arbol sin VfxKit3D.usar_erosion (HEAD)
@@ -58,12 +66,18 @@ func _siguiente() -> void:
 
 
 func _process(_d: float) -> bool:
+	if _mi == null:          # saltada (sin ventana): quit() ya esta pedido
+		return false
 	if _f == 0 and _mi.mesh == null:
 		_siguiente()
 		return false
 	_f += 1
 	if _f == 6:
 		var img: Image = _vp.get_texture().get_image()
-		print(CASOS[_caso][0], " erosion=", CASOS[_caso][1], " vida=", CASOS[_caso][2], " md5=", img.get_data().hex_encode().md5_text())
+		if img == null:
+			_sin_imagen += 1
+			print("FALLO %s erosion=%s vida=%s: el SubViewport no dio imagen" % [CASOS[_caso][0], CASOS[_caso][1], CASOS[_caso][2]])
+		else:
+			print(CASOS[_caso][0], " erosion=", CASOS[_caso][1], " vida=", CASOS[_caso][2], " md5=", img.get_data().hex_encode().md5_text())
 		_siguiente()
 	return false

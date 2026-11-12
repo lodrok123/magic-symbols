@@ -61,7 +61,11 @@ func _escenario() -> void:
 	for cr in LabGeometrias3D.CARRILES:
 		for g in (cr as Dictionary)["glifos"]:
 			propios[g] = true
-	_ok("0 entre todos los carriles está cada glifo de Sigils.GLIFOS", propios.size() == Sigils.GLIFOS.size(), str(propios.keys()))
+	# 12/11/2026: «posicion» (b87ca18e, codex/cohesion-contacto, integrado en la 451) es EXPERIMENTAL y solo la añade la página de combate de la Sala
+	# del Chamán: el hechizo nace en el punto de suelo que se señala, cosa que un carril que se lanza a la vez que los demás no puede hacer. Como en
+	# prueba_hechizo_golden (glifos.erase("posicion")), se exige un carril para cada glifo del catálogo de campaña, que son todos menos ese.
+	var de_campana: Array = Sigils.GLIFOS.keys().filter(func(g): return g != "posicion")
+	_ok("0 entre todos los carriles está cada glifo de Sigils.GLIFOS (menos «posicion», experimental)", propios.size() == de_campana.size() and de_campana.all(func(g): return propios.has(g)), str(propios.keys()))
 	_ok("0 cada casilla de diana tiene su goblin quieto", (lab.get("dianas") as Array).size() == _n_dianas() and _n_dianas() == 17
 		and (lab.get("dianas") as Array).all(func(d): return (d["combate"] as Combate3D).quieto), "%d dianas" % (lab.get("dianas") as Array).size())
 	_ok("0 Espacio no salta", jugador.get("salto_activo") == false)

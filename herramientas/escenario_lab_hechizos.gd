@@ -85,7 +85,7 @@ func _escenario() -> void:
 
 	# --- Contadores y glifos ---
 	var glifos: Array = Sigils.GLIFOS.keys()
-	_ok("2 el panel tiene un contador por glifo de GLIFOS", (lab.get("_panel_cuentas") as Dictionary).size() == glifos.size() and glifos.size() == 14, str(glifos))        # 19/10: + permanencia (ᛉ) · 23/10: + raido (ᚱ «pulso») · 30/10 (H5): + perforar, retorno, buscar, retardo
+	_ok("2 el panel tiene un contador por glifo de GLIFOS", (lab.get("_panel_cuentas") as Dictionary).size() == glifos.size() and glifos.size() == 15 and glifos.back() == "posicion", str(glifos))        # 19/10: + permanencia (ᛉ) · 23/10: + raido (ᚱ «pulso») · 30/10 (H5): + perforar, retorno, buscar, retardo · 12/11: + «posicion» (experimental, de codex/cohesion-contacto, integrado en la 451; el último de Sigils.GLIFOS, como dice prueba_hechizo)
 	lab.limpiar()
 	lab.sumar("linea_z", 1)
 	lab.sumar("linea_z", 1)
@@ -590,10 +590,15 @@ func _escenario() -> void:
 	colocar_jugador(Vector2i(4, 8))
 	jugador.call("mirar_hacia", Vector3.RIGHT)
 	await avanzar_s(0.3)
+	var antes13: Array = []
+	for c13 in lanzador.get_children():
+		if c13 is HechizoVivo:
+			antes13.append(c13)
+			_aviso("13 antes de lanzar ya hay un HechizoVivo", "%s proyectil=%s elemento=%s" % [c13.name, str((c13 as HechizoVivo).proyectil), str(c13.get("elemento"))])
 	lab.lanzar()
 	var proyectiles13: int = 0
 	for c13 in lanzador.get_children():
-		if c13 is HechizoVivo and (c13 as HechizoVivo).proyectil:
+		if c13 is HechizoVivo and (c13 as HechizoVivo).proyectil and not antes13.has(c13):
 			proyectiles13 += 1
 	_ok("13 el siguiente hechizo sale con lo tocado: velocidad 5 → es un proyectil (%d)" % proyectiles13, proyectiles13 == 1)
 	await avanzar_s(0.5)
@@ -750,7 +755,7 @@ func _escenario() -> void:
 	_ok("14 Numpad 1–8 añade al FINAL, en orden (%s)" % str(lab.orden), lab.orden == [ks[3], ks[4], ks[0], ks[7]], str(lab.orden))
 	_ok("14 y el multiconjunto sale de esa fila", lab.contadores == {ks[3]: 1, ks[4]: 1, ks[0]: 1, ks[7]: 1}, str(lab.contadores))
 	_tecla_lab(KEY_KP_9)
-	_ok("14 Numpad 9 añade el 9.º glifo (permanencia ᛉ)", String(lab.orden.back()) == "permanencia" and ks.size() == 14 and ks[9] == "raido", str(lab.orden))        # 23/10: el 10.º es ᚱ «pulso» (raido): sin tecla de Numpad, se suma con el panel
+	_ok("14 Numpad 9 añade el 9.º glifo (permanencia ᛉ)", String(lab.orden.back()) == "permanencia" and ks.size() == 15 and ks[9] == "raido", str(lab.orden))        # 23/10: el 10.º es ᚱ «pulso» (raido): sin tecla de Numpad, se suma con el panel · 12/11: 15 con «posicion»
 	_ok("14 la fila se enseña en pantalla en orden", lab.texto_orden().contains("5/6") and lab.texto_diseno().contains("permanencia"))
 	_tecla_lab(KEY_KP_1)
 	_tecla_lab(KEY_KP_1)
