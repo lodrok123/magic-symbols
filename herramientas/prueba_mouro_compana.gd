@@ -10,6 +10,9 @@ extends SceneTree
 ##           daño 12 y raíces 1 s · 9 la mámoa se tapa con un volumen de hechizo o un bloque empujable y se destapa al quitarlos
 ##   compaña 5 al morir el guía la cruz pasa a la siguiente a 1 s (con su pieza cambiada) · 6 las tres en menos de 2,5 s: se acaba · 7 una a una: repone, y gastadas las 3 reposiciones se acaba ·
 ##           10 el toque (10 y ralentizada 1,5 s) y la maldición del guía cuando atacan a otra ánima
+##   12/11   animaciones: 1 SURGIR el cuerpo no se ve hasta 1,3 s, luego sale en la casilla de la mámoa con el clip Getting_Up (`lanzar_surgir`) sin ser blanco, y se esconde si tapan a mitad ·
+##           5 RELEVO la cruz queda en el suelo (la del guía se esconde), la fila para, la siguiente llega y se agacha a 1,2 s con CollectObject (`lanzar_recoger`), la cruz se le engancha
+##           a los T_ENGANCHE s (no antes), se endereza y la fila sigue; si la matan a medias la cruz sigue en el suelo y la recoge la tercera
 
 const DT: float = 1.0 / 60.0
 const S: float = 2.3
@@ -208,13 +211,31 @@ func _mouro_rebrota() -> void:
 	_ok("1 muere con la mámoa abierta: NO muere, se deshace (latente, sin botín, sin contar como enemigo muerto)", not mo.muerto and mo.latente and mo.botin_soltado.is_empty() and _muertos == muertos0 and deshechos[0] == 1, "muerto %s · latente %s · caídos %d" % [mo.muerto, mo.latente, _muertos - muertos0])
 	_ok("1 sigue contando como vivo (el vigía no da la sala por limpia) y no es un blanco: sin colisión ni grupo de combate", not mo.muerto and mo.collision_layer == 0 and not mo.is_in_group("combate3d") and not mo.pj.visible)
 	_ok("1 la mámoa echa humo para avisar de dónde vuelve", m.humo_activo)
-	_paso(3.8)
+	_paso(1.2)
+	_ok("1 SURGIR: a 1,2 s el cuerpo todavía no se ve (solo el humo)", mo.latente and not mo.surgiendo and not mo.pj.visible)
+	_paso(0.2)
+	_ok("1 SURGIR: a 1,4 s ya se ve en la casilla de la mámoa, levantándose (clip Getting_Up de Mixamo, estado `lanzar_surgir`)", mo.surgiendo and mo.pj.visible and _celda(mo) == cm and mo.pj.estado_anim() == "lanzar_surgir" and mo.pj.clip_actual() == "Mixamo_Incorporarse", "estado %s · clip %s · %s" % [mo.pj.estado_anim(), mo.pj.clip_actual(), _celda(mo)])
+	_ok("1 SURGIR: y aún no es un blanco (latente, sin colisión, fuera del grupo de combate)", mo.latente and mo.collision_layer == 0 and not mo.is_in_group("combate3d") and rebrotes.is_empty())
+	_ok("1 SURGIR: el clip entra en el rebrote: dura %.2f s y T_REBROTE son %.1f" % [mo.dur_surgir(), MouroEspectro3D.T_REBROTE], mo.dur_surgir() > 1.0 and mo.dur_surgir() <= MouroEspectro3D.T_REBROTE - 0.5)
+	_paso(2.4)
 	_ok("1 a los 3,8 s sigue latente", mo.latente and rebrotes.is_empty())
 	_paso(0.4)
 	_ok("1 a los 4 s ha vuelto: emite rebroto(1)", not mo.latente and rebrotes == [1], str(rebrotes))
 	_ok("1 reaparece EN LA CASILLA DE LA MÁMOA", _celda(mo) == cm, str(_celda(mo)))
 	_ok("1 con la vida llena, visible, golpeable y sin humo", is_equal_approx(mo.health, mo.vida_max) and mo.pj.visible and mo.is_in_group("combate3d") and mo.collision_layer != 0 and not m.humo_activo)
-	_ok("1 un rebrote gastado y la mámoa sin agrietar", mo.rebrotes_gastados == 1 and not m.esta_agrietada)
+	_ok("1 un rebrote gastado y la mámoa sin agrietar", mo.rebrotes_gastados == 1 and not m.esta_agrietada and not mo.surgiendo)
+	await _limpiar()
+	# Si tapan la mámoa a mitad de surgir, el cuerpo se esconde y no vuelve.
+	var cm2 := Vector2i(10, 6)
+	var m2: Mamoa3D = _mamoa(cm2)
+	var mo2: MouroEspectro3D = _mouro(Vector2i(4, 6), m2)
+	_mata(mo2)
+	_paso(2.0)
+	_ok("1 SURGIR: (otra vez) a 2 s se está levantando", mo2.surgiendo and mo2.pj.visible)
+	m2.tapar_a_mano()
+	_ok("1 SURGIR: la tapan a mitad: se esconde y deja de surgir", not mo2.surgiendo and not mo2.pj.visible)
+	_paso(4.0)
+	_ok("1 SURGIR: no vuelve (muere sellado)", mo2.muerto)
 	await _limpiar()
 
 
@@ -390,17 +411,52 @@ func _compana_relevo() -> void:
 	var separacion: float = (viva[0] as Node3D).position.distance_to((viva[1] as Node3D).position)
 	_ok("5 van a una casilla una de otra", absf(separacion - S) < 0.05, "%.2f u" % separacion)
 	var siguiente: AnimaCompana3D = viva[1]
+	var pos_guia: Vector3 = guia.position
 	_mata(guia)
-	_ok("5 cae el guía: la cruz no pasa en el acto", pasos.is_empty() and not siguiente.es_guia and guia.muerto)
+	_ok("5 cae el guía: la cruz NO pasa en el acto, se queda en el suelo donde cayó y la fila se para", pasos.is_empty() and not siguiente.es_guia and guia.muerto and sc.cruz_suelo != null and sc.fila_parada(), str(sc.cruz_suelo))
+	_ok("5 la cruz del suelo está junto a donde cayó (a ≤ 0,3 u) y no es la de su mano (esa se esconde)", sc.cruz_suelo != null and sc.cruz_suelo.position.distance_to(pos_guia) <= 0.3 and _piezas_visibles(guia).is_empty(), "%.2f u" % sc.cruz_suelo.position.distance_to(pos_guia))
 	_paso(0.9)
-	_ok("5 a los 0,9 s todavía no", pasos.is_empty() and not siguiente.es_guia)
-	_paso(0.2)
+	_ok("5 a los 0,9 s todavía no se ha agachado ni ha pasado la cruz (viene andando a ella)", pasos.is_empty() and not siguiente.es_guia and not siguiente.recogiendo)
+	_paso(0.3)
+	_ok("5 RECOGER: a 1,2 s llega a la cruz y se agacha con CollectObject (estado `lanzar_recoger`)", siguiente.recogiendo and siguiente.pj.estado_anim() == "lanzar_recoger" and siguiente.pj.clip_actual() == "CollectObject", "estado %s · clip %s" % [siguiente.pj.estado_anim(), siguiente.pj.clip_actual()])
+	_ok("5 RECOGER: y todavía no tiene la cruz (la mano no ha llegado abajo)", pasos.is_empty() and not siguiente.es_guia and _piezas(siguiente) == ["vela_santa"] and sc.cruz_suelo != null)
+	_paso(AnimaCompana3D.T_ENGANCHE - 0.4)
+	_ok("5 RECOGER: justo antes del enganche sigue sin ella", pasos.is_empty() and not siguiente.es_guia and sc.cruz_suelo != null)
+	_paso(0.7)
 	await process_frame
 	await process_frame
-	_ok("5 a 1 s la cruz pasa a la siguiente de la fila (señal con su número)", pasos == [siguiente.numero] and siguiente.es_guia and sc.vivas()[0] == siguiente, str(pasos))
+	_ok("5 RECOGER: a los T_ENGANCHE s la cruz se le engancha (señal con su número) y la del suelo desaparece", pasos == [siguiente.numero] and siguiente.es_guia and sc.vivas()[0] == siguiente and sc.cruz_suelo == null, str(pasos))
 	_ok("5 y se le cambia la pieza: ahora lleva la cruz y ya no la vela", _piezas(siguiente) == ["cruz_santa"], str(_piezas(siguiente)))
+	_ok("5 se está agachando aún: la fila sigue parada hasta que se endereza", siguiente.recogiendo and sc.fila_parada())
+	_paso(AnimaCompana3D.T_RECOGER)
+	_ok("5 se endereza y la fila vuelve a andar (en marcha si no estuviera `quieto`)", not siguiente.recogiendo and not sc.fila_parada() and sc.recogidas == 1 and siguiente.cruces_recogidas == 1)
 	_ok("5 la otra sigue con su vela y sin ser guía", _piezas(viva[2]) == ["vela_santa"] and not (viva[2] as AnimaCompana3D).es_guia)
 	await _limpiar()
+	# Si la matan a medio agacharse, la cruz sigue en el suelo y la recoge la siguiente.
+	var sc2: SantaCompana3D = _procesion([Vector2i(2, 3), Vector2i(11, 3)])
+	var pasos2: Array = []
+	sc2.cruz_pasada.connect(func(i: int) -> void: pasos2.append(i))
+	var v2: Array = sc2.vivas()
+	var tercera: AnimaCompana3D = v2[2]
+	_mata(v2[0])
+	_paso(1.3)
+	_ok("5 interrupción: la segunda se está agachando a por la cruz", (v2[1] as AnimaCompana3D).recogiendo and sc2.cruz_suelo != null)
+	_mata(v2[1])
+	_ok("5 interrupción: la matan a medias: la cruz sigue en el suelo, sin dueña, y nadie la tiene", pasos2.is_empty() and sc2.cruz_suelo != null and sc2.vivas() == [tercera] and not tercera.es_guia)
+	_paso(3.2)
+	await process_frame
+	await process_frame
+	_ok("5 interrupción: la tercera acaba recogiéndola", pasos2 == [tercera.numero] and tercera.es_guia and sc2.cruz_suelo == null and _piezas(tercera) == ["cruz_santa"], str(pasos2))
+	await _limpiar()
+
+
+## Los ids de las piezas de equipo VISIBLES que lleva `a` (la cruz del guía caído se esconde).
+func _piezas_visibles(a: AnimaCompana3D) -> Array:
+	var r: Array = []
+	for n in a.pj.find_children("*", "Node3D", true, false):
+		if n.has_meta("equipo_id") and not n.is_queued_for_deletion() and (n as Node3D).visible:
+			r.append(String(n.get_meta("equipo_id")))
+	return r
 
 
 func _compana_ventana() -> void:

@@ -17,6 +17,12 @@ extends Combate3D
 ## vela y se le pone la cruz con `Equipo3D.equipar`. LIMITACIÓN: el ANDAR no se cambia en caliente (el id del `Pj3D` sigue siendo `santa_compana_vela`, así que sigue con el Unsteady_Walk de la vela y
 ## no con el Spear_Walk de la cruz), ni se cierran sus dedos de la mano derecha (`Pj3D.MANO_RELAJADA` se aplica al cargar el modelo). Cambiar el id de un `Pj3D` ya cargado no está soportado.
 ##
+## PASAR LA CRUZ (12/11): al caer el guía su cruz se QUEDA EN EL SUELO donde cayó (`SantaCompana3D.cruz_suelo`) y la fila se para. La ánima siguiente cierra el hueco hasta esa casilla y la
+## RECOGE (`recoger_cruz`): se agacha con `CollectObject` (rol `cast_recoger`, estado `lanzar_recoger`, recortado de 0,5 a 4,7 s del clip y a RECOGER_VEL: el original dura 6 s y trae el
+## reposo al principio y al final). A los T_ENGANCHE s (la mano ya está abajo, sobre la cruz) se le pone la cruz con `hacer_guia` y la pieza del suelo desaparece; a los T_RECOGER s se endereza y
+## la fila sigue. Se eligió `CollectObject` y no `Ofrecer` (la jugadora, de pie, con la palma abierta): la que da la cruz está muerta, así que no hay nadie a quien ofrecérsela. Si la golpean o
+## la paran mientras se agacha, se corta: la cruz sigue en el suelo (o ya en su mano, si pasó el enganche) y la procesión lo reintenta.
+##
 ## `latente`: una ánima de REPOSICIÓN espera, invisible y sin colisión, a entrar por el extremo de la fila. Sigue en el grupo de combate a propósito: así el vigía de una sala la cuenta como viva
 ## y no da la sala por limpia mientras la procesión tiene a alguien por entrar.
 
@@ -38,6 +44,13 @@ const T_LENTO_MALDICION: float = 2.0
 const CD_MALDICION: float = 5.0                  ## s entre dos maldiciones del guía
 const T_DESCANSO_MALDICION: float = 0.5          ## s tras caer la maldición antes de volver a andar
 const ROL_CLIP_MALDICION: String = "cast_empuje" ## MageSoellCast001 (ver `Pj3D.SINONIMOS`)
+const ROL_CLIP_RECOGER: String = "cast_recoger"  ## CollectObject (ver `Pj3D.SINONIMOS`)
+const ESTADO_RECOGER: String = "lanzar_recoger"  ## estado del grafo reducido (`lanzar*` vale)
+const RECOGER_DESDE: float = 0.5                 ## s del clip original donde empieza (aún de pie, a punto de agacharse)
+const RECOGER_HASTA: float = 4.7                 ## s del clip original donde acaba (ya erguida; después solo es reposo)
+const RECOGER_VEL: float = 1.7                   ## velocidad con la que se reproduce el tramo
+const T_ENGANCHE: float = 1.4                    ## s desde que empieza: la mano está abajo sobre la cruz (clip a 2,9 s) y se le engancha
+const T_RECOGER: float = (RECOGER_HASTA - RECOGER_DESDE) / RECOGER_VEL   ## s que dura entera la recogida
 const RADIO_CAPSULA: float = 0.32
 
 var procesion: SantaCompana3D = null
@@ -49,6 +62,10 @@ var toques_dados: int = 0                        ## toques que alcanzaron a la j
 var malditos: int = 0                            ## maldiciones lanzadas (pruebas)
 var maldiciones_acertadas: int = 0
 var maldiciendo: bool = false                    ## está lanzando la maldición (mira a la jugadora en vez de a donde anda)
+var recogiendo: bool = false                     ## se está agachando a recoger la cruz del suelo
+var cruces_recogidas: int = 0                    ## cruces que ha llegado a enganchar (pruebas)
+var _t_recoger: float = 0.0
+var _enganchada: bool = false                    ## la cruz ya está en su mano (pasado T_ENGANCHE)
 var _cd_toque: float = 0.0
 var _cd_mal: float = 0.0
 var _t_mal: float = 0.0
@@ -152,6 +169,61 @@ func hacer_guia() -> bool:
 	return not puestas.is_empty()
 
 
+## La procesión le manda recoger la cruz del suelo: se agacha (clip `CollectObject` recortado) y a los T_ENGANCHE s la cruz pasa a su mano. Devuelve false si no puede (muerta, latente).
+func recoger_cruz() -> bool:
+	if muerto or latente or recogiendo:
+		return false
+	_cortar_maldicion()
+	recogiendo = true
+	_enganchada = false
+	_t_recoger = 0.0
+	moviendo = 0
+	if pj != null and is_instance_valid(pj):
+		pj.animacion_actual = ""
+		pj.set_velocidad_animacion(1.0)
+		var arbol: ArbolAnimPj = pj.arbol()
+		var clip: String = pj.clip_de(ROL_CLIP_RECOGER)
+		if clip != "" and arbol != null and arbol.pedir(ESTADO_RECOGER, clip, {"desde": RECOGER_DESDE, "hasta": RECOGER_HASTA, "bucle": Animation.LOOP_NONE, "vel": RECOGER_VEL, "mezcla": 0.15}):
+			pj.animacion_actual = ROL_CLIP_RECOGER
+	PlayLog.event("anima_recoge_cruz", {"numero": numero})
+	return true
+
+
+func _seguir_recoger(delta: float) -> void:
+	_t_recoger += delta
+	if not _enganchada and _t_recoger >= T_ENGANCHE:
+		_enganchada = true
+		hacer_guia()                                            # la mano ya está abajo: la cruz se le engancha ahora, no antes
+		cruces_recogidas += 1
+		if procesion != null and is_instance_valid(procesion):
+			procesion.al_recoger(self)
+	if _t_recoger >= T_RECOGER:
+		_acabar_recoger()
+
+
+## Se endereza: vuelve a andar con la fila.
+func _acabar_recoger() -> void:
+	recogiendo = false
+	if pj != null and is_instance_valid(pj):
+		pj.animacion_actual = ""                                # que `_animar` pida idle / andar otra vez
+	if procesion != null and is_instance_valid(procesion):
+		procesion.al_enderezarse(self)
+
+
+## Golpeada, congelada, aturdida o muerta a medio agacharse: se corta. Si aún no tenía la cruz, sigue en el suelo y la procesión lo reintenta.
+func _cortar_recogida() -> void:
+	if not recogiendo:
+		return
+	recogiendo = false
+	if pj != null and is_instance_valid(pj):
+		pj.animacion_actual = ""
+	if procesion != null and is_instance_valid(procesion):
+		if _enganchada:
+			procesion.al_enderezarse(self)
+		else:
+			procesion.cruz_sin_recoger(self)
+
+
 ## =====================================================================================================
 ##  Muerte, golpes y reposición
 ## =====================================================================================================
@@ -166,6 +238,7 @@ func _morir(ahogado: bool = false) -> void:
 		return
 	_cortar_maldicion()
 	maldiciendo = false
+	_cortar_recogida()
 	super(ahogado)
 	if procesion != null and is_instance_valid(procesion):
 		procesion.al_morir(self)
@@ -233,12 +306,17 @@ func _ia(delta: float) -> void:
 		elif interrupcion > 0.0 and _fase_empuje == FASE_NINGUNA and congelado <= 0.0:
 			interrupcion -= delta
 		_cortar_maldicion()
+		_cortar_recogida()
 		moviendo = 0
+		return
+	if recogiendo:
+		moviendo = 0
+		_seguir_recoger(delta)
 		return
 	if quieto:
 		moviendo = 0
 		return
-	moviendo = 1 if (procesion != null and procesion.en_marcha()) else 0
+	moviendo = 1 if (procesion != null and procesion.hay_movimiento()) else 0
 	if jugador == null or not is_instance_valid(jugador) or jugador.muerto:
 		_cortar_maldicion()
 		return
@@ -320,6 +398,8 @@ func _cortar_maldicion() -> void:
 
 
 func _animar() -> void:
+	if recogiendo and _fase_empuje == FASE_NINGUNA:
+		return                                                  # el clip de recoger ya está puesto
 	if maldiciendo and _fase_empuje == FASE_NINGUNA:
 		if mirada.length() > 0.01:
 			pj.mirar(mirada, 0.12)

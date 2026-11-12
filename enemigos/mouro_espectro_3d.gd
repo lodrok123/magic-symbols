@@ -18,8 +18,13 @@ extends Combate3D
 ## animación mientras ataca (`_animar`); el estado latente se resuelve en `_physics_process` antes de llegar a la física de Combate3D. Se pone desde un mapa con la pieza `mouro` de Puzle3D
 ## (`mamoa=<id de la pieza mámoa>`) o con `MouroEspectro3D.crear`.
 ##
-## CLIP DEL TOQUE: el ataque quiere `ChargedSpellCast001` y `Pj3D.SINONIMOS` no tiene un rol para él (el rol `cast` resuelve a MageSoellCast003). Como `pj_3d.gd` no es de esta tarea, se pide
-## por su nombre al árbol de animación (`_clip_toque`); si no se encuentra, se usa el rol `cast`. Lo limpio es un rol `cast_agarre` en `Pj3D.SINONIMOS`.
+## CLIP DEL TOQUE: el ataque quiere `ChargedSpellCast001` (el rol `cast` resuelve a MageSoellCast003). Desde el 12/11 tiene su rol `cast_agarre` en `Pj3D.SINONIMOS`; se pide al árbol con el estado
+## `lanzar_agarre` (`_clip_toque`, el grafo reducido solo admite estados `lanzar*`); si el clip no está, se usa el rol `cast`.
+##
+## SURGIR DEL POZO (12/11): el mouro ya no aparece de golpe. Latente hay `T_REBROTE` s; los últimos `dur_surgir()` s (lo que dura el clip) el cuerpo YA se ve, en la casilla de la mámoa y
+## todavía sin colisión ni barra, levantándose del suelo con el clip `Getting_Up` de Mixamo (rol `cast_surgir`, estado `lanzar_surgir`; la fuente se añadió al fantasma en `ClipsFamilia.FUENTE_MIXAMO_MOURO`).
+## Antes de eso el cuerpo no se ve (solo el humo). Al acabar el clip se completa el rebrote como siempre (`_rebrotar`: vida llena, golpeable, `rebroto`). Si taparon la mámoa a mitad, se esconde.
+## Se probó antes `SwimmingToEdge` (salir del agua): avanza la cadera casi un cuerpo y se sale del encuadre, no vale para un brocal; no se generó clip por código porque `Getting_Up` ya lee bien.
 
 signal deshecho                                  ## cayó a 0 con la mámoa abierta: se ha deshecho, volverá
 signal rebroto(veces: int)                       ## ha vuelto de la tumba; `veces` = rebrotes gastados ya (1..REBROTES_MAX)
@@ -43,15 +48,19 @@ const REBROTES_MAX: int = 3
 const T_REBROTE: float = 4.0                     ## s latente hasta reaparecer en la mámoa
 const T_SELLADO: float = 1.5                     ## s desde que tapan la mámoa hasta que muere definitivamente
 const RADIO_CAPSULA: float = 0.32
-const CLIP_TOQUE: String = "ChargedSpellCast001"
-const ESTADO_TOQUE: String = "lanzar_agarre"     ## estado del grafo reducido (`lanzar*` vale) para el clip pedido por nombre
+const ROL_CLIP_TOQUE: String = "cast_agarre"       ## ChargedSpellCast001 (ver `Pj3D.SINONIMOS`)
+const ESTADO_TOQUE: String = "lanzar_agarre"     ## estado del grafo reducido (`lanzar*` vale) para el clip del toque
+const ROL_CLIP_SURGIR: String = "cast_surgir"    ## Getting_Up de Mixamo (ver `Pj3D.SINONIMOS`)
+const ESTADO_SURGIR: String = "lanzar_surgir"
 
 var mamoa: Mamoa3D = null                        ## de dónde vuelve; null = enemigo normal
 var latente: bool = false                        ## deshecho, a la espera de volver (o de morir sellado)
 var rebrotes_gastados: int = 0
 var toques: int = 0                              ## agarres empezados (pruebas)
 var golpes_dados: int = 0                        ## agarres que alcanzaron a la jugadora (pruebas)
+var surgiendo: bool = false                      ## latente pero con el cuerpo ya a la vista, levantándose del pozo (pruebas)
 var _t_latente: float = 0.0
+var _dur_surgir: float = -1.0                    ## lo que dura el clip de surgir (s); -1 = sin medir, 0 = el modelo no lo trae
 var _sellado: bool = false                       ## la tapa cayó estando latente: muere definitivamente en `_t_sellado`
 var _t_sellado: float = 0.0
 var _definitiva: bool = false                    ## la próxima `_morir` no rebrota (la muerte sellada)
@@ -186,6 +195,7 @@ func _deshacerse() -> void:
 	_quitar_aviso()
 	_cortar_toque()
 	latente = true
+	surgiendo = false
 	_sellado = false
 	rebrotes_gastados += 1
 	_t_latente = T_REBROTE
@@ -211,6 +221,7 @@ func _deshacerse() -> void:
 ## Reaparece en la casilla de la mámoa con la vida llena y sin ningún estado. Al gastar el último rebrote, la mámoa se agrieta.
 func _rebrotar() -> void:
 	latente = false
+	surgiendo = false
 	_sellado = false
 	var c: Vector2i = mamoa.celda
 	position = Terreno3D.centro_de(c, Terreno3D.y_pies(c))
@@ -249,6 +260,9 @@ func _rebrotar() -> void:
 func _al_tapar() -> void:
 	if not latente or _sellado:
 		return
+	if surgiendo:
+		surgiendo = false
+		_visible(false)                                         # la tapa lo pilla a medio salir: se esconde (a los T_SELLADO s reaparece para morir, como siempre)
 	_sellado = true
 	_t_sellado = T_SELLADO
 	sellado.emit()
@@ -258,6 +272,7 @@ func _al_tapar() -> void:
 ## El fin del mouro sellado: aparece un instante en la mámoa y muere de verdad (con su botín, que cae allí).
 func _morir_sellado() -> void:
 	latente = false
+	surgiendo = false
 	_sellado = false
 	_definitiva = true
 	if mamoa != null and is_instance_valid(mamoa):
@@ -304,8 +319,43 @@ func _vigilar_latente(delta: float) -> void:
 			_morir_sellado()
 		return
 	_t_latente -= delta
+	if not surgiendo and _t_latente <= dur_surgir() and dur_surgir() > 0.0:
+		_empezar_surgir()
 	if _t_latente <= 0.0:
 		_rebrotar()
+
+
+## Lo que dura el clip de surgir (s), sin pasarse del tiempo de rebrote; 0 si el modelo no lo trae (entonces aparece de golpe, como antes).
+func dur_surgir() -> float:
+	if _dur_surgir < 0.0:
+		_dur_surgir = 0.0
+		if pj != null and is_instance_valid(pj):
+			_dur_surgir = minf(pj.duracion(ROL_CLIP_SURGIR), T_REBROTE - 0.5)
+	return _dur_surgir
+
+
+## El cuerpo sale a la vista en la casilla de la mámoa y se levanta del suelo. Sigue latente: sin colisión, sin barra, fuera de los grupos de combate, hasta `_rebrotar`.
+func _empezar_surgir() -> void:
+	surgiendo = true
+	if mamoa == null or not is_instance_valid(mamoa) or pj == null or not is_instance_valid(pj):
+		return
+	var c: Vector2i = mamoa.celda
+	position = Terreno3D.centro_de(c, Terreno3D.y_pies(c))
+	pj.position = position
+	if jugador != null and is_instance_valid(jugador):
+		var d: Vector3 = jugador.position - position
+		d.y = 0.0
+		if d.length() > 0.05:
+			mirada = d.normalized()
+			pj.mirar(mirada, 1.0)                               # de cara a ella desde el primer fotograma
+	pj.visible = true
+	pj.animacion_actual = ""
+	pj.set_velocidad_animacion(1.0)
+	var arbol: ArbolAnimPj = pj.arbol()
+	var clip: String = pj.clip_de(ROL_CLIP_SURGIR)
+	if clip != "" and arbol != null and arbol.pedir(ESTADO_SURGIR, clip, {"bucle": Animation.LOOP_NONE, "vel": 1.0, "mezcla": 0.0, "reiniciar": true}):
+		pj.animacion_actual = ROL_CLIP_SURGIR
+	PlayLog.event("mouro_surge", {"celda": [c.x, c.y]})
 
 
 func _ia(delta: float) -> void:
@@ -417,11 +467,7 @@ func _clip_toque() -> void:
 	if pj == null or not is_instance_valid(pj):
 		return
 	var arbol: ArbolAnimPj = pj.arbol()
-	var clip: String = ""
-	for n in pj.lista_clips():
-		if String(n).to_lower() == CLIP_TOQUE.to_lower():
-			clip = String(n)
-			break
+	var clip: String = pj.clip_de(ROL_CLIP_TOQUE)        # 12/11: ya hay rol (`cast_agarre` en `Pj3D.SINONIMOS`)
 	if clip != "" and arbol != null and arbol.pedir(ESTADO_TOQUE, clip, {"bucle": Animation.LOOP_NONE, "vel": 1.0, "mezcla": 0.15}):
 		pj.animacion_actual = ESTADO_TOQUE
 		pj.set_velocidad_animacion(1.0)

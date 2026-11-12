@@ -9,7 +9,10 @@ extends Node3D
 ##   · La fila no se rompe NUNCA: la procesión pone la posición de cada ánima sobre el camino, a su distancia de la cabeza; ni los empujones ni los hechizos la desordenan. Eso es lo que permite
 ##     barrerlas con un haz (la «línea» del glifo ᛁ). Una ánima congelada, aturdida o enraizada para a TODA la fila (`velocidad_fila`).
 ##   · El GUÍA (la primera) lleva la CRUZ (`santa_compana_cruz`); las demás, la palmatoria (`santa_compana_vela`). Si a la procesión la atacan, solo el guía se gira y lanza una maldición con aviso.
-##   · AL MORIR EL GUÍA: a los T_RELEVO s la cruz PASA a la siguiente de la fila (`AnimaCompana3D.hacer_guia`). Señal `cruz_pasada(numero)` (el `numero` de creación de la nueva guía).
+##   · AL MORIR EL GUÍA (12/11, con animación): su cruz SE QUEDA EN EL SUELO donde cayó (`cruz_suelo`, la pieza `cruz_santa` tumbada) y la fila se PARA. La siguiente cierra el hueco hasta esa
+##     casilla a CIERRE_RELEVO_VEL u/s (2,3 u en ~1 s: T_RELEVO es el mínimo que espera antes de agacharse) y la RECOGE con `AnimaCompana3D.recoger_cruz` (clip `CollectObject`, T_RECOGER s): la cruz
+##     se le engancha en la mano a los T_ENGANCHE s de empezar (`al_recoger`: señal `cruz_pasada(numero)` con el `numero` de creación de la nueva guía) y la fila sigue cuando se endereza.
+##     Si la ánima no llega en T_LLEGADA_MAX s se agacha donde esté. Si la cortan a medias (la matan o la paran), la cruz sigue en el suelo y se reintenta a los T_REINTENTO s con la siguiente.
 ##   · Si caen TODAS (las `n_animas`: tres) dentro de T_VENTANA s, la procesión se acaba de verdad: botín (tabla `anima`) y señal `procesion_rota()` (`motivo_fin = "ventana"`).
 ##   · Si no, la que quede REPONE la fila: a los T_REPONER s de caer cada una entra una ánima nueva por el extremo, hasta REPOSICIONES_MAX en total. Señal `repuesta(n)` (n = cuántas van). Agotadas
 ##     las reposiciones, cada baja ya no se repone y, cuando no queda ninguna ánima (ni esperando), la procesión se acaba también (`motivo_fin = "agotada"`): la salida alternativa, cara (n + 3 bajas
@@ -27,7 +30,12 @@ signal repuesta(n: int)                           ## entró una ánima de reposi
 const VEL_FILA: float = 1.2                       ## u/s
 const SEPARACION_CASILLAS: float = 1.0            ## casillas entre dos ánimas seguidas
 const N_ANIMAS_DEFECTO: int = 3
-const T_RELEVO: float = 1.0                       ## s desde que cae el guía hasta que la cruz pasa a la siguiente
+const T_RELEVO: float = 1.0                       ## s desde que cae el guía hasta que la siguiente se agacha a por la cruz (la cruz se le engancha T_ENGANCHE s después)
+const T_REINTENTO: float = 0.5                    ## s hasta volver a intentar el relevo si cortaron la recogida
+const T_LLEGADA_MAX: float = 4.0                  ## s esperando a que la siguiente llegue a la cruz; pasado esto se agacha donde esté
+const CIERRE_RELEVO_VEL: float = 2.4              ## u/s a los que la siguiente cierra el hueco mientras hay una cruz en el suelo (a 1,2 tardaba 1,9 s en llegar)
+const LLEGADA_DESFASE: float = 0.05               ## u de desfase por debajo de los que la ánima «ha llegado» a su sitio (el de la cruz)
+const CRUZ_ADELANTE: float = 0.22                 ## u por delante de la casilla del guía donde queda la cruz (bajo las manos de quien llega agachándose)
 const T_VENTANA: float = 2.5                      ## s: si caen todas dentro de esto, se acaba
 const T_REPONER: float = 6.0                      ## s desde la baja hasta que entra la ánima nueva
 const REPOSICIONES_MAX: int = 3
@@ -49,13 +57,19 @@ var rota: bool = false
 var motivo_fin: String = ""                       ## «ventana» | «agotada» | «» (las pruebas)
 var bajas: int = 0                                ## ánimas caídas en total
 var botin_soltado: Array = []
+var cruz_suelo: Node3D = null                     ## la cruz caída esperando a que la recojan (null = no hay)
+var recogidas: int = 0                            ## cruces que han acabado en la mano de otra ánima (pruebas)
 var quieto: bool = false                          ## la fila no avanza (los laboratorios lo ponen para tener dianas)
 var _creadas: int = 0                             ## números de creación repartidos
 var _programadas: int = 0                         ## reposiciones programadas (entradas o por entrar)
 var _reloj: float = 0.0
 var _muertes: Array = []                          ## relojes de las bajas recientes (la ventana)
 var _reponer: Array = []                          ## [{t, anima}] reposiciones por entrar
-var _t_relevo: float = -1.0                       ## > 0 = la cruz pasa en estos s; -1 = ningún relevo pendiente
+var _t_relevo: float = -1.0                       ## > 0 = la siguiente se agacha a por la cruz en estos s; -1 = ningún relevo pendiente
+var _relevo_listo: bool = false                   ## pasó T_RELEVO: espera a que la primera de la fila llegue a la cruz
+var _t_llegada: float = 0.0
+var _recogiendo: AnimaCompana3D = null            ## la que se agacha ahora
+var _cerrando: bool = false                       ## alguna ánima está cerrando hueco (anda aunque la fila esté parada)
 var _t_provocada: float = 0.0
 var _vertices: Array[Vector3] = []                ## el bucle de ida y vuelta, en el mundo
 var _acum: Array[float] = []                      ## largo acumulado hasta cada vértice (la última entrada es el largo del bucle)
@@ -182,9 +196,19 @@ func avanzar(delta: float) -> void:
 	_avanzar_reposiciones(delta)
 
 
-## ¿La fila anda ahora?
+## ¿La fila anda ahora? No mientras hay una cruz en el suelo o alguien se agacha a por ella.
 func en_marcha() -> bool:
-	return not quieto and velocidad_fila() > 0.01 and largo_bucle() > 0.01
+	return not quieto and not fila_parada() and velocidad_fila() > 0.01 and largo_bucle() > 0.01
+
+
+## Hay una cruz caída que recoger (o alguien en ello): la fila no avanza.
+func fila_parada() -> bool:
+	return cruz_suelo != null or _relevo_listo or _recogiendo != null or _t_relevo >= 0.0
+
+
+## Las ánimas se mueven (andan con el clip): la fila va, o alguna cierra el hueco de una baja.
+func hay_movimiento() -> bool:
+	return en_marcha() or _cerrando
 
 
 ## La velocidad de la fila (u/s): VEL_FILA × lo que deje la más frenada. Una ánima congelada, aturdida o enraizada la para entera.
@@ -204,11 +228,16 @@ func _avanzar_fila(delta: float) -> void:
 	if en_marcha():
 		s_cabeza += velocidad_fila() * delta
 	var i: int = 0
+	var vel_cierre: float = CIERRE_RELEVO_VEL if cruz_suelo != null else CIERRE_VEL
+	_cerrando = false
 	for a in animas:
 		var an: AnimaCompana3D = a
 		if not is_instance_valid(an) or an.muerto or an.latente:
 			continue
-		an.desfase = move_toward(an.desfase, float(i) * separacion(), CIERRE_VEL * delta)
+		var meta: float = float(i) * separacion()
+		if absf(an.desfase - meta) > 0.01 and not an.recogiendo:
+			_cerrando = true
+		an.desfase = move_toward(an.desfase, meta, vel_cierre * delta)
 		i += 1
 	_colocar_todas()
 
@@ -255,6 +284,9 @@ func al_morir(a: AnimaCompana3D) -> void:
 		_acabar("ventana")
 		return
 	if era_guia:
+		_soltar_cruz(a)
+		_recogiendo = null
+		_relevo_listo = false
 		_t_relevo = T_RELEVO
 	if _programadas < REPOSICIONES_MAX:
 		_programadas += 1
@@ -268,24 +300,96 @@ func al_morir(a: AnimaCompana3D) -> void:
 
 
 func _avanzar_relevo(delta: float) -> void:
-	if _t_relevo < 0.0:
-		return
-	_t_relevo -= delta
-	if _t_relevo > 0.0:
-		return
-	_t_relevo = -1.0
-	_pasar_cruz()
+	if _t_relevo >= 0.0:
+		_t_relevo -= delta
+		if _t_relevo <= 0.0:
+			_t_relevo = -1.0
+			_relevo_listo = true
+			_t_llegada = 0.0
+	if _relevo_listo:
+		_pasar_cruz(delta)
 
 
-## La cruz pasa a la primera ánima viva de la fila (si no hay ninguna, se hará cuando entre una).
-func _pasar_cruz() -> void:
+## Pasada la espera, la primera ánima viva de la fila va a la cruz del suelo y, al llegar (o pasado T_LLEGADA_MAX), se agacha a recogerla (si no hay ninguna viva, se hará cuando entre una). Sin
+## cruz en el suelo (no debería ocurrir) se la pone de golpe, como antes del 12/11.
+func _pasar_cruz(delta: float) -> void:
 	for a in animas:
 		var an: AnimaCompana3D = a
-		if is_instance_valid(an) and not an.muerto and not an.latente:
+		if not is_instance_valid(an) or an.muerto or an.latente:
+			continue
+		if cruz_suelo == null:
 			an.hacer_guia()
+			_relevo_listo = false
 			cruz_pasada.emit(an.numero)
 			PlayLog.event("compana_cruz_pasada", {"numero": an.numero})
 			return
+		_t_llegada += delta
+		if an.desfase <= LLEGADA_DESFASE or _t_llegada >= T_LLEGADA_MAX:
+			if an.recoger_cruz():
+				_recogiendo = an
+				_relevo_listo = false
+		return
+
+
+## La ánima `a` ha enganchado la cruz en su mano (a los T_ENGANCHE s de agacharse): la cruz del suelo desaparece y se avisa.
+func al_recoger(a: AnimaCompana3D) -> void:
+	_quitar_cruz_suelo()
+	recogidas += 1
+	cruz_pasada.emit(a.numero)
+	PlayLog.event("compana_cruz_pasada", {"numero": a.numero})
+
+
+## La ánima `a` se ha enderezado con la cruz: la fila vuelve a andar.
+func al_enderezarse(a: AnimaCompana3D) -> void:
+	if _recogiendo == a:
+		_recogiendo = null
+
+
+## Cortaron a `a` antes de que enganchara la cruz: sigue en el suelo y se reintenta enseguida (con ella o con la que esté primera).
+func cruz_sin_recoger(a: AnimaCompana3D) -> void:
+	if _recogiendo == a:
+		_recogiendo = null
+	_relevo_listo = false
+	if cruz_suelo != null:
+		_t_relevo = T_REINTENTO
+
+
+## La cruz del guía caído se queda en el suelo, tumbada y atravesada a la marcha, un poco por delante de donde cayó. La que llevaba en la mano se esconde.
+func _soltar_cruz(guia: AnimaCompana3D) -> void:
+	_quitar_cruz_suelo()
+	var pj: Pj3D = guia.pj
+	var escala: float = Equipo3D.CRUZ_ESCALA
+	if pj != null and is_instance_valid(pj) and pj._modelo != null:
+		escala *= pj.scale.y
+		for n in pj._modelo.find_children("*", "Node3D", true, false):
+			if n.has_meta("equipo_id") and String(n.get_meta("equipo_id")) == "cruz_santa":
+				(n as Node3D).visible = false
+	var dir: Vector3 = guia.mirada
+	dir.y = 0.0
+	dir = dir.normalized() if dir.length() > 0.01 else Vector3(0, 0, 1)
+	var raiz := Node3D.new()
+	raiz.name = "CruzSuelo"
+	mundo.add_child(raiz)
+	raiz.position = guia.position + dir * CRUZ_ADELANTE
+	raiz.rotation.y = atan2(dir.x, dir.z)
+	var cruz: Node3D = Equipo3D.pieza("cruz_santa")
+	raiz.add_child(cruz)
+	cruz.scale = Vector3.ONE * escala
+	cruz.rotation_degrees = Vector3(0.0, 0.0, 90.0)             # el mango, que es su eje Y, pasa a horizontal (a lo largo de X: atravesado a la marcha)
+	var caja: AABB = Mamoa3D._caja_modelo(raiz)
+	if caja.size.x > 0.0001 or caja.size.y > 0.0001:
+		cruz.position = Vector3(-(caja.position.x + caja.size.x * 0.5), -caja.position.y, -(caja.position.z + caja.size.z * 0.5))
+	cruz_suelo = raiz
+
+
+func _quitar_cruz_suelo() -> void:
+	if cruz_suelo != null and is_instance_valid(cruz_suelo):
+		cruz_suelo.queue_free()
+	cruz_suelo = null
+
+
+func _exit_tree() -> void:
+	_quitar_cruz_suelo()
 
 
 func _hay_guia() -> bool:
@@ -316,7 +420,7 @@ func _avanzar_reposiciones(delta: float) -> void:
 		reposiciones += 1
 		repuesta.emit(reposiciones)
 		PlayLog.event("compana_repuesta", {"n": reposiciones})
-		if not _hay_guia() and _t_relevo < 0.0:
+		if not _hay_guia() and _t_relevo < 0.0 and not _relevo_listo and _recogiendo == null:
 			_t_relevo = T_RELEVO
 
 
@@ -325,6 +429,9 @@ func _acabar(motivo: String) -> void:
 	rota = true
 	motivo_fin = motivo
 	_reponer.clear()
+	_t_relevo = -1.0
+	_relevo_listo = false
+	_quitar_cruz_suelo()
 	for a in animas:
 		if is_instance_valid(a) and (a as AnimaCompana3D).latente:
 			var pj: Pj3D = (a as AnimaCompana3D).pj

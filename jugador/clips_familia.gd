@@ -86,6 +86,9 @@ const FUENTE_MIXAMO_ANCIANA: Dictionary = {
 	"ruta": RUTA_CLIPS_MIXAMO, "referencia": "Idle", "clips": {
 		"Mixamo_Rezar": "Praying_2",
 	}}
+## Mouro espectro (12/11): el único clip de Mixamo que se le añade al fantasma es el de levantarse del suelo, alternativa para «surgir del pozo» (ver `MouroEspectro3D`).
+const FUENTE_MIXAMO_MOURO: Dictionary = {
+	"ruta": RUTA_CLIPS_MIXAMO, "referencia": "Idle", "clips": {"Mixamo_Incorporarse": "Getting_Up"}}
 const FUENTE_MIXAMO_NPC: Dictionary = {
 	"ruta": RUTA_CLIPS_MIXAMO, "referencia": "Idle", "centrar": ["Bartending"], "clips": {"Mixamo_Tabernero": "Bartending"}}   # la cadera a 0,49 alturas hacia atrás; se mueve 0,39 por la barra
 
@@ -156,6 +159,7 @@ const FUENTES: Dictionary = {
 	"fantasma_elfo_rig": [
 		FUENTE_SANTA_VELA,
 		{"ruta": "res://arte/modelos/chibi_elf.glb", "referencia": "Idle", "clips": {}},
+		FUENTE_MIXAMO_MOURO,
 	],
 	"santa_compana_cruz": [
 		FUENTE_SANTA_CRUZ,
