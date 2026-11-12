@@ -6,7 +6,9 @@ extends SceneTree
 ## Salida (cada una, el fotograma suelto 1280x720 y la tira):
 ##   surgir_1..6.png + surgir_tira.png     el mouro cae a 0 de vida con la mámoa abierta: pozo vacío con humo, sale el cuerpo y se levanta (Getting_Up, 2,7 s), vuelve de pie a los 4 s
 ##   relevo_1..6.png + relevo_tira.png     cae la guía → la cruz queda en el suelo → la siguiente llega → se agacha (CollectObject) → la cruz se le engancha → sigue la fila
-##   HOJA_RESUMEN.jpg                      las dos tiras una sobre otra
+##   reponer_1..6.png + reponer_tira.png   la última de la fila cae → la cola vacía → a los 3,3 s asoma del suelo DETRÁS de la cola (Getting_Up, sube desde bajo tierra con polvo) → se incorpora →
+##                                         a los 6 s es enemigo de verdad y anda en la fila
+##   HOJA_RESUMEN.jpg                      las tres tiras una sobre otra
 
 const DIR: String = "res://docs/capturas/mouro_compana"
 const DT: float = 1.0 / 60.0
@@ -19,6 +21,11 @@ const FOTOS_SURGIR: Array = [[1.0, "1 · 1,0 s: vacío y humo"], [1.45, "2 · 1,
 ## Instantes (s desde que cae el guía; el primero es antes de caer) y rótulo de cada foto del relevo.
 const FOTOS_RELEVO: Array = [[-0.1, "1 · la guía lleva la cruz"], [0.3, "2 · cae: la cruz se queda en el suelo, la fila para"], [0.8, "3 · la siguiente viene a por ella"],
 	[1.8, "4 · se agacha: la mano llega a la cruz"], [2.7, "5 · la cruz se le engancha; se endereza"], [3.9, "6 · sigue la fila"]]
+
+## Instantes (s desde que cae la última de la fila) y rótulo de cada foto de la reposición. La nueva sale detrás de la cola a los 3,3 s (T_REPONER − el clip) y acaba de pie a los 6; la fila
+## está quieta hasta los 5,6 s para que el encuadre sea el mismo, y luego anda.
+const FOTOS_REPONER: Array = [[-0.1, "1 · tres en fila"], [0.6, "2 · cae la última: la cola queda vacía"], [3.0, "3 · 3,0 s: se espera"],
+	[3.8, "4 · 3,8 s: asoma del suelo"], [4.8, "5 · 4,8 s: se incorpora"], [7.4, "6 · anda en la fila"]]
 
 class JugadoraFalsa extends Jugador3D:
 	func recibir_dano(cantidad: float, _desde: Vector3 = Vector3.ZERO) -> void:
@@ -52,7 +59,9 @@ func _initialize() -> void:
 	var tira_s: Image = await _surgir()
 	await _limpiar()
 	var tira_r: Image = await _relevo()
-	_hoja(tira_s, tira_r)
+	var tira_p: Image = await _reponer()
+	var todas: Array[Image] = [tira_s, tira_r, tira_p]
+	_hoja(todas)
 	Sensacion3D.ACTIVA = _sensacion
 	quit(0)
 
@@ -188,15 +197,15 @@ func _surgir() -> Image:
 	await process_frame
 	_mouro.receive_damage(MouroEspectro3D.VIDA + 1.0)
 	print("surgir: latente ", _mouro.latente, " · dur_surgir ", _mouro.dur_surgir())
-	var foco: Vector3 = _pos(cm) + Vector3(0, 0.45, 0)
+	var foco: Vector3 = _pos(cm) + Vector3(0, 0.5, 0.9)      # entre el pozo y la casilla de salida (la vecina hacia la jugadora, a +z)
 	_rotulo.position = Vector2(372, 18)                      # dentro del recorte de la tira
 	var tiras: Array[Image] = []
 	for f in FOTOS_SURGIR:
 		await _avanzar_hasta(float(f[0]))
 		var n: int = tiras.size() + 1
-		var img: Image = await _foto("surgir_%d" % n, String(f[1]), foco, Vector3(0.2, 1.7, 1.0), 4.8)
+		var img: Image = await _foto("surgir_%d" % n, String(f[1]), foco, Vector3(0.2, 1.0, 1.0), 6.4)
 		tiras.append(img)
-	return _tira(tiras, Rect2i(340, 0, 600, 720), 1)
+	return _tira(tiras, Rect2i(340, 0, 600, 720), 1, "surgir_tira")
 
 
 # ---------------------------------------------------------------------------------------------------------------------
@@ -238,7 +247,66 @@ func _relevo() -> Image:
 		var img: Image = await _foto("relevo_%d" % n, String(f[1]), foco, Vector3(-0.1, 0.38, 1.0), 4.6)
 		tiras.append(img)
 	print("relevo: recogidas ", _proc.recogidas, " · cruz_suelo ", _proc.cruz_suelo)
-	return _tira(tiras, Rect2i(0, 0, 1280, 720), 3)
+	return _tira(tiras, Rect2i(0, 0, 1280, 720), 3, "relevo_tira")
+
+
+# ---------------------------------------------------------------------------------------------------------------------
+#  Reponer: una ánima nueva surge de la tierra detrás de la cola
+# ---------------------------------------------------------------------------------------------------------------------
+
+func _limpiar_proc() -> void:
+	if _proc != null and is_instance_valid(_proc):
+		for a in _proc.animas:
+			if is_instance_valid(a):
+				if is_instance_valid((a as Combate3D).pj):
+					(a as Combate3D).pj.queue_free()
+				(a as Node).queue_free()
+		_proc.queue_free()
+	_proc = null
+
+
+func _reponer() -> Image:
+	_limpiar_proc()
+	await process_frame
+	await process_frame
+	_t = 0.0
+	_proc = SantaCompana3D.crear(_mundo, [Vector2i(2, 4), Vector2i(12, 4)], 3, Vector2i(2, 4), _jug)
+	_proc.set_physics_process(false)
+	_proc.quieto = true                                      # la fila espera quieta hasta que la nueva ya está de pie; luego anda
+	for a in _proc.animas:
+		(a as Node).set_physics_process(false)
+	_jug.position = _pos(Vector2i(2, 12))
+	await process_frame
+	var cola: AnimaCompana3D = _proc.vivas()[2]
+	var p0: Vector3 = _proc.punto_en(_proc.s_cabeza - 2.0 * _proc.separacion())["pos"]       # donde saldrá la nueva: detrás de la última que quede viva
+	var foco: Vector3 = Vector3(p0.x + 2.3, p0.y + 0.4, p0.z)      # encuadra las tres: la nueva en el borde izquierdo y la guía en el derecho
+	_rotulo.position = Vector2(24, 18)
+	var tiras: Array[Image] = []
+	var t_baja: float = 0.3
+	_t = -t_baja
+	var cayo: bool = false
+	var suelto: bool = false
+	for f in FOTOS_REPONER:
+		var t_foto: float = float(f[0])
+		while _t < t_foto - 0.0001:
+			if not cayo and _t >= -0.0001:
+				cola._morir()                                # sin pasar por `receive_damage`: así no sale el número de daño en la foto
+				cayo = true
+			if not suelto and _t >= 5.6:
+				_proc.quieto = false
+				suelto = true
+			if _t >= 3.0 and not Sensacion3D.ACTIVA:
+				Sensacion3D.ACTIVA = true                    # el polvo de salir de la tierra (`Sensacion3D.polvo`) solo sale con las sensaciones encendidas
+			for _k in range(2):
+				_tick()
+			_t += 2.0 * DT
+			await process_frame
+		var n: int = tiras.size() + 1
+		var img: Image = await _foto("reponer_%d" % n, String(f[1]), foco, Vector3(-0.1, 0.38, 1.0), 8.6)
+		tiras.append(img)
+	Sensacion3D.ACTIVA = false
+	print("reponer: reposiciones ", _proc.reposiciones, " · vivas ", _proc.vivas().size())
+	return _tira(tiras, Rect2i(0, 0, 1280, 720), 3, "reponer_tira")
 
 
 # ---------------------------------------------------------------------------------------------------------------------
@@ -246,7 +314,7 @@ func _relevo() -> Image:
 # ---------------------------------------------------------------------------------------------------------------------
 
 ## Junta las fotos recortadas a `recorte` en una tira de `columnas` columnas (una sola fila si hay tantas columnas como fotos). Las de recorte ancho se reducen a la mitad.
-func _tira(fotos: Array[Image], recorte: Rect2i, columnas: int) -> Image:
+func _tira(fotos: Array[Image], recorte: Rect2i, columnas: int, nombre: String) -> Image:
 	var ancho: int = recorte.size.x
 	var alto: int = recorte.size.y
 	var esc: float = 1.0 if ancho <= 600 else 0.5
@@ -261,20 +329,24 @@ func _tira(fotos: Array[Image], recorte: Rect2i, columnas: int) -> Image:
 		if esc != 1.0:
 			c.resize(w, h, Image.INTERPOLATE_LANCZOS)
 		tira.blit_rect(c, Rect2i(0, 0, w, h), Vector2i(w * (i % col), h * (i / col)))
-	var nombre: String = "surgir_tira" if columnas == 1 else "relevo_tira"
 	tira.save_png(DIR.path_join(nombre + ".png"))
 	print("tira ", nombre, " ", tira.get_size())
 	return tira
 
 
-func _hoja(tira_s: Image, tira_r: Image) -> void:
+func _hoja(tiras: Array[Image]) -> void:
 	var ancho: int = 1920
-	var a: Image = tira_s.duplicate()
-	a.resize(ancho, int(float(a.get_height()) * float(ancho) / float(a.get_width())), Image.INTERPOLATE_LANCZOS)
-	var b: Image = tira_r.duplicate()
-	b.resize(ancho, int(float(b.get_height()) * float(ancho) / float(b.get_width())), Image.INTERPOLATE_LANCZOS)
-	var hoja := Image.create_empty(ancho, a.get_height() + b.get_height(), false, Image.FORMAT_RGB8)
-	hoja.blit_rect(a, Rect2i(Vector2i.ZERO, a.get_size()), Vector2i.ZERO)
-	hoja.blit_rect(b, Rect2i(Vector2i.ZERO, b.get_size()), Vector2i(0, a.get_height()))
+	var alto: int = 0
+	var ajustadas: Array[Image] = []
+	for t in tiras:
+		var a: Image = t.duplicate()
+		a.resize(ancho, int(float(a.get_height()) * float(ancho) / float(a.get_width())), Image.INTERPOLATE_LANCZOS)
+		ajustadas.append(a)
+		alto += a.get_height()
+	var hoja := Image.create_empty(ancho, alto, false, Image.FORMAT_RGB8)
+	var y: int = 0
+	for a in ajustadas:
+		hoja.blit_rect(a, Rect2i(Vector2i.ZERO, a.get_size()), Vector2i(0, y))
+		y += a.get_height()
 	hoja.save_jpg(DIR.path_join("HOJA_RESUMEN.jpg"), 0.9)
 	print("hoja ", hoja.get_size())

@@ -86,8 +86,9 @@ const FUENTE_MIXAMO_ANCIANA: Dictionary = {
 	"ruta": RUTA_CLIPS_MIXAMO, "referencia": "Idle", "clips": {
 		"Mixamo_Rezar": "Praying_2",
 	}}
-## Mouro espectro (12/11): el único clip de Mixamo que se le añade al fantasma es el de levantarse del suelo, alternativa para «surgir del pozo» (ver `MouroEspectro3D`).
-const FUENTE_MIXAMO_MOURO: Dictionary = {
+## SURGIR (12/11): el único clip de Mixamo que se añade al fantasma (el mouro sale del pozo, `MouroEspectro3D`) y a las dos ánimas de la Santa Compaña (la repuesta sale de la tierra,
+## `SantaCompana3D`) es el de levantarse del suelo (Getting_Up, rol `cast_surgir` de `Pj3D.SINONIMOS`).
+const FUENTE_MIXAMO_SURGIR: Dictionary = {
 	"ruta": RUTA_CLIPS_MIXAMO, "referencia": "Idle", "clips": {"Mixamo_Incorporarse": "Getting_Up"}}
 const FUENTE_MIXAMO_NPC: Dictionary = {
 	"ruta": RUTA_CLIPS_MIXAMO, "referencia": "Idle", "centrar": ["Bartending"], "clips": {"Mixamo_Tabernero": "Bartending"}}   # la cadera a 0,49 alturas hacia atrás; se mueve 0,39 por la barra
@@ -159,15 +160,17 @@ const FUENTES: Dictionary = {
 	"fantasma_elfo_rig": [
 		FUENTE_SANTA_VELA,
 		{"ruta": "res://arte/modelos/chibi_elf.glb", "referencia": "Idle", "clips": {}},
-		FUENTE_MIXAMO_MOURO,
+		FUENTE_MIXAMO_SURGIR,
 	],
 	"santa_compana_cruz": [
 		FUENTE_SANTA_CRUZ,
 		{"ruta": "res://arte/modelos/chibi_elf.glb", "referencia": "Idle", "clips": {}},
+		FUENTE_MIXAMO_SURGIR,
 	],
 	"santa_compana_vela": [
 		FUENTE_SANTA_VELA,
 		{"ruta": "res://arte/modelos/chibi_elf.glb", "referencia": "Idle", "clips": {}},
+		FUENTE_MIXAMO_SURGIR,
 	],
 	# Goblin asesino (22/10): el movimiento sale de «Gribble the Goblin, All Animations» (Meshy; solo su esqueleto y sus clips) y las reacciones, de los
 	# clips del goblin guerrero (el mismo rig de Meshy). Nombres de destino = los de los roles de Pj3D.SINONIMOS.

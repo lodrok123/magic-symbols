@@ -23,8 +23,15 @@ extends Combate3D
 ## la fila sigue. Se eligió `CollectObject` y no `Ofrecer` (la jugadora, de pie, con la palma abierta): la que da la cruz está muerta, así que no hay nadie a quien ofrecérsela. Si la golpean o
 ## la paran mientras se agacha, se corta: la cruz sigue en el suelo (o ya en su mano, si pasó el enganche) y la procesión lo reintenta.
 ##
-## `latente`: una ánima de REPOSICIÓN espera, invisible y sin colisión, a entrar por el extremo de la fila. Sigue en el grupo de combate a propósito: así el vigía de una sala la cuenta como viva
-## y no da la sala por limpia mientras la procesión tiene a alguien por entrar.
+## `latente`: una ánima de REPOSICIÓN espera, invisible y sin colisión, a entrar por la cola de la fila. Sigue en el grupo de combate GRACIA_VIGIA s a propósito: así el vigía de una sala (que escanea
+## cada 0,1 s) la ve y la cuenta como viva y no da la sala por limpia mientras la procesión tiene a alguien por entrar. Pasada la gracia SALE de los grupos `combate3d` y `goblins` (como hace el mouro
+## latente) para que nada la elija de objetivo (saltos de rayo, hechizos de área, el golpe F…) mientras no es un enemigo de verdad; vuelve a ellos en `entrar()`.
+##
+## SURGIR DE LA TIERRA (12/11, reposición): la procesión (`SantaCompana3D._empezar_surgir`) la pone detrás de la última ánima viva y llama a `surgir_en(pos)`: se ve el cuerpo, que empieza
+## HUNDIDO HUNDIDA_SURGIR u bajo el suelo (el suelo lo tapa: nada se ve antes de empezar el clip) y SUBE hasta quedar a ras durante la primera mitad del clip (TRAMO_SUBIDA, smoothstep) mientras se
+## incorpora con `Getting_Up` de Mixamo (rol `cast_surgir`, estado `lanzar_surgir`, el mismo clip que el mouro; el INVERSO de él, que flotaba sobre el brocal). Sigue LATENTE todo ese tiempo (sin
+## colisión, fuera de los grupos de combate, sin barra): es enemigo de verdad en `entrar()`, que llama la procesión justo al acabar el clip. Al empezar suelta polvo a ras de suelo
+## (`Sensacion3D.polvo`, el polvo del gólem y del derrumbe; no hay efecto nuevo).
 
 const ID_GUIA: String = "santa_compana_cruz"
 const ID_VELA: String = "santa_compana_vela"
@@ -51,6 +58,12 @@ const RECOGER_HASTA: float = 4.7                 ## s del clip original donde ac
 const RECOGER_VEL: float = 1.7                   ## velocidad con la que se reproduce el tramo
 const T_ENGANCHE: float = 1.4                    ## s desde que empieza: la mano está abajo sobre la cruz (clip a 2,9 s) y se le engancha
 const T_RECOGER: float = (RECOGER_HASTA - RECOGER_DESDE) / RECOGER_VEL   ## s que dura entera la recogida
+const ROL_CLIP_SURGIR: String = "cast_surgir"    ## Getting_Up de Mixamo (ver `Pj3D.SINONIMOS`)
+const ESTADO_SURGIR: String = "lanzar_surgir"
+const HUNDIDA_SURGIR: float = 0.9                ## u bajo el suelo a las que empieza al surgir (algo más que su alto, ALTO = 0,85)
+const TRAMO_SUBIDA: float = 0.5                  ## fracción del clip en la que sube hasta quedar a ras (smoothstep); el resto es incorporarse ya a ras
+const GRACIA_VIGIA: float = 0.5                  ## s latente que sigue en los grupos de combate para que el vigía la vea (escanea cada 0,1 s)
+const POLVO_SURGIR: float = 0.4                  ## radio (u) del polvo al empezar a surgir: un marco a ras de suelo, no una cortina (0,8 la tapaba entera; `Sensacion3D.polvo` solo admite el radio)
 const RADIO_CAPSULA: float = 0.32
 
 var procesion: SantaCompana3D = null
@@ -62,6 +75,9 @@ var toques_dados: int = 0                        ## toques que alcanzaron a la j
 var malditos: int = 0                            ## maldiciones lanzadas (pruebas)
 var maldiciones_acertadas: int = 0
 var maldiciendo: bool = false                    ## está lanzando la maldición (mira a la jugadora en vez de a donde anda)
+var surgiendo: bool = false                      ## latente pero con el cuerpo ya a la vista, subiendo de la tierra (pruebas)
+var _t_surgir: float = 0.0
+var _t_gracia: float = 0.0                       ## s que le quedan en los grupos de combate estando latente
 var recogiendo: bool = false                     ## se está agachando a recoger la cruz del suelo
 var cruces_recogidas: int = 0                    ## cruces que ha llegado a enganchar (pruebas)
 var _t_recoger: float = 0.0
@@ -256,12 +272,18 @@ func push(_direccion: Vector3, _fuerza: float, _suelo: bool = false, _dano: floa
 
 
 ## Una ánima de reposición sale de su espera y entra por el extremo de la fila.
+## Aquí (y no antes) pasa a ser un enemigo de verdad: colisión, grupos de combate y blanco de todo. Si venía de surgir, el clip acaba justo ahora y queda a ras de suelo (desplazamiento 0 exacto).
 func entrar() -> void:
 	latente = false
+	surgiendo = false
 	collision_layer = Lanzador3D.CAPA_REACTIVO
 	monitorable = true
+	add_to_group("combate3d")
+	add_to_group("goblins")
 	if pj != null and is_instance_valid(pj):
 		pj.visible = true
+		pj.position = position
+		pj.animacion_actual = ""                                # que `_animar` pida idle / andar
 	for n in [_nombre_etiqueta]:
 		if n != null:
 			(n as Node3D).visible = true
@@ -271,6 +293,8 @@ func entrar() -> void:
 ## La dejan latente (invisible, sin colisión), a la espera de entrar. En el grupo de combate: ver la cabecera.
 func esperar_fuera() -> void:
 	latente = true
+	surgiendo = false
+	_t_gracia = GRACIA_VIGIA
 	collision_layer = 0
 	monitorable = false
 	if pj != null and is_instance_valid(pj):
@@ -278,6 +302,43 @@ func esperar_fuera() -> void:
 	for n in [_barra_fondo, _barra_perdida, _barra_vida, _marca_debil, _nombre_etiqueta]:
 		if n != null:
 			(n as Node3D).visible = false
+
+
+## Lo que dura el clip de surgir (s); 0 si el modelo no lo trae (entonces entra de golpe, como antes del 12/11).
+func dur_surgir() -> float:
+	if pj == null or not is_instance_valid(pj):
+		return 0.0
+	return pj.duracion(ROL_CLIP_SURGIR)
+
+
+## La procesión la manda surgir de la tierra en `pos` (centro de la casilla, a la altura de su suelo): el cuerpo se ve, hundido, y empieza el clip. Sigue latente hasta `entrar()`.
+func surgir_en(pos: Vector3) -> void:
+	surgiendo = true
+	_t_surgir = 0.0
+	position = pos
+	if pj == null or not is_instance_valid(pj):
+		return
+	pj.position = position + Vector3(0.0, -HUNDIDA_SURGIR, 0.0)      # bajo el suelo ANTES de hacerse visible
+	if mirada.length() > 0.01:
+		pj.mirar(mirada, 1.0)
+	pj.animacion_actual = ""
+	pj.set_velocidad_animacion(1.0)
+	var arbol: ArbolAnimPj = pj.arbol()
+	var clip: String = pj.clip_de(ROL_CLIP_SURGIR)
+	if clip != "" and arbol != null and arbol.pedir(ESTADO_SURGIR, clip, {"bucle": Animation.LOOP_NONE, "vel": 1.0, "mezcla": 0.0, "reiniciar": true}):
+		pj.animacion_actual = ROL_CLIP_SURGIR
+	pj.visible = true
+	Sensacion3D.polvo(mundo, position, POLVO_SURGIR)
+
+
+## Cada fotograma de surgir: sube de la tierra hasta quedar a ras en TRAMO_SUBIDA del clip.
+func _seguir_surgir(delta: float) -> void:
+	_t_surgir += delta
+	if pj == null or not is_instance_valid(pj):
+		return
+	var u: float = clampf(_t_surgir / maxf(dur_surgir() * TRAMO_SUBIDA, 0.01), 0.0, 1.0)
+	u = u * u * (3.0 - 2.0 * u)
+	pj.position = position + Vector3(0.0, -HUNDIDA_SURGIR * (1.0 - u), 0.0)
 
 
 ## Cuánto deja avanzar a la fila: 0 si está congelada, aturdida o enraizada; si no, lo que le dejen los estados (ralentizada, mojada).
@@ -293,6 +354,13 @@ func factor_marcha() -> float:
 
 func _physics_process(delta: float) -> void:
 	if latente:
+		if surgiendo:
+			_seguir_surgir(delta)
+		if _t_gracia > 0.0:
+			_t_gracia -= delta
+			if _t_gracia <= 0.0:
+				remove_from_group("combate3d")                  # ya la vio el vigía: ahora nada la elige de objetivo hasta `entrar()`
+				remove_from_group("goblins")
 		return
 	super(delta)
 

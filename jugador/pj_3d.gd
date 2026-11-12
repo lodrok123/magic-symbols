@@ -77,7 +77,7 @@ const SINONIMOS: Dictionary = {
 	# Santa Compaña y mouro (12/11): roles `cast_*` para que su estado del árbol se llame `lanzar_*`, que SÍ existe en el grafo reducido de los enemigos (`ArbolAnimPj.ESTADOS_REDUCIDO`).
 	"cast_agarre": ["chargedspellcast001"],       # el toque del mouro (antes pedido por nombre en `MouroEspectro3D._clip_toque`)
 	"cast_recoger": ["collectobject"],            # la ánima nueva guía se agacha a recoger la cruz del suelo (`AnimaCompana3D.recoger_cruz`)
-	"cast_surgir": ["mixamo_incorporarse"],       # el mouro sale del pozo: se levanta del suelo (Getting_Up de Mixamo, ver `ClipsFamilia.FUENTE_MIXAMO_MOURO`)
+	"cast_surgir": ["mixamo_incorporarse"],       # el mouro sale del pozo y la ánima repuesta de la tierra: se levantan del suelo (Getting_Up de Mixamo, ver `ClipsFamilia.FUENTE_MIXAMO_SURGIR`)
 }
 
 ## Segundo del clip (a velocidad 1) en que ocurre lo que el Juego sincroniza con él: en `abrir_cofre`, las manos llegan abajo, a la tapa (el clip recortado empieza 0,8 s después

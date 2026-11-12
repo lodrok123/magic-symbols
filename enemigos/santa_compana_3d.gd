@@ -14,7 +14,9 @@ extends Node3D
 ##     se le engancha en la mano a los T_ENGANCHE s de empezar (`al_recoger`: señal `cruz_pasada(numero)` con el `numero` de creación de la nueva guía) y la fila sigue cuando se endereza.
 ##     Si la ánima no llega en T_LLEGADA_MAX s se agacha donde esté. Si la cortan a medias (la matan o la paran), la cruz sigue en el suelo y se reintenta a los T_REINTENTO s con la siguiente.
 ##   · Si caen TODAS (las `n_animas`: tres) dentro de T_VENTANA s, la procesión se acaba de verdad: botín (tabla `anima`) y señal `procesion_rota()` (`motivo_fin = "ventana"`).
-##   · Si no, la que quede REPONE la fila: a los T_REPONER s de caer cada una entra una ánima nueva por el extremo, hasta REPOSICIONES_MAX en total. Señal `repuesta(n)` (n = cuántas van). Agotadas
+##   · Si no, la que quede REPONE la fila: a los T_REPONER s de caer cada una entra una ánima nueva por la COLA, hasta REPOSICIONES_MAX en total. 12/11: primero se la espera (T_REPONER − la
+##     duración del clip = 3,3 s, invisible) y luego SURGE DE LA TIERRA los últimos 2,7 s (clip Getting_Up; sube desde bajo el suelo; ver `AnimaCompana3D`) en la casilla que va detrás de la última
+##     ánima viva (`_empezar_surgir`); el clip acaba justo al cumplirse T_REPONER y entonces es un enemigo de verdad (`entrar`: colisión y grupos de combate). Señal `repuesta(n)` (n = cuántas van). Agotadas
 ##     las reposiciones, cada baja ya no se repone y, cuando no queda ninguna ánima (ni esperando), la procesión se acaba también (`motivo_fin = "agotada"`): la salida alternativa, cara (n + 3 bajas
 ##     una a una) para que ninguna sala quede cerrada con llave.
 ##
@@ -35,6 +37,7 @@ const T_REINTENTO: float = 0.5                    ## s hasta volver a intentar e
 const T_LLEGADA_MAX: float = 4.0                  ## s esperando a que la siguiente llegue a la cruz; pasado esto se agacha donde esté
 const CIERRE_RELEVO_VEL: float = 2.4              ## u/s a los que la siguiente cierra el hueco mientras hay una cruz en el suelo (a 1,2 tardaba 1,9 s en llegar)
 const LLEGADA_DESFASE: float = 0.05               ## u de desfase por debajo de los que la ánima «ha llegado» a su sitio (el de la cruz)
+const SALIDAS_ATRAS: int = 4                      ## casillas más hacia atrás del camino que se prueban si donde toca surgir la repuesta no está libre
 const CRUZ_ADELANTE: float = 0.22                 ## u por delante de la casilla del guía donde queda la cruz (bajo las manos de quien llega agachándose)
 const T_VENTANA: float = 2.5                      ## s: si caen todas dentro de esto, se acaba
 const T_REPONER: float = 6.0                      ## s desde la baja hasta que entra la ánima nueva
@@ -237,7 +240,8 @@ func _avanzar_fila(delta: float) -> void:
 		var meta: float = float(i) * separacion()
 		if absf(an.desfase - meta) > 0.01 and not an.recogiendo:
 			_cerrando = true
-		an.desfase = move_toward(an.desfase, meta, vel_cierre * delta)
+		var vc: float = vel_cierre if absf(an.desfase - meta) <= 1.5 * separacion() else CIERRE_RELEVO_VEL      # la repuesta que se queda atrás al surgir se une corriendo más
+		an.desfase = move_toward(an.desfase, meta, vc * delta)
 		i += 1
 	_colocar_todas()
 
@@ -402,17 +406,24 @@ func _hay_guia() -> bool:
 func _avanzar_reposiciones(delta: float) -> void:
 	for r in _reponer.duplicate():
 		r["t"] = float(r["t"]) - delta
+		var an: AnimaCompana3D = r["anima"]
+		if not is_instance_valid(an):
+			_reponer.erase(r)
+			continue
+		# Los últimos `dur_surgir()` s de la espera, sale de la tierra detrás de la cola (primero se la espera, luego sale: el clip acaba justo al cumplirse T_REPONER).
+		if not r.has("s0") and an.dur_surgir() > 0.0 and float(r["t"]) <= an.dur_surgir():
+			r["s0"] = _empezar_surgir(an)
 		if float(r["t"]) > 0.0:
 			continue
 		_reponer.erase(r)
-		var an: AnimaCompana3D = r["anima"]
-		if not is_instance_valid(an):
-			continue
 		var cola: int = 0
 		for a in animas:
 			if a != an and is_instance_valid(a) and not (a as AnimaCompana3D).muerto and not (a as AnimaCompana3D).latente:
 				cola += 1
-		an.desfase = float(cola) * separacion() + ENTRADA_ATRAS_CASILLAS * Terreno3D.casilla
+		if r.has("s0"):
+			an.desfase = maxf(s_cabeza - float(r["s0"]), float(cola) * separacion())      # donde la dejó la fila al seguir andando; el hueco lo cierra andando (CIERRE_RELEVO_VEL)
+		else:
+			an.desfase = float(cola) * separacion() + ENTRADA_ATRAS_CASILLAS * Terreno3D.casilla       # sin clip de surgir: entra de golpe por detrás, como antes del 12/11
 		an.entrar()
 		# Va al final de la fila, detrás de todas las vivas (las latentes que quedan por entrar ya estaban detrás).
 		animas.erase(an)
@@ -422,6 +433,34 @@ func _avanzar_reposiciones(delta: float) -> void:
 		PlayLog.event("compana_repuesta", {"n": reposiciones})
 		if not _hay_guia() and _t_relevo < 0.0 and not _relevo_listo and _recogiendo == null:
 			_t_relevo = T_RELEVO
+
+
+## La ánima repuesta `an` empieza a surgir de la tierra DETRÁS de la última ánima viva (o que ya esté surgiendo): su casilla es la que va a una separación de ella sobre el recorrido
+## (`s_cabeza − k·separación`), y si no está libre (bloqueada, agua o con un bloque encima), la siguiente hacia atrás del camino, hasta SALIDAS_ATRAS casillas más. Queda quieta ahí mirando
+## hacia donde va la fila (la fila sigue andando y la deja atrás: se le une al acabar, ver `_avanzar_reposiciones`). Devuelve la coordenada `s` del bucle donde sale.
+func _empezar_surgir(an: AnimaCompana3D) -> float:
+	var k: int = 0
+	for a in animas:
+		if a != an and is_instance_valid(a) and not (a as AnimaCompana3D).muerto and (not (a as AnimaCompana3D).latente or (a as AnimaCompana3D).surgiendo):
+			k += 1
+	var elegida: int = k
+	for i in range(SALIDAS_ATRAS + 1):
+		var c: Vector2i = Terreno3D.celda_de(punto_en(s_cabeza - float(k + i) * separacion())["pos"] as Vector3)
+		if _casilla_libre(c):
+			elegida = k + i
+			break
+	var s0: float = s_cabeza - float(elegida) * separacion()
+	var p: Dictionary = punto_en(s0)
+	var pos: Vector3 = p["pos"]
+	var celda: Vector2i = Terreno3D.celda_de(pos)
+	an.mirada = p["dir"]
+	an.surgir_en(Vector3(pos.x, Terreno3D.y_pies(celda), pos.z))
+	PlayLog.event("compana_surge", {"celda": [celda.x, celda.y], "detras_de": k})
+	return s0
+
+
+func _casilla_libre(c: Vector2i) -> bool:
+	return Terreno3D.en_mapa(c) and not Terreno3D.bloqueada(c) and not Terreno3D.es_agua(c) and BloqueEmpujable3D.en(c) == null
 
 
 ## Se acaba de verdad: botín, y las ánimas que esperaban entrar se van sin salir.

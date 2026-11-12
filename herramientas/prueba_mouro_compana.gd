@@ -65,6 +65,7 @@ func _initialize() -> void:
 	await _compana_relevo()
 	await _compana_ventana()
 	await _compana_reposicion()
+	await _compana_surge_repuesta()
 	await _compana_toque_y_maldicion()
 	_piezas_de_mapa()
 	Sensacion3D.ACTIVA = sensacion_antes
@@ -217,11 +218,19 @@ func _mouro_rebrota() -> void:
 	_ok("1 SURGIR: a 1,4 s ya se ve en la casilla de la mámoa, levantándose (clip Getting_Up de Mixamo, estado `lanzar_surgir`)", mo.surgiendo and mo.pj.visible and _celda(mo) == cm and mo.pj.estado_anim() == "lanzar_surgir" and mo.pj.clip_actual() == "Mixamo_Incorporarse", "estado %s · clip %s · %s" % [mo.pj.estado_anim(), mo.pj.clip_actual(), _celda(mo)])
 	_ok("1 SURGIR: y aún no es un blanco (latente, sin colisión, fuera del grupo de combate)", mo.latente and mo.collision_layer == 0 and not mo.is_in_group("combate3d") and rebrotes.is_empty())
 	_ok("1 SURGIR: el clip entra en el rebrote: dura %.2f s y T_REBROTE son %.1f" % [mo.dur_surgir(), MouroEspectro3D.T_REBROTE], mo.dur_surgir() > 1.0 and mo.dur_surgir() <= MouroEspectro3D.T_REBROTE - 0.5)
-	_paso(2.4)
+	_ok("1 SURGIR: al empezar el cuerpo está ENCIMA del suelo de la casilla (por encima del brocal: ≥ 0,9 de la altura inicial, %.2f u)" % mo.altura_surgir(), mo.pj.position.y - mo.position.y >= 0.9 * mo.altura_surgir() and mo.altura_surgir() > 0.3, "sube %.3f" % (mo.pj.position.y - mo.position.y))
+	_paso(0.8)
+	_ok("1 SURGIR: a mitad del clip (2,2 s) sigue alto (el gateo se ve; la curva baja al final), sin haber tocado la posición del nodo ni la colisión", mo.pj.position.y - mo.position.y > 0.5 * mo.altura_surgir() and mo.collision_layer == 0 and Vector2(mo.pj.position.x - mo.position.x, mo.pj.position.z - mo.position.z).length() < 0.15, "sube %.3f" % (mo.pj.position.y - mo.position.y))
+	_paso(1.4)
+	_ok("1 SURGIR: a 3,6 s, al incorporarse, ya ha bajado más de la mitad (< 0,5 de la altura)", mo.surgiendo and mo.pj.position.y - mo.position.y < 0.5 * mo.altura_surgir(), "sube %.3f" % (mo.pj.position.y - mo.position.y))
+	_paso(0.2)
 	_ok("1 a los 3,8 s sigue latente", mo.latente and rebrotes.is_empty())
 	_paso(0.4)
 	_ok("1 a los 4 s ha vuelto: emite rebroto(1)", not mo.latente and rebrotes == [1], str(rebrotes))
-	_ok("1 reaparece EN LA CASILLA DE LA MÁMOA", _celda(mo) == cm, str(_celda(mo)))
+	var paso: Vector2i = _celda(mo) - cm
+	_ok("1 SURGIR: reaparece UN PASO FUERA del brocal, en una vecina RECTA de la mámoa (no en ella ni en diagonal), la más cercana a la jugadora (12,12)", _celda(mo) != cm and absi(paso.x) + absi(paso.y) == 1 and _celda(mo) == mo.celda_salida and paso == Vector2i(0, 1), str(_celda(mo)))
+	_ok("1 SURGIR: el NODO está en el centro de la casilla de salida, a su altura de suelo, y `casa` coincide", mo.position.is_equal_approx(Terreno3D.centro_de(mo.celda_salida, Terreno3D.y_pies(mo.celda_salida))) and mo.casa.is_equal_approx(mo.position), str(mo.position))
+	_ok("1 SURGIR: completado el rebrote el desplazamiento vertical es EXACTAMENTE 0", mo.pj.position.y == mo.position.y, "dif %.6f" % (mo.pj.position.y - mo.position.y))
 	_ok("1 con la vida llena, visible, golpeable y sin humo", is_equal_approx(mo.health, mo.vida_max) and mo.pj.visible and mo.is_in_group("combate3d") and mo.collision_layer != 0 and not m.humo_activo)
 	_ok("1 un rebrote gastado y la mámoa sin agrietar", mo.rebrotes_gastados == 1 and not m.esta_agrietada and not mo.surgiendo)
 	await _limpiar()
@@ -236,6 +245,20 @@ func _mouro_rebrota() -> void:
 	_ok("1 SURGIR: la tapan a mitad: se esconde y deja de surgir", not mo2.surgiendo and not mo2.pj.visible)
 	_paso(4.0)
 	_ok("1 SURGIR: no vuelve (muere sellado)", mo2.muerto)
+	await _limpiar()
+	# Con las vecinas rectas bloqueadas (aunque las diagonales estén libres) se queda en la casilla de la mámoa, como antes.
+	var cm3 := Vector2i(10, 6)
+	var m3: Mamoa3D = _mamoa(cm3)
+	var cerradas: Array = []
+	for d3 in [Vector2i(1, 0), Vector2i(0, 1), Vector2i(-1, 0), Vector2i(0, -1)]:
+		cerradas.append(cm3 + (d3 as Vector2i))
+		Terreno3D.bloquear_celda(cm3 + (d3 as Vector2i))
+	var mo3: MouroEspectro3D = _mouro(Vector2i(4, 6), m3)
+	_mata(mo3)
+	_paso(MouroEspectro3D.T_REBROTE + 0.2)
+	_ok("1 SURGIR: con todas las vecinas bloqueadas vuelve en la casilla de la mámoa, con el desplazamiento vertical en 0", not mo3.latente and _celda(mo3) == cm3 and mo3.pj.position.is_equal_approx(mo3.position), "%s · %s" % [_celda(mo3), mo3.pj.position - mo3.position])
+	for c in cerradas:
+		Terreno3D.liberar_celda(c)
 	await _limpiar()
 
 
@@ -496,6 +519,46 @@ func _compana_reposicion() -> void:
 		_paso(3.0)
 	_ok("7 agotadas las reposiciones, las bajas ya no se reponen y la procesión se acaba", sc.rota and rotas[0] == 1 and sc.motivo_fin == "agotada" and sc.reposiciones == 3, "%s · %s" % [sc.motivo_fin, rotas[0]])
 	_ok("7 y suelta su botín", _tiene_oro(sc.botin_soltado) == 20)
+	await _limpiar()
+
+
+func _compana_surge_repuesta() -> void:
+	var sc: SantaCompana3D = _procesion([Vector2i(2, 3), Vector2i(11, 3)])
+	var guia: AnimaCompana3D = sc.vivas()[0]
+	var pos_guia: Vector3 = guia.position
+	_mata(guia)
+	var nueva: AnimaCompana3D = sc.animas.back()
+	_ok("12 REPONER: la repuesta se crea al caer el guía, latente, invisible, sin colisión y todavía en el grupo de combate (para el vigía)", nueva.latente and not nueva.pj.visible and nueva.collision_layer == 0 and nueva.is_in_group("combate3d"))
+	_paso(1.0)
+	_ok("12 REPONER: pasada la gracia del vigía (0,5 s) sale de los grupos de combate: nada la elige de objetivo", nueva.latente and not nueva.is_in_group("combate3d") and not nueva.is_in_group("goblins"))
+	_paso(2.1)
+	var t_ini: float = SantaCompana3D.T_REPONER - nueva.dur_surgir()
+	_ok("12 REPONER: el clip va al FINAL de la espera: arranca a los %.1f s (T_REPONER %.0f − clip %.1f) y a 3,1 s aún no se ve" % [t_ini, SantaCompana3D.T_REPONER, nueva.dur_surgir()], absf(t_ini - 3.3) < 0.01 and nueva.dur_surgir() > 2.0 and not nueva.surgiendo and not nueva.pj.visible)
+	_paso(0.3)
+	var esperada: Vector3 = sc.punto_en(sc.s_cabeza - 2.0 * sc.separacion())["pos"]
+	var ultima: AnimaCompana3D = sc.vivas().back()
+	_ok("12 REPONER: a 3,4 s sale: ya se ve, surgiendo (estado `lanzar_surgir`, clip Getting_Up), latente", nueva.surgiendo and nueva.latente and nueva.pj.visible and nueva.pj.estado_anim() == "lanzar_surgir" and nueva.pj.clip_actual() == "Mixamo_Incorporarse", "estado %s · clip %s" % [nueva.pj.estado_anim(), nueva.pj.clip_actual()])
+	_ok("12 REPONER: sale DETRÁS de la última viva (una separación más atrás sobre el recorrido), no en la cabeza ni donde cayó el guía", Vector2(nueva.position.x - esperada.x, nueva.position.z - esperada.z).length() < 0.05 and Vector2(nueva.position.x - pos_guia.x, nueva.position.z - pos_guia.z).length() > 1.0 and ultima != nueva, "dist a la esperada %.3f" % Vector2(nueva.position.x - esperada.x, nueva.position.z - esperada.z).length())
+	_ok("12 REPONER: empieza HUNDIDA bajo el suelo (el nodo está a ras y el modelo %.2f u por debajo)" % (nueva.position.y - nueva.pj.position.y), nueva.position.y - nueva.pj.position.y > 0.5 * AnimaCompana3D.HUNDIDA_SURGIR, "%.3f" % (nueva.position.y - nueva.pj.position.y))
+	_paso(0.3)
+	_ok("12 REPONER: a 3,7 s sigue subiendo (aún bajo el suelo) y no es un blanco: sin colisión ni grupos", nueva.pj.position.y < nueva.position.y - 0.2 and nueva.collision_layer == 0 and not nueva.monitorable and not nueva.is_in_group("combate3d") and nueva.latente)
+	_paso(1.4)
+	_ok("12 REPONER: a 5,1 s ya está a ras (desplazamiento 0 exacto) pero sigue latente hasta que acabe el clip", nueva.pj.position == nueva.position and nueva.latente and nueva.surgiendo and nueva.collision_layer == 0)
+	_paso(1.0)
+	await process_frame
+	_ok("12 REPONER: al acabar el clip (6 s) es un ENEMIGO de verdad: no latente, colisión, grupos de combate, a ras de suelo", not nueva.latente and not nueva.surgiendo and nueva.collision_layer == Lanzador3D.CAPA_REACTIVO and nueva.is_in_group("combate3d") and nueva.pj.position == nueva.position and sc.vivas().size() == 3)
+	await _limpiar()
+	# Si la casilla de detrás no está libre, sale en la siguiente hacia atrás del camino.
+	var sc2: SantaCompana3D = _procesion([Vector2i(2, 3), Vector2i(11, 3)])
+	_mata(sc2.vivas()[0])
+	var nueva2: AnimaCompana3D = sc2.animas.back()
+	_paso(3.0)
+	var celda_ocupada: Vector2i = Terreno3D.celda_de(sc2.punto_en(sc2.s_cabeza - 2.0 * sc2.separacion())["pos"] as Vector3)
+	Terreno3D.bloquear_celda(celda_ocupada)
+	_paso(0.4)
+	var siguiente_atras: Vector3 = sc2.punto_en(sc2.s_cabeza - 3.0 * sc2.separacion())["pos"]
+	_ok("12 REPONER: con la casilla de detrás bloqueada sale en la siguiente hacia atrás", nueva2.surgiendo and Terreno3D.celda_de(nueva2.position) != celda_ocupada and Vector2(nueva2.position.x - siguiente_atras.x, nueva2.position.z - siguiente_atras.z).length() < 0.05, str(Terreno3D.celda_de(nueva2.position)))
+	Terreno3D.liberar_celda(celda_ocupada)
 	await _limpiar()
 
 
