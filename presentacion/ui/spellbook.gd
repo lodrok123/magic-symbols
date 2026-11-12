@@ -153,6 +153,7 @@ const LIBROS: Dictionary = {
 		"guias": false,
 	},
 	# LIBRO AVANZADO (6/11/2026, Pablo): DOS ZONAS DE DIBUJO en vez de huecos. Se activa con `Repertoire.libro = "avanzado"`; el de «bosque» no cambia.
+	# Desde el 12/11 es EL LIBRO OFICIAL: todas las progresiones de `Lanzador3D.PROGRESIONES` lo ponen («bosque» queda para las pruebas que lo piden a mano).
 	# Arriba, el CÍRCULO MÁGICO (resultado, aquí no se dibuja): un núcleo con 2 medallones de sello y una corona con 6 huecos de glifo. Abajo, dos círculos de dibujo:
 	# el de la izquierda es de SELLOS (elementos) y el de la derecha de GLIFOS. Dónde dibujas decide qué es; lo reconocido se coloca solo arriba.
 	# Sin lámina pintada para esta distribución: se usa la genérica (grimorio.png, la de BOOK_TEXTURE, cuya página derecha de 4 × 3 círculos se queda como estaba) y todo

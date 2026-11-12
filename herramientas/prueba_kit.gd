@@ -97,10 +97,10 @@ func _bosque() -> void:
 	# R3 (17/10): `tamano` se retira (cada eje tiene su glifo), así que el kit de pruebas tiene ocho glifos y no nueve.
 	_ok("3 ocho glifos (sin tamano)", Repertoire.active_sigils().size() == 8 and not Repertoire.active_sigils().has("tamano"), str(Repertoire.active_sigils()))
 	_ok("3 tres páginas, seis glifos por página", Repertoire.max_pages == 3 and Repertoire.max_sigils_per_page == 6)
-	_ok("3 el libro de «pruebas» es el nuevo (16/10: el antiguo era un placeholder; ya no hay progresión con libro «»)", Repertoire.libro == "bosque")
+	_ok("3 el libro de «pruebas» es el avanzado (12/11: el de los dos círculos de dibujo es el oficial; ya no hay progresión con libro «» ni «bosque»)", Repertoire.libro == "avanzado")
 	for k in Lanzador3D.PROGRESIONES:
 		Lanzador3D.aplicar_progresion(String(k))
-		_ok("3 la progresión «%s» usa el libro nuevo" % k, Repertoire.libro == "bosque", Repertoire.libro)
+		_ok("3 la progresión «%s» usa el libro avanzado" % k, Repertoire.libro == "avanzado", Repertoire.libro)
 	Lanzador3D.aplicar_progresion("pruebas")
 	# Lo que hace Bosque3D (solo desbloquear: agua al coger el sello, barrera al comprarla) no cierra ni cambia nada.
 	var antes_e: PackedStringArray = Repertoire.active_elements()

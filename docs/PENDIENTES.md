@@ -186,7 +186,7 @@ La lista detallada de tareas sigue estando en `PLAN_ARREGLOS.md` y `PLAN_EOW.md`
 
 ## Libro y progresión (27/10, decisiones de Pablo)
 - [x] **Kit de arranque y huecos de glifo** (informe de dirección §8, puntos 1–2): el PRIMER libro de la historia tiene en su página derecha sitio para **4 elementos y 6 glifos**; es capacidad, no kit: se empieza con menos y se ganan jugando. Los 3 huecos de glifo del círculo (página izquierda) se quedan como están. Más adelante, en un punto de la historia, llega un **libro nuevo** con más sitio (y quizá más elementos: se confirma jugando). Hecho: `Repertoire.max_elementos` / `max_glifos` (0 = sin límite), `Lanzador3D.CAPACIDAD_PRIMER_LIBRO` en las progresiones `nivel1`, `bosque` y `barrera` (`todo` y `pruebas` sin límite; «Añadir todos» de la paleta F1 lo quita); con el libro lleno `unlock_element` / `unlock_sigil` / `conseguir_sigil` devuelven false y avisan una vez por consola; la página derecha pinta como mucho la capacidad y vela las casillas de la lámina que pasan de ella. Prueba: `herramientas/prueba_capacidad_libro.gd`.
-- [ ] El libro nuevo (más capacidad): cuándo llega en la historia, su lámina y si trae más elementos. Se decide jugando.
+- [ ] El libro nuevo (más capacidad): cuándo llega en la historia, su lámina y si trae más elementos. Se decide jugando. **12/11:** el libro avanzado (dos círculos de dibujo) es ya el oficial en todas las progresiones (diario 492); queda su lámina propia (hoy la genérica `grimorio.png`; candidatas toon en `docs/diseno_grimorios/toon/`) y comprobarlo en pantalla.
 - [ ] «Altura» (⊥) no tiene dibujo en `Sigils.GLYPHS`: la página derecha no lo pinta aunque esté activo (lo vio `prueba_capacidad_libro`).
 
 
