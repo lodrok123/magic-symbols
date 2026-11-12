@@ -48,7 +48,8 @@ const COLOR_PUA: Color = Color(0.56, 0.38, 0.24)                     ## pardo ti
 const COLOR_LAJA: Color = Color(0.56, 0.38, 0.24)               ## 7/11: igual que la púa (antes más oscura: las lajas inclinadas enseñaban su cara en sombra como un trazo negro)
 const PUAS_MAX: int = 14                                              ## púas de una línea (el resto hasta MAX_BLOQUES, lajas)
 const ACLARA_PUA: float = 1.15                                        ## x el albedo de la pua y la laja (7/11: en el Bosque salian casi negras contra la hierba)
-const ANCHO_PUA: float = 0.42                                        ## ancho de la pua = este x su alto (7/11, video de tierra: roca estirada, no lamina)
+const NORMAL_ARRIBA_JUEGO: float = 0.45                               ## 12/11: en el juego la normal de púas y lajas se dobla esto hacia arriba (`normal_arriba` del shader de roca: el sol casi vertical del Bosque les daba de canto)
+const ANCHO_PUA: float = 0.42                                       ## ancho de la pua = este x su alto (7/11, video de tierra: roca estirada, no lamina)
 const PUA_ANCHO_MAX_R: float = 2.6                                    ## x el radio del haz: tope de ese ancho (que no se salga del corredor mas de la cuenta)
 const PUA_ALTO_MAX: float = 1.3                                        ## m de alto de una pua (antes salia de la altura de la mano: casi 2 m de aguja)
 const PASO_PUA_S: float = 0.05                                        ## s entre el brote de una púa y la siguiente
@@ -486,6 +487,7 @@ var _haz_n: int = 0                     ## púas del haz (fija cuánto dura «na
 var _t_nacer_act: float = -1.0          ## duración de «nacer» con la que se montó la animación (para rehacerla si cambia)
 var _grietas: MeshInstance3D = null     ## HAZ: quad de grietas en el suelo
 var linea_ignea: bool = false      ## Variante ígnea de MagmaToy.
+var normal_arriba: float = 0.0: set = _set_normal_arriba     ## 12/11: `normal_arriba` del shader en púas y lajas (0 = lab, tal cual; VfxToyJuego pone NORMAL_ARRIBA_JUEGO)
 var _brillo: MeshInstance3D = null      ## BARRERA: disco pardo-naranja tenue dentro de la cúpula que se apaga al cerrarse
 var _t_cerrada: float = -1.0            ## BARRERA: instante (s de vida) en que se cerró la cúpula
 var _c_aviso: MultiMeshInstance3D = null  ## CARGA: anillo de piedrecitas que gira a ras de suelo bajo los pies
@@ -527,6 +529,14 @@ func _set_z(v: float) -> void:
 func _set_viaja(v: bool) -> void:
 	viaja = v
 	_pedir()
+
+
+func _set_normal_arriba(v: float) -> void:
+	normal_arriba = clampf(v, 0.0, 1.0)
+	for mi in _bloques_mms:                                                  # ya montadas: solo las de color plano (púas y lajas) con el material de roca de tierra
+		var m: ShaderMaterial = (mi as MultiMeshInstance3D).material_override as ShaderMaterial
+		if m != null and float(m.get_shader_parameter("plano")) > 0.5 and m.shader != null and m.shader.resource_path.ends_with("tierra_roca.gdshader"):
+			m.set_shader_parameter("normal_arriba", normal_arriba)
 
 
 func definir(fig: int, x: float, y: float, z: float, vuela: bool = false) -> void:
@@ -1021,6 +1031,7 @@ func _montar_bloques(c: Node3D, capa: Array) -> void:
 			# 7/11 (vídeo de tierra): la púa ya no corta a ras de suelo —su base tira al color de la tierra, como el resto de bloques— y lleva suelo de luz para no irse a negro en el Bosque
 			(mi.material_override as ShaderMaterial).set_shader_parameter("base_tierra", 1.0)
 			(mi.material_override as ShaderMaterial).set_shader_parameter("aclara_pua", ACLARA_PUA)
+			(mi.material_override as ShaderMaterial).set_shader_parameter("normal_arriba", normal_arriba)
 		c.add_child(mi)
 		_bloques_mms.append(mi)
 		for j in lista.size():

@@ -594,6 +594,24 @@ func _toys_nuevos() -> void:
 			continue
 		var rep: int = int((caso[1] as Dictionary).get("repeticion", 1))
 		_ok("6 tierra · %s: %d TierraToy (creados %d), luces %d (0), VfxElemento3D callado" % [caso[0], ts2.size(), int(_tj.creados["tierra"]), _luces_de(ts2)], ts2.size() >= 1 and ts2.size() == int(_tj.creados["tierra"]) and ts2.all(func(n: Node) -> bool: return n is TierraToy) and _luces_de(ts2) == 0 and (rep < 2 or ts2.size() >= 2 or String(caso[0]) == "proyectil") and _calla_ve())
+	# TIERRA haz (12/11): en el juego las púas y lajas llevan la normal doblada hacia arriba (con el sol casi vertical del Bosque salían oscuras contra la hierba); el toy suelto (lab) no
+	_montar()
+	_lanzar(_hz("tierra", {"linea_x": 2}))
+	await _frames(4)
+	var haz_t: Array = _toys().filter(func(n: Node) -> bool: return n is TierraToy and int(n.get("figura")) == FuegoToy.Figura.HAZ)
+	var mats_ok: int = 0
+	var mats_planos: int = 0
+	for th in haz_t:
+		for mi in (th as Node).find_children("Bloques*", "MultiMeshInstance3D", true, false):
+			var mat: ShaderMaterial = (mi as MultiMeshInstance3D).material_override as ShaderMaterial
+			if mat != null and float(mat.get_shader_parameter("plano")) > 0.5:
+				mats_planos += 1
+				if is_equal_approx(float(mat.get_shader_parameter("normal_arriba")), TierraToy.NORMAL_ARRIBA_JUEGO):
+					mats_ok += 1
+	var suelto: TierraToy = TierraToy.new()
+	_ok("6 tierra · haz: las púas del juego doblan la normal hacia arriba (%d/%d materiales planos con normal_arriba = %.2f) y el TierraToy suelto del lab no (%.2f)" % [mats_ok, mats_planos, TierraToy.NORMAL_ARRIBA_JUEGO, suelto.normal_arriba],
+		haz_t.size() == 1 and mats_planos >= 1 and mats_ok == mats_planos and TierraToy.NORMAL_ARRIBA_JUEGO > 0.0 and is_zero_approx(suelto.normal_arriba))
+	suelto.free()
 	# TIERRA proyectil: impacto
 	_montar()
 	var hvt: HechizoVivo = _lanzar(_hz("tierra", {"flecha": 1}).con({"gravedad": 0.0, "distancia_max": 8.0}), Vector3.RIGHT, Vector2i(17, 8))

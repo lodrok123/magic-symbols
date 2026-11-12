@@ -22,6 +22,12 @@ uniform float brillo : hint_range(0.3, 3.0) = 1.0;
 // 7/11: en el Bosque las púas del haz salían casi negras contra la hierba clara (caras muy inclinadas: el sol les da de canto y el ambiente no llega). Se sube el ALBEDO del color
 // plano, que es lo único que se puede tocar aquí: esta roca va con la luz de la escena y SIN emisión a propósito (regla del 6/11, la vigila `prueba_viento_tierra_toy`).
 uniform float aclara_pua : hint_range(1.0, 2.5) = 1.0;
+// 12/11: LA CAUSA de que en el juego salieran oscuras y en el lab no era la luz, no el color. El sol del Bosque cae casi vertical (pitch -70°, y el ciclo de día lo gira 8° por hora)
+// y las púas son facetas casi verticales: el sol les da de canto y las caras que ve la cámara quedan del lado de la sombra, con solo el ambiente (0,6) y el SSAO encima. La hierba, tumbada,
+// recibe el sol de lleno. En el lab el sol va a -50° y del lado de la cámara (y con su cielo de ambiente 1,0): por eso allí pasaban. `normal_arriba` dobla la normal de las púas y las lajas
+// (solo `plano`) hacia la vertical del mundo: siguen con la luz y la sombra de la escena (sin emisión), pero la reciben como el suelo que las rodea y conservan algo de su facetado.
+// Lo pone el juego (VfxToyJuego, `TierraToy.NORMAL_ARRIBA_JUEGO`); a 0 —el lab— la púa es exactamente la de antes.
+uniform float normal_arriba : hint_range(0.0, 1.0) = 0.0;
 
 varying float altura;
 varying float tono;
@@ -44,6 +50,10 @@ void fragment() {
 	col *= mix(0.88, 1.08, tono);
 	col *= 1.0 - 0.35 * oscurecer;
 	ALBEDO = col * mix(1.0, aclara_pua, plano) * brillo;
+	if (normal_arriba > 0.0) {
+		vec3 arriba = normalize((VIEW_MATRIX * vec4(0.0, 1.0, 0.0, 0.0)).xyz);
+		NORMAL = normalize(mix(NORMAL, arriba, normal_arriba * plano));
+	}
 	ROUGHNESS = 1.0;
 	METALLIC = 0.0;
 	SPECULAR = 0.0;
