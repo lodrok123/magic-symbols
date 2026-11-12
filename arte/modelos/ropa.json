@@ -53,8 +53,7 @@
 		"capa": "medio",
 		"oculta": [
 			"chaleco",
-			"cinturon",
-			"bullon"
+			"cinturon"
 		]
 	},
 	"piernas_lobo": {
