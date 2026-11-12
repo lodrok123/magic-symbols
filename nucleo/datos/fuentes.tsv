@@ -104,3 +104,11 @@ hoja_grimorio	cofre	cofre_legendario	abrir	-	1	1	1	todas	11/11: finales de zona,
 bomba_humo	receta	-	sintesis	-	1	1	1	todas	recetas.tsv (11/11, segunda tanda)
 tarro_baba	receta	-	sintesis	-	1	1	1	todas	recetas.tsv (11/11, segunda tanda)
 cebo_miel	receta	-	sintesis	-	1	1	1	todas	recetas.tsv (11/11, segunda tanda)
+atuendo_sumicio	comprar	librera	oro	-	1	1	1	bosque	12/11: prueba de concepto de ropa en tienda
+atuendo_lobo	comprar	librera	oro	-	1	1	1	bosque	-
+capa_verde	atuendo	atuendo_verde	-	-	1	1	1	todas	viene con el atuendo (Atuendos)
+capucha_verde	atuendo	atuendo_verde	-	-	1	1	1	todas	-
+tunica_lobo	atuendo	atuendo_lobo	-	-	1	1	1	todas	-
+piernas_lobo	atuendo	atuendo_lobo	-	-	1	1	1	todas	-
+piernas	atuendo	atuendo_sumicio	-	-	1	1	1	todas	viene con el uniforme (Atuendos)
+atuendo_verde	inicial	atuendo_verde	-	-	1	1	1	todas	se tiene desde el principio (Atuendos: `inicial`)

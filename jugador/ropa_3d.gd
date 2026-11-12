@@ -11,7 +11,7 @@ extends RefCounted
 ## quitar la prenda se quita el simulador; los huesos se quedan (sin peso de nadie, no se ven). La túnica, la capucha y los demás personajes no traen huesos de
 ## más y no cambian.
 ##
-## Zonas: cada prenda dice en `oculta` qué zonas del cuerpo tapa (cabeza, pelo, torso, chaleco, cinturon, brazos, piernas, botas). El cuerpo de jugadora_base es una
+## Zonas: cada prenda dice en `oculta` qué zonas del cuerpo tapa (cabeza, pelo, torso, chaleco, cinturon, brazos, piernas, botas, bullon: lo alto de la manga). El cuerpo de jugadora_base es una
 ## sola malla en el .glb; al poner la primera prenda se cambia por `jugadora_base_zonas.res` (herramientas/partir_base_zonas.gd: mismos vértices y pesos, una
 ## superficie por zona) y `actualizar_zonas` apaga las superficies que tapan las prendas puestas: se quita la prenda y vuelven. Una superficie apagada lleva un
 ## material cuyo vértice sale fuera de pantalla (no se dibuja ni da sombra). Si no hay malla de zonas (otro modelo), no se oculta nada.
@@ -128,6 +128,14 @@ static func poner(modelo: Node3D, id: String, preparar: Callable = Callable()) -
 	var sks: Array[Node] = modelo.find_children("*", "Skeleton3D", true, false)
 	if sks.is_empty():
 		return null
+	# 12/11 (Pablo: «se ven mallas estiradas, agujeros»): al cargar una partida guardada con el atuendo del loberno, la túnica y las mallas se ponían ENCIMA de
+	# la túnica, la capa y la capucha de viaje que Pj3D.cargar ya había puesto (dos túnicas a la vez). Una ranura (objetos.tsv `ranura=`) la ocupa una sola prenda:
+	# la que estuviera se quita.
+	var ranura: String = ranura_de(id)
+	if ranura != "":
+		for otra in puestas(modelo):
+			if otra != id and ranura_de(otra) == ranura:
+				quitar(modelo, otra)
 	var sk: Skeleton3D = sks[0] as Skeleton3D
 	var escena: Node = (load(ruta) as PackedScene).instantiate()
 	var mallas: Array[Node] = escena.find_children("*", "MeshInstance3D", true, false)

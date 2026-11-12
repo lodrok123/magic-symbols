@@ -195,6 +195,7 @@ const POSTURA_JB_CABEZA: float = -3.0      ## jugadora_base (ver su fila): grado
 ## delante del de chibi_elf y la rodilla a 174–177° (la fuente, 164–168°): estirar la rodilla gira la espinilla y adelanta el pie. Medido con el pie ya alineado
 ## (ClipsFamilia.ALINEAR_REPOSO «Foot»): 0 → tobillo 4 cm por DETRÁS y rodilla 152–156°; 11 → tobillo +0,059/−0,012 y rodilla 163/167°, clavado sobre la fuente.
 const POSTURA_JB_RODILLAS: float = 11.0
+const POSTURA_JB_BRAZOS: float = 14.0      ## 12/11: grados que se abren los brazos (ver POSTURAS); con 14 cuelgan por fuera del costado de la túnica del loberno
 const POSTURAS: Dictionary = {
 	# Afinado por Pablo el 5/10 mirando de lado y de frente (la cabeza va en negativo: el eje X local del hueso
 	# apunta al revés de lo que se supuso; en cuello y columna no).
@@ -205,7 +206,8 @@ const POSTURAS: Dictionary = {
 	# fuente (ClipsFamilia.ALINEAR_REPOSO): rodillas 22 → idle 3–9° de flexión (antes 63–69°) (los pies bajan ~0,9 cm: ProporcionChibi no recoloca la cadera);
 	# cabeza −3 (aquí también va en negativo) → la cabeza a +0,5…+7,4° (media +2,8°) en idle, en vez de +3,5…+10,4°; andando −6,6…−8,6° y corriendo −14…−16°
 	# (la cabeza de su reposo ya va 10° más atrás que la de chibi_elf: por eso no se corrige más). La columna ya queda a ≤5° de la de chibi_elf: 0.
-	"jugadora_base": [POSTURA_JB_CABEZA, 0.0, 0.0, 0.0, POSTURA_JB_RODILLAS, 0.0, 0.0],
+	# 12/11 (Pablo, con el atuendo del loberno: «separaría algo los brazos»): brazos 8° más abiertos en reposo, en todos los clips; la manga corta ya no se cose al brazo.
+	"jugadora_base": [POSTURA_JB_CABEZA, 0.0, 0.0, POSTURA_JB_BRAZOS, POSTURA_JB_RODILLAS, 0.0, 0.0],
 }
 
 ## MANO RELAJADA (24/10, Pablo: «tampoco está bien la postura de las manos al andar»). jugadora_base tiene 66 huesos con dedos (Mixamo), pero sus clips vienen de
@@ -250,7 +252,11 @@ const MODELO_DE: Dictionary = {
 
 var id: String = ""
 var proporcion: ProporcionChibi = null
-var modo_luz: int = 1            ## 0 = plana (sin sombreado), 1 = luz suave
+## 12/11 (Pablo: «déjala con el modo 0, que se ven los colores más vivos» y, con la lámina de enemigos, «me gusta más con luz plana»): TODOS los personajes
+## cargan en luz plana (0 = sin sombreado ni rim; 1 = luz suave por píxel). La L del juego que alternaba ya no existe (prueba_test2); el laboratorio y las
+## pruebas siguen llamando a set_modo_luz a mano. Lámina: docs/capturas/luz_enemigos/lamina_luz_enemigos.png.
+const MODO_LUZ_POR_DEFECTO: int = 0
+var modo_luz: int = MODO_LUZ_POR_DEFECTO
 var animacion_actual: String = ""
 
 var _modelo: Node3D = null
@@ -298,10 +304,10 @@ const SOMBRA_DIAMETRO_ALTURAS: float = 0.7         ## diámetro de la mancha en 
 const SOMBRA_ALFA: float = 0.36
 const IDS_JUGADORA: Array = ["woodland_wanderer", "chibi_elf", "chibi_test", "jugadora_base"]   ## prefijos de id que son la jugadora (rol «jugadora»); jugadora_base (23/10) es la candidata a sustituirla
 ## Ropa por piezas (Ropa3D) que lleva puesta un personaje al cargarlo: id -> [ids de prenda de arte/modelos/ropa.json]. Sin entrada, el modelo va como viene.
-## 11/11 (uniforme de Monte Sumicio, arte/meshy/PROMPTS_UNIFORME_MID.md; decidido por Pablo): capa y capucha granates sobre la base y los bombachos con polainas y
-## botines (`piernas`, que tapa piernas y botas); sin túnica, el chaleco va a la vista.
+## 12/11 (atuendos, `Atuendos`): se empieza con el atuendo de viaje verde (túnica, capa corta y capucha, recuperadas de git como `capa_verde` y `capucha_verde`);
+## el uniforme de Monte Sumicio (`piernas`, `capa`, `capucha`; 11/11) y el atuendo del lobo se compran a la librera y se ponen desde el Vestuario del menú.
 const ROPA_POR_DEFECTO: Dictionary = {
-	"jugadora_base": ["piernas", "capa", "capucha"],
+	"jugadora_base": ["tunica", "capa_verde", "capucha_verde"],
 }
 
 var rol_visual: String = "npc"                     ## «jugadora» | «npc» | «enemigo»: decide el color del rim y si lleva silueta

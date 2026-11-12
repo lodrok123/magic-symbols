@@ -20,7 +20,8 @@ const ROLES_HEROE: Array = ["idle", "walk", "run", "cast", "hit", "death", "roll
 	"cast_empuje", "talk", "drink", "pick_up", "walk02"]
 ## 5/11: roles que ya NO son los de la elfa sino clips de Mixamo (Pj3D.CLIPS_DE["jugadora_base"]): rol -> clip (en minúsculas).
 const ROLES_MIXAMO: Dictionary = {"roll": "mixamo_voltereta", "drink": "mixamo_beber"}
-const PRENDAS: Array = ["tunica", "capa", "capucha"]
+## 12/11: la ropa por defecto es el atuendo de viaje (Atuendos): las prendas verdes recuperadas de git.
+const PRENDAS: Array = ["tunica", "capa_verde", "capucha_verde"]
 const RAIZ_MAX: float = 0.12              ## deriva horizontal máxima de la cadera en idle/andar/correr/cast (fracción del alto del modelo)
 const SUELO_IDLE_TOL: float = 0.02
 const SUELO_MARCHA_MIN: float = 0.04
@@ -40,9 +41,9 @@ const PESO_MAX_INFLUENCIAS: int = 4
 const TRIS_PRENDA_MIN: int = 7000
 ## La capa y la capucha salen de una malla de ~20 000 triángulos partida por el cuello (con menos, al diezmar una malla hueca salían vetas claras en la capucha): la
 ## capa lleva ~12 400 y la capucha ~7 600; la túnica ~9 000.
-const TRIS_PRENDA_MAX: Dictionary = {"tunica": 12000, "capa": 14000, "capucha": 9500}
+const TRIS_PRENDA_MAX: Dictionary = {"tunica": 12000, "capa_verde": 14000, "capucha_verde": 9500}
 ## Zonas del cuerpo (Ropa3D, herramientas/partir_base_zonas.gd) y las que tapa cada prenda puesta.
-const ZONAS_CUERPO: Array = ["cabeza", "pelo", "torso", "chaleco", "cinturon", "brazos", "piernas", "botas"]
+const ZONAS_CUERPO: Array = ["cabeza", "pelo", "torso", "chaleco", "cinturon", "brazos", "piernas", "botas", "bullon"]
 const ZONAS_TAPADAS_TODAS: Array = ["pelo", "chaleco", "cinturon"]
 const ZONAS_TAPADAS_TUNICA: Array = ["chaleco", "cinturon"]
 const ZONAS_TAPADAS_CAPUCHA: Array = ["pelo"]
@@ -191,8 +192,8 @@ func _prueba_ropa(p: Pj3D, sk: Skeleton3D) -> void:
 			peor_enlace = maxf(peor_enlace, (_piel(sk, skin, hueso_de, bones, pesos, por_vert, v, verts[v]) - verts[v]).length())
 		_ok(peor_enlace * esc <= ENLACE_TOL, "%s: en reposo la malla vuelve a su sitio (desvío máx %.5f u del modelo)" % [id, peor_enlace * esc])
 	# Sigue al hueso: un vértice de la capucha con peso casi total en la cabeza se mueve con ella; uno de la túnica en la cadera no, y sí con la cadera.
-	var capucha: MeshInstance3D = Ropa3D.puesta(p, "capucha")
-	var capa: MeshInstance3D = Ropa3D.puesta(p, "capa")
+	var capucha: MeshInstance3D = Ropa3D.puesta(p, "capucha_verde")
+	var capa: MeshInstance3D = Ropa3D.puesta(p, "capa_verde")
 	var tunica: MeshInstance3D = Ropa3D.puesta(p, "tunica")
 	if capucha != null and tunica != null:
 		var v_cap: Array = _vertice_de(capucha, sk, "mixamorig_Head", PESO_CASI_TOTAL)
@@ -220,16 +221,16 @@ func _prueba_ropa(p: Pj3D, sk: Skeleton3D) -> void:
 	if capa != null:
 		_prueba_capa_brazos(capa, sk, esc)
 	# La capa y la capucha son dos prendas: se quitan y se ponen por separado.
-	p.quitar_ropa("capucha")
+	p.quitar_ropa("capucha_verde")
 	await process_frame
-	_ok(p.ropa_puesta().size() == 2 and p.ropa_puesta().has("capa") and p.ropa_puesta().has("tunica") and not p.ropa_puesta().has("capucha"),
+	_ok(p.ropa_puesta().size() == 2 and p.ropa_puesta().has("capa_verde") and p.ropa_puesta().has("tunica") and not p.ropa_puesta().has("capucha_verde"),
 		"quitar_ropa(capucha) deja la capa y la túnica (%s)" % [p.ropa_puesta()])
-	_ok(Ropa3D.puesta(p, "capa") != null and Ropa3D.puesta(p, "capucha") == null, "sin capucha la capa sigue puesta y la capucha no está en el esqueleto")
-	_ok(p.poner_ropa("capucha") and p.ropa_puesta().size() == PRENDAS.size(), "poner_ropa(capucha) la vuelve a poner (%s)" % [p.ropa_puesta()])
-	p.quitar_ropa("capa")
+	_ok(Ropa3D.puesta(p, "capa_verde") != null and Ropa3D.puesta(p, "capucha_verde") == null, "sin capucha la capa sigue puesta y la capucha no está en el esqueleto")
+	_ok(p.poner_ropa("capucha_verde") and p.ropa_puesta().size() == PRENDAS.size(), "poner_ropa(capucha) la vuelve a poner (%s)" % [p.ropa_puesta()])
+	p.quitar_ropa("capa_verde")
 	await process_frame
-	_ok(p.ropa_puesta().size() == 2 and p.ropa_puesta().has("capucha") and not p.ropa_puesta().has("capa"), "quitar_ropa(capa) deja la capucha y la túnica (%s)" % [p.ropa_puesta()])
-	_ok(p.poner_ropa("capa") and p.ropa_puesta().size() == PRENDAS.size(), "poner_ropa(capa) la vuelve a poner (%s)" % [p.ropa_puesta()])
+	_ok(p.ropa_puesta().size() == 2 and p.ropa_puesta().has("capucha_verde") and not p.ropa_puesta().has("capa_verde"), "quitar_ropa(capa) deja la capucha y la túnica (%s)" % [p.ropa_puesta()])
+	_ok(p.poner_ropa("capa_verde") and p.ropa_puesta().size() == PRENDAS.size(), "poner_ropa(capa) la vuelve a poner (%s)" % [p.ropa_puesta()])
 	_ok(Ropa3D.puesta(p, "capa_capucha") == null and not Ropa3D.existe("capa_capucha"), "la prenda combinada capa_capucha ya no existe (se sustituyó por capa y capucha)")
 	_ok(not p.poner_ropa("no_existe"), "una prenda que no existe no se pone")
 	_prueba_zonas(p)
@@ -249,19 +250,19 @@ func _prueba_zonas(p: Pj3D) -> void:
 	_ok(nombres == ZONAS_CUERPO, "zonas del cuerpo: %s" % [nombres])
 	_ok(tris == int(c.mesh.get_meta("triangulos_origen", -1)), "la malla partida conserva los %d triángulos del cuerpo (%d)" % [int(c.mesh.get_meta("triangulos_origen", -1)), tris])
 	_ok(_mismos(Ropa3D.zonas_apagadas(p), ZONAS_TAPADAS_TODAS), "con la túnica y la capa puestas se apagan %s (apagadas: %s)" % [ZONAS_TAPADAS_TODAS, Ropa3D.zonas_apagadas(p)])
-	p.quitar_ropa("capucha")
+	p.quitar_ropa("capucha_verde")
 	_ok(_mismos(Ropa3D.zonas_apagadas(p), ZONAS_TAPADAS_TUNICA), "con la capa pero sin capucha vuelve el pelo y solo la túnica tapa %s (apagadas: %s)" % [ZONAS_TAPADAS_TUNICA, Ropa3D.zonas_apagadas(p)])
 	_ok(not Ropa3D.zonas_apagadas(p).has("pelo"), "la capa sola no apaga el pelo")
 	p.quitar_ropa("tunica")
 	_ok(Ropa3D.zonas_apagadas(p).is_empty(), "solo la capa (sin túnica ni capucha) no apaga ninguna zona (apagadas: %s)" % [Ropa3D.zonas_apagadas(p)])
-	p.poner_ropa("capucha")
+	p.poner_ropa("capucha_verde")
 	_ok(_mismos(Ropa3D.zonas_apagadas(p), ZONAS_TAPADAS_CAPUCHA), "con capa y capucha el pelo se apaga y solo el pelo (apagadas: %s)" % [Ropa3D.zonas_apagadas(p)])
-	p.quitar_ropa("capa")
+	p.quitar_ropa("capa_verde")
 	_ok(_mismos(Ropa3D.zonas_apagadas(p), ZONAS_TAPADAS_CAPUCHA), "la capucha sola apaga el pelo (apagadas: %s)" % [Ropa3D.zonas_apagadas(p)])
-	p.quitar_ropa("capucha")
+	p.quitar_ropa("capucha_verde")
 	_ok(Ropa3D.zonas_apagadas(p).is_empty(), "sin prendas no se apaga ninguna zona (apagadas: %s)" % [Ropa3D.zonas_apagadas(p)])
-	p.poner_ropa("capa")
-	p.poner_ropa("capucha")
+	p.poner_ropa("capa_verde")
+	p.poner_ropa("capucha_verde")
 	p.poner_ropa("tunica")
 	_ok(_mismos(Ropa3D.zonas_apagadas(p), ZONAS_TAPADAS_TODAS), "volver a vestirse las apaga otra vez (apagadas: %s)" % [Ropa3D.zonas_apagadas(p)])
 

@@ -1,0 +1,240 @@
+{
+	"_prendas": [
+		"tunica_lobo",
+		"piernas_lobo"
+	],
+	"_notas": [
+		"Atuendo del lobo (12/11; concept de Pablo: chaleco azul cruzado sin mangas, banda roja con broche de lobo, cinturón y faldón, mallas marrones con zapatos). Tres .glb de Meshy",
+		"(arte/meshy/entrada/_procesados/Meshy_AI_{Cerulean_Wrap_Tunic,Ember_Wolf_Robe,Brown_Riding_Breeches}_*): cada uno normalizado a ±0,5 en alto, de frente hacia -Y.",
+		"Se encajan UNO POR LLAMADA: `encajar_ropa.py -- <glb de la prenda> jugadora_base.glb <carpeta> ropa_lobo.json <prenda>` (el 5.º argumento elige la prenda de esta config).",
+		"El faldón de la banda (tunica_lobo) va ×1,25 / ×1,1 para colgar POR FUERA del chaleco (en la primera pasada quedaba dentro de su vuelo); el chaleco, ×0,85 delante en el bajo.",
+		"Nudos: [z de Meshy, z en el mundo, [X, Y delante, Y detrás], desplazamiento Y]. El cuerpo va de -0,20 a 0,0 en Y en el torso (centro -0,09); Meshy centra en 0: de ahí los -0,09..-0,12.",
+		"chaleco_lobo (ranura media, como la túnica; tapa chaleco y cinturón): cuello en 1,13, sisas en 1,0–1,05 (hombros ±0,19), cintura 0,87, bajo a medio muslo 0,62 (muslos ±0,18).",
+		"tunica_lobo (ranura exterior, como la capa; va ENCIMA del chaleco: margen 0,03 para no pelearse con él): la banda sube al hombro izquierdo (+X, 1,10), el cinturón a 0,87 y el faldón a 0,60.",
+		"El anillo del cinturón de Meshy no está centrado (x de -0,25 a 0,15): destino x +0,05 para centrarlo.",
+		"piernas_lobo (ranura piernas; tapa piernas y botas): mallas ceñidas, 1 cm de holgura; cintura 0,905, tobillo 0,13, zapato 0..0,10. Las piernas de Meshy son finas en Y (0,10): ×1,5.",
+		"12/11, segunda pasada (Pablo: «la ropa está rota»): en reposo las paredes interiores del chaleco y la banda se cruzaban entre sí (quitar_forro en los dos, z_max 1,20: toda la prenda); en movimiento la sisa y el hombro pesaban en los brazos y la tela se rajaba en tiras (sin_brazos: todo el peso de brazo a Spine2, como la capa; cabeza: lo de Head/Neck del cuello del chaleco a Spine2).",
+		"12/11, TERCERA pasada (Pablo: «la tela roja está encima de la azul»; el faldón de la banda de Meshy colgaba por el lado contrario y el chaleco le pasaba por delante): Pablo regenera chaleco + banda + cinturón + faldón como UNA pieza, «Wolfguard Ceremonial» 1112111656, que sigue el concept (todo lo rojo por el lado izquierdo, encima del azul). Es `tunica_lobo`, ranura media (tapa chaleco y cinturón); `chaleco_lobo` desaparece. Mismo perfil que el chaleco: cuello 1,14, sisas 1,03–1,09, cintura 0,88, bajo 0,60.",
+		"12/11, cuarta pasada (Pablo: «la ropa no sigue a la jugadora, se ven ropas estiradas»): la pieza única CONSERVA el forro (sin él, por la sisa se veía el hueco cuando el brazo salía de ella; ya no hay otra prenda con la que pelearse); el cuello pasa ENTERO a Spine2 (z0 1,25: con el corte en 1,08–1,18 quedaba peso de Head/Neck y al inclinar la cabeza en el lanzamiento tiraba de la tela en tiras); y sin_brazos conserva la clavícula (solo brazo, antebrazo y mano al torso) para que la sisa acompañe al hombro.",
+		"12/11: las mallas también sin forro (quitar_forro con ejes_x por pierna, hasta 0,80: por encima la cadera es un solo tubo): su pared interior asomaba en motas blancas por rodillas y tobillos.",
+		"12/11: SIN reducir (tris 99999: 15 505 y 15 651 triángulos). Al colapsar aristas, Blender interpola las UV de esquinas de islas distintas y, con los cientos de islas diminutas del atlas de Meshy, algunas caras leían las islas blancas de los tobillos: motas blancas por rodillas y muslos. Rellenar el fondo negro del atlas (rellenar_fondo) no bastaba. Dos prendas a 16 k para un solo personaje es asumible (los árboles van a 12 k × 227).",
+		"12/11, quinta pasada (Pablo: «se está cosiendo la costura de la túnica en el brazo; los pies desaparecen; separaría algo los brazos»): la manga corta del chaleco lleva `brazo` con rampa que SUBE (z_sube0/z_sube1: 0 en el costado, 0,75 al brazo en el hombro) para acompañar al brazo en reposo (los brazos cuelgan más pegados que en la A-pose y se metían por la manga); las suelas de las mallas suben 2,5 cm (quedaban 1,7 cm bajo el suelo por el empuje); y Pj3D.POSTURAS abre los brazos de la jugadora 8°.",
+		"12/11, sexta pasada (Pablo: «es una túnica sin mangas y se está cosiendo a los brazos; revisa con movimientos»): fuera el peso de brazo (`brazo`) y fuera la clavícula: la túnica va rígida al torso entera; en su lugar, 3,5 cm de holgura en la zona de los hombros (`margen_zonas`, |x| > 0,15, z 0,93–1,12) para que el brazo, que cuelga más pegado que en la A-pose, no se meta por la manga corta. Suelas a 0,045 (el empuje las bajaba 1,1 cm).",
+		"12/11, séptima pasada (Pablo, con la imagen de referencia: «te estás confundiendo, es la ropa con esta forma»; el GLB ya la tiene: chaleco sin mangas con sisa y manto rojo doblado sobre el hombro izquierdo; el escalado por alturas y las holguras lo estropeaban): escala UNIFORME ×0,72 en X e Y a todas las alturas (el cinturón sigue redondo y el dibujo no ondula) y lineal en Z (0,5 → 1,14, -0,5 → 0,60: el cinturón cae solo en 0,87 y la sisa entre 0,98 y 1,10, donde está el hombro). Con ×0,72 el costado del chaleco queda a ±0,19, dentro del brazo colgado (±0,19–0,26): el brazo cuelga POR FUERA de la sisa en vez de atravesar la tela; el manto cae sobre el hombro y el brazo. Sin margen_zonas, margen 0,012 y 3 pasadas.",
+		"12/11, octava pasada: con ×0,72 las mallas atravesaban la túnica por la cadera y el faldón. ×0,80 y `sobre: [piernas_lobo]`: el encaje empuja la túnica fuera de la piel Y de las mallas ya encajadas (sus triángulos entran en el árbol; los pesos siguen saliendo de la base). Hay que encajar las mallas ANTES que la túnica.",
+		"12/11, novena pasada: las mallas conservaban el forro en la cadera (quitar_forro hasta 0,80) y los vértices de la túnica que caían ENTRE sus dos paredes contaban como fuera (691 dentro): forro entero fuera (eje único por encima de 0,75, `ejes_x_z_max`). La túnica pierde el forro por debajo de 0,95 (si no, al empujarla fuera de las mallas las dos paredes coincidían y peleaban); lo conserva en hombros, sisas y cuello, que es lo que se ve por la sisa.",
+		"12/11, décima pasada: el empuje se contagia en el espacio (`radio_empuje` 0,035): el faldón azul salía fuera de las mallas pero el panel rojo y el cinturón, que no estaban dentro, se quedaban y acababan por debajo del azul (manchas azules en el rojo, mallas por el cinturón).",
+		"12/11, undécima pasada: el contagio del empuje en 5 pasadas se acumulaba y reventaba las capas (915 dentro): fuera (radio_empuje 0). La túnica ×0,88 en cadera y faldón y ×0,80–0,82 en pecho y hombros: queda fuera de las mallas casi sin empuje (2 pasadas) y el dibujo apenas se deforma. Los brazos 14° abiertos (Pj3D.POSTURA_JB_BRAZOS) para que cuelguen por fuera del costado del chaleco.",
+		"12/11, duodécima pasada (Pablo: «la parte azul del chaleco puede ser estática PERO la parte roja tiene hombrera que debe seguir el movimiento»): `brazo` solo en el lado izquierdo (`lado`): la hombrera roja del manto (x > 0,13–0,22, de 0,93 a 1,02 de alto) pesa hasta 0,85 en el brazo izquierdo y lo acompaña; el chaleco azul y el otro hombro siguen rígidos al torso.",
+		"12/11: el forro de la túnica se queda desde 0,84 (bajo el cinturón) hacia arriba: sin él, por la rendija entre el cinturón y el faldón se veían las mallas.",
+		"12/11: la cinturilla de las mallas baja de 0,905 a 0,86 y se estrecha (×1,12): asomaba como una línea oscura entre el cinturón y la túnica; ahora queda escondida bajo el cinturón (0,85–0,89).",
+		"12/11 (Pablo: «agujeros en la bota; mezcla de la túnica azul con la manga blanca izquierda»): quitar_forro ya no se fía solo de la normal (Meshy trae caras exteriores giradas bajo el cinturón y en la boca del zapato y las borraba): una cara es interior solo si hacia fuera choca con otra cara de la prenda a menos de 3 cm (`grosor`). margen_zonas 3 cm en los hombros para que la manga de la base no atraviese el azul al mover el brazo.",
+		"12/11: `por_rayo` solo en las mallas (zapatos sin agujeros); en la túnica el rayo borraba caras del faldón azul bajo el panel rojo: vuelve al criterio por la normal (forro desde 0,84).",
+		"12/11, decimotercera pasada (seguían manchas azules del faldón sobre el panel rojo, motas azules en el borde de la hombrera y la manga blanca de la base asomando por el hombro derecho del chaleco): el empuje se reparte por CELDAS CILÍNDRICAS (`celdas`: 36 sectores × 3 cm, hasta 1,12), igual para todas las capas de la celda: faldón, panel y cinturón salen juntos y conservan el orden. 4 pasadas.",
+		"12/11: las motas oscuras en el puño blanco del tobillo eran la pared de la malla peleando con el puño que va encima (no agujeros): `tapadas` 1,2 cm en las mallas borra las caras exteriores que tienen otra cara de la prenda justo delante. Y los triángulos de las mallas que entran en el árbol (`sobre`) se orientan hacia fuera de la piel: Meshy trae 1845 girados y con ellos el empuje hundía la túnica 7 cm hacia dentro por la nalga.",
+		"12/11, decimocuarta pasada: las celdas hasta 1,12 desgarraban el cuello y el hombro del chaleco (el empuje de la hombrera se repartía al borde); solo hasta 0,95 (bajo las sisas, donde están las capas: faldón, panel, cinturón). `tapadas` a 4 mm: con 1,2 cm se llevaba la pared de la malla bajo el puño blanco y quedaba en flecos.",
+		"12/11, decimoquinta pasada: las celdas comparten el empuje solo entre vértices a radio parecido (`radio` 4 cm): el cuello del chaleco tomaba el de la manga corta (mismo sector y altura, 14 cm más lejos del eje) y salía desgarrado; con eso vuelven a subir hasta 1,12 (el manto sobre la espalda del chaleco también son capas). `profundidad_max` 3 cm: el vértice más hondo del faldón estaba 4 cm por DEBAJO del borde de la cinturilla de las mallas, cuya normal lo contaba como dentro y lo subía.",
+		"12/11, decimosexta pasada: el forro que quedaba (cuello, hombros, espalda) peleaba con la pared de fuera y el cuello y la espalda del chaleco salían desgarrados: forro entero fuera (z_max 1,3) y la prenda se monta con `doble_cara` (montar_ropa_glb.gd: cull_disabled) para que por la sisa no se vea el hueco. margen_zonas 4,5 cm desde |x| 0,10 en los hombros. La ventana de la sisa derecha (la manga abullonada de la base) se resuelve en Godot: zona `bullon` del cuerpo (partir_base_zonas.gd), que esta túnica apaga (ropa.json)."
+	],
+	"tunica_lobo": {
+		"tris": 99999,
+		"parte": "todo",
+		"perfil": [
+			[
+				-0.5,
+				0.6,
+				[
+					0.88,
+					0.88,
+					0.88
+				],
+				-0.09
+			],
+			[
+				-0.1,
+				0.84,
+				[
+					0.88,
+					0.88,
+					0.88
+				],
+				-0.09
+			],
+			[
+				0.1,
+				0.94,
+				[
+					0.82,
+					0.82,
+					0.82
+				],
+				-0.09
+			],
+			[
+				0.5,
+				1.14,
+				[
+					0.8,
+					0.8,
+					0.8
+				],
+				-0.09
+			]
+		],
+		"destino": [
+			0.003,
+			0.0,
+			0.0
+		],
+		"margen": 0.012,
+		"normal_suave": true,
+		"pasadas_piel": 4,
+		"atenuar_piernas": true,
+		"sin_brazos": true,
+		"cabeza": {
+			"huesos": [
+				"mixamorig_Head",
+				"mixamorig_Neck"
+			],
+			"a": "mixamorig_Spine2",
+			"z0": 1.25,
+			"z1": 1.35
+		},
+		"sobre": [
+			"piernas_lobo"
+		],
+		"quitar_forro": {
+			"z_max": 1.3,
+			"radial": -0.3
+		},
+		"brazo": {
+			"x0": 0.13,
+			"x1": 0.22,
+			"peso": 0.85,
+			"z_sube0": 0.93,
+			"z_sube1": 1.02,
+			"parte_clavicula": 0.3,
+			"lado": "izquierda"
+		},
+		"margen_zonas": [
+			{
+				"x_min": 0.1,
+				"z_min": 0.95,
+				"z_max": 1.12,
+				"margen": 0.045
+			}
+		],
+		"celdas": {
+			"z_max": 1.12,
+			"sectores": 36,
+			"alto": 0.03,
+			"radio": 0.04
+		},
+		"profundidad_max": 0.03
+	},
+	"piernas_lobo": {
+		"tris": 99999,
+		"parte": "todo",
+		"perfil": [
+			[
+				-0.5,
+				0.045,
+				[
+					0.95,
+					0.85,
+					0.85
+				],
+				-0.08
+			],
+			[
+				-0.42,
+				0.14,
+				[
+					0.95,
+					1.2,
+					1.2
+				],
+				-0.1
+			],
+			[
+				-0.3,
+				0.27,
+				[
+					0.94,
+					1.5,
+					1.5
+				],
+				-0.13
+			],
+			[
+				-0.1,
+				0.45,
+				[
+					0.98,
+					1.3,
+					1.3
+				],
+				-0.12
+			],
+			[
+				0.1,
+				0.6,
+				[
+					1.02,
+					1.1,
+					1.1
+				],
+				-0.11
+			],
+			[
+				0.3,
+				0.76,
+				[
+					1.0,
+					1.05,
+					1.05
+				],
+				-0.11
+			],
+			[
+				0.42,
+				0.84,
+				[
+					1.1,
+					0.85,
+					0.85
+				],
+				-0.14
+			],
+			[
+				0.5,
+				0.86,
+				[
+					1.12,
+					0.85,
+					0.85
+				],
+				-0.14
+			]
+		],
+		"destino": [
+			0.003,
+			0.0,
+			0.0
+		],
+		"margen": 0.01,
+		"normal_suave": true,
+		"pasadas_piel": 4,
+		"quitar_forro": {
+			"z_max": 0.95,
+			"radial": -0.3,
+			"ejes_x": [
+				-0.15,
+				0.15
+			],
+			"ejes_x_z_max": 0.75,
+			"por_rayo": true,
+			"tapadas": 0.004
+		}
+	}
+}

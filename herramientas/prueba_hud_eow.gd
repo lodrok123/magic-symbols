@@ -306,13 +306,15 @@ func _menu() -> void:
 	sin_uso = m.detalle()
 	_ok(String(sin_uso["id"]) == "baya" and not (sin_uso["usos"] as Array).is_empty(), "al llegar un objeto la rejilla se recoloca y se puede elegir")
 	# Pestañas
-	m.cambiar_pestana(1)
-	_ok(m.pestana_id() == "grimorio" and not m.funcional(1) and m._pag_prox.visible and not m._pag_inv.visible, "pestaña 2 = Grimorio con su «Próximamente»")
-	for i in [2, 3, 6]:                             # 2/11: Estadísticas es la 5 (funcional) y Ajustes pasa a la 6
+	m.cambiar_pestana(MenuPestanas.INDICE_VESTUARIO)
+	_ok(m.pestana_id() == "vestuario" and m.funcional(MenuPestanas.INDICE_VESTUARIO) and m._pag_vest.visible and not m._pag_inv.visible, "pestaña 2 = Vestuario (12/11), funcional")
+	m.cambiar_pestana(2)
+	_ok(m.pestana_id() == "grimorio" and not m.funcional(2) and m._pag_prox.visible and not m._pag_inv.visible, "pestaña 3 = Grimorio con su «Próximamente»")
+	for i in [3, 4, 7]:                             # 2/11: Estadísticas es funcional y Ajustes la última; 12/11: Vestuario corre todas una
 		m.cambiar_pestana(i)
 		_ok(not m.funcional(i) and m._pag_prox.visible and String(MenuPestanas.PESTANAS[i]["prox"]) != "", "pestaña %s = «Próximamente» con su texto" % m.pestana_id())
 	m.cambiar_pestana(MenuPestanas.INDICE_MISIONES)
-	_ok(m.pestana_id() == "misiones" and m.funcional(4) and m._pag_mis.visible and not m._pag_prox.visible, "Misiones es funcional y enseña su página")
+	_ok(m.pestana_id() == "misiones" and m.funcional(MenuPestanas.INDICE_MISIONES) and m._pag_mis.visible and not m._pag_prox.visible, "Misiones es funcional y enseña su página")
 	_ok(m._diario.filas().size() == 1 and m._diario.seleccionada == "a" and m._diario.ficha("a")["titulo"] == "Las cuatro tareas", "la lista y la ficha son las del diario de misiones")
 	m.cambiar_pestana(0)
 	m.siguiente_pestana(-1)
@@ -321,7 +323,7 @@ func _menu() -> void:
 	_ok(m.pestana_id() == "inventario", "E desde la última vuelve a la primera")
 	# Teclas
 	m._input(_tecla(KEY_E))
-	_ok(m.pestana_id() == "grimorio", "la tecla E pasa a la pestaña siguiente")
+	_ok(m.pestana_id() == "vestuario", "la tecla E pasa a la pestaña siguiente (12/11: Vestuario)")
 	m._input(_tecla(KEY_Q))
 	m._input(_tecla(KEY_Q))
 	_ok(m.pestana_id() == "ajustes", "la tecla Q vuelve a la anterior")

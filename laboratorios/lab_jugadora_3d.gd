@@ -12,7 +12,7 @@ extends Node3D
 ##    (alto total / alto de la cabeza). Usa el mecanismo que ya existe, ProporcionChibi vía `Pj3D.set_proporcion` (los valores del juego están en `Pj3D.PROPORCIONES`; el lab arranca con el de jugadora_base): no escribe nada.
 ##  · Panel de medidas del clip visto: duración, fotogramas, y los 5 huesos con el mayor salto de giro entre claves consecutivas (nuevo y fuente).
 ## No modifica ningún archivo.
-## Teclas: 1-5 cámara · Espacio pausa · V velocidad · ←/→ fotograma · ↑/↓ clip · F fuente · S esqueleto · M marcar cabeza · R ropa · P postura de la elfa · -/+ cabeza · H cabeza del juego · rueda zoom · arrastrar orbita
+## Teclas: 1-5 cámara · Espacio pausa · V velocidad · ←/→ fotograma · ↑/↓ clip · F fuente · S esqueleto · M marcar cabeza · R ropa · T atuendo · P postura de la elfa · -/+ cabeza · H cabeza del juego · rueda zoom · arrastrar orbita
 ## Abrir: laboratorios/LabJugadora3D.tscn y F6.
 
 const ID: String = "jugadora_base"
@@ -442,7 +442,7 @@ func _montar_interfaz() -> void:
 		f_cam.add_child(bc)
 
 	var ayuda := Label.new()
-	ayuda.text = "1-5 cámara · Espacio pausa · V velocidad · ←/→ fotograma · ↑/↓ clip · F fuente · S esqueleto · M marcas · R ropa · P postura de la elfa · -/+ cabeza · H cabeza del juego · rueda zoom · arrastrar orbita"
+	ayuda.text = "1-5 cámara · Espacio pausa · V velocidad · ←/→ fotograma · ↑/↓ clip · F fuente · S esqueleto · M marcas · R ropa · T atuendo · P postura de la elfa · -/+ cabeza · H cabeza del juego · rueda zoom · arrastrar orbita"
 	ayuda.anchor_top = 1.0
 	ayuda.anchor_bottom = 1.0
 	ayuda.offset_top = -28.0
@@ -625,15 +625,33 @@ func mostrar_fuente(on: bool) -> void:
 
 
 func poner_ropa(on: bool) -> void:
-	for prenda in (Pj3D.ROPA_POR_DEFECTO.get(ID, []) as Array):
-		if on:
+	for prenda in (_pj.ropa_puesta() as Array).duplicate():
+		_pj.quitar_ropa(String(prenda))
+	if on:
+		for prenda in (Pj3D.ROPA_POR_DEFECTO.get(ID, []) as Array):
 			_pj.poner_ropa(String(prenda))
-		else:
-			_pj.quitar_ropa(String(prenda))
 	if _chk_ropa != null:
 		_ocupado = true
 		_chk_ropa.button_pressed = on
 		_ocupado = false
+
+
+## 12/11: la T pasa al atuendo siguiente (Atuendos.ids: viaje, Sumicio, loberno), sin mirar si se tiene (es el laboratorio); quita lo puesto y pone sus prendas.
+func siguiente_atuendo() -> void:
+	var ids: Array = Atuendos.ids()
+	if ids.is_empty():
+		return
+	var ahora: int = ids.find(Atuendos.puesto(_pj))
+	var id: String = String(ids[(ahora + 1) % ids.size()])
+	for prenda in (_pj.ropa_puesta() as Array).duplicate():
+		_pj.quitar_ropa(String(prenda))
+	for prenda in Atuendos.prendas(id):
+		_pj.poner_ropa(String(prenda))
+	if _chk_ropa != null:
+		_ocupado = true
+		_chk_ropa.button_pressed = true
+		_ocupado = false
+	print("Atuendo: %s (%s)" % [Objetos.nombre(id), id])
 
 
 ## Pone (o quita) la POSTURA de la elfa de antes (Pj3D.POSTURAS["chibi_elf"]: cabeza, cuello, columna, brazos, rodillas, pies, pelvis en grados). La jugadora nueva traduce los
@@ -756,6 +774,8 @@ func _input(ev: InputEvent) -> void:
 				_chk_marca.set_pressed_no_signal(_marcar)
 			KEY_R:
 				poner_ropa(_pj.ropa_puesta().is_empty())
+			KEY_T:
+				siguiente_atuendo()
 			KEY_P:
 				poner_postura_elfa(not _postura_elfa)
 			KEY_MINUS, KEY_KP_SUBTRACT:

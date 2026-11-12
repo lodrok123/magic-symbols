@@ -199,7 +199,10 @@ func _prueba_antebrazos() -> void:
 	root.add_child(mundo)
 	var p := Pj3D.new()
 	mundo.add_child(p)
-	_ok(p.cargar("jugadora_base") and Ropa3D.puesta(p, "capa") != null, "jugadora_base carga vestida con la capa")
+	var cargo: bool = p.cargar("jugadora_base")
+	for prenda in ["piernas", "capa", "capucha"]:     # 12/11: la ropa por defecto vuelve a ser el atuendo verde (Atuendos); esta prueba es de la capa roja
+		p.poner_ropa(prenda)
+	_ok(cargo and Ropa3D.puesta(p, "capa") != null, "jugadora_base carga vestida con la capa")
 	await process_frame
 	var sk: Skeleton3D = p.find_children("*", "Skeleton3D", true, false)[0] as Skeleton3D
 	var esc: float = (sk.get_parent() as Node3D).scale.y

@@ -2,7 +2,7 @@ extends SceneTree
 ## MONTA una prenda de la jugadora base como .glb con EL MISMO esqueleto: toma lo que escribe `herramientas/rig/encajar_ropa.py` (geometría y pesos en .json,
 ## texturas en .png) y lo pone sobre una copia de la escena de `jugadora_base.glb` en lugar de su malla, con el Skin de la base (mismos huesos, mismas poses
 ## de enlace). Así no hay una reexportación de Blender que reoriente huesos. Sin ventana:
-##   godot --headless --path . --script res://herramientas/montar_ropa_glb.gd -- <carpeta_blender> <prenda> <glb_salida> [<nombre_malla> [muelles]]
+##   godot --headless --path . --script res://herramientas/montar_ropa_glb.gd -- <carpeta_blender> <prenda> <glb_salida> [<nombre_malla> [muelles] [doble_cara]]
 ## Con `muelles` (la capa) añade al esqueleto exportado las cadenas de CapaMuelles3D y les pasa el peso de la mitad baja (ver `_muelles`).
 ## <prenda> = nombre del .json (capa, tunica, capucha, piernas). Las texturas son las de la carpeta: ropa_basecolor.png y, si las hay, ropa_normal.png y ropa_rm.png
 ## (sin ellas la prenda va mate y sin relieve).
@@ -14,6 +14,7 @@ const LADO_TEXTURAS: int = 1024
 const ROUGHNESS_MIN: float = 0.0
 ## 5.º argumento: la prenda lleva las cadenas de muelles de la capa (CapaMuelles3D).
 const MUELLES: String = "muelles"
+const DOBLE_CARA: String = "doble_cara"     ## 12/11: argumento extra (en cualquier posición tras el 4.º): se dibujan las dos caras (prenda sin forro)
 
 
 func _initialize() -> void:
@@ -93,6 +94,10 @@ func _initialize() -> void:
 		# 11/11: las prendas de Meshy (uniforme de Sumicio) traen solo el color: lana y cuero mates, nada metálico (con metallic 1,0 y sin textura salían de cromo).
 		mat.metallic = 0.0
 	mat.roughness = 1.0
+	if a.has(DOBLE_CARA):
+		# 12/11 (túnica del loberno): sin forro y con las dos caras dibujadas. El forro de Meshy, a los mismos radios que la pared de fuera, peleaba con ella en
+		# el cuello y la espalda (bordes desgarrados); sin forro y con una sola cara, por la sisa se veía el hueco. Con luz plana el revés se ve del mismo color.
+		mat.cull_mode = BaseMaterial3D.CULL_DISABLED
 	malla.surface_set_material(0, mat)
 	var nuevo := MeshInstance3D.new()
 	nuevo.name = a[3] if a.size() > 3 else a[1]

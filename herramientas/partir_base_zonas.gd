@@ -5,14 +5,17 @@ extends SceneTree
 ## prenda, `oculta` en arte/modelos/ropa.json). Sin ventana:
 ##   godot --headless --path . --script res://herramientas/partir_base_zonas.gd
 ## Zonas (ZONAS, en este orden): cabeza (cara, orejas y el pelo de delante), pelo (el de atrás: lo que tapa una capucha), torso (piel y lo que no es ropa),
-## chaleco y cinturon (la ropa pintada en el torso, que tapa una túnica), brazos, piernas y botas. Se decide por el hueso de mayor peso de cada vértice, la altura
+## chaleco y cinturon (la ropa pintada en el torso, que tapa una túnica), brazos, piernas, botas y bullon (lo alto de la manga). Se decide por el hueso de mayor peso de cada vértice, la altura
 ## y, en el torso y en lo alto de los brazos, el color de la textura (piel y mangas claras / cuero marrón del chaleco y del cinturón). El pelo es lo de la cabeza
 ## que NO SE VE con la capucha y la capa puestas (VISIBILIDAD; por eso lee también ropa_capucha.glb y ropa_capa.glb: hay que volver a pasarlo cuando cambian), más
 ## las orejas. La malla trae sus coordenadas en 1/100 de unidad del modelo.
 
 const GLB_BASE: String = "res://arte/modelos/jugadora_base.glb"
 const SALIDA: String = "res://arte/modelos/jugadora_base_zonas.res"
-const ZONAS: Array = ["cabeza", "pelo", "torso", "chaleco", "cinturon", "brazos", "piernas", "botas"]
+const ZONAS: Array = ["cabeza", "pelo", "torso", "chaleco", "cinturon", "brazos", "piernas", "botas", "bullon"]
+## 12/11 (Pablo, atuendo del loberno: «apagar bullón»): `bullon` = lo alto de la manga abullonada (brazo y hombro, por encima de BULLON_Z_MIN, color de manga):
+## por la sisa del chaleco del loberno asomaba como una ventana (la sisa de Meshy cae a la altura del hombro de la chibi). Solo la apaga esa túnica.
+const BULLON_Z_MIN: float = 0.96
 ## Unidades de la malla -> unidades del modelo (1,7 de alto).
 const ESCALA_MALLA: float = 100.0
 ## Orejas (a `pelo` siempre: con la capucha asomaban por la pared lateral). Están a y = +0,05, x = ±0,34, z = 1,33 (la piel llega a |x| 0,343, z 1,30–1,34).
@@ -31,6 +34,10 @@ const OREJA_ATRAS_MAX: float = 0.12
 ## oreja contra la pared lateral), y las MIGAS sueltas que deja todo esto.
 const GLB_CAPUCHA: String = "res://arte/modelos/ropa_capucha.glb"
 const GLB_CAPA: String = "res://arte/modelos/ropa_capa.glb"
+## 12/11 (atuendos): hay DOS capuchas con su capa (la roja de Sumicio y la verde de viaje) y una sola zona `pelo`. Un triángulo es `pelo` si no se ve con
+## NINGUNO de los conjuntos puestos (la intersección): con la capucha roja puesta, el pelo que ella tapa y la verde no queda encerrado dentro de ella (no se
+## ve); al revés igual. Con la unión, con la verde puesta faltaría el pelo que solo tapa la roja (un agujero en la melena).
+const CONJUNTOS: Array = [[GLB_CAPUCHA, GLB_CAPA], ["res://arte/modelos/ropa_capucha_verde.glb", "res://arte/modelos/ropa_capa_verde.glb"]]
 const VIS_DIRECCIONES: int = 96
 const VIS_Y_MIN: float = -0.45
 ## Los rayos salen VIS_SEPARA (u del modelo) por delante del centro (no chocan con el propio triángulo ni con su gemelo de la otra cara de la tira de pelo).
@@ -82,7 +89,14 @@ func _partir() -> void:
 				mejor = pesos[v * por_vert + k]
 				dominante[v] = hueso_de_enlace[bones[v * por_vert + k]]
 	# 26/10: qué triángulos de la cabeza se ven con la capucha y la capa puestas (ver VISIBILIDAD).
-	var visto: PackedByteArray = await _visibles(mi, sk, pos, bones, pesos, por_vert, idx, dominante, hueso_de_enlace)
+	var visto: PackedByteArray = PackedByteArray()
+	for conjunto in CONJUNTOS:
+		var v: PackedByteArray = await _visibles(mi, sk, pos, bones, pesos, por_vert, idx, dominante, hueso_de_enlace, conjunto)
+		if visto.is_empty():
+			visto = v
+		else:
+			for t in visto.size():
+				visto[t] = maxi(visto[t], v[t])     # se ve con alguno de los conjuntos = se ve
 	# Zona de cada triángulo.
 	var zona_tri: PackedInt32Array = PackedInt32Array()
 	var cuenta: Array = []
@@ -135,7 +149,7 @@ func _es_cabeza(h: String) -> bool:
 
 ## VISIBILIDAD: 1 por triángulo de la cabeza que se ve desde fuera con la capucha y la capa puestas (0 si no; el resto de triángulos, 1).
 func _visibles(mi: MeshInstance3D, sk: Skeleton3D, pos: PackedVector3Array, bones: PackedInt32Array, pesos: PackedFloat32Array, por_vert: int,
-		idx: PackedInt32Array, dominante: PackedStringArray, hueso_de_enlace: Array) -> PackedByteArray:
+		idx: PackedInt32Array, dominante: PackedStringArray, hueso_de_enlace: Array, rutas_ropa: Array = [GLB_CAPUCHA, GLB_CAPA]) -> PackedByteArray:
 	var escala_cabeza: float = float((Pj3D.PROPORCIONES.get("jugadora_base", [1.0]) as Array)[0])
 	var pivote: Vector3 = _pivote_cabeza(mi.skin, sk)
 	var cuerpo: PackedVector3Array = _reposo_juego(pos, bones, pesos, por_vert, hueso_de_enlace, pivote, escala_cabeza)
@@ -143,7 +157,7 @@ func _visibles(mi: MeshInstance3D, sk: Skeleton3D, pos: PackedVector3Array, bone
 	for i in idx:
 		caras.append(cuerpo[i])
 	var caras_ropa := PackedVector3Array()
-	for ruta in [GLB_CAPUCHA, GLB_CAPA]:
+	for ruta in rutas_ropa:
 		caras_ropa.append_array(_caras_prenda(String(ruta), pivote, escala_cabeza))
 	# El cuerpo en la capa de colisión 1 y la ropa en la 2 (FUERA mira solo la ropa).
 	var cuerpo_fisico := Node3D.new()
@@ -359,6 +373,8 @@ func _zona_triangulo(pos: PackedVector3Array, uv: PackedVector2Array, dominante:
 	# Torso (Hips, Spine*) y la parte alta de los brazos, donde el chaleco llega a los hombros y a la sisa: por el color de la textura (la piel y las mangas
 	# son claras; el chaleco y el cinturón, de cuero marrón).
 	if _es_piel(_color(img, uv[a], uv[b], uv[c])):
+		if brazo and not h.contains("ForeArm") and not h.contains("Hand") and altura > BULLON_Z_MIN:
+			return ZONAS.find("bullon")
 		return ZONAS.find("brazos" if brazo else "torso")
 	return ZONAS.find("cinturon" if h == "Hips" else "chaleco")
 

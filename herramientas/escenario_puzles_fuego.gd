@@ -96,7 +96,11 @@ func _f1_natural() -> void:
 	_ok("F1.6 con 4/4 el contador completa y la puerta se abre", ct.completo and bool(puerta.get("abierta")), "contador %d/%d" % [ct.encendidos, ct.total()])
 	_ok("F1.7 agua + flecha a un brasero lo apaga", await _agua_a(casillas[1], origenes[1]) and not _arde(bs[1]))
 	_ok("F1.8 con 3/4 la puerta se vuelve a cerrar", not ct.completo and not bool(puerta.get("abierta")))
-	_ok("F1.9 fuego otra vez al brasero apagado: 4/4 y la puerta abre", await _fuego_a(casillas[1], origenes[1]) and ct.completo and bool(puerta.get("abierta")))
+	# 12/11: desde B5 (6/11, hechizo × hechizo) el agua deja un charco de hechizo `HechizoVivo.ZONA_AGUA_S` s y una flecha de fuego que lo cruza se apaga en vapor. Este paso
+	# disparaba el fuego 1,2 s después del agua y fallaba: primero se comprueba la regla (con el charco vivo el fuego NO prende) y luego, ya seco, que sí.
+	_ok("F1.9a con el charco del agua aún vivo, el fuego se apaga al cruzarlo: el brasero sigue apagado (B5)", await _fuego_a(casillas[1], origenes[1]) and not _arde(bs[1]) and not ct.completo)
+	await avanzar_s(HechizoVivo.ZONA_AGUA_S + 1.0)
+	_ok("F1.9 ido el charco, fuego otra vez al brasero apagado: 4/4 y la puerta abre", await _fuego_a(casillas[1], origenes[1]) and ct.completo and bool(puerta.get("abierta")))
 
 
 func _f1_botones() -> void:

@@ -103,7 +103,7 @@ func _escenario() -> void:
 	menu.cambiar_pestana(MenuPestanas.INDICE_MISIONES)
 	await avanzar_s(0.3)
 	_foto("menu_misiones")
-	menu.cambiar_pestana(1)
+	menu.cambiar_pestana(2)
 	await avanzar_s(0.3)
 	_foto("menu_proximamente")
 	menu.cerrar()

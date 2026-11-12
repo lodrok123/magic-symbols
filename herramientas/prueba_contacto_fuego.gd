@@ -231,9 +231,11 @@ func _caso_2_flecha() -> void:
 func _volar(arq: Combate3D) -> Dictionary:
 	var antes: Array = _mundo.get_children()
 	arq._soltar_flecha()
-	var flecha: MeshInstance3D = null
+	# 12/11: la flecha ya no es una caja (MeshInstance3D): es un Node3D «FlechaGoblin» con el modelo dentro y el meta `flecha_goblin` (`Combate3D._crear_flecha`).
+	# Buscando un MeshInstance3D no se veía ninguna, no se esperaba al vuelo y fallaba todo el caso 2. Se acepta también la caja de respaldo.
+	var flecha: Node3D = null
 	for n in _mundo.get_children():
-		if not antes.has(n) and n is MeshInstance3D:
+		if not antes.has(n) and (n.has_meta("flecha_goblin") or n is MeshInstance3D):
 			flecha = n
 	var ardio: bool = false
 	var vio: bool = flecha != null

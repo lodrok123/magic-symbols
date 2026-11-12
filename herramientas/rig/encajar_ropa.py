@@ -1,14 +1,16 @@
 """ENCAJA las prendas de `vestido.glb` (Tripo, sin esqueleto: capa corta con capucha + túnica sin mangas en UNA malla) sobre `jugadora_base.glb`.
 Es el paso de Blender de PLAN_RIGGING §3 (pasos 2-3), para la ropa en piezas aparte de la jugadora base (arte/meshy/PROMPTS_JUGADORA_BASE.md §2).
 
-    blender -b -P herramientas/rig/encajar_ropa.py -- <vestido.glb> <jugadora_base.glb> <carpeta_salida> [<config.json>]
+    blender -b -P herramientas/rig/encajar_ropa.py -- <vestido.glb> <jugadora_base.glb> <carpeta_salida> [<config.json> [<solo esta prenda>]]
 
 Qué hace, por cada prenda (se separan por el hueco en X que deja Tripo entre la capa y la túnica):
   1. la reduce con Decimate (colapso) a ~`tris` triángulos, conservando UV y el cierre de las costuras;
   2. la escala y coloca sobre la base en A-pose (`config`: escala, desplazamiento y qué punto se alinea con qué punto de la base; o `perfil` por alturas, con
      escala X / Y delante / Y detrás y desplazamiento Y por nudo; `nivela_borde` baja la parte delantera para que el borde quede a una altura);
   3. la separa de la piel donde quedaba dentro de la base (empuja a `margen` por la normal, con el desplazamiento suavizado; las orejas no empujan;
-     `normal_suave`, `profundidad_max` y `pasadas_piel` lo afinan para la capa);
+     `normal_suave`, `profundidad_max` y `pasadas_piel` lo afinan para la capa; `sobre` mete en la piel las prendas ya encajadas de debajo; `margen_zonas`
+     da más holgura en cajas; `celdas` reparte el empuje radial por celdas cilíndricas entre capas a radio parecido, para que faldón, panel y cinturón
+     salgan juntos; `quitar_forro` quita la pared interior, con `por_rayo` y `tapadas` para las caras giradas y las tapadas por otra capa);
   4. le pasa los pesos de la base: para cada vértice, el punto más cercano de la superficie de la base y los pesos de ese triángulo (baricéntrico),
      suavizados sobre la malla soldada (las costuras de UV no dejan huecos), con las piernas atenuadas en la túnica para que la falda no se parta en dos,
      máximo 4 influencias, normalizados (con `cabeza`, por debajo de una altura el peso de la cabeza pasa al torso);
@@ -91,6 +93,8 @@ def reducir(o: bpy.types.Object, tris_objetivo: int) -> None:
     m.decimate_type = 'COLLAPSE'
     m.ratio = min(1.0, tris_objetivo / float(tris))
     m.use_collapse_triangulate = True
+    # (12/11: `delimit` solo vale para el modo PLANAR; el colapso ya interpola las UV por esquina. Las motas negras y blancas de las prendas de Meshy venían del
+    # filtrado en los bordes de sus islas diminutas sobre fondo negro: ver `rellenar_fondo`.)
     bpy.context.view_layer.objects.active = o
     bpy.ops.object.modifier_apply(modifier=m.name)
 
@@ -104,23 +108,56 @@ def quitar_forro(o: bpy.types.Object, cfg: dict, ids: list, excluir: set) -> int
     bajos = [o.matrix_world @ v.co for v in o.data.vertices if (o.matrix_world @ v.co).z < z_max]
     cx = (min(p.x for p in bajos) + max(p.x for p in bajos)) * 0.5
     cy = (min(p.y for p in bajos) + max(p.y for p in bajos)) * 0.5
+    # `ejes_x` (12/11, mallas): un eje por pierna (x de cada uno); cada cara mira al más cercano. Con un solo eje, la cara de fuera del muslo interior «miraba
+    # al eje» (al otro muslo) y se borraba.
+    ejes_x = [float(e) for e in cfg.get("ejes_x", [])]
     rot = o.matrix_world.to_3x3()
     bm = bmesh.new()
     bm.from_mesh(o.data)
+    # 12/11: la normal sola no basta: Meshy trae algunas caras EXTERIORES con la normal girada (bajo el cinturón de la túnica, la boca de los zapatos) y se
+    # borraban (agujeros). Ahora una cara es interior solo si, además, un rayo desde su centro hacia fuera (dirección radial) choca con otra cara de la
+    # misma prenda a menos de `grosor` (la pared de fuera). Una cara exterior con la normal al revés no tiene nada delante y se queda.
+    grosor = float(cfg.get("grosor", 0.03))
+    arbol_propio = BVHTree.FromObject(o, bpy.context.evaluated_depsgraph_get())
+    inv = o.matrix_world.inverted()
     borrar = []
     for f in bm.faces:
         if any(ids[v.index] in excluir for v in f.verts):
             continue
         c = o.matrix_world @ f.calc_center_median()
-        if c.z >= z_max:
+        if c.z >= z_max or c.z < float(cfg.get("z_min", -math.inf)):
             continue
-        dx, dy = c.x - cx, c.y - cy
+        # `ejes_x_z_max`: por encima de esa altura (la cadera, donde las dos piernas son un tubo) vuelve a mandar el eje único.
+        ex = min(ejes_x, key=lambda e: abs(c.x - e)) if ejes_x and c.z < float(cfg.get("ejes_x_z_max", math.inf)) else cx
+        dx, dy = c.x - ex, c.y - cy
         l = math.hypot(dx, dy)
         if l < 1e-6:
             continue
         n = (rot @ f.normal).normalized()
-        if (n.x * dx + n.y * dy) / l < umbral:
+        if (n.x * dx + n.y * dy) / l >= umbral:
+            # `tapadas` (12/11, mallas): una cara que mira hacia fuera pero tiene OTRA cara de la prenda a menos de `tapadas` por delante (por su normal) está
+            # debajo de una capa (la pared de la malla bajo el puño blanco del tobillo y bajo el zapato) y pelea con ella en motas: fuera.
+            tapadas = float(cfg.get("tapadas", 0.0))
+            if tapadas > 0.0:
+                origen = inv @ (c + n * 0.002)
+                loc, _nor, _idx, dist = arbol_propio.ray_cast(origen, inv.to_3x3() @ n, tapadas / o.matrix_world.to_scale().x)
+                if loc is not None:
+                    borrar.append(f)
+            continue
+        if not bool(cfg.get("por_rayo", False)):
+            borrar.append(f)           # solo por la normal (la túnica: con el rayo, el faldón azul perdía caras bajo el panel rojo)
+            continue
+        radial = Vector((dx / l, dy / l, 0.0))
+        origen = inv @ (c + radial * 0.002)
+        loc, _nor, _idx, dist = arbol_propio.ray_cast(origen, inv.to_3x3() @ radial, grosor / o.matrix_world.to_scale().x)
+        if loc is not None:
             borrar.append(f)
+    if os.environ.get("ROPA_DEPURA"):
+        bandas = {}
+        for f in borrar:
+            b = round(math.floor((o.matrix_world @ f.calc_center_median()).z / BANDA_INFORME) * BANDA_INFORME, 2)
+            bandas[b] = bandas.get(b, 0) + 1
+        print("FORRO por altura (bandas de %.2f): %s" % (BANDA_INFORME, sorted(bandas.items())))
     bmesh.ops.delete(bm, geom=borrar, context='FACES')
     bmesh.ops.delete(bm, geom=[v for v in bm.verts if not v.link_faces], context='VERTS')
     bm.to_mesh(o.data)
@@ -221,13 +258,37 @@ def colocar(o: bpy.types.Object, cfg: dict) -> None:
         v.co = Vector((v.co.x * esc.x, v.co.y * esc.y, v.co.z * esc.z)) + desp
 
 
-def arbol_base(base: bpy.types.Object) -> BVHTree:
+def arbol_base(base: bpy.types.Object, debajo: list = None) -> BVHTree:
+    """El árbol de la piel de la base y, con `debajo` (rutas de .json de prendas ya encajadas, `sobre` en la config), también sus triángulos: la prenda se
+    empuja fuera de la piel Y de la ropa de debajo (12/11: la túnica del loberno sobre las mallas, que la atravesaban por la cadera). Los pesos siguen
+    saliendo solo de la base (los triángulos de debajo van DESPUÉS de los suyos: `pesos_desde_base` y `NormalSuave` lo saben por el índice)."""
     dg = bpy.context.evaluated_depsgraph_get()
     ev = base.evaluated_get(dg)
     me = ev.to_mesh()
     verts = [base.matrix_world @ v.co for v in me.vertices]
     me.calc_loop_triangles()
     tris = [tuple(t.vertices) for t in me.loop_triangles]
+    solo_base = BVHTree.FromPolygons(verts, tris, all_triangles=True) if debajo else None
+    for ruta in (debajo or []):
+        with open(ruta) as f:
+            d = json.load(f)
+        n0 = len(verts)
+        for q in d["pos"]:
+            verts.append(base.matrix_world @ Vector((q[0], -q[2], q[1])))
+        idx = d["idx"]
+        giradas = 0
+        for i in range(0, len(idx), 3):
+            t = (n0 + idx[i], n0 + idx[i + 1], n0 + idx[i + 2])
+            # 12/11: Meshy trae caras con la normal girada; con ella al revés, el empuje mandaba la túnica 7 cm HACIA DENTRO (y el informe la contaba dentro).
+            # Cada triángulo de la prenda de debajo se orienta hacia fuera de la piel de la base (su normal, en el sentido de la piel al triángulo).
+            a, b, c = verts[t[0]], verts[t[1]], verts[t[2]]
+            cen = (a + b + c) / 3.0
+            loc, _nor, _ti, _dist = solo_base.find_nearest(cen)
+            if loc is not None and (b - a).cross(c - a).dot(cen - loc) < 0.0:
+                t = (t[0], t[2], t[1])
+                giradas += 1
+            tris.append(t)
+        print("SOBRE: %s (%d triángulos, %d girados hacia fuera) cuenta como piel" % (os.path.basename(ruta), len(idx) // 3, giradas))
     return BVHTree.FromPolygons(verts, tris, all_triangles=True), verts, tris
 
 
@@ -248,7 +309,9 @@ class NormalSuave:
         self.verts = verts
         self.tris = tris
 
-    def en(self, loc: Vector, ti: int) -> Vector:
+    def en(self, loc: Vector, ti: int, nor: Vector = None) -> Vector:
+        if ti >= len(self.normales):
+            return nor if nor is not None else Vector((0.0, 0.0, 1.0))      # un triángulo de la prenda de debajo (`sobre`): la normal de su cara
         a, b, c = self.tris[ti]
         ws = baricentricas(loc, self.verts[a], self.verts[b], self.verts[c])
         na, nb, nc = self.normales[ti]
@@ -368,7 +431,8 @@ class CampoFactor:
 
 def sacar_de_la_piel(o: bpy.types.Object, arbol: BVHTree, margen: float, ids: list, vecinos: list, casco: CascoCabeza = None,
                     margen_casco: float = 0.0, suave: NormalSuave = None, profundidad_max: float = math.inf,
-                    suavizado: int = SUAVIZADO_EMPUJE, sin_casco: set = None, caja_sin_casco: dict = None) -> int:
+                    suavizado: int = SUAVIZADO_EMPUJE, sin_casco: set = None, caja_sin_casco: dict = None, margen_zonas: list = None,
+                    radio_empuje: float = 0.0, celdas: dict = None) -> int:
     """Empuja fuera de la base los vértices que quedan dentro o a menos de `margen` (por la normal del punto más cercano). Solo cuenta como dentro un punto a
     menos de `profundidad_max` de la superficie (por debajo de la cabeza, HULL_Z_MIN; arriba manda el casco): más lejos, el signo de la normal de un pliegue (la
     raja de las nalgas, la punta del codo) no dice nada y un vértice de la orla a 15 cm se arrastraba hasta allí. `suavizado`: pasadas sobre el desplazamiento."""
@@ -381,11 +445,17 @@ def sacar_de_la_piel(o: bpy.types.Object, arbol: BVHTree, margen: float, ids: li
         p = o.matrix_world @ v.co
         loc, nor, ti, dist = arbol.find_nearest(p)
         if suave is not None and loc is not None:
-            nor = suave.en(loc, ti)
+            nor = suave.en(loc, ti, nor)
         d_piel = Vector()
-        if loc is not None and not (abs(loc.x) > OREJA_X and loc.z > OREJA_Z) and (p - loc).dot(nor) < margen \
+        # `margen_zonas` (12/11): holgura mayor en cajas [{x_min, z_min, z_max, margen}] (los hombros de la túnica sin mangas: el brazo cuelga más pegado
+        # que en la A-pose y se metía por la manga corta).
+        margen_v = margen
+        for caja in (margen_zonas or []):
+            if abs(p.x) >= float(caja.get("x_min", 0.0)) and p.z >= float(caja.get("z_min", -math.inf)) and p.z <= float(caja.get("z_max", math.inf)):
+                margen_v = max(margen_v, float(caja["margen"]))
+        if loc is not None and not (abs(loc.x) > OREJA_X and loc.z > OREJA_Z) and (p - loc).dot(nor) < margen_v \
                 and (dist <= profundidad_max or p.z > HULL_Z_MIN):
-            d_piel = loc + nor * margen - p
+            d_piel = loc + nor * margen_v - p
         # `caja_sin_casco`: cajas (lista o una) donde el casco no empuja: x < x_max, y > y_min, z < z_max (las que falten no limitan); con `rampa`, el empuje
         # vuelve suavemente entre z_max y z_max + rampa (sin escalón en la pared de la capucha).
         con_casco = 1.0
@@ -407,6 +477,81 @@ def sacar_de_la_piel(o: bpy.types.Object, arbol: BVHTree, margen: float, ids: li
             desp[g] = d_casco * w * con_casco + d_piel * (1.0 - w * con_casco)
             continue
         desp[g] = d_piel
+    if radio_empuje > 0.0:
+        # 12/11 (túnica del loberno, varias capas de tela: chaleco, panel rojo, cinturón): el empuje se CONTAGIA en el espacio, no solo por la malla. Cada
+        # vértice toma el mayor empuje de los que tiene a menos de `radio_empuje`, de cualquier capa: si el faldón azul sale empujado fuera de las mallas, el
+        # panel rojo y el cinturón que van encima salen con él (antes se quedaban donde estaban y acababan por debajo del azul).
+        from mathutils.kdtree import KDTree
+        pos_g = {}
+        for v in o.data.vertices:
+            pos_g.setdefault(ids[v.index], o.matrix_world @ v.co)
+        kd = KDTree(len(pos_g))
+        claves = list(pos_g.keys())
+        for i, g in enumerate(claves):
+            kd.insert(pos_g[g], i)
+        kd.balance()
+        nuevo = {}
+        contagiados = 0
+        for g in claves:
+            mejor = desp[g]
+            for (_co, i, _dist) in kd.find_range(pos_g[g], radio_empuje):
+                d = desp[claves[i]]
+                if d.length > mejor.length:
+                    mejor = d
+            if mejor is not desp[g]:
+                contagiados += 1
+            nuevo[g] = mejor
+        desp = nuevo
+        print("EMPUJE contagiado a %d vértices (radio %.3f)" % (contagiados, radio_empuje))
+    if celdas:
+        # 12/11 (túnica del loberno, trece pasadas: chaleco azul + panel rojo + cinturón, capas a radios distintos): el empuje se reparte por CELDAS CILÍNDRICAS
+        # (sector de ángulo alrededor del eje de la prenda × banda de altura), sin mirar el radio: todos los vértices de una celda, de la capa que sean, toman el
+        # mayor empuje de la celda. Así el faldón azul, el panel rojo que va encima y el cinturón salen JUNTOS fuera de las mallas y conservan el orden de las
+        # capas (con el contagio esférico `radio_empuje`, un vértice tomaba el empuje de otro en dirección distinta y se hundía en la piel). Solo por debajo
+        # de `z_max`; `sectores` y `alto` dan el tamaño de la celda; cada celda se ensancha con el máximo de sus vecinas (sin escalones). Se reparte solo la
+        # COMPONENTE RADIAL (hacia fuera del eje) del empuje: compartiendo el vector entero, el del manto entre el brazo y el costado (que apunta al torso)
+        # hundía el chaleco 13 cm en la piel.
+        z_max = float(celdas.get("z_max", math.inf))
+        sectores, alto = int(celdas.get("sectores", 36)), float(celdas.get("alto", 0.03))
+        pos_g = {}
+        for v in o.data.vertices:
+            pos_g.setdefault(ids[v.index], o.matrix_world @ v.co)
+        bajos = [q for q in pos_g.values() if q.z < z_max]
+        cx = (min(q.x for q in bajos) + max(q.x for q in bajos)) * 0.5 if bajos else 0.0
+        cy = (min(q.y for q in bajos) + max(q.y for q in bajos)) * 0.5 if bajos else 0.0
+        def celda(q: Vector) -> tuple:
+            return (int((math.atan2(q.y - cy, q.x - cx) + math.pi) / (2.0 * math.pi) * sectores) % sectores, int(math.floor(q.z / alto)))
+        def radial(q: Vector) -> Vector:
+            r = Vector((q.x - cx, q.y - cy, 0.0))
+            return r.normalized() if r.length > 1e-6 else Vector()
+        # `radio` (12/11): solo entre vértices a radio parecido (±radio del eje): el cuello del chaleco (a 6 cm del eje) está en el mismo sector y altura
+        # que la manga corta (a 20 cm) y tomaba su empuje de 3 cm: el cuello salía desgarrado. Las capas (faldón, panel, cinturón; chaleco y manto en la
+        # espalda) están a 1–2 cm unas de otras y sí lo comparten.
+        radio_max = float(celdas.get("radio", 0.04))
+        def rad(q: Vector) -> float:
+            return math.hypot(q.x - cx, q.y - cy)
+        mejor = {}
+        for g, q in pos_g.items():
+            if q.z >= z_max:
+                continue
+            r = desp[g].dot(radial(q))
+            if r > 1e-6:
+                mejor.setdefault(celda(q), []).append((rad(q), r))
+        ancho = {}
+        for (a, b), lista in mejor.items():
+            for da in (-1, 0, 1):
+                for db in (-1, 0, 1):
+                    ancho.setdefault(((a + da) % sectores, b + db), []).extend(lista)
+        repartidos = 0
+        for g, q in pos_g.items():
+            if q.z >= z_max:
+                continue
+            rq = rad(q)
+            falta = max((r for (rv, r) in ancho.get(celda(q), []) if abs(rv - rq) <= radio_max), default=0.0) - desp[g].dot(radial(q))
+            if falta > 1e-6:
+                desp[g] = desp[g] + radial(q) * falta
+                repartidos += 1
+        print("EMPUJE repartido por celdas a %d vértices (%d sectores × %.3f)" % (repartidos, sectores, alto))
     for _ in range(suavizado):
         nuevo = {}
         for g, d in desp.items():
@@ -502,24 +647,47 @@ def pesos_brazo(p: Vector, cfg: dict) -> float:
     """Cuánto del peso de un vértice de la capa se pasa al brazo de su lado (0..`peso`): sube con la distancia lateral al eje (`x0`..`x1`, el hombro y lo que cuelga
     de él) y baja a cero con la altura (a partir de `z_baja0` hasta `z_baja1`: la capucha y el cuello siguen a la cabeza y al torso)."""
     lat = abs(p.x - float(cfg.get("eje_x", 0.003)))
+    # `lado` (12/11, la hombrera roja del manto del loberno, Pablo: «la parte azul puede ser estática PERO la hombrera roja debe seguir el movimiento»):
+    # solo un lado del personaje ("izquierda" = +X) acompaña al brazo; el otro queda como estaba (rígido al torso con `sin_brazos`).
+    lado = str(cfg.get("lado", ""))
+    if (lado == "izquierda" and p.x < float(cfg.get("eje_x", 0.003))) or (lado == "derecha" and p.x > float(cfg.get("eje_x", 0.003))):
+        return 0.0
     t_lat = suave((lat - float(cfg["x0"])) / (float(cfg["x1"]) - float(cfg["x0"])))
-    t_alto = 1.0 - suave((p.z - float(cfg["z_baja0"])) / (float(cfg["z_baja1"]) - float(cfg["z_baja0"])))
+    if "z_sube0" in cfg:
+        # 12/11 (manga corta del chaleco del loberno): al revés que en la capa, el peso de brazo SUBE con la altura (de nada en z_sube0 a todo en z_sube1): la
+        # manga que cubre el hombro acompaña al brazo; el costado del chaleco, no.
+        t_alto = suave((p.z - float(cfg["z_sube0"])) / (float(cfg["z_sube1"]) - float(cfg["z_sube0"])))
+    else:
+        t_alto = 1.0 - suave((p.z - float(cfg["z_baja0"])) / (float(cfg["z_baja1"]) - float(cfg["z_baja0"])))
     return float(cfg["peso"]) * t_lat * t_alto
 
 
 def pesos_desde_base(o: bpy.types.Object, base: bpy.types.Object, arbol: BVHTree, verts_b: list, tris_b: list, ids: list, vecinos: list,
-                     atenuar_piernas: bool, brazo: dict = None, cabeza: dict = None) -> list:
+                     atenuar_piernas: bool, brazo: dict = None, cabeza: dict = None, sin_brazos: bool = False, con_clavicula: bool = False) -> list:
     """Pesos por vértice de la prenda: [{hueso: peso}] (ya suavizados, recortados a 4 y normalizados)."""
     nombres = {g.index: g.name for g in base.vertex_groups}
     pesos_b = [{nombres[g.group]: g.weight for g in v.groups} for v in base.data.vertices]
     por_grupo = {}
+    n_base = len(pesos_b)
+    arbol_solo_base = None
     for v in o.data.vertices:
         gid = ids[v.index]
         if gid in por_grupo:
             continue
         p = o.matrix_world @ v.co
         loc, nor, ti, dist = arbol.find_nearest(p)
-        a, b, c = tris_b[ti]
+        if max(tris_b[ti]) >= n_base:
+            # el punto más cercano es la ropa de debajo (`sobre`): los pesos salen de la base
+            if arbol_solo_base is None:
+                tb = [t for t in tris_b if max(t) < n_base]
+                arbol_solo_base = BVHTree.FromPolygons(verts_b[:n_base], tb, all_triangles=True)
+                arbol_solo_base_tris = tb
+            loc, nor, ti, dist = arbol_solo_base.find_nearest(p)
+            a, b, c = arbol_solo_base_tris[ti]
+        else:
+            a, b, c = tris_b[ti]
+        if False:
+            a, b, c = tris_b[ti]
         ws = baricentricas(loc, verts_b[a], verts_b[b], verts_b[c])   # del punto más cercano
         acum = {}
         for w, i in zip(ws, (a, b, c)):
@@ -554,6 +722,16 @@ def pesos_desde_base(o: bpy.types.Object, base: bpy.types.Object, arbol: BVHTree
                     d[hueso] *= 1.0 - quita
             if movido > 0.0:
                 d[cabeza["a"]] = d.get(cabeza["a"], 0.0) + movido
+        if sin_brazos:   # (antes de `brazo`, que puede devolver una parte al brazo a propósito: la manga corta)
+            # 12/11 (atuendo del loberno): una prenda SIN MANGAS (chaleco, banda) no debe pesar en los brazos, aunque la sisa tenga el brazo como superficie más
+            # cercana: al levantarlo se llevaba tiras de tela (lo mismo que la capa, ver CapaMuelles3D «REPARTO DE PESOS»). Todo a Spine2, clavícula incluida
+            # (Pablo: «es una túnica sin mangas y se está cosiendo a los brazos»); con `con_clavicula` la sisa acompaña al hombro (probado: la banda se deformaba a cada paso).
+            quitado = 0.0
+            for hueso in list(d.keys()):
+                if hueso.endswith("Arm") or hueso.endswith("ForeArm") or "Hand" in hueso or (hueso.endswith("Shoulder") and not con_clavicula):
+                    quitado += d.pop(hueso)
+            if quitado > 0.0:
+                d["mixamorig_Spine2"] = d.get("mixamorig_Spine2", 0.0) + quitado
         if brazo is not None:
             # La capa acompaña al brazo al levantarlo (no hace falta un movimiento realista): parte del peso pasa al brazo (y algo a la clavícula) de su lado, con
             # gradiente; el resto se reparte como estaba. En reposo no se nota (todos los huesos están en su pose de enlace).
@@ -826,6 +1004,39 @@ def exportar(o: bpy.types.Object, pesos: list, base: bpy.types.Object, carpeta: 
     return datos
 
 
+def rellenar_fondo(img: bpy.types.Image, pasadas: int = 12) -> int:
+    """12/11: el fondo NEGRO entre las islas de UV de Meshy se rellena con el color de la isla más cercana (dilatación, `pasadas` píxeles), para que el filtrado
+    bilineal y los mipmaps no oscurezcan los bordes de cada isla. Solo la textura de color. Devuelve cuántos píxeles de fondo había."""
+    import numpy as np
+    w, h = img.size
+    px = np.array(img.pixels[:], dtype=np.float32).reshape(h, w, 4)
+    fondo = px[:, :, :3].max(axis=2) < 0.03
+    n_fondo = int(fondo.sum())
+    if n_fondo == 0 or n_fondo == w * h:
+        return n_fondo
+    lleno = ~fondo
+    for _ in range(pasadas):
+        if lleno.all():
+            break
+        nuevo = px.copy()
+        cuenta = np.zeros((h, w), dtype=np.float32)
+        suma = np.zeros((h, w, 3), dtype=np.float32)
+        for dy in (-1, 0, 1):
+            for dx in (-1, 0, 1):
+                if dx == 0 and dy == 0:
+                    continue
+                vec_lleno = np.roll(np.roll(lleno, dy, axis=0), dx, axis=1)
+                vec_px = np.roll(np.roll(px[:, :, :3], dy, axis=0), dx, axis=1)
+                suma += vec_px * vec_lleno[:, :, None]
+                cuenta += vec_lleno
+        toca = (~lleno) & (cuenta > 0)
+        nuevo[toca, :3] = suma[toca] / cuenta[toca][:, None]
+        px = nuevo
+        lleno = lleno | toca
+    img.pixels = px.reshape(-1).tolist()
+    return n_fondo
+
+
 def guardar_texturas(o: bpy.types.Object, carpeta: str) -> None:
     for m in o.data.materials:
         for n in m.node_tree.nodes:
@@ -840,6 +1051,8 @@ def guardar_texturas(o: bpy.types.Object, carpeta: str) -> None:
                     nombre = "normal"
                 else:
                     nombre = "rm"
+                if nombre == "basecolor":
+                    print("FONDO %s: %d píxeles de fondo rellenados con la isla vecina" % (o.name, rellenar_fondo(n.image)))
                 n.image.filepath_raw = os.path.join(carpeta, "ropa_" + nombre + ".png")
                 n.image.file_format = 'PNG'
                 n.image.save()
@@ -863,14 +1076,14 @@ def informe(o: bpy.types.Object, arbol: BVHTree, nombre: str, suave: NormalSuave
     """Cuántos vértices quedan dentro de la base (distancia con signo < 0, con el mismo criterio que sacar_de_la_piel) y la mínima distancia (con ROPA_DEPURA,
     también por bandas de altura)."""
     dentro, total, peor = 0, 0, 1e9
-    por_altura = {}
+    por_altura, hondos = {}, []
     for v in o.data.vertices:
         p = o.matrix_world @ v.co
         loc, nor, ti, dist = arbol.find_nearest(p)
         if abs(loc.x) > OREJA_X and loc.z > OREJA_Z:
             continue
         if suave is not None:
-            nor = suave.en(loc, ti)
+            nor = suave.en(loc, ti, nor)
         s = (p - loc).dot(nor) if dist <= profundidad_max or p.z > HULL_Z_MIN else dist
         total += 1
         peor = min(peor, s)
@@ -878,8 +1091,10 @@ def informe(o: bpy.types.Object, arbol: BVHTree, nombre: str, suave: NormalSuave
             dentro += 1
             banda = round(math.floor(p.z / BANDA_INFORME) * BANDA_INFORME, 2)
             por_altura[banda] = por_altura.get(banda, 0) + 1
+            hondos.append((round(s, 4), tuple(round(c, 3) for c in p), tuple(round(c, 3) for c in loc)))
     if os.environ.get("ROPA_DEPURA"):
         print("DENTRO %s por altura (bandas de %.2f): %s" % (nombre, BANDA_INFORME, sorted(por_altura.items())))
+        print("DENTRO %s los más hondos (profundidad, vértice, punto de la piel): %s" % (nombre, sorted(hondos)[:8]))
     ws = puntos_mundo(o)
     print("INFORME %s: tris=%d vértices=%d dentro_de_la_base=%d/%d distancia_mínima_con_signo=%.4f caja_min=%s caja_max=%s" % (
         nombre, sum(len(p.vertices) - 2 for p in o.data.polygons), len(o.data.vertices), dentro, total, peor,
@@ -898,6 +1113,8 @@ def main() -> None:
                 else:
                     cfg.setdefault(k, {}).update(v)
     prendas = list(cfg.get("_prendas", ["capa", "tunica"]))
+    if len(a) > 4:
+        prendas = [a[4]]      # 12/11: un 5.º argumento procesa SOLO esa prenda (una config con varias prendas, cada una con su .glb)
     os.makedirs(carpeta, exist_ok=True)
     bpy.ops.wm.read_factory_settings(use_empty=True)
     objs_v = importar(ruta_vestido)
@@ -911,6 +1128,12 @@ def main() -> None:
     arbol, verts_b, tris_b = arbol_base(base)
     for nombre in prendas:
         c = cfg[nombre]
+        if c.get("sobre"):
+            # Las prendas de debajo ya encajadas: sus .json están junto a la carpeta de salida de ESTA (../<prenda>/<prenda>.json).
+            rutas = [os.path.join(os.path.dirname(os.path.abspath(carpeta)), str(q), str(q) + ".json") for q in c["sobre"]]
+            arbol, verts_b, tris_b = arbol_base(base, rutas)
+        else:
+            arbol, verts_b, tris_b = arbol_base(base)
         o = separar_prenda(vestido, nombre, str(c.get("parte", "derecha" if nombre == "tunica" else "izquierda")))
         corte = c.get("capucha")
         if "quitar_forro" in c:
@@ -934,13 +1157,15 @@ def main() -> None:
         suave = NormalSuave(base, verts_b, tris_b) if c.get("normal_suave", False) else None
         profundidad = float(c.get("profundidad_max", math.inf))
         movidos = sacar_de_la_piel(o, arbol, float(c["margen"]), ids, vecinos, casco, float(c.get("margen_casco", 0.0)), suave, profundidad,
-                                   sin_casco=punta_ids, caja_sin_casco=(corte or {}).get("punta", {}).get("sin_casco"))
+                                   sin_casco=punta_ids, caja_sin_casco=(corte or {}).get("punta", {}).get("sin_casco"), margen_zonas=c.get("margen_zonas"),
+                                   radio_empuje=float(c.get("radio_empuje", 0.0)), celdas=c.get("celdas"))
         # Con `pasadas_piel` > 1 se repasa solo la piel (sin el casco, que volvería a ensanchar la capucha): el suavizado del desplazamiento mezcla direcciones y
         # deja vértices a pocos milímetros bajo la piel (el cuello de la capa, que abraza el de la jugadora). La última pasada va sin suavizar (cada vértice por
         # su normal). Con 8 pasadas, los vértices dentro de la base bajan de 607 a 25 (informe).
         extra = int(c.get("pasadas_piel", 1)) - 1
         for i in range(extra):
-            sacar_de_la_piel(o, arbol, float(c["margen"]), ids, vecinos, None, 0.0, suave, profundidad, 0 if i == extra - 1 else SUAVIZADO_EMPUJE)
+            sacar_de_la_piel(o, arbol, float(c["margen"]), ids, vecinos, None, 0.0, suave, profundidad, 0 if i == extra - 1 else SUAVIZADO_EMPUJE,
+                             margen_zonas=c.get("margen_zonas"), radio_empuje=float(c.get("radio_empuje", 0.0)), celdas=c.get("celdas"))
         print("PRENDA %s: %d vértices empujados fuera de la piel" % (nombre, movidos))
         if "rellenar_pliegue" in c:
             cajas = (corte or {}).get("punta", {}).get("sin_casco", [])
@@ -953,7 +1178,7 @@ def main() -> None:
         if punta is not None:
             ids, vecinos = adyacencia_soldada(o)
         pesos = pesos_desde_base(o, base, arbol, verts_b, tris_b, ids, vecinos, bool(c.get("atenuar_piernas", False)), c.get("brazo"),
-                                 c.get("cabeza"))
+                                 c.get("cabeza"), bool(c.get("sin_brazos", False)), bool(c.get("con_clavicula", False)))
         borde = (c.get("brazo") or {}).get("borde")
         if borde is not None:
             pesos, con_gradiente = suavizar_borde_trasero(o, pesos, ids, vecinos, borde)

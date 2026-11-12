@@ -6191,9 +6191,7 @@ func _unhandled_input(ev: InputEvent) -> void:
 		KEY_J:
 			if _hierba != null:
 				_hierba.set_modo(_hierba.modo + 1)
-		KEY_L:
-			if _jugador != null:
-				_jugador.set_modo_luz(1 - _jugador.modo_luz)
+		# 12/11 (Pablo): la L ya no alterna la luz de la jugadora en el juego; todos van en luz plana (Pj3D.MODO_LUZ_POR_DEFECTO).
 		KEY_F7:
 			if k.shift_pressed and _cantos_ribera != null:
 				_ribera_con_cantos = not _ribera_con_cantos

@@ -27,6 +27,8 @@ const POSES: Array = [
 const VISTAS: Array = [["frente", 0.0], ["tres_cuartos", 40.0], ["espalda", 180.0], ["lado", 90.0]]
 ## Prendas de la jugadora vestida (ids de arte/modelos/ropa.json): las que lleva en el juego (Pj3D.ROPA_POR_DEFECTO; 11/11: piernas, capa y capucha del uniforme de Sumicio).
 const PRENDAS: Array = Pj3D.ROPA_POR_DEFECTO["jugadora_base"]
+## 12/11: 4.º argumento opcional = id de atuendo (Atuendos): la vestida lleva sus prendas en vez de las de serie.
+var _prendas: Array = PRENDAS
 ## Primer plano de las orejas: foco (alto del juego = 1,0; las orejas están a 1,33 / 1,7) y tamaño de la vista.
 const FOCO_OREJAS: float = 0.78
 const TAM_OREJAS: float = 0.34
@@ -46,6 +48,8 @@ func _correr() -> void:
 	_carpeta = a[0] if a.size() > 0 else "res://docs/capturas/jugadora_base"
 	var secciones: PackedStringArray = (a[1] if a.size() > 1 else "vistas,poses,marcha,comparar,cerca").split(",")
 	_prefijo = a[2] if a.size() > 2 else ""
+	if a.size() > 3 and Atuendos.es_atuendo(a[3]):
+		_prendas = Atuendos.prendas(a[3])
 	DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path(_carpeta))
 	var raiz := Node3D.new()
 	root.add_child(raiz)
@@ -119,6 +123,23 @@ func _correr() -> void:
 					pj.rotation_degrees.y = float(v[1])
 					await _foto(cam, Vector3(0, 0.5, 0), TAM_COMPLETO, "%s/clip_%s_%d_%s.png" % [_carpeta, rol, int(fr * 100.0), v[0]])
 				pj.rotation_degrees.y = 0.0
+	if secciones.has("pies"):
+		# 12/11: primer plano de los pies (los zapatos de las mallas del loberno), en reposo y a medio paso.
+		_vestir(pj, true)
+		_pose_reposo(pj)
+		await _esperar()
+		for v in [VISTAS[0], VISTAS[1], VISTAS[2], VISTAS[3]]:
+			pj.rotation_degrees.y = float(v[1])
+			await _foto(cam, Vector3(0, 0.1, 0), TAM_CERCA * 0.8, "%s/pies_%s.png" % [_carpeta, v[0]])
+		pj.rotation_degrees.y = 0.0
+		_pose_reposo(pj)
+		_aplicar_pose(pj, _pose("zancada"))
+		await _esperar()
+		for v in [VISTAS[1], VISTAS[3]]:
+			pj.rotation_degrees.y = float(v[1])
+			await _foto(cam, Vector3(0, 0.1, 0), TAM_CERCA * 0.8, "%s/pies_zancada_%s.png" % [_carpeta, v[0]])
+		pj.rotation_degrees.y = 0.0
+		_pose_reposo(pj)
 	if secciones.has("cerca"):
 		_vestir(pj, true)
 		_pose_reposo(pj)
@@ -249,7 +270,9 @@ func _pose(nombre: String) -> Array:
 
 
 func _vestir(pj: Pj3D, si: bool) -> void:
-	for prenda in PRENDAS:
+	for prenda in pj.ropa_puesta().duplicate():
+		pj.quitar_ropa(String(prenda))
+	for prenda in _prendas:
 		if si:
 			pj.poner_ropa(prenda)
 		else:

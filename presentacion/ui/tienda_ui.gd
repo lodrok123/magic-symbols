@@ -7,6 +7,8 @@ extends CanvasLayer
 ## ASPECTO: el del menú de la mochila (`MenuPestanas`): cuero con costura, interior de pergamino y tinta marrón. Arriba, el nombre de la tienda y el oro;
 ## a la izquierda, la lista (icono, nombre y precio con su moneda; la fila elegida en ámbar); a la derecha, el detalle del elegido (icono grande, nombre,
 ## descripción de `Objetos.descripcion` y «Quedan N»); abajo, la cantidad (− n +), el total, el botón Comprar y «Esc · Salir». Debajo, una línea que dice
+## (12/11, Pablo: «una pequeña imagen del producto a la derecha de la lista tipo Breath of the Wild»): los ATUENDOS (`Atuendos`) llevan en el detalle su
+## imagen de producto, la jugadora vestida con él (`arte/iconos/atuendo_*.png`, de `herramientas/captura_iconos_atuendos.gd`), más grande que un icono.
 ## por qué no se puede comprar (te falta oro, la mochila está llena, se ha agotado) o qué se compró.
 ##
 ## CONTROLES: ↑↓ (o W S, o la rueda) eligen, ← → (o A D) cambian la cantidad, Enter o Espacio compran, Esc cierra. Con el ratón: clic en una fila la elige
@@ -384,10 +386,15 @@ class Lamina extends Control:
 			return
 		var id: String = String(o["objeto"])
 		var cx: float = dr.position.x + dr.size.x * 0.5
-		_icono(id, Vector2(cx, dr.position.y + 66.0), 104.0)
-		draw_string(f, Vector2(dr.position.x, dr.position.y + 148.0), String(Objetos.DATOS.get(id, {}).get("nombre", id)), HORIZONTAL_ALIGNMENT_CENTER, dr.size.x, 22, MenuPestanas.TINTA)
+		var producto: bool = Atuendos.es_atuendo(id)        # 12/11: la imagen del producto (la jugadora vestida), grande y sin aro de calidad
+		var imagen: Texture2D = Objetos.icono(id, 150.0) if producto else null
+		if imagen != null:
+			draw_texture_rect(imagen, Rect2(Vector2(cx - 75.0, dr.position.y + 8.0), Vector2(150.0, 150.0)), false)
+		else:
+			_icono(id, Vector2(cx, dr.position.y + (82.0 if producto else 66.0)), 150.0 if producto else 104.0)
+		draw_string(f, Vector2(dr.position.x, dr.position.y + (170.0 if producto else 148.0)), String(Objetos.DATOS.get(id, {}).get("nombre", id)), HORIZONTAL_ALIGNMENT_CENTER, dr.size.x, 22, MenuPestanas.TINTA)
 		var desc: String = Objetos.descripcion(id)
-		draw_multiline_string(f, Vector2(dr.position.x + 18.0, dr.position.y + 174.0), desc, HORIZONTAL_ALIGNMENT_CENTER, dr.size.x - 36.0, 14, 4, MenuPestanas.TINTA_SUAVE)
+		draw_multiline_string(f, Vector2(dr.position.x + 18.0, dr.position.y + (192.0 if producto else 174.0)), desc, HORIZONTAL_ALIGNMENT_CENTER, dr.size.x - 36.0, 14, 3 if producto else 4, MenuPestanas.TINTA_SUAVE)
 		var y_linea: float = dr.end.y - 44.0
 		draw_line(Vector2(dr.position.x + 24.0, y_linea), Vector2(dr.end.x - 24.0, y_linea), BolsaUI.LINEA, 1.0)
 		var q: int = int(o["quedan"])

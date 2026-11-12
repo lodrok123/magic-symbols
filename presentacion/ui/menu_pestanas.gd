@@ -5,7 +5,10 @@ extends CanvasLayer
 ## Se abre con I (en Inventario) o con J (en Misiones); Esc o la misma tecla lo cierra. Q / E (y AvPág / RePág, o el clic) cambian de pestaña: son el L1 / R1 del mando.
 ## Pausa el mundo mientras está abierto, como la mochila y el diario a los que sustituye (los reanuda al cerrar y en `_exit_tree`).
 ##
-## PESTAÑAS. Funcionales: INVENTARIO y MISIONES. Las otras cuatro (Grimorio, Síntesis, Mapa, Ajustes) salen visibles con un «Próximamente» ilustrado.
+## PESTAÑAS. Funcionales: INVENTARIO, VESTUARIO (12/11), MISIONES y ESTADÍSTICAS. Las otras cuatro (Grimorio, Síntesis, Mapa, Ajustes) salen visibles con un «Próximamente» ilustrado.
+##   · Vestuario (12/11, encargo de Pablo): una carta por atuendo (`Atuendos`: el de viaje verde, el uniforme de Monte Sumicio y el del lobo) con su icono
+##     (`arte/iconos/<id>.png`), sus prendas y si lo tienes y lo llevas. ←→ (o el ratón) eligen; Enter (o un segundo clic) te lo pone: quita lo puesto y pone
+##     sus prendas en la jugadora (`Atuendos.poner`). Los que no tienes salen velados y dicen quién los vende. Enter sobre un atuendo en Inventario hace lo mismo.
 ##   · Inventario: rejilla de 5 × 4 = 20 huecos (los que aún no tienes, bloqueados) con el marco de la calidad de cada objeto (`MarcoCalidad`), contador,
 ##     y a la derecha el panel de detalle (icono grande, nombre, tipo y calidad, descripción y «Usos conocidos», de `Objetos.usos`). Elegir: flechas o ratón
 ##     (pasar por encima elige; un segundo clic o Enter actúa). Enter sobre un consumible lo EQUIPA (Q lo usa fuera del menú); Enter sobre el que ya está
@@ -33,12 +36,14 @@ const DORADO: Color = Color("c9962b")
 const TINTA: Color = Color("4e3a26")
 const TINTA_SUAVE: Color = Color(0.31, 0.23, 0.15, 0.62)
 const INDICE_INVENTARIO: int = 0
-const INDICE_MISIONES: int = 4
-const INDICE_ESTADISTICAS: int = 5                 ## 2/11 (tercera tanda A3): tras Misiones; Ajustes pasa a la 6
+const INDICE_VESTUARIO: int = 1                    ## 12/11: los atuendos (Atuendos), tras Inventario; las demás corren una
+const INDICE_MISIONES: int = 5
+const INDICE_ESTADISTICAS: int = 6                 ## 2/11 (tercera tanda A3): tras Misiones; Ajustes pasa a la 7
 
 ## id, nombre, subtítulo bajo el título, y (solo las que aún no funcionan) lo que dirá su «Próximamente».
 const PESTANAS: Array = [
 	{"id": "inventario", "nombre": "Inventario", "sub": "Tus objetos y consumibles"},
+	{"id": "vestuario", "nombre": "Vestuario", "sub": "Tus atuendos: elige qué te pones"},
 	{"id": "grimorio", "nombre": "Grimorio", "sub": "Los hechizos que dominas", "prox": "Aquí repasarás tus recetas de runas y las páginas de tu libro."},
 	{"id": "sintesis", "nombre": "Síntesis", "sub": "Combina materiales", "prox": "Aquí mezclarás los materiales que recojas para preparar tónicos y pigmentos."},
 	{"id": "mapa", "nombre": "Mapa", "sub": "Por dónde has pasado", "prox": "Aquí verás el mapa de cada zona, con sus secretos y sus salidas."},
@@ -73,6 +78,7 @@ var _fondo: Control
 var _barra: Control
 var _cuerpo: Control
 var _pag_inv: Control
+var _pag_vest: PaginaVestuario                     ## 12/11: la pestaña Vestuario (atuendos)
 var _pag_mis: Control
 var _pag_est: Control                              ## A3: la pestaña Estadísticas (dos columnas: la partida y este nivel)
 var _col_total: GridContainer
@@ -122,6 +128,7 @@ func _ready() -> void:
 	_cuerpo.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_marco.add_child(_cuerpo)
 	_construir_inventario()
+	_construir_vestuario()
 	_construir_misiones()
 	_construir_estadisticas()
 	_construir_proximamente()
@@ -170,6 +177,13 @@ func _construir_inventario() -> void:
 	_detalle.position = Vector2(CUERPO_TAM.x - ANCHO_DETALLE, 0.0)
 	_detalle.size = Vector2(ANCHO_DETALLE, CUERPO_TAM.y)
 	_pag_inv.add_child(_detalle)
+
+
+func _construir_vestuario() -> void:
+	_pag_vest = PaginaVestuario.new()
+	_pag_vest.menu = self
+	_pag_vest.size = CUERPO_TAM
+	_cuerpo.add_child(_pag_vest)
 
 
 func _construir_misiones() -> void:
@@ -280,7 +294,27 @@ func pestana_id() -> String:
 
 
 func funcional(i: int) -> bool:
-	return i == INDICE_INVENTARIO or i == INDICE_MISIONES or i == INDICE_ESTADISTICAS
+	return i == INDICE_INVENTARIO or i == INDICE_VESTUARIO or i == INDICE_MISIONES or i == INDICE_ESTADISTICAS
+
+
+## Vestuario (12/11): el atuendo elegido en la pestaña ("" si no hay).
+func atuendo_elegido() -> String:
+	return _pag_vest.id_elegido() if _pag_vest != null else ""
+
+
+## Vestuario (12/11): se pone el atuendo `id` en la jugadora del árbol (Atuendos.poner: quita lo puesto y pone sus prendas). false (y «no puedes») si no se
+## tiene, no hay jugadora o alguna prenda no carga.
+func ponerse_atuendo(id: String) -> bool:
+	var pj: Node = Atuendos.pj_de(get_tree()) if is_inside_tree() else null
+	if pj == null or not Atuendos.tiene(id) or not Atuendos.poner(pj, id):
+		Sfx.play_ui("no_puedes_ui", DB_NO_PUEDES)
+		if _pag_vest != null:
+			_pag_vest.queue_redraw()
+		return false
+	Sfx.play_ui("ui_equipar")
+	if _pag_vest != null:
+		_pag_vest.queue_redraw()
+	return true
 
 
 ## Las pilas de la mochila en el orden del menú: [[id, cantidad], ...].
@@ -332,6 +366,8 @@ func pista() -> String:
 	match pestana:
 		INDICE_INVENTARIO:
 			return "[Q/E] pestaña   [↑↓←→] elegir   [Enter] equipar / usar   [I / Esc] cerrar"
+		INDICE_VESTUARIO:
+			return "[Q/E] pestaña   [←→] elegir   [Enter] ponerse   [I / Esc] cerrar"
 		INDICE_MISIONES:
 			return "[Q/E] pestaña   [↑↓] elegir   [Enter] seguir   [J / Esc] cerrar"
 		INDICE_ESTADISTICAS:
@@ -427,6 +463,10 @@ func _mostrar_pagina() -> void:
 	if _pag_inv == null:
 		return
 	_pag_inv.visible = pestana == INDICE_INVENTARIO
+	if _pag_vest != null:
+		_pag_vest.visible = pestana == INDICE_VESTUARIO
+		if _pag_vest.visible:
+			_pag_vest.queue_redraw()
 	_pag_mis.visible = pestana == INDICE_MISIONES
 	if _pag_est != null:
 		_pag_est.visible = pestana == INDICE_ESTADISTICAS
@@ -532,6 +572,10 @@ func _input(event: InputEvent) -> void:
 
 ## Flechas: en Inventario mueven la elección por la rejilla (solo entre objetos que hay); en Misiones ↑↓ cambian de misión.
 func mover(dir: Vector2) -> void:
+	if pestana == INDICE_VESTUARIO:
+		if dir.x != 0.0 and _pag_vest != null:
+			_pag_vest.mover(1 if dir.x > 0.0 else -1)
+		return
 	if pestana == INDICE_MISIONES:
 		if dir.y != 0.0 and _diario != null:
 			_diario.mover(1 if dir.y > 0.0 else -1)
@@ -559,12 +603,23 @@ func mover(dir: Vector2) -> void:
 
 ## Enter / Espacio / segundo clic: en Inventario, equipa el consumible elegido (o, si ya es el equipado, cierra el menú y lo usa); en Misiones sigue la misión.
 func accion() -> void:
+	if pestana == INDICE_VESTUARIO:
+		if _pag_vest != null:
+			_pag_vest.ponerse()
+		return
 	if pestana == INDICE_MISIONES:
 		if _diario != null:
 			_diario.alternar_seguida()
 		return
 	var d: Dictionary = detalle()
 	if d.is_empty():
+		return
+	if Atuendos.es_atuendo(String(d["id"])):
+		# 12/11: un atuendo de la mochila se pone desde aquí también (lo mismo que en Vestuario).
+		if ponerse_atuendo(String(d["id"])):
+			var ha: BolsaUI.Hueco = hueco(_sel)
+			if ha != null:
+				ha.pop()
 		return
 	if not Objetos.es_consumible(String(d["id"])):
 		# M3: un material o un objeto clave no se equipa: «no puedes» y el hueco tiembla.
@@ -741,6 +796,108 @@ class Anillo extends Control:
 	func _draw() -> void:
 		var r := Rect2(Vector2.ZERO, size)
 		draw_polyline(BolsaUI.camino(r.grow(-0.5), clampf(size.x * 0.14, 5.0, 10.0)), BolsaUI.COLOR_ELEGIDO, 3.0, true)
+
+
+## LA PÁGINA DEL VESTUARIO (12/11): una carta por atuendo (`Atuendos.ids`, en el orden de la tabla), centradas. Cada carta: el icono grande del atuendo
+## (`arte/iconos/<id>.png` por `Objetos.dibujar`; velado si no se tiene), el nombre, sus prendas (los nombres de ropa.json) y, abajo, «Puesto» (verde),
+## «Lo tienes» o «No lo tienes · lo vende la librera». La elegida va en ámbar, como las filas de la tienda. Un clic elige; otro sobre la elegida, se lo pone.
+class PaginaVestuario extends Control:
+	const CARTA: Vector2 = Vector2(228.0, 300.0)
+	const SEP: float = 24.0
+	const RADIO_ICONO: float = 46.0
+	const AMBAR: Color = Color("f2c97a")
+	const AMBAR_BORDE: Color = Color("c9963f")
+	const FILA: Color = Color("f6eedb")
+	const VERDE: Color = Color("4f7a34")
+	var menu: MenuPestanas
+	var sel: int = 0
+
+	func _init() -> void:
+		mouse_filter = Control.MOUSE_FILTER_STOP
+
+	func ids() -> Array:
+		return Atuendos.ids()
+
+	func id_elegido() -> String:
+		var l: Array = ids()
+		return String(l[sel]) if sel >= 0 and sel < l.size() else ""
+
+	func mover(d: int) -> void:
+		var n: int = ids().size()
+		if n == 0:
+			return
+		var nuevo: int = clampi(sel + d, 0, n - 1)
+		if nuevo != sel:
+			sel = nuevo
+			Sfx.play_ui("ui_tick")
+			queue_redraw()
+
+	func ponerse() -> bool:
+		return menu.ponerse_atuendo(id_elegido()) if menu != null else false
+
+	func rect_carta(i: int, n: int) -> Rect2:
+		var ancho: float = float(n) * CARTA.x + float(n - 1) * SEP
+		var x0: float = (size.x - ancho) * 0.5
+		return Rect2(Vector2(x0 + float(i) * (CARTA.x + SEP), (size.y - CARTA.y) * 0.5), CARTA)
+
+	func _gui_input(ev: InputEvent) -> void:
+		var mb := ev as InputEventMouseButton
+		if mb == null or not mb.pressed or mb.button_index != MOUSE_BUTTON_LEFT:
+			return
+		var l: Array = ids()
+		for i in l.size():
+			if rect_carta(i, l.size()).has_point(mb.position):
+				accept_event()
+				if i == sel:
+					ponerse()
+				else:
+					sel = i
+					Sfx.play_ui("ui_tick")
+					queue_redraw()
+				return
+
+	func _draw() -> void:
+		var f: Font = TemaInterfaz.fuente()
+		var l: Array = ids()
+		if l.is_empty():
+			draw_string(f, Vector2(0.0, 40.0), "No hay atuendos", HORIZONTAL_ALIGNMENT_CENTER, size.x, 17, MenuPestanas.TINTA_SUAVE)
+			return
+		var pj: Node = Atuendos.pj_de(get_tree()) if is_inside_tree() else null
+		var puesto: String = Atuendos.puesto(pj)
+		for i in l.size():
+			var id: String = String(l[i])
+			var r: Rect2 = rect_carta(i, l.size())
+			var tiene: bool = Atuendos.tiene(id)
+			var es_sel: bool = i == sel
+			BolsaUI._caja(AMBAR if es_sel else FILA, AMBAR_BORDE if es_sel else BolsaUI.LINEA, 2 if es_sel else 1, 12).draw(get_canvas_item(), r)
+			var cx: float = r.position.x + r.size.x * 0.5
+			var imagen: Texture2D = Objetos.icono(id, 160.0)       # la jugadora vestida, sin el aro de calidad (es una imagen, no un icono)
+			if imagen != null:
+				draw_texture_rect(imagen, Rect2(Vector2(cx - 80.0, r.position.y + 14.0), Vector2(160.0, 160.0)), false)
+			else:
+				Objetos.dibujar(self, id, Vector2(cx, r.position.y + 96.0), RADIO_ICONO)
+			if not tiene:
+				# velado: no se tiene
+				draw_rect(Rect2(r.position + Vector2(6.0, 6.0), Vector2(r.size.x - 12.0, 176.0)), Color(FILA, 0.62), true)
+			draw_string(f, Vector2(r.position.x, r.position.y + 198.0), Objetos.nombre(id), HORIZONTAL_ALIGNMENT_CENTER, r.size.x, 18, MenuPestanas.TINTA)
+			var y: float = r.position.y + 222.0
+			for p in Atuendos.prendas(id):
+				var nombre: String = String(Ropa3D.datos_de(String(p)).get("nombre", p))
+				draw_string(f, Vector2(r.position.x + 18.0, y), "· " + nombre, HORIZONTAL_ALIGNMENT_LEFT, r.size.x - 36.0, 13, MenuPestanas.TINTA_SUAVE)
+				y += 17.0
+			var estado: String
+			var col: Color
+			if id == puesto:
+				estado = "Puesto"
+				col = VERDE
+			elif tiene:
+				estado = "Lo tienes"
+				col = MenuPestanas.TINTA
+			else:
+				var v: String = Atuendos.vendedor(id)
+				estado = "No lo tienes" + ("  ·  lo vende la %s" % String(TiendaUI.NOMBRES.get(v, v)).to_lower() if v != "" else "")
+				col = MenuPestanas.TINTA_SUAVE
+			draw_string(f, Vector2(r.position.x, r.end.y - 14.0), estado, HORIZONTAL_ALIGNMENT_CENTER, r.size.x, 14, col)
 
 
 ## El marco del menú: cuero con costura, interior de pergamino, y el título de la pestaña.

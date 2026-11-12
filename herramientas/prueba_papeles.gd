@@ -77,12 +77,15 @@ func _igual(r: Reactivo3D, esperados: Array) -> bool:
 
 func _tabla() -> void:
 	var madera: Array = [Reactivo3D.P_INFLAMABLE, Reactivo3D.P_PROPAGA_LLAMA, Reactivo3D.P_APAGA]
-	for tipo in ["seto", "tronco", "puerta_goblin", "torre_goblin"]:
+	for tipo in ["seto", "tronco"]:
 		_ok("1 %s: inflamable, propaga la llama y se deja apagar (y no es mojable de serie)" % tipo, _igual(_nuevo(tipo), madera))
+	# R2 (reacciones con el entorno): la puerta y la torre goblin, y el tótem, además se CONGELAN (P_CONGELABLE); la tabla lo dice y esta prueba se había quedado atrás.
+	for tipo in ["puerta_goblin", "torre_goblin"]:
+		_ok("1 %s: lo de la madera y, desde R2, congelable" % tipo, _igual(_nuevo(tipo), madera + [Reactivo3D.P_CONGELABLE]))
 	_ok("1 telarana: lo de la madera y, desde F1, helable (el hielo la hiela y da seda)", _igual(_nuevo("telarana"), madera + [Reactivo3D.P_HELABLE]))
 	for tipo in ["fogata", "brasero"]:
 		_ok("1 %s: fuente de fuego que se deja apagar" % tipo, _igual(_nuevo(tipo), [Reactivo3D.P_FUENTE_FUEGO, Reactivo3D.P_APAGA]))
-	_ok("1 totem: activable", _igual(_nuevo("totem", "fuego"), [Reactivo3D.P_ACTIVABLE]))
+	_ok("1 totem: activable y, desde R2, congelable", _igual(_nuevo("totem", "fuego"), [Reactivo3D.P_ACTIVABLE, Reactivo3D.P_CONGELABLE]))
 	_ok("1 surtidor: recibe agua", _igual(_nuevo("surtidor"), [Reactivo3D.P_RECIBE_AGUA, Reactivo3D.P_HACE_VAPOR]))
 	_ok("1 emisor_rayo: conduce", _igual(_nuevo("emisor_rayo"), [Reactivo3D.P_CONDUCE]))
 	_ok("1 puente y placa no reaccionan a hechizos (sin papeles de reacción)", _igual(_nuevo("puente"), []) and (Reactivo3D.PAPELES_POR_TIPO["placa"] as Array).is_empty())

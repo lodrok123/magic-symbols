@@ -254,7 +254,8 @@ func _tiro_del_arquero(arq: Combate3D, segundos: float, desde: Vector2i = Vector
 	arq.flecha_ardiente_impacta.connect(cb)
 	await avanzar_vigilando(segundos, 0.05, func(_t: float) -> void:
 		for n in arq.mundo.get_children():
-			if n is MeshInstance3D and (n as MeshInstance3D).mesh is BoxMesh and ((n as MeshInstance3D).mesh as BoxMesh).size.is_equal_approx(Vector3(0.05, 0.05, 0.6)):
+			# 12/11: la flecha es un Node3D con el meta `flecha_goblin` (el modelo de verdad dentro, `Combate3D._crear_flecha`), no la caja de 0,05 × 0,05 × 0,6 de antes.
+			if n.has_meta("flecha_goblin"):
 				if not vistas.has(n.get_instance_id()):
 					vistas[n.get_instance_id()] = false
 					res["flechas"] = int(res["flechas"]) + 1
@@ -980,9 +981,12 @@ func _sala_7_limpia() -> void:
 	await avanzar_s(8.0)
 	var arden: int = ss.filter(func(s): return not is_instance_valid(s) or _arde(s)).size()
 	_aviso("7L.17 a los 11 s del fuego, setos secos que han ardido (de 3)", "%d" % arden)
-	arq.receive_damage(1.0e7)
+	# 12/11: a veces el fuego de los setos mata al arquero antes de llegar aquí (PENDIENTES: vidas a la mitad) y ya está liberado: llamarlo tumbaba el motor (señal 11)
+	# o daba error de script, y se perdía el resto de la sala. Muerto y liberado cuenta como caído.
+	if is_instance_valid(arq):
+		arq.receive_damage(1.0e7)
 	await avanzar_s(1.0)
-	_ok("7L.18 el arquero cae: queda UNO (el del estanque) y la sala sigue cerrada", arq.muerto and v.restantes() == 1 and cj.cerrado and cf.es_oculto)
+	_ok("7L.18 el arquero cae: queda UNO (el del estanque) y la sala sigue cerrada", (not is_instance_valid(arq) or arq.muerto) and v.restantes() == 1 and cj.cerrado and cf.es_oculto)
 	# --- ESTANQUE: viento desde el sur ---
 	var r: Dictionary = await _empuje_de_viento(est, 4.0, Vector2i(18, 14))
 	volcar("playtest_s7_viento", r)

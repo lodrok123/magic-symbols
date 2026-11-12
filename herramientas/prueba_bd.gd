@@ -13,7 +13,7 @@ const VIAS_FIJAS: Array = ["pulso", "E", "golpe", "romper", "abrir", "sintesis",
 ## Las `de` de fuentes.tsv que no son un objeto: plantas del mundo, reactivos, enemigos, cofres, vendedores y prendas.
 const PIEZAS: Array = ["seta", "flor", "raiz", "alga", "bayas", "lavanda", "helecho", "flor_silvestre", "rocas_pequenas", "musgo", "helecho_cueva", "seta_palida",
 	"veta", "cristal_resonante", "jarron", "lava", "geoda", "hierba", "arbol", "colmena", "nido", "telarana", "seto", "goblin", "goblin_escudo", "limo", "chaman",
-	"golem", "elemental", "loberno", "canouro", "cofre", "cofre_epico", "cofre_legendario", "alquimista", "guardabosques", "basalto", "esquirla_cristal", "seta_resonante", "capa",
+	"golem", "elemental", "loberno", "canouro", "cofre", "cofre_epico", "cofre_legendario", "alquimista", "librera", "guardabosques", "basalto", "esquirla_cristal", "seta_resonante", "capa",
 	"tunica", "capucha", ""]
 ## Los 36 ids que tenía `Objetos.DATOS` antes de F0 (sacados de `git show HEAD:nucleo/objetos.gd`).
 const IDS_DE_ANTES: Array = ["oro", "pocion", "tonico_tinta", "balsamo_protector", "infusion_brezo", "lavanda", "baya", "helecho", "piedra", "flor_silvestre",
@@ -44,7 +44,7 @@ func _initialize() -> void:
 func _carga() -> void:
 	BD.recargar()
 	_ok("1 las siete tablas cargan sin filas mal formadas", BD.errores().is_empty(), str(BD.errores()))
-	_ok("1 objetos: 97 filas", BD.objetos().size() == 97, str(BD.objetos().size()))      # 10/11: +11 de la primera tanda; 11/11: +2 (pelaje, garra), +4 piezas de mejora y +3 lanzables de la segunda tanda
+	_ok("1 objetos: 105 filas", BD.objetos().size() == 105, str(BD.objetos().size()))      # 10/11: +11 de la primera tanda; 11/11: +2 (pelaje, garra), +4 piezas de mejora y +3 lanzables de la segunda tanda; 11-12/11: +1 piernas, +4 prendas (verde, loberno: túnica de una pieza y mallas) y +3 atuendos
 	_ok("1 las demás tablas no están vacías", not BD.fuentes().is_empty() and not BD.recetas().is_empty() and not BD.mejoras().is_empty()
 		and not BD.estados_mundo().is_empty() and not BD.tabla("goblin").is_empty() and not BD.reactivos("arbol").is_empty())
 	var pocion: Dictionary = BD.objeto("pocion")

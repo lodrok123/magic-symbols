@@ -31,5 +31,39 @@
 			"piernas",
 			"botas"
 		]
+	},
+	"capa_verde": {
+		"nombre": "Capa corta verde",
+		"glb": "ropa_capa_verde",
+		"capa": "exterior",
+		"oculta": [],
+		"muelles": true
+	},
+	"capucha_verde": {
+		"nombre": "Capucha verde",
+		"glb": "ropa_capucha_verde",
+		"capa": "exterior",
+		"oculta": [
+			"pelo"
+		]
+	},
+	"tunica_lobo": {
+		"nombre": "Túnica del loberno",
+		"glb": "ropa_tunica_lobo",
+		"capa": "medio",
+		"oculta": [
+			"chaleco",
+			"cinturon",
+			"bullon"
+		]
+	},
+	"piernas_lobo": {
+		"nombre": "Mallas de montar",
+		"glb": "ropa_piernas_lobo",
+		"capa": "piernas",
+		"oculta": [
+			"piernas",
+			"botas"
+		]
 	}
 }

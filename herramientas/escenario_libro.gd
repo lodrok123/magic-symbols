@@ -79,7 +79,8 @@ func _escenario() -> void:
 	tinta.actual = 100.0
 	_ok("6 con la tinta llena la flecha sale", lanzador.lanzar_pagina_ya(0, jugador.position, Vector3.RIGHT))
 	# 29/10 (DANO_Y_TINTA): la tinta sale de la potencia: una flecha sola es 1 glifo = ligera = 8 (antes, por volumen: 10 × 1,25 = 12,5).
-	_ok("6 y cuesta 8", tinta.actual > 91.0 and tinta.actual < 93.0, "%.2f" % tinta.actual)
+	# 12/11: desde el bloque A3 (6/11) el glifo suma su aporte a la base (8 + 2): la flecha cuesta 10, como ya decía el paso 5 de esta misma prueba («una flecha (10)»).
+	_ok("6 y cuesta 10", tinta.actual > 89.0 and tinta.actual < 91.0, "%.2f" % tinta.actual)
 
 	# --- El libro enseña los ejes (diario 156, 18/10): contadores de la página, ᛁ girada, cubo X·Y·Z y chuleta ---
 	await avanzar_s(lanzador.cooldown_total[0] + 0.5)

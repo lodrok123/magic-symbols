@@ -97,3 +97,10 @@ hoja_grimorio	Hoja de grimorio	mejora	legendario	1	-	0	pieza	mejora=paginas;piez
 bomba_humo	Bomba de humo	lanzable	comun	5	-	0	lanzar	lanza=humo;dura=4;radio=2	todas	esfera	#9A9A94	-	nuevo	Lánzala: los enemigos cerca pierden de vista 4 s, pero van a buscarte donde te vieron	-
 tarro_baba	Tarro de baba	lanzable	comun	5	-	0	lanzar	lanza=baba;dura=6	todas	esfera	#7FBF4F	-	nuevo	Lánzalo: la casilla y las de alrededor quedan pegajosas 6 s y frenan a quien las pise	-
 cebo_miel	Cebo de miel	lanzable	comun	5	-	0	lanzar	lanza=cebo;dura=8;radio=6;atrae=loberno,canouro	todas	esfera	#E8A93A	-	nuevo	Lánzalo: los lobernos y canouros cercanos van a comérselo 8 s. Los goblins no pican	-
+capa_verde	Capa corta verde	ropa	comun	1	-	0	ropa	ranura=exterior	todas	cristal	#4F7A34	ropa_capa_verde	hay	La capa corta verde de viaje con capucha aparte, la de siempre	-
+capucha_verde	Capucha verde	ropa	comun	1	-	0	ropa	ranura=cabeza	todas	cristal	#3E5E2B	ropa_capucha_verde	hay	La capucha verde en punta: tapa el pelo y poco más	-
+tunica_lobo	Túnica del loberno	ropa	comun	1	-	0	ropa	ranura=medio	todas	cristal	#C8502E	ropa_tunica_lobo	hay	Chaleco azul cruzado con la banda roja al hombro, broche de loberno, cinturón y faldón, todo de una pieza	-
+piernas_lobo	Mallas de montar	ropa	comun	1	-	0	ropa	ranura=piernas	todas	cristal	#4A3426	ropa_piernas_lobo	hay	Mallas marrones de montar con zapatos de hebilla	-
+atuendo_verde	Atuendo de viaje	ropa	comun	1	-	0	atuendo	prendas=tunica,capa_verde,capucha_verde;inicial	todas	cristal	#4F7A34	-	hay	Túnica, capa corta y capucha verdes: lo que llevas al salir de casa	-
+atuendo_sumicio	Uniforme de Monte Sumicio	ropa	epico	1	-	0	atuendo	prendas=piernas,capa,capucha	todas	cristal	#9E3444	-	hay	Capa-caperuza roja de punta caída, bombachos, polainas y botines: el uniforme de la escuela	-
+atuendo_lobo	Atuendo del loberno	ropa	epico	1	-	0	atuendo	prendas=piernas_lobo,tunica_lobo	todas	cristal	#C8502E	-	hay	Chaleco azul cruzado, banda roja con broche de loberno y mallas de montar	-

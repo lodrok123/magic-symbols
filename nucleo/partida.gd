@@ -392,7 +392,11 @@ static func aplicar_continuar(mundo_nivel: Node, jug: Node) -> bool:
 	if mundo_n is Dictionary and (mundo_n as Dictionary).has("suelo"):
 		Terreno3D.estados.desde_dic(_dic((mundo_n as Dictionary)["suelo"]))      # C1 (2/11): el suelo vuelve como se guardó (un archivo anterior no trae la clave = el suelo del nivel recién montado)
 	var pj: Variant = jug.get("pj")
-	if pj != null:
+	if pj != null and j.has("ropa_puesta"):
+		# 12/11: lo guardado es TODO lo puesto; lo de serie (Pj3D.ROPA_POR_DEFECTO) se quita antes, que si no el atuendo del loberno (dos prendas) se ponía
+		# encima de la capa y la capucha de viaje.
+		for id in ((pj as Object).call("ropa_puesta") as Array).duplicate():
+			(pj as Object).call("quitar_ropa", String(id))
 		for id in j.get("ropa_puesta", []):
 			(pj as Object).call("poner_ropa", String(id))
 	var pos: Array = j.get("posicion", []) as Array

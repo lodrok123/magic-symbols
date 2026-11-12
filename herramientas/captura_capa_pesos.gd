@@ -3,7 +3,7 @@ extends SceneTree
 ## vídeo es la vista de lado del laboratorio). `jugadora_base` vestida como en el juego (Pj3D + Ropa3D, muelles de la capa en marcha, clips REPRODUCIÉNDOSE), en
 ## tres vistas: `lado` (perspectiva, como el vídeo: mira a la izquierda), `tres_cuartos` (perspectiva, 40° desde delante) y `juego` (la cámara del juego:
 ## ortogonal, 30° bajo la horizontal, tamaño 6, recorte ×3). Por rol y vista, una TIRA de FOTOS fotogramas repartidos por el clip. NECESITA VENTANA:
-##   godot --path . --script res://herramientas/captura_capa_pesos.gd -- <prefijo> [<carpeta>] [<roles separados por comas>]
+##   godot --path . --script res://herramientas/captura_capa_pesos.gd -- <prefijo> [<carpeta>] [<roles separados por comas>] [<atuendo>]
 ## Escribe <carpeta>/<prefijo>_<rol>_<vista>.png (por omisión docs/capturas/capa_pesos). <prefijo>: «antes» / «despues».
 
 const ALTO_JUEGO: float = 1.0
@@ -72,6 +72,13 @@ func _correr() -> void:
 	raiz.add_child(pj)
 	pj.cargar("jugadora_base")
 	pj.set_alto(ALTO_JUEGO)
+	# 12/11: 4.º argumento opcional = id de atuendo (Atuendos): las tiras con esa ropa en vez de la de serie.
+	var args: PackedStringArray = OS.get_cmdline_user_args()
+	if args.size() > 3 and Atuendos.es_atuendo(args[3]):
+		for prenda in pj.ropa_puesta().duplicate():
+			pj.quitar_ropa(String(prenda))
+		for prenda in Atuendos.prendas(args[3]):
+			pj.poner_ropa(String(prenda))
 	for i in 10:
 		await process_frame
 	if pj._arbol != null:
