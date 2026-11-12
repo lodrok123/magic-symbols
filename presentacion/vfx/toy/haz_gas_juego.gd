@@ -102,12 +102,13 @@ func haz(h: Hechizo, hz: Dictionary, suelo: float, vida: float, elemento: String
 	var d_tope: float = float(tope.get("d", -1.0))
 	var ahora: int = Time.get_ticks_msec()
 	var cas: float = Terreno3D.casilla
+	var k: float = HazGas.escala_de(h) if h != null else HazGas.ESCALA_MAX
 	for e in _gases:
 		var g0: HazGas = e["g"]
 		if not is_instance_valid(g0) or String(e.get("elemento", "fuego")) != elemento:
 			continue
 		if (e["desde"] as Vector3).distance_to(desde) < REUSO_DIST_CAS * cas and rad_to_deg((e["dir"] as Vector3).angle_to(dir)) < REUSO_ANG_DEG \
-				and absf(float(e["d_tope"]) - d_tope) < REUSO_TOPE_CAS * cas:
+				and absf(float(e["d_tope"]) - d_tope) < REUSO_TOPE_CAS * cas and absf(float(e.get("k", 1.0)) - k) < 0.01:      # 12/11: y del mismo tamaño (HazGas.escala_de)
 			e["fin_haz"] = ahora + int(maxf(vida, 0.3) * 1000.0)
 			e["fin_todo"] = int(e["fin_haz"]) + int(APAGADO_S * 1000.0)
 			g0.chorro(true)
@@ -130,7 +131,7 @@ func haz(h: Hechizo, hz: Dictionary, suelo: float, vida: float, elemento: String
 		return null
 	g.colocar(desde, dir, suelo)
 	var e2: Dictionary = {"g": g, "desde": desde, "dir": dir, "d_tope": d_tope, "fin_haz": ahora + int(maxf(vida, 0.3) * 1000.0), "tope": tope, "suelo": suelo,
-		"elemento": elemento}
+		"elemento": elemento, "k": k}
 	e2["fin_todo"] = int(e2["fin_haz"]) + int(APAGADO_S * 1000.0)
 	e2["est"] = primitivas_estaticas(g, tope, dir, suelo, desde.y + AGUA_TOPE_SOBRE_MANO_CAS * cas if elemento == "agua" else -INF)
 	e2["firma"] = -1
@@ -205,7 +206,8 @@ static func cfg_de(h: Hechizo, hz: Dictionary, suelo: float, tope: Dictionary) -
 	var desde: Vector3 = hz["desde"] as Vector3
 	var d: Dictionary = FuegoToy.describir(h, cas) if h != null else {"x": float(hz.get("largo", 3.0)) * 0.5, "z": Hechizo.HAZ_ANCHO * cas * 0.5}
 	var alcance: float = maxf(float(d["x"]) * 2.0, float(hz.get("largo", 0.0)))
-	var c: Dictionary = {"largo": maxf(alcance, 0.5), "ancho": float(d["z"]), "alto": maxf(desde.y - suelo, 0.2), "juego": true, "tam": cas * 0.5}
+	var c: Dictionary = {"largo": maxf(alcance, 0.5), "ancho": float(d["z"]), "alto": maxf(desde.y - suelo, 0.2), "juego": true, "tam": cas * 0.5,
+		"escala": float(d.get("escala", 1.0))}      # 12/11: tamaño del haz (HazGas.escala_de); el ancho ya llega × k
 	if tope.is_empty():
 		c["obstaculo"] = "nada"
 		c["dist"] = alcance

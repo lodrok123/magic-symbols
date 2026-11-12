@@ -157,7 +157,7 @@ func _redibujar() -> void:
 			RayoTrazos.ocultar(_brillos.multimesh, i)
 
 
-## Punto de la piel del cilindro a la altura `h` y el ángulo `a`, a `k` radios. Con ChispasRepo.capas["electrificado_capsula"] (11/11, apagada de serie) y un cuerpo con CapsuleShape3D, la piel es
+## Punto de la piel del cilindro a la altura `h` y el ángulo `a`, a `k` radios. Con ChispasRepo.capas["electrificado_capsula"] (11/11, encendida de serie) y un cuerpo con CapsuleShape3D, la piel es
 ## la de ESA cápsula (la misma que lee HazGasJuego): `h` / `alto` recorre la cápsula de punta a punta y en los casquetes el radio se cierra como una esfera.
 func _piel(a: float, h: float, k: float = 1.08) -> Vector3:
 	if _cap_ok and ChispasRepo.activa("electrificado_capsula"):

@@ -299,3 +299,80 @@ agua 2,0 / 2,3, rayo 0,23 / 0,21, fuego 7,2 / 6,3. En el lab (`captura_gas_eleme
 la GPU ocupada (12 ms por haz de fuego). Es el mismo caso sensible al reloj real de la 479, y da el MISMO fallo con el código de main sin este cambio (036d8444, misma
 pasada): el fuego no se ha tocado (todo lo nuevo va tras `VIENTO`). Hay que repetirla con la GPU libre. Headless a 0: `prueba_vfx_toy`, `prueba_haz_fuego_ideas`,
 `prueba_vfx_en_juego`, `prueba_agua_toy`, `prueba_lab_vfx_toys`; `prueba_rayo_toy` 16 (los de main).
+
+## Tamaño de los haces (12/11): básico a la mitad, máximo como antes
+
+Pablo: «reduce el tamaño en general en todos los haces... aproximadamente un 50 %, así tenemos espacio para que en valores máximos esté como está ahora mismo cada
+haz». Solo dibujo: el largo (alcance) y la lógica (daño, choques, colisiones de `HechizoVivo`) no cambian; `prueba_hechizo_golden` sigue a 0.
+
+**Qué movía el tamaño.** Nada del hechizo. El radio del haz era fijo (`Hechizo.HAZ_ANCHO` 0,35 m × casilla / 2 = 0,40 m, en `FuegoToy.describir`). Solo el alcance
+dependía de la receta (ᛁ: 3 m-casilla con una, +1 por cada ᛁ más, tope 6). En el gas, la escala transversal M = R1 / 0,8 sale de ese radio relativo al largo, así que
+en metros la masa (M · s = 0,76 m) era la misma para cualquier receta. Los semiejes, ᛏ y los niveles no llegan al haz.
+
+**El mando.** `HazGas.escala_de(h)` da k, la escala transversal respecto al tamaño de antes. Sale de la POTENCIA de la receta, `Hechizo.n_glifos` (glifos sin contar el
+elemento, la misma cuenta que la tinta): mínimo 1 (la ᛁ), máximo `Hechizo.MAX_GLIFOS` = 6. Es lineal:
+k = `ESCALA_BASE` + (`ESCALA_MAX` − `ESCALA_BASE`) · (n − 1) / 5, o sea 0,5 · 0,6 · 0,7 · 0,8 · 0,9 · 1,0. Los tres valores están arriba de `laboratorios/haz_gas/haz_gas.gd`:
+`ESCALA_BASE` (0,5), `ESCALA_MAX` (1,0) y `ESCALA_GLIFOS_MIN` (1).
+
+**Qué escala con k.**
+- **Radio del chorro:** `FuegoToy.describir` lo da × k, y devuelve `escala`. Lo usan los toys, `HazGas.cfg_de_hechizo` y `HazGasJuego.cfg_de`.
+- **Masa del choque (gas):** `derivar_haz(cfg)` con `cfg["escala"]` toma el obstáculo × k, así que M = k · la de antes. Con M escala todo lo transversal: la piel y la envoltura (wrap × M), la alimentación, los lazos del vórtice del viento, el zigzag, el grosor y los arcos del rayo, las lenguas del toon y los márgenes del dominio.
+- **Chispas, gotas y mechones:** nacen con una velocidad, no con una longitud. En `chispas.glsl` la velocidad inicial y la gravedad van × k (`ESC_K`, el vec4 nuevo `k5` del UBO, ahora de 17 vec4). Duran lo mismo y recorren × k.
+- **Celda:** h = la de antes · k^`CELDA_EXP` (0,5). El chorro básico se queda con ~3 celdas de radio (antes 4).
+  - Con 0, la celda de antes, el núcleo del chorro básico se queda en 0,8 celdas y el toon lo rompe a trozos: el fuego medía el 28 %.
+  - El rayo usa 0 (`CELDA_EXP_ELEMENTO`). Su trazo es analítico, y el gas solo lleva el halo.
+- **Toys de respaldo** (sin gas). El radio llega × k por `describir` / `VfxToyJuego._haz`. Esto vale para fuego, agua, viento, rayo, tierra y magma. Además, `escala_haz` = k en FuegoToy, AguaToy y RayoToy escala lo del choque:
+  - FuegoToy: la salpicadura (`FuegoToy.tam_salpicadura`: la de antes × k, topes incluidos), las chispas (velocidad y gravedad × k), las brasas y el charco de luz del suelo;
+  - AguaToy: las hojas y las gotas de `HazChoque.agua`;
+  - RayoToy: las hojas y el destello de `HazChoque.rayo`.
+  BOLA, MURO, PILAR, BARRERA e ImpactoBolaToy no se tocan.
+- **Reutilización del dominio:** `HazGasJuego` solo reutiliza un dominio vivo para un haz con la misma k.
+
+**Medidas** (`herramientas/prueba_haz_tamano.gd`, con ventana, Bosque 01, contra un muro de tierra a 2 casillas). Básico = ᚲ/ᚹ/…+ᛁ. Máximo = el mismo haz de la lógica
+dibujado con un hechizo de 6 glifos. Chorro = p90 de la distancia al eje en el tramo medio. Choque = p90 de lo que se aparta del contacto en el plano de la sección,
+fuera del núcleo del chorro.
+
+| elemento | chorro antes → básico → máx (m) | choque antes → básico → máx (m) | básico / máx (chorro · choque) |
+|---|---|---|---|
+| fuego | 0,77 → 0,39 → 0,77 | 1,81 → 0,94 → 1,81 | 0,51 · 0,52 |
+| agua | 0,50 → 0,22 → 0,50 | 1,83 → 1,06 → 1,83 | 0,44 · 0,58 |
+| viento | 0,83 → 0,44 → 0,83 | 1,95 → 0,80 → 1,95 | 0,53 · 0,41 |
+| rayo | trazo × M: 0,50 | 1,39 → 0,74 → 1,39 | 0,50 · 0,53 |
+
+El máximo es exactamente el de antes: misma rejilla, mismas medidas.
+
+**Coste** (RTX 3070, 1280 × 720, contra el muro). Mediana de 3 rondas alternando básico y máximo (`-- <carpeta> <etiqueta> --costes`), en ms de GPU del haz:
+
+| elemento | máximo (= antes) | básico | celdas antes → básico |
+|---|---|---|---|
+| fuego | 2,70 (sim 0,24 · volumen 2,45) | 2,76 (0,22 · 2,54) | 96×56×64 → 104×48×56 (−19 %) |
+| agua | 1,42 (0,22 · 1,20) | 1,62 (0,18 · 1,44) | 88×32×64 → 96×24×56 (−29 %) |
+| viento | 0,77 (0,27 · 0,50) | 0,53 (0,26 · 0,26) | 96×32×64 → 104×32×56 (−5 %) |
+| rayo | 0,40 (0,18 · 0,23) | 0,34 (0,15 · 0,19) | 72×24×48 → 64×16×32 (−59 %) |
+
+El coste baja en viento (−31 %) y rayo (−15 %). En fuego queda igual y en agua sube un 14 %. Lo caro es el dibujo del volumen, y su paso es de ≤ 1,2 celdas: con la
+celda más fina hay más pasos por metro, y eso se come la caja más pequeña. La palanca es `CELDA_EXP`: con 0 la simulación cuesta la mitad, pero el chorro básico de
+fuego se rompe.
+
+**Lab.**
+- En el juego o en el lab de VFX: ᛁ sola = básico (k 0,5); ᛁ + 5 glifos más = máximo (k 1). Cada glifo entre medias añade 0,1.
+- En Mayús+F12 (gas del lab), la tecla **E** alterna básico / máximo. El rótulo enseña «escala».
+
+**Hoja:** `docs/capturas/vfx_en_juego/haz_gas_elementos/HOJA_TAMANO_HACES.png`.
+- Filas: fuego, agua, viento y rayo. Columnas: antes, nuevo básico y nuevo máximo. Contra el muro, con la cámara del juego.
+- Se monta con `python herramientas/hoja_tamano_haces.py`.
+- Capturas y medidas en `.../haz_gas_elementos/tamano/`: `hoy_*` con el código de 2f20cfb8 y `nuevo_*`.
+
+**Límites.**
+- El agua básica se ve más pequeña que la mitad: el 12 % de los píxeles del máximo, aunque el choque mide el 58 % en metros. El toon pinta la superficie por umbral, y con la mitad de radio llega menos agua a la lámina.
+- El abanico del viento queda en el 41 %.
+**Pruebas.**
+- Con ventana, todas a 0: `prueba_haz_tamano` (nueva), `prueba_gas_haz` (y `-- barrido`), `prueba_haz_gas_juego`, `prueba_haz_gas_agua` y `prueba_haz_gas_viento_rayo`.
+- Sin ventana, todas a 0: `prueba_hechizo_golden`, `prueba_haz`, `prueba_vfx_toy`, `prueba_haz_fuego_ideas`, `prueba_vfx_en_juego`, `prueba_agua_toy`, `prueba_lab_vfx_toys` y `prueba_haz_tamano`.
+
+Umbrales que codificaban el tamaño de antes, y cómo quedan:
+- `prueba_vfx_toy` y `prueba_vfx_en_juego`: el radio del haz es ahora `HAZ_ANCHO` / 2 × `HazGas.escala_de(h)`.
+- `prueba_haz_gas_juego`, «chorro limpio y caliente en su primer tramo»:
+  - Al aire, el haz fino se enfría antes y su eje lleva 0,13 de hollín frente a 0,16 en la punta. No cumplía «eje < punta / 1,5».
+  - Ahora también vale si el hollín del eje está por debajo de 0,25. El toon solo dibuja humo con hollín > 0,47 (umbral_humo 0,9 / 1,9).
+  - En la captura lateral, el chorro sale limpio.

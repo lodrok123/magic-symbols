@@ -127,7 +127,7 @@ func crear() -> bool:
 	muestreo_lineal = _muestreo(RenderingDevice.SAMPLER_FILTER_LINEAR, RenderingDevice.SAMPLER_REPEAT_MODE_CLAMP_TO_EDGE)
 	muestreo_repite = _muestreo(RenderingDevice.SAMPLER_FILTER_LINEAR, RenderingDevice.SAMPLER_REPEAT_MODE_REPEAT)
 	muestreo_cercano = _muestreo(RenderingDevice.SAMPLER_FILTER_NEAREST, RenderingDevice.SAMPLER_REPEAT_MODE_CLAMP_TO_EDGE)
-	ubo = rd.uniform_buffer_create(16 * 16)
+	ubo = rd.uniform_buffer_create(17 * 16)          # 17 vec4 (gas_comun.glslinc: k5 desde el 12/11)
 	_todas.append(ubo)
 	for n in ["gas_avanza", "gas_corrige", "gas_fuentes", "vel_advecta", "vel_fuentes", "rizo", "confina", "divergencia", "jacobi", "proyecta",
 			"luz_difunde", "luz_lejos", "luz_clave", "chispas", "residuo", "solido"]:

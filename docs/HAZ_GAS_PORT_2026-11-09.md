@@ -142,6 +142,7 @@ La simulación es la misma; solo cambia el DIBUJO (`shaders/raymarch_toon.glsl`)
   3. Con un umbral absoluto de vuelta (2 u/s), los casos con M ≥ 2 daban un 3-5,7 %: el chapoteo del choque escala con la masa. Si se quiere absoluto, el parámetro es el viento o el empuje × M.
   4. Con una caja alta, el fuego la rodea por los lados y apenas pasa por encima (32 celdas).
 - **Capturas**: `docs/capturas/vfx_en_juego/haz_gas_procedural/` (`HOJA_LATERAL.jpg`, `HOJA_JUEGO.jpg`; `captura_gas_procedural.gd`).
+- **Tamaño de los haces (12/11)**: la escala transversal **k** (`HazGas.escala_de`) entra en `derivar_haz` como `cfg["escala"]`. Ver la sección «Tamaño de los haces» de `docs/GAS_VIENTO_RAYO_2026-11-11.md`. Con k = 1 todo es lo de arriba, sin cambios.
 
 ## En el JUEGO (9/11): el haz de gas toon contra cualquier sólido
 

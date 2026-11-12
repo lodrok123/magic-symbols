@@ -3,7 +3,7 @@ extends SceneTree
 ## PRUEBA del HUMO DE MAGMA POR REGLA y de las CHISPAS TIPO REPO DE GAS (11/11/2026; docs/TECNICAS_REPO_GAS_OTROS_ELEMENTOS_2026-11-10.md, top 5 nº 1 y 2). Sin ventana:
 ##   godot --headless --path . --script res://herramientas/prueba_magma_chispas.gd
 ## Comprueba:
-##   1. DE SERIE: HumoRegla «magma» apagada; ChispasRepo: las capas que solo añaden encendidas y «electrificado_capsula» apagada
+##   1. DE SERIE (11/11, Pablo: «enciéndelas todas»): HumoRegla «magma» encendida; ChispasRepo: todas encendidas, también «electrificado_capsula»
 ##   2. HUMO DE MAGMA: apagada, nada; encendida: el cráter (GOLPE y AREA, no el REBOTE) suelta humo de materia MAGMA (tonos de hollín de HUMO) que se ve; la cima del muro y del pilar de magma
 ##      (y el FuegoToy hijo no pone además su humo); la bola que rueda deja un penacho y la quieta no; el tope de 420 bocanadas se respeta
 ##   3. CHISPAS: apagadas, ningún emisor; encendidas: impacto de rayo y de magma, pilar de rayo al llegar al suelo, estela de las bolas en vuelo y estado electrificado.
@@ -80,14 +80,14 @@ func _frames(n: int) -> void:
 
 func _de_serie() -> void:
 	print("== de serie")
-	_ok("HumoRegla tiene la capa «magma» y va APAGADA de serie", HumoRegla.capas.has("magma") and not bool(HumoRegla.capas["magma"]) and not bool(HumoRegla.DE_SERIE["magma"]))
+	_ok("HumoRegla tiene la capa «magma» y va ENCENDIDA de serie (11/11, Pablo)", HumoRegla.capas.has("magma") and bool(HumoRegla.capas["magma"]) and bool(HumoRegla.DE_SERIE["magma"]))
 	_ok("las demás capas de HumoRegla no cambian (impacto_bola, barril, suelo y vapor encendidas)", HumoRegla.capas["impacto_bola"] and HumoRegla.capas["barril"] and HumoRegla.capas["suelo"] and HumoRegla.capas["vapor"] and not HumoRegla.capas["muro"])
 	_ok("el tope de HumoRegla sigue en 420", HumoRegla.MAX_VIVAS == 420)
 	var esperadas: Array = ["rayo_impacto", "rayo_pilar", "rayo_proyectil", "electrificado", "electrificado_capsula", "magma_impacto", "magma_proyectil"]
 	_ok("ChispasRepo: siete capas", ChispasRepo.capas.size() == 7 and esperadas.all(func(k: String) -> bool: return ChispasRepo.capas.has(k)))
 	for k in esperadas:
-		var debe: bool = k != "electrificado_capsula"
-		_ok("chispas «%s» de serie %s" % [k, "encendida (solo añade)" if debe else "APAGADA (cambia los arcos de siempre)"], bool(ChispasRepo.capas[k]) == debe)
+		var debe: bool = true     # 11/11 (Pablo: «enciéndelas todas»): también «electrificado_capsula»
+		_ok("chispas «%s» de serie %s" % [k, "encendida" if debe else "APAGADA"], bool(ChispasRepo.capas[k]) == debe)
 	_ok("las capas de FuegoToy siguen sin tocar", FuegoToy.formas_extra.size() == 7 and not FuegoToy.formas_extra["humo_cima_muro"])
 
 
@@ -425,6 +425,7 @@ func _capsula() -> void:
 	print("== electrificado: arcos en la cápsula real")
 	ChispasRepo.de_serie()
 	ChispasRepo.capas["electrificado"] = false
+	ChispasRepo.capas["electrificado_capsula"] = false     # 11/11: de serie va encendida; esta parte parte de la capa apagada a propósito
 	var c1: StaticBody3D = _cuerpo_capsula(0.3, 1.4)
 	_raiz.add_child(c1)
 	var e1: EstadoRayoToy = EstadoRayoToy.para_entidad(1.4, 0.6, 3.0)       # el cilindro de siempre, a propósito más gordo que la cápsula (0,6 vs 0,3)
@@ -464,14 +465,20 @@ func _lab() -> void:
 	var lab: Node3D = (load("res://laboratorios/LabVfxComparativa3D.tscn") as PackedScene).instantiate() as Node3D
 	root.add_child(lab)
 	await process_frame
+	# 11/11: de serie ya van TODAS encendidas, así que la primera «.» las apaga todas; y desde una mezcla (alguna apagada) las enciende todas
+	lab.call("alternar_chispas_repo")
+	_ok(". de serie (todas encendidas) las apaga TODAS", not ChispasRepo.hay_alguna())
 	lab.call("alternar_chispas_repo")
 	var todas: bool = true
 	for k in ChispasRepo.capas:
 		todas = todas and bool(ChispasRepo.capas[k])
-	_ok(". las enciende TODAS (también la cápsula)", todas)
+	_ok(". otra vez las enciende TODAS (también la cápsula)", todas)
+	ChispasRepo.capas["electrificado_capsula"] = false
 	lab.call("alternar_chispas_repo")
-	_ok(". otra vez las apaga todas", not ChispasRepo.hay_alguna())
-	lab.call("alternar_chispas_repo")
+	todas = true
+	for k in ChispasRepo.capas:
+		todas = todas and bool(ChispasRepo.capas[k])
+	_ok(". con alguna apagada, las enciende TODAS (no las apaga)", todas)
 	var m: Node3D = lab.call("electrificar")
 	await _esperar(0.5)
 	var est: EstadoRayoToy = m.get_node_or_null("EstadoElectrificado") as EstadoRayoToy

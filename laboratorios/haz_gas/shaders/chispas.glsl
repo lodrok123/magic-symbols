@@ -65,7 +65,7 @@ void main() {
 		vec3 v_tmp = vec3(0.0);
 		p0 = sacar_en_horizontal(p0, v_tmp);
 		Pp = vec4(p0, hash_tsl(seed + 47.7) * 1.8 + 0.5);
-		V = vec4(front * 3.0 + rnd * 6.0 - hacia * 4.0 + vec3(0.0, 2.0, 0.0), hash_tsl(seed + 3.3));
+		V = vec4((front * 3.0 + rnd * 6.0 - hacia * 4.0 + vec3(0.0, 2.0, 0.0)) * ESC_K, hash_tsl(seed + 3.3));      // 12/11: × k (velocidad y gravedad × k = recorrido × k)
 		// 11/11 (choque con identidad, Pablo: «en vez de los puntitos del fuego, chispas para el rayo y gotas de agua para el agua»). El FUEGO no pasa por aqui.
 		vec3 dir_h = normalize(P.target.xyz - P.nozzle.xyz);
 		if (RAYO) {
@@ -77,7 +77,7 @@ void main() {
 			q0.y = max(q0.y, 0.04);
 			q0 = sacar_en_horizontal(q0, v_tmp);
 			Pp = vec4(q0, hash_tsl(seed + 47.7) * 0.35 + 0.15);
-			V = vec4(normalize(rnd + hacia * 0.9 + vec3(0.0, 0.35, 0.0)) * (15.0 + hash_tsl(seed + 5.1) * 10.0), hash_tsl(seed + 3.3));
+			V = vec4(normalize(rnd + hacia * 0.9 + vec3(0.0, 0.35, 0.0)) * (15.0 + hash_tsl(seed + 5.1) * 10.0) * ESC_K, hash_tsl(seed + 3.3));
 		} else if (AGUA) {
 			// GOTAS: nacen en la salpicadura del contacto y saltan en corona (hacia arriba y hacia los lados, de vuelta hacia el lanzador)
 			vec3 q0 = P.contacto.xyz + rnd * 0.22 * ESC_M;
@@ -87,7 +87,7 @@ void main() {
 			q0.y = max(q0.y, 0.04);
 			q0 = sacar_en_horizontal(q0, v_tmp);
 			Pp = vec4(q0, hash_tsl(seed + 47.7) * 1.4 + 0.7);
-			V = vec4(front * 2.0 + rnd * vec3(3.2, 1.5, 3.2) + hacia * 1.5 + vec3(0.0, 3.6 + hash_tsl(seed + 8.8) * 2.0, 0.0), hash_tsl(seed + 3.3));
+			V = vec4((front * 2.0 + rnd * vec3(3.2, 1.5, 3.2) + hacia * 1.5 + vec3(0.0, 3.6 + hash_tsl(seed + 8.8) * 2.0, 0.0)) * ESC_K, hash_tsl(seed + 3.3));
 		} else if (VIENTO && i % 16 == 2) {
 			// MECHONES de aire (dibujados como trazos blancos curvos): con choque, la mitad salen despedidos del CONTACTO, girando alrededor del eje del haz (el
 			// vortice); el resto, y todos al aire, nacen a lo largo del chorro y viajan con el.
@@ -100,12 +100,12 @@ void main() {
 			vec3 v0;
 			if (CHOQUE && sale < 0.8) {
 				q0 = P.contacto.xyz - dir_h * 0.25 * ESC_M + radial * (0.35 + 0.4 * hash_tsl(seed + 81.0)) * ESC_M;
-				v0 = radial * 4.5 + cross(dir_h, radial) * 9.0 - dir_h * 1.5;
+				v0 = (radial * 4.5 + cross(dir_h, radial) * 9.0 - dir_h * 1.5) * ESC_K;
 			} else {
 				float tt = 0.08 + 0.85 * hash_tsl(seed + 91.0);
 				vec3 ab = P.target.xyz - P.nozzle.xyz;
 				q0 = P.nozzle.xyz + ab * tt + radial * mix(BEAM_R0, BEAM_R1, tt) * (0.6 + 0.9 * hash_tsl(seed + 81.0));
-				v0 = dir_h * BEAM_SPEED * 0.55 + cross(dir_h, radial) * 6.0 + radial * 1.0;
+				v0 = dir_h * BEAM_SPEED * 0.55 + (cross(dir_h, radial) * 6.0 + radial * 1.0) * ESC_K;
 			}
 			q0.y = max(q0.y, 0.04);
 			q0 = sacar_en_horizontal(q0, v_tmp);
@@ -118,7 +118,7 @@ void main() {
 		// nacio con el chorro apagado: sigue escondida hasta su proxima vida (no se sube al suelo)
 	} else if (RAYO) {
 		// CHISPA ELECTRICA: casi no la frena el aire, cae poco, y cada 1/24 s de vida QUIEBRA su direccion (un tramo recto y un codo: zigzag). Rebota viva.
-		vec3 v = V.xyz + vec3(0.0, -3.0, 0.0) * DT;
+		vec3 v = V.xyz + vec3(0.0, -3.0 * ESC_K, 0.0) * DT;
 		if (floor(Pp.w * 24.0) != floor((Pp.w + DT) * 24.0)) {
 			float s2 = float(i) * 7.31 + floor(Pp.w * 24.0) * 3.17 + TIEMPO;
 			vec3 q = (vec3(hash_tsl(s2 * 97.0), hash_tsl(s2 * 97.0 + 11.0), hash_tsl(s2 * 97.0 + 23.0)) - 0.5) * 2.0;
@@ -143,7 +143,7 @@ void main() {
 		} else {
 			vec3 uvw = (Pp.xyz - WLO) / WTAM;
 			vec3 air = textureLod(vel, uvw, 0.0).xyz;
-			vec3 v = mix(V.xyz, air, DT * 0.7) + vec3(0.0, -11.0, 0.0) * DT;
+			vec3 v = mix(V.xyz, air, DT * 0.7) + vec3(0.0, -11.0 * ESC_K, 0.0) * DT;
 			Pp.xyz += v * DT;
 			vec3 n;
 			float d = obst_sd(Pp.xyz, n);
@@ -152,7 +152,7 @@ void main() {
 				float s3 = float(i) * 3.7 + TIEMPO * 13.0;
 				vec3 q = (vec3(hash_tsl(s3 * 31.0), hash_tsl(s3 * 31.0 + 5.0), hash_tsl(s3 * 31.0 + 9.0)) - 0.5) * 2.0;
 				v -= n * min(dot(v, n), 0.0) * 1.3;
-				v += (n * 1.5 + (q - n * dot(q, n)) * 2.5 + vec3(0.0, 1.2, 0.0));
+				v += (n * 1.5 + (q - n * dot(q, n)) * 2.5 + vec3(0.0, 1.2, 0.0)) * ESC_K;
 				V.w = max(V.w * 0.5, 0.0);
 			}
 			Pp.xyz = sacar_en_horizontal(Pp.xyz, v);
@@ -182,7 +182,7 @@ void main() {
 	} else {
 		vec3 uvw = (Pp.xyz - WLO) / WTAM;
 		vec3 air = textureLod(vel, uvw, 0.0).xyz;
-		vec3 v = mix(V.xyz, air, DT * 1.6) + vec3(0.0, -7.0, 0.0) * DT;
+		vec3 v = mix(V.xyz, air, DT * 1.6) + vec3(0.0, -7.0 * ESC_K, 0.0) * DT;
 		Pp.xyz += v * DT;
 		if (Pp.y < 0.04) { Pp.y = 0.04; v.y = abs(v.y) * 0.35; }
 		if (P.k4.z > 0.5 && Pp.z < WLO.z + 0.1) { v.z = abs(v.z) * 0.3; }        // el acantilado (k4.z = 0 en la vista de juego, donde no se dibuja)
