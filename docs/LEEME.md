@@ -6,6 +6,11 @@
 - [`DIRECCION_2026-11-02.md`](DIRECCION_2026-11-02.md): dónde está el proyecto y por dónde seguir.
 - [`CONTEXTO.md`](CONTEXTO.md) y [`PROPIETARIOS.md`](PROPIETARIOS.md): cómo se trabaja y quién toca qué.
 
+**VFX de hechizos (13/11/2026):**
+
+- [`VFX_HECHIZOS_VIGENTE_2026-11-13.md`](VFX_HECHIZOS_VIGENTE_2026-11-13.md): cómo se dibuja hoy un hechizo (enganche, toys, capas, ajustes y topes).
+- [`VFX_MATRIZ_COBERTURA_2026-11-13.md`](VFX_MATRIZ_COBERTURA_2026-11-13.md): qué dibuja cada elemento en cada figura y en cada tiempo, y los huecos.
+
 Los documentos nuevos van fechados `NOMBRE_AAAA-MM-DD.md` y se enlazan desde este archivo.
 
 > Aviso: la tabla de carpetas de abajo (`proyecto/`, `arte/`, `sistemas/`) es de la reorganización del 5/10 y **no refleja la disposición actual**: hoy los documentos están sueltos en `docs/`, con `qa/`, `Playtests/`, `capturas/` y `maqueta_3d/` como subcarpetas. Sin reescribir por no estar en el encargo; las rutas de abajo (`proyecto/PROPIETARIOS.md`, `poc_25d/LEEME.md`) ya no existen.

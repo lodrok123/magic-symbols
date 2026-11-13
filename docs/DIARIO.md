@@ -5256,3 +5256,26 @@ Los dos pendientes de la 493. Sin commit todavía.
 - **Decisión (Pablo):** se aceptan los 40. El juego no cambia.
 - **Prueba:** la 7.7 admite 4 haces. Además deja cada dragón en su desfase; antes llamaba a `_al_encender()` y los dos escupían a la vez. Con los dragones alternados, como en el juego, el cruce mide 20.
 - Comentarios de `TrampaDragon3D` y `TrampaPared3D` y la tabla de daño de `TRAMPAS_PARED_2026-11-05.md`, al día con los 0,4 s.
+
+## 496 — Docs (13/11): **Dos guías de VFX de hechizos: lo vigente y la matriz de cobertura** (Pablo: «analiza cómo se genera el VFX de los hechizos… si necesitamos alguna guía adicional» → «Sí, las dos»)
+
+**Qué.** Solo documentos; no cambia código.
+- `docs/VFX_HECHIZOS_VIGENTE_2026-11-13.md`: el enganche (`VfxToyJuego`), los toys, las capas añadidas (gas, humo por regla, chispas, campo de viento), los ajustes y los topes, como están hoy.
+- `docs/VFX_MATRIZ_COBERTURA_2026-11-13.md`: elemento × figura y elemento × tiempo, la constancia de aprobación que hay en el diario y nueve huecos por orden.
+- Enlazadas desde `docs/LEEME.md`. `COMO_SE_GENERA_UN_HECHIZO.md` §7 lleva un aviso que apunta a ellas; su texto no se ha tocado.
+
+**Huecos que salen de la matriz.** El hielo sigue con el dibujo antiguo aunque `HieloToy` está completo; naturaleza (de la jugadora) y tiempo no tienen toy; la barrera de agua es un marcador provisional; muro, pilar y barrera de magma son un `FuegoToy` oscuro.
+
+**No hecho ni comprobado.**
+- Escritas leyendo el código y las cabeceras de los toys: no se ha lanzado el juego ni se han mirado capturas.
+- Sin comprobar qué se dibuja al lanzar naturaleza, ni cómo se leen la barrera que late, ᚦ, ᚨ, el retardo y el raído.
+- La columna de aprobaciones solo recoge lo encontrado en el diario desde la entrada 291.
+- Quedan por escribir las otras siete guías propuestas (estilo por elemento, glifos → lectura visual, choques, presupuesto, estados y residuos, alta de un elemento, validación).
+
+## 497 — Decisión (13/11): **El tiempo es un elemento cinemático y queda fuera de los hechizos procedurales** (Pablo: «Tiempo es un elemento cinemático (tipo historia), exclúyelo de los hechizos procedurales»)
+
+- El tiempo no tendrá toy, ni entrada en `VfxToyJuego.ELEMENTOS`, ni en `vfx_procedural_elementos`. No cuenta como hueco de VFX.
+- Código: nada que cambiar. Ya no estaba en ninguna de las dos listas, y su runa (`nucleo/time_rune.tres`) ya lleva la etiqueta `cinematico`.
+- Documentos: `VFX_MATRIZ_COBERTURA_2026-11-13.md` saca el tiempo de las tablas y de la lista de huecos (quedan ocho, no los nueve de la 496), y `VFX_HECHIZOS_VIGENTE_2026-11-13.md` lo dice en el §2.
+
+**No hecho.** No se ha revisado si la lógica deja combinar el tiempo con glifos como cualquier otro elemento, ni qué dibuja hoy el dibujo antiguo (`vfx_elementos/tiempo.gd`) si se lanza.

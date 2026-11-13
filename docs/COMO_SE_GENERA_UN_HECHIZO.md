@@ -72,6 +72,8 @@ Para golpear a algo, ese algo implementa el contrato `on_spell_hit(rune_data, di
 
 ## 7. El dibujo
 
+> **13/11:** este apartado y el 7 bis describen el dibujo del 7/11, antes del gas en los haces, el humo por regla y las chispas. Lo vigente está en `VFX_HECHIZOS_VIGENTE_2026-11-13.md`, y qué dibuja cada elemento, en `VFX_MATRIZ_COBERTURA_2026-11-13.md`. De aquí siguen valiendo el contrato, las reglas, «Cómo se comprueba» y las trampas.
+
 - **Toys procedurales** (`presentacion/vfx/toy/`): un toy por elemento (FuegoToy, AguaToy, HieloToy, RayoToy, MagmaToy, VientoToy, TierraToy) con la MISMA API: cinco figuras (BOLA, MURO, PILAR, BARRERA, HAZ), `definir(figura, x, y, z, vuela)`, `desde_hechizo(h)` y un ciclo de vida (`empezar_carga`, `soltar`, `impactar_en`, `finalizar`). Los impactos son clases hermanas (`ImpactoXToy`) con variantes GOLPE / FIN / REBOTE / ÁREA.
 - **El enganche al juego** es `presentacion/vfx_toy_juego.gd` (`VfxToyJuego`): escucha las señales del lanzador y crea el toy que toque. El ajuste `magic_symbols/vfx_procedural` lo enciende y `vfx_procedural_elementos` dice para qué elementos (hoy fuego, agua, rayo, magma, viento y tierra; el hielo sigue con el dibujo antiguo).
 - **El dibujo antiguo** es `VfxElemento3D`: se calla para los elementos que ya tienen toy.
