@@ -6,7 +6,7 @@ extends "res://herramientas/escenario_base.gd"
 const RUTA: String = "res://escenas/PruebaBosque02.tscn"
 const TAM_REGION: float = 12.0
 const TAM_CENITAL: float = 100.0
-const CENTRO_MAPA: Vector2i = Vector2i(20, 20)
+const CENTRO_MAPA: Vector2i = Vector2i(20, 26)      ## 13/11: el mapa mide 40 × 52 (12 filas nuevas al norte)
 const ALTURA_CENITAL: float = 60.0
 const T_ASENTAR: float = 2.5
 
@@ -33,9 +33,9 @@ func _escenario() -> void:
 	for n in get_nodes_in_group("combate3d"):
 		(n as Combate3D).quieto = true
 	await _cenital()
-	for r in [["linde", Vector2i(8, 32)], ["tronco", Vector2i(14, 31)], ["orilla", Vector2i(19, 31)], ["pasillo", Vector2i(24, 24)], ["boca", Vector2i(32, 24)], ["pradera", Vector2i(21, 16)],
-			["campamento", Vector2i(32, 15)], ["ruinas_este", Vector2i(19, 8)], ["plaza_oeste", Vector2i(8, 8)], ["estanque", Vector2i(29, 8)], ["santuario", Vector2i(8, 16)],
-			["escondite", Vector2i(8, 23)], ["esquina_noroeste", Vector2i(5, 5)], ["esquina_sureste", Vector2i(34, 34)]]:
+	for r in [["linde", Vector2i(8, 44)], ["tronco", Vector2i(14, 43)], ["orilla", Vector2i(19, 43)], ["pasillo", Vector2i(24, 36)], ["boca", Vector2i(32, 36)], ["pradera", Vector2i(21, 28)],
+			["campamento", Vector2i(32, 27)], ["ruinas_este", Vector2i(19, 20)], ["plaza_oeste", Vector2i(8, 20)], ["estanque", Vector2i(29, 20)], ["santuario", Vector2i(8, 28)],
+			["escondite", Vector2i(8, 35)], ["esquina_noroeste", Vector2i(5, 17)], ["esquina_sureste", Vector2i(34, 46)], ["sendero_sumicio", Vector2i(24, 4)]]:
 		colocar_jugador(r[1] as Vector2i)
 		maqueta.set("_tam_camara", TAM_REGION)
 		var cam: Camera3D = maqueta.get("_camara") as Camera3D

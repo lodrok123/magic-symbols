@@ -9,15 +9,16 @@ extends "res://herramientas/escenario_base.gd"
 ##   · LO ÚNICO NO REAL: los goblins se dan por derrotados poniendo `Combate3D.muerto = true` (la prueba no trata de combate: lo que comprueba es que el vigía, el cerrojo y el cofre
 ##     reaccionan a su caída). Está marcado `[muerto=true]` donde ocurre. La vida de la jugadora se mantiene alta para que ninguna flecha enemiga interrumpa el recorrido.
 ## Al final: cofre legendario abierto, `bosque02.santuario.cofre` puesta, logro `nivel_completado` emitido, TODOS los cofres alcanzados a pie y abiertos (7 comunes, 3 épicos, 1 legendario),
-## el anillo exterior todo `#` y ningún marcador ni pieza fuera del área jugable.
+## el anillo exterior todo `#` salvo la senda de Monte Sumicio.
 ##     godot --headless --fixed-fps 30 --path . --script res://herramientas/prueba_bosque_02_recorrido.gd
 
 const RUTA: String = "res://escenas/PruebaBosque02.tscn"
 const DIRS: Array = [Vector2i(1, 0), Vector2i(-1, 0), Vector2i(0, 1), Vector2i(0, -1)]
 const FOTOGRAMAS_POR_CASILLA: int = 3            ## a 30 fps = 0,1 s: los sondeos de las puertas (cada 0,1 s) ven pasar a la jugadora
 const VIDA_PRUEBA: float = 100000.0
-const AREA: Rect2i = Rect2i(4, 4, 32, 32)         ## el área jugable: x 4..35, y 4..35
-const INICIO: Vector2i = Vector2i(7, 32)
+const AREA: Rect2i = Rect2i(4, 16, 32, 32)        ## el área jugable: x 4..35, y 16..47
+const SENDA_SUMICIO: Rect2i = Rect2i(17, 0, 15, 16)  ## 13/11: el sendero de Monte Sumicio al norte (claro 17..31 × 0..11 y la fraga x 23..25 hasta y 15)
+const INICIO: Vector2i = Vector2i(7, 44)
 
 var z: Puzle3D = null
 var reglas: Node = null
@@ -256,15 +257,16 @@ func _vigia(id: String) -> Puzle3D.VigiaPuzle:
 
 func _montaje() -> void:
 	_ok("0.1 Puzle3D monta todas las piezas del mapa sin un solo aviso", z.avisos.is_empty() and z.listo, str(z.avisos))
-	_ok("0.2 el nivel mide 40 × 40 y sale del .tscn horneado", int(maqueta.get("_ancho")) == 40 and int(maqueta.get("_alto")) == 40 and bool(maqueta.get("_modo_nivel")), "%s × %s" % [str(maqueta.get("_ancho")), str(maqueta.get("_alto"))])
+	_ok("0.2 el nivel mide 40 × 52 y sale del .tscn horneado", int(maqueta.get("_ancho")) == 40 and int(maqueta.get("_alto")) == 52 and bool(maqueta.get("_modo_nivel")), "%s × %s" % [str(maqueta.get("_ancho")), str(maqueta.get("_alto"))])
 	_ok("0.3 el área jugable mide 32 × 32 (≥ 30 × 30)", AREA.size.x >= 30 and AREA.size.y >= 30)
 	var mapa: PackedStringArray = maqueta.get("_mapa")
 	var mal_anillo: Array = []
-	for y in range(40):
+	for y in range(mapa.size()):
 		for x in range(40):
-			if not AREA.has_point(Vector2i(x, y)) and mapa[y][x] != "#":
-				mal_anillo.append(Vector2i(x, y))
-	_ok("0.4 el anillo exterior de 4 casillas es todo `#` (muros lejanos)", mal_anillo.is_empty(), str(mal_anillo.slice(0, 5)))
+			var c := Vector2i(x, y)
+			if not AREA.has_point(c) and not SENDA_SUMICIO.has_point(c) and mapa[y][x] != "#":
+				mal_anillo.append(c)
+	_ok("0.4 el anillo exterior solo se abre por la senda de Sumicio", mal_anillo.is_empty(), str(mal_anillo.slice(0, 5)))
 	var fuera: Array = []
 	for pz in z.piezas():
 		var p: Puzle3D.Pieza = pz
@@ -274,7 +276,7 @@ func _montaje() -> void:
 		todas.append_array(p.p.get("en", []) as Array)
 		todas.append_array(p.p.get("sala", []) as Array)
 		for c in todas:
-			if not AREA.has_point(c as Vector2i):
+			if not AREA.has_point(c as Vector2i) and not ((p.id == "a_sumicio" or p.id == "desde_sumicio") and SENDA_SUMICIO.has_point(c as Vector2i)):
 				fuera.append("%s%s" % [p.id, str(c)])
 	_ok("0.5 ninguna pieza de Puzle3D (ni sus casillas) cae fuera del área jugable", fuera.is_empty(), str(fuera.slice(0, 5)))
 	var marca: Dictionary = reglas.get("_marca") as Dictionary
@@ -291,7 +293,7 @@ func _montaje() -> void:
 		if (pz2 as Puzle3D.Pieza).tipo == "cofre":
 			cofres.append((pz2 as Puzle3D.Pieza).id)
 	_ok("0.7 el mapa declara 14 cofres, incluidos el cortafuegos y la pila del molino", cofres.size() == 14, str(cofres.size()))
-	_ok("0.8 la jugadora nace en la linde (7,32)", celda_jugador() == INICIO, str(celda_jugador()))
+	_ok("0.8 la jugadora nace en la linde (7,44)", celda_jugador() == INICIO, str(celda_jugador()))
 	var graves: Array = (maqueta.get("_avisos") as Array).filter(func(a: Variant) -> bool: return (String(a).contains("sin pieza") or String(a).contains("fuera del suelo") or String(a).contains("sin personaje")) and not String(a).contains("losa_runas_ovalo"))
 	_ok("0.9 la maqueta no avisa de piezas ni personajes que falten (salvo la losa del guardián, que ya faltaba en la Gruta Batida)", graves.is_empty(), str(graves))
 	var tot: Array = reglas.get("_totems") as Array
@@ -335,17 +337,17 @@ func _linde() -> void:
 	_ok("1.4 la guardabosques explica la linde, el cortafuegos y el campamento", String(textos[0]).contains("braseros") and String(textos[1]).contains("tronco") and String(textos[2]).contains("muro")
 		and String(textos[3]).contains("ramales") and String(textos[4]).contains("pradera") and String(textos[5]).contains("campamento"), str(textos))
 	# El recorrido lanza flechas horizontales. Para los dos impactos de suelo se usa la entrada normal de la reacción.
-	var mojado := Vector2i(7, 32)
-	var bifurcacion := Vector2i(7, 29)
+	var mojado := Vector2i(7, 44)
+	var bifurcacion := Vector2i(7, 41)
 	lanzador.impacto_filtrado("agua", Terreno3D.centro_de(mojado, Terreno3D.y_pies(mojado)))
 	lanzador.impacto_filtrado("fuego", Terreno3D.centro_de(bifurcacion, Terreno3D.y_pies(bifurcacion)))
 	var cortafuegos: bool = await esperar(func() -> bool: return _flag("bosque02.linde.cortafuegos"), 8.0)
-	_ok("1a la llama llega al brasero por la hierba seca y deja intacto el ramal mojado", cortafuegos and not Terreno3D.estados.tiene(Vector2i(7, 30), EstadosSuelo3D.QUEMADA))
+	_ok("1a la llama llega al brasero por la hierba seca y deja intacto el ramal mojado", cortafuegos and not Terreno3D.estados.tiene(Vector2i(7, 42),EstadosSuelo3D.QUEMADA))
 	# braseros: fuego y flecha, uno a uno
-	await disparar("fuego", ["flecha"], Vector2i(10, 32), Vector2i(10, 30), "1.5")
+	await disparar("fuego", ["flecha"], Vector2i(10, 44), Vector2i(10, 42), "1.5")
 	await avanzar_s(1.5)
 	_ok("1.6 el primer brasero arde (1/2) y el cofre sigue oculto", reglas.call("_braseros_encendidos") == 1 and cofre.es_oculto)
-	await disparar("fuego", ["flecha"], Vector2i(10, 32), Vector2i(10, 34), "1.7")
+	await disparar("fuego", ["flecha"], Vector2i(10, 44), Vector2i(10, 46), "1.7")
 	await avanzar_s(2.0)
 	_ok("1.8 con los dos braseros ardiendo se pone `bosque02.linde.braseros` y el cofre APARECE", _flag("bosque02.linde.braseros") and cofre.es_cerrado)
 	await abrir_cofre("cofre_linde", "1.9")
@@ -367,15 +369,15 @@ func _braseros_guia_encendidos() -> bool:
 
 func _escondite() -> void:
 	var muro: MuroAgrietado3D = z.nodo("muro_escondite") as MuroAgrietado3D
-	_ok("2.1 ANTES: el muro cierra el pasillo: no hay camino al escondite (8,26) ni a (8,23)", muro != null and not muro.roto_ya and not hay_camino(Vector2i(8, 26)) and not hay_camino(Vector2i(8, 23)))
-	await disparar("tierra", ["flecha"], Vector2i(8, 29), Vector2i(8, 27), "2.2")
+	_ok("2.1 ANTES: el muro cierra el pasillo: no hay camino al escondite (8,38) ni a (8,35)", muro != null and not muro.roto_ya and not hay_camino(Vector2i(8, 38)) and not hay_camino(Vector2i(8, 35)))
+	await disparar("tierra", ["flecha"], Vector2i(8, 41), Vector2i(8, 39), "2.2")
 	await avanzar_s(1.5)
 	if not muro.roto_ya:
-		await disparar("tierra", ["flecha"], Vector2i(8, 29), Vector2i(8, 27), "2.3")
+		await disparar("tierra", ["flecha"], Vector2i(8, 41), Vector2i(8, 39), "2.3")
 		await avanzar_s(1.5)
 	await esperar(func() -> bool: return muro.roto_ya, 5.0)
 	await avanzar_s(1.0)
-	_ok("2.4 DESPUÉS: el muro está roto y hay camino a pie hasta el cofre del escondite", muro.roto_ya and hay_camino(Vector2i(8, 23)))
+	_ok("2.4 DESPUÉS: el muro está roto y hay camino a pie hasta el cofre del escondite", muro.roto_ya and hay_camino(Vector2i(8, 35)))
 	await abrir_cofre("cofre_escondite", "2.5")
 
 
@@ -385,13 +387,13 @@ func _escondite() -> void:
 
 func _arroyo() -> void:
 	var tronco: TroncoPuente3D = reglas.get("_tronco_puente") as TroncoPuente3D
-	_ok("3.1 ANTES: el arroyo corta el mapa: no hay camino a la orilla este (16,31) y el tronco está en pie", tronco != null and not tronco.cayo and not hay_camino(Vector2i(16, 31)) and not _flag("bosque02.arroyo.cruzado"))
+	_ok("3.1 ANTES: el arroyo corta el mapa: no hay camino a la orilla este (16,43) y el tronco está en pie", tronco != null and not tronco.cayo and not hay_camino(Vector2i(16, 43)) and not _flag("bosque02.arroyo.cruzado"))
 	_ok("3.2 y el cofre de la orilla está oculto", _cofre("cofre_orilla").es_oculto)
-	await disparar("fuego", ["flecha"], Vector2i(11, 31), Vector2i(13, 31), "3.3")
-	var cayo: bool = await esperar(func() -> bool: return tronco.cayo and _libre(Vector2i(15, 31)), 12.0)
+	await disparar("fuego", ["flecha"], Vector2i(11, 43), Vector2i(13, 43), "3.3")
+	var cayo: bool = await esperar(func() -> bool: return tronco.cayo and _libre(Vector2i(15, 43)), 12.0)
 	await avanzar_s(0.5)
-	_ok("3.4 DESPUÉS: el tronco cae sobre el arroyo (flag `tronco_puente.caido`) y hay camino a pie hasta la orilla este", cayo and _flag("bosque02.tronco_puente.caido") and hay_camino(Vector2i(16, 31)))
-	await caminar(Vector2i(16, 31), "3.5")
+	_ok("3.4 DESPUÉS: el tronco cae sobre el arroyo (flag `tronco_puente.caido`) y hay camino a pie hasta la orilla este", cayo and _flag("bosque02.tronco_puente.caido") and hay_camino(Vector2i(16, 43)))
+	await caminar(Vector2i(16, 43), "3.5")
 	await avanzar_s(0.6)
 	_ok("3.6 al pisar la orilla este se pone `bosque02.arroyo.cruzado` y aparece el cofre de la orilla", _flag("bosque02.arroyo.cruzado") and _cofre("cofre_orilla").es_cerrado)
 	await abrir_cofre("cofre_orilla", "3.7")
@@ -419,28 +421,28 @@ func _balanza() -> void:
 	var pie_a: BloqueEmpujable3D = z.nodo("piedra_balanza_a") as BloqueEmpujable3D
 	var pie_b: BloqueEmpujable3D = z.nodo("piedra_balanza_b") as BloqueEmpujable3D
 	var cofre: Puzle3D.CofrePuzle = _cofre("cofre_balanza")
-	_ok("3b.1 LA BALANZA · ANTES: placa de peso 2 (22,30) y de peso 1 (22,32) libres, roca mediana (19,30), piedras (21,30) y (19,32) en su sitio y el cofre oculto",
+	_ok("3b.1 LA BALANZA · ANTES: placa de peso 2 (22,42) y de peso 1 (22,44) libres, roca mediana (19,42), piedras (21,42) y (19,44) en su sitio y el cofre oculto",
 		pesada != null and ligera != null and mediana != null and pie_a != null and pie_b != null and cofre != null and pesada.peso_min == 2 and ligera.peso_min == 1 and not pesada.activo and not ligera.activo
-		and mediana.celda == Vector2i(19, 30) and pie_a.celda == Vector2i(21, 30) and pie_b.celda == Vector2i(19, 32) and mediana.peso_valor == 2 and pie_a.peso_valor == 1 and cofre.es_oculto)
+		and mediana.celda == Vector2i(19, 42) and pie_a.celda == Vector2i(21, 42) and pie_b.celda == Vector2i(19, 44) and mediana.peso_valor == 2 and pie_a.peso_valor == 1 and cofre.es_oculto)
 	if pesada == null or ligera == null or mediana == null or pie_a == null or pie_b == null or cofre == null:
 		return
-	_ok("3b.2 el camino de y=31 sigue libre con las rocas en su sitio (hay camino a pie de la orilla (16,31) a (24,31))", hay_camino(Vector2i(24, 31)))
+	_ok("3b.2 el camino de y=43 sigue libre con las rocas en su sitio (hay camino a pie de la orilla (16,43) a (24,43))", hay_camino(Vector2i(24, 43)))
 	# la piedrecita de delante, sobre la placa de peso 2: no basta (POCO PESO); se sigue empujando hasta apartarla
 	await _empujar_roca(pie_a, este, "3b.3")
 	await avanzar_s(0.6)
-	_ok("3b.4 una piedra pequeña (peso 1) sobre la placa de peso 2 NO la pisa (pesa %d de 2) ni pone `bosque02.balanza.pesada`" % pesada.peso_en_casilla(), pie_a.celda == Vector2i(22, 30) and pesada.peso_en_casilla() == 1 and not pesada.activo and not _flag("bosque02.balanza.pesada"))
+	_ok("3b.4 una piedra pequeña (peso 1) sobre la placa de peso 2 NO la pisa (pesa %d de 2) ni pone `bosque02.balanza.pesada`" % pesada.peso_en_casilla(), pie_a.celda == Vector2i(22, 42) and pesada.peso_en_casilla() == 1 and not pesada.activo and not _flag("bosque02.balanza.pesada"))
 	await _empujar_roca(pie_a, este, "3b.5")
 	await avanzar_s(0.3)
-	_ok("3b.6 …empujada una casilla más queda apartada en (23,30) y la placa vuelve a estar libre", pie_a.celda == Vector2i(23, 30) and pesada.peso_en_casilla() == 0)
+	_ok("3b.6 …empujada una casilla más queda apartada en (23,42) y la placa vuelve a estar libre", pie_a.celda == Vector2i(23, 42) and pesada.peso_en_casilla() == 0)
 	for i in range(3):
 		await _empujar_roca(mediana, este, "3b.7")
 	await avanzar_s(0.6)
-	_ok("3b.8 la roca MEDIANA (peso 2) sobre la placa de peso 2 la pisa: `bosque02.balanza.pesada`", mediana.celda == Vector2i(22, 30) and pesada.activo and _flag("bosque02.balanza.pesada") and cofre.es_oculto)
+	_ok("3b.8 la roca MEDIANA (peso 2) sobre la placa de peso 2 la pisa: `bosque02.balanza.pesada`", mediana.celda == Vector2i(22, 42) and pesada.activo and _flag("bosque02.balanza.pesada") and cofre.es_oculto)
 	for i in range(3):
 		await _empujar_roca(pie_b, este, "3b.9")
 	await avanzar_s(0.8)
-	_ok("3b.10 la piedra PEQUEÑA (peso 1) sobre la placa de peso 1 la pisa: `bosque02.balanza.ligera`, y con las dos APARECE el cofre común", pie_b.celda == Vector2i(22, 32) and ligera.activo and _flag("bosque02.balanza.ligera") and cofre.es_cerrado)
-	_ok("3b.11 con las tres rocas colocadas el camino de y=31 sigue libre", hay_camino(Vector2i(24, 31)))
+	_ok("3b.10 la piedra PEQUEÑA (peso 1) sobre la placa de peso 1 la pisa: `bosque02.balanza.ligera`, y con las dos APARECE el cofre común", pie_b.celda == Vector2i(22, 44) and ligera.activo and _flag("bosque02.balanza.ligera") and cofre.es_cerrado)
+	_ok("3b.11 con las tres rocas colocadas el camino de y=43 sigue libre", hay_camino(Vector2i(24, 43)))
 	await abrir_cofre("cofre_balanza", "3b.12")
 
 
@@ -451,17 +453,17 @@ func _balanza() -> void:
 func _pasillo_cueva() -> void:
 	var salida: Node = z.nodo("boca_salida")
 	_ok("4.1 la boca de la Cueva está declarada hacia Cueva:desde_bosque y la Cueva existe", salida != null and String(salida.get("destino")) == "Cueva:desde_bosque" and Niveles.existe("Cueva"))
-	_ok("4.2 ANTES: el tronco (22,24) y los setos (26,24),(27,24) cierran el pasillo: no hay camino a la boca (34,24)", not hay_camino(Vector2i(34, 24)) and not hay_camino(Vector2i(33, 24)))
-	await disparar("fuego", ["flecha"], Vector2i(20, 24), Vector2i(22, 24), "4.3")
-	var ardio: bool = await esperar(func() -> bool: return _libre(Vector2i(22, 24)), 20.0)
+	_ok("4.2 ANTES: el tronco (22,36) y los setos (26,36),(27,36) cierran el pasillo: no hay camino a la boca (34,36)", not hay_camino(Vector2i(34, 36)) and not hay_camino(Vector2i(33, 36)))
+	await disparar("fuego", ["flecha"], Vector2i(20, 36), Vector2i(22, 36), "4.3")
+	var ardio: bool = await esperar(func() -> bool: return _libre(Vector2i(22, 36)), 20.0)
 	_ok("4.4 el fuego consume el tronco y la casilla se libera", ardio)
-	await disparar("fuego", ["flecha"], Vector2i(24, 24), Vector2i(26, 24), "4.5")
-	var ardieron: bool = await esperar(func() -> bool: return _libre(Vector2i(26, 24)) and _libre(Vector2i(27, 24)), 25.0)
+	await disparar("fuego", ["flecha"], Vector2i(24, 36), Vector2i(26, 36), "4.5")
+	var ardieron: bool = await esperar(func() -> bool: return _libre(Vector2i(26, 36)) and _libre(Vector2i(27, 36)), 25.0)
 	_ok("4.6 el fuego consume los dos setos (se contagian) y se libera el pasillo", ardieron)
-	_ok("4.7 DESPUÉS: hay camino a pie hasta la entrada de la boca (33,24) y hasta su salida (34,24; no se pisa para no viajar)", hay_camino(Vector2i(33, 24)) and hay_camino(Vector2i(34, 24)))
-	_ok("4.8 las flags de lo consumido quedaron (volver de la Cueva no repone el pasillo)", _flag("bosque02.quemado.c22_24") and _flag("bosque02.quemado.c26_24") and _flag("bosque02.quemado.c27_24"))
+	_ok("4.7 DESPUÉS: hay camino a pie hasta la entrada de la boca (33,36) y hasta su salida (34,36; no se pisa para no viajar)", hay_camino(Vector2i(33, 36)) and hay_camino(Vector2i(34, 36)))
+	_ok("4.8 las flags de lo consumido quedaron (volver de la Cueva no repone el pasillo)", _flag("bosque02.quemado.c22_36") and _flag("bosque02.quemado.c26_36") and _flag("bosque02.quemado.c27_36"))
 	# se vuelve a la orilla: la prueba sigue por la pradera
-	await caminar(Vector2i(18, 22), "4.9")
+	await caminar(Vector2i(18, 34), "4.9")
 
 
 # ---------------------------------------------------------------------------------------------------------------------
@@ -476,14 +478,14 @@ func _pradera() -> void:
 	var nido: Nido3D = z.nodo("nido_pradera") as Nido3D
 	_ok("5.2 la colmena cuelga de un árbol de la pradera y el nido está en su sitio", col != null and col.estado == "colgada" and nido != null)
 	var viento: RuneData = load("res://nucleo/wind_rune.tres") as RuneData
-	await disparar("viento", ["flecha"], Vector2i(22, 12), Vector2i(21, 12), "5.3")
+	await disparar("viento", ["flecha"], Vector2i(22, 24), Vector2i(21, 24), "5.3")
 	await avanzar_s(2.0)
 	if col.estado == "colgada":
 		_aviso("5.3b la flecha de viento no llega a la colmena en headless (igual que en escenario_botin): se aplica el contrato `on_spell_hit` directo", "estado %s" % col.estado)
 		col.on_spell_hit(viento)
 		await avanzar_s(0.5)
 	_ok("5.4 el viento descuelga la colmena: cae el panal (flag de la colmena)", col.estado == "vacia" and _flag(col.flag()), col.estado)
-	await disparar("viento", ["flecha"], Vector2i(26, 13), Vector2i(26, 12), "5.5")
+	await disparar("viento", ["flecha"], Vector2i(26, 25), Vector2i(26, 24), "5.5")
 	await avanzar_s(2.0)
 	if nido.sacudidas == 0:
 		_aviso("5.5b la flecha de viento no llega al nido en headless: contrato `on_spell_hit` directo", "sacudidas 0")
@@ -493,10 +495,10 @@ func _pradera() -> void:
 	# Un guerrero cae a hechizos de VERDAD (tierra, agua y rayo, apuntando a donde esté en cada tiro); los otros cuatro, con `muerto = true`.
 	var guerrero: Combate3D = null
 	for e in vig.vistos:
-		if Terreno3D.celda_de((e as Combate3D).casa) == Vector2i(19, 14):
+		if Terreno3D.celda_de((e as Combate3D).casa) == Vector2i(19, 26):
 			guerrero = e
 	if guerrero != null:
-		await caminar(Vector2i(19, 16), "5.6b")
+		await caminar(Vector2i(19, 28), "5.6b")
 		var tiros: int = 0
 		while not guerrero.muerto and tiros < 30:
 			_curar()
@@ -530,32 +532,32 @@ func _ruinas_este() -> void:
 	if asesino != null and is_instance_valid(asesino):
 		_matar([asesino])                                 # [muerto=true]: el asesino merodea por las ruinas y pondría su cuerpo en la línea de tiro
 	_ok("6.1 los tres tótems empiezan dormidos y ninguna flag de tótem está puesta", not bool(tot[0].activo) and not bool(tot[1].activo) and not bool(tot[2].activo) and not _flag("bosque02.totem.fuego"))
-	# --- fuego: la telaraña (22,7) tapa el tótem (22,6)
-	_ok("6.2 TÓTEM DE FUEGO · ANTES: la telaraña (22,7) bloquea el camino y la línea de tiro", not _libre(Vector2i(22, 7)))
-	await disparar("fuego", ["flecha"], Vector2i(22, 9), Vector2i(22, 7), "6.3")
-	var libre: bool = await esperar(func() -> bool: return _libre(Vector2i(22, 7)), 20.0)
-	_ok("6.4 la telaraña arde y se consume (queda su flag)", libre and _flag("bosque02.quemado.c22_7"))
-	# Se dispara en cuanto la casilla se libera, con la telaraña consumida aún disolviéndose en (22,7): desde el diario 347 lo consumido no se come el hechizo (`HechizoVivo.fuera_de_juego`).
-	_ok("6.4b la telaraña consumida sigue en escena un momento (es lo que antes se comía la flecha)", not _consumido(Vector2i(22, 7)))
-	await disparar("fuego", ["flecha"], Vector2i(22, 8), Vector2i(22, 6), "6.5")
+	# --- fuego: la telaraña (22,19) tapa el tótem (22,18)
+	_ok("6.2 TÓTEM DE FUEGO · ANTES: la telaraña (22,19) bloquea el camino y la línea de tiro", not _libre(Vector2i(22, 19)))
+	await disparar("fuego", ["flecha"], Vector2i(22, 21), Vector2i(22, 19), "6.3")
+	var libre: bool = await esperar(func() -> bool: return _libre(Vector2i(22, 19)), 20.0)
+	_ok("6.4 la telaraña arde y se consume (queda su flag)", libre and _flag("bosque02.quemado.c22_19"))
+	# Se dispara en cuanto la casilla se libera, con la telaraña consumida aún disolviéndose en (22,19): desde el diario 347 lo consumido no se come el hechizo (`HechizoVivo.fuera_de_juego`).
+	_ok("6.4b la telaraña consumida sigue en escena un momento (es lo que antes se comía la flecha)", not _consumido(Vector2i(22, 19)))
+	await disparar("fuego", ["flecha"], Vector2i(22, 20), Vector2i(22, 18), "6.5")
 	var fuego: bool = await esperar(func() -> bool: return bool(tot[0].activo), 6.0)
 	_ok("6.6 DESPUÉS: el tótem de fuego despierta y deja `bosque02.totem.fuego`", fuego and _flag("bosque02.totem.fuego"))
-	# --- agua: la tinaja (13,5) está al otro lado del arroyo; su cuenca abre la reja (19,7) del tótem
+	# --- agua: la tinaja (13,17) está al otro lado del arroyo; su cuenca abre la reja (19,19) del tótem
 	var reja: Puzle3D.PuertaPuzle = z.nodo("reja_totem") as Puzle3D.PuertaPuzle
-	_ok("6.7 TÓTEM DE AGUA · ANTES: la reja (19,7) está cerrada (no se pisa) y la cuenca de la plaza, vacía", reja != null and not reja.abierta and not _libre(Vector2i(19, 7)) and Terreno3D.agua_sim.profundidad_casilla(Vector2i(12, 8)) < 0.02, "reja %s abierta=%s libre=%s prof=%.3f" % [str(reja != null), str(reja.abierta if reja != null else "-"), str(_libre(Vector2i(19, 7))), Terreno3D.agua_sim.profundidad_casilla(Vector2i(12, 8))])
-	await disparar("agua", ["flecha", "flecha"], Vector2i(16, 5), Vector2i(13, 5), "6.8")
+	_ok("6.7 TÓTEM DE AGUA · ANTES: la reja (19,19) está cerrada (no se pisa) y la cuenca de la plaza, vacía", reja != null and not reja.abierta and not _libre(Vector2i(19, 19)) and Terreno3D.agua_sim.profundidad_casilla(Vector2i(12, 20)) < 0.02, "reja %s abierta=%s libre=%s prof=%.3f" % [str(reja != null), str(reja.abierta if reja != null else "-"), str(_libre(Vector2i(19, 19))), Terreno3D.agua_sim.profundidad_casilla(Vector2i(12, 20))])
+	await disparar("agua", ["flecha", "flecha"], Vector2i(16, 17), Vector2i(13, 17), "6.8")
 	var t_agua: float = reloj.t
 	var llena: bool = await esperar(func() -> bool: return reja.abierta, 150.0)
-	_ok("6.9 la tinaja vierte, el canal llena la cuenca (nivel ≥ 0,45) y la reja se ABRE (a los %.0f s del hechizo)" % (reloj.t - t_agua), llena and _flag("bosque02.ruinas.reja") and _libre(Vector2i(19, 7)))
-	await disparar("agua", ["flecha"], Vector2i(19, 7), Vector2i(19, 5), "6.10")
+	_ok("6.9 la tinaja vierte, el canal llena la cuenca (nivel ≥ 0,45) y la reja se ABRE (a los %.0f s del hechizo)" % (reloj.t - t_agua), llena and _flag("bosque02.ruinas.reja") and _libre(Vector2i(19, 19)))
+	await disparar("agua", ["flecha"], Vector2i(19, 19), Vector2i(19, 17), "6.10")
 	var agua: bool = await esperar(func() -> bool: return bool(tot[1].activo), 6.0)
 	_ok("6.11 DESPUÉS: el tótem de agua despierta y deja `bosque02.totem.agua`", agua and _flag("bosque02.totem.agua"))
-	# --- rayo: la fuente (17,10) descarga cada ~5 s; con el nexo (19,10) seco la corriente se corta
+	# --- rayo: la fuente (17,22) descarga cada ~5 s; con el nexo (19,22) seco la corriente se corta
 	var nexo: NexoRayo3D = z.nodo("nexo_cadena") as NexoRayo3D
-	await caminar(Vector2i(19, 8), "6.12")
+	await caminar(Vector2i(19, 20), "6.12")
 	await avanzar_s(7.0)                                  # una descarga completa de la fuente con el nexo seco
 	_ok("6.13 TÓTEM DE RAYO · ANTES: con el nexo seco la corriente no llega al tótem (no despierta tras una descarga entera)", not nexo.conduce and not bool(tot[2].activo))
-	await disparar("agua", ["flecha"], Vector2i(19, 8), Vector2i(19, 10), "6.14")
+	await disparar("agua", ["flecha"], Vector2i(19, 20), Vector2i(19, 22), "6.14")
 	await avanzar_s(2.0)
 	_ok("6.15 el agua moja el nexo y este conduce", nexo.conduce, "mojado %.0f s" % nexo.mojado)
 	var rayo: bool = await esperar(func() -> bool: return bool(tot[2].activo), 15.0)
@@ -564,11 +566,11 @@ func _ruinas_este() -> void:
 	_ok("6.17 con los tres tótems despiertos se pone `bosque02.ruinas.totems` (la llave de la sala del tesoro)", _flag("bosque02.ruinas.totems"))
 	# --- el puente roto: el arroyo vuelve a cortar el mapa (plaza oeste)
 	var puente: PuenteReactivo3D = z.nodo("puente_arroyo") as PuenteReactivo3D
-	_ok("6.18 PUENTE ROTO · ANTES: no hay camino a pie de las ruinas del este a la plaza oeste (13,9)", puente != null and not puente.tendido and not hay_camino(Vector2i(13, 9)))
-	await disparar("agua", ["flecha"], Vector2i(19, 9), Vector2i(17, 9), "6.19")
+	_ok("6.18 PUENTE ROTO · ANTES: no hay camino a pie de las ruinas del este a la plaza oeste (13,21)", puente != null and not puente.tendido and not hay_camino(Vector2i(13, 21)))
+	await disparar("agua", ["flecha"], Vector2i(19, 21), Vector2i(17, 21), "6.19")
 	var tendido: bool = await esperar(func() -> bool: return puente.tendido, 6.0)
 	await avanzar_s(3.0)
-	_ok("6.20 DESPUÉS: el pulsador de agua tiende el puente (flag `bosque02.ruinas.puente`) y hay camino a pie hasta la plaza oeste", tendido and _flag("bosque02.ruinas.puente") and hay_camino(Vector2i(13, 9)))
+	_ok("6.20 DESPUÉS: el pulsador de agua tiende el puente (flag `bosque02.ruinas.puente`) y hay camino a pie hasta la plaza oeste", tendido and _flag("bosque02.ruinas.puente") and hay_camino(Vector2i(13, 21)))
 
 
 # ---------------------------------------------------------------------------------------------------------------------
@@ -578,40 +580,40 @@ func _ruinas_este() -> void:
 func _plaza_oeste() -> void:
 	var puerta: Puzle3D.PuertaPuzle = z.nodo("puerta_ruinas") as Puzle3D.PuertaPuzle
 	var puerta_sant: Puzle3D.PuertaPuzle = z.nodo("puerta_santuario") as Puzle3D.PuertaPuzle
-	_ok("7.1 SALA DEL TESORO · ANTES de pisar la puerta: cerrada, y no hay camino a la sala (6,6)", puerta != null and not puerta.abierta and not _libre(Vector2i(7, 7)))
-	await caminar(Vector2i(13, 9), "7.2")
-	_ok("7.3 …cruzado el puente ya no hay camino a la sala: la puerta (7,7) la cierra", not hay_camino(Vector2i(6, 6)))
-	_ok("7.4 SANTUARIO · ANTES de tener la llave: la puerta (8,12) está cerrada y no hay camino a (8,14)", puerta_sant != null and not puerta_sant.abierta and not hay_camino(Vector2i(8, 14)) and not _flag("bosque02.santuario.llave"))
+	_ok("7.1 SALA DEL TESORO · ANTES de pisar la puerta: cerrada, y no hay camino a la sala (6,18)", puerta != null and not puerta.abierta and not _libre(Vector2i(7, 19)))
+	await caminar(Vector2i(13, 21), "7.2")
+	_ok("7.3 …cruzado el puente ya no hay camino a la sala: la puerta (7,19) la cierra", not hay_camino(Vector2i(6, 18)))
+	_ok("7.4 SANTUARIO · ANTES de tener la llave: la puerta (8,24) está cerrada y no hay camino a (8,26)", puerta_sant != null and not puerta_sant.abierta and not hay_camino(Vector2i(8, 26)) and not _flag("bosque02.santuario.llave"))
 	# la librera da pistas
 	var librera: Dictionary = {}
 	for g in (reglas.get("_gente") as Array):
 		if String((g as Dictionary)["tipo"]) == "librera":
 			librera = g
-	await caminar(Vector2i(10, 10), "7.5")
+	await caminar(Vector2i(10, 22), "7.5")
 	var pistas: Array = []
 	for i in range(8):
 		pistas.append(str(reglas.call("hablar", librera, jugador.position)))
 	var todo: String = " ".join(pistas)
 	_ok("7.6 la librera da las pistas de los tótems, la reja, la fuente, la llave y la piedra", todo.contains("tótems") and todo.contains("reja") and todo.contains("rayo") and todo.contains("llave") and todo.contains("placa"), str(pistas))
 	# la puerta de la sala del tesoro: con la flag de los tres tótems, al tocarla se abre
-	await caminar(Vector2i(7, 8), "7.7")
-	await tocar_puerta(Vector2i(7, 7))
-	_ok("7.8 DESPUÉS: con los tres tótems la puerta (7,7) se ABRE al tocarla y hay camino a la sala", puerta.abierta and hay_camino(Vector2i(6, 6)))
+	await caminar(Vector2i(7, 20), "7.7")
+	await tocar_puerta(Vector2i(7, 19))
+	_ok("7.8 DESPUÉS: con los tres tótems la puerta (7,19) se ABRE al tocarla y hay camino a la sala", puerta.abierta and hay_camino(Vector2i(6, 18)))
 	await abrir_cofre("cofre_ruinas", "7.9")
 	# el bloque y la placa
 	var bloque: BloqueEmpujable3D = z.nodo("bloque_ruinas") as BloqueEmpujable3D
 	var trast: Puzle3D.CofrePuzle = _cofre("cofre_trastienda")
-	_ok("7.10 EL PESO DE LA PIEDRA · ANTES: la placa K (9,10) sin pisar y el cofre épico oculto", bloque != null and bloque.celda == Vector2i(5, 10) and trast.es_oculto and not _flag("bosque02.ruinas.placa"))
-	await caminar(Vector2i(4, 10), "7.11")
+	_ok("7.10 EL PESO DE LA PIEDRA · ANTES: la placa K (9,22) sin pisar y el cofre épico oculto", bloque != null and bloque.celda == Vector2i(5, 22) and trast.es_oculto and not _flag("bosque02.ruinas.placa"))
+	await caminar(Vector2i(4, 22), "7.11")
 	var pasos: int = 0
-	while bloque.celda != Vector2i(9, 10) and pasos < 8:
+	while bloque.celda != Vector2i(9, 22) and pasos < 8:
 		var seguia: bool = bloque.empujar(Vector2i(1, 0), true)
 		await esperar(func() -> bool: return not bloque.moviendo, 8.0)
 		pasos += 1
 		if not seguia:
 			await avanzar_s(0.5)
 	await avanzar_s(1.0)
-	_ok("7.12 empujada en %d empujones la piedra queda sobre la placa (9,10)" % pasos, bloque.celda == Vector2i(9, 10))
+	_ok("7.12 empujada en %d empujones la piedra queda sobre la placa (9,22)" % pasos, bloque.celda == Vector2i(9, 22))
 	_ok("7.13 DESPUÉS: la placa pesa (se pone `bosque02.ruinas.placa`) y APARECE el cofre épico de la trastienda", _flag("bosque02.ruinas.placa") and trast.es_cerrado)
 	await abrir_cofre("cofre_trastienda", "7.14")
 	_ok("7.15 la túnica de salamandra está en la bolsa", Estado.i().cuenta("tunica_salamandra") == 1)
@@ -627,29 +629,29 @@ func _estanque() -> void:
 	var molinero: Puzle3D.CofrePuzle = _cofre("cofre_molino")
 	var epico: Puzle3D.CofrePuzle = _cofre("cofre_estanque")
 	_ok("8.1 ANTES: compuerta cerrada, molino parado y los dos cofres del estanque ocultos", not bool(compuerta.get("abierta")) and not bool(molino.get("activo")) and molinero.es_oculto and epico.es_oculto)
-	await caminar(Vector2i(31, 10), "8.2")
-	await disparar("agua", ["flecha"], Vector2i(31, 10), Vector2i(31, 8), "8.3")
+	await caminar(Vector2i(31, 22), "8.2")
+	await disparar("agua", ["flecha"], Vector2i(31, 22), Vector2i(31, 20), "8.3")
 	var abre: bool = await esperar(func() -> bool: return bool(compuerta.get("abierta")), 6.0)
-	_ok("8.4 el pulsador de agua (31,8) abre la compuerta y se pone `bosque02.estanque.compuerta`", abre and _flag("bosque02.estanque.compuerta"))
+	_ok("8.4 el pulsador de agua (31,20) abre la compuerta y se pone `bosque02.estanque.compuerta`", abre and _flag("bosque02.estanque.compuerta"))
 	await avanzar_s(0.5)
 	_ok("8.5 aparece el cofre común del molino", molinero.es_cerrado)
 	await abrir_cofre("cofre_molino", "8.6")
 	var llena: bool = await esperar(func() -> bool: return _flag("bosque02.estanque.pila"), 40.0)
 	_ok("8.6a el agua llena la pila antes de que gire el molino", llena and not bool(molino.get("activo")))
-	await disparar("fuego", ["flecha"], Vector2i(32, 10), Vector2i(32, 8), "8.6b")
+	await disparar("fuego", ["flecha"], Vector2i(32, 22), Vector2i(32, 20), "8.6b")
 	_ok("8.6c la cuerda desvía el agua hacia el molino", await esperar(func() -> bool: return _flag("bosque02.estanque.desvio"), 5.0))
 	var gira: bool = await esperar(func() -> bool: return _flag("bosque02.estanque.molino"), 120.0)
 	_ok("8.7 el arroyo corre, la rueda del molino gira (`bosque02.estanque.molino`) y aparece el cofre ÉPICO del lago", gira and bool(molino.get("activo")) and epico.es_cerrado)
 	_ok("8.7a el molino abre la reja del atajo", bool(z.nodo("atajo_molino").get("abierta")))
-	# el lago: sellado hasta que la fuente lo electrifica (casilla (27,8)); la fuente descarga cada ~5,6 s
-	var camino_epico: bool = await caminar(Vector2i(27, 10), "8.8")
+	# el lago: sellado hasta que la fuente lo electrifica (casilla (27,20)); la fuente descarga cada ~5,6 s
+	var camino_epico: bool = await caminar(Vector2i(27, 22), "8.8")
 	_ok("8.9 llegar a la orilla del lago fue posible a pie", camino_epico)
 	# primero se espera a un momento SIN descarga (el reloj de la electrificada caduca a los 6 s desde el 6/11, bloque A5; eran 2 s) y se comprueba que el cofre está sellado
 	var sin_descarga: bool = await esperar(func() -> bool: return not epico.sellado_cumplido(), 30.0)
 	_ok("8.10 SELLADO · ANTES: sin descarga el lago no está electrificado y el cofre épico no se abre (E avisaría «sellado»)", sin_descarga and not epico.abrir() and epico.es_cerrado)
 	var t0: float = reloj.t
 	var con_descarga: bool = await esperar(func() -> bool: return epico.sellado_cumplido(), 30.0)
-	_ok("8.11 la fuente (25,7) descarga y `casilla(27,8).electrificada` se cumple a los %.1f s (reloj de C2: 6 s desde el 6/11)" % (reloj.t - t0), con_descarga)
+	_ok("8.11 la fuente (25,19) descarga y `casilla(27,20).electrificada` se cumple a los %.1f s (reloj de C2: 6 s desde el 6/11)" % (reloj.t - t0), con_descarga)
 	_hacer_sitio()                                   # el botín del camino (al azar) puede tener la mochila llena: sin hueco la capa no entra
 	# Como en `abrir_cofre`: `Cofre3D.abrir` devuelve false mientras la tapa aún está apareciendo o en otra animación; se insiste (solo con el lago electrificado) hasta 10 s.
 	var abrio: bool = false
@@ -674,31 +676,31 @@ func _campamento() -> void:
 	var vig: Puzle3D.VigiaPuzle = _vigia("vig_camp")
 	var epico: Puzle3D.CofrePuzle = _cofre("cofre_campamento")
 	var torre_cofre: Puzle3D.CofrePuzle = _cofre("cofre_torre")
-	_ok("9.1 ANTES: la puerta frontal bloquea su casilla, pero el acceso lateral permite entrar", not _libre(Vector2i(28, 16)) and hay_camino(Vector2i(30, 16)) and vig.vistos.size() == 5 and epico.es_oculto and torre_cofre.es_oculto)
-	await disparar("fuego", ["flecha"], Vector2i(26, 16), Vector2i(28, 16), "9.2")
-	var arde: bool = await esperar(func() -> bool: return _libre(Vector2i(28, 16)), 30.0)
-	_ok("9.3 la puerta goblin arde y se consume (flag de lo quemado)", arde and _flag("bosque02.quemado.c28_16"))
-	_ok("9.4 DESPUÉS: hay camino a pie hasta dentro del campamento", hay_camino(Vector2i(30, 16)))
+	_ok("9.1 ANTES: la puerta frontal bloquea su casilla, pero el acceso lateral permite entrar", not _libre(Vector2i(28, 28)) and hay_camino(Vector2i(30, 28)) and vig.vistos.size() == 5 and epico.es_oculto and torre_cofre.es_oculto)
+	await disparar("fuego", ["flecha"], Vector2i(26, 28), Vector2i(28, 28), "9.2")
+	var arde: bool = await esperar(func() -> bool: return _libre(Vector2i(28, 28)), 30.0)
+	_ok("9.3 la puerta goblin arde y se consume (flag de lo quemado)", arde and _flag("bosque02.quemado.c28_28"))
+	_ok("9.4 DESPUÉS: hay camino a pie hasta dentro del campamento", hay_camino(Vector2i(30, 28)))
 	var arq_fijo: Variant = reglas.get("_arquero_fijo")
 	_ok("9.5 uno de los dos arqueros es de puesto (no persigue)", arq_fijo != null and bool(arq_fijo.fijo))
-	await caminar(Vector2i(30, 16), "9.6")
+	await caminar(Vector2i(30, 28), "9.6")
 	await avanzar_s(0.6)
-	await disparar("fuego", ["flecha"], Vector2i(29, 16), Vector2i(31, 16), "9.6a")
-	var vapor: bool = await esperar(func() -> bool: return Terreno3D.estados.hay_vapor(Vector2i(30, 16)), 4.0)
-	await caminar(Vector2i(30, 16), "9.6b")
+	await disparar("fuego", ["flecha"], Vector2i(29, 28), Vector2i(31, 28), "9.6a")
+	var vapor: bool = await esperar(func() -> bool: return Terreno3D.estados.hay_vapor(Vector2i(30, 28)), 4.0)
+	await caminar(Vector2i(30, 28), "9.6b")
 	_ok("9.6c el cuenco cubre el avance con vapor y el arquero de puesto pierde la visión", vapor and arq_fijo != null and not bool(arq_fijo.call("_ve", Combate3D.ARQUERO_FIJO_ALCANCE)))
-	_ok("9.7 SIN CERROJO (zona abierta, 5/11): dentro de la sala la casilla (29,16) sigue libre, hay camino de vuelta al exterior (27,16) y el mapa ya no trae `cerr_camp`", _libre(Vector2i(29, 16)) and hay_camino(Vector2i(27, 16)) and z.nodo("cerr_camp") == null)
+	_ok("9.7 SIN CERROJO (zona abierta, 5/11): dentro de la sala la casilla (29,28) sigue libre, hay camino de vuelta al exterior (27,28) y el mapa ya no trae `cerr_camp`", _libre(Vector2i(29, 28)) and hay_camino(Vector2i(27, 28)) and z.nodo("cerr_camp") == null)
 	_matar(vig.vistos)                                    # [muerto=true]
 	await avanzar_s(1.2)
-	_ok("9.8 al caer los cinco el vigía pone `bosque02.campamento.limpio` y se puede volver al exterior", vig.completo and _flag("bosque02.campamento.limpio") and hay_camino(Vector2i(27, 16)))
+	_ok("9.8 al caer los cinco el vigía pone `bosque02.campamento.limpio` y se puede volver al exterior", vig.completo and _flag("bosque02.campamento.limpio") and hay_camino(Vector2i(27, 28)))
 	_ok("9.9 APARECE el cofre épico del campamento y aún no hay llave", epico.es_cerrado and not _flag("bosque02.santuario.llave"))
 	await abrir_cofre("cofre_campamento", "9.10")
 	await avanzar_s(0.5)
 	_ok("9.11 abrir el cofre épico da la capucha de musgo y pone la llave del santuario (`bosque02.santuario.llave`)", Estado.i().cuenta("capucha_musgo") == 1 and _flag("bosque02.santuario.llave"))
 	# la torre
-	_ok("9.12 TORRE · ANTES: la torre este (34,13) en pie y el cofre de detrás oculto", not _libre(Vector2i(34, 13)) and torre_cofre.es_oculto)
-	await disparar("fuego", ["flecha"], Vector2i(34, 15), Vector2i(34, 13), "9.13")
-	var cae: bool = await esperar(func() -> bool: return _libre(Vector2i(34, 13)), 40.0)
+	_ok("9.12 TORRE · ANTES: la torre este (34,25) en pie y el cofre de detrás oculto", not _libre(Vector2i(34, 25)) and torre_cofre.es_oculto)
+	await disparar("fuego", ["flecha"], Vector2i(34, 27), Vector2i(34, 25), "9.13")
+	var cae: bool = await esperar(func() -> bool: return _libre(Vector2i(34, 25)), 40.0)
 	await avanzar_s(1.0)
 	_ok("9.14 DESPUÉS: la torre arde y se consume, se pone `bosque02.torre.quemada` y APARECE el cofre común", cae and _flag("bosque02.torre.quemada") and torre_cofre.es_cerrado)
 	await abrir_cofre("cofre_torre", "9.15")
@@ -712,13 +714,13 @@ func _santuario() -> void:
 	var puerta: Puzle3D.PuertaPuzle = z.nodo("puerta_santuario") as Puzle3D.PuertaPuzle
 	var vig: Puzle3D.VigiaPuzle = _vigia("vig_sant")
 	var corazon: Puzle3D.CofrePuzle = _cofre("cofre_corazon")
-	_ok("10.1 ANTES: la puerta del santuario sigue cerrada (aunque ya hay llave, hay que ir a tocarla) y el cofre del corazón está oculto", not puerta.abierta and not hay_camino(Vector2i(8, 14)) and corazon.es_oculto)
-	await caminar(Vector2i(8, 11), "10.2")
-	await tocar_puerta(Vector2i(8, 12))
-	_ok("10.3 DESPUÉS: con la llave la puerta (8,12) se ABRE al tocarla y hay camino a pie hasta el elemental", puerta.abierta and hay_camino(Vector2i(8, 14)))
-	await caminar(Vector2i(8, 14), "10.4")
+	_ok("10.1 ANTES: la puerta del santuario sigue cerrada (aunque ya hay llave, hay que ir a tocarla) y el cofre del corazón está oculto", not puerta.abierta and not hay_camino(Vector2i(8, 26)) and corazon.es_oculto)
+	await caminar(Vector2i(8, 23), "10.2")
+	await tocar_puerta(Vector2i(8, 24))
+	_ok("10.3 DESPUÉS: con la llave la puerta (8,24) se ABRE al tocarla y hay camino a pie hasta el elemental", puerta.abierta and hay_camino(Vector2i(8, 26)))
+	await caminar(Vector2i(8, 26), "10.4")
 	await avanzar_s(0.6)
-	_ok("10.5 SIN CERROJO (zona abierta, 5/11): dentro del santuario (8,13) sigue libre, hay camino de vuelta a (8,11) y el mapa ya no trae `cerr_sant`", _libre(Vector2i(8, 13)) and hay_camino(Vector2i(8, 11)) and z.nodo("cerr_sant") == null)
+	_ok("10.5 SIN CERROJO (zona abierta, 5/11): dentro del santuario (8,25) sigue libre, hay camino de vuelta a (8,23) y el mapa ya no trae `cerr_sant`", _libre(Vector2i(8, 25)) and hay_camino(Vector2i(8, 23)) and z.nodo("cerr_sant") == null)
 	_ok("10.6 el vigía vigila al elemental (1) y aún no hay cofre", vig.vistos.size() == 1 and not vig.completo)
 	_matar(vig.vistos)                                    # [muerto=true]
 	await avanzar_s(1.2)

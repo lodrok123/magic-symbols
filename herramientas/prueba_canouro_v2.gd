@@ -116,7 +116,8 @@ func _caso_nivel() -> void:
 		celdas.append(Terreno3D.celda_de((c as Combate3D).casa))
 	celdas.sort_custom(func(a: Vector2i, b: Vector2i) -> bool: return a.x < b.x)
 	# 12/11/2026: Pablo movió los dos marcadores en Bosque_02.txt (b87ca18e, 10/11: canouro_01 26,29 → 24,29 y canouro_02 25,34 → 27,34), siguen en bosque_denso.
-	_ok("N2 en las casillas (24,29) y (27,34) del mapa", celdas == [Vector2i(24, 29), Vector2i(27, 34)], str(celdas))
+	# 13/11/2026: el mapa creció 12 filas al norte; ahora son (24,41) y (27,46).
+	_ok("N2 en las casillas (24,41) y (27,46) del mapa", celdas == [Vector2i(24, 41), Vector2i(27, 46)], str(celdas))
 	var en_zona: bool = zonas != null
 	for ce in celdas:
 		if zonas != null:
@@ -124,8 +125,8 @@ func _caso_nivel() -> void:
 	_ok("N3 los dos están en la zona bosque_denso", en_zona)
 	var a_pie: bool = true
 	for ce in celdas:
-		a_pie = a_pie and _libre(ce as Vector2i) and not _ruta(Vector2i(16, 31), ce as Vector2i).is_empty()
-	_ok("N4 son pisables y se llega a pie desde la orilla este del arroyo (16,31)", a_pie)
+		a_pie = a_pie and _libre(ce as Vector2i) and not _ruta(Vector2i(16, 43), ce as Vector2i).is_empty()
+	_ok("N4 son pisables y se llega a pie desde la orilla este del arroyo (16,43)", a_pie)
 	var min_otro: float = INF
 	for c in cs:
 		for o in otros:

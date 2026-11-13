@@ -57,27 +57,29 @@ const TIPOS_QUEMABLES: PackedStringArray = ["telarana", "puerta_goblin", "torre_
 const PAUSAS_LIBERAR: PackedFloat32Array = [0.1, 0.4, 1.0]       ## s tras montar en los que se vuelve a liberar la casilla de un objeto quemado
 
 ## Casillas del mapa horneado (columna, fila) POR DEFECTO: solo valen si el nivel no trae el marcador con su nombre.
-const TOTEMS_DEFECTO: Array = [Vector2i(22, 6), Vector2i(19, 5), Vector2i(21, 10)]       ## fuego, agua, rayo (`totem_fuego_02`, `totem_agua_02`, `totem_rayo_02`)
+const TOTEMS_DEFECTO: Array = [Vector2i(22, 18), Vector2i(19, 17), Vector2i(21, 22)]       ## fuego, agua, rayo (`totem_fuego_02`, `totem_agua_02`, `totem_rayo_02`)
 const NOMBRES_TOTEM: PackedStringArray = ["totem_fuego_02", "totem_agua_02", "totem_rayo_02"]
 const BRASEROS_LINDE: PackedStringArray = ["brasero_linde_a", "brasero_linde_b"]
-const BRASEROS_LINDE_DEFECTO: Array = [Vector2i(10, 30), Vector2i(10, 34)]
+const BRASEROS_LINDE_DEFECTO: Array = [Vector2i(10, 42), Vector2i(10, 46)]
 const BRASEROS_GUIA: PackedStringArray = ["brasero_guia_01", "brasero_guia_02", "brasero_guia_03"]
-const BRASEROS_GUIA_DEFECTO: Array = [Vector2i(19, 27), Vector2i(21, 15), Vector2i(21, 8)]
-const TORRE_ESTE_DEFECTO: Vector2i = Vector2i(34, 13)
-const PLACA_DEFECTO: Vector2i = Vector2i(9, 10)
-const ARQUERO_FIJO_DEFECTO: Vector2i = Vector2i(34, 17)
-const PUERTA_GOBLIN_DEFECTO: Vector2i = Vector2i(28, 16)
-const PUERTA_SANTUARIO: Vector2i = Vector2i(8, 12)
-const PUERTA_RUINAS: Vector2i = Vector2i(7, 7)
-const TRONCO_BASE: Vector2i = Vector2i(13, 31)
-const ELEMENTAL_DEFECTO: Vector2i = Vector2i(8, 16)
-const COFRE_CAMPAMENTO: Vector2i = Vector2i(34, 16)
-const COFRE_CORAZON: Vector2i = Vector2i(8, 18)
-const GUARDA_DEFECTO: Vector2i = Vector2i(9, 31)
-const LIBRERA_DEFECTO: Vector2i = Vector2i(10, 11)
+const BRASEROS_GUIA_DEFECTO: Array = [Vector2i(19, 39), Vector2i(21, 27), Vector2i(21, 20)]
+const TORRE_ESTE_DEFECTO: Vector2i = Vector2i(34, 25)
+const PLACA_DEFECTO: Vector2i = Vector2i(9, 22)
+const ARQUERO_FIJO_DEFECTO: Vector2i = Vector2i(34, 29)
+const PUERTA_GOBLIN_DEFECTO: Vector2i = Vector2i(28, 28)
+const PUERTA_SANTUARIO: Vector2i = Vector2i(8, 24)
+const PUERTA_RUINAS: Vector2i = Vector2i(7, 19)
+const TRONCO_BASE: Vector2i = Vector2i(13, 43)
+const ELEMENTAL_DEFECTO: Vector2i = Vector2i(8, 28)
+const COFRE_CAMPAMENTO: Vector2i = Vector2i(34, 28)
+const COFRE_CORAZON: Vector2i = Vector2i(8, 30)
+const GUARDA_DEFECTO: Vector2i = Vector2i(9, 43)
+const LIBRERA_DEFECTO: Vector2i = Vector2i(10, 23)
 ## Dónde se pisa para dar por cruzado el arroyo (todo el este y el sur del mapa, a partir de la orilla) y el centro de la pradera (para el punto de la misión).
-const RECT_ESTE: Rect2i = Rect2i(16, 22, 20, 14)
-const CENTRO_PRADERA: Vector2i = Vector2i(21, 16)
+## Encargo de Marimanta (EncargoMarimanta): hito, planta y nido junto a la salida norte (24,1) del sendero de Monte Sumicio.
+const ENCARGO_CELDAS: Array = [Vector2i(26, 3), Vector2i(21, 5), Vector2i(28, 6)]
+const RECT_ESTE: Rect2i = Rect2i(16, 34, 20, 14)
+const CENTRO_PRADERA: Vector2i = Vector2i(21, 28)
 const ID_LOBERNO: String = "loberno"
 const ID_CANOURO: String = "canouro"
 
@@ -429,6 +431,7 @@ func _definir_misiones() -> void:
 ## Marca cada objetivo según lo que dicen las flags. Idempotente: se llama cada sondeo.
 func _sincronizar_mision() -> void:
 	var mi: Misiones = Misiones.i()
+	_sincronizar_encargo(mi)
 	if not mi.existe(MISION):
 		return
 	var n_br: int = 2 if Flags.i().tiene(F_BRASEROS) else _braseros_encendidos()
@@ -453,6 +456,16 @@ func _sincronizar_mision() -> void:
 	_marcar(MISION_PIEDRA, 1, Flags.i().tiene(F_COFRE_PIEDRA))
 	_marcar(MISION_COFRES, 0, n_com >= F_COFRES_COMUNES.size())
 	_poner_punto_activo(mi)
+
+
+## El encargo de Marimanta: misión al día y la flecha del borde apuntando al siguiente punto que falta (o a la salida norte, para volver).
+func _sincronizar_encargo(mi: Misiones) -> void:
+	EncargoMarimanta.sincronizar()
+	if not mi.existe(EncargoMarimanta.MISION):
+		return
+	for i in range(ENCARGO_CELDAS.size()):
+		mi.fijar_punto(EncargoMarimanta.MISION, _punto_celda(ENCARGO_CELDAS[i]), i)
+	mi.fijar_punto(EncargoMarimanta.MISION, _punto_celda(Vector2i(24, 1)), 3)
 
 
 func _marcar(id: String, indice: int, hecho: bool) -> void:
@@ -689,6 +702,11 @@ func _unhandled_input(ev: InputEvent) -> void:
 	if not k.pressed or k.echo or not k.is_action("interactuar"):
 		return
 	var yo: Vector3 = (m.get("_jugador") as Pj3D).position
+	var i_encargo: int = encargo_cercano(yo)
+	if i_encargo >= 0:
+		_decir(EncargoMarimanta.anotar(i_encargo), 6.0)
+		get_viewport().set_input_as_handled()
+		return
 	var mejor: Dictionary = {}
 	var d_mejor: float = ALCANCE_E
 	for g in _gente:
@@ -703,6 +721,15 @@ func _unhandled_input(ev: InputEvent) -> void:
 		if String(mejor["tipo"]) == "librera" and Tiendas.ofrecer("librera"):
 			return                                    # 11/11: la segunda E mientras habla abre su tienda
 		hablar(mejor, yo)
+
+
+## El punto del encargo de Marimanta al alcance de E (0 hito, 1 planta, 2 criatura), o -1.
+func encargo_cercano(yo: Vector3) -> int:
+	for i in range(ENCARGO_CELDAS.size()):
+		var p: Vector3 = Terreno3D.centro_de(ENCARGO_CELDAS[i], Terreno3D.y_pies(ENCARGO_CELDAS[i]))
+		if _dist(p, yo) <= ALCANCE_E:
+			return i
+	return -1
 
 
 ## Habla el NPC `g` (también lo llaman las pruebas). Devuelve el texto dicho.

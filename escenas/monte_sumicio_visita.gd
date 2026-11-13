@@ -71,6 +71,8 @@ func _montar() -> void:
 		Flags.i().poner(COFRE_UNIFORME)
 	if Flags.i().tiene(COFRE_UNIFORME):
 		_cofre_uniforme.abrir_ya()
+	_montar_cofre_agua()
+	EncargoMarimanta.sincronizar()
 	var caco := _figura("Caco", Maqueta.celda(_maqueta.caco), Color("#56473b"), Color("#53764c"))
 	caco.position = _maqueta.caco.global_position
 	_montar_hud()
@@ -125,16 +127,20 @@ func _physics_process(delta: float) -> void:
 			if _cerca(_maqueta.marimanta):
 				pista = "[E] Entregar el grimorio" if _parlamento == 0 else "[E] Continuar"
 		Fase.LIBRE, Fase.REGRESO:
-			objetivo = "Visita a Brais y la tienda del este, o vuelve a la Fraga." if _fase == Fase.LIBRE else "Visita completada · puedes volver a Monte Sumicio."
+			objetivo = _objetivo_libre()
 			if _cerca(_maqueta.caco):
 				pista = "[E] Hablar con el caco"
+			if _cerca(_maqueta.marimanta):
+				pista = "[E] Hablar con Marimanta"
 	if _cerca(_maqueta.inicio):
 		pista = "[E] Volver a la Fraga"
 	_objetivo.text = objetivo
 	_pista.text = pista
 	if Flags.i().tiene(ADMISION) and not Flags.i().tiene(COFRE_UNIFORME):
 		_objetivo.text = "Recoge el uniforme del cofre detrás de Marimanta."
-	if _ante_cofre_uniforme():
+	if _ante_cofre_agua():
+		_pista.text = "[E] Abrir cofre legendario"
+	elif _ante_cofre_uniforme():
 		_pista.text = "[E] Abrir cofre épico" if Flags.i().tiene(ADMISION) else "[E] Examinar cofre épico"
 	elif _puerta_cercana() != null and not Flags.i().tiene(COFRE_UNIFORME):
 		_pista.text = "Puerta cerrada"
@@ -158,6 +164,9 @@ func _interactuar() -> bool:
 		else:
 			_dialogo.text = "El cofre épico está cerrado."
 		return true
+	if _ante_cofre_agua():
+		_abrir_cofre_agua()
+		return true
 	if _cerca(_maqueta.inicio):
 		return _volver_a_la_fraga()
 	match _fase:
@@ -172,10 +181,25 @@ func _interactuar() -> bool:
 				_hablar_con_marimanta()
 				return true
 		Fase.LIBRE, Fase.REGRESO:
+			if _cerca(_maqueta.marimanta):
+				_marimanta_despues()
+				return true
 			if _cerca(_maqueta.caco):
 				_dialogo.text = "Caco · Si buscas provisiones, pásate por la palloza del este."
 				return true
 	return false
+
+
+func _objetivo_libre() -> String:
+	if not EncargoMarimanta.recibido():
+		return "Habla con Marimanta en la Torre Verde."
+	if Flags.i().tiene(EncargoMarimanta.COFRE_AGUA):
+		return "Encargo cumplido · visita el poblado o vuelve a la Fraga."
+	if Flags.i().tiene(EncargoMarimanta.ENTREGADO):
+		return "Abre el cofre legendario junto a Marimanta."
+	if EncargoMarimanta.listo_para_entregar():
+		return "Entrega el trabajo de campo a Marimanta."
+	return "Encargo: baja al sendero norte de la Fraga (%d/3 anotados)." % EncargoMarimanta.pasos_hechos()
 
 
 func _volver_a_la_fraga() -> bool:
@@ -352,20 +376,101 @@ func _avanzar_escolta(delta: float) -> void:
 		_dialogo.text = "Guardia · Aquí termina mi camino."
 
 
+## La audiencia (Monte-Sumicio.pptx, «La entrega» … «La nueva discípula»). Cada E avanza una línea; la última admite a Mid.
+const AUDIENCIA: Array = [
+	"Mid se presenta ante la Maestre Marimanta y le entrega el Grimorio del Guardabosques.",
+	"Marimanta · El grimorio de Leonardo… Déjame verlo.   (Por primera vez, Mid ve a un Sumiciu triste por alguien ajeno a su comunidad.)",
+	"Marimanta · Sabía que su destino estaría sellado si volvía a la cabaña. Me negué a sacrificar a los míos cuando desoyó mi advertencia. Solo podía esperar al cambio de guardia.",
+	"Marimanta · Poco después de su desaparición llegó la Noche de la Fada. No quedó nadie con vida que echara en falta al Guardabosques. El Canouro pudo alargar su agonía cuanto deseó.",
+	"Marimanta · Pedro Chosco tampoco se preocupó por el puesto. Sus Escribas Viajeros no suelen pisar el sector norte: es territorio Sumicio.",
+	"Marimanta · Pero siempre hay alguno que desobedece: un soñador nostálgico que ansía recuperar la gloria pasada de su raza y estudiar en la nueva torre arcana.",
+	"Marimanta · Para ellos creamos la prueba del Biosbardo: «Eu son Leonardo, ti es biosbardo. Biosbardo, vinte pró saco, ca eu che agardo, e son Leonardo.»",
+	"(La rima lleva el nombre de Leonardo: un reconocimiento cruel para Marimanta, un insulto para cualquier Mouro. La mirada de Mid se desvía a las paredes.)",
+	"Marimanta · Aun así, quedas aceptada como alumna de la Torre Verde. Revisaré tu grimorio para ver la formación que te dieron en Terra Fina.",
+	"Marimanta · Recoge el uniforme del cofre que hay detrás de mí. Con la capucha roja podrás entrar y salir del poblado.",
+]
+## El encargo (diapositivas «Cuatro asignaturas» y «Hacia el bosque»): lo da tras recoger el uniforme.
+const ENCARGO: Array = [
+	"Marimanta · Por lo que dice tu grimorio, te faltan cuatro asignaturas para el Nivel I: Historia, Botánica y Herboristería, Orientación y Cuaderno de Campo, y Competencia Rúnica.",
+	"Marimanta · En Terra Fina te enseñaron a leer, a dibujar y a activar runas básicas, pero Pedro Chosco nunca te dejó hacer trabajo de campo en la Fraga.",
+	"Marimanta · Empieza por ahí. Baja al sendero norte de la Fraga y, junto a la subida, anota el hito del camino, identifica una planta y registra una criatura. Luego vuelve.",
+]
+const RECORDATORIO := "Marimanta · El hito, la planta y la criatura del sendero norte. Y nada de trampas: los mapas de la torre están prohibidos hasta el Nivel I."
+const ENTREGA: Array = [
+	"Marimanta · A ver ese grimorio… El hito, un helecho, un nido de mirlo. Limpio, para venir de Terra Fina.",
+	"Marimanta · Te lo has ganado: abre el cofre de mi izquierda. Guarda una runa de agua. Aquí arriba no nos sirve de mucho: es más rápido bajar al río.",
+]
+const COFRE_LEGENDARIO := preload("res://arte/piezas/cofre_legendario.tscn")
+var _cofre_agua: Cofre3D
+var _nodo_cofre_agua: Node3D
+
+
 func _hablar_con_marimanta() -> void:
+	_dialogo.text = String(AUDIENCIA[mini(_parlamento, AUDIENCIA.size() - 1)])
 	_parlamento += 1
-	match _parlamento:
-		1:
-			_dialogo.text = "Marimanta · El grimorio de Leonardo… Déjame verlo."
-		2:
-			_dialogo.text = "Marimanta · Le advertí que no volviera a la cabaña. Después de la Noche de la Fada, nadie fue a buscarlo."
-		3:
-			Flags.i().poner(ADMISION)
-			_fase = Fase.LIBRE
-			# Oro de prueba para poder hacer un intercambio en esta escena aislada.
-			Estado.i().dar_oro(15)
-			_dialogo.text = "Marimanta · Ya eres alumna de la Torre Verde. Recoge el uniforme del cofre que hay detrás de mí."
-			Partida.autoguardar(get_tree(), "monte_sumicio_admision")
+	if _parlamento < AUDIENCIA.size():
+		return
+	Flags.i().poner(ADMISION)
+	_fase = Fase.LIBRE
+	_parlamento = 0
+	# Oro de prueba para poder hacer un intercambio en esta escena aislada.
+	Estado.i().dar_oro(15)
+	Partida.autoguardar(get_tree(), "monte_sumicio_admision")
+
+
+## Marimanta después de la admisión: el encargo, el recordatorio o la entrega.
+func _marimanta_despues() -> void:
+	if not Flags.i().tiene(COFRE_UNIFORME):
+		_dialogo.text = "Marimanta · Primero el uniforme: está en el cofre que hay detrás de mí."
+	elif not EncargoMarimanta.recibido():
+		_dialogo.text = String(ENCARGO[_parlamento])
+		_parlamento += 1
+		if _parlamento >= ENCARGO.size():
+			_parlamento = 0
+			Flags.i().poner(EncargoMarimanta.RECIBIDO)
+			EncargoMarimanta.sincronizar()
+			Partida.autoguardar(get_tree(), "monte_sumicio_encargo")
+	elif EncargoMarimanta.listo_para_entregar():
+		_dialogo.text = String(ENTREGA[_parlamento])
+		_parlamento += 1
+		if _parlamento >= ENTREGA.size():
+			_parlamento = 0
+			Flags.i().poner(EncargoMarimanta.ENTREGADO)
+			EncargoMarimanta.sincronizar()
+			_cofre_agua.aparecer()
+			Partida.autoguardar(get_tree(), "monte_sumicio_encargo_entregado")
+	elif Flags.i().tiene(EncargoMarimanta.ENTREGADO):
+		_dialogo.text = "Marimanta · Las otras asignaturas te esperan en la Fraga. Y no te fíes de los del gorro verde."
+	else:
+		_dialogo.text = RECORDATORIO
+
+
+func _montar_cofre_agua() -> void:
+	_nodo_cofre_agua = COFRE_LEGENDARIO.instantiate() as Node3D
+	_maqueta.torre.add_child(_nodo_cofre_agua)
+	_nodo_cofre_agua.position = Vector3(-2.3, 0.0, -2.85)
+	_cofre_agua = Cofre3D.en(_nodo_cofre_agua)
+	if Flags.i().tiene(EncargoMarimanta.COFRE_AGUA):
+		_cofre_agua.abrir_ya()
+	elif Flags.i().tiene(EncargoMarimanta.ENTREGADO):
+		_cofre_agua.aparecer_ya()
+	else:
+		_cofre_agua.ocultar()
+
+
+func _ante_cofre_agua() -> bool:
+	return _cofre_agua != null and not _cofre_agua.esta_oculto() and not Flags.i().tiene(EncargoMarimanta.COFRE_AGUA) \
+		and _distancia_plana(_mid.position, _nodo_cofre_agua.global_position) < 1.65
+
+
+func _abrir_cofre_agua() -> void:
+	if not _cofre_agua.abrir():
+		return
+	Flags.i().poner(EncargoMarimanta.COFRE_AGUA)
+	EncargoMarimanta.dar_sello_agua()
+	PlayLog.event("cofre_abierto", {"cofre": EncargoMarimanta.COFRE_AGUA, "objeto": "sello_agua", "calidad": "legendario"})
+	_dialogo.text = "Has conseguido la runa de agua."
+	Partida.autoguardar(get_tree(), "monte_sumicio_runa_agua")
 
 
 func _entregar_uniforme() -> void:

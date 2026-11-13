@@ -1274,6 +1274,7 @@ func _restaurar_glifos() -> void:
 		var id: String = String(nombre).trim_prefix(FLAG_GLIFO_GANADO)
 		if GestureLibrary.SIGILS.has(id):
 			Repertoire.unlock_sigil(id)
+	EncargoMarimanta.rearmar_sellos()       # 13/11: los sellos ganados (la runa de agua del cofre de Marimanta) también se conservan entre niveles
 
 
 func _leer_archivo(p_nivel: String) -> String:
