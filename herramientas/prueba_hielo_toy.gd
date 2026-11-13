@@ -703,11 +703,12 @@ func _lab() -> void:
 	root.add_child(lab)
 	await process_frame
 	_ok("el lab empieza en fuego", String(lab.get("elemento")) == "fuego")
+	# 6/11 (106ffd2e): el lab gana magma, viento y tierra (ELEMENTOS_TOY): Z sigue con agua → hielo → rayo y luego magma → viento → tierra antes de volver a fuego.
 	var orden: Array = []
-	for i in 4:
+	for i in 7:
 		lab.call("alternar_elemento")
 		orden.append(String(lab.get("elemento")))
-	_ok("Z cicla agua → hielo → rayo → fuego (%s)" % str(orden), orden == ["agua", "hielo", "rayo", "fuego"])
+	_ok("Z cicla agua → hielo → rayo → magma → viento → tierra → fuego (%s)" % str(orden), orden == ["agua", "hielo", "rayo", "magma", "viento", "tierra", "fuego"])
 	lab.call("poner_elemento", "hielo")
 	var e: Node3D = lab.call("carga_completa")
 	_ok("G con hielo crea un HieloToy", e is HieloToy)

@@ -593,7 +593,8 @@ func _muro_haz(e, largo: float, desde: Vector3, dir: Vector3) -> void:
 		add_child(_muro_haz_nodo)
 		_muro_haz_nodo.global_position = Vector3(punto.x, 1.2, punto.z) + dir * 0.15       # la cara delantera queda justo en el punto
 	_muro_haz_nodo.look_at(_muro_haz_nodo.global_position + dir, Vector3.UP)
-	e.choques = VfxToyJuego._choques_locales([{"punto": Vector3(punto.x, 1.0, punto.z), "normal": -dir, "tipo": "muro"}], desde, dir * largo)
+	if "choques" in e:             # 13/11: el VientoToy no tiene choques (con VIENTO y F12 / F, el haz daba un error de script aquí y se quedaba a medias)
+		e.choques = VfxToyJuego._choques_locales([{"punto": Vector3(punto.x, 1.0, punto.z), "normal": -dir, "tipo": "muro"}], desde, dir * largo)
 
 
 const RADIO_ESFERA_HAZ: float = 0.8
@@ -726,6 +727,14 @@ func _quitar_masa() -> void:
 ## Tras colocar un haz: pone la masa (si hay modo) con el origen, la dirección y el obstáculo de ESTE haz, y le quita al toy la salpicadura plana.
 func _actualizar_masa(e) -> void:
 	if _masa_modo == 0 or e.figura != FuegoToy.Figura.HAZ:
+		return
+	# 13/11 (Pablo: «todo vs muro da fuego»): la masa (HazMasaVista) es FUEGO y solo fuego (lenguas, humo y brasas). Con otro elemento (Z) el F12 dejaba el haz
+	# toy del elemento contra el muro y le ponía encima la masa de fuego. Ahora, con otro elemento, F12 pone solo el haz toy del elemento contra el muro / la
+	# esfera, con su propio choque. El gas de cada elemento (con su choque propio) es Mayús+F12.
+	if elemento != "fuego":
+		if _masa != null and is_instance_valid(_masa):
+			_masa.queue_free()
+		_masa = null
 		return
 	if _masa == null or not is_instance_valid(_masa):
 		_masa = HazMasaVista.new()

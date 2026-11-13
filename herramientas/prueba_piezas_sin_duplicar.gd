@@ -31,6 +31,7 @@ func _initialize() -> void:
 		_revisar(ruta, informe)
 	print("PIEZAS: %d · duplicadas: %d · triángulos dibujados de más: %d (de %d) · nodos totales %d · mallas %d" % [rutas.size(), _dup_piezas, _dup_tris, _tot_tris, _tot_nodos, _tot_mallas])
 	print("PRUEBA piezas_sin_duplicar: %s" % ("OK" if _fallos == 0 else "FALLA (%d)" % _fallos))
+	print("FALLOS: %d" % _fallos)      # 13/11: la línea que reconoce el contador (DIARIO 486); sin ella salía SIN RESULTADO
 	quit(1 if _fallos > 0 else 0)
 
 

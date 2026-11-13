@@ -132,7 +132,7 @@ func _glifos() -> void:
 	_ok("4 ᛏ (3/11): %.2f m el 1.º y cada siguiente un 15 %% menos, sin tope; 3 = 2 niveles, 6 = 3" % Sigils.PASO_ALTURA_V2, is_equal_approx(Sigils.PASO_ALTURA_V2, 0.30) and Sigils.GLIFOS_ALTURA_DOS_NIVELES_V2 == 3 and Sigils.GLIFOS_ALTURA_CUATRO_NIVELES_V2 == 11
 		and h.contains("0,30") and h.contains("3 = 2 niveles") and h.contains("6 = 3 niveles") and h.contains("decreciente"))
 	var g: String = TextosObjetos.glifo("pulso")
-	_ok("4 ᚷ «crecer»: ×%.2f (CRECER_TOPE_V2) y +0,5 m/s con tope 1,5" % Sigils.CRECER_TOPE_V2, is_equal_approx(Sigils.CRECER_TOPE_V2, 1.25) and g.contains("1,25") and g.contains("0,5") and g.contains("1,5"))
+	_ok("4 ᚷ «crecer»: ×%.2f (CRECER_TOPE_V2) y +0,5 m/s con tope 1,5" % Sigils.CRECER_TOPE_V2, is_equal_approx(Sigils.CRECER_TOPE_V2, 1.30) and g.contains("1,30") and g.contains("0,5") and g.contains("1,5"))
 	var r: String = TextosObjetos.glifo("raido")
 	_ok("4 ᚱ «pulso»: +%.0f casillas por glifo, tope %.0f" % [Sigils.PASO_RESUENA_V2, Sigils.TOPE_RESUENA_V2], r.contains("4 casillas") and r.contains("12"))
 	var s: String = TextosObjetos.glifo("permanencia")

@@ -134,7 +134,7 @@ const GLIFO: Dictionary = {
 	"barrera": "Barrera: el hechizo te rodea y bloquea proyectiles. Cada una multiplica su solidez por 1,5 (tope 3) y, desde la 2.ª, suma 1 s de permanencia.",
 	"repeticion": "Repetición: lo que lanzas sale varias veces. Cada una suma una copia (hasta 4 en total).",
 	"rebote": "Rebote: al acabar, el proyectil rebota. Cada uno suma un rebote (tope 3).",
-	"pulso": "Crecer: el hechizo crece mientras vive (+0,5 m/s, tope 1,5) y cada ᚷ multiplica su tamaño final por 1,25.",
+	"pulso": "Crecer: el hechizo crece mientras vive (+0,5 m/s, tope 1,5) y cada ᚷ multiplica su tamaño final por 1,30.",
 	"permanencia": "Permanencia: lo que sale se queda donde nace o donde para. Cada una suma 2 s (tope 25 s).",
 	"raido": "Pulso: al llegar al final de un proyectil, o a intervalos si el hechizo se queda, suelta un pulso con tu elemento. Cada ᚱ suma 4 casillas de alcance (tope 12); con barrera o permanencia cuesta un 25 % más de tinta.",
 	"linea": "Línea: estira el hechizo; un trazo horizontal lo ensancha y uno vertical lo alarga. La 1.ª alarga 1 casilla (0,5 m de semieje) y cada siguiente 0,5 casillas. Sola, con un elemento, es un rayo.",

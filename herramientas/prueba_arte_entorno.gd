@@ -217,8 +217,17 @@ func _vapor() -> void:
 	_m.add_child(fx)
 	var antes: int = fx.get_child_count()
 	fx.vapor(Vector3.ZERO)
-	var nuevo: Node = fx.get_child(fx.get_child_count() - 1) if fx.get_child_count() > antes else null
-	_ok("6 Vfx3D.vapor (impacto de vapor, hielo que caduca) pinta el emisor de la hoja", nuevo is GPUParticles3D and (((nuevo as GPUParticles3D).draw_pass_1 as QuadMesh).material as StandardMaterial3D).albedo_texture.resource_path.ends_with("vapor.png"))
+	# 13/11: desde 29c848ed (9/11) `Vfx3D.vapor` engancha además el vapor por regla (`HumoRegla.enganchar_vapor`), y desde f75501c2 esas capas van encendidas:
+	# el emisor de la hoja ya no es por fuerza el ÚLTIMO hijo. Se busca entre los nuevos.
+	var nuevo: Node = null
+	for i in range(antes, fx.get_child_count()):
+		var h: Node = fx.get_child(i)
+		if h is GPUParticles3D and (h as GPUParticles3D).draw_pass_1 is QuadMesh and ((h as GPUParticles3D).draw_pass_1 as QuadMesh).material is StandardMaterial3D:
+			var tex: Texture2D = (((h as GPUParticles3D).draw_pass_1 as QuadMesh).material as StandardMaterial3D).albedo_texture
+			if tex != null and tex.resource_path.ends_with("vapor.png"):
+				nuevo = h
+				break
+	_ok("6 Vfx3D.vapor (impacto de vapor, hielo que caduca) pinta el emisor de la hoja", nuevo != null, "%d hijos nuevos" % (fx.get_child_count() - antes))
 	fx.queue_free()
 
 

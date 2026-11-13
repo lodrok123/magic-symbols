@@ -376,3 +376,48 @@ Umbrales que codificaban el tamaño de antes, y cómo quedan:
   - Al aire, el haz fino se enfría antes y su eje lleva 0,13 de hollín frente a 0,16 en la punta. No cumplía «eje < punta / 1,5».
   - Ahora también vale si el hollín del eje está por debajo de 0,25. El toon solo dibuja humo con hollín > 0,47 (umbral_humo 0,9 / 1,9).
   - En la captura lateral, el chorro sale limpio.
+
+## 10. El choque del viento ENVUELVE el obstáculo (13/11; Pablo: «los jirones se aglutinan delante, deberían envolver el elemento»)
+
+Referencia: un vídeo de Pablo, solo como referencia visual (no se ha copiado nada). En él, los lazos rodean la esfera: están centrados en ella, son un poco más
+anchos que ella y las colas se doblan por los lados y pasan de largo.
+
+**Antes.** Los tres lazos (`toon_viento.anillos`) se centraban 0,5–1,2 M DELANTE del contacto, con el radio del chorro, así que se amontonaban delante del
+obstáculo. El contacto ya está 0,35 M delante de la cara.
+
+**Ahora.** Solo cambia el dibujo del viento (`raymarch_toon_viento.glsl`): ningún kernel compartido, ni el gas, ni los mechones.
+- **Con CUERPO** (`look0`, el mismo canal que usan las ramas del rayo, `HazGas.rayo_cuerpos`):
+  - El cuerpo es la esfera en el lab. En el juego es el enemigo u objeto que golpea la lógica (`HazGasJuego._rayo_al_lanzar` vale ahora también para el viento).
+  - Los lazos se CENTRAN en el cuerpo, del frente a pasado el ecuador: −0,4, +0,1 y +0,55 radios a lo largo del haz.
+  - Su radio es 1,12–1,4 veces el del cuerpo, más un poco de chorro.
+  - Las colas se abren hacia fuera y hacia atrás, así que pasan de largo por los lados. La parte de detrás la tapa el propio cuerpo.
+- **Sin cuerpo (muro):**
+  - Los lazos se PEGAN a la cara, a 0,05–0,25 M de ella.
+  - Se abren por la cara: radio de 1,3 a 2,8 radios del chorro.
+  - Se ladean menos hacia la cámara (0,4), para no meterse en la pared.
+- Las escalas básico y máximo salen solas, porque el radio del cuerpo y M ya van × k.
+
+**Medidas.** Lab, gas de viento, a los 2 s. Se mide la opacidad de los trazos a menos de 3 radios del centro del obstáculo, en la pantalla. «Delante» es lo que
+queda antes de la cara, del lado de la mano; incluye el chorro que llega.
+
+| caso | delante antes → ahora | lados + detrás antes → ahora |
+|---|---|---|
+| esfera, cámara del juego, básico / máximo | 66 / 60 % → 18 / 19 % | 34 / 40 % → 82 / 81 % |
+| esfera, lateral, básico / máximo | 94 / 89 % → 23 / 27 % | 6 / 11 % → 77 / 73 % |
+| muro, cámara del juego, básico / máximo | 97 / 93 % → 96 / 84 % | 3 / 7 % → 4 / 16 % |
+| muro, lateral, básico / máximo | 95 / 94 % → 94 / 89 % | 5 / 6 % → 6 / 11 % |
+
+Contra el muro, «delante» sigue alto porque la pared no deja pasar nada: el aire se queda en la cara. Lo que cambia es que los lazos ya no flotan a un metro de
+ella.
+
+- Hoja: `docs/capturas/vfx_en_juego/haz_gas_elementos/choque_envuelve/HOJA_CHOQUE_ENVUELVE.jpg`.
+- Se rehace con `herramientas/captura_choque_envuelve.gd` (con ventana) y `python herramientas/hoja_choque_envuelve.py`.
+
+**Coste.** Igual dentro del ruido: lab, 1,6–4,0 ms antes y después, según la pasada. En el Bosque, el viento cuesta 0,43 ms al aire y 0,64 ms contra el muro.
+
+**Fuego, agua y rayo.** Sin cambios. Sus diferencias de píxel con main quedan dentro del ruido entre pasadas.
+
+**Queda.**
+- En el juego, el haz de viento solo dibuja el choque contra un TOPE de la lógica (muro). Contra un enemigo sin muro detrás no hay CHOQUE y no salen lazos.
+  El cuerpo ya llega al dibujo (`prueba_haz_gas_viento_rayo`: «viento cuerpo»); falta decidir si encender ahí el choque.
+- Los lazos siguen siendo los gruesos de la 482.

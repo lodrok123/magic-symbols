@@ -49,7 +49,9 @@ func _contraste() -> void:
 		["texto del aviso de calidad sobre su panel", AvisoObjeto.COLOR_TEXTO, AvisoObjeto.FONDO_CALIDAD],
 		["texto del rótulo de zona sobre su panel", RotuloZona3D.COLOR_TEXTO, RotuloZona3D.FONDO],
 		["letra de la pista «E» sobre la tecla", PistaInteraccion.COLOR_LETRA, PistaInteraccion.COLOR_TECLA],
-		["rótulo de la barra sobre su pista (contorno oscuro)", TemaInterfaz.TEXTO, BarraHud.FONDO_PISTA],
+		# 13/11: el rótulo se dibuja ENCIMA de la pista (y < ALTO_ROTULO_PX), no sobre ella, con su contorno oscuro de CONTORNO_PX: lo que tiene detrás es ese contorno.
+		# Mientras la pista era casi negra daba igual medir contra ella; desde 256b1756 (10/11, «aclara la HUD») es pergamino (cfb591) y el texto claro nunca va encima.
+		["rótulo de la barra sobre su contorno oscuro (va encima de la pista, no sobre ella)", TemaInterfaz.TEXTO, TemaInterfaz.CONTORNO],
 	]
 	for c in casos:
 		var v: float = TemaInterfaz.contraste_peor(c[1] as Color, c[2] as Color)

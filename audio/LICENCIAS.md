@@ -52,7 +52,7 @@ con `Sfx.GRABADOS = false` suena ése).
 | `kenney_recoger_0..3.ogg` | `cloth1..4` | Kenney · RPG Audio |
 | `kenney_equipar_0..1.ogg` | `beltHandle1..2` | Kenney · RPG Audio |
 | `kenney_bolsa_0.ogg`, `kenney_bolsa_1.ogg` | `handleSmallLeather2`, `cloth3` | Kenney · RPG Audio |
-| `bolsa_tela.ogg` | `cloth2` | Kenney · RPG Audio |
+| `kenney_bolsa_tela.ogg` | `cloth2` | Kenney · RPG Audio |
 | `kenney_comprar_0.ogg`, `kenney_comprar_1.ogg` | `handleCoins` (RPG Audio), `confirmation_001` (Interface Sounds) | Kenney |
 | `kenney_clic_0..4.ogg` | `click_001..005` | Kenney · Interface Sounds |
 | `kenney_error_0..3.ogg` | `error_001`, `error_002`, `error_004`, `error_005` | Kenney · Interface Sounds |

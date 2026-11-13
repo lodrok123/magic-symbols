@@ -174,7 +174,10 @@ foreach ($f in $todas) {
     # los escenarios cargan la escena entera: 30 fps fijos, que es lo que pide el plan. Tambien las pruebas que EXTIENDEN escenario_base (prueba_cast_points, prueba_nado_desactivado):
     # su cabecera pide --fixed-fps 30 y sin el miden fotogramas de mas (Pipeline, 20/10, con permiso de Pablo)
     # 23/10: y las pruebas cuya cabecera (las 10 primeras lineas) pide «--fixed-fps 30»: miden tiempos (quemado, disolver, cortes, burbujas) y sin el fallaban solo en la bateria.
-    $cabecera = Get-Content -LiteralPath $f.FullName -TotalCount 10 -Encoding UTF8 | Out-String
+    # 13/11/2026: la CABECERA entera (las lineas de comentario del principio, hasta 40), no solo las 10 primeras: pasar_pagina, mochila_sensacion, ping_debil,
+    # destello_elemento, muerte_elemento, mapa_abierto y trampas_pared lo piden en las lineas 11-16 y en la bateria corrian sin el (y solo ahi fallaban).
+    $sigue = $true
+    $cabecera = (Get-Content -LiteralPath $f.FullName -TotalCount 40 -Encoding UTF8 | ForEach-Object { if ($sigue -and $_ -notmatch '^\s*(#|extends\b|class_name\b|@tool\b|$)') { $sigue = $false }; if ($sigue) { $_ } }) | Out-String
     if ($nombre -like 'escenario_*' -or $cabecera.Contains('--fixed-fps 30') -or (Select-String -LiteralPath $f.FullName -Pattern 'extends "res://herramientas/escenario_base.gd"' -SimpleMatch -Quiet)) { $opc += @('--fixed-fps', '30') }
     $opc += @('--path', '.', '--script', "res://herramientas/$($f.Name)")
     # 12/11/2026: un archivo PROPIO por bateria y prueba. Antes era %TEMP%\prueba_salida.txt para todas: dos baterias a la vez (dos agentes, o Pablo y

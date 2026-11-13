@@ -67,7 +67,11 @@ func _initialize() -> void:
 		var g: Combate3D = _nuevo()
 		var p0: Vector3 = g.position
 		var pj_y0: float = g.pj.position.y
+		var vida0: float = g.health
 		g.golpe(Hechizo.construir(rune, {}), Vector3(1, 0, 0))
+		# 13/11: desde la tarea P (72385d83, 31/10) el empujón se escala por el daño: k_dano = lerp(K_EMPUJE_MIN, K_EMPUJE_MAX, daño / DANO_EMPUJE_MAX). Con k < 1
+		# (la tierra: 11,8 de daño → 0,9655) el x2 sobre lo de antes queda en x2·k a propósito; los que van por el suelo mínimo no cambian.
+		var k_dano: float = minf(1.0, lerpf(Combate3D.K_EMPUJE_MIN, Combate3D.K_EMPUJE_MAX, clampf((vida0 - g.health) / Combate3D.DANO_EMPUJE_MAX, 0.0, 1.0)))
 		if el == "viento":
 			g.push(Vector3(1, 0, 0), Lanzador3D.FUERZA_EMPUJE)
 		if g.congelado < 5.0:
@@ -90,7 +94,7 @@ func _initialize() -> void:
 		var antes: float = float(ANTES[el])
 		var factor: float = d / antes
 		print("%-6s antes %.3f u  ahora %.3f u (%.2f casillas)  x%.2f  suelo %.3f  hitstop %.2fs  salto %.2f u  escala_y_min %.2f" % [el, antes, d, d / Terreno3D.casilla, factor, suelo, espera, salto_max, escala_min_y])
-		_ok(factor >= 2.0 - 0.02, "%s: no llega a x2 (x%.2f)" % [el, factor])
+		_ok(factor >= 2.0 * k_dano - 0.02, "%s: no llega a x2 (x%.2f; con k_dano %.3f pide x%.2f)" % [el, factor, k_dano, 2.0 * k_dano])
 		_ok(d >= suelo - 0.02, "%s: por debajo del suelo (%.3f < %.3f)" % [el, d, suelo])
 		_ok(g.interrupcion >= 0.0, "interrupcion")
 		var con_salto: bool = Combate3D.SALTO_ELEMENTOS.has(el)
@@ -110,7 +114,10 @@ func _initialize() -> void:
 		"hitstop no es el proporcional al daño (%.3f, esperado %.3f)" % [g2._hitstop, esperado])
 	_ok(g2.interrupcion >= Combate3D.INTERRUPCION_GOLPE - 0.001, "interrupcion < 0,6 (%.2f)" % g2.interrupcion)
 	_ok(absf(g2._destello - Combate3D.DESTELLO_GOLPE) < 0.001, "destello != 0,20 (%.3f)" % g2._destello)
-	_ok(g2.pj.scale.x > 1.2 and g2.pj.scale.y < 0.85, "aplastamiento no aplicado (%s)" % g2.pj.scale)
+	# 13/11: desde la tarea P (72385d83) el aplastamiento sigue a la fuerza del empujón: lerp(1, SQUASH_ESCALA, _k_golpe) con _k_golpe = v0 / V0_REF en [0,6; 1,6].
+	# Antes era SQUASH_ESCALA entero (x > 1,2, y < 0,85); el golpe de fuego (v0 en el suelo mínimo) da k ≈ 0,7. Se pide al menos el de k = 0,6, el tope de abajo.
+	var sq_min: Vector3 = Vector3.ONE.lerp(Combate3D.SQUASH_ESCALA, 0.6)
+	_ok(g2.pj.scale.x >= sq_min.x - 0.001 and g2.pj.scale.y <= sq_min.y + 0.001, "aplastamiento no aplicado (%s; mínimo %s)" % [g2.pj.scale, sq_min])
 	print("pormenores: hitstop %.2f  interrupcion %.2f  destello %.2f  escala %s" % [g2._hitstop, g2.interrupcion, g2._destello, g2.pj.scale])
 	# Clip hit aun aturdido
 	var g3: Combate3D = _nuevo()

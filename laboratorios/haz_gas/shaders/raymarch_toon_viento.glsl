@@ -51,15 +51,33 @@ vec3 eje_dir() { return normalize(P.target.xyz - P.nozzle.xyz); }
 // ANILLOS DEL VORTICE: tres lazos que envuelven el contacto y GIRAN alrededor del eje del haz (cada uno a su ritmo), rotos en arcos que al final se abren hacia
 // fuera (jirones arrancados). El plano de los lazos es casi perpendicular al haz pero se LADEA hacia la camara (`nrm`), para que desde la camara del juego no se
 // vean de canto. Devuelve (distancia al lazo mas cercano en unidades del dominio, grosor relativo 0-1 a lo largo del arco: 0 en las puntas).
+// 13/11 (Pablo: «los jirones se aglutinan delante, deberían envolver el elemento», con un video de referencia: los lazos rodean la esfera, centrados en ella y
+// un poco mas anchos que ella, y las colas se doblan por los lados y pasan de largo). Antes los tres lazos iban DELANTE del contacto (0,5-1,2 M hacia la mano) y
+// con el radio del chorro: se amontonaban delante del obstaculo. Ahora:
+//   - con CUERPO (look0: centro y radio en el dominio; la esfera del lab, el enemigo u objeto que golpea la logica en el juego): los lazos se CENTRAN en el
+//     cuerpo, del frente a pasado el ecuador (-0,4, +0,1 y +0,55 radios a lo largo del haz), con radio de 1,12-1,4 veces el suyo; las colas se abren hacia
+//     fuera y hacia atras (pasan de largo por los lados);
+//   - sin cuerpo (un muro): los lazos se PEGAN a la cara (a 0,05-0,25 M de ella, no a 0,5-1,2) y se abren por ella mas anchos, con las colas por la pared.
+#define CUERPO V.look0
+vec3 centro_anillos() {
+	if (CUERPO.w > 0.0) return CUERPO.xyz;
+	return P.contacto.xyz + eje_dir() * 0.35 * ESC_M;          // la cara: el contacto esta 0,35 M delante de ella (HazGas.contacto)
+}
+float radio_anillos() {
+	return CUERPO.w > 0.0 ? 1.4 * CUERPO.w + 0.6 * BEAM_R1 * VIENTO_ANCHO : 2.9 * BEAM_R1 * VIENTO_ANCHO + 0.4 * ESC_M;
+}
 vec2 anillos(vec3 p, float abre, vec3 nrm) {
 	vec3 d = eje_dir();
 	vec3 ref = abs(nrm.y) < 0.9 ? vec3(0.0, 1.0, 0.0) : vec3(1.0, 0.0, 0.0);
 	vec3 e1 = normalize(cross(nrm, ref));
 	vec3 e2 = cross(e1, nrm);
 	float mejor = 1e9, gr = 0.0;
+	bool cuerpo = CUERPO.w > 0.0;
+	float rc = CUERPO.w;
+	vec3 o = centro_anillos();
 	for (int k = 0; k < 3; k++) {
 		float fk = float(k);
-		vec3 c = P.contacto.xyz - d * (0.15 + 0.4 * fk) * ESC_M;
+		vec3 c = cuerpo ? o + d * (-0.4 + 0.475 * fk) * rc : o - d * (0.05 + 0.1 * fk) * ESC_M;
 		vec3 q = p - c;
 		float ax = dot(q, nrm);
 		vec2 s = vec2(dot(q, e1), dot(q, e2));
@@ -68,8 +86,11 @@ vec2 anillos(vec3 p, float abre, vec3 nrm) {
 		float n_arcos = 2.0 + mod(fk, 2.0);
 		float u = fract(phi / 6.2832 * n_arcos - TIEMPO_V * (1.0 + 0.3 * fk) * n_arcos + fk * 0.37);
 		float tira = smoothstep(0.35, 0.8, u);                                   // la cola del arco se abre hacia fuera: un jiron que se suelta
-		float rk = (1.0 + 0.55 * fk) * BEAM_R1 * VIENTO_ANCHO * (1.0 + 0.1 * sin(2.0 * phi + TIEMPO_V * (2.0 + fk)) + 0.55 * tira * tira) * abre;
-		float ak = (0.25 * sin(phi + fk * 2.1 + TIEMPO_V * 1.3) + 0.5 * tira * tira) * ESC_M;
+		float ondula = 1.0 + 0.1 * sin(2.0 * phi + TIEMPO_V * (2.0 + fk));
+		float rk = cuerpo ? (rc * (1.12 + 0.14 * fk) + 0.3 * BEAM_R1 * VIENTO_ANCHO) * (ondula + 0.35 * tira * tira) * abre
+			: (1.3 + 0.75 * fk) * BEAM_R1 * VIENTO_ANCHO * (ondula + 0.6 * tira * tira) * abre;
+		float ak = cuerpo ? 0.15 * sin(phi + fk * 2.1 + TIEMPO_V * 1.3) * rc + 0.9 * tira * tira * rc           // la cola pasa de largo por detras del cuerpo
+			: (0.12 * sin(phi + fk * 2.1 + TIEMPO_V * 1.3) - 0.15 * tira * tira) * ESC_M;                     // pegado a la cara; la cola se despega un poco
 		float dist = length(vec2(length(s) - rk, ax - ak));
 		float arco = smoothstep(0.0, 0.12, u) * (1.0 - smoothstep(0.55, 0.85, u));
 		if (arco > 0.02 && dist < mejor) { mejor = dist; gr = arco * (1.0 - 0.6 * tira); }
@@ -181,9 +202,12 @@ void main() {
 		float t = tNear + dl * 0.5;
 		bool con_anillos = CHOQUE && K_ANILLOS > 0.0 && dis < 1.0;
 		float abre = 1.0 + 0.7 * dis;                                    // al soltar, los lazos se abren mientras se deshacen
-		vec3 nrm = normalize(d_e + cam_f * (dot(d_e, cam_f) >= 0.0 ? 0.9 : -0.9));     // perpendicular al haz, ladeado para mirar a la camara
+		// perpendicular al haz, ladeado para mirar a la camara (13/11: contra un muro, menos: los lazos van pegados a su cara y no deben meterse en ella)
+		float lad = CUERPO.w > 0.0 ? 0.9 : 0.4;
+		vec3 nrm = normalize(d_e + cam_f * (dot(d_e, cam_f) >= 0.0 ? lad : -lad));
 		float m_an = 1e9, t_an = tNear;
-		float R2_ANILLOS = pow((2.1 * 1.6 * BEAM_R1 * VIENTO_ANCHO + 1.6 * ESC_M) * abre, 2.0);
+		vec3 c_an = centro_anillos();
+		float R2_ANILLOS = pow((radio_anillos() * 1.9 + 0.8 * ESC_M) * abre, 2.0);
 		float m_ci = 1e9, t_ci = tNear;
 		vec3 ab_m = P.target.xyz - P.nozzle.xyz;
 		for (int k = 0; k < pasos; k++) {
@@ -197,7 +221,7 @@ void main() {
 			// las sustituyen las cintas; al aire, al final se emborronaban en manchas
 			float tt_k = dot(ro + rd * t - P.nozzle.xyz, ab_m) / dot(ab_m, ab_m);
 			if (CINTAS_ON && (!CHOQUE || tt_k < 0.7)) c.y = 0.0;
-			vec3 q_an = ro + rd * t - P.contacto.xyz;
+			vec3 q_an = ro + rd * t - c_an;
 			if (con_anillos && dot(q_an, q_an) < R2_ANILLOS) {        // solo cerca del contacto
 				vec2 an = anillos(ro + rd * t, abre, nrm);
 				if (an.x < m_an) { m_an = an.x; t_an = t; }

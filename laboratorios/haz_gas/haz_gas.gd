@@ -790,14 +790,16 @@ func _process(delta: float) -> void:
 		efecto.toon_tex = rids
 	efecto.aspecto = PackedFloat32Array([params["thickness"], params["relief"], params["edge"], params["smokeAlbedo"], params["flameBody"], params["emitGain"],
 		params["fireOnSmoke"], params["farOnSmoke"], params["lampOnSmoke"], 1.0 if toon else params["saturacion"], 0.0 if toon else params["vineta"]])
-	if elemento == "rayo":
+	if elemento == "rayo" or elemento == "viento":
 		# 11/11 (3070): el dibujo del rayo no usa look0 / look1 (los del realista): ahí van los dos CUERPOS a los que saltan las ramas (w = radio; 0 = no hay)
+		# 13/11 (Pablo: «los jirones se aglutinan delante, deberían envolver el elemento»): el VIENTO también los lee: sus lazos del choque ENVUELVEN el primer
+		# cuerpo (la esfera del lab; en el juego, el enemigo u objeto que golpea la lógica). Sin cuerpo (un muro), los lazos se pegan a la cara y se abren por ella.
 		if not modo_juego:
 			rayo_cuerpos.clear()
 			if obstaculo == "esfera":
 				var sc: Vector3 = params["shieldC"]
 				rayo_cuerpos.append(Vector4(sc.x, sc.y, sc.z, float(params["shieldR"])))
-			if rayo_destello > 0.0 and frame * DT - _destello_t0 > rayo_destello and float(params["beamOn"]) > 0.5:
+			if elemento == "rayo" and rayo_destello > 0.0 and frame * DT - _destello_t0 > rayo_destello and float(params["beamOn"]) > 0.5:
 				chorro(false)
 		var asp: PackedFloat32Array = efecto.aspecto
 		for i in 2:

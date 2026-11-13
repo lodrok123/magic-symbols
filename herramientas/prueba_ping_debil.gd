@@ -20,6 +20,10 @@ func _escenario() -> void:
 	Repertoire.activate_all()
 	_vaciar_nivel()
 	Sfx.REGISTRAR = true
+	# 13/11: desde el bloque E (1324d0a5, E2, 6/11) las reacciones fuertes (aturdido del rayo, prendido del fuego…) suenan un tintineo que REUTILIZA el sonido
+	# «ping_debil» con otro tono (`FeedbackReaccion3D.SONIDO`, pendiente de sonido propio). Esta prueba mide el ping de DEBILIDAD (tarea D): se apaga ese feedback.
+	var feedback_antes: bool = FeedbackReaccion3D.ACTIVO
+	FeedbackReaccion3D.ACTIVO = false
 	await avanzar(20)
 	await _caso_debil()
 	await _caso_normal()
@@ -27,6 +31,7 @@ func _escenario() -> void:
 	await _caso_area()
 	await _caso_apagada()
 	await _caso_alfa_cero()
+	FeedbackReaccion3D.ACTIVO = feedback_antes
 	Sfx.REGISTRAR = false
 	print("COMPROBACIONES: %d" % _comprobaciones)
 

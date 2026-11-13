@@ -5165,7 +5165,7 @@ No se ha pasado la batería completa.
 
 ## 491 — Juego (12/11): **Una prenda por ranura y la partida cargada se desviste antes de vestirse** (Pablo, con el atuendo del loberno: «no, sigue funcionando mal, se ven mallas estiradas, agujeros»). Mis capturas (laboratorio y tiras de la cámara del juego) salían bien; para verlo por su camino, herramienta nueva `herramientas/captura_atuendo_juego.gd` (escenario del bosque, el atuendo a la mochila, `Atuendos.poner` como la pestaña Vestuario, fotos quieta y andando con recorte ampliado en `docs/capturas/vestuario/atuendo_lobo_juego/`): también bien. **La causa estaba en la partida:** `Pj3D.cargar` pone el atuendo de viaje (túnica, capa y capucha verdes) y `Partida.aplicar_continuar` ponía ENCIMA lo guardado sin quitar nada, y `Ropa3D.poner` no sabía de ranuras: con una partida guardada con el loberno la jugadora llevaba dos túnicas, la capa y la capucha a la vez (lo de dentro asoma por lo de fuera: «mallas estiradas, agujeros»). Arreglo doble: `Ropa3D.poner` quita la prenda que ocupe la misma ranura (`ranura=` de objetos.tsv) y `aplicar_continuar` quita todo lo puesto antes de poner la lista guardada (lo guardado es TODO lo puesto). `prueba_vestuario` lo comprueba (5: la túnica del lobo sustituye a la de viaje); `prueba_partida`, `prueba_partida_entera`, `prueba_jugadora_base` a 0; `prueba_ropa_capa` con sus 17 de antes. **Sin commit.**
 
-## 490 — Pinchos de tierra oscuros en el Bosque: era la luz, no el color (12/11)
+## 492 — Pinchos de tierra oscuros en el Bosque: era la luz, no el color (12/11)
 
 **Causa.** El sol del Bosque cae casi vertical: −70°, y el ciclo de día lo gira 8° por hora. Las púas son caras casi verticales, así que el sol les da de canto y las que ve la cámara quedan en sombra, con solo el ambiente y el SSAO. La hierba, en cambio, recibe el sol de lleno. En el lab el sol va a −50° y del lado de la cámara: por eso allí se veían bien, y por eso subir el albedo el 7/11 no bastó.
 
@@ -5179,7 +5179,65 @@ Las capturas están en `docs/capturas/vfx_en_juego/pinchos_tierra/`. Commit ddd6
 
 **Pruebas.** A 0: vfx_en_juego (con la comprobación nueva de `normal_arriba`), viento_tierra_toy, vfx_toy, hechizo_golden, vfx_tierra_viento, plataforma_tierra, barrera_tierra_plataforma, magma_toy, lab_vfx_toys y vfx_comparativa. Pablo lo dio por bueno con las capturas.
 
-## 492 — Juego (13/11): **Retirado el camino «Campo» de los hechizos** (Pablo: «los puntos 9, 11, 18, 19, 34 y 35 se pueden implementar ya… ejecútalas en secuencia»; punto 9, PENDIENTES · Hechizos)
+## 493 — Triaje de las pruebas fallidas de main (13/11)
+
+**Qué.** En main seguían en rojo unas 33 pruebas. Casi todas estaban desfasadas, no eran fallos del juego. Además, la batería corría sin `--fixed-fps 30` las pruebas que lo piden en las líneas 11 a 16 de su cabecera, porque `resumen_prueba.ps1` solo leía las 10 primeras.
+
+**Hecho.**
+- `resumen_prueba.ps1` lee toda la cabecera de comentarios, hasta 40 líneas. Con eso pasan a 0 pasar_pagina, mochila_sensacion, ping_debil, destello, muerte_elemento, mapa_abierto y la parte de tiempos de trampas.
+- Pruebas puestas al día, cada una citando su commit:
+  - golpe: masa 3,3 del elemental y golpe de frente;
+  - partida_menu: `no_puedes_ui`;
+  - kit: 12 glifos;
+  - hielo_toy y vfx_toon;
+  - oclusion_sfx;
+  - campos_ejecutados (H6);
+  - catalogo_reacciones: mojado,secado;
+  - en_punto_proyectil;
+  - arte_entorno;
+  - lab_humanoide y lab_jugadora: atuendo de viaje;
+  - muerte_elemento y destello_elemento;
+  - ping_debil;
+  - reaccion_enemigos (tarea P);
+  - ritmo_goblin con el chamán v1;
+  - tema_interfaz;
+  - mapa_abierto: la geoda de C1.
+- piezas_sin_duplicar y rig_golem imprimen ya «FALLOS: N».
+- tiendas suelta sus lambdas; antes salía con 0xC0000005.
+- En el juego:
+  - el texto de ᚷ dice ×1,30, como CRECER_TOPE_V2;
+  - `bolsa_tela.ogg` pasa a `kenney_bolsa_tela.ogg`, con sfx.gd y LICENCIAS.
+
+Commit cdc91bbb.
+
+**Pruebas.** Batería entera: de 116 fallos, 31 MAL y 2 SIN RESULTADO a 58 fallos, 9 MAL y 0 SIN RESULTADO. Las que siguen en MAL se repitieron solas.
+
+**Pendiente (Pablo).**
+- Muestras de glifos: asistencia; glifos_dibujables, sin muestras de ᚱ ni ᛉ y con ᛇ al 83 % y ᚠ al 89 %.
+- Láminas `objeto_*.png` de las prendas y atuendos (escritura_hud).
+- Como ya estaba: ropa_capa, colisiones_mapa y playtest_eow 1.12 y 1.13.
+- **trampas_pared**, fallo real: `TrampaFlechas3D` lanza con el Lanzador3D de la jugadora, así que su llama cuenta como fuego amigo (B7). Le quita 2 de vida y le da invulnerabilidad, y se pierden los 12 de daño de la trampa. Arreglo propuesto: marcar el hechizo de la trampa como ajeno. Siguen sin explicar 7.7 y la trampa F9.
+- **ritmo_goblin**: el chamán «lejos» se acerca a 1,20 u/s, paso de correr, en vez de 0,47.
+
+## 494 — Viento: el choque envuelve el obstáculo; F12 del lab sin fuego ajeno; soltar revertido (13/11)
+
+**Soltar.** El cambio de los jirones al soltar (d8b74472) se revierte (6e6070de). Pablo: «está peor».
+
+**«Todo vs muro da fuego».** Era el F12 del lab, sin Mayús, que ponía la masa de fuego (`HazMasaVista`) encima del haz toy de cualquier elemento. Con viento, además, `_muro_haz` daba un error de script. Ahora la masa solo sale con fuego (10b783a9). El gas (Mayús+F12) y el juego no tenían el fallo. Capturas en `haz_gas_elementos/choque_elemento/`.
+
+**Choque que envuelve.** Pablo: «los jirones se aglutinan delante, deberían envolver el elemento», con un vídeo de referencia, solo visual. Los lazos del choque iban hasta 1,2 M delante del contacto y con el radio del chorro.
+- **Contra un cuerpo** (la esfera del lab, o el enemigo u objeto que golpea la lógica): se centran en él, un poco más anchos, y sus colas pasan de largo por los lados.
+- **Contra un muro:** se pegan a la cara y se abren por ella.
+- **Qué cambia:** solo el dibujo del viento, que recibe el cuerpo por el mismo canal que las ramas del rayo (`rayo_cuerpos`). Fuego, agua y rayo quedan igual.
+- **Medido:** la opacidad delante de la esfera baja del 60–94 % al 18–27 %. Coste igual.
+
+Commit 841f5d55. Hoja: `choque_envuelve/HOJA_CHOQUE_ENVUELVE.jpg`.
+
+**Pruebas.** A 0: haz_gas_viento_rayo (con la comprobación nueva «viento cuerpo»), haz_gas_juego, haz_tamano, vfx_en_juego y vfx_toy. Pablo lo revisó en el lab y lo dio por bueno.
+
+**Pendiente.** En el juego, el haz de viento contra un enemigo sin muro detrás no dibuja choque.
+
+## 495 — Juego (13/11): **Retirado el camino «Campo» de los hechizos** (Pablo: «los puntos 9, 11, 18, 19, 34 y 35 se pueden implementar ya… ejecútalas en secuencia»; punto 9, PENDIENTES · Hechizos)
 
 **Qué sale.** El juego lanza por `Hechizo` / `HechizoVivo` desde H1 y el camino «Campo» solo lo usaban dos pruebas. Salen de `magia/lanzador_3d.gd`: `_una_ola`, `_crear_campo`, `es_barrera_cupula`, `_visual_campo`, `_activacion_en_haz`, `_levantar_tierra`, `_levantar_columna`, `campo_rune`, la lista `_campos` y sus constantes (`VEL_MURO`, `VEL_ONDA`, `RADIO_GOLPE`, `T_CRECE`, `CAUDAL_CHORRO_CELDA`). Sale `GeometriaV2.evaluar` (el resto de `GeometriaV2` sigue: lo usa el juego). De `nucleo/sigils.gd` salen `GLIFOS_V2` y `aplicar_v2`. `Receta3D` deja de heredar de `SpellRecipe` (`extends RefCounted`) y pierde `_sincronizar` y los campos 2D que nadie leía; queda el adaptador contadores + calidad → `Hechizo`.
 
@@ -5191,7 +5249,7 @@ Las capturas están en `docs/capturas/vfx_en_juego/pinchos_tierra/`. Commit ddd6
 
 **Queda.** `magia/spellcaster.gd` y `SpellRecipe` parecen código 2D muerto (solo los cargan `captura_libro_bosque` y `prueba_receta_v2`): no se han borrado. `Lanzador3D._columnas` ya no se rellena nunca (solo lo hacía `_levantar_columna`) y la leen `objetos/mamoa_3d.gd` y `escenario_libro_combinaciones`.
 
-## 493 — Juego (13/11): **Los reactivos que decidían por el nombre del elemento, a `Materia`** (punto 11; PENDIENTES · H6, «Reactivos que NO leen etiquetas»)
+## 496 — Juego (13/11): **Los reactivos que decidían por el nombre del elemento, a `Materia`** (punto 11; PENDIENTES · H6, «Reactivos que NO leen etiquetas»)
 
 **Qué cambia.** `Materia.via(m)` (nuevo, `nucleo/materia.gd`) da el nombre de elemento que corresponde a las PROPIEDADES, en el orden de `Objetos.elemento_de`: conduce → rayo, calienta → fuego, enfría → hielo, riega → agua, sopla → viento, golpea → tierra. Magma y naturaleza devuelven su nombre (se parecen a fuego y agua pero no lo son), y una runa solo-etiquetas con nombre («fuego» sin «calor») sigue valiendo. Lo usan la colmena y la nube de veneno (viento y fuego), el nido (viento), la planta recolectable (su tabla de ingredientes), el cristal de pulso (carga con lo que conduce y late del elemento de `via`), el guardián de barrera (barrera del elemento de `via`; si no es de los seis, la suya), la enredadera de `combate_3d.gd` (fuego) y la trampa de pared (agua y hielo). La lava sale obsidiana si lo que la toca enfría y basalto si solo moja. El rompible y el prisma no decidían por elemento: solo aceptan ya el tercer argumento (`hechizo`).
 
@@ -5201,7 +5259,7 @@ Las capturas están en `docs/capturas/vfx_en_juego/pinchos_tierra/`. Commit ddd6
 
 **Queda.** La parte de `combate_3d.gd` `decidir_golpe` que pide sustituir los papeles por `reaccion_material` (punto 10, pendiente de las decisiones de Pablo).
 
-## 494 — Juego (13/11): **Bloques empujables de verdad en los niveles, y sus reglas con enemigos e hielo** (punto 18; PENDIENTES · Empujar bloques)
+## 497 — Juego (13/11): **Bloques empujables de verdad en los niveles, y sus reglas con enemigos e hielo** (punto 18; PENDIENTES · Empujar bloques)
 
 **Los cubos solo visuales se van.** `prueba_test2._colocar_empujables` pone ahora un `BloqueEmpujable3D` real por cada empujable (`tierra` → piedra, `hielo` → hielo) en las tres fuentes: `Jugabilidad3D.EMPUJABLES`, `EMPUJABLES` del Test 2 y los marcadores `empujable` de las escenas. Salen el cubo, su shader de grietas y la tecla V que lo dañaba. Corrección a lo que decía PENDIENTES: los cubos no estaban en el Bosque 01 ni en el v01, sino en el Test de jugabilidad (3) y el Test 2 (2); el cubo ya cerraba su casilla, así que ningún bloque tapa un paso nuevo y no se ha movido ninguno.
 
@@ -5217,7 +5275,7 @@ Las capturas están en `docs/capturas/vfx_en_juego/pinchos_tierra/`. Commit ddd6
 
 **Queda.** Si el borde del hielo queda a menos de ~0,3 u del bloque (una casilla de agua helada y el bloque en la siguiente, como en la E4), la jugadora llega pisando suelo y empuja por la vía normal de 0,35 s, no resbalando. Falta jugarlo en pantalla.
 
-## 495 — Juego (13/11): **«Sin ruta» al instante y patrulla y gatopedro por ruta** (punto 19; PENDIENTES · lo abierto del diario 238)
+## 498 — Juego (13/11): **«Sin ruta» al instante y patrulla y gatopedro por ruta** (punto 19; PENDIENTES · lo abierto del diario 238)
 
 **Qué cambia.** `mundo/caminos_3d.gd` etiqueta cada casilla pisable con su COMPONENTE CONEXA, con la misma regla de arista que el A* propio (solidez, salto de nivel ≤ `SALTO_MAX`, sin cortar esquinas). Si origen y destino están en componentes distintas, `buscar` responde «sin ruta» sin buscar. Las etiquetas se ensucian con `avisar_cambio` y `reconstruir`, y se recalculan solo cuando una consulta las necesita (antes de lanzar el A* propio, o tras un «sin ruta» del nativo): el primer «sin ruta» después de un cambio paga ~1,2 ms y los siguientes salen gratis. No se recalculan con los obstáculos momentáneos de `camino` puestos (solo restringen). La búsqueda en sí no se toca: las rutas encontradas son las mismas.
 
@@ -5234,7 +5292,7 @@ Las capturas están en `docs/capturas/vfx_en_juego/pinchos_tierra/`. Commit ddd6
 
 Las rutas coinciden casilla a casilla con la referencia del A* anterior en los cuatro lotes, y «hay ruta» coincide con un recorrido en anchura independiente. `herramientas/prueba_patrulla_ruta.gd` (nueva, 17 comprobaciones): con el camino libre la trayectoria es idéntica fotograma a fotograma con la ruta encendida y apagada; con un obstáculo en la recta, goblin y gato lo rodean. `prueba_caminos`: la comprobación 6 exigía que el A* propio se lanzara en un caso que ahora contestan las etiquetas; mantiene el resultado (sin ruta) y exige que lo contesten las etiquetas. 50 pruebas de rutas, enemigos, Bosque, Cueva, Gruta, salas y bloques: el mismo veredicto que la base.
 
-## 496 — Juego (13/11): **Cuatro bugs lógicos pequeños** (punto 34; PENDIENTES · Cueva Resonante, Gruta Batida y Agua)
+## 499 — Juego (13/11): **Cuatro bugs lógicos pequeños** (punto 34; PENDIENTES · Cueva Resonante, Gruta Batida y Agua)
 
 - **El tono de llegada del pulso** solo suena si lo tocado reacciona: `Pulso3D._avisar` lee lo que devuelve `on_pulso` (`true` o un objeto, p. ej. el pulso que reemite el prisma; `false`, `null` o nada no cuentan) y el primero que reacciona da el tono.
 - **Un receptor con `rearme` y `flag` quita la flag al apagarse** (por el rearme o con `apagar()`), así que la puerta que la mira se cierra y al recargar nace apagado y sin flag.
@@ -5245,7 +5303,7 @@ Las rutas coinciden casilla a casilla con la referencia del A* anterior en los c
 
 **Queda (diseño, para Pablo).** La tinaja que se queda sin volumen (`abrir_cauce(0.5, 20)`) sigue vertiendo de aspecto; y el puzle del Bosque 02 (`tinaja_vierte`) no la para al completar la cuenca: haría falta una regla `hace=tinaja.apagar_fuente` en su mapa.
 
-## 497 — Juego (13/11): **`escenario_playtest_eow` estable: 0 fallos en 5 pasadas** (punto 35; PENDIENTES · «escenario_playtest_eow inestable»)
+## 500 — Juego (13/11): **`escenario_playtest_eow` estable: 0 fallos en 5 pasadas** (punto 35; PENDIENTES · «escenario_playtest_eow inestable»)
 
 **Antes:** 5 pasadas con 3 o 5 fallos (1.12, 1.13, 4.13 siempre; 7L.13 y 7L.14 en cuatro de cinco). **No es una regresión de hoy:** en el commit 920d384c, el de antes de los puntos 9-34, falla igual (5). El «3» de la batería de base era la variante buena de la misma intermitencia.
 

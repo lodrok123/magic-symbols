@@ -60,6 +60,7 @@ func _escenario() -> void:
 				and (caso == "muro" or absf(float(sin["largo"]) - float(con["largo"])) < 0.01) and int(sin["choques"]) == int(con["choques"]), "%s / %s" % [str(sin), str(con)])
 			ProjectSettings.set_setting(HazGasJuego.AJUSTES_ELEMENTO[elem][0], false)
 	await _rayo_cuerpo()
+	await _viento_cuerpo()
 	await _rayo_destello()
 	if not "--sin-costes" in OS.get_cmdline_user_args():
 		await _costes()
@@ -239,6 +240,61 @@ func _rayo_cuerpo() -> void:
 		tope += 1
 	gb.position = Terreno3D.centro_de(Vector2i(_c.x - 3, _c.y), Terreno3D.y_pies(Vector2i(_c.x - 3, _c.y)))
 	ProjectSettings.set_setting(HazGasJuego.AJUSTE_RAYO, false)
+	await avanzar_s(0.5)
+
+
+## 13/11 (Pablo: «los jirones se aglutinan delante, deberían envolver el elemento»): VIENTO contra un goblin en la línea del haz. Los lazos del choque envuelven el
+## CUERPO que golpea la lógica (HazGas.rayo_cuerpos, el mismo de las ramas del rayo): se comprueba que el dibujo lo conoce. Ojo: hoy el haz de viento del juego
+## solo dibuja el choque (lazos) contra un TOPE de la lógica (muro); contra un enemigo sin muro detrás no hay CHOQUE y los lazos no salen.
+func _viento_cuerpo() -> void:
+	ProjectSettings.set_setting(HazGasJuego.AJUSTE_VIENTO, true)
+	colocar_jugador(_c)
+	var gob: Array = get_nodes_in_group("combate3d")
+	if gob.is_empty():
+		_aviso("no hay goblins en el nivel: no se prueba el viento contra un cuerpo")
+		return
+	var gb: Node3D = gob[0]
+	gb.set("vida_max", 100000.0)
+	gb.set("health", 100000.0)
+	gb.position = Terreno3D.centro_de(Vector2i(_c.x + 2, _c.y), Terreno3D.y_pies(Vector2i(_c.x + 2, _c.y)))
+	await avanzar_s(0.3)
+	var v: VfxToyJuego = _vfx()
+	var antes: int = v.gas.creados if v != null and v.gas != null else 0
+	_hz_ultimo = {}
+	_lanzar("viento", ["linea_x", "linea_x"], Vector3.RIGHT, jugador.position)
+	await avanzar(2)
+	v = _vfx()
+	var hay: bool = v != null and v.gas != null and v.gas.vivos() > 0 and v.gas.creados > antes
+	var g: HazGas = v.gas.gases().back() if hay else null
+	var choques: Array = (_hz_ultimo.get("choques", []) as Array)
+	var golpea: bool = choques.any(func(ch: Dictionary) -> bool: return String(ch.get("tipo", "")) != "muro")
+	if not golpea:
+		_aviso("viento cuerpo: la lógica no golpea al goblin (%s): no se prueba" % str(choques.map(func(ch: Dictionary) -> String: return String(ch.get("tipo", "")))))
+	else:
+		_ok("viento cuerpo: los lazos del choque conocen el cuerpo (rayo_cuerpos)", g != null and g.rayo_cuerpos.size() >= 1, str(g.rayo_cuerpos if g != null else []))
+	if g != null:
+		var e: Dictionary = v.gas._gases.back()
+		e["fin_haz"] = Time.get_ticks_msec() + 600000
+		g.chorro(true)
+		var tope: int = 0
+		while g.frame < 45 and tope < 900:
+			await avanzar(1)
+			tope += 1
+		await RenderingServer.frame_post_draw
+		_ocultar_ui(root)
+		var cb: Vector4 = g.rayo_cuerpos[0] if not g.rayo_cuerpos.is_empty() else Vector4.ZERO
+		var cuerpo_w: Vector3 = g.global_transform * Vector3(cb.x, cb.y, cb.z)
+		_guardar(_recorte((jugador.position + cuerpo_w) * 0.5 + Vector3(0, 0.6, 0)), "viento_cuerpo_juego.jpg")
+		var col: Dictionary = _colores(g)
+		_ok("viento cuerpo: trazos BLANCOS y nada naranja", int(col["blanco"]) > 40 and int(col["naranja"]) == 0, str(col))
+		e["fin_haz"] = Time.get_ticks_msec()
+		e["fin_todo"] = int(e["fin_haz"]) + int(HazGasJuego.APAGADO_S * 1000.0)
+		tope = 0
+		while v.gas.vivos() > 0 and tope < 600:
+			await avanzar(1)
+			tope += 1
+	gb.position = Terreno3D.centro_de(Vector2i(_c.x - 3, _c.y), Terreno3D.y_pies(Vector2i(_c.x - 3, _c.y)))
+	ProjectSettings.set_setting(HazGasJuego.AJUSTE_VIENTO, false)
 	await avanzar_s(0.5)
 
 

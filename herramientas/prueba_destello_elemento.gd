@@ -253,10 +253,11 @@ func _caso_limo() -> void:
 	await avanzar(3)
 	var mat: ShaderMaterial = l.cuerpo.material_cuerpo
 	_ok("8 el shader del limo tiene flash_color y flash_fuerza (en reposo, a 0)", mat.shader.code.contains("flash_color") and mat.shader.code.contains("flash_fuerza") and float(mat.get_shader_parameter("flash_fuerza")) <= 0.0)
-	l.on_spell_hit(_runa("fuego"), Vector3(1, 0, 0))
+	# 13/11: con RAYO. Desde D3 (83a571ba, 6/11) el fuego PARTE en dos a un limo que no es de fuego (lo libera y nacen dos hijos): ya no hay destello que mirar en él.
+	l.on_spell_hit(_runa("rayo"), Vector3(1, 0, 0))
 	await avanzar(1)
 	var c: Color = mat.get_shader_parameter("flash_color")
-	_ok("8 golpeado con fuego: flash_color es el del fuego y flash_fuerza > 0", _dist(c, _esperado("fuego")) < 0.1 and float(mat.get_shader_parameter("flash_fuerza")) > 0.0, "%s %s" % [str(c), str(mat.get_shader_parameter("flash_fuerza"))])
+	_ok("8 golpeado con rayo: flash_color es el del rayo y flash_fuerza > 0", _dist(c, _esperado("rayo")) < 0.1 and float(mat.get_shader_parameter("flash_fuerza")) > 0.0, "%s %s" % [str(c), str(mat.get_shader_parameter("flash_fuerza"))])
 	await avanzar_s(0.4)
 	_ok("8 a los 0,4 s, flash_fuerza = 0", float(mat.get_shader_parameter("flash_fuerza")) <= 0.0, str(mat.get_shader_parameter("flash_fuerza")))
 	l.cuerpo.golpe()
