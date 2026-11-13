@@ -1,13 +1,15 @@
 extends SceneTree
 ## Prueba de la clase `Hechizo` (HC1, 18/10; docs/HECHIZO_CLASE.md), sin ventana.
 ##   godot --headless --path . --script res://herramientas/prueba_hechizo.gd
-## HC1 es refactorización: para TODAS las combinaciones de hasta 4 glifos (con repetición) × los 7 elementos × 2 calidades,
-## `Hechizo.construir` da los MISMOS números que el camino de hoy (Sigils.aplicar_v2 + RuneData + Receta3D), con tolerancia 1e-4:
-## semiejes, propiedades, persiste, daño, empuje, estado, coste, recarga, forma, cast point y niveles. Además comprueba que las
-## duraciones de estado son las que Combate3D.golpe tenía escritas a mano, que el .tres puede ajustar campos con `modificadores`
-## (sin tocar el recurso compartido), que los glifos desconocidos se ignoran y que Sigils.GLIFOS y Sigils.GLIFOS_V2 dicen lo mismo.
+## HC1 era refactorización: para TODAS las combinaciones de hasta 4 glifos (con repetición) × los 6 elementos × 2 calidades,
+## `Hechizo.construir` daba los MISMOS números que el camino de entonces (Sigils.aplicar_v2 + RuneData + Receta3D), con tolerancia 1e-4.
+## 13/11 (T9): `aplicar_v2` y `GLIFOS_V2` se retiraron, así que esa paridad ya no se mide aquí: los números del Hechizo los fija `prueba_hechizo_golden` (foto fija de todas las recetas de 0-4 glifos).
+## Lo que queda: que lo que el Hechizo trae es coherente consigo mismo y con el elemento (semiejes ↔ `geo()`, propiedades, persiste, daño, empuje, estado, coste, recarga, forma, cast point, niveles y
+## límites), que las duraciones de estado son las que Combate3D.golpe tenía escritas a mano, que el .tres puede ajustar campos con `modificadores` (sin tocar el recurso compartido) y que los glifos desconocidos se ignoran.
 
 const MAX_GLIFOS: int = 4
+## Los diez glifos de la receta V2 de siempre (los primeros de `Sigils.GLIFOS`, en este orden): con ellos se recorren las combinaciones. Los de H5 (perforar, retorno, buscar, retardo) y `posicion` los cubre `prueba_hechizo_golden`.
+const GLIFOS_DE_LA_V2: Array = ["linea_x", "linea_z", "altura", "flecha", "barrera", "repeticion", "rebote", "pulso", "permanencia", "raido"]
 const ELEMENTOS: Array = ["fire", "water", "earth", "ice", "lightning", "wind"]       ## 20/10: seis; «time» es cinemática (ver _cinematica)
 const CALIDADES: Array = [1.0, 0.4]
 ## Lo que Combate3D.golpe tenía escrito a mano el 18/10 (nombre del elemento -> campo -> valor).
@@ -40,7 +42,7 @@ func _initialize() -> void:
 		runes[e] = load("res://nucleo/%s_rune.tres" % e)
 	_tablas()
 	var combos: Array = []
-	_generar(Sigils.GLIFOS_V2.keys(), MAX_GLIFOS, 0, [], combos)
+	_generar(GLIFOS_DE_LA_V2, MAX_GLIFOS, 0, [], combos)
 	for combo in combos:
 		var c: Dictionary = {}
 		for n in combo:
@@ -68,37 +70,21 @@ func _generar(nombres: Array, restante: int, desde: int, actual: Array, salida: 
 		actual.pop_back()
 
 
-# --- La tabla nueva y la vieja dicen lo mismo ---
+# --- La tabla de glifos ---
 func _tablas() -> void:
-	# H5 (30/10): GLIFOS_V2 está en desuso y no recibe los glifos nuevos (perforar, retorno, buscar, retardo): los de V2 son los primeros de GLIFOS, en el mismo orden, y lo que sobra es solo H5.
-	var claves_v2: Array = Sigils.GLIFOS_V2.keys()
-	_ok(Sigils.GLIFOS.keys().slice(0, claves_v2.size()) == claves_v2, "GLIFOS y GLIFOS_V2 no tienen los mismos glifos / orden")
-	_ok(Sigils.GLIFOS.keys().slice(claves_v2.size()) == ["perforar", "retorno", "buscar", "retardo", "posicion"], "GLIFOS añade los cuatro de H5 y la posición experimental")
-	for nombre in Sigils.GLIFOS_V2:
-		var v: Dictionary = Sigils.GLIFOS_V2[nombre]
+	# 13/11 (T9): antes se comparaba `GLIFOS` con `GLIFOS_V2` (retirada). Ahora se fija QUÉ glifos tiene la tabla y en qué orden (los de la V2, los cuatro de H5 y la posición experimental) y que cada uno
+	# trae repertorio, recarga y modificadores con campos que existen en `Hechizo`.
+	_ok(Sigils.GLIFOS.keys() == GLIFOS_DE_LA_V2 + ["perforar", "retorno", "buscar", "retardo", "posicion"], "GLIFOS no tiene los glifos / el orden de siempre: %s" % str(Sigils.GLIFOS.keys()))
+	for nombre in Sigils.GLIFOS:
 		var n: Dictionary = Sigils.GLIFOS[nombre]
-		_ok(String(n["repertorio"]) == String(v["repertorio"]) and _casi(float(n["cooldown"]), float(v["cooldown"])), "%s: repertorio o cooldown difieren" % nombre)
-		var destino: String = ("semiejes." + String(v["eje"])) if v["tipo"] == "eje" else String(_campo_de_param(String(v["param"])))
-		var principal: Dictionary = {}           # el modificador que dice lo mismo que la fila de GLIFOS_V2 (los demás son extras de HC4/diseño: velocidad, en_punto, persiste)
+		_ok(String(n["repertorio"]) != "" and float(n["cooldown"]) >= 0.0 and not (n["modificadores"] as Array).is_empty(), "%s: sin repertorio, recarga o modificadores" % nombre)
 		for m in (n["modificadores"] as Array):
-			if String((m as Dictionary)["campo"]) == destino:
-				principal = m
-		_ok(not principal.is_empty(), "%s: ningún modificador sobre %s" % [nombre, destino])
-		_ok(_casi(float(principal["valor"]), float(v["por_glifo"])) and _casi(float(principal["tope"]), float(v["tope"])), "%s: valor o tope difieren" % nombre)
-		_ok(String(principal["op"]) == String({"primero_luego": "suma_primero"}.get(String(v.get("modo", "suma")), v.get("modo", "suma"))) and (String(v.get("modo", "suma")) != "suma_decreciente" or _casi(float(principal["factor"]), float(v["factor"]))), "%s: operación distinta" % nombre)
-		_ok(String(principal["campo"]) == destino, "%s: campo %s ≠ %s" % [nombre, principal["campo"], destino])
-		if v["tipo"] == "prop" and float(v["inicio"]) != 0.0:
-			_ok(principal.has("desde") and _casi(float(principal["desde"]), float(v["inicio"])), "%s: «desde» ≠ inicio" % nombre)
+			var campo: String = String((m as Dictionary)["campo"])
+			var base: String = campo.get_slice(".", 0)
+			_ok(base in Hechizo.new(), "%s: el modificador toca un campo que Hechizo no tiene (%s)" % [nombre, campo])
 
 
-func _campo_de_param(param: String) -> String:
-	for campo in Hechizo.PROPIEDAD_DE:
-		if Hechizo.PROPIEDAD_DE[campo] == param:
-			return String(campo)
-	return ""
-
-
-# --- Una combinación contra el camino de hoy ---
+# --- Una combinación: el Hechizo es coherente consigo mismo y con el elemento ---
 const EPS_L: float = 0.000001
 ## Los campos que el ELEMENTO puede tocar según la ESPEC §2 (gravedad, densidad, temperatura, humedad, conductividad): el Hechizo debe traer lo que dice el `.tres` (op `fija`:
 ## su valor; si el `.tres` no los menciona, el defecto del Hechizo). Los que ningún elemento ni glifo toca (aceleración, retorna, busca, perfora…) siguen en su defecto (`_igual_que_hoy`).
@@ -122,20 +108,15 @@ func _valor_del_tres(rune: RuneData, campo: String) -> float:
 
 
 func _igual_que_hoy(c: Dictionary, rune: RuneData, calidad: float, et: String) -> void:
-	var g: Dictionary = Sigils.aplicar_v2(c)
-	var props: Dictionary = g["props"]
 	var h: Hechizo = Hechizo.construir(rune, c, calidad)
-	# volumen
-	_ok(_casi(h.semiejes.x, float(g["x"])) and _casi(h.semiejes.y, float(g["y"])) and _casi(h.semiejes.z, float(g["z"])), "%s: semiejes %s ≠ (%.3f, %.3f, %.3f)" % [et, str(h.semiejes), g["x"], g["y"], g["z"]])
-	# EXACTOS (no solo a 1e-4): `geo()` es el formato de siempre y lo lee el rasterizado de casillas; un Vector3 (32 bits) lo cambiaría en los casos límite
-	var gh: Dictionary = h.geo()
-	_ok(gh["x"] == g["x"] and gh["y"] == g["y"] and gh["z"] == g["z"] and gh["props"] == g["props"], "%s: geo() no es exactamente aplicar_v2 (%s ≠ %s)" % [et, str([gh["x"], gh["y"], gh["z"]]), str([g["x"], g["y"], g["z"]])])
+	var g: Dictionary = h.geo()
+	var props: Dictionary = g["props"]
+	# volumen: EXACTOS (no solo a 1e-4): `geo()` es el formato de siempre y lo lee el rasterizado de casillas; un Vector3 (32 bits) lo cambiaría en los casos límite
+	_ok(g["x"] == h.semieje_x and g["y"] == h.semieje_y and g["z"] == h.semieje_z and _casi(h.semiejes.x, float(g["x"])) and _casi(h.semiejes.y, float(g["y"])) and _casi(h.semiejes.z, float(g["z"])), "%s: geo() no es exactamente los semiejes (%s ≠ %s)" % [et, str([g["x"], g["y"], g["z"]]), str(h.semiejes)])
 	_ok(_casi(h.semiejes_glifos.x, float(g.get("x_glifos", g["x"]))) and _casi(h.semiejes_glifos.z, float(g.get("z_glifos", g["z"]))), "%s: semiejes de los glifos (sin el suelo de la barrera)" % et)
-	# propiedades: las mismas claves y valores que `props`
+	# propiedades: las que algún glifo ha tocado y los campos que las leen
 	var mias: Dictionary = h.propiedades_usadas()
-	_ok(mias.size() == props.size(), "%s: nº de propiedades %d ≠ %d" % [et, mias.size(), props.size()])
-	for k in props:
-		_ok(mias.has(k) and _casi(float(mias[k]), float(props[k])), "%s: propiedad %s %s ≠ %s" % [et, k, str(mias.get(k)), str(props[k])])
+	_ok(mias == props, "%s: propiedades_usadas() ≠ geo()[props]" % et)
 	_ok(_casi(h.distancia_max, float(props.get("viaja", 0.0))) and _casi(h.solidez, float(props.get("solidez", 0.0))) and h.copias == int(props.get("copias", 1.0)) \
 		and h.rebotes == int(props.get("rebotes", 0.0)) and _casi(h.crece, float(props.get("crece", 0.0))), "%s: campos de propiedad" % et)
 	# del elemento
@@ -150,7 +131,7 @@ func _igual_que_hoy(c: Dictionary, rune: RuneData, calidad: float, et: String) -
 		n_g += Sigils.peso_dano(String(k)) * int(c[k])         # H3: ᛁ y ᛏ no suman al daño; 31/10: ⧖ carga suma 2
 	_ok(_casi(h.dano, Dano.base_elemental(n_g, h.elemento, rune.damage)) and _casi(h.empuje, rune.empuje) and h.estado_materia == rune.estado and h.pisable == rune.pisable and h.deja == rune.deja, "%s: daño, empuje, estado, pisable o deja" % et)
 	_ok(h.color == rune.color and h.etiquetas == rune.tags and h.elemento == Objetos.elemento_de(rune), "%s: color, etiquetas o elemento" % et)
-	# derivados contra Receta3D y GeometriaV2
+	# derivados contra Receta3D y el rasterizado
 	var r := Lanzador3D.Receta3D.new(Vector2.RIGHT)
 	r.calidad = calidad
 	for nombre in c:
@@ -158,7 +139,7 @@ func _igual_que_hoy(c: Dictionary, rune: RuneData, calidad: float, et: String) -
 			r.apply(nombre)
 	var viaja: bool = float(props.get("viaja", 0.0)) > 0.0
 	_ok(h.viaja == viaja, "%s: viaja" % et)
-	_ok(h.forma == r.forma() and h.forma == Lanzador3D.GeometriaV2.nombre_derivado(g, viaja), "%s: forma %s ≠ %s" % [et, h.forma, r.forma()])
+	_ok(h.forma == r.forma(), "%s: forma %s ≠ %s" % [et, h.forma, r.forma()])      # 13/11 (T9): antes también contra `GeometriaV2.nombre_derivado(aplicar_v2)`, que no sabe que un sólido con ᛁ no es un haz
 	_ok(h.cast_point == CastPoints.variacion_de(r.forma()), "%s: cast point" % et)
 	_ok(h.niveles == Lanzador3D.GeometriaV2.niveles(g), "%s: niveles %d ≠ %d" % [et, h.niveles, Lanzador3D.GeometriaV2.niveles(g)])
 	_ok(_casi(h.coste, r.tamano_relativo()) and _casi(h.coste, Sigils.coste_v2(g, props)), "%s: tamaño relativo %.4f ≠ %.4f" % [et, h.coste, r.tamano_relativo()])
@@ -228,7 +209,7 @@ func _modificadores_del_tres(runes: Dictionary) -> void:
 	_ok(_casi(perm1.permanencia, 2.0) and _casi(perm3.permanencia, 6.0) and perm1.anclado and not hf.anclado, "permanencia: +2 s por glifo (1 → %.1f, 3 → %.1f) y activa «anclado»" % [perm1.permanencia, perm3.permanencia])
 	_ok(_casi(perm1.persiste, fuego.persiste), "permanencia: no toca la `persiste` del elemento (%.1f)" % perm1.persiste)
 	_ok(_casi(perm_max.persiste + perm_max.permanencia, 25.0), "permanencia: con muchos glifos persiste + permanencia topa en 25 s (%.1f + %.1f)" % [perm_max.persiste, perm_max.permanencia])
-	_ok(Sigils.GLIFOS.has("permanencia") and Sigils.GLIFOS_V2.has("permanencia") and GestureLibrary.SIGILS.has("permanencia") and GestureLibrary.RECORDABLE.has("permanencia") and not GestureLibrary.RECORDABLE.has("algiz") and String(GestureLibrary.BIBLIA["permanencia"]["uso"]) == "sello", "permanencia: dada de alta en Sigils (GLIFOS y GLIFOS_V2), GestureLibrary (SIGILS, RECORDABLE, BIBLIA ᛉ sello)")
+	_ok(Sigils.GLIFOS.has("permanencia") and GestureLibrary.SIGILS.has("permanencia") and GestureLibrary.RECORDABLE.has("permanencia") and not GestureLibrary.RECORDABLE.has("algiz") and String(GestureLibrary.BIBLIA["permanencia"]["uso"]) == "sello", "permanencia: dada de alta en Sigils (GLIFOS), GestureLibrary (SIGILS, RECORDABLE, BIBLIA ᛉ sello)")
 
 
 func _casos_sueltos(runes: Dictionary) -> void:

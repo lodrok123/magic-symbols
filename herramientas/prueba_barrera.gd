@@ -38,18 +38,12 @@ func _ok(nombre: String, bien: bool, info: String = "") -> void:
 		_fallos += 1
 
 
-## Una burbuja del elemento dado, como la que sale al lanzar la página «barrera»: pasa por _crear_campo de verdad.
-func _burbuja(elemento: String) -> Lanzador3D.Campo:
+## Una burbuja del elemento dado, levantada como lo hace `Lanzador3D.levantar_burbuja` (13/11, T9: antes pasaba por `_una_ola` / `_crear_campo` con una receta montada a mano; ese camino «Campo» se retiró).
+## La burbuja es un MECANISMO sin glifo que la lance (R3, 17/10: «barrera» ya es la propiedad `solidez` de un volumen) hasta que Pablo decida cuál la devuelve.
+func _burbuja(elemento: String) -> Lanzador3D.Burbuja:
 	var rune := RuneData.new()
 	rune.tags.append(elemento)
-	var receta := Lanzador3D.Receta3D.new(Vector2.RIGHT)
-	receta.apply("barrera")
-	# R3 (17/10): con la receta V2 «barrera» ya no dibuja una cúpula (es la propiedad `solidez` de un volumen: SolidezV2). La burbuja de la Fase 12
-	# (Campo.burbuja: sigue al jugador, revienta con reacción) se queda como MECANISMO, sin receta que la lance, hasta que Pablo decida qué
-	# glifo o propiedad la devuelve. Para seguir probándola se monta la receta que antes la producía: barrera sola = área que no viaja.
-	receta.spread = true
-	_l._una_ola(receta, rune, elemento, _jug.position, Vector3.RIGHT)
-	return _l._barrera_activa
+	return _l.levantar_burbuja(rune, elemento)
 
 
 func _initialize() -> void:
@@ -78,19 +72,18 @@ func _initialize() -> void:
 		sim = Lanzador3D.montar_agua_sim()
 
 	# --- 1 · La forma: una esfera de 1,3 u sobre el jugador ---
-	var b: Lanzador3D.Campo = _burbuja("agua")
-	_ok("1 lanzar la barrera crea UNA burbuja y es la barrera activa", b != null and b.burbuja and _l._barrera_activa == b)
-	_ok("1 es una sola esfera (no el anillo de casillas de antes)", b.puntos.size() == 1)
+	var b: Lanzador3D.Burbuja = _burbuja("agua")
+	_ok("1 levantar la burbuja crea UNA y es la barrera activa", b != null and _l._barrera_activa == b)
 	_ok("1 su centro es el jugador + (0, %.1f, 0)" % Lanzador3D.ALTO_BURBUJA, b.centro().is_equal_approx(_jug.position + Vector3(0.0, Lanzador3D.ALTO_BURBUJA, 0.0)), str(b.centro()))
 	_ok("1 contiene un punto a 1,2 u del centro y no uno a 1,4 u", b.contiene(b.centro() + Vector3(1.2, 0.0, 0.0)) and not b.contiene(b.centro() + Vector3(1.4, 0.0, 0.0)))
 	_ok("1 el radio es RADIO_BURBUJA = 1,3", is_equal_approx(Lanzador3D.RADIO_BURBUJA, 1.3))
-	_ok("1 no bloquea los hechizos del propio jugador (sus flechas salen de dentro)", not b.bloquea and not _l._barrera_en(_jug.position + Vector3(0.6, 0.9, 0.0), 0))
-	_ok("1 dura vida_campo (la barrera ya duraba el doble, mínimo %.0f s)" % Lanzador3D.VIDA_MIN_BARRERA, b.vida >= Lanzador3D.VIDA_MIN_BARRERA, "%.1f s" % b.vida)
+	_ok("1 no bloquea los hechizos del propio jugador (sus flechas salen de dentro)", not _l._barrera_en(_jug.position + Vector3(0.6, 0.9, 0.0), 0))
+	_ok("1 dura vida_burbuja (la barrera ya duraba el doble, mínimo %.0f s)" % Lanzador3D.VIDA_MIN_BARRERA, b.vida >= Lanzador3D.VIDA_MIN_BARRERA, "%.1f s" % b.vida)
 
 	# --- 2 · Le sigue ---
 	_jug.position += Vector3(3.0, 0.0, 1.0)
 	b._physics_process(1.0 / 60.0)
-	_ok("2 sigue al jugador cuando se mueve", b.centro().is_equal_approx(_jug.position + Vector3(0.0, Lanzador3D.ALTO_BURBUJA, 0.0)) and (b.puntos[0] as Vector3).is_equal_approx(b.centro()))
+	_ok("2 sigue al jugador cuando se mueve", b.centro().is_equal_approx(_jug.position + Vector3(0.0, Lanzador3D.ALTO_BURBUJA, 0.0)) and b.punto.is_equal_approx(b.centro()))
 	_jug.position = Lanzador3D.centro_de(Vector2i(2, 2))
 	b._physics_process(1.0 / 60.0)
 
@@ -117,7 +110,7 @@ func _initialize() -> void:
 		sim.paso(1.0 / 60.0)
 	var v0: float = sim.volumen_total()
 	_impactos.clear()
-	var ba: Lanzador3D.Campo = _burbuja("agua")
+	var ba: Lanzador3D.Burbuja = _burbuja("agua")
 	v0 = sim.volumen_total()                                     # tras crearla: lanzar la barrera ya pudo mover agua
 	_ok("4 la burbuja de agua recibe fuego y revienta", _l.burbuja_recibe("fuego", punto) and ba.reventada)
 	_ok("4 la reacción es «vapor»", ba.reaccion == "vapor", ba.reaccion)
@@ -127,7 +120,7 @@ func _initialize() -> void:
 	await process_frame
 
 	# --- 5 · Hielo + fuego → charco ---
-	var bh: Lanzador3D.Campo = _burbuja("hielo")
+	var bh: Lanzador3D.Burbuja = _burbuja("hielo")
 	var v1: float = sim.volumen_total()
 	_ok("5 la burbuja de hielo recibe fuego y revienta con reacción «charco»", _l.burbuja_recibe("fuego", punto) and bh.reaccion == "charco", bh.reaccion)
 	_ok("5 el charco echa %.2f u³ de agua en el punto" % ReaccionesAgua3D.VOL_AGUA_IMPACTO, absf((sim.volumen_total() - v1) - ReaccionesAgua3D.VOL_AGUA_IMPACTO) < 0.02, "%.3f" % (sim.volumen_total() - v1))
@@ -135,7 +128,7 @@ func _initialize() -> void:
 	await process_frame
 
 	# --- 6 · Tierra absorbe sin más ---
-	var bt: Lanzador3D.Campo = _burbuja("tierra")
+	var bt: Lanzador3D.Burbuja = _burbuja("tierra")
 	var v2: float = sim.volumen_total()
 	_ok("6 la burbuja de tierra recibe fuego, revienta y «absorbe»", _l.burbuja_recibe("fuego", punto) and bt.reaccion == "absorbe", bt.reaccion)
 	_ok("6 sin tocar el agua del mundo", absf(sim.volumen_total() - v2) < 0.01)
@@ -143,18 +136,18 @@ func _initialize() -> void:
 	await process_frame
 
 	# --- 7 · Fuego + agua → vapor (al revés), y agua + hielo no reacciona (solo salpica) ---
-	var bf: Lanzador3D.Campo = _burbuja("fuego")
+	var bf: Lanzador3D.Burbuja = _burbuja("fuego")
 	_ok("7 la burbuja de fuego recibe agua: «vapor»", _l.burbuja_recibe("agua", punto) and bf.reaccion == "vapor", bf.reaccion)
 	await process_frame
 	await process_frame
-	var bn: Lanzador3D.Campo = _burbuja("agua")
+	var bn: Lanzador3D.Burbuja = _burbuja("agua")
 	_ok("7 agua + hielo: sin reacción, pero revienta", _l.burbuja_recibe("hielo", punto) and bn.reaccion == "" and bn.reventada)
 	await process_frame
 	await process_frame
 
 	# --- 8 · Sin tocarla caduca y NO revienta ---
 	_impactos.clear()
-	var bc: Lanzador3D.Campo = _burbuja("agua")
+	var bc: Lanzador3D.Burbuja = _burbuja("agua")
 	var reventó: Array = [false]
 	bc.revento.connect(func(_r: String, _p: Vector3, _x: String) -> void: reventó[0] = true)
 	bc.vida = 0.5
@@ -166,15 +159,15 @@ func _initialize() -> void:
 	await process_frame
 
 	# --- 9 · Dos seguidas: una viva ---
-	var b1: Lanzador3D.Campo = _burbuja("agua")
+	var b1: Lanzador3D.Burbuja = _burbuja("agua")
 	var b1_reventó: Array = [false]
 	b1.revento.connect(func(_r: String, _p: Vector3, _x: String) -> void: b1_reventó[0] = true)
-	var b2: Lanzador3D.Campo = _burbuja("fuego")
+	var b2: Lanzador3D.Burbuja = _burbuja("fuego")
 	await process_frame
 	await process_frame
 	var vivas: int = 0
 	for h in _m.get_children():
-		if h is Lanzador3D.Campo and (h as Lanzador3D.Campo).burbuja and not (h as Lanzador3D.Campo).is_queued_for_deletion():
+		if h is Lanzador3D.Burbuja and not (h as Lanzador3D.Burbuja).is_queued_for_deletion():
 			vivas += 1
 	_ok("9 dos barreras seguidas dejan UNA burbuja viva (la nueva)", vivas == 1 and not is_instance_valid(b1) and is_instance_valid(b2) and _l._barrera_activa == b2, "%d vivas" % vivas)
 	_ok("9 la vieja se fue sin reventar", not b1_reventó[0])
@@ -184,7 +177,7 @@ func _initialize() -> void:
 	await process_frame
 
 	# --- 10 · Lo que ya arde o lleva corriente dentro de la esfera la revienta ---
-	var be: Lanzador3D.Campo = _burbuja("agua")
+	var be: Lanzador3D.Burbuja = _burbuja("agua")
 	var emisor := EmisorFalso.new()
 	emisor.add_to_group("emisor_rayo")
 	root.add_child(emisor)
@@ -197,7 +190,7 @@ func _initialize() -> void:
 	emisor.queue_free()
 	await process_frame
 	await process_frame
-	var bq: Lanzador3D.Campo = _burbuja("agua")
+	var bq: Lanzador3D.Burbuja = _burbuja("agua")
 	var antorcha := AntorchaFalsa.new()
 	antorcha.add_to_group("flammable3d")
 	root.add_child(antorcha)

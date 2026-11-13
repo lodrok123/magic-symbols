@@ -61,7 +61,7 @@ const FORM: Dictionary = {
 	"pulso": {"spread": true, "pulse": true, "cooldown": 2.5},
 	"atraccion": {"pull": true, "cooldown": 1.5},
 	"espejo": {"mirror": true, "cooldown": 1.5},
-	# OJO (21/10): esto es la receta ANTIGUA (SpellRecipe, 2D). En el juego 3D (receta V2) `linea` ya NO es un muro: es el RAYO («haz»); el muro es solo de `barrera`. Ver `aplicar_v2` y `Hechizo.haz`.
+	# OJO (21/10): esto es la receta ANTIGUA (SpellRecipe, 2D). En el juego 3D (receta V2) `linea` ya NO es un muro: es el RAYO («haz»); el muro es solo de `barrera`. Ver `Hechizo.haz`.
 	"linea": {"spread": true, "blocks": true, "cooldown": 2.0},
 	# Fase 8 (glifos como geometría): en 3D el significado lo pone Receta3D/GeometriaHechizo; aquí solo la recarga.
 	"altura": {"cooldown": 2.0}
@@ -284,9 +284,9 @@ static func allowed_on(sigil_name: String, sector: Vector2) -> bool:
 ## =====================================================================================================
 ##
 ## Sin glifos, un hechizo es una ESFERA de radio RADIO_BASE_V2 (0,10 m). Cada glifo de EJE agranda un semieje del elipsoide (ancho PASO_ANCHO_V2, fondo PASO_FONDO_V2, altura PASO_ALTURA_V2);
-## cada glifo de PROPIEDAD suma (o multiplica) UN número, con tope. Esta tabla es lo ÚNICO que sabe qué hace cada glifo: `aplicar_v2`
-## no pregunta por ninguno por su nombre, solo recorre la tabla. Añadir un glifo es añadir una línea. FORM / OPERATOR siguen
-## sirviendo al camino actual (V2 está detrás de `Receta3D.V2`).
+## cada glifo de PROPIEDAD suma (o multiplica) UN número, con tope. La tabla `GLIFOS` (más abajo) es lo ÚNICO que sabe qué hace cada glifo: `Hechizo.construir`
+## no pregunta por ninguno por su nombre, solo recorre la tabla. Añadir un glifo es añadir una línea. FORM / OPERATOR solo sirven ya a la receta 2D (`SpellRecipe`, `spellcaster.gd`).
+## 13/11 (T9): las columnas de abajo describían la tabla `GLIFOS_V2`, ya retirada; la tabla viva (`GLIFOS`) usa modificadores sobre campos de `Hechizo` (ver su cabecera). Los números (inicio, paso, tope) siguen siendo estas constantes.
 ##
 ##   tipo       "eje" (escribe en x|y|z) o "prop" (escribe en props[param])
 ##   eje/param  a qué número va
@@ -390,25 +390,6 @@ const COSTE_CONTINUO_V2: float = 0.25
 ## RAYO (21/10): con false, ᛁ `linea` vuelve a ser SOLO un eje del volumen (sin haz). Es un interruptor de PRUEBAS y de diseño (las pruebas del volumen genérico —`prueba_materia_v2`, que mide el
 ## sólido, el líquido, el plasma… sobre elipsoides estirados— lo apagan); el juego lo deja en true.
 static var HAZ_ACTIVO: bool = true
-## EN DESUSO (H1, 29/10): solo la lee `aplicar_v2` y `prueba_hechizo` (que comprueba que dice lo mismo que `GLIFOS`), más las pruebas del camino antiguo (`prueba_receta_v2`, `prueba_pulso`).
-## Quien necesite `repertorio`, `cooldown` o el tope de un glifo lee `GLIFOS` (`repertorio_de`, `cooldown_v2`, `glifos_hasta_tope`).
-const GLIFOS_V2: Dictionary = {
-	# Ejes (18/10 Pablo, «A para probar»): los tres empiezan en RADIO_BASE_V2 y cada glifo suma LO MISMO que ese valor (por_glifo = RADIO_BASE_V2). Antes: X +0,5, Z +0,75, Y +0,5.
-	# 19/10 (ESPEC_HECHIZO §1.1): base 0,25 y cada glifo suma 0,15. 24/10 (Pablo): base 0,10 y un paso POR EJE: ancho 0,25, fondo 0,10, altura 0,30. Topes: 3,0 de semieje en X y Z (6 m) y 1,0 en Y (2 niveles).
-	"linea_x": {"tipo": "eje", "eje": "x", "inicio": RADIO_BASE_V2, "por_glifo": PASO_ANCHO_V2, "modo": "primero_luego", "luego": PASO_LUEGO_V2, "tope": TOPE_EJE_HORIZONTAL_V2, "repertorio": "linea", "cooldown": 2.0},
-	"linea_z": {"tipo": "eje", "eje": "z", "inicio": RADIO_BASE_V2, "por_glifo": PASO_FONDO_V2, "modo": "primero_luego", "luego": PASO_LUEGO_V2, "tope": TOPE_EJE_HORIZONTAL_V2, "repertorio": "linea", "cooldown": 2.0},
-	"altura": {"tipo": "eje", "eje": "y", "inicio": RADIO_BASE_V2, "por_glifo": PASO_ALTURA_V2, "modo": "suma_decreciente", "factor": FACTOR_DECRECIENTE_ALTURA_V2, "tope": TOPE_EJE_ALTURA_V2, "repertorio": "altura", "cooldown": 2.0},
-	# Propiedades.
-	"flecha": {"tipo": "prop", "param": "viaja", "inicio": 1.0, "por_glifo": 1.0, "tope": 6.0, "modo": "suma", "repertorio": "flecha", "cooldown": 1.0},
-	"barrera": {"tipo": "prop", "param": "solidez", "inicio": 1.0, "por_glifo": 1.5, "tope": 3.0, "modo": "multiplica", "repertorio": "barrera", "cooldown": 3.0},
-	"repeticion": {"tipo": "prop", "param": "copias", "inicio": 1.0, "por_glifo": 1.0, "tope": 4.0, "modo": "suma", "repertorio": "repeticion", "cooldown": 1.5},
-	"rebote": {"tipo": "prop", "param": "rebotes", "inicio": 0.0, "por_glifo": 1.0, "tope": 3.0, "modo": "suma", "repertorio": "rebote", "cooldown": 1.5},
-	"pulso": {"tipo": "prop", "param": "crece", "inicio": 0.0, "por_glifo": CRECER_TASA_V2, "tope": CRECER_TASA_TOPE_V2, "modo": "suma", "repertorio": "pulso", "cooldown": 2.5},
-	# ᛉ Permanencia (19/10, ESPEC_HECHIZO §3): +2 s por glifo de tiempo que se queda donde nace o donde para. Tope 25 s (el límite global cuenta además la `persiste`).
-	"permanencia": {"tipo": "prop", "param": "permanencia", "inicio": 0.0, "por_glifo": 2.0, "tope": 25.0, "modo": "suma", "repertorio": "permanencia", "cooldown": 1.5},
-	# ᚱ «pulso» (23/10, Pulso resonante fase 2; PLAN_PULSO_RESONANTE §2): +4 casillas de alcance por glifo, tope 12. El nombre que ve el jugador es «pulso»; el id es el de la runa (raido).
-	"raido": {"tipo": "prop", "param": "resuena", "inicio": 0.0, "por_glifo": PASO_RESUENA_V2, "tope": TOPE_RESUENA_V2, "modo": "suma", "repertorio": "raido", "cooldown": 2.0},
-}
 
 
 ## =====================================================================================================
@@ -424,8 +405,8 @@ const GLIFOS_V2: Dictionary = {
 ## `cuenta_dano` (H3, opcional, por defecto true): ¿suma este glifo al recuento OFENSIVO que fija el daño (`Hechizo.n_glifos_dano`)? Los de geometría (ᛁ linea_x, ᛁ linea_z, ᛏ altura) no: cuestan tinta pero no dan daño (PLAN_SISTEMA_HECHIZOS §4.1).
 ## `tinta` (H4, opcional): {por_glifo, tope} = lo que suma este glifo a la tinta BASE (`Dano.desglose_tinta`: min(por_glifo × n, tope)); sin la clave, 0. 6/11 (bloque A3): valores de partida APLICADOS (Pablo los afinará): flecha 2 · barrera 4 · repetición 3 · rebote 2 · pulso (crecer) 2 · permanencia 3 · raido 4 · ejes, altura, perforar, retorno, buscar y retardo 0.
 ##   Los topes escritos (3-4 glifos de cada uno) son los de la propuesta de DANO_Y_TINTA §2 y no se han tocado.
-## Más `repertorio` (nombre en el libro) y `cooldown` (recarga de la página), igual que GLIFOS_V2. **Un glifo nuevo es solo datos aquí.**
-## GLIFOS_V2 está EN DESUSO (H1): el laboratorio, la UI de ejes y el libro leen esta tabla; `prueba_hechizo` comprueba que las dos dicen lo mismo.
+## Más `repertorio` (nombre en el libro) y `cooldown` (recarga de la página). **Un glifo nuevo es solo datos aquí.**
+## 13/11 (T9): es la ÚNICA tabla de glifos de la receta V2. Se retiró `GLIFOS_V2` (la misma tabla en el idioma antiguo de ejes y propiedades) y `aplicar_v2` (su intérprete), que solo leía el camino «Campo».
 const GLIFOS: Dictionary = {
 	"linea_x": {"cuenta_dano": false, "repertorio": "linea", "cooldown": 2.0, "tinta": {"por_glifo": 0.0, "tope": 0.0}, "momento": "inicio", "paso": 1, "modificadores": [{"campo": "semiejes.x", "op": "suma_primero", "valor": PASO_ANCHO_V2, "luego": PASO_LUEGO_V2, "tope": TOPE_EJE_HORIZONTAL_V2}]},
 	"linea_z": {"cuenta_dano": false, "repertorio": "linea", "cooldown": 2.0, "tinta": {"por_glifo": 0.0, "tope": 0.0}, "momento": "inicio", "paso": 1, "modificadores": [{"campo": "semiejes.z", "op": "suma_primero", "valor": PASO_FONDO_V2, "luego": PASO_LUEGO_V2, "tope": TOPE_EJE_HORIZONTAL_V2}]},
@@ -472,48 +453,6 @@ const GLIFOS: Dictionary = {
 	"posicion": {"cuenta_dano": false, "repertorio": "posicion", "cooldown": 0.0, "tinta": {"por_glifo": 4.0, "tope": 4.0}, "momento": "inicio", "paso": 1,
 		"modificadores": [{"campo": "en_punto", "op": "fija", "valor": true}]},
 }
-
-
-## Cuántas veces se dibujó cada glifo (`contadores`: nombre -> n; los que falten valen 0) -> el volumen y las propiedades:
-##   {x, y, z: semiejes del elipsoide en casillas, props: {param: valor}} (x_glifos / z_glifos ya no se escriben: la barrera dejó de tener radio mínimo, 18/10)
-## `props` SOLO lleva las propiedades de glifos usados (sin glifos, está vacío), así `props.size()` es el nº de propiedades.
-## Solo suma o multiplica con topes; el orden en que se dibujó cada glifo no existe (es un multiconjunto). Un nombre que no esté en la
-## tabla se ignora.
-## EN DESUSO (H1): solo prueba_hechizo (y las pruebas del camino antiguo, más `GeometriaV2.evaluar`, que sincroniza los campos del camino «Campo» de `Receta3D`). La geometría del juego es `Hechizo.geo()`.
-static func aplicar_v2(contadores: Dictionary) -> Dictionary:
-	var salida: Dictionary = {"x": RADIO_BASE_V2, "y": RADIO_BASE_V2, "z": RADIO_BASE_V2, "props": {}}
-	var destinos: Dictionary = {"eje": salida, "prop": salida["props"]}
-	for nombre in GLIFOS_V2:
-		var n: int = maxi(int(contadores.get(nombre, 0)), 0)
-		if n == 0:
-			continue
-		var d: Dictionary = GLIFOS_V2[nombre]
-		var destino: Dictionary = destinos[d["tipo"]]
-		var clave: String = String(d.get("eje", d.get("param", "")))
-		var v: float = float(destino.get(clave, d["inicio"]))
-		# multiplica: v × por_glifo^n · suma: v + por_glifo × n (un glifo repetido n veces vale n veces su aporte)
-		match String(d.get("modo", "suma")):
-			"multiplica":
-				v = v * pow(float(d["por_glifo"]), float(n))
-			"suma_decreciente":       # 30/10: el 1.º aporta `por_glifo` y cada siguiente `factor` veces el anterior
-				v += float(d["por_glifo"]) * serie_decreciente(float(d["factor"]), n)
-			"primero_luego":          # 3/11: el 1.º aporta `por_glifo` y cada siguiente `luego`
-				v += serie_primero_luego(float(d["por_glifo"]), float(d["luego"]), n)
-			_:
-				v = v + float(d["por_glifo"]) * float(n)
-		destino[clave] = minf(v, float(d["tope"]))
-	# 30/10: cada ᚷ multiplica los tres semiejes por CRECER_TOPE_V2 (como el modificador de `GLIFOS["pulso"]`: primero las sumas, luego el producto y al final los topes)
-	var n_crece: int = maxi(int(contadores.get("pulso", 0)), 0)
-	if n_crece > 0:
-		var tope_eje: Dictionary = {"x": TOPE_EJE_HORIZONTAL_V2, "y": TOPE_EJE_ALTURA_V2, "z": TOPE_EJE_HORIZONTAL_V2}
-		for e in tope_eje:
-			salida[e] = minf(float(salida[e]) * pow(CRECER_TOPE_V2, float(n_crece)), float(tope_eje[e]))
-	# RAYO (21/10, Pablo): ᛁ `linea` + elemento = un haz recto; el MURO es solo de `barrera`. Hay haz si se dibujó alguna ᛁ y no hay barrera (solidez) ni flecha (viaja).
-	# Es un dato derivado de la receta (como el nombre de la forma): `GeometriaV2.nombre_derivado` y `Hechizo.haz` lo leen igual.
-	var props_salida: Dictionary = salida["props"]
-	var orbita_v2: bool = maxi(int(contadores.get("retorno", 0)), 0) > 0 and maxi(int(contadores.get("repeticion", 0)), 0) >= 1 and not props_salida.has("viaja")      # 3/11 (R3): ᛃ + ᚠ sin flecha orbita (`Hechizo.orbita`), no es un haz
-	salida["haz"] = HAZ_ACTIVO and maxi(int(contadores.get("linea_x", 0)), 0) + maxi(int(contadores.get("linea_z", 0)), 0) > 0 and not props_salida.has("solidez") and not props_salida.has("viaja") and not orbita_v2
-	return salida
 
 
 ## El radio de la circunferencia de la barrera (RADIO_BARRERA_U, en u) expresado en casillas de semieje.
@@ -587,7 +526,7 @@ static func cooldown_v2(contadores: Dictionary) -> float:
 
 
 ## Cuántos glifos de este tipo hacen falta para llegar al tope de su propiedad o eje (más no cambia nada), leído de los modificadores de `GLIFOS`: el que lleva `tope`; parte de su `desde`, o del radio base si
-## es un semieje, o de 0. Antes lo calculaba el laboratorio con `GLIFOS_V2` (`inicio`, `por_glifo`, `tope`, `modo`).
+## es un semieje, o de 0.
 static func glifos_hasta_tope(nombre: String) -> int:
 	for m in (GLIFOS.get(nombre, {}).get("modificadores", []) as Array):
 		if not m.has("tope"):

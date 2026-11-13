@@ -382,14 +382,11 @@ func _caso_apuntado() -> void:
 
 # --- B · barrera ------------------------------------------------------------------------------------------------------------
 
-func _burbuja(elemento: String) -> Lanzador3D.Campo:
+## 13/11 (T9): la burbuja se levanta con `Lanzador3D.levantar_burbuja` (antes por `_una_ola` con una receta montada a mano: el camino «Campo» se retiró).
+func _burbuja(elemento: String) -> Lanzador3D.Burbuja:
 	var rune := RuneData.new()
 	rune.tags.append(elemento)
-	var receta := Lanzador3D.Receta3D.new(Vector2.RIGHT)
-	receta.apply("barrera")
-	receta.spread = true
-	lanzador._una_ola(receta, rune, elemento, jugador.position, Vector3.RIGHT)
-	return lanzador._barrera_activa
+	return lanzador.levantar_burbuja(rune, elemento)
 
 
 func _caso_barrera() -> void:
@@ -411,8 +408,8 @@ func _caso_barrera() -> void:
 	var g: Combate3D = _canouro(Vector2i(7, FILA_L))
 	g.quieto = true
 	await avanzar(2)
-	var b: Lanzador3D.Campo = _burbuja("agua")
-	_ok("B2 hay burbuja de agua viva", b != null and b.burbuja and not b.reventada)
+	var b: Lanzador3D.Burbuja = _burbuja("agua")
+	_ok("B2 hay burbuja de agua viva", b != null and not b.reventada)
 	if b == null:
 		return
 	g.position = jugador.position + Vector3(1.0, 0.0, 0.0)
@@ -440,7 +437,7 @@ func _caso_barrera() -> void:
 	gf.health = 1000.0
 	gf.vida_max = 1000.0
 	await avanzar(2)
-	var bf: Lanzador3D.Campo = _burbuja("fuego")
+	var bf: Lanzador3D.Burbuja = _burbuja("fuego")
 	if bf == null:
 		_ok("B7 hay burbuja de fuego viva", false)
 		return

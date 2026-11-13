@@ -7,7 +7,7 @@ extends Grimorio
 ## la recarga y el aviso de fallos son los mismos, y cambia solo dos cosas:
 ##   1. Las REGLAS DEL LIBRO: un glifo por sector (el segundo se rechaza con aviso) y una receta por página
 ##      (con ratón, todos los glifos de la página se funden en un hechizo). `pilar` y `retardo` no están activos.
-##   2. QUÉ SALE al lanzar: ya no hay Area2D ni Spell; la receta (SpellRecipe, sin tocarla) se lee en CASILLAS y se
+##   2. QUÉ SALE al lanzar: ya no hay Area2D ni Spell; la receta (`Receta3D` → `Hechizo`) se lee en CASILLAS y se
 ##      materializa en 3D con el modo lanzar (4.1b), la tierra y el hielo que caducan (4.1c) y la altura (4.4).
 ##
 ## CONTRATO on_spell_hit (publicado en docs/DIARIO.md, 2026-10-06):
@@ -73,9 +73,6 @@ const COLOR_ROTULO_DISUELVE: Color = Color(0.8, 0.85, 0.95)
 const ALCANCE_FLECHA: float = 3.0           ## casillas (6.5: bola pequeña, alcance corto)
 const RADIO_BOLA: float = 0.25               ## metros (≈ media casilla de diámetro)
 const ALCANCE_HAZ: float = 8.0              ## casillas (rayo)
-const VEL_MURO: float = 1.72                ## casillas/s (Sigils.WALL_SPEED 110 px / 64)
-const VEL_ONDA: float = 1.48                ## casillas/s (Sigils.PULSE_SPEED 95 px / 64)
-const RADIO_GOLPE: float = 0.42             ## casillas: radio de cada manifestación quieta
 const FUERZA_EMPUJE: float = 2600.0         ## la del 2D; Combate3D la reduce a su escala
 
 ## --- Tierra e hielo con duración (§0b) ---
@@ -95,7 +92,6 @@ const REACCIONES_BURBUJA: Dictionary = {
 ## --- Barrera que protege (6.3) ---
 const MULT_VIDA_BARRERA: float = 2.0        ## la barrera quieta dura el doble que antes...
 const VIDA_MIN_BARRERA: float = 6.0         ## ...y como poco esto (s)
-const T_CRECE: float = 0.9                  ## s que tarda el anillo de barrera + pulso en llegar a su radio (6.4)
 const MAX_TIERRA_APILADA: int = 1           ## bloques de tierra uno encima de otro
 const MAX_NIVELES_TIERRA: int = 8           ## tope de bloques vivos a la vez (FIFO)
 const DURACION_TIERRA: float = 25.0         ## segundos
@@ -169,7 +165,7 @@ var mochila: BolsaUI = null             ## (heredado) la bolsa antigua: ya no se
 var diario: DiarioMisiones = null       ## (heredado) el diario suelto: ya no se monta, queda null (vive dentro de `menu`)
 var libro: Control = null
 var _libro_lento: bool = false
-var _barrera_activa: Campo = null
+var _barrera_activa: Burbuja = null
 var _ts_libro: float = 1.0
 var _aviso: Label = null
 var _tw_aviso: Tween = null
@@ -218,7 +214,6 @@ var fichas_combate: Array[Dictionary] = []
 var limite_agua_muro: float = INF
 
 ## --- Lo vivo ---
-var _campos: Array = []                 ## Campo: muros, corros, ondas, tierra...
 var _bloques: Array = []                ## tierra construida: {celda, niveles, nodos, resta, v2}
 var _zonas_v2: Array = []               ## zonas V2 vivas (plasma, gas, campo): ZonaV2
 var zonas_cruce: Array = []             ## 6/11 (B5): zonas SIN pulso que otro hechizo reconoce al cruzarlas (el charco del agua): ZonaV2. Aparte de `_zonas_v2` a propósito: el limo y las pruebas cuentan esas como zonas de pulso
@@ -276,7 +271,7 @@ signal vfx_hechizo(nombre: String, posicion: Vector3, elemento: String)
 signal conjuro_fase(fase: String, elemento: String, posicion: Vector3)
 var conjuro_actual: Dictionary = {}     ## A1: {hechizo: Hechizo, carga: float} del conjuro en curso (se rellena en `lanzar_ahora`; solo lo lee el VFX)
 ## Receta V2: sale UNA vez por hechizo, antes de materializarlo. Para el VFX del Pipeline: un dibujo por ESTADO escalado a (x, y, z).
-## `g` = {x, y, z (semiejes en casillas), celdas: Array[Vector2i], niveles: int}; `props` = lo de Sigils.aplicar_v2 (viaja, solidez…).
+## `g` = {x, y, z (semiejes en casillas), celdas: Array[Vector2i], niveles: int}; `props` = lo de `Hechizo.geo()["props"]` (viaja, solidez…).
 signal hechizo_v2(estado: String, elemento: String, g: Dictionary, origen: Vector3, dir: Vector3, props: Dictionary)
 ## 6/11 (entrada 422): un bloque de tierra de la casilla se deshace (caducó, o lo echó el tope FIFO). Solo para el dibujo: el TierraToy que lo representa se hunde en ese momento.
 signal tierra_deshecha(celda: Vector2i)
@@ -554,9 +549,6 @@ const VOL_AGUA_IMPACTO: float = ReaccionesAgua3D.VOL_AGUA_IMPACTO    ## REENVÍO
 ## Lo que se evapora por un impacto de fuego (u³): un charco desaparece, un río apenas nota un bocado.
 ## (Un 80 % menos, como el agua que se echa: 1,5 → 0,3.)
 const VOL_EVAPORA: float = ReaccionesAgua3D.VOL_EVAPORA    ## REENVÍO M3
-## Caudal (u³/s) que aporta CADA casilla de un chorro de agua mientras el chorro dura.
-## (12/10, Pablo: un 80 % menos, 0,8 → 0,16.)
-const CAUDAL_CHORRO_CELDA: float = 0.16
 ## --- Hielo de verdad (11.13) ---
 ## Radio (en casillas) del círculo que hiela o funde un impacto. 0,6 casillas = una casilla casi entera, pero sigue la forma del agua.
 const RADIO_HIELO: float = ReaccionesAgua3D.RADIO_HIELO    ## REENVÍO M3
@@ -862,9 +854,7 @@ static func receta_de_ficha(ficha: Dictionary, rune: RuneData, tinta_: Tinta = n
 	var receta := Receta3D.new(Vector2.RIGHT)
 	for s in glifos:
 		receta.apply(s)
-	# Flecha y barrera solo orientan el eje: el glifo de "lejos" (origin) no las desplaza. Que la barrera nazca donde apuntas lo decide `Hechizo.en_punto`.
-	if receta.travels or receta.spread:
-		receta.origin = 0.0
+	# (Flecha y barrera solo orientan el eje: que la barrera nazca donde apuntas lo decide `Hechizo.en_punto`.)
 	receta.calidad = calidad
 	var hechizo: Hechizo = receta.hechizo(rune)
 	if hechizo != null and hechizo.en_punto and bool(ficha.get("origen_explicito", false)) and not glifos.has("posicion"):
@@ -1977,13 +1967,6 @@ func lanzar_receta(receta: Receta3D, rune: RuneData, origen: Vector3, dir: Vecto
 	return _materializar(receta, rune, origen, dir)
 
 
-## Ola suelta de la receta antigua. Solo la usan las pruebas de burbujas (`prueba_barrera`) para montar un Campo a mano; el juego ya no llega aquí.
-func _una_ola(receta: Receta3D, data: RuneData, elemento: String, origen: Vector3, dir: Vector3) -> int:
-	var giro: float = Vector2(dir.x, dir.z).angle() - Vector2.RIGHT.angle()
-	var manifest: Array = receta.manifestaciones_en(Vector2(origen.x, origen.z), Vector2(dir.x, dir.z))
-	return _crear_campo(receta, data, elemento, origen, giro, manifest, receta.height)
-
-
 ## P2: el punto de activación del objeto que PARA este tramo (el último golpe, a la distancia a la que acaba el tramo, que
 ## reacciona al hechizo). Vector3.INF si el tramo acaba en una pared, en el alcance, o en un objeto sin punto propio.
 func _activacion_al_final(tramo: Dictionary) -> Vector3:
@@ -2002,18 +1985,6 @@ func _activacion_al_final(tramo: Dictionary) -> Vector3:
 	return Vector3.INF
 
 
-## P2: lo primero activable que cruza el haz de un chorro, de la mano hacia delante. Devuelve su punto de activación (o INF).
-func _activacion_en_haz(mano: Vector3, dir: Vector3, largo: float, rune: RuneData, hechizo: Hechizo = null) -> Vector3:
-	var espacio: PhysicsDirectSpaceState3D = mundo.get_world_3d().direct_space_state
-	for h in _rayo_areas(espacio, mano, dir, largo):
-		var obj: Node = h["obj"]
-		if not obj.has_method("punto_activacion") or not obj.has_method("on_spell_hit"):
-			continue
-		if not reacciona_a(obj, rune, dir, hechizo):
-			continue
-		return obj.call("punto_activacion")
-	return Vector3.INF
-
 
 ## Borra un nodo si sigue vivo. Se conecta con `.bind(weakref(nodo))`: una lambda que capture el nodo da error en el motor («Lambda capture at index 0 was freed») cuando
 ## muere antes que el temporizador (pruebas, cambio de escena), aunque la lambda compruebe `is_instance_valid`.
@@ -2023,21 +1994,12 @@ static func _borrar_si_vive(ref: WeakRef) -> void:
 		(n as Node).queue_free()
 
 
-## Un campo salió del árbol: cuenta una manifestación menos y se saca de `_campos`. Por referencias débiles (ver `_borrar_si_vive`): el lanzador puede haber muerto ya.
-static func _campo_terminado(lanzador_ref: WeakRef, campo_ref: WeakRef, cuenta: int) -> void:
+## Una burbuja salió del árbol: cuenta una manifestación menos. Por referencia débil (ver `_borrar_si_vive`): el lanzador puede haber muerto ya.
+static func _burbuja_terminada(lanzador_ref: WeakRef) -> void:
 	var l: Variant = lanzador_ref.get_ref()
 	if l == null:
 		return
-	(l as Lanzador3D).manifestaciones_vivas = maxi(0, (l as Lanzador3D).manifestaciones_vivas - cuenta)
-	var c: Variant = campo_ref.get_ref()
-	if c != null:
-		(l as Lanzador3D)._campos.erase(c)
-
-
-## Levanta un bloque de tierra por casilla (el anillo Vfx3D "corro" ya dibuja la tierra).
-func _levantar_tierra(celdas: Dictionary) -> void:
-	for c in celdas:
-		construir_tierra(c as Vector2i, false)
+	(l as Lanzador3D).manifestaciones_vivas = maxi(0, (l as Lanzador3D).manifestaciones_vivas - 1)
 
 
 func _despues(t: float, f: Callable) -> void:
@@ -2160,9 +2122,6 @@ func trazar(origen: Vector3, dir: Vector3, alcance: float, nivel: int, rune: Run
 ## `excepto` (24/10): el linaje de un HechizoVivo que pregunta desde dentro (el proyectil, D-6): se salta las solideces de SU propio lanzamiento para no chocar con el muro que él mismo levanta.
 ## `trazar` no pasa nada: ve todas, como siempre.
 func _barrera_en(p: Vector3, nivel: int, excepto: Object = null) -> bool:
-	for c in _campos:
-		if is_instance_valid(c) and (c as Campo).bloquea_a(p, nivel):
-			return true
 	var propia: Vector2i = celda_de((jugador as Node3D).position) if jugador != null else Vector2i(-99999, -99999)
 	for s in _solideces_v2:
 		if is_instance_valid(s) and not (excepto != null and (s as SolidezV2).linaje == excepto) and (s as SolidezV2).bloquea_a(p, nivel, propia):
@@ -2339,115 +2298,33 @@ func _nombre_de_objeto(obj: Node) -> String:
 
 
 ## =====================================================================================================
-##  Campos: lo que se queda (muros, corros, ondas, tierra, columnas) (4.1, 4.4)
+##  Burbuja de la barrera (Fase 12)
 ## =====================================================================================================
+## 13/11 (T9): aquí estaba el camino «Campo» (`_una_ola` → `_crear_campo`: muros, corros, ondas, columnas, tierra quieta…), que el juego ya no usaba desde R3 (17/10): lo que se queda lo hacen `HechizoVivo`,
+## `SolidezV2` y `ZonaV2`. Solo sobrevive la burbuja (`Burbuja`), como mecanismo sin glifo que la lance.
 
-## ¿Es la barrera quieta que te envuelve (cúpula)? Barrera sola o con elemento: ni flecha, ni pulso, ni línea, ni altura.
-func es_barrera_cupula(receta: Receta3D) -> bool:
-	return receta.spread and not receta.travels and not receta.line and not receta.pulse and receta.height <= 0
-
-
-## Cuánto vive el campo de esta receta (la barrera cúpula dura más: 6.3).
-func vida_campo(receta: Receta3D) -> float:
-	var v: float = receta.vida()
-	if es_barrera_cupula(receta):
-		v = maxf(v * MULT_VIDA_BARRERA, VIDA_MIN_BARRERA)
-	return v
+## Cuánto vive la burbuja: la barrera quieta dura el doble de lo normal, y como poco `VIDA_MIN_BARRERA`.
+func vida_burbuja(calidad: float = 1.0) -> float:
+	return maxf(Sigils.BASE_LIFETIME * Sigils.quality_factor(calidad) * MULT_VIDA_BARRERA, VIDA_MIN_BARRERA)
 
 
-func _crear_campo(receta: Receta3D, rune: RuneData, elemento: String, origen: Vector3, giro: float, manifest: Array,
-		nivel: int) -> int:
-	var factor: float = Sigils.quality_factor(receta.calidad)
-	var muro: bool = receta.es_barrera_movil()
-	var cupula: bool = es_barrera_cupula(receta)
-	var sigue: bool = receta.sigue() or cupula
-	var onda: bool = receta.expande()
-	var campo := Campo.new()
-	campo.lanz = self
-	campo.rune = rune
-	campo.elemento = elemento
-	campo.nivel = nivel
-	# 8.1 (decisión 3): la Barrera bloquea siempre; una Línea sin Barrera bloquea solo si el MATERIAL es sólido (tierra, hielo).
-	campo.bloquea = receta.blocks or (receta.usa_geo() and receta.line and (elemento == "tierra" or elemento == "hielo"))
-	campo.refleja = receta.blocks and receta.bounces > 0
-	campo.atrae = receta.pull
-	campo.atraviesa = receta.lifetime > 0.0
-	campo.viaja = muro
-	campo.vida = vida_campo(receta)
-	# 11.4: un chorro de AGUA es un manantial en cada casilla que toca, mientras dura el campo.
-	campo.caudal = CAUDAL_CHORRO_CELDA if elemento == "agua" and receta.usa_geo() and String(receta.geo()["nombre"]) == "chorro" else 0.0
-	campo.altura_barrera = receta.height
-	if cupula:
-		campo.burbuja = true
-		campo.bloquea = false            # los hechizos del propio jugador salen de dentro de la burbuja sin chocar con ella
-
-	# Centroide de cada dirección (una onda se abre desde el centro de lo suyo).
-	var suma := Vector2.ZERO
-	for m in manifest:
-		suma += (m["p"] as Vector2)
-	var centro2: Vector2 = suma / float(maxi(manifest.size(), 1))
-
-	var origen2 := Vector2(origen.x, origen.z)
-	var y_base: float = y_pies(celda_de(origen))
-	var cuenta: int = 0
-	if cupula:
-		# UNA esfera de RADIO_BURBUJA centrada en el jugador (+ ALTO_BURBUJA) que le sigue: sustituye al anillo de casillas del manifiesto
-		# (que además marcaba el suelo de alrededor con el elemento: la burbuja no toca el suelo hasta que revienta).
-		var centro_b: Vector3 = (jugador as Node3D).position + Vector3(0.0, ALTO_BURBUJA, 0.0)
-		campo.puntos.append(centro_b)
-		campo.vel.append(Vector3.ZERO)
-		campo.dirs.append(Vector3.ZERO)
-		campo.niveles.append(nivel)
-		campo.vivos.append(true)
-		campo.rel.append(Vector3(0.0, ALTO_BURBUJA, 0.0))
-		cuenta = 1
-	for m in (manifest if not cupula else []):
-		var rel: Vector2 = (m["p"] as Vector2).rotated(giro) * Terreno3D.casilla
-		var p2: Vector2 = origen2 + rel
-		var dir2: Vector2 = (m["dir"] as Vector2).rotated(giro)
-		var nivel_m: int = int(m.get("nivel", 0))
-		var elev: float = float(m.get("elev", 0.0))
-		var punto := Vector3(p2.x, y_base + Terreno3D.ALTO_NIVEL * (0.5 + float(nivel_m) + elev), p2.y)
-		var v := Vector3.ZERO
-		if muro:
-			v = Vector3(dir2.x, 0.0, dir2.y).normalized() * VEL_MURO * Terreno3D.casilla
-		elif onda:
-			var rad: Vector2 = ((m["p"] as Vector2) - centro2).rotated(giro)
-			if rad.length() < 0.001:
-				rad = dir2
-			v = Vector3(rad.x, 0.0, rad.y).normalized() * VEL_ONDA * Terreno3D.casilla
-		campo.puntos.append(punto)
-		campo.vel.append(v)
-		campo.dirs.append(Vector3(dir2.x, 0.0, dir2.y).normalized() if (muro or not receta.es_quieto()) else Vector3.ZERO)
-		campo.niveles.append(nivel_m)
-		campo.vivos.append(true)
-		campo.rel.append(punto - (jugador as Node3D).position)
-		cuenta += 1
-	if sigue:
-		campo.sigue = jugador as Node3D
-	mundo.add_child(campo)
-	_campos.append(campo)
-	_visual_campo(receta, elemento, origen, campo, muro, receta.blocks and receta.height > 0 and receta.spread and not onda)
-	campo.iniciar()
-	if cupula:
-		_proteger_con(campo)
-	manifestaciones_vivas += cuenta
-	campo.tree_exited.connect(Lanzador3D._campo_terminado.bind(weakref(self), weakref(campo), cuenta))
-
-	# Lo que construye: tierra quieta (un bloque por casilla) y columna (barrera + levitación).
-	var columna: bool = receta.blocks and receta.height > 0 and receta.spread and not onda
-	if columna:
-		_levantar_columna(campo, receta.vida(), 1, rune.color)
-	elif Materia.golpea(Materia.de(rune)) and receta.es_quieto() and not muro and not cupula:
-		var celdas: Dictionary = {}
-		for pt in campo.puntos:
-			celdas[celda_de(pt as Vector3)] = true
-		var levantar: Callable = _levantar_tierra.bind(celdas)       # método del lanzador, no lambda: si el lanzador muere antes, el motor suelta la conexión sin error
-		if onda:
-			_despues(T_CRECE, levantar)          # barrera + pulso: el anillo crece y los bloques aparecen al llegar
-		else:
-			levantar.call()
-	return cuenta
+## Levanta la burbuja de `elemento` sobre la jugadora: UNA esfera de RADIO_BURBUJA centrada en ella (+ ALTO_BURBUJA) que le sigue. No bloquea los hechizos de la propia jugadora (salen de dentro sin chocar).
+## La nueva sustituye a la vieja (`_proteger_con`). Hoy no la lanza ningún glifo: la usan `prueba_barrera` y `prueba_canouro_v2` para medir el mecanismo.
+func levantar_burbuja(rune: RuneData, elemento: String, calidad: float = 1.0) -> Burbuja:
+	var b := Burbuja.new()
+	b.lanz = self
+	b.rune = rune
+	b.elemento = elemento
+	b.vida = vida_burbuja(calidad)
+	b.name = "Burbuja_" + elemento
+	b.punto = (jugador as Node3D).position + Vector3(0.0, ALTO_BURBUJA, 0.0)
+	b.sigue = jugador as Node3D
+	mundo.add_child(b)
+	_visual_burbuja(elemento, b)
+	_proteger_con(b)
+	manifestaciones_vivas += 1
+	b.tree_exited.connect(Lanzador3D._burbuja_terminada.bind(weakref(self)))
+	return b
 
 
 ## =====================================================================================================
@@ -2531,85 +2408,38 @@ func impacto_filtrado(elemento: String, punto: Vector3) -> void:
 	al_impactar(elemento, punto)
 
 
-## El dibujo de lo que se queda: UNA llamada a Vfx3D.lanzar_forma por hechizo (columna: una por casilla).
-func _visual_campo(receta: Receta3D, elemento: String, origen: Vector3, campo: Node3D, muro: bool, columna: bool) -> void:
-	var c3: Campo = campo as Campo
-	if fx == null or not Vfx3D.ELEMENTOS.has(elemento) or c3.puntos.is_empty():
+## El dibujo de la burbuja: la CÚPULA de Vfx3D sobre la jugadora, que le sigue y dura lo que la burbuja.
+func _visual_burbuja(elemento: String, b: Burbuja) -> void:
+	if fx == null or not Vfx3D.ELEMENTOS.has(elemento):
 		return
-	var centro := Vector3.ZERO
-	for p in c3.puntos:
-		centro += p as Vector3
-	centro /= float(c3.puntos.size())
-	var radio: float = 0.0
-	for p in c3.puntos:
-		radio = maxf(radio, Vector2((p as Vector3).x - centro.x, (p as Vector3).z - centro.z).length())
+	var origen: Vector3 = (jugador as Node3D).position
+	var centro: Vector3 = b.punto
 	var pie_o := Vector3(origen.x, y_pies(celda_de(origen)), origen.z)
 	var pie_c := Vector3(centro.x, y_pies(celda_de(centro)), centro.z)
-	var dura: float = vida_campo(receta)
-	if bool(receta.geo().get("envuelve", false)) and not receta.line:
-		radio = float(receta.geo()["radio_envuelve"]) * Terreno3D.casilla    # la banda de casillas es más ancha que la forma dibujada
-	if columna:
-		return                                 # lo dibuja _levantar_columna casilla a casilla
-	if receta.usa_geo() and String(receta.geo()["nombre"]) == "chorro":
-		# Línea sola: HAZ desde la mano hacia delante, del largo de la geometría y con la vida del campo.
-		var dh: Vector3 = pie_c - pie_o
-		dh.y = 0.0
-		if dh.length() < 0.01:
-			dh = Vector3(0, 0, 1)
-		var largo_m: float = float(receta.geo()["largo"]) * Terreno3D.casilla
-		# Vfx3D multiplica `largo` por su `escala`: se divide aquí para que el haz dibujado mida lo que sus casillas.
-		var esc: float = maxf(float(fx.get("escala")), 0.01)
-		var dir_h: Vector3 = dh.normalized()
-		var fin_h: Vector3 = pie_o + dir_h * largo_m
-		# P2: si el haz da en algo activable, acaba en su punto de activación (largo recortado y altura de la punta en `y` del destino).
-		var y_vuelo: float = y_pies(celda_de(origen)) + Terreno3D.ALTO_NIVEL * 0.5 * float(1 + c3.nivel)
-		var p_act: Vector3 = _activacion_en_haz(Vector3(origen.x, y_vuelo, origen.z), dir_h, largo_m, c3.rune)
-		if p_act != Vector3.INF:
-			largo_m = clampf((p_act - pie_o).dot(dir_h), Terreno3D.casilla * 0.5, largo_m)
-			fin_h = Vector3(pie_o.x + dir_h.x * largo_m, p_act.y, pie_o.z + dir_h.z * largo_m)
-		fx.lanzar_forma("chorro", elemento, pie_o, fin_h, {"largo": largo_m / esc, "dura": dura})
-	elif muro or receta.line:
-		# Barrera que avanza (barrera + flecha) o muro de `linea`: MURO, con la duración real del campo.
-		var d: Vector3 = (c3.dirs[0] as Vector3) if not c3.dirs.is_empty() else Vector3.ZERO
-		if d.length() < 0.01:
-			d = pie_c - pie_o
-			d.y = 0.0
-		if d.length() < 0.01:
-			d = Vector3(0, 0, 1)
-		fx.lanzar_forma("muro", elemento, pie_c - d.normalized() * 1.0, pie_c, {"radio": clampf(radio, 0.6, 3.0), "dura": dura})
-	else:
-		if receta.expande():
-			# barrera + pulso (6.4): el ANILLO (de piedra, si es tierra) NACE en ti y CRECE hasta su radio. `crece` y `rompe`
-			# son opciones nuevas pedidas al Pipeline (6.17); mientras no las lea, el anillo sale ya en su radio.
-			var dura_corro: float = DURACION_TIERRA if elemento == "tierra" else minf(dura, 3.0)
-			fx.lanzar_forma("corro", elemento, pie_o, pie_c, {"radio": clampf(radio, 0.6, 3.5), "dura": dura_corro,
-				"crece": true, "t_crece": T_CRECE, "rompe": elemento == "tierra" or elemento == "hielo"})
-		else:
-			# Barrera quieta (6.3, 6.4): CÚPULA que envuelve al personaje y LE SIGUE; la de tierra es de bloques. Vive lo que el campo.
-			var antes: Array = fx.get_children()
-			# Burbuja: el radio REAL (RADIO_BURBUJA, el de la colisión). Vfx3D multiplica `radio` por su `escala`, de ahí la división.
-			# Mientras el Pipeline no tenga la forma "burbuja" se pide la "cupula" de siempre; cuando exista se usa sola (FORMAS).
-			var esc_b: float = maxf(float(fx.get("escala")), 0.01)
-			var forma_b: String = "burbuja" if Vfx3D.FORMAS.has("burbuja") else "cupula"
-			fx.lanzar_forma(forma_b, elemento, pie_o, pie_c, {"radio": RADIO_BURBUJA / esc_b, "dura": dura,
-				"rompe": elemento == "tierra" or elemento == "hielo"})
-			for h in fx.get_children():
-				if antes.has(h) or not (h is Node3D) or h is Light3D:
-					continue
-				# La raíz de la cúpula nace en el centro pedido y lleva mallas (esfera de shader o, en tierra, piedras).
-				var d_xz := Vector2((h as Node3D).position.x - pie_c.x, (h as Node3D).position.z - pie_c.z)
-				if d_xz.length() < 0.05 and not (h as Node).find_children("*", "MeshInstance3D", true, false).is_empty():
-					c3.visual = h as Node3D
-					c3.visual_rel = (h as Node3D).position - (jugador as Node3D).position
-					break
+	var antes: Array = fx.get_children()
+	# Burbuja: el radio REAL (RADIO_BURBUJA, el de la colisión). Vfx3D multiplica `radio` por su `escala`, de ahí la división.
+	# Mientras el Pipeline no tenga la forma "burbuja" se pide la "cupula" de siempre; cuando exista se usa sola (FORMAS).
+	var esc_b: float = maxf(float(fx.get("escala")), 0.01)
+	var forma_b: String = "burbuja" if Vfx3D.FORMAS.has("burbuja") else "cupula"
+	fx.lanzar_forma(forma_b, elemento, pie_o, pie_c, {"radio": RADIO_BURBUJA / esc_b, "dura": b.vida,
+		"rompe": elemento == "tierra" or elemento == "hielo"})
+	for h in fx.get_children():
+		if antes.has(h) or not (h is Node3D) or h is Light3D:
+			continue
+		# La raíz de la cúpula nace en el centro pedido y lleva mallas (esfera de shader o, en tierra, piedras).
+		var d_xz := Vector2((h as Node3D).position.x - pie_c.x, (h as Node3D).position.z - pie_c.z)
+		if d_xz.length() < 0.05 and not (h as Node).find_children("*", "MeshInstance3D", true, false).is_empty():
+			b.visual = h as Node3D
+			b.visual_rel = (h as Node3D).position - (jugador as Node3D).position
+			break
 
 
 ## La burbuja protege: una a la vez (la nueva sustituye a la vieja, que se va sin reventar) y el jugador se la apunta para parar golpes.
 ## 16/10: ya no hay escudo de vida ni «×1,5 por barrera repetida» (8.5): la burbuja para UN impacto y revienta; repetirla es una nueva.
-func _proteger_con(campo: Node3D) -> void:
-	if _barrera_activa != null and is_instance_valid(_barrera_activa) and _barrera_activa != campo:
+func _proteger_con(burbuja: Burbuja) -> void:
+	if _barrera_activa != null and is_instance_valid(_barrera_activa) and _barrera_activa != burbuja:
 		_barrera_activa.queue_free()
-	_barrera_activa = campo as Campo
+	_barrera_activa = burbuja
 
 
 ## ¿Hay una barrera viva que pueda parar este golpe? La llama Jugador3D.recibir_dano.
@@ -2956,39 +2786,6 @@ func _deshacer_bloque(b: Dictionary) -> void:
 	tierra_deshecha.emit(b["celda"] as Vector2i)
 
 
-## Columna de barrera + levitación: sólida, subible (hasta 2 niveles) y bloquea proyectiles. Dura lo que el campo.
-func _levantar_columna(campo: Node3D, duracion: float, niveles: int, color: Color) -> void:
-	var celdas: Dictionary = {}
-	for pt in (campo as Campo).puntos:
-		var c: Vector2i = celda_de(pt as Vector3)
-		if not en_mapa(c) or es_agua(c) or bloqueada(c) \
-				or jugador != null and bool(jugador.call("ocupa", c)):
-			continue
-		celdas[c] = true
-	for c in celdas:
-		var caja := BoxMesh.new()
-		caja.size = Vector3(Terreno3D.casilla * 0.9, Terreno3D.ALTO_NIVEL * float(niveles), Terreno3D.casilla * 0.9)
-		var mat := StandardMaterial3D.new()
-		mat.albedo_color = Color(color.lightened(0.3), 0.55)
-		mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-		mat.roughness = 0.4
-		caja.material = mat
-		var mi := MeshInstance3D.new()
-		mi.mesh = caja
-		mi.name = "ColumnaBarrera"
-		mi.position = centro_de(c as Vector2i, Terreno3D.alto_suelo + Terreno3D.ALTO_NIVEL * float(niveles) * 0.5)
-		mundo.add_child(mi)
-		_columnas.append({"celda": c, "niveles": niveles, "resta": duracion, "nodo": mi})
-		if fx != null and Vfx3D.ELEMENTOS.has(Objetos.elemento_de(campo_rune(campo))):
-			var pie_c := Vector3(centro_de(c as Vector2i).x, y_pies(c as Vector2i), centro_de(c as Vector2i).z)
-			fx.lanzar_forma("columna", Objetos.elemento_de(campo_rune(campo)), pie_c, pie_c, {"dura": minf(duracion, 3.0)})
-		_recalcular(c as Vector2i)
-
-
-func campo_rune(campo: Node3D) -> RuneData:
-	return (campo as Campo).rune
-
-
 ## alturas[c] = lo más alto entre lo permanente, la tierra y las columnas de esa casilla.
 func _recalcular(c: Vector2i) -> void:
 	var n: int = int(Terreno3D.permanentes.get(c, 0))
@@ -3125,7 +2922,7 @@ func clear_sequence() -> void:
 ## tres semiejes. «Muro» es X grande, «pilar» es Y grande, «haz» es Z grande. El nombre se DERIVA al final, y solo para elegir la animación
 ## de lanzar, el cast point y el VFX (`nombre_derivado`).
 ##
-## `g` es lo que devuelve `Sigils.aplicar_v2` ({x, y, z: semiejes en casillas, props}). Marco local, orientado a la mirada:
+## `g` es lo que devuelve `Hechizo.geo()` ({x, y, z: semiejes en casillas, props, …}). Marco local, orientado a la mirada:
 ## Z = hacia delante, X = de lado, Y = arriba. NACE EN LA MANO y QUIETO: el elipsoide se estira hacia delante manteniendo su
 ## extremo de atrás a RADIO_BASE_V2 de la mano, es decir, su centro se adelanta (z − radio base) casillas. Con los tres ejes en el radio
 ## base (sin glifos) es una esfera de una casilla de diámetro centrada en la mano.
@@ -3149,20 +2946,9 @@ class GeometriaV2 extends RefCounted:
 		return float(g["z"]) - Sigils.RADIO_BASE_V2
 
 	## ¿Es una barrera con forma de muro? (ᛜ + algún ᛁ: la clave `muro` de `Hechizo.geo()`, que cuenta glifos; ᚷ y la carga también agrandan los semiejes y no hacen muro).
-	## Sin esa clave (el camino antiguo `aplicar_v2`, el VFX de hoy) no es muro.
+	## Sin esa clave (un `g` que no sale de `Hechizo.geo()`) no es muro.
 	static func es_muro(g: Dictionary) -> bool:
 		return (g.get("props", {}) as Dictionary).has("solidez") and bool(g.get("muro", false))
-
-	## La geometría de una receta: lo de Sigils.aplicar_v2 más lo que el resto del Lanzador pregunta a `Receta3D.geo()`.
-	static func evaluar(contadores: Dictionary) -> Dictionary:
-		var g: Dictionary = Sigils.aplicar_v2(contadores)
-		var viaja: bool = float((g["props"] as Dictionary).get("viaja", 0.0)) > 0.0
-		g["nombre"] = nombre_derivado(g, viaja)
-		g["viaja"] = viaja
-		g["y_tope"] = niveles(g) - 1                    # niveles que sube por encima del suelo (como en GeometriaHechizo)
-		g["valida"] = true                              # R1: el tope de pisar (MAX_NIVELES_SUBIBLES) se decide con la materia (F2)
-		g["aviso"] = ""
-		return g
 
 	## Volumen del elipsoide, en casillas cúbicas.
 	static func volumen(g: Dictionary) -> float:
@@ -3234,12 +3020,14 @@ class GeometriaV2 extends RefCounted:
 
 
 ## =====================================================================================================
-##  Receta en 3D: lee SpellRecipe sin tocarla
+##  Receta en 3D: contadores + calidad → Hechizo
 ## =====================================================================================================
 
-class Receta3D extends SpellRecipe:
+## 13/11 (T9): ya NO hereda de `SpellRecipe` (la receta 2D de `spellcaster.gd`). Se retiró con el camino «Campo» (`_una_ola`, `_crear_campo`) y `_sincronizar`: nadie leía ya sus campos antiguos
+## (`travels`, `spread`, `blocks`, `height`, `copies`, `bounces`, `pulse`, `lifetime`…). Lo que sigue en pie es el adaptador: contadores + calidad → `Hechizo`.
+class Receta3D extends RefCounted:
 	## R3 (17/10): la receta V2 es la ÚNICA. Desaparecen `antigua`, el interruptor `V2`, `GLIFOS_GEO` y las siete ramas con nombre de
-	## GeometriaHechizo: los contadores van directos a `Sigils.aplicar_v2` y `geo()` es `GeometriaV2`.
+	## GeometriaHechizo: los contadores van directos a `Hechizo.construir` y `geo()` sale del `Hechizo`.
 
 	## Glifos aparcados (17/10): se pueden dibujar sin romper nada, pero aún no hacen nada. La receta los apunta en `ignorados` y el
 	## Lanzador avisa «Aún sin uso».
@@ -3255,11 +3043,17 @@ class Receta3D extends SpellRecipe:
 	## `Hechizo._aplicar_orden` para los pares con significado (`Hechizo.ORDEN_PARES`).
 	var orden: Array[String] = []
 
-	## Se conserva porque el resto del Lanzador (campos antiguos, `_spread_points`) lo lee; en la V2 nunca vale true.
-	var line: bool = false
+	## Segundos de recarga de la página (el mayor de sus glifos, más `STACK_COOLDOWN` por cada repetido): `Sigils.cooldown_v2`.
+	var cooldown: float = 0.0
 
-	## Un glifo suma a su contador y la recarga sale de la tabla. No pasa por SpellRecipe.apply: la V2 no usa FORM/OPERATOR.
-	## `levitacion` (ᛏ) vale como `altura` (Sigils.ALIAS_V2): ya no tiene significado propio.
+	## Calidad del trazo, de 0 (justo aceptado) a 1 (limpio). La pone quien lanza.
+	var calidad: float = 1.0
+
+	## El parámetro (la dirección del sector de la receta 2D) se conserva porque muchos sitios escriben `Receta3D.new(Vector2.RIGHT)`; no se lee.
+	func _init(_sector: Vector2 = Vector2.RIGHT) -> void:
+		pass
+
+	## Un glifo suma a su contador y la recarga sale de la tabla. `levitacion` (ᛏ) vale como `altura` (Sigils.ALIAS_V2): ya no tiene significado propio.
 	func apply(sigil_name: String) -> void:
 		_h = null                                          # H1: el Hechizo cacheado ya no vale
 		var nombre: String = Sigils.glifo_v2(sigil_name)
@@ -3269,7 +3063,6 @@ class Receta3D extends SpellRecipe:
 			cooldown = Sigils.cooldown_v2(contadores)
 		else:
 			ignorados.append(sigil_name)
-		_sincronizar()
 
 	## H1 (29/10, PLAN_SISTEMA_HECHIZOS): `Receta3D` es un ADAPTADOR «contadores + calidad → Hechizo». Guarda UN `Hechizo` (`_h`) y coste, nº de glifos, tamaño, geometría y forma salen de él: no hay
 	## cálculo paralelo. Se rehace solo si cambian los contadores (`apply` lo invalida), la calidad o la runa que se pide. Sin runa pedida aún se construye `Hechizo.construir(null, ...)`;
@@ -3324,64 +3117,14 @@ class Receta3D extends SpellRecipe:
 		var g: Dictionary = geo()
 		return Sigils.coste_v2(g, g["props"])
 
-	## Siempre true: no hay otro camino. Se deja por los que aún preguntan.
-	func usa_geo() -> bool:
-		return true
-
-	## La geometría de esta receta: la del `Hechizo` (`Hechizo.geo()`, mismo formato que `GeometriaV2.evaluar`). Devuelve una copia nueva cada vez.
+	## La geometría de esta receta: la del `Hechizo` (`Hechizo.geo()`: {x, y, z, props, x_glifos, z_glifos, nombre, viaja, y_tope, valida, aviso}). Devuelve una copia nueva cada vez.
 	func geo() -> Dictionary:
 		return _actual().geo()
-
-	## Los indicadores antiguos (los lee el resto del Lanzador) se derivan de los números de la receta; cada uno sale de UNA propiedad o eje.
-	## Solo los lee el camino «Campo» (`_crear_campo`, `es_barrera_cupula`, `_una_ola`, `prueba_barrera`, `guardian_barrera_3d`): pendiente de retirar con él (PENDIENTES, Hechizos).
-	## Va por `GeometriaV2.evaluar` (la cuenta antigua) y NO por el `Hechizo`: así `apply` no construye nada y el libro construye una sola vez.
-	func _sincronizar() -> void:
-		var g: Dictionary = GeometriaV2.evaluar(contadores)
-		var props: Dictionary = g["props"]
-		travels = bool(g["viaja"])
-		reach = 1 if travels else 0
-		spread = float(g["x"]) > Sigils.RADIO_BASE_V2 or float(g["z"]) > Sigils.RADIO_BASE_V2
-		line = false
-		blocks = props.has("solidez")
-		height = int(g["y_tope"])
-		barriers = 0
-		copies = int(props.get("copias", 1.0))
-		bounces = int(props.get("rebotes", 0.0))
-		pulse = props.has("crece")
-		lifetime = 0.0
-
-	## Muro quieto delante del lanzador (solo para los campos antiguos de las pruebas de burbuja).
-	func _spread_points(centros: Array, dir: Vector2) -> Array:
-		if not line or travels:
-			return super._spread_points(centros, dir)
-		var salida: Array = []
-		var perp := dir.orthogonal()
-		var mitad: int = Sigils.wall_half(barriers)
-		for centro in centros:
-			for k in range(-mitad, mitad + 1):
-				salida.append(centro + dir * TILE * 1.5 + perp * TILE * float(k))
-		return salida
-
-	## ¿Es un muro (de línea o de barrera + flecha)?
-	func es_muro() -> bool:
-		return line or _es_barrera_movil()
 
 	## Nombre DERIVADO de las medidas (x_mano · alto · abajo): lo único que se usa para elegir cast point y animación (LAB_CASTPOINT.md).
 	## Ya no es una forma con nombre en la lógica: sale de qué eje domina y de si viaja.
 	func forma() -> String:
 		return String(geo()["nombre"])
-
-	func es_volador() -> bool:
-		return _es_volador()
-
-	func es_barrera_movil() -> bool:
-		return _es_barrera_movil()
-
-	func es_quieto() -> bool:
-		return _es_quieto()
-
-	func sigue() -> bool:
-		return false
 
 	## PUENTE TEMPORAL: Vfx3D y el clip de lanzar de Pj3D (Pipeline) solo conocen las formas de siempre. Cada nombre derivado se traduce al
 	## clip más parecido que ya existe hasta que el Pipeline adopte x_mano/alto/abajo (ver diario, entrada de R3):
@@ -3394,105 +3137,39 @@ class Receta3D extends SpellRecipe:
 				return "corro"
 		return "proyectil"
 
-	func expande() -> bool:
-		return _expande()
-
-	## Cuánto vive lo que se queda (segundos de juego). Las mismas cuentas que SpellRecipe._construir.
-	func vida() -> float:
-		var factor: float = Sigils.quality_factor(calidad)
-		var v: float = (Sigils.BASE_LIFETIME + lifetime) * factor
-		if _es_barrera_movil():
-			v = Sigils.WALL_LIFETIME * factor
-		elif _es_chorro():
-			v = (Sigils.BASE_LIFETIME + lifetime + Sigils.jet_hold(reach)) * factor
-		return v
-
-	## El elemento con el daño potenciado (sin tocar el .tres compartido).
-	func potenciada(element: RuneData) -> RuneData:
-		return _powered(element)
-
-	## Las manifestaciones en CASILLAS relativas al origen y con la dirección del eje +X como «delante»: [{p, dir, nivel, elev}].
-	func manifestaciones() -> Array:
-		var c := Vector2(0.5, 0.5) * Terreno3D.casilla      # origen en el centro de una casilla: sin sesgo de rejilla
-		return manifestaciones_en(c, Vector2.RIGHT)
-
-	## Las casillas del volumen para un lanzamiento real. `origen` es el mundo (x, z) en metros y `dir` la mirada. Rasteriza el elipsoide y lo
-	## apila `niveles` veces. Devuelve casillas relativas al origen en el marco donde +X es «delante».
-	func manifestaciones_en(origen: Vector2, dir: Vector2) -> Array:
-		var res: Array = []
-		var g: Dictionary = geo()
-		var d: Vector2 = dir.normalized() if dir.length() > 0.001 else Vector2.RIGHT
-		var giro: float = d.angle()
-		var cas: float = Terreno3D.casilla
-		var niveles_g: int = GeometriaV2.niveles(g)
-		for c in GeometriaV2.celdas(g, origen, d, cas):
-			var centro := Vector2((float((c as Vector2i).x) + 0.5) * cas, (float((c as Vector2i).y) + 0.5) * cas)
-			var local: Vector2 = ((centro - origen) / cas).rotated(-giro)
-			for nivel in range(niveles_g):
-				res.append({"p": local, "dir": Vector2.RIGHT, "nivel": nivel, "elev": 0.0})
-		if res.size() > Sigils.MAX_MANIFESTATIONS:
-			res.resize(Sigils.MAX_MANIFESTATIONS)
-		return res
-
 
 ## =====================================================================================================
-##  Campo: un conjunto de puntos del mismo hechizo que viven un rato
+##  Burbuja: la esfera de la barrera (Fase 12) que sigue a la jugadora y revienta al primer impacto
 ## =====================================================================================================
 
-class Campo extends Node3D:
+## 13/11 (T9): lo único que queda de la antigua clase `Campo` (muros, corros, ondas y columnas que se movían y golpeaban punto a punto): ese camino se retiró y la burbuja se quedó como MECANISMO
+## sin receta que la lance (R3, 17/10: «barrera» ya es la propiedad `solidez` de un volumen, `SolidezV2`), a la espera de que Pablo decida qué glifo la devuelve. Se levanta con `Lanzador3D.levantar_burbuja`.
+class Burbuja extends Node3D:
 	var lanz: Lanzador3D = null
 	var rune: RuneData = null
 	var elemento: String = ""
-	var nivel: int = 0
-	var bloquea: bool = false
-	var refleja: bool = false
-	var atrae: bool = false
-	var atraviesa: bool = false
-	var viaja: bool = false
-	var altura_barrera: int = 0
 	var vida: float = 1.0
-	var caudal: float = 0.0          ## u³/s que aporta cada casilla tocada al agua de la simulación (chorro de agua, 11.4)
-	var sigue: Node3D = null
+	var sigue: Node3D = null         ## a quién sigue (la jugadora)
 	var visual: Node3D = null        ## la cúpula de Vfx3D, que se mueve con el jugador (6.3)
 	var visual_rel: Vector3 = Vector3.ZERO
-	var burbuja: bool = false        ## es la barrera-burbuja (Fase 12): una esfera que sigue al jugador y revienta al primer impacto
+	var punto: Vector3 = Vector3.ZERO    ## el centro cuando no hay nadie a quien seguir (y el último que tuvo)
 	var reventada: bool = false      ## ya ha reventado (ya no para nada, y solo se va a liberar al final del fotograma)
 	var reaccion: String = ""        ## qué reacción hubo al reventar («vapor», «charco», «absorbe» o «»): para las pruebas y el diario
-	var _t_vigia: float = 0.0        ## s hasta volver a mirar el mundo (fuego y electricidad) alrededor de la burbuja
-
-	var puntos: Array = []          ## Vector3
-	var vel: Array = []             ## Vector3
-	var dirs: Array = []            ## Vector3 (ZERO si quieto)
-	var niveles: Array = []         ## int: piso de la columna
-	var vivos: Array = []           ## bool
-	var rel: Array = []             ## Vector3 respecto al jugador (para lo que te sigue)
-
 	var _t: float = 0.0
-	var _golpeados: Dictionary = {}
-	var _celdas: Dictionary = {}
-	var _forma: SphereShape3D = null
+	var _t_vigia: float = 0.0        ## s hasta volver a mirar el mundo (fuego y electricidad) alrededor de la burbuja
 
 	## Se emite al reventar la burbuja: con qué elemento ("" = golpe/flecha normal), dónde y qué reacción hubo.
 	signal revento(recibido: String, punto: Vector3, reaccion: String)
-
-	func iniciar() -> void:
-		_forma = SphereShape3D.new()
-		_forma.radius = Lanzador3D.RADIO_GOLPE * Terreno3D.casilla
-		name = "Campo_" + elemento
-		if burbuja:
-			return                          # la burbuja no marca el suelo de alrededor: solo lo toca al reventar
-		for i in range(puntos.size()):
-			_marcar_suelo(puntos[i] as Vector3)
 
 	## El centro de la esfera: el jugador + ALTO_BURBUJA (o el punto fijo si no hay jugador al que seguir).
 	func centro() -> Vector3:
 		if sigue != null and is_instance_valid(sigue):
 			return sigue.position + Vector3(0.0, Lanzador3D.ALTO_BURBUJA, 0.0)
-		return puntos[0] as Vector3 if not puntos.is_empty() else global_position
+		return punto
 
 	## ¿Está `p` dentro de la esfera? (solo una burbuja viva, que no haya reventado, contiene algo).
 	func contiene(p: Vector3) -> bool:
-		return burbuja and not reventada and p.distance_to(centro()) <= Lanzador3D.RADIO_BURBUJA
+		return not reventada and p.distance_to(centro()) <= Lanzador3D.RADIO_BURBUJA
 
 	## El punto de la esfera que mira hacia `desde` (a la altura del centro): donde se dibuja y se calcula lo que impactó.
 	func punto_hacia(desde: Vector3) -> Vector3:
@@ -3506,20 +3183,20 @@ class Campo extends Node3D:
 	##   · salpicadura de SU elemento por la fachada (`Mundo3D.avisar_impacto`: la maqueta decide qué pinta y suena);
 	##   · la REACCIÓN entre los dos elementos (Lanzador3D.REACCIONES_BURBUJA) como una AccionElemental en el punto;
 	##   · regla del 8/10 intacta: si hubo atacante, la burbuja le devuelve SU elemento (sin daño: el golpe ya lo ha parado ella).
-	## Devuelve true si ha reventado ahora; false si no es una burbuja o ya había reventado (el segundo impacto no la encuentra).
-	func reventar(recibido: String, punto: Vector3, atacante: Combate3D = null) -> bool:
-		if not burbuja or reventada:
+	## Devuelve true si ha reventado ahora; false si ya había reventado (el segundo impacto no la encuentra).
+	func reventar(recibido: String, impacto: Vector3, atacante: Combate3D = null) -> bool:
+		if reventada:
 			return false
 		reventada = true
 		if Mundo3D.actual != null:
-			Mundo3D.actual.avisar_impacto(punto, elemento, Lanzador3D.RADIO_BURBUJA)
-		reaccion = Lanzador3D.reaccion_burbuja(elemento, recibido, punto)
+			Mundo3D.actual.avisar_impacto(impacto, elemento, Lanzador3D.RADIO_BURBUJA)
+		reaccion = Lanzador3D.reaccion_burbuja(elemento, recibido, impacto)
 		if atacante != null:
 			lanz.aplicar_elemento(atacante, elemento)
 		Combate3D.flotante(lanz.mundo, centro() + Vector3(0.0, 1.5, 0.0), "¡Revienta!", Color(0.6, 0.9, 1.0))
 		PlayLog.event("barrera_revienta", {"elemento": elemento, "recibido": recibido, "reaccion": reaccion,
-			"punto": [snappedf(punto.x, 0.1), snappedf(punto.z, 0.1)]})
-		revento.emit(recibido, punto, reaccion)
+			"punto": [snappedf(impacto.x, 0.1), snappedf(impacto.z, 0.1)]})
+		revento.emit(recibido, impacto, reaccion)
 		queue_free()
 		return true
 
@@ -3554,38 +3231,16 @@ class Campo extends Node3D:
 					reventar("fuego", Vector3(ph.x, c0.y, ph.z))
 					return
 
-	## ¿Esta barrera frena a algo que vuela por `p` a nivel `n`? Lo que levita más alto que ella pasa por encima.
-	func bloquea_a(p: Vector3, n: int) -> bool:
-		if not bloquea or n > altura_barrera:
-			return false
-		var r2: float = pow(Lanzador3D.RADIO_GOLPE * Terreno3D.casilla * 1.15, 2.0)
-		for i in range(puntos.size()):
-			if bool(vivos[i]):
-				var q: Vector3 = puntos[i]
-				if (q.x - p.x) * (q.x - p.x) + (q.z - p.z) * (q.z - p.z) <= r2:
-					return true
-		return false
-
-	func _marcar_suelo(p: Vector3) -> void:
-		var c: Vector2i = Lanzador3D.celda_de(p)
-		if _celdas.has(c) or not Lanzador3D.en_mapa(c):
-			return
-		_celdas[c] = true
-		lanz.marcar_celda(elemento, c)
-		if caudal > 0.0:
-			Mundo3D.aplicar_accion(AccionElemental.nueva("agua", Terreno3D.centro_de(c), 0.0, caudal, maxf(vida - _t, 0.1)))   # M3: un manantial mientras dura
-
 	## Un golpe o una flecha de un enemigo contra la burbuja (lo llama Jugador3D.recibir_dano): la burbuja revienta con él y el daño no
-	## llega. Devuelve true si lo ha parado. Los demás campos (muros, corros…) no paran golpes. `_cantidad`: ya no cuenta, la burbuja
-	## para UN impacto sea del tamaño que sea (antes había un escudo de 60 puntos).
+	## llega. Devuelve true si lo ha parado. `_cantidad`: ya no cuenta, la burbuja para UN impacto sea del tamaño que sea (antes había un escudo de 60 puntos).
 	func absorber(_cantidad: float, desde: Vector3) -> bool:
-		if not burbuja or reventada:
+		if reventada:
 			return false
 		return reventar("", punto_hacia(desde), lanz.atacante_en(desde))
 
 	func _exit_tree() -> void:
 		if visual != null and is_instance_valid(visual):
-			visual.queue_free()               # la cúpula desaparece cuando se rompe o caduca el campo
+			visual.queue_free()               # la cúpula desaparece cuando se rompe o caduca la burbuja
 
 	func _physics_process(delta: float) -> void:
 		_t += delta
@@ -3594,56 +3249,13 @@ class Campo extends Node3D:
 		if _t >= vida:
 			queue_free()                    # sin tocarla, la burbuja se desvanece: NO revienta (ni salpica ni reacciona)
 			return
-		if burbuja:
-			if reventada:
-				return
-			puntos[0] = centro()
-			_t_vigia -= delta
-			if _t_vigia <= 0.0:
-				_t_vigia = 0.1
-				_vigilar_mundo()
+		if reventada:
 			return
-		var espacio: PhysicsDirectSpaceState3D = lanz.mundo.get_world_3d().direct_space_state
-		var algun_vivo: bool = false
-		for i in range(puntos.size()):
-			if not bool(vivos[i]):
-				continue
-			var p: Vector3 = puntos[i]
-			if sigue != null and is_instance_valid(sigue):
-				p = sigue.position + (rel[i] as Vector3) + Vector3(0, sin(_t * 4.0 + float(i)) * 0.08, 0)
-			else:
-				p += (vel[i] as Vector3) * delta
-			var c: Vector2i = Lanzador3D.celda_de(p)
-			if viaja or (vel[i] as Vector3) != Vector3.ZERO:
-				if Lanzador3D.celda_solida(c, nivel):
-					# Se detiene contra lo sólido, pero ANTES lo golpea: una barrera de fuego, una telaraña o un goblin
-					# tras una casilla bloqueada tienen que notar el muro o la onda que se les echa encima.
-					_golpear(espacio, p, dirs[i] as Vector3)
-					vivos[i] = false
-					continue
-			puntos[i] = p
-			algun_vivo = true
-			_marcar_suelo(p)
-			_golpear(espacio, p, dirs[i] as Vector3)
-		if not algun_vivo:
-			queue_free()
-
-	func _golpear(espacio: PhysicsDirectSpaceState3D, p: Vector3, dir: Vector3) -> void:
-		var q := PhysicsShapeQueryParameters3D.new()
-		q.shape = _forma
-		q.transform = Transform3D(Basis.IDENTITY, p)
-		q.collision_mask = Lanzador3D.CAPA_REACTIVO
-		q.collide_with_areas = true
-		q.collide_with_bodies = false
-		for r in espacio.intersect_shape(q, 16):
-			var obj: Object = r["collider"]
-			if not (obj is Node) or _golpeados.has(obj):
-				continue
-			var nv: int = int((obj as Node).call("nivel_altura")) if (obj as Node).has_method("nivel_altura") else 1
-			if nv < nivel and not atrae:
-				continue
-			_golpeados[obj] = true
-			lanz._golpear(obj as Node, rune, dir, p, nivel, atrae, p)
+		punto = centro()
+		_t_vigia -= delta
+		if _t_vigia <= 0.0:
+			_t_vigia = 0.1
+			_vigilar_mundo()
 
 
 ## =====================================================================================================

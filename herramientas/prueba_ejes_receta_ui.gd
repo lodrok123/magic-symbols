@@ -38,7 +38,7 @@ func _correr() -> void:
 	_ok(d == Vector3(3.0, 2.0, 2.5), "ᛁᛁ + ᛏ + ᛁ vertical = 3·2·2,5 (%s)" % str(d))
 	_ok(EjesRecetaUi.texto_casillas(1.0) == "1" and EjesRecetaUi.texto_casillas(2.5) == "2,5" and EjesRecetaUi.texto_casillas(4.0) == "4" and EjesRecetaUi.texto_casillas(5.49) == "5,5", "texto_casillas: coma decimal y sin ceros de más")
 	var tope: Vector3 = EjesRecetaUi.dimensiones({"x": 3.0, "y": 2.0, "z": 3.0})
-	_ok(tope == EjesRecetaUi.MAX_CASILLAS, "MAX_CASILLAS = el tope de Sigils.GLIFOS_V2 (3, 2, 3 de semieje) = %s" % str(tope))
+	_ok(tope == EjesRecetaUi.MAX_CASILLAS, "MAX_CASILLAS = el tope de los ejes de Sigils (`TOPE_EJE_*_V2`) = %s" % str(tope))
 	# 3. qué trata dibujar_casilla (con un lienzo, aunque sea sin ventana)
 	var lienzo := Lienzo.new()
 	lienzo.size = Vector2(200, 120)

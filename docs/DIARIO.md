@@ -5178,3 +5178,15 @@ No se ha pasado la batería completa.
 Las capturas están en `docs/capturas/vfx_en_juego/pinchos_tierra/`. Commit ddd67f10.
 
 **Pruebas.** A 0: vfx_en_juego (con la comprobación nueva de `normal_arriba`), viento_tierra_toy, vfx_toy, hechizo_golden, vfx_tierra_viento, plataforma_tierra, barrera_tierra_plataforma, magma_toy, lab_vfx_toys y vfx_comparativa. Pablo lo dio por bueno con las capturas.
+
+## 492 — Juego (13/11): **Retirado el camino «Campo» de los hechizos** (Pablo: «los puntos 9, 11, 18, 19, 34 y 35 se pueden implementar ya… ejecútalas en secuencia»; punto 9, PENDIENTES · Hechizos)
+
+**Qué sale.** El juego lanza por `Hechizo` / `HechizoVivo` desde H1 y el camino «Campo» solo lo usaban dos pruebas. Salen de `magia/lanzador_3d.gd`: `_una_ola`, `_crear_campo`, `es_barrera_cupula`, `_visual_campo`, `_activacion_en_haz`, `_levantar_tierra`, `_levantar_columna`, `campo_rune`, la lista `_campos` y sus constantes (`VEL_MURO`, `VEL_ONDA`, `RADIO_GOLPE`, `T_CRECE`, `CAUDAL_CHORRO_CELDA`). Sale `GeometriaV2.evaluar` (el resto de `GeometriaV2` sigue: lo usa el juego). De `nucleo/sigils.gd` salen `GLIFOS_V2` y `aplicar_v2`. `Receta3D` deja de heredar de `SpellRecipe` (`extends RefCounted`) y pierde `_sincronizar` y los campos 2D que nadie leía; queda el adaptador contadores + calidad → `Hechizo`.
+
+**Qué se queda.** La burbuja de la barrera: la clase `Campo` pasa a `Burbuja`, solo la esfera, con entrada `Lanzador3D.levantar_burbuja(rune, elemento, calidad)`. Se queda porque el jugador, `Combate3D`, la bola de veneno, la flecha trampa y el canouro la consultan (`absorber_golpe`, `burbuja_contiene`, `burbuja_recibe`). Hoy no la lanza ningún glifo: decidir con Pablo si vuelve o se retira con sus consumidores. El guardián de la Gruta Batida no cambia: ya iba por la vía viva (`lanzar_receta` → `_materializar`).
+
+**Pruebas reescritas** contra el camino vivo (sin aflojar umbrales): `prueba_barrera` y `prueba_canouro_v2` levantan la burbuja con `levantar_burbuja`; `prueba_activacion` pierde las comprobaciones 6-9 (medían `_activacion_en_haz`); `prueba_hechizo` cambia la paridad con `GLIFOS_V2` por coherencia interna de `GLIFOS`; `prueba_receta_v2`, `prueba_geometria` y `escenario_libro` sacan la geometría de `Hechizo.construir(...).geo()`; `prueba_pulso`, `prueba_materia_v2`, `prueba_construccion_unica`, `prueba_textos_objetos`, `prueba_ejes_receta_ui`, `prueba_prevision_hechizo` y `escenario_libro_combinaciones`, ajustadas.
+
+**Medido.** 75 pruebas de hechizos, laboratorios y niveles (Gruta, Cueva, Bosque, limo, gólem, chamán): el mismo veredicto que la batería de base de hoy, prueba por prueba (siguen MAL las que ya lo estaban: `prueba_campos_ejecutados` 3, `prueba_textos_objetos` 1). El proyecto compila sin errores de script.
+
+**Queda.** `magia/spellcaster.gd` y `SpellRecipe` parecen código 2D muerto (solo los cargan `captura_libro_bosque` y `prueba_receta_v2`): no se han borrado. `Lanzador3D._columnas` ya no se rellena nunca (solo lo hacía `_levantar_columna`) y la leen `objetos/mamoa_3d.gd` y `escenario_libro_combinaciones`.

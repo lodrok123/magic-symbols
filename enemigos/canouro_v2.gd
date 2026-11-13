@@ -295,7 +295,7 @@ func al_conectar() -> void:
 		return
 	mordiscos += 1
 	var b: Variant = c.lanz.get("_barrera_activa") if c.lanz != null else null
-	var habia_burbuja: bool = b != null and is_instance_valid(b) and b.get("reventada") == false and b.get("burbuja") == true
+	var habia_burbuja: bool = b != null and is_instance_valid(b) and b.get("reventada") == false      # 13/11 (T9): ya no hay `burbuja` (todo `_barrera_activa` es una Burbuja)
 	j.recibir_dano(DANO_MORDISCO, c.position)
 	if habia_burbuja and is_instance_valid(b) and b.get("reventada") == true:
 		mordiscos_parados += 1

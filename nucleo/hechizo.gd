@@ -15,7 +15,7 @@ extends RefCounted
 ## UNIDADES (19/10, docs/ESPEC_HECHIZO.md §0.1): 1 casilla = 1 m. Todo lo que mide longitud va en METROS-CASILLA (semiejes, distancia_max, elevacion, altura_salida, radio_explosion, separacion…)
 ## y las velocidades en m/s. La conversión a unidades del motor (× `Terreno3D.casilla`) se hace SOLO en `HechizoVivo`, al ejecutar.
 ##
-## HC1 es REFACTORIZACIÓN: aún no lo lee nadie. Convive con `Sigils.aplicar_v2` + `RuneData` + `Receta3D`, y `prueba_hechizo` comprueba que da los mismos números.
+## HC1 es REFACTORIZACIÓN: aún no lo lee nadie. Convive con `RuneData` + `Receta3D`, y `prueba_hechizo` comprueba que da los números de siempre (13/11: `Sigils.aplicar_v2` y `GLIFOS_V2`, con los que se comparaba, ya se retiraron).
 
 const EPS: float = 0.0001
 
@@ -123,7 +123,7 @@ const ORIGEN_EN_PUNTO_SOLIDO: String = "derivado:solido"
 ## Las condiciones que puede pedir una regla `momento_si` de un glifo (Sigils.GLIFOS): la primera que se cumpla cambia el momento de ejecución.
 const CONDICIONES_MOMENTO: PackedStringArray = ["viaja", "persistente"]
 
-## Qué propiedad de la receta (`Sigils.aplicar_v2(...)["props"]`) es cada campo. Cuenta como «propiedad usada» (encarece el hechizo) cuando algún glifo lo toca.
+## Qué propiedad de la receta (`geo()["props"]`) es cada campo. Cuenta como «propiedad usada» (encarece el hechizo) cuando algún glifo lo toca.
 const PROPIEDAD_DE: Dictionary = {"distancia_max": "viaja", "solidez": "solidez", "copias": "copias", "rebotes": "rebotes", "crece": "crece", "resuena": "resuena", "permanencia": "permanencia"}
 
 ## HC5: lo que el laboratorio deja tocar en vivo. Numéricos: {paso, min, max}; «bool» se alterna; «lista» recorre sus valores. Lo que no está aquí se enseña pero no se toca
@@ -156,7 +156,7 @@ const DERIVADOS: PackedStringArray = ["forma", "cast_point", "niveles", "viaja",
 
 # --- Forma y volumen ---
 ## Casillas de semieje (X ancho, Y alto, Z fondo). Se guardan como tres `float` (64 bits) y no como un Vector3 (32 bits): así los números son EXACTAMENTE los de
-## `Sigils.aplicar_v2` y el rasterizado de casillas no cambia ni en los casos límite. `semiejes` es la vista en Vector3 (solo lectura; se escribe con «semiejes.x»).
+## la cuenta de siempre y el rasterizado de casillas no cambia ni en los casos límite. `semiejes` es la vista en Vector3 (solo lectura; se escribe con «semiejes.x»).
 var semieje_x: float = Sigils.RADIO_BASE_V2
 var semieje_y: float = Sigils.RADIO_BASE_V2
 var semieje_z: float = Sigils.RADIO_BASE_V2
@@ -735,7 +735,7 @@ static func nombre_derivado(sx: float, sy: float, sz: float, viaja_: bool) -> St
 	return "x_mano"
 
 
-## Las propiedades que algún glifo ha tocado, en el formato de `Sigils.aplicar_v2(...)["props"]`: {param: valor}.
+## Las propiedades que algún glifo ha tocado, en el formato de `geo()["props"]`: {param: valor}.
 func propiedades_usadas() -> Dictionary:
 	var salida: Dictionary = {}
 	for campo in PROPIEDAD_DE:
@@ -750,7 +750,7 @@ func propiedades_usadas() -> Dictionary:
 	return salida
 
 
-## La geometría en el formato de siempre (el de `Lanzador3D.GeometriaV2.evaluar`): {x, y, z, props, x_glifos, z_glifos, nombre, viaja, y_tope, valida, aviso}.
+## La geometría en el formato de siempre (el de siempre de `Lanzador3D.GeometriaV2`): {x, y, z, props, x_glifos, z_glifos, nombre, viaja, y_tope, valida, aviso}.
 ## Es lo que leen `GeometriaV2.celdas`, el VFX por estado y el laboratorio mientras no pasen a leer el Hechizo directamente.
 func geo() -> Dictionary:
 	return {"x": semieje_x, "y": semieje_y, "z": semieje_z, "props": propiedades_usadas(), "x_glifos": _glifos_x, "z_glifos": _glifos_z,
