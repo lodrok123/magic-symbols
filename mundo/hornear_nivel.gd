@@ -277,7 +277,9 @@ static func _crear_item(lib: MeshLibrary, i: int, tipo: Array) -> void:
 
 ## Letra de suelo de un ítem del GridMap (por su nombre).
 static func letra_de_item(lib: MeshLibrary, item: int) -> String:
-	var nombre: String = lib.get_item_name(item)
+	var nombre: String = lib.get_item_name(item).trim_suffix("_MEDIA")      # las losetas a media altura son del mismo tipo
+	if nombre == "EMPEDRADO":
+		return "R"
 	for t in TIPOS:
 		if String((t as Array)[0]) == nombre:
 			return String((t as Array)[1])

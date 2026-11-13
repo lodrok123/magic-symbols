@@ -994,17 +994,27 @@ const MARGEN_HUELLA: float = 0.3
 ## Las piedras y los troncos tumbados de ≤ `ColisionPieza.ALTO_MIN_SOLIDO` (0,45 u) no bloquean (no tienen cuerpo); en vez de atravesarlos con los pies, la jugadora SUBE encima: su suelo sube hasta
 ## alto · fracción (`ColisionPieza.REALCE`) en el centro de la pieza y baja suave a 0 en su borde. Vector2i (casilla de la pieza y las 8 vecinas) → Array de Vector4(x, z, radio, altura del realce).
 static var realces: Dictionary = {}
+## Rampas visuales al pie de los desniveles (PendientesSuelo3D). Vector2i (casilla baja) → Array de
+## [Vector2 normal hacia abajo, posición del borde a lo largo de la normal, ancho, desnivel].
+static var rampas: Dictionary = {}
 const REALCE_BORDE: float = 0.55           ## fracción del radio, desde el borde hacia dentro, en que el realce sube de 0 al máximo
 
 
 ## Cuánto sube el suelo (u) en el punto `p` por las piedras y los troncos bajos que hay ahí. 0 casi siempre.
 static func realce_en(p: Vector3) -> float:
-	if realces.is_empty():
-		return 0.0
-	var lista: Variant = realces.get(celda_de(p))
-	if lista == null:
+	if realces.is_empty() and rampas.is_empty():
 		return 0.0
 	var mejor: float = 0.0
+	# Rampas visuales al pie de un desnivel (PendientesSuelo3D): los pies suben por ellas.
+	var rs: Variant = rampas.get(celda_de(p))
+	if rs != null:
+		for r in (rs as Array):
+			var d: float = Vector2(p.x, p.z).dot(r[0]) - float(r[1])
+			if d >= 0.0 and d < float(r[2]):
+				mejor = maxf(mejor, float(r[3]) * (1.0 - d / float(r[2])))
+	var lista: Variant = realces.get(celda_de(p))
+	if lista == null:
+		return mejor
 	for r in (lista as Array):
 		var rv: Vector4 = r
 		var d: float = Vector2(p.x - rv.x, p.z - rv.y).length()

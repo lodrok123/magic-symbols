@@ -1,0 +1,49 @@
+[gd_scene format=3]
+
+[sub_resource type="StandardMaterial3D" id="Mat_tronco"]
+albedo_color = Color(0.36862746, 0.27450982, 0.20784314, 1)
+
+[sub_resource type="CylinderMesh" id="Malla_tronco"]
+top_radius = 0.18
+bottom_radius = 0.24
+height = 2.2
+radial_segments = 10
+rings = 1
+
+[sub_resource type="StandardMaterial3D" id="Mat_copa_baja"]
+albedo_color = Color(0.2784314, 0.3647059, 0.27450982, 1)
+
+[sub_resource type="CylinderMesh" id="Malla_copa_baja"]
+top_radius = 0.05
+bottom_radius = 1.0
+height = 2.6
+radial_segments = 10
+rings = 1
+
+[sub_resource type="StandardMaterial3D" id="Mat_copa_alta"]
+albedo_color = Color(0.33615687, 0.41552943, 0.33254904, 1)
+
+[sub_resource type="CylinderMesh" id="Malla_copa_alta"]
+top_radius = 0.0
+bottom_radius = 0.74
+height = 2.1
+radial_segments = 10
+rings = 1
+
+[node name="arbol_sumicio" type="Node3D"]
+metadata/bloquea_casilla = true
+
+[node name="Tronco" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.1, 0)
+material_override = SubResource("Mat_tronco")
+mesh = SubResource("Malla_tronco")
+
+[node name="CopaBaja" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2.45, 0)
+material_override = SubResource("Mat_copa_baja")
+mesh = SubResource("Malla_copa_baja")
+
+[node name="CopaAlta" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 3.23, 0)
+material_override = SubResource("Mat_copa_alta")
+mesh = SubResource("Malla_copa_alta")

@@ -5,16 +5,13 @@ const Interior = preload("res://escenas/interior_palloza.gd")
 const Mundo = preload("res://presentacion/prueba_test2.gd")
 const ADMISION := "montesumicio.torre.admitida"
 const COFRE_UNIFORME := "montesumicio.torre.uniforme_recogido"
-const MODELO_COFRE := preload("res://arte/piezas/cofre_epico.tscn")
-const CELDA_COFRE := Vector2i(11, 3)
 const VISITA_COMPLETA := "montesumicio.fraga.visita_completa"
 const UNIFORME := "atuendo_sumicio"
 const TIENDA := "sumicio"
+const DESTINO_FRAGA := "Bosque_02:desde_sumicio"
 const SintesisUI = preload("res://presentacion/ui/sintesis_ui.gd")
 const VECINOS := ["Iria", "Brais", "Sabela"]
 const COFRES := ["baya", "seta_asada", "resina"]
-const ESCOLTA := [Vector2i(10, 15), Vector2i(10, 12), Vector2i(10, 9),
-	Vector2i(10, 6), Vector2i(10, 4)]
 
 enum Fase { PORTON, ESCOLTA, AUDIENCIA, LIBRE, REGRESO }
 
@@ -28,8 +25,9 @@ var _parlamento := 0
 var _objetivo: Label
 var _dialogo: Label
 var _pista: Label
-var _casas: Dictionary[Vector2i, Interior] = {}
-var _casa := Vector2i(-1, -1)
+var _casas: Dictionary[Node3D, Interior] = {}
+var _exteriores: Array[Node3D]
+var _casa: Node3D
 var _interior: Interior
 var _fundido: ColorRect
 var _en_transicion := false
@@ -51,10 +49,9 @@ func _montar() -> void:
 	if _mid == null:
 		push_error("Monte Sumicio: falta el marcador de inicio de Mid.")
 		return
-	_maqueta.montar(mundo.get("_mapa"))
 	var habitaciones := mundo.get_node("Interiores").get_children()
-	var puertas := Maqueta.CASAS_FAMILIARES + [Maqueta.TIENDA_ESTE]
-	for i in range(puertas.size()):
+	_exteriores = _maqueta.casas()
+	for i in range(_exteriores.size()):
 		var sala := habitaciones[i] as Interior
 		sala.montar()
 		var nombre: String = "Tendera" if sala.tienda else VECINOS[i]
@@ -63,27 +60,26 @@ func _montar() -> void:
 		if sala.casa_brais:
 			vecino.position += Vector3(-0.48, 0.0, -0.22)
 		sala.hide()
-		_casas[puertas[i]] = sala
-	_guardia = _figura("Guardia", Maqueta.GUARDIA, Color("#635345"), Color("#827259"))
-	_figura("Marimanta", Maqueta.AUDIENCIA, Color("#4c5153"), Color("#93394a"))
-	var cofre := MODELO_COFRE.instantiate() as Node3D
-	_maqueta.add_child(cofre)
-	cofre.position = Maqueta.punto(CELDA_COFRE) + Vector3.FORWARD * 0.55
-	_cofre_uniforme = Cofre3D.en(cofre)
-	Terreno3D.bloquear_contorno(CELDA_COFRE, cofre)
+		_casas[_exteriores[i]] = sala
+	_guardia = _figura("Guardia", Maqueta.celda(_maqueta.guardia), Color("#635345"), Color("#827259"))
+	_guardia.position = _maqueta.guardia.global_position
+	var marimanta := _figura("Marimanta", Maqueta.celda(_maqueta.marimanta), Color("#4c5153"), Color("#93394a"))
+	marimanta.position = _maqueta.marimanta.global_position
+	_cofre_uniforme = Cofre3D.en(_maqueta.cofre)
 	# Las partidas previas a este cofre ya podían haber recibido el uniforme de Marimanta.
 	if Flags.i().tiene(ADMISION) and Atuendos.tiene(UNIFORME):
 		Flags.i().poner(COFRE_UNIFORME)
 	if Flags.i().tiene(COFRE_UNIFORME):
 		_cofre_uniforme.abrir_ya()
-	_figura("Caco", Maqueta.OBRADOR, Color("#56473b"), Color("#53764c"))
+	var caco := _figura("Caco", Maqueta.celda(_maqueta.caco), Color("#56473b"), Color("#53764c"))
+	caco.position = _maqueta.caco.global_position
 	_montar_hud()
 	add_child(SintesisUI.new())
 	_montar_fundido()
 	if Flags.i().tiene(ADMISION):
 		_fase = Fase.REGRESO if Flags.i().tiene(VISITA_COMPLETA) else Fase.LIBRE
 		_maqueta.abrir_porton()
-		_guardia.position = Maqueta.punto(Maqueta.GUARDIA + Vector2i.RIGHT)
+		_guardia.position = Maqueta.punto(Maqueta.celda(_maqueta.guardia) + Vector2i.RIGHT)
 	else:
 		_dialogo.text = "Mid trae el Grimorio del Guardabosques para la Maestre Marimanta."
 	for casa in _casas:
@@ -101,15 +97,15 @@ func _physics_process(delta: float) -> void:
 		var centro := Maqueta.punto(_interior.centro)
 		var local := _mid.position - centro
 		if absf(local.x) < 0.72 and local.z >= Terreno3D.casilla * 2.12:
-			_cruzar(Vector2i(-1, -1))
+			_cruzar(null)
 			return
 		_objetivo.text = "Tienda y síntesis" if _interior.tienda else "Palloza familiar"
 		_pista.text = _pista_interior()
 		return
 	if _fase != Fase.PORTON:
 		var puerta := _puerta_cercana()
-		if puerta != Vector2i(-1, -1):
-			if puerta == Maqueta.TIENDA_ESTE or Flags.i().tiene(COFRE_UNIFORME):
+		if puerta != null:
+			if _casas[puerta].tienda or Flags.i().tiene(COFRE_UNIFORME):
 				_cruzar(puerta)
 				return
 	if _fase == Fase.ESCOLTA:
@@ -120,27 +116,27 @@ func _physics_process(delta: float) -> void:
 	match _fase:
 		Fase.PORTON:
 			objetivo = "Sube al portón y habla con el guardia."
-			if _cerca(Maqueta.GUARDIA):
+			if _cerca(_maqueta.guardia):
 				pista = "[E] Hablar con el guardia"
 		Fase.ESCOLTA:
 			objetivo = "Sigue al guardia hasta la Torre Verde."
 		Fase.AUDIENCIA:
 			objetivo = "Entrega el grimorio a Marimanta."
-			if _cerca(Maqueta.AUDIENCIA):
+			if _cerca(_maqueta.marimanta):
 				pista = "[E] Entregar el grimorio" if _parlamento == 0 else "[E] Continuar"
 		Fase.LIBRE, Fase.REGRESO:
 			objetivo = "Visita a Brais y la tienda del este, o vuelve a la Fraga." if _fase == Fase.LIBRE else "Visita completada · puedes volver a Monte Sumicio."
-			if _cerca(Maqueta.OBRADOR):
+			if _cerca(_maqueta.caco):
 				pista = "[E] Hablar con el caco"
-			elif _fase == Fase.LIBRE and Flags.i().tiene(COFRE_UNIFORME) and _cerca(Maqueta.FRAGA):
-				pista = "[E] Terminar la visita"
+	if _cerca(_maqueta.inicio):
+		pista = "[E] Volver a la Fraga"
 	_objetivo.text = objetivo
 	_pista.text = pista
 	if Flags.i().tiene(ADMISION) and not Flags.i().tiene(COFRE_UNIFORME):
 		_objetivo.text = "Recoge el uniforme del cofre detrás de Marimanta."
 	if _ante_cofre_uniforme():
 		_pista.text = "[E] Abrir cofre épico" if Flags.i().tiene(ADMISION) else "[E] Examinar cofre épico"
-	elif _puerta_cercana() != Vector2i(-1, -1) and not Flags.i().tiene(COFRE_UNIFORME):
+	elif _puerta_cercana() != null and not Flags.i().tiene(COFRE_UNIFORME):
 		_pista.text = "Puerta cerrada"
 
 
@@ -162,28 +158,34 @@ func _interactuar() -> bool:
 		else:
 			_dialogo.text = "El cofre épico está cerrado."
 		return true
+	if _cerca(_maqueta.inicio):
+		return _volver_a_la_fraga()
 	match _fase:
 		Fase.PORTON:
-			if _cerca(Maqueta.GUARDIA):
+			if _cerca(_maqueta.guardia):
 				_fase = Fase.ESCOLTA
 				_maqueta.abrir_porton()
 				_dialogo.text = "Guardia · La Maestre te espera. Ve detrás de mí."
 				return true
 		Fase.AUDIENCIA:
-			if _cerca(Maqueta.AUDIENCIA):
+			if _cerca(_maqueta.marimanta):
 				_hablar_con_marimanta()
 				return true
 		Fase.LIBRE, Fase.REGRESO:
-			if _cerca(Maqueta.OBRADOR):
+			if _cerca(_maqueta.caco):
 				_dialogo.text = "Caco · Si buscas provisiones, pásate por la palloza del este."
 				return true
-			if _fase == Fase.LIBRE and Flags.i().tiene(COFRE_UNIFORME) and _cerca(Maqueta.FRAGA):
-				_fase = Fase.REGRESO
-				Flags.i().poner(VISITA_COMPLETA)
-				_dialogo.text = "La Torre Verde queda abierta para Mid. La Fraga de Cailiag espera cuesta abajo."
-				Partida.autoguardar(get_tree(), "monte_sumicio_regreso")
-				return true
 	return false
+
+
+func _volver_a_la_fraga() -> bool:
+	if Niveles.en_curso or not Niveles.existe("Bosque_02"):
+		return false
+	if _fase == Fase.LIBRE and Flags.i().tiene(COFRE_UNIFORME):
+		_fase = Fase.REGRESO
+		Flags.i().poner(VISITA_COMPLETA)
+	_en_transicion = Niveles.ir_a(get_parent(), DESTINO_FRAGA)
+	return _en_transicion
 
 
 func _puesto(lugar: Vector2i) -> bool:
@@ -209,7 +211,7 @@ func _pista_interior() -> String:
 
 func _interactuar_dentro() -> bool:
 	if _puesto(Interior.SALIDA):
-		_cruzar(Vector2i(-1, -1))
+		_cruzar(null)
 	elif _puesto(Interior.VECINO):
 		if _interior.tienda:
 			if Flags.i().tiene(COFRE_UNIFORME):
@@ -218,7 +220,7 @@ func _interactuar_dentro() -> bool:
 			else:
 				_dialogo.text = "Tendera · ¿Te has perdido, forastera? La tienda es para aprendices. La puerta la tienes ahí."
 		else:
-			var i := Maqueta.CASAS_FAMILIARES.find(_casa)
+			var i := _exteriores.find(_casa)
 			var frases := ["Acércate al hogar. Aquí arriba el viento se mete por todas partes.",
 				"Te he dejado una seta asada en el cofre junto al pesebre. Con una baya de la tienda, podrás preparar una poción.",
 				"Los animales duermen abajo. Su calor nos llega hasta el Ástrago."]
@@ -226,7 +228,7 @@ func _interactuar_dentro() -> bool:
 	elif _interior.tienda and Flags.i().tiene(COFRE_UNIFORME) and _puesto(Interior.MESA):
 		Sintesis.abrir("alquimista")
 	elif _cofre_al_alcance() and not Flags.i().tiene(_flag_cofre()):
-		var objeto: String = COFRES[Maqueta.CASAS_FAMILIARES.find(_casa)]
+		var objeto: String = COFRES[_exteriores.find(_casa)]
 		if Estado.i().agregar(objeto) == 1:
 			Flags.i().poner(_flag_cofre())
 			PlayLog.event("cofre_abierto", {"cofre": _flag_cofre(), "objeto": objeto})
@@ -241,23 +243,23 @@ func _interactuar_dentro() -> bool:
 
 
 func _flag_cofre() -> String:
-	return "montesumicio.palloza_%d.cofre_abierto" % Maqueta.CASAS_FAMILIARES.find(_casa)
+	return "montesumicio.palloza_%d.cofre_abierto" % _exteriores.find(_casa)
 
 
-func _puerta_cercana() -> Vector2i:
+func _puerta_cercana() -> Node3D:
 	for casa in _casas:
-		var local := _mid.position - Maqueta.punto(casa)
+		var local := casa.to_local(_mid.position)
 		if absf(local.x) < 0.48 and local.z >= 1.15 and local.z <= 1.85:
 			return casa
-	return Vector2i(-1, -1)
+	return null
 
 
-func _cruzar(puerta: Vector2i) -> void:
+func _cruzar(puerta: Node3D) -> void:
 	_en_transicion = true
 	_pista.text = ""
 	if _interior == null:
 		var bisagra := _maqueta.bisagra(puerta)
-		_mid.pj.girar_hacia(Vector3.FORWARD, 1.0, TAU)
+		_mid.pj.girar_hacia(-puerta.global_basis.z.normalized(), 1.0, TAU)
 		var gesto := _mid.gesto("ofrecer", 1.7)
 		if gesto <= 0.0:
 			_mid.set_physics_process(false)
@@ -284,7 +286,7 @@ func _cruzar(puerta: Vector2i) -> void:
 	_en_transicion = false
 
 
-func _entrar(puerta: Vector2i, colocar: bool) -> void:
+func _entrar(puerta: Node3D, colocar: bool) -> void:
 	var mundo := get_parent() as Mundo
 	_casa = puerta
 	_interior = _casas[puerta]
@@ -302,8 +304,9 @@ func _entrar(puerta: Vector2i, colocar: bool) -> void:
 
 func _salir() -> void:
 	var mundo := get_parent() as Mundo
-	var regreso := Maqueta.punto(_casa) + Vector3.BACK * 2.35
-	_colocar_mid(regreso, Vector3.BACK)
+	var regreso := _casa.to_global(Vector3.BACK * 2.35)
+	regreso.y = Terreno3D.y_pies(Terreno3D.celda_de(regreso))
+	_colocar_mid(regreso, _casa.global_basis.z.normalized())
 	_interior.hide()
 	_interior = null
 	_dialogo.text = ""
@@ -337,14 +340,15 @@ func _avanzar_escolta(delta: float) -> void:
 	# El guardia espera si Mid se detiene o se desvía.
 	if _distancia_plana(_guardia.position, _mid.position) > 5.4:
 		return
-	var meta := Maqueta.punto(ESCOLTA[_paso])
+	var camino := _maqueta.escolta
+	var meta := (camino.get_child(_paso) as Node3D).global_position
 	_guardia.position = _guardia.position.move_toward(meta, delta * 3.8)
 	if not _guardia.position.is_equal_approx(meta):
 		return
 	_paso += 1
-	if _paso == ESCOLTA.size():
+	if _paso == camino.get_child_count() - 1:
 		_fase = Fase.AUDIENCIA
-		_guardia.position = Maqueta.punto(Vector2i(11, 5))
+		_guardia.position = (camino.get_child(_paso) as Node3D).global_position
 		_dialogo.text = "Guardia · Aquí termina mi camino."
 
 
@@ -384,8 +388,8 @@ func _ante_cofre_uniforme() -> bool:
 		_mid.position, _cofre_uniforme.get_parent().global_position) < 1.65
 
 
-func _cerca(c: Vector2i) -> bool:
-	return _distancia_plana(_mid.position, Maqueta.punto(c)) < 2.7
+func _cerca(marcador: Node3D) -> bool:
+	return _distancia_plana(_mid.position, marcador.global_position) < 2.7
 
 
 static func _distancia_plana(a: Vector3, b: Vector3) -> float:
