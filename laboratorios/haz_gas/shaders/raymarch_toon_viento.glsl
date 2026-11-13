@@ -81,15 +81,11 @@ vec3 srgb_a_lineal(vec3 c) { return mix(c / 12.92, pow((c + 0.055) / 1.055, vec3
 vec3 color_paleta(int i) { return srgb_a_lineal(textureLod(paleta, vec2((float(i) + 0.5) / 8.0, 0.5), 0.0).rgb); }
 
 // (distancia a la linea de corriente mas cercana, en unidades de etiqueta; rafaga; polvo)
-// .w (13/11): la distancia a la linea GRUESA mas cercana (una por radio en cada eje: ~4 en la seccion), los JIRONES en que se juntan las lineas al soltar.
-vec4 linea4(vec3 pos) {
+vec3 linea(vec3 pos) {
 	vec4 s = textureLod(gas, (pos - DERIVA - WLO) / WTAM, 0.0);
 	vec2 l = fract(vec2(s.y, s.w) * VIENTO_LINEAS) - 0.5;
-	vec2 lg = fract(vec2(s.y, s.w)) - 0.5;
-	return vec4(length(l) / VIENTO_LINEAS, s.x, s.z, length(lg));
+	return vec3(length(l) / VIENTO_LINEAS, s.x, s.z);
 }
-vec3 linea(vec3 pos) { return linea4(pos).xyz; }
-float linea_gruesa(vec3 pos) { return linea4(pos).w; }
 
 // CINTAS DEL CHORRO (refuerzo 11/11, Pablo: «refuerza el viento»; en la referencia hay POCAS cintas anchas y lisas que se enroscan JUNTAS alrededor del eje y
 // corren hacia delante). Se dibujan analiticas, no con las etiquetas (que en el chorro daban muchas lineas finas que temblaban: un «garabato»): N_CINTAS helices
@@ -190,21 +186,9 @@ void main() {
 		float R2_ANILLOS = pow((2.1 * 1.6 * BEAM_R1 * VIENTO_ANCHO + 1.6 * ESC_M) * abre, 2.0);
 		float m_ci = 1e9, t_ci = tNear;
 		vec3 ab_m = P.target.xyz - P.nozzle.xyz;
-		// 13/11 (Pablo: «al soltarlo se rompe en demasiados trozos y algo recortados»): con el cuerpo de la 481, al soltar el umbral de la rafaga BAJA con la
-		// disolucion, asi la rafaga que se apaga sigue encontrando su trazo y este adelgaza y se desvanece en vez de cortarse en seco en el umbral.
-		float umbral_m = CINTAS_ON ? UMBRAL : UMBRAL * (1.0 - 0.5 * dis);
-		// 13/11: al soltar (cuerpo de la 481), las lineas finas se van pronto y el aire que queda se dibuja como unos pocos JIRONES GRUESOS (linea4.w)
-		bool gruesa = !CINTAS_ON && dis > 0.0;
-		float umbral_g = UMBRAL * (1.0 - 0.2 * dis);                    // los jirones solo donde aun queda rafaga de verdad: pocos
-		float m_g = 1e9, t_g = tNear;
 		for (int k = 0; k < pasos; k++) {
-			vec4 c4 = linea4(ro + rd * t);
-			vec3 c = c4.xyz;
+			vec3 c = linea(ro + rd * t);
 			polvo += c.z * dl;
-			if (gruesa && c.y > umbral_g) {
-				float pg = c4.w / (c.y - umbral_g + 0.05);
-				if (pg < m_g) { m_g = pg; t_g = t; }
-			}
 			if (CINTAS_ON && dis < 1.0) {
 				vec2 ci = cintas(ro + rd * t - DERIVA);
 				if (ci.x < m_ci) { m_ci = ci.x; t_ci = t; }
@@ -218,8 +202,8 @@ void main() {
 				vec2 an = anillos(ro + rd * t, abre, nrm);
 				if (an.x < m_an) { m_an = an.x; t_an = t; }
 			}
-			if (c.y > umbral_m) {
-				float punt = c.x / (c.y - umbral_m + 0.05);
+			if (c.y > UMBRAL) {
+				float punt = c.x / (c.y - UMBRAL + 0.05);
 				if (punt < mejor) { mejor = punt; t_mejor = t; }
 			}
 			t += dl;
@@ -249,31 +233,15 @@ void main() {
 				float jiron = textureLod(ruido_a, vec2(dot(p_f, d_e) * 0.11 / ESC_M - TIEMPO_V * 0.35, dot(p_f, vec3(0.31, 0.71, 0.13)) * 0.2 / ESC_M), 0.0).r;
 				fuerza *= 0.45 + 0.9 * jiron;
 				float rompe = 1.0;
-				float u_lo = UMBRAL, u_ancho = 0.08;
 				if (dis > 0.0) {
-					// 13/11 (Pablo: «al soltarlo se rompe en demasiados trozos y algo recortados»). Antes: un ruido FIJO en el espacio y de frecuencia alta cortaba
-					// los trazos en confeti con bordes secos (los trazos corrian por debajo de un corte quieto). Ahora el trazo no se corta: cada LINEA DE
-					// CORRIENTE (su casilla de etiquetas, que el gas lleva consigo) se apaga ENTERA a su ritmo, escalonadas a lo largo de la disolucion, asi
-					// cada vez quedan menos jirones y son los mismos que derivan; el trazo adelgaza, sus puntas se alargan y se difuminan (umbral mas bajo y
-					// rampa mas ancha) y se desvanece junto a las caras de la caja del dominio (no se ve el borde de la caja cortando el aire que sale).
-					vec2 id_l = floor(texture_lab(p_f) * VIENTO_LINEAS);
-					float h_l = fract(sin(dot(id_l, vec2(12.9898, 78.233))) * 43758.5453);
-					// las finas se van en el primer tercio, escalonadas; lo que queda lo dibujan los JIRONES GRUESOS (abajo)
-					float ini = 0.02 + 0.15 * h_l;
-					rompe = 1.0 - smoothstep(ini, ini + 0.2, dis);
-					vec3 q_lo = p_f - WLO, q_hi = WLO + WTAM - p_f;
-					float caja = min(min(min(q_lo.x, q_hi.x), min(q_lo.z, q_hi.z)), q_hi.y);
-					rompe *= mix(1.0, smoothstep(0.0, 1.6 * ESC_M, caja), smoothstep(0.0, 0.15, dis));
-					fuerza *= 1.0 - 0.3 * dis;
-					u_lo = UMBRAL * (1.0 - 0.5 * dis);
-					u_ancho = 0.08 + 0.3 * dis;
+					float trozo = textureLod(ruido_b, p_f.xz * 0.21 / ESC_M + vec2(p_f.y * 0.17 / ESC_M, 0.0), 0.0).r;
+					rompe = smoothstep(dis * 0.95 - 0.05, dis * 0.95 + 0.08, trozo) * (1.0 - smoothstep(0.75, 1.0, dis));
+					fuerza *= 1.0 - 0.6 * dis;
 				}
-				// al soltar, el jiron que queda se ABRE (mas ancho, borde blando, mas transparente): el aire se difumina en vez de partirse
-				float gr = GROSOR * (0.25 + 0.75 * min(fuerza, 1.0)) * (1.0 + 0.9 * dis);
+				float gr = GROSOR * (0.25 + 0.75 * min(fuerza, 1.0));
 				float borde = max(gr * 0.85, aa);
 				float cob = min(gr * 0.85 / borde, 1.0);
-				float blando = max(gr * (0.15 + 0.6 * dis), aa);
-				float trazo = (1.0 - smoothstep(borde - blando, borde + aa, f.x)) * cob * smoothstep(u_lo, u_lo + u_ancho, f.y) * (1.0 - 0.35 * dis);
+				float trazo = (1.0 - smoothstep(borde - max(gr * 0.15, aa), borde + aa, f.x)) * cob * smoothstep(UMBRAL, UMBRAL + 0.08, f.y);
 				float velo = (1.0 - smoothstep(gr, gr * 3.2 + aa, f.x)) * fuerza * K_VELO;
 				a_v = max(trazo * OPACIDAD, velo) * rompe;
 				c_v = mix(color_paleta(1), color_paleta(2), trazo);
@@ -310,49 +278,6 @@ void main() {
 			a_v = max(alma * OPACIDAD, orilla * 0.5) * rompe;
 			c_v = mix(color_paleta(1), color_paleta(2), alma);
 			}
-		}
-		// 13/11 (Pablo: «al soltarlo se rompe en demasiados trozos y algo recortados»): JIRONES al soltar. Las lineas de corriente finas se juntan en unas pocas
-		// GRUESAS (una por radio y eje de la seccion: ~4), que el gas sigue llevando (derivan y se doblan con el aire de verdad). Entran en el primer quinto de la
-		// disolucion mientras se van las finas, se abren (mas anchas, borde blando) y se apagan cada una a su ritmo (su casilla de etiquetas) entre el 25 y el 85 %.
-		// El ancho se mide en el MUNDO con el gradiente de las etiquetas (como las cintas del refuerzo): donde el aire las ha emborronado no se hacen manchas.
-		// Junto a las caras de la caja del dominio se desvanecen (no se ve la caja cortando el aire que sale).
-		if (gruesa && m_g < 1e8) {
-			float a = max(t_g - dl, tNear), b = min(t_g + dl, tFar);
-			for (int j = 0; j < 6; j++) {
-				float m1 = mix(a, b, 0.382), m2 = mix(a, b, 0.618);
-				if (linea_gruesa(ro + rd * m1) < linea_gruesa(ro + rd * m2)) b = m2; else a = m1;
-			}
-			vec3 p_g = ro + rd * (0.5 * (a + b));
-			vec4 g4 = linea4(p_g);
-			float hg = max(V.toon3.w, 1e-3);
-			vec2 gx = (texture_lab(p_g + vec3(hg, 0.0, 0.0)) - texture_lab(p_g - vec3(hg, 0.0, 0.0))) / (2.0 * hg);
-			vec2 gy = (texture_lab(p_g + vec3(0.0, hg, 0.0)) - texture_lab(p_g - vec3(0.0, hg, 0.0))) / (2.0 * hg);
-			vec2 gz = (texture_lab(p_g + vec3(0.0, 0.0, hg)) - texture_lab(p_g - vec3(0.0, 0.0, hg))) / (2.0 * hg);
-			float g_lab = sqrt(0.5 * (dot(gx, gx) + dot(gy, gy) + dot(gz, gz)));
-			vec3 ab_g = P.target.xyz - P.nozzle.xyz;
-			float tt_g = clamp(dot(p_g - P.nozzle.xyz, ab_g) / dot(ab_g, ab_g), 0.0, 1.0);
-			float r_ref = mix(BEAM_R0, BEAM_R1, tt_g) * VIENTO_ANCHO;
-			float d_w = g4.w / clamp(g_lab * r_ref, 0.25, 1.0);                   // distancia al jiron en el mundo (en radios de la rafaga): nunca mas ancho que en etiquetas
-			float pix_g = length(p_g - (ro2 + rd2 * dot(p_g - ro2, rd2)));
-			float aa = 0.5 * pix_g / r_ref;
-			vec2 id_g = floor(texture_lab(p_g));
-			float h_g = fract(sin(dot(id_g, vec2(12.9898, 78.233))) * 43758.5453);
-			float ini_g = 0.25 + 0.35 * h_g;
-			float vida_g = smoothstep(0.0, 0.2, dis) * (1.0 - smoothstep(ini_g, ini_g + 0.25, dis));
-			vec3 q_lo = p_g - WLO, q_hi = WLO + WTAM - p_g;
-			vida_g *= smoothstep(0.0, 1.6 * ESC_M, min(min(min(q_lo.x, q_hi.x), min(q_lo.z, q_hi.z)), q_hi.y));
-			// solo los jirones COHERENTES: donde el aire ha plegado las etiquetas (gradiente alto) la linea gruesa se vuelve una red de isolineas, y donde las ha
-			// emborronado (gradiente bajo), una mancha; en los dos casos se apaga
-			float coh_r = g_lab * r_ref;
-			vida_g *= (1.0 - smoothstep(1.8, 3.5, coh_r)) * smoothstep(0.12, 0.3, coh_r);
-			float fuerza_g = smoothstep(umbral_g, umbral_g + 0.35, g4.y);         // puntas largas y blandas donde la rafaga se apaga
-			float gr_g = GROSOR * 1.5 * (0.3 + 0.7 * fuerza_g) * (1.0 + 0.4 * dis);
-			float borde_g = max(gr_g, aa);
-			float cob_g = min(gr_g / borde_g, 1.0);
-			float alma_g = (1.0 - smoothstep(borde_g * 0.35 - aa, borde_g + aa, d_w)) * cob_g;      // perfil blando: sin borde seco
-			float velo_g = (1.0 - smoothstep(borde_g, borde_g * 2.2 + aa, d_w)) * K_VELO * 0.5 * fuerza_g;
-			float a_g = max(alma_g * OPACIDAD * (0.8 - 0.4 * dis), velo_g) * vida_g * smoothstep(umbral_g, umbral_g + 0.12, g4.y);
-			encima(c_v, a_v, mix(color_paleta(1), color_paleta(2), alma_g), a_g);
 		}
 		// CINTAS del chorro: la mas cercana al rayo de vista, afinada, con el borde toon en dos escalones. Al soltar se rompen en unos pocos TROZOS largos
 		// (ruido de baja frecuencia fijo en el aire), derivan con el aire (DERIVA) y se apagan.

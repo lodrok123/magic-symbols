@@ -433,8 +433,6 @@ func _un_haz(elem: String, caso: String, con_gas: bool) -> Dictionary:
 	g.pausa = false
 	print("  %s %s: gpu %.2f ms (sim %.2f · volumen %.2f) · %s" % [elem, caso, float(g.gpu_ms.get("total", 0.0)),
 		float(g.gpu_ms.get("gas", 0.0)) + float(g.gpu_ms.get("velocidad", 0.0)), float(g.gpu_ms.get("volumen", 0.0)), g._texto_haz()])
-	if elem == "viento":
-		await _soltar_viento(caso, g, e)
 	e["fin_haz"] = Time.get_ticks_msec()
 	e["fin_todo"] = int(e["fin_haz"]) + int(HazGasJuego.APAGADO_S * 1000.0)
 	tope = 0
@@ -444,103 +442,6 @@ func _un_haz(elem: String, caso: String, con_gas: bool) -> Dictionary:
 	await avanzar_s(1.5)
 	_ok("%s %s: el dominio se libera al acabar" % [elem, caso], v.gas.vivos() == 0)
 	return res
-
-
-## 13/11 (Pablo: el viento «al soltarlo se rompe en demasiados trozos y algo recortados»): AL SOLTAR el chorro el aire se difumina en unos pocos jirones blandos
-## que se van, sin partirse en confeti ni cortarse en seco. Se mide la OPACIDAD de los trazos (sin polvo ni brillo de la mano) con el chorro puesto y a los 0,15 s
-## (9 pasos) y 1,2 s de simulación de soltarlo: trozos (componentes > 0,2 de al menos 6 px), lo SECO del borde (parte del borde que cae de > 0,6 a < 0,08 en un
-## píxel) y la cobertura. En la 3070, con el chorro puesto: borde seco 0,44 / 0,38 (aire / muro), 38 / 29 trozos. A los 0,15 s, antes del arreglo: 0,49 / 0,33 de borde
-## seco, 41 / 22 trozos y queda un 33 / 30 % de la cobertura; después: 0,25 / 0,09, 28 / 24 trozos y un 63 / 53 %.
-func _soltar_viento(caso: String, g: HazGas, e: Dictionary) -> void:
-	var on: Dictionary = await alfa_viento(self, g)
-	e["fin_haz"] = Time.get_ticks_msec()
-	e["fin_todo"] = int(e["fin_haz"]) + int(HazGasJuego.APAGADO_S * 1000.0)
-	g.chorro(false)
-	var f0: int = g.frame
-	while g.frame < f0 + 9:
-		await process_frame
-	var r1: Dictionary = await alfa_viento(self, g)
-	while is_instance_valid(g) and g.frame < f0 + 72:
-		await process_frame
-	var r2: Dictionary = await alfa_viento(self, g) if is_instance_valid(g) else {"trozos": 0, "dureza": 0.0, "cobertura": 0.0}
-	var fila: String = "puesto: %d trozos · borde seco %.2f · cobertura %.0f | 0,15 s: %d · %.2f · %.0f | 1,2 s: %d · %.0f" % [int(on["trozos"]), float(on["dureza"]),
-		float(on["cobertura"]), int(r1["trozos"]), float(r1["dureza"]), float(r1["cobertura"]), int(r2["trozos"]), float(r2["cobertura"])]
-	print("  viento %s al soltar: %s" % [caso, fila])
-	_ok("viento %s: al soltar el aire SIGUE a los 0,15 s y se difumina (borde seco < 0,7 · el del chorro puesto)" % caso,
-		float(r1["cobertura"]) > 0.15 * float(on["cobertura"]) and float(r1["dureza"]) < 0.7 * float(on["dureza"]), fila)
-	_ok("viento %s: al soltar no se parte en más trozos (a los 0,15 s ≤ los del chorro puesto + 1)" % caso, int(r1["trozos"]) <= int(on["trozos"]) + 1, fila)
-	_ok("viento %s: a los 1,2 s de soltarlo casi no queda aire (< 5 %% de la cobertura)" % caso, float(r2["cobertura"]) < 0.05 * float(on["cobertura"]), fila)
-
-
-## La opacidad de los TRAZOS del viento en la pantalla (el raymarch a media resolución; sin el polvo ni el brillo de la mano: se dibujan un fotograma con la
-## simulación en pausa sin ellos). {trozos, dureza, cobertura}: ver _soltar_viento. `p` = el SceneTree de la prueba.
-static func alfa_viento(p: SceneTree, g: HazGas) -> Dictionary:
-	var r: Dictionary = {"trozos": 0, "dureza": 0.0, "cobertura": 0.0}
-	var pausa0: bool = g.pausa
-	g.pausa = true
-	var tv0: Dictionary = g.toon_viento.duplicate()
-	g.toon_viento["polvo"] = 0.0
-	g.toon_viento["mano"] = 0.0
-	await p.process_frame
-	await RenderingServer.frame_post_draw
-	g.toon_viento = tv0
-	g.pausa = pausa0
-	if not g.efecto._crudo.is_valid():
-		return r
-	var datos: PackedByteArray = RenderingServer.get_rendering_device().texture_get_data(g.efecto._crudo, 0)
-	var tv: Vector2i = g.efecto._tam_vol
-	var a: PackedFloat32Array = PackedFloat32Array()
-	a.resize(tv.x * tv.y)
-	var cob: float = 0.0
-	for i in tv.x * tv.y:
-		a[i] = clampf(1.0 - datos.decode_half(i * 8 + 6), 0.0, 1.0)
-		cob += a[i]
-	var borde: int = 0
-	var seco: int = 0
-	var visto: PackedByteArray = PackedByteArray()
-	visto.resize(tv.x * tv.y)
-	var trozos: int = 0
-	for y in range(1, tv.y - 1):
-		for x in range(1, tv.x - 1):
-			var i: int = y * tv.x + x
-			var v: float = a[i]
-			if v <= 0.2:
-				continue
-			if v > 0.5:
-				var mn: float = v
-				for dy in [-1, 0, 1]:
-					for dx in [-1, 0, 1]:
-						mn = minf(mn, a[i + dy * tv.x + dx])
-				if mn < 0.5:
-					borde += 1
-					if v > 0.6 and mn < 0.08:
-						seco += 1
-			if visto[i] == 0:              # trozo nuevo: se recorre entero (8 vecinos, > 0,2)
-				var pila: PackedInt32Array = [i]
-				visto[i] = 1
-				var area: int = 0
-				while not pila.is_empty():
-					var j: int = pila[pila.size() - 1]
-					pila.remove_at(pila.size() - 1)
-					area += 1
-					var jx: int = j % tv.x
-					var jy: int = j / tv.x
-					for dy in [-1, 0, 1]:
-						for dx in [-1, 0, 1]:
-							var nx: int = jx + dx
-							var ny: int = jy + dy
-							if nx < 0 or ny < 0 or nx >= tv.x or ny >= tv.y:
-								continue
-							var k: int = ny * tv.x + nx
-							if visto[k] == 0 and a[k] > 0.2:
-								visto[k] = 1
-								pila.append(k)
-				if area >= 6:
-					trozos += 1
-	r["trozos"] = trozos
-	r["dureza"] = float(seco) / float(borde) if borde > 0 else 0.0
-	r["cobertura"] = cob
-	return r
 
 
 ## Lee el gas: sin NaN, materia en el eje del chorro, canales que el elemento no usa a cero y nada dentro de los sólidos.
