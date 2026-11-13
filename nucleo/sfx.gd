@@ -48,13 +48,13 @@ const CARPETA: String = "res://audio/"
 ## 2/11 (tarea R): `static var` y no `const` para poder añadir una entrada EN CALIENTE (las pruebas, y los impactos por elemento de lentikula cuando se bajen) sin tocar este archivo.
 static var CATALOGO: Dictionary = {
 	# --- Elementos (sintetizados). Los busca for_element por etiqueta.
-	"fuego":   {"f": ["elem_fuego.wav"],   "db": -8.0,  "tono": 0.10},
-	"agua":    {"f": ["elem_agua.wav"],    "db": -7.0,  "tono": 0.10},
+	"fuego":   {"f_lc": ["lc_fuego_0.ogg", "lc_fuego_1.ogg", "lc_fuego_2.ogg", "lc_fuego_3.ogg"], "f": ["elem_fuego.wav"],   "db": -8.0,  "tono": 0.10},
+	"agua":    {"f_lc": ["lc_agua_0.ogg", "lc_agua_1.ogg", "lc_agua_2.ogg"], "f": ["elem_agua.wav"],    "db": -7.0,  "tono": 0.10},
 	# 27/10: hielo y rayo GRABADOS (OpenGameArt, CC0: «Ice spells» de bart y «Electricity Game Sound Pack» de faxcorp; audio/LICENCIAS.md).
-	"hielo":   {"f": ["oga_congelar_1.wav"], "db": -8.0,  "tono": 0.08},
-	"rayo":    {"f": ["oga_relampago_0.wav", "oga_relampago_1.wav"], "db": -10.0, "tono": 0.08},
-	"viento":  {"f": ["elem_viento.wav"], "f_sn": ["sn_viento_0.ogg"],  "db": -11.0, "tono": 0.12},
-	"tierra":  {"f": ["elem_tierra.wav"],  "db": -8.0,  "tono": 0.10},
+	"hielo":   {"f_lc": ["lc_hielo_0.ogg", "lc_hielo_1.ogg", "lc_hielo_2.ogg", "lc_hielo_3.ogg"], "f": ["oga_congelar_1.wav"], "db": -8.0,  "tono": 0.08},
+	"rayo":    {"f_lc": ["lc_rayo_0.ogg", "lc_rayo_1.ogg", "lc_rayo_2.ogg", "lc_rayo_3.ogg"], "f": ["oga_relampago_0.wav", "oga_relampago_1.wav"], "db": -10.0, "tono": 0.08},
+	"viento":  {"f_lc": ["lc_viento_0.ogg", "lc_viento_1.ogg", "lc_viento_2.ogg", "lc_viento_3.ogg"], "f": ["elem_viento.wav"], "f_sn": ["sn_viento_0.ogg"],  "db": -11.0, "tono": 0.12},
+	"tierra":  {"f_lc": ["lc_tierra_0.ogg", "lc_tierra_1.ogg", "lc_tierra_2.ogg", "lc_tierra_3.ogg"], "f": ["elem_tierra.wav"],  "db": -8.0,  "tono": 0.10},
 	"tiempo":  {"f": ["elem_tiempo.wav"],  "db": -10.0, "tono": 0.05},
 
 	# --- Magia del mundo (sintetizados).
@@ -197,7 +197,7 @@ static var CATALOGO: Dictionary = {
 	"ui_equipar": {"f": ["kenney_equipar_0.ogg", "kenney_equipar_1.ogg"], "f_sint": ["ui_equipar.wav"], "db": -12.0, "tono": 0.0},
 	# 31/10 (gamefeel tarea U): el barrido al vaciar la página del grimorio y el tono suave de la vuelta tras morir (audio/gen_sfx_interfaz.py).
 	"barrido":    {"f": ["barrido.wav"], "f_sn": ["sn_barrido_0.ogg"],    "db": -12.0, "tono": 0.04},
-	"reaparecer": {"f": ["reaparecer.wav"], "db": -14.0, "tono": 0.0},
+	"reaparecer": {"f_lc": ["lc_reaparecer_0.ogg"], "f": ["reaparecer.wav"], "db": -14.0, "tono": 0.0},
 	# 31/10 (gamefeel U5): el chasquido seco de la tapa del cofre al abrirse.
 	"cofre_tapa": {"f": ["kenney_cofre_tapa_0.ogg", "kenney_cofre_tapa_1.ogg", "kenney_cofre_tapa_2.ogg"], "f_sint": ["cofre_tapa.wav"], "db": -10.0, "tono": 0.05},
 	# 1/11 (gamefeel tarea D): el ping de «has acertado la debilidad» y el golpe sordo de «resiste» (del mundo: `Sfx.play(enemigo, …)`, bus Master).
@@ -207,22 +207,22 @@ static var CATALOGO: Dictionary = {
 	"pira_muerte":     {"f": ["pira.wav"],     "db": -14.0, "tono": 0.0},
 	"derrumbe_muerte": {"f": ["derrumbe.wav"], "db": -12.0, "tono": 0.10},
 	"hielo_rompe":     {"f": ["hielo_rompe.wav"], "f_sn": ["sn_hielo_rompe_0.ogg"], "db": -9.0, "tono": 0.06},
-	"chispazo":        {"f": ["chispazo.wav"], "f_sn": ["sn_chispazo_0.ogg"],    "db": -11.0, "tono": 0.06},
-	"salpicadura":     {"f": ["salpicadura.wav"], "f_sn": ["sn_salpicadura_0.ogg"], "db": -10.0, "tono": 0.08},
+	"chispazo":        {"f_lc": ["lc_chispazo_0.ogg", "lc_chispazo_1.ogg", "lc_chispazo_2.ogg"], "f": ["chispazo.wav"], "f_sn": ["sn_chispazo_0.ogg"],    "db": -11.0, "tono": 0.06},
+	"salpicadura":     {"f_lc": ["lc_salpicadura_0.ogg", "lc_salpicadura_1.ogg", "lc_salpicadura_2.ogg"], "f": ["salpicadura.wav"], "f_sn": ["sn_salpicadura_0.ogg"], "db": -10.0, "tono": 0.08},
 	# 13/11 (Pipeline, inventario de SFX; docs/INVENTARIO_SFX_2026-11-13.md): acciones que no sonaban. «f» es el respaldo que ya estaba en audio/ (suena en un clon sin el lote de Sonniss).
 	# magma y naturaleza: el Lanzador pedía «magma_carga»/«magma» y «naturaleza_carga»/«naturaleza» y no existía ninguno (carga y disparo mudos). naturaleza suena a madera que rueda (elección de Pablo); sin el lote, toma el de tierra.
-	"magma":        {"f": ["elem_fuego.wav"],  "f_sn": ["sn_magma_0.ogg"], "db": -8.0, "tono": 0.08},
+	"magma":        {"f_lc": ["lc_magma_0.ogg", "lc_magma_1.ogg", "lc_magma_2.ogg"], "f": ["elem_fuego.wav"],  "f_sn": ["sn_magma_0.ogg"], "db": -8.0, "tono": 0.08},
 	"naturaleza":   {"f": ["elem_tierra.wav"], "f_sn": ["sn_naturaleza_0.ogg"], "db": -9.0, "tono": 0.10},
 	"explosion_barril": {"f": ["explosion.wav"], "f_sn": ["sn_explosion_barril_0.ogg", "sn_explosion_barril_1.ogg"], "db": -5.0, "tono": 0.06},   # 13/11 (Pablo): el barril revienta con petardazo (Barril3D._explotar)
 	"salto":        {"f": ["voltereta.wav"],   "f_sn": ["sn_salto_0.ogg"],     "db": -20.0, "tono": 0.10},      # Jugador3D._vertical al despegar
 	"aterrizar":    {"f": ["golpe_sordo.wav"], "f_sn": ["sn_aterrizar_0.ogg"], "db": -16.0, "tono": 0.10},      # Jugador3D._vertical al tocar suelo (no en el agua)
 	"flecha_clava": {"f": ["kenney_clavar_0.ogg", "kenney_clavar_1.ogg"], "f_sn": ["sn_flecha_clava_0.ogg"], "db": -10.0, "tono": 0.10},   # la flecha del arquero y la de la trampa al llegar
-	"trueno":       {"f": ["oga_relampago_0.wav"], "f_sn": ["sn_trueno_0.ogg"], "db": -8.0, "tono": 0.06},      # EstadoZona3D.caer_rayo (tormenta)
+	"trueno":       {"f_lc": ["lc_trueno_0.ogg", "lc_trueno_1.ogg", "lc_trueno_2.ogg"], "f": ["oga_relampago_0.wav"], "f_sn": ["sn_trueno_0.ogg"], "db": -8.0, "tono": 0.06},      # EstadoZona3D.caer_rayo (tormenta)
 	"sintetizar":   {"f": ["pocion.wav"], "f_sn": ["sn_sintetizar_0.ogg"], "db": -10.0, "tono": 0.0},            # SintesisUI._sintetizar (play_ui)
 	"tinta_sube":   {"f": ["logro_fanfarria.wav"], "db": -8.0, "tono": 0.0},   # Tinta._ganar: sube la tinta máxima (play_ui). Sin grabación propia: la fanfarria sintetizada
 	# 13/11 (Pablo): DISPARO DE UNA FLECHA por elemento. Si existe «<elemento>_flecha», el hechizo que viaja suena con él al salir en vez de con el del elemento
 	# (`Lanzador3D._disparar`). Hoy solo el hielo; dar de alta «fuego_flecha», etc. basta para los demás.
-	"hielo_flecha": {"f": ["oga_congelar_1.wav"], "f_sn": ["sn_hielo_flecha_0.ogg"], "db": -8.0, "tono": 0.06},
+	"hielo_flecha": {"f_lc": ["lc_hielo_flecha_0.ogg", "lc_hielo_flecha_1.ogg", "lc_hielo_flecha_2.ogg", "lc_hielo_flecha_3.ogg"], "f": ["oga_congelar_1.wav"], "db": -8.0, "tono": 0.06},
 }
 
 ## El bus de la interfaz. Vive en `default_bus_layout.tres` (−6 dB, enviado a Master); si no está (pruebas sin el layout), `play_ui` lo crea al primer uso.
@@ -248,14 +248,24 @@ static var SUAVIZADO_PLUMA: float = 0.05      ## s de suavizado del volumen
 ## Esos archivos NO viajan en el repositorio (`.gitignore`): la licencia de Sonniss permite usarlos en el juego pero no publicarlos como archivos sueltos, y el repo es público.
 ## En un clon sin ellos, o con SONNISS = false, suena «f» como siempre. Para compararlos de oído: fila S:SONNISS del panel F3. Cómo regenerarlos: audio/LICENCIAS.md.
 static var SONNISS: bool = true
+## 13/11 (Pipeline): true = las entradas con clave «f_lc» suenan con el «Magic Spell Full Pack» de Leonardo Calvo (CC BY 4.0; archivos `audio/lc_*.ogg`, que SÍ van en el
+## repositorio). Manda sobre «f_sn» y sobre «f». Con false suena lo de antes: para comparar de oído. Cómo se generan: audio/procesa_magic_spell.py.
+static var PACK_MAGIA: bool = true
 static var _sn_hay: Dictionary = {}          ## primer archivo de «f_sn» -> ¿está importado aquí? (se mira una vez)
 
 
 ## Los archivos que suenan para una entrada de catálogo (de Sfx o de Sfx3D): «f_sint» si GRABADOS está apagado y la entrada la tiene; «f_sn» si la entrada la tiene,
 ## SONNISS está encendido y los archivos existen aquí; si no, «f».
+## 13/11: antes que «f_sn» se mira «f_lc» (pack de magia, `PACK_MAGIA`).
 static func archivos_de(cfg: Dictionary) -> Array:
 	if not GRABADOS and cfg.has("f_sint"):
 		return cfg["f_sint"] as Array
+	if PACK_MAGIA and cfg.has("f_lc"):
+		var primero_lc: String = String((cfg["f_lc"] as Array)[0])
+		if not _sn_hay.has(primero_lc):
+			_sn_hay[primero_lc] = ResourceLoader.exists(CARPETA + primero_lc)
+		if bool(_sn_hay[primero_lc]):
+			return cfg["f_lc"] as Array
 	if SONNISS and cfg.has("f_sn"):
 		var primero: String = String((cfg["f_sn"] as Array)[0])
 		if not _sn_hay.has(primero):

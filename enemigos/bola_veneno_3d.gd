@@ -96,6 +96,7 @@ func _physics_process(delta: float) -> void:
 
 func _caer() -> void:
 	llego = true
+	Sfx3D.play(self, "veneno_charco")     # 13/11 (pack de magia): antes no sonaba
 	if jugador != null and is_instance_valid(jugador) and not jugador.muerto:
 		var d := Vector2(jugador.position.x - destino.x, jugador.position.z - destino.z)
 		if d.length() <= RADIO and absf(jugador.position.y - destino.y) < Terreno3D.ALTO_NIVEL * 0.9:

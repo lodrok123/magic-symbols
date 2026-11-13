@@ -5377,3 +5377,12 @@ Los dos pendientes de la 493. Sin commit todavía.
 - Archivos del Juego tocados: enemigos/combate_3d.gd, enemigos/golem_3d.gd, objetos/barril_3d.gd.
 
 **No hecho.** Sin oír dentro del juego; los recortes dentro de cada pista son por forma de onda.
+
+## 506 — Pipeline (13/11): **SFX, cuarta tanda: Magic Spell Full Pack de Leonardo Calvo (CC BY 4.0)**
+
+- 49 recortes `audio/lc_*.ogg` (**sí van en git**; hay que citar al autor en los créditos: `audio/LICENCIAS.md`). Script: `audio/procesa_magic_spell.py`.
+- Clave nueva «f_lc» en los catálogos, que manda sobre «f_sn» y «f» (`Sfx.PACK_MAGIA`). Cambian fuego, magma, agua, viento, tierra, rayo, hielo, hielo_flecha, chispazo, salpicadura, trueno y reaparecer.
+- Nombres nuevos en Sfx3D: veneno_bola, veneno_charco y raices_brotan. Archivos del Juego tocados: `enemigos/chaman_3d.gd`, `enemigos/bola_veneno_3d.gd`, `enemigos/combate_3d.gd`.
+- La flecha de hielo deja «Power Up Bright» de Sonniss (Pablo: «puedes sustituir power up bright por la nueva»).
+
+**No hecho.** Recorte automático y sin oír. `Sfx.PACK_MAGIA` no tiene fila en el panel F3. Tabla en `docs/INVENTARIO_SFX_2026-11-13.md` §3 ter.

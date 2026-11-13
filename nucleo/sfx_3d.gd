@@ -69,6 +69,10 @@ const CATALOGO: Dictionary = {
 	"golem_rugido": {"f": ["derrumbe.wav"], "f_sn": ["sn_golem_rugido_0.ogg"], "db": -8.0, "tono": 0.06, "base": 0.8},
 	"jefe_rugido":  {"f": ["derrumbe.wav"], "f_sn": ["sn_jefe_rugido_0.ogg"], "db": -6.0, "tono": 0.04},
 	"limo_divide":  {"f": ["limo_golpe.wav"], "f_sn": ["sn_limo_divide_0.ogg"], "db": -9.0, "tono": 0.10},
+	# 13/11 (pack de magia de Leonardo Calvo, CC BY 4.0): el chamán suelta la bola de veneno, la bola revienta en el suelo y las raíces del Elemental brotan. Antes no sonaban.
+	"veneno_bola":   {"f": ["limo_golpe.wav"], "f_lc": ["lc_veneno_bola_0.ogg", "lc_veneno_bola_1.ogg", "lc_veneno_bola_2.ogg"], "db": -10.0, "tono": 0.08},
+	"veneno_charco": {"f": ["limo_muere.wav"], "f_lc": ["lc_veneno_charco_0.ogg", "lc_veneno_charco_1.ogg", "lc_veneno_charco_2.ogg"], "db": -9.0, "tono": 0.08},
+	"raices_brotan": {"f": ["derrumbe.wav"], "f_lc": ["lc_raices_brotan_0.ogg", "lc_raices_brotan_1.ogg", "lc_raices_brotan_2.ogg"], "db": -8.0, "tono": 0.06},
 	"arco":         {"f": ["arco.wav"], "db": -10.0, "tono": 0.08},                                        # el arquero suelta la flecha (antes «arco» estaba en Sfx y nadie lo pedía)
 }
 

@@ -99,6 +99,30 @@ Pablo escuchó la librería y dijo qué pista va con qué. Mandan sobre lo de §
 
 Con esto, de §4 salen `naturaleza` y la voz del loberno. `Power Up Bright Positive` es la **flecha de hielo** (`hielo_flecha`, nuevo): suena al salir un hechizo de hielo que viaja, en vez del sonido de hielo de siempre. `tinta_sube` se queda con la fanfarria sintetizada.
 
+## 3 ter. Magic Spell Full Pack de Leonardo Calvo (13/11, cuarta tanda)
+
+Pack de Descargas con licencia CC BY 4.0: **va en git** y **hay que citar al autor en los créditos**. 49 recortes `lc_*.ogg`, con varias tomas por sonido. Mandan sobre todo lo anterior (clave `f_lc`); `Sfx.PACK_MAGIA = false` los apaga.
+
+| Entrada | Dónde suena | Tomas | Antes |
+|---|---|---|---|
+| `fuego` | lanzar fuego | 4 (fireball burst warm) | sintetizado |
+| `magma` | lanzar magma | 3 (fireball burst dark) | fuego con gruñido de Sonniss |
+| `agua` | lanzar agua | 3 (fast ball power) | sintetizado |
+| `viento` | lanzar viento | 4 (air sharp shoot) | Sonniss |
+| `tierra` | lanzar tierra | 4 (throw rock whoosh impact) | sintetizado |
+| `rayo` | lanzar rayo | 4 (zap blast sparkle bright) | OpenGameArt |
+| `hielo` | lanzar hielo | 4 (cast and impact) | OpenGameArt |
+| `hielo_flecha` | sale una flecha de hielo | 4 (fast impact) | «Power Up Bright» de Sonniss, que sale |
+| `chispazo` | muerte por rayo | 3 (zap blast sparkle dark) | Sonniss |
+| `salpicadura` | muerte por agua | 3 (thick splash) | Sonniss |
+| `trueno` | rayo de tormenta | 3 (thunder dark dry) | Sonniss |
+| `reaparecer` | volver tras morir | 1 (holy revive) | sintetizado |
+| `veneno_bola` (nuevo) | el chamán suelta la bola | 3 (acid squish ball) | mudo |
+| `veneno_charco` (nuevo) | la bola revienta en el suelo | 3 (acid squish ball impact) | mudo |
+| `raices_brotan` (nuevo) | brotan las raíces del Elemental | 3 (earth rise ground) | mudo |
+
+Sin usar todavía del pack: hojas (`earth_spell_cast_leaves_*`, alternativa para naturaleza), bucles de hielo y de electricidad estática (para los estados del suelo), gas venenoso en bucle (nube del chamán), `dark_spell_*` (mouro y ánima) y `Holy_spell_heal_*` / `protect_*` (curar y barrera).
+
 ## 4. Lo que sigue sin sonido
 
 **Sin candidato en el lote de Sonniss (hay que buscar o grabar):**

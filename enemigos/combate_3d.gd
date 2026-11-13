@@ -3110,6 +3110,7 @@ func _lanzar_raices() -> void:
 
 ## Se acaba el aviso: las raíces brotan. Si ella sigue dentro del círculo (y a su altura) y el golpe le entra (no lo para una voltereta ni la barrera), la sujeta y le hace daño.
 func _brotar_raices() -> void:
+	Sfx3D.play(self, "raices_brotan")     # 13/11 (pack de magia): antes no sonaba
 	_aviso_raices = null                           # el aviso acaba solo en su instante
 	var atrapada: bool = false
 	if jugador != null and is_instance_valid(jugador) and not jugador.muerto:
