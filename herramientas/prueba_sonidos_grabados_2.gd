@@ -130,8 +130,13 @@ func _interruptor() -> void:
 	Sfx.GRABADOS = true
 	var bien: bool = true
 	for n in SUSTITUIDAS_SFX:
-		bien = bien and Sfx.archivos_de(Sfx.CATALOGO[n]) == Sfx.CATALOGO[n]["f"]
-	_ok("3 GRABADOS = true: «f» (los grabados)", bien)
+		# 13/11: «moneda» y «bolsa» llevan además «f_sn» (Sonniss): si sus archivos están en esta máquina, mandan sobre «f»; si no, «f».
+		var cfg: Dictionary = Sfx.CATALOGO[n]
+		var espera: Array = cfg["f"]
+		if Sfx.SONNISS and cfg.has("f_sn") and ResourceLoader.exists(Sfx.CARPETA + String((cfg["f_sn"] as Array)[0])):
+			espera = cfg["f_sn"]
+		bien = bien and Sfx.archivos_de(cfg) == espera
+	_ok("3 GRABADOS = true: «f» (los grabados), o «f_sn» si la entrada lo tiene y está aquí", bien)
 	_ok("3 por defecto GRABADOS = true y PLUMA_ACTIVA = true", Sfx.GRABADOS and Sfx.PLUMA_ACTIVA)
 
 
