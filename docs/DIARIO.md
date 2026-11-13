@@ -5165,7 +5165,7 @@ No se ha pasado la batería completa.
 
 ## 491 — Juego (12/11): **Una prenda por ranura y la partida cargada se desviste antes de vestirse** (Pablo, con el atuendo del loberno: «no, sigue funcionando mal, se ven mallas estiradas, agujeros»). Mis capturas (laboratorio y tiras de la cámara del juego) salían bien; para verlo por su camino, herramienta nueva `herramientas/captura_atuendo_juego.gd` (escenario del bosque, el atuendo a la mochila, `Atuendos.poner` como la pestaña Vestuario, fotos quieta y andando con recorte ampliado en `docs/capturas/vestuario/atuendo_lobo_juego/`): también bien. **La causa estaba en la partida:** `Pj3D.cargar` pone el atuendo de viaje (túnica, capa y capucha verdes) y `Partida.aplicar_continuar` ponía ENCIMA lo guardado sin quitar nada, y `Ropa3D.poner` no sabía de ranuras: con una partida guardada con el loberno la jugadora llevaba dos túnicas, la capa y la capucha a la vez (lo de dentro asoma por lo de fuera: «mallas estiradas, agujeros»). Arreglo doble: `Ropa3D.poner` quita la prenda que ocupe la misma ranura (`ranura=` de objetos.tsv) y `aplicar_continuar` quita todo lo puesto antes de poner la lista guardada (lo guardado es TODO lo puesto). `prueba_vestuario` lo comprueba (5: la túnica del lobo sustituye a la de viaje); `prueba_partida`, `prueba_partida_entera`, `prueba_jugadora_base` a 0; `prueba_ropa_capa` con sus 17 de antes. **Sin commit.**
 
-## 490 — Pinchos de tierra oscuros en el Bosque: era la luz, no el color (12/11)
+## 492 — Pinchos de tierra oscuros en el Bosque: era la luz, no el color (12/11)
 
 **Causa.** El sol del Bosque cae casi vertical: −70°, y el ciclo de día lo gira 8° por hora. Las púas son caras casi verticales, así que el sol les da de canto y las que ve la cámara quedan en sombra, con solo el ambiente y el SSAO. La hierba, en cambio, recibe el sol de lleno. En el lab el sol va a −50° y del lado de la cámara: por eso allí se veían bien, y por eso subir el albedo el 7/11 no bastó.
 
@@ -5178,3 +5178,43 @@ No se ha pasado la batería completa.
 Las capturas están en `docs/capturas/vfx_en_juego/pinchos_tierra/`. Commit ddd67f10.
 
 **Pruebas.** A 0: vfx_en_juego (con la comprobación nueva de `normal_arriba`), viento_tierra_toy, vfx_toy, hechizo_golden, vfx_tierra_viento, plataforma_tierra, barrera_tierra_plataforma, magma_toy, lab_vfx_toys y vfx_comparativa. Pablo lo dio por bueno con las capturas.
+
+## 493 — Triaje de las pruebas fallidas de main (13/11)
+
+**Qué.** En main seguían en rojo unas 33 pruebas. Casi todas estaban desfasadas, no eran fallos del juego. Además, la batería corría sin `--fixed-fps 30` las pruebas que lo piden en las líneas 11 a 16 de su cabecera, porque `resumen_prueba.ps1` solo leía las 10 primeras.
+
+**Hecho.**
+- `resumen_prueba.ps1` lee toda la cabecera de comentarios, hasta 40 líneas. Con eso pasan a 0 pasar_pagina, mochila_sensacion, ping_debil, destello, muerte_elemento, mapa_abierto y la parte de tiempos de trampas.
+- Pruebas puestas al día, cada una citando su commit:
+  - golpe: masa 3,3 del elemental y golpe de frente;
+  - partida_menu: `no_puedes_ui`;
+  - kit: 12 glifos;
+  - hielo_toy y vfx_toon;
+  - oclusion_sfx;
+  - campos_ejecutados (H6);
+  - catalogo_reacciones: mojado,secado;
+  - en_punto_proyectil;
+  - arte_entorno;
+  - lab_humanoide y lab_jugadora: atuendo de viaje;
+  - muerte_elemento y destello_elemento;
+  - ping_debil;
+  - reaccion_enemigos (tarea P);
+  - ritmo_goblin con el chamán v1;
+  - tema_interfaz;
+  - mapa_abierto: la geoda de C1.
+- piezas_sin_duplicar y rig_golem imprimen ya «FALLOS: N».
+- tiendas suelta sus lambdas; antes salía con 0xC0000005.
+- En el juego:
+  - el texto de ᚷ dice ×1,30, como CRECER_TOPE_V2;
+  - `bolsa_tela.ogg` pasa a `kenney_bolsa_tela.ogg`, con sfx.gd y LICENCIAS.
+
+Commit cdc91bbb.
+
+**Pruebas.** Batería entera: de 116 fallos, 31 MAL y 2 SIN RESULTADO a 58 fallos, 9 MAL y 0 SIN RESULTADO. Las que siguen en MAL se repitieron solas.
+
+**Pendiente (Pablo).**
+- Muestras de glifos: asistencia; glifos_dibujables, sin muestras de ᚱ ni ᛉ y con ᛇ al 83 % y ᚠ al 89 %.
+- Láminas `objeto_*.png` de las prendas y atuendos (escritura_hud).
+- Como ya estaba: ropa_capa, colisiones_mapa y playtest_eow 1.12 y 1.13.
+- **trampas_pared**, fallo real: `TrampaFlechas3D` lanza con el Lanzador3D de la jugadora, así que su llama cuenta como fuego amigo (B7). Le quita 2 de vida y le da invulnerabilidad, y se pierden los 12 de daño de la trampa. Arreglo propuesto: marcar el hechizo de la trampa como ajeno. Siguen sin explicar 7.7 y la trampa F9.
+- **ritmo_goblin**: el chamán «lejos» se acerca a 1,20 u/s, paso de correr, en vez de 0,47.
