@@ -181,7 +181,7 @@ El script recorta la toma, pasa a mono 44,1 kHz, funde, iguala el pico a −3 dB
 | `sn_amb_bosque_0.ogg` | Sfx `amb_bosque` | `AMBSwmp_Meadow Pipits calling many Insects humming Wind blowing through Grass_JSE_HoN_Stereo.wav` | Just Sound Effects - Highlands of Norway |
 | `sn_amb_grillos_0.ogg` | Sfx `amb_grillos` | `AMBSubn_Ambience, Forest Crickets, Birds, Connecticut 02_344 Audio_East Coast America.wav` | 344 Audio - East Coast America Vol. 1 |
 | `sn_amb_cueva_0.ogg` | Sfx `amb_cueva` | `WINDInt_ChimneyWind05_InMotionAudio_ChimneyWind.wav` | InMotionAudio - Chimney Wind |
-| `sn_tinta_sube_0.ogg` | Sfx `tinta_sube` | `DSGNStngr_Power Up Bright Positive Successful Light Saturation Crash Shimmer 05_ESM_AG.wav` | Epic Stock Media - Anime Game |
+| `sn_hielo_flecha_0.ogg` | Sfx `hielo_flecha` | `DSGNStngr_Power Up Bright Positive Successful Light Saturation Crash Shimmer 05_ESM_AG.wav` | Epic Stock Media - Anime Game |
 | `sn_sintetizar_0.ogg` | Sfx `sintetizar` | `MAGAngl_Magic Light Spell Enchantment Potion Effect Tonal Bright 03_ESM_FG2.wav` | Epic Stock Media - Fantasy Game 2 - Sound Kit for Enchanted Realms |
 | `sn_flecha_clava_0.ogg` | Sfx `flecha_clava` | `Arrow Hit Rattle.wav` | Cinematic Sound Design - Cartoon Bloopers |
 | `sn_aterrizar_0.ogg` | Sfx `aterrizar` | `FOLYClth_SinglePats04_InMotionAudio_FoleyT-Shirt.wav` | InMotionAudio - Foley T-Shirt |

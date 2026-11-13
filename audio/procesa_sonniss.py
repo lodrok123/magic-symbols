@@ -67,7 +67,7 @@ ELEGIDOS = {
     "sn_amb_grillos_0": ("East Coast America", "Forest Crickets", 25.0, 47.0, 0.0, 1.0, {"como": "amb_grillos_loop.wav", "bucle": 2.0}),
     "sn_amb_cueva_0": ("Chimney Wind", "ChimneyWind05", 40.0, 62.0, 0.0, 1.0, {"como": "amb_cueva_loop.wav", "bucle": 2.0}),
     # Acciones que no sonaban (nombres nuevos del catálogo):
-    "sn_tinta_sube_0": ("Anime Game", "Power Up Bright", 0.02, 1.3, 0.3),
+    "sn_hielo_flecha_0": ("Anime Game", "Power Up Bright", 0.02, 1.3, 0.3, 1.0, {"como": "oga_congelar_1.wav"}),      # 13/11 (Pablo): la flecha de hielo; antes iba en tinta_sube
     "sn_sintetizar_0": ("Fantasy Game 2", "Magic Light Spell", 0.0, 1.7, 0.6),
     "sn_flecha_clava_0": ("Cartoon Bloopers", "Arrow Hit Rattle", 0.0, 0.85, 0.2),
     "sn_aterrizar_0": ("Foley T-Shirt", "SinglePats04", 0.04, 0.36, 0.08),

@@ -219,7 +219,10 @@ static var CATALOGO: Dictionary = {
 	"flecha_clava": {"f": ["kenney_clavar_0.ogg", "kenney_clavar_1.ogg"], "f_sn": ["sn_flecha_clava_0.ogg"], "db": -10.0, "tono": 0.10},   # la flecha del arquero y la de la trampa al llegar
 	"trueno":       {"f": ["oga_relampago_0.wav"], "f_sn": ["sn_trueno_0.ogg"], "db": -8.0, "tono": 0.06},      # EstadoZona3D.caer_rayo (tormenta)
 	"sintetizar":   {"f": ["pocion.wav"], "f_sn": ["sn_sintetizar_0.ogg"], "db": -10.0, "tono": 0.0},            # SintesisUI._sintetizar (play_ui)
-	"tinta_sube":   {"f": ["logro_fanfarria.wav"], "f_sn": ["sn_tinta_sube_0.ogg"], "db": -8.0, "tono": 0.0},   # Tinta._ganar: sube la tinta máxima (play_ui)
+	"tinta_sube":   {"f": ["logro_fanfarria.wav"], "db": -8.0, "tono": 0.0},   # Tinta._ganar: sube la tinta máxima (play_ui). Sin grabación propia: la fanfarria sintetizada
+	# 13/11 (Pablo): DISPARO DE UNA FLECHA por elemento. Si existe «<elemento>_flecha», el hechizo que viaja suena con él al salir en vez de con el del elemento
+	# (`Lanzador3D._disparar`). Hoy solo el hielo; dar de alta «fuego_flecha», etc. basta para los demás.
+	"hielo_flecha": {"f": ["oga_congelar_1.wav"], "f_sn": ["sn_hielo_flecha_0.ogg"], "db": -8.0, "tono": 0.06},
 }
 
 ## El bus de la interfaz. Vive en `default_bus_layout.tres` (−6 dB, enviado a Master); si no está (pruebas sin el layout), `play_ui` lo crea al primer uso.

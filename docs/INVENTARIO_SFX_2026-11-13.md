@@ -75,7 +75,7 @@ Catálogos: `nucleo/sfx.gd` (`Sfx.CATALOGO`) y `nucleo/sfx_3d.gd` (`Sfx3D.CATALO
 | Rayo de tormenta | `trueno` (nuevo) | `mundo/estado_zona_3d.gd` `caer_rayo` |
 | Síntesis: abrir, cerrar, poner, quitar, completar | `bolsa`, `ui_tick`, `sintetizar` (nuevo) | `presentacion/ui/sintesis_ui.gd` |
 | Recoger una poción del suelo | `recoger` | `escenas/jugabilidad_3d.gd` |
-| Sube la tinta máxima (jefe o secreto) | `tinta_sube` (nuevo) | `nucleo/tinta.gd` `_ganar` |
+| Sube la tinta máxima (jefe o secreto) | `tinta_sube` (nuevo; suena la fanfarria sintetizada) | `nucleo/tinta.gd` `_ganar` |
 
 ## 3 bis. Elecciones de Pablo (13/11, tercera tanda)
 
@@ -97,7 +97,7 @@ Pablo escuchó la librería y dijo qué pista va con qué. Mandan sobre lo de §
 | `arde_bucle` | objeto ardiendo | 24 Campfire, Dropping Fresh Pine Branches |
 | `siseo_apagado` | apagar fuego con agua | 42 Campfire, Putting Out Fire (ya estaba en §2) |
 
-Con esto, de §4 salen `naturaleza` y la voz del loberno. `Power Up Bright Positive` venía en la lista de Pablo sin destino: sigue en `tinta_sube`.
+Con esto, de §4 salen `naturaleza` y la voz del loberno. `Power Up Bright Positive` es la **flecha de hielo** (`hielo_flecha`, nuevo): suena al salir un hechizo de hielo que viaja, en vez del sonido de hielo de siempre. `tinta_sube` se queda con la fanfarria sintetizada.
 
 ## 4. Lo que sigue sin sonido
 
