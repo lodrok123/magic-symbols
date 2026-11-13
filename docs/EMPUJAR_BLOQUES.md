@@ -67,7 +67,18 @@ Ninguna se resuelve sin su idea: la barrera de tierra no llega a la placa de E1 
 
 ## Lo que no hace
 
-- No hay empuje contra enemigos (un enemigo en la casilla destino lo impide) ni arrastre/tirón.
+- No hay arrastre/tirón.
+
+## Bloques frente a enemigos y a la jugadora que resbala (13/11, tarea 18)
+
+Todos los números son `static var` de `BloqueEmpujable3D`, con su interruptor:
+
+- **Ocupa su casilla para los enemigos:** `bloquear_celda` la marca sólida, así que las rutas (A* de `Caminos3D`) la rodean y `Terreno3D.ocupado` la ve. Corregido de paso en `Terreno3D.pisable`: sobre AGUA HELADA se saltaba el bloqueo, y un bloque que resbalaba hasta el hielo no cerraba su casilla; ahora sí.
+- **Un bloque en marcha que va a entrar en una casilla con un enemigo se PARA antes de entrar** (ya `_casilla_libre` miraba `_hay_enemigo`; ahora el enemigo también ocupa la casilla si su cuerpo toca la huella del bloque: `ENEMIGO_OCUPA_POR_CUERPO = true`). No lo aplasta ni lo empuja. Con `BLOQUE_EMPUJA_ENEMIGOS = true` el bloque de HIELO que resbala y se para contra un enemigo le da un empujón de ~una casilla (`FUERZA_EMPUJE_ENEMIGO`) y `DANO_BLOQUE_HIELO` (5) de daño plano; la piedra, lenta, nunca golpea. Por defecto es false.
+- **Los enemigos no empujan bloques:** nada de su IA llama a `empujar`; un enemigo lanzado por un golpe o el viento contra un bloque se para en él.
+- **La jugadora que resbala sobre hielo** y choca de frente (velocidad ≥ `VEL_MIN_EMPUJE_RESBALANDO` = 0,8 u/s, hacia una cara) contra un bloque de HIELO lo empuja (`Jugador3D._empujar_bloque_al_resbalar`): cuenta como un empujón y el bloque sale ya suelto, a `VEL_HIELO`, sin acoplarla. Contra piedra o roca se para como contra una pared. `EMPUJE_AL_RESBALAR = false` lo deja como antes (se para contra todo).
+
+Los empujables de los niveles (los cubos del Test de jugabilidad y del Test 2, y los marcadores `empujable` de los `.tscn`) ya son bloques reales: `tierra` → piedra, `hielo` → hielo (`prueba_test2._colocar_empujables`). Prueba: `herramientas/prueba_bloque_enemigos.gd`.
 - No se guarda su posición en la partida (decidido).
 - El bloque de piedra no se rompe ni el de hielo se funde con fuego (solo el viento los toca).
 - Sonido: la piedra suena con un bucle bajo mientras se mueve (`Sfx3D.AMBIENTES["arrastre"]` = el `rodar.wav` sintetizado en bucle; no hay un arrastre grabado); el hielo, `rodar` al empezar y `clavar` al parar; `derrumbe` al reaparecer.

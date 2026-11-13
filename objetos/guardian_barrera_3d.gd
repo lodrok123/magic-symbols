@@ -156,12 +156,13 @@ func _materiales_que_brillan(raiz: Node) -> Array[StandardMaterial3D]:
 
 ## --- Contrato con los hechizos ---
 
-func on_spell_hit(rune_data: RuneData, _direccion: Vector3 = Vector3.ZERO) -> void:
-	var e: String = Objetos.elemento_de(rune_data)
+## 13/11 (tarea 11): la barrera es del elemento del hechizo, sacado de sus PROPIEDADES (`Materia.via`); si no es uno de los seis (magma, naturaleza, nada), la del guardián.
+func on_spell_hit(rune_data: RuneData, _direccion: Vector3 = Vector3.ZERO, hechizo: Hechizo = null) -> void:
+	var e: String = Materia.via(Materia.de(hechizo if hechizo != null else rune_data))
 	levantar(e if RUNAS.has(e) else elemento)
 
 
-func spell_reacts(_rune_data: RuneData, _direccion: Vector3 = Vector3.ZERO) -> bool:
+func spell_reacts(_rune_data: RuneData, _direccion: Vector3 = Vector3.ZERO, _hechizo: Hechizo = null) -> bool:
 	return not roto and _enfriando <= 0.0
 
 

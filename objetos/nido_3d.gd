@@ -70,13 +70,14 @@ func _poner_visual() -> void:
 
 ## --- Contrato con los hechizos ---
 
-func on_spell_hit(rune_data: RuneData, _direccion: Vector3 = Vector3.ZERO) -> void:
-	if Objetos.elemento_de(rune_data) == "viento":
+## 13/11 (tarea 11): por propiedades: lo sacude el aire (`Materia.sopla`: empuje de un gas). La tierra (empuja pero es sólida) y el agua no.
+func on_spell_hit(rune_data: RuneData, _direccion: Vector3 = Vector3.ZERO, hechizo: Hechizo = null) -> void:
+	if spell_reacts(rune_data, _direccion, hechizo):
 		sacudir()
 
 
-func spell_reacts(rune_data: RuneData, _direccion: Vector3 = Vector3.ZERO) -> bool:
-	return rune_data != null and Objetos.elemento_de(rune_data) == "viento"
+func spell_reacts(rune_data: RuneData, _direccion: Vector3 = Vector3.ZERO, hechizo: Hechizo = null) -> bool:
+	return rune_data != null and Materia.via(Materia.de(hechizo if hechizo != null else rune_data)) == "viento"
 
 
 func carried_element() -> RuneData:

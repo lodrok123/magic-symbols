@@ -132,7 +132,7 @@ static func _insignia(canvas: CanvasItem, pos: Vector2, n: int, tam: float, colo
 
 ## Caja isométrica con las proporciones de la página y debajo «x·y·z» en casillas, cada número del color de su eje.
 ##   centro   centro del dibujo en pantalla; `tam` = ALTO del cubo mayor posible (6 × 4 × 6 casillas): lo normal es mucho menor
-##   g        {x, y, z: semiejes del elipsoide en casillas} (lo que da `Sigils.aplicar_v2` / `GeometriaV2.evaluar`)
+##   g        {x, y, z: semiejes del elipsoide en casillas} (lo que da `Hechizo.geo()`)
 ## Cada arista se escala a su máximo (MAX_CASILLAS) con un mínimo del 22 % para que la esfera base (1 × 1 × 1) siga viéndose como cubo.
 ## Devuelve el tamaño total en casillas por si el Juego quiere usarlo (rótulo, tooltip).
 static func dibujar_indicador(canvas: CanvasItem, centro: Vector2, tam: float, g: Dictionary, tinta: Color = TINTA, con_texto: bool = true) -> Vector3:

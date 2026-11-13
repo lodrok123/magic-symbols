@@ -22,8 +22,11 @@ extends Combate3D
 ## `lanzar_agarre` (`_clip_toque`, el grafo reducido solo admite estados `lanzar*`); si el clip no está, se usa el rol `cast`.
 ##
 ## SURGIR DEL POZO (12/11): el mouro ya no aparece de golpe. Latente hay `T_REBROTE` s; los últimos `dur_surgir()` s (lo que dura el clip) el cuerpo YA se ve, en la casilla de la mámoa y
-## todavía sin colisión ni barra, levantándose del suelo con el clip `Getting_Up` de Mixamo (rol `cast_surgir`, estado `lanzar_surgir`; la fuente se añadió al fantasma en `ClipsFamilia.FUENTE_MIXAMO_MOURO`).
-## Antes de eso el cuerpo no se ve (solo el humo). Al acabar el clip se completa el rebrote como siempre (`_rebrotar`: vida llena, golpeable, `rebroto`). Si taparon la mámoa a mitad, se esconde.
+## todavía sin colisión ni barra, levantándose del suelo con el clip `Getting_Up` de Mixamo (rol `cast_surgir`, estado `lanzar_surgir`; la fuente se añadió al fantasma en `ClipsFamilia.FUENTE_MIXAMO_SURGIR`).
+## Antes de eso el cuerpo no se ve (solo el humo). Mientras surge el modelo va ELEVADO (`pj.position.y`, nunca el nodo ni la colisión) FRACCION_ALTURA_SURGIR × la altura del brocal y se posa con
+## offset = ALTURA·(1 − u³) (casi todo el descenso al incorporarse), de modo que se le ve por encima de las piedras y no dentro del agujero. Y NO acaba dentro del brocal: en la mitad final del clip
+## da un paso a la CASILLA DE SALIDA (`_elegir_salida`: la vecina recta libre más cercana a la jugadora), así que termina de pie y a la vista, fuera del anillo. Al acabar el clip el desplazamiento
+## es 0 exacto y se completa el rebrote como siempre (`_rebrotar`: vida llena, golpeable, `rebroto`, ya en la casilla de salida). Si taparon la mámoa a mitad, se esconde.
 ## Se probó antes `SwimmingToEdge` (salir del agua): avanza la cadera casi un cuerpo y se sale del encuadre, no vale para un brocal; no se generó clip por código porque `Getting_Up` ya lee bien.
 
 signal deshecho                                  ## cayó a 0 con la mámoa abierta: se ha deshecho, volverá
@@ -52,6 +55,11 @@ const ROL_CLIP_TOQUE: String = "cast_agarre"       ## ChargedSpellCast001 (ver `
 const ESTADO_TOQUE: String = "lanzar_agarre"     ## estado del grafo reducido (`lanzar*` vale) para el clip del toque
 const ROL_CLIP_SURGIR: String = "cast_surgir"    ## Getting_Up de Mixamo (ver `Pj3D.SINONIMOS`)
 const ESTADO_SURGIR: String = "lanzar_surgir"
+const FRACCION_ALTURA_SURGIR: float = 1.1      ## el cuerpo empieza a esta fracción de la altura del brocal por encima del suelo y se va posando (solo `pj.position.y`)
+const TRAMO_SALIDA: float = 1.0 / 2.0            ## el paso fuera del brocal ocurre en la MITAD FINAL del clip (smoothstep), cuando ya se incorpora; antes sigue sobre el agujero.
+## Velocidad media: 2,3 u (una casilla recta, `Terreno3D.casilla`) en 0,5 × 2,7 s (clip Getting_Up) = 1,35 s → 1,70 u/s, lo que su andar normal (`VEL_ANDAR` 1,6): se parece a andar y no a un lance (el smoothstep llega a 1,5× la media en mitad del tramo: 2,55 u/s).
+const EXPONENTE_SURGIR: float = 3.0             ## curva de la bajada: offset = ALTURA · (1 − u^3); casi todo el descenso ocurre al final (al incorporarse)
+const ALTO_BROCAL_DEFECTO: float = 0.6          ## u que se suponen al brocal si no hay mámoa de la que preguntarlo (`Mamoa3D.alto_brocal`)
 
 var mamoa: Mamoa3D = null                        ## de dónde vuelve; null = enemigo normal
 var latente: bool = false                        ## deshecho, a la espera de volver (o de morir sellado)
@@ -60,6 +68,8 @@ var toques: int = 0                              ## agarres empezados (pruebas)
 var golpes_dados: int = 0                        ## agarres que alcanzaron a la jugadora (pruebas)
 var surgiendo: bool = false                      ## latente pero con el cuerpo ya a la vista, levantándose del pozo (pruebas)
 var _t_latente: float = 0.0
+var celda_salida: Vector2i = Vector2i.ZERO       ## donde acaba de surgir: la vecina libre de la mámoa más cercana a la jugadora (o la propia mámoa si no hay ninguna)
+var _salida_elegida: bool = false
 var _dur_surgir: float = -1.0                    ## lo que dura el clip de surgir (s); -1 = sin medir, 0 = el modelo no lo trae
 var _sellado: bool = false                       ## la tapa cayó estando latente: muere definitivamente en `_t_sellado`
 var _t_sellado: float = 0.0
@@ -196,6 +206,7 @@ func _deshacerse() -> void:
 	_cortar_toque()
 	latente = true
 	surgiendo = false
+	_salida_elegida = false
 	_sellado = false
 	rebrotes_gastados += 1
 	_t_latente = T_REBROTE
@@ -223,8 +234,10 @@ func _rebrotar() -> void:
 	latente = false
 	surgiendo = false
 	_sellado = false
-	var c: Vector2i = mamoa.celda
-	position = Terreno3D.centro_de(c, Terreno3D.y_pies(c))
+	if not _salida_elegida:
+		_elegir_salida()                                        # sin clip de surgir: aparece igualmente un paso fuera del brocal
+	position = _pos_salida()                                    # SÓLIDO en la casilla de salida, a su altura de suelo
+	casa = position
 	if pj != null and is_instance_valid(pj):
 		pj.position = position
 	health = vida_max
@@ -321,8 +334,58 @@ func _vigilar_latente(delta: float) -> void:
 	_t_latente -= delta
 	if not surgiendo and _t_latente <= dur_surgir() and dur_surgir() > 0.0:
 		_empezar_surgir()
+	if surgiendo and _dur_surgir > 0.0:
+		_subir_surgir(clampf(1.0 - _t_latente / _dur_surgir, 0.0, 1.0))
 	if _t_latente <= 0.0:
 		_rebrotar()
+
+
+## Desplazamiento vertical del cuerpo mientras surge (`u` = 0..1 del clip): arriba al empezar, para verlo por encima del brocal; a 0 exacto al acabar.
+## Además de subir, se desplaza en horizontal de la casilla de la mámoa a la de salida, todo en la MITAD FINAL del clip (`TRAMO_SALIDA`).
+func _subir_surgir(u: float) -> void:
+	if pj == null or not is_instance_valid(pj):
+		return
+	if u >= 1.0:
+		pj.position = _pos_salida()
+		return
+	var ini: Vector3 = position
+	var fin: Vector3 = _pos_salida()
+	var w: float = clampf((u - (1.0 - TRAMO_SALIDA)) / TRAMO_SALIDA, 0.0, 1.0)
+	w = w * w * (3.0 - 2.0 * w)
+	pj.position = ini.lerp(fin, w) + Vector3(0.0, altura_surgir() * (1.0 - pow(u, EXPONENTE_SURGIR)), 0.0)
+
+
+## Centro y suelo de la casilla de salida.
+func _pos_salida() -> Vector3:
+	return Terreno3D.centro_de(celda_salida, Terreno3D.y_pies(celda_salida))
+
+
+## La casilla de salida: de las 4 vecinas RECTAS de la mámoa (sin diagonales: el paso es de una casilla y acaba pegado al brocal), la LIBRE (en el mapa, sin bloquear, sin agua, sin bloque empujable encima y con un desnivel que se salve andando) más cercana a la jugadora.
+## Sin ninguna libre (o sin jugadora a la que acercarse, la primera libre), se queda en la casilla de la mámoa.
+func _elegir_salida() -> void:
+	_salida_elegida = true
+	celda_salida = mamoa.celda
+	var mejor: float = INF
+	var y0: float = Terreno3D.y_pies(mamoa.celda)
+	for paso in [Vector2i(1, 0), Vector2i(0, 1), Vector2i(-1, 0), Vector2i(0, -1)]:
+		var c: Vector2i = mamoa.celda + (paso as Vector2i)
+		if not Terreno3D.en_mapa(c) or Terreno3D.bloqueada(c) or Terreno3D.es_agua(c) or BloqueEmpujable3D.en(c) != null:
+			continue
+		if absf(Terreno3D.y_pies(c) - y0) >= Terreno3D.ALTO_NIVEL * 0.9:
+			continue
+		var d: float = 0.0
+		if jugador != null and is_instance_valid(jugador):
+			var p: Vector3 = Terreno3D.centro_de(c)
+			d = Vector2(p.x - jugador.position.x, p.z - jugador.position.z).length()
+		if d < mejor:
+			mejor = d
+			celda_salida = c
+
+
+## u de altura inicial del cuerpo al surgir: FRACCION_ALTURA_SURGIR del brocal de la mámoa.
+func altura_surgir() -> float:
+	var alto: float = mamoa.alto_brocal() if mamoa != null and is_instance_valid(mamoa) else ALTO_BROCAL_DEFECTO
+	return FRACCION_ALTURA_SURGIR * alto
 
 
 ## Lo que dura el clip de surgir (s), sin pasarse del tiempo de rebrote; 0 si el modelo no lo trae (entonces aparece de golpe, como antes).
@@ -342,6 +405,8 @@ func _empezar_surgir() -> void:
 	var c: Vector2i = mamoa.celda
 	position = Terreno3D.centro_de(c, Terreno3D.y_pies(c))
 	pj.position = position
+	_elegir_salida()
+	_subir_surgir(0.0)
 	if jugador != null and is_instance_valid(jugador):
 		var d: Vector3 = jugador.position - position
 		d.y = 0.0

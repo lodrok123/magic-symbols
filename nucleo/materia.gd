@@ -131,6 +131,30 @@ static func golpea(m: Dictionary) -> bool:
 	return es_solido(m) and float(m.get("densidad", 0.0)) >= D_PESADA and not enfria(m)
 
 
+## 13/11 (tarea 11): el NOMBRE de elemento que corresponde a las propiedades, para los reactivos que tienen una tabla o un contrato por nombre (el cristal que late del elemento que lo
+## golpea, la planta que cambia de ingrediente, la barrera del guardián…) y para los que solo hacen caso a UNO de los seis (el viento de la colmena, el fuego de la enredadera).
+## Decide por propiedades, en el orden de `Objetos.elemento_de` (rayo, fuego, hielo, agua, viento, tierra): conduce → «rayo», calienta → «fuego», enfría → «hielo», riega → «agua»,
+## sopla → «viento», golpea → «tierra». Un derivado (magma, naturaleza) devuelve SU nombre y no el de lo que se le parece: se parecen a fuego o agua pero no lo son (REACCION_ELEMENTO).
+## Si las propiedades no dicen nada pero la fuente trae un elemento con nombre (una runa solo-etiquetas «fuego»), vale ese; si no, «».
+static func via(m: Dictionary) -> String:
+	var nombre: String = String(m.get("elemento", ""))
+	if REACCION_ELEMENTO.has(nombre):
+		return nombre
+	if conduce(m):
+		return "rayo"
+	if calienta(m):
+		return "fuego"
+	if enfria(m):
+		return "hielo"
+	if riega(m):
+		return "agua"
+	if sopla(m):
+		return "viento"
+	if golpea(m):
+		return "tierra"
+	return nombre if Objetos.ETIQUETAS.has(nombre) else ""
+
+
 ## El predicado por su nombre, para las tablas de datos (la compuerta: abre_con / cierra_con): «calor» → calienta, «agua» → riega, «frio» → enfria,
 ## «rayo» (o «electrico») → conduce, «viento» → sopla, «tierra» → golpea. Un nombre desconocido nunca se cumple.
 static func cumple(m: Dictionary, nombre: String) -> bool:

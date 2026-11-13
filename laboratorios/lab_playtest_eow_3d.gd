@@ -16,7 +16,7 @@ extends Node
 ##
 ## AJUSTES DEL LAB (lo que el juego tal cual no hace sin ayuda). Cada uno es una constante `SALAn_*` con su hallazgo documentado junto a ella; el valor NEUTRO es el juego tal cual
 ## y al arrancar el lab imprime en la consola los que están activos (`ajustes_activos()`, también en el HUD):
-##   SALA1_LIBERAR_BRASERO_ARQUERO  false · SALA1_CORRIMIENTO_BRASERO  0.0 · SALA1_QUEMA_GOBLIN_S  0.0 (quemadura de 3 s) · SALA2_HELAR_FRANJA  false · SALA3_QUIETO  false ·
+##   SALA1_LIBERAR_BRASERO_ARQUERO  false · SALA1_CORRIMIENTO_BRASERO  0.0 · SALA1_QUEMA_GOBLIN_S  0.0 (quemadura de 3 s; con SALA1_VIDA_GOBLIN  0.0 es UNA ayuda) · SALA2_HELAR_FRANJA  false · SALA3_QUIETO  false ·
 ##   SALA4_OLFATO  false · SALA5_BRASERO_ENCENDIDO  false (7 en total; el 8.º, SALA5_PUENTE_ESTADOS, se retiró el 21/10 porque el juego ya guarda mojada/helada/quemada). La sala 7 reutiliza
 ##   SALA1_LIBERAR_BRASERO_ARQUERO (el brasero de su arquero) y no añade ninguno propio: el escudo con su IA de verdad basta. La sala 6 no necesita ningún ajuste.
 ## R reinicia el lab y BORRA las flags de la memoria (partida nueva: así F, cargar, demuestra que el guardado recuerda cofre y sala).
@@ -68,7 +68,12 @@ const SALA1_LIBERAR_BRASERO_ARQUERO: bool = true
 ##      renueva si ya arde; el pasillo hasta el seto son ~1,9 u (ida al tope, vuelta y pasillo), 4–5 s a ese paso: el fuego se le apaga ANTES de llegar. Se corrige
 ##      alargando su quemadura hasta `SALA1_QUEMA_GOBLIN_S` cuando se prende (`quema_goblin_s1`, que la prueba puede poner a 0 para ver el juego tal cual).
 const SALA1_CORRIMIENTO_BRASERO: float = 0.6          ## u en X hacia el goblin (el brasero de la izquierda)
-const SALA1_QUEMA_GOBLIN_S: float = 8.0               ## s de quemadura del goblin guerrero al prenderse (0 = la del juego, 3 s)
+## 13/11 (tarea 35, intermitencia de 1.12/1.13): con 8 s la cadena era un empate técnico. Medido: se prende al tocar el brasero (x≈7,3), sigue 0,5 u hacia él, da la vuelta (x≈6,9) y vuelve
+## al paso de quemado (0,2 u/s); a los 8 s se le apaga el fuego en x≈8,05 y el seto empieza a tocarse en x≈8,8: según en qué fotograma cayera cada tick de daño, a veces llegaba y a veces no.
+## Desde el 29/10 el goblin tiene 50 de vida (antes 100) y quemarse 14 s son 84 de daño: se muere ardiendo ANTES de llegar. Por eso el lab también le devuelve la vida de entonces
+## (`SALA1_VIDA_GOBLIN`); 14 s dan ~5 s de margen sobre lo que tarda en llegar al seto. 0 = la vida del juego.
+static var SALA1_QUEMA_GOBLIN_S: float = 14.0             ## s de quemadura del goblin guerrero al prenderse (0 = la del juego, 3 s)
+static var SALA1_VIDA_GOBLIN: float = 100.0               ## vida del goblin guerrero de la sala 1 (0 = la del juego, VIDA_MAXIMA = 50): aguanta la quemadura larga hasta llegar al seto
 
 # --- Sala 2 · al agua (A3) ---
 ## La charca son las letras `~` del mapa (x 10–14, y 2–4): agua honda en la que se nada. El mapa NO sabe decir «esta agua empieza helada» (no hay letra de hielo), así
@@ -325,6 +330,9 @@ func _preparar_sala_1() -> void:
 		(izq as Node3D).global_position.x += SALA1_CORRIMIENTO_BRASERO            # ver el comentario de la constante
 	_guerrero_s1 = _combate_en(Vector2i(3, 3))
 	_arquero_s1 = _crear_arquero(SALA1_ARQUERO)
+	if _guerrero_s1 != null and SALA1_VIDA_GOBLIN > 0.0:
+		_guerrero_s1.vida_max = SALA1_VIDA_GOBLIN            # ver SALA1_VIDA_GOBLIN
+		_guerrero_s1.health = SALA1_VIDA_GOBLIN
 	q["guerrero"] = _guerrero_s1
 	q["arquero"] = _arquero_s1
 	if _guerrero_s1 == null:
@@ -632,7 +640,7 @@ func ajustes_activos() -> Array:
 	if SALA1_CORRIMIENTO_BRASERO != 0.0:
 		a.append("SALA1_CORRIMIENTO_BRASERO=%.1f" % SALA1_CORRIMIENTO_BRASERO)
 	if quema_goblin_s1 > 0.0:
-		a.append("SALA1_QUEMA_GOBLIN_S=%.0f" % quema_goblin_s1)
+		a.append("SALA1_QUEMA_GOBLIN_S=%.0f%s" % [quema_goblin_s1, " (con SALA1_VIDA_GOBLIN=%.0f)" % SALA1_VIDA_GOBLIN if SALA1_VIDA_GOBLIN > 0.0 else ""])      # la vida va con la quemadura: sigue siendo UNA ayuda
 	if SALA2_HELAR_FRANJA:
 		a.append("SALA2_HELAR_FRANJA (franja de hielo)")
 	if SALA3_QUIETO:

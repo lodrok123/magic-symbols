@@ -324,7 +324,8 @@ func _vivo() -> void:
 		igual = igual and str(gh[k]) == str(geo[k])
 		if str(gh[k]) != str(geo[k]):
 			print("  dif geo ", k, ": ", gh[k], " ≠ ", geo[k])
-	_ok("HC2: Hechizo.geo() = GeometriaV2.evaluar (x, y, z, nombre, viaja, y_tope)", igual and gh["props"] == geo["props"])
+	# 13/11 (T9): antes se comparaba con `GeometriaV2.evaluar` (retirada); ahora con los números que dan los glifos (ᛁ×4 ancho, ᛁ×2 fondo, flecha)
+	_ok("HC2: Hechizo.geo() = la de la receta y los números de sus glifos (x, y, z, nombre, viaja, y_tope)", igual and gh["props"] == geo["props"] and is_equal_approx(float(gh["x"]), Sigils.semieje_horizontal_v2(4)) and is_equal_approx(float(gh["z"]), Sigils.semieje_horizontal_v2(2, Sigils.PASO_FONDO_V2)) and is_equal_approx(float(gh["y"]), Sigils.RADIO_BASE_V2) and bool(gh["viaja"]) and String(gh["nombre"]) == "x_mano" and int(gh["y_tope"]) == 0)
 	var n: int = _l.lanzar_hechizo(hz, _origen(), Vector3.RIGHT)
 	var hijos: int = 0
 	for c in _l.get_children():

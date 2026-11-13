@@ -147,23 +147,19 @@ func _paridad_receta() -> void:
 				print("      no coincide: %s %s" % [e, str(glifos)])
 	_ok("paridad: Receta3D (coste_tinta, cooldown, geo nombre, forma, n_glifos) = Hechizo en %d recetas × elementos (%d fallan)" % [vistos, malos], malos == 0 and vistos == RECETAS_PARIDAD.size() * ELEMENTOS_PARIDAD.size())
 	_ok("paridad: pedir hechizo(runa) otra vez no reconstruye (%d construcciones para %d recetas)" % [Hechizo.construidos - antes, vistos], Hechizo.construidos - antes == vistos)
-	# `Sigils.glifos_hasta_tope` (lee GLIFOS) = lo que calculaba el laboratorio con GLIFOS_V2 (inicio, por_glifo, tope, modo)
+	# 13/11 (T9): aquí se comparaba `Sigils.glifos_hasta_tope` con lo que calculaba el laboratorio con `GLIFOS_V2` (tabla retirada). Ahora se fijan los números que daba esa comparación (cuántos glifos
+	# hacen falta para llegar al tope de cada glifo del repertorio de la receta V2; ᛏ es una serie decreciente: «tope» = el glifo que ya aporta menos de `APORTE_DESPRECIABLE_V2`) y se comprueba que `GLIFOS` los sigue dando.
+	var esperados: Dictionary = {"linea_x": 6, "linea_z": 6, "altura": 22, "flecha": 5, "barrera": 3, "repeticion": 3, "rebote": 3, "permanencia": 13,
+		"pulso": ceili(Sigils.CRECER_TASA_TOPE_V2 / Sigils.CRECER_TASA_V2 - 0.000001), "raido": ceili(Sigils.TOPE_RESUENA_V2 / Sigils.PASO_RESUENA_V2 - 0.000001)}
 	var topes_mal: int = 0
-	for nombre in Sigils.GLIFOS_V2:
-		var d: Dictionary = Sigils.GLIFOS_V2[nombre]
-		var viejo: int
-		if String(d.get("modo", "suma")) == "suma_decreciente":       # 30/10: ᛁ no llega al tope (1,10 < 3,0): el «tope» es el glifo que aporta menos de 0,01 m (13 con 0,25 y ×0,75)
-			viejo = ceili(1.0 + log(0.01 / float(d["por_glifo"])) / log(float(d["factor"])))
-		elif String(d.get("modo", "suma")) == "multiplica":
-			viejo = maxi(1, ceili(log(float(d["tope"]) / float(d["inicio"])) / log(float(d["por_glifo"])) - 0.000001))
-		else:
-			viejo = maxi(1, ceili((float(d["tope"]) - float(d["inicio"])) / float(d["por_glifo"]) - 0.000001))
-		if Sigils.glifos_hasta_tope(String(nombre)) != viejo:
+	for nombre in esperados:
+		var n: int = Sigils.glifos_hasta_tope(String(nombre))
+		if n != int(esperados[nombre]):
 			topes_mal += 1
-			print("      tope distinto en %s: %d ≠ %d" % [nombre, Sigils.glifos_hasta_tope(String(nombre)), viejo])
-		if Sigils.repertorio_de(String(nombre)) != String(d["repertorio"]):
+			print("      tope distinto en %s: %d ≠ %d" % [nombre, n, int(esperados[nombre])])
+		if Sigils.repertorio_de(String(nombre)) != String((Sigils.GLIFOS[nombre] as Dictionary)["repertorio"]) or not Sigils.GLIFOS.has(nombre):
 			topes_mal += 1
-	_ok("GLIFOS (repertorio, tope en glifos) dice lo mismo que GLIFOS_V2 (%d distintos)" % topes_mal, topes_mal == 0)
+	_ok("GLIFOS (repertorio, tope en glifos) da los números de siempre (%d distintos)" % topes_mal, topes_mal == 0)
 
 
 func _igual_menos_dano(a: Dictionary, b: Dictionary) -> bool:

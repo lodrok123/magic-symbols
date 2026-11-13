@@ -25,6 +25,17 @@ class Receptor extends Node:
 		edad_aviso = p.edad()
 		elemento_visto = p.elemento
 
+## Pulsables con respuesta (13/11, tono de llegada): `on_pulso` devuelve si reaccionó de verdad, como los receptores y demás piezas.
+class ReceptorSi extends Node:
+	var celda: Vector2i = Vector2i.ZERO
+	func on_pulso(_p: Pulso3D) -> bool:
+		return true
+
+class ReceptorNo extends Node:
+	var celda: Vector2i = Vector2i.ZERO
+	func on_pulso(_p: Pulso3D) -> bool:
+		return false
+
 var _fallos: int = 0
 var _conduce: Dictionary = {}                  ## la rejilla falsa: casilla -> true
 
@@ -61,6 +72,7 @@ func _initialize() -> void:
 	_colores()
 	await _pulso_sin_reentradas()
 	await _pulso_avisa_y_acaba()
+	await _tono_llegada()
 	_receta_pulso()
 	_momento_de_ejecucion()
 	_crecer_y_nombres()
@@ -253,6 +265,33 @@ func _pulso_avisa_y_acaba() -> void:
 	r2.queue_free()
 
 
+## 13/11: el tono de llegada solo suena si lo tocado REACCIONA (`_avisar` devuelve el primero que respondió; de él sale el tono). Un pulsable que dice false o no dice nada no lo hace sonar.
+func _tono_llegada() -> void:
+	_conduce.clear()
+	var si := ReceptorSi.new()
+	si.celda = Vector2i(21, 20)
+	var no := ReceptorNo.new()
+	no.celda = Vector2i(20, 19)
+	var mudo := Receptor.new()                         # on_pulso sin valor de vuelta (void)
+	mudo.celda = Vector2i(20, 19)
+	var p_no: Pulso3D = _lanzar(Vector2i(20, 20), "", 3, [no, mudo])
+	var r_no: Node = p_no._avisar(Vector2i(20, 19), 1)
+	_ok("10 un pulsable que no reacciona (false / sin respuesta) no da tono de llegada", r_no == null and p_no.avisados.size() == 2 and mudo.avisos == 1, "r %s avisados %d mudo %d" % [str(r_no), p_no.avisados.size(), mudo.avisos])
+	var p_si: Pulso3D = _lanzar(Vector2i(20, 20), "", 3, [si])
+	_ok("10 uno que reacciona (true) sí da tono de llegada", p_si._avisar(Vector2i(21, 20), 1) == si)
+	var no2 := ReceptorNo.new()
+	no2.celda = Vector2i(19, 20)
+	var si2 := ReceptorSi.new()
+	si2.celda = Vector2i(19, 20)
+	var p_mix: Pulso3D = _lanzar(Vector2i(20, 20), "", 3, [no2, si2])
+	var r_mix: Node = p_mix._avisar(Vector2i(19, 20), 1)
+	_ok("10 con uno que no reacciona y otro que sí en la misma casilla, el tono sale del que sí", r_mix == si2, str(r_mix))
+	await process_frame
+	for n in [si, no, mudo, no2, si2, p_no, p_si, p_mix]:
+		if is_instance_valid(n):
+			n.queue_free()
+
+
 # ---------------------------------------------------------------------------------------------------------------------
 #  FASE 2 · la receta, el momento de ejecución y el nombre «crecer»
 # ---------------------------------------------------------------------------------------------------------------------
@@ -267,16 +306,16 @@ func _receta_pulso() -> void:
 	var uno: Hechizo = Hechizo.construir(fuego, {"raido": 1})
 	var tres: Hechizo = Hechizo.construir(fuego, {"raido": 3})
 	var cuatro: Hechizo = Hechizo.construir(fuego, {"raido": 4})
-	_ok("7 ᚱ está dado de alta: tablas de Sigils (GLIFOS y GLIFOS_V2), reconocedor (SIGILS, RECORDABLE) y biblia (ᚱ sello)", Sigils.GLIFOS.has("raido") and Sigils.GLIFOS_V2.has("raido")
+	_ok("7 ᚱ está dado de alta: tabla de Sigils (GLIFOS; 13/11: ya no hay GLIFOS_V2), reconocedor (SIGILS, RECORDABLE) y biblia (ᚱ sello)", Sigils.GLIFOS.has("raido")
 		and GestureLibrary.SIGILS.has("raido") and GestureLibrary.RECORDABLE.has("raido") and String(GestureLibrary.BIBLIA["raido"]["uso"]) == "sello" and String(GestureLibrary.BIBLIA["raido"]["futhark"]) == "ᚱ")
 	_ok("7 sin glifos no resuena; con uno suma 4 casillas, con tres 12, y el tope es 12 (cuatro glifos = 12)", base.resuena == 0.0 and uno.resuena == 4.0 and tres.resuena == 12.0 and cuatro.resuena == 12.0,
 		"%s %s %s %s" % [base.resuena, uno.resuena, tres.resuena, cuatro.resuena])
 	_ok("7 los datos del glifo: +4 por glifo y tope 12 como constantes con nombre", Sigils.PASO_RESUENA_V2 == 4.0 and Sigils.TOPE_RESUENA_V2 == 12.0 and Sigils.TOPE_RESUENA_V2 == float(Pulso3D.ALCANCE_DEFECTO))
-	_ok("7 es una PROPIEDAD de la receta (`resuena`): la cuenta Sigils.aplicar_v2 y la del Hechizo, igual", Sigils.aplicar_v2({"raido": 2})["props"] == {"resuena": 8.0} and uno.propiedades_usadas() == {"resuena": 4.0}
+	_ok("7 es una PROPIEDAD de la receta (`resuena`): la cuenta del Hechizo (ᚱ×1 = 4, ᚱ×2 = 8)", uno.propiedades_usadas() == {"resuena": 4.0}
 		and Hechizo.construir(fuego, {"raido": 2}).propiedades_usadas() == {"resuena": 8.0})
 	_ok("7 no cambia el volumen ni la forma (solo es una propiedad): mismos semiejes y figura que sin ᚱ", uno.semiejes == base.semiejes and uno.figura() == base.figura())
 	_ok("7 encarece (propiedad nueva: +25 %)", is_equal_approx(uno.coste, base.coste * (1.0 + Sigils.COSTE_PROP_V2)), "%.3f vs %.3f" % [uno.coste, base.coste])
-	_ok("7 el hechizo con ᚱ sigue la paridad de la receta (coste y tinta)", is_equal_approx(uno.coste, Sigils.coste_v2(Sigils.aplicar_v2({"raido": 1}), {"resuena": 4.0})))
+	_ok("7 el hechizo con ᚱ sigue la paridad de la receta (coste y tinta)", is_equal_approx(uno.coste, Sigils.coste_v2(Hechizo.construir(null, {"raido": 1}).geo(), {"resuena": 4.0})))
 	# El pulso del jugador usa la misma señal: elemento de la receta, o el azul base si no hay.
 	var p_fuego := Pulso3D.new()
 	p_fuego.preparar([Vector2i(0, 0)], uno.elemento, int(uno.resuena), null, _f)
@@ -350,7 +389,7 @@ func _momento_de_ejecucion() -> void:
 	var esperado_muro: float = vol_muro * (1.0 + 2.0 * Sigils.COSTE_PROP_V2) * (1.0 + Sigils.COSTE_CONTINUO_V2)
 	_ok("8 el pulso continuo (barrera + ᚱ) cuesta más: propiedad nueva Y recargo del continuo", is_equal_approx(muro_pulso.coste, esperado_muro) and muro_pulso.coste > vol_muro * (1.0 + 2.0 * Sigils.COSTE_PROP_V2), "%.3f vs %.3f" % [muro_pulso.coste, esperado_muro])
 	_ok("8 el pulso «al final» (flecha + ᚱ) NO lleva recargo de continuo", is_equal_approx(flecha_pulso.coste, flecha.coste / (1.0 + Sigils.COSTE_PROP_V2) * (1.0 + 2.0 * Sigils.COSTE_PROP_V2)))
-	_ok("8 el recargo es el mismo número en la receta (Sigils.coste_v2) y en el Hechizo", is_equal_approx(muro_pulso.coste, Sigils.coste_v2(Sigils.aplicar_v2({"barrera": 1, "raido": 1}), Sigils.aplicar_v2({"barrera": 1, "raido": 1})["props"])))
+	_ok("8 el recargo es el mismo número en la receta (Sigils.coste_v2) y en el Hechizo", is_equal_approx(muro_pulso.coste, Sigils.coste_v2(muro_pulso.geo(), muro_pulso.geo()["props"])))
 	_ok("8 las constantes del continuo tienen nombre: periodo mínimo %.1f s (mayor que lo que tarda un pulso en apagarse, %.2f s) y tope de %d disparos" % [Sigils.PERIODO_MIN_CONTINUO_S, Pulso3D.T_COLA, Sigils.MAX_DISPAROS_CONTINUOS],
 		Sigils.PERIODO_MIN_CONTINUO_S > Pulso3D.T_COLA and Sigils.MAX_DISPAROS_CONTINUOS >= 2)
 
@@ -360,7 +399,7 @@ func _crecer_y_nombres() -> void:
 	var c1: Hechizo = Hechizo.construir(fuego, {"pulso": 1})
 	var c3: Hechizo = Hechizo.construir(fuego, {"pulso": 3})
 	_ok("9 ᚷ «crecer» no cambia: id `pulso`, parámetro `crece` (31/10: +CRECER_TASA_V2 por glifo, tope CRECER_TASA_TOPE_V2), runa ᚷ, figura «pulso», sin pulso resonante",
-		Sigils.GLIFOS_V2["pulso"]["param"] == "crece" and is_equal_approx(c1.crece, Sigils.CRECER_TASA_V2) and is_equal_approx(c3.crece, Sigils.CRECER_TASA_TOPE_V2) and is_equal_approx(Hechizo.construir(fuego, {"pulso": 4}).crece, Sigils.CRECER_TASA_TOPE_V2) and c1.figura() == "pulso" and c1.resuena == 0.0
+		String(Sigils.GLIFOS["pulso"]["modificadores"][0]["campo"]) == "crece" and is_equal_approx(c1.crece, Sigils.CRECER_TASA_V2) and is_equal_approx(c3.crece, Sigils.CRECER_TASA_TOPE_V2) and is_equal_approx(Hechizo.construir(fuego, {"pulso": 4}).crece, Sigils.CRECER_TASA_TOPE_V2) and c1.figura() == "pulso" and c1.resuena == 0.0
 		and String(GestureLibrary.BIBLIA["pulso"]["futhark"]) == "ᚷ" and c1.acciones_en("inicio").is_empty())
 	_ok("9 el jugador lo ve como «crecer» y al glifo nuevo como «pulso»", Sigils.nombre_visible("pulso") == "crecer" and Sigils.nombre_visible("raido") == "pulso" and Sigils.nombre_visible("flecha") == "flecha")
 	_ok("9 la chuleta del libro rotula ᚷ «crecer» y ᚱ «pulso» (EjesRecetaUi.EFECTO)", EjesRecetaUi.EFECTO["pulso"] == "crecer" and EjesRecetaUi.EFECTO["raido"] == "pulso")

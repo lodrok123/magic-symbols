@@ -271,7 +271,7 @@ func _volcar_mapa_limpio() -> void:
 ## Quita lo que un lanzamiento dejó en el suelo de la zona (tierra levantada, hielo, sólidos) para que el siguiente parta igual.
 func _limpiar_zona(r: Rect2i) -> void:
 	for n in lanzador.get_children():
-		if n is HechizoVivo or n is Lanzador3D.SolidezV2 or n is Lanzador3D.ZonaV2 or n is Lanzador3D.Campo or n is Lanzador3D.BarreraFuego:
+		if n is HechizoVivo or n is Lanzador3D.SolidezV2 or n is Lanzador3D.ZonaV2 or n is Lanzador3D.Burbuja or n is Lanzador3D.BarreraFuego:
 			n.queue_free()
 	# La tierra que dejó el lanzamiento anterior sigue en la lista de bloques del Lanzador (8 s): mientras esté, `construir_tierra` rechaza
 	# apilar más y la receta siguiente "no nace" por culpa de la anterior, no suya. Se deshacen aquí (_deshacer_bloque es privado pero esto es

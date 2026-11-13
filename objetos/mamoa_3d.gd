@@ -97,6 +97,11 @@ func _physics_process(delta: float) -> void:
 ##  Tapada o abierta
 ## =====================================================================================================
 
+## Lo que levanta el brocal sobre el suelo (u), medido del modelo al cargarlo. Lo lee el mouro para salir POR ENCIMA de las piedras (`MouroEspectro3D.altura_surgir`).
+func alto_brocal() -> float:
+	return _alto_brocal
+
+
 ## Mira la casilla AHORA y cambia de estado si hace falta (emite `tapada` / `destapada`).
 func revisar() -> void:
 	_poner(_a_mano or _bloque_encima() or _hechizo_encima())

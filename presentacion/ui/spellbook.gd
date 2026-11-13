@@ -2214,7 +2214,7 @@ func _draw_core(c: Vector2) -> void:
 	EjesRecetaUi.dibujar_indicador(self, EjesRecetaUi.sitio_en_nucleo(c, _u(_core_u())), _u(_core_u()), _geo_indicador(_contadores_pagina()))
 
 
-## H1: la geometría del indicador sale de un `Hechizo` sin elemento (no de `Sigils.aplicar_v2`, en desuso), y solo se reconstruye cuando cambian los glifos de la página (este dibujo corre cada fotograma).
+## H1: la geometría del indicador sale de un `Hechizo` sin elemento (`Sigils.aplicar_v2` ya se retiró), y solo se reconstruye cuando cambian los glifos de la página (este dibujo corre cada fotograma).
 var _ind_clave: String = ""
 var _ind_geo: Dictionary = {}
 

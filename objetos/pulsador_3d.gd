@@ -51,6 +51,8 @@ func preparar(p_celda: Vector2i, p_modo: String = "magia", p_rearme: float = 0.0
 
 
 func _ready() -> void:
+	if modo == "agua":
+		add_to_group(HechizoVivo.GRUPO_TOCA_AGUA)       # 13/11: el agua de una barrera/volumen que lo cubre lo pulsa (no es Reactivo3D: el contacto no lo veía)
 	monitoring = false
 	monitorable = true
 	collision_mask = 0

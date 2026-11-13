@@ -110,6 +110,10 @@ const PERIODO_CAMINO: float = 0.5                  ## D2: s entre dos recálculo
 const VEL_PERSEGUIR: float = 2.4                   ## entre andar (1,6) y correr (3,0) del jugador
 const VEL_PATRULLA: float = 1.0
 const DISTANCIA_PATRULLA: float = 2.0
+## 13/11 (tarea 19): la patrulla (y el paseo/vuelta a casa del Gatopedro) rodea por ruta de casillas lo que corte el camino recto hasta su punto de patrulla. false = como antes (recto y, si choca, vuelta).
+static var PATRULLA_POR_RUTA: bool = true
+## Tope de casillas de la ruta de patrulla: si rodear el obstáculo exige más que esto, no se rodea (se queda con el comportamiento de antes: recto y dar la vuelta). Una patrulla no debe irse a recorrer medio mapa.
+static var PATRULLA_RUTA_MAX_CASILLAS: int = 12
 const RANGO_ATAQUE: float = 1.2
 const ANCHO_CORTE_ASESINO: float = 0.75
 const HISTERESIS_RANGO: float = 1.2              ## empieza a pegar a `rango`, deja de esperar al pasar de rango*1,2 (evita parpadear entre atacar y perseguir)
@@ -1877,10 +1881,14 @@ func _patrullar(delta: float, vel: float) -> void:
 	mirada = Vector3(_direccion, 0.0, 0.0)
 	_v_avance = v_base("walk") * vel
 	_modo_marcha = ""
-	var paso := Vector3(_direccion * _v_avance * delta, 0.0, 0.0)
+	var dir_pat: Vector3 = _dir_patrulla(delta)
+	var por_ruta: bool = not _ruta.is_empty()
+	if por_ruta:
+		mirada = dir_pat                          # rodeando algo: mira hacia donde anda, no hacia el punto de patrulla
+	var paso: Vector3 = dir_pat * _v_avance * delta
 	if _marcha != null:
 		paso = _marcha.paso_suave(paso, delta)
-	var movido: bool = _mover_paso(paso)
+	var movido: bool = _mover_paso(paso, false, por_ruta)
 	if _marcha != null:
 		# 4/11 · el animal gira con velocidad angular máxima: tras dar la vuelta aún sigue un rato hacia fuera, así que solo se invierte si va hacia fuera y no más de una vez cada 0,8 s
 		var fuera: bool = absf(position.x - casa.x) >= DISTANCIA_PATRULLA - 0.6 and (position.x - casa.x) * _direccion > 0.0       # 0,6 u de margen: lo que se pasa mientras gira
@@ -1889,6 +1897,34 @@ func _patrullar(delta: float, vel: float) -> void:
 		return
 	if not movido or absf(position.x - casa.x) >= DISTANCIA_PATRULLA:
 		_direccion *= -1.0
+
+
+## 13/11 (tarea 19) · hacia dónde andar en la patrulla. Los puntos de patrulla son `casa ± DISTANCIA_PATRULLA` en X. Si el camino recto hasta el punto de este lado está libre (la misma
+## prueba que `_dir_hacia`), anda como siempre: (±1, 0, 0), sin tocar `_ruta`. Si hay algo en medio (un muro, un río, un escalón de 2 niveles, un muro de tierra) sigue la ruta de
+## Caminos3D hasta ese punto, en vez de chocar y darse la vuelta. Sin ruta (o si da una vuelta de más de PATRULLA_RUTA_MAX_CASILLAS casillas) hace lo de antes: recto y, si no
+## puede, dar la vuelta. El elemental no rutea (no cabe por los pasos de una casilla). Con ruta, `_ruta` queda con casillas y el que llama usa `por_ruta`.
+func _dir_patrulla(delta: float) -> Vector3:
+	var recto := Vector3(_direccion, 0.0, 0.0)
+	if elemental or not PATRULLA_POR_RUTA:
+		_ruta.clear()
+		return recto
+	var punto := Vector3(casa.x + _direccion * DISTANCIA_PATRULLA, position.y, position.z)
+	var muros: Dictionary = lanz.muros_tacticos() if combate_tactico and lanz != null else {}
+	var muro_en_medio: bool = not muros.is_empty() and lanz.muro_entre(position, punto)
+	if not muro_en_medio and Terreno3D.linea_libre(position, punto) and Caminos3D.recta_andable(position, punto):
+		_ruta.clear()
+		return recto
+	var meta := Vector3(punto.x, position.y, casa.z)
+	var hacia: Vector3 = meta - position
+	hacia.y = 0.0
+	if hacia.length() < 0.0001:
+		_ruta.clear()
+		return recto
+	var d: Vector3 = _seguir_ruta(meta, hacia.normalized(), muros, delta)
+	if _ruta.is_empty() or _ruta.size() > PATRULLA_RUTA_MAX_CASILLAS:
+		_ruta.clear()
+		return recto
+	return d
 
 
 func _rango_ataque() -> float:
@@ -2346,6 +2382,12 @@ func _dir_hacia(meta: Vector3, delta: float) -> Vector3:
 	if elemental or (not muro_en_medio and Terreno3D.linea_libre(position, meta) and Caminos3D.recta_andable(position, meta)):
 		_ruta.clear()
 		return recto
+	return _seguir_ruta(meta, recto, muros, delta)
+
+
+## La mitad de `_dir_hacia` que sigue (y recalcula cuando toca) la ruta por casillas hasta `meta`, sin mirar si la recta está libre: ya lo decidió quien llama (13/11, tarea 19: la patrulla
+## decide con SU punto y no debe repetir la prueba con otro, que a veces sí encuentra la recta libre rozando una esquina). `recto` = la dirección directa a la meta (lo que devuelve si no hay ruta).
+func _seguir_ruta(meta: Vector3, recto: Vector3, muros: Dictionary, delta: float) -> Vector3:
 	var c_ini: Vector2i = Terreno3D.celda_de(position)
 	var c_fin: Vector2i = Terreno3D.celda_de(meta)
 	_t_ruta -= delta
@@ -3268,12 +3310,12 @@ class EnlaceEnredadera extends Area3D:
 	func nivel_altura() -> int:
 		return 1
 
-	## Solo el fuego la toca; lo demás (flechas de otro elemento...) pasa de largo.
-	func spell_reacts(rune: RuneData, _dir: Vector3) -> bool:
-		return Objetos.elemento_de(rune) == "fuego"
+	## Solo el calor la toca (13/11, tarea 11: por propiedades, `Materia.via`; el magma no cuenta, como antes); lo demás (flechas de otro elemento...) pasa de largo.
+	func spell_reacts(rune: RuneData, _dir: Vector3 = Vector3.ZERO, hechizo: Hechizo = null) -> bool:
+		return Materia.via(Materia.de(hechizo if hechizo != null else rune)) == "fuego"
 
-	func on_spell_hit(rune: RuneData, _dir: Vector3 = Vector3.ZERO) -> void:
-		if vid != null and is_instance_valid(vid) and Objetos.elemento_de(rune) == "fuego":
+	func on_spell_hit(rune: RuneData, _dir: Vector3 = Vector3.ZERO, hechizo: Hechizo = null) -> void:
+		if vid != null and is_instance_valid(vid) and spell_reacts(rune, _dir, hechizo):
 			vid.quemar()
 
 	## Al terminar de brotar bloquea su casilla (si estaba libre y no es la del jugador).

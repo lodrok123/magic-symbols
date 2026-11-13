@@ -163,12 +163,13 @@ func _poner_modelo() -> void:
 
 ## --- Contrato con los hechizos: cualquier golpe lo rompe ---
 
-func on_spell_hit(rune_data: RuneData, _direccion: Vector3 = Vector3.ZERO) -> void:
+## 13/11 (tarea 11): no mira el elemento ni el tipo del golpe (cualquier hechizo lo rompe), así que no hay propiedad que leer; solo acepta el 3.er argumento del contrato.
+func on_spell_hit(rune_data: RuneData, _direccion: Vector3 = Vector3.ZERO, _hechizo: Hechizo = null) -> void:
 	if rune_data != null:
 		romper()
 
 
-func spell_reacts(rune_data: RuneData, _direccion: Vector3 = Vector3.ZERO) -> bool:
+func spell_reacts(rune_data: RuneData, _direccion: Vector3 = Vector3.ZERO, _hechizo: Hechizo = null) -> bool:
 	return rune_data != null and not roto_ya
 
 

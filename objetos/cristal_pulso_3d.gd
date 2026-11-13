@@ -119,12 +119,15 @@ func _exit_tree() -> void:
 
 ## --- Contrato con los hechizos ---
 
-func on_spell_hit(rune_data: RuneData, _direccion: Vector3 = Vector3.ZERO) -> void:
+## 13/11 (tarea 11): el elemento del hechizo sale de sus PROPIEDADES (`Materia.via`), no de las etiquetas. «Carga» solo el rayo (el que conduce), no cualquier cosa con algo de conductividad:
+## `via` da «rayo» solo si `conduce` (≥ 0,5), y un derivado (naturaleza, 0,2) conserva su nombre.
+func on_spell_hit(rune_data: RuneData, _direccion: Vector3 = Vector3.ZERO, hechizo: Hechizo = null) -> void:
 	if _enfriando_por_reloj:
 		_enfriando = 0.0                 # el latido automático que acaba de salir no se come el golpe (el elemento del hechizo manda)
-	if Objetos.elemento_de(rune_data) == "rayo":
+	var el: String = Materia.via(Materia.de(hechizo if hechizo != null else rune_data))
+	if el == "rayo":
 		cargado_s = T_CARGADO            # F1: el rayo lo CARGA; mientras dure, la esquirla que suelte es `cristal_cargado`
-	if latir(Objetos.elemento_de(rune_data)) != null:
+	if latir(el) != null:
 		_contar_golpe()
 
 
@@ -149,7 +152,7 @@ func flag_esquirla() -> String:
 	return "%s.mineral.%s" % [Rompible3D._limpio(nivel), Rompible3D._limpio(String(name))]
 
 
-func spell_reacts(_rune_data: RuneData, _direccion: Vector3 = Vector3.ZERO) -> bool:
+func spell_reacts(_rune_data: RuneData, _direccion: Vector3 = Vector3.ZERO, _hechizo: Hechizo = null) -> bool:
 	return _enfriando <= 0.0
 
 

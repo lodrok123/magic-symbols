@@ -1,7 +1,7 @@
 extends SceneTree
 ## Prueba de la RECETA V2 (R1, 17/10; docs/GLIFOS_RECETA.md): datos y volumen, sin ventana.
 ##   godot --headless --path . --script res://herramientas/prueba_receta_v2.gd
-## Comprueba, para TODAS las combinaciones de hasta 4 glifos de Sigils.GLIFOS_V2 (con repetición) × los 7 elementos:
+## Comprueba, para TODAS las combinaciones de hasta 4 glifos de los diez de la receta V2 (`GLIFOS_DE_LA_V2`, con repetición) × los 7 elementos:
 ##   · ninguna falla, y ningún valor pasa de su tope;
 ##   · las casillas del volumen no superan las del volumen máximo de los topes;
 ##   · el coste es monótono con el volumen (y con el nº de propiedades);
@@ -34,6 +34,8 @@ const ORIGEN_C: Vector2i = Vector2i(5, 8)        ## casilla de la mano en las pr
 const SEMIEJE_MURO_ANCHO: float = 1.45           ## semieje X del muro de 3 casillas de ancho de las pruebas (8 glifos con la base 0,25 y paso 0,15)
 
 const MAX_GLIFOS: int = 4
+## Los diez glifos de la receta V2 de siempre (los primeros de `Sigils.GLIFOS`, en este orden). 13/11 (T9): antes `Sigils.GLIFOS_V2.keys()` (tabla retirada).
+const GLIFOS_DE_LA_V2: Array = ["linea_x", "linea_z", "altura", "flecha", "barrera", "repeticion", "rebote", "pulso", "permanencia", "raido"]
 const ELEMENTOS: Array = ["fire", "water", "earth", "ice", "lightning", "wind"]       # 20/10: seis; «time» es cinemática
 const NOMBRES_OK: Array = ["x_mano", "alto", "abajo"]
 const ORIGENES: Array = [Vector2(11.5, 11.5), Vector2(11.0, 11.0), Vector2(11.9, 11.3)]    ## en casillas (se multiplica por la casilla)
@@ -52,7 +54,7 @@ func _ok(cond: bool, msg: String) -> void:
 
 func _initialize() -> void:
 	await process_frame
-	var nombres: Array = Sigils.GLIFOS_V2.keys()
+	var nombres: Array = GLIFOS_DE_LA_V2
 	print("Glifos V2: ", nombres)
 	_datos_de_elementos()
 	_topes_y_casos()
@@ -89,87 +91,93 @@ func _datos_de_elementos() -> void:
 	_ok(viento.empuje == 1.0 and tiempo.empuje == 0.0, "empuje: viento 1, tiempo 0")
 
 
-# --- aplicar_v2: valores concretos y topes ---
+# --- La geometría de la receta: valores concretos y topes ---
+## 13/11 (T9): la geometría de una receta, del `Hechizo` (antes `Sigils.aplicar_v2`, retirada con el camino «Campo»; `prueba_hechizo` demostró que daba los mismos números y `prueba_hechizo_golden` los fija).
+## Con la runa de agua (un estado que no es sólido): `haz` depende del estado de la materia (un sólido con ᛁ no es un haz) y la antigua `aplicar_v2` lo daba sin mirar el elemento; los semiejes no dependen de la runa.
+func _av2(contadores: Dictionary, con_runa: bool = true) -> Dictionary:
+	return Hechizo.construir(load("res://nucleo/water_rune.tres") as RuneData if con_runa else null, contadores).geo()
+
+
 func _casi(a: float, b: float) -> bool:
 	return absf(a - b) < 0.0001
 
 
 func _topes_y_casos() -> void:
-	var g: Dictionary = Sigils.aplicar_v2({})
+	var g: Dictionary = _av2({})
 	_ok(_casi(g["x"], Sigils.RADIO_BASE_V2) and _casi(g["y"], Sigils.RADIO_BASE_V2) and _casi(g["z"], Sigils.RADIO_BASE_V2) and (g["props"] as Dictionary).is_empty(), "sin glifos: esfera de radio base (%.2f) y sin propiedades" % Sigils.RADIO_BASE_V2)
 	var rb: float = Sigils.RADIO_BASE_V2
-	g = Sigils.aplicar_v2({"linea_x": 4})
+	g = _av2({"linea_x": 4})
 	_ok(_casi(g["x"], Sigils.semieje_horizontal_v2(4)) and _casi(g["x"], rb + 0.5 + 3.0 * 0.25) and _casi(g["z"], rb), "linea_x ×4 → semieje X = base + 0,50 + 3 · 0,25 (3/11: la 1.ª ᛁ alarga 1 casilla y cada siguiente 0,5; PASO_ANCHO_V2 %.2f)" % Sigils.PASO_ANCHO_V2)
-	g = Sigils.aplicar_v2({"linea_z": 2})
+	g = _av2({"linea_z": 2})
 	_ok(_casi(g["z"], rb + 0.5 + 0.25) and _casi(g["x"], rb), "linea_z ×2 → semieje Z = base + 0,50 + 0,25 (PASO_FONDO_V2 %.2f)" % Sigils.PASO_FONDO_V2)
-	g = Sigils.aplicar_v2({"altura": 4})
+	g = _av2({"altura": 4})
 	# Un nivel más cuando 2 × semieje Y llega a 1,5 (roundi): los glifos de altura que hacen falta salen de la base y del paso (24/10: PASO_ALTURA_V2 0,30 → 3; con +0,10 eran 7; con 0,25 y +0,15, 4)
 	var n_dos_niveles: int = 3      # 3/11: ᛏ decreciente (0,30 · 0,85^k): 3 ᛏ = 0,872 → round(1,74) = 2 niveles; con 2 ᛏ (0,655) son 1
-	g = Sigils.aplicar_v2({"altura": n_dos_niveles})
-	_ok(Lanzador3D.GeometriaV2.niveles(g) == 2 and Lanzador3D.GeometriaV2.niveles(Sigils.aplicar_v2({"altura": n_dos_niveles - 1})) == 1 and Lanzador3D.GeometriaV2.niveles(Sigils.aplicar_v2({"altura": 1})) == 1,
+	g = _av2({"altura": n_dos_niveles})
+	_ok(Lanzador3D.GeometriaV2.niveles(g) == 2 and Lanzador3D.GeometriaV2.niveles(_av2({"altura": n_dos_niveles - 1})) == 1 and Lanzador3D.GeometriaV2.niveles(_av2({"altura": 1})) == 1,
 		"altura ×%d → 2 niveles (con uno menos, o con uno solo, se queda en 1)" % n_dos_niveles)
 	# Decisión de Pablo 24/10: con pocos glifos se llega a 2 niveles (3 ᛏ, el tope) y a un muro de 3 casillas (ᛜ + 4 ᛁ).
-	_ok(n_dos_niveles == Sigils.GLIFOS_ALTURA_DOS_NIVELES_V2 and n_dos_niveles == 3 and _casi(float(Sigils.aplicar_v2({"altura": n_dos_niveles})["y"]), rb + 0.3 * (1.0 + 0.85 + 0.7225)), "3 ᛏ = 2 niveles (semieje 0,872)")
+	_ok(n_dos_niveles == Sigils.GLIFOS_ALTURA_DOS_NIVELES_V2 and n_dos_niveles == 3 and _casi(float(_av2({"altura": n_dos_niveles})["y"]), rb + 0.3 * (1.0 + 0.85 + 0.7225)), "3 ᛏ = 2 niveles (semieje 0,872)")
 	# 30/10 (playtest de Pablo): el tope de altura sube a 2,0 = 4 niveles (el límite físico): 6 ᛏ = 1,90 = 4 niveles; 5 ᛏ = 3; más ᛏ topan en 2,0.
 	# 3/11 (Pablo: «no capear la altura, solo rendimiento decreciente»): semieje Y con 1..6 ᛏ = 0,400 · 0,655 · 0,872 · 1,056 · 1,213 · 1,346 → niveles 1 · 1 · 2 · 2 · 2 · 3; 11 ᛏ = 4 niveles; sin tope: 99 ᛏ en la asíntota 2,10
 	var niv_ys: Array = []
 	for k in range(1, 7):
-		niv_ys.append(Lanzador3D.GeometriaV2.niveles(Sigils.aplicar_v2({"altura": k})))
-	_ok(niv_ys == [1, 1, 2, 2, 2, 3] and Lanzador3D.GeometriaV2.niveles(Sigils.aplicar_v2({"altura": Sigils.GLIFOS_ALTURA_CUATRO_NIVELES_V2})) == 4 and float(Sigils.aplicar_v2({"altura": 99})["y"]) > 2.09 and float(Sigils.aplicar_v2({"altura": 99})["y"]) < 2.1001, "ᛏ ×1..6 = niveles %s; 11 ᛏ = 4; 99 ᛏ en la asíntota 2,10 (sin tope)" % str(niv_ys))
+		niv_ys.append(Lanzador3D.GeometriaV2.niveles(_av2({"altura": k})))
+	_ok(niv_ys == [1, 1, 2, 2, 2, 3] and Lanzador3D.GeometriaV2.niveles(_av2({"altura": Sigils.GLIFOS_ALTURA_CUATRO_NIVELES_V2})) == 4 and float(_av2({"altura": 99})["y"]) > 2.09 and float(_av2({"altura": 99})["y"]) < 2.1001, "ᛏ ×1..6 = niveles %s; 11 ᛏ = 4; 99 ᛏ en la asíntota 2,10 (sin tope)" % str(niv_ys))
 	var cas_g: float = Terreno3D.casilla
 	var centro_g := Vector2(0.5, 0.5) * cas_g
 	var muro_n: Callable = func(n_i: int) -> int:
-		return Lanzador3D.GeometriaV2.celdas(Sigils.aplicar_v2({"barrera": 1, "linea_x": n_i}), centro_g, Vector2.DOWN, cas_g).size()
+		return Lanzador3D.GeometriaV2.celdas(_av2({"barrera": 1, "linea_x": n_i}, false), centro_g, Vector2.DOWN, cas_g).size()      # sin runa: el volumen centrado en la mano (la ᛜ + ᛁ con agua es un muro adelantado: `DISTANCIA_MURO`)
 	_ok(int(muro_n.call(Sigils.GLIFOS_ANCHO_MURO_3_V2)) == 3 and Sigils.GLIFOS_ANCHO_MURO_3_V2 == 3 and int(muro_n.call(Sigils.GLIFOS_ANCHO_MURO_3_V2 - 1)) == 1 and int(muro_n.call(40)) == 7,
 		"ᛜ + 3 ᛁ = muro de 3 casillas (con 2 ᛁ, 1; con 40, 7 por el tope de 3,0 de semieje; 3/11): %d / %d / %d" % [muro_n.call(Sigils.GLIFOS_ANCHO_MURO_3_V2), muro_n.call(Sigils.GLIFOS_ANCHO_MURO_3_V2 - 1), muro_n.call(40)])
-	_ok(_casi(float(Sigils.aplicar_v2({"barrera": 1, "linea_x": Sigils.GLIFOS_ANCHO_MURO_3_V2})["z"]), rb), "el fondo del muro no crece con los ᛁ horizontales")
-	g = Sigils.aplicar_v2({"barrera": 1})
+	_ok(_casi(float(_av2({"barrera": 1, "linea_x": Sigils.GLIFOS_ANCHO_MURO_3_V2})["z"]), rb), "el fondo del muro no crece con los ᛁ horizontales")
+	g = _av2({"barrera": 1})
 	_ok(_casi(g["x"], rb) and _casi(g["z"], rb) and _casi(g["y"], rb), "barrera: ya NO tiene radio mínimo (18/10): sin ejes, el volumen es el radio base")
 	_ok(_casi(Sigils.RADIO_BARRERA_U, Lanzador3D.RADIO_BURBUJA), "RADIO_BARRERA_U coincide con Lanzador3D.RADIO_BURBUJA")
-	g = Sigils.aplicar_v2({"flecha": 1, "barrera": 2, "repeticion": 2, "rebote": 2, "pulso": 2})
+	g = _av2({"flecha": 1, "barrera": 2, "repeticion": 2, "rebote": 2, "pulso": 2})
 	var p: Dictionary = g["props"]
 	_ok(_casi(p["viaja"], 2.0) and _casi(p["solidez"], 2.25) and _casi(p["copias"], 3.0) and _casi(p["rebotes"], 2.0) and _casi(p["crece"], 2.0 * Sigils.CRECER_TASA_V2), "valores de propiedades: %s" % str(p))
-	g = Sigils.aplicar_v2({"linea_x": 99, "linea_z": 99, "altura": 99, "flecha": 99, "barrera": 99, "repeticion": 99, "rebote": 99, "pulso": 99})
+	g = _av2({"linea_x": 99, "linea_z": 99, "altura": 99, "flecha": 99, "barrera": 99, "repeticion": 99, "rebote": 99, "pulso": 99})
 	p = g["props"]
 	_ok(_casi(g["x"], 3.0) and _casi(g["z"], 3.0) and _casi(g["y"], 6.0), "topes de ejes 3 / 3 / 6 (3/11: el tope de altura es solo de seguridad; con ᚷ ×99 los tres llegan al tope): %s" % str(g))
-	g = Sigils.aplicar_v2({"linea_x": 99, "linea_z": 99, "altura": 99})
+	g = _av2({"linea_x": 99, "linea_z": 99, "altura": 99})
 	_ok(_casi(g["x"], 3.0) and _casi(g["z"], 3.0) and g["y"] > 2.09 and g["y"] < 2.1001, "sin ᚷ, 99 ᛁ topan en 3,0 (lineal) y 99 ᛏ no pasan de la asíntota 2,10 (decreciente, sin tope)")
 	_ok(_casi(p["viaja"], 6.0) and _casi(p["solidez"], 3.0) and _casi(p["copias"], 4.0) and _casi(p["rebotes"], 3.0) and _casi(p["crece"], Sigils.CRECER_TASA_TOPE_V2), "topes de propiedades: %s" % str(p))
-	_ok(Sigils.aplicar_v2({"nada_conocido": 3, "linea_x": -2})["x"] == Sigils.RADIO_BASE_V2, "un nombre desconocido o un contador negativo no cambian nada")
+	_ok(_av2({"nada_conocido": 3, "linea_x": -2})["x"] == Sigils.RADIO_BASE_V2, "un nombre desconocido o un contador negativo no cambian nada")
 	# nombre derivado
 	var N := func(c: Dictionary) -> String:
-		var gg: Dictionary = Sigils.aplicar_v2(c)
+		var gg: Dictionary = _av2(c)
 		return Lanzador3D.GeometriaV2.nombre_derivado(gg, float((gg["props"] as Dictionary).get("viaja", 0.0)) > 0.0)
 	_ok(N.call({}) == "x_mano", "esfera → x_mano")
 	_ok(N.call({"altura": 2}) == "alto", "pilar → alto")
 	_ok(N.call({"barrera": 1, "linea_x": 2}) == "abajo", "muro bajo quieto (barrera + ᛁ) → abajo")
-	_ok(N.call({"linea_x": 2}) == "x_mano" and Sigils.aplicar_v2({"linea_x": 2})["haz"] == true, "21/10: ᛁ sola (sin barrera ni flecha) es un haz → x_mano (mano al frente)")
-	_ok(Sigils.aplicar_v2({"barrera": 1, "linea_x": 2})["haz"] == false and Sigils.aplicar_v2({"flecha": 1, "linea_x": 2})["haz"] == false and Sigils.aplicar_v2({"altura": 2})["haz"] == false and Sigils.aplicar_v2({})["haz"] == false, "con barrera, con flecha o sin ᛁ no hay haz")
+	_ok(N.call({"linea_x": 2}) == "x_mano" and _av2({"linea_x": 2})["haz"] == true, "21/10: ᛁ sola (sin barrera ni flecha) es un haz → x_mano (mano al frente)")
+	_ok(_av2({"barrera": 1, "linea_x": 2})["haz"] == false and _av2({"flecha": 1, "linea_x": 2})["haz"] == false and _av2({"altura": 2})["haz"] == false and _av2({})["haz"] == false, "con barrera, con flecha o sin ᛁ no hay haz")
 	_ok(N.call({"linea_x": 1, "linea_z": 1}) == "abajo" or N.call({"linea_x": 1, "linea_z": 1}) == "x_mano", "losa pequeña: nombre válido")
 	_ok(N.call({"linea_z": 3}) == "x_mano", "haz (Z grande) → x_mano")
 	_ok(N.call({"linea_x": 2, "flecha": 1}) == "x_mano", "lo que viaja → x_mano")
 	_ok(N.call({"barrera": 1, "linea_x": 1, "altura": 2}) == "alto", "muro alto (barrera + ᛁ + altura) → alto")
-	_ok(Lanzador3D.GeometriaV2.eje_dominante(Sigils.aplicar_v2({})) == "esfera", "eje dominante de la esfera")
-	_ok(Lanzador3D.GeometriaV2.eje_dominante(Sigils.aplicar_v2({"linea_x": 2})) == "x", "eje dominante x")
-	_ok(Lanzador3D.GeometriaV2.eje_dominante(Sigils.aplicar_v2({"altura": 2})) == "y", "eje dominante y")
-	_ok(Lanzador3D.GeometriaV2.eje_dominante(Sigils.aplicar_v2({"linea_z": 2})) == "z", "eje dominante z")
+	_ok(Lanzador3D.GeometriaV2.eje_dominante(_av2({})) == "esfera", "eje dominante de la esfera")
+	_ok(Lanzador3D.GeometriaV2.eje_dominante(_av2({"linea_x": 2})) == "x", "eje dominante x")
+	_ok(Lanzador3D.GeometriaV2.eje_dominante(_av2({"altura": 2})) == "y", "eje dominante y")
+	_ok(Lanzador3D.GeometriaV2.eje_dominante(_av2({"linea_z": 2})) == "z", "eje dominante z")
 	# La esfera base: una casilla de diámetro centrada en la mano → siempre la del origen, y el elipsoide se estira SOLO hacia delante en Z
 	var cas: float = Terreno3D.casilla
 	var o := Vector2(11.5, 11.5) * cas
-	var cz: Array = Lanzador3D.GeometriaV2.celdas(Sigils.aplicar_v2({"linea_z": 13}), o, Vector2.RIGHT, cas)
+	var cz: Array = Lanzador3D.GeometriaV2.celdas(_av2({"linea_z": 13}), o, Vector2.RIGHT, cas)
 	var min_x: int = 99
 	var max_x: int = -99
 	for c in cz:
 		min_x = mini(min_x, (c as Vector2i).x)
 		max_x = maxi(max_x, (c as Vector2i).x)
 	_ok(min_x == 11 and max_x >= 13, "linea_z ×13 hacia +X: nada detrás de la mano y se estira hacia delante (x de %d a %d)" % [min_x, max_x])
-	_ok(Lanzador3D.GeometriaV2.celdas(Sigils.aplicar_v2({}), o, Vector2.RIGHT, cas) == [Vector2i(11, 11)], "la esfera base ocupa solo su casilla")
+	_ok(Lanzador3D.GeometriaV2.celdas(_av2({}), o, Vector2.RIGHT, cas) == [Vector2i(11, 11)], "la esfera base ocupa solo su casilla")
 
 
 # --- Todas las combinaciones ---
 func _combinaciones(nombres: Array) -> void:
 	var cas: float = Terreno3D.casilla
-	var maximo: Dictionary = Sigils.aplicar_v2({})                  # 30/10: con ᛁ decreciente 99 ᛁ ya no llegan al tope; el máximo son los topes de los tres ejes (3 / 2 / 3)
+	var maximo: Dictionary = _av2({})                  # 30/10: con ᛁ decreciente 99 ᛁ ya no llegan al tope; el máximo son los topes de los tres ejes (3 / 2 / 3)
 	maximo["x"] = Sigils.TOPE_EJE_HORIZONTAL_V2
 	maximo["y"] = Sigils.TOPE_EJE_ALTURA_V2
 	maximo["z"] = Sigils.TOPE_EJE_HORIZONTAL_V2
@@ -181,7 +189,7 @@ func _combinaciones(nombres: Array) -> void:
 	for k in cuenta_max:
 		max_global = maxi(max_global, int(cuenta_max[k]))
 	print("Volumen máximo de los topes: %.2f casillas³ · casillas en planta: %d (máx. sobre %d orígenes×direcciones)" % [Sigils.volumen_v2(maximo), max_global, cuenta_max.size()])
-	var coste_max: float = Sigils.coste_v2(Sigils.aplicar_v2({"linea_x": 99, "linea_z": 99, "altura": 99, "flecha": 99, "barrera": 99, "repeticion": 99, "rebote": 99, "pulso": 99}), Sigils.aplicar_v2({"flecha": 1, "barrera": 1, "repeticion": 1, "rebote": 1, "pulso": 1})["props"])
+	var coste_max: float = Sigils.coste_v2(_av2({"linea_x": 99, "linea_z": 99, "altura": 99, "flecha": 99, "barrera": 99, "repeticion": 99, "rebote": 99, "pulso": 99}), _av2({"flecha": 1, "barrera": 1, "repeticion": 1, "rebote": 1, "pulso": 1})["props"])
 	var runes: Array = []
 	for e in ELEMENTOS:
 		runes.append(load("res://nucleo/%s_rune.tres" % e))
@@ -194,15 +202,14 @@ func _combinaciones(nombres: Array) -> void:
 		var c: Dictionary = {}
 		for n in combo:
 			c[n] = int(c.get(n, 0)) + 1
-		var g: Dictionary = Sigils.aplicar_v2(c)
+		var g: Dictionary = _av2(c)
 		var etiqueta: String = str(combo)
 		# topes
 		_ok(float(g["x"]) <= 3.0001 and float(g["z"]) <= 3.0001 and float(g["y"]) <= 2.0001, "%s: semieje pasa del tope" % etiqueta)
 		_ok(float(g["x"]) >= Sigils.RADIO_BASE_V2 and float(g["y"]) >= Sigils.RADIO_BASE_V2 and float(g["z"]) >= Sigils.RADIO_BASE_V2, "%s: semieje por debajo del radio base" % etiqueta)
 		var props: Dictionary = g["props"]
 		for k in props:
-			var d: Dictionary = Sigils.GLIFOS_V2[_glifo_de_param(String(k))]
-			_ok(float(props[k]) <= float(d["tope"]) + 0.0001, "%s: propiedad %s pasa del tope" % [etiqueta, k])
+			_ok(float(props[k]) <= _tope_de_param(String(k)) + 0.0001, "%s: propiedad %s pasa del tope" % [etiqueta, k])
 		# casillas ≤ las del volumen máximo, en cada origen y dirección (y por tanto ≤ max_global)
 		for oi in range(ORIGENES.size()):
 			for di in range(DIRECCIONES):
@@ -223,23 +230,18 @@ func _combinaciones(nombres: Array) -> void:
 		var r := Lanzador3D.Receta3D.new(Vector2.RIGHT)
 		for n in combo:
 			r.apply(n)
-		_ok(r.usa_geo() and r.ignorados.is_empty(), "%s: Receta3D V2 no usa la geometría" % etiqueta)
+		_ok(r.ignorados.is_empty(), "%s: Receta3D no ignora ningún glifo" % etiqueta)
 		_ok(String(r.forma()) == Lanzador3D.GeometriaV2.nombre_derivado(g, viaja), "%s: forma() ≠ nombre derivado" % etiqueta)
 		_ok(r.cooldown > 0.0 or combo.is_empty(), "%s: recarga" % etiqueta)
 		_ok(absf(r.tamano_relativo() - coste) < 0.0001, "%s: tamano_relativo() de la receta ≠ Sigils.coste_v2" % etiqueta)
-		var man: Array = r.manifestaciones()
-		_ok(man.size() >= 1 and man.size() <= Sigils.MAX_MANIFESTATIONS, "%s: %d manifestaciones" % [etiqueta, man.size()])
-		_ok(r.vida() > 0.0, "%s: vida" % etiqueta)
-		for rune in runes:
-			var pot: RuneData = r.potenciada(rune)
-			_ok(pot != null and pot.estado == (rune as RuneData).estado, "%s: potenciada pierde el estado" % etiqueta)
+		# 13/11 (T9): aquí se medían `Receta3D.manifestaciones()`, `vida()` y `potenciada()` (el camino «Campo», retirado). El rasterizado vivo es `GeometriaV2.celdas`, que se mide arriba.
 	# coste monótono con el volumen: añadir un glifo de eje nunca baja volumen ni coste; con las mismas propiedades, más volumen ⇒ no menos coste
 	for k in por_clave:
 		var a: Dictionary = por_clave[k]
 		for eje in ["linea_x", "linea_z", "altura"]:
 			var c2: Dictionary = (a["c"] as Dictionary).duplicate()
 			c2[eje] = int(c2.get(eje, 0)) + 1
-			var g2: Dictionary = Sigils.aplicar_v2(c2)
+			var g2: Dictionary = _av2(c2)
 			var v2: float = Lanzador3D.GeometriaV2.volumen(g2)
 			var co2: float = Sigils.coste_v2(g2, g2["props"])
 			_ok(v2 >= float(a["vol"]) - 0.0001 and co2 >= float(a["coste"]) - 0.0001, "%s + %s: volumen o coste bajan" % [str(a["c"]), eje])
@@ -256,19 +258,21 @@ func _combinaciones(nombres: Array) -> void:
 		ultimo[np] = float(it["coste"])
 		ultimo_vol[np] = float(it["vol"])
 	# y con el nº de propiedades a igual volumen
-	_ok(Sigils.coste_v2(Sigils.aplicar_v2({}), {"viaja": 3.0}) > Sigils.coste_v2(Sigils.aplicar_v2({}), {}), "más propiedades, más coste")
+	_ok(Sigils.coste_v2(_av2({}), {"viaja": 3.0}) > Sigils.coste_v2(_av2({}), {}), "más propiedades, más coste")
 	# La barrera sube el volumen al de la circunferencia del jugador, pero NO encarece: el coste cuenta lo que dieron los glifos.
-	var gb: Dictionary = Sigils.aplicar_v2({"barrera": 1})
-	var gs: Dictionary = Sigils.aplicar_v2({})
+	var gb: Dictionary = _av2({"barrera": 1})
+	var gs: Dictionary = _av2({})
 	_ok(absf(Sigils.coste_v2(gb, gb["props"]) - Sigils.coste_v2(gs, {}) * (1.0 + Sigils.COSTE_PROP_V2 * float(gb["props"].size()))) < 0.0001, "barrera sola: el coste no debe incluir el suelo del radio del jugador")
 	print("%d combinaciones de hasta %d glifos" % [combos.size(), MAX_GLIFOS])
 
 
-func _glifo_de_param(param: String) -> String:
-	for n in Sigils.GLIFOS_V2:
-		if String((Sigils.GLIFOS_V2[n] as Dictionary).get("param", "")) == param:
-			return n
-	return ""
+## El tope de una propiedad de la receta (`props[param]`), leído de los modificadores de `Sigils.GLIFOS` (el campo del Hechizo que la lleva sale de `Hechizo.PROPIEDAD_DE`).
+func _tope_de_param(param: String) -> float:
+	for nombre in Sigils.GLIFOS:
+		for m in (Sigils.GLIFOS[nombre]["modificadores"] as Array):
+			if (m as Dictionary).has("tope") and String(Hechizo.PROPIEDAD_DE.get(String((m as Dictionary)["campo"]), "")) == param:
+				return float((m as Dictionary)["tope"])
+	return INF
 
 
 ## Todas las combinaciones con repetición de hasta `restante` glifos (como multiconjunto: el orden no cuenta).
@@ -449,7 +453,7 @@ func _ciclo_de_vida() -> void:
 	for z in _l._zonas_v2:
 		inicial += (z as Lanzador3D.ZonaV2).celdas.size()
 	_ok(inicial >= 1 and cuenta_sin == sin_crecer.size(), "crece: al nacer ocupa pocas casillas (%d) e incluye la casilla de la mano" % inicial)
-	await _esperar(HechizoVivo.tiempo_de_crecer(1.5, 0.3, float(Sigils.aplicar_v2({"linea_x": 4, "pulso": 3})["x"])) + 0.3)      # lo que tarda en crecer ese radio a 0,5 m/s, más un margen
+	await _esperar(HechizoVivo.tiempo_de_crecer(1.5, 0.3, float(_av2({"linea_x": 4, "pulso": 3})["x"])) + 0.3)      # lo que tarda en crecer ese radio a 0,5 m/s, más un margen
 	var al_final: int = 0
 	for z in _l._zonas_v2:
 		al_final += (z as Lanzador3D.ZonaV2).celdas.size()
@@ -623,13 +627,18 @@ func _retiradas() -> void:
 	_ok(not fuente.contains("class GeometriaHechizo"), "retirada: GeometriaHechizo")
 	_ok(not fuente.contains("var antigua"), "retirada: antigua")
 	_ok(not fuente.contains("static var V2"), "retirada: el interruptor Receta3D.V2")
+	# 13/11 (T9): el camino «Campo» y las tablas antiguas
+	_ok(not fuente.contains("func _una_ola") and not fuente.contains("func _crear_campo") and not fuente.contains("func es_barrera_cupula") and not fuente.contains("class Campo") and not fuente.contains("func _sincronizar"), "retirada: el camino «Campo» (_una_ola, _crear_campo, es_barrera_cupula, Campo) y Receta3D._sincronizar")
+	_ok(not fuente.contains("class Receta3D extends SpellRecipe") and not fuente.contains("static func evaluar"), "retirada: Receta3D ya no hereda de SpellRecipe y GeometriaV2.evaluar no existe")
+	var fuente_sigils: String = (load("res://nucleo/sigils.gd") as GDScript).source_code
+	_ok(not fuente_sigils.contains("const GLIFOS_V2") and not fuente_sigils.contains("static func aplicar_v2"), "retiradas: Sigils.GLIFOS_V2 y Sigils.aplicar_v2")
 	_ok(not Sigils.FORM.has("pilar") and not Sigils.FORM.has("tamano"), "retirada: pilar y tamano de Sigils.FORM")
 	_ok(not GestureLibrary.SIGILS.has("pilar") and not GestureLibrary.SIGILS.has("tamano"), "retirada: pilar y tamano del reconocedor")
 	# HC2: el ciclo de vida vive entero en HechizoVivo (magia/hechizo_vivo.gd)
 	var ciclo: String = (load("res://magia/hechizo_vivo.gd") as GDScript).source_code
 	_ok(ciclo.contains("func _materializar(") and ciclo.contains("func eventos_de("), "el ciclo de vida está en HechizoVivo")
 	_ok(not fuente.contains("func _materializar_v2") and not fuente.contains("func _eventos_v2") and not fuente.contains("func _materia_"), "retirado de Lanzador3D: _materializar_v2, _eventos_v2 y _materia_*")
-	for glifo in Sigils.GLIFOS_V2:
+	for glifo in GLIFOS_DE_LA_V2:
 		if glifo == "permanencia":
 			continue                      # ᛉ se llama igual que el campo del Hechizo (`permanencia`, que el ciclo de vida SÍ lee): se comprueba abajo que no pregunta por el glifo
 		_ok(not ciclo.contains("\"%s\"" % glifo), "ciclo de vida: no pregunta por el glifo «%s» por su nombre" % glifo)

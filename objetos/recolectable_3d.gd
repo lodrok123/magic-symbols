@@ -189,10 +189,10 @@ func _refrescar_roca() -> void:
 
 ## --- Contrato con los hechizos ---
 
-func on_spell_hit(rune_data: RuneData, _direccion: Vector3 = Vector3.ZERO) -> void:
-	if not spell_reacts(rune_data):
+func on_spell_hit(rune_data: RuneData, _direccion: Vector3 = Vector3.ZERO, hechizo: Hechizo = null) -> void:
+	if not spell_reacts(rune_data, _direccion, hechizo):
 		return
-	var nuevo: String = String(_tabla()[Objetos.elemento_de(rune_data)])
+	var nuevo: String = String(_tabla()[_via(rune_data, hechizo)])
 	objeto = nuevo
 	var c: Color = (Objetos.DATOS.get(nuevo, {}) as Dictionary).get("color", Color.WHITE)
 	if _visual != null:
@@ -203,11 +203,16 @@ func on_spell_hit(rune_data: RuneData, _direccion: Vector3 = Vector3.ZERO) -> vo
 
 
 ## Reacciona si aún está sin transformar y su planta tiene algo para ese elemento.
-func spell_reacts(rune_data: RuneData, _direccion: Vector3 = Vector3.ZERO) -> bool:
+func spell_reacts(rune_data: RuneData, _direccion: Vector3 = Vector3.ZERO, hechizo: Hechizo = null) -> bool:
 	if rune_data == null or recogido_ya or not disponible:
 		return false
 	var base: String = String((Objetos.PLANTAS.get(planta, {}) as Dictionary).get("base", planta))
-	return objeto == base and _tabla().has(Objetos.elemento_de(rune_data))
+	return objeto == base and _tabla().has(_via(rune_data, hechizo))
+
+
+## 13/11 (tarea 11): la tabla de la planta va por nombre de elemento; el nombre sale de las PROPIEDADES del hechizo (`Materia.via`), no de sus etiquetas.
+func _via(rune_data: RuneData, hechizo: Hechizo) -> String:
+	return Materia.via(Materia.de(hechizo if hechizo != null else rune_data))
 
 
 func carried_element() -> RuneData:

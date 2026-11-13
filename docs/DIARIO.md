@@ -5237,7 +5237,87 @@ Commit 841f5d55. Hoja: `choque_envuelve/HOJA_CHOQUE_ENVUELVE.jpg`.
 
 **Pendiente.** En el juego, el haz de viento contra un enemigo sin muro detrás no dibuja choque.
 
-## 495 — Trampas de pared sin fuego amigo; ritmo_goblin deja de fallar a ratos (13/11)
+## 495 — Juego (13/11): **Retirado el camino «Campo» de los hechizos** (Pablo: «los puntos 9, 11, 18, 19, 34 y 35 se pueden implementar ya… ejecútalas en secuencia»; punto 9, PENDIENTES · Hechizos)
+
+**Qué sale.** El juego lanza por `Hechizo` / `HechizoVivo` desde H1 y el camino «Campo» solo lo usaban dos pruebas. Salen de `magia/lanzador_3d.gd`: `_una_ola`, `_crear_campo`, `es_barrera_cupula`, `_visual_campo`, `_activacion_en_haz`, `_levantar_tierra`, `_levantar_columna`, `campo_rune`, la lista `_campos` y sus constantes (`VEL_MURO`, `VEL_ONDA`, `RADIO_GOLPE`, `T_CRECE`, `CAUDAL_CHORRO_CELDA`). Sale `GeometriaV2.evaluar` (el resto de `GeometriaV2` sigue: lo usa el juego). De `nucleo/sigils.gd` salen `GLIFOS_V2` y `aplicar_v2`. `Receta3D` deja de heredar de `SpellRecipe` (`extends RefCounted`) y pierde `_sincronizar` y los campos 2D que nadie leía; queda el adaptador contadores + calidad → `Hechizo`.
+
+**Qué se queda.** La burbuja de la barrera: la clase `Campo` pasa a `Burbuja`, solo la esfera, con entrada `Lanzador3D.levantar_burbuja(rune, elemento, calidad)`. Se queda porque el jugador, `Combate3D`, la bola de veneno, la flecha trampa y el canouro la consultan (`absorber_golpe`, `burbuja_contiene`, `burbuja_recibe`). Hoy no la lanza ningún glifo: decidir con Pablo si vuelve o se retira con sus consumidores. El guardián de la Gruta Batida no cambia: ya iba por la vía viva (`lanzar_receta` → `_materializar`).
+
+**Pruebas reescritas** contra el camino vivo (sin aflojar umbrales): `prueba_barrera` y `prueba_canouro_v2` levantan la burbuja con `levantar_burbuja`; `prueba_activacion` pierde las comprobaciones 6-9 (medían `_activacion_en_haz`); `prueba_hechizo` cambia la paridad con `GLIFOS_V2` por coherencia interna de `GLIFOS`; `prueba_receta_v2`, `prueba_geometria` y `escenario_libro` sacan la geometría de `Hechizo.construir(...).geo()`; `prueba_pulso`, `prueba_materia_v2`, `prueba_construccion_unica`, `prueba_textos_objetos`, `prueba_ejes_receta_ui`, `prueba_prevision_hechizo` y `escenario_libro_combinaciones`, ajustadas.
+
+**Medido.** 75 pruebas de hechizos, laboratorios y niveles (Gruta, Cueva, Bosque, limo, gólem, chamán): el mismo veredicto que la batería de base de hoy, prueba por prueba (siguen MAL las que ya lo estaban: `prueba_campos_ejecutados` 3, `prueba_textos_objetos` 1). El proyecto compila sin errores de script.
+
+**Queda.** `magia/spellcaster.gd` y `SpellRecipe` parecen código 2D muerto (solo los cargan `captura_libro_bosque` y `prueba_receta_v2`): no se han borrado. `Lanzador3D._columnas` ya no se rellena nunca (solo lo hacía `_levantar_columna`) y la leen `objetos/mamoa_3d.gd` y `escenario_libro_combinaciones`.
+
+## 496 — Juego (13/11): **Los reactivos que decidían por el nombre del elemento, a `Materia`** (punto 11; PENDIENTES · H6, «Reactivos que NO leen etiquetas»)
+
+**Qué cambia.** `Materia.via(m)` (nuevo, `nucleo/materia.gd`) da el nombre de elemento que corresponde a las PROPIEDADES, en el orden de `Objetos.elemento_de`: conduce → rayo, calienta → fuego, enfría → hielo, riega → agua, sopla → viento, golpea → tierra. Magma y naturaleza devuelven su nombre (se parecen a fuego y agua pero no lo son), y una runa solo-etiquetas con nombre («fuego» sin «calor») sigue valiendo. Lo usan la colmena y la nube de veneno (viento y fuego), el nido (viento), la planta recolectable (su tabla de ingredientes), el cristal de pulso (carga con lo que conduce y late del elemento de `via`), el guardián de barrera (barrera del elemento de `via`; si no es de los seis, la suya), la enredadera de `combate_3d.gd` (fuego) y la trampa de pared (agua y hielo). La lava sale obsidiana si lo que la toca enfría y basalto si solo moja. El rompible y el prisma no decidían por elemento: solo aceptan ya el tercer argumento (`hechizo`).
+
+**Para los seis elementos de serie no cambia nada.** Lo nuevo es que un hechizo sin etiquetas con las propiedades correctas reacciona como el elemento con nombre; p. ej. un hechizo sin nombre que calienta hace latir el cristal como fuego (antes, el pulso base).
+
+**Medido.** Prueba nueva `herramientas/prueba_materia_reactivos_3.gd` (52 comprobaciones, 0 fallos): para cada reactivo, un hechizo de laboratorio sin etiquetas con las propiedades buenas reacciona y otro con las equivocadas no; magma y naturaleza siguen igual. 53 pruebas de materia, botín, fuego, papeles, trampas, pulso, Cueva, Gruta, Bosque, golpe y reacciones: el mismo veredicto que la base salvo `escenario_playtest_eow`, que pasa de 3 a 5 fallos (7L.13 y 7L.14: la flecha del arquero no sale ardiendo al cruzar el brasero). No viene de esta tarea (salen igual sin sus cambios) ni del camino «Campo» (la flecha mira braseros y enemigos ardiendo con `_flecha_toca_fuego`): va con el punto 35.
+
+**Queda.** La parte de `combate_3d.gd` `decidir_golpe` que pide sustituir los papeles por `reaccion_material` (punto 10, pendiente de las decisiones de Pablo).
+
+## 497 — Juego (13/11): **Bloques empujables de verdad en los niveles, y sus reglas con enemigos e hielo** (punto 18; PENDIENTES · Empujar bloques)
+
+**Los cubos solo visuales se van.** `prueba_test2._colocar_empujables` pone ahora un `BloqueEmpujable3D` real por cada empujable (`tierra` → piedra, `hielo` → hielo) en las tres fuentes: `Jugabilidad3D.EMPUJABLES`, `EMPUJABLES` del Test 2 y los marcadores `empujable` de las escenas. Salen el cubo, su shader de grietas y la tecla V que lo dañaba. Corrección a lo que decía PENDIENTES: los cubos no estaban en el Bosque 01 ni en el v01, sino en el Test de jugabilidad (3) y el Test 2 (2); el cubo ya cerraba su casilla, así que ningún bloque tapa un paso nuevo y no se ha movido ninguno.
+
+**Reglas** (`static var` de `BloqueEmpujable3D`, con interruptor):
+- Ya era así y queda probado: las rutas rodean el bloque, el bloque en marcha se para antes de una casilla con enemigo y los enemigos no lo empujan.
+- `BLOQUE_EMPUJA_ENEMIGOS` (false): a true, el hielo que se para contra un enemigo le da un empujón (`FUERZA_EMPUJE_ENEMIGO` 2200, ≈ 1 casilla) y 5 de daño plano (`DANO_BLOQUE_HIELO`); la piedra nunca golpea.
+- `ENEMIGO_OCUPA_POR_CUERPO` (true): el enemigo ocupa la casilla también si su cuerpo toca la huella del bloque, no solo su centro.
+- `EMPUJE_AL_RESBALAR` (true): la jugadora que resbala sobre hielo y choca de frente (≥ `VEL_MIN_EMPUJE_RESBALANDO` 0,8 u/s) contra un bloque de HIELO en reposo lo empuja y sale resbalando sin acoplarla. Contra piedra se para como contra una pared.
+
+**Arreglo de paso.** `Terreno3D.pisable` se saltaba el bloqueo en el agua helada: un bloque que llegaba resbalando a un lago helado no cerraba su casilla. Ahora la cierra si la ocupa un bloque empujable (solo bloques: con cualquier bloqueo se rompían `prueba_golem_combate` y `escenario_sala_golem`, que dejan el agua helada bloqueada).
+
+**Medido.** Prueba nueva `herramientas/prueba_bloque_enemigos.gd` (56 comprobaciones, 0 fallos; teletransporta y coloca por código: es de reglas, no un autoplay). 44 pruebas de empuje, bloques, bosque, salas, hielo, rutas, ocupación, goblins, gólem, limo, Test 2, Cueva y Gruta: el mismo veredicto que la base. Sin ver con ventana.
+
+**Queda.** Si el borde del hielo queda a menos de ~0,3 u del bloque (una casilla de agua helada y el bloque en la siguiente, como en la E4), la jugadora llega pisando suelo y empuja por la vía normal de 0,35 s, no resbalando. Falta jugarlo en pantalla.
+
+## 498 — Juego (13/11): **«Sin ruta» al instante y patrulla y gatopedro por ruta** (punto 19; PENDIENTES · lo abierto del diario 238)
+
+**Qué cambia.** `mundo/caminos_3d.gd` etiqueta cada casilla pisable con su COMPONENTE CONEXA, con la misma regla de arista que el A* propio (solidez, salto de nivel ≤ `SALTO_MAX`, sin cortar esquinas). Si origen y destino están en componentes distintas, `buscar` responde «sin ruta» sin buscar. Las etiquetas se ensucian con `avisar_cambio` y `reconstruir`, y se recalculan solo cuando una consulta las necesita (antes de lanzar el A* propio, o tras un «sin ruta» del nativo): el primer «sin ruta» después de un cambio paga ~1,2 ms y los siguientes salen gratis. No se recalculan con los obstáculos momentáneos de `camino` puestos (solo restringen). La búsqueda en sí no se toca: las rutas encontradas son las mismas.
+
+**Patrulla y gatopedro** (`Combate3D._dir_patrulla`, `static var PATRULLA_POR_RUTA` true y `PATRULLA_RUTA_MAX_CASILLAS` 12): si la recta al punto de patrulla está libre, hacen exactamente lo de antes; si está cortada, siguen la ruta (sin ruta, o más larga de 12 casillas, lo de antes). El gatopedro rutea al pasear y al volver a casa; al huir no (no tiene destino y ya esquiva con `_elegir_rumbo`). Velocidades y tiempos sin tocar. Ojo: `DISTANCIA_PATRULLA` (2,0 u) es menos de una casilla (2,3 u), así que con la casa en su sitio casi nunca cabe un obstáculo entre los dos puntos; para patrullas más largas habría que subirla o dar puntos de patrulla propios.
+
+**Medido** (`herramientas/prueba_rendimiento_rutas.gd`, nueva: Bosque 01 v01 y Cueva Resonante cargados, semilla fija, 300 pares con ruta y 300 sin ruta × 3 pasadas; el lote «barrera» añade una pared de 2 niveles de borde a borde porque esos mapas no tienen alturas). Mediana / p99 en µs:
+
+| Mapa y lote | Con ruta antes → después | Sin ruta antes → después |
+|---|---|---|
+| Bosque natural | 17 / 54 → 16 / 54 | 12 / 115 → 2 / 2 |
+| Bosque barrera | 18 / 60 → 17 / 47 | 65 / 1186 → 2 / 4 |
+| Cueva natural | 4 / 13 → 4 / 13 | 7 / 13 → 2 / 2 |
+| Cueva barrera | 7 / 24 → 7 / 24 | 7 / 67 → 2 / 3 |
+
+Las rutas coinciden casilla a casilla con la referencia del A* anterior en los cuatro lotes, y «hay ruta» coincide con un recorrido en anchura independiente. `herramientas/prueba_patrulla_ruta.gd` (nueva, 17 comprobaciones): con el camino libre la trayectoria es idéntica fotograma a fotograma con la ruta encendida y apagada; con un obstáculo en la recta, goblin y gato lo rodean. `prueba_caminos`: la comprobación 6 exigía que el A* propio se lanzara en un caso que ahora contestan las etiquetas; mantiene el resultado (sin ruta) y exige que lo contesten las etiquetas. 50 pruebas de rutas, enemigos, Bosque, Cueva, Gruta, salas y bloques: el mismo veredicto que la base.
+
+## 499 — Juego (13/11): **Cuatro bugs lógicos pequeños** (punto 34; PENDIENTES · Cueva Resonante, Gruta Batida y Agua)
+
+- **El tono de llegada del pulso** solo suena si lo tocado reacciona: `Pulso3D._avisar` lee lo que devuelve `on_pulso` (`true` o un objeto, p. ej. el pulso que reemite el prisma; `false`, `null` o nada no cuentan) y el primero que reacciona da el tono.
+- **Un receptor con `rearme` y `flag` quita la flag al apagarse** (por el rearme o con `apagar()`), así que la puerta que la mira se cierra y al recargar nace apagado y sin flag.
+- **La barrera de agua (agua + ᛜ) pulsa el `pulsador modo=agua` y apaga el muro de fuego `B`.** El contacto del estado `liquido` de `HechizoVivo` busca también el grupo nuevo `GRUPO_TOCA_AGUA`, donde entran ese pulsador y `BarreraFuego`; cada uno con la regla de siempre de la flecha de agua (`Materia.riega` el pulsador; `moja` o `enfria` el muro). Una barrera de fuego o de tierra no los toca.
+- **La tinaja dejaba de echar agua a la simulación pero seguía vertiendo** (gotas, arroyo y sonido) con la regla `apagar_fuente` de `Puzle3D`: ahora llama también a `dejar_de_verter()`. El camino de `prueba_test2` (`_parar_tinajas`) ya paraba bien.
+
+**Medido.** `prueba_bugs_logicos` (nueva: receptor con rearme y flag, barrera de agua con sus controles): sin los arreglos da 7 fallos, con ellos 0. `prueba_pulso` suma el grupo 10 (tono con una pieza que reacciona y otra que no) y `escenario_puzles_agua` la Q8.4b (la tinaja para). 74 pruebas de pulso, receptores, pulsadores, barreras, Gruta, Cueva, agua, flags, partida, Bosque, puzles, hechizos, materia y reacciones: el mismo veredicto que la base.
+
+**Queda (diseño, para Pablo).** La tinaja que se queda sin volumen (`abrir_cauce(0.5, 20)`) sigue vertiendo de aspecto; y el puzle del Bosque 02 (`tinaja_vierte`) no la para al completar la cuenca: haría falta una regla `hace=tinaja.apagar_fuente` en su mapa.
+
+## 500 — Juego (13/11): **`escenario_playtest_eow` estable: 0 fallos en 5 pasadas** (punto 35; PENDIENTES · «escenario_playtest_eow inestable»)
+
+**Antes:** 5 pasadas con 3 o 5 fallos (1.12, 1.13, 4.13 siempre; 7L.13 y 7L.14 en cuatro de cinco). **No es una regresión de hoy:** en el commit 920d384c, el de antes de los puntos 9-34, falla igual (5). El «3» de la batería de base era la variante buena de la misma intermitencia.
+
+**Causas y arreglos** (ninguna comprobación ni umbral cambiado):
+- **1.12 y 1.13** (el goblin ardiendo prende los setos). Desde que la vida del goblin bajó de 100 a 50 (diario 268), el fuego de 8 s se le apagaba en x≈8,05 y el seto se empieza a tocar en x≈8,8: un empate que decidía el fotograma de cada tick de daño. Alargar solo la quemadura lo mataba antes de llegar. La ayuda de la sala 1 del laboratorio, que ya existía, estaba mal calibrada: `SALA1_QUEMA_GOBLIN_S` pasa a `static var` de 14 s y se añade `SALA1_VIDA_GOBLIN` (100) al guerrero de esa sala. Cuenta como la misma ayuda en `ajustes_activos()`. Probado con el goblin arrancando 0, 37, 91 y 150 fotogramas tarde: los setos prenden a los 6,7-18,5 s, dentro de la ventana de 25 s.
+- **4.13** (la ruta de la X). La cuenta de la ruta esperada sale de la casa del goblin, pero cuando se pulsa la X ya patrullaba y la ruta se dibuja desde donde esté (7 marcas frente a 8). La prueba lo repone en su casa y quieto antes de pulsar.
+- **7L.13 y 7L.14** (la flecha cruza el brasero y sale ardiendo). El arquero patrulla ±2 u y su fase al primer disparo depende de cuántos fotogramas duró el velo de precalentado, que va por reloj de pared. En el fallo disparaba desde 2 u al oeste y la flecha pasaba a 2,3 u de la llama. La prueba lo coloca en su casilla antes de disparar, sin tocar su estado.
+- El `receive_damage` sobre un nodo liberado de la sala 7 ya tenía su `is_instance_valid` desde el 12/11; no se cayó en 15 pasadas.
+
+**Después:** 5 pasadas seguidas con `FALLOS: 0` y sin errores de script. 20 pruebas de playtest, setos, arqueros, braseros, flechas, fuego, goblins y combate: el mismo veredicto que la base.
+
+**Para Pablo.** Los ajustes del laboratorio siguen pendientes de tu decisión (diario 240): la quemadura de la sala 1 es ahora de 14 s con el goblin a 100 de vida, porque con 50 de vida no llega al seto.
+
+## 501 — Trampas de pared sin fuego amigo; ritmo_goblin deja de fallar a ratos (13/11)
 
 Los dos pendientes de la 493. Sin commit todavía.
 
@@ -5257,7 +5337,7 @@ Los dos pendientes de la 493. Sin commit todavía.
 - **Prueba:** la 7.7 admite 4 haces. Además deja cada dragón en su desfase; antes llamaba a `_al_encender()` y los dos escupían a la vez. Con los dragones alternados, como en el juego, el cruce mide 20.
 - Comentarios de `TrampaDragon3D` y `TrampaPared3D` y la tabla de daño de `TRAMPAS_PARED_2026-11-05.md`, al día con los 0,4 s.
 
-## 496 — Docs (13/11): **Dos guías de VFX de hechizos: lo vigente y la matriz de cobertura** (Pablo: «analiza cómo se genera el VFX de los hechizos… si necesitamos alguna guía adicional» → «Sí, las dos»)
+## 502 — Docs (13/11): **Dos guías de VFX de hechizos: lo vigente y la matriz de cobertura** (Pablo: «analiza cómo se genera el VFX de los hechizos… si necesitamos alguna guía adicional» → «Sí, las dos»)
 
 **Qué.** Solo documentos; no cambia código.
 - `docs/VFX_HECHIZOS_VIGENTE_2026-11-13.md`: el enganche (`VfxToyJuego`), los toys, las capas añadidas (gas, humo por regla, chispas, campo de viento), los ajustes y los topes, como están hoy.
@@ -5272,10 +5352,10 @@ Los dos pendientes de la 493. Sin commit todavía.
 - La columna de aprobaciones solo recoge lo encontrado en el diario desde la entrada 291.
 - Quedan por escribir las otras siete guías propuestas (estilo por elemento, glifos → lectura visual, choques, presupuesto, estados y residuos, alta de un elemento, validación).
 
-## 497 — Decisión (13/11): **El tiempo es un elemento cinemático y queda fuera de los hechizos procedurales** (Pablo: «Tiempo es un elemento cinemático (tipo historia), exclúyelo de los hechizos procedurales»)
+## 503 — Decisión (13/11): **El tiempo es un elemento cinemático y queda fuera de los hechizos procedurales** (Pablo: «Tiempo es un elemento cinemático (tipo historia), exclúyelo de los hechizos procedurales»)
 
 - El tiempo no tendrá toy, ni entrada en `VfxToyJuego.ELEMENTOS`, ni en `vfx_procedural_elementos`. No cuenta como hueco de VFX.
 - Código: nada que cambiar. Ya no estaba en ninguna de las dos listas, y su runa (`nucleo/time_rune.tres`) ya lleva la etiqueta `cinematico`.
-- Documentos: `VFX_MATRIZ_COBERTURA_2026-11-13.md` saca el tiempo de las tablas y de la lista de huecos (quedan ocho, no los nueve de la 496), y `VFX_HECHIZOS_VIGENTE_2026-11-13.md` lo dice en el §2.
+- Documentos: `VFX_MATRIZ_COBERTURA_2026-11-13.md` saca el tiempo de las tablas y de la lista de huecos (quedan ocho, no los nueve de la 502), y `VFX_HECHIZOS_VIGENTE_2026-11-13.md` lo dice en el §2.
 
 **No hecho.** No se ha revisado si la lógica deja combinar el tiempo con glifos como cualquier otro elemento, ni qué dibuja hoy el dibujo antiguo (`vfx_elementos/tiempo.gd`) si se lanza.

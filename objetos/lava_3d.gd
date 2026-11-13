@@ -313,10 +313,14 @@ func tender_puente(c: Vector2i) -> bool:
 ## --- Contrato con los hechizos ---
 
 func on_spell_hit(rune_data: RuneData, _direccion: Vector3 = Vector3.ZERO, hechizo: Hechizo = null) -> void:
-	if rune_data == null or not _enfria(Materia.de(hechizo if hechizo != null else rune_data)):
+	if rune_data == null:
+		return
+	var m: Dictionary = Materia.de(hechizo if hechizo != null else rune_data)
+	if not _enfria(m):
 		return
 	var p: Vector3 = Lanzador3D.ultimo_impacto
-	enfriar_en(Terreno3D.celda_de(p) if p != Vector3.INF else celdas[0], VIA_HIELO if Objetos.elemento_de(rune_data) == "hielo" else VIA_AGUA)
+	# 13/11 (tarea 11): obsidiana si lo que golpea ENFRÍA (hielo), basalto si solo moja; antes miraba el nombre «hielo».
+	enfriar_en(Terreno3D.celda_de(p) if p != Vector3.INF else celdas[0], VIA_HIELO if Materia.enfria(m) else VIA_AGUA)
 
 
 func spell_reacts(rune_data: RuneData, _direccion: Vector3 = Vector3.ZERO, hechizo: Hechizo = null) -> bool:

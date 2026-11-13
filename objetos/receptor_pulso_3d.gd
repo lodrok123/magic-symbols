@@ -136,6 +136,9 @@ func _poner(si: bool, color: Color, con_efecto: bool) -> void:
 			Flags.i().poner(flag)
 		activado.emit()
 	else:
+		# 13/11: al apagarse (el rearme o una regla) se quita la flag que puso al encenderse: si no, una puerta o regla que la mira se quedaba abierta y, al recargar, nacía activado.
+		if flag != "" and Flags.i().tiene(flag):
+			Flags.i().quitar(flag)
 		apagado.emit()
 
 

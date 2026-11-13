@@ -169,7 +169,7 @@ func _foto() -> Dictionary:
 		fases.sort()
 	f["fases"] = fases
 	f["nodos"] = get_node_count()
-	f["campos"] = lanzador._campos.size()
+	f["burbuja"] = 1 if lanzador._barrera_activa != null and is_instance_valid(lanzador._barrera_activa) else 0      # 13/11 (T9): antes `_campos.size()` (el camino «Campo» se retiró; solo queda la burbuja)
 	f["zonas"] = lanzador._zonas_v2.size()
 	f["solideces"] = lanzador._solideces_v2.size()
 	f["bloques"] = lanzador._bloques.size()

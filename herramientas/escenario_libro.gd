@@ -98,7 +98,7 @@ func _escenario() -> void:
 		lanzador.add_sigil(Vector2.DOWN, "linea_z", 1.0)
 		var cont: Dictionary = libro.call("_contadores_pagina")
 		_ok("7 los contadores de la página: ᛁ ancho ×2, ᛁ fondo ×1 y la levitación como altura ×1", cont == {"linea_x": 2, "linea_z": 1, "altura": 1}, str(cont))
-		var g: Dictionary = Sigils.aplicar_v2(cont)
+		var g: Dictionary = Hechizo.construir(null, cont).geo()      # 13/11 (T9): antes `Sigils.aplicar_v2` (retirada)
 		var dim: Vector3 = EjesRecetaUi.dimensiones(g)
 		var rb: float = Sigils.RADIO_BASE_V2
 		_ok("7 el cubo del núcleo sale de esos contadores (ᛁ ancho ×2, ᛁ fondo ×1, altura ×1: cada glifo suma el paso de su eje a RADIO_BASE_V2)", is_equal_approx(dim.x, 2.0 * Sigils.semieje_horizontal_v2(2)) and is_equal_approx(dim.y, 2.0 * (rb + Sigils.PASO_ALTURA_V2)) and is_equal_approx(dim.z, 2.0 * Sigils.semieje_horizontal_v2(1, Sigils.PASO_FONDO_V2)), str(dim))

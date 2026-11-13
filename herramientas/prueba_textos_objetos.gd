@@ -1,7 +1,7 @@
 extends "res://herramientas/escenario_base.gd"
 ## GAMEFEEL TERCERA TANDA, LOTE 2 · B4 DESCRIPCIONES DE OBJETOS Y GLIFOS (2/11; nucleo/textos_objetos.gd, nucleo/objetos.gd `descripcion`, menu_pestanas.gd `Detalle.mostrar`, spellbook.gd `glifo_elegido`).
 ## Sin escena: cada id de `Objetos` tiene descripción PROPIA en `TextosObjetos` (no la corta de la tabla), de 1-2 frases; los consumibles dicen lo que dice su `efecto` (40 de vida, 20 s, 12 s…); cada glifo de
-## `Sigils` (GLIFOS, FORM, OPERATOR, GLYPHS, GLIFOS_V2, el alias y los de la chuleta del libro) tiene texto; los números de los textos de ᛁ, ᛏ y ᚷ coinciden con las constantes de `Sigils`.
+## `Sigils` (GLIFOS, FORM, OPERATOR, GLYPHS, el alias y los de la chuleta del libro) tiene texto; los números de los textos de ᛁ, ᛏ y ᚷ coinciden con las constantes de `Sigils`.
 ## Con la escena del Bosque: el detalle de la mochila muestra la descripción del objeto elegido (y cambia al elegir otro; «Usos conocidos» baja si el texto ocupa más líneas), y el grimorio muestra el
 ## texto del glifo elegido (por la API de pruebas y por la casilla de la chuleta), sin romper el dibujo.
 ##   godot --headless --fixed-fps 30 --path . --script res://herramientas/prueba_textos_objetos.gd
@@ -107,8 +107,6 @@ func _glifos() -> void:
 		nombres[String(k)] = true
 	for k in Sigils.GLYPHS.keys():
 		nombres[String(k)] = true
-	for k in Sigils.GLIFOS_V2.keys():
-		nombres[String(k)] = true
 	for k in Sigils.ALIAS_V2.keys():
 		nombres[String(k)] = true
 	for k in GestureLibrary.SIGILS:
@@ -117,7 +115,7 @@ func _glifos() -> void:
 	for n in nombres.keys():
 		if TextosObjetos.glifo(String(n)).strip_edges().length() < 15:
 			sin.append(String(n))
-	_ok("3 cada glifo de Sigils (%d nombres: GLIFOS, FORM, OPERATOR, GLYPHS, GLIFOS_V2, alias y chuleta del libro) tiene su texto" % nombres.size(), sin.is_empty(), "faltan: " + ", ".join(sin))
+	_ok("3 cada glifo de Sigils (%d nombres: GLIFOS, FORM, OPERATOR, GLYPHS, alias y chuleta del libro) tiene su texto" % nombres.size(), sin.is_empty(), "faltan: " + ", ".join(sin))
 	var sobran: PackedStringArray = []
 	for n in TextosObjetos.GLIFO:
 		if not Sigils.is_known(String(n)) and not Sigils.GLYPHS.has(String(n)):

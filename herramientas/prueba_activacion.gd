@@ -1,6 +1,6 @@
 extends SceneTree
 ## Punto de activación (P2, 13/10): la bola y el chorro acaban en `punto_activacion()` del objeto que los para, no donde rozan su caja.
-## Sin ventana ni Vfx3D: se prueban las dos preguntas que el Lanzador le hace al objeto. Lo escribe el Juego.
+## Sin ventana ni Vfx3D: se prueba la pregunta que el Lanzador le hace al objeto (la de la bola; la del chorro se retiró con el camino «Campo»). Lo escribe el Juego.
 ##   godot --headless --path . --script res://herramientas/prueba_activacion.gd
 
 class Cuenco extends Area3D:
@@ -70,11 +70,7 @@ func _initialize() -> void:
 	var sin: Dictionary = {"desde": Vector3.ZERO, "hasta": Vector3(3, 0, 0), "dir": Vector3.RIGHT, "rune": rune, "golpes": []}
 	_ok("5 un tramo que acaba en pared o en el alcance tampoco", l._activacion_al_final(sin) == Vector3.INF)
 	await physics_frame
-	# Chorro: el haz desde la mano (y = 1) por +X cruza la caja del cuenco.
-	_ok("6 el chorro que cruza el cuenco devuelve su punto de activación", l._activacion_en_haz(Vector3(0, 1, 0), Vector3.RIGHT, 8.0, rune) == cu.punto)
-	_ok("7 si el haz es más corto que la distancia al cuenco, no", l._activacion_en_haz(Vector3(0, 1, 0), Vector3.RIGHT, 3.0, rune) == Vector3.INF)
-	_ok("8 un haz hacia otro lado, tampoco", l._activacion_en_haz(Vector3(0, 1, 0), Vector3(-1, 0, 0), 8.0, rune) == Vector3.INF)
-	cu.reacciona = false
-	_ok("9 el cuenco que no reacciona no termina el haz", l._activacion_en_haz(Vector3(0, 1, 0), Vector3.RIGHT, 8.0, rune) == Vector3.INF)
+	# 13/11 (T9): aquí había cuatro comprobaciones (6-9) de `Lanzador3D._activacion_en_haz`, el recorte del chorro del camino «Campo» (`_visual_campo`), que se retiró. El haz de hoy es de `HechizoVivo`
+	# y su punto de activación sale de `Lanzador3D._golpear`.
 	print("FALLOS: %d" % _fallos)
 	quit(_fallos)
