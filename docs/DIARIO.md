@@ -5218,3 +5218,21 @@ Commit cdc91bbb.
 - Como ya estaba: ropa_capa, colisiones_mapa y playtest_eow 1.12 y 1.13.
 - **trampas_pared**, fallo real: `TrampaFlechas3D` lanza con el Lanzador3D de la jugadora, así que su llama cuenta como fuego amigo (B7). Le quita 2 de vida y le da invulnerabilidad, y se pierden los 12 de daño de la trampa. Arreglo propuesto: marcar el hechizo de la trampa como ajeno. Siguen sin explicar 7.7 y la trampa F9.
 - **ritmo_goblin**: el chamán «lejos» se acerca a 1,20 u/s, paso de correr, en vez de 0,47.
+
+## 494 — Viento: el choque envuelve el obstáculo; F12 del lab sin fuego ajeno; soltar revertido (13/11)
+
+**Soltar.** El cambio de los jirones al soltar (d8b74472) se revierte (6e6070de). Pablo: «está peor».
+
+**«Todo vs muro da fuego».** Era el F12 del lab, sin Mayús, que ponía la masa de fuego (`HazMasaVista`) encima del haz toy de cualquier elemento. Con viento, además, `_muro_haz` daba un error de script. Ahora la masa solo sale con fuego (10b783a9). El gas (Mayús+F12) y el juego no tenían el fallo. Capturas en `haz_gas_elementos/choque_elemento/`.
+
+**Choque que envuelve.** Pablo: «los jirones se aglutinan delante, deberían envolver el elemento», con un vídeo de referencia, solo visual. Los lazos del choque iban hasta 1,2 M delante del contacto y con el radio del chorro.
+- **Contra un cuerpo** (la esfera del lab, o el enemigo u objeto que golpea la lógica): se centran en él, un poco más anchos, y sus colas pasan de largo por los lados.
+- **Contra un muro:** se pegan a la cara y se abren por ella.
+- **Qué cambia:** solo el dibujo del viento, que recibe el cuerpo por el mismo canal que las ramas del rayo (`rayo_cuerpos`). Fuego, agua y rayo quedan igual.
+- **Medido:** la opacidad delante de la esfera baja del 60–94 % al 18–27 %. Coste igual.
+
+Commit 841f5d55. Hoja: `choque_envuelve/HOJA_CHOQUE_ENVUELVE.jpg`.
+
+**Pruebas.** A 0: haz_gas_viento_rayo (con la comprobación nueva «viento cuerpo»), haz_gas_juego, haz_tamano, vfx_en_juego y vfx_toy. Pablo lo revisó en el lab y lo dio por bueno.
+
+**Pendiente.** En el juego, el haz de viento contra un enemigo sin muro detrás no dibuja choque.
