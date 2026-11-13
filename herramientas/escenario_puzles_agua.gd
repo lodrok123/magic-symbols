@@ -213,6 +213,9 @@ func _q8_nivel_justo() -> void:
 	await avanzar_s(6.0)
 	var p2: float = sim.profundidad_casilla(Vector2i(2, 18))
 	_ok("Q8.4 el botón cierra el grifo: el nivel deja de subir (apagar_fuente)", p2 <= p1 + 0.02, "%.2f → %.2f en 6 s" % [p1, p2])
+	# 13/11 (PENDIENTES, «la tinaja deja de verter»): cerrar el grifo también corta el chorro visible de la tinaja (gotas, arroyo, sonido).
+	var tin: Reactivo3D = q["tinaja"] as Reactivo3D
+	_ok("Q8.4b la tinaja deja de verter: chorro y arroyo ocultos y sin gotas", tin != null and bool(tin.get("_vertido_parado")) and not bool(tin.get("_arroyo").visible) and not (tin.get("_gotas") as GPUParticles3D).emitting)
 	volcar("q8", {"abrio": abrio, "cerro": cerro, "tras_grifo": [snappedf(p1, 0.01), snappedf(p2, 0.01)]})
 
 

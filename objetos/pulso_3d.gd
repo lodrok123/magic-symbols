@@ -272,10 +272,13 @@ func _avisar(c: Vector2i, p: int) -> Node:
 		if not is_instance_valid(n) or avisados.has(n) or not (n as Object).has_method("on_pulso"):
 			continue
 		avisados.append(n)
-		if primero == null:
-			primero = n as Node
 		toco.emit(n, c, p)
-		(n as Object).call("on_pulso", self)
+		var r: Variant = (n as Object).call("on_pulso", self)
+		# 13/11: el tono de llegada suena solo si la pieza reaccionó de verdad. Contrato: `on_pulso` devuelve true (receptor, cristal, estalagmita, columna...) o, el prisma, el pulso
+		# que reemite; false/null/nada = no reaccionó (ya encendido, elemento que no es, ya caída...).
+		var reacciona: bool = (r is bool and bool(r)) or (r is Object and is_instance_valid(r as Object))
+		if reacciona and primero == null:
+			primero = n as Node
 	return primero
 
 

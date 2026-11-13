@@ -3396,6 +3396,9 @@ class BarreraFuego extends Area3D:
 	func nivel_altura() -> int:
 		return 1
 
+	func _ready() -> void:
+		add_to_group(HechizoVivo.GRUPO_TOCA_AGUA)       # 13/11: el agua de una barrera/volumen que la cubre la apaga (no es Reactivo3D: el contacto no la veía)
+
 	func on_spell_hit(rune_data: RuneData, _direccion: Vector3 = Vector3.ZERO, hechizo: Hechizo = null) -> void:
 		if apagada or rune_data == null:
 			return

@@ -103,7 +103,10 @@ const PASOS_MAX_SECO: int = 100             ## A2: tope de pasos de un proyectil
 ## Estados cuya materia NO golpea por sí sola lo que toca (plasma, gas y energía sí: ver sus pulsos). Al llegar su tanda de casillas, golpean UNA vez a los
 ## reactivos y enemigos que haya dentro, igual que lo hacía la flecha de siempre (`_golpear`: on_spell_hit, hielo que apresa, agua que moja…).
 const CONTACTO_V2: PackedStringArray = ["solido", "liquido", "campo"]
-const VIDA_MIN_SOLIDEZ_V2: float = 2.0     ## s que dura la solidez de lo que no persiste (agua, rayo)
+## 13/11: Area3D reactivas que NO son Reactivo3D (el pulsador de agua, la barrera de fuego `B` del mapa) y que el agua de un volumen líquido (agua + ᛜ) debe tocar por contacto, como las toca la flecha
+## de agua (su misma regla, por Materia, en su `on_spell_hit`/`spell_reacts`). Solo el estado líquido las busca: una barrera de tierra o fuego no pulsa ni apaga nada más de lo que ya hace.
+const GRUPO_TOCA_AGUA: String = "toca_agua"
+const VIDA_MIN_SOLIDEZ_V2: float = 2.0    ## s que dura la solidez de lo que no persiste (agua, rayo)
 
 ## --- HC4 (18/10; HECHIZO_CLASE §2.2 y §2.3): el hechizo que SE MUEVE y los eventos ---
 ## Un hechizo con `velocidad` > 0 es un PROYECTIL: un punto con volumen que se mueve en el mundo paso a paso (`paso(dt)`) en vez de materializar sus casillas de golpe.
@@ -879,7 +882,7 @@ func _vivir(ctx: Dictionary, solidez: float, refleja: bool) -> int:
 	if (ctx["celdas"] as Array).is_empty():
 		return 0
 	if CONTACTO_V2.has(String(ctx["estado"])) or vuelta:
-		_contacto(ctx)                                     # R2: en la vuelta TODOS los estados golpean lo que cruzan (en la ida los de zona lo hacen por su pulso)
+		_contacto(ctx, ["reactivo3d", "combate3d", GRUPO_TOCA_AGUA] if String(ctx["estado"]) == "liquido" else ["reactivo3d", "combate3d"])                                    # R2: en la vuelta TODOS los estados golpean lo que cruzan (en la ida los de zona lo hacen por su pulso)
 	if vuelta:
 		return 0                                           # …pero sin repetir la materia
 	if seco:

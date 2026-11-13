@@ -5233,3 +5233,14 @@ Las capturas están en `docs/capturas/vfx_en_juego/pinchos_tierra/`. Commit ddd6
 | Cueva barrera | 7 / 24 → 7 / 24 | 7 / 67 → 2 / 3 |
 
 Las rutas coinciden casilla a casilla con la referencia del A* anterior en los cuatro lotes, y «hay ruta» coincide con un recorrido en anchura independiente. `herramientas/prueba_patrulla_ruta.gd` (nueva, 17 comprobaciones): con el camino libre la trayectoria es idéntica fotograma a fotograma con la ruta encendida y apagada; con un obstáculo en la recta, goblin y gato lo rodean. `prueba_caminos`: la comprobación 6 exigía que el A* propio se lanzara en un caso que ahora contestan las etiquetas; mantiene el resultado (sin ruta) y exige que lo contesten las etiquetas. 50 pruebas de rutas, enemigos, Bosque, Cueva, Gruta, salas y bloques: el mismo veredicto que la base.
+
+## 496 — Juego (13/11): **Cuatro bugs lógicos pequeños** (punto 34; PENDIENTES · Cueva Resonante, Gruta Batida y Agua)
+
+- **El tono de llegada del pulso** solo suena si lo tocado reacciona: `Pulso3D._avisar` lee lo que devuelve `on_pulso` (`true` o un objeto, p. ej. el pulso que reemite el prisma; `false`, `null` o nada no cuentan) y el primero que reacciona da el tono.
+- **Un receptor con `rearme` y `flag` quita la flag al apagarse** (por el rearme o con `apagar()`), así que la puerta que la mira se cierra y al recargar nace apagado y sin flag.
+- **La barrera de agua (agua + ᛜ) pulsa el `pulsador modo=agua` y apaga el muro de fuego `B`.** El contacto del estado `liquido` de `HechizoVivo` busca también el grupo nuevo `GRUPO_TOCA_AGUA`, donde entran ese pulsador y `BarreraFuego`; cada uno con la regla de siempre de la flecha de agua (`Materia.riega` el pulsador; `moja` o `enfria` el muro). Una barrera de fuego o de tierra no los toca.
+- **La tinaja dejaba de echar agua a la simulación pero seguía vertiendo** (gotas, arroyo y sonido) con la regla `apagar_fuente` de `Puzle3D`: ahora llama también a `dejar_de_verter()`. El camino de `prueba_test2` (`_parar_tinajas`) ya paraba bien.
+
+**Medido.** `prueba_bugs_logicos` (nueva: receptor con rearme y flag, barrera de agua con sus controles): sin los arreglos da 7 fallos, con ellos 0. `prueba_pulso` suma el grupo 10 (tono con una pieza que reacciona y otra que no) y `escenario_puzles_agua` la Q8.4b (la tinaja para). 74 pruebas de pulso, receptores, pulsadores, barreras, Gruta, Cueva, agua, flags, partida, Bosque, puzles, hechizos, materia y reacciones: el mismo veredicto que la base.
+
+**Queda (diseño, para Pablo).** La tinaja que se queda sin volumen (`abrir_cauce(0.5, 20)`) sigue vertiendo de aspecto; y el puzle del Bosque 02 (`tinaja_vierte`) no la para al completar la cuenca: haría falta una regla `hace=tinaja.apagar_fuente` en su mapa.

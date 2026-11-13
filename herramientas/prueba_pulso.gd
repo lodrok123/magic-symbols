@@ -25,6 +25,17 @@ class Receptor extends Node:
 		edad_aviso = p.edad()
 		elemento_visto = p.elemento
 
+## Pulsables con respuesta (13/11, tono de llegada): `on_pulso` devuelve si reaccionó de verdad, como los receptores y demás piezas.
+class ReceptorSi extends Node:
+	var celda: Vector2i = Vector2i.ZERO
+	func on_pulso(_p: Pulso3D) -> bool:
+		return true
+
+class ReceptorNo extends Node:
+	var celda: Vector2i = Vector2i.ZERO
+	func on_pulso(_p: Pulso3D) -> bool:
+		return false
+
 var _fallos: int = 0
 var _conduce: Dictionary = {}                  ## la rejilla falsa: casilla -> true
 
@@ -61,6 +72,7 @@ func _initialize() -> void:
 	_colores()
 	await _pulso_sin_reentradas()
 	await _pulso_avisa_y_acaba()
+	await _tono_llegada()
 	_receta_pulso()
 	_momento_de_ejecucion()
 	_crecer_y_nombres()
@@ -251,6 +263,33 @@ func _pulso_avisa_y_acaba() -> void:
 	_ok("6 con alcance 4 el receptor del paso 6 no se entera (el alcance corta el pulso)", r2.avisos == 0)
 	r.queue_free()
 	r2.queue_free()
+
+
+## 13/11: el tono de llegada solo suena si lo tocado REACCIONA (`_avisar` devuelve el primero que respondió; de él sale el tono). Un pulsable que dice false o no dice nada no lo hace sonar.
+func _tono_llegada() -> void:
+	_conduce.clear()
+	var si := ReceptorSi.new()
+	si.celda = Vector2i(21, 20)
+	var no := ReceptorNo.new()
+	no.celda = Vector2i(20, 19)
+	var mudo := Receptor.new()                         # on_pulso sin valor de vuelta (void)
+	mudo.celda = Vector2i(20, 19)
+	var p_no: Pulso3D = _lanzar(Vector2i(20, 20), "", 3, [no, mudo])
+	var r_no: Node = p_no._avisar(Vector2i(20, 19), 1)
+	_ok("10 un pulsable que no reacciona (false / sin respuesta) no da tono de llegada", r_no == null and p_no.avisados.size() == 2 and mudo.avisos == 1, "r %s avisados %d mudo %d" % [str(r_no), p_no.avisados.size(), mudo.avisos])
+	var p_si: Pulso3D = _lanzar(Vector2i(20, 20), "", 3, [si])
+	_ok("10 uno que reacciona (true) sí da tono de llegada", p_si._avisar(Vector2i(21, 20), 1) == si)
+	var no2 := ReceptorNo.new()
+	no2.celda = Vector2i(19, 20)
+	var si2 := ReceptorSi.new()
+	si2.celda = Vector2i(19, 20)
+	var p_mix: Pulso3D = _lanzar(Vector2i(20, 20), "", 3, [no2, si2])
+	var r_mix: Node = p_mix._avisar(Vector2i(19, 20), 1)
+	_ok("10 con uno que no reacciona y otro que sí en la misma casilla, el tono sale del que sí", r_mix == si2, str(r_mix))
+	await process_frame
+	for n in [si, no, mudo, no2, si2, p_no, p_si, p_mix]:
+		if is_instance_valid(n):
+			n.queue_free()
 
 
 # ---------------------------------------------------------------------------------------------------------------------

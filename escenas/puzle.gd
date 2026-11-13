@@ -3201,6 +3201,9 @@ func _apagar_fuente(pz: Pieza) -> void:
 		c = canal[0]
 	sim.apagar_fuente(c)
 	pz.activa = false
+	# 13/11: cerrar el grifo de una tinaja también corta su chorro visible (gotas, arroyo, sonido y charco): antes el agua del canal paraba pero la tinaja seguía vertiendo para siempre.
+	if pz.tipo == "tinaja" and pz.nodo is Reactivo3D and is_instance_valid(pz.nodo):
+		(pz.nodo as Reactivo3D).dejar_de_verter()
 
 
 func _helar(pz: Pieza, segundos: float) -> void:
