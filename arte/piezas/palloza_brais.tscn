@@ -1,0 +1,1280 @@
+[gd_scene format=3]
+
+[sub_resource type="StandardMaterial3D" id="Granito"]
+albedo_color = Color(0.72157, 0.67843, 0.72157, 1)
+roughness = 1.0
+
+[sub_resource type="StandardMaterial3D" id="Sombra"]
+albedo_color = Color(0.4902, 0.4549, 0.48627, 1)
+roughness = 1.0
+
+[sub_resource type="StandardMaterial3D" id="Liquen"]
+albedo_color = Color(0.51765, 0.59216, 0.23529, 1)
+roughness = 1.0
+
+[sub_resource type="StandardMaterial3D" id="Centeno"]
+albedo_color = Color(0.75686, 0.56471, 0.32549, 1)
+roughness = 1.0
+
+[sub_resource type="StandardMaterial3D" id="PajaOscura"]
+albedo_color = Color(0.61176, 0.43922, 0.26667, 1)
+roughness = 1.0
+
+[sub_resource type="StandardMaterial3D" id="Madera"]
+albedo_color = Color(0.54902, 0.36078, 0.2, 1)
+roughness = 1.0
+
+[sub_resource type="StandardMaterial3D" id="MaderaOscura"]
+albedo_color = Color(0.37647, 0.32941, 0.24314, 1)
+roughness = 1.0
+
+[sub_resource type="StandardMaterial3D" id="Hierro"]
+albedo_color = Color(0.36078, 0.38039, 0.43137, 1)
+roughness = 1.0
+
+[sub_resource type="SphereMesh" id="Piedra"]
+radius = 0.5
+height = 1.0
+radial_segments = 8
+rings = 4
+
+[sub_resource type="BoxMesh" id="Tabla"]
+
+[sub_resource type="CylinderMesh" id="Paja0"]
+top_radius = 1.79
+bottom_radius = 1.95
+height = 0.268
+radial_segments = 32
+rings = 1
+
+[sub_resource type="CylinderMesh" id="Paja1"]
+top_radius = 1.48
+bottom_radius = 1.79
+height = 0.488
+radial_segments = 32
+rings = 1
+
+[sub_resource type="CylinderMesh" id="Paja2"]
+top_radius = 1.13
+bottom_radius = 1.48
+height = 0.478
+radial_segments = 32
+rings = 1
+
+[sub_resource type="CylinderMesh" id="Paja3"]
+top_radius = 0.78
+bottom_radius = 1.13
+height = 0.478
+radial_segments = 32
+rings = 1
+
+[sub_resource type="CylinderMesh" id="Paja4"]
+top_radius = 0.43
+bottom_radius = 0.78
+height = 0.478
+radial_segments = 32
+rings = 1
+
+[sub_resource type="CylinderMesh" id="Paja5"]
+top_radius = 0.12
+bottom_radius = 0.43
+height = 0.358
+radial_segments = 32
+rings = 1
+
+[node name="PallozaBrais" type="Node3D"]
+
+[node name="Muros" type="Node3D" parent="."]
+position = Vector3(0, 0, 0)
+
+[node name="Tramo0" type="Node3D" parent="Muros"]
+position = Vector3(0, 0, 1.49)
+
+[node name="Sillar3" type="MeshInstance3D" parent="Muros/Tramo0"]
+position = Vector3(0.042, 1.37, 0)
+rotation = Vector3(0, 0, 0.042)
+scale = Vector3(0.72, 0.44, 0.37)
+mesh = SubResource("Piedra")
+material_override = SubResource("Granito")
+
+[node name="Tramo1" type="Node3D" parent="Muros"]
+position = Vector3(0.5702, 0, 1.37658)
+rotation = Vector3(0, 0.3927, 0)
+
+[node name="Sillar3" type="MeshInstance3D" parent="Muros/Tramo1"]
+position = Vector3(-0.021, 1.37, 0)
+rotation = Vector3(0, 0, -0.021)
+scale = Vector3(0.72, 0.44, 0.37)
+mesh = SubResource("Piedra")
+material_override = SubResource("Granito")
+
+[node name="Tramo2" type="Node3D" parent="Muros"]
+position = Vector3(1.05359, 0, 1.05359)
+rotation = Vector3(0, 0.7854, 0)
+
+[node name="Sillar0" type="MeshInstance3D" parent="Muros/Tramo2"]
+position = Vector3(0.042, 0.2, 0)
+rotation = Vector3(0, 0, 0.042)
+scale = Vector3(0.72, 0.44, 0.37)
+mesh = SubResource("Piedra")
+material_override = SubResource("Granito")
+
+[node name="Sillar1" type="MeshInstance3D" parent="Muros/Tramo2"]
+position = Vector3(0, 0.59, 0)
+rotation = Vector3(0, 0, 0)
+scale = Vector3(0.72, 0.44, 0.37)
+mesh = SubResource("Piedra")
+material_override = SubResource("Granito")
+
+[node name="Liquen1" type="MeshInstance3D" parent="Muros/Tramo2"]
+position = Vector3(0.12, 0.58, 0.177)
+rotation = Vector3(0, 0, 0)
+scale = Vector3(0.19, 0.075, 0.025)
+mesh = SubResource("Piedra")
+material_override = SubResource("Liquen")
+
+[node name="Sillar2" type="MeshInstance3D" parent="Muros/Tramo2"]
+position = Vector3(-0.042, 0.98, 0)
+rotation = Vector3(0, 0, -0.042)
+scale = Vector3(0.72, 0.44, 0.37)
+mesh = SubResource("Piedra")
+material_override = SubResource("Sombra")
+
+[node name="Sillar3" type="MeshInstance3D" parent="Muros/Tramo2"]
+position = Vector3(0.021, 1.37, 0)
+rotation = Vector3(0, 0, 0.021)
+scale = Vector3(0.72, 0.44, 0.37)
+mesh = SubResource("Piedra")
+material_override = SubResource("Granito")
+
+[node name="Tramo3" type="Node3D" parent="Muros"]
+position = Vector3(1.37658, 0, 0.5702)
+rotation = Vector3(0, 1.1781, 0)
+
+[node name="Sillar0" type="MeshInstance3D" parent="Muros/Tramo3"]
+position = Vector3(-0.021, 0.2, 0)
+rotation = Vector3(0, 0, -0.021)
+scale = Vector3(0.72, 0.44, 0.37)
+mesh = SubResource("Piedra")
+material_override = SubResource("Granito")
+
+[node name="Sillar1" type="MeshInstance3D" parent="Muros/Tramo3"]
+position = Vector3(0.042, 0.59, 0)
+rotation = Vector3(0, 0, 0.042)
+scale = Vector3(0.72, 0.44, 0.37)
+mesh = SubResource("Piedra")
+material_override = SubResource("Granito")
+
+[node name="Sillar2" type="MeshInstance3D" parent="Muros/Tramo3"]
+position = Vector3(0, 0.98, 0)
+rotation = Vector3(0, 0, 0)
+scale = Vector3(0.72, 0.44, 0.37)
+mesh = SubResource("Piedra")
+material_override = SubResource("Granito")
+
+[node name="Sillar3" type="MeshInstance3D" parent="Muros/Tramo3"]
+position = Vector3(-0.042, 1.37, 0)
+rotation = Vector3(0, 0, -0.042)
+scale = Vector3(0.72, 0.44, 0.37)
+mesh = SubResource("Piedra")
+material_override = SubResource("Granito")
+
+[node name="Tramo4" type="Node3D" parent="Muros"]
+position = Vector3(1.49, 0, 0)
+rotation = Vector3(0, 1.5708, 0)
+
+[node name="Sillar0" type="MeshInstance3D" parent="Muros/Tramo4"]
+position = Vector3(0.021, 0.2, 0)
+rotation = Vector3(0, 0, 0.021)
+scale = Vector3(0.72, 0.44, 0.37)
+mesh = SubResource("Piedra")
+material_override = SubResource("Granito")
+
+[node name="Sillar1" type="MeshInstance3D" parent="Muros/Tramo4"]
+position = Vector3(-0.021, 0.59, 0)
+rotation = Vector3(0, 0, -0.021)
+scale = Vector3(0.72, 0.44, 0.37)
+mesh = SubResource("Piedra")
+material_override = SubResource("Sombra")
+
+[node name="Sillar2" type="MeshInstance3D" parent="Muros/Tramo4"]
+position = Vector3(0.042, 0.98, 0)
+rotation = Vector3(0, 0, 0.042)
+scale = Vector3(0.72, 0.44, 0.37)
+mesh = SubResource("Piedra")
+material_override = SubResource("Granito")
+
+[node name="Sillar3" type="MeshInstance3D" parent="Muros/Tramo4"]
+position = Vector3(0, 1.37, 0)
+rotation = Vector3(0, 0, 0)
+scale = Vector3(0.72, 0.44, 0.37)
+mesh = SubResource("Piedra")
+material_override = SubResource("Granito")
+
+[node name="Tramo5" type="Node3D" parent="Muros"]
+position = Vector3(1.37658, 0, -0.5702)
+rotation = Vector3(0, 1.9635, 0)
+
+[node name="Sillar0" type="MeshInstance3D" parent="Muros/Tramo5"]
+position = Vector3(-0.042, 0.2, 0)
+rotation = Vector3(0, 0, -0.042)
+scale = Vector3(0.72, 0.44, 0.37)
+mesh = SubResource("Piedra")
+material_override = SubResource("Granito")
+
+[node name="Sillar1" type="MeshInstance3D" parent="Muros/Tramo5"]
+position = Vector3(0.021, 0.59, 0)
+rotation = Vector3(0, 0, 0.021)
+scale = Vector3(0.72, 0.44, 0.37)
+mesh = SubResource("Piedra")
+material_override = SubResource("Sombra")
+
+[node name="Sillar2" type="MeshInstance3D" parent="Muros/Tramo5"]
+position = Vector3(-0.021, 0.98, 0)
+rotation = Vector3(0, 0, -0.021)
+scale = Vector3(0.72, 0.44, 0.37)
+mesh = SubResource("Piedra")
+material_override = SubResource("Granito")
+
+[node name="Sillar3" type="MeshInstance3D" parent="Muros/Tramo5"]
+position = Vector3(0.042, 1.37, 0)
+rotation = Vector3(0, 0, 0.042)
+scale = Vector3(0.72, 0.44, 0.37)
+mesh = SubResource("Piedra")
+material_override = SubResource("Sombra")
+
+[node name="Tramo6" type="Node3D" parent="Muros"]
+position = Vector3(1.05359, 0, -1.05359)
+rotation = Vector3(0, 2.35619, 0)
+
+[node name="Sillar0" type="MeshInstance3D" parent="Muros/Tramo6"]
+position = Vector3(0, 0.2, 0)
+rotation = Vector3(0, 0, 0)
+scale = Vector3(0.72, 0.44, 0.37)
+mesh = SubResource("Piedra")
+material_override = SubResource("Granito")
+
+[node name="Sillar1" type="MeshInstance3D" parent="Muros/Tramo6"]
+position = Vector3(-0.042, 0.59, 0)
+rotation = Vector3(0, 0, -0.042)
+scale = Vector3(0.72, 0.44, 0.37)
+mesh = SubResource("Piedra")
+material_override = SubResource("Granito")
+
+[node name="Sillar2" type="MeshInstance3D" parent="Muros/Tramo6"]
+position = Vector3(0.021, 0.98, 0)
+rotation = Vector3(0, 0, 0.021)
+scale = Vector3(0.72, 0.44, 0.37)
+mesh = SubResource("Piedra")
+material_override = SubResource("Granito")
+
+[node name="Sillar3" type="MeshInstance3D" parent="Muros/Tramo6"]
+position = Vector3(-0.021, 1.37, 0)
+rotation = Vector3(0, 0, -0.021)
+scale = Vector3(0.72, 0.44, 0.37)
+mesh = SubResource("Piedra")
+material_override = SubResource("Sombra")
+
+[node name="Tramo7" type="Node3D" parent="Muros"]
+position = Vector3(0.5702, 0, -1.37658)
+rotation = Vector3(0, 2.74889, 0)
+
+[node name="Sillar0" type="MeshInstance3D" parent="Muros/Tramo7"]
+position = Vector3(0.042, 0.2, 0)
+rotation = Vector3(0, 0, 0.042)
+scale = Vector3(0.72, 0.44, 0.37)
+mesh = SubResource("Piedra")
+material_override = SubResource("Sombra")
+
+[node name="Liquen0" type="MeshInstance3D" parent="Muros/Tramo7"]
+position = Vector3(0.162, 0.19, 0.177)
+rotation = Vector3(0, 0, 0)
+scale = Vector3(0.19, 0.075, 0.025)
+mesh = SubResource("Piedra")
+material_override = SubResource("Liquen")
+
+[node name="Sillar1" type="MeshInstance3D" parent="Muros/Tramo7"]
+position = Vector3(0, 0.59, 0)
+rotation = Vector3(0, 0, 0)
+scale = Vector3(0.72, 0.44, 0.37)
+mesh = SubResource("Piedra")
+material_override = SubResource("Granito")
+
+[node name="Sillar2" type="MeshInstance3D" parent="Muros/Tramo7"]
+position = Vector3(-0.042, 0.98, 0)
+rotation = Vector3(0, 0, -0.042)
+scale = Vector3(0.72, 0.44, 0.37)
+mesh = SubResource("Piedra")
+material_override = SubResource("Granito")
+
+[node name="Sillar3" type="MeshInstance3D" parent="Muros/Tramo7"]
+position = Vector3(0.021, 1.37, 0)
+rotation = Vector3(0, 0, 0.021)
+scale = Vector3(0.72, 0.44, 0.37)
+mesh = SubResource("Piedra")
+material_override = SubResource("Granito")
+
+[node name="Tramo8" type="Node3D" parent="Muros"]
+position = Vector3(0, 0, -1.49)
+rotation = Vector3(0, 3.14159, 0)
+
+[node name="Sillar0" type="MeshInstance3D" parent="Muros/Tramo8"]
+position = Vector3(-0.021, 0.2, 0)
+rotation = Vector3(0, 0, -0.021)
+scale = Vector3(0.72, 0.44, 0.37)
+mesh = SubResource("Piedra")
+material_override = SubResource("Sombra")
+
+[node name="Sillar1" type="MeshInstance3D" parent="Muros/Tramo8"]
+position = Vector3(0.042, 0.59, 0)
+rotation = Vector3(0, 0, 0.042)
+scale = Vector3(0.72, 0.44, 0.37)
+mesh = SubResource("Piedra")
+material_override = SubResource("Granito")
+
+[node name="Sillar2" type="MeshInstance3D" parent="Muros/Tramo8"]
+position = Vector3(0, 0.98, 0)
+rotation = Vector3(0, 0, 0)
+scale = Vector3(0.72, 0.44, 0.37)
+mesh = SubResource("Piedra")
+material_override = SubResource("Sombra")
+
+[node name="Sillar3" type="MeshInstance3D" parent="Muros/Tramo8"]
+position = Vector3(-0.042, 1.37, 0)
+rotation = Vector3(0, 0, -0.042)
+scale = Vector3(0.72, 0.44, 0.37)
+mesh = SubResource("Piedra")
+material_override = SubResource("Granito")
+
+[node name="Tramo9" type="Node3D" parent="Muros"]
+position = Vector3(-0.5702, 0, -1.37658)
+rotation = Vector3(0, 3.53429, 0)
+
+[node name="Sillar0" type="MeshInstance3D" parent="Muros/Tramo9"]
+position = Vector3(0.021, 0.2, 0)
+rotation = Vector3(0, 0, 0.021)
+scale = Vector3(0.72, 0.44, 0.37)
+mesh = SubResource("Piedra")
+material_override = SubResource("Granito")
+
+[node name="Sillar1" type="MeshInstance3D" parent="Muros/Tramo9"]
+position = Vector3(-0.021, 0.59, 0)
+rotation = Vector3(0, 0, -0.021)
+scale = Vector3(0.72, 0.44, 0.37)
+mesh = SubResource("Piedra")
+material_override = SubResource("Granito")
+
+[node name="Liquen1" type="MeshInstance3D" parent="Muros/Tramo9"]
+position = Vector3(0.099, 0.58, 0.177)
+rotation = Vector3(0, 0, 0)
+scale = Vector3(0.19, 0.075, 0.025)
+mesh = SubResource("Piedra")
+material_override = SubResource("Liquen")
+
+[node name="Sillar2" type="MeshInstance3D" parent="Muros/Tramo9"]
+position = Vector3(0.042, 0.98, 0)
+rotation = Vector3(0, 0, 0.042)
+scale = Vector3(0.72, 0.44, 0.37)
+mesh = SubResource("Piedra")
+material_override = SubResource("Sombra")
+
+[node name="Sillar3" type="MeshInstance3D" parent="Muros/Tramo9"]
+position = Vector3(0, 1.37, 0)
+rotation = Vector3(0, 0, 0)
+scale = Vector3(0.72, 0.44, 0.37)
+mesh = SubResource("Piedra")
+material_override = SubResource("Granito")
+
+[node name="Tramo10" type="Node3D" parent="Muros"]
+position = Vector3(-1.05359, 0, -1.05359)
+rotation = Vector3(0, 3.92699, 0)
+
+[node name="Sillar0" type="MeshInstance3D" parent="Muros/Tramo10"]
+position = Vector3(-0.042, 0.2, 0)
+rotation = Vector3(0, 0, -0.042)
+scale = Vector3(0.72, 0.44, 0.37)
+mesh = SubResource("Piedra")
+material_override = SubResource("Granito")
+
+[node name="Sillar1" type="MeshInstance3D" parent="Muros/Tramo10"]
+position = Vector3(0.021, 0.59, 0)
+rotation = Vector3(0, 0, 0.021)
+scale = Vector3(0.72, 0.44, 0.37)
+mesh = SubResource("Piedra")
+material_override = SubResource("Granito")
+
+[node name="Sillar2" type="MeshInstance3D" parent="Muros/Tramo10"]
+position = Vector3(-0.021, 0.98, 0)
+rotation = Vector3(0, 0, -0.021)
+scale = Vector3(0.72, 0.44, 0.37)
+mesh = SubResource("Piedra")
+material_override = SubResource("Granito")
+
+[node name="Sillar3" type="MeshInstance3D" parent="Muros/Tramo10"]
+position = Vector3(0.042, 1.37, 0)
+rotation = Vector3(0, 0, 0.042)
+scale = Vector3(0.72, 0.44, 0.37)
+mesh = SubResource("Piedra")
+material_override = SubResource("Granito")
+
+[node name="Tramo11" type="Node3D" parent="Muros"]
+position = Vector3(-1.37658, 0, -0.5702)
+rotation = Vector3(0, 4.31969, 0)
+
+[node name="Sillar0" type="MeshInstance3D" parent="Muros/Tramo11"]
+position = Vector3(0, 0.2, 0)
+rotation = Vector3(0, 0, 0)
+scale = Vector3(0.72, 0.44, 0.37)
+mesh = SubResource("Piedra")
+material_override = SubResource("Granito")
+
+[node name="Sillar1" type="MeshInstance3D" parent="Muros/Tramo11"]
+position = Vector3(-0.042, 0.59, 0)
+rotation = Vector3(0, 0, -0.042)
+scale = Vector3(0.72, 0.44, 0.37)
+mesh = SubResource("Piedra")
+material_override = SubResource("Sombra")
+
+[node name="Sillar2" type="MeshInstance3D" parent="Muros/Tramo11"]
+position = Vector3(0.021, 0.98, 0)
+rotation = Vector3(0, 0, 0.021)
+scale = Vector3(0.72, 0.44, 0.37)
+mesh = SubResource("Piedra")
+material_override = SubResource("Granito")
+
+[node name="Sillar3" type="MeshInstance3D" parent="Muros/Tramo11"]
+position = Vector3(-0.021, 1.37, 0)
+rotation = Vector3(0, 0, -0.021)
+scale = Vector3(0.72, 0.44, 0.37)
+mesh = SubResource("Piedra")
+material_override = SubResource("Granito")
+
+[node name="Tramo12" type="Node3D" parent="Muros"]
+position = Vector3(-1.49, 0, 0)
+rotation = Vector3(0, 4.71239, 0)
+
+[node name="Sillar0" type="MeshInstance3D" parent="Muros/Tramo12"]
+position = Vector3(0.042, 0.2, 0)
+rotation = Vector3(0, 0, 0.042)
+scale = Vector3(0.72, 0.44, 0.37)
+mesh = SubResource("Piedra")
+material_override = SubResource("Granito")
+
+[node name="Sillar1" type="MeshInstance3D" parent="Muros/Tramo12"]
+position = Vector3(0, 0.59, 0)
+rotation = Vector3(0, 0, 0)
+scale = Vector3(0.72, 0.44, 0.37)
+mesh = SubResource("Piedra")
+material_override = SubResource("Sombra")
+
+[node name="Sillar2" type="MeshInstance3D" parent="Muros/Tramo12"]
+position = Vector3(-0.042, 0.98, 0)
+rotation = Vector3(0, 0, -0.042)
+scale = Vector3(0.72, 0.44, 0.37)
+mesh = SubResource("Piedra")
+material_override = SubResource("Granito")
+
+[node name="Sillar3" type="MeshInstance3D" parent="Muros/Tramo12"]
+position = Vector3(0.021, 1.37, 0)
+rotation = Vector3(0, 0, 0.021)
+scale = Vector3(0.72, 0.44, 0.37)
+mesh = SubResource("Piedra")
+material_override = SubResource("Sombra")
+
+[node name="Tramo13" type="Node3D" parent="Muros"]
+position = Vector3(-1.37658, 0, 0.5702)
+rotation = Vector3(0, 5.10509, 0)
+
+[node name="Sillar0" type="MeshInstance3D" parent="Muros/Tramo13"]
+position = Vector3(-0.021, 0.2, 0)
+rotation = Vector3(0, 0, -0.021)
+scale = Vector3(0.72, 0.44, 0.37)
+mesh = SubResource("Piedra")
+material_override = SubResource("Granito")
+
+[node name="Sillar1" type="MeshInstance3D" parent="Muros/Tramo13"]
+position = Vector3(0.042, 0.59, 0)
+rotation = Vector3(0, 0, 0.042)
+scale = Vector3(0.72, 0.44, 0.37)
+mesh = SubResource("Piedra")
+material_override = SubResource("Granito")
+
+[node name="Sillar2" type="MeshInstance3D" parent="Muros/Tramo13"]
+position = Vector3(0, 0.98, 0)
+rotation = Vector3(0, 0, 0)
+scale = Vector3(0.72, 0.44, 0.37)
+mesh = SubResource("Piedra")
+material_override = SubResource("Granito")
+
+[node name="Sillar3" type="MeshInstance3D" parent="Muros/Tramo13"]
+position = Vector3(-0.042, 1.37, 0)
+rotation = Vector3(0, 0, -0.042)
+scale = Vector3(0.72, 0.44, 0.37)
+mesh = SubResource("Piedra")
+material_override = SubResource("Sombra")
+
+[node name="Tramo14" type="Node3D" parent="Muros"]
+position = Vector3(-1.05359, 0, 1.05359)
+rotation = Vector3(0, 5.49779, 0)
+
+[node name="Sillar0" type="MeshInstance3D" parent="Muros/Tramo14"]
+position = Vector3(0.021, 0.2, 0)
+rotation = Vector3(0, 0, 0.021)
+scale = Vector3(0.72, 0.44, 0.37)
+mesh = SubResource("Piedra")
+material_override = SubResource("Sombra")
+
+[node name="Liquen0" type="MeshInstance3D" parent="Muros/Tramo14"]
+position = Vector3(0.141, 0.19, 0.177)
+rotation = Vector3(0, 0, 0)
+scale = Vector3(0.19, 0.075, 0.025)
+mesh = SubResource("Piedra")
+material_override = SubResource("Liquen")
+
+[node name="Sillar1" type="MeshInstance3D" parent="Muros/Tramo14"]
+position = Vector3(-0.021, 0.59, 0)
+rotation = Vector3(0, 0, -0.021)
+scale = Vector3(0.72, 0.44, 0.37)
+mesh = SubResource("Piedra")
+material_override = SubResource("Granito")
+
+[node name="Sillar2" type="MeshInstance3D" parent="Muros/Tramo14"]
+position = Vector3(0.042, 0.98, 0)
+rotation = Vector3(0, 0, 0.042)
+scale = Vector3(0.72, 0.44, 0.37)
+mesh = SubResource("Piedra")
+material_override = SubResource("Granito")
+
+[node name="Sillar3" type="MeshInstance3D" parent="Muros/Tramo14"]
+position = Vector3(0, 1.37, 0)
+rotation = Vector3(0, 0, 0)
+scale = Vector3(0.72, 0.44, 0.37)
+mesh = SubResource("Piedra")
+material_override = SubResource("Granito")
+
+[node name="Tramo15" type="Node3D" parent="Muros"]
+position = Vector3(-0.5702, 0, 1.37658)
+rotation = Vector3(0, 5.89049, 0)
+
+[node name="Sillar3" type="MeshInstance3D" parent="Muros/Tramo15"]
+position = Vector3(0.042, 1.37, 0)
+rotation = Vector3(0, 0, 0.042)
+scale = Vector3(0.72, 0.44, 0.37)
+mesh = SubResource("Piedra")
+material_override = SubResource("Granito")
+
+[node name="Cubierta" type="Node3D" parent="."]
+position = Vector3(0, 0, 0)
+
+[node name="Capa0" type="MeshInstance3D" parent="Cubierta"]
+position = Vector3(0, 1.025, 0)
+rotation = Vector3(0, 0, 0)
+scale = Vector3(1, 1, 1)
+mesh = SubResource("Paja0")
+material_override = SubResource("PajaOscura")
+
+[node name="Capa1" type="MeshInstance3D" parent="Cubierta"]
+position = Vector3(0, 1.385, 0)
+rotation = Vector3(0, 0, 0)
+scale = Vector3(1, 1, 1)
+mesh = SubResource("Paja1")
+material_override = SubResource("Centeno")
+
+[node name="Capa2" type="MeshInstance3D" parent="Cubierta"]
+position = Vector3(0, 1.85, 0)
+rotation = Vector3(0, 0, 0)
+scale = Vector3(1, 1, 1)
+mesh = SubResource("Paja2")
+material_override = SubResource("Centeno")
+
+[node name="Capa3" type="MeshInstance3D" parent="Cubierta"]
+position = Vector3(0, 2.31, 0)
+rotation = Vector3(0, 0, 0)
+scale = Vector3(1, 1, 1)
+mesh = SubResource("Paja3")
+material_override = SubResource("Centeno")
+
+[node name="Capa4" type="MeshInstance3D" parent="Cubierta"]
+position = Vector3(0, 2.77, 0)
+rotation = Vector3(0, 0, 0)
+scale = Vector3(1, 1, 1)
+mesh = SubResource("Paja4")
+material_override = SubResource("Centeno")
+
+[node name="Capa5" type="MeshInstance3D" parent="Cubierta"]
+position = Vector3(0, 3.17, 0)
+rotation = Vector3(0, 0, 0)
+scale = Vector3(1, 1, 1)
+mesh = SubResource("Paja5")
+material_override = SubResource("Centeno")
+
+[node name="Fibra0_1" type="MeshInstance3D" parent="Cubierta"]
+position = Vector3(0, 1.385, 1.65)
+rotation = Vector3(0.59, 0, 0)
+scale = Vector3(0.085, 0.52, 0.045)
+mesh = SubResource("Piedra")
+material_override = SubResource("Centeno")
+
+[node name="Fibra0_2" type="MeshInstance3D" parent="Cubierta"]
+position = Vector3(0, 1.85, 1.32)
+rotation = Vector3(0.59, 0, 0)
+scale = Vector3(0.085, 0.52, 0.045)
+mesh = SubResource("Piedra")
+material_override = SubResource("Centeno")
+
+[node name="Fibra0_3" type="MeshInstance3D" parent="Cubierta"]
+position = Vector3(0, 2.31, 0.97)
+rotation = Vector3(0.59, 0, 0)
+scale = Vector3(0.085, 0.52, 0.045)
+mesh = SubResource("Piedra")
+material_override = SubResource("Centeno")
+
+[node name="Fibra1_1" type="MeshInstance3D" parent="Cubierta"]
+position = Vector3(0.36716, 1.385, 1.60863)
+rotation = Vector3(0.59, 0.2244, 0)
+scale = Vector3(0.085, 0.52, 0.045)
+mesh = SubResource("Piedra")
+material_override = SubResource("Centeno")
+
+[node name="Fibra1_2" type="MeshInstance3D" parent="Cubierta"]
+position = Vector3(0.29373, 1.85, 1.2869)
+rotation = Vector3(0.59, 0.2244, 0)
+scale = Vector3(0.085, 0.52, 0.045)
+mesh = SubResource("Piedra")
+material_override = SubResource("Centeno")
+
+[node name="Fibra1_3" type="MeshInstance3D" parent="Cubierta"]
+position = Vector3(0.21585, 2.31, 0.94568)
+rotation = Vector3(0.59, 0.2244, 0)
+scale = Vector3(0.085, 0.52, 0.045)
+mesh = SubResource("Piedra")
+material_override = SubResource("Centeno")
+
+[node name="Fibra2_1" type="MeshInstance3D" parent="Cubierta"]
+position = Vector3(0.71591, 1.385, 1.4866)
+rotation = Vector3(0.59, 0.4488, 0)
+scale = Vector3(0.085, 0.52, 0.045)
+mesh = SubResource("Piedra")
+material_override = SubResource("Centeno")
+
+[node name="Fibra2_2" type="MeshInstance3D" parent="Cubierta"]
+position = Vector3(0.57273, 1.85, 1.18928)
+rotation = Vector3(0.59, 0.4488, 0)
+scale = Vector3(0.085, 0.52, 0.045)
+mesh = SubResource("Piedra")
+material_override = SubResource("Centeno")
+
+[node name="Fibra2_3" type="MeshInstance3D" parent="Cubierta"]
+position = Vector3(0.42087, 2.31, 0.87394)
+rotation = Vector3(0.59, 0.4488, 0)
+scale = Vector3(0.085, 0.52, 0.045)
+mesh = SubResource("Piedra")
+material_override = SubResource("PajaOscura")
+
+[node name="Fibra3_1" type="MeshInstance3D" parent="Cubierta"]
+position = Vector3(1.02876, 1.385, 1.29002)
+rotation = Vector3(0.59, 0.6732, 0)
+scale = Vector3(0.085, 0.52, 0.045)
+mesh = SubResource("Piedra")
+material_override = SubResource("Centeno")
+
+[node name="Fibra3_2" type="MeshInstance3D" parent="Cubierta"]
+position = Vector3(0.82301, 1.85, 1.03202)
+rotation = Vector3(0.59, 0.6732, 0)
+scale = Vector3(0.085, 0.52, 0.045)
+mesh = SubResource("Piedra")
+material_override = SubResource("PajaOscura")
+
+[node name="Fibra3_3" type="MeshInstance3D" parent="Cubierta"]
+position = Vector3(0.60479, 2.31, 0.75838)
+rotation = Vector3(0.59, 0.6732, 0)
+scale = Vector3(0.085, 0.52, 0.045)
+mesh = SubResource("Piedra")
+material_override = SubResource("Centeno")
+
+[node name="Fibra4_1" type="MeshInstance3D" parent="Cubierta"]
+position = Vector3(1.29002, 1.385, 1.02876)
+rotation = Vector3(0.59, 0.8976, 0)
+scale = Vector3(0.085, 0.52, 0.045)
+mesh = SubResource("Piedra")
+material_override = SubResource("PajaOscura")
+
+[node name="Fibra4_2" type="MeshInstance3D" parent="Cubierta"]
+position = Vector3(1.03202, 1.85, 0.82301)
+rotation = Vector3(0.59, 0.8976, 0)
+scale = Vector3(0.085, 0.52, 0.045)
+mesh = SubResource("Piedra")
+material_override = SubResource("Centeno")
+
+[node name="Fibra4_3" type="MeshInstance3D" parent="Cubierta"]
+position = Vector3(0.75838, 2.31, 0.60479)
+rotation = Vector3(0.59, 0.8976, 0)
+scale = Vector3(0.085, 0.52, 0.045)
+mesh = SubResource("Piedra")
+material_override = SubResource("Centeno")
+
+[node name="Fibra5_1" type="MeshInstance3D" parent="Cubierta"]
+position = Vector3(1.4866, 1.385, 0.71591)
+rotation = Vector3(0.59, 1.122, 0)
+scale = Vector3(0.085, 0.52, 0.045)
+mesh = SubResource("Piedra")
+material_override = SubResource("Centeno")
+
+[node name="Fibra5_2" type="MeshInstance3D" parent="Cubierta"]
+position = Vector3(1.18928, 1.85, 0.57273)
+rotation = Vector3(0.59, 1.122, 0)
+scale = Vector3(0.085, 0.52, 0.045)
+mesh = SubResource("Piedra")
+material_override = SubResource("Centeno")
+
+[node name="Fibra5_3" type="MeshInstance3D" parent="Cubierta"]
+position = Vector3(0.87394, 2.31, 0.42087)
+rotation = Vector3(0.59, 1.122, 0)
+scale = Vector3(0.085, 0.52, 0.045)
+mesh = SubResource("Piedra")
+material_override = SubResource("Centeno")
+
+[node name="Fibra6_1" type="MeshInstance3D" parent="Cubierta"]
+position = Vector3(1.60863, 1.385, 0.36716)
+rotation = Vector3(0.59, 1.3464, 0)
+scale = Vector3(0.085, 0.52, 0.045)
+mesh = SubResource("Piedra")
+material_override = SubResource("Centeno")
+
+[node name="Fibra6_2" type="MeshInstance3D" parent="Cubierta"]
+position = Vector3(1.2869, 1.85, 0.29373)
+rotation = Vector3(0.59, 1.3464, 0)
+scale = Vector3(0.085, 0.52, 0.045)
+mesh = SubResource("Piedra")
+material_override = SubResource("Centeno")
+
+[node name="Fibra6_3" type="MeshInstance3D" parent="Cubierta"]
+position = Vector3(0.94568, 2.31, 0.21585)
+rotation = Vector3(0.59, 1.3464, 0)
+scale = Vector3(0.085, 0.52, 0.045)
+mesh = SubResource("Piedra")
+material_override = SubResource("Centeno")
+
+[node name="Fibra7_1" type="MeshInstance3D" parent="Cubierta"]
+position = Vector3(1.65, 1.385, 0)
+rotation = Vector3(0.59, 1.5708, 0)
+scale = Vector3(0.085, 0.52, 0.045)
+mesh = SubResource("Piedra")
+material_override = SubResource("Centeno")
+
+[node name="Fibra7_2" type="MeshInstance3D" parent="Cubierta"]
+position = Vector3(1.32, 1.85, 0)
+rotation = Vector3(0.59, 1.5708, 0)
+scale = Vector3(0.085, 0.52, 0.045)
+mesh = SubResource("Piedra")
+material_override = SubResource("Centeno")
+
+[node name="Fibra7_3" type="MeshInstance3D" parent="Cubierta"]
+position = Vector3(0.97, 2.31, 0)
+rotation = Vector3(0.59, 1.5708, 0)
+scale = Vector3(0.085, 0.52, 0.045)
+mesh = SubResource("Piedra")
+material_override = SubResource("PajaOscura")
+
+[node name="Fibra8_1" type="MeshInstance3D" parent="Cubierta"]
+position = Vector3(1.60863, 1.385, -0.36716)
+rotation = Vector3(0.59, 1.7952, 0)
+scale = Vector3(0.085, 0.52, 0.045)
+mesh = SubResource("Piedra")
+material_override = SubResource("Centeno")
+
+[node name="Fibra8_2" type="MeshInstance3D" parent="Cubierta"]
+position = Vector3(1.2869, 1.85, -0.29373)
+rotation = Vector3(0.59, 1.7952, 0)
+scale = Vector3(0.085, 0.52, 0.045)
+mesh = SubResource("Piedra")
+material_override = SubResource("PajaOscura")
+
+[node name="Fibra8_3" type="MeshInstance3D" parent="Cubierta"]
+position = Vector3(0.94568, 2.31, -0.21585)
+rotation = Vector3(0.59, 1.7952, 0)
+scale = Vector3(0.085, 0.52, 0.045)
+mesh = SubResource("Piedra")
+material_override = SubResource("Centeno")
+
+[node name="Fibra9_1" type="MeshInstance3D" parent="Cubierta"]
+position = Vector3(1.4866, 1.385, -0.71591)
+rotation = Vector3(0.59, 2.0196, 0)
+scale = Vector3(0.085, 0.52, 0.045)
+mesh = SubResource("Piedra")
+material_override = SubResource("PajaOscura")
+
+[node name="Fibra9_2" type="MeshInstance3D" parent="Cubierta"]
+position = Vector3(1.18928, 1.85, -0.57273)
+rotation = Vector3(0.59, 2.0196, 0)
+scale = Vector3(0.085, 0.52, 0.045)
+mesh = SubResource("Piedra")
+material_override = SubResource("Centeno")
+
+[node name="Fibra9_3" type="MeshInstance3D" parent="Cubierta"]
+position = Vector3(0.87394, 2.31, -0.42087)
+rotation = Vector3(0.59, 2.0196, 0)
+scale = Vector3(0.085, 0.52, 0.045)
+mesh = SubResource("Piedra")
+material_override = SubResource("Centeno")
+
+[node name="Fibra10_1" type="MeshInstance3D" parent="Cubierta"]
+position = Vector3(1.29002, 1.385, -1.02876)
+rotation = Vector3(0.59, 2.24399, 0)
+scale = Vector3(0.085, 0.52, 0.045)
+mesh = SubResource("Piedra")
+material_override = SubResource("Centeno")
+
+[node name="Fibra10_2" type="MeshInstance3D" parent="Cubierta"]
+position = Vector3(1.03202, 1.85, -0.82301)
+rotation = Vector3(0.59, 2.24399, 0)
+scale = Vector3(0.085, 0.52, 0.045)
+mesh = SubResource("Piedra")
+material_override = SubResource("Centeno")
+
+[node name="Fibra10_3" type="MeshInstance3D" parent="Cubierta"]
+position = Vector3(0.75838, 2.31, -0.60479)
+rotation = Vector3(0.59, 2.24399, 0)
+scale = Vector3(0.085, 0.52, 0.045)
+mesh = SubResource("Piedra")
+material_override = SubResource("Centeno")
+
+[node name="Fibra11_1" type="MeshInstance3D" parent="Cubierta"]
+position = Vector3(1.02876, 1.385, -1.29002)
+rotation = Vector3(0.59, 2.46839, 0)
+scale = Vector3(0.085, 0.52, 0.045)
+mesh = SubResource("Piedra")
+material_override = SubResource("Centeno")
+
+[node name="Fibra11_2" type="MeshInstance3D" parent="Cubierta"]
+position = Vector3(0.82301, 1.85, -1.03202)
+rotation = Vector3(0.59, 2.46839, 0)
+scale = Vector3(0.085, 0.52, 0.045)
+mesh = SubResource("Piedra")
+material_override = SubResource("Centeno")
+
+[node name="Fibra11_3" type="MeshInstance3D" parent="Cubierta"]
+position = Vector3(0.60479, 2.31, -0.75838)
+rotation = Vector3(0.59, 2.46839, 0)
+scale = Vector3(0.085, 0.52, 0.045)
+mesh = SubResource("Piedra")
+material_override = SubResource("Centeno")
+
+[node name="Fibra12_1" type="MeshInstance3D" parent="Cubierta"]
+position = Vector3(0.71591, 1.385, -1.4866)
+rotation = Vector3(0.59, 2.69279, 0)
+scale = Vector3(0.085, 0.52, 0.045)
+mesh = SubResource("Piedra")
+material_override = SubResource("Centeno")
+
+[node name="Fibra12_2" type="MeshInstance3D" parent="Cubierta"]
+position = Vector3(0.57273, 1.85, -1.18928)
+rotation = Vector3(0.59, 2.69279, 0)
+scale = Vector3(0.085, 0.52, 0.045)
+mesh = SubResource("Piedra")
+material_override = SubResource("Centeno")
+
+[node name="Fibra12_3" type="MeshInstance3D" parent="Cubierta"]
+position = Vector3(0.42087, 2.31, -0.87394)
+rotation = Vector3(0.59, 2.69279, 0)
+scale = Vector3(0.085, 0.52, 0.045)
+mesh = SubResource("Piedra")
+material_override = SubResource("PajaOscura")
+
+[node name="Fibra13_1" type="MeshInstance3D" parent="Cubierta"]
+position = Vector3(0.36716, 1.385, -1.60863)
+rotation = Vector3(0.59, 2.91719, 0)
+scale = Vector3(0.085, 0.52, 0.045)
+mesh = SubResource("Piedra")
+material_override = SubResource("Centeno")
+
+[node name="Fibra13_2" type="MeshInstance3D" parent="Cubierta"]
+position = Vector3(0.29373, 1.85, -1.2869)
+rotation = Vector3(0.59, 2.91719, 0)
+scale = Vector3(0.085, 0.52, 0.045)
+mesh = SubResource("Piedra")
+material_override = SubResource("PajaOscura")
+
+[node name="Fibra13_3" type="MeshInstance3D" parent="Cubierta"]
+position = Vector3(0.21585, 2.31, -0.94568)
+rotation = Vector3(0.59, 2.91719, 0)
+scale = Vector3(0.085, 0.52, 0.045)
+mesh = SubResource("Piedra")
+material_override = SubResource("Centeno")
+
+[node name="Fibra14_1" type="MeshInstance3D" parent="Cubierta"]
+position = Vector3(0, 1.385, -1.65)
+rotation = Vector3(0.59, 3.14159, 0)
+scale = Vector3(0.085, 0.52, 0.045)
+mesh = SubResource("Piedra")
+material_override = SubResource("PajaOscura")
+
+[node name="Fibra14_2" type="MeshInstance3D" parent="Cubierta"]
+position = Vector3(0, 1.85, -1.32)
+rotation = Vector3(0.59, 3.14159, 0)
+scale = Vector3(0.085, 0.52, 0.045)
+mesh = SubResource("Piedra")
+material_override = SubResource("Centeno")
+
+[node name="Fibra14_3" type="MeshInstance3D" parent="Cubierta"]
+position = Vector3(0, 2.31, -0.97)
+rotation = Vector3(0.59, 3.14159, 0)
+scale = Vector3(0.085, 0.52, 0.045)
+mesh = SubResource("Piedra")
+material_override = SubResource("Centeno")
+
+[node name="Fibra15_1" type="MeshInstance3D" parent="Cubierta"]
+position = Vector3(-0.36716, 1.385, -1.60863)
+rotation = Vector3(0.59, 3.36599, 0)
+scale = Vector3(0.085, 0.52, 0.045)
+mesh = SubResource("Piedra")
+material_override = SubResource("Centeno")
+
+[node name="Fibra15_2" type="MeshInstance3D" parent="Cubierta"]
+position = Vector3(-0.29373, 1.85, -1.2869)
+rotation = Vector3(0.59, 3.36599, 0)
+scale = Vector3(0.085, 0.52, 0.045)
+mesh = SubResource("Piedra")
+material_override = SubResource("Centeno")
+
+[node name="Fibra15_3" type="MeshInstance3D" parent="Cubierta"]
+position = Vector3(-0.21585, 2.31, -0.94568)
+rotation = Vector3(0.59, 3.36599, 0)
+scale = Vector3(0.085, 0.52, 0.045)
+mesh = SubResource("Piedra")
+material_override = SubResource("Centeno")
+
+[node name="Fibra16_1" type="MeshInstance3D" parent="Cubierta"]
+position = Vector3(-0.71591, 1.385, -1.4866)
+rotation = Vector3(0.59, 3.59039, 0)
+scale = Vector3(0.085, 0.52, 0.045)
+mesh = SubResource("Piedra")
+material_override = SubResource("Centeno")
+
+[node name="Fibra16_2" type="MeshInstance3D" parent="Cubierta"]
+position = Vector3(-0.57273, 1.85, -1.18928)
+rotation = Vector3(0.59, 3.59039, 0)
+scale = Vector3(0.085, 0.52, 0.045)
+mesh = SubResource("Piedra")
+material_override = SubResource("Centeno")
+
+[node name="Fibra16_3" type="MeshInstance3D" parent="Cubierta"]
+position = Vector3(-0.42087, 2.31, -0.87394)
+rotation = Vector3(0.59, 3.59039, 0)
+scale = Vector3(0.085, 0.52, 0.045)
+mesh = SubResource("Piedra")
+material_override = SubResource("Centeno")
+
+[node name="Fibra17_1" type="MeshInstance3D" parent="Cubierta"]
+position = Vector3(-1.02876, 1.385, -1.29002)
+rotation = Vector3(0.59, 3.81479, 0)
+scale = Vector3(0.085, 0.52, 0.045)
+mesh = SubResource("Piedra")
+material_override = SubResource("Centeno")
+
+[node name="Fibra17_2" type="MeshInstance3D" parent="Cubierta"]
+position = Vector3(-0.82301, 1.85, -1.03202)
+rotation = Vector3(0.59, 3.81479, 0)
+scale = Vector3(0.085, 0.52, 0.045)
+mesh = SubResource("Piedra")
+material_override = SubResource("Centeno")
+
+[node name="Fibra17_3" type="MeshInstance3D" parent="Cubierta"]
+position = Vector3(-0.60479, 2.31, -0.75838)
+rotation = Vector3(0.59, 3.81479, 0)
+scale = Vector3(0.085, 0.52, 0.045)
+mesh = SubResource("Piedra")
+material_override = SubResource("PajaOscura")
+
+[node name="Fibra18_1" type="MeshInstance3D" parent="Cubierta"]
+position = Vector3(-1.29002, 1.385, -1.02876)
+rotation = Vector3(0.59, 4.03919, 0)
+scale = Vector3(0.085, 0.52, 0.045)
+mesh = SubResource("Piedra")
+material_override = SubResource("Centeno")
+
+[node name="Fibra18_2" type="MeshInstance3D" parent="Cubierta"]
+position = Vector3(-1.03202, 1.85, -0.82301)
+rotation = Vector3(0.59, 4.03919, 0)
+scale = Vector3(0.085, 0.52, 0.045)
+mesh = SubResource("Piedra")
+material_override = SubResource("PajaOscura")
+
+[node name="Fibra18_3" type="MeshInstance3D" parent="Cubierta"]
+position = Vector3(-0.75838, 2.31, -0.60479)
+rotation = Vector3(0.59, 4.03919, 0)
+scale = Vector3(0.085, 0.52, 0.045)
+mesh = SubResource("Piedra")
+material_override = SubResource("Centeno")
+
+[node name="Fibra19_1" type="MeshInstance3D" parent="Cubierta"]
+position = Vector3(-1.4866, 1.385, -0.71591)
+rotation = Vector3(0.59, 4.26359, 0)
+scale = Vector3(0.085, 0.52, 0.045)
+mesh = SubResource("Piedra")
+material_override = SubResource("PajaOscura")
+
+[node name="Fibra19_2" type="MeshInstance3D" parent="Cubierta"]
+position = Vector3(-1.18928, 1.85, -0.57273)
+rotation = Vector3(0.59, 4.26359, 0)
+scale = Vector3(0.085, 0.52, 0.045)
+mesh = SubResource("Piedra")
+material_override = SubResource("Centeno")
+
+[node name="Fibra19_3" type="MeshInstance3D" parent="Cubierta"]
+position = Vector3(-0.87394, 2.31, -0.42087)
+rotation = Vector3(0.59, 4.26359, 0)
+scale = Vector3(0.085, 0.52, 0.045)
+mesh = SubResource("Piedra")
+material_override = SubResource("Centeno")
+
+[node name="Fibra20_1" type="MeshInstance3D" parent="Cubierta"]
+position = Vector3(-1.60863, 1.385, -0.36716)
+rotation = Vector3(0.59, 4.48799, 0)
+scale = Vector3(0.085, 0.52, 0.045)
+mesh = SubResource("Piedra")
+material_override = SubResource("Centeno")
+
+[node name="Fibra20_2" type="MeshInstance3D" parent="Cubierta"]
+position = Vector3(-1.2869, 1.85, -0.29373)
+rotation = Vector3(0.59, 4.48799, 0)
+scale = Vector3(0.085, 0.52, 0.045)
+mesh = SubResource("Piedra")
+material_override = SubResource("Centeno")
+
+[node name="Fibra20_3" type="MeshInstance3D" parent="Cubierta"]
+position = Vector3(-0.94568, 2.31, -0.21585)
+rotation = Vector3(0.59, 4.48799, 0)
+scale = Vector3(0.085, 0.52, 0.045)
+mesh = SubResource("Piedra")
+material_override = SubResource("Centeno")
+
+[node name="Fibra21_1" type="MeshInstance3D" parent="Cubierta"]
+position = Vector3(-1.65, 1.385, 0)
+rotation = Vector3(0.59, 4.71239, 0)
+scale = Vector3(0.085, 0.52, 0.045)
+mesh = SubResource("Piedra")
+material_override = SubResource("Centeno")
+
+[node name="Fibra21_2" type="MeshInstance3D" parent="Cubierta"]
+position = Vector3(-1.32, 1.85, 0)
+rotation = Vector3(0.59, 4.71239, 0)
+scale = Vector3(0.085, 0.52, 0.045)
+mesh = SubResource("Piedra")
+material_override = SubResource("Centeno")
+
+[node name="Fibra21_3" type="MeshInstance3D" parent="Cubierta"]
+position = Vector3(-0.97, 2.31, 0)
+rotation = Vector3(0.59, 4.71239, 0)
+scale = Vector3(0.085, 0.52, 0.045)
+mesh = SubResource("Piedra")
+material_override = SubResource("Centeno")
+
+[node name="Fibra22_1" type="MeshInstance3D" parent="Cubierta"]
+position = Vector3(-1.60863, 1.385, 0.36716)
+rotation = Vector3(0.59, 4.93679, 0)
+scale = Vector3(0.085, 0.52, 0.045)
+mesh = SubResource("Piedra")
+material_override = SubResource("Centeno")
+
+[node name="Fibra22_2" type="MeshInstance3D" parent="Cubierta"]
+position = Vector3(-1.2869, 1.85, 0.29373)
+rotation = Vector3(0.59, 4.93679, 0)
+scale = Vector3(0.085, 0.52, 0.045)
+mesh = SubResource("Piedra")
+material_override = SubResource("Centeno")
+
+[node name="Fibra22_3" type="MeshInstance3D" parent="Cubierta"]
+position = Vector3(-0.94568, 2.31, 0.21585)
+rotation = Vector3(0.59, 4.93679, 0)
+scale = Vector3(0.085, 0.52, 0.045)
+mesh = SubResource("Piedra")
+material_override = SubResource("PajaOscura")
+
+[node name="Fibra23_1" type="MeshInstance3D" parent="Cubierta"]
+position = Vector3(-1.4866, 1.385, 0.71591)
+rotation = Vector3(0.59, 5.16119, 0)
+scale = Vector3(0.085, 0.52, 0.045)
+mesh = SubResource("Piedra")
+material_override = SubResource("Centeno")
+
+[node name="Fibra23_2" type="MeshInstance3D" parent="Cubierta"]
+position = Vector3(-1.18928, 1.85, 0.57273)
+rotation = Vector3(0.59, 5.16119, 0)
+scale = Vector3(0.085, 0.52, 0.045)
+mesh = SubResource("Piedra")
+material_override = SubResource("PajaOscura")
+
+[node name="Fibra23_3" type="MeshInstance3D" parent="Cubierta"]
+position = Vector3(-0.87394, 2.31, 0.42087)
+rotation = Vector3(0.59, 5.16119, 0)
+scale = Vector3(0.085, 0.52, 0.045)
+mesh = SubResource("Piedra")
+material_override = SubResource("Centeno")
+
+[node name="Fibra24_1" type="MeshInstance3D" parent="Cubierta"]
+position = Vector3(-1.29002, 1.385, 1.02876)
+rotation = Vector3(0.59, 5.38559, 0)
+scale = Vector3(0.085, 0.52, 0.045)
+mesh = SubResource("Piedra")
+material_override = SubResource("PajaOscura")
+
+[node name="Fibra24_2" type="MeshInstance3D" parent="Cubierta"]
+position = Vector3(-1.03202, 1.85, 0.82301)
+rotation = Vector3(0.59, 5.38559, 0)
+scale = Vector3(0.085, 0.52, 0.045)
+mesh = SubResource("Piedra")
+material_override = SubResource("Centeno")
+
+[node name="Fibra24_3" type="MeshInstance3D" parent="Cubierta"]
+position = Vector3(-0.75838, 2.31, 0.60479)
+rotation = Vector3(0.59, 5.38559, 0)
+scale = Vector3(0.085, 0.52, 0.045)
+mesh = SubResource("Piedra")
+material_override = SubResource("Centeno")
+
+[node name="Fibra25_1" type="MeshInstance3D" parent="Cubierta"]
+position = Vector3(-1.02876, 1.385, 1.29002)
+rotation = Vector3(0.59, 5.60999, 0)
+scale = Vector3(0.085, 0.52, 0.045)
+mesh = SubResource("Piedra")
+material_override = SubResource("Centeno")
+
+[node name="Fibra25_2" type="MeshInstance3D" parent="Cubierta"]
+position = Vector3(-0.82301, 1.85, 1.03202)
+rotation = Vector3(0.59, 5.60999, 0)
+scale = Vector3(0.085, 0.52, 0.045)
+mesh = SubResource("Piedra")
+material_override = SubResource("Centeno")
+
+[node name="Fibra25_3" type="MeshInstance3D" parent="Cubierta"]
+position = Vector3(-0.60479, 2.31, 0.75838)
+rotation = Vector3(0.59, 5.60999, 0)
+scale = Vector3(0.085, 0.52, 0.045)
+mesh = SubResource("Piedra")
+material_override = SubResource("Centeno")
+
+[node name="Fibra26_1" type="MeshInstance3D" parent="Cubierta"]
+position = Vector3(-0.71591, 1.385, 1.4866)
+rotation = Vector3(0.59, 5.83439, 0)
+scale = Vector3(0.085, 0.52, 0.045)
+mesh = SubResource("Piedra")
+material_override = SubResource("Centeno")
+
+[node name="Fibra26_2" type="MeshInstance3D" parent="Cubierta"]
+position = Vector3(-0.57273, 1.85, 1.18928)
+rotation = Vector3(0.59, 5.83439, 0)
+scale = Vector3(0.085, 0.52, 0.045)
+mesh = SubResource("Piedra")
+material_override = SubResource("Centeno")
+
+[node name="Fibra26_3" type="MeshInstance3D" parent="Cubierta"]
+position = Vector3(-0.42087, 2.31, 0.87394)
+rotation = Vector3(0.59, 5.83439, 0)
+scale = Vector3(0.085, 0.52, 0.045)
+mesh = SubResource("Piedra")
+material_override = SubResource("Centeno")
+
+[node name="Fibra27_1" type="MeshInstance3D" parent="Cubierta"]
+position = Vector3(-0.36716, 1.385, 1.60863)
+rotation = Vector3(0.59, 6.05879, 0)
+scale = Vector3(0.085, 0.52, 0.045)
+mesh = SubResource("Piedra")
+material_override = SubResource("Centeno")
+
+[node name="Fibra27_2" type="MeshInstance3D" parent="Cubierta"]
+position = Vector3(-0.29373, 1.85, 1.2869)
+rotation = Vector3(0.59, 6.05879, 0)
+scale = Vector3(0.085, 0.52, 0.045)
+mesh = SubResource("Piedra")
+material_override = SubResource("Centeno")
+
+[node name="Fibra27_3" type="MeshInstance3D" parent="Cubierta"]
+position = Vector3(-0.21585, 2.31, 0.94568)
+rotation = Vector3(0.59, 6.05879, 0)
+scale = Vector3(0.085, 0.52, 0.045)
+mesh = SubResource("Piedra")
+material_override = SubResource("PajaOscura")
+
+[node name="Marco" type="Node3D" parent="."]
+position = Vector3(0, 0, 0)
+
+[node name="Izquierda" type="MeshInstance3D" parent="Marco"]
+position = Vector3(-0.65, 0.6, 1.42)
+rotation = Vector3(0, 0, 0)
+scale = Vector3(0.12, 1.2, 0.22)
+mesh = SubResource("Tabla")
+material_override = SubResource("MaderaOscura")
+
+[node name="Derecha" type="MeshInstance3D" parent="Marco"]
+position = Vector3(0.65, 0.6, 1.42)
+rotation = Vector3(0, 0, 0)
+scale = Vector3(0.12, 1.2, 0.22)
+mesh = SubResource("Tabla")
+material_override = SubResource("MaderaOscura")
+
+[node name="Dintel" type="MeshInstance3D" parent="Marco"]
+position = Vector3(0, 1.29, 1.45)
+rotation = Vector3(0, 0, 0)
+scale = Vector3(1.55, 0.28, 0.4)
+mesh = SubResource("Piedra")
+material_override = SubResource("Sombra")
+
+[node name="Puerta" type="Node3D" parent="."]
+position = Vector3(-0.56, 0, 1.49)
+
+[node name="Tablon0" type="MeshInstance3D" parent="Puerta"]
+position = Vector3(0.116, 0.6, 0)
+rotation = Vector3(0, 0, 0)
+scale = Vector3(0.221, 1.2, 0.1)
+mesh = SubResource("Tabla")
+material_override = SubResource("MaderaOscura")
+
+[node name="Tablon1" type="MeshInstance3D" parent="Puerta"]
+position = Vector3(0.346, 0.6, 0)
+rotation = Vector3(0, 0, 0)
+scale = Vector3(0.221, 1.2, 0.1)
+mesh = SubResource("Tabla")
+material_override = SubResource("Madera")
+
+[node name="Tablon2" type="MeshInstance3D" parent="Puerta"]
+position = Vector3(0.576, 0.6, 0)
+rotation = Vector3(0, 0, 0)
+scale = Vector3(0.221, 1.2, 0.1)
+mesh = SubResource("Tabla")
+material_override = SubResource("Madera")
+
+[node name="Tablon3" type="MeshInstance3D" parent="Puerta"]
+position = Vector3(0.806, 0.6, 0)
+rotation = Vector3(0, 0, 0)
+scale = Vector3(0.221, 1.2, 0.1)
+mesh = SubResource("Tabla")
+material_override = SubResource("MaderaOscura")
+
+[node name="Tablon4" type="MeshInstance3D" parent="Puerta"]
+position = Vector3(1.036, 0.6, 0)
+rotation = Vector3(0, 0, 0)
+scale = Vector3(0.221, 1.2, 0.1)
+mesh = SubResource("Tabla")
+material_override = SubResource("Madera")
+
+[node name="Travesano0" type="MeshInstance3D" parent="Puerta"]
+position = Vector3(0.57, 0.28, 0.065)
+rotation = Vector3(0, 0, 0)
+scale = Vector3(1.12, 0.11, 0.045)
+mesh = SubResource("Tabla")
+material_override = SubResource("MaderaOscura")
+
+[node name="Travesano1" type="MeshInstance3D" parent="Puerta"]
+position = Vector3(0.57, 0.9, 0.065)
+rotation = Vector3(0, 0, 0)
+scale = Vector3(1.12, 0.11, 0.045)
+mesh = SubResource("Tabla")
+material_override = SubResource("MaderaOscura")
+
+[node name="Tirador" type="MeshInstance3D" parent="Puerta"]
+position = Vector3(0.91, 0.57, 0.085)
+rotation = Vector3(0, 0, 0)
+scale = Vector3(0.085, 0.105, 0.07)
+mesh = SubResource("Piedra")
+material_override = SubResource("Hierro")

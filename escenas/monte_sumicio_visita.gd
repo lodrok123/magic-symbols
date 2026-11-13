@@ -4,6 +4,9 @@ const Maqueta = preload("res://escenas/monte_sumicio_maqueta.gd")
 const Interior = preload("res://escenas/interior_palloza.gd")
 const Mundo = preload("res://presentacion/prueba_test2.gd")
 const ADMISION := "montesumicio.torre.admitida"
+const COFRE_UNIFORME := "montesumicio.torre.uniforme_recogido"
+const MODELO_COFRE := preload("res://arte/piezas/cofre_epico.tscn")
+const CELDA_COFRE := Vector2i(11, 3)
 const VISITA_COMPLETA := "montesumicio.fraga.visita_completa"
 const UNIFORME := "atuendo_sumicio"
 const TIENDA := "sumicio"
@@ -18,6 +21,7 @@ enum Fase { PORTON, ESCOLTA, AUDIENCIA, LIBRE, REGRESO }
 @onready var _maqueta: Maqueta = $"../Maqueta"
 var _mid: Jugador3D
 var _guardia: Node3D
+var _cofre_uniforme: Cofre3D
 var _fase := Fase.PORTON
 var _paso := 0
 var _parlamento := 0
@@ -53,7 +57,7 @@ func _montar() -> void:
 	for i in range(puertas.size()):
 		var sala := habitaciones[i] as Interior
 		sala.montar()
-		var nombre: String = "Tendero" if sala.tienda else VECINOS[i]
+		var nombre: String = "Tendera" if sala.tienda else VECINOS[i]
 		var vecino := _figura(nombre, sala.centro + Interior.VECINO, Color("#56473b"),
 			Color("#53764c") if sala.tienda else Color("#827259"), sala)
 		if sala.casa_brais:
@@ -62,6 +66,16 @@ func _montar() -> void:
 		_casas[puertas[i]] = sala
 	_guardia = _figura("Guardia", Maqueta.GUARDIA, Color("#635345"), Color("#827259"))
 	_figura("Marimanta", Maqueta.AUDIENCIA, Color("#4c5153"), Color("#93394a"))
+	var cofre := MODELO_COFRE.instantiate() as Node3D
+	_maqueta.add_child(cofre)
+	cofre.position = Maqueta.punto(CELDA_COFRE) + Vector3.FORWARD * 0.55
+	_cofre_uniforme = Cofre3D.en(cofre)
+	Terreno3D.bloquear_contorno(CELDA_COFRE, cofre)
+	# Las partidas previas a este cofre ya podían haber recibido el uniforme de Marimanta.
+	if Flags.i().tiene(ADMISION) and Atuendos.tiene(UNIFORME):
+		Flags.i().poner(COFRE_UNIFORME)
+	if Flags.i().tiene(COFRE_UNIFORME):
+		_cofre_uniforme.abrir_ya()
 	_figura("Caco", Maqueta.OBRADOR, Color("#56473b"), Color("#53764c"))
 	_montar_hud()
 	add_child(SintesisUI.new())
@@ -95,8 +109,9 @@ func _physics_process(delta: float) -> void:
 	if _fase != Fase.PORTON:
 		var puerta := _puerta_cercana()
 		if puerta != Vector2i(-1, -1):
-			_cruzar(puerta)
-			return
+			if puerta == Maqueta.TIENDA_ESTE or Flags.i().tiene(COFRE_UNIFORME):
+				_cruzar(puerta)
+				return
 	if _fase == Fase.ESCOLTA:
 		_avanzar_escolta(delta)
 	_maqueta.mostrar_interiores(_mid.position)
@@ -117,12 +132,16 @@ func _physics_process(delta: float) -> void:
 			objetivo = "Visita a Brais y la tienda del este, o vuelve a la Fraga." if _fase == Fase.LIBRE else "Visita completada · puedes volver a Monte Sumicio."
 			if _cerca(Maqueta.OBRADOR):
 				pista = "[E] Hablar con el caco"
-			elif _cerca(Maqueta.AUDIENCIA) and not Atuendos.tiene(UNIFORME):
-				pista = "[E] Recoger el uniforme"
-			elif _fase == Fase.LIBRE and _cerca(Maqueta.FRAGA):
+			elif _fase == Fase.LIBRE and Flags.i().tiene(COFRE_UNIFORME) and _cerca(Maqueta.FRAGA):
 				pista = "[E] Terminar la visita"
 	_objetivo.text = objetivo
 	_pista.text = pista
+	if Flags.i().tiene(ADMISION) and not Flags.i().tiene(COFRE_UNIFORME):
+		_objetivo.text = "Recoge el uniforme del cofre detrás de Marimanta."
+	if _ante_cofre_uniforme():
+		_pista.text = "[E] Abrir cofre épico" if Flags.i().tiene(ADMISION) else "[E] Examinar cofre épico"
+	elif _puerta_cercana() != Vector2i(-1, -1) and not Flags.i().tiene(COFRE_UNIFORME):
+		_pista.text = "Puerta cerrada"
 
 
 func _unhandled_input(evento: InputEvent) -> void:
@@ -137,6 +156,12 @@ func _unhandled_input(evento: InputEvent) -> void:
 func _interactuar() -> bool:
 	if _interior != null:
 		return _interactuar_dentro()
+	if _ante_cofre_uniforme():
+		if Flags.i().tiene(ADMISION):
+			_entregar_uniforme()
+		else:
+			_dialogo.text = "El cofre épico está cerrado."
+		return true
 	match _fase:
 		Fase.PORTON:
 			if _cerca(Maqueta.GUARDIA):
@@ -152,10 +177,7 @@ func _interactuar() -> bool:
 			if _cerca(Maqueta.OBRADOR):
 				_dialogo.text = "Caco · Si buscas provisiones, pásate por la palloza del este."
 				return true
-			if _cerca(Maqueta.AUDIENCIA) and not Atuendos.tiene(UNIFORME):
-				_entregar_uniforme()
-				return true
-			if _fase == Fase.LIBRE and _cerca(Maqueta.FRAGA):
+			if _fase == Fase.LIBRE and Flags.i().tiene(COFRE_UNIFORME) and _cerca(Maqueta.FRAGA):
 				_fase = Fase.REGRESO
 				Flags.i().poner(VISITA_COMPLETA)
 				_dialogo.text = "La Torre Verde queda abierta para Mid. La Fraga de Cailiag espera cuesta abajo."
@@ -177,8 +199,8 @@ func _pista_interior() -> String:
 	if _puesto(Interior.SALIDA):
 		return "[E] Salir a Monte Sumicio"
 	if _puesto(Interior.VECINO):
-		return "[E] Ver mercancía" if _interior.tienda else "[E] Hablar"
-	if _interior.tienda and _puesto(Interior.MESA):
+		return "[E] Ver mercancía" if _interior.tienda and Flags.i().tiene(COFRE_UNIFORME) else "[E] Hablar"
+	if _interior.tienda and Flags.i().tiene(COFRE_UNIFORME) and _puesto(Interior.MESA):
 		return "[E] Abrir mesa de síntesis"
 	if _cofre_al_alcance():
 		return "Cofre vacío" if Flags.i().tiene(_flag_cofre()) else "[E] Abrir cofre"
@@ -190,14 +212,18 @@ func _interactuar_dentro() -> bool:
 		_cruzar(Vector2i(-1, -1))
 	elif _puesto(Interior.VECINO):
 		if _interior.tienda:
-			Tiendas.abrir(TIENDA)
+			if Flags.i().tiene(COFRE_UNIFORME):
+				_dialogo.text = "Tendera · Así que eres la nueva aprendiz. A ver qué necesitas."
+				Tiendas.abrir(TIENDA)
+			else:
+				_dialogo.text = "Tendera · ¿Te has perdido, forastera? La tienda es para aprendices. La puerta la tienes ahí."
 		else:
 			var i := Maqueta.CASAS_FAMILIARES.find(_casa)
 			var frases := ["Acércate al hogar. Aquí arriba el viento se mete por todas partes.",
 				"Te he dejado una seta asada en el cofre junto al pesebre. Con una baya de la tienda, podrás preparar una poción.",
 				"Los animales duermen abajo. Su calor nos llega hasta el Ástrago."]
 			_dialogo.text = "%s · %s" % [VECINOS[i], frases[i]]
-	elif _interior.tienda and _puesto(Interior.MESA):
+	elif _interior.tienda and Flags.i().tiene(COFRE_UNIFORME) and _puesto(Interior.MESA):
 		Sintesis.abrir("alquimista")
 	elif _cofre_al_alcance() and not Flags.i().tiene(_flag_cofre()):
 		var objeto: String = COFRES[Maqueta.CASAS_FAMILIARES.find(_casa)]
@@ -229,6 +255,17 @@ func _puerta_cercana() -> Vector2i:
 func _cruzar(puerta: Vector2i) -> void:
 	_en_transicion = true
 	_pista.text = ""
+	if _interior == null:
+		var bisagra := _maqueta.bisagra(puerta)
+		_mid.pj.girar_hacia(Vector3.FORWARD, 1.0, TAU)
+		var gesto := _mid.gesto("ofrecer", 1.7)
+		if gesto <= 0.0:
+			_mid.set_physics_process(false)
+		var abrir := create_tween()
+		abrir.tween_interval(minf(gesto * 0.32, 0.24))
+		# Bisagra izquierda, la hoja barre hacia el interior (+X hacia -Z).
+		abrir.tween_property(bisagra, "rotation:y", deg_to_rad(92.0), 0.44).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+		await abrir.finished
 	_mid.set_physics_process(false)
 	_fundido.show()
 	var animacion := create_tween()
@@ -236,6 +273,7 @@ func _cruzar(puerta: Vector2i) -> void:
 	await animacion.finished
 	if _interior == null:
 		_entrar(puerta, true)
+		_maqueta.bisagra(puerta).rotation.y = 0.0
 	else:
 		_salir()
 	_mid.set_physics_process(true)
@@ -322,18 +360,28 @@ func _hablar_con_marimanta() -> void:
 			_fase = Fase.LIBRE
 			# Oro de prueba para poder hacer un intercambio en esta escena aislada.
 			Estado.i().dar_oro(15)
-			_entregar_uniforme()
+			_dialogo.text = "Marimanta · Ya eres alumna de la Torre Verde. Recoge el uniforme del cofre que hay detrás de mí."
+			Partida.autoguardar(get_tree(), "monte_sumicio_admision")
 
 
 func _entregar_uniforme() -> void:
 	var estado := Estado.i()
 	if not Atuendos.tiene(UNIFORME) and estado.agregar(UNIFORME) == 0:
-		_dialogo.text = "Marimanta · Ya eres alumna de la Torre Verde. Haz sitio en la mochila y vuelve por el uniforme."
-	elif Atuendos.poner(_mid.pj, UNIFORME):
-		_dialogo.text = "Marimanta · Ponte esta capucha. Ya eres alumna de la Torre Verde. Puedes entrar y salir a tu antojo."
+		_dialogo.text = "Haz sitio en la mochila para recoger el uniforme."
+		return
+	Flags.i().poner(COFRE_UNIFORME)
+	_cofre_uniforme.abrir()
+	PlayLog.event("cofre_abierto", {"cofre": COFRE_UNIFORME, "objeto": UNIFORME, "calidad": "epico"})
+	if Atuendos.poner(_mid.pj, UNIFORME):
+		_dialogo.text = "Has recogido el uniforme de Monte Sumicio."
 	else:
 		_dialogo.text = "Marimanta · Ya eres alumna de la Torre Verde. Tienes el uniforme en el vestuario."
-	Partida.autoguardar(get_tree(), "monte_sumicio_admision")
+	Partida.autoguardar(get_tree(), "monte_sumicio_uniforme")
+
+
+func _ante_cofre_uniforme() -> bool:
+	return not Flags.i().tiene(COFRE_UNIFORME) and _distancia_plana(
+		_mid.position, _cofre_uniforme.get_parent().global_position) < 1.65
 
 
 func _cerca(c: Vector2i) -> bool:

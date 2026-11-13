@@ -7,8 +7,15 @@ const OBRADOR := Vector2i(15, 12)
 const FRAGA := Vector2i(8, 24)
 const CASAS_FAMILIARES := [Vector2i(5, 6), Vector2i(7, 9), Vector2i(5, 13)]
 const TIENDA_ESTE := Vector2i(15, 7)
+const TEXTURA_SENDERO := preload("res://arte/suelo_meshy/path_arriba.png")
+const TEXTURA_HIERBA := preload("res://arte/suelo_meshy/hierba_arriba.png")
+const TEXTURA_LOSAS := preload("res://arte/suelo_meshy/losas_piedra.png")
+const PALLOZA_BRAIS := "res://arte/meshy/piezas/palloza_brais_meshy.glb"
 
+var _modelo_palloza: Node3D
+var _suelos: Dictionary[String, StandardMaterial3D] = {}
 var _porton: Node3D
+var _puertas: Dictionary[Vector2i, Node3D] = {}
 var _corona: Node3D
 var _paja_azotea: Node3D
 var _materiales: Dictionary = {}
@@ -33,10 +40,11 @@ func montar(mapa: PackedStringArray) -> void:
 			Terreno3D.fijar_altura(c, altura)
 			if medio_escalon:
 				Terreno3D.realces_terreno[c] = Terreno3D.ALTO_NIVEL * 0.5
-			var color := Color("#82725c") if mapa[z][x] == "g" else Color("#636d56")
+			var letra := mapa[z][x]
 			var grosor := Terreno3D.y_pies(c) - Terreno3D.alto_suelo
 			var s := Terreno3D.casilla
-			_caja(self, punto(c) - Vector3.UP * grosor * 0.5, Vector3(s, grosor, s), color)
+			var bloque := _caja(self, punto(c) - Vector3.UP * grosor * 0.5, Vector3(s, grosor, s), Color.WHITE)
+			bloque.material_override = _material_suelo(letra)
 
 	var madera := Color("#5e4635")
 	_enmarcar_fraga(madera)
@@ -78,6 +86,10 @@ func abrir_porton() -> void:
 	Terreno3D.liberar_celda(PORTON)
 
 
+func bisagra(c: Vector2i) -> Node3D:
+	return _puertas[c]
+
+
 func mostrar_interiores(posicion: Vector3) -> void:
 	var c := Terreno3D.celda_de(posicion)
 	_corona.visible = not Rect2i(8, 3, 5, 5).has_point(c)
@@ -110,47 +122,71 @@ func _tramo(c: Vector2i, color: Color, girado := false) -> void:
 	Terreno3D.bloquear_celda_completa(c)
 
 
+func _material_suelo(letra: String) -> StandardMaterial3D:
+	var tipo := letra if letra in ["g", "R"] else "."
+	if not _suelos.has(tipo):
+		var material := StandardMaterial3D.new()
+		material.albedo_texture = TEXTURA_LOSAS if tipo == "R" else (TEXTURA_SENDERO if tipo == "g" else TEXTURA_HIERBA)
+		material.albedo_color = Color("#c6b7a1") if tipo == "g" else Color("#c5c9b9")
+		material.roughness = 1.0
+		material.uv1_triplanar = true
+		material.uv1_world_triplanar = true
+		material.uv1_scale = Vector3.ONE * 0.30
+		_suelos[tipo] = material
+	return _suelos[tipo]
+
+
 func _palloza(c: Vector2i) -> void:
+	if _modelo_palloza == null:
+		var documento := GLTFDocument.new()
+		var estado := GLTFState.new()
+		var error := documento.append_from_file(PALLOZA_BRAIS, estado)
+		if error != OK:
+			push_error("No se pudo cargar el modelo de palloza: %s" % error)
+			return
+		_modelo_palloza = documento.generate_scene(estado) as Node3D
+		var plantilla := _modelo_palloza
+		add_child(plantilla)
+		plantilla.hide()
 	var p := punto(c)
-	var granito := Color("#858481")
+	var casa := _modelo_palloza.duplicate() as Node3D
+	casa.show()
+	add_child(casa)
+	casa.position = p
+	var puerta := casa.get_node("Puerta") as Node3D
+	puerta.position += Vector3(0.03, 0.0, -0.04)
+	# La jamba cubre la junta izquierda y queda fija al girar la hoja.
+	var jamba := _caja(casa, puerta.position + Vector3(-0.064, 0.60, -0.020),
+		Vector3(0.118, 1.20, 0.13), Color("#8c5c33"))
+	jamba.name = "JambaIzquierda"
+	# El vano exterior queda negro mientras se abre la hoja y antes del fundido.
+	var fondo := _caja(casa, Vector3(0.0, 0.64, 1.26),
+		Vector3(0.91, 1.32, 0.22), Color.BLACK)
+	fondo.name = "FondoVano"
+	var negro := fondo.material_override as StandardMaterial3D
+	negro.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	fondo.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	_puertas[c] = puerta
 	var casillas: Array[Vector2i] = []
 	for z in range(-1, 2):
 		for x in range(-1, 2):
 			var celda := c + Vector2i(x, z)
 			if not Terreno3D.es_vacio(celda) and not Terreno3D.bloqueada(celda):
 				casillas.append(celda)
-	for piedra in range(16):
-		var angulo := TAU * float(piedra) / 16.0
+	# El contorno físico conserva el acceso validado al umbral.
+	for i in range(2, 15):
+		var angulo := TAU * i / 16.0
 		var normal := Vector3(sin(angulo), 0.0, cos(angulo))
-		var tramo := Node3D.new()
-		add_child(tramo)
-		tramo.position = p + normal * 1.49
+		var tramo := _caja(self, p + normal * 1.49 + Vector3.UP * 0.8,
+			Vector3(0.61, 1.6, 0.29), Color.WHITE)
 		tramo.rotation.y = angulo
-		var vano := piedra in [0, 1, 15]
-		for fila in range(3 if vano else 0, 4):
-			var tono := granito.lightened(0.028 * posmod(piedra * 7 + fila * 11 + c.x, 5) - 0.056)
-			_caja(tramo, Vector3.UP * (0.2 + fila * 0.4), Vector3(0.61, 0.39, 0.29), tono)
-		if not vano:
+		tramo.layers = 0
+		tramo.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		for celda in casillas:
+			var d := punto(celda) - tramo.position
 			var alcance := Terreno3D.casilla * 0.5 + 0.60
-			for celda in casillas:
-				var d := punto(celda) - tramo.position
-				if absf(d.x) < alcance and absf(d.z) < alcance:
-					Terreno3D.bloquear_contorno(celda, tramo)
-	var paja := Color("#ac8a4f")
-	var cubierta := Node3D.new()
-	cubierta.name = "Cubierta"
-	add_child(cubierta)
-	cubierta.position = p
-	for franja in range(5):
-		var base := lerpf(1.95, 0.12, franja / 5.0)
-		var cima := lerpf(1.95, 0.12, (franja + 1) / 5.0)
-		var tono := paja.lightened(0.035 * (franja % 3))
-		_cilindro(cubierta, Vector3.UP * (0.895 + 0.49 * (franja + 0.5)),
-			base, cima, 0.49, tono, 16)
-	var madera := Color("#554435")
-	for lado in [-1.0, 1.0]:
-		_caja(self, p + Vector3(lado * 0.65, 0.60, 1.42), Vector3(0.12, 1.2, 0.22), madera)
-	_caja(self, p + Vector3(0, 1.24, 1.42), Vector3(1.42, 0.12, 0.25), madera)
+			if absf(d.x) < alcance and absf(d.z) < alcance:
+				Terreno3D.bloquear_contorno(celda, tramo)
 	Terreno3D.bloquear_celda_completa(c)
 
 
