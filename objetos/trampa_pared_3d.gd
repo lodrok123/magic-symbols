@@ -10,7 +10,7 @@ extends Area3D
 ##
 ## QUÉ LANZA. `lanzar_hechizo_vivo(hechizo, origen, dir)` = `HechizoVivo.crear` desde la boca, con el `Lanzador3D` de la jugadora (grupo `spellcaster`): sin tinta, sin recarga, sin la animación de la jugadora, pero
 ## con TODO lo demás (sonido del hechizo, dibujo FuegoToy/AguaToy, reacciones, estados de suelo). A la JUGADORA la hiere la propia trampa con `Jugador3D.recibir_dano` (un haz no hiere al lanzador, y el proyectil con
-## `golpea_lanzador` no la hiere en los primeros 0,25 s ni se para al herirla): respeta su invulnerabilidad de 0,7 s, la defensa, el bálsamo y la burbuja de barrera.
+## `golpea_lanzador` no la hiere en los primeros 0,25 s ni se para al herirla): respeta su invulnerabilidad (`Jugador3D.INVULNERABLE`, 0,4 s), la defensa, el bálsamo y la burbuja de barrera. El lanzamiento va marcado como AJENO (`Linaje.ajeno`): su llama no es fuego amigo (B7); a la jugadora solo la hiere la trampa con `herir_jugadora`.
 ##
 ## CÓMO SE DESACTIVA. Un hechizo de AGUA o de HIELO que le da (`apaga_con_agua`, por defecto sí) la apaga `T_AGUA_S` s; `apagar(s)` / `encender()` son las acciones del mapa (`hace=<id>.apagar(8)`); un muro de tierra o
 ## una barrera delante de la boca para el chorro / la flecha como a cualquier hechizo. Mientras está apagada no avisa ni lanza.
@@ -156,8 +156,11 @@ func lanzar_hechizo_vivo(hechizo: Hechizo, origen: Vector3, d: Vector3) -> Hechi
 	var l: Lanzador3D = lanzador()
 	if l == null or hechizo == null:
 		return null
+	# 13/11: el lanzamiento va marcado como AJENO (usa el Lanzador3D de la jugadora): su llama no es fuego amigo (B7) y no le quita vida ni le da invulnerabilidad.
+	var lin := HechizoVivo.Linaje.new()
+	lin.ajeno = true
 	_lanzando = true
-	var hv: HechizoVivo = HechizoVivo.crear(hechizo, origen, d, l)
+	var hv: HechizoVivo = HechizoVivo.crear(hechizo, origen, d, l, lin)
 	_lanzando = false
 	lanzamientos += 1
 	return hv

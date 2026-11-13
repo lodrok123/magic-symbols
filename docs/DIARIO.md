@@ -5236,3 +5236,23 @@ Commit 841f5d55. Hoja: `choque_envuelve/HOJA_CHOQUE_ENVUELVE.jpg`.
 **Pruebas.** A 0: haz_gas_viento_rayo (con la comprobación nueva «viento cuerpo»), haz_gas_juego, haz_tamano, vfx_en_juego y vfx_toy. Pablo lo revisó en el lab y lo dio por bueno.
 
 **Pendiente.** En el juego, el haz de viento contra un enemigo sin muro detrás no dibuja choque.
+
+## 495 — Trampas de pared sin fuego amigo; ritmo_goblin deja de fallar a ratos (13/11)
+
+Los dos pendientes de la 493. Sin commit todavía.
+
+**Trampas.** La llama que deja la flecha de fuego de `TrampaFlechas3D` contaba como fuego amigo (B7): quitaba 2 a la jugadora, le daba invulnerabilidad y se perdían los 12 de la trampa.
+- El lanzamiento de una trampa va marcado como ajeno en su linaje (`HechizoVivo.Linaje.ajeno`, lo pone `TrampaPared3D.lanzar_hechizo_vivo`); lo heredan hijos y copias.
+- Sus zonas nacen con `ZonaV2.ajena` y no pasan por `golpe_propio`; tampoco su descarga de rayo.
+- A la jugadora solo la hiere la trampa (`herir_jugadora`). El fuego amigo de sus propios hechizos queda igual.
+- Vale también para el dragón, que lanza por el mismo sitio.
+
+**ritmo_goblin.** No era fallo del juego. Un guerrero del Bosque patrulla junto a (3,34), entre 7,8 y 10,9 u de donde la prueba invoca al chamán, y el radio de aliados es 9,2 u. Cuando caía dentro, el chamán iba a escudarlo a paso de correr (1,20 u/s), que es lo previsto. La prueba pone ahora `_cd_ritual = 99` y exige el estado «vigila». De paso, `_limpiar` ya no da el error del `Array[Pj3D]`.
+
+**Pruebas.** trampas_pared de 4 fallos a 0 (6.7, 6.8 y 6.9 en OK; nueva 6.8b: las zonas de la trampa son ajenas; la 7.7, abajo). La 6.10 espera a que se apaguen las llamas anteriores y no lee la vida de un goblin ya liberado. A 0: ritmo_goblin, bloque_b_enemigo, hechizo_vivo, hechizo_golden y receta_v2. Sin jugar con ventana.
+
+**Dragón de F7 (7.7).** Cruzar F7 andando sin esperar el turno costaba 40 y la prueba admitía 20. No era fuego amigo.
+- **Causa, medida:** la invulnerabilidad de la jugadora bajó de 0,7 a 0,4 s el 6/11 (Bloque A, 713e3781). Los haces van cada 0,78 s; con 0,7 s más el hitstop el segundo no entraba, y con 0,4 s entra. El golpe además la frena (0,35 s sin andar, hitstop y empujón) y sigue dentro del chorro: dos haces por dragón. Con la constante a 0,7 a mano la prueba volvía a dar 20.
+- **Decisión (Pablo):** se aceptan los 40. El juego no cambia.
+- **Prueba:** la 7.7 admite 4 haces. Además deja cada dragón en su desfase; antes llamaba a `_al_encender()` y los dos escupían a la vez. Con los dragones alternados, como en el juego, el cruce mide 20.
+- Comentarios de `TrampaDragon3D` y `TrampaPared3D` y la tabla de daño de `TRAMPAS_PARED_2026-11-05.md`, al día con los 0,4 s.

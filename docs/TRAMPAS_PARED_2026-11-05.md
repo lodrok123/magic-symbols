@@ -121,7 +121,7 @@ Todos salen de `herramientas/prueba_trampas_pared.gd` (líneas `MEDIDA …`) sal
 
 | | A la jugadora | A un goblin (50 de vida) |
 |---|---|---|
-| Dragón | **10 por haz**, entra cada haz (0,8 s > 0,7 s de invulnerabilidad): **12,5 por segundo** sostenido; un segundo haz dentro de la invulnerabilidad no hiere (medido: 90 → 90 → 80). Cruzar el chorro andando (1,5 u a 1,6 u/s ≈ 0,9 s) cuesta 1 haz (10), a veces 2; corriendo (0,5 s), 0 o 1. **Cruzar el pasillo de F7 sin esperar el turno andando, 20 (2 haces)** | 7,9 por haz + la quemadura; 4 haces en 3,2 s: 31,6 (9,9/s) |
+| Dragón | **10 por haz**, entra cada haz (0,8 s > 0,4 s de invulnerabilidad desde el 6/11; antes 0,7 s): **12,5 por segundo** sostenido. Cruzar el chorro andando: si un haz la pilla, el golpe la frena (0,35 s sin andar, hitstop y empujón) y el siguiente la alcanza dentro: **2 haces (20)**; con 0,7 s de invulnerabilidad era 1. **Cruzar el pasillo de F7 sin esperar el turno andando: 20 medido el 13/11 con los dragones alternados; hasta 40 (2 haces por dragón) si la pillan los dos, que es el tope que admite la prueba** | 7,9 por haz + la quemadura; 4 haces en 3,2 s: 31,6 (9,9/s) |
 | Flecha de fuego | **12** (= la flecha del arquero goblin) | el hechizo `fuego + ᛇ` es de 13,2 de base y 3 s de quemadura: en la prueba el goblin **muere** (53,3 en el golpe medido a los pocos fotogramas). La flecha de fuego de la JUGADORA (mismo hechizo) deja al goblin en 37,9 menos a los 2 s. La diferencia no se ha aislado (la bola de la trampa es más gruesa: semieje 0,28 m frente a 0,10) |
 | Flecha normal | **12** | 12 (`receive_damage`) |
 | Para comparar (dado por Pablo / código) | golpe de goblin **20**, barril **20** a la jugadora, flecha de goblin 12 | |

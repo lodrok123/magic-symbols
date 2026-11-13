@@ -3706,6 +3706,7 @@ class ZonaV2 extends Node3D:
 	var _acum: float = 0.0
 	var edad: float = 0.0                ## 6/11 (B7): s que lleva abierta (la gracia del fuego amigo cuenta desde aquí)
 	var avisada_jugadora: bool = false   ## 6/11 (B7): ya salió el «¡Te quemas!» de esta zona (solo la primera vez)
+	var ajena: bool = false              ## 13/11: la dejó un lanzamiento ajeno (una trampa de pared, `Linaje.ajeno`): no es fuego amigo de la jugadora (B7)
 
 	func pulso() -> void:
 		if metodo_pulso != "" and lanz != null and is_instance_valid(lanz):

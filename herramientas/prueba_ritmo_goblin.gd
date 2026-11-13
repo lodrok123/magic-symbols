@@ -44,7 +44,7 @@ func _limpiar() -> void:
 		if is_instance_valid(n):
 			if n is Combate3D:
 				(n as Combate3D)._quitar_aviso()
-			if lista is Array:
+			if lista is Array and n is Pj3D:	# `_goblins` es Array[Pj3D]: borrar un Combate3D da error de tipo
 				(lista as Array).erase(n)
 			(n as Node).queue_free()
 	_creados.clear()
@@ -315,9 +315,11 @@ func _caso_chaman() -> void:
 	_creados.append(ch)
 	_creados.append(ch.pj)
 	ch._cd_bola = 99.0
+	# 13/11: sin ritual tampoco: el guerrero del Bosque que patrulla junto a (3,34) entra a ratos en el radio de aliados (4 × 2,3 u) y el chamán iría a escudarlo (a `v_base("run")`).
+	ch._cd_ritual = 99.0
 	await avanzar(4)
 	var dist: float = ch._dist(jugador.position)
-	_ok("5 chamán lejos (%.1f u > DIST_MAX): se acerca a %.2f u/s (su andar, ×1,1: %.2f)" % [dist, ch._v_avance, _vb(ch, "walk")], dist > Chaman3D.DIST_MAX and _cerca(ch._v_avance, _vb(ch, "walk"), 0.001))
+	_ok("5 chamán lejos (%.1f u > DIST_MAX): se acerca a %.2f u/s (su andar, ×1,1: %.2f)" % [dist, ch._v_avance, _vb(ch, "walk")], dist > Chaman3D.DIST_MAX and ch.c_estado == "vigila" and _cerca(ch._v_avance, _vb(ch, "walk"), 0.001))
 	var esp: Array = _clip_esperado(ch, ch._v_avance)
 	_ok("5 su clip de andar (%s) va a ×%.2f (×1,1: sin patinar)" % [ch.pj.animacion_actual, ch.pj.velocidad_animacion()], ch.pj.animacion_actual == esp[0] and _cerca(ch.pj.velocidad_animacion(), float(esp[1]), 0.01))
 	_limpiar()
@@ -327,6 +329,7 @@ func _caso_chaman() -> void:
 	_creados.append(ch)
 	_creados.append(ch.pj)
 	ch._cd_bola = 99.0
+	ch._cd_ritual = 99.0	# 13/11: ver arriba (el guerrero del Bosque no debe arrastrarlo a un ritual)
 	await avanzar(4)
 	_ok("5 chamán cerca: retrocede a %.2f u/s (su correr, ×1,1)" % ch._v_avance, _cerca(ch._v_avance, _vb(ch, "run"), 0.001))
 	# La bola: a los INSTANTE_LANZAR s DE CLIP (0,55 / 0,8 = 0,69 s de reloj); el lanzar acaba a DUR_LANZAR / 0,8 = 1,38 s.

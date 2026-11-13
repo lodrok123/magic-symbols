@@ -6,8 +6,8 @@ extends TrampaPared3D
 ##
 ## EL CHORRO ES UN HECHIZO REAL: el haz de siempre (`elemento` + ᛁ × (alcance − 2); fuego por defecto, el chorro de FuegoToy), lanzado desde la boca cada TICK_S s mientras dura el fuego. El haz del juego es
 ## instantáneo y se ve HAZ_DURA_S (0,9 s): relanzarlo cada 0,8 s lo deja continuo (un chorro de 2 s son 3 haces). Cada haz hace lo suyo con los enemigos y los objetos de su recorrido (setos, cuerdas, barriles,
-## braseros se encienden; el suelo queda quemado). La JUGADORA la hiere la trampa con `recibir_dano(DANO_TICK)` en cada haz si está dentro del chorro (en el eje, a ≤ LATERAL_U u): con la invulnerabilidad de 0,7 s
-## de la jugadora y TICK_S = 0,8 s cada tick entra siempre = DANO_TICK / TICK_S de daño por segundo.
+## braseros se encienden; el suelo queda quemado). La JUGADORA la hiere la trampa con `recibir_dano(DANO_TICK)` en cada haz si está dentro del chorro (en el eje, a ≤ LATERAL_U u): con la invulnerabilidad de la jugadora
+## (`Jugador3D.INVULNERABLE` = 0,4 s desde el 6/11) y TICK_S = 0,8 s cada haz entra siempre = DANO_TICK / TICK_S de daño por segundo; cruzar un chorro andando cuesta 2 haces (el golpe la frena y el segundo la alcanza dentro).
 ##
 ## Ciclo: `ciclo=<encendida>,<apagada>` en s (2,0 y 1,5 por defecto) y `desfase=<s>` (en qué punto del ciclo empieza; 0 = empieza en reposo). El ciclo se cuenta desde el INICIO del descanso: reposo → aviso (los
 ## últimos AVISO_S s del descanso) → fuego → reposo… Sin descanso (`apagada` = 0) escupe siempre; sin fuego (`encendida` = 0) no escupe nunca.
@@ -20,7 +20,7 @@ enum Fase { REPOSO, AVISO, FUEGO, APAGADA }
 
 const AVISO_S: float = 0.5
 const RITMO_LLAMAS: float = 0.7           ## las llamas del chorro crecen un 30 % más despacio que las de la jugadora («nacer» del haz: 0,4 s → 0,57 s; Pablo, 5/11). Solo el dibujo
-const TICK_S: float = 0.8                 ## s entre dos haces seguidos (> 0,7 s de invulnerabilidad de la jugadora)
+const TICK_S: float = 0.8                 ## s entre dos haces seguidos (> 0,4 s de `Jugador3D.INVULNERABLE`: cada haz entra)
 const DANO_TICK: float = 10.0             ## daño a la jugadora por tick (compárese: golpe de goblin 20, barril 20, flecha de goblin 12)
 const LATERAL_U: float = 0.75             ## u a cada lado del eje en las que quema a la jugadora
 const ENCENDIDA_DEFECTO: float = 2.0

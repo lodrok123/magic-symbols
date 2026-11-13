@@ -518,22 +518,42 @@ func _flecha_fuego() -> void:
 	await avanzar(3)
 	_ok("6.7 la flecha de fuego hiere a la jugadora con DANO_JUGADORA (%.0f): vida %.1f" % [TrampaFlechas3D.DANO_JUGADORA, _vida()], absf((100.0 - _vida()) - TrampaFlechas3D.DANO_JUGADORA) < 0.01)
 	_ok("6.8 …y la flecha se acaba al herirla (no atraviesa a la jugadora ni la hiere dos veces)", f.vuelos_activos() == 0 and f.golpes_jugadora == 1, "golpes %d, vuelos %d" % [f.golpes_jugadora, f.vuelos_activos()])
+	# 13/11: las zonas que dejaron los disparos de la trampa son AJENAS (no fuego amigo de la jugadora).
+	var no_ajenas: int = 0
+	var n_zonas: int = 0
+	for z in lanzador._zonas_v2:
+		if is_instance_valid(z):
+			n_zonas += 1
+			if not (z as Lanzador3D.ZonaV2).ajena:
+				no_ajenas += 1
+	_ok("6.8b las zonas vivas que dejó la trampa son ajenas (ninguna cuenta como fuego amigo)", no_ajenas == 0, "zonas vivas %d, no ajenas %d" % [n_zonas, no_ajenas])
 	# Fuera de la fila no le pasa nada.
 	_jugadora_lista(Vector2i(20, 21))
 	f._disparar()
 	await avanzar_s(2.0)
 	_ok("6.9 en otra fila no la toca", _vida() == 100.0)
 	# Un enemigo en la fila.
+	# 13/11: antes de crear al enemigo se esperan (hasta 10 s) las llamas que dejaron la flecha de 6.7 y los disparos de 6.9: la flecha de 6.7 ya se acaba en la jugadora y su zona sigue viva.
+	var t_zonas: float = 0.0
+	while not lanzador._zonas_v2.is_empty() and t_zonas < 10.0:
+		t_zonas += await avanzar_s(0.25)
 	var e: Combate3D = _enemigo(Vector2i(21, 19))
 	var v0: float = e.health
+	var v_vista: float = v0	# última vida vista mientras el nodo existía: el goblin puede morir y liberarse antes de que acabe la espera
 	f._disparar()
 	var n10: int = 0
 	await avanzar(2)
+	if is_instance_valid(e):
+		v_vista = e.health
 	while f.vuelos_activos() > 0 and n10 < 400:
 		await process_frame
+		if is_instance_valid(e):
+			v_vista = e.health
 		n10 += 1
 	await avanzar(2)
-	var directo: float = v0 - e.health
+	if is_instance_valid(e):
+		v_vista = e.health
+	var directo: float = v0 - v_vista
 	await avanzar_s(1.6)
 	var murio: bool = not is_instance_valid(e) or e.health <= 0.0
 	var v_fin: float = maxf(e.health, 0.0) if is_instance_valid(e) else 0.0
@@ -682,15 +702,18 @@ func _lab_f7() -> void:
 	var b: TrampaDragon3D = _pz.nodo("t_drg_b") as TrampaDragon3D
 	a.encender()
 	b.encender()
-	a._al_encender()
-	b._al_encender()
+	# 13/11: cada dragón queda en REPOSO en su punto de desfase (lo que hace `_physics_process` al dormirse): `_al_encender` los ponía a los dos en 0 y escupían a la vez, no alternados como en el juego.
+	for x in [a, b]:
+		x.fase = TrampaDragon3D.Fase.REPOSO
+		x._t_ciclo = fposmod(x.desfase_s, x.periodo())
 	# La jugadora andando por el pasillo cruza los dos chorros: se mide cuánto daño recibe si cruza sin mirar y si espera el turno.
 	_jugadora_lista(Vector2i(25, 12))
 	var vida0: float = _vida()
 	var ok_cruce: bool = await mover_hacia(Vector2i(31, 12), 25.0, 0.4)
 	var perdio: float = vida0 - _vida()
 	print("MEDIDA F7: cruzar andando de (25,12) a (31,12) sin esperar el turno: %s, daño recibido %.0f" % ["llegó" if ok_cruce else "no llegó", perdio])
-	_ok("7.7 F7: andando sin esperar el turno recibe daño pero cabe cruzar (≤ 2 haces: %.0f)" % perdio, perdio >= 0.0 and perdio <= 2.0 * TrampaDragon3D.DANO_TICK + 0.01)
+	# 13/11: `Jugador3D.INVULNERABLE` bajó de 0,7 a 0,4 s (6/11) y los haces van cada 0,78 s: el golpe frena a la jugadora (T_GOLPE, hitstop, empujón), sigue dentro del chorro y entra el segundo haz = 2 por dragón.
+	_ok("7.7 F7: andando sin esperar el turno recibe daño pero cabe cruzar (≤ 4 haces, 2 por dragón: %.0f)" % perdio, perdio >= 0.0 and perdio <= 4.0 * TrampaDragon3D.DANO_TICK + 0.01)
 	var placa: Node = _pz.nodo("t_drg_placa")
 	_ok("7.8 F7: llegó a la placa del fondo y se pisa", ok_cruce and bool(placa.get("activo")))
 	a.apagar(0.0)
