@@ -17,6 +17,7 @@ extends RefCounted
 ## de «Preparando efectos» y a que Puzle3D haya montado sus piezas · 4) se la pone en la entrada, mirando hacia dentro, con la luz de su zona sin mezcla ni salto de cámara · 5) fundido de vuelta.
 
 const ESCENAS: Dictionary = {
+	"MonteSumicio": "res://escenas/PruebaMonteSumicio.tscn",
 	"Bosque_01": "res://escenas/PruebaBosque01.tscn",
 	"Cueva": "res://escenas/PruebaCueva.tscn",
 	"CuevaResonante": "res://escenas/PruebaCuevaResonante.tscn",      # 27/10: la Cueva rediseñada como mazmorra EoW (docs/CUEVA_RESONANTE.md)

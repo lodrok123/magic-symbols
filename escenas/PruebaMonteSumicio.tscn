@@ -1,0 +1,41 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://presentacion/prueba_test2.gd" id="1_mundo"]
+[ext_resource type="Script" path="res://escenas/monte_sumicio_visita.gd" id="2_visita"]
+[ext_resource type="Script" path="res://escenas/monte_sumicio_maqueta.gd" id="3_maqueta"]
+[ext_resource type="PackedScene" path="res://escenas/InteriorPalloza.tscn" id="4_casa"]
+
+[node name="PruebaMonteSumicio" type="Node3D"]
+script = ExtResource("1_mundo")
+nivel = "MonteSumicio"
+reglas = "ninguna"
+camara_gira = true
+kit = "pruebas"
+zona_luz = "bosque"
+precalentar_al_inicio = false
+adornos_en_claros = false
+hierba_en_matas = false
+detalle_en_bloques = false
+bordes_blandos = false
+
+[node name="Maqueta" type="Node3D" parent="."]
+script = ExtResource("3_maqueta")
+
+[node name="Visita" type="Node" parent="."]
+script = ExtResource("2_visita")
+
+[node name="Interiores" type="Node3D" parent="."]
+
+[node name="PallozaNorte" parent="Interiores" instance=ExtResource("4_casa")]
+centro = Vector2i(2, 55)
+
+[node name="PallozaCentral" parent="Interiores" instance=ExtResource("4_casa")]
+centro = Vector2i(9, 55)
+casa_brais = true
+
+[node name="PallozaSur" parent="Interiores" instance=ExtResource("4_casa")]
+centro = Vector2i(16, 55)
+
+[node name="TiendaEste" parent="Interiores" instance=ExtResource("4_casa")]
+centro = Vector2i(23, 55)
+tienda = true

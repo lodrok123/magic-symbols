@@ -35,7 +35,7 @@ const BOTON: Color = Color("c66a43")
 const BOTON_APAGADO: Color = Color("c8b9a0")
 const ROJO: Color = Color("a5402c")
 const VERDE: Color = Color("4f7a34")
-const NOMBRES: Dictionary = {"alquimista": "Alquimista", "librera": "Librera"}
+const NOMBRES: Dictionary = {"alquimista": "Alquimista", "librera": "Librera", "sumicio": "Tienda de Monte Sumicio"}
 const CANTIDAD_MAX: int = 20
 const MOTIVOS: Dictionary = {
 	"oro": "Te faltan %d de oro",

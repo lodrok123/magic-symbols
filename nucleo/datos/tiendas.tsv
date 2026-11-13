@@ -25,3 +25,7 @@ librera	pigmento_musgo	25	2	flag:bosque02.ruinas.totems	cuando despiertan los tr
 librera	bomba_humo	18	3	flag:bosque02.pradera.limpia	11/11: tras limpiar la pradera de goblins
 librera	atuendo_sumicio	120	1	siempre	12/11: prueba de concepto de ropa en tienda (Pablo); un atuendo por partida
 librera	atuendo_lobo	150	1	siempre	-
+sumicio	pocion	15	-	siempre	-
+sumicio	baya	3	-	siempre	-
+sumicio	seta	3	-	siempre	-
+sumicio	antidoto	20	-	siempre	-

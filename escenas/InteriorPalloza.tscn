@@ -1,0 +1,15 @@
+[gd_scene format=3]
+
+[ext_resource type="PackedScene" path="res://arte/piezas/interior_palloza_familiar.tscn" id="1_muebles"]
+[ext_resource type="Script" path="res://escenas/interior_palloza.gd" id="2_interior"]
+
+[node name="InteriorPalloza" type="Node3D"]
+script = ExtResource("2_interior")
+
+[node name="Mobiliario" parent="." instance=ExtResource("1_muebles")]
+
+[node name="Camara" type="Camera3D" parent="."]
+position = Vector3(0, 14, 10)
+rotation_degrees = Vector3(-57, 0, 0)
+projection = 1
+size = 14.5

@@ -81,6 +81,7 @@ static var plataformas_tierra: Dictionary = {}  ## Casilla → cota de la superf
 ## Altura a la que se pisa una casilla de puente «b» cuando el puente NO es una losa a ras del agua (el tronco-puente: se anda sobre
 ## su cara de arriba, 0,35 u por encima de la orilla). Vector2i -> y. Sin entrada, la «b» de siempre (alto_agua + 0,12).
 static var y_puentes: Dictionary = {}
+static var realces_terreno: Dictionary[Vector2i, float] = {}
 
 ## La simulación del nivel (null si no hay). La crea montar_agua_sim() al arrancar el Lanzador.
 static var agua_sim: AguaSim3D = null
@@ -192,6 +193,7 @@ class FuenteSolidez extends RefCounted:
 	var _sin_forma: Dictionary = {}                  ## Vector2i -> true: ya se buscó y no hay objeto con modelo (hasta el próximo bloquear/liberar)
 	var _objetos: Array = []                         ## WeakRef de todos los Node3D con `celda` vistos en el último recorrido del mundo
 	var _fijos: Dictionary = {}                      ## Vector2i -> Array de WeakRef: nodos que dijeron «esta casilla la bloqueo yo» (`bloquear(c, nodo)`)
+	var contorno_sin_sellado: Dictionary[Vector2i, bool] = {}
 
 	## El nodo bajo el que se buscan los objetos.
 	func _raiz_formas() -> Node:
@@ -212,6 +214,7 @@ class FuenteSolidez extends RefCounted:
 		_pend.erase(c)
 		_sin_forma.erase(c)
 		_fijos.erase(c)
+		contorno_sin_sellado.erase(c)
 
 	func _formas_de(c: Vector2i) -> Array:
 		if formas.has(c):
@@ -367,7 +370,7 @@ class FuenteSolidez extends RefCounted:
 			for v in poli:
 				lo = lo.min(v)
 				hi = hi.max(v)
-		return 1 if _sellado(c, p2, lo, hi) else 0
+		return 1 if not contorno_sin_sellado.has(c) and _sellado(c, p2, lo, hi) else 0
 
 	## Para las herramientas de medida (`prueba_colisiones_mapa`): ¿se choca en `p` SOLO por la regla de no colarse (no toca el modelo de ningún objeto de `c`)?
 	func solo_sellado(c: Vector2i, p: Vector3) -> bool:
@@ -623,6 +626,13 @@ static func bloquear_celda_completa(c: Vector2i) -> void:
 		fuente.bloquear_completa(c)
 
 
+## Paredes con puertas y pasos diseñados a escala inferior a la casilla.
+static func bloquear_contorno(c: Vector2i, pieza: Node3D) -> void:
+	if fuente != null:
+		fuente.contorno_sin_sellado[c] = true
+		bloquear_celda(c, pieza)
+
+
 static func liberar_celda(c: Vector2i) -> void:
 	if fuente != null:
 		fuente.liberar(c)
@@ -876,8 +886,11 @@ static func y_pies(c: Vector2i) -> float:
 	if plataformas_tierra.has(c):
 		return float(plataformas_tierra[c])
 	var n: int = altura_en(c)
+	var realce: float = realces_terreno.get(c, 0.0)
 	if n > 0:
-		return alto_suelo + float(n) * ALTO_NIVEL
+		return alto_suelo + float(n) * ALTO_NIVEL + realce
+	if realce != 0.0:
+		return alto_suelo + realce
 	var l: String = letra_de(c)
 	if l == "b" and y_puentes.has(c):
 		return float(y_puentes[c])
@@ -1121,6 +1134,7 @@ static func configurar(p_mundo: Node3D) -> void:
 	plataformas_tierra.clear()
 	permanentes.clear()
 	y_puentes.clear()
+	realces_terreno.clear()
 	estados.limpiar()                    # nivel nuevo: ni hielo ni electricidad de antes
 	estados.olvidar_materiales()         # B4: ni los materiales de la pieza `; material` del nivel anterior (`limpiar` no los toca: también corre al cargar una partida)
 	agua_sim = null

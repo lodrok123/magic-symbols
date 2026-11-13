@@ -33,6 +33,7 @@ static func i() -> Sintesis:
 
 ## Abre la síntesis en `donde` ("hoguera" o "alquimista"): avisa a quien la pinte. Sin interfaz, no pasa nada más.
 static func abrir(donde: String) -> void:
+	PlayLog.event("sintesis_abierta", {"taller": donde})
 	i().sintesis_abierta.emit(donde)
 
 
@@ -242,6 +243,8 @@ static func hacer(id: String, eleccion: Dictionary, donde: String = "") -> bool:
 		return false
 	if int(r.get("oro", 0)) > 0:
 		e.gastar_oro(int(r["oro"]))
+	PlayLog.event("sintesis_hecha", {"receta": id, "taller": donde, "ingredientes": eleccion,
+		"resultado": da, "coste": int(r.get("oro", 0))})
 	i().hecha.emit(id)
 	return true
 

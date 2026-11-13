@@ -1085,7 +1085,7 @@ var _foco: Vector3 = Vector3.ZERO
 var _tam_camara: float = ZOOM_INICIAL
 var _incl: float = INCLINACION
 ## 4/11 (Pablo, tras el Bosque 02): la cámara queda FIJA mirando al norte. `true` devuelve el giro de 90° con Z/C (_giro_cam).
-const CAMARA_GIRA: bool = false
+@export var camara_gira: bool = false
 var _giro_cam: float = 0.0              ## giro de la cámara en pasos de 90° (Z/C): para ver qué tapa algo desde el otro lado
 var _hud: Label = null
 var _t_hud: float = 0.0
@@ -1327,6 +1327,7 @@ func _ready() -> void:
 	_camara.near = 0.1
 	_camara.far = 300.0
 	add_child(_camara)
+	_camara.make_current()
 	if _jugador != null:
 		_foco = _centro(_jugador)
 	_colocar_camara()
@@ -6175,8 +6176,8 @@ func _unhandled_input(ev: InputEvent) -> void:
 		KEY_F10:
 			_alternar_capa_agua()
 		KEY_Z, KEY_C:
-			# Giro de 90° de la cámara (Z/C). 4/11 (Pablo): cámara fija al norte; con `CAMARA_GIRA = false` las teclas no hacen nada y _giro_cam queda en 0.
-			if CAMARA_GIRA:
+			# Giro de 90° de la cámara (Z/C) para las escenas de prueba que lo habilitan.
+			if camara_gira:
 				_giro_cam = fposmod(_giro_cam + (90.0 if k.keycode == KEY_Z else -90.0), 360.0)
 				_colocar_camara()
 		KEY_H:

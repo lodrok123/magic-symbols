@@ -150,6 +150,7 @@ static func reunir(ranura: int, extra: Dictionary = {}) -> Dictionary:
 		},
 		"tinta": t.a_dic(),
 		"bolsa": est["bolsa"],
+		"tiendas": est["tiendas"],
 		"mejoras": est["mejoras"],
 		"grimorio": Repertoire.a_dic(),
 		"recetas_conocidas": _cadenas(recetas_conocidas),
@@ -183,6 +184,7 @@ static func cargar(ranura: int = -1) -> Dictionary:
 		return {}
 	var est: Dictionary = {
 		"bolsa": d.get("bolsa", {}), "mejoras": d.get("mejoras", {}),
+		"tiendas": _dic(d.get("tiendas", {})),
 		"consumible_equipado": (d.get("jugadora", {}) as Dictionary).get("consumible_equipado", "") if d.get("jugadora", {}) is Dictionary else "",
 		"bosque_retorno_cueva": _dic(d.get("jugadora", {})).get("bosque_retorno_cueva", ""),
 		"opciones": (d.get("jugadora", {}) as Dictionary).get("opciones", {}) if d.get("jugadora", {}) is Dictionary else {},
@@ -417,12 +419,13 @@ static func aplicar_continuar(mundo_nivel: Node, jug: Node) -> bool:
 
 ## Guarda en la ranura 0 («auto») lo del nivel que está en el árbol. false si no se hizo: apagado, headless sin permiso, sin nivel ni jugadora, jugadora caída o árbol en pausa (entonces
 ## queda `diferido` y lo repite `IconoGuardado` al despausar). Si guarda, el icono del HUD aparece.
-static func autoguardar(arbol: SceneTree, motivo: String = "", sobrescribir: Dictionary = {}) -> bool:
+static func autoguardar(arbol: SceneTree, motivo: String = "", sobrescribir: Dictionary = {},
+		en_pausa: bool = false) -> bool:
 	if not AUTOGUARDADO or arbol == null:
 		return false
 	if DisplayServer.get_name() == "headless" and not AUTOGUARDADO_EN_HEADLESS:
 		return false
-	if arbol.paused:
+	if arbol.paused and not en_pausa:
 		diferido = true
 		ultimo_motivo_auto = motivo
 		return false
