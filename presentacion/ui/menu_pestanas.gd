@@ -37,6 +37,7 @@ const TINTA: Color = Color("4e3a26")
 const TINTA_SUAVE: Color = Color(0.31, 0.23, 0.15, 0.62)
 const INDICE_INVENTARIO: int = 0
 const INDICE_VESTUARIO: int = 1                    ## 12/11: los atuendos (Atuendos), tras Inventario; las demás corren una
+const INDICE_MAPA: int = 4                         ## 13/11: el mapa que se dibuja andando (PaginaMapa, Cartografia)
 const INDICE_MISIONES: int = 5
 const INDICE_ESTADISTICAS: int = 6                 ## 2/11 (tercera tanda A3): tras Misiones; Ajustes pasa a la 7
 
@@ -46,7 +47,7 @@ const PESTANAS: Array = [
 	{"id": "vestuario", "nombre": "Vestuario", "sub": "Tus atuendos: elige qué te pones"},
 	{"id": "grimorio", "nombre": "Grimorio", "sub": "Los hechizos que dominas", "prox": "Aquí repasarás tus recetas de runas y las páginas de tu libro."},
 	{"id": "sintesis", "nombre": "Síntesis", "sub": "Combina materiales", "prox": "Aquí mezclarás los materiales que recojas para preparar tónicos y pigmentos."},
-	{"id": "mapa", "nombre": "Mapa", "sub": "Por dónde has pasado", "prox": "Aquí verás el mapa de cada zona, con sus secretos y sus salidas."},
+	{"id": "mapa", "nombre": "Mapa", "sub": "Por dónde has pasado"},
 	{"id": "misiones", "nombre": "Misiones", "sub": "Tu diario de misiones"},
 	{"id": "estadisticas", "nombre": "Estadísticas", "sub": "Lo que llevas hecho"},
 	{"id": "ajustes", "nombre": "Ajustes", "sub": "Sonido, controles y pantalla", "prox": "Aquí ajustarás el sonido, los controles y la pantalla."},
@@ -80,6 +81,7 @@ var _cuerpo: Control
 var _pag_inv: Control
 var _pag_vest: PaginaVestuario                     ## 12/11: la pestaña Vestuario (atuendos)
 var _pag_mis: Control
+var _pag_mapa: PaginaMapa                          ## 13/11: la pestaña Mapa
 var _pag_est: Control                              ## A3: la pestaña Estadísticas (dos columnas: la partida y este nivel)
 var _col_total: GridContainer
 var _col_nivel: GridContainer
@@ -131,6 +133,11 @@ func _ready() -> void:
 	_construir_vestuario()
 	_construir_misiones()
 	_construir_estadisticas()
+	_pag_mapa = PaginaMapa.new()
+	_pag_mapa.menu = self
+	_pag_mapa.size = CUERPO_TAM
+	_pag_mapa.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_cuerpo.add_child(_pag_mapa)
 	_construir_proximamente()
 	get_viewport().size_changed.connect(_colocar)
 	Estado.i().cambiado.connect(_al_cambiar_mochila)
@@ -294,7 +301,7 @@ func pestana_id() -> String:
 
 
 func funcional(i: int) -> bool:
-	return i == INDICE_INVENTARIO or i == INDICE_VESTUARIO or i == INDICE_MISIONES or i == INDICE_ESTADISTICAS
+	return i == INDICE_INVENTARIO or i == INDICE_VESTUARIO or i == INDICE_MISIONES or i == INDICE_ESTADISTICAS or i == INDICE_MAPA
 
 
 ## Vestuario (12/11): el atuendo elegido en la pestaña ("" si no hay).
@@ -468,6 +475,10 @@ func _mostrar_pagina() -> void:
 		if _pag_vest.visible:
 			_pag_vest.queue_redraw()
 	_pag_mis.visible = pestana == INDICE_MISIONES
+	if _pag_mapa != null:
+		_pag_mapa.visible = pestana == INDICE_MAPA
+		if _pag_mapa.visible:
+			_pag_mapa.queue_redraw()
 	if _pag_est != null:
 		_pag_est.visible = pestana == INDICE_ESTADISTICAS
 		if _pag_est.visible:

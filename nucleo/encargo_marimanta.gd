@@ -7,7 +7,8 @@ extends RefCounted
 
 const MISION := "sumicio_encargo_campo"
 const RECIBIDO := "montesumicio.encargo.recibido"
-const HITO := "montesumicio.encargo.hito"
+## 13/11 (Pablo): el hito del sendero se sustituye por cartografiar el 60 % de Bosque 02 (Cartografia).
+const MAPA := "montesumicio.encargo.mapa"
 const PLANTA := "montesumicio.encargo.planta"
 const CRIATURA := "montesumicio.encargo.criatura"
 const ENTREGADO := "montesumicio.encargo.entregado"
@@ -15,16 +16,16 @@ const COFRE_AGUA := "montesumicio.torre.cofre_agua"
 ## Como `global.glifo.<id>` de los cofres: un sello ganado se vuelve a desbloquear al montar cualquier nivel (Puzle3D).
 const SELLO_GANADO := "global.sello."
 
-const PASOS: Array = [HITO, PLANTA, CRIATURA]
+const PASOS: Array = [MAPA, PLANTA, CRIATURA]
 const TEXTOS_OBJETIVO: Array = [
-	"Anota en el grimorio el hito del sendero norte de la Fraga",
+	"Cartografía el 60 % de Bosque 02 (0 %)",
 	"Identifica una planta para el herbario",
 	"Registra una criatura en el bestiario",
 	"Vuelve a la Torre Verde y habla con Marimanta",
 ]
 ## Lo que se lee al anotar cada cosa junto a la salida norte.
 const AL_ANOTAR: Array = [
-	"Mid copia el hito del sendero: «Monte Sumicio, cuesta arriba». Primer tramo del mapa de la Fraga.",
+	"El mapa de Bosque 02 ya está cartografiado al 60 %.",
 	"Helecho común de la fraga húmeda. Mid lo dibuja y guarda una hoja en el herbario.",
 	"Un nido de mirlo entre las raíces. Mid lo registra en el bestiario: canto al alba, huevos azulados.",
 ]
@@ -61,6 +62,10 @@ static func sincronizar() -> void:
 			"texto": "Para el Nivel I, Mid debe completar el bestiario y el herbario del grimorio y cartografiar la Fraga de Cailiag. Marimanta le pide empezar por el sendero norte, junto a la subida a Monte Sumicio.",
 			"origen": "Maestre Marimanta", "objetivos": TEXTOS_OBJETIVO})
 		mi.activar(MISION)
+	var pc := Cartografia.porcentaje_de(Cartografia.NIVEL_ENCARGO)
+	if pc >= Cartografia.META:
+		Flags.i().poner(MAPA)
+	mi.objetivo_texto(MISION, 0, "Cartografía el %d %% de Bosque 02 (%d %%)" % [Cartografia.META, mini(pc, 100)])
 	for i in range(PASOS.size()):
 		if Flags.i().tiene(String(PASOS[i])):
 			mi.objetivo_hecho(MISION, i)

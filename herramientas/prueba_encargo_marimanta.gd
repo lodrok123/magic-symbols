@@ -78,11 +78,15 @@ func _bosque_antes() -> void:
 			print("   bloqueada (24,%d) letra %s" % [y, Terreno3D.letra_de(Vector2i(24, y))])
 	_ok(libre, "1.4 el sendero x=24 (filas 1..17) se pisa hasta la plaza del estanque")
 	var reglas := _reglas()
-	var hito: Vector2i = reglas.ENCARGO_CELDAS[0]
-	var p := Terreno3D.centro_de(hito, Terreno3D.y_pies(hito)) + Vector3(1.2, 0, 0)
-	_ok(reglas.encargo_cercano(p) == 0, "2.1 junto al hito, E apunta al encargo")
-	_ok(EncargoMarimanta.anotar(0) == String(EncargoMarimanta.SIN_ENCARGO[0]) and not Flags.i().tiene(EncargoMarimanta.HITO),
+	var planta: Vector2i = reglas.ENCARGO_CELDAS[1]
+	var p := Terreno3D.centro_de(planta, Terreno3D.y_pies(planta)) + Vector3(1.2, 0, 0)
+	_ok(reglas.encargo_cercano(p) == 1, "2.1 junto a la planta, E apunta al encargo")
+	_ok(EncargoMarimanta.anotar(1) == String(EncargoMarimanta.SIN_ENCARGO[1]) and not Flags.i().tiene(EncargoMarimanta.PLANTA),
 		"2.2 sin encargo no se anota nada")
+	_ok(Cartografia.nivel == "Bosque_02" and Cartografia.alto() == 52 and Cartografia.ancho() == 40, "2.3 el mapa de Bosque 02 está preparado (40×52)")
+	_ok(not Cartografia.registrar(Vector2i(24, 3)) and Cartografia.porcentaje() == 0, "2.4 sin encargo el mapa está bloqueado y no registra")
+	_ok(Cartografia.salidas.any(func(s: Dictionary) -> bool: return s["celda"] == Vector2i(24, 1) and s["nombre"] == "Monte Sumicio"),
+		"2.5 el mapa marca la salida norte como «Monte Sumicio»")
 
 
 func _visita() -> Node:
@@ -110,13 +114,29 @@ func _sumicio_audiencia_y_encargo() -> void:
 
 func _bosque_encargo() -> void:
 	var reglas := _reglas()
-	for i in range(3):
+	for i in reglas.ENCARGO_CELDAS:
 		var c: Vector2i = reglas.ENCARGO_CELDAS[i]
 		var p := Terreno3D.centro_de(c, Terreno3D.y_pies(c)) + Vector3(1.2, 0, 0)
 		var j: int = reglas.encargo_cercano(p)
 		if j >= 0:
 			print("   ", EncargoMarimanta.anotar(j))
-	_ok(EncargoMarimanta.pasos_hechos() == 3, "4.1 hito, planta y criatura anotados")
+	_ok(EncargoMarimanta.pasos_hechos() == 2 and not EncargoMarimanta.listo_para_entregar(), "4.1 planta y criatura anotadas; falta el mapa")
+	# Andar por todo lo que se pisa HOY desde la entrada norte (sin abrir puertas ni resolver puzles) y cartografiar.
+	var inicio := Vector2i(24, 3)
+	var cola: Array = [inicio]
+	var vistas := {inicio: true}
+	while not cola.is_empty():
+		var c: Vector2i = cola.pop_front()
+		Cartografia.registrar(c)
+		for v in [Vector2i(1, 0), Vector2i(-1, 0), Vector2i(0, 1), Vector2i(0, -1)]:
+			var n: Vector2i = c + v
+			if not vistas.has(n) and not Terreno3D.bloqueada(n) and not Terreno3D.es_vacio(n) and not Terreno3D.es_agua(n):
+				vistas[n] = true
+				cola.append(n)
+	print("   casillas a pie: %d  · cartografiado: %d %%" % [vistas.size(), Cartografia.porcentaje()])
+	_ok(Cartografia.porcentaje() >= Cartografia.META, "4.0 andando por lo accesible sin puzles se llega al %d %% (hay %d %%)" % [Cartografia.META, Cartografia.porcentaje()])
+	reglas._sincronizar_mision()
+	_ok(Flags.i().tiene(EncargoMarimanta.MAPA), "4.1b el objetivo del mapa queda cumplido")
 	_ok(Misiones.i().progreso(EncargoMarimanta.MISION) == Vector2i(3, 4), "4.2 la misión va 3/4: %s" % Misiones.i().progreso(EncargoMarimanta.MISION))
 	_ok(EncargoMarimanta.listo_para_entregar(), "4.3 listo para entregar")
 

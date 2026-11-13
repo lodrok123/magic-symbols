@@ -76,8 +76,9 @@ const COFRE_CORAZON: Vector2i = Vector2i(8, 30)
 const GUARDA_DEFECTO: Vector2i = Vector2i(9, 43)
 const LIBRERA_DEFECTO: Vector2i = Vector2i(10, 23)
 ## Dónde se pisa para dar por cruzado el arroyo (todo el este y el sur del mapa, a partir de la orilla) y el centro de la pradera (para el punto de la misión).
-## Encargo de Marimanta (EncargoMarimanta): hito, planta y nido junto a la salida norte (24,1) del sendero de Monte Sumicio.
-const ENCARGO_CELDAS: Array = [Vector2i(26, 3), Vector2i(21, 5), Vector2i(28, 6)]
+## Encargo de Marimanta (EncargoMarimanta): planta y nido junto a la salida norte (24,1) del sendero de Monte Sumicio. Índice del paso -> casilla
+## (el paso 0, el mapa, no tiene casilla: se cumple cartografiando el 60 % del nivel).
+const ENCARGO_CELDAS: Dictionary = {1: Vector2i(21, 5), 2: Vector2i(28, 6)}
 const RECT_ESTE: Rect2i = Rect2i(16, 34, 20, 14)
 const CENTRO_PRADERA: Vector2i = Vector2i(21, 28)
 const ID_LOBERNO: String = "loberno"
@@ -198,6 +199,7 @@ func iniciar(mundo: Variant) -> void:
 	_persistir_quemados()
 	_montar_aviso()
 	_definir_misiones()
+	Cartografia.preparar_desde_mapa(String((m as Object).get("nivel")))
 	_restaurar()
 	Flags.i().flag_cambio.connect(_al_cambiar_flag)
 	_montado = true
@@ -463,7 +465,7 @@ func _sincronizar_encargo(mi: Misiones) -> void:
 	EncargoMarimanta.sincronizar()
 	if not mi.existe(EncargoMarimanta.MISION):
 		return
-	for i in range(ENCARGO_CELDAS.size()):
+	for i in ENCARGO_CELDAS:
 		mi.fijar_punto(EncargoMarimanta.MISION, _punto_celda(ENCARGO_CELDAS[i]), i)
 	mi.fijar_punto(EncargoMarimanta.MISION, _punto_celda(Vector2i(24, 1)), 3)
 
@@ -575,7 +577,18 @@ func _process(delta: float) -> void:
 	_sincronizar_puerta_ruinas()
 	_vigilar_recorrido()
 	_vigilar_torre()
+	_cartografiar()
 	_sincronizar_mision()
+
+
+## El mapa se dibuja andando (Cartografia): cada sondeo registra la casilla de Mid. Al pasar del 60 % se avisa.
+func _cartografiar() -> void:
+	var jp: Pj3D = m.get("_jugador") as Pj3D
+	if jp == null:
+		return
+	var antes: int = Cartografia.porcentaje()
+	if Cartografia.registrar(Terreno3D.celda_de(jp.position)) and antes < Cartografia.META and Cartografia.porcentaje() >= Cartografia.META:
+		_decir("Mapa de Bosque 02 cartografiado al %d %%. Ya puedes enseñárselo a Marimanta." % Cartografia.porcentaje(), 6.0)
 
 
 ## Un tótem que se ha activado deja su flag (también lo hace su señal `activado`; esto cubre el que se activó antes de conectar).
@@ -723,9 +736,9 @@ func _unhandled_input(ev: InputEvent) -> void:
 		hablar(mejor, yo)
 
 
-## El punto del encargo de Marimanta al alcance de E (0 hito, 1 planta, 2 criatura), o -1.
+## El punto del encargo de Marimanta al alcance de E (1 planta, 2 criatura), o -1.
 func encargo_cercano(yo: Vector3) -> int:
-	for i in range(ENCARGO_CELDAS.size()):
+	for i in ENCARGO_CELDAS:
 		var p: Vector3 = Terreno3D.centro_de(ENCARGO_CELDAS[i], Terreno3D.y_pies(ENCARGO_CELDAS[i]))
 		if _dist(p, yo) <= ALCANCE_E:
 			return i

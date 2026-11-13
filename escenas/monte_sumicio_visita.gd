@@ -73,6 +73,7 @@ func _montar() -> void:
 		_cofre_uniforme.abrir_ya()
 	_montar_cofre_agua()
 	EncargoMarimanta.sincronizar()
+	Cartografia.jugador = Vector2i(-1, -1)      # el mapa sigue enseñando la Fraga, pero Mid no está en ella
 	var caco := _figura("Caco", Maqueta.celda(_maqueta.caco), Color("#56473b"), Color("#53764c"))
 	caco.position = _maqueta.caco.global_position
 	_montar_hud()
@@ -199,7 +200,8 @@ func _objetivo_libre() -> String:
 		return "Abre el cofre legendario junto a Marimanta."
 	if EncargoMarimanta.listo_para_entregar():
 		return "Entrega el trabajo de campo a Marimanta."
-	return "Encargo: baja al sendero norte de la Fraga (%d/3 anotados)." % EncargoMarimanta.pasos_hechos()
+	return "Encargo: mapa de Bosque 02 al %d %% (meta %d %%), planta y criatura (%d/3 hechos)." % [
+		Cartografia.porcentaje_de(Cartografia.NIVEL_ENCARGO), Cartografia.META, EncargoMarimanta.pasos_hechos()]
 
 
 func _volver_a_la_fraga() -> bool:
@@ -393,11 +395,12 @@ const AUDIENCIA: Array = [
 const ENCARGO: Array = [
 	"Marimanta · Por lo que dice tu grimorio, te faltan cuatro asignaturas para el Nivel I: Historia, Botánica y Herboristería, Orientación y Cuaderno de Campo, y Competencia Rúnica.",
 	"Marimanta · En Terra Fina te enseñaron a leer, a dibujar y a activar runas básicas, pero Pedro Chosco nunca te dejó hacer trabajo de campo en la Fraga.",
-	"Marimanta · Empieza por ahí. Baja al sendero norte de la Fraga y, junto a la subida, anota el hito del camino, identifica una planta y registra una criatura. Luego vuelve.",
+	"Marimanta · Empieza por ahí. Baja a la Fraga y haz su mapa: con que cartografíes algo más de la mitad del bosque me basta. Junto a la subida, identifica una planta y registra una criatura. Luego vuelve.",
+	"Marimanta · Toma este cuaderno de campo. Se irá llenando conforme andes. (Se desbloquea la pestaña Mapa: tecla I y Q/E.)",
 ]
-const RECORDATORIO := "Marimanta · El hito, la planta y la criatura del sendero norte. Y nada de trampas: los mapas de la torre están prohibidos hasta el Nivel I."
+const RECORDATORIO := "Marimanta · El mapa de la Fraga, la planta y la criatura del sendero norte. Y nada de trampas: los mapas de la torre están prohibidos hasta el Nivel I."
 const ENTREGA: Array = [
-	"Marimanta · A ver ese grimorio… El hito, un helecho, un nido de mirlo. Limpio, para venir de Terra Fina.",
+	"Marimanta · A ver ese cuaderno… El mapa de la Fraga, un helecho, un nido de mirlo. Limpio, para venir de Terra Fina.",
 	"Marimanta · Te lo has ganado: abre el cofre de mi izquierda. Guarda una runa de agua. Aquí arriba no nos sirve de mucho: es más rápido bajar al río.",
 ]
 const COFRE_LEGENDARIO := preload("res://arte/piezas/cofre_legendario.tscn")
