@@ -74,6 +74,7 @@ func _montar() -> void:
 	_montar_cofre_agua()
 	EncargoMarimanta.sincronizar()
 	Cartografia.jugador = Vector2i(-1, -1)      # el mapa sigue enseñando la Fraga, pero Mid no está en ella
+	Niveles.precargar("Bosque_02")              # la vuelta a la Fraga ya leída cuando se pulse E
 	var caco := _figura("Caco", Maqueta.celda(_maqueta.caco), Color("#56473b"), Color("#53764c"))
 	caco.position = _maqueta.caco.global_position
 	_montar_hud()

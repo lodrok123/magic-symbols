@@ -44,6 +44,7 @@ func preparar(p_celdas: Array, p_destino: String, p_modo: String, p_marca: bool,
 
 func _ready() -> void:
 	add_to_group("salida_nivel")
+	Niveles.precargar(Niveles.partir(destino)[0] if not Niveles.partir(destino).is_empty() else "")
 	if _marca:
 		_poner_marca()
 

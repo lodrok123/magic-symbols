@@ -151,12 +151,40 @@ static func _viaje(mundo: Node, nivel: String, entrada: String) -> void:
 	mundo.queue_free()
 	await arbol.process_frame
 	await arbol.process_frame
-	var nueva: Node = (load(escena_de(nivel)) as PackedScene).instantiate()
+	var nueva: Node = (await _escena_cargada(arbol, escena_de(nivel))).instantiate()
 	padre.add_child(nueva)
 	if padre == arbol.root:
 		arbol.current_scene = nueva
 	await _llegar(arbol, nueva, negro)
 	en_curso = false
+
+
+## 13/11 (playtest de Pablo: ~11 s en negro al volver de Monte Sumicio a Bosque 02, unos 5 s de leer la escena del disco). Cada salida pide al
+## montarse su nivel de destino en segundo plano (`precargar`); al viajar se recoge ya leído. Lo precargado se guarda en `_precargadas` para no soltarlo.
+static var _precargadas: Dictionary = {}           ## ruta -> PackedScene
+
+
+static func precargar(nivel: String) -> void:
+	var ruta: String = escena_de(nivel)
+	if ruta == "" or _precargadas.has(ruta) or not ResourceLoader.exists(ruta):
+		return
+	if ResourceLoader.load_threaded_get_status(ruta) == ResourceLoader.THREAD_LOAD_INVALID_RESOURCE:
+		ResourceLoader.load_threaded_request(ruta, "PackedScene", true)
+
+
+## La escena del nivel: la precargada si está, la que se está leyendo en segundo plano (esperando sin bloquear el fundido) o, si no, leída ahora.
+static func _escena_cargada(arbol: SceneTree, ruta: String) -> PackedScene:
+	if _precargadas.has(ruta):
+		return _precargadas[ruta]
+	var estado: int = ResourceLoader.load_threaded_get_status(ruta)
+	while estado == ResourceLoader.THREAD_LOAD_IN_PROGRESS:
+		await arbol.process_frame
+		estado = ResourceLoader.load_threaded_get_status(ruta)
+	var ps: PackedScene = ResourceLoader.load_threaded_get(ruta) as PackedScene if estado == ResourceLoader.THREAD_LOAD_LOADED else null
+	if ps == null:
+		ps = load(ruta) as PackedScene
+	_precargadas[ruta] = ps
+	return ps
 
 
 ## La escena nueva ya está en el árbol: espera a que esté lista, pone a la jugadora en su entrada y levanta el fundido.
@@ -246,6 +274,20 @@ static func _velo(arbol: SceneTree) -> ColorRect:
 	r.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	r.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	cl.add_child(r)
+	# «Cargando…» sobre el negro: aparece con el fundido (hereda su alfa), así no parece que el juego se haya colgado.
+	var rotulo := Label.new()
+	rotulo.text = "Cargando…"
+	rotulo.add_theme_font_size_override("font_size", 26)
+	rotulo.add_theme_color_override("font_color", Color(0.95, 0.9, 0.8))
+	rotulo.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_RIGHT)
+	rotulo.offset_left = -220.0
+	rotulo.offset_top = -70.0
+	rotulo.offset_right = -40.0
+	rotulo.offset_bottom = -30.0
+	rotulo.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	rotulo.name = "Label"
+	rotulo.modulate.a = 0.0
+	r.add_child(rotulo)
 	arbol.root.add_child(cl)
 	return r
 
@@ -254,4 +296,7 @@ static func _velo(arbol: SceneTree) -> ColorRect:
 static func _fundir(negro: ColorRect, alfa: float) -> void:
 	var tw: Tween = negro.create_tween()
 	tw.tween_property(negro, "color:a", alfa, T_FUNDIDO)
+	var rotulo: Node = negro.get_node_or_null("Label")
+	if rotulo != null:
+		tw.parallel().tween_property(rotulo, "modulate:a", alfa, T_FUNDIDO)
 	await tw.finished

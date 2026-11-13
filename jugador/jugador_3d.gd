@@ -243,6 +243,9 @@ static func montar(p_mundo: Node3D) -> Jugador3D:
 	j.vida = Estado.i().vida_max
 	p_mundo.add_child(j)
 	p_mundo.set("externo", true)
+	var guardia := GuardiaTiempo.new()          # 13/11: tope a la cámara lenta que se queda puesta (ver guardia_tiempo.gd)
+	guardia.name = "GuardiaTiempo"
+	p_mundo.add_child(guardia)
 	var ez: EstadoZona3D = p_mundo.get_node_or_null("EstadoZona3D") as EstadoZona3D
 	if ez == null:
 		ez = EstadoZona3D.montar(p_mundo)      # F4: los estados de zona del mapa (`; zona … estado=calor`)
