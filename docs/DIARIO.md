@@ -5370,3 +5370,10 @@ Los dos pendientes de la 493. Sin commit todavía.
 - `PiezaPuzle3D` no se instancia en ningún sitio: sus sonidos (placa_hunde, hielo_quiebra…) son código muerto.
 
 **No hecho.** Los recortes se eligieron por nombre y forma de onda, sin oírlos: falta la escucha de Pablo (`docs/escucha_sonniss.html`). Lo que sigue mudo está en el §4 del inventario.
+
+## 505 — Pipeline (13/11): **SFX, tercera tanda: pistas elegidas por Pablo**
+
+- Pablo dijo qué pista de Sonniss va con qué: puzle_resuelto, loberno (ladrido y muerte propios), impacto_suelo (gólem y Elemental), libro_abre, pagina (−10 → −6 dB), carga_bucle, naturaleza, arco_carga, maza_impacto (sustituye a silbido_arma), explosion_barril y arde_bucle. Tabla en docs/INVENTARIO_SFX_2026-11-13.md §3 bis.
+- Archivos del Juego tocados: enemigos/combate_3d.gd, enemigos/golem_3d.gd, objetos/barril_3d.gd.
+
+**No hecho.** Sin oír dentro del juego; los recortes dentro de cada pista son por forma de onda.

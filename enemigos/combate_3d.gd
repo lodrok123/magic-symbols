@@ -562,6 +562,9 @@ func _ready() -> void:
 		pj.ritmo = RITMO_GOBLIN
 	if MarchaCuadrupedo3D.MARCHA_ANIMAL and pj != null and MarchaCuadrupedo3D.tiene_perfil(pj.id):
 		_marcha = MarchaCuadrupedo3D.para(pj)
+	if pj != null and pj.id == "loberno":     # 13/11 (elección de Pablo): ladrido y muerte propios
+		snd_alerta = "loberno_ladrido"
+		snd_muere = "loberno_muere"
 	if pj != null and pj.id == "canouro":
 		_niebla = NieblaCanouro3D.poner(pj, altura)      # 5/11: niebla negra a ras de las patas (Pablo)
 		_cv2 = CanouroV2.nuevo(self)                     # 6/11: stats propios, acecho en círculo, niebla con juego (Pablo)
@@ -1986,6 +1989,7 @@ func _ia_arquero(delta: float, vel: float) -> void:
 		if _carga >= PREPARAR_FLECHA:
 			_carga = 0.0
 			_descanso = DESCANSO_FLECHA
+			Sfx3D.play(self, "arco_carga")     # 13/11 (elección de Pablo)
 			_iniciar_ataque(VEL_ANIM_ARQUERO, pj.momento_golpe("attack"), _soltar_flecha)
 
 
@@ -2051,6 +2055,7 @@ func _ia_arquero_fijo(delta: float) -> void:
 	if _carga >= PREPARAR_FLECHA:
 		_carga = 0.0
 		_descanso = DESCANSO_FLECHA
+		Sfx3D.play(self, "arco_carga")     # 13/11 (elección de Pablo)
 		_iniciar_ataque(VEL_ANIM_ARQUERO * ARQUERO_FIJO_RAFAGA, pj.momento_golpe("attack"), _soltar_flecha)
 
 
@@ -2358,7 +2363,7 @@ func _conectar(corte_frontal: bool = false) -> void:
 	if muerto or jugador == null or not is_instance_valid(jugador) or stun_timer > 0.0 or interrupcion > 0.0 \
 			or congelado > 0.0:
 		return
-	Sfx3D.play(self, "silbido_arma")     # 13/11 (inventario SFX): antes no sonaba (el arma al conectar)
+	Sfx3D.play(self, "maza_impacto")     # 13/11 (inventario SFX): antes no sonaba (el arma al conectar)
 	var en_alcance: bool = _dist(jugador.position) <= RANGO_ATAQUE + 0.5
 	if corte_frontal:
 		var rel: Vector3 = jugador.position - position
@@ -3143,6 +3148,7 @@ func _quitar_raices_vis() -> void:
 func _golpe_elemental() -> void:
 	if muerto or jugador == null or not is_instance_valid(jugador):
 		return
+	Sfx3D.play(self, "impacto_suelo")     # 13/11 (elección de Pablo)
 	_descanso = maxf(_descanso, _ataque + 0.65)
 	var f: Vector3 = Vector3(mirada.x, 0.0, mirada.z)
 	f = f.normalized() if f.length() > 0.01 else Vector3(0, 0, 1)

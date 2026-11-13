@@ -184,17 +184,36 @@ El script recorta la toma, pasa a mono 44,1 kHz, funde, iguala el pico a −3 dB
 | `sn_tinta_sube_0.ogg` | Sfx `tinta_sube` | `DSGNStngr_Power Up Bright Positive Successful Light Saturation Crash Shimmer 05_ESM_AG.wav` | Epic Stock Media - Anime Game |
 | `sn_sintetizar_0.ogg` | Sfx `sintetizar` | `MAGAngl_Magic Light Spell Enchantment Potion Effect Tonal Bright 03_ESM_FG2.wav` | Epic Stock Media - Fantasy Game 2 - Sound Kit for Enchanted Realms |
 | `sn_flecha_clava_0.ogg` | Sfx `flecha_clava` | `Arrow Hit Rattle.wav` | Cinematic Sound Design - Cartoon Bloopers |
-| `sn_silbido_arma_0.ogg` | Sfx3D `silbido_arma` | `METLFric_SWING SCRAPE Swift Melee Weapon Swing With A Long Blade 14_DDUMAIS_MWP2.wav` | David Dumais Audio - Melee Weapons Sound Effects Pack 2 |
 | `sn_aterrizar_0.ogg` | Sfx `aterrizar` | `FOLYClth_SinglePats04_InMotionAudio_FoleyT-Shirt.wav` | InMotionAudio - Foley T-Shirt |
 | `sn_salto_0.ogg` | Sfx `salto` | `Woosh Sweep Slide Infographics Basic.wav` | Cinematic Sound Design - Ultra Transitions & Impacts |
 | `sn_golem_rugido_0.ogg` | Sfx3D `golem_rugido` | `ANMLRept_Large Herbivore Roar 01_344 Audio_Dinosaurs Vol 2.wav` | 344 Audio - Dinosaurs Vol. 2 |
 | `sn_jefe_rugido_0.ogg` | Sfx3D `jefe_rugido` | `ANMLRept_T Rex_344 Audio_Dinosaurs.wav` | 344 Audio - Dinosaurs Vol. 1 |
 | `sn_limo_divide_0.ogg` | Sfx3D `limo_divide` | `Cartoon Bubbles Short.wav` | Cinematic Sound Design - Cartoon & Animation Vol 2 |
 | `sn_trueno_0.ogg` | Sfx `trueno` | `THUN_Interior Thunder Rumble_JF_INT Storm_01.wav` | Jake Fielding - Interior Wind Rain and Storms |
+| `sn_puzle_resuelto_0.ogg` | Sfx `puzle_resuelto` | `Accept Boing Crunch.wav` | Cinematic Sound Design - UI Interaction Elements |
+| `sn_loberno_ladrido_0.ogg` | Sfx3D `loberno_ladrido` | `ANMLDog_Dog Barks, Multiple, Indoors, Perspective,_344 Audio_Dog Vocalisations_02.wav` | 344 Audio - Dog Vocalisations Vol. 1 |
+| `sn_loberno_ladrido_1.ogg` | Sfx3D `loberno_ladrido` | `ANMLDog_Dog Barks, Multiple, Indoors, Perspective,_344 Audio_Dog Vocalisations_02.wav` | 344 Audio - Dog Vocalisations Vol. 1 |
+| `sn_loberno_ladrido_2.ogg` | Sfx3D `loberno_ladrido` | `ANMLDog_Dog Barks, Multiple, Indoors, Perspective,_344 Audio_Dog Vocalisations_02.wav` | 344 Audio - Dog Vocalisations Vol. 1 |
+| `sn_loberno_muere_0.ogg` | Sfx3D `loberno_muere` | `ANMLDog_Dog Shuffle, Grunt, Movement, Lying Down_344 Audio_Dog Vocalisations.wav` | 344 Audio - Dog Vocalisations Vol. 1 |
+| `sn_impacto_suelo_0.ogg` | Sfx3D `impacto_suelo` | `SWSH_SWING IMPACTS Quick Heavy Weapon Swing To Thud Impact Var 01_DDUMAIS_MWP2.wav` | David Dumais Audio - Melee Weapons Sound Effects Pack 2 |
+| `sn_impacto_suelo_1.ogg` | Sfx3D `impacto_suelo` | `SWSH_SWING IMPACTS Quick Heavy Weapon Swing To Thud Impact Var 01_DDUMAIS_MWP2.wav` | David Dumais Audio - Melee Weapons Sound Effects Pack 2 |
+| `sn_impacto_suelo_2.ogg` | Sfx3D `impacto_suelo` | `SWSH_SWING IMPACTS Quick Heavy Weapon Swing To Thud Impact Var 01_DDUMAIS_MWP2.wav` | David Dumais Audio - Melee Weapons Sound Effects Pack 2 |
+| `sn_impacto_suelo_3.ogg` | Sfx3D `impacto_suelo` | `SWSH_SWING IMPACTS Quick Heavy Weapon Swing To Thud Impact Var 01_DDUMAIS_MWP2.wav` | David Dumais Audio - Melee Weapons Sound Effects Pack 2 |
+| `sn_libro_abre_0.ogg` | Sfx `libro_abre` | `PAPRMisc_Pile Of Antique Books Falling Over 8_344 Audio_Antiques - Books.wav` | 344 Audio - Antique Books |
+| `sn_pagina_0.ogg` | Sfx `pagina` | `PAPRMisc_Antique Books Flicking Through Pages 11_344 Audio_Antiques - Books.wav` | 344 Audio - Antique Books |
+| `sn_carga_bucle_0.ogg` | Sfx `carga_bucle` | `PAPRMisc_Antique Books Slow Page Turns 6_344 Audio_Antiques - Books.wav` | 344 Audio - Antique Books |
+| `sn_naturaleza_0.ogg` | Sfx `naturaleza` | `WOODFric_Wood Shaker Microphone Head Roll Table Alternate Grainy 05_ESM_HDGM.wav` | Epic Stock Media - HD Game Materials |
+| `sn_arco_carga_0.ogg` | Sfx3D `arco_carga` | `WOODFric_Wood Shaker Microphone Head Roll Table Alternate Grainy 05_ESM_HDGM.wav` | Epic Stock Media - HD Game Materials |
+| `sn_maza_impacto_0.ogg` | Sfx3D `maza_impacto` | `Impact Cut Sweep.wav` | Cinematic Sound Design - Colossal Impacts |
+| `sn_explosion_barril_0.ogg` | Sfx `explosion_barril` | `13 Fireworks_powerful explosions_multiples in a row_near.wav` | Ivo Vicic - Fireworks FX |
+| `sn_explosion_barril_1.ogg` | Sfx `explosion_barril` | `13 Fireworks_powerful explosions_multiples in a row_near.wav` | Ivo Vicic - Fireworks FX |
+| `sn_arde_bucle_0.ogg` | Sfx `arde_bucle` | `24 Campfire, Dropping Fresh Pine Branches in Fire, Crackling, Sizzling Strong, Close 02.wav` | Ivo Vicic - Campfire - Bonfire FX |
 
 **Segunda tanda (13/11, 39 archivos, las filas desde `sn_siseo_apagado_0`):** 27 sustituyen a un sonido sintetizado o de Kenney y 12 son de acciones que no sonaban
 (inventario completo en `docs/INVENTARIO_SFX_2026-11-13.md`). En esta tanda el script iguala además el RMS al del archivo que sustituye (opción «como») y
 hace bucle sin costura en los tres ambientes (opción «bucle»). En la máquina `pablo` el lote está en `C:\Users\pablo\Downloads\sonniss_gdc2026`.
+
+**Tercera tanda (13/11, 18 archivos, desde `sn_puzle_resuelto_0`):** pistas que eligió Pablo de oído, con su destino. Sale `sn_silbido_arma_0` (lo sustituye `sn_maza_impacto_0`).
 
 Elegidos por el nombre de la pista y medidos (duración, pico y RMS parecidos a lo que sustituyen), **sin escucharlos**: valida Pablo de oído
 con `docs/escucha_sonniss.html` (antes y después de cada uno).

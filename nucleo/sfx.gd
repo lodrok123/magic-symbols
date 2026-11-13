@@ -76,10 +76,10 @@ static var CATALOGO: Dictionary = {
 		"db": -5.0, "tono": 0.05},
 	"puerta_cierra": {"f": ["puerta_cierra_0.ogg", "puerta_cierra_1.ogg"],
 		"db": -6.0, "tono": 0.05},
-	"libro_abre":    {"f": ["libro_abre.ogg"],   "db": -7.0, "tono": 0.04},
+	"libro_abre":    {"f": ["libro_abre.ogg"], "f_sn": ["sn_libro_abre_0.ogg"],   "db": -7.0, "tono": 0.04},
 	"libro_cierra":  {"f": ["libro_cierra.ogg"], "db": -7.0, "tono": 0.04},
-	"pagina":        {"f": ["pagina_0.ogg", "pagina_1.ogg", "pagina_2.ogg"],
-		"db": -10.0, "tono": 0.06},
+	"pagina":        {"f": ["pagina_0.ogg", "pagina_1.ogg", "pagina_2.ogg"], "f_sn": ["sn_pagina_0.ogg"],
+		"db": -6.0, "tono": 0.06},      # 13/11 (Pablo): hojeo de libro antiguo, y más alto (−10 → −6)
 	# 2/11 (tarea R): «f» = lo grabado nuevo, «f_sint» = lo que sonaba antes (con GRABADOS = false suena este). Ver docs/DIARIO.md 306 para el porqué de cada archivo.
 	"clavar":        {"f": ["kenney_clavar_0.ogg", "kenney_clavar_1.ogg"], "f_sint": ["clavar.ogg"], "db": -10.0, "tono": 0.12},
 	"creak":         {"f": ["creak.ogg"],  "db": -11.0, "tono": 0.08},
@@ -144,7 +144,7 @@ static var CATALOGO: Dictionary = {
 	"siseo_apagado":    {"f": ["siseo_apagado.wav"], "f_sn": ["sn_siseo_apagado_0.ogg"],    "db": -9.0,  "tono": 0.08},
 	"chapoteo":         {"f": ["chapoteo.wav"],         "db": -8.0,  "tono": 0.10},
 	"hundido_burbujas": {"f": ["hundido_burbujas.wav"], "f_sn": ["sn_hundido_burbujas_0.ogg"], "db": -8.0,  "tono": 0.05},
-	"arde_bucle":       {"f": ["oga_fuego_crepita_loop.wav"], "db": -12.0, "tono": 0.0},     # 27/10: el crepitar grabado (CC0)
+	"arde_bucle":       {"f": ["oga_fuego_crepita_loop.wav"], "f_sn": ["sn_arde_bucle_0.ogg"], "db": -12.0, "tono": 0.0},     # 27/10: el crepitar grabado (CC0)
 	"escudo_golpe":     {"f": ["escudo_golpe.wav"], "f_sn": ["sn_escudo_golpe_0.ogg"],     "db": -8.0,  "tono": 0.10},
 	"escudo_roto":      {"f": ["escudo_roto.wav"], "f_sn": ["sn_escudo_roto_0.ogg"],      "db": -6.0,  "tono": 0.06},
 	"aturdido":         {"f": ["aturdido.wav"], "f_sn": ["sn_aturdido_0.ogg"],         "db": -11.0, "tono": 0.05},
@@ -168,7 +168,7 @@ static var CATALOGO: Dictionary = {
 	"voltereta":        {"f": ["voltereta.wav"], "f_sn": ["sn_voltereta_0.ogg", "sn_voltereta_1.ogg", "sn_voltereta_2.ogg"], "db": -14.0, "tono": 0.10},
 	"recarga_lista":    {"f": ["recarga_lista.wav"], "f_sn": ["sn_recarga_lista_0.ogg"],    "db": -16.0, "tono": 0.03},
 	"golpe_mundo":      {"f": ["golpe_mundo.wav"],      "db": -11.0, "tono": 0.10},
-	"carga_bucle":      {"f": ["carga_bucle.wav"],      "db": -18.0, "tono": 0.0},
+	"carga_bucle":      {"f": ["carga_bucle.wav"], "f_sn": ["sn_carga_bucle_0.ogg"],      "db": -18.0, "tono": 0.0},
 	"secado":           {"f": ["secado.wav"],           "db": -13.0, "tono": 0.08},
 	"derretido":        {"f": ["derretido.wav"],        "db": -11.0, "tono": 0.08},
 
@@ -177,7 +177,7 @@ static var CATALOGO: Dictionary = {
 	"logro_pista":     {"f": ["logro_pista.wav"],     "db": -14.0, "tono": 0.01},
 	"logro_acierto":   {"f": ["logro_acierto.wav"], "f_sn": ["sn_logro_acierto_0.ogg"],   "db": -9.0,  "tono": 0.01},
 	"objetivo_cumplido": {"f": ["objetivo_cumplido.wav"], "f_sn": ["sn_objetivo_cumplido_0.ogg"], "db": -12.0, "tono": 0.0},
-	"puzle_resuelto": {"f": ["puzle_resuelto.wav"], "db": -8.0, "tono": 0.0},
+	"puzle_resuelto": {"f": ["puzle_resuelto.wav"], "f_sn": ["sn_puzle_resuelto_0.ogg"], "db": -8.0, "tono": 0.0},
 	"mision_completada": {"f": ["mision_completada.wav"], "db": -8.0, "tono": 0.0},
 	"logro_brillo":    {"f": ["logro_brillo.wav"], "f_sn": ["sn_logro_brillo_0.ogg"],    "db": -12.0, "tono": 0.01},
 	"logro_fanfarria": {"f": ["logro_fanfarria.wav"], "db": -7.0,  "tono": 0.0},
@@ -210,9 +210,10 @@ static var CATALOGO: Dictionary = {
 	"chispazo":        {"f": ["chispazo.wav"], "f_sn": ["sn_chispazo_0.ogg"],    "db": -11.0, "tono": 0.06},
 	"salpicadura":     {"f": ["salpicadura.wav"], "f_sn": ["sn_salpicadura_0.ogg"], "db": -10.0, "tono": 0.08},
 	# 13/11 (Pipeline, inventario de SFX; docs/INVENTARIO_SFX_2026-11-13.md): acciones que no sonaban. «f» es el respaldo que ya estaba en audio/ (suena en un clon sin el lote de Sonniss).
-	# magma y naturaleza: el Lanzador pedía «magma_carga»/«magma» y «naturaleza_carga»/«naturaleza» y no existía ninguno (carga y disparo mudos). naturaleza no tiene sonido propio todavía: toma el de tierra.
+	# magma y naturaleza: el Lanzador pedía «magma_carga»/«magma» y «naturaleza_carga»/«naturaleza» y no existía ninguno (carga y disparo mudos). naturaleza suena a madera que rueda (elección de Pablo); sin el lote, toma el de tierra.
 	"magma":        {"f": ["elem_fuego.wav"],  "f_sn": ["sn_magma_0.ogg"], "db": -8.0, "tono": 0.08},
-	"naturaleza":   {"f": ["elem_tierra.wav"], "db": -9.0, "tono": 0.10},
+	"naturaleza":   {"f": ["elem_tierra.wav"], "f_sn": ["sn_naturaleza_0.ogg"], "db": -9.0, "tono": 0.10},
+	"explosion_barril": {"f": ["explosion.wav"], "f_sn": ["sn_explosion_barril_0.ogg", "sn_explosion_barril_1.ogg"], "db": -5.0, "tono": 0.06},   # 13/11 (Pablo): el barril revienta con petardazo (Barril3D._explotar)
 	"salto":        {"f": ["voltereta.wav"],   "f_sn": ["sn_salto_0.ogg"],     "db": -20.0, "tono": 0.10},      # Jugador3D._vertical al despegar
 	"aterrizar":    {"f": ["golpe_sordo.wav"], "f_sn": ["sn_aterrizar_0.ogg"], "db": -16.0, "tono": 0.10},      # Jugador3D._vertical al tocar suelo (no en el agua)
 	"flecha_clava": {"f": ["kenney_clavar_0.ogg", "kenney_clavar_1.ogg"], "f_sn": ["sn_flecha_clava_0.ogg"], "db": -10.0, "tono": 0.10},   # la flecha del arquero y la de la trampa al llegar

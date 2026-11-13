@@ -57,9 +57,15 @@ const CATALOGO: Dictionary = {
 	"derrumbe":     {"f": ["derrumbe.wav"], "f_sn": ["sn_derrumbe_0.ogg"], "db": -7.0, "tono": 0.10},
 	"escudo_golpe": {"f": ["escudo_golpe.wav"], "f_sn": ["sn_escudo_golpe_0.ogg"], "db": -8.0, "tono": 0.10},
 	"sello_ok":     {"f": ["sello_ok.wav"], "db": -11.0, "tono": 0.03},
-	# 13/11: acciones de enemigos que no sonaban. «f» = respaldo sin el lote de Sonniss. El silbido es del arma al conectar (`Combate3D._conectar`); los rugidos, el aviso del gólem
+	# 13/11: acciones de enemigos que no sonaban. «f» = respaldo sin el lote de Sonniss. «maza_impacto» es el arma del goblin al conectar (`Combate3D._conectar`); los rugidos, el aviso del gólem
 	# (`snd_alerta`) y el del Elemental del bosque al ver a la jugadora; «limo_divide», el limo que se parte.
-	"silbido_arma": {"f": ["voltereta.wav"], "f_sn": ["sn_silbido_arma_0.ogg"], "db": -14.0, "tono": 0.12},
+	"maza_impacto": {"f": ["kenney_golpe_carne_0.ogg"], "f_sn": ["sn_maza_impacto_0.ogg"], "db": -10.0, "tono": 0.10},
+	# 13/11 (elección de Pablo): el loberno ladra al ver a la jugadora y gruñe al morir (antes, voces de goblin); los puños del gólem y del Elemental contra el suelo
+	# (cuatro tomas); el arquero tensa el arco antes de soltar.
+	"loberno_ladrido": {"f": ["goblin_grito_0.ogg", "goblin_grito_1.ogg", "goblin_grito_2.ogg"], "f_sn": ["sn_loberno_ladrido_0.ogg", "sn_loberno_ladrido_1.ogg", "sn_loberno_ladrido_2.ogg"], "db": -6.0, "tono": 0.08},
+	"loberno_muere":   {"f": ["goblin_grito_0.ogg"], "f_sn": ["sn_loberno_muere_0.ogg"], "db": -5.0, "tono": 0.05},
+	"impacto_suelo":   {"f": ["derrumbe.wav"], "f_sn": ["sn_impacto_suelo_0.ogg", "sn_impacto_suelo_1.ogg", "sn_impacto_suelo_2.ogg", "sn_impacto_suelo_3.ogg"], "db": -6.0, "tono": 0.08},
+	"arco_carga":      {"f": ["creak.ogg"], "f_sn": ["sn_arco_carga_0.ogg"], "db": -12.0, "tono": 0.08},
 	"golem_rugido": {"f": ["derrumbe.wav"], "f_sn": ["sn_golem_rugido_0.ogg"], "db": -8.0, "tono": 0.06, "base": 0.8},
 	"jefe_rugido":  {"f": ["derrumbe.wav"], "f_sn": ["sn_jefe_rugido_0.ogg"], "db": -6.0, "tono": 0.04},
 	"limo_divide":  {"f": ["limo_golpe.wav"], "f_sn": ["sn_limo_divide_0.ogg"], "db": -9.0, "tono": 0.10},

@@ -77,6 +77,28 @@ Catálogos: `nucleo/sfx.gd` (`Sfx.CATALOGO`) y `nucleo/sfx_3d.gd` (`Sfx3D.CATALO
 | Recoger una poción del suelo | `recoger` | `escenas/jugabilidad_3d.gd` |
 | Sube la tinta máxima (jefe o secreto) | `tinta_sube` (nuevo) | `nucleo/tinta.gd` `_ganar` |
 
+## 3 bis. Elecciones de Pablo (13/11, tercera tanda)
+
+Pablo escuchó la librería y dijo qué pista va con qué. Mandan sobre lo de §2 y §3 donde coinciden.
+
+| Entrada | Dónde suena | Pista |
+|---|---|---|
+| `puzle_resuelto` | al resolver un puzle | Accept Boing Crunch |
+| `loberno_ladrido` (nuevo, 3 tomas) | el loberno ve a la jugadora | Dog Barks |
+| `loberno_muere` (nuevo) | muere el loberno | Dog Shuffle, Grunt |
+| `impacto_suelo` (nuevo, 4 tomas) | puños del gólem (antes `derrumbe`) y del Elemental (antes mudo) | Swing To Thud Impact |
+| `libro_abre` | abrir el libro, la pausa, la tienda y el diario | Pile Of Antique Books Falling Over |
+| `pagina` | pasar página; volumen de −10 a −6 dB | Antique Books Flicking Through Pages |
+| `carga_bucle` | bucle mientras se castea (el del modo lanzar, todos los elementos) | Antique Books Slow Page Turns |
+| `naturaleza` | lanzar naturaleza | Wood Shaker (primera pasada) |
+| `arco_carga` (nuevo) | el arquero goblin tensa el arco | Wood Shaker (segunda pasada) |
+| `maza_impacto` (nuevo) | el arma del goblin al conectar; sustituye a `silbido_arma` de §3 | Impact Cut Sweep |
+| `explosion_barril` (nuevo, 2 tomas) | explota un barril (la geoda sigue con `explosion`) | 13 Fireworks, powerful explosions |
+| `arde_bucle` | objeto ardiendo | 24 Campfire, Dropping Fresh Pine Branches |
+| `siseo_apagado` | apagar fuego con agua | 42 Campfire, Putting Out Fire (ya estaba en §2) |
+
+Con esto, de §4 salen `naturaleza` y la voz del loberno. `Power Up Bright Positive` venía en la lista de Pablo sin destino: sigue en `tinta_sube`.
+
 ## 4. Lo que sigue sin sonido
 
 **Sin candidato en el lote de Sonniss (hay que buscar o grabar):**

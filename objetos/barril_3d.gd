@@ -448,7 +448,7 @@ func _punto_explosion() -> Vector3:
 
 func _explotar() -> void:
 	explotado = true
-	Sfx.play(self, "explosion")     # 13/11 (inventario SFX): antes no sonaba
+	Sfx.play(self, "explosion_barril")     # 13/11 (inventario SFX): antes no sonaba
 	roto_ya = true
 	encendido = false
 	var punto: Vector3 = _punto_explosion()
