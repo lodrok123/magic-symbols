@@ -792,30 +792,6 @@ void light() {
 }
 """
 
-## Bloque empujable (Paso 5): tapa y lado distintos por la normal en el mundo y grietas que aparecen con `danio`.
-const CODIGO_BLOQUE: String = """
-shader_type spatial;
-uniform sampler2D t_arriba : source_color, filter_linear_mipmap, repeat_enable;
-uniform sampler2D t_lado : source_color, filter_linear_mipmap, repeat_enable;
-uniform sampler2D t_grietas : filter_linear_mipmap, repeat_enable;   // R leves · G medias · B rotura
-uniform float danio = 0.0;                                           // 0 intacto ... 1 a punto de romperse
-uniform vec3 color_grieta : source_color = vec3(0.25, 0.18, 0.12);
-uniform float tam_tex = 2.3;
-uniform float brillo = 1.0;
-void fragment() {
-	vec3 pm = (INV_VIEW_MATRIX * vec4(VERTEX, 1.0)).xyz;
-	vec3 nm = normalize((INV_VIEW_MATRIX * vec4(NORMAL, 0.0)).xyz);
-	bool arriba = abs(nm.y) > 0.5;
-	vec2 uv = arriba ? pm.xz / tam_tex : (abs(nm.x) > 0.5 ? pm.zy : pm.xy) / tam_tex;
-	vec3 col = arriba ? texture(t_arriba, uv).rgb : texture(t_lado, uv).rgb;
-	vec3 g = texture(t_grietas, uv).rgb;
-	float grieta = max(max(g.r * step(0.2, danio), g.g * step(0.5, danio)), g.b * step(0.8, danio));
-	ALBEDO = mix(col, color_grieta, grieta) * brillo;
-	ROUGHNESS = 1.0;
-	SPECULAR = 0.0;
-}
-"""
-
 
 ## Decorado en lotes (MultiMesh por pieza). El prerender del Test 2D lo apaga: necesita cada pieza como nodo.
 @export var decorado_por_lotes: bool = true
@@ -1065,8 +1041,7 @@ var _t_velo: float = 0.0
 var _f_velo: int = 0
 var _ms_velo: int = 0
 var _ms_estado: float = 0.0
-var _empujables: Array[MeshInstance3D] = []
-var _tex_grietas: Texture2D = null
+var _bloques_reales: Array[BloqueEmpujable3D] = []   ## los empujables del nivel (BloqueEmpujable3D reales; ya no hay cubos visuales)
 var _contraste: float = 2.5
 var _rugosidad: float = 0.5     ## relieve del suelo (tecla B): 0 · 0,5 · 1
 var _hierba: Hierba3D = null
@@ -3897,94 +3872,18 @@ func _textura_hielo(agua: Texture2D) -> Texture2D:
 	return ImageTexture.create_from_image(img)
 
 
-## Bloques empujables de tierra y hielo: cubos con tapa y lado distintos y grietas (CODIGO_BLOQUE). Las texturas
-## definitivas (tierra_lado, hielo_arriba, hielo_lado, grietas en suelo_meshy/) son opcionales: sin ellas se usa
-## la del suelo, el agua desaturada y unas grietas hechas con ruido.
+## Bloques empujables del nivel (los de `Jugabilidad3D.EMPUJABLES`, el Test 2 y los marcadores `empujable` del .tscn): BLOQUES REALES (`BloqueEmpujable3D`, 13/11, tarea 18), no cubos
+## solo visuales. «tierra» = piedra (el material de piedra, el bloque de la Cueva) y «hielo» = hielo, en la misma casilla. Se empujan andando contra ellos y bloquean su casilla (el cubo
+## visual ya la bloqueaba: `_bloqueadas`, así que ningún paso obligatorio queda tapado de más). Sin la versión visual (CODIGO_BLOQUE, grietas, tecla V) que había antes.
 func _colocar_empujables() -> void:
 	for e in _empuj_def:
-		var tipo: String = String(e[0])
 		var c: Vector2i = e[1]
-		var lado: float = S * 0.62
-		var caja := BoxMesh.new()
-		caja.size = Vector3(lado, lado, lado)
-		var m := ShaderMaterial.new()
-		var sh := Shader.new()
-		sh.code = CODIGO_BLOQUE
-		m.shader = sh
-		if tipo == "hielo":
-			var agua: Texture2D = _tex(SUELO + "water_arriba.png")
-			var base: Texture2D = _tex_o(SUELO + "hielo_arriba.png", _textura_hielo(agua))
-			m.set_shader_parameter("t_arriba", base)
-			m.set_shader_parameter("t_lado", _tex_o(SUELO + "hielo_lado.png", base))
-			m.set_shader_parameter("color_grieta", Color(0.9, 0.97, 1.0))
-		else:
-			m.set_shader_parameter("t_arriba", _tex(SUELO + "dirt_arriba.png"))
-			m.set_shader_parameter("t_lado", _tex_o(SUELO + "tierra_lado.png", _tex(SUELO + "cuerpo.png")))
-		m.set_shader_parameter("t_grietas", _grietas())
-		m.set_shader_parameter("danio", 0.0)
-		m.set_shader_parameter("brillo", OSCURECER_SUELO)
-		caja.material = m
-		var mi := MeshInstance3D.new()
-		mi.name = "empujable_" + tipo
-		mi.mesh = caja
-		mi.position = Vector3(0.0, lado * 0.5, 0.0)
-		var raiz := Node3D.new()           # misma forma que las piezas (raíz + modelo): el prerender 2D la recorta
-		raiz.position = _centro_celda(c, ALTO)
-		raiz.add_child(mi)
-		_props.add_child(raiz)
-		_bloqueadas[c] = true
-		_empujables.append(mi)
-
-
-## La textura si existe; si no, el sustituto (sin avisar: son texturas que aún no se han entregado).
-func _tex_o(ruta: String, sustituta: Texture2D) -> Texture2D:
-	if ResourceLoader.exists(ruta):
-		return load(ruta) as Texture2D
-	return sustituta
-
-
-## Grietas: R leves, G medias, B rotura. La de Pablo (suelo_meshy/grietas.png) o tres redes de celdas con ruido.
-func _grietas() -> Texture2D:
-	if _tex_grietas != null:
-		return _tex_grietas
-	if ResourceLoader.exists(SUELO + "grietas.png"):
-		_tex_grietas = load(SUELO + "grietas.png") as Texture2D
-		return _tex_grietas
-	var canales: Array[Image] = []
-	for i in range(3):
-		var n := FastNoiseLite.new()
-		n.noise_type = FastNoiseLite.TYPE_CELLULAR
-		n.cellular_return_type = FastNoiseLite.RETURN_DISTANCE2_SUB      # 0 en los bordes entre celdas = grieta
-		n.frequency = 0.018 + 0.012 * float(i)
-		n.seed = 11 + i * 7
-		canales.append(n.get_image(256, 256, false, false, true))
-	var img := Image.create_empty(256, 256, true, Image.FORMAT_RGB8)
-	for y in range(256):
-		for x in range(256):
-			var col := Color(0.0, 0.0, 0.0)
-			for i in range(3):
-				col[i] = 1.0 - smoothstep(0.06, 0.17 + 0.01 * float(i), canales[i].get_pixel(x, y).r)
-			img.set_pixel(x, y, col)
-	img.generate_mipmaps()
-	_tex_grietas = ImageTexture.create_from_image(img)
-	return _tex_grietas
-
-
-## Tecla V: sube el daño del empujable más cercano a la chibi (0 → 0,34 → 0,68 → 1 → de nuevo 0).
-func _danar_empujable_cercano() -> void:
-	if _jugador == null or _empujables.is_empty():
-		return
-	var mejor: MeshInstance3D = null
-	var dmin: float = 1.0e9
-	for e in _empujables:
-		var d: float = e.global_position.distance_to(_jugador.position)
-		if d < dmin:
-			dmin = d
-			mejor = e
-	var m: ShaderMaterial = (mejor.mesh as BoxMesh).material as ShaderMaterial
-	var v0: Variant = m.get_shader_parameter("danio")
-	var d0: float = float(v0) if v0 != null else 0.0
-	m.set_shader_parameter("danio", 0.0 if d0 > 0.9 else minf(d0 + 0.34, 1.0))
+		var bq := BloqueEmpujable3D.new()
+		bq.name = "empujable_%d_%d" % [c.x, c.y]
+		bq.preparar(c, "hielo" if String(e[0]) == "hielo" else "piedra", self)
+		_props.add_child(bq)
+		_bloqueadas[c] = true      # como el cubo de antes: a estas alturas `Terreno3D.fuente` puede ser aún null (`preparar` no marcaría nada) y `_activar_solidez_por_nodos` traspasa de aquí a la fuente
+		_bloques_reales.append(bq)
 
 
 ## --- Lo que pide cada letra del plano ---
@@ -6240,8 +6139,6 @@ func _unhandled_input(ev: InputEvent) -> void:
 			if ve != null:
 				ve.encendido = not ve.encendido
 				print("VFX por estado (VfxEstado3D): %s" % ("ENCENDIDO" if ve.encendido else "apagado"))
-		KEY_V:
-			_danar_empujable_cercano()
 		KEY_B:
 			# Relieve del suelo: 0 (liso) · 0,5 · 1. Para comparar capturas.
 			_rugosidad = 0.0 if _rugosidad >= 1.0 else (0.5 if _rugosidad < 0.5 else 1.0)
@@ -6463,7 +6360,7 @@ func _actualizar_hud() -> void:
 		int(Performance.get_monitor(Performance.RENDER_VIDEO_MEM_USED) / 1048576.0), _n_lotes]
 	if _hierba != null:
 		dibujo += " · hierba %d bloques / %d matojos" % [_hierba.numero_de_bloques(), _hierba.numero_de_matojos()]
-	_hud.text = "TEST 2 en 3D | %d FPS | inclinación %d° (fija) | sombras %s | partículas %s | hierba: %s | %s%s\nWASD mover · Shift correr · +/- zoom · H sombras · P partículas · K decorado · G hierba · J tipo de hierba · [ ] tamaño · N grimorio · , . cabeza · U I rodillas · Y O pelvis (Shift: brazos / pies)\nRePág luz · AvPág tilt-shift · Inicio sonda · T rampa de luz %.1f · B relieve · V grietas del empujable más cercano · estado: %d casillas, %.2f ms" % [
+	_hud.text = "TEST 2 en 3D | %d FPS | inclinación %d° (fija) | sombras %s | partículas %s | hierba: %s | %s%s\nWASD mover · Shift correr · +/- zoom · H sombras · P partículas · K decorado · G hierba · J tipo de hierba · [ ] tamaño · N grimorio · , . cabeza · U I rodillas · Y O pelvis (Shift: brazos / pies)\nRePág luz · AvPág tilt-shift · Inicio sonda · T rampa de luz %.1f · B relieve · estado: %d casillas, %.2f ms" % [
 		int(Engine.get_frames_per_second()), int(_incl), "sí" if _sol.shadow_enabled else "no",
 		"sí" if _efectos.visible else "no", tipo_hierba, dibujo, aviso, _contraste, _hf.size() + _pisadas.size(), _ms_estado]
 	if _reglas != null:

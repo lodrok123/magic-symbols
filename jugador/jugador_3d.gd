@@ -1020,6 +1020,7 @@ func _process(delta: float) -> void:
 		if _t_roll > 0.0 and position.distance_to(antes) < 0.0001:
 			_t_roll = 0.0                           # choca con algo: la voltereta se acaba ahí
 		if en_hielo and position.distance_to(antes) < paso.length() * 0.25:
+			_empujar_bloque_al_resbalar(_vel_hielo)   # 13/11: si es un bloque de hielo y chocó de frente, lo empuja
 			_vel_hielo = Vector3.ZERO               # choca contra algo: se para (si no, seguiría empujando la pared)
 	if mov != Vector3.ZERO:
 		if not apuntando_rapido:                       # A1: apuntando, la mirada la manda el Lanzador (hacia el ratón), no el rumbo
@@ -1058,6 +1059,34 @@ func _actualizar_corre_real(hay_mov: bool) -> void:
 		corre_real = vel_marcha >= _vel_andar + FRACCION_CORRE_SALE * dif
 	else:
 		corre_real = vel_marcha >= _vel_andar + FRACCION_CORRE_ENTRA * dif
+
+
+## 13/11 (tarea 18) · La jugadora que resbala sobre hielo y choca DE FRENTE (la velocidad apunta a una cara, componente ≥ `EMPUJE_CARDINAL`) contra un bloque de HIELO en reposo lo empuja: cuenta como un
+## empujón (`empujones`) y el bloque sale resbalando (`empujar(dir, false, true)`: ya suelto, sin acoplarla). Contra un bloque de piedra o de roca (o con `BloqueEmpujable3D.EMPUJE_AL_RESBALAR` en false) no
+## hace nada aquí: se para como contra una pared. Necesita llegar con `VEL_MIN_EMPUJE_RESBALANDO` u/s y tener el bloque a una casilla o menos por delante. Devuelve true si lo empujó.
+func _empujar_bloque_al_resbalar(v: Vector3) -> bool:
+	if not BloqueEmpujable3D.EMPUJE_AL_RESBALAR or _acoplada or v.length() < BloqueEmpujable3D.VEL_MIN_EMPUJE_RESBALANDO:
+		return false
+	var m := Vector2(v.x, v.z)
+	var dir: Vector2i = Vector2i.ZERO
+	if absf(m.x) >= EMPUJE_CARDINAL * m.length():
+		dir = Vector2i(1 if m.x > 0.0 else -1, 0)
+	elif absf(m.y) >= EMPUJE_CARDINAL * m.length():
+		dir = Vector2i(0, 1 if m.y > 0.0 else -1)
+	if dir == Vector2i.ZERO:
+		return false
+	var d3 := Vector3(float(dir.x), 0.0, float(dir.y))
+	var yo: Vector2i = Terreno3D.celda_de(position)
+	for n in get_tree().get_nodes_in_group("empujable"):
+		if not is_instance_valid(n) or not (n is BloqueEmpujable3D):
+			continue
+		var b: BloqueEmpujable3D = n as BloqueEmpujable3D
+		if b.material != "hielo" or b.moviendo:
+			continue
+		var delante: float = (b.global_position - position).dot(d3)
+		if (b.celda == yo + dir or (b.celda == yo and delante > 0.0)) and delante <= Terreno3D.casilla:
+			return b.empujar(dir, false, true)
+	return false
 
 
 ## 27/10 · EMPUJAR BLOQUES (28/10: con PESO). Con `mov` (ya en coordenadas del mundo: es el vector de las teclas girado con la cámara) hacia una cara (componente dominante ≥ `EMPUJE_CARDINAL`), en suelo y sin

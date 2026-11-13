@@ -5200,3 +5200,19 @@ Las capturas están en `docs/capturas/vfx_en_juego/pinchos_tierra/`. Commit ddd6
 **Medido.** Prueba nueva `herramientas/prueba_materia_reactivos_3.gd` (52 comprobaciones, 0 fallos): para cada reactivo, un hechizo de laboratorio sin etiquetas con las propiedades buenas reacciona y otro con las equivocadas no; magma y naturaleza siguen igual. 53 pruebas de materia, botín, fuego, papeles, trampas, pulso, Cueva, Gruta, Bosque, golpe y reacciones: el mismo veredicto que la base salvo `escenario_playtest_eow`, que pasa de 3 a 5 fallos (7L.13 y 7L.14: la flecha del arquero no sale ardiendo al cruzar el brasero). No viene de esta tarea (salen igual sin sus cambios) ni del camino «Campo» (la flecha mira braseros y enemigos ardiendo con `_flecha_toca_fuego`): va con el punto 35.
 
 **Queda.** La parte de `combate_3d.gd` `decidir_golpe` que pide sustituir los papeles por `reaccion_material` (punto 10, pendiente de las decisiones de Pablo).
+
+## 494 — Juego (13/11): **Bloques empujables de verdad en los niveles, y sus reglas con enemigos e hielo** (punto 18; PENDIENTES · Empujar bloques)
+
+**Los cubos solo visuales se van.** `prueba_test2._colocar_empujables` pone ahora un `BloqueEmpujable3D` real por cada empujable (`tierra` → piedra, `hielo` → hielo) en las tres fuentes: `Jugabilidad3D.EMPUJABLES`, `EMPUJABLES` del Test 2 y los marcadores `empujable` de las escenas. Salen el cubo, su shader de grietas y la tecla V que lo dañaba. Corrección a lo que decía PENDIENTES: los cubos no estaban en el Bosque 01 ni en el v01, sino en el Test de jugabilidad (3) y el Test 2 (2); el cubo ya cerraba su casilla, así que ningún bloque tapa un paso nuevo y no se ha movido ninguno.
+
+**Reglas** (`static var` de `BloqueEmpujable3D`, con interruptor):
+- Ya era así y queda probado: las rutas rodean el bloque, el bloque en marcha se para antes de una casilla con enemigo y los enemigos no lo empujan.
+- `BLOQUE_EMPUJA_ENEMIGOS` (false): a true, el hielo que se para contra un enemigo le da un empujón (`FUERZA_EMPUJE_ENEMIGO` 2200, ≈ 1 casilla) y 5 de daño plano (`DANO_BLOQUE_HIELO`); la piedra nunca golpea.
+- `ENEMIGO_OCUPA_POR_CUERPO` (true): el enemigo ocupa la casilla también si su cuerpo toca la huella del bloque, no solo su centro.
+- `EMPUJE_AL_RESBALAR` (true): la jugadora que resbala sobre hielo y choca de frente (≥ `VEL_MIN_EMPUJE_RESBALANDO` 0,8 u/s) contra un bloque de HIELO en reposo lo empuja y sale resbalando sin acoplarla. Contra piedra se para como contra una pared.
+
+**Arreglo de paso.** `Terreno3D.pisable` se saltaba el bloqueo en el agua helada: un bloque que llegaba resbalando a un lago helado no cerraba su casilla. Ahora la cierra si la ocupa un bloque empujable (solo bloques: con cualquier bloqueo se rompían `prueba_golem_combate` y `escenario_sala_golem`, que dejan el agua helada bloqueada).
+
+**Medido.** Prueba nueva `herramientas/prueba_bloque_enemigos.gd` (56 comprobaciones, 0 fallos; teletransporta y coloca por código: es de reglas, no un autoplay). 44 pruebas de empuje, bloques, bosque, salas, hielo, rutas, ocupación, goblins, gólem, limo, Test 2, Cueva y Gruta: el mismo veredicto que la base. Sin ver con ventana.
+
+**Queda.** Si el borde del hielo queda a menos de ~0,3 u del bloque (una casilla de agua helada y el bloque en la siguiente, como en la E4), la jugadora llega pisando suelo y empuja por la vía normal de 0,35 s, no resbalando. Falta jugarlo en pantalla.

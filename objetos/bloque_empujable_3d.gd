@@ -19,6 +19,9 @@ extends Area3D
 ## `puede_moverse(dir)`: la casilla destino está en el mapa, no está bloqueada, no es agua ni lava, no está a otro nivel (una barrera de tierra la sube: obstáculo), y no hay otro bloque, ni un
 ## enemigo vivo, ni la jugadora.
 ##
+## ENEMIGOS E HIELO (13/11, tarea 18; ver las `static var` de arriba): un bloque en marcha que va a entrar en la casilla de un enemigo se para antes (por defecto no lo golpea: `BLOQUE_EMPUJA_ENEMIGOS`), los enemigos no
+## lo empujan, y la jugadora que resbala por el hielo contra uno de HIELO lo empuja (`EMPUJE_AL_RESBALAR`, `empujar(dir, false, true)`).
+##
 ## VIENTO: un hechizo de viento (`on_spell_hit`) lo empuja en la dirección cardinal dominante del impacto (respeta `puede_moverse`). Los demás elementos no le hacen nada: no se rompe ni se funde.
 ##
 ## NO SE GUARDA su posición: al recargar el nivel vuelve a su casilla del mapa. Y para que NUNCA quede atascado sin remedio: un bloque que ya no se puede mover en ninguna dirección (contra una pared
@@ -54,6 +57,16 @@ const DIRS: Array[Vector2i] = [Vector2i(1, 0), Vector2i(-1, 0), Vector2i(0, 1), 
 ## Registro de los bloques por casilla (la que ocupan o acaban de reservar). Solo para consultas entre bloques y para el pulso.
 static var _ocupadas: Dictionary = {}       ## Vector2i -> BloqueEmpujable3D
 static var _piedras: Dictionary = {}        ## Vector2i -> BloqueEmpujable3D (piedra en reposo en esa casilla)
+
+## --- 13/11 (tarea 18): el bloque frente a los enemigos y a la jugadora que resbala sobre hielo. Cada interruptor, a lo de antes con el valor contrario ---
+## Un bloque en marcha (empujado o resbalando) que va a entrar en una casilla con un enemigo SE PARA antes de entrar (ya era así a ras de casilla: `_casilla_libre` mira `_hay_enemigo`). Los enemigos NO empujan
+## bloques (nada de la IA llama a `empujar`) y la ruta de un enemigo (A*, `Caminos3D`) rodea la casilla del bloque porque `bloquear_celda` la marca sólida: lo comprueba `prueba_bloque_enemigos.gd`.
+static var BLOQUE_EMPUJA_ENEMIGOS: bool = false   ## true = el bloque de HIELO que resbala y se para contra un enemigo le da un empujón de una casilla (`FUERZA_EMPUJE_ENEMIGO`) y `DANO_BLOQUE_HIELO` de daño; false = solo se para
+static var DANO_BLOQUE_HIELO: float = 5.0         ## daño al enemigo contra el que se para el hielo (solo con BLOQUE_EMPUJA_ENEMIGOS); daño plano, sin defensa
+static var FUERZA_EMPUJE_ENEMIGO: float = 2200.0  ## fuerza del empujón a ese enemigo: ≈ 1 casilla de recorrido (v0 = fuerza · MULT_EMPUJE · ESCALA_EMPUJE / masa, recorre v0 / DECAIMIENTO_EMPUJE ≈ 2,3 u para masa 1)
+static var ENEMIGO_OCUPA_POR_CUERPO: bool = true  ## true = un enemigo ocupa la casilla también si su cuerpo (`Combate3D.RADIO_CUERPO_ENEMIGO`) toca la huella del bloque en ella (no solo si su centro está dentro); false = solo el centro
+static var EMPUJE_AL_RESBALAR: bool = true        ## true = la jugadora que resbala sobre hielo y choca de frente contra un bloque de HIELO lo empuja (cuenta como un empujón y sale resbalando); false = se para como contra una pared
+static var VEL_MIN_EMPUJE_RESBALANDO: float = 0.8 ## u/s: velocidad mínima con que ha de chocar para empujarlo (andando despacio por el hielo y rozándolo no lo mueve)
 
 var celda: Vector2i = Vector2i.ZERO
 var origen: Vector2i = Vector2i.ZERO    ## su casilla del mapa
@@ -279,12 +292,28 @@ func _casilla_libre(c: Vector2i, ref: Vector2i) -> bool:
 
 
 func _hay_enemigo(c: Vector2i) -> bool:
+	return _enemigo_en(c) != null
+
+
+## El enemigo vivo que ocupa la casilla `c` (su centro dentro, o, con ENEMIGO_OCUPA_POR_CUERPO, su cuerpo tocando la huella del bloque en ella), o null.
+func _enemigo_en(c: Vector2i) -> Combate3D:
 	if not is_inside_tree():
-		return false
+		return null
 	for n in get_tree().get_nodes_in_group("combate3d"):
-		if is_instance_valid(n) and n is Combate3D and not (n as Combate3D).muerto and Terreno3D.celda_de((n as Combate3D).global_position) == c:
-			return true
-	return false
+		if is_instance_valid(n) and n is Combate3D and not (n as Combate3D).muerto:
+			var p: Vector3 = (n as Combate3D).global_position
+			if Terreno3D.celda_de(p) == c or (ENEMIGO_OCUPA_POR_CUERPO and _toca_huella(p, c)):
+				return n as Combate3D
+	return null
+
+
+## ¿El cuerpo de un enemigo en `p` toca la huella que tendría este bloque en la casilla `c` (un cuadrado de `Terreno3D.casilla · 0,9` centrado en ella)?
+func _toca_huella(p: Vector3, c: Vector2i) -> bool:
+	var ctr: Vector3 = Terreno3D.centro_de(c)
+	var mitad: float = Terreno3D.casilla * 0.45
+	var dx: float = maxf(absf(p.x - ctr.x) - mitad, 0.0)
+	var dz: float = maxf(absf(p.z - ctr.z) - mitad, 0.0)
+	return dx * dx + dz * dz < Combate3D.RADIO_CUERPO_ENEMIGO * Combate3D.RADIO_CUERPO_ENEMIGO
 
 
 ## La jugadora (su muñeco `pj`, el que anda de verdad: ver Pulsador3D._alguien_encima) en esa casilla.
@@ -304,7 +333,8 @@ func _jugadora_en(c: Vector2i) -> bool:
 ## Lo empuja en `dir`. false si no puede o ya se está moviendo. `con_jugadora`: la empuja Jugador3D, que va PEGADA a él mientras `acoplado` (ella pone su posición con la del bloque).
 ## Perfil de la piedra: arranca desde 0 durante `T_ARRANQUE` s hasta `VEL_EMPUJE`, sigue a esa velocidad y solo frena (`T_FRENADO` s) al final de una casilla si ya nadie aprieta o la
 ## siguiente no está libre; si sigue apretando y hay sitio, ENCADENA la siguiente casilla sin parar. El hielo arranca igual (media casilla pegado a ella) y luego se suelta y resbala a `VEL_HIELO`.
-func empujar(dir: Vector2i, con_jugadora: bool = false) -> bool:
+## `impulso` (13/11, tarea 18): el empujón lo da la jugadora que choca resbalando (no es un empujón con peso): el hielo sale ya suelto, a `VEL_HIELO` (sin la media casilla pegado a ella).
+func empujar(dir: Vector2i, con_jugadora: bool = false, impulso: bool = false) -> bool:
 	if moviendo or not puede_moverse(dir):
 		return false
 	empujones += 1
@@ -315,6 +345,9 @@ func empujar(dir: Vector2i, con_jugadora: bool = false) -> bool:
 	acoplado = con_jugadora
 	vel = 0.0
 	_x_total = 0.0
+	if impulso and not _es_lento():
+		vel = VEL_HIELO
+		_x_total = MEDIA_CASILLA * Terreno3D.casilla
 	_iniciar_casilla(0.0)
 	if _es_lento():
 		_sonido = Sfx3D.ambiente(self, "arrastre")      # un arrastre en bucle mientras se mueve
@@ -391,10 +424,23 @@ func _mover(dt: float) -> void:
 		var resto: float = maxf(_s - S, 0.0)
 		_acabar_casilla()
 		if _frenando or not puede_moverse(_dir):
+			_golpear_enemigo_delante()
 			_parar()
 			return
 		_iniciar_casilla(resto)
 	_colocar()
+
+
+## 13/11 (tarea 18): con BLOQUE_EMPUJA_ENEMIGOS, el hielo que resbala y se para contra un enemigo (en la casilla de delante) le da un empujón de una casilla y `DANO_BLOQUE_HIELO` de daño. Por defecto no hace nada:
+## el bloque solo se para antes de entrar. La piedra (lenta) nunca golpea.
+func _golpear_enemigo_delante() -> void:
+	if not BLOQUE_EMPUJA_ENEMIGOS or _es_lento():
+		return
+	var e: Combate3D = _enemigo_en(celda + _dir)
+	if e == null:
+		return
+	e.push(Vector3(float(_dir.x), 0.0, float(_dir.y)), FUERZA_EMPUJE_ENEMIGO, true)
+	e.receive_damage(DANO_BLOQUE_HIELO)
 
 
 func _colocar() -> void:

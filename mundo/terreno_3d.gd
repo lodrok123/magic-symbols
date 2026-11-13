@@ -1068,7 +1068,10 @@ static func pisable(c: Vector2i, nivel: int, sube: bool, max_nivel: int, nada: b
 	var l: String = letra_de(c)
 	if l == "~":
 		if hielo_fisico(c):
-			pass                                     # hielo: se pisa
+			# hielo: se pisa. 13/11 (tarea 18): salvo que un BLOQUE EMPUJABLE lo ocupe: esta rama se saltaba el bloqueo, y un bloque sobre el agua helada (llegó resbalando) no cerraba su casilla
+			# a la jugadora, a los enemigos ni a las rutas. Solo los bloques: el resto de bloqueos sobre el hielo (los de las pruebas con el agua sin liberar) siguen sin contar, como antes.
+			if not ignora_bloqueo and bloqueada(c) and BloqueEmpujable3D.en(c) != null:
+				return false
 		else:
 			return nada                              # agua: solo nadando
 	elif bloqueada(c) and not ignora_bloqueo:
