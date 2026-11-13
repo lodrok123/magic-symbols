@@ -5,6 +5,7 @@ extends Control
 ## las salidas llevan su nombre y un punto rojo marca dónde está Mid. Cerrada (con candado) hasta el encargo de Marimanta.
 
 const PIE := 34.0
+const TAM_CASILLA := 13.0           ## px por casilla con zoom (antes cabía el mapa entero: ~6 px)
 const C_ARBOL := Color(0.29, 0.35, 0.21, 0.62)
 const C_HIERBA := Color(0.55, 0.62, 0.36, 0.30)
 const C_HIERBA_ALTA := Color(0.45, 0.55, 0.28, 0.42)
@@ -27,8 +28,13 @@ func _draw() -> void:
 		return
 	var w := Cartografia.ancho()
 	var h := Cartografia.alto()
-	var s := minf(size.x / w, (size.y - PIE) / h)
-	var o := Vector2((size.x - s * w) * 0.5, (size.y - PIE - s * h) * 0.5)
+	# Zoom: casillas de TAM_CASILLA px centradas en Mid (o en lo descubierto si no está en la zona); sin pasarse del borde del mapa.
+	var vista := Vector2(size.x, size.y - PIE)
+	var s := maxf(TAM_CASILLA, minf(vista.x / w, vista.y / h))
+	var foco := Vector2(Cartografia.jugador) + Vector2(0.5, 0.5) if Cartografia.jugador.x >= 0 else _centro_descubierto()
+	var o := vista * 0.5 - foco * s
+	o.x = clampf(o.x, vista.x - w * s, 0.0) if w * s > vista.x else (vista.x - w * s) * 0.5
+	o.y = clampf(o.y, vista.y - h * s, 0.0) if h * s > vista.y else (vista.y - h * s) * 0.5
 	# 1) Terreno descubierto.
 	for y in range(h):
 		for x in range(w):
@@ -91,12 +97,30 @@ func _draw() -> void:
 		draw_circle(pm, maxf(4.0, s * 0.45), Color.WHITE)
 		draw_circle(pm, maxf(3.0, s * 0.32), C_MID)
 	# 6) Marco del mapa y pie.
-	draw_rect(Rect2(o, Vector2(w, h) * s), MenuPestanas.TINTA_SUAVE, false, 1.5)
+	var marco := Rect2(o, Vector2(w, h) * s).intersection(Rect2(Vector2.ZERO, vista))
+	draw_rect(Rect2(0.0, vista.y, size.x, PIE), BolsaUI.PERGAMINO)      # el pie tapa lo que asome del mapa por abajo
+	draw_rect(marco, MenuPestanas.TINTA_SUAVE, false, 1.5)
 	var pc := Cartografia.porcentaje()
 	var pie := "%s · cartografiado %d %%" % [Cartografia.nivel.replace("_", " "), pc]
 	if Cartografia.nivel == Cartografia.NIVEL_ENCARGO and not Flags.i().tiene(EncargoMarimanta.ENTREGADO):
 		pie += "   ·   encargo de Marimanta: %d %%%s" % [Cartografia.META, "  ✓" if pc >= Cartografia.META else ""]
 	draw_string(f, Vector2(0, size.y - 8.0), pie, HORIZONTAL_ALIGNMENT_CENTER, size.x, 16, MenuPestanas.TINTA)
+
+
+func _ready() -> void:
+	clip_contents = true            # con zoom el mapa se sale de la página: se recorta
+
+
+## Centro (en casillas) de lo cartografiado, para cuando Mid está en otra zona.
+func _centro_descubierto() -> Vector2:
+	var suma := Vector2.ZERO
+	var n := 0
+	for y in range(Cartografia.alto()):
+		for x in range(Cartografia.ancho()):
+			if Cartografia.visto(Vector2i(x, y)):
+				suma += Vector2(x, y)
+				n += 1
+	return suma / n + Vector2(0.5, 0.5) if n > 0 else Vector2(Cartografia.ancho(), Cartografia.alto()) * 0.5
 
 
 func _cerrada(f: Font) -> void:
