@@ -384,5 +384,8 @@ func _coste() -> void:
 		var t0: int = Time.get_ticks_usec()
 		Caminos3D.camino(Vector2i(1, 20), Vector2i(L40 - 2, 20))
 		con_alturas.append(Time.get_ticks_usec() - t0)
-	_ok("6 con una pared de 2 niveles de lado a lado en medio: el A* propio resuelve (sin ruta, claro)", cc.rutas_propias > propias0)
-	_estadisticas("ruta con aristas de altura (A* propio, sin ruta posible = peor caso)", con_alturas, false)
+	# 13/11 (tarea 19): el A* propio ya no se lanza en este caso: las componentes conexas con la regla de altura (`Caminos3D._actualizar_componentes`) dicen «sin ruta» al instante.
+	# Antes aquí se exigía `rutas_propias > propias0` (que el A* propio recorriera todo para rendirse); ahora se exige el resultado (sin ruta) y que lo contestaran las etiquetas.
+	_ok("6 con una pared de 2 niveles de lado a lado en medio: sin ruta, contestado por las componentes (sin lanzar el A* propio)", \
+			Caminos3D.camino(Vector2i(1, 20), Vector2i(L40 - 2, 20)).is_empty() and cc.sin_ruta_rapidas > 0 and cc.rutas_propias == propias0)
+	_estadisticas("ruta con aristas de altura (sin ruta posible = antes el peor caso del A* propio)", con_alturas, false)

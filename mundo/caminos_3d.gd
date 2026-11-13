@@ -50,6 +50,19 @@ var _h_ids := PackedInt32Array()       ## montículo binario: ids y prioridades 
 var _h_pri := PackedFloat32Array()
 var _version: int = 0
 
+# 13/11 (tarea 19) · COMPONENTES CONEXAS con la regla de altura: «sin ruta» al instante. Una consulta sin ruta con alturas hacía que el A* propio recorriera todo lo alcanzable
+# antes de rendirse (p99 de varios ms). Aquí cada casilla pisable lleva la etiqueta de su componente (8 vecinas, con la MISMA regla de arista que el A* propio: solidez de la
+# vecina, salto de nivel <= SALTO_MAX y, en diagonal, las dos casillas del lado); si origen y destino tienen etiquetas distintas, no hay ruta (ni con la regla nativa, que es
+# más laxa). INVALIDACIÓN: cualquier aviso de cambio (`avisar_cambio`) o reconstrucción la deja sucia; se recalcula (~lado² casillas, barato frente a un A* propio entero) solo cuando
+# una consulta la necesita: antes de lanzar el A* propio, o cuando el nativo no halló ruta (así las siguientes «sin ruta» ya salen gratis). Las casillas que `camino` solidifica
+# un momento por sus obstáculos solo RESTRINGEN, así que unas etiquetas sin ellas siguen valiendo para decir «no hay»; pero no se recalculan mientras estén puestas.
+var _comp := PackedInt32Array()        ## etiqueta de componente por casilla (0 = no pisable)
+var _comp_limpio: bool = false         ## false = hay que recalcular `_comp` antes de fiarse de ella
+var _obstaculos_puestos: bool = false  ## true mientras `camino` tiene casillas solidificadas de más (no se calculan componentes con ellas)
+var _cola_comp := PackedInt32Array()   ## cola del recorrido (se reutiliza)
+var componentes_calculadas: int = 0    ## cuántas veces se recalcularon (para las pruebas)
+var sin_ruta_rapidas: int = 0          ## cuántas consultas se contestaron «sin ruta» por las etiquetas, sin buscar (para las pruebas)
+
 
 # ---------------------------------------------------------------------------------------------------------------------
 #  API estática (la que usa la IA)
@@ -81,7 +94,9 @@ static func camino(desde: Vector2i, hasta: Vector2i, obstaculos: Dictionary = {}
 			red._a.set_point_solid(c)
 			red._solida[c.y * red._lado + c.x] = 1
 			cambios.append(c)
+	red._obstaculos_puestos = not cambios.is_empty()
 	var ruta: Array[Vector2i] = red.buscar(desde, hasta)
+	red._obstaculos_puestos = false
 	for c in cambios:
 		red._a.set_point_solid(c, false)
 		red._solida[c.y * red._lado + c.x] = 0
@@ -165,6 +180,7 @@ func reconstruir() -> void:
 	_cerrado.resize(celdas)
 	_cerrado.fill(0)
 	_version = 0
+	_comp_limpio = false
 	var a := AStarGrid2D.new()
 	a.region = Rect2i(0, 0, _lado, _lado)
 	a.cell_size = Vector2.ONE
@@ -185,6 +201,7 @@ func avisar_cambio(c: Vector2i) -> bool:
 	if _a == null or not _a.region.has_point(c):
 		return false
 	refrescos += 1
+	_comp_limpio = false                       # 13/11: un aviso puede cambiar solidez o altura (y con ellas las componentes), aunque la solidez de esta casilla no cambie
 	var solida: bool = not transitable(c)
 	if _a.is_point_solid(c) == solida:
 		return false
@@ -202,17 +219,87 @@ func buscar(desde: Vector2i, hasta: Vector2i) -> Array[Vector2i]:
 	if desde == hasta:
 		return [desde]
 	var salida_solida: bool = _a.is_point_solid(desde)
+	# 13/11: con etiquetas al día, otra componente = sin ruta, sin buscar. (Si la salida es sólida no hay etiqueta suya: se busca como siempre.)
+	if _comp_limpio and not salida_solida and _comp[desde.y * _lado + desde.x] != _comp[hasta.y * _lado + hasta.x]:
+		sin_ruta_rapidas += 1
+		return vacia
 	if salida_solida:
 		_a.set_point_solid(desde, false)
 	var p: Array[Vector2i] = _a.get_id_path(desde, hasta)
 	if salida_solida:
 		_a.set_point_solid(desde, true)
 	if p.is_empty():
+		_actualizar_componentes()                # el nativo ha recorrido todo lo alcanzable para nada: que la próxima «sin ruta» salga gratis
 		return p
 	if not _ruta_vale_con_alturas(p):
+		_actualizar_componentes()                # el A* propio es lo caro: si las etiquetas dicen que no hay ruta, ni se lanza
+		if _comp_limpio and not salida_solida and _comp[desde.y * _lado + desde.x] != _comp[hasta.y * _lado + hasta.x]:
+			sin_ruta_rapidas += 1
+			return vacia
 		rutas_propias += 1
 		return _buscar_con_alturas(desde, hasta)
 	return p
+
+
+## Recalcula las etiquetas de componente si están sucias (y no hay obstáculos de `camino` puestos). Recorrido en anchura sobre las casillas pisables con la regla de arista del A* propio.
+func _actualizar_componentes() -> void:
+	if _comp_limpio or _obstaculos_puestos or _a == null:
+		return
+	componentes_calculadas += 1
+	var lado: int = _lado
+	var n: int = lado * lado
+	_comp.resize(n)
+	_comp.fill(0)
+	_volcar_niveles()
+	var etiqueta: int = 0
+	for s in range(n):
+		if _solida[s] == 1 or _comp[s] != 0:
+			continue
+		etiqueta += 1
+		_comp[s] = etiqueta
+		_cola_comp.resize(0)
+		_cola_comp.append(s)
+		var i: int = 0
+		while i < _cola_comp.size():
+			var u: int = _cola_comp[i]
+			i += 1
+			var ux: int = u % lado
+			var uy: int = u / lado
+			var nu: int = _nivel[u]
+			for dy in range(-1, 2):
+				var vy: int = uy + dy
+				if vy < 0 or vy >= lado:
+					continue
+				for dx in range(-1, 2):
+					if dx == 0 and dy == 0:
+						continue
+					var vx: int = ux + dx
+					if vx < 0 or vx >= lado:
+						continue
+					var v: int = vy * lado + vx
+					if _comp[v] != 0 or _solida[v] == 1 or absi(nu - _nivel[v]) > SALTO_MAX:
+						continue
+					if dx != 0 and dy != 0:
+						var m1: int = uy * lado + vx
+						var m2: int = vy * lado + ux
+						if _solida[m1] == 1 or _solida[m2] == 1:
+							continue
+						var n1: int = _nivel[m1]
+						var n2: int = _nivel[m2]
+						var nv: int = _nivel[v]
+						if absi(nu - n1) > SALTO_MAX or absi(n1 - nv) > SALTO_MAX or absi(nu - n2) > SALTO_MAX or absi(n2 - nv) > SALTO_MAX:
+							continue
+					_comp[v] = etiqueta
+					_cola_comp.append(v)
+	_comp_limpio = true
+
+
+## Vuelca los niveles de tierra de `Terreno3D.alturas` a `_nivel` (lineal por casilla).
+func _volcar_niveles() -> void:
+	_nivel.fill(0)
+	for c: Vector2i in Terreno3D.alturas:
+		if c.x >= 0 and c.y >= 0 and c.x < _lado and c.y < _lado:
+			_nivel[c.y * _lado + c.x] = int(Terreno3D.alturas[c])
 
 
 ## ¿Vale la ruta del A* nativo con la regla de altura? Mismo criterio que `arista_ok` en cada paso, pero leyendo la solidez del espejo `_solida` (sin recorrer
@@ -254,10 +341,7 @@ func _buscar_con_alturas(desde: Vector2i, hasta: Vector2i) -> Array[Vector2i]:
 		_cerrado.fill(0)
 		_version = 1
 	var ver: int = _version
-	_nivel.fill(0)
-	for c: Vector2i in Terreno3D.alturas:
-		if c.x >= 0 and c.y >= 0 and c.x < lado and c.y < lado:
-			_nivel[c.y * lado + c.x] = int(Terreno3D.alturas[c])
+	_volcar_niveles()
 	_h_ids.resize(0)
 	_h_pri.resize(0)
 	var i0: int = desde.y * lado + desde.x

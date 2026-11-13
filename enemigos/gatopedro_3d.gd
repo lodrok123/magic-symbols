@@ -181,7 +181,11 @@ func _ia(delta: float) -> void:
 				mirada = h.normalized()
 				moviendo = 2
 				_vel_real = VEL_VUELTA * vel
-				if not _mover_paso(h.normalized() * _vel_real * delta):
+				# 13/11 (tarea 19): de vuelta a casa rodea por ruta lo que corte el camino recto (`_dir_hacia` devuelve lo mismo que antes, `h.normalized()`, si está libre).
+				var dir_v: Vector3 = _dir_hacia(casa, delta) if PATRULLA_POR_RUTA else h.normalized()
+				if not _ruta.is_empty():
+					mirada = dir_v
+				if not _mover_paso(dir_v * _vel_real * delta, false, not _ruta.is_empty()):
 					estado = "patrulla"
 		_:
 			_pasear(delta, vel)
@@ -191,7 +195,12 @@ func _pasear(delta: float, vel: float) -> void:
 	moviendo = 1
 	mirada = Vector3(_direccion, 0.0, 0.0)
 	_vel_real = VEL_PASEO * vel
-	var movido: bool = _mover_paso(mirada * _vel_real * delta)
+	# 13/11 (tarea 19): igual que la patrulla de Combate3D: recto si está libre (idéntico a antes), por ruta si algo corta el camino hasta su punto de paseo.
+	var dir_p: Vector3 = _dir_patrulla(delta)
+	var por_ruta: bool = not _ruta.is_empty()
+	if por_ruta:
+		mirada = dir_p
+	var movido: bool = _mover_paso(dir_p * _vel_real * delta, false, por_ruta)
 	if not movido or absf(position.x - casa.x) >= DISTANCIA_PATRULLA:
 		_direccion *= -1.0
 

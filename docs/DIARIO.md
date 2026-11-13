@@ -5216,3 +5216,20 @@ Las capturas están en `docs/capturas/vfx_en_juego/pinchos_tierra/`. Commit ddd6
 **Medido.** Prueba nueva `herramientas/prueba_bloque_enemigos.gd` (56 comprobaciones, 0 fallos; teletransporta y coloca por código: es de reglas, no un autoplay). 44 pruebas de empuje, bloques, bosque, salas, hielo, rutas, ocupación, goblins, gólem, limo, Test 2, Cueva y Gruta: el mismo veredicto que la base. Sin ver con ventana.
 
 **Queda.** Si el borde del hielo queda a menos de ~0,3 u del bloque (una casilla de agua helada y el bloque en la siguiente, como en la E4), la jugadora llega pisando suelo y empuja por la vía normal de 0,35 s, no resbalando. Falta jugarlo en pantalla.
+
+## 495 — Juego (13/11): **«Sin ruta» al instante y patrulla y gatopedro por ruta** (punto 19; PENDIENTES · lo abierto del diario 238)
+
+**Qué cambia.** `mundo/caminos_3d.gd` etiqueta cada casilla pisable con su COMPONENTE CONEXA, con la misma regla de arista que el A* propio (solidez, salto de nivel ≤ `SALTO_MAX`, sin cortar esquinas). Si origen y destino están en componentes distintas, `buscar` responde «sin ruta» sin buscar. Las etiquetas se ensucian con `avisar_cambio` y `reconstruir`, y se recalculan solo cuando una consulta las necesita (antes de lanzar el A* propio, o tras un «sin ruta» del nativo): el primer «sin ruta» después de un cambio paga ~1,2 ms y los siguientes salen gratis. No se recalculan con los obstáculos momentáneos de `camino` puestos (solo restringen). La búsqueda en sí no se toca: las rutas encontradas son las mismas.
+
+**Patrulla y gatopedro** (`Combate3D._dir_patrulla`, `static var PATRULLA_POR_RUTA` true y `PATRULLA_RUTA_MAX_CASILLAS` 12): si la recta al punto de patrulla está libre, hacen exactamente lo de antes; si está cortada, siguen la ruta (sin ruta, o más larga de 12 casillas, lo de antes). El gatopedro rutea al pasear y al volver a casa; al huir no (no tiene destino y ya esquiva con `_elegir_rumbo`). Velocidades y tiempos sin tocar. Ojo: `DISTANCIA_PATRULLA` (2,0 u) es menos de una casilla (2,3 u), así que con la casa en su sitio casi nunca cabe un obstáculo entre los dos puntos; para patrullas más largas habría que subirla o dar puntos de patrulla propios.
+
+**Medido** (`herramientas/prueba_rendimiento_rutas.gd`, nueva: Bosque 01 v01 y Cueva Resonante cargados, semilla fija, 300 pares con ruta y 300 sin ruta × 3 pasadas; el lote «barrera» añade una pared de 2 niveles de borde a borde porque esos mapas no tienen alturas). Mediana / p99 en µs:
+
+| Mapa y lote | Con ruta antes → después | Sin ruta antes → después |
+|---|---|---|
+| Bosque natural | 17 / 54 → 16 / 54 | 12 / 115 → 2 / 2 |
+| Bosque barrera | 18 / 60 → 17 / 47 | 65 / 1186 → 2 / 4 |
+| Cueva natural | 4 / 13 → 4 / 13 | 7 / 13 → 2 / 2 |
+| Cueva barrera | 7 / 24 → 7 / 24 | 7 / 67 → 2 / 3 |
+
+Las rutas coinciden casilla a casilla con la referencia del A* anterior en los cuatro lotes, y «hay ruta» coincide con un recorrido en anchura independiente. `herramientas/prueba_patrulla_ruta.gd` (nueva, 17 comprobaciones): con el camino libre la trayectoria es idéntica fotograma a fotograma con la ruta encendida y apagada; con un obstáculo en la recta, goblin y gato lo rodean. `prueba_caminos`: la comprobación 6 exigía que el A* propio se lanzara en un caso que ahora contestan las etiquetas; mantiene el resultado (sin ruta) y exige que lo contesten las etiquetas. 50 pruebas de rutas, enemigos, Bosque, Cueva, Gruta, salas y bloques: el mismo veredicto que la base.
