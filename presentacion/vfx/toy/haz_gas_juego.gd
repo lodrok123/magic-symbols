@@ -145,9 +145,11 @@ func haz(h: Hechizo, hz: Dictionary, suelo: float, vida: float, elemento: String
 ## RAYO (11/11, 3070): un hechizo de ≤ DESTELLO_MAX_S se dibuja como UN SOLO DESTELLO; y las ramas saltan a los CUERPOS que golpea la lógica (choques «enemigo» /
 ## «objeto»: el Combate3D más cercano a cada punto, con su cápsula). Los nodos se guardan y sus posiciones se pasan al dibujo cada fotograma (_cuerpos_rayo).
 func _rayo_al_lanzar(g: HazGas, e: Dictionary, hz: Dictionary, vida: float) -> void:
-	if g.elemento != "rayo":
+	if g.elemento != "rayo" and g.elemento != "viento":
 		return
-	g.destello(vida if vida <= DESTELLO_MAX_S else 0.0)
+	if g.elemento == "rayo":
+		g.destello(vida if vida <= DESTELLO_MAX_S else 0.0)
+	# 13/11: el VIENTO también busca el cuerpo que golpea: sus lazos del choque lo envuelven (HazGas.rayo_cuerpos, raymarch_toon_viento.glsl)
 	var nodos: Array = []
 	for ch in (hz.get("choques", []) as Array):
 		var tipo: String = String((ch as Dictionary).get("tipo", ""))
