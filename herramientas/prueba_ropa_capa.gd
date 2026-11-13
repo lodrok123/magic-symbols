@@ -43,7 +43,7 @@ const CAPUCHA_NUCA_Z_MIN: float = -0.45
 const CORTE_CAPUCHA_Y: float = 1.22
 ## (e) en reposo: vóxeles de 1 cm, zona del pelo y orejas (ejes de Godot: la Z de Blender es aquí la Y).
 const VOXEL: float = 0.01
-const ZONA_PELO: String = "pelo"
+const ZONAS_PELO_SUMICIO: Array = ["pelo", "pelo_sumicio"]
 const OREJA_X: float = 0.27
 const OREJA_Y: float = 1.30
 ## Rejilla de triángulos para el más cercano.
@@ -167,7 +167,7 @@ func _initialize() -> void:
 	var capucha_juego := PackedVector3Array()
 	for v in capucha:
 		capucha_juego.append(_cabeza + (v - _cabeza) * _escala_cabeza)
-	_montar_rejilla(zonas, esc, [ZONA_PELO])
+	_montar_rejilla(zonas, esc, ZONAS_PELO_SUMICIO)
 	_voxelizar()
 	for par in [["capa", capa], ["capucha", capucha_juego]]:
 		var r: Dictionary = _dentro(par[1] as PackedVector3Array)
@@ -805,7 +805,7 @@ func _dentro(pts: PackedVector3Array) -> Dictionary:
 			cuenta = "hondo"
 		else:
 			var s: float = (p - q).dot(_normal_en(int(c[1]), q))
-			if _tzona[int(c[1])] == ZONA_PELO:
+			if ZONAS_PELO_SUMICIO.has(_tzona[int(c[1])]):
 				if s < 0.0:
 					r["pelo"] = int(r["pelo"]) + 1
 				continue

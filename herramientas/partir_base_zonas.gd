@@ -12,7 +12,7 @@ extends SceneTree
 
 const GLB_BASE: String = "res://arte/modelos/jugadora_base.glb"
 const SALIDA: String = "res://arte/modelos/jugadora_base_zonas.res"
-const ZONAS: Array = ["cabeza", "pelo", "torso", "chaleco", "cinturon", "brazos", "piernas", "botas", "bullon"]
+const ZONAS: Array = ["cabeza", "pelo", "torso", "chaleco", "cinturon", "brazos", "piernas", "botas", "bullon", "pelo_sumicio"]
 ## 12/11 (Pablo, atuendo del loberno: «apagar bullón»): `bullon` = lo alto de la manga abullonada (brazo y hombro, por encima de BULLON_Z_MIN, color de manga):
 ## por la sisa del chaleco del loberno asomaba como una ventana (la sisa de Meshy cae a la altura del hombro de la chibi). Solo la apaga esa túnica.
 const BULLON_Z_MIN: float = 0.96
@@ -34,10 +34,10 @@ const OREJA_ATRAS_MAX: float = 0.12
 ## oreja contra la pared lateral), y las MIGAS sueltas que deja todo esto.
 const GLB_CAPUCHA: String = "res://arte/modelos/ropa_capucha.glb"
 const GLB_CAPA: String = "res://arte/modelos/ropa_capa.glb"
-## 12/11 (atuendos): hay DOS capuchas con su capa (la roja de Sumicio y la verde de viaje) y una sola zona `pelo`. Un triángulo es `pelo` si no se ve con
-## NINGUNO de los conjuntos puestos (la intersección): con la capucha roja puesta, el pelo que ella tapa y la verde no queda encerrado dentro de ella (no se
-## ve); al revés igual. Con la unión, con la verde puesta faltaría el pelo que solo tapa la roja (un agujero en la melena).
-const CONJUNTOS: Array = [[GLB_CAPUCHA, GLB_CAPA], ["res://arte/modelos/ropa_capucha_verde.glb", "res://arte/modelos/ropa_capa_verde.glb"]]
+## Las dos capuchas ocultan `pelo`. Sumicio oculta además `pelo_sumicio`, que recoge los
+## triángulos que atraviesan la capucha roja o quedan debajo de ella y se ven con la verde.
+const CONJUNTO_SUMICIO: Array = [GLB_CAPUCHA, GLB_CAPA]
+const CONJUNTO_VERDE: Array = ["res://arte/modelos/ropa_capucha_verde.glb", "res://arte/modelos/ropa_capa_verde.glb"]
 const VIS_DIRECCIONES: int = 96
 const VIS_Y_MIN: float = -0.45
 ## Los rayos salen VIS_SEPARA (u del modelo) por delante del centro (no chocan con el propio triángulo ni con su gemelo de la otra cara de la tira de pelo).
@@ -89,21 +89,19 @@ func _partir() -> void:
 				mejor = pesos[v * por_vert + k]
 				dominante[v] = hueso_de_enlace[bones[v * por_vert + k]]
 	# 26/10: qué triángulos de la cabeza se ven con la capucha y la capa puestas (ver VISIBILIDAD).
-	var visto: PackedByteArray = PackedByteArray()
-	for conjunto in CONJUNTOS:
-		var v: PackedByteArray = await _visibles(mi, sk, pos, bones, pesos, por_vert, idx, dominante, hueso_de_enlace, conjunto)
-		if visto.is_empty():
-			visto = v
-		else:
-			for t in visto.size():
-				visto[t] = maxi(visto[t], v[t])     # se ve con alguno de los conjuntos = se ve
+	var visto_sumicio: PackedByteArray = await _visibles(mi, sk, pos, bones, pesos, por_vert, idx, dominante, hueso_de_enlace, CONJUNTO_SUMICIO)
+	var visto_verde: PackedByteArray = await _visibles(mi, sk, pos, bones, pesos, por_vert, idx, dominante, hueso_de_enlace, CONJUNTO_VERDE)
 	# Zona de cada triángulo.
 	var zona_tri: PackedInt32Array = PackedInt32Array()
 	var cuenta: Array = []
 	cuenta.resize(ZONAS.size())
 	cuenta.fill(0)
 	for t in range(0, idx.size(), 3):
-		var z: int = _zona_triangulo(pos, uv, dominante, img, idx[t], idx[t + 1], idx[t + 2], visto[t / 3] == 1)
+		var visible_sumicio: bool = visto_sumicio[t / 3] == 1
+		var visible_verde: bool = visto_verde[t / 3] == 1
+		var z: int = _zona_triangulo(pos, uv, dominante, img, idx[t], idx[t + 1], idx[t + 2], visible_sumicio or visible_verde)
+		if z == ZONAS.find("cabeza") and not visible_sumicio:
+			z = ZONAS.find("pelo_sumicio")
 		zona_tri.append(z)
 		cuenta[z] += 1
 	for i in ZONAS.size():

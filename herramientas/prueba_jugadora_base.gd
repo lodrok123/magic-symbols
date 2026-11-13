@@ -43,7 +43,7 @@ const TRIS_PRENDA_MIN: int = 7000
 ## capa lleva ~12 400 y la capucha ~7 600; la túnica ~9 000.
 const TRIS_PRENDA_MAX: Dictionary = {"tunica": 12000, "capa_verde": 14000, "capucha_verde": 9500}
 ## Zonas del cuerpo (Ropa3D, herramientas/partir_base_zonas.gd) y las que tapa cada prenda puesta.
-const ZONAS_CUERPO: Array = ["cabeza", "pelo", "torso", "chaleco", "cinturon", "brazos", "piernas", "botas", "bullon"]
+const ZONAS_CUERPO: Array = ["cabeza", "pelo", "torso", "chaleco", "cinturon", "brazos", "piernas", "botas", "bullon", "pelo_sumicio"]
 const ZONAS_TAPADAS_TODAS: Array = ["pelo", "chaleco", "cinturon"]
 const ZONAS_TAPADAS_TUNICA: Array = ["chaleco", "cinturon"]
 const ZONAS_TAPADAS_CAPUCHA: Array = ["pelo"]
@@ -261,6 +261,10 @@ func _prueba_zonas(p: Pj3D) -> void:
 	_ok(_mismos(Ropa3D.zonas_apagadas(p), ZONAS_TAPADAS_CAPUCHA), "la capucha sola apaga el pelo (apagadas: %s)" % [Ropa3D.zonas_apagadas(p)])
 	p.quitar_ropa("capucha_verde")
 	_ok(Ropa3D.zonas_apagadas(p).is_empty(), "sin prendas no se apaga ninguna zona (apagadas: %s)" % [Ropa3D.zonas_apagadas(p)])
+	p.poner_ropa("capucha")
+	_ok(_mismos(Ropa3D.zonas_apagadas(p), ["pelo", "pelo_sumicio"]), "Sumicio oculta también su zona de pelo")
+	p.quitar_ropa("capucha")
+	_ok(Ropa3D.zonas_apagadas(p).is_empty(), "al quitar la capucha de Sumicio vuelve todo el pelo")
 	p.poner_ropa("capa_verde")
 	p.poner_ropa("capucha_verde")
 	p.poner_ropa("tunica")

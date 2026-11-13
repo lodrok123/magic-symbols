@@ -11,7 +11,8 @@
 		"glb": "ropa_capucha",
 		"capa": "exterior",
 		"oculta": [
-			"pelo"
+			"pelo",
+			"pelo_sumicio"
 		]
 	},
 	"tunica": {
