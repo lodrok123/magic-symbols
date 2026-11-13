@@ -1040,6 +1040,9 @@ var _velo: Control = null
 var _t_velo: float = 0.0
 var _f_velo: int = 0
 var _ms_velo: int = 0
+## 13/11 (viajes): los shaders de los efectos ya se compilaron en un nivel anterior de esta sesión (Godot guarda los pipelines): el velo ya no
+## espera los PRECALENTAR segundos, solo sus fotogramas. Volver de Monte Sumicio al Bosque 02 se ahorra ~2 s de negro.
+static var _ya_precalentado: bool = false
 var _ms_estado: float = 0.0
 var _bloques_reales: Array[BloqueEmpujable3D] = []   ## los empujables del nivel (BloqueEmpujable3D reales; ya no hay cubos visuales)
 var _contraste: float = 2.5
@@ -1266,10 +1269,14 @@ func _ready() -> void:
 		Ocluso3D.preparar()
 		Albedos3D.parchear_ocluso()         # albedos: la corrección de las piezas entra en el shader común (idempotente); el interruptor es el uniforme global
 		Albedos3D.poner_piezas(albedos_eow)
+	_crono("antes de bibliotecas")
 	_cargar_bibliotecas()
+	_crono("bibliotecas")
 	_construir_suelo()
+	_crono("suelo")
 	_modo_escena = usar_escena and not _modo_nivel and ResourceLoader.exists(_ruta_escena())
 	_colocar_letras()
+	_crono("letras")
 	_montar_canal()
 	_montar_agua_fisica()
 	_colocar_extras()
@@ -1278,18 +1285,24 @@ func _ready() -> void:
 	elif _modo_escena:
 		_instanciar_escena()
 	_colocar_empujables()
+	_crono("canal, agua, extras, nivel, empujables")
 	_sembrar_adornos()
+	_crono("adornos")
 	_construir_lotes()
+	_crono("lotes")
 	if _contacto_tex != null:
 		_construir_ruina_integrada()
 		_tex_manta_bosque = _generar_manta_bosque()
 		_mat_suelo.set_shader_parameter("manta_bosque", _tex_manta_bosque)
 		_mat_suelo.set_shader_parameter("manta_bosque_activa", _materiales_integrados)
+	_crono("ruina y manta")
 	_sembrar_hierba()
+	_crono("hierba")
 	_ambiente()
 	for b in _bibliotecas:
 		b.free()
 	_bibliotecas.clear()
+	_busqueda_piezas.clear()      # guardaba nodos de las bibliotecas que se acaban de liberar
 	# El .tscn del nivel se instancia fuera del árbol solo para leerlo: hay que liberarlo a mano. Si no, todas sus piezas,
 	# mallas y marcadores se quedaban vivos hasta cerrar el juego (Godot lo avisa al parar: «mesh is null», «leaked»).
 	if _nivel_raiz != null and is_instance_valid(_nivel_raiz):
@@ -1373,6 +1386,7 @@ func _ready() -> void:
 	_ocultar_correa_mochila()
 	if _modo_escena or _modo_nivel:
 		_activar_solidez_por_nodos()
+	_antes_de_cargar_partida()
 	# 2/11 (tercera tanda A1): «Continuar»/«Cargar» valen para cualquier nivel, no solo Jugabilidad3D: se carga la ranura ANTES de que las reglas definan sus misiones.
 	if Partida.continuar:
 		var jug_c: Node = get_node_or_null("Jugador3D")
@@ -1384,6 +1398,18 @@ func _ready() -> void:
 		_reglas.iniciar(self)
 	elif vitrina_vfx:
 		_vitrina_vfx()
+	_crono("resto de _ready")
+
+
+## 13/11: cronómetro del montaje. Solo escribe con la variable de entorno MS_MEDIR_MONTAJE=1 (para medir los viajes entre niveles).
+static var _crono_t: int = -1
+func _crono(que: String) -> void:
+	if OS.get_environment("MS_MEDIR_MONTAJE") != "1":
+		return
+	var ahora: int = Time.get_ticks_msec()
+	if _crono_t >= 0 and que != "antes de bibliotecas":
+		print("[montaje %s] %s: %d ms" % [nivel, que, ahora - _crono_t])
+	_crono_t = ahora
 
 
 ## 13/10 (M5): los datos del mapa en Terreno3D son estáticos y sobreviven a esta escena: al salir se sueltan, o el nivel siguiente
@@ -1815,7 +1841,11 @@ func _mascara_ribera() -> ImageTexture:
 	return ImageTexture.create_from_image(mapa)
 
 
-func _construir_suelo() -> void:
+func _antes_de_cargar_partida() -> void:
+	pass
+
+
+func _construir_suelo(dibujar: bool = true) -> void:
 	# Mapa de tipos para el shader.
 	_germinadas.clear()       # un mapa nuevo empieza sin germinaciones de la partida anterior
 	var img := Image.create_empty(_lado, _lado, false, Image.FORMAT_RGBA8)
@@ -1835,10 +1865,8 @@ func _construir_suelo() -> void:
 				_img_zona_v.set_pixel(x, y, Color(1.0 if lz == "v" or lz == "," else 0.0, 0.0, 0.0, 0.0))     # `,` = hierba corta (9.6)
 	_img_campo = _campo_ruido(_lado * 8)
 	Ambiente3D.preparar_global()   # el shader declara amb_sombra
-	var sh := Shader.new()
-	sh.code = CODIGO_SUELO
 	var mat_suelo := ShaderMaterial.new()
-	mat_suelo.shader = sh
+	mat_suelo.shader = _shader_de(CODIGO_SUELO)
 	_tex_mapa = ImageTexture.create_from_image(img)
 	mat_suelo.set_shader_parameter("mapa", _tex_mapa)
 	mat_suelo.set_shader_parameter("campo", ImageTexture.create_from_image(_img_campo))
@@ -1926,10 +1954,8 @@ func _construir_suelo() -> void:
 		if estilo == "pantano":          # 8/11: los costados (la pared de las charcas, el borde del mapa) son barro oscuro, no la franja anaranjada del bosque
 			mat_lado.albedo_color = mat_lado.albedo_color * Color(0.55, 0.62, 0.52)
 	Ambiente3D.preparar_global()
-	var sha := Shader.new()
-	sha.code = CODIGO_AGUA
 	_mat_agua = ShaderMaterial.new()
-	_mat_agua.shader = sha
+	_mat_agua.shader = _shader_de(CODIGO_AGUA)
 	_mat_agua.set_shader_parameter("orilla", ImageTexture.create_from_image(_mapa_orilla()))
 	_mat_agua.set_shader_parameter("campo", mat_suelo.get_shader_parameter("campo"))
 	_mat_agua.set_shader_parameter("t_agua", _tex(SUELO + "water_arriba.png"))
@@ -1941,6 +1967,9 @@ func _construir_suelo() -> void:
 	_mat_agua.set_shader_parameter("contraste", maxf(_contraste * 0.6, 1.0))
 	_mat_agua.set_shader_parameter("estilizada", 1.0 if agua_estilizada else 0.0)
 	_subir_estado_juego()      # el suelo y el agua reciben el estado oficial (la hierba, cuando se siembra)
+
+	if not dibujar:
+		return
 
 	var tierra: Array[Transform3D] = []
 	var agua: Array[Transform3D] = []
@@ -2869,18 +2898,64 @@ func _sembrar_hierba() -> void:
 
 ## Campo de ruido para deformar los bordes (RG), mezclar dos muestras de textura (B) y variar el tono (A).
 ## Ruido de valor hecho aquí (no en el shader) para que CPU y GPU vean exactamente lo mismo.
+## 13/11 (viajes entre niveles): era ~2,4 s de cada montaje (416 × 416 píxeles × 7 ruidos × 4 hashes en GDScript). Ahora los valores al azar de la rejilla
+## se calculan UNA vez por ruido (`_rejilla_azar`) y el campo hecho se guarda por tamaño (solo depende de `_lado`): volver a un mapa ya visto no cuesta nada.
+## El resultado es el mismo bit a bit que el de `_vruido` (mismas cuentas, en el mismo orden).
+static var _campos_hechos: Dictionary = {}
+
+## 13/11: el Shader del suelo y el del agua, uno por código para toda la sesión (si no, cada nivel los recompila en su primer fotograma).
+static var _shaders: Dictionary = {}
+
+static func _shader_de(codigo: String) -> Shader:
+	if not _shaders.has(codigo):
+		var sh := Shader.new()
+		sh.code = codigo
+		_shaders[codigo] = sh
+	return _shaders[codigo]
+
 func _campo_ruido(n: int) -> Image:
+	var clave := Vector2i(n, _lado)
+	if _campos_hechos.has(clave):
+		return _campos_hechos[clave]
 	var img := Image.create_empty(n, n, false, Image.FORMAT_RGBA8)
 	var celdas: float = float(_lado)
+	var escalas: Array = [1.7, 4.3, 1.7, 4.3, 0.6, 0.35, 1.1]
+	var tablas: Array = []
+	var anchos: PackedInt32Array = PackedInt32Array()
+	for sal in range(escalas.size()):
+		var w: int = ceili(celdas * float(escalas[sal])) + 2
+		anchos.append(w)
+		tablas.append(_rejilla_azar(w, sal))
 	for y in range(n):
 		for x in range(n):
 			var c := Vector2(float(x) + 0.5, float(y) + 0.5) / float(n) * celdas
-			var r: float = _vruido(c * 1.7, 0) * 0.67 + _vruido(c * 4.3, 1) * 0.33
-			var g: float = _vruido(c * 1.7, 2) * 0.67 + _vruido(c * 4.3, 3) * 0.33
-			var b: float = _vruido(c * 0.6, 4)
-			var a: float = _vruido(c * 0.35, 5) * 0.7 + _vruido(c * 1.1, 6) * 0.3
+			var r: float = _vruido_t(c * 1.7, tablas[0], anchos[0]) * 0.67 + _vruido_t(c * 4.3, tablas[1], anchos[1]) * 0.33
+			var g: float = _vruido_t(c * 1.7, tablas[2], anchos[2]) * 0.67 + _vruido_t(c * 4.3, tablas[3], anchos[3]) * 0.33
+			var b: float = _vruido_t(c * 0.6, tablas[4], anchos[4])
+			var a: float = _vruido_t(c * 0.35, tablas[5], anchos[5]) * 0.7 + _vruido_t(c * 1.1, tablas[6], anchos[6]) * 0.3
 			img.set_pixel(x, y, Color(r, g, b, a))
+	_campos_hechos[clave] = img
 	return img
+
+
+## Los `_azar` de la rejilla de un ruido (casillas 0..w-1 en x e y), en una tabla.
+func _rejilla_azar(w: int, sal: int) -> PackedFloat64Array:
+	var t := PackedFloat64Array()
+	t.resize(w * w)
+	for iy in range(w):
+		for ix in range(w):
+			t[iy * w + ix] = _azar(Vector2i(ix, iy), sal)
+	return t
+
+
+## `_vruido` leyendo la rejilla de la tabla (p siempre positivo y dentro de la tabla).
+func _vruido_t(p: Vector2, t: PackedFloat64Array, w: int) -> float:
+	var ix: int = floori(p.x)
+	var iy: int = floori(p.y)
+	var f: Vector2 = p - Vector2(ix, iy)
+	f = f * f * (Vector2(3.0, 3.0) - 2.0 * f)
+	var k: int = iy * w + ix
+	return lerpf(lerpf(t[k], t[k + 1], f.x), lerpf(t[k + w], t[k + w + 1], f.x), f.y)
 
 
 ## Ruido de valor: interpola números al azar puestos en una rejilla.
@@ -3057,6 +3132,7 @@ func _multimalla(malla: Mesh, transformaciones: Array[Transform3D]) -> void:
 ## --- Decorado: bibliotecas de Meshy ---
 
 func _cargar_bibliotecas() -> void:
+	_busqueda_piezas.clear()
 	for ruta in rutas_piezas_sueltas() + BIBLIOTECAS:
 		var r: String = String(ruta)
 		if not ResourceLoader.exists(r):
@@ -3091,18 +3167,34 @@ func _id_real(id: String) -> String:
 	return id
 
 
-func _hay_pieza(id: String) -> bool:
+## 13/11: lo que encuentra `find_child` en las bibliotecas, por id: [nodo de la primera biblioteca que lo tiene (o null), ¿está en alguna suelta?].
+## Se buscaba de nuevo (recorriendo todas las bibliotecas) hasta tres veces por pieza puesta: ~1 s del montaje del Bosque 02.
+var _busqueda_piezas: Dictionary = {}
+
+func _buscar_pieza(id: String) -> Array:
+	if _busqueda_piezas.has(id):
+		return _busqueda_piezas[id]
+	var primero: Node3D = null
+	var suelta: bool = false
 	for b in _bibliotecas:
-		if b.find_child(id, true, false) is Node3D:
-			return true
-	return false
+		var n: Node = b.find_child(id, true, false)
+		if n is Node3D:
+			if primero == null:
+				primero = n as Node3D
+			if String(b.scene_file_path).begins_with(CARPETA_PIEZAS):
+				suelta = true
+				break
+	var res: Array = [primero, suelta]
+	_busqueda_piezas[id] = res
+	return res
+
+
+func _hay_pieza(id: String) -> bool:
+	return _buscar_pieza(id)[0] != null
 
 
 func _en_piezas_sueltas(id: String) -> bool:
-	for b in _bibliotecas:
-		if String(b.scene_file_path).begins_with(CARPETA_PIEZAS) and b.find_child(id, true, false) is Node3D:
-			return true
-	return false
+	return bool(_buscar_pieza(id)[1])
 
 
 ## Copia de una pieza escalada a su medida, con la base en y = 0. null si no está en ninguna biblioteca.
@@ -3115,13 +3207,12 @@ func _pieza(id: String) -> Node3D:
 			var suelto_n: Node3D = escena_suelta.instantiate() as Node3D
 			suelto_n.rotation.y = deg_to_rad(Pieza3D.giro_de(id))      # giro por modelo: lo endereza (ver Pieza3D.GIRO_MODELO), antes de medirlo en _normalizar
 			return _a_paleta(_normalizar(suelto_n, id), id)
-	for b in _bibliotecas:
-		var n: Node = b.find_child(id, true, false)
-		if n != null and n is Node3D:
-			var copia: Node3D = (n as Node3D).duplicate() as Node3D
-			copia.transform = Transform3D.IDENTITY
-			copia.rotation.y = deg_to_rad(Pieza3D.giro_de(id))       # 4/11: enderezar el modelo (Pieza3D.GIRO_MODELO), antes de medirlo
-			return _a_paleta(_normalizar(copia, id), id)
+	var n: Node3D = _buscar_pieza(id)[0]
+	if n != null:
+		var copia: Node3D = n.duplicate() as Node3D
+		copia.transform = Transform3D.IDENTITY
+		copia.rotation.y = deg_to_rad(Pieza3D.giro_de(id))       # 4/11: enderezar el modelo (Pieza3D.GIRO_MODELO), antes de medirlo
+		return _a_paleta(_normalizar(copia, id), id)
 	if not _avisos.has("sin pieza " + id):
 		_avisos.append("sin pieza " + id)
 	return null
@@ -4581,7 +4672,7 @@ func _leer_nivel_de(raiz: Node) -> void:
 		var c2 := Vector2i(u.x, u.z)
 		mn = Vector2i(mini(mn.x, c2.x), mini(mn.y, c2.y))
 		mx = Vector2i(maxi(mx.x, c2.x), maxi(mx.y, c2.y))
-		if u.y != 0:
+		if u.y != 0 and not bool(suelo.get_meta("plantas_jugables", false)):
 			otras_plantas += 1
 		if not por_celda.has(c2) or int((por_celda[c2] as Array)[0]) < u.y:
 			por_celda[c2] = [u.y, suelo.get_cell_item(u)]
@@ -6290,10 +6381,11 @@ func _process(delta: float) -> void:
 		# Tiempo REAL (no suma de deltas): si el equipo va lento o compila shaders a tirones, el velo no se eterniza.
 		_f_velo += 1
 		_t_velo = float(Time.get_ticks_msec() - _ms_velo) / 1000.0
-		if _f_velo > 10 and _t_velo >= PRECALENTAR:
+		if _f_velo > 10 and (_t_velo >= PRECALENTAR or _ya_precalentado):
 			_velo.queue_free()
 			_velo = null
 			_precalentando = false
+			_ya_precalentado = true
 	_t_hud += delta
 	if _t_hud > 0.3:
 		_t_hud = 0.0

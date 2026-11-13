@@ -144,6 +144,7 @@ static func _viaje(mundo: Node, nivel: String, entrada: String) -> void:
 	Partida.autoguardar(arbol, "nivel", {"mapa_actual": nivel, "entrada": entrada, "punto": Partida.PUNTO_VIAJE})
 	ResumenNivel.mostrar(arbol, origen, Estadisticas.cerrar_nivel())
 	await _fundir(negro, 1.0)
+	_t_negro = Time.get_ticks_msec()
 	entrada_pendiente = entrada
 	PlayLog.viaje_en_curso = true
 	var padre: Node = mundo.get_parent()
@@ -151,8 +152,11 @@ static func _viaje(mundo: Node, nivel: String, entrada: String) -> void:
 	mundo.queue_free()
 	await arbol.process_frame
 	await arbol.process_frame
+	_marca_viaje("quitar el nivel viejo")
 	var nueva: Node = (await _escena_cargada(arbol, escena_de(nivel))).instantiate()
+	_marca_viaje("leer e instanciar")
 	padre.add_child(nueva)
+	_marca_viaje("add_child (_ready)")
 	if padre == arbol.root:
 		arbol.current_scene = nueva
 	await _llegar(arbol, nueva, negro)
@@ -162,6 +166,16 @@ static func _viaje(mundo: Node, nivel: String, entrada: String) -> void:
 ## 13/11 (playtest de Pablo: ~11 s en negro al volver de Monte Sumicio a Bosque 02, unos 5 s de leer la escena del disco). Cada salida pide al
 ## montarse su nivel de destino en segundo plano (`precargar`); al viajar se recoge ya leído. Lo precargado se guarda en `_precargadas` para no soltarlo.
 static var _precargadas: Dictionary = {}           ## ruta -> PackedScene
+static var _t_negro: int = 0                       ## cuándo quedó la pantalla en negro (MS_MEDIR_MONTAJE)
+static var _t_marca: int = 0
+
+
+static func _marca_viaje(que: String) -> void:
+	if OS.get_environment("MS_MEDIR_MONTAJE") != "1":
+		return
+	var ahora: int = Time.get_ticks_msec()
+	print("[viaje]   %s: %d ms" % [que, ahora - maxi(_t_marca, _t_negro)])
+	_t_marca = ahora
 
 
 static func precargar(nivel: String) -> void:
@@ -192,6 +206,7 @@ static func _llegar(arbol: SceneTree, nueva: Node, negro: ColorRect) -> void:
 	var t0: int = Time.get_ticks_msec()
 	while Time.get_ticks_msec() - t0 < ESPERA_MAX_MS and not _lista(arbol, nueva):
 		await arbol.process_frame
+	_marca_viaje("esperar a que esté lista")
 	var e: Node = _entrada(arbol, entrada_pendiente)
 	if e != null and _jugador(arbol) != null:
 		colocar(nueva, e)
@@ -208,6 +223,9 @@ static func _llegar(arbol: SceneTree, nueva: Node, negro: ColorRect) -> void:
 		zonas.call("forzar")
 	for _i in range(FOTOGRAMAS_ASENTAR):
 		await arbol.process_frame
+	_marca_viaje("colocar y asentar")
+	if OS.get_environment("MS_MEDIR_MONTAJE") == "1":      # 13/11: cuánto dura el negro del viaje (para medir los montajes)
+		print("[viaje] %s: %d ms en negro" % [nueva.scene_file_path.get_file(), Time.get_ticks_msec() - _t_negro])
 	await _fundir(negro, 0.0)
 	negro.get_parent().queue_free()
 
