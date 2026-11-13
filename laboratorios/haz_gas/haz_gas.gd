@@ -82,11 +82,11 @@ const DIBUJO_ELEMENTO: Dictionary = {"agua": "raymarch_toon_agua", "viento": "ra
 ## Dibujo del viento (raymarch_toon_viento.glsl): solo TRAZOS (líneas de corriente): umbral de la ráfaga, grosor del trazo (en unidades de etiqueta), opacidad,
 ## velo (la funda tenue alrededor del trazo) y la franja de polvo.
 ## 11/11 (referencia en vídeo de Pablo): «mano» = brillo blanco en la mano, «anillos» = lazos del vórtice que giran alrededor del contacto (solo con choque),
-## «disuelve» = s en que los trazos se rompen en jirones y se van al soltar.
+## «disuelve» = s en que los trazos se rompen en jirones y se van al soltar (13/11: 0,55 → 0,8; cada línea se apaga entera a su ritmo, ver raymarch_toon_viento.glsl).
 ## 11/11, mixto: «cintas» = el CUERPO del haz del refuerzo (482: 5 cintas analíticas, gas con PARAMS_VIENTO_CINTAS; grosor/opacidad «_cintas»); apagado (de serie) = el
 ## de la 481. «mano_grande» = el brillo grande del refuerzo (de serie, el pequeño de la 481). «grosor_lazo» = grosor de los lazos del choque (los del refuerzo).
 ## Cambiar «cintas» rehace el gas: poner_elemento("viento") después.
-var toon_viento: Dictionary = {"umbral": 0.22, "grosor": 0.058, "opacidad": 0.92, "velo": 0.2, "polvo": 0.4, "mano": 1.0, "anillos": 1.0, "disuelve": 0.55,
+var toon_viento: Dictionary = {"umbral": 0.22, "grosor": 0.058, "opacidad": 0.92, "velo": 0.2, "polvo": 0.4, "mano": 1.0, "anillos": 1.0, "disuelve": 0.8,
 	"cintas": false, "mano_grande": false, "grosor_lazo": 0.15, "grosor_cintas": 0.15, "opacidad_cintas": 0.95}
 var _corte_t0: float = -1.0                  ## tiempo de simulación en que se soltó el chorro (-1 = encendido): la disolución del viento
 ## Dibujo del rayo (raymarch_toon_rayo.glsl): grosor y zigzag del trazo (u), halo, arcos, redibujos por segundo, brillo.
@@ -833,6 +833,7 @@ func parametros_gpu(t: float) -> PackedFloat32Array:
 	var h: Vector3 = muro_h
 	var cont: Vector3 = contacto()
 	var kp: Vector3 = p["keyPos"]
+	var calma: float = _calma_viento(t)
 	return PackedFloat32Array([
 		noz.x, noz.y, noz.z, p["beamOn"],
 		tg.x, tg.y, tg.z, p["beamSpeed"],
@@ -844,13 +845,23 @@ func parametros_gpu(t: float) -> PackedFloat32Array:
 		cont.x, cont.y, cont.z, p["beamR0"],
 		p["beamR1"], p["burnRate"], 0.0 if es_agua() and obstaculo == "nada" else p["heat"], p["sootYield"],     # agua al aire: sin mancha de choque
 		p["expansion"], p["cool"], p["sootFade"], p["dustFade"],
-		p["buoyancy"], p["weight"], p["drag"], p["wind"],
-		p["push"], p["confine"], p["subgrid"], p["viscosity"],
-		p["turbulence"], p["paleta"], 1.0 if _acantilado == null or _acantilado.visible else 0.0, escala_masa,
+		p["buoyancy"], p["weight"], p["drag"] if calma >= 1.0 else float(p["drag"]) + 4.0 * (1.0 - calma), p["wind"],
+		p["push"], p["confine"] if calma >= 1.0 else float(p["confine"]) * lerpf(0.15, 1.0, calma), p["subgrid"], p["viscosity"],
+		p["turbulence"] if calma >= 1.0 else float(p["turbulence"]) * lerpf(0.1, 1.0, calma), p["paleta"], 1.0 if _acantilado == null or _acantilado.visible else 0.0, escala_masa,
 		kp.x, kp.y, kp.z, float(CODIGO_ELEMENTO.get(elemento, 0.0)),
 		mundo_lo.x, mundo_lo.y, mundo_lo.z, 0.0 if obstaculo == "nada" else 1.0,          # CHOQUE (gas_comun.glslinc): el haz acaba contra algo
 		mundo_tam.x, mundo_tam.y, mundo_tam.z, 1.0 if elemento == "viento" and bool(toon_viento.get("cintas", false)) else 0.0,      # VIENTO_CINTAS (gas_comun.glslinc)
 		escala_k, 0.0, 0.0, 0.0])                                                             # ESC_K (12/11, tamaño de los haces)
+
+
+## 13/11 (Pablo: el viento «al soltarlo se rompe en demasiados trozos y algo recortados»): al SOLTAR el chorro del viento el aire se CALMA. Va de 1 (encendido) a 0
+## en ~0,2 s de simulación y con ella el UBO lleva menos confinamiento (× 0,15) y turbulencia (× 0,1), que plegaban las líneas de corriente sueltas en un confeti de
+## trozos, y más arrastre (+4/s: los jirones se frenan al viento de fondo y derivan despacio dentro de la caja en vez de salir disparados contra su borde).
+## Solo cambia los NÚMEROS que se suben (ningún kernel compartido cambia): fuego, agua, rayo y el viento encendido van con 1 = exactamente lo de antes.
+func _calma_viento(t: float) -> float:
+	if elemento != "viento" or _corte_t0 < 0.0:
+		return 1.0
+	return exp(-maxf(t - _corte_t0, 0.0) * 10.0)
 
 
 ## Distancia con signo al obstáculo y su normal (la misma que obst_sd de gas_comun.glslinc). [sd, n]
