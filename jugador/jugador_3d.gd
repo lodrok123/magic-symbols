@@ -1588,6 +1588,7 @@ func _vertical(delta: float, salto: bool) -> void:
 				vy = VEL_SALTO
 				en_suelo = false
 				saltos += 1
+				Sfx.play(self, "salto")     # 13/11 (inventario SFX): antes no sonaba
 	if not en_suelo:
 		vy -= GRAVEDAD * delta
 		position.y += vy * delta
@@ -1595,6 +1596,7 @@ func _vertical(delta: float, salto: bool) -> void:
 			if vy <= -Sensacion3D.VY_POLVO_CAIDA and not agua:
 				Sensacion3D.polvo(mundo, Vector3(position.x, suelo, position.z), Sensacion3D.POLVO_CAIDA)     # gamefeel lote 2: cae de alto
 			if not agua:
+				Sfx.play(self, "aterrizar")     # 13/11 (inventario SFX): antes no sonaba
 				Caminar3D.aterrizar(self, vy)     # gamefeel W1: el cuerpo se aplasta un poco al tocar suelo
 			position.y = suelo
 			vy = 0.0
@@ -1648,6 +1650,7 @@ func _cambiar_nado(n: bool) -> void:
 			lanz.avisar("Nadas: lento y sin lanzar", Color(0.6, 0.85, 1.0))
 	else:
 		PlayLog.event("sale_del_agua")
+		Sfx.play(self, "chapoteo")     # 13/11 (inventario SFX): antes no sonaba
 	nado_cambiado.emit(n)
 
 

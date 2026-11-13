@@ -113,7 +113,7 @@ func _ready() -> void:
 	debil = ""
 	resiste = ""
 	tinte = Color.WHITE
-	snd_alerta = ""
+	snd_alerta = "golem_rugido"     # 13/11 (inventario SFX): antes no sonaba
 	snd_muere = "derrumbe"
 	snd_paso = "paso_golem"                  # 2/11 (tarea R): pisadas pesadas, una cada 1,8 u andadas
 	zancada_sonido = 1.8

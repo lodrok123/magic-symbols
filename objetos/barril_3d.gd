@@ -291,6 +291,7 @@ func encender() -> void:
 		return
 	encendido = true
 	_t = t_mecha
+	Sfx.play(self, "mecha")     # 13/11 (inventario SFX): antes no sonaba
 	# Sin emisión: con el entorno del juego (brillo) hasta 0,05 de emisión saturaba el barril entero de naranja. La mecha se lee como un rojo que sube y baja en la propia madera.
 	_poner_color_mecha(0.15)
 	_poner_aviso()
@@ -447,6 +448,7 @@ func _punto_explosion() -> Vector3:
 
 func _explotar() -> void:
 	explotado = true
+	Sfx.play(self, "explosion")     # 13/11 (inventario SFX): antes no sonaba
 	roto_ya = true
 	encendido = false
 	var punto: Vector3 = _punto_explosion()

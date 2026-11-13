@@ -774,6 +774,7 @@ class PuertaPuzle extends Node3D:
 			return
 		abierta = si
 		_pintar_rotulo()
+		Sfx.play(self, "puerta_abre" if si else "puerta_cierra")     # 13/11 (inventario SFX): antes no sonaba
 		if si:
 			Terreno3D.liberar_celda(celda)
 		else:

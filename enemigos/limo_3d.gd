@@ -433,6 +433,7 @@ func dividirse(origen: String = "hechizo") -> bool:
 		hijos.append(h)
 	divisiones += 1
 	texto_grande("¡Se divide!", col, 0.25)
+	Sfx3D.play(self, "limo_divide")     # 13/11 (inventario SFX): antes no sonaba
 	Sensacion3D.polvo(mundo, _pos_mundo(), Sensacion3D.POLVO_CAIDA)
 	PlayLog.event("limo_divide", {"origen": origen, "grande": grande, "elemento": elemento, "hijos": hijos.size(), "vida_hijo": snappedf(vida_max * FRACCION_VIDA_HIJO, 0.1)})
 	_desvanecer()
@@ -826,6 +827,7 @@ func _seguir_accion(delta: float) -> void:
 
 ## Cae: si ella está dentro del círculo del aviso, 15 (30 de grande) y el retroceso leve hacia fuera.
 func _aterrizar_golpe() -> void:
+	Sfx3D.play(self, "limo_golpe")     # 13/11 (inventario SFX): antes no sonaba
 	Sensacion3D.polvo(mundo, _punto_golpe, Sensacion3D.POLVO_CAIDA * (1.3 if grande else 1.0))     # gamefeel lote 2: el golpe contra el suelo levanta polvo
 	if jugador == null or not is_instance_valid(jugador) or jugador.muerto:
 		return

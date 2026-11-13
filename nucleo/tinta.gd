@@ -193,6 +193,7 @@ func _ganar(id: String, tope: int) -> bool:
 	actual = minf(maxima, actual + (maxima - antes))
 	e.cambiado.emit()
 	cambiada.emit()
+	Sfx.play_ui("tinta_sube")     # 13/11 (inventario SFX): antes no sonaba
 	return true
 
 

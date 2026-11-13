@@ -52,6 +52,18 @@ const CATALOGO: Dictionary = {
 		"db": -9.0, "tono": 0.08},
 	"conversacion_voz": {"f": ["conversacion_voz_0.ogg", "conversacion_voz_1.ogg", "conversacion_voz_2.ogg"],
 		"db": -10.0, "tono": 0.06},
+	# 13/11 (Pipeline, inventario de SFX): estos cuatro se pedían por `Sfx3D.play` y solo estaban en `Sfx.CATALOGO`, así que NO SONABAN: el mazazo y la muerte del gólem
+	# («derrumbe»), el «Piedra» del gólem y la runa del ritual del chamán («escudo_golpe») y el «ding» de la esquiva perfecta («sello_ok»). Mismos archivos y dB que en Sfx.
+	"derrumbe":     {"f": ["derrumbe.wav"], "f_sn": ["sn_derrumbe_0.ogg"], "db": -7.0, "tono": 0.10},
+	"escudo_golpe": {"f": ["escudo_golpe.wav"], "f_sn": ["sn_escudo_golpe_0.ogg"], "db": -8.0, "tono": 0.10},
+	"sello_ok":     {"f": ["sello_ok.wav"], "db": -11.0, "tono": 0.03},
+	# 13/11: acciones de enemigos que no sonaban. «f» = respaldo sin el lote de Sonniss. El silbido es del arma al conectar (`Combate3D._conectar`); los rugidos, el aviso del gólem
+	# (`snd_alerta`) y el del Elemental del bosque al ver a la jugadora; «limo_divide», el limo que se parte.
+	"silbido_arma": {"f": ["voltereta.wav"], "f_sn": ["sn_silbido_arma_0.ogg"], "db": -14.0, "tono": 0.12},
+	"golem_rugido": {"f": ["derrumbe.wav"], "f_sn": ["sn_golem_rugido_0.ogg"], "db": -8.0, "tono": 0.06, "base": 0.8},
+	"jefe_rugido":  {"f": ["derrumbe.wav"], "f_sn": ["sn_jefe_rugido_0.ogg"], "db": -6.0, "tono": 0.04},
+	"limo_divide":  {"f": ["limo_golpe.wav"], "f_sn": ["sn_limo_divide_0.ogg"], "db": -9.0, "tono": 0.10},
+	"arco":         {"f": ["arco.wav"], "db": -10.0, "tono": 0.08},                                        # el arquero suelta la flecha (antes «arco» estaba en Sfx y nadie lo pedía)
 }
 
 ## Bucles: nombre -> archivo, db, y las distancias (más cerrado que los sonidos sueltos: son muchos a la vez).

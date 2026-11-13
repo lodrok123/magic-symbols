@@ -5359,3 +5359,14 @@ Los dos pendientes de la 493. Sin commit todavía.
 - Documentos: `VFX_MATRIZ_COBERTURA_2026-11-13.md` saca el tiempo de las tablas y de la lista de huecos (quedan ocho, no los nueve de la 502), y `VFX_HECHIZOS_VIGENTE_2026-11-13.md` lo dice en el §2.
 
 **No hecho.** No se ha revisado si la lógica deja combinar el tiempo con glifos como cualquier otro elemento, ni qué dibuja hoy el dibujo antiguo (`vfx_elementos/tiempo.gd`) si se lanza.
+
+## 504 — Pipeline (13/11): **Inventario de SFX y segunda tanda de Sonniss** (Pablo: «integra el SFX del juego, analiza lo que falta y crea un inventario»)
+
+- Inventario completo en `docs/INVENTARIO_SFX_2026-11-13.md`: qué suena, qué era sintetizado, qué no sonaba y qué sigue faltando.
+- `audio/procesa_sonniss.py`: 39 recortes nuevos (`sn_*`, fuera de git como los 20 del 10/11), con igualado de RMS al archivo sustituido y bucles sin costura.
+- `nucleo/sfx.gd`: «f_sn» en 27 entradas y 10 nombres nuevos (magma, naturaleza, salto, aterrizar, flecha_clava, trueno, sintetizar, tinta_sube…).
+- `nucleo/sfx_3d.gd`: derrumbe, escudo_golpe y sello_ok, que se pedían por `Sfx3D.play` y no existían ahí (el mazazo y la muerte del gólem, su «Piedra», la runa del chamán y la esquiva perfecta NO SONABAN), más silbido_arma, golem_rugido, jefe_rugido, limo_divide y arco.
+- **Aviso al Juego:** el inventario pedía llamadas de una línea en archivos del Juego (jugador_3d, combate_3d, chaman_3d, golem_3d, limo_3d, barril_3d, pulsador_3d, compuerta_3d, puzle, lanzador_3d, sintesis_ui, jugabilidad_3d, tinta, estado_zona_3d, trampa_flechas_3d, flecha_trampa_3d). Pablo lo pidió en este chat; van marcadas con «13/11 (inventario SFX)».
+- `PiezaPuzle3D` no se instancia en ningún sitio: sus sonidos (placa_hunde, hielo_quiebra…) son código muerto.
+
+**No hecho.** Los recortes se eligieron por nombre y forma de onda, sin oírlos: falta la escucha de Pablo (`docs/escucha_sonniss.html`). Lo que sigue mudo está en el §4 del inventario.

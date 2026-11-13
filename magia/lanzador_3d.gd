@@ -2479,7 +2479,10 @@ func absorber_golpe(cantidad: float, desde: Vector3) -> bool:
 	if _barrera_activa == null or not is_instance_valid(_barrera_activa):
 		_barrera_activa = null
 		return false
-	return _barrera_activa.absorber(cantidad, desde)
+	var absorbido: bool = _barrera_activa.absorber(cantidad, desde)
+	if absorbido:
+		Sfx.play(self, "escudo_golpe")     # 13/11 (inventario SFX): antes no sonaba
+	return absorbido
 
 
 ## ¿Hay una burbuja VIVA que contenga este punto? Para lo ajeno que vuela (la flecha de un goblin) y quiere saber si ya la tocó.
@@ -2493,7 +2496,10 @@ func burbuja_recibe(elemento: String, punto: Vector3, atacante: Combate3D = null
 	if _barrera_activa == null or not is_instance_valid(_barrera_activa):
 		_barrera_activa = null
 		return false
-	return _barrera_activa.reventar(elemento, punto, atacante)
+	var reventada: bool = _barrera_activa.reventar(elemento, punto, atacante)
+	if reventada:
+		Sfx.play_en(self, "escudo_roto", punto)     # 13/11 (inventario SFX): antes no sonaba
+	return reventada
 
 
 ## Lo que le pasa al mundo cuando una burbuja de `barrera` revienta con `recibido` en `punto` (tabla REACCIONES_BURBUJA). Estática: se

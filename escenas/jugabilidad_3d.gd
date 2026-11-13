@@ -564,6 +564,7 @@ func _recoger(pj: Pj3D) -> void:
 					Sfx.play_ui("no_puedes", Recolectable3D.DB_MOCHILA_LLENA)
 				continue
 			_decir("Poción (+1)", 1.6)
+			Sfx.play_ui("recoger")     # 13/11 (inventario SFX): antes no sonaba
 		else:
 			Estado.i().dar_oro(int(b["n"]))
 			Sfx.play_ui("moneda")                         # gamefeel U4

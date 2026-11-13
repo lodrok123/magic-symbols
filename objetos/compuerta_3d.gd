@@ -141,6 +141,7 @@ func abrir() -> void:
 		return
 	abierta = true
 	_aplicar(true)
+	Sfx.play(self, "compuerta_baja")     # 13/11 (inventario SFX): antes no sonaba
 	cambio.emit(true)
 
 
@@ -149,6 +150,7 @@ func cerrar() -> void:
 		return
 	abierta = false
 	_aplicar(true)
+	Sfx.play(self, "compuerta_baja")     # 13/11 (inventario SFX): antes no sonaba
 	cambio.emit(false)
 
 

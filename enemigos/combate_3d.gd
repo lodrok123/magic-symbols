@@ -1741,6 +1741,8 @@ func _ia(delta: float) -> void:
 			flotante(mundo, position + Vector3(0, altura + ALTO_BARRA_EXTRA, 0), "!", Color(1, 0.85, 0.2))
 			if not elemental:
 				Sfx3D.play(self, snd_alerta)        # el «!» sobre la cabeza, también al oído
+			else:
+				Sfx3D.play(self, "jefe_rugido")     # 13/11 (inventario SFX): antes no sonaba
 			PlayLog.event("goblin_ve_al_jugador", {"distancia": snappedf(position.distance_to(jugador.position), 0.1)})
 		objetivo = jugador
 		vista_perdida = 0.0
@@ -2173,6 +2175,7 @@ func _soltar_flecha() -> void:
 	mundo.add_child(flecha)
 	flecha.position = origen
 	flecha.look_at(destino, Vector3.UP)
+	Sfx3D.play(self, "arco")     # 13/11 (inventario SFX): antes no sonaba
 	var t: float = t_vuelo
 	var tw: Tween = flecha.create_tween()
 	if not bloqueada:
@@ -2331,6 +2334,7 @@ func _flecha_llega(flecha: Node3D, destino: Vector3, bloqueada: bool) -> void:
 			return
 	if bloqueada or jugador == null or not is_instance_valid(jugador) or jugador.muerto:
 		return
+	Sfx.play_en(self, "flecha_clava", destino)     # 13/11 (inventario SFX): antes no sonaba
 	var dx: float = jugador.position.x - destino.x
 	var dz: float = jugador.position.z - destino.z
 	if Vector2(dx, dz).length() <= RADIO_IMPACTO_FLECHA and absf(jugador.position.y + 0.8 - destino.y) < Terreno3D.ALTO_NIVEL:
@@ -2354,6 +2358,7 @@ func _conectar(corte_frontal: bool = false) -> void:
 	if muerto or jugador == null or not is_instance_valid(jugador) or stun_timer > 0.0 or interrupcion > 0.0 \
 			or congelado > 0.0:
 		return
+	Sfx3D.play(self, "silbido_arma")     # 13/11 (inventario SFX): antes no sonaba (el arma al conectar)
 	var en_alcance: bool = _dist(jugador.position) <= RANGO_ATAQUE + 0.5
 	if corte_frontal:
 		var rel: Vector3 = jugador.position - position
@@ -3275,6 +3280,7 @@ func _foco_enredadera(punto: Vector3, origen: Enredadera3D) -> void:
 
 
 func _morir_elemental() -> void:
+	Sfx3D.play(self, "jefe_rugido", 0.0, 0.75)     # 13/11 (inventario SFX): antes no sonaba (el mismo rugido, más grave)
 	_cancelar_raices()
 	for id in _tirantes.keys():
 		if is_instance_valid(_tirantes[id]):

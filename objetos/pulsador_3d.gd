@@ -159,6 +159,7 @@ func pulsar() -> void:
 func _disparar(como: String) -> void:
 	activo = true
 	veces += 1
+	Sfx.play(self, "boton_clic")     # 13/11 (inventario SFX): antes no sonaba
 	_t_rearme = rearme
 	if _cuerpo != null:
 		_cuerpo.position.y -= 0.12 if modo != "presencia" else HUNDIDO_PLACA

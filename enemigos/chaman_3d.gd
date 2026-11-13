@@ -279,6 +279,7 @@ func _ia_vigila(delta: float) -> void:
 	if ve:
 		if objetivo == null:
 			flotante(mundo, position + Vector3(0, altura + ALTO_BARRA_EXTRA, 0), "!", Color(1, 0.85, 0.2))
+			Sfx3D.play(self, snd_alerta)     # 13/11 (inventario SFX): antes no sonaba
 		objetivo = jugador
 		vista_perdida = 0.0
 	elif objetivo != null:
