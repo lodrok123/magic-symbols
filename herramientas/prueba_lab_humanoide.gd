@@ -85,7 +85,9 @@ func _correr() -> void:
 	_ok((max_p - min_p).length() > MOVIMIENTO_PIES_MIN, "los pies se mueven andando (%.3f u)" % (max_p - min_p).length())
 	# ---- la capa se mece corriendo (CapaMuelles3D sigue viva) ----
 	lab._elegir_clip(lab._pj.clip_de("run"))
-	var m: CapaMuelles3D = Ropa3D.muelles(lab._pj, "capa")
+	# 13/11: desde e516b6b3 (12/11) la ropa por defecto es el atuendo de viaje (`Pj3D.ROPA_POR_DEFECTO`: túnica + capa VERDE + capucha verde); la capa
+	# con muelles puesta es «capa_verde», no la «capa» de Sumicio (que solo se lleva con su atuendo).
+	var m: CapaMuelles3D = Ropa3D.muelles(lab._pj, "capa_verde")
 	_ok(m != null, "CapaMuelles3D existe en el Pj3D del lab")
 	# El esqueleto restaura las poses tras los modificadores, así que lo que hacen los muelles se lee en su señal `modification_processed` (como prueba_lab_jugadora):
 	# se anota el giro de TODOS los huesos capa_* respecto a su padre en cada pasada, y se compara el primero con cualquier otro.

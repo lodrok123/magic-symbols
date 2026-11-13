@@ -332,7 +332,9 @@ func _caso_sin_variante() -> void:
 func _caso_limo() -> void:
 	for el in ["fuego", "hielo"]:
 		_jugadora(Vector2i(11, 33))
-		var l: Limo3D = Limo3D.crear(maqueta, _pos(Vector2i(13, 33)), "agua", false)
+		# 13/11: desde D3 (83a571ba, 6/11) el fuego PARTE en dos a un limo normal que no es de fuego (no lo mata); solo mata al pequeño («muere»). Para medir
+		# la muerte por fuego, el limo del caso fuego nace pequeño (el del hielo, normal: como antes).
+		var l: Limo3D = Limo3D.crear(maqueta, _pos(Vector2i(13, 33)), "agua", false, el == "fuego")
 		l.quieto = true
 		l.health = 1.0
 		l.vida_max = 1.0

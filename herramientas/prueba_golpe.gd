@@ -58,6 +58,11 @@ func _nuevo(montaje: String) -> Combate3D:
 		g.mojado = 3.0
 	elif montaje == "elemental":
 		g.elemental = true
+		# 12/11: lo que hoy hace del elemental «el que pesa» ya no es la bandera sino `masa` 3,3 (tarea P, 72385d83: sustituye a MULT_EMPUJE_ELEMENTAL 0,3), que pone
+		# `_preparar_elemental` (aquí no se llama: cambiaría DEF y debilidades de la tabla). Y la corteza del ELEMENTAL V2 (f695e331) da DEF 0 y ×1,5 por la ESPALDA;
+		# con la `mirada` por defecto (0,0,1) un golpe en +X cuenta como espalda. La tabla mide el golpe de FRENTE: se le pone mirando a quien golpea.
+		g.masa = 3.3
+		g.mirada = Vector3(-1, 0, 0)
 	return g
 
 ## Un golpe por el contrato (`on_spell_hit`) y lo que dejó en el enemigo.
@@ -95,6 +100,8 @@ func _initialize() -> void:
 	quit(1 if _fallos > 0 else 0)
 
 ## Medida con el código ANTERIOR a HC3 (18/10). 6/11 (bloque A1, a propósito): las filas hielo/normal, hielo/mojado, rayo/normal y rayo/mojado cambian el `dano` (hielo 10,8 − 2 = 8,8 · sobre mojado 10,8 × 1,5 − 2 = 14,2 · rayo 12 − 2 = 10 · sobre mojado 12 × 1,5 − 2 = 16); antes 18, 33, 53 y 80,5.
+## 12/11: A1 se dejó hielo/elemental y rayo/elemental (de frente, como el goblin normal: 8,8 y 10; antes 18 y 53). Y el `empuje` de tierra es el de la tarea P (72385d83):
+## 220 × 2 × ESCALA_EMPUJE × k_dano(11,8) = 15,81 × 0,9655 = 15,3 (antes 15,8, sin k_dano); el elemental, ÷ masa 3,3 = 4,6 (antes 4,7).
 const ANTES: Dictionary = {
 	"fuego/normal": { "dano": 7.9, "mojado": 0.0, "quemando": 3.0, "congelado": 0.0, "lento": 0.0, "interrupcion": 0.6, "stun": 0.0, "empuje": 5.6 },
 	"fuego/mojado": { "dano": 7.9, "mojado": 0.0, "quemando": 0.0, "congelado": 0.0, "lento": 0.0, "interrupcion": 0.6, "stun": 0.0, "empuje": 5.6 },
@@ -102,15 +109,15 @@ const ANTES: Dictionary = {
 	"agua/normal": { "dano": 12.4, "mojado": 6.0, "quemando": 0.0, "congelado": 0.0, "lento": 0.0, "interrupcion": 0.6, "stun": 0.0, "empuje": 5.6 },
 	"agua/mojado": { "dano": 12.4, "mojado": 6.0, "quemando": 0.0, "congelado": 0.0, "lento": 0.0, "interrupcion": 0.6, "stun": 0.0, "empuje": 5.6 },
 	"agua/elemental": { "dano": 0.0, "mojado": 0.0, "quemando": 0.0, "congelado": 0.0, "lento": 0.0, "interrupcion": 0.0, "stun": 0.0, "empuje": 0.0 },
-	"tierra/normal": { "dano": 11.8, "mojado": 0.0, "quemando": 0.0, "congelado": 0.0, "lento": 3.0, "interrupcion": 0.6, "stun": 0.0, "empuje": 15.8 },
-	"tierra/mojado": { "dano": 11.8, "mojado": 3.0, "quemando": 0.0, "congelado": 0.0, "lento": 3.0, "interrupcion": 0.6, "stun": 0.0, "empuje": 15.8 },
-	"tierra/elemental": { "dano": 11.8, "mojado": 0.0, "quemando": 0.0, "congelado": 0.0, "lento": 3.0, "interrupcion": 0.6, "stun": 0.0, "empuje": 4.7 },
+	"tierra/normal": { "dano": 11.8, "mojado": 0.0, "quemando": 0.0, "congelado": 0.0, "lento": 3.0, "interrupcion": 0.6, "stun": 0.0, "empuje": 15.3 },
+	"tierra/mojado": { "dano": 11.8, "mojado": 3.0, "quemando": 0.0, "congelado": 0.0, "lento": 3.0, "interrupcion": 0.6, "stun": 0.0, "empuje": 15.3 },
+	"tierra/elemental": { "dano": 11.8, "mojado": 0.0, "quemando": 0.0, "congelado": 0.0, "lento": 3.0, "interrupcion": 0.6, "stun": 0.0, "empuje": 4.6 },
 	"hielo/normal": { "dano": 8.8, "mojado": 0.0, "quemando": 0.0, "congelado": 1.5, "lento": 0.0, "interrupcion": 0.6, "stun": 0.0, "empuje": 5.6 },
 	"hielo/mojado": { "dano": 14.2, "mojado": 3.0, "quemando": 0.0, "congelado": 2.5, "lento": 0.0, "interrupcion": 0.6, "stun": 0.0, "empuje": 5.6 },
-	"hielo/elemental": { "dano": 18.0, "mojado": 0.0, "quemando": 0.0, "congelado": 1.5, "lento": 0.0, "interrupcion": 0.6, "stun": 0.0, "empuje": 1.7 },
+	"hielo/elemental": { "dano": 8.8, "mojado": 0.0, "quemando": 0.0, "congelado": 1.5, "lento": 0.0, "interrupcion": 0.6, "stun": 0.0, "empuje": 1.7 },
 	"rayo/normal": { "dano": 10.0, "mojado": 0.0, "quemando": 0.0, "congelado": 0.0, "lento": 0.0, "interrupcion": 0.6, "stun": 1.2, "empuje": 5.6 },
 	"rayo/mojado": { "dano": 16.0, "mojado": 3.0, "quemando": 0.0, "congelado": 0.0, "lento": 0.0, "interrupcion": 0.6, "stun": 1.2, "empuje": 5.6 },
-	"rayo/elemental": { "dano": 53.0, "mojado": 0.0, "quemando": 0.0, "congelado": 0.0, "lento": 0.0, "interrupcion": 0.6, "stun": 0.0, "empuje": 1.7 },
+	"rayo/elemental": { "dano": 10.0, "mojado": 0.0, "quemando": 0.0, "congelado": 0.0, "lento": 0.0, "interrupcion": 0.6, "stun": 0.0, "empuje": 1.7 },
 	"viento/normal": { "dano": 7.6, "mojado": 0.0, "quemando": 0.0, "congelado": 0.0, "lento": 0.0, "interrupcion": 0.7, "stun": 0.0, "empuje": 0.0 },
 	"viento/mojado": { "dano": 7.6, "mojado": 3.0, "quemando": 0.0, "congelado": 0.0, "lento": 0.0, "interrupcion": 0.7, "stun": 0.0, "empuje": 0.0 },
 	"viento/elemental": { "dano": 7.6, "mojado": 0.0, "quemando": 0.0, "congelado": 0.0, "lento": 0.0, "interrupcion": 0.6, "stun": 0.0, "empuje": 0.0 },

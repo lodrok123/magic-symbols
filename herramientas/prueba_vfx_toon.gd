@@ -264,7 +264,13 @@ func _lab() -> void:
 	_ok("8 el lab compila", s != null and s.can_instantiate())
 	if s == null:
 		return
-	_ok("8 tiene la tecla 5 (KEY_5) y muro_toon", s.source_code.contains("KEY_5: efecto(\"muro_toon\")"))
+	# 1/11 (34334c33, prueba 3 de VFX): la tecla 5 apaga antes el toy («KEY_5: _toy = false; efecto("muro_toon")»): se busca la línea de KEY_5 y que lance muro_toon.
+	var linea_5: String = ""
+	for l in s.source_code.split("\n"):
+		if l.strip_edges().begins_with("KEY_5:"):
+			linea_5 = l
+			break
+	_ok("8 tiene la tecla 5 (KEY_5) y muro_toon", linea_5.contains("efecto(\"muro_toon\")"), linea_5.strip_edges())
 	var mandos: Variant = s.get_script_constant_map().get("MANDOS_TOON", [])
 	_ok("8 MANDOS_TOON tiene los diez", mandos is Array and (mandos as Array).size() == MANDOS.size(), str(mandos.size()) if mandos is Array else "no es Array")
 	if mandos is Array:

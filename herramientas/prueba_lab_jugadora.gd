@@ -4,7 +4,7 @@ extends SceneTree
 ##   godot --headless --path . --script res://herramientas/prueba_lab_jugadora.gd
 
 const CLIPS_MIN: int = 30                 ## 22 de la elfa + 5 de Meshy + 3 casts a una mano
-const PRENDAS: Array = ["tunica", "capa", "capucha"]
+const PRENDAS: Array = ["tunica", "capa_verde", "capucha_verde"]      ## 13/11: el atuendo de viaje de e516b6b3 (Pj3D.ROPA_POR_DEFECTO); antes capa y capucha de Sumicio
 
 var _fallos: int = 0
 var _sk: Skeleton3D = null
@@ -54,7 +54,7 @@ func _initialize() -> void:
 	# El esqueleto restaura las poses tras los modificadores: lo que hace ProporcionChibi se lee en su señal `modification_processed`.
 	_sk = sk
 	_cab = cab
-	_capucha = Ropa3D.puesta(pj, "capucha")
+	_capucha = Ropa3D.puesta(pj, "capucha_verde")
 	pj.proporcion.modification_processed.connect(_al_modificar)
 	lab._poner_cabeza(1.0)
 	await process_frame

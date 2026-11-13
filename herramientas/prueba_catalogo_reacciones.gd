@@ -49,7 +49,9 @@ const GOLDEN: Dictionary = {
 	"se acaba la quemadura": "consumido",
 	"muere ardiendo": "consumido",
 	"prender por contacto dos veces": "prendido",
-	"mojar dos veces y secarse": "mojado",
+	# 13/11: era «mojado». Desde el bloque A2 (713e3781, 6/11) el goblin ya no nace débil al agua: sin debilidad el golpe de agua no le da el hitstop largo ni lo
+	# demás de «débil», y en los 10 pasos el mojado de 0,05 s se seca de verdad (comprobado: con `debil = "agua"` vuelve a salir solo «mojado»).
+	"mojar dos veces y secarse": "mojado,secado",
 	"congelar y descongelarse": "congelado,derretido",
 	"dos rayos": "electrocutado,aturdido,electrocutado",
 	"empujon": "empujado",

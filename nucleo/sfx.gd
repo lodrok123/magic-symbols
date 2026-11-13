@@ -185,7 +185,7 @@ static var CATALOGO: Dictionary = {
 
 	# --- Interfaz (31/10, gamefeel tarea M; audio/gen_sfx_interfaz.py). Suenan por `Sfx.play_ui` (bus «Interfaz», sin posición). Son los cinco de `nucleo/sonidos.gd` (que queda como alias)
 	# más los de la mochila. «pitch» (solo `play_ui`) es el tono base del archivo: `pocion_fin` es la poción +15 %. «moneda» (arriba) también se toca por `play_ui` al subir el oro.
-	"bolsa":      {"f": ["bolsa_tela.ogg", "kenney_bolsa_1.ogg"], "f_sint": ["bolsa.wav"], "db": -10.0, "tono": 0.04},
+	"bolsa":      {"f": ["kenney_bolsa_tela.ogg", "kenney_bolsa_1.ogg"], "f_sint": ["bolsa.wav"], "db": -10.0, "tono": 0.04},
 	"brasero_linde_paso": {"f": ["brasero_linde_paso.wav"], "db": -10.0, "tono": 0.0},
 	"brasero_linde_resuelto": {"f": ["brasero_linde_resuelto.wav"], "db": -8.0, "tono": 0.0},
 	"pocion":     {"f": ["pocion.wav"],     "db": -8.0,  "tono": 0.0},

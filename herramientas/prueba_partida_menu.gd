@@ -189,10 +189,11 @@ func _menu_principal() -> void:
 	Sfx.vaciar_registro()
 	_veda()
 	m.accion()
-	_ok("A1 y Enter ahí suena no_puedes", Sfx.veces("no_puedes") == 1)
+	# Desde 8acc7119 (tarea R) el menú suena la grabación «no_puedes_ui», no «no_puedes».
+	_ok("A1 y Enter ahí suena no_puedes_ui", Sfx.veces("no_puedes_ui") == 1)
 	_veda()
 	m.borrar_elegida()
-	_ok("A1 Supr fuera de una ranura también suena no_puedes", Sfx.veces("no_puedes") == 2)
+	_ok("A1 Supr fuera de una ranura también suena no_puedes_ui", Sfx.veces("no_puedes_ui") == 2)
 
 	# Continuar de verdad.
 	Partida.guardar(1, {"mapa_actual": "Cueva"})

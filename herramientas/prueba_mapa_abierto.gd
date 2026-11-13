@@ -39,6 +39,12 @@ func _escenario() -> void:
 		return
 	await _rotulo()
 	await _rompibles()
+	# 13/11: la GEODA de C1 (329bdf56, 26/10, posterior a esta prueba) es una demostración que, con la jugadora a 3 casillas o menos, explota con el latido del
+	# cristal y ROMPE A PROPÓSITO jarron_c1a (1,12). `_mezcla` aparca a la jugadora en (4,14) 1,2 s y, según la fase del latido, la geoda saltaba y el paso 8
+	# se quedaba sin el jarrón entero que comprueba. Aquí se da por gastada (la geoda la prueba escenario_cueva_geoda).
+	var geoda: GeodaPulso3D = _z.nodo("geoda_c1") as GeodaPulso3D
+	if geoda != null:
+		geoda.explotada = true
 	await _mezcla()
 	await _puerta()
 	await _diario()
@@ -456,7 +462,7 @@ func _salida_entrada() -> void:
 	var ja: Rompible3D = z2.nodo("jarron_c1b") as Rompible3D if z2 != null else null
 	var jn: Rompible3D = z2.nodo("jarron_c1a") as Rompible3D if z2 != null else null
 	_ok("8 en la escena nueva los jarrones que ya se rompieron nacen rotos (solo restos), sin botín", ja != null and ja.roto_ya and ja.soltado.is_empty() and ja.n_restos() == Rompible3D.N_TROZOS and not Terreno3D.bloqueada(Vector2i(8, 14)))
-	_ok("8 y el que no se rompió sigue entero", jn != null and not jn.roto_ya and Terreno3D.bloqueada(Vector2i(1, 12)))
+	_ok("8 y el que no se rompió sigue entero", jn != null and not jn.roto_ya and Terreno3D.bloqueada(Vector2i(1, 12)), "%s roto=%s celda=%s bloqueada(1,12)=%s" % [str(jn != null), str(jn.roto_ya) if jn != null else "-", str(jn.get("celda")) if jn != null else "-", str(Terreno3D.bloqueada(Vector2i(1, 12)))])
 	var pu2: Puzle3D.PuertaPuzle = z2.nodo("puerta_llave") as Puzle3D.PuertaPuzle if z2 != null else null
 	_ok("8 la puerta de C6 que se abrió sigue abierta (`abierto=cueva.c6.puerta`)", pu2 != null and pu2.abierta and not Terreno3D.bloqueada(Vector2i(18, 16)))
 	await avanzar_s(0.5)

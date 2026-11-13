@@ -109,7 +109,9 @@ func _escenario() -> void:
 
 	# --- 4 · flecha + ᚠ: dos proyectiles y la tinta UNA vez ---
 	await _limpiar()
-	var datos_f2: Dictionary = _datos(["flecha", "repeticion"], "fire")
+	# 13/11: ᚠ ANTES de ᛇ. Desde el bloque C (c6589b25, C2 «orden de glifos», 6/11) ᛇ dibujado antes que ᚠ es la RÁFAGA: sale la primera copia y las demás cada
+	# INTERVALO_RAFAGA s, así que al instante solo hay un proyectil. Este paso mide las dos copias a la vez y la tinta/recarga una vez: el orden sin ráfaga.
+	var datos_f2: Dictionary = _datos(["repeticion", "flecha"], "fire")
 	var receta_f2: Lanzador3D.Receta3D = datos_f2["receta"]
 	var esperado: float = receta_f2.coste_tinta()
 	var antes: float = jugador.tinta.actual if jugador.tinta != null else -1.0

@@ -301,17 +301,23 @@ func _caso_flecha() -> void:
 
 func _caso_chaman() -> void:
 	# Velocidades del chamán: se acerca a VEL · 0,8, retrocede a VEL_RETROCESO · 0,8 (sin ningún aliado: no hay ritual).
+	# 13/11: con el CHAMÁN V2 (b1542faf, 6/11) ataca sobre todo con flechas de veneno y la bola solo sale si la jugadora lleva T_QUIETA s quieta o no la ve:
+	# con `_cd_bola = 0` ya no lanza la bola al momento y, al tirar flechas, no se acerca andando. Lo que mide este caso es el RITMO del 28/10 (×0,8 sobre el
+	# clip de andar, correr y lanzar), así que corre con el chamán de entonces (`CHAMAN_V2` es static var para esto); el v2 lo prueba prueba_chaman_v2.
+	var v2_antes: bool = Chaman3D.CHAMAN_V2
+	Chaman3D.CHAMAN_V2 = false
 	_jugadora_lista(Vector2i(10, FILA))
 	var ch: Chaman3D = Chaman3D.invocar_chaman(maqueta, _pos(Vector2i(6, FILA)), jugador as Jugador3D, lanzador)
 	if ch == null:
 		_aviso("5 chamán: no hay modelo; caso saltado")
+		Chaman3D.CHAMAN_V2 = v2_antes
 		return
 	_creados.append(ch)
 	_creados.append(ch.pj)
 	ch._cd_bola = 99.0
 	await avanzar(4)
 	var dist: float = ch._dist(jugador.position)
-	_ok("5 chamán lejos (%.1f u > DIST_MAX): se acerca a %.2f u/s (su andar, ×1,1)" % [dist, ch._v_avance], dist > Chaman3D.DIST_MAX and _cerca(ch._v_avance, _vb(ch, "walk"), 0.001))
+	_ok("5 chamán lejos (%.1f u > DIST_MAX): se acerca a %.2f u/s (su andar, ×1,1: %.2f)" % [dist, ch._v_avance, _vb(ch, "walk")], dist > Chaman3D.DIST_MAX and _cerca(ch._v_avance, _vb(ch, "walk"), 0.001))
 	var esp: Array = _clip_esperado(ch, ch._v_avance)
 	_ok("5 su clip de andar (%s) va a ×%.2f (×1,1: sin patinar)" % [ch.pj.animacion_actual, ch.pj.velocidad_animacion()], ch.pj.animacion_actual == esp[0] and _cerca(ch.pj.velocidad_animacion(), float(esp[1]), 0.01))
 	_limpiar()
@@ -343,3 +349,4 @@ func _caso_chaman() -> void:
 	_ok("5 y el lanzar acaba a los %.2f s (DUR_LANZAR / 0,8 = %.2f)" % [t_fin, AnimacionesChaman.DUR_LANZAR / R], t_fin > 0.0 and _cerca(t_fin, AnimacionesChaman.DUR_LANZAR / R, 0.12))
 	_limpiar()
 	await avanzar(3)
+	Chaman3D.CHAMAN_V2 = v2_antes

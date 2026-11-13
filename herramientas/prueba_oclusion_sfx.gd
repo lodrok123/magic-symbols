@@ -169,7 +169,14 @@ func _escenario() -> void:
 		nombres.append(String(e["n"]))
 	var ii: int = nombres.find(LabHechizos3D.DB_BUS)
 	_ok("8 el panel F3 tiene «dB:Interfaz (bus)», «dB:Mundo (bus)» y «dB:Ocluido (bus)»", ii >= 0 and nombres.has("dB:Mundo (bus)") and nombres.has("dB:Ocluido (bus)"))
-	_ok("8 las filas nuevas van al FINAL (no mueven índices) y SQUASH_XZ sigue siendo la 7", nombres.find("dB:Mundo (bus)") > ii and nombres[nombres.size() - 3] == "dB:Ocluido (bus)" and nombres[nombres.size() - 2] == "S:HORA" and nombres.back() == "S:DURACION_DIA_S" and nombres[7] == "SQUASH_XZ")
+	# 12/11: desde efbbe31f (2/11, huellas Hu:…) y otras tandas se añaden filas DETRÁS de estas, como pide la regla; ya no son las tres últimas. Lo que importa
+	# (no mover índices) es que vayan en este orden tras «dB:Interfaz (bus)», después de las antiguas, y que SQUASH_XZ siga en la 7.
+	var i_mundo: int = nombres.find("dB:Mundo (bus)")
+	var i_ocl: int = nombres.find("dB:Ocluido (bus)")
+	var i_hora: int = nombres.find("S:HORA")
+	var i_dia: int = nombres.find("S:DURACION_DIA_S")
+	_ok("8 las filas nuevas van al FINAL (no mueven índices) y SQUASH_XZ sigue siendo la 7", i_mundo > ii and i_ocl > i_mundo and i_hora == i_ocl + 1 and i_dia == i_hora + 1 and nombres[7] == "SQUASH_XZ",
+		"%d %d %d %d %d de %d" % [ii, i_mundo, i_ocl, i_hora, i_dia, nombres.size()])
 	LabHechizos3D.impacto_poner("dB:Mundo (bus)", -3.0)
 	LabHechizos3D.impacto_poner("dB:Ocluido (bus)", -9.0)
 	_ok("8 mover las filas cambia los buses", is_equal_approx(AudioServer.get_bus_volume_db(im), -3.0) and is_equal_approx(AudioServer.get_bus_volume_db(io), -9.0)

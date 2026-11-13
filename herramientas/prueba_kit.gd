@@ -95,7 +95,8 @@ func _bosque() -> void:
 	_ok("3 el repertorio tiene hielo", Repertoire.element_active("hielo"))
 	_ok("3 seis sellos", Repertoire.active_elements().size() == 6, str(Repertoire.active_elements()))
 	# R3 (17/10): `tamano` se retira (cada eje tiene su glifo), así que el kit de pruebas tiene ocho glifos y no nueve.
-	_ok("3 ocho glifos (sin tamano)", Repertoire.active_sigils().size() == 8 and not Repertoire.active_sigils().has("tamano"), str(Repertoire.active_sigils()))
+	# 30/10 (d534287c, base de datos F0–F4): el kit gana perforar, retorno, buscar y retardo: doce glifos.
+	_ok("3 doce glifos (sin tamano)", Repertoire.active_sigils().size() == 12 and not Repertoire.active_sigils().has("tamano"), str(Repertoire.active_sigils()))
 	_ok("3 tres páginas, seis glifos por página", Repertoire.max_pages == 3 and Repertoire.max_sigils_per_page == 6)
 	_ok("3 el libro de «pruebas» es el nuevo (16/10: el antiguo era un placeholder; ya no hay progresión con libro «»)", Repertoire.libro == "bosque")
 	for k in Lanzador3D.PROGRESIONES:

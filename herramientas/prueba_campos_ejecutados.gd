@@ -39,9 +39,6 @@ const CAMPOS_SOLO_DATO: Dictionary = {
 	"elasticidad": "SOLO DATO: el rebote invierte la velocidad entera (HechizoVivo._avanzar); no conserva una fracción",
 	"ralentiza_fuerza": "SOLO DATO: Combate3D.vel_mult usa un 0,6 fijo (casualmente 1 − 0,4 de la tierra); el campo no se lee",
 	"densidad": "SOLO DATO: ESPEC §1.4 lo permite («solo se rellena»); de aquí saldrán las reacciones en la fase de cálculo",
-	"temperatura": "SOLO DATO: ESPEC §1.4 («solo se rellena»)",
-	"humedad": "SOLO DATO: ESPEC §1.4 («solo se rellena»)",
-	"conductividad": "SOLO DATO: ESPEC §1.4 («solo se rellena»); la conducción la decide Terreno3D.conduce, no el hechizo",
 	"empuje": "SOMBRA DEL RuneData: la zona de gas lee `z.rune.empuje` (HechizoVivo.pulso_gas), no `Hechizo.empuje`",
 	"deja": "SOMBRA DEL RuneData: el estado de suelo sale de `rune.deja` (HechizoVivo._materia_*), no de `Hechizo.deja`",
 	"pisable": "SOMBRA DEL RuneData: el bloque de tierra se decide con `rune.pisable` (HechizoVivo._materia_solido), no con `Hechizo.pisable`",
@@ -49,7 +46,7 @@ const CAMPOS_SOLO_DATO: Dictionary = {
 }
 ## El valor ≠ defecto con que se prueba cada campo de arriba.
 const CAMBIO_SOLO_DATO: Dictionary = {
-	"intensidad_estado": 3.0, "elasticidad": 0.9, "ralentiza_fuerza": 0.9, "densidad": 4.0, "temperatura": 1.0, "humedad": 1.0, "conductividad": 1.0,
+	"intensidad_estado": 3.0, "elasticidad": 0.9, "ralentiza_fuerza": 0.9, "densidad": 4.0,
 	"empuje": 0.9, "deja": "helado", "pisable": false, "color": Color(0.1, 0.9, 0.3),
 }
 
@@ -98,6 +95,11 @@ const FILAS: Dictionary = {
 	"interrumpe": {"esc": "golpe", "elem": "wind", "val": {"interrumpe": 3.0}},
 	"veneno": {"esc": "golpe", "elem": "fire", "val": {"veneno": 6.0}},
 	"veneno_dps": {"esc": "golpe", "elem": "fire", "base": {"veneno": 6.0}, "val": {"veneno_dps": 20.0}},
+	# 30/10 (H6, d0e7239d): `Combate3D.decidir_golpe` decide la reacción por propiedades (`Materia.de(hechizo)`): temperatura ≥ 0,5 calienta (quema), humedad ≥ 0,5
+	# moja y conductividad ≥ 0,5 conduce. Dejaron de ser «solo dato»: se miden sobre la tierra, que de serie no tiene ninguna de las tres.
+	"temperatura": {"esc": "golpe", "elem": "earth", "val": {"temperatura": 1.0}},
+	"humedad": {"esc": "golpe", "elem": "earth", "val": {"humedad": 1.0}},
+	"conductividad": {"esc": "golpe", "elem": "earth", "val": {"conductividad": 1.0}, "mundo": {"mojado": 3.0}},
 	"estado_materia": {"esc": "vol", "elem": "fire", "val": {"estado_materia": "campo"}},
 	"choca_con": {"esc": "proy", "elem": "fire", "base": {"velocidad": V_LENTA, "distancia_max": 5.0, "gravedad": 0.0}, "val": {"choca_con": 1}, "mundo": {"enemigo": Vector2i(2, 0)}},
 	"estela": {"esc": "proy", "elem": "fire", "base": {"velocidad": V_LENTA, "distancia_max": 3.0, "gravedad": 0.0}, "val": {"estela": "chispa"}},

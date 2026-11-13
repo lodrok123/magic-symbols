@@ -126,7 +126,19 @@ func _initialize() -> void:
 				n_mal += 1
 			emax = maxf(emax, rr)
 	print("pose (brazos 120, rodilla der 60, cabeza 30): aristas medidas %d  cambio medio %.3f%%  max estiramiento x%.2f  aristas con >50%% de cambio: %d (%.2f%%)" % [n_ar, 100.0 * suma / n_ar, emax, n_mal, 100.0 * n_mal / n_ar])
-	quit(0)
+	# 13/11: el contador de pruebas (DIARIO 486) exige una línea de resultado; sin ella la prueba salía SIN RESULTADO. Fallan los dos invariantes duros de la
+	# cabecera (huesos Mixamo y vértices con peso). Las rocas repartidas entre huesos lejanos y la pose se quedan como medida (AVISO): nunca tuvieron umbral.
+	var fallos: int = 0
+	if not faltan.is_empty():
+		fallos += 1
+		print("FALLO faltan huesos Mixamo: ", faltan)
+	if sin_peso > 0:
+		fallos += 1
+		print("FALLO %d vértices sin peso completo" % sin_peso)
+	if lejanas > 0:
+		print("AVISO %d rocas repartidas entre huesos a más de 0,2 (la cabecera pide ninguna; sin umbral hasta ahora)" % lejanas)
+	print("FALLOS: %d" % fallos)
+	quit(1 if fallos > 0 else 0)
 
 
 ## Gira el hueso `nombre` en el espacio del modelo (rotacion R sobre su reposo global) y deja la pose de los hijos relativa.
