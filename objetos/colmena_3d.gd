@@ -117,18 +117,21 @@ func _poner_visual() -> void:
 
 ## --- Contrato con los hechizos ---
 
-func on_spell_hit(rune_data: RuneData, _direccion: Vector3 = Vector3.ZERO) -> void:
-	match Objetos.elemento_de(rune_data):
+## 13/11 (tarea 11): por propiedades (`Materia.via`): el aire (sopla) la descuelga, el calor la quema. Magma y naturaleza no cuentan (siguen sin hacerle nada).
+func on_spell_hit(rune_data: RuneData, _direccion: Vector3 = Vector3.ZERO, hechizo: Hechizo = null) -> void:
+	if rune_data == null:
+		return
+	match Materia.via(Materia.de(hechizo if hechizo != null else rune_data)):
 		"viento":
 			caer_panal()
 		"fuego":
 			arder()
 
 
-func spell_reacts(rune_data: RuneData, _direccion: Vector3 = Vector3.ZERO) -> bool:
+func spell_reacts(rune_data: RuneData, _direccion: Vector3 = Vector3.ZERO, hechizo: Hechizo = null) -> bool:
 	if rune_data == null or estado != "colgada":
 		return false
-	var e: String = Objetos.elemento_de(rune_data)
+	var e: String = Materia.via(Materia.de(hechizo if hechizo != null else rune_data))
 	return e == "viento" or e == "fuego"
 
 

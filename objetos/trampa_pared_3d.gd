@@ -177,18 +177,19 @@ func herir_jugadora(cantidad: float, desde: Vector3) -> bool:
 #  Contrato con los hechizos (el agua la apaga)
 # ---------------------------------------------------------------------------------------------------------------------
 
-func on_spell_hit(rune_data: RuneData, _direccion: Vector3 = Vector3.ZERO) -> void:
+## 13/11 (tarea 11): por propiedades (`Materia.via`): la humedad que riega («agua») o el frío («hielo») la apagan. La naturaleza (humedad 0,5) no, como antes.
+func on_spell_hit(rune_data: RuneData, _direccion: Vector3 = Vector3.ZERO, hechizo: Hechizo = null) -> void:
 	if _lanzando or not apaga_con_agua:
 		return
-	var e: String = Objetos.elemento_de(rune_data)
+	var e: String = Materia.via(Materia.de(hechizo if hechizo != null else rune_data))
 	if e == "agua" or e == "hielo":
 		apagar(T_AGUA_S)
 
 
-func spell_reacts(rune_data: RuneData, _direccion: Vector3 = Vector3.ZERO) -> bool:
+func spell_reacts(rune_data: RuneData, _direccion: Vector3 = Vector3.ZERO, hechizo: Hechizo = null) -> bool:
 	if _lanzando or not apaga_con_agua or not activa:
 		return false
-	var e: String = Objetos.elemento_de(rune_data)
+	var e: String = Materia.via(Materia.de(hechizo if hechizo != null else rune_data))
 	return e == "agua" or e == "hielo"
 
 

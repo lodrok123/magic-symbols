@@ -205,8 +205,9 @@ static func quemar_en(punto: Vector3, casillas: float, segundos: float) -> int:
 
 # --- Contrato con los hechizos (duck typing, como Colmena3D) ---
 
-func on_spell_hit(rune_data: RuneData, direccion: Vector3 = Vector3.ZERO) -> void:
-	match Objetos.elemento_de(rune_data):
+## 13/11 (tarea 11): por propiedades (`Materia.via`): el aire la empuja, el calor la quema.
+func on_spell_hit(rune_data: RuneData, direccion: Vector3 = Vector3.ZERO, hechizo: Hechizo = null) -> void:
+	match Materia.via(Materia.de(hechizo if hechizo != null else rune_data)):
 		"viento":
 			soplar(direccion)
 		"fuego":
@@ -214,8 +215,8 @@ func on_spell_hit(rune_data: RuneData, direccion: Vector3 = Vector3.ZERO) -> voi
 			quemar_en(_pos(), float(fila.get("consume_casillas", 1.5)), float(fila.get("consume_s", 4)))
 
 
-func spell_reacts(rune_data: RuneData, _direccion: Vector3 = Vector3.ZERO) -> bool:
-	var e: String = Objetos.elemento_de(rune_data)
+func spell_reacts(rune_data: RuneData, _direccion: Vector3 = Vector3.ZERO, hechizo: Hechizo = null) -> bool:
+	var e: String = Materia.via(Materia.de(hechizo if hechizo != null else rune_data))
 	return not _muerta and (e == "viento" or e == "fuego")
 
 

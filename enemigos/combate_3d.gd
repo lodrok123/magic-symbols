@@ -3268,12 +3268,12 @@ class EnlaceEnredadera extends Area3D:
 	func nivel_altura() -> int:
 		return 1
 
-	## Solo el fuego la toca; lo demás (flechas de otro elemento...) pasa de largo.
-	func spell_reacts(rune: RuneData, _dir: Vector3) -> bool:
-		return Objetos.elemento_de(rune) == "fuego"
+	## Solo el calor la toca (13/11, tarea 11: por propiedades, `Materia.via`; el magma no cuenta, como antes); lo demás (flechas de otro elemento...) pasa de largo.
+	func spell_reacts(rune: RuneData, _dir: Vector3 = Vector3.ZERO, hechizo: Hechizo = null) -> bool:
+		return Materia.via(Materia.de(hechizo if hechizo != null else rune)) == "fuego"
 
-	func on_spell_hit(rune: RuneData, _dir: Vector3 = Vector3.ZERO) -> void:
-		if vid != null and is_instance_valid(vid) and Objetos.elemento_de(rune) == "fuego":
+	func on_spell_hit(rune: RuneData, _dir: Vector3 = Vector3.ZERO, hechizo: Hechizo = null) -> void:
+		if vid != null and is_instance_valid(vid) and spell_reacts(rune, _dir, hechizo):
 			vid.quemar()
 
 	## Al terminar de brotar bloquea su casilla (si estaba libre y no es la del jugador).

@@ -135,11 +135,12 @@ func _dibujar() -> void:
 
 ## --- Contrato con los hechizos (como el cristal) ---
 
-func on_spell_hit(_rune_data: RuneData, _direccion: Vector3 = Vector3.ZERO) -> void:
+## 13/11 (tarea 11): cualquier hechizo lo gira (no mira elemento ni propiedades); solo acepta el 3.er argumento del contrato.
+func on_spell_hit(_rune_data: RuneData, _direccion: Vector3 = Vector3.ZERO, _hechizo: Hechizo = null) -> void:
 	girar()
 
 
-func spell_reacts(_rune_data: RuneData, _direccion: Vector3 = Vector3.ZERO) -> bool:
+func spell_reacts(_rune_data: RuneData, _direccion: Vector3 = Vector3.ZERO, _hechizo: Hechizo = null) -> bool:
 	return _enfriando <= 0.0
 
 
