@@ -5244,3 +5244,17 @@ Las rutas coinciden casilla a casilla con la referencia del A* anterior en los c
 **Medido.** `prueba_bugs_logicos` (nueva: receptor con rearme y flag, barrera de agua con sus controles): sin los arreglos da 7 fallos, con ellos 0. `prueba_pulso` suma el grupo 10 (tono con una pieza que reacciona y otra que no) y `escenario_puzles_agua` la Q8.4b (la tinaja para). 74 pruebas de pulso, receptores, pulsadores, barreras, Gruta, Cueva, agua, flags, partida, Bosque, puzles, hechizos, materia y reacciones: el mismo veredicto que la base.
 
 **Queda (diseño, para Pablo).** La tinaja que se queda sin volumen (`abrir_cauce(0.5, 20)`) sigue vertiendo de aspecto; y el puzle del Bosque 02 (`tinaja_vierte`) no la para al completar la cuenca: haría falta una regla `hace=tinaja.apagar_fuente` en su mapa.
+
+## 497 — Juego (13/11): **`escenario_playtest_eow` estable: 0 fallos en 5 pasadas** (punto 35; PENDIENTES · «escenario_playtest_eow inestable»)
+
+**Antes:** 5 pasadas con 3 o 5 fallos (1.12, 1.13, 4.13 siempre; 7L.13 y 7L.14 en cuatro de cinco). **No es una regresión de hoy:** en el commit 920d384c, el de antes de los puntos 9-34, falla igual (5). El «3» de la batería de base era la variante buena de la misma intermitencia.
+
+**Causas y arreglos** (ninguna comprobación ni umbral cambiado):
+- **1.12 y 1.13** (el goblin ardiendo prende los setos). Desde que la vida del goblin bajó de 100 a 50 (diario 268), el fuego de 8 s se le apagaba en x≈8,05 y el seto se empieza a tocar en x≈8,8: un empate que decidía el fotograma de cada tick de daño. Alargar solo la quemadura lo mataba antes de llegar. La ayuda de la sala 1 del laboratorio, que ya existía, estaba mal calibrada: `SALA1_QUEMA_GOBLIN_S` pasa a `static var` de 14 s y se añade `SALA1_VIDA_GOBLIN` (100) al guerrero de esa sala. Cuenta como la misma ayuda en `ajustes_activos()`. Probado con el goblin arrancando 0, 37, 91 y 150 fotogramas tarde: los setos prenden a los 6,7-18,5 s, dentro de la ventana de 25 s.
+- **4.13** (la ruta de la X). La cuenta de la ruta esperada sale de la casa del goblin, pero cuando se pulsa la X ya patrullaba y la ruta se dibuja desde donde esté (7 marcas frente a 8). La prueba lo repone en su casa y quieto antes de pulsar.
+- **7L.13 y 7L.14** (la flecha cruza el brasero y sale ardiendo). El arquero patrulla ±2 u y su fase al primer disparo depende de cuántos fotogramas duró el velo de precalentado, que va por reloj de pared. En el fallo disparaba desde 2 u al oeste y la flecha pasaba a 2,3 u de la llama. La prueba lo coloca en su casilla antes de disparar, sin tocar su estado.
+- El `receive_damage` sobre un nodo liberado de la sala 7 ya tenía su `is_instance_valid` desde el 12/11; no se cayó en 15 pasadas.
+
+**Después:** 5 pasadas seguidas con `FALLOS: 0` y sin errores de script. 20 pruebas de playtest, setos, arqueros, braseros, flechas, fuego, goblins y combate: el mismo veredicto que la base.
+
+**Para Pablo.** Los ajustes del laboratorio siguen pendientes de tu decisión (diario 240): la quemadura de la sala 1 es ahora de 14 s con el goblin a 100 de vida, porque con 50 de vida no llega al seto.

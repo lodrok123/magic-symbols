@@ -246,6 +246,14 @@ func _sala_1() -> void:
 
 ## Pone al jugador en (6,5) (al norte del brasero del arquero) y cuenta, durante `segundos`, las flechas del arquero, las que van ardiendo y los impactos con fuego.
 func _tiro_del_arquero(arq: Combate3D, segundos: float, desde: Vector2i = Vector2i(6, 5)) -> Dictionary:
+	# 13/11 (tarea 35, intermitente 7L.13/7L.14): el arquero patrulla ±2 u en X y, cuando la prueba llega aquí, lleva decenas de segundos andando: según en qué punto de su ronda lo cogiera el
+	# primer disparo (depende de cuántos fotogramas tardó en cargar el lab: el velo de precalentado va por reloj de pared), la flecha sale lejos de la columna del brasero y no lo cruza
+	# (medido: arquero a 2 u al oeste de su casilla, flecha a 2,3 u del brasero). Se le pone en su casilla (la columna del brasero) SIN tocar su estado: en la sala 7 el jugador se coloca a 3 casillas
+	# (fuera de su radio de visión) y solo dispara porque ya estaba enterado; reponerlo a «patrulla» sin objetivo (como `_reponer_goblin`) lo dejaba sin disparar (medido: 0 flechas).
+	if is_instance_valid(arq):
+		arq.position = arq.casa
+		if arq.pj != null:
+			arq.pj.position = arq.casa
 	colocar_jugador(desde)
 	var res: Dictionary = {"flechas": 0, "ardiendo": 0, "impactos_ardiendo": 0}
 	var vistas: Dictionary = {}                       # instance_id de cada flecha ya contada
@@ -583,6 +591,11 @@ func _sala_4() -> void:
 	_ok("4.11 la ruta rodea la pared: más larga que la recta y pasa por la terraza de 1 nivel, nunca por la de 2", rh.size() > recto + 3 and rh.has(t1c) and not rh.has(t2c), "%d casillas frente a %d en recta: %s" % [rh.size(), recto, str(rh)])
 	_ok("4.12 la terraza de 1 nivel se sube y la de 2 no (desde el suelo)", not Caminos3D.camino(cg, t1c).is_empty() and Caminos3D.camino(cg, t2c).is_empty())
 	# --- La tecla X dibuja esa ruta ---
+	# 13/11 (tarea 35, intermitente 4.13): `rh` sale de la casilla de CASA del goblin, pero a estas alturas patrulla y la X dibuja la ruta desde donde esté AHORA (a veces una casilla más
+	# cerca: 7 marcas frente a 8). Se le deja quieto en su casa para que la ruta dibujada sea la medida (después `_reponer_goblin` lo suelta).
+	_reponer_goblin(g)
+	g.quieto = true
+	await avanzar(2)
 	_pulsar(LabPlaytestEoW3D.TECLA_RUTAS)
 	await avanzar(3)
 	var marcas: int = lab.marcas_de_ruta()
