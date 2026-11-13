@@ -14,8 +14,8 @@ signal cambiado
 signal enemigo_muerto(pos: Vector2, id: String)
 signal objeto_conseguido(id: String)
 
-const CAPACIDAD_INICIAL: int = 8
-const CAPACIDAD_MAX: int = 20
+const CAPACIDAD_INICIAL: int = 12       ## 14/11 (playtest de Pablo): +4; con 8 se llenaba y no se podían entregar las hierbas
+const CAPACIDAD_MAX: int = 24           ## 12 + 3 mejoras de bolsa × 4
 const PILA_MAX: int = 9
 const VIDA_BASE: float = 100.0
 const CURA_BASE: float = 40.0          ## = la cura de `pocion` en objetos.tsv (antes 35, sin nadie que la leyera)
@@ -124,6 +124,55 @@ func quitar(id: String, n: int = 1) -> bool:
 	return true
 
 
+## --- EL COFRE MÁGICO (14/11, playtest de Pablo): un almacén compartido por todos los cofres mágicos del mundo, mucho más grande que la mochila. ---
+## Guarda pilas como la mochila (huecos de `Objetos.pila`). Viaja con la partida (`a_dic` → «almacen»). Lo dibuja AlmacenUI.
+const ALMACEN_HUECOS: int = 50
+var almacen: Dictionary = {}       ## id -> cantidad
+
+
+func en_almacen(id: String) -> int:
+	return int(almacen.get(id, 0))
+
+
+func almacen_huecos_usados() -> int:
+	var n: int = 0
+	for id in almacen:
+		n += int(ceil(float(almacen[id]) / float(Objetos.pila(String(id)))))
+	return n
+
+
+func sitio_en_almacen(id: String) -> int:
+	var pila: int = Objetos.pila(id)
+	var resto_pila: int = (pila - en_almacen(id) % pila) % pila
+	return (ALMACEN_HUECOS - almacen_huecos_usados()) * pila + resto_pila
+
+
+## Pasa `n` de la mochila al cofre mágico; devuelve cuántas pasaron.
+func guardar_en_almacen(id: String, n: int) -> int:
+	var k: int = mini(mini(n, cuenta(id)), sitio_en_almacen(id))
+	if k <= 0:
+		return 0
+	quitar(id, k)
+	almacen[id] = en_almacen(id) + k
+	cambiado.emit()
+	return k
+
+
+## Pasa `n` del cofre mágico a la mochila; devuelve cuántas pasaron (sin el aviso de «objeto conseguido»: ya era suyo).
+func sacar_de_almacen(id: String, n: int) -> int:
+	var k: int = mini(mini(n, en_almacen(id)), sitio_para(id))
+	if k <= 0:
+		return 0
+	items[id] = cuenta(id) + k
+	var resto: int = en_almacen(id) - k
+	if resto <= 0:
+		almacen.erase(id)
+	else:
+		almacen[id] = resto
+	cambiado.emit()
+	return k
+
+
 func dar_oro(n: int) -> void:
 	oro += n
 	cambiado.emit()
@@ -160,6 +209,7 @@ func a_dic() -> Dictionary:
 		"consumible_equipado": consumible_equipado,
 		"rueda": {"huecos": rueda.duplicate(), "elegido": rueda_elegido, "vistos": rueda_vistos.duplicate()},
 		"tiendas": tiendas_compras.duplicate(),
+		"almacen": almacen.duplicate(),
 		"bosque_retorno_cueva": bosque_retorno_cueva,
 		"opciones": {"asistencia": asistencia, "trazo_recto": trazo_recto, "lanzamiento_inteligente": lanzamiento_inteligente},
 	}
@@ -196,11 +246,17 @@ func desde_dic(d: Dictionary) -> void:
 	for v in (r.get("vistos", []) if r.get("vistos", []) is Array else []):
 		rueda_vistos.append(String(v))
 	bosque_retorno_cueva = String(d.get("bosque_retorno_cueva", ""))
+	almacen = {}
+	var al: Dictionary = d.get("almacen", {}) if d.get("almacen", {}) is Dictionary else {}
+	for k in al:
+		if int(al[k]) > 0:
+			almacen[String(k)] = int(al[k])
 	var o: Dictionary = d.get("opciones", {}) if d.get("opciones", {}) is Dictionary else {}
 	asistencia = clampf(float(o.get("asistencia", 0.5)), 0.0, 1.0)
 	trazo_recto = bool(o.get("trazo_recto", true))
 	lanzamiento_inteligente = bool(o.get("lanzamiento_inteligente", false))
-	capacidad_base = clampi(capacidad - int(Mejoras.valor("capacidad", self)), 1, CAPACIDAD_MAX)
+	# 14/11: una partida de cuando la bolsa empezaba con 8 huecos sube a los 12 de ahora.
+	capacidad_base = clampi(maxi(capacidad - int(Mejoras.valor("capacidad", self)), CAPACIDAD_INICIAL), 1, CAPACIDAD_MAX)
 	Mejoras.aplicar_todas(self, false)           # vida máxima, cura, defensa, velocidad, bolsa, frascos y libro salen de las mejoras
 	cambiado.emit()
 

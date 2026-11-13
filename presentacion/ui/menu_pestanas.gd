@@ -23,10 +23,10 @@ const ANCHO: float = 860.0
 const ALTO: float = 540.0
 const CUERPO_POS: Vector2 = Vector2(48.0, 156.0)
 const CUERPO_TAM: Vector2 = Vector2(764.0, 322.0)
-const COLUMNAS: int = 5
-const FILAS: int = 4                               ## 5 × 4 = Estado.CAPACIDAD_MAX
-const TAM_HUECO: float = 62.0
-const SEP_HUECO: float = 7.0
+const COLUMNAS: int = 6
+const FILAS: int = 4                               ## 6 × 4 = Estado.CAPACIDAD_MAX (24 desde el 14/11)
+const TAM_HUECO: float = 56.0
+const SEP_HUECO: float = 6.0
 const ANCHO_DETALLE: float = 392.0
 const ALPHA_VELO: float = 0.45
 const T_ABRIR_S: float = 0.22

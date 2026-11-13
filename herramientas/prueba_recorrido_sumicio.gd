@@ -134,9 +134,28 @@ func _process(_d: float) -> bool:
 		3:
 			if not _escolta():
 				return false
-		4:
+		4:  # entrar en la Torre Verde por su puerta (14/11: la audiencia es dentro)
+			var v: Node = current_scene.get_node("Visita")
+			if v._interior == null:
+				var torre: Node3D = current_scene.get_node("Maqueta").torre
+				_poner(torre.to_global(v._hueco_puerta(torre) + Vector3(0, 0, 0.1)))
+				_espera += 1
+				if _espera > 400:
+					_ok(false, "4.0 la puerta de la torre no lleva a la sala")
+					_fin()
+				return false
+			if v._en_transicion:
+				return false
+			_espera = 0
+			_ok(v._interior.torre, "4.0 la puerta animada de la torre lleva a su sala")
 			_audiencia_y_encargo()
-		5:  # volver a la Fraga con E en InicioFraga
+		5:  # salir de la torre por su salida y volver a la Fraga con E en InicioFraga
+			var v: Node = current_scene.get_node("Visita")
+			if v._interior != null:
+				_poner(Terreno3D.centro_de(v._interior.centro + v._interior.salida, Terreno3D.alto_suelo) + Vector3(0, 0, 0.6))
+				return false
+			if v._en_transicion:
+				return false
 			_poner(current_scene.get_node("Maqueta").inicio.global_position)
 			_pulsar_e()
 		6:
@@ -173,6 +192,12 @@ func _process(_d: float) -> bool:
 			_pulsar_e()
 		12:
 			if not _esperar_viaje(Niveles.ESCENAS["MonteSumicio"]):
+				return false
+			var v: Node = current_scene.get_node("Visita")
+			if v._interior == null or v._en_transicion:
+				var torre: Node3D = current_scene.get_node("Maqueta").torre
+				_poner(torre.to_global(v._hueco_puerta(torre) + Vector3(0, 0, 0.1)))
+				_espera = 60
 				return false
 			_entrega()
 		13:

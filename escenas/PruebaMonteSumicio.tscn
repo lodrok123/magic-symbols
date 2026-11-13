@@ -1,9 +1,10 @@
 [gd_scene format=3]
 
-[ext_resource type="Script" path="res://presentacion/prueba_test2.gd" id="1_mundo"]
+[ext_resource type="Script" path="res://escenas/monte_sumicio_mundo.gd" id="1_mundo"]
 [ext_resource type="Script" path="res://escenas/monte_sumicio_visita.gd" id="2_visita"]
 [ext_resource type="Script" path="res://escenas/monte_sumicio_maqueta.gd" id="3_maqueta"]
 [ext_resource type="PackedScene" path="res://escenas/InteriorPalloza.tscn" id="4_casa"]
+[ext_resource type="PackedScene" path="res://escenas/InteriorTorre.tscn" id="5_torre"]
 
 [node name="PruebaMonteSumicio" type="Node3D"]
 script = ExtResource("1_mundo")
@@ -39,3 +40,5 @@ centro = Vector2i(16, 55)
 [node name="TiendaEste" parent="Interiores" instance=ExtResource("4_casa")]
 centro = Vector2i(23, 55)
 tienda = true
+
+[node name="TorreVerde" parent="Interiores" instance=ExtResource("5_torre")]

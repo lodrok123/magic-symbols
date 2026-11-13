@@ -23,7 +23,7 @@ var _fase := Fase.PORTON
 var _paso := 0
 var _parlamento := 0
 var _objetivo: Label
-var _dialogo: Label
+var _dialogo: CajaDialogo
 var _pista: Label
 var _casas: Dictionary[Node3D, Interior] = {}
 var _exteriores: Array[Node3D]
@@ -61,10 +61,11 @@ func _montar() -> void:
 			vecino.position += Vector3(-0.48, 0.0, -0.22)
 		sala.hide()
 		_casas[_exteriores[i]] = sala
+	_montar_torre(mundo)
 	_guardia = _figura("Guardia", Maqueta.celda(_maqueta.guardia), Color("#635345"), Color("#827259"))
 	_guardia.position = _maqueta.guardia.global_position
-	var marimanta := _figura("Marimanta", Maqueta.celda(_maqueta.marimanta), Color("#4c5153"), Color("#93394a"))
-	marimanta.position = _maqueta.marimanta.global_position
+	var marimanta := _figura("Marimanta", Maqueta.celda(_maqueta.marimanta), Color("#4c5153"), Color("#93394a"), _sala_torre)
+	marimanta.global_position = _maqueta.marimanta.global_position
 	_cofre_uniforme = Cofre3D.en(_maqueta.cofre)
 	# Las partidas previas a este cofre ya podían haber recibido el uniforme de Marimanta.
 	if Flags.i().tiene(ADMISION) and Atuendos.tiene(UNIFORME):
@@ -100,16 +101,18 @@ func _physics_process(delta: float) -> void:
 	if _interior != null:
 		var centro := Maqueta.punto(_interior.centro)
 		var local := _mid.position - centro
-		if absf(local.x) < 0.72 and local.z >= Terreno3D.casilla * 2.12:
+		if absf(local.x) < 0.72 and local.z >= Terreno3D.casilla * (float(_interior.salida.y) + 0.12):
 			_cruzar(null)
 			return
-		_objetivo.text = "Tienda y síntesis" if _interior.tienda else "Palloza familiar"
-		_pista.text = _pista_interior()
-		return
-	if _fase != Fase.PORTON:
+		if not _interior.torre:
+			_objetivo.text = "Tienda y síntesis" if _interior.tienda else "Palloza familiar"
+			_pista.text = _pista_interior()
+			return
+		# La Torre Verde: dentro se sigue con la audiencia, los cofres y Marimanta (abajo).
+	elif _fase != Fase.PORTON:
 		var puerta := _puerta_cercana()
 		if puerta != null:
-			if _casas[puerta].tienda or Flags.i().tiene(COFRE_UNIFORME):
+			if _casas[puerta].tienda or Flags.i().tiene(COFRE_UNIFORME) or (_casas[puerta].torre and _fase != Fase.ESCOLTA):
 				_cruzar(puerta)
 				return
 	if _fase == Fase.ESCOLTA:
@@ -125,7 +128,7 @@ func _physics_process(delta: float) -> void:
 		Fase.ESCOLTA:
 			objetivo = "Sigue al guardia hasta la Torre Verde."
 		Fase.AUDIENCIA:
-			objetivo = "Entrega el grimorio a Marimanta."
+			objetivo = "Entrega el grimorio a Marimanta." if _interior != null else "Entra en la Torre Verde: la Maestre te espera dentro."
 			if _cerca(_maqueta.marimanta):
 				pista = "[E] Entregar el grimorio" if _parlamento == 0 else "[E] Continuar"
 		Fase.LIBRE, Fase.REGRESO:
@@ -136,6 +139,8 @@ func _physics_process(delta: float) -> void:
 				pista = "[E] Hablar con Marimanta"
 	if _cerca(_maqueta.inicio):
 		pista = "[E] Volver a la Fraga"
+	if _interior != null and _interior.torre and pista == "" and CofreMagico.cerca(get_tree(), _mid.position):
+		pista = "[E] Cofre mágico"
 	_objetivo.text = objetivo
 	_pista.text = pista
 	if Flags.i().tiene(ADMISION) and not Flags.i().tiene(COFRE_UNIFORME):
@@ -158,8 +163,14 @@ func _unhandled_input(evento: InputEvent) -> void:
 
 
 func _interactuar() -> bool:
-	if _interior != null:
+	if _interior != null and not _interior.torre:
 		return _interactuar_dentro()
+	if _interior != null and _puesto(_interior.salida):
+		_cruzar(null)
+		return true
+	if CofreMagico.cerca(get_tree(), _mid.position):
+		AlmacenUI.abrir_en(get_tree())
+		return true
 	if _ante_cofre_uniforme():
 		if Flags.i().tiene(ADMISION):
 			_entregar_uniforme()
@@ -225,7 +236,7 @@ func _cofre_al_alcance() -> bool:
 
 
 func _pista_interior() -> String:
-	if _puesto(Interior.SALIDA):
+	if _puesto(_interior.salida):
 		return "[E] Salir a Monte Sumicio"
 	if _puesto(Interior.VECINO):
 		return "[E] Ver mercancía" if _interior.tienda and Flags.i().tiene(COFRE_UNIFORME) else "[E] Hablar"
@@ -237,7 +248,7 @@ func _pista_interior() -> String:
 
 
 func _interactuar_dentro() -> bool:
-	if _puesto(Interior.SALIDA):
+	if _puesto(_interior.salida):
 		_cruzar(null)
 	elif _puesto(Interior.VECINO):
 		if _interior.tienda:
@@ -273,12 +284,18 @@ func _flag_cofre() -> String:
 	return "montesumicio.palloza_%d.cofre_abierto" % _exteriores.find(_casa)
 
 
+## La casa cuya puerta tiene Mid delante. Se mide desde la bisagra de cada puerta (las pallozas la tienen en z 1,59; la torre, en su arco del sur).
 func _puerta_cercana() -> Node3D:
 	for casa in _casas:
-		var local := casa.to_local(_mid.position)
-		if absf(local.x) < 0.48 and local.z >= 1.15 and local.z <= 1.85:
+		var local := casa.to_local(_mid.position) - _hueco_puerta(casa)
+		if absf(local.x) < 0.55 and local.z >= -0.44 and local.z <= 0.26:
 			return casa
 	return null
+
+
+## El centro del vano de la puerta de `casa`, en local de la casa (la hoja mide ~0,8–1,1 y gira desde la bisagra de la izquierda).
+func _hueco_puerta(casa: Node3D) -> Vector3:
+	return casa.to_local(_maqueta.bisagra(casa).global_position) + Vector3(0.45, 0.0, 0.0)
 
 
 func _cruzar(puerta: Node3D) -> void:
@@ -326,12 +343,12 @@ func _entrar(puerta: Node3D, colocar: bool) -> void:
 	_interior.camara.make_current()
 	_dialogo.text = ""
 	if colocar:
-		_colocar_mid(Maqueta.punto(_interior.centro + Interior.ENTRADA), Vector3.FORWARD)
+		_colocar_mid(Maqueta.punto(_interior.centro + _interior.entrada), Vector3.FORWARD)
 
 
 func _salir() -> void:
 	var mundo := get_parent() as Mundo
-	var regreso := _casa.to_global(Vector3.BACK * 2.35)
+	var regreso := _casa.to_global(_hueco_puerta(_casa) + Vector3.BACK * 0.76)
 	regreso.y = Terreno3D.y_pies(Terreno3D.celda_de(regreso))
 	_colocar_mid(regreso, _casa.global_basis.z.normalized())
 	_interior.hide()
@@ -369,6 +386,11 @@ func _avanzar_escolta(delta: float) -> void:
 		return
 	var camino := _maqueta.escolta
 	var meta := (camino.get_child(_paso) as Node3D).global_position
+	# 14/11: la audiencia es DENTRO de la torre: el guardia se queda delante de la puerta y Mid entra sola.
+	if _puerta_torre != null and meta.z <= _puerta_torre.global_position.z + Terreno3D.casilla * 1.2:
+		_fase = Fase.AUDIENCIA
+		_dialogo.text = "Guardia · La Maestre te espera dentro. Aquí termina mi camino."
+		return
 	_guardia.position = _guardia.position.move_toward(meta, delta * 3.8)
 	if not _guardia.position.is_equal_approx(meta):
 		return
@@ -409,8 +431,48 @@ var _cofre_agua: Cofre3D
 var _nodo_cofre_agua: Node3D
 
 
+## 14/11: LA TORRE VERDE POR DENTRO (escenas/InteriorTorre.tscn). La torre se cruza por su puerta animada como una palloza; dentro despacha
+## Marimanta con sus cofres (el del uniforme, el legendario del encargo) y hay un cofre mágico. Los marcadores de la torre se llevan a la sala.
+const SalaTorre = preload("res://escenas/interior_torre.gd")
+var _sala_torre: SalaTorre
+var _puerta_torre: Node3D
+const PUERTA_TORRE := Vector3(-0.55, 0.0, 4.15)        ## bisagra de la puerta, en local de la torre (el arco del sur, en la casilla del hueco del muro)
+
+
+func _montar_torre(mundo: Node) -> void:
+	_sala_torre = mundo.get_node_or_null("Interiores/TorreVerde") as SalaTorre
+	if _sala_torre == null:
+		return
+	_sala_torre.montar()
+	_sala_torre.hide()
+	var torre: Node3D = _maqueta.torre
+	_puerta_torre = Node3D.new()
+	_puerta_torre.name = "Puerta"
+	torre.add_child(_puerta_torre)
+	_puerta_torre.position = PUERTA_TORRE
+	var hoja := MeshInstance3D.new()
+	var caja := BoxMesh.new()
+	caja.size = Vector3(1.1, 1.9, 0.14)
+	hoja.mesh = caja
+	var madera := StandardMaterial3D.new()
+	madera.albedo_color = Color("#6b4a2f")
+	madera.roughness = 1.0
+	hoja.material_override = madera
+	hoja.position = Vector3(0.55, 0.95, 0.0)          # la bisagra va a la izquierda: la hoja se abre hacia dentro
+	_puerta_torre.add_child(hoja)
+	_casas[torre] = _sala_torre
+	# Lo de la audiencia, dentro de la sala.
+	_maqueta.marimanta.global_position = _sala_torre.punto("marimanta")
+	_maqueta.cofre.global_position = _sala_torre.punto("cofre_uniforme")
+	for sitio in ["cofre_uniforme", "cofre_agua", "cofre_magico"]:
+		Terreno3D.bloquear_celda_completa(Terreno3D.celda_de(_sala_torre.punto(sitio)))
+	CofreMagico.poner_en(_sala_torre, _sala_torre.punto("cofre_magico"))
+
+
 func _hablar_con_marimanta() -> void:
+	_dialogo.tecla = "[E] continuar" if _parlamento < AUDIENCIA.size() - 1 else ""
 	_dialogo.text = String(AUDIENCIA[mini(_parlamento, AUDIENCIA.size() - 1)])
+	_dialogo.tecla = ""
 	_parlamento += 1
 	if _parlamento < AUDIENCIA.size():
 		return
@@ -451,8 +513,12 @@ func _marimanta_despues() -> void:
 
 func _montar_cofre_agua() -> void:
 	_nodo_cofre_agua = COFRE_LEGENDARIO.instantiate() as Node3D
-	_maqueta.torre.add_child(_nodo_cofre_agua)
-	_nodo_cofre_agua.position = Vector3(-2.3, 0.0, -2.85)
+	if _sala_torre != null:
+		_sala_torre.add_child(_nodo_cofre_agua)
+		_nodo_cofre_agua.global_position = _sala_torre.punto("cofre_agua")
+	else:
+		_maqueta.torre.add_child(_nodo_cofre_agua)
+		_nodo_cofre_agua.position = Vector3(-2.3, 0.0, -2.85)
 	_cofre_agua = Cofre3D.en(_nodo_cofre_agua)
 	if Flags.i().tiene(EncargoMarimanta.COFRE_AGUA):
 		_cofre_agua.abrir_ya()
@@ -545,31 +611,48 @@ func _parte(figura: Node3D, malla: Mesh, color: Color, y: float) -> void:
 
 
 func _montar_hud() -> void:
+	# 14/11 (playtest: «los textos quedan opacados abajo»): el diálogo va en la caja de pergamino (CajaDialogo); el objetivo, en una plaquita arriba
+	# en el centro; la pista de la tecla, en otra plaquita abajo a la derecha, encima de la caja.
+	_dialogo = CajaDialogo.new()
+	_dialogo.dura_s = 12.0
+	add_child(_dialogo)
 	var capa := CanvasLayer.new()
 	capa.layer = 6
 	add_child(capa)
-	var panel := MarginContainer.new()
-	capa.add_child(panel)
-	panel.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_WIDE)
-	panel.offset_left = 24
-	panel.offset_right = -24
-	panel.offset_top = -115
-	panel.offset_bottom = -12
-	panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	var textos := VBoxContainer.new()
-	textos.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	panel.add_child(textos)
-	_objetivo = _etiqueta(textos, 18)
-	_dialogo = _etiqueta(textos, 20)
-	_pista = _etiqueta(textos, 17)
+	_objetivo = _plaquita(capa, 17, Control.PRESET_CENTER_TOP, Vector2(0, 14))
+	_pista = _plaquita(capa, 17, Control.PRESET_BOTTOM_RIGHT, Vector2(-24, -150))   # encima de la rueda de consumibles (abajo a la derecha)
 
 
-func _etiqueta(padre: Control, tam: int) -> Label:
+## Una etiqueta con su fondo de pergamino que se ve solo cuando tiene texto.
+func _plaquita(capa: CanvasLayer, tam: int, ancla: Control.LayoutPreset, margen: Vector2) -> Label:
+	var raiz := Control.new()
+	raiz.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	capa.add_child(raiz)
+	raiz.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	var caja := PanelContainer.new()
+	caja.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var papel := TemaInterfaz.caja_panel(TemaInterfaz.PERGAMINO_DIALOGO, Color("947047"), 1)
+	papel.content_margin_left = 14.0
+	papel.content_margin_right = 14.0
+	papel.content_margin_top = 6.0
+	papel.content_margin_bottom = 6.0
+	caja.add_theme_stylebox_override("panel", papel)
+	raiz.add_child(caja)
+	caja.set_anchors_and_offsets_preset(ancla, Control.PRESET_MODE_MINSIZE)
+	caja.grow_horizontal = Control.GROW_DIRECTION_BOTH if ancla == Control.PRESET_CENTER_TOP else Control.GROW_DIRECTION_BEGIN
+	caja.grow_vertical = Control.GROW_DIRECTION_END if ancla == Control.PRESET_CENTER_TOP else Control.GROW_DIRECTION_BEGIN
+	caja.position += margen
 	var etiqueta := Label.new()
-	etiqueta.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	etiqueta.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	etiqueta.add_theme_font_override("font", TemaInterfaz.fuente())
 	etiqueta.add_theme_font_size_override("font_size", tam)
-	etiqueta.add_theme_color_override("font_outline_color", Color.BLACK)
-	etiqueta.add_theme_constant_override("outline_size", 8)
-	padre.add_child(etiqueta)
+	etiqueta.add_theme_color_override("font_color", Color("32271e"))
+	caja.add_child(etiqueta)
+	caja.hide()
 	return etiqueta
+
+
+## Las plaquitas se ven solo con texto (el texto lo pone `_physics_process`).
+func _process(_delta: float) -> void:
+	for l in [_objetivo, _pista]:
+		if l != null:
+			(l.get_parent() as Control).visible = l.text != ""

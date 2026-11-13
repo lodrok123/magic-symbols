@@ -1,0 +1,13 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://escenas/interior_torre.gd" id="1_torre"]
+
+[node name="InteriorTorre" type="Node3D"]
+script = ExtResource("1_torre")
+centro = Vector2i(30, 55)
+
+[node name="Camara" type="Camera3D" parent="."]
+position = Vector3(0, 17, 12)
+rotation_degrees = Vector3(-57, 0, 0)
+projection = 1
+size = 18.0

@@ -86,7 +86,9 @@ func abrir_porton() -> void:
 
 
 func bisagra(casa: Node3D) -> Node3D:
-	return casa.get_node("Modelo/Puerta")
+	# La Torre Verde lleva su puerta en el propio nodo (el modelo de Meshy es una sola malla); las pallozas, dentro del modelo.
+	var propia := casa.get_node_or_null("Puerta") as Node3D
+	return propia if propia != null else casa.get_node("Modelo/Puerta")
 
 
 func mostrar_interiores(posicion: Vector3) -> void:

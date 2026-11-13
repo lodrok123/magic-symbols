@@ -79,6 +79,8 @@ const LIBRERA_DEFECTO: Vector2i = Vector2i(10, 23)
 ## Encargo de Marimanta (EncargoMarimanta): planta y nido junto a la salida norte (24,1) del sendero de Monte Sumicio. Índice del paso -> casilla
 ## (el paso 0, el mapa, no tiene casilla: se cumple cartografiando el 60 % del nivel).
 const ENCARGO_CELDAS: Dictionary = {1: Vector2i(21, 5), 2: Vector2i(28, 6)}
+## 14/11: COFRES MÁGICOS (AlmacenUI, almacén compartido): en la linde, junto al inicio, y en el sendero norte, junto a la subida a Monte Sumicio.
+const COFRES_MAGICOS: Array = [Vector2i(6, 47), Vector2i(22, 3)]
 const RECT_ESTE: Rect2i = Rect2i(16, 34, 20, 14)
 const CENTRO_PRADERA: Vector2i = Vector2i(21, 28)
 const ID_LOBERNO: String = "loberno"
@@ -200,6 +202,8 @@ func iniciar(mundo: Variant) -> void:
 	_montar_aviso()
 	_definir_misiones()
 	Cartografia.preparar_desde_mapa(String((m as Object).get("nivel")))
+	for c in COFRES_MAGICOS:
+		CofreMagico.poner(m as Node3D, c)
 	_restaurar()
 	Flags.i().flag_cambio.connect(_al_cambiar_flag)
 	_montado = true
@@ -715,6 +719,10 @@ func _unhandled_input(ev: InputEvent) -> void:
 	if not k.pressed or k.echo or not k.is_action("interactuar"):
 		return
 	var yo: Vector3 = (m.get("_jugador") as Pj3D).position
+	if CofreMagico.cerca(get_tree(), yo):
+		AlmacenUI.abrir_en(get_tree())
+		get_viewport().set_input_as_handled()
+		return
 	var i_encargo: int = encargo_cercano(yo)
 	if i_encargo >= 0:
 		_decir(EncargoMarimanta.anotar(i_encargo), 6.0)

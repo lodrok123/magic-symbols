@@ -10,6 +10,10 @@ const MESA := Vector2i(1, -1)
 @export var centro := Vector2i.ZERO
 @export var tienda := false
 @export var casa_brais := false
+## 14/11: dónde se entra y por dónde se sale (casillas desde `centro`). Variables para que la Torre Verde (interior_torre.gd) pueda tener otras.
+var entrada := ENTRADA
+var salida := SALIDA
+var torre := false
 @onready var camara: Camera3D = $Camara
 var _tapa: MeshInstance3D
 
