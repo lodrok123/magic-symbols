@@ -13,8 +13,14 @@ const RUGOSIDAD_SUMICIO := 2.5
 ## y la luz en rampa la satura a blanco. 0 = como en los demás niveles.
 const RELIEVE_HIERBA_SUMICIO := 0.4    ## con 1 o más, el ruido de la normal se ve granulado sobre la hierba pintada
 ## Relieve que conserva la franja pintada de la junta hierba→tierra/camino (14/11, Pablo: «esta junta ha vuelto a afectarse»): 0 = lisa,
-## con su dibujo limpio; 1 = el relieve del suelo también encima (salía rayada).
-const RELIEVE_JUNTA_SUMICIO := 0.0
+## con su dibujo limpio; 1 = el relieve del suelo también encima. Las rayas eran de la textura estirada (ver BORDE_EXTIENDE); lisa del todo
+## quedaba más clara que la hierba de al lado.
+const RELIEVE_JUNTA_SUMICIO := 0.4
+## La franja de hojas de la junta se EXTIENDE en coordenadas de mundo en vez de estirarse sobre la frontera (14/11, Pablo: «sospecho que
+## estás estirando la textura en vez de extenderla»): 1 = extendida (sin abanicos en curvas y esquinas) · 0 = como en los demás niveles.
+const BORDE_EXTIENDE_SUMICIO := 1.0
+## Tinte de esa franja: el de serie (0,80 0,90 0,72) es para la hierba del bosque y aquí salía menta; este la acerca al verde de Sumicio.
+const BORDE_TINTE_SUMICIO := Color(0.82, 0.87, 0.64)
 
 
 ## Letra de suelo que pintó el GridMap en cada casilla (sin los marcadores encima).
@@ -84,6 +90,8 @@ func _vestir_suelo() -> void:
 	_mat_suelo.set_shader_parameter("rugosidad", _rugosidad)
 	_mat_suelo.set_shader_parameter("relieve_hierba", RELIEVE_HIERBA_SUMICIO)
 	_mat_suelo.set_shader_parameter("relieve_junta", RELIEVE_JUNTA_SUMICIO)
+	_mat_suelo.set_shader_parameter("borde_extiende", BORDE_EXTIENDE_SUMICIO)
+	_mat_suelo.set_shader_parameter("borde_tinte", BORDE_TINTE_SUMICIO)
 	# El tipo «piedra» de Sumicio es el empedrado (las losas claras del bosque no van aquí).
 	if ResourceLoader.exists(SUELO + "empedrado_sumicio.png"):
 		_mat_suelo.set_shader_parameter("t_piedra", _tex(SUELO + "empedrado_sumicio.png"))

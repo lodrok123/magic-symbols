@@ -179,6 +179,7 @@ uniform float borde_fuerza = 0.0;                                       // 0 = s
 uniform float borde_ancho = 0.9;                                        // alto de la franja en unidades de mundo (0,4 casillas)
 uniform float borde_oscuro = 0.78;                                      // lo que se oscurece la hierba pegada a la frontera (1 = nada)
 uniform vec3 borde_tinte : source_color = vec3(0.80, 0.90, 0.72);       // las hojas de Meshy son más claras que la hierba del suelo
+uniform float borde_extiende = 0.0;     // 14/11: 1 = la franja se extiende en coordenadas de mundo (sin abanicos en curvas); 0 = proyectada sobre la frontera, como siempre
 // 16/10 (Juego, 14.2 · P4): BORDES ENTRE TODOS LOS MATERIALES. El borde de hierba de arriba cubre «hierba contra lo que sea»; esto cubre las parejas
 // que quedaban en una mezcla blanda y difusa: camino↔tierra, camino↔piedra y tierra↔piedra. En cada pareja un material «lame» al otro: su color
 // se funde sobre el vecino en un degradado de `par_lame` u, con el filo deshilachado por un ruido fino de `par_ruido` u y un poco de sombra en el
@@ -554,6 +555,16 @@ void fragment() {
 			if (vb > 0.0 && vb < 1.0) {
 				float ub = dot(pm.xz, vec2(-nb.y, nb.x)) / (borde_ancho * 5.15);   // 5,15 = 885 / 172, para no estirar las hojas
 				vec4 hb = texture(t_borde, vec2(ub, vb));
+				if (borde_extiende > 0.0) {
+					// 14/11 (Pablo: «sospecho que estás estirando la textura en vez de extenderla»): `ub` proyecta sobre la tangente de la frontera, que gira
+					// píxel a píxel en curvas y esquinas: ahí la coordenada se dispara y las hojas salen en abanico (rayas). Como la lámina de joints, se
+					// extiende en coordenadas de MUNDO: una muestra a lo largo de X y otra a lo largo de Z, mezcladas según hacia dónde corre la frontera.
+					float esc_b = borde_ancho * 5.15;
+					vec4 hx = texture(t_borde, vec2(pm.x / esc_b, vb));
+					vec4 hz = texture(t_borde, vec2(pm.z / esc_b + 0.37, vb));
+					float corre_x = smoothstep(0.25, 0.75, nb.y * nb.y);           // frontera tendida a lo largo de X (su normal mira en Z)
+					hb = mix(hb, mix(hz, hx, corre_x), borde_extiende);
+				}
 				col = mix(col, hb.rgb * borde_tinte, hb.a * fb * borde_fuerza * (1.0 - 0.85 * cubre) * (1.0 - suaviza_borde));
 				tapa_junta = max(tapa_junta, hb.a * fb * borde_fuerza * (1.0 - suaviza_borde));
 			}
