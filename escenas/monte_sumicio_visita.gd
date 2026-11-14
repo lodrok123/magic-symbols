@@ -436,7 +436,9 @@ var _nodo_cofre_agua: Node3D
 const SalaTorre = preload("res://escenas/interior_torre.gd")
 var _sala_torre: SalaTorre
 var _puerta_torre: Node3D
-const PUERTA_TORRE := Vector3(-0.55, 0.0, 4.15)        ## bisagra de la puerta, en local de la torre (el arco del sur, en la casilla del hueco del muro)
+const PUERTA_TORRE_MODELO := preload("res://arte/meshy/piezas/puerta_torre_sumicio.glb")
+const ALTO_PUERTA_TORRE := 1.9
+const PUERTA_TORRE := Vector3(-0.58, 0.0, 4.15)        ## bisagra de la puerta, en local de la torre (el arco del sur, en la casilla del hueco del muro)
 
 
 func _montar_torre(mundo: Node) -> void:
@@ -450,16 +452,23 @@ func _montar_torre(mundo: Node) -> void:
 	_puerta_torre.name = "Puerta"
 	torre.add_child(_puerta_torre)
 	_puerta_torre.position = PUERTA_TORRE
-	var hoja := MeshInstance3D.new()
-	var caja := BoxMesh.new()
-	caja.size = Vector3(1.1, 1.9, 0.14)
-	hoja.mesh = caja
-	var madera := StandardMaterial3D.new()
-	madera.albedo_color = Color("#6b4a2f")
-	madera.roughness = 1.0
-	hoja.material_override = madera
-	hoja.position = Vector3(0.55, 0.95, 0.0)          # la bisagra va a la izquierda: la hoja se abre hacia dentro
+	# La hoja de Meshy (arte/meshy/piezas/puerta_torre_sumicio.glb, 14/11): mide 0,61 × 1,0 × 0,13 centrada en su origen. A 1,9 m de alto
+	# queda de 1,16 de ancho; se corre medio ancho y media altura para que la bisagra (este nodo) quede en su borde izquierdo, abajo.
+	var hoja := PUERTA_TORRE_MODELO.instantiate() as Node3D
+	hoja.scale = Vector3.ONE * ALTO_PUERTA_TORRE
+	hoja.position = Vector3(0.304, 0.5, 0.0) * ALTO_PUERTA_TORRE
 	_puerta_torre.add_child(hoja)
+	# El vano en penumbra (como el FondoVano de las pallozas): tapa la puerta pintada en la malla de la torre, que si no se ve al abrir la nuestra.
+	var vano := MeshInstance3D.new()
+	var caja := BoxMesh.new()
+	caja.size = Vector3(0.612 * ALTO_PUERTA_TORRE, ALTO_PUERTA_TORRE, 0.04)
+	vano.mesh = caja
+	var oscuro := StandardMaterial3D.new()
+	oscuro.albedo_color = Color("#140f0b")
+	oscuro.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	vano.material_override = oscuro
+	torre.add_child(vano)
+	vano.position = PUERTA_TORRE + Vector3(0.304 * ALTO_PUERTA_TORRE, 0.5 * ALTO_PUERTA_TORRE, -0.1)
 	_casas[torre] = _sala_torre
 	# Lo de la audiencia, dentro de la sala.
 	_maqueta.marimanta.global_position = _sala_torre.punto("marimanta")

@@ -9,9 +9,10 @@ extends "res://escenas/interior_palloza.gd"
 
 const RADIO := 3
 const PUNTOS: Dictionary = {
+	# 14/11: (±2, −2) caía en el muro redondo y los cofres quedaban dentro de la pared: van a los lados de Marimanta.
 	"marimanta": Vector2i(0, -2),
-	"cofre_uniforme": Vector2i(2, -2),
-	"cofre_agua": Vector2i(-2, -2),
+	"cofre_uniforme": Vector2i(1, -2),
+	"cofre_agua": Vector2i(-1, -2),
 	"cofre_magico": Vector2i(-2, 1),
 }
 const GRANITO := Color("#6f6f63")
@@ -71,6 +72,12 @@ func _encuadrar() -> void:
 
 func contiene(c: Vector2i) -> bool:
 	return Rect2i(centro - Vector2i(RADIO, RADIO), Vector2i(RADIO * 2 + 1, RADIO * 2 + 1)).has_point(c)
+
+
+## ¿La casilla (desde `centro`) es muro o queda fuera de la sala? (lo usa la prueba para que nada se ponga dentro de la pared)
+static func es_muro(v: Vector2i) -> bool:
+	var d := Vector2(v.x, v.y).length()
+	return d > RADIO + 0.45 or absi(v.x) == RADIO or absi(v.y) == RADIO or d > RADIO - 0.35
 
 
 ## El punto del mundo de un sitio de la sala (`PUNTOS`).

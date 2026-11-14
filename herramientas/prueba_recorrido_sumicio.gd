@@ -148,6 +148,13 @@ func _process(_d: float) -> bool:
 				return false
 			_espera = 0
 			_ok(v._interior.torre, "4.0 la puerta animada de la torre lleva a su sala")
+			var en_muro: Array = []
+			for sitio in v._interior.PUNTOS:
+				if v._interior.es_muro(v._interior.PUNTOS[sitio]):
+					en_muro.append(sitio)
+			_ok(en_muro.is_empty(), "4.0b nada de la sala queda dentro del muro %s" % str(en_muro))
+			var cofre: Node3D = current_scene.get_node("Maqueta").cofre
+			_ok(cofre.is_visible_in_tree() and v._interior.contiene(Terreno3D.celda_de(cofre.global_position)), "4.0c el cofre del uniforme se ve dentro de la sala")
 			_audiencia_y_encargo()
 		5:  # salir de la torre por su salida y volver a la Fraga con E en InicioFraga
 			var v: Node = current_scene.get_node("Visita")
