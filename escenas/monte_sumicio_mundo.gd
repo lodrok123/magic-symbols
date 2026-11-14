@@ -24,6 +24,12 @@ const BORDE_EXTIENDE_SUMICIO := 1.0
 const BORDE_FUNDIDO_SUMICIO := 1.0
 ## Tinte de esa franja: el de serie (0,80 0,90 0,72) es para la hierba del bosque y aquí salía menta; este la acerca al verde de Sumicio.
 const BORDE_TINTE_SUMICIO := Color(0.82, 0.87, 0.64)
+## 14/11, 3.ª pasada (Pablo: «sigo sin verlo bien. Mira la junta»): con la cámara del juego la franja de hojas se ve como un hilo pálido con
+## manchas verdes planas sueltas, y debajo la hierba pasa a la tierra en un degradado borroso. Lo que se usa ahora: SIN franja de hojas
+## (BORDE_FUERZA 0, así que los cuatro valores de arriba no hacen nada) y con la frontera de la hierba rota por ruido fino (MEZCLA_HIERBA):
+## matas de hierba sobre la tierra y el empedrado y calvas en la hierba, entremezcladas. Para volver a la franja: BORDE_FUERZA 1, MEZCLA 0.
+const BORDE_FUERZA_SUMICIO := 0.0
+const MEZCLA_HIERBA_SUMICIO := 1.2     ## 0 = degradado liso · 0,8 suave · 1,4 muy deshilachado
 
 
 ## Letra de suelo que pintó el GridMap en cada casilla (sin los marcadores encima).
@@ -95,6 +101,8 @@ func _vestir_suelo() -> void:
 	_mat_suelo.set_shader_parameter("relieve_junta", RELIEVE_JUNTA_SUMICIO)
 	_mat_suelo.set_shader_parameter("borde_extiende", BORDE_EXTIENDE_SUMICIO)
 	_mat_suelo.set_shader_parameter("borde_fundido", BORDE_FUNDIDO_SUMICIO)
+	_mat_suelo.set_shader_parameter("borde_fuerza", BORDE_FUERZA_SUMICIO)
+	_mat_suelo.set_shader_parameter("mezcla_hierba", MEZCLA_HIERBA_SUMICIO)
 	_mat_suelo.set_shader_parameter("borde_tinte", BORDE_TINTE_SUMICIO)
 	# El tipo «piedra» de Sumicio es el empedrado (las losas claras del bosque no van aquí).
 	if ResourceLoader.exists(SUELO + "empedrado_sumicio.png"):

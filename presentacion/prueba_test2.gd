@@ -179,6 +179,7 @@ uniform float borde_fuerza = 0.0;                                       // 0 = s
 uniform float borde_ancho = 0.9;                                        // alto de la franja en unidades de mundo (0,4 casillas)
 uniform float borde_oscuro = 0.78;                                      // lo que se oscurece la hierba pegada a la frontera (1 = nada)
 uniform vec3 borde_tinte : source_color = vec3(0.80, 0.90, 0.72);       // las hojas de Meshy son más claras que la hierba del suelo
+uniform float mezcla_hierba = 0.0;      // 14/11: cuánto rompe el ruido fino la frontera de la hierba (matas y calvas entremezcladas); 0 = degradado liso, como siempre
 uniform float borde_fundido = 0.0;      // 14/11: 1 = la franja se desvanece hacia el otro suelo con el corte roto por ruido (calvas entre las hojas); 0 = como siempre
 uniform float borde_extiende = 0.0;     // 14/11: 1 = la franja se extiende en coordenadas de mundo (sin abanicos en curvas); 0 = proyectada sobre la frontera, como siempre
 // 16/10 (Juego, 14.2 · P4): BORDES ENTRE TODOS LOS MATERIALES. El borde de hierba de arriba cubre «hierba contra lo que sea»; esto cubre las parejas
@@ -421,6 +422,14 @@ void fragment() {
 	vec4 r = texture(campo, c / lado);
 	vec2 uvm = (c + (r.rg - 0.5) * 2.0 * ruido) / lado;
 	vec4 w0 = texture(mapa, uvm);
+	if (mezcla_hierba > 0.0) {
+		// 14/11 (Pablo: «la junta… un fade que se entremezcle con la tierra»): el mapa es de un tipo por casilla, filtrado, así que la hierba pasa a
+		// lo vecino en un degradado liso. Aquí la frontera de la hierba se empuja con ruido FINO solo cerca de ella: salen matas de hierba sobre la
+		// tierra y calvas de tierra en la hierba, entremezcladas, en vez de la mancha borrosa.
+		float nf = texture(campo, c / lado * 47.0).b * 0.6 + texture(campo, c / lado * 121.0 + vec2(0.13, 0.57)).g * 0.4;
+		float cerca_h = clamp(w0.r * (1.0 - w0.r) * 4.0, 0.0, 1.0);          // 1 en la frontera, 0 dentro de la hierba o fuera de ella
+		w0.r = clamp(w0.r + (nf - 0.5) * mezcla_hierba * cerca_h, 0.0, 1.0);
+	}
 	vec4 w = smoothstep(vec4(0.5 - dureza), vec4(0.5 + dureza), w0);
 	float s = w.r + w.g + w.b + w.a;
 	if (s < 0.05) {
