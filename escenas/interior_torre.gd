@@ -65,20 +65,6 @@ func montar() -> void:
 	_encuadrar()
 
 
-## Un cuerpo de choque (capa de lo sólido) con forma de caja, en coordenadas de la sala.
-func _solido_caja(pos: Vector3, tam: Vector3) -> void:
-	var cuerpo := StaticBody3D.new()
-	cuerpo.collision_layer = Terreno3D.CAPA_SOLIDO
-	cuerpo.collision_mask = 0
-	var cs := CollisionShape3D.new()
-	var caja := BoxShape3D.new()
-	caja.size = tam
-	cs.shape = caja
-	cuerpo.add_child(cs)
-	add_child(cuerpo)
-	cuerpo.position = pos
-
-
 func _encuadrar() -> void:
 	var ventana := get_viewport().get_visible_rect().size
 	var aspecto := ventana.x / maxf(ventana.y, 1.0)

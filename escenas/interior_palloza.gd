@@ -38,9 +38,10 @@ func montar() -> void:
 				_caja(p - Vector3.UP * 0.067, Vector3(s, 0.16, s), Color("#2a221b"))
 			else:
 				_caja(p - Vector3.UP * 0.067, Vector3(s, 0.16, s), tierra, _mat_tierra())
-			if borde and not umbral:
-				Terreno3D.bloquear_celda_completa(c)
+			# 14/11 (Pablo: «todas las colisiones por malla»): el borde ya no bloquea su casilla entera (2,3 u, y el muro redondo cae a 5 u del
+			# centro: quedaba una franja invisible de ~1,4 u por dentro). Choca el anillo del muro (`_muro_solido`).
 	_muro_redondo()
+	_muro_solido()
 	_alero_paja()
 	_bordillo_astrago()
 	_paja_travariza()
@@ -60,15 +61,16 @@ func montar() -> void:
 			continue
 		pieza.position = muebles[nombre]
 		if casa_brais and nombre == "Banco":
-			pieza.position = Vector3(-2.65, MEDIA_ALTURA, -0.35)
+			pieza.position = Vector3(-2.35, MEDIA_ALTURA, -1.65)      # 14/11: en el Ástrago, sin pisar la valla de la Travariza
 		pieza.scale = Vector3.ONE * 1.55
 		if nombre in ["Banco", "Arcon", "Pesebre", "Tabique"]:
-			var celda := Terreno3D.celda_de(pieza.global_position)
-			Terreno3D.bloquear_contorno(celda, pieza)
+			_solido_de(pieza)
 	if not tienda:
 		_amueblar_astrago()
 	if tienda:
 		_caja(Vector3(-2.3, 0.70, -1.65), Vector3(1.65, 0.76, 0.60), Color("#674630"))
+		_solido_caja(Vector3(-2.3, 0.75, -1.65), Vector3(1.77, 0.9, 0.72))          # el mostrador
+		_solido_caja(Vector3(2.3, 0.7, -2.80), Vector3(1.35, 1.0, 0.85))            # la estantería de la síntesis
 		_caja(Vector3(-2.3, 1.10, -1.65), Vector3(1.77, 0.10, 0.72), Color("#ad794e"))
 		for x in [1.8, 2.8]:
 			_caja(Vector3(x, 0.64, -2.80), Vector3(0.11, 0.64, 0.62), Color("#75563a"))
@@ -79,6 +81,7 @@ func montar() -> void:
 		_rotulo("Síntesis", Vector3(2.3, 1.65, -2.3))
 	else:
 		_caja(Vector3(2.3, 0.25, 2.3), Vector3(0.85, 0.5, 0.55), Color("#775132"))
+		_solido_caja(Vector3(2.3, 0.3, 2.3), Vector3(0.9, 0.6, 0.6))                # el cofre
 		_tapa = _caja(Vector3(2.3, 0.52, 2.3), Vector3(0.90, 0.12, 0.59), Color("#9d7449"))
 		if casa_brais:
 			for i in range(5):
@@ -89,10 +92,13 @@ func montar() -> void:
 		_rotulo("Travariza", Vector3(1.65, 0.7, 2.65))
 		# 14/11: los animales de la Travariza (lámina 11: «las vacas y, en un reservado aparte, algún cerdo»), vivos (AnimalVivo).
 		# La vaca dormita al oeste del umbral con la cabeza hacia el Ástrago; el cerdo hocica a su lado, junto al muro sur.
-		AnimalVivo.poner(self, "vaca", Vector3(-2.5, 0.0, 1.5), -PI * 0.5)
-		AnimalVivo.poner(self, "cerdo", Vector3(-1.2, 0.0, 3.0), 0.35)
-		for celda in [Vector2i(-1, 1), Vector2i(-1, 0)]:
-			Terreno3D.bloquear_celda_completa(centro + celda)
+		# 14/11: la vaca, el cerdo y la valla chocan con su modelo (antes, las dos casillas de los animales enteras).
+		_solido_de(AnimalVivo.poner(self, "vaca", Vector3(-2.5, 0.0, 1.5), -PI * 0.5))
+		_solido_de(AnimalVivo.poner(self, "cerdo", Vector3(-1.95, 0.0, 3.1), 0.35))
+		_valla_travariza()
+		_madera_valla()
+		for mi in find_children("Valla*", "MeshInstance3D", false, false):
+			_solido_de(mi)
 	_rotulo("Salida", Vector3(0, 0.65, 4.55))
 	camara.look_at(global_position + Vector3.UP * 0.35)
 	get_viewport().size_changed.connect(_encuadrar)
@@ -137,8 +143,164 @@ func _pieza_hogar(nombre: String, pos: Vector3, giro: float, bloquea: bool) -> M
 	mi.position = pos
 	mi.rotation.y = giro
 	if bloquea:
-		Terreno3D.bloquear_contorno(Terreno3D.celda_de(mi.global_position), mi)
+		_solido_de(mi)
 	return mi
+
+
+## 14/11: la valla baja de la Travariza (DISENO_INTERIORES_SUMICIO.md: «tras una valla baja»), con la valla modular de Meshy
+## (herramientas/separar_coleccion_valla.gd). Corre de norte a sur por el borde de la columna de los animales, desde el bordillo del
+## Ástrago hasta el muro sur, con la cancela en medio. Las casillas de los animales ya están bloqueadas: la valla no bloquea el paso.
+const VALLA_X := -1.3
+const VALLA_ALTO := 0.85
+
+
+func _valla_travariza() -> void:
+	var s := Terreno3D.casilla
+	# Frente norte del corral, de cara a la cámara: del muro oeste a la esquina.
+	var z0 := -s * 0.5 + 0.45
+	var esquina := _malla_valla("esquina")
+	if esquina != null:
+		var ke := VALLA_ALTO / esquina.get_aabb().size.y
+		var me := MeshInstance3D.new()
+		me.name = "Valla_esquina"
+		me.mesh = esquina
+		add_child(me)
+		me.scale = Vector3.ONE * ke
+		me.position = Vector3(VALLA_X, 0.0, z0)
+	var x := VALLA_X - 0.35
+	var oeste := -sqrt(pow(RADIO_MURO * s, 2.0) - z0 * z0) + 0.3
+	var j := 0
+	while true:
+		var malla := _malla_valla("tramo_b" if j % 2 == 0 else "tramo_a")
+		var k := VALLA_ALTO / malla.get_aabb().size.y
+		var largo := malla.get_aabb().size.x * k * 0.97
+		if x - largo < oeste:
+			break
+		var mi := MeshInstance3D.new()
+		mi.name = "Valla_frente_%d" % j
+		mi.mesh = malla
+		add_child(mi)
+		mi.scale = Vector3.ONE * k
+		mi.position = Vector3(x - largo * 0.5, 0.0, z0)
+		x -= largo
+		j += 1
+	var z := z0 + 0.3
+	var fin := sqrt(pow(RADIO_MURO * s, 2.0) - VALLA_X * VALLA_X) - 0.45
+	var tramos: Array = []
+	var i := 0
+	while true:
+		var nombre := "cancela" if i == 3 else ("tramo_a" if i % 2 == 0 else "tramo_b")
+		var malla := _malla_valla(nombre)
+		if malla == null:
+			return
+		var k := VALLA_ALTO / malla.get_aabb().size.y
+		var largo := malla.get_aabb().size.x * k * 0.97
+		if z + largo > fin:
+			break
+		var mi := MeshInstance3D.new()
+		mi.name = "Valla_" + nombre
+		mi.mesh = malla
+		add_child(mi)
+		mi.scale = Vector3.ONE * k
+		mi.rotation.y = PI * 0.5          # a lo largo de Z, con la cara hacia el paso (este)
+		mi.position = Vector3(VALLA_X, 0.0, z + largo * 0.5)
+		tramos.append(mi)
+		z += largo
+		i += 1
+
+
+func _malla_valla(nombre: String) -> Mesh:
+	var ruta := "res://arte/meshy/piezas/valla_%s.res" % nombre
+	return load(ruta) if ResourceLoader.exists(ruta) else null
+
+
+func _madera_valla() -> void:
+	for mi in find_children("*", "MeshInstance3D", false, false):
+		var malla := (mi as MeshInstance3D).mesh
+		if malla != null and malla.resource_path.contains("/valla_"):
+			(mi as MeshInstance3D).material_override = VallaMadera.material(malla)
+
+
+## ---- 14/11 · Colisión por MALLA dentro de la palloza (Pablo: «ponlas TODAS por malla, hay muchos muros invisibles») ----
+
+## El muro redondo choca donde están sus cantos: un anillo de cajas de MURO_GROSOR centrado en el radio del muro, con el hueco de la puerta
+## (y las dos jambas). Más barato que medir los ~110 cantos uno a uno y da lo mismo: forman una pared seguida.
+const MURO_GROSOR := 0.8
+
+
+func _muro_solido() -> void:
+	var s := Terreno3D.casilla
+	var r := RADIO_MURO * s
+	var hueco := s * 0.48
+	var n := 56
+	var largo := TAU * r / n * 1.08
+	var cuerpo := _cuerpo_solido("SolidoMuro")
+	for i in range(n):
+		var a := TAU * (float(i) + 0.5) / n
+		var d := Vector3(sin(a), 0.0, -cos(a))
+		var pos := d * r
+		if pos.z > 0.0 and absf(pos.x) < hueco + largo * 0.5:
+			continue
+		var cs := CollisionShape3D.new()
+		var caja := BoxShape3D.new()
+		caja.size = Vector3(largo, 2.0, MURO_GROSOR)
+		cs.shape = caja
+		cuerpo.add_child(cs)
+		cs.position = pos + Vector3.UP * 0.9
+		cs.rotation.y = -a
+	for lado in [-1.0, 1.0]:
+		var cs := CollisionShape3D.new()
+		var caja := BoxShape3D.new()
+		caja.size = Vector3(0.6, 2.0, 0.6 * 0.75)
+		cs.shape = caja
+		cuerpo.add_child(cs)
+		cs.position = Vector3(lado * (hueco + 0.25), 0.9, sqrt(maxf(r * r - hueco * hueco, 0.0)))
+
+
+## Un cuerpo vacío en la capa de lo sólido, hijo de la sala.
+func _cuerpo_solido(nombre: String) -> StaticBody3D:
+	var cuerpo := StaticBody3D.new()
+	cuerpo.name = nombre
+	cuerpo.collision_layer = Terreno3D.CAPA_SOLIDO
+	cuerpo.collision_mask = 0
+	add_child(cuerpo)
+	return cuerpo
+
+
+## Un cuerpo de choque con forma de caja, en coordenadas de la sala.
+func _solido_caja(pos: Vector3, tam: Vector3) -> void:
+	var cuerpo := _cuerpo_solido("SolidoCaja")
+	var cs := CollisionShape3D.new()
+	var caja := BoxShape3D.new()
+	caja.size = tam
+	cs.shape = caja
+	cuerpo.add_child(cs)
+	cuerpo.position = pos
+
+
+## Cuerpo de choque de `n` (un mueble, un animal, un tramo de valla) medido sobre sus mallas visibles con ColisionPieza: la franja donde
+## toca el cuerpo de Mid, con la base en el origen de `n`. Lo que asoma menos de ALTO_MIN_SOLIDO se pisa (no lleva cuerpo).
+func _solido_de(n: Node3D) -> void:
+	if n == null:
+		return
+	var giro := Transform3D(n.global_basis, Vector3.ZERO)
+	var tris := PackedVector3Array()
+	if n is MeshInstance3D and (n as MeshInstance3D).mesh != null:
+		for v in (n as MeshInstance3D).mesh.get_faces():
+			tris.append(giro * v)
+	for h in n.get_children():
+		tris.append_array(ColisionPieza._triangulos(h, giro))
+	var lista := ColisionPieza.cascos_triangulos(tris, "contorno")
+	if lista.is_empty():
+		return
+	var cuerpo := _cuerpo_solido("Solido" + String(n.name))
+	for nube in lista:
+		var cs := CollisionShape3D.new()
+		var sh := ConvexPolygonShape3D.new()
+		sh.points = nube
+		cs.shape = sh
+		cuerpo.add_child(cs)
+	cuerpo.global_position = n.global_position
 
 
 func _encuadrar() -> void:

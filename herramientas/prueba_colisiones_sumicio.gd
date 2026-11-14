@@ -111,5 +111,43 @@ func _initialize() -> void:
 		var fuera: Vector3 = (casa as Node3D).global_basis.z.normalized()
 		var p: Vector3 = hueco + fuera * 0.5
 		_ok(not _choca(p), "5.1 delante de la puerta de %s (a 0,5 de la hoja) se puede estar" % casa.name)
+	# 6 · por dentro de las pallozas (14/11, 2.ª parte): sin muros invisibles, el muro redondo cierra y la puerta deja salir
+	for sala in esc.get_node("Interiores").get_children():
+		if sala.get("torre"):
+			continue
+		var o: Vector3 = (sala as Node3D).global_position
+		var r: float = sala.RADIO_MURO * Terreno3D.casilla
+		var inv := 0
+		var total := 0
+		var xx := -r
+		while xx <= r:
+			var zz := -r
+			while zz <= r:
+				if Vector2(xx, zz).length() < r - 0.45:
+					var p := o + Vector3(xx, 0.0, zz)
+					total += 1
+					if _choca(p) and not _malla(p):
+						inv += 1
+				zz += 0.3
+			xx += 0.3
+		_ok(inv == 0, "6.1 %s por dentro: %d de %d puntos chocan sin malla" % [sala.name, inv, total])
+		var abiertos2: Array = []
+		var hueco: float = Terreno3D.casilla * 0.48
+		var b := 0.0
+		while b < 360.0:
+			var ang := deg_to_rad(b)
+			var p := o + Vector3(sin(ang), 0.0, -cos(ang)) * r
+			if not (p.z - o.z > 0.0 and absf(p.x - o.x) < hueco + 0.6) and not _choca(p):
+				abiertos2.append(int(b))
+			b += 5.0
+		_ok(abiertos2.is_empty(), "6.2 %s: el muro redondo cierra (abierto en %s)" % [sala.name, str(abiertos2)])
+		_ok(not _choca(o + Vector3(0.0, 0.0, r - 0.3)) and not _choca(o + Vector3(0.0, 0.0, r)), "6.3 %s: por la puerta se sale" % sala.name)
+		var nombres: Array = []
+		for h in (sala as Node).get_children():
+			if String(h.name).begins_with("Solido") and h is StaticBody3D:
+				nombres.append(String(h.name))
+		var pide: Array = ["SolidoMuro"] + (["SolidoCaja"] if sala.tienda else ["SolidoVaca", "SolidoCerdo", "SolidoBanco", "SolidoPesebre", "SolidoValla_cancela"])
+		var faltan: Array = pide.filter(func(x): return not nombres.has(x))
+		_ok(faltan.is_empty(), "6.4 %s: cuerpos por malla de muro, muebles, animales y valla (faltan %s; hay %d)" % [sala.name, str(faltan), nombres.size()])
 	print("FALLOS: %d" % _fallos)
 	quit(1 if _fallos > 0 else 0)
