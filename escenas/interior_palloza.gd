@@ -77,6 +77,12 @@ func montar() -> void:
 				paja.rotation.y = i * 0.6
 		_rotulo("Ástrago", Vector3(-1.6, 0.65, -3.1))
 		_rotulo("Travariza", Vector3(1.65, 0.7, 2.65))
+		# 14/11: los animales de la Travariza (lámina 11: «las vacas y, en un reservado aparte, algún cerdo»), vivos (AnimalVivo).
+		# La vaca dormita al oeste del umbral con la cabeza hacia el Ástrago; el cerdo hocica a su lado, junto al muro sur.
+		AnimalVivo.poner(self, "vaca", Vector3(-2.5, 0.0, 1.5), -PI * 0.5)
+		AnimalVivo.poner(self, "cerdo", Vector3(-1.2, 0.0, 3.0), 0.35)
+		for celda in [Vector2i(-1, 1), Vector2i(-1, 0)]:
+			Terreno3D.bloquear_celda_completa(centro + celda)
 	_rotulo("Salida", Vector3(0, 0.65, 4.55))
 	camara.look_at(global_position + Vector3.UP * 0.35)
 	get_viewport().size_changed.connect(_encuadrar)
