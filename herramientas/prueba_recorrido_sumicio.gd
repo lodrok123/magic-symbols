@@ -15,6 +15,7 @@ var _f := 0
 var _espera := 0
 var _camino: Array = []
 var _nivel_antes := ""
+var _cancela: Array = []      ## casillas que cerraba la cancela de la empalizada
 
 
 func _initialize() -> void:
@@ -244,13 +245,25 @@ func _inicio_bosque() -> void:
 func _llegada_sumicio() -> void:
 	var maq: Node = current_scene.get_node("Maqueta")
 	_ok(Terreno3D.celda_de(_jug().global_position) == Terreno3D.celda_de(maq.inicio.global_position), "2.1 la salida norte lleva a Monte Sumicio (InicioFraga)")
+	# 14/11: la cancela de la empalizada está cerrada hasta que el guardia da paso: sus dos hojas y su casilla bloqueada.
+	var cerradas: Array = maq._celdas_puerta.duplicate()
+	var bloqueadas := not cerradas.is_empty()
+	for c in cerradas:
+		bloqueadas = bloqueadas and Terreno3D.bloqueada(c)
+	_ok(maq._hojas.size() == 2 and not maq.porton_abierto() and bloqueadas, "2.2 la cancela está cerrada al llegar y cierra el paso %s" % str(cerradas))
 	_poner(maq.guardia.global_position + Vector3(1.0, 0, 0))
+	_cancela = cerradas
 	_pulsar_e()
 
 
 func _escolta() -> bool:
 	var v: Node = current_scene.get_node("Visita")
 	if v._fase == 1:                       # ESCOLTA: Mid va detrás del guardia
+		if _espera == 0:
+			var libres := true
+			for c in _cancela:
+				libres = libres and not Terreno3D.bloqueada(c)
+			_ok(current_scene.get_node("Maqueta").porton_abierto() and libres, "2.3 al hablar con el guardia la cancela se abre y deja libre el paso")
 		_poner(v._guardia.global_position + Vector3(0, 0, 1.6))
 		_espera += 1
 		if _espera > MAX_FOTOGRAMAS_PASO:

@@ -32,6 +32,8 @@ var _interior: Interior
 var _fundido: ColorRect
 var _en_transicion := false
 var _giro_exterior := 0.0
+var _espera_cancela := 0.0
+const ESPERA_CANCELA := 0.9      ## s desde que el guardia da paso hasta que echa a andar (la cancela ya va medio abierta)
 
 
 func _ready() -> void:
@@ -122,7 +124,7 @@ func _physics_process(delta: float) -> void:
 	var pista := ""
 	match _fase:
 		Fase.PORTON:
-			objetivo = "Sube al portón y habla con el guardia."
+			objetivo = "Sube a la cancela y habla con el guardia."
 			if _cerca(_maqueta.guardia):
 				pista = "[E] Hablar con el guardia"
 		Fase.ESCOLTA:
@@ -186,7 +188,8 @@ func _interactuar() -> bool:
 		Fase.PORTON:
 			if _cerca(_maqueta.guardia):
 				_fase = Fase.ESCOLTA
-				_maqueta.abrir_porton()
+				_maqueta.abrir_porton(true)      # la cancela se abre a la vista de Mid
+				_espera_cancela = ESPERA_CANCELA
 				_dialogo.text = "Guardia · La Maestre te espera. Ve detrás de mí."
 				return true
 		Fase.AUDIENCIA:
@@ -382,6 +385,10 @@ func _montar_fundido() -> void:
 
 
 func _avanzar_escolta(delta: float) -> void:
+	# 14/11: el guardia no echa a andar hasta que las hojas de la cancela se han apartado (si no, las atraviesa mientras giran).
+	if _espera_cancela > 0.0:
+		_espera_cancela -= delta
+		return
 	# El guardia espera si Mid se detiene o se desvía.
 	if _distancia_plana(_guardia.position, _mid.position) > 5.4:
 		return
