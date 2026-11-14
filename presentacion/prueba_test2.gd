@@ -297,6 +297,7 @@ uniform bool acceso_cueva_integrado = false;
 uniform bool respetar_especular_luz = false;
 uniform float rugosidad = 0.5;            // 0 liso · 1 muy rugoso (tecla B)
 uniform float tam_rugosidad = 1.4;        // unidades de mundo por repetición del relieve
+uniform float relieve_hierba = 0.0;       // 14/11: relieve de más en la hierba (que por defecto lleva la mitad que el camino); 0 = como siempre
 // Relieve PROPIO de la tierra: mapa de normales sacado de su textura (piedras en relieve, musgo y gravilla). Si no hay
 // (usa_normal_tierra = 0) la tierra usa el relieve genérico de arriba, como siempre.
 uniform sampler2D normal_tierra : hint_normal, filter_linear_mipmap, repeat_enable;
@@ -652,7 +653,8 @@ void fragment() {
 		vec2 gt = mix(g1, g2, m);
 		nr = normalize(vec3(mix(nr.xy, gt + nr.xy * 0.3, w.b), 1.0));
 	}
-	float fuerza = rugosidad * (0.5 + 0.5 * (w.g + w.b) + 0.8 * w.a) * (1.0 - he);
+	// 14/11: `relieve_hierba` suma relieve SOLO en la hierba (w.r); 0 en todos los niveles salvo los que lo pidan (Monte Sumicio).
+	float fuerza = rugosidad * (0.5 + 0.5 * (w.g + w.b) + 0.8 * w.a + relieve_hierba * w.r) * (1.0 - he);
 	NORMAL_MAP = nr * 0.5 + 0.5;
 	NORMAL_MAP_DEPTH = fuerza * 2.2;
 }
