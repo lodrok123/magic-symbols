@@ -37,6 +37,8 @@ var _hojas: Array[Node3D] = []              ## bisagras de la cancela: izquierda
 var _celdas_puerta: Array[Vector2i] = []    ## casillas que cierra SOLO la cancela (se liberan al abrir)
 var _choque_puerta: MeshInstance3D          ## caja invisible con la forma de la cancela cerrada (choque fino, como los muros de las pallozas)
 var _puerta_abierta := false
+var _anillo := {}                           ## la empalizada: centro, radio, ángulo de la cancela y medio hueco (para la vegetación)
+const Vegetacion = preload("res://escenas/monte_sumicio_vegetacion.gd")
 
 
 func montar() -> void:
@@ -72,6 +74,16 @@ func montar() -> void:
 	var entrada := SalidaNivel3D.EntradaNivel3D.new()
 	entrada.preparar(celda(inicio), "desde_fraga", "n")
 	get_parent().add_child(entrada)
+	_sembrar_vegetacion.call_deferred()      # con el suelo ya vestido (rampas) y la hierba del nivel creada
+
+
+## Hierba alta, rocas y matas al pie de la valla, de las casas y del empedrado (escenas/monte_sumicio_vegetacion.gd).
+func _sembrar_vegetacion() -> void:
+	var evitar: Array[Vector3] = [guardia.global_position, caco.global_position, cofre.global_position, inicio.global_position,
+		marimanta.global_position, porton.global_position]
+	for paso in escolta.get_children():
+		evitar.append((paso as Node3D).global_position)
+	Vegetacion.sembrar(self, get_parent(), _anillo, casas(), torre, evitar)
 
 
 func _exit_tree() -> void:
@@ -260,6 +272,7 @@ func _empalizada_circular() -> void:
 		celdas_valla[c] = true
 		Terreno3D.bloquear_celda_completa(c)
 	_cancela(curva, c3, radio, ang_puerta, medio_hueco, y_defecto, celdas_valla)
+	_anillo = {"centro": c3, "radio": radio, "puerta": ang_puerta, "medio_hueco": medio_hueco}
 	print("Empalizada circular: centro %s, radio %.1f m, %d paneles, cancela a %.0f°" % [centro, radio, n, rad_to_deg(ang_puerta)])
 
 
