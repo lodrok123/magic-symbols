@@ -8,10 +8,13 @@ func _construir_suelo(_dibujar: bool = true) -> void:
 
 
 ## Fuerza del relieve (normal) del suelo en Monte Sumicio: 0 liso · 0,5 la de los demás niveles · 1 el máximo de la tecla B · 2 Sumicio (por encima del máximo de la tecla).
-const RUGOSIDAD_SUMICIO := 3.0
+const RUGOSIDAD_SUMICIO := 2.5
 ## Relieve de más SOLO en la hierba (14/11, Pablo: «¿por qué no afecta en la hierba?»): por defecto la hierba lleva la mitad que el camino
 ## y la luz en rampa la satura a blanco. 0 = como en los demás niveles.
-const RELIEVE_HIERBA_SUMICIO := 0.5    ## con 1 o más, el ruido de la normal se ve granulado sobre la hierba pintada
+const RELIEVE_HIERBA_SUMICIO := 0.4    ## con 1 o más, el ruido de la normal se ve granulado sobre la hierba pintada
+## Relieve que conserva la franja pintada de la junta hierba→tierra/camino (14/11, Pablo: «esta junta ha vuelto a afectarse»): 0 = lisa,
+## con su dibujo limpio; 1 = el relieve del suelo también encima (salía rayada).
+const RELIEVE_JUNTA_SUMICIO := 0.0
 
 
 ## Letra de suelo que pintó el GridMap en cada casilla (sin los marcadores encima).
@@ -80,6 +83,7 @@ func _vestir_suelo() -> void:
 	_rugosidad = RUGOSIDAD_SUMICIO
 	_mat_suelo.set_shader_parameter("rugosidad", _rugosidad)
 	_mat_suelo.set_shader_parameter("relieve_hierba", RELIEVE_HIERBA_SUMICIO)
+	_mat_suelo.set_shader_parameter("relieve_junta", RELIEVE_JUNTA_SUMICIO)
 	# El tipo «piedra» de Sumicio es el empedrado (las losas claras del bosque no van aquí).
 	if ResourceLoader.exists(SUELO + "empedrado_sumicio.png"):
 		_mat_suelo.set_shader_parameter("t_piedra", _tex(SUELO + "empedrado_sumicio.png"))
