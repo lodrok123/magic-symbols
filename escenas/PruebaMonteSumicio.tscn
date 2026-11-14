@@ -36,6 +36,7 @@ casa_brais = true
 
 [node name="PallozaSur" parent="Interiores" instance=ExtResource("4_casa")]
 centro = Vector2i(16, 55)
+telar = true
 
 [node name="TiendaEste" parent="Interiores" instance=ExtResource("4_casa")]
 centro = Vector2i(23, 55)

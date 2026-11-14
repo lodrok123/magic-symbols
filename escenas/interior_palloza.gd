@@ -10,6 +10,7 @@ const MESA := Vector2i(1, -1)
 @export var centro := Vector2i.ZERO
 @export var tienda := false
 @export var casa_brais := false
+@export var telar := false          ## 14/11: la casa de Sabela tiene telar (DISENO_INTERIORES_SUMICIO.md)
 ## 14/11: dónde se entra y por dónde se sale (casillas desde `centro`). Variables para que la Torre Verde (interior_torre.gd) pueda tener otras.
 var entrada := ENTRADA
 var salida := SALIDA
@@ -57,6 +58,8 @@ func montar() -> void:
 		if nombre in ["Banco", "Arcon", "Pesebre", "Tabique"]:
 			var celda := Terreno3D.celda_de(pieza.global_position)
 			Terreno3D.bloquear_contorno(celda, pieza)
+	if not tienda:
+		_amueblar_astrago()
 	if tienda:
 		_caja(Vector3(-2.3, 0.70, -1.65), Vector3(1.65, 0.76, 0.60), Color("#674630"))
 		_caja(Vector3(-2.3, 1.10, -1.65), Vector3(1.77, 0.10, 0.72), Color("#ad794e"))
@@ -87,6 +90,48 @@ func montar() -> void:
 	camara.look_at(global_position + Vector3.UP * 0.35)
 	get_viewport().size_changed.connect(_encuadrar)
 	_encuadrar()
+
+
+## 14/11: el Ástrago con las piezas de Meshy (colección del hogar rústico, separada por herramientas/separar_coleccion_hogar.gd): láminas 9, 10 y 12.
+## Ancho real de cada pieza en metros (la colección no viene a escala: se escala cada una a su ancho).
+const PIEZAS_HOGAR := {
+	"horno_pan": 1.25, "varas_ahumado": 1.5, "arca_grano": 1.15, "yugo_aperos": 1.1, "cesto": 0.55, "telar": 1.0,
+}
+
+
+func _amueblar_astrago() -> void:
+	var y := MEDIA_ALTURA
+	# El horno de pan contra el muro norte, entre el hogar y el arca (lámina 10: «junto al fuego, el horno de pan»).
+	_pieza_hogar("horno_pan", Vector3(0.25, y, -2.85), 0.0, true)
+	# Las varas de ahumado colgadas sobre el hogar, con los chorizos (sustituyen a la vara de prueba).
+	$Mobiliario.get_node("VaraAhumado").hide()
+	_pieza_hogar("varas_ahumado", Vector3(-1.68, y + 1.05, -2.45), 0.0, false)
+	# El arca del grano en el sitio del arcón de prueba (lámina 12: «arcas tradicionales guardan la harina y el grano»).
+	$Mobiliario.get_node("Arcon").hide()
+	_pieza_hogar("arca_grano", Vector3(1.75, y, -2.4), 0.0, false)
+	# Aperos y yugo colgados del muro oeste, mirando al centro.
+	_pieza_hogar("yugo_aperos", Vector3(-3.3, y + 0.35, -1.55), PI * 0.5, false)
+	# Un cesto de castañas junto al fuego.
+	_pieza_hogar("cesto", Vector3(-0.7, y, -1.75), 0.4, false)
+	# El telar, solo en casa de Sabela.
+	if telar:
+		_pieza_hogar("telar", Vector3(2.75, y, -1.5), -PI * 0.5, true)
+
+
+func _pieza_hogar(nombre: String, pos: Vector3, giro: float, bloquea: bool) -> MeshInstance3D:
+	var ruta := "res://arte/meshy/piezas/hogar_%s.res" % nombre
+	if not ResourceLoader.exists(ruta):
+		return null
+	var mi := MeshInstance3D.new()
+	mi.name = nombre.capitalize().replace(" ", "")
+	mi.mesh = load(ruta)
+	mi.scale = Vector3.ONE * (float(PIEZAS_HOGAR[nombre]) / maxf(mi.mesh.get_aabb().size.x, 0.001))
+	add_child(mi)
+	mi.position = pos
+	mi.rotation.y = giro
+	if bloquea:
+		Terreno3D.bloquear_contorno(Terreno3D.celda_de(mi.global_position), mi)
+	return mi
 
 
 func _encuadrar() -> void:
