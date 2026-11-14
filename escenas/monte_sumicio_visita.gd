@@ -132,21 +132,21 @@ func _physics_process(delta: float) -> void:
 			objetivo = "Sigue al guardia hasta la Torre Verde."
 		Fase.AUDIENCIA:
 			objetivo = "Entrega el grimorio a Marimanta." if _interior != null else "Entra en la Torre Verde: la Maestre te espera dentro."
-			if _cerca(_maqueta.marimanta):
+			if _en_planta_baja() and _cerca(_maqueta.marimanta):
 				pista = "[E] Entregar el grimorio" if _parlamento == 0 else "[E] Continuar"
 		Fase.LIBRE, Fase.REGRESO:
 			objetivo = _objetivo_libre()
 			if _cerca(_maqueta.caco):
 				pista = "[E] Hablar con el caco"
-			if _cerca(_maqueta.marimanta):
+			if _en_planta_baja() and _cerca(_maqueta.marimanta):
 				pista = "[E] Hablar con Marimanta"
 	if _cerca(_maqueta.inicio):
 		pista = "[E] Volver a la Fraga"
-	if _interior != null and _interior.torre and pista == "" and CofreMagico.cerca(get_tree(), _mid.position):
+	if _interior != null and _interior.torre and pista == "" and _en_planta_baja() and CofreMagico.cerca(get_tree(), _mid.position):
 		pista = "[E] Cofre mágico"
 	_objetivo.text = objetivo
 	_pista.text = pista
-	if Flags.i().tiene(ADMISION) and not Flags.i().tiene(COFRE_UNIFORME):
+	if Flags.i().tiene(ADMISION) and not Flags.i().tiene(COFRE_UNIFORME) and _en_planta_baja():
 		_objetivo.text = "Recoge el uniforme del cofre detrás de Marimanta."
 	if _ante_cofre_agua():
 		_pista.text = "[E] Abrir cofre legendario"
@@ -154,6 +154,14 @@ func _physics_process(delta: float) -> void:
 		_pista.text = "[E] Abrir cofre épico" if Flags.i().tiene(ADMISION) else "[E] Examinar cofre épico"
 	elif _puerta_cercana() != null and not Flags.i().tiene(COFRE_UNIFORME):
 		_pista.text = "Puerta cerrada"
+	# 14/11: dentro de la torre, el HUD dice en qué planta estamos y la escalera se sube o se baja con [E] (interior_torre.gd).
+	# Abajo la pista de la escalera no pisa la del cofre que Mid tenga a mano, igual que la interacción.
+	if _interior != null and _interior.torre and _sala_torre != null:
+		if _sala_torre.planta > 0:
+			_objetivo.text = _sala_torre.nombre_planta()
+		var escalera := _escalera_al_alcance()
+		if escalera != 0 and (_pista.text == "" or not _en_planta_baja()):
+			_pista.text = "[E] Subir" if escalera > 0 else "[E] Bajar"
 
 
 func _unhandled_input(evento: InputEvent) -> void:
@@ -168,6 +176,14 @@ func _unhandled_input(evento: InputEvent) -> void:
 func _interactuar() -> bool:
 	if _interior != null and not _interior.torre:
 		return _interactuar_dentro()
+	# 14/11: en las plantas altas de la torre lo ÚNICO que se puede hacer es la escalera (Marimanta y los cofres están abajo).
+	# En la planta baja la escalera va al final de la cadena: el cofre del uniforme está en la casilla de al lado y manda él.
+	if _interior != null and _interior.torre and not _en_planta_baja():
+		var arriba := _escalera_al_alcance()
+		if arriba != 0:
+			_cambiar_planta(arriba)
+			return true
+		return false
 	if _interior != null and _puesto(_interior.salida):
 		_cruzar(null)
 		return true
@@ -204,6 +220,12 @@ func _interactuar() -> bool:
 			if _cerca(_maqueta.caco):
 				_dialogo.text = "Caco · Si buscas provisiones, pásate por la palloza del este."
 				return true
+	# La escalera de la planta baja, lo último: si Mid tenía algo más a mano (el cofre del uniforme), ha mandado eso.
+	if _interior != null and _interior.torre:
+		var escalera := _escalera_al_alcance()
+		if escalera != 0:
+			_cambiar_planta(escalera)
+			return true
 	return false
 
 
@@ -354,6 +376,9 @@ func _entrar(puerta: Node3D, colocar: bool) -> void:
 
 func _salir() -> void:
 	var mundo := get_parent() as Mundo
+	# La torre se deja siempre en la planta baja: así al volver a entrar se entra por el aula, y las casillas quedan como las dejó la puerta.
+	if _sala_torre != null and _interior == _sala_torre and _sala_torre.planta != 0:
+		_sala_torre.ir_a_planta(0)
 	var regreso := _casa.to_global(_hueco_puerta(_casa) + Vector3.BACK * 0.76)
 	regreso.y = Terreno3D.y_pies(Terreno3D.celda_de(regreso))
 	_colocar_mid(regreso, _casa.global_basis.z.normalized())
@@ -373,6 +398,56 @@ func _colocar_mid(destino: Vector3, orientacion: Vector3) -> void:
 	_mid.pj.girar_hacia(orientacion, 1.0, TAU)
 	_mid.vy = 0.0
 	_mid.en_suelo = true
+
+
+## ---- 14/11 · LAS PLANTAS DE LA TORRE (interior_torre.gd) ----
+
+## Media casilla: la escalera se usa estando EN su casilla, no desde la de al lado. Con el 1,7 de `_puesto`, estar delante del cofre del
+## uniforme (casilla de al lado) ya contaba como estar en la escalera y subía en vez de abrir el cofre (lo cazó prueba_recorrido_sumicio).
+const RADIO_ESCALERA := 1.15
+
+
+## ¿Mid está en la casilla de la escalera? +1 si desde ahí se sube, −1 si se baja, 0 si no está en ella o no hay planta a la que ir.
+func _escalera_al_alcance() -> int:
+	if _sala_torre == null or _interior != _sala_torre:
+		return 0
+	if _sala_torre.puede_subir() and _en_casilla(SalaTorre.SUBE):
+		return 1
+	if _sala_torre.puede_bajar() and _en_casilla(SalaTorre.BAJA):
+		return -1
+	return 0
+
+
+func _en_casilla(lugar: Vector2i) -> bool:
+	return _distancia_plana(_mid.position, Maqueta.punto(_interior.centro + lugar)) < RADIO_ESCALERA
+
+
+## Mid está en la planta baja de la torre, o no está en la torre. Las cinco plantas ocupan las MISMAS casillas del mundo, así que todo lo
+## que se mide por distancia (Marimanta, el cofre del uniforme, el legendario, el cofre mágico) estaría al alcance también desde arriba.
+func _en_planta_baja() -> bool:
+	return _sala_torre == null or _interior != _sala_torre or _sala_torre.planta == 0
+
+
+## Sube o baja una planta, con el mismo fundido corto que las puertas.
+func _cambiar_planta(delta: int) -> void:
+	_en_transicion = true
+	_pista.text = ""
+	_mid.set_physics_process(false)
+	_fundido.show()
+	var animacion := create_tween()
+	animacion.tween_property(_fundido, "color:a", 1.0, 0.14)
+	await animacion.finished
+	_sala_torre.ir_a_planta(_sala_torre.planta + delta)
+	_colocar_mid(Maqueta.punto(_sala_torre.centro + _sala_torre.llegada(delta)),
+		Vector3.FORWARD if delta > 0 else Vector3.BACK)
+	_dialogo.text = ""
+	PlayLog.event("torre_planta", {"planta": _sala_torre.planta})
+	_mid.set_physics_process(true)
+	animacion = create_tween()
+	animacion.tween_property(_fundido, "color:a", 0.0, 0.17)
+	await animacion.finished
+	_fundido.hide()
+	_en_transicion = false
 
 
 func _montar_fundido() -> void:
