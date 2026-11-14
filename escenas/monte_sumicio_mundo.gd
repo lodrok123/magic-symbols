@@ -19,6 +19,9 @@ const RELIEVE_JUNTA_SUMICIO := 0.4
 ## La franja de hojas de la junta se EXTIENDE en coordenadas de mundo en vez de estirarse sobre la frontera (14/11, Pablo: «sospecho que
 ## estás estirando la textura en vez de extenderla»): 1 = extendida (sin abanicos en curvas y esquinas) · 0 = como en los demás niveles.
 const BORDE_EXTIENDE_SUMICIO := 1.0
+## Fundido de esa franja hacia la tierra (14/11, Pablo: «debería tener la textura como un fade y entremezclarse con la tierra»): 1 = se
+## desvanece con el corte roto por ruido fino (calvas de tierra entre las hojas) · 0 = banda maciza, como en los demás niveles.
+const BORDE_FUNDIDO_SUMICIO := 1.0
 ## Tinte de esa franja: el de serie (0,80 0,90 0,72) es para la hierba del bosque y aquí salía menta; este la acerca al verde de Sumicio.
 const BORDE_TINTE_SUMICIO := Color(0.82, 0.87, 0.64)
 
@@ -91,6 +94,7 @@ func _vestir_suelo() -> void:
 	_mat_suelo.set_shader_parameter("relieve_hierba", RELIEVE_HIERBA_SUMICIO)
 	_mat_suelo.set_shader_parameter("relieve_junta", RELIEVE_JUNTA_SUMICIO)
 	_mat_suelo.set_shader_parameter("borde_extiende", BORDE_EXTIENDE_SUMICIO)
+	_mat_suelo.set_shader_parameter("borde_fundido", BORDE_FUNDIDO_SUMICIO)
 	_mat_suelo.set_shader_parameter("borde_tinte", BORDE_TINTE_SUMICIO)
 	# El tipo «piedra» de Sumicio es el empedrado (las losas claras del bosque no van aquí).
 	if ResourceLoader.exists(SUELO + "empedrado_sumicio.png"):

@@ -179,6 +179,7 @@ uniform float borde_fuerza = 0.0;                                       // 0 = s
 uniform float borde_ancho = 0.9;                                        // alto de la franja en unidades de mundo (0,4 casillas)
 uniform float borde_oscuro = 0.78;                                      // lo que se oscurece la hierba pegada a la frontera (1 = nada)
 uniform vec3 borde_tinte : source_color = vec3(0.80, 0.90, 0.72);       // las hojas de Meshy son más claras que la hierba del suelo
+uniform float borde_fundido = 0.0;      // 14/11: 1 = la franja se desvanece hacia el otro suelo con el corte roto por ruido (calvas entre las hojas); 0 = como siempre
 uniform float borde_extiende = 0.0;     // 14/11: 1 = la franja se extiende en coordenadas de mundo (sin abanicos en curvas); 0 = proyectada sobre la frontera, como siempre
 // 16/10 (Juego, 14.2 · P4): BORDES ENTRE TODOS LOS MATERIALES. El borde de hierba de arriba cubre «hierba contra lo que sea»; esto cubre las parejas
 // que quedaban en una mezcla blanda y difusa: camino↔tierra, camino↔piedra y tierra↔piedra. En cada pareja un material «lame» al otro: su color
@@ -564,6 +565,16 @@ void fragment() {
 					vec4 hz = texture(t_borde, vec2(pm.z / esc_b + 0.37, vb));
 					float corre_x = smoothstep(0.25, 0.75, nb.y * nb.y);           // frontera tendida a lo largo de X (su normal mira en Z)
 					hb = mix(hb, mix(hz, hx, corre_x), borde_extiende);
+				}
+				if (borde_fundido > 0.0) {
+					// 14/11 (Pablo: «debería tener la textura como un fade y entremezclarse con la tierra»): la franja se desvanece hacia el otro suelo
+					// con el corte roto por ruido (quedan calvas de tierra entre las hojas) y entra suave por el lado de la hierba, sin canto duro.
+					// Ruido de grano fino (~1 m y ~0,4 m): con el de grano grueso la franja solo se difuminaba, no se entremezclaba.
+					float rb = texture(campo, c / lado * 55.0).b * 0.55 + texture(campo, c / lado * 140.0 + vec2(0.31, 0.67)).g * 0.45;
+					float hacia_fuera = smoothstep(0.15, 1.0, vb);                                     // 0 en la hierba, 1 en el filo
+					float queda = smoothstep(0.35, 0.65, (1.0 - hacia_fuera) * 1.15 + (rb - 0.5) * 1.6);
+					float desde_hierba = smoothstep(0.0, 0.25, vb);
+					hb.a *= mix(1.0, queda * mix(0.5, 1.0, desde_hierba), borde_fundido);
 				}
 				col = mix(col, hb.rgb * borde_tinte, hb.a * fb * borde_fuerza * (1.0 - 0.85 * cubre) * (1.0 - suaviza_borde));
 				tapa_junta = max(tapa_junta, hb.a * fb * borde_fuerza * (1.0 - suaviza_borde));
