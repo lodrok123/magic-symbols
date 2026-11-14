@@ -7,6 +7,10 @@ func _construir_suelo(_dibujar: bool = true) -> void:
 	super._construir_suelo(false)
 
 
+## Fuerza del relieve (normal) del suelo en Monte Sumicio: 0 liso · 0,5 la de los demás niveles · 1 el máximo de la tecla B · 2 Sumicio (por encima del máximo de la tecla).
+const RUGOSIDAD_SUMICIO := 2.0
+
+
 ## Letra de suelo que pintó el GridMap en cada casilla (sin los marcadores encima).
 var _letra_pintada: Dictionary = {}
 
@@ -69,6 +73,9 @@ func _antes_de_cargar_partida() -> void:
 func _vestir_suelo() -> void:
 	if _mat_suelo == null:
 		return
+	# 14/11 (Pablo: «¿puedes subir la normal del suelo?»): más relieve que en el resto de niveles (0,5). La tecla B sigue ciclando 0 · 0,5 · 1.
+	_rugosidad = RUGOSIDAD_SUMICIO
+	_mat_suelo.set_shader_parameter("rugosidad", _rugosidad)
 	# El tipo «piedra» de Sumicio es el empedrado (las losas claras del bosque no van aquí).
 	if ResourceLoader.exists(SUELO + "empedrado_sumicio.png"):
 		_mat_suelo.set_shader_parameter("t_piedra", _tex(SUELO + "empedrado_sumicio.png"))
