@@ -298,6 +298,7 @@ uniform bool respetar_especular_luz = false;
 uniform float rugosidad = 0.5;            // 0 liso · 1 muy rugoso (tecla B)
 uniform float tam_rugosidad = 1.4;        // unidades de mundo por repetición del relieve
 uniform float relieve_hierba = 0.0;       // 14/11: relieve de más en la hierba (que por defecto lleva la mitad que el camino); 0 = como siempre
+uniform float relieve_junta = 1.0;        // 14/11: relieve que conserva la franja pintada de la junta hierba→otro suelo: 1 = como siempre · 0 = lisa
 // Relieve PROPIO de la tierra: mapa de normales sacado de su textura (piedras en relieve, musgo y gravilla). Si no hay
 // (usa_normal_tierra = 0) la tierra usa el relieve genérico de arriba, como siempre.
 uniform sampler2D normal_tierra : hint_normal, filter_linear_mipmap, repeat_enable;
@@ -508,6 +509,7 @@ void fragment() {
 	// BORDE DE HIERBA. `mapa` guarda un tipo por casilla y, filtrado, su canal R (hierba) sube de 0 a 1 en una casilla: ahí está la frontera.
 	// De él salen la dirección (el gradiente) y la distancia con signo `sb` (u de mundo; + = hacia el otro suelo) a la línea R = 0,5. uvm ya
 	// lleva el ruido de borde, así la franja sigue la frontera orgánica del suelo y no la recta de la rejilla.
+	float tapa_junta = 0.0;     // 14/11: cuánto de este píxel es la franja pintada de la junta (hojas del borde o lámina): ahí el relieve se quita según `relieve_junta`
 	if (borde_fuerza > 0.0) {
 		float eb = 0.5 / lado;
 		vec2 gb = vec2(texture(mapa, uvm + vec2(eb, 0.0)).r - texture(mapa, uvm - vec2(eb, 0.0)).r,
@@ -553,7 +555,9 @@ void fragment() {
 				float ub = dot(pm.xz, vec2(-nb.y, nb.x)) / (borde_ancho * 5.15);   // 5,15 = 885 / 172, para no estirar las hojas
 				vec4 hb = texture(t_borde, vec2(ub, vb));
 				col = mix(col, hb.rgb * borde_tinte, hb.a * fb * borde_fuerza * (1.0 - 0.85 * cubre) * (1.0 - suaviza_borde));
+				tapa_junta = max(tapa_junta, hb.a * fb * borde_fuerza * (1.0 - suaviza_borde));
 			}
+			tapa_junta = max(tapa_junta, cubre);
 
 		}
 	}
@@ -655,6 +659,7 @@ void fragment() {
 	}
 	// 14/11: `relieve_hierba` suma relieve SOLO en la hierba (w.r); 0 en todos los niveles salvo los que lo pidan (Monte Sumicio).
 	float fuerza = rugosidad * (0.5 + 0.5 * (w.g + w.b) + 0.8 * w.a + relieve_hierba * w.r) * (1.0 - he);
+	fuerza *= mix(1.0, relieve_junta, tapa_junta);     // la franja pintada de la junta ya trae su dibujo: el ruido de la normal la ensucia
 	NORMAL_MAP = nr * 0.5 + 0.5;
 	NORMAL_MAP_DEPTH = fuerza * 2.2;
 }
