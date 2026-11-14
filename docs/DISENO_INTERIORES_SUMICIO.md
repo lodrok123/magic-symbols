@@ -157,8 +157,8 @@ Tamaño de referencia: una casilla del juego mide 2,3 m; Mid mide ~1,2 m; los Su
 ## Orden de trabajo propuesto
 
 1. **Palloza familiar** (es la que más se ve): planta redonda, Ástrago/Travariza, hogar con humo, y las piezas que ya tenemos. Luego las piezas de Meshy.
-2. **Torre: planta tipo + escalera entre plantas** (el sistema) · **HECHO el 14/11** (`escenas/interior_torre.gd`, diario 507): las cinco
-   plantas con mobiliario de formas simples y la escalera con fundido. **Queda de este punto: mover la audiencia al despacho** (hoy
-   Marimanta y sus cofres siguen en la planta baja).
+2. **Torre: planta tipo + escalera entre plantas** (el sistema) · **HECHO el 14/11** (`escenas/interior_torre.gd`, diario 507 y 508): las
+   cinco plantas con mobiliario de formas simples, la escalera con fundido y **la audiencia ya en el despacho** (planta 4): Marimanta, el
+   cofre del uniforme y el legendario viven arriba (`PLANTA_DE`); el cofre mágico se queda en el aula por ser un servicio.
 3. **Biblioteca, estudio y celdas** con sus piezas · salas montadas el 14/11 con formas simples; faltan los `.glb` de Meshy de la tabla de arriba.
 4. **Gremio del gorro verde** y retoques de la tienda.

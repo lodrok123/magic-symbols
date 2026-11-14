@@ -131,23 +131,30 @@ func _physics_process(delta: float) -> void:
 		Fase.ESCOLTA:
 			objetivo = "Sigue al guardia hasta la Torre Verde."
 		Fase.AUDIENCIA:
-			objetivo = "Entrega el grimorio a Marimanta." if _interior != null else "Entra en la Torre Verde: la Maestre te espera dentro."
-			if _en_planta_baja() and _cerca(_maqueta.marimanta):
+			# 14/11: la audiencia es en el despacho (planta alta), así que dentro de la torre hay que decirle que suba.
+			if _interior == null:
+				objetivo = "Entra en la Torre Verde: la Maestre te espera dentro."
+			elif _en_planta_de("marimanta"):
+				objetivo = "Entrega el grimorio a Marimanta."
+			else:
+				objetivo = "Sube por la escalera hasta el despacho de la Maestre."
+			if _en_planta_de("marimanta") and _cerca(_maqueta.marimanta):
 				pista = "[E] Entregar el grimorio" if _parlamento == 0 else "[E] Continuar"
 		Fase.LIBRE, Fase.REGRESO:
 			objetivo = _objetivo_libre()
 			if _cerca(_maqueta.caco):
 				pista = "[E] Hablar con el caco"
-			if _en_planta_baja() and _cerca(_maqueta.marimanta):
+			if _en_planta_de("marimanta") and _cerca(_maqueta.marimanta):
 				pista = "[E] Hablar con Marimanta"
 	if _cerca(_maqueta.inicio):
 		pista = "[E] Volver a la Fraga"
-	if _interior != null and _interior.torre and pista == "" and _en_planta_baja() and CofreMagico.cerca(get_tree(), _mid.position):
+	if _interior != null and _interior.torre and pista == "" and _en_planta_de("cofre_magico") and CofreMagico.cerca(get_tree(), _mid.position):
 		pista = "[E] Cofre mágico"
 	_objetivo.text = objetivo
 	_pista.text = pista
-	if Flags.i().tiene(ADMISION) and not Flags.i().tiene(COFRE_UNIFORME) and _en_planta_baja():
-		_objetivo.text = "Recoge el uniforme del cofre detrás de Marimanta."
+	if Flags.i().tiene(ADMISION) and not Flags.i().tiene(COFRE_UNIFORME):
+		_objetivo.text = "Recoge el uniforme del cofre detrás de Marimanta." if _en_planta_de("cofre_uniforme") \
+			else "El uniforme está en el cofre del despacho: sube por la escalera."
 	if _ante_cofre_agua():
 		_pista.text = "[E] Abrir cofre legendario"
 	elif _ante_cofre_uniforme():
@@ -160,7 +167,7 @@ func _physics_process(delta: float) -> void:
 		if _sala_torre.planta > 0:
 			_objetivo.text = _sala_torre.nombre_planta()
 		var escalera := _escalera_al_alcance()
-		if escalera != 0 and (_pista.text == "" or not _en_planta_baja()):
+		if escalera != 0 and _pista.text == "":
 			_pista.text = "[E] Subir" if escalera > 0 else "[E] Bajar"
 
 
@@ -176,18 +183,11 @@ func _unhandled_input(evento: InputEvent) -> void:
 func _interactuar() -> bool:
 	if _interior != null and not _interior.torre:
 		return _interactuar_dentro()
-	# 14/11: en las plantas altas de la torre lo ÚNICO que se puede hacer es la escalera (Marimanta y los cofres están abajo).
-	# En la planta baja la escalera va al final de la cadena: el cofre del uniforme está en la casilla de al lado y manda él.
-	if _interior != null and _interior.torre and not _en_planta_baja():
-		var arriba := _escalera_al_alcance()
-		if arriba != 0:
-			_cambiar_planta(arriba)
-			return true
-		return false
+	# La escalera de la torre va al FINAL de la cadena: el cofre del uniforme está en la casilla de al lado y manda él.
 	if _interior != null and _puesto(_interior.salida):
 		_cruzar(null)
 		return true
-	if CofreMagico.cerca(get_tree(), _mid.position):
+	if _en_planta_de("cofre_magico") and CofreMagico.cerca(get_tree(), _mid.position):
 		AlmacenUI.abrir_en(get_tree())
 		return true
 	if _ante_cofre_uniforme():
@@ -210,17 +210,17 @@ func _interactuar() -> bool:
 				_dialogo.text = "Guardia · La Maestre te espera. Ve detrás de mí."
 				return true
 		Fase.AUDIENCIA:
-			if _cerca(_maqueta.marimanta):
+			if _en_planta_de("marimanta") and _cerca(_maqueta.marimanta):
 				_hablar_con_marimanta()
 				return true
 		Fase.LIBRE, Fase.REGRESO:
-			if _cerca(_maqueta.marimanta):
+			if _en_planta_de("marimanta") and _cerca(_maqueta.marimanta):
 				_marimanta_despues()
 				return true
 			if _cerca(_maqueta.caco):
 				_dialogo.text = "Caco · Si buscas provisiones, pásate por la palloza del este."
 				return true
-	# La escalera de la planta baja, lo último: si Mid tenía algo más a mano (el cofre del uniforme), ha mandado eso.
+	# La escalera, lo último: si Mid tenía algo más a mano (un cofre, Marimanta), ha mandado eso.
 	if _interior != null and _interior.torre:
 		var escalera := _escalera_al_alcance()
 		if escalera != 0:
@@ -422,10 +422,13 @@ func _en_casilla(lugar: Vector2i) -> bool:
 	return _distancia_plana(_mid.position, Maqueta.punto(_interior.centro + lugar)) < RADIO_ESCALERA
 
 
-## Mid está en la planta baja de la torre, o no está en la torre. Las cinco plantas ocupan las MISMAS casillas del mundo, así que todo lo
-## que se mide por distancia (Marimanta, el cofre del uniforme, el legendario, el cofre mágico) estaría al alcance también desde arriba.
-func _en_planta_baja() -> bool:
-	return _sala_torre == null or _interior != _sala_torre or _sala_torre.planta == 0
+## Mid está en la planta donde vive `sitio` (`PUNTOS` de la torre), o no está en la torre. Las cinco plantas ocupan las MISMAS casillas
+## del mundo, así que todo lo que se mide por distancia (Marimanta, el cofre del uniforme, el legendario, el cofre mágico) estaría al
+## alcance desde cualquier planta si no se filtrase aquí.
+func _en_planta_de(sitio: String) -> bool:
+	if _sala_torre == null or _interior != _sala_torre:
+		return true
+	return int(_sala_torre.planta) == _sala_torre.planta_de(sitio)
 
 
 ## Sube o baja una planta, con el mismo fundido corto que las puertas.
@@ -583,6 +586,11 @@ func _montar_torre(mundo: Node) -> void:
 	# 14/11: cada cofre choca con su modelo (antes, la casilla entera): se apuntan al crearse (aquí el mágico; los otros dos, en `_montar`).
 	var magico := CofreMagico.poner_en(_sala_torre, _sala_torre.punto("cofre_magico"))
 	Terreno3D.bloquear_celda(Terreno3D.celda_de(magico.global_position), magico)
+	# 14/11: cada uno se ve solo en su planta. El cofre del uniforme NO es hijo de la sala (vive en la maqueta), así que la sala no puede
+	# encontrarlo por su cuenta: se le apunta aquí, igual que Marimanta y el mágico.
+	_sala_torre.registrar(_maqueta.marimanta, "marimanta")
+	_sala_torre.registrar(_maqueta.cofre, "cofre_uniforme")
+	_sala_torre.registrar(magico, "cofre_magico")
 
 
 func _hablar_con_marimanta() -> void:
@@ -632,6 +640,7 @@ func _montar_cofre_agua() -> void:
 	if _sala_torre != null:
 		_sala_torre.add_child(_nodo_cofre_agua)
 		_nodo_cofre_agua.global_position = _sala_torre.punto("cofre_agua")
+		_sala_torre.registrar(_nodo_cofre_agua, "cofre_agua")
 	else:
 		_maqueta.torre.add_child(_nodo_cofre_agua)
 		_nodo_cofre_agua.position = Vector3(-2.3, 0.0, -2.85)
@@ -647,6 +656,7 @@ func _montar_cofre_agua() -> void:
 
 func _ante_cofre_agua() -> bool:
 	return _cofre_agua != null and not _cofre_agua.esta_oculto() and not Flags.i().tiene(EncargoMarimanta.COFRE_AGUA) \
+		and _en_planta_de("cofre_agua") \
 		and _distancia_plana(_mid.position, _nodo_cofre_agua.global_position) < 1.65
 
 
@@ -676,7 +686,7 @@ func _entregar_uniforme() -> void:
 
 
 func _ante_cofre_uniforme() -> bool:
-	return not Flags.i().tiene(COFRE_UNIFORME) and _distancia_plana(
+	return not Flags.i().tiene(COFRE_UNIFORME) and _en_planta_de("cofre_uniforme") and _distancia_plana(
 		_mid.position, _cofre_uniforme.get_parent().global_position) < 1.65
 
 

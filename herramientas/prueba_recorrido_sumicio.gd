@@ -154,11 +154,19 @@ func _process(_d: float) -> bool:
 					en_muro.append(sitio)
 			_ok(en_muro.is_empty(), "4.0b nada de la sala queda dentro del muro %s" % str(en_muro))
 			var cofre: Node3D = current_scene.get_node("Maqueta").cofre
-			_ok(cofre.is_visible_in_tree() and v._interior.contiene(Terreno3D.celda_de(cofre.global_position)), "4.0c el cofre del uniforme se ve dentro de la sala")
+			# 14/11: se entra al AULA y la audiencia es en el DESPACHO (planta 4): abajo no se ve el cofre del uniforme.
+			_ok(not cofre.is_visible_in_tree(), "4.0c al entrar (aula) el cofre del uniforme no se ve: está en el despacho")
+			_ok(int(v._interior.planta) == 0, "4.0d se entra por la planta baja")
+			v._interior.ir_a_planta(v._interior.planta_de("cofre_uniforme"))
+			_ok(cofre.is_visible_in_tree() and v._interior.contiene(Terreno3D.celda_de(cofre.global_position)),
+				"4.0e en el despacho el cofre del uniforme se ve dentro de la sala")
 			_audiencia_y_encargo()
 		5:  # salir de la torre por su salida y volver a la Fraga con E en InicioFraga
 			var v: Node = current_scene.get_node("Visita")
 			if v._interior != null:
+				# Se baja al aula: arriba el sur es muro y no hay puerta por la que salir.
+				if v._interior.torre and int(v._interior.planta) != 0:
+					v._interior.ir_a_planta(0)
 				_poner(Terreno3D.centro_de(v._interior.centro + v._interior.salida, Terreno3D.alto_suelo) + Vector3(0, 0, 0.6))
 				return false
 			if v._en_transicion:
@@ -206,6 +214,8 @@ func _process(_d: float) -> bool:
 				_poner(torre.to_global(v._hueco_puerta(torre) + Vector3(0, 0, 0.1)))
 				_espera = 60
 				return false
+			# La entrega es en el despacho, como la audiencia.
+			v._interior.ir_a_planta(v._interior.planta_de("marimanta"))
 			_entrega()
 		13:
 			var v: Node = current_scene.get_node("Visita")

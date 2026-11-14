@@ -12,8 +12,9 @@ extends "res://escenas/interior_palloza.gd"
 ## CONSECUENCIA a tener en cuenta: como todas las plantas ocupan las mismas casillas del mundo, lo que se mide por distancia (Marimanta,
 ## los cofres, el cofre mágico) está físicamente al alcance en cualquier planta. La visita lo filtra con `planta == 0` (`_en_planta_baja`).
 ##
-## Se entra por la puerta animada de la torre (monte_sumicio_visita.gd). Aquí despacha la Maestre: Marimanta, el cofre del uniforme, el
-## cofre legendario del encargo y un cofre mágico, todos en la PLANTA BAJA de momento (la audiencia en el despacho es el paso siguiente).
+## Se entra por la puerta animada de la torre (monte_sumicio_visita.gd), y se entra al AULA (planta baja). La Maestre despacha ARRIBA:
+## Marimanta, el cofre del uniforme y el cofre legendario del encargo están en el DESPACHO (planta 4), así que la audiencia es subiendo
+## las cuatro plantas (decisión de Pablo del 14/11). El cofre mágico se queda en el aula: es un servicio, no se sube cuatro plantas.
 ##
 ## Para AJUSTAR: los puntos de interés están en PUNTOS y el mobiliario de cada planta, en su propia función `_planta_*`, con las medidas
 ## en constantes al principio de cada una. Las formas simples están en su sitio y escala para cambiarlas por el .glb sin mover nada.
@@ -25,6 +26,15 @@ const PUNTOS: Dictionary = {
 	"cofre_uniforme": Vector2i(1, -2),
 	"cofre_agua": Vector2i(-1, -2),
 	"cofre_magico": Vector2i(-2, 1),
+}
+## 14/11 (decisión de Pablo): LA AUDIENCIA SUBE AL DESPACHO. Marimanta y sus dos cofres viven en la planta 4; el cofre mágico se queda
+## en el aula, que es un servicio y no tiene sentido subirlo cuatro plantas. La casilla de cada uno no cambia (PUNTOS): cambia la planta.
+## El mobiliario de esas dos plantas deja libres las casillas de sus puntos (`_planta_aula` y `_planta_despacho`).
+const PLANTA_DE: Dictionary = {
+	"marimanta": 4,
+	"cofre_uniforme": 4,
+	"cofre_agua": 4,
+	"cofre_magico": 0,
 }
 const GRANITO := Color("#6f6f63")
 const MUSGO := Color("#5d7346")
@@ -56,6 +66,11 @@ const SALIDA_PUERTA := Vector2i(0, 3)
 const SIN_SALIDA := Vector2i(0, 99)
 
 var planta := 0
+var _planta_anterior := -1
+## Lo que la visita coloca en la sala y no monta esta escena (Marimanta, el cofre del uniforme, el legendario, el cofre mágico):
+## [nodo, planta en la que vive, si se veía por sí mismo]. Se registran con `registrar`, porque algunos (el cofre del uniforme) no son
+## hijos de la sala y la sala no puede encontrarlos de otro modo.
+var _invitados: Array = []
 
 
 func montar() -> void:
@@ -72,6 +87,19 @@ func montar() -> void:
 func ir_a_planta(n: int) -> void:
 	planta = clampi(n, 0, PLANTAS.size() - 1)
 	_construir()
+
+
+## En qué planta vive un punto de interés (`PUNTOS`).
+func planta_de(sitio: String) -> int:
+	return int(PLANTA_DE.get(sitio, 0))
+
+
+## Apunta un nodo que la visita coloca en la sala, para esconderlo cuando no estemos en su planta.
+func registrar(n: Node3D, sitio: String) -> void:
+	if n == null:
+		return
+	_invitados.append([n, planta_de(sitio), n.visible])
+	_aplicar_invitados()
 
 
 func puede_subir() -> bool:
@@ -119,9 +147,21 @@ func _construir() -> void:
 	for h in get_children():
 		if not previos.has(h):
 			h.set_meta("_planta", true)
-	for h in previos:
-		if h != camara and h is Node3D:
-			(h as Node3D).visible = planta == 0
+	_aplicar_invitados()
+
+
+## Enseña a Marimanta y a los cofres solo en su planta. Al salir de su planta se apunta si se veían por sí mismos (el cofre legendario
+## está oculto hasta que Marimanta recibe el trabajo) para no «encenderlos» al volver.
+func _aplicar_invitados() -> void:
+	for inv in _invitados:
+		var n: Node3D = inv[0]
+		if not is_instance_valid(n):
+			continue
+		var suya := int(inv[1])
+		if _planta_anterior == suya and _planta_anterior != planta:
+			inv[2] = n.visible
+		n.visible = planta == suya and bool(inv[2])
+	_planta_anterior = planta
 
 
 func _suelo_y_muros() -> void:
@@ -187,22 +227,39 @@ func _ventana_balcon() -> void:
 
 
 ## ---- Planta 0 · el aula (sala de lectura) ----
-## Mesas largas con pergaminos y pupitres pequeños. Marimanta y sus cofres los coloca la visita en PUNTOS: el mobiliario va al oeste
-## para no pisarlos ni cortar el paso de la puerta (la columna x = 0 queda libre del umbral al hueco).
+## Mesas largas con pergaminos y pupitres pequeños, y la ventana a la montaña (el vano del norte).
+##
+## EL AULA DEJA LIBRES TODAS LAS CASILLAS DE `PUNTOS`, aunque sus dueños vivan arriba. Motivo: los autoguardados de la admisión, el
+## uniforme y el cofre pasan en el DESPACHO, y al cargar la partida la sala se monta en la planta baja con Mid donde la dejó: si el aula
+## tuviera un mueble en la casilla de Marimanta, Mid reaparecería dentro de la mesa. Libres también el paso de la puerta (la columna
+## x = 0, del umbral al hueco) y las dos casillas de la escalera.
 
 func _planta_aula() -> void:
 	var s := Terreno3D.casilla
-	for i in range(2):
-		var z := (-0.45 + i * 0.95) * s
-		_caja(Vector3(-1.95 * s, 0.62, z), Vector3(s * 0.55, 0.08, s * 0.8), MADERA_CLARA)      # el tablero
-		_solido_caja(Vector3(-1.95 * s, 0.4, z), Vector3(s * 0.6, 0.8, s * 0.85))
-		for lado in [-0.3, 0.3]:
-			_caja(Vector3(-1.95 * s, 0.3, z + lado * s * 0.8), Vector3(0.1, 0.6, 0.1), MADERA)  # las patas
-		_caja(Vector3(-1.95 * s, 0.68, z - 0.2), Vector3(0.42, 0.02, 0.3), PERGAMINO)
-		_caja(Vector3(-1.95 * s, 0.68, z + 0.25), Vector3(0.36, 0.03, 0.28), PERGAMINO.darkened(0.1))
-	for i in range(2):
-		# Los pupitres pequeños mirando a las mesas, a escala sumiciu (bajos).
-		_pupitre(Vector3(-0.95 * s, 0.0, (-0.5 + i) * s), PI * 0.5, false)
+	# La mesa larga del norte, sin llegar a la fila de Marimanta y los cofres (z = −2): ocupa (−1,−1) y (0,−1).
+	_mesa_larga(Vector3(-0.5 * s, 0.0, -0.8 * s), false)
+	_caja(Vector3(-0.95 * s, 0.68, -0.85 * s), Vector3(0.42, 0.02, 0.3), PERGAMINO)
+	_caja(Vector3(-0.1 * s, 0.68, -0.76 * s), Vector3(0.36, 0.03, 0.28), PERGAMINO.darkened(0.1))
+	# La mesa larga del oeste, de norte a sur: ocupa (−2,−1) y (−2,0) y no llega a la casilla del cofre mágico (−2,1).
+	_mesa_larga(Vector3(-1.9 * s, 0.0, -0.5 * s), true)
+	_caja(Vector3(-1.9 * s, 0.68, -0.75 * s), Vector3(0.3, 0.02, 0.42), PERGAMINO)
+	# Dos pupitres bajos mirando a la mesa del norte.
+	_pupitre(Vector3(-0.95 * s, 0.0, 0.1 * s), 0.0, false)
+	_pupitre(Vector3(-0.95 * s, 0.0, 1.05 * s), 0.0, false)
+
+
+## Una mesa larga de castaño con sus cuatro patas; `en_z`, a lo largo del eje Z (si no, a lo largo de X).
+func _mesa_larga(pos: Vector3, en_z: bool) -> void:
+	var s := Terreno3D.casilla
+	var largo := s * 1.55
+	var ancho := s * 0.5
+	var tam := Vector3(ancho, 0.08, largo) if en_z else Vector3(largo, 0.08, ancho)
+	_caja(pos + Vector3(0, 0.62, 0), tam, MADERA_CLARA)
+	_solido_caja(pos + Vector3(0, 0.4, 0), Vector3(tam.x + 0.1, 0.8, tam.z + 0.1))
+	for a in [-0.42, 0.42]:
+		for b in [-0.3, 0.3]:
+			var d := Vector3(b * ancho, 0.3, a * largo) if en_z else Vector3(a * largo, 0.3, b * ancho)
+			_caja(pos + d, Vector3(0.1, 0.6, 0.1), MADERA)
 
 
 ## ---- Planta 1 · sala de estudio ----
@@ -332,36 +389,37 @@ func _planta_celdas() -> void:
 
 
 ## ---- Planta 4 · despacho de Marimanta ----
-## Mesa, sillón, su bastón, velas. Aquí irán la audiencia y la entrega de encargos (DISENO_INTERIORES_SUMICIO.md, decisión del 14/11).
+## Mesa, sillón, su bastón y velas. Aquí es la AUDIENCIA y la entrega de encargos (decisión de Pablo del 14/11).
+## Las tres casillas del norte son de Marimanta y sus dos cofres (PUNTOS): el mobiliario va al oeste y no las toca.
 
 func _planta_despacho() -> void:
 	var s := Terreno3D.casilla
-	# La mesa grande del norte, de cara al sur.
-	_caja(Vector3(0.0, 0.72, -1.75 * s), Vector3(s * 1.15, 0.1, s * 0.6), MADERA_CLARA.darkened(0.1))
-	_solido_caja(Vector3(0.0, 0.45, -1.75 * s), Vector3(s * 1.2, 0.9, s * 0.65))
-	for lado in [-0.45, 0.45]:
-		_caja(Vector3(lado * s, 0.34, -1.75 * s), Vector3(0.14, 0.68, s * 0.5), MADERA)
-	_caja(Vector3(-0.3 * s, 0.79, -1.78 * s), Vector3(0.46, 0.04, 0.34), PERGAMINO)
-	_caja(Vector3(0.25 * s, 0.82, -1.8 * s), Vector3(0.3, 0.12, 0.24), Color("#4c5a46"))      # un libro cerrado
-	_vela(Vector3(0.6 * s, 0.77, -1.8 * s))
-	_vela(Vector3(-0.7 * s, 0.77, -1.72 * s))
-	# El sillón detrás de la mesa.
-	_caja(Vector3(0.0, 0.3, -2.3 * s), Vector3(0.78, 0.12, 0.66), PANO_ROJO)
-	_caja(Vector3(0.0, 0.72, -2.52 * s), Vector3(0.78, 0.96, 0.14), MADERA)
-	_solido_caja(Vector3(0.0, 0.5, -2.4 * s), Vector3(0.84, 1.0, 0.5))
+	# La mesa de trabajo contra el muro del oeste, de norte a sur: ocupa (−2,−1) y (−2,0).
+	_caja(Vector3(-1.9 * s, 0.74, -0.5 * s), Vector3(s * 0.5, 0.1, s * 1.05), MADERA_CLARA.darkened(0.1))
+	_solido_caja(Vector3(-1.9 * s, 0.45, -0.5 * s), Vector3(s * 0.56, 0.9, s * 1.1))
+	for a in [-0.42, 0.42]:
+		_caja(Vector3(-1.9 * s, 0.36, -0.5 * s + a * s * 1.05), Vector3(s * 0.4, 0.72, 0.14), MADERA)
+	_caja(Vector3(-1.9 * s, 0.81, -0.85 * s), Vector3(0.34, 0.04, 0.46), PERGAMINO)
+	_caja(Vector3(-1.9 * s, 0.84, -0.2 * s), Vector3(0.24, 0.12, 0.3), Color("#4c5a46"))      # un libro cerrado
+	_vela(Vector3(-1.9 * s, 0.79, -0.95 * s))
+	_vela(Vector3(-1.9 * s, 0.79, 0.0))
+	# El sillón de respaldo alto, al lado de la mesa y mirando a ella.
+	_caja(Vector3(-0.95 * s, 0.3, -1.0 * s), Vector3(0.66, 0.12, 0.78), PANO_ROJO)
+	_caja(Vector3(-0.72 * s, 0.72, -1.0 * s), Vector3(0.14, 0.96, 0.78), MADERA)
+	_solido_caja(Vector3(-0.9 * s, 0.5, -1.0 * s), Vector3(0.6, 1.0, 0.84))
 	# Su bastón apoyado en el muro del oeste (arte/modelos/baston_marimanta.glb cuando se enganche).
-	var baston := _caja(Vector3(-1.95 * s, 0.85, -1.1 * s), Vector3(0.08, 1.7, 0.08), MADERA.darkened(0.1))
+	var baston := _caja(Vector3(-2.3 * s, 0.85, -1.45 * s), Vector3(0.08, 1.7, 0.08), MADERA.darkened(0.1))
 	baston.rotation.z = 0.12
-	_caja(Vector3(-1.95 * s - 0.2, 1.72, -1.1 * s), Vector3(0.18, 0.18, 0.18), Color("#6f8a5c"))
-	# La estantería del este y un velador junto al hueco.
-	_caja(Vector3(-1.95 * s, 0.8, 0.9 * s), Vector3(s * 0.45, 1.6, s * 0.75), MADERA)
-	_solido_caja(Vector3(-1.95 * s, 0.8, 0.9 * s), Vector3(s * 0.5, 1.6, s * 0.8))
+	_caja(Vector3(-2.3 * s - 0.2, 1.72, -1.45 * s), Vector3(0.18, 0.18, 0.18), Color("#6f8a5c"))
+	# La estantería del suroeste y un velador junto al hueco.
+	_caja(Vector3(-1.95 * s, 0.8, 0.95 * s), Vector3(s * 0.45, 1.6, s * 0.75), MADERA)
+	_solido_caja(Vector3(-1.95 * s, 0.8, 0.95 * s), Vector3(s * 0.5, 1.6, s * 0.8))
 	for e in range(3):
-		_caja(Vector3(-1.9 * s, 0.45 + e * 0.45, 0.9 * s), Vector3(s * 0.38, 0.22, s * 0.6), Color("#6a4a3c"))
-	_caja(Vector3(0.95 * s, 0.55, 1.35 * s), Vector3(0.52, 0.08, 0.52), MADERA_CLARA)
-	_caja(Vector3(0.95 * s, 0.28, 1.35 * s), Vector3(0.12, 0.56, 0.12), MADERA)
-	_vela(Vector3(0.95 * s, 0.59, 1.35 * s))
-	_rotulo("Despacho", Vector3(0, 1.9, -2.7 * s))
+		_caja(Vector3(-1.9 * s, 0.45 + e * 0.45, 0.95 * s), Vector3(s * 0.38, 0.22, s * 0.6), Color("#6a4a3c"))
+	_caja(Vector3(-0.95 * s, 0.55, 1.35 * s), Vector3(0.52, 0.08, 0.52), MADERA_CLARA)
+	_caja(Vector3(-0.95 * s, 0.28, 1.35 * s), Vector3(0.12, 0.56, 0.12), MADERA)
+	_vela(Vector3(-0.95 * s, 0.59, 1.35 * s))
+	_rotulo("Despacho de la Maestre", Vector3(0, 2.0, -2.7 * s))
 
 
 ## Una figura simple (un aprendiz): cuerpo, túnica y cabeza. Hasta que haya modelo con clips.
