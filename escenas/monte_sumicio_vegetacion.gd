@@ -6,8 +6,9 @@ extends RefCounted
 ##   · lámina 5, «Un lugar de cuento»: hierba alta y matas al pie de los muros de las pallozas, bordes de hierba que se comen el empedrado,
 ##     piedras sueltas con líquenes y manchas de helecho tostado (ocre);
 ##   · lámina 3, «El camino de subida»: matas de hierba seca a los lados del sendero y bolos de granito con musgo.
-## Todo es DECORADO: no bloquea ni cambia por dónde se anda. Por eso las rocas grandes solo van fuera del círculo o pegadas a la valla
-## y a los muros, y nada se pone sobre el empedrado, el camino de tierra, las puertas ni junto a los personajes.
+## Las matas, las piedras pequeñas, los juncos, las setas y la hojarasca son DECORADO: se pisan. Las rocas grandes y medianas chocan con su
+## malla (14/11, «todas las colisiones por malla»); por eso solo van fuera del círculo o pegadas a la valla y a los muros, y nada se pone sobre
+## el empedrado, el camino de tierra, las puertas ni junto a los personajes.
 ## Hierba: el matojo de la hierba del juego (Hierba3D, mismo material y viento); piezas: las de PiezaBosque3D (rocas con musgo, arbustos,
 ## setas, juncos, hojarasca). Semilla fija: sale igual cada vez.
 ##   Prueba / foto: herramientas/captura_vegetacion_sumicio.gd
@@ -59,6 +60,7 @@ var _evitar: Array[Vector3] = []
 var _trs: Array[Transform3D] = []
 var _tintes := PackedColorArray()
 var _piezas := 0
+var _solidos := 0
 
 
 func _sembrar(padre: Node3D, mundo: Node, anillo: Dictionary, casas: Array[Node3D], torre: Node3D, evitar: Array[Vector3]) -> Node3D:
@@ -78,7 +80,7 @@ func _sembrar(padre: Node3D, mundo: Node, anillo: Dictionary, casas: Array[Node3
 		_bordes_de_camino(anillo)
 		_claros(anillo)
 	_volcar_matojos()
-	print("Vegetación de Sumicio: %d matas, %d piezas" % [_trs.size(), _piezas])
+	print("Vegetación de Sumicio: %d matas, %d piezas (%d rocas con choque)" % [_trs.size(), _piezas, _solidos])
 	return _raiz
 
 
@@ -253,9 +255,9 @@ func _matojo(p: Vector3, escala: float) -> void:
 func _roca(p: Vector3, tam: String) -> void:
 	match tam:
 		"grande":
-			_pieza("roca_musgo_g", p, _rng.randf_range(1.1, 1.6), 0.3)
+			_pieza("roca_musgo_g", p, _rng.randf_range(1.1, 1.6), 0.3, true)
 		"mediana":
-			_pieza("roca_musgo_g", p, _rng.randf_range(0.5, 0.75), 0.3)
+			_pieza("roca_musgo_g", p, _rng.randf_range(0.5, 0.75), 0.3, true)
 		_:
 			_pieza("roca_musgo_p", p, _rng.randf_range(1.8, 3.0), 0.3)
 
@@ -286,7 +288,8 @@ func _radio_planta(casa: Node3D, tope: float) -> float:
 
 
 ## Una pieza de PiezaBosque3D apoyada en el suelo y hundida `hundir` (fracción de su alto), con giro y escala al azar.
-func _pieza(id: String, p: Vector3, escala: float, hundir: float) -> void:
+## `solido` (14/11): la pieza choca con su malla (ColisionPieza, la franja del cuerpo); si asoma menos de ALTO_MIN_SOLIDO, se pisa igual.
+func _pieza(id: String, p: Vector3, escala: float, hundir: float, solido: bool = false) -> void:
 	if not _libre(p):
 		return
 	var mi := PiezaBosque3D.crear(id)
@@ -298,6 +301,32 @@ func _pieza(id: String, p: Vector3, escala: float, hundir: float) -> void:
 	mi.rotation = Vector3(_rng.randf_range(-0.08, 0.08), _rng.randf() * TAU, _rng.randf_range(-0.08, 0.08))
 	mi.scale = Vector3.ONE * escala * Vector3(_rng.randf_range(0.9, 1.1), _rng.randf_range(0.85, 1.1), _rng.randf_range(0.9, 1.1))
 	_piezas += 1
+	if solido:
+		_cuerpo_de(mi, Vector3(p.x, _suelo(p), p.z))
+
+
+## Cuerpo de choque de `mi` medido sobre su malla, con la base en el suelo `pie` (la roca está hundida: lo enterrado no cuenta).
+func _cuerpo_de(mi: MeshInstance3D, pie: Vector3) -> void:
+	var t := Transform3D(mi.global_basis, mi.global_position - pie)
+	var tris := PackedVector3Array()
+	for v in mi.mesh.get_faces():
+		tris.append(t * v)
+	var lista := ColisionPieza.cascos_triangulos(tris, "contorno")
+	if lista.is_empty():
+		return
+	var cuerpo := StaticBody3D.new()
+	cuerpo.name = "Solido"
+	cuerpo.collision_layer = Terreno3D.CAPA_SOLIDO
+	cuerpo.collision_mask = 0
+	for nube in lista:
+		var cs := CollisionShape3D.new()
+		var sh := ConvexPolygonShape3D.new()
+		sh.points = nube
+		cs.shape = sh
+		cuerpo.add_child(cs)
+	_raiz.add_child(cuerpo)
+	cuerpo.global_position = pie
+	_solidos += 1
 
 
 ## Todos los matojos en un MultiMesh con la malla y el material de la hierba del nivel (Hierba3D), para que sean la misma hierba.

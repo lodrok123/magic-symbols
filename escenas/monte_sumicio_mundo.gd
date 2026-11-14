@@ -72,9 +72,37 @@ func _instanciar_nivel() -> void:
 	plano.position = _desplaza
 
 
+## 14/11 (Pablo: «las colisiones son por casilla; ponlas TODAS por malla, hay muchos muros invisibles»): Monte Sumicio usa la solidez por
+## COLISIÓN REAL, como los bosques. Antes se quedaba en casillas porque la fuente medía a la altura fija del suelo base y aquí el suelo está a
+## 2-3 u (ahora mide en el suelo de cada casilla: Terreno3D.FuenteNodos.suelo_de). Los cuerpos los pone la maqueta (montar) y la vegetación.
+## Lo que se bloqueó mientras mandaban las casillas (bordes del mapa, muros y muebles de los interiores, cofres) pasa a la fuente nueva
+## conservando su forma: con un nodo apuntado (`bloquear(c, nodo)`), choca con ese nodo; sin él, la casilla entera, como antes.
 func _activar_solidez_por_nodos() -> void:
-	# La visita anima puertas y registra sus contornos sobre la solidez por casillas.
-	pass
+	var antes := Terreno3D.fuente
+	await get_tree().physics_frame
+	await get_tree().physics_frame
+	if not is_inside_tree() or Terreno3D.mundo_s != self:
+		return
+	var n: int = Lanzador3D.activar_fuente_nodos(self)
+	var nueva := Terreno3D.fuente
+	var fijos: Dictionary = antes.get("_fijos") if antes != null else {}
+	var sin_sellar: Dictionary = antes.get("contorno_sin_sellado") if antes != null else {}
+	var con_forma := 0
+	for c in _bloqueadas.keys():
+		var lista: Array = fijos.get(c, [])
+		var puestos := 0
+		for r in lista:
+			var nodo := (r as WeakRef).get_ref() as Node3D
+			if nodo != null and nodo.is_inside_tree():
+				nueva.bloquear(c, nodo)
+				puestos += 1
+		if puestos == 0:
+			nueva.bloquear_completa(c)
+		else:
+			con_forma += 1
+			if sin_sellar.has(c):
+				nueva.contorno_sin_sellado[c] = true
+	print("Solidez por colisión: %d casillas tocadas por piezas · %d bloqueos de antes (%d con la forma de su objeto)" % [n, _bloqueadas.size(), con_forma])
 
 
 func _antes_de_cargar_partida() -> void:

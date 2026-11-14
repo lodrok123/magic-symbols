@@ -34,8 +34,7 @@ var escolta: Node3D:
 var _tope_anterior: int
 var _montada := false
 var _hojas: Array[Node3D] = []              ## bisagras de la cancela: izquierda y derecha
-var _celdas_puerta: Array[Vector2i] = []    ## casillas que cierra SOLO la cancela (se liberan al abrir)
-var _choque_puerta: MeshInstance3D          ## caja invisible con la forma de la cancela cerrada (choque fino, como los muros de las pallozas)
+var _choque_puerta: StaticBody3D           ## el cuerpo de la cancela cerrada (se quita al abrir)
 var _puerta_abierta := false
 var _anillo := {}                           ## la empalizada: centro, radio, ángulo de la cancela y medio hueco (para la vegetación)
 const Vegetacion = preload("res://escenas/monte_sumicio_vegetacion.gd")
@@ -65,12 +64,9 @@ func montar() -> void:
 		if absf(realce) > 0.001:
 			Terreno3D.realces_terreno[c] = realce
 	_empalizada_circular()
-	for pieza in $Nivel_MonteSumicio/Piezas.find_children("*", "Node3D", true, false):
-		if pieza.has_meta("bloquea_casilla"):
-			Terreno3D.bloquear_celda_completa(celda(pieza))
+	_solidos_por_malla()
 	for casa in casas():
-		_registrar_palloza(casa)
-	Terreno3D.bloquear_contorno(celda(cofre), cofre)
+		bisagra(casa).position += Vector3(0.03, 0.0, -0.04)
 	var entrada := SalidaNivel3D.EntradaNivel3D.new()
 	entrada.preparar(celda(inicio), "desde_fraga", "n")
 	get_parent().add_child(entrada)
@@ -101,13 +97,10 @@ func casas() -> Array[Node3D]:
 ## cargada con Mid ya admitida), quedan abiertas de golpe.
 func abrir_porton(animado := false) -> void:
 	_puerta_abierta = true
-	Terreno3D.liberar_celda(celda(porton))
-	for c in _celdas_puerta:
-		Terreno3D.liberar_celda(c)
-	_celdas_puerta.clear()
 	if _choque_puerta != null:
 		_choque_puerta.queue_free()
 		_choque_puerta = null
+		_rehacer_solidez()
 	if _hojas.is_empty():
 		porton.get_node("Bisagra").rotation.y = PI * 0.5      # sin la valla de Meshy: la caja de siempre
 		return
@@ -125,6 +118,111 @@ func abrir_porton(animado := false) -> void:
 
 func porton_abierto() -> bool:
 	return _puerta_abierta
+
+
+## ¿Cierra la cancela el paso? Lo que vería el cuerpo de Mid (una esfera de su radio) en el centro del vano, a la altura de la cintura.
+func cancela_cierra() -> bool:
+	var cancela := find_child("Cancela", true, false) as Node3D
+	if cancela == null:
+		return false
+	var q := PhysicsShapeQueryParameters3D.new()
+	var bola := SphereShape3D.new()
+	bola.radius = Terreno3D.FuenteSolidez.RADIO_CUERPO
+	q.shape = bola
+	q.collision_mask = Terreno3D.CAPA_SOLIDO
+	q.transform = Transform3D(Basis(), cancela.global_position + Vector3.UP * 0.6)
+	return not get_world_3d().direct_space_state.intersect_shape(q, 1).is_empty()
+
+
+## La cancela ya no tiene cuerpo: en cuanto la física lo note, la fuente de solidez vuelve a medir las casillas (solo si ya manda la colisión
+## real; antes de eso, `_activar_solidez_por_nodos` mide todo por primera vez).
+func _rehacer_solidez() -> void:
+	await get_tree().physics_frame
+	await get_tree().physics_frame
+	var f := Terreno3D.fuente as Terreno3D.FuenteNodos
+	if f != null:
+		f.reconstruir()
+
+
+# ---------- Solidez por MALLA (14/11, Pablo: «cuando horneas el nivel las colisiones son por casilla; ponlas TODAS por malla, hay muchos
+# muros invisibles») ----------
+# Antes cada pieza marcada `bloquea_casilla` cerraba su casilla entera (2,3 u): la empalizada, el portón, los árboles, el obrador y la torre, y
+# además unos tramos invisibles del cuadrado viejo junto al portón. Ahora cada una lleva un cuerpo en la capa de lo sólido medido sobre su
+# modelo (ColisionPieza: la franja donde toca el cuerpo, con sus huecos), y Monte Sumicio usa la solidez por colisión real
+# (monte_sumicio_mundo._activar_solidez_por_nodos). Hechizos, enemigos y rutas siguen viendo casillas (las que la forma cubre por el centro).
+const TOPE_EDIFICIO := 1.0     ## los edificios chocan hasta la cintura de Mid: por encima, los aleros de paja y los balcones, que no son obstáculo
+## Hueco de la puerta de la torre (x −0,70..0,63, cara en z ≈ 3,62; ver monte_sumicio_visita.HUECO_TORRE): una tabla de choque justo por dentro.
+const PUERTA_TORRE_CHOQUE := Vector3(-0.035, 0.0, 3.50)
+## El vano de esa puerta en planta (x, z, ancho, fondo), que se recorta de la malla antes de medirla: el marco de piedra sobresale casi 1 u y los
+## cascos de los dos lados se unían por delante tapando la entrada (Mid se quedaba a 1,2 de la puerta y no podía cruzarla).
+const VANO_TORRE := Rect2(-0.75, 2.6, 1.43, 2.5)
+
+
+func _solidos_por_malla() -> void:
+	var n := 0
+	var sueltas: Array[String] = []
+	for casa in casas():
+		n += _cuerpo_de_modelo(casa, casa.get_node("Modelo"), "contorno", TOPE_EDIFICIO)
+	n += _cuerpo_de_modelo(torre, torre.get_node("Modelo"), "contorno", TOPE_EDIFICIO, VANO_TORRE)
+	var tabla := CollisionShape3D.new()
+	var caja := BoxShape3D.new()
+	caja.size = Vector3(1.4, 1.6, 0.2)
+	tabla.shape = caja
+	tabla.position = PUERTA_TORRE_CHOQUE + Vector3.UP * 0.8
+	var cuerpo_torre := torre.get_node_or_null("Solido") as StaticBody3D
+	if cuerpo_torre != null:
+		cuerpo_torre.add_child(tabla)
+	n += _cuerpo_de_modelo(obrador, obrador.get_node("Modelo"), "contorno", TOPE_EDIFICIO)
+	# El resto de piezas marcadas: árboles (su tronco) y lo que se añada en el editor (su contorno). Los muros de ayuda de los edificios, los
+	# tramos del cuadrado de la empalizada y el portón no: ya tienen su cuerpo (el edificio, el círculo, la cancela).
+	for pieza in $Nivel_MonteSumicio/Piezas.find_children("*", "Node3D", true, false):
+		if not pieza.has_meta("bloquea_casilla") or pieza == porton:
+			continue
+		var padre := pieza.get_parent()
+		if padre == torre or padre == obrador or padre.name == "Empalizada" or padre.get_parent() == casas()[0].get_parent():
+			continue
+		var hecho := _cuerpo_de_modelo(pieza, pieza, "tronco" if padre.name == "Arboles" else "contorno", ColisionPieza.BANDA_MAX)
+		if hecho == 0:
+			Terreno3D.bloquear_celda_completa(celda(pieza))      # sin malla que medir: la casilla, como antes
+			sueltas.append(String(pieza.name))
+		n += hecho
+	print("Monte Sumicio: %d cuerpos medidos sobre su malla%s" % [n, (" · por casilla (sin malla): %s" % ", ".join(sueltas)) if not sueltas.is_empty() else ""])
+
+
+## Un cuerpo «Solido» (capa de lo sólido) en `pieza` con los cascos medidos sobre las mallas visibles de `malla` (la propia pieza o su «Modelo»).
+## Los cascos van en el espacio de `pieza` con la base en su origen. Devuelve 1 si lo puso, 0 si no había nada que medir.
+func _cuerpo_de_modelo(pieza: Node3D, malla: Node3D, modo: String, tope: float, vano := Rect2()) -> int:
+	var tris := PackedVector3Array()
+	if malla == pieza:
+		for h in pieza.get_children():
+			if h is Node3D and (h as Node3D).visible and not h.has_meta("bloquea_casilla"):
+				tris.append_array(ColisionPieza._triangulos(h, Transform3D.IDENTITY))
+	else:
+		tris = ColisionPieza._triangulos(malla, Transform3D.IDENTITY)
+	if vano.has_area():
+		# Fuera los triángulos cuyo centro cae en el vano (en planta): así el hueco de la puerta separa los trozos de cada lado.
+		var quedan := PackedVector3Array()
+		for i in range(0, tris.size() - 2, 3):
+			var m := (tris[i] + tris[i + 1] + tris[i + 2]) / 3.0
+			if not vano.has_point(Vector2(m.x, m.z)):
+				quedan.append_array([tris[i], tris[i + 1], tris[i + 2]])
+		tris = quedan
+	var lista := ColisionPieza.cascos_triangulos(tris, modo, ColisionPieza.BANDA_MIN, tope)
+	if lista.is_empty():
+		return 0
+	var cuerpo := StaticBody3D.new()
+	cuerpo.name = "Solido"
+	cuerpo.collision_layer = Terreno3D.CAPA_SOLIDO
+	cuerpo.collision_mask = 0
+	cuerpo.add_to_group("bloquea")
+	for nube in lista:
+		var cs := CollisionShape3D.new()
+		var sh := ConvexPolygonShape3D.new()
+		sh.points = nube
+		cs.shape = sh
+		cuerpo.add_child(cs)
+	pieza.add_child(cuerpo)
+	return 1
 
 
 func bisagra(casa: Node3D) -> Node3D:
@@ -171,6 +269,7 @@ const PUERTA_TIEMPO := 1.1       # segundos que tarda en abrirse
 const PUERTA_RETARDO := 0.35     # el guardia habla y, un instante después, empuja
 const POSTE_ANCHO := 0.62        # postes de la cancela (valla_esquina, más altos que la valla)
 const POSTE_ALTO := 3.05
+const VALLA_GROSOR := 0.3      ## grosor del choque de cada panel (las estacas miden ~0,25 de fondo)
 
 
 func _empalizada_circular() -> void:
@@ -201,15 +300,9 @@ func _empalizada_circular() -> void:
 		celdas[celda(t)] = t
 	for t in tramos:
 		t.visible = false
-		# Los tramos a cada lado del portón siguen bloqueando (invisibles): si no, entre el cuadrado y el círculo, que es algo mayor,
-		# se podría rodear el portón sin pasar por él.
-		var c := celda(t)
-		var junto_al_porton := false
-		for d in [Vector2i(1, 0), Vector2i(-1, 0), Vector2i(0, 1), Vector2i(0, -1)]:
-			if not celdas.has(c + d) and celdas.has(c + d * 2):
-				junto_al_porton = true
-		if not junto_al_porton:
-			t.remove_meta("bloquea_casilla")
+		# 14/11: los tramos del cuadrado ya no bloquean nada (antes los de junto al portón seguían cerrando su casilla, invisibles): el círculo
+		# está cerrado por sus propios cuerpos y la cancela.
+		t.remove_meta("bloquea_casilla")
 	var curva := Node3D.new()
 	curva.name = "EmpalizadaCircular"
 	raiz.add_child(curva)
@@ -241,7 +334,12 @@ func _empalizada_circular() -> void:
 		minimos.append(m)
 	var rng := RandomNumberGenerator.new()
 	rng.seed = 1411
-	var celdas_valla := {}
+	# 14/11: el choque de la valla, un cuerpo con una caja fina por panel (lo que se ve), no las casillas que pisa.
+	var solido := StaticBody3D.new()
+	solido.name = "SolidoValla"
+	solido.collision_layer = Terreno3D.CAPA_SOLIDO
+	solido.collision_mask = 0
+	curva.add_child(solido)
 	for i in range(n):
 		var a := ang_puerta + medio_hueco + paso * (float(i) + 0.5)
 		# Punta: el suelo medio de los vecinos (sin cruzar la cancela, que corta el anillo) más el alto de la valla.
@@ -268,17 +366,18 @@ func _empalizada_circular() -> void:
 		var ladeo := VALLA_LADEO * (2.0 if rng.randf() < 0.05 else 1.0)
 		mi.rotation = Vector3(deg_to_rad(rng.randf_range(-ladeo, ladeo)), -a, deg_to_rad(rng.randf_range(-ladeo * 0.6, ladeo * 0.6)))   # la cara, tangente al círculo
 		mi.scale = Vector3(cuerda * VALLA_SOLAPE / bb.size.x, (punta - base) / bb.size.y, VALLA_PANEL / bb.size.x)
-		var c := Terreno3D.celda_de(p)
-		celdas_valla[c] = true
-		Terreno3D.bloquear_celda_completa(c)
-	_cancela(curva, c3, radio, ang_puerta, medio_hueco, y_defecto, celdas_valla)
+		var alto_suelo_max := maxf(medio[i], bajo[i])
+		for k: float in [-0.5, 0.5]:
+			alto_suelo_max = maxf(alto_suelo_max, _suelo_en(_en_circulo(c3, radio, a + paso * k), y_defecto))
+		_caja_solida(solido, Vector3(p.x, 0.0, p.z), -a, Vector2(cuerda, VALLA_GROSOR), bajo[i] - 0.1, alto_suelo_max + ColisionPieza.BANDA_MAX)
+	_cancela(curva, c3, radio, ang_puerta, medio_hueco, y_defecto, solido)
 	_anillo = {"centro": c3, "radio": radio, "puerta": ang_puerta, "medio_hueco": medio_hueco}
 	print("Empalizada circular: centro %s, radio %.1f m, %d paneles, cancela a %.0f°" % [centro, radio, n, rad_to_deg(ang_puerta)])
 
 
 ## Los dos postes y las dos hojas de la cancela, en el hueco del círculo. Las hojas cuelgan de una bisagra cada una (`_hojas`):
 ## la de la izquierda (vista desde fuera, a la derecha) gira con Y negativa y la otra con Y positiva, las dos hacia dentro del castro.
-func _cancela(padre: Node3D, c3: Vector3, radio: float, ang: float, medio_hueco: float, y_defecto: float, celdas_valla: Dictionary) -> void:
+func _cancela(padre: Node3D, c3: Vector3, radio: float, ang: float, medio_hueco: float, y_defecto: float, solido: StaticBody3D) -> void:
 	var hoja := _pieza_valla("cancela")
 	var poste := _pieza_valla("esquina")
 	if hoja == null or poste == null:
@@ -304,6 +403,7 @@ func _cancela(padre: Node3D, c3: Vector3, radio: float, ang: float, medio_hueco:
 		mi.global_position = Vector3(q.x, suelo - VALLA_HUNDIDO, q.z)
 		mi.rotation.y = -a
 		mi.scale = Vector3(POSTE_ANCHO / bp.size.x, (POSTE_ALTO + VALLA_HUNDIDO) / bp.size.y, POSTE_ANCHO * 0.8 / bp.size.z)
+		_caja_solida(solido, Vector3(q.x, 0.0, q.z), -a, Vector2(POSTE_ANCHO, POSTE_ANCHO * 0.8), suelo - 0.1, suelo + ColisionPieza.BANDA_MAX)
 	# Hojas: el modelo trae los goznes a la izquierda (x mínima) y la cara buena hacia +Z; aquí la cara buena mira hacia fuera (−Z local).
 	var bh := hoja.get_aabb()
 	var media := PUERTA_ANCHO * 0.5
@@ -328,23 +428,24 @@ func _cancela(padre: Node3D, c3: Vector3, radio: float, ang: float, medio_hueco:
 		_hojas.append(bisagra)
 	# La caja vieja del portón ya no se ve: la cancela la sustituye (el nodo sigue marcando el sitio y la casilla del guardia).
 	porton.get_node("Bisagra").visible = false
-	# Choque: una caja invisible con la forma de la cancela cerrada, sobre las casillas del vano que no son ya valla.
-	_choque_puerta = MeshInstance3D.new()
-	_choque_puerta.name = "ChoqueCancela"
-	var caja := BoxMesh.new()
-	caja.size = Vector3(PUERTA_ANCHO, 1.6, 0.36)
-	_choque_puerta.mesh = caja
-	_choque_puerta.layers = 0
-	_choque_puerta.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-	puerta.add_child(_choque_puerta)
-	_choque_puerta.position = Vector3(0.0, 0.8, 0.0)
-	_celdas_puerta.clear()
-	for k in range(-4, 5):
-		var c := Terreno3D.celda_de(puerta.to_global(Vector3(media * float(k) / 4.0, 0.0, 0.0)))
-		if not celdas_valla.has(c) and not _celdas_puerta.has(c):
-			_celdas_puerta.append(c)
-			Terreno3D.bloquear_contorno(c, _choque_puerta)
+	# Choque: un cuerpo propio con la forma de la cancela cerrada (se quita al abrir; `abrir_porton`).
+	_choque_puerta = StaticBody3D.new()
+	_choque_puerta.name = "SolidoCancela"
+	_choque_puerta.collision_layer = Terreno3D.CAPA_SOLIDO
+	_choque_puerta.collision_mask = 0
+	padre.add_child(_choque_puerta)
+	_caja_solida(_choque_puerta, Vector3(p.x, 0.0, p.z), -ang, Vector2(PUERTA_ANCHO, VALLA_GROSOR + 0.06), p.y - 0.1, p.y + ColisionPieza.BANDA_MAX)
 	_puerta_abierta = false
+
+
+## Una caja de choque en `cuerpo`: centrada en `en` (x, z), girada `giro` en Y, de `planta` (largo a lo largo, grosor) y de `y0` a `y1`.
+static func _caja_solida(cuerpo: StaticBody3D, en: Vector3, giro: float, planta: Vector2, y0: float, y1: float) -> void:
+	var cs := CollisionShape3D.new()
+	var caja := BoxShape3D.new()
+	caja.size = Vector3(planta.x, maxf(y1 - y0, 0.2), planta.y)
+	cs.shape = caja
+	cuerpo.add_child(cs)
+	cs.global_transform = Transform3D(Basis(Vector3.UP, giro), Vector3(en.x, (y0 + y1) * 0.5, en.z))
 
 
 static func _en_circulo(c3: Vector3, radio: float, a: float) -> Vector3:
@@ -368,33 +469,3 @@ static func celda(nodo: Node3D) -> Vector2i:
 
 static func punto(c: Vector2i) -> Vector3:
 	return Terreno3D.centro_de(c, Terreno3D.y_pies(c))
-
-
-func _registrar_palloza(casa: Node3D) -> void:
-	bisagra(casa).position += Vector3(0.03, 0.0, -0.04)
-	var c := celda(casa)
-	var casillas: Array[Vector2i] = []
-	for z in range(-1, 2):
-		for x in range(-1, 2):
-			var vecina := c + Vector2i(x, z)
-			if not Terreno3D.es_vacio(vecina) and not Terreno3D.bloqueada(vecina):
-				casillas.append(vecina)
-	var malla := BoxMesh.new()
-	malla.size = Vector3(0.61, 1.6, 0.29)
-	# El contorno deja libre el arco que ocupa la puerta.
-	for i in range(2, 15):
-		var angulo := TAU * i / 16.0
-		var normal := Vector3(sin(angulo), 0.0, cos(angulo))
-		var tramo := MeshInstance3D.new()
-		tramo.mesh = malla
-		tramo.layers = 0
-		tramo.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-		casa.add_child(tramo)
-		tramo.position = normal * 1.49 + Vector3.UP * 0.8
-		tramo.rotation.y = angulo
-		for vecina in casillas:
-			var d := punto(vecina) - tramo.global_position
-			var alcance := Terreno3D.casilla * 0.5 + 0.60
-			if absf(d.x) < alcance and absf(d.z) < alcance:
-				Terreno3D.bloquear_contorno(vecina, tramo)
-	Terreno3D.bloquear_celda_completa(c)

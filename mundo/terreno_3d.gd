@@ -267,7 +267,9 @@ class FuenteSolidez extends RefCounted:
 		for c in toca:
 			for r in (_fijos.get(c, []) as Array):
 				var nf: Node3D = (r as WeakRef).get_ref() as Node3D
-				if nf != null and nf.is_inside_tree() and nf.is_visible_in_tree():
+				# 14/11: el nodo que se apuntó a mano cuenta aunque esté oculta la sala que lo contiene (los interiores de Monte Sumicio
+				# se esconden hasta entrar): manda su propia visibilidad, no la de sus padres.
+				if nf != null and nf.is_inside_tree() and nf.visible:
 					for f0 in _formas_de_nodo(nf, c, true):
 						if not formas.has(c):
 							formas[c] = []
@@ -325,7 +327,9 @@ class FuenteSolidez extends RefCounted:
 			var h: Node = pila.pop_back()
 			if h != n and "celda" in h and h.get("celda") is Vector2i and h.get("celda") != c:
 				continue                                 # un hijo que es otro objeto, de otra casilla
-			if h is MeshInstance3D and (h as MeshInstance3D).mesh != null and (h as MeshInstance3D).is_visible_in_tree() \
+			if h != n and h is Node3D and not (h as Node3D).visible:
+				continue                                 # 14/11: lo oculto DENTRO del objeto no cuenta (visibilidad relativa a `n`, no a la sala)
+			if h is MeshInstance3D and (h as MeshInstance3D).mesh != null and (fijo or (h as MeshInstance3D).is_visible_in_tree()) \
 					and not ((h as MeshInstance3D).mesh is QuadMesh) and not ((h as MeshInstance3D).mesh is PlaneMesh):
 				var gt: Transform3D = (h as MeshInstance3D).global_transform
 				for v in (h as MeshInstance3D).mesh.get_faces():
@@ -542,7 +546,7 @@ class FuenteNodos extends FuenteSolidez:
 		q.collision_mask = Terreno3D.CAPA_SOLIDO
 		for y in range(lado):
 			for x in range(lado):
-				q.transform = Transform3D(Basis(), Terreno3D.centro_de(Vector2i(x, y), Terreno3D.alto_suelo + 2.0))
+				q.transform = Transform3D(Basis(), Terreno3D.centro_de(Vector2i(x, y), suelo_de(Vector2i(x, y)) + 2.0))
 				if not espacio.intersect_shape(q, 1).is_empty():
 					celdas[Vector2i(x, y)] = true
 		# De las casillas tocadas, las que la forma cubre por el centro: son las que cuentan como bloqueadas enteras.
@@ -551,7 +555,7 @@ class FuenteNodos extends FuenteSolidez:
 		qc.shape = _caja_centro
 		qc.collision_mask = Terreno3D.CAPA_SOLIDO
 		for c in celdas.keys():
-			qc.transform = Transform3D(Basis(), Terreno3D.centro_de(c, Terreno3D.alto_suelo + 2.0))
+			qc.transform = Transform3D(Basis(), Terreno3D.centro_de(c, suelo_de(c) + 2.0))
 			if not espacio.intersect_shape(qc, 1).is_empty():
 				cubiertas[c] = true
 		# La casilla donde está la pieza (su origen) cuenta siempre, aunque la forma quede descentrada (pieza arrastrada a un borde).
@@ -563,6 +567,13 @@ class FuenteNodos extends FuenteSolidez:
 				if celdas.has(co):
 					cubiertas[co] = true
 		return celdas.size()
+
+	## 14/11 (Monte Sumicio, suelo a 2-3 u): la altura a la que se mide cada casilla. Antes era `alto_suelo` fijo: en un nivel con
+	## escalones de terreno la esfera del cuerpo (a 0,6 sobre ESE suelo) pasaba por debajo de las piezas de la terraza alta y no chocaba
+	## con nada, y por eso Sumicio tenía la solidez por casillas (muros invisibles de 2,3 u). Nunca por debajo de `alto_suelo` (el agua
+	## y los cauces, más bajos, se miden como siempre): en los niveles llanos da exactamente lo de antes.
+	static func suelo_de(c: Vector2i) -> float:
+		return maxf(Terreno3D.alto_suelo, Terreno3D.y_pies(c))
 
 	func bloquea(c: Vector2i) -> bool:
 		return cubiertas.has(c) or extras.has(c)
@@ -596,7 +607,7 @@ class FuenteNodos extends FuenteSolidez:
 			var q := PhysicsShapeQueryParameters3D.new()
 			q.shape = _bola
 			q.collision_mask = Terreno3D.CAPA_SOLIDO
-			q.transform = Transform3D(Basis(), Vector3(p.x, Terreno3D.alto_suelo + 0.6, p.z))
+			q.transform = Transform3D(Basis(), Vector3(p.x, suelo_de(c) + 0.6, p.z))
 			if not espacio.intersect_shape(q, 1).is_empty():
 				return true
 		if extras.has(c):

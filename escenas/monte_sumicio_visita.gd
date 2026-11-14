@@ -69,6 +69,7 @@ func _montar() -> void:
 	var marimanta := _figura("Marimanta", Maqueta.celda(_maqueta.marimanta), Color("#4c5153"), Color("#93394a"), _sala_torre)
 	marimanta.global_position = _maqueta.marimanta.global_position
 	_cofre_uniforme = Cofre3D.en(_maqueta.cofre)
+	Terreno3D.bloquear_celda(Terreno3D.celda_de(_maqueta.cofre.global_position), _maqueta.cofre)
 	# Las partidas previas a este cofre ya podían haber recibido el uniforme de Marimanta.
 	if Flags.i().tiene(ADMISION) and Atuendos.tiene(UNIFORME):
 		Flags.i().poner(COFRE_UNIFORME)
@@ -291,7 +292,8 @@ func _flag_cofre() -> String:
 func _puerta_cercana() -> Node3D:
 	for casa in _casas:
 		var local := casa.to_local(_mid.position) - _hueco_puerta(casa)
-		if absf(local.x) < 0.55 and local.z >= -0.44 and local.z <= 0.26:
+		# 14/11: hasta 0,55 por fuera (antes 0,26): desde que la casa choca por su malla, el cuerpo de Mid se queda en la cara del muro (~0,3 de la hoja).
+		if absf(local.x) < 0.55 and local.z >= -0.44 and local.z <= 0.55:
 			return casa
 	return null
 
@@ -503,9 +505,9 @@ func _montar_torre(mundo: Node) -> void:
 	# Lo de la audiencia, dentro de la sala.
 	_maqueta.marimanta.global_position = _sala_torre.punto("marimanta")
 	_maqueta.cofre.global_position = _sala_torre.punto("cofre_uniforme")
-	for sitio in ["cofre_uniforme", "cofre_agua", "cofre_magico"]:
-		Terreno3D.bloquear_celda_completa(Terreno3D.celda_de(_sala_torre.punto(sitio)))
-	CofreMagico.poner_en(_sala_torre, _sala_torre.punto("cofre_magico"))
+	# 14/11: cada cofre choca con su modelo (antes, la casilla entera): se apuntan al crearse (aquí el mágico; los otros dos, en `_montar`).
+	var magico := CofreMagico.poner_en(_sala_torre, _sala_torre.punto("cofre_magico"))
+	Terreno3D.bloquear_celda(Terreno3D.celda_de(magico.global_position), magico)
 
 
 func _hablar_con_marimanta() -> void:
@@ -559,6 +561,7 @@ func _montar_cofre_agua() -> void:
 		_maqueta.torre.add_child(_nodo_cofre_agua)
 		_nodo_cofre_agua.position = Vector3(-2.3, 0.0, -2.85)
 	_cofre_agua = Cofre3D.en(_nodo_cofre_agua)
+	Terreno3D.bloquear_celda(Terreno3D.celda_de(_nodo_cofre_agua.global_position), _nodo_cofre_agua)
 	if Flags.i().tiene(EncargoMarimanta.COFRE_AGUA):
 		_cofre_agua.abrir_ya()
 	elif Flags.i().tiene(EncargoMarimanta.ENTREGADO):

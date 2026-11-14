@@ -45,8 +45,8 @@ func montar() -> void:
 				var alto := 0.45 if z == RADIO else 1.7          # el muro del sur, bajo: la cámara mira desde ahí
 				_caja(p + Vector3.UP * alto * 0.5, Vector3(s, alto, s), GRANITO)
 				_caja(p + Vector3.UP * (alto + 0.04), Vector3(s * 0.9, 0.08, s * 0.9), MUSGO)
-	# El hueco central de la torre con su barandilla (no se pisa).
-	Terreno3D.bloquear_celda_completa(centro)
+	# El hueco central de la torre con su barandilla (no se pisa). 14/11: choca con la barandilla (su caja), no con la casilla entera.
+	_solido_caja(Vector3(0, 0.5, 0), Vector3(s * 0.84 + 0.08, 1.0, s * 0.84 + 0.08))
 	_caja(Vector3(0, -0.05, 0), Vector3(s * 0.8, 0.1, s * 0.8), Color("#2a2620"))
 	for v in [Vector3(1, 0, 0), Vector3(-1, 0, 0), Vector3(0, 0, 1), Vector3(0, 0, -1)]:
 		var b := _caja(v * s * 0.42 + Vector3.UP * 0.45, Vector3(s * 0.84 if v.z != 0 else 0.08, 0.08, s * 0.84 if v.x != 0 else 0.08), MADERA)
@@ -55,13 +55,28 @@ func montar() -> void:
 	for i in range(6):
 		var peldano := _caja(Vector3(2.0 * s, 0.12 + i * 0.22, (1.0 - i * 0.45) * s * 0.55), Vector3(s * 0.7, 0.1, s * 0.28), MADERA.lightened(0.08))
 		peldano.rotation.y = 0.0
-	Terreno3D.bloquear_celda_completa(centro + Vector2i(2, 0))
+	# 14/11: la escalera choca con lo que ocupan sus peldaños (antes, solo su casilla: los de los extremos se atravesaban).
+	_solido_caja(Vector3(2.0 * s, 0.7, -0.07 * s), Vector3(s * 0.7, 1.4, s * 1.52))
 	_rotulo("Torre Verde · planta baja", Vector3(0, 2.2, -RADIO * s + 0.6))
 	_rotulo("Escalera (próximas plantas)", Vector3(2.0 * s, 1.75, 0))
 	_rotulo("Salida", Vector3(0, 0.65, (RADIO + 0.4) * s))
 	camara.look_at(global_position + Vector3.UP * 0.35)
 	get_viewport().size_changed.connect(_encuadrar)
 	_encuadrar()
+
+
+## Un cuerpo de choque (capa de lo sólido) con forma de caja, en coordenadas de la sala.
+func _solido_caja(pos: Vector3, tam: Vector3) -> void:
+	var cuerpo := StaticBody3D.new()
+	cuerpo.collision_layer = Terreno3D.CAPA_SOLIDO
+	cuerpo.collision_mask = 0
+	var cs := CollisionShape3D.new()
+	var caja := BoxShape3D.new()
+	caja.size = tam
+	cs.shape = caja
+	cuerpo.add_child(cs)
+	add_child(cuerpo)
+	cuerpo.position = pos
 
 
 func _encuadrar() -> void:
