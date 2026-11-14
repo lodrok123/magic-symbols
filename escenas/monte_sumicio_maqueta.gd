@@ -94,8 +94,9 @@ func bisagra(casa: Node3D) -> Node3D:
 func mostrar_interiores(posicion: Vector3) -> void:
 	# Meshy entrega la torre como una sola malla. Al cruzar el umbral se
 	# descubre la sala de audiencia, que conserva sus propios muros.
-	var local := torre.to_local(posicion)
-	var dentro := Rect2(-3.6, -3.6, 7.2, 8.25).has_point(Vector2(local.x, local.z))
+	# 14/11: desde que la torre tiene su propia escena (InteriorTorre, se entra por la puerta animada) ya no se descubre la sala por dentro:
+	# esconder el modelo al llegar al arco hacía desaparecer la torre delante de la puerta. La torre se ve siempre; sus muros de colisión, nunca.
+	var dentro := false
 	torre.get_node("Modelo").visible = not dentro
 	for muro in torre.get_children():
 		if muro.has_meta("bloquea_casilla"):

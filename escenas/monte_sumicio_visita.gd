@@ -295,7 +295,8 @@ func _puerta_cercana() -> Node3D:
 
 ## El centro del vano de la puerta de `casa`, en local de la casa (la hoja mide ~0,8–1,1 y gira desde la bisagra de la izquierda).
 func _hueco_puerta(casa: Node3D) -> Vector3:
-	return casa.to_local(_maqueta.bisagra(casa).global_position) + Vector3(0.45, 0.0, 0.0)
+	var b := _maqueta.bisagra(casa)
+	return casa.to_local(b.global_position) + Vector3(float(b.get_meta("medio_ancho", 0.45)), 0.0, 0.0)
 
 
 func _cruzar(puerta: Node3D) -> void:
@@ -437,8 +438,16 @@ const SalaTorre = preload("res://escenas/interior_torre.gd")
 var _sala_torre: SalaTorre
 var _puerta_torre: Node3D
 const PUERTA_TORRE_MODELO := preload("res://arte/meshy/piezas/puerta_torre_sumicio.glb")
-const ALTO_PUERTA_TORRE := 1.9
-const PUERTA_TORRE := Vector3(-0.58, 0.0, 4.15)        ## bisagra de la puerta, en local de la torre (el arco del sur, en la casilla del hueco del muro)
+## 14/11 (Pablo: «quita la puerta antigua de la torre e intégrala mejor»): la malla de la torre se usa SIN su puerta pintada
+## (herramientas/hornear_torre_sin_puerta.gd) y la puerta nueva ocupa exactamente ese hueco: x −0,70..0,63, y 0..2,36, cara en z ≈ 3,6
+## (local de la torre). La hoja de Meshy mide 0,612 × 1,0 × 0,133 centrada: se estira al hueco y su bisagra va en el borde izquierdo.
+const PUERTA_TORRE_POMO := "res://arte/meshy/piezas/puerta_torre_sumicio_pomo.res"
+const PUERTA_TORRE_TEXTURA := "res://arte/meshy/piezas/puerta_torre_sumicio_pomo.png"
+const TORRE_SIN_PUERTA :="res://arte/meshy/piezas/torre_verde_sumicio_sin_puerta.res"
+const HUECO_TORRE := Rect2(-0.70, 0.0, 1.33, 2.36)      ## x, y, ancho, alto del vano
+const Z_PUERTA_TORRE := 3.62
+const PUERTA_TORRE := Vector3(-0.70, 0.0, 3.62)          ## bisagra (borde izquierdo, abajo)
+const TINTE_PUERTA_TORRE := Color(0.62, 0.5, 0.42)       ## la madera de Meshy es más naranja que la de la torre (#5f3711): se oscurece y apaga
 
 
 func _montar_torre(mundo: Node) -> void:
@@ -452,23 +461,37 @@ func _montar_torre(mundo: Node) -> void:
 	_puerta_torre.name = "Puerta"
 	torre.add_child(_puerta_torre)
 	_puerta_torre.position = PUERTA_TORRE
-	# La hoja de Meshy (arte/meshy/piezas/puerta_torre_sumicio.glb, 14/11): mide 0,61 × 1,0 × 0,13 centrada en su origen. A 1,9 m de alto
-	# queda de 1,16 de ancho; se corre medio ancho y media altura para que la bisagra (este nodo) quede en su borde izquierdo, abajo.
+	_puerta_torre.set_meta("medio_ancho", HUECO_TORRE.size.x * 0.5)
+	# La torre sin la puerta pintada.
+	if ResourceLoader.exists(TORRE_SIN_PUERTA):
+		for m in torre.get_node("Modelo").find_children("*", "MeshInstance3D", true, false):
+			(m as MeshInstance3D).mesh = load(TORRE_SIN_PUERTA)
+	# La hoja, estirada al hueco y con la madera de la torre.
 	var hoja := PUERTA_TORRE_MODELO.instantiate() as Node3D
-	hoja.scale = Vector3.ONE * ALTO_PUERTA_TORRE
-	hoja.position = Vector3(0.304, 0.5, 0.0) * ALTO_PUERTA_TORRE
+	var escala := Vector3(HUECO_TORRE.size.x / 0.612, HUECO_TORRE.size.y, 1.3)
+	hoja.scale = escala
+	hoja.position = Vector3(0.306 * escala.x, 0.5 * escala.y, 0.0)
+	for m in hoja.find_children("*", "MeshInstance3D", true, false):
+		var mm := m as MeshInstance3D
+		if ResourceLoader.exists(PUERTA_TORRE_POMO):
+			mm.mesh = load(PUERTA_TORRE_POMO)        # el aldabón, a media altura del lado (herramientas/hornear_puerta_torre_pomo.gd)
+		var mat := (mm.get_active_material(0) as BaseMaterial3D).duplicate() as BaseMaterial3D
+		mat.albedo_color = TINTE_PUERTA_TORRE
+		if ResourceLoader.exists(PUERTA_TORRE_TEXTURA):
+			mat.albedo_texture = load(PUERTA_TORRE_TEXTURA)    # sin la sombra pintada donde estaba el aldabón
+		mm.material_override = mat
 	_puerta_torre.add_child(hoja)
-	# El vano en penumbra (como el FondoVano de las pallozas): tapa la puerta pintada en la malla de la torre, que si no se ve al abrir la nuestra.
+	# El vano en penumbra detrás (como el FondoVano de las pallozas): al abrir se ve el interior a oscuras, no el hueco de la malla.
 	var vano := MeshInstance3D.new()
 	var caja := BoxMesh.new()
-	caja.size = Vector3(0.612 * ALTO_PUERTA_TORRE, ALTO_PUERTA_TORRE, 0.04)
+	caja.size = Vector3(HUECO_TORRE.size.x + 0.1, HUECO_TORRE.size.y + 0.05, 0.04)
 	vano.mesh = caja
 	var oscuro := StandardMaterial3D.new()
 	oscuro.albedo_color = Color("#140f0b")
 	oscuro.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
 	vano.material_override = oscuro
 	torre.add_child(vano)
-	vano.position = PUERTA_TORRE + Vector3(0.304 * ALTO_PUERTA_TORRE, 0.5 * ALTO_PUERTA_TORRE, -0.1)
+	vano.position = Vector3(HUECO_TORRE.get_center().x, HUECO_TORRE.size.y * 0.5, Z_PUERTA_TORRE - 0.22)
 	_casas[torre] = _sala_torre
 	# Lo de la audiencia, dentro de la sala.
 	_maqueta.marimanta.global_position = _sala_torre.punto("marimanta")
