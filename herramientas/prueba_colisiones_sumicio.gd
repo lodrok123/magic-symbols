@@ -143,10 +143,15 @@ func _initialize() -> void:
 		_ok(abiertos2.is_empty(), "6.2 %s: el muro redondo cierra (abierto en %s)" % [sala.name, str(abiertos2)])
 		_ok(not _choca(o + Vector3(0.0, 0.0, r - 0.3)) and not _choca(o + Vector3(0.0, 0.0, r)), "6.3 %s: por la puerta se sale" % sala.name)
 		var nombres: Array = []
-		for h in (sala as Node).get_children():
-			if String(h.name).begins_with("Solido") and h is StaticBody3D:
-				nombres.append(String(h.name))
-		var pide: Array = ["SolidoMuro"] + (["SolidoCaja"] if sala.tienda else ["SolidoVaca", "SolidoCerdo", "SolidoBanco", "SolidoPesebre", "SolidoValla_cancela"])
+		for h in sala.find_children("*", "StaticBody3D", true, false):
+			nombres.append(String(h.name))
+		var pide: Array = ["SolidoMuro"]
+		if sala.tienda or sala.gremio:
+			pide.append("SolidoCaja")
+		else:
+			pide.append_array(["SolidoBanco", "SolidoPesebre", "SolidoValla_cancela"])
+			for animal in sala.get_node("Animales").get_children():
+				pide.append("Solido" + String(animal.name))
 		var faltan: Array = pide.filter(func(x): return not nombres.has(x))
 		_ok(faltan.is_empty(), "6.4 %s: cuerpos por malla de muro, muebles, animales y valla (faltan %s; hay %d)" % [sala.name, str(faltan), nombres.size()])
 	print("FALLOS: %d" % _fallos)

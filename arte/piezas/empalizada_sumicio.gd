@@ -33,6 +33,23 @@ func _construir() -> void:
 			remove_child(hijo)
 			hijo.queue_free()
 	_preparar_recursos()
+	# 14/11 (Pablo): la valla modular de Meshy (la misma de la Travariza) escalada al tramo: una casilla de ancho y la altura de los
+	# postes. Se alternan los dos tramos según las alturas guardadas, para que la empalizada no se vea repetida.
+	var malla := _malla_valla(alturas)
+	if malla != null:
+		var bb := malla.get_aabb()
+		var alto := 0.0
+		for h in alturas:
+			alto = maxf(alto, h)
+		alto += PUNTA
+		var ancho := alturas.size() * SEPARACION
+		var m := MeshInstance3D.new()
+		m.mesh = malla
+		m.material_override = VallaMadera.material(malla)
+		m.scale = Vector3(ancho / bb.size.x, alto / bb.size.y, ancho / bb.size.x)
+		m.set_meta("_poste", true)
+		add_child(m)
+		return
 	var mitad := (alturas.size() - 1) * 0.5
 	for i in alturas.size():
 		var h := alturas[i]
@@ -48,6 +65,14 @@ func _poner(malla: Mesh, mat: Material, pos: Vector3) -> void:
 	m.position = pos
 	m.set_meta("_poste", true)
 	add_child(m)  # sin owner: no se guarda en la escena, se regenera al cargar
+
+
+static func _malla_valla(semilla: PackedFloat32Array) -> Mesh:
+	var suma := 0.0
+	for h in semilla:
+		suma += h
+	var ruta := "res://arte/meshy/piezas/valla_%s.res" % ("tramo_a" if int(suma * 100.0) % 2 == 0 else "tramo_b")
+	return load(ruta) if ResourceLoader.exists(ruta) else null
 
 
 static func _preparar_recursos() -> void:

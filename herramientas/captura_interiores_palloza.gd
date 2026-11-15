@@ -10,6 +10,9 @@ func _initialize() -> void:
 	root.add_child(escena)
 	for i in 40:
 		await process_frame
+	# Sin interfaz: solo la sala.
+	for c in root.find_children("*", "CanvasLayer", true, false):
+		(c as CanvasLayer).hide()
 	for nombre in ["PallozaNorte", "PallozaCentral", "PallozaSur", "TiendaEste"]:
 		var casa := escena.get_node("Interiores/" + nombre)
 		if casa.get_child_count() < 5 and casa.has_method("montar"):

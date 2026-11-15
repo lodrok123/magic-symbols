@@ -29,3 +29,8 @@ sumicio	pocion	15	-	siempre	-
 sumicio	baya	3	-	siempre	-
 sumicio	seta	3	-	siempre	-
 sumicio	antidoto	20	-	siempre	-
+gremio	bomba_humo	22	3	siempre	14/11: el trueque del gremio del gorro verde (provisional, a revisar por Pablo): la bomba de humo es su herramienta y aqui no pide la pradera limpia
+gremio	bomba_resina	12	3	siempre	-
+gremio	pocion	20	-	siempre	mas caro que en la tienda del poblado: son peristas
+gremio	antidoto	24	-	siempre	-
+gremio	seda	10	-	siempre	-

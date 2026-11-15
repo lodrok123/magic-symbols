@@ -1,0 +1,14 @@
+[gd_scene format=3]
+
+[ext_resource type="Texture2D" path="res://arte/piezas/sumicio/libro_cubierta_granate.png" id="1_nwasv"]
+[ext_resource type="ArrayMesh" path="res://arte/meshy/piezas/sumicio_libro.res" id="2_d4ulr"]
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_dyuhv"]
+resource_name = "Cubierta granate"
+cull_mode = 2
+albedo_texture = ExtResource("1_nwasv")
+metadata/_gltf_primary_texture_coord = 0
+
+[node name="LibroGranate" type="MeshInstance3D" unique_id=176444018]
+material_override = SubResource("StandardMaterial3D_dyuhv")
+mesh = ExtResource("2_d4ulr")

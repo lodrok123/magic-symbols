@@ -1,0 +1,19 @@
+[gd_scene format=3]
+
+[ext_resource type="Texture2D" path="res://arte/provencal/detalle/T_Flora_Atlas_01_B.png" id="1_2bpjh"]
+[ext_resource type="ArrayMesh" path="res://arte/provencal/obj/SM_Flower_01_c.obj" id="2_nwjej"]
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_ii7yj"]
+transparency = 2
+alpha_scissor_threshold = 0.5
+alpha_antialiasing_mode = 0
+cull_mode = 2
+albedo_color = Color(1.12, 1.05, 0.88, 1)
+albedo_texture = ExtResource("1_2bpjh")
+
+[node name="RamoCrema" type="Node3D" unique_id=1951568056]
+
+[node name="RamoCrema" type="MeshInstance3D" parent="." unique_id=1462046303]
+transform = Transform3D(0.5682585, 0, 0, 0, 0.5682585, 0, 0, 0, 0.5682585, -0.031874463, 0.02498235, 0.006673649)
+material_override = SubResource("StandardMaterial3D_ii7yj")
+mesh = ExtResource("2_nwjej")

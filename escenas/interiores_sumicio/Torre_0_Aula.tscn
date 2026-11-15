@@ -1,0 +1,492 @@
+[gd_scene format=4]
+
+[ext_resource type="ArrayMesh" path="res://arte/meshy/piezas/torre_barandilla.res" id="2_040mv"]
+[ext_resource type="PackedScene" path="res://arte/piezas/sumicio/tramo_escalera.tscn" id="3_l8v1t"]
+[ext_resource type="ArrayMesh" path="res://arte/meshy/piezas/torre_escalera.res" id="3_o8bak"]
+[ext_resource type="ArrayMesh" path="res://arte/meshy/piezas/torre_mesa_lectura.res" id="4_0jv4f"]
+[ext_resource type="ArrayMesh" path="res://arte/meshy/piezas/sumicio_ventana.res" id="4_hoy5a"]
+[ext_resource type="PackedScene" path="res://arte/piezas/sumicio/libro_azul.tscn" id="5_dx0lb"]
+[ext_resource type="ArrayMesh" path="res://arte/meshy/piezas/sumicio_balcon.res" id="5_l8v1t"]
+[ext_resource type="PackedScene" path="res://arte/piezas/sumicio/pergamino.tscn" id="5_wldca"]
+[ext_resource type="Texture2D" path="res://arte/piezas/sumicio/libro_cubierta_azul.png" id="6_cwnet"]
+[ext_resource type="PackedScene" path="res://arte/piezas/prov_flower_pot.tscn" id="6_o8bak"]
+[ext_resource type="PackedScene" path="res://arte/piezas/sumicio/hoja_runica.tscn" id="7_dj8nt"]
+[ext_resource type="ArrayMesh" path="res://arte/meshy/piezas/sumicio_libro.res" id="9_w43bu"]
+[ext_resource type="PackedScene" path="res://arte/piezas/sumicio/libro.tscn" id="10_5lyn4"]
+[ext_resource type="ArrayMesh" path="res://arte/meshy/piezas/sumicio_pergamino.res" id="11_v8ust"]
+[ext_resource type="ArrayMesh" path="res://arte/meshy/piezas/sumicio_pupitre_limpio.res" id="13_3ax6j"]
+[ext_resource type="PackedScene" path="res://arte/piezas/sumicio/libro_granate.tscn" id="16_4kwte"]
+[ext_resource type="PackedScene" path="res://arte/piezas/sumicio/libro_castano.tscn" id="18_isdhc"]
+[ext_resource type="ArrayMesh" path="res://arte/meshy/piezas/sumicio_silla.res" id="20_xergn"]
+[ext_resource type="PackedScene" path="res://arte/piezas/sumicio/flor_crema.tscn" id="22_oq1ke"]
+[ext_resource type="PackedScene" path="res://arte/piezas/sumicio/sumiciu.tscn" id="23_qd7rt"]
+[ext_resource type="Script" path="res://presentacion/sumiciu_3d.gd" id="24_bxu4f"]
+[ext_resource type="Material" path="res://arte/suelo_meshy/madera_torre_sumicio.tres" id="madera_torre"]
+
+[sub_resource type="BoxMesh" id="ModuloMaderaTorre"]
+size = Vector3(1, 1, 1)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_24vbu"]
+size = Vector3(0.16, 1.4, 2.14)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_wldca"]
+size = Vector3(0.16, 1.4, 2.14)
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_d61ij"]
+albedo_color = Color(0.34117648, 0.43137255, 0.44313726, 1)
+emission_enabled = true
+emission = Color(0.3137255, 0.39215687, 0.4117647, 1)
+emission_energy_multiplier = 0.3
+
+[sub_resource type="BoxMesh" id="BoxMesh_dhajh"]
+size = Vector3(1.4058001, 1.035, 0.025)
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_bw172"]
+resource_name = "Cubierta azul"
+cull_mode = 2
+albedo_texture = ExtResource("6_cwnet")
+metadata/_gltf_primary_texture_coord = 0
+
+[node name="Torre0Aula" type="Node3D" unique_id=1959805831]
+
+[node name="Suelo" type="Node3D" parent="." unique_id=407644534]
+
+[node name="Pavimento1" type="MeshInstance3D" parent="Suelo"]
+transform = Transform3D(12, 0, 0, 0, 0.17, 0, 0, 0, 12, 0, -0.055, 0)
+material_override = ExtResource("madera_torre")
+mesh = SubResource("ModuloMaderaTorre")
+
+[node name="UmbralSur" type="MeshInstance3D" parent="Suelo"]
+transform = Transform3D(2.3, 0, 0, 0, 0.17, 0, 0, 0, 2.05, 0, -0.055, 7.025)
+material_override = ExtResource("madera_torre")
+mesh = SubResource("ModuloMaderaTorre")
+
+[node name="Muros" type="Node3D" parent="." unique_id=118192781]
+
+[node name="NPaño1" type="MeshInstance3D" parent="Muros"]
+transform = Transform3D(2.975, 0, 0, 0, 1.98, 0, 0, 0, 0.25, -4.2625, 0.99, -5.875)
+material_override = ExtResource("madera_torre")
+mesh = SubResource("ModuloMaderaTorre")
+
+[node name="NAntepecho1" type="MeshInstance3D" parent="Muros"]
+transform = Transform3D(1.41, 0, 0, 0, 0.63, 0, 0, 0, 0.25, -2.07, 0.315, -5.875)
+material_override = ExtResource("madera_torre")
+mesh = SubResource("ModuloMaderaTorre")
+
+[node name="NDintel1" type="MeshInstance3D" parent="Muros"]
+transform = Transform3D(1.41, 0, 0, 0, 0.305, 0, 0, 0, 0.25, -2.07, 1.8275, -5.875)
+material_override = ExtResource("madera_torre")
+mesh = SubResource("ModuloMaderaTorre")
+
+[node name="NPaño2" type="MeshInstance3D" parent="Muros"]
+transform = Transform3D(7.115, 0, 0, 0, 1.98, 0, 0, 0, 0.25, 2.1925, 0.99, -5.875)
+material_override = ExtResource("madera_torre")
+mesh = SubResource("ModuloMaderaTorre")
+
+[node name="WPaño1" type="MeshInstance3D" parent="Muros"]
+transform = Transform3D(0.25, 0, 0, 0, 1.98, 0, 0, 0, 11.5, -5.875, 0.99, 0)
+material_override = ExtResource("madera_torre")
+mesh = SubResource("ModuloMaderaTorre")
+
+[node name="EPaño1" type="MeshInstance3D" parent="Muros"]
+transform = Transform3D(0.25, 0, 0, 0, 1.98, 0, 0, 0, 11.5, 5.875, 0.99, 0)
+material_override = ExtResource("madera_torre")
+mesh = SubResource("ModuloMaderaTorre")
+
+[node name="SurIzquierda" type="MeshInstance3D" parent="Muros"]
+transform = Transform3D(4.6, 0, 0, 0, 0.55, 0, 0, 0, 0.25, -3.45, 0.275, 5.875)
+material_override = ExtResource("madera_torre")
+mesh = SubResource("ModuloMaderaTorre")
+
+[node name="SurDerecha" type="MeshInstance3D" parent="Muros"]
+transform = Transform3D(4.6, 0, 0, 0, 0.55, 0, 0, 0, 0.25, 3.45, 0.275, 5.875)
+material_override = ExtResource("madera_torre")
+mesh = SubResource("ModuloMaderaTorre")
+
+[node name="PilarNoroeste" type="MeshInstance3D" parent="Muros"]
+transform = Transform3D(0.3, 0, 0, 0, 2.09, 0, 0, 0, 0.3, -5.84, 1.045, -5.84)
+material_override = ExtResource("madera_torre")
+instance_shader_parameters/tablones = false
+mesh = SubResource("ModuloMaderaTorre")
+
+[node name="PilarNoreste" type="MeshInstance3D" parent="Muros"]
+transform = Transform3D(0.3, 0, 0, 0, 2.09, 0, 0, 0, 0.3, 5.84, 1.045, -5.84)
+material_override = ExtResource("madera_torre")
+instance_shader_parameters/tablones = false
+mesh = SubResource("ModuloMaderaTorre")
+
+[node name="PilarSuroeste" type="MeshInstance3D" parent="Muros"]
+transform = Transform3D(0.3, 0, 0, 0, 0.61, 0, 0, 0, 0.3, -5.84, 0.305, 5.84)
+material_override = ExtResource("madera_torre")
+instance_shader_parameters/tablones = false
+mesh = SubResource("ModuloMaderaTorre")
+
+[node name="PilarSureste" type="MeshInstance3D" parent="Muros"]
+transform = Transform3D(0.3, 0, 0, 0, 0.61, 0, 0, 0, 0.3, 5.84, 0.305, 5.84)
+material_override = ExtResource("madera_torre")
+instance_shader_parameters/tablones = false
+mesh = SubResource("ModuloMaderaTorre")
+
+[node name="HuecoCentral" type="Node3D" parent="." unique_id=452299140]
+
+[node name="Barandilla" type="MeshInstance3D" parent="HuecoCentral" unique_id=1278498523]
+transform = Transform3D(-4.81956, 0, -0.024595499, 0, 3.3149788, 0, 0.08181143, 0, -1.4489323, -0.31240797, 0, 2.868669)
+material_override = ExtResource("madera_torre")
+instance_shader_parameters/tablones = false
+mesh = ExtResource("2_040mv")
+metadata/colision_malla = &"Barandilla"
+
+[node name="Barandilla2" type="MeshInstance3D" parent="HuecoCentral" unique_id=205168524]
+transform = Transform3D(2.5626848, 0, -1.3158752, 0, 3.3149788, 0, 4.4317636, 0, 0.76091003, 0.28289557, 0, 1.9816265)
+material_override = ExtResource("madera_torre")
+instance_shader_parameters/tablones = false
+mesh = ExtResource("2_040mv")
+metadata/colision_malla = &"Barandilla2"
+
+[node name="Barandilla4" type="MeshInstance3D" parent="HuecoCentral" unique_id=1737682420]
+transform = Transform3D(2.4342618, 0, 1.5160165, 0, 3.3149788, 0, -4.674926, 0, 0.7893988, -0.77165604, 0, 1.9074981)
+material_override = ExtResource("madera_torre")
+instance_shader_parameters/tablones = false
+mesh = ExtResource("2_040mv")
+metadata/colision_malla = &"Barandilla4"
+
+[node name="Subida" type="Node3D" parent="." unique_id=477749516]
+
+[node name="Inicio" type="Marker3D" parent="Subida" unique_id=1050564993]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 4.6, 0, 0.43)
+
+[node name="Fin" type="Marker3D" parent="Subida" unique_id=1922083788]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 4.6, 1.12, -1.79)
+
+[node name="Cambio" type="Marker3D" parent="Subida" unique_id=1494839565]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 4.6, 0.4893694, -0.54)
+
+[node name="Llegada" type="Marker3D" parent="Subida" unique_id=1739419358]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 4.6, 0.30270272, -0.17000002)
+
+[node name="LateralIzquierda" type="StaticBody3D" parent="Subida" unique_id=1767960399]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 3.76, 0.4, -0.7)
+collision_layer = 1024
+collision_mask = 0
+
+[node name="Forma" type="CollisionShape3D" parent="Subida/LateralIzquierda" unique_id=1883580589]
+shape = SubResource("BoxShape3D_24vbu")
+
+[node name="LateralDerecha" type="StaticBody3D" parent="Subida" unique_id=920520801]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 5.44, 0.4, -0.7)
+collision_layer = 1024
+collision_mask = 0
+
+[node name="Forma" type="CollisionShape3D" parent="Subida/LateralDerecha" unique_id=1675596475]
+shape = SubResource("BoxShape3D_wldca")
+
+[node name="TramoContinuo" type="MeshInstance3D" parent="Subida" unique_id=1015193500 instance=ExtResource("3_l8v1t")]
+transform = Transform3D(6.7143245, 0, 0, 0, 3.9019966, 0, 0, 0, 5.3300366, 4.6, 0, -0.012393028)
+mesh = ExtResource("3_o8bak")
+
+[node name="VentanaBalcon" type="Node3D" parent="." unique_id=1354194069]
+
+[node name="VentanaArco" type="MeshInstance3D" parent="VentanaBalcon" unique_id=1702870922]
+transform = Transform3D(5.9515333, 0, 0, 0, 3.1944888, 0, 0, 0, 3.2120829, -2.0699997, 0.48999995, -5.66)
+material_override = ExtResource("madera_torre")
+instance_shader_parameters/tablones = false
+mesh = ExtResource("4_hoy5a")
+
+[node name="HuecoVentanaArco" type="MeshInstance3D" parent="VentanaBalcon" unique_id=342366016]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -2.0699997, 1.1524, -5.92)
+material_override = SubResource("StandardMaterial3D_d61ij")
+mesh = SubResource("BoxMesh_dhajh")
+
+[node name="BalconRoble" type="MeshInstance3D" parent="VentanaBalcon" unique_id=1731121578]
+transform = Transform3D(4.182499, 0, 0, 0, 2.7632823, 0, 0, 0, 0.95756614, -2.0699997, 0.14999995, -5.55)
+material_override = ExtResource("madera_torre")
+instance_shader_parameters/tablones = false
+mesh = ExtResource("5_l8v1t")
+
+[node name="Muebles" type="Node3D" parent="." unique_id=1426261267]
+
+[node name="MesaLectura" type="MeshInstance3D" parent="Muebles" unique_id=975395751]
+transform = Transform3D(6.4007087, 0, 0, 0, 3.4838185, 0, 0, 0, 4.9553003, -2.1067264, 0, -4.724169)
+mesh = ExtResource("4_0jv4f")
+metadata/colision_malla = "MesaLectura"
+
+[node name="LibroAzul" type="MeshInstance3D" parent="Muebles/MesaLectura" unique_id=630236943 instance=ExtResource("5_dx0lb")]
+transform = Transform3D(0.15423718, 0, 0.024890713, 0, 0.28704137, 0, -0.032151073, 0, 0.19922654, -0.046, 0.20140333, 0.012)
+material_override = SubResource("StandardMaterial3D_bw172")
+mesh = ExtResource("9_w43bu")
+
+[node name="Pergamino" type="MeshInstance3D" parent="Muebles/MesaLectura" unique_id=398949034 instance=ExtResource("5_wldca")]
+transform = Transform3D(0.15211852, 0, -0.035617545, 0, 0.28704137, 0, 0.046006806, 0, 0.1964899, 0.063, 0.198397, -0.047)
+mesh = ExtResource("11_v8ust")
+
+[node name="MesaLectura2" type="MeshInstance3D" parent="Muebles" unique_id=166856035]
+transform = Transform3D(-2.7978388e-07, 0, 4.9553003, 0, 3.4838185, 0, -6.4007087, 0, -2.1660306e-07, -4.94, 0, -1.4221032)
+mesh = ExtResource("4_0jv4f")
+metadata/colision_malla = "MesaLectura2"
+
+[node name="LibroVerde" type="MeshInstance3D" parent="Muebles/MesaLectura2" unique_id=1662727006 instance=ExtResource("10_5lyn4")]
+transform = Transform3D(0.15342116, 0, -0.029505933, 0, 0.28704134, 0, 0.038112503, 0, 0.1981725, 0.026, 0.19897242, 0.052)
+mesh = ExtResource("9_w43bu")
+
+[node name="LibroVerde2" type="MeshInstance3D" parent="Muebles/MesaLectura2" unique_id=9627095 instance=ExtResource("10_5lyn4")]
+transform = Transform3D(0.110965125, -0.19822004, -0.021340797, 0.105946966, 0.20760883, -0.020375697, 0.038112506, -1.1179061e-08, 0.19817248, -0.07567169, 0.15319376, 0.6067936)
+mesh = ExtResource("9_w43bu")
+
+[node name="LibroVerde3" type="MeshInstance3D" parent="Muebles/MesaLectura2" unique_id=1322410178 instance=ExtResource("10_5lyn4")]
+transform = Transform3D(0.11096509, -0.19821997, -0.021340795, 0.105946936, 0.20760876, -0.020375695, 0.038112506, -1.1179063e-08, 0.19817248, -0.066844, 0.15769163, 0.8157959)
+mesh = ExtResource("9_w43bu")
+
+[node name="MesaLectura3" type="MeshInstance3D" parent="Muebles" unique_id=806093079]
+transform = Transform3D(6.3900704, 0, -0.28558034, 0, 3.483818, 0, 0.36888134, 0, 4.9470634, 0.82437444, 0, -4.89)
+mesh = ExtResource("4_0jv4f")
+metadata/colision_malla = "MesaLectura2"
+
+[node name="Puesto1" type="Node3D" parent="Muebles" unique_id=517663132]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -2.1849976, 0, 0.23000336)
+
+[node name="Pupitre" type="Node3D" parent="Muebles/Puesto1" unique_id=616038111]
+position = Vector3(0.8465135, 0, -1.2754569)
+
+[node name="Tablero" type="MeshInstance3D" parent="Muebles/Puesto1/Pupitre"]
+scale = Vector3(4.3165956, 3.0182066, 3.6409073)
+mesh = ExtResource("13_3ax6j")
+metadata/colision_malla = "Pupitre"
+
+[node name="HojaRunica" parent="Muebles/Puesto1/Pupitre" instance=ExtResource("7_dj8nt")]
+transform = Transform3D(0.8894549, 0, -0.0311436, -0.0120659, 0.8204908, -0.3446001, 0.0287113, 0.3448113, 0.8199883, 0, 0.5448667, 0.045)
+
+[node name="HojaRunica2" parent="Muebles/Puesto1/Pupitre" instance=ExtResource("7_dj8nt")]
+transform = Transform3D(0.7833339, 0, -0.102411, -0.0396769, 0.7283008, -0.3034858, 0.0944127, 0.3060684, 0.7221554, 0.044, 0.5334617, 0.065)
+
+[node name="LibroEstudio" parent="Muebles/Puesto1/Pupitre" instance=ExtResource("10_5lyn4")]
+transform = Transform3D(0.7761032, 0, -0.0778701, -0.0301691, 0.7190818, -0.3006844, 0.0717884, 0.3021941, 0.7154894, -0.249, 0.545968, 0.04)
+
+[node name="Pergamino" parent="Muebles/Puesto1/Pupitre" instance=ExtResource("5_wldca")]
+transform = Transform3D(0.7047268, 0, -0.2257434, -0.0874594, 0.6822059, -0.2730312, 0.2081128, 0.286697, 0.6496875, 0.255, 0.5193328, 0.101)
+
+[node name="Pupitre2" type="Node3D" parent="Muebles/Puesto1" unique_id=1975385070]
+position = Vector3(-0.17784572, 0, -1.2754569)
+
+[node name="Tablero" type="MeshInstance3D" parent="Muebles/Puesto1/Pupitre2"]
+scale = Vector3(4.3165956, 3.0182066, 3.6409073)
+mesh = ExtResource("13_3ax6j")
+metadata/colision_malla = "Pupitre"
+
+[node name="HojaRunica" parent="Muebles/Puesto1/Pupitre2" instance=ExtResource("7_dj8nt")]
+transform = Transform3D(0.89, 0, 0, 0, 0.8204908, -0.3448113, 0, 0.3448113, 0.8204908, 0, 0.5448667, 0.045)
+
+[node name="LibroEstudio" parent="Muebles/Puesto1/Pupitre2" instance=ExtResource("16_4kwte")]
+transform = Transform3D(0.78, 0, 0, 0, 0.7190818, -0.3021941, 0, 0.3021941, 0.7190818, -0.249, 0.545968, 0.04)
+
+[node name="Pergamino" parent="Muebles/Puesto1/Pupitre2" instance=ExtResource("5_wldca")]
+transform = Transform3D(0.7091005, 0, 0.2116046, 0.0819816, 0.6822059, -0.2747257, -0.1950783, 0.286697, 0.6537196, 0.255, 0.5193328, 0.101)
+
+[node name="LibroApilado" parent="Muebles/Puesto1/Pupitre2" instance=ExtResource("18_isdhc")]
+transform = Transform3D(0.63, 0, 0, 0, 0.5807969, -0.2440799, 0, 0.2440799, 0.5807969, -0.246, 0.5974465, 0.046)
+
+[node name="Pupitre3" type="Node3D" parent="Muebles/Puesto1" unique_id=1597456315]
+position = Vector3(0.8465135, 0, -2.809608)
+
+[node name="Tablero" type="MeshInstance3D" parent="Muebles/Puesto1/Pupitre3"]
+scale = Vector3(4.3165956, 3.0182066, 3.6409073)
+mesh = ExtResource("13_3ax6j")
+metadata/colision_malla = "Pupitre"
+
+[node name="HojaRunica" parent="Muebles/Puesto1/Pupitre3" instance=ExtResource("7_dj8nt")]
+transform = Transform3D(0.8894549, 0, 0.0311436, 0.0120659, 0.8204908, -0.3446001, -0.0287113, 0.3448113, 0.8199883, 0, 0.5448667, 0.045)
+
+[node name="LibroEstudio" parent="Muebles/Puesto1/Pupitre3" instance=ExtResource("18_isdhc")]
+transform = Transform3D(0.7761032, 0, 0.0778701, 0.0301691, 0.7190818, -0.3006844, -0.0717884, 0.3021941, 0.7154894, -0.249, 0.545968, 0.04)
+
+[node name="Pergamino" parent="Muebles/Puesto1/Pupitre3" instance=ExtResource("5_wldca")]
+transform = Transform3D(0.7394081, 0, -0.0295921, -0.0114648, 0.6822059, -0.2864677, 0.027281, 0.286697, 0.6816602, 0.255, 0.5193328, 0.101)
+
+[node name="Pupitre4" type="Node3D" parent="Muebles/Puesto1" unique_id=1625313152]
+position = Vector3(-0.31669903, 0, -2.809608)
+
+[node name="Tablero" type="MeshInstance3D" parent="Muebles/Puesto1/Pupitre4"]
+scale = Vector3(4.3165956, 3.0182066, 3.6409073)
+mesh = ExtResource("13_3ax6j")
+metadata/colision_malla = "Pupitre"
+
+[node name="HojaRunica" parent="Muebles/Puesto1/Pupitre4" instance=ExtResource("7_dj8nt")]
+transform = Transform3D(0.8894549, 0, -0.0311436, -0.0120659, 0.8204908, -0.3446001, 0.0287113, 0.3448113, 0.8199883, 0, 0.5448667, 0.045)
+
+[node name="LibroEstudio" parent="Muebles/Puesto1/Pupitre4" instance=ExtResource("5_dx0lb")]
+transform = Transform3D(0.7761032, 0, -0.0778701, -0.0301691, 0.7190818, -0.3006844, 0.0717884, 0.3021941, 0.7154894, -0.249, 0.545968, 0.04)
+
+[node name="Pergamino" parent="Muebles/Puesto1/Pupitre4" instance=ExtResource("5_wldca")]
+transform = Transform3D(0.6756858, 0, 0.3017427, 0.1169037, 0.6822059, -0.2617799, -0.2781766, 0.286697, 0.6229146, 0.255, 0.5193328, 0.101)
+
+[node name="LibroApilado" parent="Muebles/Puesto1/Pupitre4" instance=ExtResource("5_dx0lb")]
+transform = Transform3D(0.589615, 0, 0.2219328, 0.0859831, 0.5807969, -0.2284336, -0.2045998, 0.2440799, 0.5435659, -0.246, 0.5974465, 0.046)
+
+[node name="Pupitre9" type="Node3D" parent="Muebles/Puesto1" unique_id=1700036122]
+position = Vector3(3.1960118, 0, -1.2754569)
+
+[node name="Tablero" type="MeshInstance3D" parent="Muebles/Puesto1/Pupitre9"]
+scale = Vector3(4.3165956, 3.0182066, 3.6409073)
+mesh = ExtResource("13_3ax6j")
+metadata/colision_malla = "Pupitre"
+
+[node name="HojaRunica" parent="Muebles/Puesto1/Pupitre9" instance=ExtResource("7_dj8nt")]
+transform = Transform3D(0.89, 0, 0, 0, 0.8204908, -0.3448113, 0, 0.3448113, 0.8204908, 0, 0.5448667, 0.045)
+
+[node name="LibroEstudio" parent="Muebles/Puesto1/Pupitre9" instance=ExtResource("18_isdhc")]
+transform = Transform3D(0.78, 0, 0, 0, 0.7190818, -0.3021941, 0, 0.3021941, 0.7190818, -0.249, 0.545968, 0.04)
+
+[node name="Pergamino" parent="Muebles/Puesto1/Pupitre9" instance=ExtResource("5_wldca")]
+transform = Transform3D(0.7047268, 0, -0.2257434, -0.0874594, 0.6822059, -0.2730312, 0.2081128, 0.286697, 0.6496875, 0.255, 0.5193328, 0.101)
+
+[node name="Pupitre11" type="Node3D" parent="Muebles/Puesto1" unique_id=438353970]
+position = Vector3(3.1960118, 0, -2.809608)
+
+[node name="Tablero" type="MeshInstance3D" parent="Muebles/Puesto1/Pupitre11"]
+scale = Vector3(4.3165956, 3.0182066, 3.6409073)
+mesh = ExtResource("13_3ax6j")
+metadata/colision_malla = "Pupitre"
+
+[node name="HojaRunica" parent="Muebles/Puesto1/Pupitre11" instance=ExtResource("7_dj8nt")]
+transform = Transform3D(0.8894549, 0, 0.0311436, 0.0120659, 0.8204908, -0.3446001, -0.0287113, 0.3448113, 0.8199883, 0, 0.5448667, 0.045)
+
+[node name="HojaRunica2" parent="Muebles/Puesto1/Pupitre11" instance=ExtResource("7_dj8nt")]
+transform = Transform3D(0.7833339, 0, -0.102411, -0.0396769, 0.7283008, -0.3034858, 0.0944127, 0.3060684, 0.7221554, 0.044, 0.5334617, 0.065)
+
+[node name="LibroEstudio" parent="Muebles/Puesto1/Pupitre11" instance=ExtResource("10_5lyn4")]
+transform = Transform3D(0.7761032, 0, 0.0778701, 0.0301691, 0.7190818, -0.3006844, -0.0717884, 0.3021941, 0.7154894, -0.249, 0.545968, 0.04)
+
+[node name="Pergamino" parent="Muebles/Puesto1/Pupitre11" instance=ExtResource("5_wldca")]
+transform = Transform3D(0.7091005, 0, 0.2116046, 0.0819816, 0.6822059, -0.2747257, -0.1950783, 0.286697, 0.6537196, 0.255, 0.5193328, 0.101)
+
+[node name="LibroApilado" parent="Muebles/Puesto1/Pupitre11" instance=ExtResource("10_5lyn4")]
+transform = Transform3D(0.63, 0, 0, 0, 0.5807969, -0.2440799, 0, 0.2440799, 0.5807969, -0.246, 0.5974465, 0.046)
+
+[node name="Pupitre18" type="Node3D" parent="Muebles/Puesto1" unique_id=484432339]
+position = Vector3(4.483693, 0, -1.2754569)
+
+[node name="Tablero" type="MeshInstance3D" parent="Muebles/Puesto1/Pupitre18"]
+scale = Vector3(4.3165956, 3.0182066, 3.6409073)
+mesh = ExtResource("13_3ax6j")
+metadata/colision_malla = "Pupitre"
+
+[node name="HojaRunica" parent="Muebles/Puesto1/Pupitre18" instance=ExtResource("7_dj8nt")]
+transform = Transform3D(0.8894549, 0, -0.0311436, -0.0120659, 0.8204908, -0.3446001, 0.0287113, 0.3448113, 0.8199883, 0, 0.5448667, 0.045)
+
+[node name="LibroEstudio" parent="Muebles/Puesto1/Pupitre18" instance=ExtResource("5_dx0lb")]
+transform = Transform3D(0.7761032, 0, -0.0778701, -0.0301691, 0.7190818, -0.3006844, 0.0717884, 0.3021941, 0.7154894, -0.249, 0.545968, 0.04)
+
+[node name="Pergamino" parent="Muebles/Puesto1/Pupitre18" instance=ExtResource("5_wldca")]
+transform = Transform3D(0.7394081, 0, -0.0295921, -0.0114648, 0.6822059, -0.2864677, 0.027281, 0.286697, 0.6816602, 0.255, 0.5193328, 0.101)
+
+[node name="Pupitre20" type="Node3D" parent="Muebles/Puesto1" unique_id=1243785075]
+position = Vector3(4.34484, 0, -2.809608)
+
+[node name="Tablero" type="MeshInstance3D" parent="Muebles/Puesto1/Pupitre20"]
+scale = Vector3(4.3165956, 3.0182066, 3.6409073)
+mesh = ExtResource("13_3ax6j")
+metadata/colision_malla = "Pupitre"
+
+[node name="HojaRunica" parent="Muebles/Puesto1/Pupitre20" instance=ExtResource("7_dj8nt")]
+transform = Transform3D(0.89, 0, 0, 0, 0.8204908, -0.3448113, 0, 0.3448113, 0.8204908, 0, 0.5448667, 0.045)
+
+[node name="LibroEstudio" parent="Muebles/Puesto1/Pupitre20" instance=ExtResource("16_4kwte")]
+transform = Transform3D(0.78, 0, 0, 0, 0.7190818, -0.3021941, 0, 0.3021941, 0.7190818, -0.249, 0.545968, 0.04)
+
+[node name="Pergamino" parent="Muebles/Puesto1/Pupitre20" instance=ExtResource("5_wldca")]
+transform = Transform3D(0.6756858, 0, 0.3017427, 0.1169037, 0.6822059, -0.2617799, -0.2781766, 0.286697, 0.6229146, 0.255, 0.5193328, 0.101)
+
+[node name="LibroApilado" parent="Muebles/Puesto1/Pupitre20" instance=ExtResource("18_isdhc")]
+transform = Transform3D(0.589615, 0, 0.2219328, 0.0859831, 0.5807969, -0.2284336, -0.2045998, 0.2440799, 0.5435659, -0.246, 0.5974465, 0.046)
+
+[node name="Silla2" type="MeshInstance3D" parent="Muebles/Puesto1" unique_id=2011466876]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.25714827, 0, -0.7254405)
+mesh = ExtResource("20_xergn")
+
+[node name="Silla18" type="MeshInstance3D" parent="Muebles/Puesto1" unique_id=1450359102]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 4.311506, 0, -0.68864346)
+mesh = ExtResource("20_xergn")
+
+[node name="Silla3" type="MeshInstance3D" parent="Muebles/Puesto1" unique_id=935874559]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.8465135, 0, -2.1896129)
+mesh = ExtResource("20_xergn")
+
+[node name="Silla" type="MeshInstance3D" parent="Muebles/Puesto1" unique_id=1860400312]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.8465135, 0, -0.6554618)
+mesh = ExtResource("20_xergn")
+
+[node name="Silla4" type="MeshInstance3D" parent="Muebles/Puesto1" unique_id=1647630277]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.31669903, 0, -2.1896129)
+mesh = ExtResource("20_xergn")
+
+[node name="Silla20" type="MeshInstance3D" parent="Muebles/Puesto1" unique_id=179548209]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 4.34484, 0, -2.1896129)
+mesh = ExtResource("20_xergn")
+
+[node name="Silla9" type="MeshInstance3D" parent="Muebles/Puesto1" unique_id=471755100]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 3.1960118, 0, -0.6554618)
+mesh = ExtResource("20_xergn")
+
+[node name="Silla11" type="MeshInstance3D" parent="Muebles/Puesto1" unique_id=91267019]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 3.1960118, 0, -2.1896129)
+mesh = ExtResource("20_xergn")
+
+[node name="Puesto2" type="Node3D" parent="Muebles" unique_id=875890864]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -2.1849976, 0, 2.415001)
+
+[node name="Rotulos" type="Node3D" parent="." unique_id=781350377]
+
+[node name="Planta baja · sala de lectura" type="Label3D" parent="Rotulos" unique_id=2063523847]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2.2000003, -6.300003)
+pixel_size = 0.012
+billboard = 1
+text = "Planta baja · sala de lectura"
+
+[node name="Salida" type="Label3D" parent="Rotulos" unique_id=733865937]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.65, 7.8199997)
+pixel_size = 0.012
+billboard = 1
+text = "Salida"
+
+[node name="Flores" type="Node3D" parent="." unique_id=1541422720]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 3.45, 0, -4.91)
+
+[node name="Maceta" type="Node3D" parent="Flores" unique_id=424633653 instance=ExtResource("6_o8bak")]
+metadata/id = "prov_flower_pot"
+metadata/bloquea = false
+metadata/reactivo = false
+metadata/inflamable = false
+metadata/origen = "Fantasy Provencal (Leartes Studios)"
+metadata/pieza_original = "SM_Flower_Pot"
+metadata/lod = 0
+metadata/triangulos = 244
+metadata/categoria = "vegetacion"
+
+[node name="Ramo_Ramo" type="Node3D" parent="Flores" unique_id=741392503 instance=ExtResource("22_oq1ke")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.31, 0)
+
+[node name="Habitantes" type="Node3D" parent="." unique_id=2089140554]
+
+[node name="AprendizUno" type="Node3D" parent="Habitantes" unique_id=696371850 instance=ExtResource("23_qd7rt")]
+transform = Transform3D(-1, 0, -8.742278e-08, 0, 1, 0, 8.742278e-08, 0, -1, -0.8, 0, -2.75)
+script = ExtResource("24_bxu4f")
+oficio = 11
+estatura = 0.91
+
+[node name="AprendizDos" type="Node3D" parent="Habitantes" unique_id=1282437695 instance=ExtResource("23_qd7rt")]
+transform = Transform3D(-1, 0, -8.742278e-08, 0, 1, 0, 8.742278e-08, 0, -1, 1.66, 0, -2.41)
+script = ExtResource("24_bxu4f")
+oficio = 9
+estatura = 0.97
+
+[node name="AprendizTres" type="Node3D" parent="Habitantes" unique_id=1121839382 instance=ExtResource("23_qd7rt")]
+transform = Transform3D(-0.702713, 0, -0.7114734, 0, 1, 0, 0.7114734, 0, -0.702713, 2.74, 0, -0.88)
+script = ExtResource("24_bxu4f")
+oficio = 12
+estatura = 0.89
+
+[node name="MarimantaEnAula" type="Node3D" parent="Habitantes" unique_id=1367690559 instance=ExtResource("23_qd7rt")]
+transform = Transform3D(0.997551, 0, 0.06994285, 0, 1, 0, -0.06994285, 0, 0.997551, 0.4, 0, -4.14)
+script = ExtResource("24_bxu4f")
+oficio = 3
+estatura = 1.05
+ropa = Color(1.08, 0.88, 0.8, 1)

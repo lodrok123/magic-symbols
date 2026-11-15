@@ -1,0 +1,19 @@
+[gd_scene format=3]
+
+[ext_resource type="Texture2D" path="res://arte/provencal/detalle/T_Flora_Atlas_01_B.png" id="1_43cu1"]
+[ext_resource type="ArrayMesh" path="res://arte/provencal/obj/SM_Flower_01_c.obj" id="2_1g8gk"]
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_yjyl6"]
+transparency = 2
+alpha_scissor_threshold = 0.5
+alpha_antialiasing_mode = 0
+cull_mode = 2
+albedo_color = Color(0.82, 0.59, 1.13, 1)
+albedo_texture = ExtResource("1_43cu1")
+
+[node name="RamoLila" type="Node3D" unique_id=1454305994]
+
+[node name="RamoLila" type="MeshInstance3D" parent="." unique_id=602081328]
+transform = Transform3D(0.5682585, 0, 0, 0, 0.5682585, 0, 0, 0, 0.5682585, -0.031874463, 0.02498235, 0.006673649)
+material_override = SubResource("StandardMaterial3D_yjyl6")
+mesh = ExtResource("2_1g8gk")

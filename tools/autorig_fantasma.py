@@ -98,8 +98,15 @@ def importar(ruta):
 #  Donante: huesos (orientacion y posicion en el mundo), malla y pesos
 # ---------------------------------------------------------------------------------------------------------------------------------------
 def leer_donante(ruta):
-    """elfo_base trae una Icosphere suelta de 42 vertices (basura del exportador): se toma la malla CON modificador Armature."""
     nuevos = importar(ruta)
+    ao, huesos, vs, pesos, tris, caja = datos_donante(nuevos)
+    for o in nuevos:
+        bpy.data.objects.remove(o, do_unlink=True)
+    return huesos, vs, pesos, tris, caja
+
+
+def datos_donante(nuevos):
+    """elfo_base trae una Icosphere suelta de 42 vertices (basura del exportador): se toma la malla CON modificador Armature."""
     ao = [o for o in nuevos if o.type == "ARMATURE"][0]
     pesadas = [o for o in nuevos if o.type == "MESH" and any(m.type == "ARMATURE" for m in o.modifiers)]
     if not pesadas:
@@ -121,9 +128,7 @@ def leer_donante(ruta):
     malla.data.calc_loop_triangles()
     tris = [(t.vertices[0], t.vertices[1], t.vertices[2]) for t in malla.data.loop_triangles]
     caja = (min(v.x for v in vs), max(v.x for v in vs), min(v.z for v in vs), max(v.z for v in vs))
-    for o in nuevos:
-        bpy.data.objects.remove(o, do_unlink=True)
-    return huesos, vs, pesos, tris, caja
+    return ao, huesos, vs, pesos, tris, caja
 
 
 def prefijo_de(huesos):
@@ -803,4 +808,5 @@ def main():
     print("ESCRITO: %s" % salida)
 
 
-main()
+if __name__ == "__main__":
+    main()

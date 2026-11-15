@@ -1,0 +1,6 @@
+[gd_scene format=3]
+
+[ext_resource type="ArrayMesh" path="res://arte/meshy/piezas/sumicio_pergamino.res" id="1_46shp"]
+
+[node name="Pergamino" type="MeshInstance3D" unique_id=398949034]
+mesh = ExtResource("1_46shp")

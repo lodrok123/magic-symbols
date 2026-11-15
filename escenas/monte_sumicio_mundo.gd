@@ -107,6 +107,7 @@ func _activar_solidez_por_nodos() -> void:
 
 func _antes_de_cargar_partida() -> void:
 	$Maqueta.montar()
+	_retirar_base_visual_torre()
 	_vestir_suelo()
 	var jugador := get_node("Jugador3D") as Jugador3D
 	var inicio := jugador.position
@@ -114,6 +115,15 @@ func _antes_de_cargar_partida() -> void:
 	jugador.position = inicio
 	jugador.pj.position = inicio
 	jugador.puntos_inicio = inicio
+
+
+func _retirar_base_visual_torre() -> void:
+	# El mapa ya se leyó. Estas dos columnas de tierra taparían el hueco de la Bajada.
+	var centro: Vector2i = $Interiores/TorreVerde.centro + _origen
+	var suelo: GridMap = $Maqueta.suelo
+	for u in suelo.get_used_cells():
+		if u.x == centro.x + 2 and u.z in [centro.y, centro.y + 1]:
+			suelo.set_cell_item(u, -1)
 
 
 ## Costuras como en EoW: la cara de arriba de cada bloque del GridMap lleva el shader común del suelo

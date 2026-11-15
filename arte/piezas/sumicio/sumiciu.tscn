@@ -1,0 +1,6 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://presentacion/sumiciu_3d.gd" id="1_visual"]
+
+[node name="Sumiciu" type="Node3D"]
+script = ExtResource("1_visual")

@@ -10,14 +10,20 @@ const UNIFORME := "atuendo_sumicio"
 const TIENDA := "sumicio"
 const DESTINO_FRAGA := "Bosque_02:desde_sumicio"
 const SintesisUI = preload("res://presentacion/ui/sintesis_ui.gd")
+const SUMICIU := preload("res://arte/piezas/sumicio/sumiciu.tscn")
+const VisualSumiciu := preload("res://presentacion/sumiciu_3d.gd")
 const VECINOS := ["Iria", "Brais", "Sabela"]
 const COFRES := ["baya", "seta_asada", "resina"]
+## 14/11: la quinta palloza es el gremio del gorro verde (DISENO_INTERIORES_SUMICIO.md). No es una familia: no tiene cofre ni frase de
+## vecino, y quien despacha dentro cambia cosas (el trueque, tienda «gremio» en nucleo/datos/tiendas.tsv).
+const GORRO_VERDE := "Gorro verde"
+const TRUEQUE := "gremio"
 
 enum Fase { PORTON, ESCOLTA, AUDIENCIA, LIBRE, REGRESO }
 
 @onready var _maqueta: Maqueta = $"../Maqueta"
 var _mid: Jugador3D
-var _guardia: Node3D
+var _guardia: VisualSumiciu
 var _cofre_uniforme: Cofre3D
 var _fase := Fase.PORTON
 var _paso := 0
@@ -31,7 +37,10 @@ var _casa: Node3D
 var _interior: Interior
 var _fundido: ColorRect
 var _en_transicion := false
+var _posicion_en_torre := Vector3.ZERO
 var _giro_exterior := 0.0
+var _camara_gira_exterior := false
+var _suelo_exterior_visible := true
 var _espera_cancela := 0.0
 const ESPERA_CANCELA := 0.9      ## s desde que el guardia da paso hasta que echa a andar (la cancela ya va medio abierta)
 
@@ -56,18 +65,22 @@ func _montar() -> void:
 	for i in range(_exteriores.size()):
 		var sala := habitaciones[i] as Interior
 		sala.montar()
-		var nombre: String = "Tendera" if sala.tienda else VECINOS[i]
-		var vecino := _figura(nombre, sala.centro + Interior.VECINO, Color("#56473b"),
-			Color("#53764c") if sala.tienda else Color("#827259"), sala)
+		var nombre: String = GORRO_VERDE if sala.gremio else ("Tendera" if sala.tienda else VECINOS[i])
+		var oficio := 2 if sala.gremio else (VisualSumiciu.OFICIO_TENDERA if sala.tienda else 0)
 		if sala.casa_brais:
-			vecino.position += Vector3(-0.48, 0.0, -0.22)
+			oficio = VisualSumiciu.OFICIO_ANCIANO
+		if not sala.has_node("Iria"):
+			var vecino := _figura(nombre, sala.centro + Interior.VECINO, oficio, sala)
+			if sala.casa_brais:
+				vecino.position += Vector3(-0.48, 0.0, -0.22)
 		sala.hide()
 		_casas[_exteriores[i]] = sala
 	_montar_torre(mundo)
-	_guardia = _figura("Guardia", Maqueta.celda(_maqueta.guardia), Color("#635345"), Color("#827259"))
+	_guardia = _figura("Guardia", Maqueta.celda(_maqueta.guardia), 0)
 	_guardia.position = _maqueta.guardia.global_position
-	var marimanta := _figura("Marimanta", Maqueta.celda(_maqueta.marimanta), Color("#4c5153"), Color("#93394a"), _sala_torre)
+	var marimanta := _figura("Marimanta", Maqueta.celda(_maqueta.marimanta), 3, _sala_torre)
 	marimanta.global_position = _maqueta.marimanta.global_position
+	_sala_torre.registrar(marimanta, "marimanta")
 	_cofre_uniforme = Cofre3D.en(_maqueta.cofre)
 	Terreno3D.bloquear_celda(Terreno3D.celda_de(_maqueta.cofre.global_position), _maqueta.cofre)
 	# Las partidas previas a este cofre ya podían haber recibido el uniforme de Marimanta.
@@ -79,7 +92,7 @@ func _montar() -> void:
 	EncargoMarimanta.sincronizar()
 	Cartografia.jugador = Vector2i(-1, -1)      # el mapa sigue enseñando la Fraga, pero Mid no está en ella
 	Niveles.precargar("Bosque_02")              # la vuelta a la Fraga ya leída cuando se pulse E
-	var caco := _figura("Caco", Maqueta.celda(_maqueta.caco), Color("#56473b"), Color("#53764c"))
+	var caco := _figura("Caco", Maqueta.celda(_maqueta.caco), 2)
 	caco.position = _maqueta.caco.global_position
 	_montar_hud()
 	add_child(SintesisUI.new())
@@ -108,10 +121,18 @@ func _physics_process(delta: float) -> void:
 			_cruzar(null)
 			return
 		if not _interior.torre:
-			_objetivo.text = "Tienda y síntesis" if _interior.tienda else "Palloza familiar"
+			if _interior.gremio:
+				_objetivo.text = "Gremio del gorro verde"
+			else:
+				_objetivo.text = "Tienda y síntesis" if _interior.tienda else "Palloza familiar"
 			_pista.text = _pista_interior()
 			return
 		# La Torre Verde: dentro se sigue con la audiencia, los cofres y Marimanta (abajo).
+		var cambio := _sala_torre.cambio_por_posicion(_posicion_en_torre, _mid.position)
+		_posicion_en_torre = _mid.position
+		if cambio != 0:
+			_cambiar_planta(cambio)
+			return
 	elif _fase != Fase.PORTON:
 		var puerta := _puerta_cercana()
 		if puerta != null:
@@ -161,14 +182,9 @@ func _physics_process(delta: float) -> void:
 		_pista.text = "[E] Abrir cofre épico" if Flags.i().tiene(ADMISION) else "[E] Examinar cofre épico"
 	elif _puerta_cercana() != null and not Flags.i().tiene(COFRE_UNIFORME):
 		_pista.text = "Puerta cerrada"
-	# 14/11: dentro de la torre, el HUD dice en qué planta estamos y la escalera se sube o se baja con [E] (interior_torre.gd).
-	# Abajo la pista de la escalera no pisa la del cofre que Mid tenga a mano, igual que la interacción.
 	if _interior != null and _interior.torre and _sala_torre != null:
 		if _sala_torre.planta > 0:
 			_objetivo.text = _sala_torre.nombre_planta()
-		var escalera := _escalera_al_alcance()
-		if escalera != 0 and _pista.text == "":
-			_pista.text = "[E] Subir" if escalera > 0 else "[E] Bajar"
 
 
 func _unhandled_input(evento: InputEvent) -> void:
@@ -183,7 +199,6 @@ func _unhandled_input(evento: InputEvent) -> void:
 func _interactuar() -> bool:
 	if _interior != null and not _interior.torre:
 		return _interactuar_dentro()
-	# La escalera de la torre va al FINAL de la cadena: el cofre del uniforme está en la casilla de al lado y manda él.
 	if _interior != null and _puesto(_interior.salida):
 		_cruzar(null)
 		return true
@@ -220,12 +235,6 @@ func _interactuar() -> bool:
 			if _cerca(_maqueta.caco):
 				_dialogo.text = "Caco · Si buscas provisiones, pásate por la palloza del este."
 				return true
-	# La escalera, lo último: si Mid tenía algo más a mano (un cofre, Marimanta), ha mandado eso.
-	if _interior != null and _interior.torre:
-		var escalera := _escalera_al_alcance()
-		if escalera != 0:
-			_cambiar_planta(escalera)
-			return true
 	return false
 
 
@@ -256,15 +265,26 @@ func _puesto(lugar: Vector2i) -> bool:
 	return _distancia_plana(_mid.position, Maqueta.punto(_interior.centro + lugar)) < 1.7
 
 
+func _vecino_al_alcance() -> bool:
+	var iria := _interior.get_node_or_null("Iria") as VisualSumiciu
+	if iria != null:
+		return _distancia_plana(_mid.position, iria.global_position) < 1.7
+	return _puesto(Interior.VECINO)
+
+
 func _cofre_al_alcance() -> bool:
-	return not _interior.tienda and _distancia_plana(
-		_mid.position, Maqueta.punto(_interior.centro + Interior.COFRE)) < Terreno3D.casilla + 0.10
+	if _interior.tienda or _interior.gremio:
+		return false
+	var cofre := _interior.get_node_or_null("Cofre") as Node3D
+	return cofre != null and _distancia_plana(_mid.position, cofre.global_position) < Terreno3D.casilla + 0.10
 
 
 func _pista_interior() -> String:
 	if _puesto(_interior.salida):
 		return "[E] Salir a Monte Sumicio"
-	if _puesto(Interior.VECINO):
+	if _vecino_al_alcance():
+		if _interior.gremio:
+			return "[E] Trueque"
 		return "[E] Ver mercancía" if _interior.tienda and Flags.i().tiene(COFRE_UNIFORME) else "[E] Hablar"
 	if _interior.tienda and Flags.i().tiene(COFRE_UNIFORME) and _puesto(Interior.MESA):
 		return "[E] Abrir mesa de síntesis"
@@ -276,8 +296,15 @@ func _pista_interior() -> String:
 func _interactuar_dentro() -> bool:
 	if _puesto(_interior.salida):
 		_cruzar(null)
-	elif _puesto(Interior.VECINO):
-		if _interior.tienda:
+	elif _vecino_al_alcance():
+		if _interior.gremio:
+			# 14/11: el gremio cambia cosas con cualquiera (es lo contrario de la tienda: no pide uniforme, al revés). Marimanta ya avisa
+			# de ellos al despedirse: «no te fíes de los del gorro verde».
+			_dialogo.text = "%s · Aquí no hay nada robado, aprendiza. Lo que te sobre, se cambia." % GORRO_VERDE
+			Tiendas.abrir(TRUEQUE)
+		elif _interior.tienda:
+			var tendera := _interior.get_node("Tendera") as VisualSumiciu
+			tendera.hablar()
 			if Flags.i().tiene(COFRE_UNIFORME):
 				_dialogo.text = "Tendera · Así que eres la nueva aprendiz. A ver qué necesitas."
 				Tiendas.abrir(TIENDA)
@@ -285,6 +312,12 @@ func _interactuar_dentro() -> bool:
 				_dialogo.text = "Tendera · ¿Te has perdido, forastera? La tienda es para aprendices. La puerta la tienes ahí."
 		else:
 			var i := _exteriores.find(_casa)
+			if _interior.casa_brais:
+				var brais := _interior.get_node("Brais") as VisualSumiciu
+				brais.hablar()
+			elif i == 0:
+				var iria := _interior.get_node("Iria") as VisualSumiciu
+				iria.hablar()
 			var frases := ["Acércate al hogar. Aquí arriba el viento se mete por todas partes.",
 				"Te he dejado una seta asada en el cofre junto al pesebre. Con una baya de la tienda, podrás preparar una poción.",
 				"Los animales duermen abajo. Su calor nos llega hasta el Ástrago."]
@@ -363,22 +396,35 @@ func _entrar(puerta: Node3D, colocar: bool) -> void:
 	_casa = puerta
 	_interior = _casas[puerta]
 	_giro_exterior = mundo._giro_cam
-	mundo._giro_cam = 0.0
-	mundo.camara_gira = false
+	_camara_gira_exterior = mundo.camara_gira
 	_interior.show()
 	if not _interior.tienda:
 		_interior.mostrar_cofre(Flags.i().tiene(_flag_cofre()))
-	_interior.camara.make_current()
 	_dialogo.text = ""
 	if colocar:
 		_colocar_mid(Maqueta.punto(_interior.centro + _interior.entrada), Vector3.FORWARD)
+	if _interior.torre:
+		# La cámara baja alcanza el terreno exterior por encima del muro del fondo.
+		_suelo_exterior_visible = _maqueta.suelo.visible
+		_maqueta.suelo.hide()
+		var maestre_aula := _sala_torre.get_node_or_null("Plantas/Aula/Habitantes/MarimantaEnAula") as Node3D
+		if maestre_aula != null:
+			maestre_aula.visible = Flags.i().tiene(COFRE_UNIFORME)
+		_posicion_en_torre = _mid.position
+		mundo._giro_cam = 0.0
+		mundo.camara_gira = false
+		_interior.camara.make_current()
+	else:
+		_activar_camara_juego(mundo)
 
 
 func _salir() -> void:
 	var mundo := get_parent() as Mundo
 	# La torre se deja siempre en la planta baja: así al volver a entrar se entra por el aula, y las casillas quedan como las dejó la puerta.
-	if _sala_torre != null and _interior == _sala_torre and _sala_torre.planta != 0:
-		_sala_torre.ir_a_planta(0)
+	if _sala_torre != null and _interior == _sala_torre:
+		_maqueta.suelo.visible = _suelo_exterior_visible
+		if _sala_torre.planta != 0:
+			_sala_torre.ir_a_planta(0)
 	var regreso := _casa.to_global(_hueco_puerta(_casa) + Vector3.BACK * 0.76)
 	regreso.y = Terreno3D.y_pies(Terreno3D.celda_de(regreso))
 	_colocar_mid(regreso, _casa.global_basis.z.normalized())
@@ -386,7 +432,11 @@ func _salir() -> void:
 	_interior = null
 	_dialogo.text = ""
 	mundo._giro_cam = _giro_exterior
-	mundo.camara_gira = true
+	mundo.camara_gira = _camara_gira_exterior
+	_activar_camara_juego(mundo)
+
+
+func _activar_camara_juego(mundo: Mundo) -> void:
 	mundo._foco = mundo._centro(_mid.pj)
 	mundo._colocar_camara()
 	mundo._camara.make_current()
@@ -401,26 +451,6 @@ func _colocar_mid(destino: Vector3, orientacion: Vector3) -> void:
 
 
 ## ---- 14/11 · LAS PLANTAS DE LA TORRE (interior_torre.gd) ----
-
-## Media casilla: la escalera se usa estando EN su casilla, no desde la de al lado. Con el 1,7 de `_puesto`, estar delante del cofre del
-## uniforme (casilla de al lado) ya contaba como estar en la escalera y subía en vez de abrir el cofre (lo cazó prueba_recorrido_sumicio).
-const RADIO_ESCALERA := 1.15
-
-
-## ¿Mid está en la casilla de la escalera? +1 si desde ahí se sube, −1 si se baja, 0 si no está en ella o no hay planta a la que ir.
-func _escalera_al_alcance() -> int:
-	if _sala_torre == null or _interior != _sala_torre:
-		return 0
-	if _sala_torre.puede_subir() and _en_casilla(SalaTorre.SUBE):
-		return 1
-	if _sala_torre.puede_bajar() and _en_casilla(SalaTorre.BAJA):
-		return -1
-	return 0
-
-
-func _en_casilla(lugar: Vector2i) -> bool:
-	return _distancia_plana(_mid.position, Maqueta.punto(_interior.centro + lugar)) < RADIO_ESCALERA
-
 
 ## Mid está en la planta donde vive `sitio` (`PUNTOS` de la torre), o no está en la torre. Las cinco plantas ocupan las MISMAS casillas
 ## del mundo, así que todo lo que se mide por distancia (Marimanta, el cofre del uniforme, el legendario, el cofre mágico) estaría al
@@ -441,8 +471,8 @@ func _cambiar_planta(delta: int) -> void:
 	animacion.tween_property(_fundido, "color:a", 1.0, 0.14)
 	await animacion.finished
 	_sala_torre.ir_a_planta(_sala_torre.planta + delta)
-	_colocar_mid(Maqueta.punto(_sala_torre.centro + _sala_torre.llegada(delta)),
-		Vector3.FORWARD if delta > 0 else Vector3.BACK)
+	_colocar_mid(_sala_torre.llegada(delta), Vector3.FORWARD if delta > 0 else Vector3.BACK)
+	_posicion_en_torre = _mid.position
 	_dialogo.text = ""
 	PlayLog.event("torre_planta", {"planta": _sala_torre.planta})
 	_mid.set_physics_process(true)
@@ -471,20 +501,27 @@ func _avanzar_escolta(delta: float) -> void:
 		return
 	# El guardia espera si Mid se detiene o se desvía.
 	if _distancia_plana(_guardia.position, _mid.position) > 5.4:
+		_guardia.andar(false)
 		return
 	var camino := _maqueta.escolta
 	var meta := (camino.get_child(_paso) as Node3D).global_position
 	# 14/11: la audiencia es DENTRO de la torre: el guardia se queda delante de la puerta y Mid entra sola.
 	if _puerta_torre != null and meta.z <= _puerta_torre.global_position.z + Terreno3D.casilla * 1.2:
 		_fase = Fase.AUDIENCIA
+		_guardia.andar(false)
 		_dialogo.text = "Guardia · La Maestre te espera dentro. Aquí termina mi camino."
 		return
+	var direccion := meta - _guardia.position
+	if Vector2(direccion.x, direccion.z).length_squared() > 0.00001:
+		_guardia.rotation.y = atan2(direccion.x, direccion.z)
+	_guardia.andar(true)
 	_guardia.position = _guardia.position.move_toward(meta, delta * 3.8)
 	if not _guardia.position.is_equal_approx(meta):
 		return
 	_paso += 1
 	if _paso == camino.get_child_count() - 1:
 		_fase = Fase.AUDIENCIA
+		_guardia.andar(false)
 		_guardia.position = (camino.get_child(_paso) as Node3D).global_position
 		_dialogo.text = "Guardia · Aquí termina mi camino."
 
@@ -698,43 +735,19 @@ static func _distancia_plana(a: Vector3, b: Vector3) -> float:
 	return Vector2(a.x, a.z).distance_to(Vector2(b.x, b.z))
 
 
-func _figura(nombre: String, c: Vector2i, ropa: Color, gorro: Color, padre: Node3D = null) -> Node3D:
-	var figura := Node3D.new()
+func _figura(nombre: String, c: Vector2i, oficio: int, padre: Node3D = null) -> VisualSumiciu:
+	var figura := SUMICIU.instantiate() as VisualSumiciu
 	figura.name = nombre
+	figura.nombre_visible = nombre
+	figura.oficio = oficio
+	if oficio == 3:
+		figura.estatura = 1.05
+	elif nombre == "Guardia":
+		figura.estatura = 1.16
 	var contenedor: Node = self if padre == null else padre
 	contenedor.add_child(figura)
 	figura.global_position = Maqueta.punto(c)
-	var cuerpo := CapsuleMesh.new()
-	cuerpo.radius = 0.32
-	cuerpo.height = 1.12
-	_parte(figura, cuerpo, ropa, 0.58)
-	var cabeza := SphereMesh.new()
-	cabeza.radius = 0.22
-	cabeza.height = 0.44
-	_parte(figura, cabeza, Color("#c49a7f"), 1.10)
-	if nombre != "Guardia":
-		var capucha := CylinderMesh.new()
-		capucha.bottom_radius = 0.25
-		capucha.top_radius = 0.02
-		capucha.height = 0.37
-		_parte(figura, capucha, gorro, 1.39)
-	var rotulo := Label3D.new()
-	rotulo.text = nombre
-	rotulo.billboard = BaseMaterial3D.BILLBOARD_ENABLED
-	rotulo.position.y = 1.85
-	rotulo.pixel_size = 0.012
-	figura.add_child(rotulo)
 	return figura
-
-
-func _parte(figura: Node3D, malla: Mesh, color: Color, y: float) -> void:
-	var parte := MeshInstance3D.new()
-	parte.mesh = malla
-	var material := StandardMaterial3D.new()
-	material.albedo_color = color
-	parte.material_override = material
-	parte.position.y = y
-	figura.add_child(parte)
 
 
 func _montar_hud() -> void:

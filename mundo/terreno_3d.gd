@@ -1008,11 +1008,25 @@ static var realces: Dictionary = {}
 ## Rampas visuales al pie de los desniveles (PendientesSuelo3D). Vector2i (casilla baja) → Array de
 ## [Vector2 normal hacia abajo, posición del borde a lo largo de la normal, ancho, desnivel].
 static var rampas: Dictionary = {}
+## Tramos de interior con anchura propia. Sus alturas son relativas al suelo de la casilla.
+static var rampas_acotadas: Array[Dictionary] = []
 const REALCE_BORDE: float = 0.55           ## fracción del radio, desde el borde hacia dentro, en que el realce sube de 0 al máximo
 
 
 ## Cuánto sube el suelo (u) en el punto `p` por las piedras y los troncos bajos que hay ahí. 0 casi siempre.
 static func realce_en(p: Vector3) -> float:
+	for tramo in rampas_acotadas:
+		var inicio: Vector3 = tramo.inicio
+		var fin: Vector3 = tramo.fin
+		var eje := Vector2(fin.x - inicio.x, fin.z - inicio.z)
+		var largo := eje.length()
+		if largo <= 0.001:
+			continue
+		eje /= largo
+		var desde := Vector2(p.x - inicio.x, p.z - inicio.z)
+		var avance := desde.dot(eje)
+		if avance >= 0.0 and avance <= largo and absf(desde.cross(eje)) <= float(tramo.semiancho):
+			return lerpf(inicio.y, fin.y, avance / largo)
 	if realces.is_empty() and rampas.is_empty():
 		return 0.0
 	var mejor: float = 0.0
@@ -1159,6 +1173,7 @@ static func configurar(p_mundo: Node3D) -> void:
 	permanentes.clear()
 	y_puentes.clear()
 	realces_terreno.clear()
+	rampas_acotadas.clear()
 	estados.limpiar()                    # nivel nuevo: ni hielo ni electricidad de antes
 	estados.olvidar_materiales()         # B4: ni los materiales de la pieza `; material` del nivel anterior (`limpiar` no los toca: también corre al cargar una partida)
 	agua_sim = null

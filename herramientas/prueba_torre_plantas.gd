@@ -2,16 +2,15 @@ extends SceneTree
 ## Prueba de las CINCO PLANTAS de la Torre Verde (14/11/2026), sin ventana:
 ##   godot --headless --path . --script res://herramientas/prueba_torre_plantas.gd
 ## 1. La sala arranca en la planta baja y las cinco plantas se montan sin quedarse vacías.
-## 2. Las dos casillas de la escalera (SUBE al norte, BAJA al sur) se pisan en todas las plantas: no son muro ni están bloqueadas.
+## 2. Los tramos transitables cambian de planta al cruzar su marca en el sentido correcto.
 ## 3. El umbral de la puerta está libre en la planta baja, es muro en las altas y vuelve a quedar LIBRE al bajar (si no, Mid se queda
 ##    encerrada en la torre, que es lo que pasaría si la sala no liberase sus casillas al reconstruirse).
 ## 4. Subir y bajar no acumula nodos: volver a la planta baja deja la sala igual que al empezar.
 ## 5. Marimanta, el cofre del uniforme, el legendario y el cofre mágico se ven SOLO en la planta baja (las cinco plantas ocupan las mismas
 ##    casillas del mundo, así que arriba no deben estar ni visibles ni al alcance).
-## 6. puede_subir/puede_bajar cierran arriba y abajo, y `llegada` devuelve la casilla del otro extremo de la escalera.
+## 6. puede_subir/puede_bajar cierran arriba y abajo, y `llegada` devuelve un punto antes de la marca del tramo de retorno.
 
 const SalaTorre = preload("res://escenas/interior_torre.gd")
-const Visita = preload("res://escenas/monte_sumicio_visita.gd")
 
 var _fallos := 0
 var _f := 0
@@ -60,15 +59,9 @@ func _buscar_sala() -> void:
 		return
 	_ok(int(_sala.planta) == 0, "la torre arranca en la planta baja")
 	_ok(SalaTorre.PLANTAS.size() == 5, "hay cinco plantas definidas (%d)" % SalaTorre.PLANTAS.size())
-	_hijos_baja = _sala.get_child_count()
+	_hijos_baja = _nodos_planta()
 	_ok(not _sala.puede_bajar(), "en la planta baja no se puede bajar")
 	_ok(_sala.puede_subir(), "en la planta baja se puede subir")
-	_ok(_sala.llegada(1) == SalaTorre.BAJA, "subiendo se llega al pie de la escalera que baja")
-	_ok(_sala.llegada(-1) == SalaTorre.SUBE, "bajando se llega al pie de la escalera que sube")
-	# 7. La escalera se usa SOLO desde su casilla: con un radio mayor, estar delante del cofre del uniforme (la casilla de al lado)
-	#    contaría como estar en la escalera y [E] subiría en vez de abrir el cofre.
-	_ok(Visita.RADIO_ESCALERA <= Terreno3D.casilla * 0.5,
-		"la escalera solo alcanza su casilla (radio %.2f, media casilla %.2f)" % [Visita.RADIO_ESCALERA, Terreno3D.casilla * 0.5])
 	# Los cuatro puntos de interés existen y se sabe en qué planta viven (si no, las comprobaciones de abajo no probarían nada).
 	for sitio in SalaTorre.PUNTOS:
 		_ok(SalaTorre.PLANTA_DE.has(sitio), "«%s» tiene planta asignada" % sitio)
@@ -87,13 +80,11 @@ func _recorrer_plantas() -> void:
 	for n in range(SalaTorre.PLANTAS.size()):
 		_sala.ir_a_planta(n)
 		_ok(int(_sala.planta) == n, "planta %d montada" % n)
-		var hijos := _sala.get_child_count()
+		var hijos := _nodos_planta()
 		vistos.append(hijos)
 		_ok(hijos > 40, "planta %d tiene sala y mobiliario (%d nodos)" % [n, hijos])
-		# Las dos casillas de la escalera se pisan.
-		for celda in [SalaTorre.SUBE, SalaTorre.BAJA]:
-			_ok(not SalaTorre.es_muro(celda), "planta %d: la casilla %s de la escalera no es muro" % [n, celda])
-			_ok(not Terreno3D.bloqueada(_sala.centro + celda), "planta %d: la casilla %s de la escalera no está bloqueada" % [n, celda])
+		_probar_tramo("Subida", 1, _sala.puede_subir())
+		_probar_tramo("Bajada", -1, _sala.puede_bajar())
 		# El umbral de la puerta: libre abajo, muro arriba.
 		_umbral_libre(n == 0, "planta %d" % n)
 		# Marimanta y los cofres se ven SOLO en su planta (14/11: la audiencia subió al despacho).
@@ -116,6 +107,26 @@ func _recorrer_plantas() -> void:
 	_ok(distintas.size() >= 3, "el mobiliario cambia entre plantas (%d recuentos distintos de nodos)" % distintas.size())
 
 
+func _probar_tramo(nombre: String, delta: int, existe: bool) -> void:
+	var tramo := _planta_activa().get_node_or_null(nombre) as Node3D
+	_ok((tramo != null) == existe, "planta %d: existencia de %s" % [_sala.planta, nombre])
+	if tramo == null:
+		return
+	var inicio := (tramo.get_node("Inicio") as Marker3D).global_position
+	var fin := (tramo.get_node("Fin") as Marker3D).global_position
+	var cambio := (tramo.get_node("Cambio") as Marker3D).global_position
+	var direccion := (fin - inicio).normalized()
+	var antes := cambio - direccion * 0.12
+	var despues := cambio + direccion * 0.12
+	_ok(_sala.cambio_por_posicion(antes, despues) == delta, "%s cambia solo tras pisar su tramo" % nombre)
+	_ok(_sala.cambio_por_posicion(despues, antes) == 0, "%s no se activa en dirección contraria" % nombre)
+	_ok(_sala.cambio_por_posicion(antes + Vector3.RIGHT, despues + Vector3.RIGHT) == 0, "%s respeta los lados" % nombre)
+	var llegada: Vector3 = _sala.llegada(-delta)
+	var celda := Terreno3D.celda_de(llegada)
+	_ok(Terreno3D.pisable(celda, 0, true, 9, false, true), "%s: se pisa el rellano" % nombre)
+	_ok(absf(Terreno3D.y_pies(celda) + Terreno3D.realce_en(llegada) - llegada.y) < 0.03, "%s: se llega a la altura del peldaño" % nombre)
+
+
 ## Vuelve a la planta baja y comprueba que no se ha acumulado nada y que se puede salir por la puerta.
 func _volver_abajo() -> void:
 	if _sala == null:
@@ -123,8 +134,8 @@ func _volver_abajo() -> void:
 	for n in [3, 2, 1, 0]:
 		_sala.ir_a_planta(n)
 	_ok(int(_sala.planta) == 0, "se vuelve a la planta baja")
-	_ok(_sala.get_child_count() == _hijos_baja,
-		"bajar y subir no acumula nodos (%d al empezar, %d ahora)" % [_hijos_baja, _sala.get_child_count()])
+	_ok(_nodos_planta() == _hijos_baja,
+		"bajar y subir no acumula nodos (%d al empezar, %d ahora)" % [_hijos_baja, _nodos_planta()])
 	_umbral_libre(true, "de vuelta en la planta baja")
 	# El paso del hueco central a la puerta, libre (es por donde se sale).
 	for z in [1, 2, 3]:
@@ -141,7 +152,7 @@ func _nodo_de(sitio: String) -> Node3D:
 		var nodo := n as Node3D
 		if nodo == _sala or nodo.get_parent() == null or nodo is MeshInstance3D or nodo is CollisionShape3D:
 			continue
-		if nodo.has_meta("_planta"):
+		if _sala.get_node("Plantas").is_ancestor_of(nodo):
 			continue
 		var d := Vector2(nodo.global_position.x - p.x, nodo.global_position.z - p.z).length()
 		if d < dist:
@@ -156,16 +167,15 @@ func _libre_de_solidos(celda: Vector2i, que: String) -> void:
 	var s := Terreno3D.casilla
 	var p := Vector2(celda.x * s, celda.y * s)
 	var choca: Array = []
-	for h in _sala.get_children():
-		if not (h is StaticBody3D):
-			continue
+	for h in _planta_activa().find_children("*", "StaticBody3D", true, false):
 		var cuerpo := h as StaticBody3D
 		for c in cuerpo.get_children():
 			var cs := c as CollisionShape3D
 			if cs == null or not (cs.shape is BoxShape3D):
 				continue
 			var caja := cs.shape as BoxShape3D
-			var pos := Vector2(cuerpo.position.x + cs.position.x, cuerpo.position.z + cs.position.z)
+			var local := _sala.to_local(cs.global_position)
+			var pos := Vector2(local.x, local.z)
 			if absf(pos.x - p.x) < caja.size.x * 0.5 + MEDIO_MID and absf(pos.y - p.y) < caja.size.z * 0.5 + MEDIO_MID:
 				choca.append(String(cuerpo.name))
 	_ok(choca.is_empty(), "%s: la casilla %s está libre de mobiliario %s" % [que, celda, str(choca.slice(0, 3))])
@@ -175,3 +185,11 @@ func _umbral_libre(libre: bool, donde: String) -> void:
 	var c: Vector2i = _sala.centro + SalaTorre.SALIDA_PUERTA
 	var bloqueada := Terreno3D.bloqueada(c)
 	_ok(bloqueada != libre, "%s: el umbral de la puerta %s" % [donde, "está libre" if libre else "es muro"])
+
+
+func _planta_activa() -> Node3D:
+	return _sala.get_node("Plantas").get_child(_sala.planta) as Node3D
+
+
+func _nodos_planta() -> int:
+	return _planta_activa().find_children("*", "Node3D", true, false).size()

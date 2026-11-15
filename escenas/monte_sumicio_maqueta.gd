@@ -63,6 +63,7 @@ func montar() -> void:
 		var realce: float = float(arriba[c]) - base if arriba.has(c) else (planta - niveles * 2) * suelo.cell_size.y
 		if absf(realce) > 0.001:
 			Terreno3D.realces_terreno[c] = realce
+	_palloza_gremio()            # la quinta palloza, antes de medir la solidez y de tocar las bisagras
 	_empalizada_circular()
 	_solidos_por_malla()
 	for casa in casas():
@@ -88,9 +89,53 @@ func _exit_tree() -> void:
 
 
 func casas() -> Array[Node3D]:
-	# El orden asocia cada casa con su interior y mantiene las claves de los cofres.
-	return [$Nivel_MonteSumicio/Piezas/Pallozas/Iria, $Nivel_MonteSumicio/Piezas/Pallozas/Brais, $Nivel_MonteSumicio/Piezas/Pallozas/Sabela,
-		$Nivel_MonteSumicio/Piezas/Pallozas/TiendaEste]
+	# El orden asocia cada casa con su interior y mantiene las claves de los cofres: el gremio va QUINTO, detrás de la tienda, porque la
+	# visita empareja `casas()[i]` con el hijo i de `Interiores` (escenas/PruebaMonteSumicio.tscn).
+	var lista: Array[Node3D] = [$Nivel_MonteSumicio/Piezas/Pallozas/Iria, $Nivel_MonteSumicio/Piezas/Pallozas/Brais,
+		$Nivel_MonteSumicio/Piezas/Pallozas/Sabela, $Nivel_MonteSumicio/Piezas/Pallozas/TiendaEste]
+	var gremio := get_node_or_null("Nivel_MonteSumicio/Piezas/Pallozas/Gremio") as Node3D
+	if gremio != null:
+		lista.append(gremio)
+	return lista
+
+
+## 14/11: LA QUINTA PALLOZA, la del gremio del gorro verde (DISENO_INTERIORES_SUMICIO.md). Va en código y NO en Nivel_MonteSumicio.tscn
+## para no tocar el nivel: misma malla que las otras cuatro (`palloza_brais_meshy.glb`, que ya trae dentro el nodo `Puerta` del que tira
+## `bisagra`) y su mismo fondo de vano en penumbra, con las medidas copiadas de las de la escena.
+const PALLOZA := preload("res://arte/meshy/piezas/palloza_brais_meshy.glb")
+## Al sur del poblado, cerca de la cancela y apartada de las tres familias (Iria (5,6), Brais (7,9), Sabela (5,11)), la tienda (15,7),
+## el obrador (15,12) y la torre (10,4). A 3,6 casillas de Sabela y de la cancela, que es la separación que guardan las demás.
+const GREMIO_CELDA := Vector2i(8, 13)
+const VANO_PALLOZA := Vector3(0.0, 0.64, 1.26)
+const VANO_PALLOZA_TAM := Vector3(0.91, 1.32, 0.22)
+
+
+func _palloza_gremio() -> Node3D:
+	var pallozas := get_node("Nivel_MonteSumicio/Piezas/Pallozas") as Node3D
+	var ya := pallozas.get_node_or_null("Gremio") as Node3D
+	if ya != null:
+		return ya
+	var casa := Node3D.new()
+	casa.name = "Gremio"
+	pallozas.add_child(casa)
+	casa.position = Terreno3D.centro_de(GREMIO_CELDA, Terreno3D.y_pies(GREMIO_CELDA))
+	var modelo := PALLOZA.instantiate() as Node3D
+	modelo.name = "Modelo"
+	casa.add_child(modelo)
+	# El vano en penumbra detrás de la puerta: al abrirse se ve el interior a oscuras, no el hueco de la malla.
+	var vano := MeshInstance3D.new()
+	vano.name = "FondoVano"
+	var caja := BoxMesh.new()
+	caja.size = VANO_PALLOZA_TAM
+	vano.mesh = caja
+	var negro := StandardMaterial3D.new()
+	negro.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	negro.albedo_color = Color.BLACK
+	vano.material_override = negro
+	vano.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	casa.add_child(vano)
+	vano.position = VANO_PALLOZA
+	return casa
 
 
 ## Abre la cancela de la empalizada (el guardia deja pasar a Mid). `animado`: las dos hojas giran hacia dentro; sin animar (partida
