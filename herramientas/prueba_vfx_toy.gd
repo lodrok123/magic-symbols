@@ -423,7 +423,8 @@ func _parametrico() -> void:
 		var largo: float = maxf(esp.x, esp.z)
 		var corto: float = minf(esp.x, esp.z)
 		var xx: float = e.semieje_x if e.figura != F.MURO else e.semieje_x
-		var ok_t: bool = _cerca(e.semieje_y, esp.y, 0.01)
+		# 17/11: lo plantado en el suelo se DIBUJA FuegoToy.ALTO_DIBUJO veces más alto que su lógica (Pablo: «todos los hechizos un poco más altos, un 20 %»); lo que vuela, no
+		var ok_t: bool = _cerca(e.semieje_y, esp.y * (1.0 if c[2] > 0.0 else FuegoToy.ALTO_DIBUJO), 0.01)
 		if e.figura == F.MURO:
 			ok_t = ok_t and _cerca(e.semieje_x, largo, 0.01) and _cerca(e.semieje_z, corto, 0.01)
 		else:

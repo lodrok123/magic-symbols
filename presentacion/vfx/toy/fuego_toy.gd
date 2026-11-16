@@ -653,6 +653,9 @@ func desde_hechizo(h: Hechizo) -> void:
 ##   Â· solidez > 0 (barrera): MURO si es alargada en planta (largo â‰¥ 2 Ã— fondo), si no BARRERA (cÃºpula).
 ##   Â· sin solidez: nombre_derivado Â«altoÂ» â†’ PILAR; alargado en planta â†’ MURO; lo demÃ¡s (esfera, elipsoide, zona plana redonda) â†’ BOLA (nota si es plana).
 ## Los semiejes de Hechizo estÃ¡n en casillas y se pasan a metros con `casilla` (2,3, como VfxElemento3D).
+const ALTO_DIBUJO: float = 1.2          ## × la altura con la que se DIBUJA un hechizo plantado en el suelo respecto a su lógica (1 = como antes). Vale para todos los elementos: todos usan este `describir`
+
+
 static func describir(h: Hechizo, casilla_m: float = 2.3) -> Dictionary:
 	var vuela: bool = (h.viaja or h.velocidad > 0.0) and not h.volumen_viaja      # 3/11 (R1): el volumen sólido que viaja (ᛜ + ᛇ) es un MURO/BARRERA que se desplaza, no una bola con cola
 	var s: Vector3 = (h.semiejes_vuelo if vuela else h.semiejes) * casilla_m
@@ -690,7 +693,11 @@ static func describir(h: Hechizo, casilla_m: float = 2.3) -> Dictionary:
 		giro = PI * 0.5
 	if fig == Figura.HAZ:
 		return {"figura": fig, "x": h.alcance_haz * casilla_m * 0.5, "y": y_haz, "z": z_haz, "viaja": false, "giro_y": 0.0, "nombre": nombre, "nota": "", "escala": HazGas.escala_de(h)}
-	return {"figura": fig, "x": x, "y": s.y, "z": z, "viaja": vuela and not h.haz, "giro_y": giro, "nombre": nombre, "nota": nota}
+	# 17/11 (Pablo: «haz que de base todos los hechizos sean un poco más altos, sube p. ej. un 20 %»): SOLO DIBUJO. Lo que está plantado en el suelo (muro, pilar, barrera y zona quieta) se
+	# dibuja ALTO_DIBUJO veces más alto que su lógica; la lógica (casillas, niveles, daño) no cambia. No se aplica a lo que vuela (la bola no se alarga) ni al haz. La tierra sólida no pasa
+	# por aquí (VfxToyJuego la dibuja con sus niveles reales, que es lo que se pisa).
+	var alto_dib: float = s.y * (1.0 if vuela else ALTO_DIBUJO)
+	return {"figura": fig, "x": x, "y": alto_dib, "z": z, "viaja": vuela and not h.haz, "giro_y": giro, "nombre": nombre, "nota": nota}
 
 
 ## Radio Â«grandeÂ» del efecto, en metros: lo usan la luz y la cÃ¡mara del lab.
