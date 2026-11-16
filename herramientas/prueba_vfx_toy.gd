@@ -369,6 +369,8 @@ func _parametrico() -> void:
 				var r2: Vector2 = _param(e, nodo, u)
 				if p[1] == F.PILAR and u == "repeticion":
 					r1.y *= FuegoToy.PILAR_ESTIRA                      # 17/11, pilar de UNA lengua: las vetas se estiran a propósito respecto de la escena validada
+				elif p[1] == F.MURO and u == "repeticion":
+					r1.y *= FuegoToy.MURO_ESTIRA                       # 17/11, muro = cortina densa: ídem
 				_ok("%s/%s: %s = %s (validada %s)" % [p[0], nodo, u, str(r2), str(r1)], absf(r1.x - r2.x) < 0.001 and absf(r1.y - r2.y) < 0.06)
 		v.queue_free()
 		e.queue_free()

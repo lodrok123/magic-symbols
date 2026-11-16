@@ -32,6 +32,15 @@ const SH_HAZ: String = "res://presentacion/vfx/toy/haz_toy.gdshader"
 ## PILAR (base irregular): altura máxima (m) a la que sube el borde de contacto con el suelo y cuánto se desdibuja el charco de luz.
 const PILAR_BASE_M: float = 0.45
 const PILAR_IRREG_CHARCO: float = 0.28
+## MURO = CORTINA DENSA (17/11, Pablo, con un vídeo de muros de fuego entre columnas): el muro ya no es una red calada de lenguas (se veía a través) sino un cuerpo lleno que solo se
+## rompe en lenguas arriba, con vetas verticales. Mismos mandos que el pilar de una lengua.
+const MURO_RELLENO: float = 0.68         ## `desfase` (0,45 era la red calada de antes)
+const MURO_EROSION: float = 1.3          ## `fuerza_grad`
+const MURO_EROSION_POT: float = 2.0      ## `pot_grad`: la erosión, arriba
+const MURO_ESTIRA: float = 0.7           ## repeticiones verticales de la textura (< 1 = vetas más largas)
+const MURO_CALOR: float = -0.28          ## compensa en la rampa el relleno de más: sin amarillo
+const MURO_BASE_M: float = 0.3           ## altura máx. (m) a la que sube el contacto con el suelo según el ruido: con el cuerpo lleno, el corte recto de la base se notaba
+const MURO_ANILLOS: int = 28             ## anillos de la banda (antes 14): con el cuerpo lleno se veían los pliegues entre anillos como rayas horizontales
 ## PILAR = UNA LENGUA (17/11, Pablo, con un vídeo de chorros de fuego: «para el pilar de fuego pero con solo una lengua»): la silueta ya no es un cilindro de lenguas sino un solo chorro,
 ## estrecho en la raíz, que se abre hasta la panza y se deshace en la punta, lleno por dentro, con vetas verticales y con un vaivén de todo el chorro a la vez.
 const PILAR_RAIZ: float = 0.45           ## radio en el suelo, en veces el semieje
@@ -921,22 +930,22 @@ func _muro(c: Node3D, luz: OmniLight3D) -> void:
 	_halo(c, "Resplandor", Vector2(7.2 * fl, 2.2 * fa), Vector3(0, 0.55 * fa, 0), 0.22, 2.6, 2, Color(1.0, 0.28, 0.06))
 	# banda exterior: el contorno es una superelipse de 2a Ã— 2b; las repeticiones de la textura se cuentan por METROS de contorno (no se estira al alargar)
 	var seg: int = FuegoToyMallas.segmentos(FuegoToyMallas.largo_contorno(a, b, 6.0))
-	var banda: ArrayMesh = FuegoToyMallas.banda(a, b, 6.0, FuegoToyMallas.perfil_muro(alto, 0.78), seg)
+	var banda: ArrayMesh = FuegoToyMallas.banda(a, b, 6.0, FuegoToyMallas.perfil_muro(alto, 0.78, MURO_ANILLOS), seg)
 	var m: Array = FuegoToyMallas.M_MURO
 	var largo: float = FuegoToyMallas.largo_contorno(a, b, 6.0)
-	_fuego(c, "Banda", banda, Vector3.ZERO, {"repeticion": Vector2(FuegoToyMallas.repeticiones_u(largo, m[0]), alto / float(m[1])),
-		"rep_ruido": Vector2(FuegoToyMallas.repeticiones_u(largo, m[2]), alto / float(m[3])), "semilla": 0.05, "velocidad": 1.0, "umbral": 0.27, "desfase": 0.45,
-		"fuerza_grad": 1.05, "amplitud_vert": 0.16 * clampf(b / REF_MURO.z, 0.5, 2.0)}, 0)
+	_fuego(c, "Banda", banda, Vector3.ZERO, {"repeticion": Vector2(FuegoToyMallas.repeticiones_u(largo, m[0]), MURO_ESTIRA * alto / float(m[1])),
+		"rep_ruido": Vector2(FuegoToyMallas.repeticiones_u(largo, m[2]), alto / float(m[3])), "calor_extra": MURO_CALOR, "semilla": 0.05, "velocidad": 1.0, "umbral": 0.27, "desfase": MURO_RELLENO, "pot_grad": MURO_EROSION_POT,
+		"fuerza_grad": MURO_EROSION, "amplitud_vert": 0.16 * clampf(b / REF_MURO.z, 0.5, 2.0), "base_irreg": clampf(MURO_BASE_M / alto, 0.03, 0.3)}, 0)
 	var ai: float = a * 0.957
 	var bi: float = b * 0.4
 	var hi: float = alto * 0.7
 	var largo_i: float = FuegoToyMallas.largo_contorno(ai, bi, 6.0)
 	var mi_: Array = FuegoToyMallas.M_MURO_IN
-	var banda_in: ArrayMesh = FuegoToyMallas.banda(ai, bi, 6.0, FuegoToyMallas.perfil_muro(hi, 0.7), FuegoToyMallas.segmentos(largo_i))
-	_fuego(c, "Interior", banda_in, Vector3.ZERO, {"repeticion": Vector2(FuegoToyMallas.repeticiones_u(largo_i, mi_[0]), hi / float(mi_[1])),
-		"rep_ruido": Vector2(FuegoToyMallas.repeticiones_u(largo_i, mi_[2]), hi / float(mi_[3])), "semilla": 0.4, "velocidad": 1.5, "umbral": 0.27, "desfase": 0.45,
-		"fuerza_grad": 1.0, "calor_extra": 0.3, "brillo": 1.1, "amplitud_vert": 0.16 * clampf(b / REF_MURO.z, 0.5, 2.0)}, 1)
-	_laminas_vbb(c, "Lenguas", FuegoToyMallas.laminas_muro(a, b, alto), FuegoToyMallas.M_MURO, {"semilla": 0.05, "velocidad": 1.0, "umbral": 0.27, "desfase": 0.45, "fuerza_grad": 1.05,
+	var banda_in: ArrayMesh = FuegoToyMallas.banda(ai, bi, 6.0, FuegoToyMallas.perfil_muro(hi, 0.7, MURO_ANILLOS), FuegoToyMallas.segmentos(largo_i))
+	_fuego(c, "Interior", banda_in, Vector3.ZERO, {"repeticion": Vector2(FuegoToyMallas.repeticiones_u(largo_i, mi_[0]), MURO_ESTIRA * hi / float(mi_[1])),
+		"rep_ruido": Vector2(FuegoToyMallas.repeticiones_u(largo_i, mi_[2]), hi / float(mi_[3])), "semilla": 0.4, "velocidad": 1.5, "umbral": 0.27, "desfase": MURO_RELLENO, "pot_grad": MURO_EROSION_POT,
+		"fuerza_grad": MURO_EROSION, "calor_extra": 0.3 + MURO_CALOR, "brillo": 1.1, "amplitud_vert": 0.16 * clampf(b / REF_MURO.z, 0.5, 2.0)}, 1)
+	_laminas_vbb(c, "Lenguas", FuegoToyMallas.laminas_muro(a, b, alto), FuegoToyMallas.M_MURO, {"calor_extra": MURO_CALOR, "semilla": 0.05, "velocidad": 1.0, "umbral": 0.27, "desfase": MURO_RELLENO, "pot_grad": MURO_EROSION_POT, "fuerza_grad": MURO_EROSION,
 			"amplitud_vert": 0.16 * clampf(b / REF_MURO.z, 0.5, 2.0), "afila": 0.78, "usa_normal": 1.0, "el_min": 0.9})
 	var vv: float = clampf(fa, 0.5, 2.5)
 	_trocitos(c, _cant(3.0, fl, 1, 10), Vector3(a * 0.87, 0.05, b * 0.5), Vector3(0, 0.667 * alto, 0), vv)
