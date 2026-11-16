@@ -367,6 +367,8 @@ func _parametrico() -> void:
 			for u in ["repeticion", "rep_ruido"]:
 				var r1: Vector2 = _param(v, nodo, u)
 				var r2: Vector2 = _param(e, nodo, u)
+				if p[1] == F.PILAR and u == "repeticion":
+					r1.y *= FuegoToy.PILAR_ESTIRA                      # 17/11, pilar de UNA lengua: las vetas se estiran a propósito respecto de la escena validada
 				_ok("%s/%s: %s = %s (validada %s)" % [p[0], nodo, u, str(r2), str(r1)], absf(r1.x - r2.x) < 0.001 and absf(r1.y - r2.y) < 0.06)
 		v.queue_free()
 		e.queue_free()
@@ -535,7 +537,7 @@ func _volumen() -> void:
 	if lm != null and lp != null:
 		var n: int = lm.multimesh.instance_count
 		_ok("muro 3,45·1,5·0,3: %d láminas (entre 12 y 90)" % n, n >= 12 and n <= 90)
-		_ok("pilar 0,5·4: %d láminas (entre 6 y 60)" % lp.multimesh.instance_count, lp.multimesh.instance_count >= 6 and lp.multimesh.instance_count <= 60)
+		_ok("pilar 0,5·4: %d láminas (3: una sola lengua, pegadas al eje; antes un anillo de 6 a 60)" % lp.multimesh.instance_count, lp.multimesh.instance_count == 3)
 		var zmin: float = 1e9
 		var zmax: float = -1e9
 		var semillas: Dictionary = {}

@@ -46,6 +46,7 @@ uniform float resplandor_borde : hint_range(0.0, 1.0) = 0.0;
 uniform float vida : hint_range(0.0, 1.0) = 1.0;
 uniform float vert_polo : hint_range(0.0, 1.0) = 0.0;     // 1 = el desplazamiento de vértices se apaga en la punta (silueta redonda en el polo)
 uniform float base_irreg : hint_range(0.0, 0.5) = 0.0;   // > 0 (V): la base deja de ser un borde uniforme: el contacto con el suelo sube a alturas distintas según el ruido (lenguas de distinta altura y grosor)
+uniform float vaiven = 0.0;                      // > 0 (m): TODA la malla se ladea a la vez con una onda que sube (el pilar de una lengua); no depende de `semilla`: las capas van juntas
 uniform float fade_base : hint_range(0.0, 0.5) = 0.0;     // fundido de la base (V de 0 a este valor) para que no se vea el pellizco de la UV en el polo
 group_uniforms;
 
@@ -78,6 +79,11 @@ void vertex() {
 	float n = textureLod(ruido_v, uvn, 0.0).r;
 	float sube = smoothstep(0.0, 0.8, UV.y) * (1.0 - vert_polo * smoothstep(0.8, 1.0, UV.y));
 	VERTEX += NORMAL * (n - 0.5) * 2.0 * amplitud_vert * ondulacion * sube;
+	if (vaiven > 0.0) {
+		vec2 q = vec2(0.13, UV.y * 0.55 - TIME * 0.45);
+		vec2 lado = vec2(textureLod(ruido_v, q, 0.0).r, textureLod(ruido_v, q + vec2(0.51, 0.27), 0.0).r) - 0.5;
+		VERTEX.xz += lado * 2.0 * vaiven * smoothstep(0.05, 0.9, UV.y);
+	}
 	VERTEX.y *= altura;
 	VERTEX.xz *= ancho;
 }

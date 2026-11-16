@@ -32,6 +32,18 @@ const SH_HAZ: String = "res://presentacion/vfx/toy/haz_toy.gdshader"
 ## PILAR (base irregular): altura máxima (m) a la que sube el borde de contacto con el suelo y cuánto se desdibuja el charco de luz.
 const PILAR_BASE_M: float = 0.45
 const PILAR_IRREG_CHARCO: float = 0.28
+## PILAR = UNA LENGUA (17/11, Pablo, con un vídeo de chorros de fuego: «para el pilar de fuego pero con solo una lengua»): la silueta ya no es un cilindro de lenguas sino un solo chorro,
+## estrecho en la raíz, que se abre hasta la panza y se deshace en la punta, lleno por dentro, con vetas verticales y con un vaivén de todo el chorro a la vez.
+const PILAR_RAIZ: float = 0.45           ## radio en el suelo, en veces el semieje
+const PILAR_PANZA_V: float = 0.55        ## altura (0-1) a la que el chorro llega a su ancho entero
+const PILAR_PUNTA: float = 0.8           ## radio arriba, en veces el semieje (la punta la roe el shader)
+const PILAR_RELLENO: float = 0.72        ## `desfase` del shader: más = cuerpo más lleno (0,5 era el cilindro calado de antes)
+const PILAR_EROSION: float = 1.25        ## `fuerza_grad`: cuánto se roe hacia arriba
+const PILAR_EROSION_POT: float = 2.2     ## `pot_grad`: más = la erosión se concentra en la punta
+const PILAR_ESTIRA: float = 0.65         ## repeticiones verticales de la textura (< 1 = vetas más largas)
+const PILAR_RAIZ_CHATO: float = 0.8      ## raíz de un pilar bajo y ancho (alto/radio < 1,2): casi no se estrecha, que si no parece un cuenco
+const PILAR_CALOR: float = -0.2          ## compensa en la rampa el relleno de más: el corazón se queda en naranja, sin amarillo ni blanco
+const PILAR_VAIVEN_M: float = 0.16       ## metros que se ladea el chorro entero (pilar de referencia, r 0,5)
 const HAZ_R_ORIGEN: float = 0.012
 const HAZ_ABRE: float = 3.0
 ## HAZ, ideas de la demo de gas de three.js (9/11/2026): salpicadura donde choca, punta de humo y luz en el suelo (ver `_haz`).
@@ -945,20 +957,22 @@ func _pilar(c: Node3D, luz: OmniLight3D) -> void:
 	_halo(c, "Charco", Vector2(5.2 * rx, 5.2 * rz), Vector3(0, 0.04, 0), 0.45, 1.8, 0, Color(1.0, 0.28, 0.06), {"anillo": 0.5, "irreg": PILAR_IRREG_CHARCO})
 	_halo(c, "Resplandor", Vector2(6.8 * rm, 1.05 * alto), Vector3(0, 0.35 * alto, 0), 0.2, 2.8, 2, Color(1.0, 0.28, 0.06))
 	var amp: float = clampf(fr, 0.5, 2.0)
+	var vaiven: float = PILAR_VAIVEN_M * amp
+	var raiz: float = lerpf(PILAR_RAIZ_CHATO, PILAR_RAIZ, smoothstep(1.2, 3.0, alto / maxf(rm, 0.01)))
 	var base_irr: float = clampf(PILAR_BASE_M / alto, 0.03, 0.3)          # altura máx. (en V) a la que sube el contacto con el suelo según el ruido: ~0,45 m
 	var l1: float = FuegoToyMallas.perimetro_elipse(rx, rz)
 	var m: Array = FuegoToyMallas.M_PILAR
-	_fuego(c, "Exterior", FuegoToyMallas.banda(rx, rz, 2.0, FuegoToyMallas.perfil_cilindro(0.72, alto), FuegoToyMallas.segmentos(l1)), Vector3.ZERO,
-		{"repeticion": Vector2(FuegoToyMallas.repeticiones_u(l1, m[0]), alto / float(m[1])), "rep_ruido": Vector2(FuegoToyMallas.repeticiones_u(l1, m[2]), alto / float(m[3])),
-		"umbral": 0.27, "desfase": 0.5, "fuerza_grad": 1.0, "pot_grad": 1.6, "semilla": 0.2, "velocidad": 0.9, "amplitud_vert": 0.2 * amp, "base_irreg": base_irr}, 0)
+	_fuego(c, "Exterior", FuegoToyMallas.banda(rx, rz, 2.0, FuegoToyMallas.perfil_lengua(alto, raiz, PILAR_PANZA_V, PILAR_PUNTA), FuegoToyMallas.segmentos(l1)), Vector3.ZERO,
+		{"repeticion": Vector2(FuegoToyMallas.repeticiones_u(l1, m[0]), PILAR_ESTIRA * alto / float(m[1])), "rep_ruido": Vector2(FuegoToyMallas.repeticiones_u(l1, m[2]), alto / float(m[3])),
+		"umbral": 0.27, "desfase": PILAR_RELLENO, "fuerza_grad": PILAR_EROSION, "pot_grad": PILAR_EROSION_POT, "vaiven": vaiven, "semilla": 0.2, "velocidad": 0.9, "amplitud_vert": 0.2 * amp, "base_irreg": base_irr, "calor_extra": PILAR_CALOR}, 0)
 	var rxi: float = rx * 0.6
 	var rzi: float = rz * 0.6
 	var hi: float = alto * 0.775
 	var l2: float = FuegoToyMallas.perimetro_elipse(rxi, rzi)
 	var mn: Array = FuegoToyMallas.M_PILAR_IN
-	_fuego(c, "Nucleo", FuegoToyMallas.banda(rxi, rzi, 2.0, FuegoToyMallas.perfil_cilindro(0.5333, hi), FuegoToyMallas.segmentos(l2)), Vector3.ZERO,
-		{"repeticion": Vector2(FuegoToyMallas.repeticiones_u(l2, mn[0]), hi / float(mn[1])), "rep_ruido": Vector2(FuegoToyMallas.repeticiones_u(l2, mn[2]), hi / float(mn[3])),
-		"umbral": 0.27, "desfase": 0.5, "fuerza_grad": 1.0, "pot_grad": 1.6, "semilla": 0.6, "velocidad": 1.5, "calor_extra": 0.3, "brillo": 1.1, "amplitud_vert": 0.12 * amp}, 1)
+	_fuego(c, "Nucleo", FuegoToyMallas.banda(rxi, rzi, 2.0, FuegoToyMallas.perfil_lengua(hi, raiz, PILAR_PANZA_V, PILAR_PUNTA), FuegoToyMallas.segmentos(l2)), Vector3.ZERO,
+		{"repeticion": Vector2(FuegoToyMallas.repeticiones_u(l2, mn[0]), PILAR_ESTIRA * hi / float(mn[1])), "rep_ruido": Vector2(FuegoToyMallas.repeticiones_u(l2, mn[2]), hi / float(mn[3])),
+		"umbral": 0.27, "desfase": PILAR_RELLENO, "fuerza_grad": PILAR_EROSION, "pot_grad": PILAR_EROSION_POT, "vaiven": vaiven, "semilla": 0.6, "velocidad": 1.5, "calor_extra": 0.3 + PILAR_CALOR, "brillo": 1.1, "amplitud_vert": 0.12 * amp}, 1)
 	# Pilares mÃ¡s gordos que el validado (r 0,5): un cilindro de lenguas con solo dos capas se ve hueco (un aro a rayas). Se aÃ±aden capas intermedias, una cada ~0,4 m de
 	# radio por encima de 0,55 (mÃ¡x. 3), entre el exterior y el nÃºcleo, cada una con su semilla y su velocidad, para que el pilar se vea tan lleno como el validado.
 	var n_extra: int = clampi(int(round((rm - 0.55) / 0.4)) + (1 if rm > 0.55 else 0), 0, 3)
@@ -968,13 +982,13 @@ func _pilar(c: Node3D, luz: OmniLight3D) -> void:
 		var rzc: float = rz * f
 		var hc: float = alto * lerpf(1.0, 0.775, float(i + 1) / float(n_extra + 1))
 		var lc: float = FuegoToyMallas.perimetro_elipse(rxc, rzc)
-		_fuego(c, "Capa%d" % i, FuegoToyMallas.banda(rxc, rzc, 2.0, FuegoToyMallas.perfil_cilindro(lerpf(0.72, 0.5333, float(i + 1) / float(n_extra + 1)), hc), FuegoToyMallas.segmentos(lc)),
-			Vector3.ZERO, {"repeticion": Vector2(FuegoToyMallas.repeticiones_u(lc, m[0]), hc / float(m[1])), "rep_ruido": Vector2(FuegoToyMallas.repeticiones_u(lc, m[2]), hc / float(m[3])),
-			"umbral": 0.27, "desfase": 0.5, "fuerza_grad": 1.0, "pot_grad": 1.6, "semilla": 0.33 + 0.21 * float(i), "velocidad": 1.1 + 0.2 * float(i), "calor_extra": 0.15,
+		_fuego(c, "Capa%d" % i, FuegoToyMallas.banda(rxc, rzc, 2.0, FuegoToyMallas.perfil_lengua(hc, raiz, PILAR_PANZA_V, PILAR_PUNTA), FuegoToyMallas.segmentos(lc)),
+			Vector3.ZERO, {"repeticion": Vector2(FuegoToyMallas.repeticiones_u(lc, m[0]), PILAR_ESTIRA * hc / float(m[1])), "rep_ruido": Vector2(FuegoToyMallas.repeticiones_u(lc, m[2]), hc / float(m[3])),
+			"umbral": 0.27, "desfase": PILAR_RELLENO, "fuerza_grad": PILAR_EROSION, "pot_grad": PILAR_EROSION_POT, "vaiven": vaiven, "semilla": 0.33 + 0.21 * float(i), "velocidad": 1.1 + 0.2 * float(i), "calor_extra": 0.15 + PILAR_CALOR,
 			"amplitud_vert": 0.16 * amp}, 1)
-	_laminas_vbb(c, "Lenguas", FuegoToyMallas.laminas_pilar(rx, rz, alto), FuegoToyMallas.M_PILAR, {"umbral": 0.27, "desfase": 0.5, "fuerza_grad": 1.0, "pot_grad": 1.6, "semilla": 0.45, "velocidad": 1.1,
+	_laminas_vbb(c, "Lenguas", FuegoToyMallas.laminas_lengua(rx, rz, alto), FuegoToyMallas.M_PILAR, {"umbral": 0.27, "desfase": PILAR_RELLENO, "fuerza_grad": PILAR_EROSION, "pot_grad": PILAR_EROSION_POT, "vaiven": vaiven, "semilla": 0.45, "velocidad": 1.1,
 			"amplitud_vert": 0.2 * amp, "afila": 0.72})
-	_laminas_vbb(c, "BaseLenguas", FuegoToyMallas.laminas_base_pilar(rx, rz, alto), FuegoToyMallas.M_PILAR, {"umbral": 0.27, "desfase": 0.5, "fuerza_grad": 1.0, "pot_grad": 1.6, "semilla": 0.8, "velocidad": 1.3,
+	_laminas_vbb(c, "BaseLenguas", FuegoToyMallas.laminas_base_pilar(rx * raiz * 1.2, rz * raiz * 1.2, alto), FuegoToyMallas.M_PILAR, {"umbral": 0.27, "desfase": PILAR_RELLENO, "fuerza_grad": PILAR_EROSION, "pot_grad": PILAR_EROSION_POT, "vaiven": vaiven, "semilla": 0.8, "velocidad": 1.3,
 			"amplitud_vert": 0.1 * amp, "afila": 0.6, "el_ini": 0.99, "el_fin": 1.0})
 	var area: float = sqrt(clampf(fr * fa, 0.05, 6.0))
 	var vv: float = clampf(fa, 0.5, 2.5)
