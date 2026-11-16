@@ -1042,10 +1042,16 @@ func _paso(dt: float) -> void:
 					continue
 				var j: int = vecinos[b + k]
 				var dv: float = f * dt / area
+				# La marca de agua de hechizo viaja con el agua, pero SOLO a suelo seco o con película (16/11, prueba_agua_hz_cauce: antes se le pegaba a todo trocito al que
+				# llegara una gota y un cauce o un estanque vecino quedaban marcados para siempre: frenados al 55 % y con el nivel un 67 % distinto). El agua que ya estaba
+				# (más que una película, o con manantial o nivel fijo) NO se vuelve de hechizo; y si a un trocito marcado le entra agua de verdad sin marca, gana esa.
+				if hz[i] == 1:
+					if hz[j] == 0 and prof[j] <= HZ_PELICULA and fuente[j] == 0.0 and fijo[j] == -INF:
+						hz[j] = 1
+				elif hz[j] == 1 and prof[i] > HZ_PELICULA:
+					hz[j] = 0
 				prof[i] -= dv
 				prof[j] += dv
-				if hz[i] == 1:
-					hz[j] = 1                      # la marca de agua de hechizo viaja con el agua
 	_x0 = w
 	_x1 = -1
 	_y0 = h
@@ -1062,7 +1068,8 @@ func _paso(dt: float) -> void:
 ## Marca como agua de HECHIZO el agua (presente y futura) de los trocitos de una casilla: la de `HechizoVivo._materia_liquido` en suelo sin manantial. Ver HZ_PELICULA.
 func marcar_hechizo(c: Vector2i) -> void:
 	for i in _trozos(c):
-		hz[i] = 1
+		if prof[i] <= HZ_PELICULA and fijo[i] == -INF:      # el agua que ya había ahí (un estanque, un cauce) no pasa a ser de hechizo. (No se mira `fuente`: el hechizo acaba de abrir aquí su propio manantial temporal.)
+			hz[i] = 1
 
 
 ## Amplía la caja de trabajo para que incluya el trocito i (al echar agua, poner una fuente, fijar un nivel…).

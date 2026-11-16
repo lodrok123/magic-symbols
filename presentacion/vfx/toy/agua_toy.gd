@@ -59,6 +59,7 @@ const N_ESPUMA_BASE: int = 10           ## bocanadas de espuma alrededor de la b
 const N_ESPUMA_CRESTA: int = 4          ## ... y en la cresta
 const GOTAS_RESERVA_OLA: int = 60         ## huecos de la reserva de gotas de la ola (saltan de la cresta y caen)
 const N_FRANJAS_OLA: int = 12            ## franjas de espuma tumbadas en el pie de la ola
+const OLA_CRESTA_DE_PIE: float = 0.24     ## opacidad de las láminas de cresta mientras el muro está de pie (0,5 = como antes: joroba blanca)
 const T_OLA_NACER: float = 0.75
 const T_OLA_MORIR: float = 1.9
 const T_PILAR_NACER: float = 0.6
@@ -1099,6 +1100,8 @@ func _avanzar_ola(delta: float) -> void:
 		((h as MeshInstance3D).material_override as ShaderMaterial).set_shader_parameter("avance", _ola_avance)
 	(_ola_cuerpo.material_override as ShaderMaterial).set_shader_parameter("avance", _ola_avance)
 	(_ola_cresta.material_override as ShaderMaterial).set_shader_parameter("avance", _ola_avance)
+	# MURO DE PIE (16/11, «bloque con joroba blanca»): las láminas de cresta, de pie, van a media opacidad (OLA_CRESTA_DE_PIE) y recuperan la suya al romper, que es cuando hay espuma de verdad
+	(_ola_cresta.material_override as ShaderMaterial).set_shader_parameter("opacidad", lerpf(OLA_CRESTA_DE_PIE, 0.5, smoothstep(0.05, 0.35, co)))
 	# lámina del suelo: aparece cuando la cresta aterriza (corte ≈ 0,4-0,5), corre hacia delante, frena (ease-out), se adelgaza y se va al final
 	_ola_charco_u = smoothstep(0.1, 1.0, co)
 	var lam: float = smoothstep(0.38, 0.95, co)

@@ -185,6 +185,7 @@ func _carga() -> void:
 	_ok("hay gotitas, remolino y ondas bajo los pies", conv != null and conv.find_child("Gotitas", true, false) != null and conv.find_child("Remolino", true, false) != null and conv.find_child("Onda0", true, false) != null)
 	var prev: float = s0
 	var baja: bool = false
+	var baja_info: String = ""
 	var n_ini: int = int(conv.call("n_visibles"))
 	var conv_ok: int = 0
 	var conv_tot: int = 0
@@ -195,6 +196,7 @@ func _carga() -> void:
 		var s: float = _escala(e)
 		if s < prev - 0.002:
 			baja = true
+			baja_info += " [%.3f → %.3f con progreso %.2f a los %d ms]" % [prev, s, e.progreso_carga(), Time.get_ticks_msec() - t0]
 		prev = s
 		for g in conv.call("estado_gotas"):
 			var gd: Dictionary = g
@@ -206,7 +208,7 @@ func _carga() -> void:
 			# converge: la gotita avanza hacia dentro (componente radial de su movimiento negativa) y su radio es menor que el de nacimiento
 			if float(gd["rad"]) <= float(gd["r0"]) + 0.0001 and d.dot(p.normalized()) < 0.2:
 				conv_ok += 1
-	_ok("crece sin bajar (escala %.2f)" % prev, not baja and prev > 0.7)
+	_ok("crece sin bajar (escala %.2f)" % prev, not baja and prev > 0.7, baja_info)
 	_ok("las gotitas convergen (%d de %d hacia dentro y por debajo del radio de nacimiento)" % [conv_ok, conv_tot], conv_tot > 0 and float(conv_ok) / float(conv_tot) > 0.97)
 	var n_fin: int = int(conv.call("n_visibles"))
 	_ok("hay más gotitas cuanto más avanza la carga (%d → %d)" % [n_ini, n_fin], n_fin > n_ini)

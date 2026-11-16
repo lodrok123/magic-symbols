@@ -52,7 +52,11 @@ void vertex() {
 	float labio = 1.0 + 0.22 * kr * smoothstep(0.82, 1.0, sc) + 0.1 * kr * smoothstep(0.55, 0.8, sc) * (0.5 + 0.5 * sin(t * 2.0 + a * 6.2832 * 2.0));
 	float bal = 1.0 + 0.07 * ondulacion * sin(y * 4.5 - t * 5.0 + a * 12.566 + semilla * 3.0);
 	float ensancha = 1.0 + 0.08 * caida;
-	float rm = flare * labio * bal * ensancha * grosor;
+	// PILAR BAJO Y ANCHO (16/11, «se lee regular»: un tambor de paredes rectas con un cilindro blanco dentro): cuando el alto no llega a ~3 radios la columna deja de ser un tubo y se
+	// ESTRECHA hacia arriba, como un borbotón que empuja desde abajo; el núcleo se estrecha más (chorro dentro del borbotón). Con alto / radio ≥ 3 (el pilar de referencia, 8) no cambia nada.
+	float chato = 1.0 - smoothstep(1.2, 3.0, alto / max((rx + rz) * 0.5, 0.05));
+	float estrecha = 1.0 - chato * mix(0.42, 0.62, nucleo) * pow(sc, mix(1.6, 1.0, nucleo));
+	float rm = flare * labio * bal * ensancha * grosor * estrecha;
 	// FALDA: nace del labio (arriba sale pegada a la cortina), se abre en seta justo debajo (máximo hacia s = 0,85) y desde ahí cae recta cerrándose un poco. La separación se mide en METROS
 	// (0,12-0,30 m, suave con el radio): con un factor multiplicativo un pilar de 1,3 m sacaba una campana de 2 m (medusa) y de dos fundas de cristal concéntricas.
 	float sep = clamp(0.12 + 0.1 * (rx + rz) * 0.5, 0.12, 0.30);
@@ -94,6 +98,8 @@ void fragment() {
 	float a = opacidad * (0.55 + 0.30 * d1 + 0.30 * fres + 0.25 * base + 0.2 * cresta);
 	a *= 1.0 - smoothstep(0.90, 1.0, v_y) * (0.55 + 0.45 * d2) * (1.0 - falda);
 	a *= smoothstep(0.0, 0.03, v_y);
+	// pilar bajo y ancho: el núcleo, que ahí es grande, va más transparente (macizo se leía como un cubo blanco boca abajo dentro del agua)
+	a *= 1.0 - 0.45 * nucleo * (1.0 - smoothstep(1.2, 3.0, alto / max((rx + rz) * 0.5, 0.05)));
 	// la falda: rota por el ruido (huecos), más visible en el tercio de arriba y perdiéndose hacia el suelo; no tapa la columna
 	// HILOS verticales: bandas de alta frecuencia alrededor (nº entero por vuelta: sin costura) con huecos claros entre ellas, que bajan con la textura. Se pierde entre el 25 y el 60 % de la altura
 	// (más abajo solo quedan gotas y espuma) y casi desaparece en pilares bajos, donde manda la columna.

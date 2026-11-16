@@ -109,10 +109,12 @@ void fragment() {
 	// espuma: el labio (donde se riza), la cresta rota por la textura, y los dos pies
 	float labio = smoothstep(0.5, 0.58, s) * (1.0 - smoothstep(0.66, 0.74, s));
 	float tira = smoothstep(0.5, 0.82, 0.55 * d1 + 0.3 * d2 + 0.35 * cau);
-	float espuma = labio * (0.35 + 0.65 * tira) * smoothstep(0.1, 0.5, crece);
+	// MURO DE PIE (16/11, «bloque con joroba blanca»): de pie la espuma del labio es un RIBETE roto por la textura, no una banda maciza; la espuma entera vuelve cuando rompe (`rompe`)
+	float rompe = smoothstep(0.05, 0.35, corte);
+	float espuma = labio * mix(0.08 + 0.6 * tira * tira, 0.35 + 0.65 * tira, rompe) * smoothstep(0.1, 0.5, crece);
 	espuma = max(espuma, (1.0 - smoothstep(0.0, 0.07, s)) * (0.5 + 0.5 * tira));
 	espuma = max(espuma, smoothstep(0.93, 1.0, s) * (0.4 + 0.6 * tira));
-	espuma = max(espuma, smoothstep(0.95, 0.995, v_yh) * (1.0 - smoothstep(0.42, 0.5, s)) * tira * 0.7);       // la parte alta de la espalda
+	espuma = max(espuma, smoothstep(0.95, 0.995, v_yh) * (1.0 - smoothstep(0.42, 0.5, s)) * tira * mix(0.3, 0.7, rompe));       // la parte alta de la espalda
 	float v = 0.04 + 0.34 * d1 + 0.14 * d2 + 0.10 * cau + 0.22 * fres + 0.36 * v_yh + 0.7 * espuma;
 	vec3 col = agua_tonos(v, 0.46, 0.80, 0.07);
 	col = agua_cau_color(col, cau, 0.25);

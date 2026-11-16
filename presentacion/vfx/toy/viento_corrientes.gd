@@ -228,7 +228,8 @@ var torsion: float = 7.0
 const COL_HILOS: int = 8
 const COL_LUNAS: int = 3
 const COL_CIMA: float = 1.12                     ## las líneas suben un poco por encima del tope (nivel 1) y se desvanecen: el aire sigue subiendo, no se corta
-const T_LUNA: float = 0.9                        ## vida de cada media luna: con 3 en rueda sale una cada 0,3 s
+const COL_TORSION_POR_ESBELTEZ: float = 2.6      ## rad de torsión como mucho por unidad de esbeltez (alto / radio): la columna baja y ancha gira menos para que sus cintas sigan subiendo
+const T_LUNA: float = 0.9                       ## vida de cada media luna: con 3 en rueda sale una cada 0,3 s
 
 
 ## Radio de la columna en cada nivel (0 = suelo, 1 = cima), en múltiplos de los semiejes.
@@ -241,6 +242,11 @@ func _columna(ejes: Vector3, tiempo: float, alfa: float) -> void:
 	var giro_t: float = tiempo * 0.5                      # la columna entera gira despacio: da vida sin mover el eje
 	var radio_m: float = maxf(ejes.x, ejes.z)
 	var nace: float = 1.0 + 0.5 * (1.0 - smoothstep(0.0, 0.6, tiempo))   # los primeros 0,6 s todo sale más ancho: nacer con fuerza
+	# COLUMNA BAJA Y ANCHA (16/11, «se lee regular»): con la misma torsión en menos altura y más radio las hélices quedaban casi horizontales (aros apilados, un muelle) y no se leía que el
+	# aire SUBE. La torsión se limita por la esbeltez (alto / radio) para que la cinta conserve pendiente; con esbeltez ≥ 2,7 (la de referencia es 8) no cambia nada. `chata` 0..1 alarga los hilos.
+	var esbeltez: float = ejes.y / maxf(radio_m, 0.05)
+	var tors: float = minf(torsion, COL_TORSION_POR_ESBELTEZ * esbeltez)
+	var chata: float = 1.0 - smoothstep(1.2, 2.7, esbeltez)
 	# HÉLICES
 	var n_hel: int = clampi(roundi(4.0 + 3.0 * radio_m), 6, 8)
 	for i in n_hel:
@@ -256,7 +262,7 @@ func _columna(ejes: Vector3, tiempo: float, alfa: float) -> void:
 		var puntos := PackedVector3Array()
 		for j in 36:
 			var nivel: float = lerpf(n1, n0, float(j) / 35.0)   # de la cabeza (arriba) a la cola (abajo)
-			var ang: float = base + torsion * nivel
+			var ang: float = base + tors * nivel
 			var r: float = lerpf(1.0, 1.25, clampf(nivel, 0.0, 1.0)) * (0.97 + 0.06 * sin(semilla))
 			puntos.append(Vector3(cos(ang) * ejes.x * r, 0.08 + ejes.y * nivel, sin(ang) * ejes.z * r))
 		var grueso: float = clampf(ejes.x * 0.3, 0.12, 0.28) * vida * nace
@@ -266,7 +272,7 @@ func _columna(ejes: Vector3, tiempo: float, alfa: float) -> void:
 	# HILOS verticales: la corriente ascendente
 	for i in COL_HILOS:
 		var semilla: float = float(i) * 2.39996 + 1.3
-		var largo: float = 0.3 + 0.2 * fposmod(float(i) * 0.618, 1.0)
+		var largo: float = (0.3 + 0.2 * fposmod(float(i) * 0.618, 1.0)) * lerpf(1.0, 1.7, chata)      # en la columna baja un hilo del 30-50 % medía medio metro: virutas
 		var fase: float = fposmod(tiempo * 1.5 + float(i) * 0.37, 1.0)
 		var inicio: float = lerpf(-0.5 * largo, COL_CIMA - 0.5 * largo, fase)
 		var n0: float = maxf(inicio, 0.0)
@@ -278,7 +284,7 @@ func _columna(ejes: Vector3, tiempo: float, alfa: float) -> void:
 		var puntos := PackedVector3Array()
 		for j in 14:
 			var nivel: float = lerpf(n1, n0, float(j) / 13.0)
-			var ang: float = base + 0.12 * torsion * nivel
+			var ang: float = base + 0.12 * tors * nivel
 			puntos.append(Vector3(cos(ang) * ejes.x * r, 0.08 + ejes.y * nivel, sin(ang) * ejes.z * r))
 		var env: float = smoothstep(0.0, 0.2, fase) * (1.0 - smoothstep(0.8, 1.0, fase))
 		_guardar(puntos, clampf(ejes.x * 0.14, 0.03, 0.07) * vida, alfa * env * 0.7, 1.0, 0.3)
