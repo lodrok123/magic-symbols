@@ -59,7 +59,8 @@ const N_ESPUMA_BASE: int = 10           ## bocanadas de espuma alrededor de la b
 const N_ESPUMA_CRESTA: int = 4          ## ... y en la cresta
 const GOTAS_RESERVA_OLA: int = 60         ## huecos de la reserva de gotas de la ola (saltan de la cresta y caen)
 const N_FRANJAS_OLA: int = 12            ## franjas de espuma tumbadas en el pie de la ola
-const OLA_CRESTA_DE_PIE: float = 0.24     ## opacidad de las láminas de cresta mientras el muro está de pie (0,5 = como antes: joroba blanca)
+const OLA_CRESTA_DE_PIE: float = 0.5      ## opacidad de las láminas de cresta mientras el muro está de pie (17/11: de vuelta a 0,5; ya van sobre la cresta y las modula la onda viajera)
+const OLA_PIE_DE_PIE: float = 0.5         ## × la espuma del pie mientras el muro está de pie (1 = como antes: copos blancos en el suelo que competían con la cresta)
 const T_OLA_NACER: float = 0.75
 const T_OLA_MORIR: float = 1.9
 const T_PILAR_NACER: float = 0.6
@@ -1127,7 +1128,7 @@ func _avanzar_ola(delta: float) -> void:
 		var pos: Vector3 = Vector3(x, 0.03 + 0.015 * float(i % 2), z + 0.06 * sin(tt * 1.3 + float(i)))
 		var largo: float = clampf(2.0 * a / float(N_FRANJAS_OLA) * (1.7 if i % 2 == 0 else 1.3), 0.4, 2.2) * (0.4 + 0.6 * smoothstep(0.0, 1.0, cr)) * (1.0 + 0.4 * co)
 		var ancho: float = (0.2 + 0.1 * fposmod(f * 7.1, 1.0)) * (0.7 + 0.5 * alto / 1.5) * (0.4 + 0.6 * smoothstep(0.0, 1.0, cr)) * (1.0 + 0.8 * co)
-		var al: float = 0.9 * smoothstep(0.05, 0.5, cr) * (1.0 - smoothstep(0.85, 1.0, co)) * (0.5 + 0.5 * env)
+		var al: float = 0.9 * lerpf(OLA_PIE_DE_PIE, 1.0, smoothstep(0.05, 0.35, co)) * smoothstep(0.05, 0.5, cr) * (1.0 - smoothstep(0.85, 1.0, co)) * (0.5 + 0.5 * env)
 		AguaMallas.franja_poner(mf, i, pos, largo, ancho, al, 0.5 + 0.5 * fposmod(f * 3.7, 1.0), 0.1 * sin(float(i) * 1.9), f * 9.0)
 		_ola_franjas_datos[i] = {"pos": pos, "largo": largo, "alfa": al}
 

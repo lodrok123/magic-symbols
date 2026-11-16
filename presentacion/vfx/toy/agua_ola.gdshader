@@ -34,9 +34,10 @@ varying float v_yh;
 varying float v_h;
 
 float envol(float x, float t, float sem) {
-	float borde = 1.0 - 0.6 * pow(clamp(abs(x) / max(a, 0.01), 0.0, 1.0), 4.0);
+	// 17/11 (Pablo: «no me da sensación de altura»): los extremos caen tarde y poco (antes al 40 % con potencia 4: un lomo) y la cresta ondula ALREDEDOR del alto (antes media 0,86)
+	float borde = 1.0 - 0.4 * pow(clamp(abs(x) / max(a, 0.01), 0.0, 1.0), 9.0);
 	float n = textureLod(flujo, vec2(x * 0.32 + sem, t * 0.05 + sem * 0.5), 0.0).r;
-	return borde * (0.86 + 0.34 * (n - 0.5) * (0.4 + ondulacion));
+	return borde * (1.0 + 0.22 * (n - 0.5) * (0.4 + ondulacion));
 }
 
 // Perfil en el plano (z, y). H = altura de la cresta, R = radio del rizo, Lb = largo de la espalda, cu = cuánto se ha rizado (0..1), zc = z de la cresta.
@@ -100,8 +101,9 @@ void fragment() {
 	float t = TIME * velocidad;
 	float s = v_s;
 	float lon = s * (2.2 * alto);           // metros aproximados a lo largo del perfil
-	vec2 ua = vec2(v_x * 0.45 + semilla, tri(1.0 - lon * 0.42 + t * ritmo));
-	vec2 ub = vec2(v_x * 0.9 + 0.31 + semilla * 1.3, tri(1.0 - lon * 0.8 + t * ritmo * 1.6));
+	// vetas VERTICALES (17/11): la textura va apretada a lo ancho y estirada a lo alto; con la proporción de antes salían bandas horizontales, que aplastan el muro
+	vec2 ua = vec2(v_x * 1.15 + semilla, tri(1.0 - lon * 0.2 + t * ritmo));
+	vec2 ub = vec2(v_x * 2.1 + 0.31 + semilla * 1.3, tri(1.0 - lon * 0.36 + t * ritmo * 1.6));
 	float d1 = clamp(texture(liquido, ua).r - textureLod(liquido, ua, 5.0).r + 0.45, 0.0, 1.0);
 	float d2 = clamp(texture(liquido, ub).r - textureLod(liquido, ub, 5.0).r + 0.45, 0.0, 1.0);
 	float cau = agua_cau(vec2(v_x * 0.6, lon * 0.5 - t * 0.15) + semilla, t);
@@ -111,11 +113,15 @@ void fragment() {
 	float tira = smoothstep(0.5, 0.82, 0.55 * d1 + 0.3 * d2 + 0.35 * cau);
 	// MURO DE PIE (16/11, «bloque con joroba blanca»): de pie la espuma del labio es un RIBETE roto por la textura, no una banda maciza; la espuma entera vuelve cuando rompe (`rompe`)
 	float rompe = smoothstep(0.05, 0.35, corte);
-	float espuma = labio * mix(0.08 + 0.6 * tira * tira, 0.35 + 0.65 * tira, rompe) * smoothstep(0.1, 0.5, crece);
+	// CABRILLAS (17/11, Pablo: «las espumas no están donde deberían en la cresta simulando el movimiento»): la espuma del labio son crestas blancas que CORREN a lo largo del muro
+	// (onda viajera en x, con el paso algo irregular) y de cada una cae un velo corto por la cara delantera. La misma onda mueve las láminas de cresta (agua_ola_lamina.gdshader).
+	float cabrilla = smoothstep(0.3, 0.8, 0.5 + 0.5 * sin(v_x * 1.7 - t * 2.6 + 1.5 * sin(v_x * 0.6 + t * 0.7)));
+	float espuma = labio * mix((0.12 + 0.88 * cabrilla) * (0.45 + 0.55 * tira), 0.35 + 0.65 * tira, rompe) * smoothstep(0.1, 0.5, crece);
+	espuma = max(espuma, cabrilla * smoothstep(0.66, 0.7, s) * (1.0 - smoothstep(0.72, 0.9, s)) * tira * 0.55 * (1.0 - rompe) * smoothstep(0.6, 1.0, crece));
 	espuma = max(espuma, (1.0 - smoothstep(0.0, 0.07, s)) * (0.5 + 0.5 * tira));
 	espuma = max(espuma, smoothstep(0.93, 1.0, s) * (0.4 + 0.6 * tira));
 	espuma = max(espuma, smoothstep(0.95, 0.995, v_yh) * (1.0 - smoothstep(0.42, 0.5, s)) * tira * mix(0.3, 0.7, rompe));       // la parte alta de la espalda
-	float v = 0.04 + 0.34 * d1 + 0.14 * d2 + 0.10 * cau + 0.22 * fres + 0.36 * v_yh + 0.7 * espuma;
+	float v = 0.02 + 0.34 * d1 + 0.14 * d2 + 0.06 * cau + 0.22 * fres + 0.42 * v_yh * v_yh + 0.7 * espuma;       // hondo abajo y claro solo arriba: el degradado también da altura
 	vec3 col = agua_tonos(v, 0.46, 0.80, 0.07);
 	col = agua_cau_color(col, cau, 0.25);
 	col = agua_borde(col, fres, 0.5);
