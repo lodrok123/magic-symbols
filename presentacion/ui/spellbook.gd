@@ -11,11 +11,6 @@ extends Control
 ## del Spellcaster. Si mañana cambias el reconocimiento de gestos, este
 ## archivo no se entera.
 
-## Se abre con T y no con TAB a propósito: TAB es la tecla que Godot usa
-## por defecto para saltar de un control de interfaz al siguiente, así
-## que siempre habría riesgo de que las dos cosas se pisaran.
-const OPEN_KEY: Key = KEY_T      ## solo de referencia: la tecla real es la acción «libro» del InputMap (remapeable)
-
 ## B1: acciones de página (1/2/3 de fábrica) → 0..2, o -1 si el evento no es ninguna.
 static func _pagina_de_tecla(ev: InputEvent) -> int:
 	for i in range(3):
@@ -2273,12 +2268,6 @@ func _draw_sectors(c: Vector2) -> void:
 ## dónde. Los operadores no se dibujan: cambian cuánto, no qué, y la
 ## diferencia entre una bola y dos no vale una segunda marca en la hoja.
 const SIGIL_GLYPH_SIZE: float = 38.0
-
-## Los sellos que SÍ tienen lado al que mirar. Se giran hacia su sector,
-## porque su dirección es información de verdad: hacia dónde sale.
-## El resto se dibujan tal cual — un corro no apunta a ningún sitio, y
-## una levitación apunta hacia arriba pase lo que pase.
-const DIRECTIONAL: Array = ["flecha"]
 
 ## Un glifo por cada componente dibujado, en su sector. El anillo sigue
 ## mostrando solo lo que YA has trazado, no el catálogo de lo posible:

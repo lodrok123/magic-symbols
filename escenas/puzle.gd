@@ -2842,7 +2842,6 @@ func _params_agua_cortina(m: ShaderMaterial, y_labio: float, z_labio: float) -> 
 	m.set_shader_parameter("z_labio", z_labio)
 
 const PILAR_SOBRE_TERRAZA: float = 1.5      ## cuánto sobresale un pilar por encima del fondo del canal (u)
-const PILAR_LARGO: float = 1.5               ## cuánto se mete un pilar hacia el norte desde el labio de la cornisa (u)
 const ESPUMA_ATRAS: float = 0.45             ## cuánto se mete la espuma bajo el labio (hacia la roca), para tapar el borde claro de la superficie del pozo (la «pastilla»)
 const ESPUMA_SOBRE: float = 0.12            ## y cuánto sube sobre la superficie del pozo
 const ESPUMA_LARGO: float = 1.3            ## hasta dónde llega la franja de espuma por el pozo, desde la cortina (u)

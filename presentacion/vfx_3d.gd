@@ -53,8 +53,6 @@ const COLOR_DE: Dictionary = {
 	"anillo": Color(0.85, 0.74, 0.56), "runa": Color(0.7, 0.9, 1.0), "grieta": Color(0.3, 0.22, 0.26),
 	"disco": Color(0.27, 0.19, 0.16),
 }
-## Las llamas pasan por tres tonos planos a lo largo de su vida (amarillo, naranja, rojo), sin degradado: como en el dibujo animado.
-const TONOS_LLAMA: Array = [Color(1.0, 0.93, 0.5), Color(1.0, 0.62, 0.22), Color(0.95, 0.4, 0.16)]
 ## Presupuesto de las llamas de la hierba (una GPU integrada no aguanta un emisor completo por casilla cuando arde medio mapa):
 ## las primeras MAX_LLAMAS_COMPLETAS llevan llamas, brasas y humo; las siguientes, solo una llama pequeña; y luz, solo MAX_LUCES_LLAMA.
 const MAX_LLAMAS_COMPLETAS: int = 10

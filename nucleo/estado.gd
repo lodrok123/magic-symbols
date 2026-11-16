@@ -19,7 +19,6 @@ const CAPACIDAD_MAX: int = 20
 const PILA_MAX: int = 9
 const VIDA_BASE: float = 100.0
 const CURA_BASE: float = 40.0          ## = la cura de `pocion` en objetos.tsv (antes 35, sin nadie que la leyera)
-const VEL_BASE: float = 100.0
 
 static var _inst: Estado = null
 

@@ -138,9 +138,6 @@ func _duracion_de(est: int) -> float:
 	return float(q["dur_a"] if est == Estilo.A else (q["dur_b"] * dur_k if est == Estilo.B else q["dur_c"]))
 
 
-func estilo_actual() -> int:
-	return _estilo
-
 
 # ------------------------------------------------------------------ construcción ------------------------------------------------------------------
 

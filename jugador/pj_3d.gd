@@ -2352,33 +2352,9 @@ func duracion(nombre: String) -> float:
 ## 6.13 FOTOGRAMA DE APUNTADO del arquero: segundo del clip (a velocidad 1) con los brazos extendidos y el arco en alto; el clip
 ## se bloquea ahí mientras apunta y se suelta desde ahí. En ArcheryShot los brazos están extendidos de ~2,8 s a ~3,7 s; se bloquea en 3,0 s.
 ## `momento_golpe` sigue siendo la fracción (de la duración con que se reproduce) en la que sale la flecha.
-const FOTOGRAMA_APUNTADO: Dictionary = {"goblin_archer_chibi": {"attack": 3.0}}
 const MOMENTO_GOLPE: Dictionary = {"goblin_archer_chibi": {"attack": 0.84}}
 
-## Segundo del clip `nombre` en que se bloquea al apuntar (0 si el personaje no tiene fotograma de bloqueo).
-func fotograma_apuntado(nombre: String) -> float:
-	return float((FOTOGRAMA_APUNTADO.get(id, {}) as Dictionary).get(nombre, 0.0))
 
-
-## Pone el clip `nombre` en su fotograma de apuntado y lo CONGELA (la animación se aguanta mientras se apunta). Devuelve false si no
-## tiene fotograma de bloqueo (entonces se usa `jugar(nombre, true)` como siempre).
-func apuntar_clip(nombre: String = "attack") -> bool:
-	var t: float = fotograma_apuntado(nombre)
-	var clip: String = _buscar_clip(nombre)
-	if _arbol == null or t <= 0.0 or clip == "":
-		return false
-	# El clip desde el fotograma de apuntado hasta el final, RETENIDO (velocidad 0): es el estado «atacar_apuntado». Al soltar sigue desde ahí.
-	if not _arbol.pedir(estado_de(nombre) + "_apuntado", clip, {"desde": t, "bucle": Animation.LOOP_NONE, "mezcla": 0.0, "retenido": true}):
-		return false
-	animacion_actual = nombre
-	return true
-
-
-## Suelta el apuntado: el clip sigue desde donde estaba (velocidad `vel`, 1 por defecto) hasta que sale la flecha y termina.
-func soltar_apuntado(vel: float = 1.0) -> void:
-	if _arbol != null:
-		_arbol.retenido = false
-		_arbol.vel_global = vel
 
 
 func momento_golpe(nombre: String) -> float:

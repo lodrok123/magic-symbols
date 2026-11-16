@@ -119,9 +119,3 @@ func activas() -> int:
 			n += 1
 	return n
 
-
-## Edad (s) de la huella `i`, o -1 si ese hueco nunca se usó.
-func edad_de(i: int) -> float:
-	if i < 0 or i >= _nacida.size() or _nacida[i] < -500.0:
-		return -1.0
-	return _t - _nacida[i]

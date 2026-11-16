@@ -103,8 +103,3 @@ static func punta(u: float) -> Dictionary:
 	var alz: float = clampf(minf(s, 1.0 - s) / 0.3, 0.0, 1.0)
 	return {"pos": punto_en_trazo(a_t, 1.0).lerp(punto_en_trazo(b_t, 0.0), e), "baja": 1.0 - alz, "trazo": -1}
 
-
-## Fracción dibujada (0..1) del trazo `k` a los `u` del tiempo.
-static func fraccion_de_trazo(k: int, u: float) -> float:
-	var t: Dictionary = trazos()[k]
-	return clampf((u - float(t["t0"])) / (float(t["t1"]) - float(t["t0"])), 0.0, 1.0)

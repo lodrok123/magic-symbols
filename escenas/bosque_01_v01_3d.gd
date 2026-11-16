@@ -168,7 +168,6 @@ var _puerta_abierta: bool = false
 var _marca: Dictionary = {}                 ## nombre de marcador -> casilla (leído del .tscn con PackedScene.get_state())
 var _puzles: Node = null                    ## el nodo «Puzles» (Puzle3D) de la escena
 var _gente: Array = []                      ## {tipo, nombre, pj, ...}: el alquimista y los NPC con rutina
-var _lineas_alquimista: int = 0
 var _terminado: bool = false
 var _quemados: Array = []                   ## los Reactivo3D cuyo consumo se recuerda
 

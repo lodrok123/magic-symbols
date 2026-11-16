@@ -160,7 +160,3 @@ static func _sin_cortos(tramos: Array, minimo: float) -> Array:
 		t = _fundir(t)
 	return t
 
-
-## Cuántos tramos tiene un trazo ya rectificado (para pruebas y PlayLog).
-static func tramos_de(trazo: PackedVector2Array) -> int:
-	return maxi(trazo.size() - 1, 0)

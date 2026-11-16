@@ -889,14 +889,6 @@ func imagen_eventos(consumir: bool = true) -> Image:
 	return _img_eventos
 
 
-func textura_eventos(consumir: bool = true) -> ImageTexture:
-	var img: Image = imagen_eventos(consumir)
-	if _tex_eventos == null:
-		_tex_eventos = ImageTexture.create_from_image(img)
-	else:
-		_tex_eventos.update(img)
-	return _tex_eventos
-
 
 ## Los mismos eventos como lista, con posición en el mundo (para soltar partículas): [{tipo, intensidad, pos: Vector3 (centro del trocito, en la superficie)}].
 func eventos_pendientes(consumir: bool = false) -> Array:

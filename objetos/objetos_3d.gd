@@ -1771,17 +1771,6 @@ func _montar_tinaja() -> void:
 	add_child(_t_salp)
 
 
-## El arroyo debe llegar hasta `hasta` (distancia desde el origen de la tinaja, en la dirección del vertido): el borde de la casilla
-## donde empieza el canal. Lo llama la maqueta al montar el canal; la tinaja puede no estar centrada en su casilla (marcador movido).
-func ajustar_arroyo(hasta: float) -> void:
-	if _tira == null:
-		return
-	var t_fin: float = sqrt(2.0 * (pico_inclinado().y - SUELO_CHORRO) / GRAVEDAD_CHORRO)
-	_dist_arroyo = hasta - punto_chorro(t_fin).dot(dir_vertido())
-	var largo: float = maxf(_dist_arroyo, 0.1)
-	_tira.size = Vector2(ARROYO_ANCHO, largo)
-	_tira_mi.position = Vector3(0.0, 0.0, largo * 0.5)
-
 
 ## 13/10: dónde toca el suelo el chorro, en coordenadas del mundo. El canal empieza su agua justo aquí (PruebaTest2._montar_canal).
 func punto_caida_global() -> Vector3:
@@ -1973,9 +1962,6 @@ func tender() -> void:
 	tw.tween_callback(fx.chispazo.bind(global_position + Vector3(S * 0.5, 0.3, 0.0), "rayo"))
 	activado.emit("puente", "")
 
-
-func esta_plegado() -> bool:
-	return _plegado
 
 
 ## Algo con peso encima: se hunde y se queda (una vez, como en el 2D).

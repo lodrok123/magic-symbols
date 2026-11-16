@@ -41,7 +41,6 @@ const T_CHARCO: float = 0.34              ## s a los que aparece el charquito de
 const GRAVEDAD: float = 9.8
 const ROZAMIENTO: float = 0.6
 const COS_ABERTURA: float = 0.18          ## cos del ángulo máximo respecto a la normal (≈ 80°): la corona sale abierta; todas las gotas quedan en el hemisferio de la normal
-const COS_MIN_CORONA: float = 0.2
 const T_LAMINA: float = 0.2               ## s que dura la lámina de salpicadura
 
 ## true: el agua cae sobre algo que ARDE; con `HumoRegla.capas["vapor"]` encendida levanta vapor (nada lo pone en el juego todavía: lo pone quien sepa que hay fuego; el lab lo pone con la tecla 8).
@@ -383,10 +382,6 @@ func gotas_estado(t: float) -> Array:
 			"vivo": float(e["u"]) < 1.0 and t > float(d["retraso"]) and not _hundida(p), "burbuja": bool(d["burbuja"]), "vida": float(d["vida"])})
 	return res
 
-
-## Transformación (local) con la que se dibuja la gota `i` en el último `avanzar_a`.
-func transformada_gota(i: int) -> Transform3D:
-	return _tr_gotas[i] if i < _tr_gotas.size() else Transform3D.IDENTITY
 
 
 ## Gotas y burbujas generadas: [n_gotas, n_burbujas].

@@ -12,8 +12,6 @@ extends RefCounted
 ##   · oro_ganado ← `Estado.cambiado`: cuando el oro SUBE respecto a la última vez que se miró (no hay señal de oro; gastar no resta)
 ## `segundos` es tiempo de pared desde `reiniciar()`/`desde_dic()` (el mismo criterio que `Partida.segundos_jugados`).
 
-const CLAVES_NUM: PackedStringArray = ["dano_hecho", "dano_recibido", "oro_ganado", "muertes", "cofres"]
-
 static var total: Dictionary = vacio()
 static var por_nivel: Dictionary = vacio()
 static var _seg_base_total: float = 0.0

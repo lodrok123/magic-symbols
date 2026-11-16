@@ -1319,9 +1319,3 @@ func _montar_hud() -> void:
 		panel.add_child(sl)
 		_sliders[nombre] = sl
 
-
-## Pone un mando como si se moviera su barra (pruebas y capturas).
-func poner_mando(nombre: String, v: float) -> void:
-	if _sliders.has(nombre):
-		(_sliders[nombre] as HSlider).value = v
-	params[nombre] = v

@@ -170,7 +170,6 @@ var _roll_vel: float = 0.0
 var _roll_cd: float = 0.0                    ## reutilización
 var _roll_previa: bool = false
 var _t_beber: float = 0.0
-var _beber_previa: bool = false
 var _t_gesto: float = 0.0                    ## lo que queda de un gesto (`gesto()`: agacharse, ofrecer, saludo...); 0 = no hay
 ## true mientras el jugador EMPUJA un bloque (`BloqueEmpujable3D`, 27/10): al andar suena el clip `empujar` (bucle, sin avance) en vez de `walk`/`run`. Lo calcula `_gestionar_empuje` cada fotograma: es true
 ## mientras anda con dirección cardinal contra un bloque pegado a ella (aunque no se mueva: así se lee «está atascado») y mientras va ACOPLADA a él moviéndose (su posición la marca el bloque); false al soltar,

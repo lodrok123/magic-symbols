@@ -323,15 +323,6 @@ static func vaciar_registro() -> void:
 static func veces(nombre: String) -> int:
 	return int(CONTEO.get(nombre, 0))
 
-## Etiqueta del elemento -> sonido. Se mira en ESTE orden, y el orden
-## importa: el hielo lleva "frio" y el fuego "calor", pero un hechizo
-## futuro podría llevar las dos y hay que decidir cuál manda.
-const POR_ETIQUETA: Array = [
-	["rayo", "rayo"], ["hielo", "hielo"], ["fuego", "fuego"],
-	["agua", "agua"], ["viento", "viento"], ["tierra", "tierra"],
-	["tiempo", "tiempo"],
-]
-
 ## EL ANTIRRÁFAGA, y hace más falta de lo que parece.
 ##
 ## Un hechizo con corro y altura son hasta 24 manifestaciones que nacen
@@ -514,14 +505,3 @@ static func parar(p: Node, fundido: float = 0.12) -> void:
 static func llenado(origen: Node, nivel: float) -> void:
 	play(origen, "llenado", lerpf(0.7, 1.6, clampf(nivel, 0.0, 1.0)))
 
-
-## El sonido que le toca a un elemento. Lo decide la ETIQUETA y no el
-## nombre, por lo mismo de siempre: un elemento nuevo que lleve "calor"
-## sonará a fuego sin que haya que tocar nada.
-static func for_element(origen: Node2D, rune_data: RuneData) -> void:
-	if rune_data == null:
-		return
-	for pareja in POR_ETIQUETA:
-		if rune_data.tags.has(pareja[0]):
-			play(origen, pareja[1])
-			return

@@ -2944,10 +2944,6 @@ func _preparar_elemental() -> void:
 	_construir_barra_jefe()
 
 
-## Cuánto ha crecido respecto a su tamaño normal (1 = normal).
-func _factor_tamano() -> float:
-	return altura / maxf(_alto_base, 0.01)
-
 
 ## Escala de las medidas del elemental respecto a su altura de referencia (1,7 u).
 ## Incluye el crecimiento del agua, porque el puño y el alcance crecen con el cuerpo.

@@ -64,7 +64,6 @@ const MEJORA_SECRETO: String = "tinta_secreto"
 
 const MAXIMA: float = MAXIMA_INICIAL          ## alias antiguo = la barra de partida (es el techo de `coste_receta`: los costes se miden contra ella)
 const REBAJA_MINIMA: float = 1.0 / 3.0        ## ninguna rebaja baja un coste de este tanto por uno de su coste de partida
-const PIGMENTO_DURA: float = 60.0             ## s por defecto que dura un pigmento temporal (los de la tabla de hoy son de una carga: `dura` 0)
 const PIGMENTO_X: float = 1.5                 ## 10/11: lo que multiplica un pigmento de carga el daño y la geometría del siguiente hechizo de su elemento
 const T_VUELO_PIGMENTO: float = 0.8           ## s que el pigmento ya cobrado sigue valiendo para el hechizo en construcción: cubre el conjuro más lento (tierra, 0,56 s) y es menos que la recarga mínima (1 s), así no potencia dos
 const REGEN: float = 3.0                      ## tinta/s fuera de combate: llenar entera tarda ~33 s
@@ -279,10 +278,6 @@ func mult_geometria(elemento: String) -> float:
 func pigmento_cargado() -> bool:
 	return pigmento != PIGMENTO_BASE and String(PIGMENTOS[pigmento]["efecto"]) in ["carga", "sin_recargo"] and float(PIGMENTOS[pigmento]["dura"]) <= 0.0
 
-
-## El elemento del pigmento activo ("" con el base o con el de eco).
-func elemento_pigmento() -> String:
-	return String(PIGMENTOS[pigmento]["elemento"])
 
 
 ## 10/11: gasta la carga si es de `elemento` (el de eco: `elemento` vacío y `glifo` = ᚱ). Devuelve si gastó algo. La carga queda «en vuelo» T_VUELO_PIGMENTO s

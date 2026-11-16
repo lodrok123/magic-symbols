@@ -27,7 +27,6 @@ const TONO_REPETICION: float = 0.42
 const T_ABRIR: float = 1.1                ## s que tarda en hundirse
 const HUNDIR_Y: float = 1.9               ## u que baja al abrirse (más que su altura: queda bajo el suelo)
 const TEMBLOR_ABRIR: float = 0.045        ## u de temblor mientras se agrieta
-const ESCALA_MODELO: float = 3.1          ## el modelo `roca_hueca` mide 0,7 de alto: se escala para cubrir el hueco del paso
 const ENERGIA_ECO: float = 1.6
 const ALCANCE_LUZ: float = 4.5
 const ALTO_LUZ: float = 0.7

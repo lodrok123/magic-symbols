@@ -51,7 +51,6 @@ signal caducado(c: Vector2i, estado: String)
 const CANAL: Dictionary = {"quemada": 0, "mojada": 1, "helada": 2, "segada": 3}
 ## 6/11 (arte del entorno): el RGBA de arriba está lleno, así que el ESCOMBRO va en una SEGUNDA imagen (`textura_extra`): R escombro · G costra (el escombro que deja el magma al
 ## apagarse en agua: es el mismo estado, pero con otra roca y el suelo más oscuro). Lo lee el shader del suelo (`estado_extra`).
-const CANAL_EXTRA: Dictionary = {"escombro": 0}
 ## El material de una casilla cambió de verdad (la naturaleza germina la tierra → «hierba»). Lo oye la maqueta para pintar la hierba y meterla en su autómata de fuego.
 signal material_cambiado(c: Vector2i, material: String)
 ## Solo lo emite la reacción de Naturaleza sobre suelo húmedo.

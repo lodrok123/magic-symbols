@@ -230,10 +230,6 @@ func remove_last_sample(gesture_name: String) -> void:
 		templates.erase(gesture_name)
 
 
-func clear_all() -> void:
-	templates.clear()
-	trazos.clear()
-
 
 ## Si está vacía, quien reconozca debe recurrir al método antiguo. Es lo
 ## que permite grabar plantillas sin que el juego deje de funcionar

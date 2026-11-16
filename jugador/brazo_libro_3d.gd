@@ -129,10 +129,6 @@ static func _rotacion_en(sk: Skeleton3D, clip: Animation, nombre: String, t: flo
 	return null
 
 
-## Rotación local del hueso `nombre` ahora mismo (para las pruebas).
-func pose_de(l: String, i: int) -> Quaternion:
-	return (_pose[l] as Array)[i]
-
 
 ## Godot 4.4+ llama a esta; la antigua `_process_modification()` ya no se invoca.
 func _process_modification_with_delta(_delta: float) -> void:

@@ -437,10 +437,6 @@ func saltar(dir: Vector3, distancia: float = CASILLA, alto: float = 1.0, prepara
 	en_salto = true
 
 
-## E1: s desde que empieza el salto hasta que toca el suelo (agacharse + vuelo).
-func t_hasta_caer() -> float:
-	return _salto_prep + T_AIRE
-
 
 ## E1: corta el salto donde esté (lo han golpeado, congelado o empujado): vuelve al suelo en su sitio, sin la caída.
 func cancelar_salto() -> void:

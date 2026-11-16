@@ -945,13 +945,6 @@ func avanzar_humedad(dt: float) -> void:
 	_tex_humedad.update(_img_humedad)
 
 
-func set_viento(v: float) -> void:
-	viento = v
-	if _mat_matojo != null:
-		_mat_matojo.set_shader_parameter("viento", v)
-	if _mat_tarjeta != null:
-		_mat_tarjeta.set_shader_parameter("viento", v)
-
 
 ## Un matojo: `briznas` briznas curvadas que salen del centro (alto 1, se escala por copia). UV.y = altura 0..1. Con (99, 5, 0.7, 0.5) es el de siempre.
 func _malla_matojo(semilla_forma: int = 99, briznas: int = 5, alto_base: float = 0.7, alto_extra: float = 0.5) -> ArrayMesh:

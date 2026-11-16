@@ -43,7 +43,6 @@ var _brz: Array = []                             ## una por brizna: {tufo, yaw, 
 var _h_media: float = 0.0
 var _col_media: Color = Color.WHITE
 var _brasas_t: float = 0.0
-var _suelta_cola: Array = []                     ## hojas por soltar tras romper (para que no caigan todas a la vez)
 
 
 ## Monta la barrera para un cuerpo de `p_alto` m. `colores` opcional: el verde del escudo.

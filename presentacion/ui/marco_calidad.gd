@@ -57,10 +57,6 @@ static func anima(cal: String) -> bool:
 	return normalizar(cal) != Objetos.CALIDAD_COMUN
 
 
-## Color de acento de la calidad (el del filo de dentro): para teñir un detalle del mismo tono.
-static func color_acento(cal: String) -> Color:
-	return (MARCOS[normalizar(cal)] as Dictionary)["filo_int"]
-
 
 ## Distancia con signo (px) de `p` al rectángulo redondeado de medio tamaño `mitad`, radio `radio`, centrado en `c`. Negativa dentro.
 static func _dist(p: Vector2, c: Vector2, mitad: Vector2, radio: float) -> float:

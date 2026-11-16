@@ -197,11 +197,6 @@ static func tomar_por_escribir() -> PackedStringArray:
 	return lista
 
 
-static func lock_element(gesture_name: String) -> void:
-	var i: int = _elements.find(gesture_name)
-	if i >= 0:
-		_elements.remove_at(i)
-
 
 static func lock_sigil(sigil_name: String) -> void:
 	var i: int = _sigils.find(sigil_name)

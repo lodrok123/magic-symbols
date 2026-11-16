@@ -66,8 +66,6 @@ const AFILA_COLA: float = 3.0              ## cuÃ¡nto se estrecha la cola con 
 const CABEZA_VUELO: float = 1.75            ## Ã— el radio de la cabeza en vuelo
 const ALARGADO_VUELO: float = 0.16          ## cuÃ¡nto se alarga la cola (mayor = mÃ¡s corta; la validada 0,1)
 const DEFORM_VUELO: float = 0.28            ## deformaciÃ³n del contorno en vuelo (la validada 0,6: la cabeza sale con puntas)
-## Una repeticiÃ³n de la textura de lenguas cada tantos metros de contorno (media de lo medido en las tres escenas validadas: 2,90 Â· 3,14 Â· 3,14).
-const METROS_POR_REPETICION: float = 2.9
 
 @export_group("Figura y ejes (m)")
 @export var figura: Figura = Figura.BOLA: set = _set_figura
@@ -128,7 +126,6 @@ const POP_REBOTE: float = 0.07
 const T_APAGAR: float = 0.5             ## s que tarda en encogerse el fin sin choque
 const T_CANCELAR: float = 0.2
 const RESPIRO_HZ: float = 1.4
-const RADIO_CONVERGE: float = 3.0       ## radio de la esfera de la que salen las chispas de la carga (Ã— radio final)
 
 var _construido: bool = false
 var _pendiente: bool = false

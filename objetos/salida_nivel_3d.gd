@@ -19,7 +19,6 @@ const MODO_USAR: String = "usar"
 const CADA: float = 0.1
 const ALCANCE_USAR: float = 3.0               ## u: a cuánto del centro de una casilla de salida vale E (la casilla mide 2,3)
 const COLOR_MARCA: Color = Color(0.75, 0.92, 1.0, 0.16)
-const COLOR_RAYA: Color = Color(0.85, 0.97, 1.0, 0.5)
 const ALTO_MARCA: float = 0.03
 const AVISO_COLOR: Color = Color(1.0, 0.85, 0.6)
 

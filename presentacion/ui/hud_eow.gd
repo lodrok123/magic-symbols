@@ -49,7 +49,6 @@ var _tinta: BarraHud
 var _frascos: Frascos
 var _circulo: Circulo
 var _t_aviso: float = 0.0
-var _vida_vista: float = -1.0
 var aviso_vida_baja: bool = false              ## E3: la vida está por debajo de Sensacion3D.VIDA_BAJA (la prueba lo lee)
 var _borde_vida: ColorRect = null              ## E3: el borde rojo (la misma viñeta del golpe, a otra intensidad)
 var _t_latido_vida: float = 0.0

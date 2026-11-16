@@ -30,7 +30,6 @@ signal usado(id: String)                          ## se ha gastado una unidad de
 signal rechazado(motivo: String)                  ## intentó usar uno y no se pudo (vida llena, sin unidades...): el HUD suena `no_puedes` y hace temblar el círculo (gamefeel M4). Siempre va junto a un `aviso` en naranja.
 
 const TICK_REGEN_S: float = 0.5                   ## cada cuánto cae un trozo de la infusión (tasa × TICK)
-const COLOR_OK: Color = Color(0.7, 1.0, 0.8)
 const COLOR_NO: Color = Color(1.0, 0.75, 0.55)
 
 var jugador: Node = null                          ## el Jugador3D (o algo con `vida`, `tinta`, `curar` y `usar_pocion`)

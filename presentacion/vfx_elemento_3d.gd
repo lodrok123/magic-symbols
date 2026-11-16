@@ -16,8 +16,6 @@ extends Node
 ## VfxEstado3D (por estado) queda aparte: `VfxEstado3D.encendido` lo apaga y la maqueta lo deja apagado hasta validar elemento por elemento.
 ## Uso:   VfxElemento3D.conectar(lanzador, mundo)
 
-## Elementos con pieza propia en este nodo; el resto usa las piezas del kit teñidas por `VfxKit3D.elemento` (sin validar).
-const PROPIOS: PackedStringArray = ["fuego", "agua", "tierra", "viento"]
 const VIDA_MIN: float = 1.0
 const VIDA_MAX: float = 25.0         ## = el límite global `persiste + permanencia` de ESPEC_HECHIZO §1.9. Antes 4 s: un bloque de tierra (8 s) o una barrera con Permanencia perdían el dibujo a los 4 s
 const MAX_VIVOS: int = 12            ## efectos a la vez (cada uno puede traer una luz y ~150 partículas; el resto se descarta)

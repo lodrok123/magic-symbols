@@ -1227,7 +1227,6 @@ var _reloj: float = 0.0
 var _hielo_r_prev := PackedByteArray() ## el canal R (helado sí/no) de la lectura anterior: si no cambia, no hay nada que calcular
 var _hielo_ceros := PackedByteArray()
 var _hielo_g_tex: ImageTexture = null
-var _hielo_est := PackedByteArray()   ## 1 = estaba helado en la lectura anterior
 var _hielo_ini := PackedFloat32Array()
 var _hielo_fin := PackedFloat32Array()
 var _hielo_datos := PackedFloat32Array()   ## RG por trocito (inicio, fin), persistente: solo se tocan los que cambian
@@ -1404,13 +1403,6 @@ func material_agua() -> ShaderMaterial:
 	return _mat
 
 
-## 13.9 (c): limita la Y a la que se DIBUJA el agua de cada casilla: `topes` = {Vector2i casilla: Y}. Se puede llamar antes o después de
-## `enlazar`. Vacío lo quita. No cambia la simulación: solo lo que se ve (el canal de piedra no deja ver el agua por encima de su borde).
-func poner_topes(topes: Dictionary) -> void:
-	_topes_casillas = topes
-	if sim != null:
-		_aplicar_topes()
-
 
 func _aplicar_topes() -> void:
 	if _mat == null or sim == null or sim.w <= 0:
@@ -1472,18 +1464,7 @@ func milisegundos_lectura() -> float:
 	return _ms_lectura
 
 
-## Lo que cuesta rehacer las paredes (ms), aparte de la lectura del agua, y cuántas caras llevan ahora.
-func milisegundos_paredes() -> float:
-	return _ms_paredes
 
-
-func caras_paredes() -> int:
-	return _quads_paredes
-
-
-## Lo que cuesta leer el hielo en cada lectura (ms), aparte de la lectura del agua.
-func milisegundos_hielo() -> float:
-	return _ms_hielo
 
 
 ## El Juego, si sabe dónde cayó el hechizo, lo dice justo antes de helar: el hielo crecerá desde ahí. Si no, crece desde el centro de lo helado.

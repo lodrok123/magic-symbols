@@ -27,9 +27,6 @@ func alternar_vista() -> void:
 	print("Cueva: ", ["luz original", "radio base", "radio ampliado"][vista])
 
 
-func fijar_bono_radio(unidades: float) -> void:
-	_bono_radio = maxf(0.0, unidades)
-
 
 func _aplicar_vista() -> void:
 	var env: Environment = _mundo.get("_env")

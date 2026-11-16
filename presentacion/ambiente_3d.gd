@@ -50,12 +50,6 @@ static func preparar_global() -> void:
 	RenderingServer.global_shader_parameter_add(PARAM_RAMPA, RenderingServer.GLOBAL_VAR_TYPE_VEC4, Vector4(1.0 if _rampa else 0.0, 0.0, 0.0, 0.0))
 
 
-## Mueve la sombra del mundo en vivo (para una herramienta de ajuste). `rgb` en sRGB, como un color del editor.
-static func poner_sombra(rgb: Color, contraste: float) -> void:
-	_sombra = Vector4(rgb.r, rgb.g, rgb.b, contraste)
-	if _registrado:
-		RenderingServer.global_shader_parameter_set(PARAM_SOMBRA, _subir_mundo())
-
 
 ## Igual, para personajes y criaturas. `rgb` en sRGB, igual que `poner_sombra` (se convierte a lineal al subirlo).
 static func poner_sombra_pers(rgb: Color, contraste: float) -> void:

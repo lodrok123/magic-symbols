@@ -35,7 +35,6 @@ extends Grimorio
 ## llama nunca a _al_impactar a mano: un agua dos veces sobre la misma casilla la helaría.
 
 ## --- Capas de física del Test 3 ---
-const CAPA_HECHIZO: int = 1 << 7     ## capa 8
 const CAPA_REACTIVO: int = 1 << 8    ## capa 9: lo que implementa on_spell_hit
 const CAPA_BLOQUEO: int = 1 << 9     ## capa 10: zonas que paran proyectiles
 const CAPA_SOLIDO: int = Terreno3D.CAPA_SOLIDO     ## capa 11: colisión REAL de las piezas del nivel .tscn (6.10); el valor vive en Terreno3D (M1)
@@ -72,7 +71,6 @@ const COLOR_ROTULO_DISUELVE: Color = Color(0.8, 0.85, 0.95)
 ## --- Lo que sale ---
 const ALCANCE_FLECHA: float = 3.0           ## casillas (6.5: bola pequeña, alcance corto)
 const RADIO_BOLA: float = 0.25               ## metros (≈ media casilla de diámetro)
-const ALCANCE_HAZ: float = 8.0              ## casillas (rayo)
 const FUERZA_EMPUJE: float = 2600.0         ## la del 2D; Combate3D la reduce a su escala
 
 ## --- Tierra e hielo con duración (§0b) ---
@@ -135,9 +133,6 @@ const PROGRESIONES: Dictionary = {
 }
 const PROGRESION_FORZADA: String = ""          ## «nivel1», «todo»…: manda sobre el nombre del nivel (para probar)
 const PALETA_RUNAS: bool = true               ## paleta F1 de pruebas (rune_palette.gd), como en Blockout y TestJugabilidad
-const HUECOS_POR_PAGINA: int = 6
-const ELEMENTOS_TEST3: PackedStringArray = ["fuego", "agua", "viento", "tierra", "rayo", "hielo"]
-const SELLOS_TEST3: PackedStringArray = ["flecha", "barrera", "linea", "altura", "levitacion", "repeticion", "rebote", "pulso"]
 ## 8/10 (8.1c): amplificar, retardo, atracción y espejo quedan fuera del 3D (siguen en el 2D). R3 (17/10): `tamano` y `pilar` se retiran
 ## (cada eje tiene su glifo) y `levitacion` (ᛏ) vale SOLO como `altura`.
 
@@ -223,7 +218,6 @@ const ALTO_PLATAFORMA_TIERRA: float = 0.45
 var _columnas: Array = []               ## alturas temporales de columnas: {celda, niveles, resta, nodo}
 var _hielo: Dictionary = {}             ## Vector2i -> {agua}: casillas heladas por un hechizo, para soltar el vapor al acabar (SIN contador: C2, 3/11)
 var _t_hielo: float = 0.0
-var _huecos_usados: Array = [{}, {}, {}]    ## por página: clave del sector -> nombre del glifo
 var manifestaciones_vivas: int = 0
 
 signal lanzado(elemento: String, forma: String, manifestaciones: int)

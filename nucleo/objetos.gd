@@ -173,10 +173,6 @@ static func color_calidad(id: String) -> Color:
 	return (CALIDADES[calidad(id)] as Dictionary)["color"]
 
 
-## Cuánto dura el aviso de coger este objeto (más largo cuanto más raro).
-static func duracion_aviso(id: String) -> float:
-	return float((CALIDADES[calidad(id)] as Dictionary)["aviso_s"])
-
 
 ## El material que da un reactivo con esa vía (ver MINERALES), o "" si no da nada.
 static func mineral_de(reactivo: String, via: String) -> String:

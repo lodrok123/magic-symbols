@@ -64,9 +64,6 @@ const CAMPOS: Array = [
 ## Todas las acciones de un evento se ordenan con `ordenar_acciones` (paso y orden de tabla del glifo que las puso, ver `_aplicar`); el `emitir_pulso` de ᚱ es una acción más del catálogo.
 const EVENTOS: PackedStringArray = ["al_nacer", "al_golpear", "al_matar", "al_impactar", "al_detenerse", "al_expirar", "al_rebotar", "al_viajar"]
 const ACCIONES: PackedStringArray = ["danar_area", "crear_hijo", "estado_suelo", "sonido", "vfx", "emitir_pulso"]
-## Los tres eventos de final y el valor fino de `Sigils.GLIFOS[…]["momento"]` que corresponde a cada uno.
-const EVENTOS_FINAL: PackedStringArray = ["al_impactar", "al_detenerse", "al_expirar"]
-const MOMENTO_DE_FINAL: Dictionary = {"al_impactar": "impacto", "al_detenerse": "detencion", "al_expirar": "extincion"}
 ## `choca_con` es una máscara de bits; 0 = «la de siempre» = mundo + enemigos.
 const CHOCA_MUNDO: int = 1
 const CHOCA_ENEMIGOS: int = 2

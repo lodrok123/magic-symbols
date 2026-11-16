@@ -51,7 +51,6 @@ const NIVEL_MAPA: String = "PuzlesAgua"
 ## sus mensajes y sus cuentas. Si Pablo cambia el .txt, `_comprobar_constantes` lo avisa al arrancar.
 const CAUDAL_TINAJA_LAB: float = 0.5         ## u³/s de las tinajas del lab (Pablo, 15/10: con 1,5 la banda de Q8 se cruza en 3 s y Q1 inunda la sala)
 const VOL_TINAJA_LAB: float = 20.0           ## u³ por tinaja: Q1 necesita 14,3 para 0,45 en 6 casillas; la tinaja vierte unos 40 s
-const CAUDAL_ARROYO: float = 0.6             ## u³/s del manantial de Q4 (y de Q3 hasta el 15/10)
 const CAUDAL_ARROYO_Q3: float = 1.5          ## u³/s del arroyo de Q3. Medido 15/10: con 0,6 el vado se queda en 0,23 (< 0,25, la puerta ya está abierta sin presa)
 const T_HUD: float = 0.2
 

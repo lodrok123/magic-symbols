@@ -16,7 +16,6 @@ extends ElementoVfx
 ## Todos los números están en las constantes, a la vista.
 
 const RUTA_ATLAS: String = "res://presentacion/vfx/viento_atlas.png"
-const ATLAS_LADO: int = 512
 const CASILLAS: int = 4
 
 ## Color de las cintas (blanco verdoso) y su alfa máximo.

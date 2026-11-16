@@ -82,7 +82,3 @@ func punta_global() -> Vector3:
 func cima_global() -> Vector3:
 	return global_transform * Vector3(0.0, LARGO_GLB * 0.88, 0.0)
 
-
-## Dirección en el mundo de la punta hacia el orbe (unitaria).
-func eje_global() -> Vector3:
-	return global_basis.y.normalized()

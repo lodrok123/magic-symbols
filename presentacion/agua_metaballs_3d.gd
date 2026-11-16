@@ -162,12 +162,6 @@ func _montar() -> void:
 		get_tree().node_added.connect(_nodo_nuevo)
 
 
-## --- Oclusores ---
-## Marca con la capa de oclusores toda la geometría OPACA que cuelga de `raiz` (salvo lo que lleve el meta `no_ocluye_agua`) (y de lo que se añada después, ver `_nodo_nuevo`). Es público
-## por si el Juego añade geometría con la que quiera tapar el agua y no entra sola.
-func marcar_oclusores(raiz: Node) -> void:
-	_marcar_existentes(raiz)
-
 
 func _marcar_existentes(n: Node) -> void:
 	_marcar(n)
