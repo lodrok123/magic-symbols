@@ -43,6 +43,9 @@ const HOJA: Color = Color(0.62, 0.88, 0.5)            ## Vfx3D.COLOR_DE["hoja"]
 ## La ráfaga se dibuja más grande que su semieje (que sale del Hechizo y es pequeño: 0,12-0,23 m): sin esto era una raya al lado de la bola de agua o la de fuego. Solo es dibujo.
 const RADIO_RAFAGA_MIN: float = 0.55
 const ESCALA_RAFAGA: float = 1.3
+## Igual que ESCALA_RAFAGA con la bola: el alto LÓGICO del pilar sale del Hechizo y dibujado se queda bajo frente a la referencia (la ráfaga ascendente de Venti). Solo es DIBUJO: multiplica
+## la altura con la que se monta el PILAR revisado (hélices, hilos, contorno y hojas suben juntos); el disco de suelo y el radio no cambian y nada lógico lee esta altura.
+const ESCALA_ALTO_PILAR: float = 1.5
 
 const T_SOLTAR: float = 0.14
 const T_APAGAR: float = 0.45
@@ -50,6 +53,7 @@ const T_CANCELAR: float = 0.2
 const RESPIRO_HZ: float = 1.4
 const T_NACER: float = 0.35
 const T_MORIR: float = 0.5
+const T_MORIR_PILAR: float = 0.8                      ## la columna de viento se deshace más despacio (16/11): las vetas adelgazan y se apagan a la vez mientras siguen subiendo, y en 0,5 s no se llegaba a ver
 const HUMO_BOLA: int = 14                             ## bocanadas de cada reserva
 const HUMO_ESTELA: int = 16
 const HUMO_MURO: int = 20
@@ -432,9 +436,20 @@ func _escala_de_carga(p: float) -> float:
 	return lerpf(carga_tam_inicial, 1.0, g)
 
 
+## La columna de viento (PILAR) no se encoge al morir: la base la escalaba con `aparicion` (altura 1 → 0,15) y la columna se hundía en el suelo. Al nacer crece desde el suelo; al morir
+## conserva toda su altura y solo adelgazan y se apagan las vetas (viento_corrientes.gd, ancho y alfa con `aparicion`).
+func _set_aparicion(v: float) -> void:
+	super(v)
+	if figura == Figura.PILAR and _cuerpo != null:
+		_cuerpo.scale = Vector3(1.0, 1.0 if _muriendo else lerpf(0.15, 1.0, v), 1.0) * _c_escala
+
+
 func _aplicar_escala_carga() -> void:
 	if _cuerpo != null:
 		var v: float = aparicion
+		if figura == Figura.PILAR:
+			_cuerpo.scale = Vector3(1.0, 1.0 if _muriendo else lerpf(0.15, 1.0, v), 1.0) * _c_escala
+			return
 		_cuerpo.scale = Vector3(lerpf(0.65, 1.0, v), lerpf(0.15, 1.0, v), lerpf(0.65, 1.0, v)) * _c_escala
 
 
@@ -832,6 +847,7 @@ func _anim_si_hace_falta() -> void:
 		ap.name = "Anim"
 		add_child(ap)
 	_figura_anim = int(figura)
+	var t_morir: float = T_MORIR_PILAR if figura == Figura.PILAR else T_MORIR
 	var lib: AnimationLibrary = AnimationLibrary.new()
 	for nom in ["nacer", "vivir", "morir"]:
 		var an: Animation = Animation.new()
@@ -847,15 +863,15 @@ func _anim_si_hace_falta() -> void:
 				an.loop_mode = Animation.LOOP_LINEAR
 				an.track_insert_key(pista, 0.0, 1.0)
 			"morir":
-				an.length = T_MORIR
+				an.length = t_morir
 				an.track_insert_key(pista, 0.0, 1.0)
-				an.track_insert_key(pista, T_MORIR, 0.0)
+				an.track_insert_key(pista, t_morir, 0.0)
 		an.track_set_interpolation_type(pista, Animation.INTERPOLATION_LINEAR)
 		lib.add_animation(nom, an)
 	if ap.has_animation_library(""):
 		ap.remove_animation_library("")
 	ap.add_animation_library("", lib)
-	dura_morir = T_MORIR
+	dura_morir = t_morir
 
 
 # ------------------------------------------------------------------ vuelo y emisión ------------------------------------------------------------------
@@ -994,6 +1010,8 @@ func _actualizar_corrientes(delta: float) -> void:
 	var ejes := Vector3(semieje_x, semieje_y * altura, semieje_z)
 	if figura == Figura.BOLA:
 		ejes = Vector3.ONE * _radio_rafaga()
+	elif figura == Figura.PILAR:
+		ejes.y *= ESCALA_ALTO_PILAR
 	if figura == Figura.HAZ:
 		ejes = Vector3(semieje_x * 2.0, maxf(semieje_y, 0.4), semieje_z * FuegoToy.HAZ_ABRE)
 	elif figura == Figura.BARRERA:

@@ -47,6 +47,15 @@ const ABSORBE: float = 0.02             ## u por segundo que el suelo se bebe de
 const UMBRAL_AGUA: float = 0.25         ## profundidad media (u) a partir de la cual una CASILLA es agua para el juego
 const UMBRAL_NADO: float = 0.55         ## y a partir de la cual se nada
 const DURA_HIELO: float = EstadosSuelo3D.DURA["helada"]    ## s que dura el hielo de un hechizo si nadie lo funde antes (11.12). C2 (3/11): NO es un valor propio, es el reloj oficial (`EstadosSuelo3D.DURA`)
+## 16/11 (Pablo: «ocupa casi todo el mapa, que muera antes; expansión más lenta; las casillas alcanzadas empapadas más tiempo»). AGUA DE HECHIZO = la que echa `HechizoVivo._materia_liquido` en casillas sin manantial
+## (`marcar_hechizo`) y todo lo que de ella se escurre a trocitos vecinos (la marca viaja con el agua en `_paso`). Criterio, el más simple y seguro: SOLO esa agua cambia; el agua de los puzles (fuentes, tinajas,
+## cauces con nivel fijo, pilas) nunca lleva la marca, y el agua de un hechizo que llena un hueco (más de HZ_PELICULA u de lámina) tampoco se absorbe. La película fina (≤ HZ_PELICULA) se bebe el suelo deprisa
+## (ABSORBE_HZ) y la marca se borra al secarse el trocito; mientras fluye lo hace más despacio (HZ_FRENO), para que se vea avanzar y frenar; y el suelo que moja queda empapado SECA_HECHIZO s (no SECA_EN: ese
+## lo leen EstadosSuelo3D y las pruebas).
+const HZ_PELICULA: float = 0.05         ## u: por debajo de esta lámina el agua de hechizo se absorbe
+const ABSORBE_HZ: float = 0.012          ## u/s que bebe el suelo de esa lámina
+const HZ_FRENO: float = 0.55            ## factor del empuje del agua de hechizo (1 = como el resto del agua)
+const SECA_HECHIZO: float = 20.0        ## s que queda empapado el suelo que mojó un hechizo
 const SECA_EN: float = 20.0             ## s que tarda en secarse un trocito desde que se queda sin agua (estado «mojado»)
 ## --- W0 (19/10, PLAN_TRES_FRENTES §3): lo que el dibujo necesita y la simulación no exponía. NO cambian el agua: solo la describen. ---
 const UMBRAL_CAIDA: float = 0.5         ## u de salto de superficie entre un trocito y el vecino al que le corre agua a partir del cual es CASCADA (un nivel de tierra = 1,035 u)
@@ -75,6 +84,8 @@ var hielo_t := PackedFloat32Array()     ## segundos que le quedan al hielo del t
 var hielo_ini := PackedFloat32Array()   ## segundos con los que se heló: sirve para saber qué fracción le queda (textura_hielo)
 var fijo := PackedFloat32Array()        ## Y de superficie que se mantiene (río que no se vacía); -INF = no
 var fuente := PackedFloat32Array()      ## u³/s que entran en el trocito
+var absorbido_hz: float = 0.0           ## u³ de agua de HECHIZO que ha bebido el suelo (ABSORBE normal y la de HZ_PELICULA): para las pruebas, el agua echada = la que hay + esta
+var hz := PackedByteArray()             ## 1 = agua de hechizo (ver HZ_PELICULA); por trocito
 var mojado := PackedFloat32Array()      ## segundos que le quedan al trocito para secarse (0 = seco); estado «mojado» del suelo
 var vecinos := PackedInt32Array()       ## 4 por trocito, el índice del vecino o -1 (borde); se calcula una vez
 
@@ -145,6 +156,8 @@ func configurar(p_ancho: int, p_alto: int, p_sub: int, p_lado: float, suelo_y: C
 	fuente.fill(0.0)
 	mojado.resize(n)
 	mojado.fill(0.0)
+	hz.resize(n)
+	hz.fill(0)
 	vecinos.resize(n * 4)
 	for i in range(n):
 		for k in range(4):
@@ -609,7 +622,7 @@ func casilla_mojada(c: Vector2i) -> bool:
 ##     y ORILLA_2 en el segundo. Solo aspecto: no cuenta para `casilla_mojada` ni para ningún estado. Solo los trocitos de agua del BORDE
 ##     (con algún vecino sin agua) mojan alrededor: el interior de un río no hace falta mirarlo.
 ## Es siempre el mismo ImageTexture (se actualiza, no se recrea).
-const MOJADO_SECA_FRAC: float = 0.45
+const MOJADO_SECA_FRAC: float = 0.75
 const ORILLA_1: float = 0.75
 const ORILLA_2: float = 0.3
 var _img_mojado: Image = null
@@ -973,13 +986,22 @@ func _paso(dt: float) -> void:
 			var p: float = prof[i]
 			if p > PROF_MIN:
 				mojado[i] = SECA_EN
+				if hz[i] == 1:
+					mojado[i] = SECA_HECHIZO
 				# `<=` y no `<`: el recorte K del caudal deja el último trocito justo en RETIENE (= PROF_CHARCO) y,
 				# con `<`, esa lámina se quedaba para siempre (el charco nunca se absorbía ni la casilla se secaba).
 				# La holgura cubre el redondeo de guardar en float32.
 				if p <= PROF_CHARCO + 1.0e-5 and fuente[i] == 0.0 and fijo[i] == -INF:
+					if hz[i] == 1:
+						absorbido_hz += minf(p, ABSORBE * dt) * area      # (se cuenta la del agua de hechizo, para que echada = presente + absorbida)
 					prof[i] = maxf(0.0, p - ABSORBE * dt)
+				if hz[i] == 1 and prof[i] <= HZ_PELICULA and fuente[i] == 0.0 and fijo[i] == -INF:
+					var bebe: float = minf(prof[i], ABSORBE_HZ * dt)      # la película de un hechizo se la bebe el suelo (la casilla queda empapada, esa agua desaparece)
+					absorbido_hz += bebe * area
+					prof[i] -= bebe
 			else:
 				prof[i] = 0.0                  # restos por debajo de PROF_MIN: fuera (si no, se quedan sin absorber nunca)
+				hz[i] = 0
 				if mojado[i] > 0.0:
 					mojado[i] = maxf(0.0, mojado[i] - dt)
 	# 2) Caudal de salida de cada trocito con agua hacia sus 4 vecinos, recortado para no sacar más de lo que hay (K).
@@ -1001,7 +1023,7 @@ func _paso(dt: float) -> void:
 				var j: int = vecinos[b + k]
 				var v: float = 0.0
 				if j >= 0 and cerrado[j] == 0 and helado[j] == 0:
-					v = maxf(0.0, caudal[b + k] * amortigua + k_g * (sup - suelo[j] - prof[j]))
+					v = maxf(0.0, caudal[b + k] * amortigua + k_g * (HZ_FRENO if hz[i] == 1 else 1.0) * (sup - suelo[j] - prof[j]))
 				caudal[b + k] = v
 				total += v
 			if total > 0.0:
@@ -1022,6 +1044,8 @@ func _paso(dt: float) -> void:
 				var dv: float = f * dt / area
 				prof[i] -= dv
 				prof[j] += dv
+				if hz[i] == 1:
+					hz[j] = 1                      # la marca de agua de hechizo viaja con el agua
 	_x0 = w
 	_x1 = -1
 	_y0 = h
@@ -1033,6 +1057,12 @@ func _paso(dt: float) -> void:
 				prof[i] = 0.0                  # restos de redondeo: el recorte K ya impide vaciar de más
 			if prof[i] > 0.0 or mojado[i] > 0.0 or fuente[i] != 0.0 or fijo[i] > -INF or helado[i] == 1:
 				_incluir_xy(x, y)
+
+
+## Marca como agua de HECHIZO el agua (presente y futura) de los trocitos de una casilla: la de `HechizoVivo._materia_liquido` en suelo sin manantial. Ver HZ_PELICULA.
+func marcar_hechizo(c: Vector2i) -> void:
+	for i in _trozos(c):
+		hz[i] = 1
 
 
 ## Amplía la caja de trabajo para que incluya el trocito i (al echar agua, poner una fuente, fijar un nivel…).

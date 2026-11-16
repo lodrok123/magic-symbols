@@ -44,7 +44,11 @@ void vertex() {
 	v_alfa = INSTANCE_CUSTOM.w;
 	float t = TIME * velocidad;
 	float rise = smoothstep(0.0, 1.0, clamp(crece * 1.25 - dly * 0.25, 0.0, 1.0));
-	float f2 = pow(clamp(corte * 1.2 - dly * 0.2, 0.0, 1.0), 1.4);
+	// la misma rotura que agua_ola.gdshader (giro sobre el pie hasta corte 0,5 y hundimiento después); el retraso por lámina es pequeño para que no se desarme en cascada
+	float f2 = clamp(corte * 1.08 - dly * 0.08, 0.0, 1.0);
+	float lean = smoothstep(0.0, 0.5, f2);
+	float gg = pow(smoothstep(0.4, 1.0, f2), 1.5);
+	float hund = 1.0 - 0.92 * gg;
 	float H = alto * rise * envol(xl, t, 0.0);               // altura de la cresta aquí
 	float cu = smoothstep(0.45, 1.0, crece);
 	vec3 to = vec3(INV_VIEW_MATRIX[2].x, 0.0, INV_VIEW_MATRIX[2].z);
@@ -58,15 +62,19 @@ void vertex() {
 	float fwd_k;
 	if (modo == 0) {
 		// cuerpo: llega hasta la altura de la ola y se inclina hacia delante al caer
-		y = vy * h * (H / max(alto, 0.01)) * (1.0 - 0.88 * f2);
-		fwd_k = f2 * 1.25 * vy * h * (H / max(alto, 0.01));
+		float y0 = vy * h * (H / max(alto, 0.01));
+		float th = 1.45 * lean * mix(0.35, 1.0, smoothstep(0.0, 1.0, y0 / max(H, 0.02)));      // flexión progresiva con la altura (como agua_ola.gdshader)
+		y = y0 * cos(th) * hund;
+		fwd_k = y0 * sin(th) + gg * 0.5 * H * (0.3 + 0.7 * y0 / max(H, 0.02));
 	} else {
 		// cresta: una franja en lo alto (de 0,55 a 1,05 de H) que se riza hacia delante
-		float y0 = H * 0.58;
-		float hc = h * (H / max(alto, 0.01));
-		y = (y0 + vy * hc) * (1.0 - 0.88 * f2);
-		fwd_k = f2 * 1.25 * (y0 + vy * hc) + vy * vy * hc * 0.85 * cu;
-		y -= vy * vy * vy * hc * 0.5 * cu;
+		float y0 = H * 0.8;                                  // la cresta es una franja ESTRECHA arriba (antes desde 0,58·H: una cúpula blanca que ocupaba media figura)
+		float hc = h * 0.6 * (H / max(alto, 0.01));
+		float yy = y0 + vy * hc;
+		float th = 1.45 * lean;
+		y = yy * cos(th) * hund;
+		fwd_k = yy * sin(th) + gg * 0.5 * H + vy * vy * hc * 0.85 * cu * (1.0 - 0.6 * smoothstep(0.0, 0.5, f2));
+		y -= vy * vy * vy * hc * 0.5 * cu * (1.0 - smoothstep(0.0, 0.5, f2));
 	}
 	vec3 pos = base + der * ((UV.x - 0.5) * w + tiembla) + vec3(0.0, y, 0.0) + hacia * fwd_k;
 	VERTEX = (VIEW_MATRIX * vec4(pos, 1.0)).xyz;
@@ -85,7 +93,7 @@ void fragment() {
 	vec2 uv = UV;
 	float ex = abs(uv.x - 0.5) * 2.0;
 	float ruido = texture(flujo, vec2(uv.x * 1.3 + v_sem * 3.0, uv.y * 0.9 - t * 0.05)).r;
-	float a_fin = clamp(smoothstep(0.015, 0.08, v_h) * (1.0 - smoothstep(0.7, 1.0, v_f)), 0.0, 1.0);
+	float a_fin = clamp(smoothstep(0.015, 0.08, v_h) * (1.0 - smoothstep(0.86, 1.0, v_f)), 0.0, 1.0);
 	if (modo == 0) {
 		vec2 ua = vec2(uv.x * 0.8 + v_sem * 3.0, tri(1.0 - uv.y * 0.9 + t * ritmo + v_sem));
 		vec2 ub = vec2(uv.x * 1.5 + 0.4 + v_sem * 5.0, tri(1.0 - uv.y * 1.4 + t * ritmo * 1.5));
@@ -95,7 +103,7 @@ void fragment() {
 		float arriba = 1.0 - smoothstep(0.78, 1.0, uv.y + (ruido - 0.5) * 0.2);
 		float pie = smoothstep(0.0, 0.08, uv.y);
 		float tira = smoothstep(0.45, 0.8, 0.6 * d1 + 0.4 * d2);
-		float espuma = smoothstep(0.8, 0.96, uv.y + (ruido - 0.5) * 0.12) * (0.4 + 0.6 * tira);
+		float espuma = smoothstep(0.93, 0.99, uv.y + (ruido - 0.5) * 0.12) * (0.4 + 0.6 * tira);
 		float v = 0.04 + 0.30 * d1 + 0.14 * d2 + 0.26 * uv.y + 0.7 * espuma;
 		ALBEDO = agua_tonos(v, 0.44, 0.84, 0.07) * brillo;
 		ALPHA = clamp(opacidad * (0.7 + 0.3 * d1) * lado * arriba * pie * v_alfa + 0.12 * espuma * lado, 0.0, 0.8) * a_fin * vida * agua_prof(SCREEN_UV, VERTEX.z, suave_prof, INV_PROJECTION_MATRIX);

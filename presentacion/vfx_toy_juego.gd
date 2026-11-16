@@ -533,9 +533,14 @@ func _en_hechizo(_estado: String, elemento: String, g: Dictionary, origen: Vecto
 	if elemento == "tierra" and _estado == "solido" and int(g.get("niveles", 0)) > 0 and not (g.get("celdas", []) as Array).is_empty() and not g.has("estalla"):
 		_tierra_sobre_celdas(hv.h, g, sitios, d, vida)      # 422: el toy cubre el sólido real (casillas × niveles), no la cresta del fuego
 		return
+	# 16/11 (rastro del agua): la lógica pone el CENTRO del volumen `GeometriaV2.adelanto(g)` casillas por delante de quien lanza (el muro de agua nace una casilla delante, `celdas` y el agua
+	# que se vierte salen de ahí), pero este camino lo colocaba en el pie del evento SIN el adelanto (`_volumen_que_viaja` y `_tierra_sobre_celdas` sí lo cuentan): el dibujo quedaba a ≈ 4 casillas
+	# (9 m) del agua que de verdad moja. Medido en PruebaBosque: toy en el pie del jugador, suelo mojado centrado 4 casillas al frente.
+	var adelanto_u: float = maxf(Lanzador3D.GeometriaV2.adelanto(hv.h.geo()), 0.0) * Terreno3D.casilla
 	var primero: bool = true
 	for pie in sitios:
-		var t: Node3D = _volumen(elemento, hv.h, pie as Vector3, d, vida)
+		var pie_c: Vector3 = (pie as Vector3) + d * adelanto_u
+		var t: Node3D = _volumen(elemento, hv.h, pie_c, d, vida, _huella(g, pie_c, d))
 		if t != null and not primero:
 			_sin_luz(t)                            # presupuesto: una sola luz por hechizo
 		if t != null and g.has("estalla"):
@@ -546,10 +551,30 @@ func _en_hechizo(_estado: String, elemento: String, g: Dictionary, origen: Vecto
 		primero = false
 
 
-func _volumen(elemento: String, h: Hechizo, pie: Vector3, d: Vector3, vida: float) -> Node3D:
+## La HUELLA que la lógica moja alrededor del centro de un volumen (16/11): x = semiancho de sus casillas (el radio, para el pilar);
+## y = hasta dónde llegan las casillas por delante del centro. El AguaToy la usa para que la lámina que corre por el suelo al morir cubra más o menos lo que queda mojado.
+func _huella(g: Dictionary, centro: Vector3, d: Vector3) -> Vector2:
+	var celdas: Array = g.get("celdas", []) as Array
+	if celdas.is_empty():
+		return Vector2.ZERO
+	var cas: float = Terreno3D.casilla
+	var lado: Vector2 = Vector2(-d.z, d.x)
+	var semi: float = 0.0
+	var delante: float = 0.0
+	for c in celdas:
+		var p: Vector3 = Terreno3D.centro_de(c as Vector2i, 0.0) - centro
+		semi = maxf(semi, absf(Vector2(p.x, p.z).dot(lado)) + cas * 0.5)
+		delante = maxf(delante, Vector2(p.x, p.z).dot(Vector2(d.x, d.z)) + cas * 0.5)
+	# El suelo que moja la simulación llega ≈ 2 casillas del centro (medido 16/11 tras recortar el agua del hechizo: pilar 5×5, muro 5-6 × 5): la lámina del toy llega al mismo sitio
+	return Vector2(maxf(semi + cas * 0.6, cas * 1.75), maxf(delante + cas * 0.6, cas * 2.0))
+
+
+func _volumen(elemento: String, h: Hechizo, pie: Vector3, d: Vector3, vida: float, huella: Vector2 = Vector2.ZERO) -> Node3D:
 	if _vivos >= MAX_VIVOS:
 		return null
 	var t: Node3D = _nuevo(elemento)
+	if huella != Vector2.ZERO:
+		t.set_meta("huella", huella)                  # antes de colgarlo: el toy construye sus mallas al entrar en el árbol
 	t.call("desde_hechizo", h)
 	_colgar(t)
 	var pos: Vector3 = pie

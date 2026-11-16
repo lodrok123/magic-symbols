@@ -62,7 +62,8 @@ const N_FRANJAS_OLA: int = 12            ## franjas de espuma tumbadas en el pie
 const T_OLA_NACER: float = 0.75
 const T_OLA_MORIR: float = 1.9
 const T_PILAR_NACER: float = 0.6
-const T_PILAR_MORIR: float = 1.2
+const T_PILAR_MORIR: float = 1.6          ## (antes 1,2: la columna aterriza a corte 0,5 y la lámina radial se abre en la otra mitad)
+const CASILLA_REF: float = 2.3          ## m: lo que mide una casilla del juego (Terreno3D.casilla); el alcance de las láminas del suelo se da en casillas
 
 @export_group("Figura y ejes (m)")
 @export var figura: Figura = Figura.BOLA: set = _set_figura
@@ -133,6 +134,11 @@ var _pil_esp: MultiMeshInstance3D = null    ## PILAR: bocanadas de espuma de la 
 var _pil_fra: MultiMeshInstance3D = null    ## PILAR: franjas de espuma tumbadas en el borde de la base (fase 4: ya no son bolas de algodón)
 var _pil_charco: MeshInstance3D = null      ## PILAR: anillo de ondas / charco en el suelo
 var _pil_cr_ant: float = 0.0
+var _pil_falda: MeshInstance3D = null        ## PILAR: la falda, el agua que rebosa de la cresta y cae por fuera
+var _pil_mats: Array = []                    ## PILAR: materiales de los tres tubos (cortina, núcleo, falda)
+var _pil_lamina: MeshInstance3D = null        ## PILAR: la lámina radial que se abre por el suelo cuando la columna cae (agua_suelo.gdshader)
+var _pil_lat: float = 1.0                    ## PILAR: latido de presión (≈ 1 ± 0,03); lo usa el shader Y pilar_cresta()
+var _pil_t_vivo: float = 0.0                 ## PILAR: segundos desde que brota (la corona de nacimiento cae cuando se asienta)
 var _pil_acc: float = 0.0
 var _pil_acc2: float = 0.0
 var _pil_acc3: float = 0.0
@@ -143,6 +149,7 @@ var _ola_cresta: MultiMeshInstance3D = null  ## OLA: láminas Y-billboard de cre
 var _ola_fra: MultiMeshInstance3D = null     ## OLA: franjas de espuma del pie
 var _ola_charco: MeshInstance3D = null       ## OLA: charco que deja al caer
 var _ola_hojas: Array = []                   ## OLA: las tres cortinas
+var _ola_lam_dim: Vector2 = Vector2.ZERO     ## OLA: semiancho y largo (m) de la lámina del suelo
 var _ola_t: float = 0.0                      ## s que lleva viva (asentada)
 var _ola_avance: float = 0.0
 var _ola_acc: float = 0.0
@@ -566,6 +573,11 @@ func _construir() -> void:
 	_haz_cintas = null
 	_haz_punta = null
 	_pil_lam = null
+	_pil_falda = null
+	_pil_lamina = null
+	_pil_mats = []
+	_pil_lat = 1.0
+	_pil_t_vivo = 0.0
 	_pil_esp = null
 	_pil_fra = null
 	_pil_charco = null
@@ -807,7 +819,9 @@ func _emitir_haz(delta: float) -> void:
 
 ## PILAR DE AGUA = GÉISER (fase 3, 3/11/2026). Semiejes: x y z = radios de la base, y = ALTO de la columna (m). Origen en el suelo, centrado.
 ##   · CORTINA + NÚCLEO (agua_pilar.gdshader, un tubo cada uno): la columna que brota; T_LiquidVertical_Wave fluye hacia arriba, tres tonos, borde claro por fresnel, labio irregular arriba.
-##   · CORONA (agua_lamina.gdshader, 1 MultiMesh): 7-13 lenguas altas de distinta altura alrededor de la base + 5 bajas sueltas, T_wavesKI96 en láminas Y-billboard (como el muro y el pilar de fuego).
+##   · FALDA (el mismo shader, `falda` = 1; 16/11): el agua que rebosa de la cresta y CAE por fuera. Sube por dentro, cae por fuera: eso es un géiser y no un tubo.
+##   · CORONA (agua_lamina.gdshader, 1 MultiMesh): SOLO la salpicadura de nacimiento (lenguas bajas, ≤ 0,9 m) que sube con el brote y cae al asentarse la columna. Antes eran lenguas altas abiertas hacia
+##     fuera durante toda la vida del pilar: pétalos, «una rosa de agua» (queja de Pablo, 16/11).
 ##   · ESPUMA: FRANJAS tumbadas en el borde de la base (agua_franja.gdshader, 1 MultiMesh; fase 4: ya no son bolas de algodón) y unas pocas bocanadas (agua_espuma.gdshader) en la cresta.
 ##   · GOTAS (reserva AguaGotas): suben desde la cresta y CAEN con gravedad alrededor; salpican en la base al brotar y se sueltan del cuerpo al desplomarse.
 ##   · CHARCO (agua_onda.gdshader): anillos de ondas que salen de la base al nacer; al morir se ensancha y se desvanece.
@@ -831,6 +845,14 @@ func _pilar(c: Node3D) -> void:
 	pn["opacidad"] = 0.6
 	var nuc: MeshInstance3D = _mi_agua(c, "Nucleo", malla, AguaMallas.material(AguaMallas.SH_PILAR, pn, 1))
 	nuc.custom_aabb = caja
+	var pf: Dictionary = p.duplicate()
+	pf["falda"] = 1.0
+	pf["ritmo"] = 0.6
+	pf["semilla"] = 0.71
+	pf["opacidad"] = 0.5
+	_pil_falda = _mi_agua(c, "Falda", malla, AguaMallas.material(AguaMallas.SH_PILAR, pf, 0))
+	_pil_falda.custom_aabb = caja
+	_pil_mats = [cortina.material_override, nuc.material_override, _pil_falda.material_override]
 	# charco / anillos de ondas en el suelo
 	var q: QuadMesh = QuadMesh.new()
 	q.size = Vector2.ONE
@@ -840,10 +862,26 @@ func _pilar(c: Node3D) -> void:
 	_pil_charco.mesh = q
 	_pil_charco.material_override = AguaMallas.material(AguaMallas.SH_ONDA, {"anillos": 2.0, "charco": 0.5, "u": 0.0, "vida": 1.0, "semilla": randf(), "se_va": 0.78, "fade_canto": 0.3, "suave_prof": 0.0}, 0)
 	_pil_charco.position = Vector3(0, 0.012, 0)
-	var lado: float = 2.0 * (rad * 2.4 + 0.45) / 0.74
+	# en VIDA es un disco mojado discreto pegado a la base (16/11: con anillos de 2,4× el radio tapaba el pilar bajo y ancho): el disco ocupa ≈ 0,78 de la mitad del quad con u = 0,45
+	var lado: float = 2.0 * (rad * 1.6 + 0.15) / 0.78
 	_pil_charco.scale = Vector3(lado, 1.0, lado)
 	_pil_charco.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	c.add_child(_pil_charco)
+	# lámina radial del colapso: crece hasta radio·2 + 0,35·alto (tope 4,5 m) y es IGUAL en todas las direcciones
+	# alcance por defecto = el del suelo mojado que deja la simulación de un hechizo (medido en el juego, 16/11): ≈ 1,75 casillas de radio; Pablo: «casi todo el mapa» era demasiado
+	var r_lam: float = 1.75 * CASILLA_REF
+	var huella: Vector2 = get_meta("huella", Vector2.ZERO) as Vector2        # en el juego: lo que la lógica moja (VfxToyJuego._huella); la lámina llega ahí
+	if huella != Vector2.ZERO:
+		r_lam = clampf(huella.x, 1.0, 5.0)
+	_pil_lamina = MeshInstance3D.new()
+	_pil_lamina.name = "Lamina"
+	_pil_lamina.mesh = q
+	_pil_lamina.material_override = AguaMallas.material(AguaMallas.SH_SUELO, {"radial": 1.0, "semilla": 0.43, "suave_prof": 0.0}, 0)
+	_pil_lamina.position = Vector3(0, 0.02, 0)
+	_pil_lamina.scale = Vector3(2.0 * r_lam, 1.0, 2.0 * r_lam)
+	_pil_lamina.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	_pil_lamina.visible = false
+	c.add_child(_pil_lamina)
 	# corona de lenguas
 	_pil_lam = AguaMallas.lenguas_mm("Corona", AguaMallas.lenguas_corona(rx, rz, alto), {"subida": 0.0, "curva": 0.0, "caida": 0.0, "suave_prof": 0.15, "opacidad": 0.82})
 	c.add_child(_pil_lam)
@@ -857,8 +895,8 @@ func _pilar(c: Node3D) -> void:
 
 ## Altura (m) de la cresta de la cortina con los valores actuales de `crece` y `corte`.
 func pilar_cresta() -> float:
-	var cai: float = clampf(corte / 0.7, 0.0, 1.0)
-	return semieje_y * clampf(crece, 0.0, 1.3) * (1.0 - cai * cai)
+	var cai: float = clampf(corte / 0.5, 0.0, 1.0)
+	return semieje_y * clampf(crece, 0.0, 1.3) * (1.0 - cai * cai) * _pil_lat
 
 
 func _avanzar_pilar(delta: float) -> void:
@@ -871,14 +909,33 @@ func _avanzar_pilar(delta: float) -> void:
 	var rm: float = (semieje_x + semieje_z) * 0.5
 	var tt: float = Time.get_ticks_msec() * 0.001 * velocidad
 	var top: float = pilar_cresta()
-	# corona de lenguas: suben con el brote, se curvan un poco al asentarse y se doblan hacia fuera y caen al desplomarse
+	# latido de presión: la altura respira ±3 % mientras vive (lento) y se calla al desplomarse; el shader y pilar_cresta() leen el mismo valor
+	_pil_lat = 1.0 + 0.03 * sin(tt * 2.3) * smoothstep(0.9, 1.1, cr) * (1.0 - smoothstep(0.0, 0.25, co))
+	for m in _pil_mats:
+		m.set_shader_parameter("latido", _pil_lat)
+	_pil_falda.visible = cr > 0.6 and co < 0.9              # no se dibuja mientras no existe (un dibujo menos)
+	# corona = salpicadura de NACIMIENTO: sube con el brote, queda baja y pegada, y cae cuando la columna se asienta. Mientras el pilar vive no hay pétalos; al morir NO se abre hacia fuera
+	if cr > 0.3:
+		_pil_t_vivo += delta
 	var ml: ShaderMaterial = _pil_lam.material_override as ShaderMaterial
 	ml.set_shader_parameter("subida", grow)
-	ml.set_shader_parameter("curva", 0.62 * smoothstep(0.6, 1.2, cr) + 0.38 * smoothstep(0.0, 0.4, co))
-	ml.set_shader_parameter("caida", smoothstep(0.05, 0.7, co))
+	ml.set_shader_parameter("curva", 0.25 * smoothstep(0.0, 0.5, cr))
+	ml.set_shader_parameter("caida", maxf(smoothstep(0.1, 0.55, _pil_t_vivo), smoothstep(0.0, 0.3, co)))
+	_pil_lam.visible = _pil_t_vivo < 0.9 and co < 0.3
 	# charco: anillos que salen de la base al nacer; al morir se ensancha y se va
-	_pil_charco_u = 0.45 * smoothstep(0.0, 0.9, grow) if co <= 0.0 else 0.45 + 0.55 * co
-	(_pil_charco.material_override as ShaderMaterial).set_shader_parameter("u", _pil_charco_u)
+	# (16/11) los anillos grandes solo son una onda breve al brotar (el grosor se va a 0 al asentarse); al morir el disco se queda hasta el final y se va tarde, y la ONDA que se abre en redondo es la lámina
+	_pil_charco_u = 0.45 * smoothstep(0.0, 0.9, grow) if co <= 0.0 else 0.45 + 0.55 * smoothstep(0.6, 1.0, co)
+	var mch: ShaderMaterial = _pil_charco.material_override as ShaderMaterial
+	mch.set_shader_parameter("u", _pil_charco_u)
+	mch.set_shader_parameter("grosor", maxf(0.075 * (1.0 - smoothstep(0.35, 0.75, _pil_t_vivo)), 0.001))
+	# lámina radial del colapso: la columna llega al suelo hacia corte 0,5-0,7; la lámina sale entonces, se abre por igual, frena, se adelgaza, deja un anillo y se va
+	var lam: float = smoothstep(0.45, 1.0, co)
+	var mlm: ShaderMaterial = _pil_lamina.material_override as ShaderMaterial
+	mlm.set_shader_parameter("frente", 1.0 - pow(1.0 - lam, 3.0))      # exponente alto: arranca deprisa, frena con peso y se queda cerca (Pablo: «más lenta, que se vea avanzar y frenar»)
+	mlm.set_shader_parameter("cola", 0.5 * lam)
+	mlm.set_shader_parameter("espesor", 1.0 - 0.6 * lam)
+	mlm.set_shader_parameter("alfa", smoothstep(0.45, 0.55, co) * (1.0 - smoothstep(0.9, 1.0, co)))
+	_pil_lamina.visible = co > 0.45 and co < 1.0
 	# espuma
 	var mm: MultiMesh = _pil_esp.multimesh
 	var mf: MultiMesh = _pil_fra.multimesh
@@ -887,7 +944,7 @@ func _avanzar_pilar(delta: float) -> void:
 	for i in N_ESPUMA_BASE:
 		var f: float = float(i) / float(N_ESPUMA_BASE)
 		var ang: float = TAU * f + 0.25 * sin(float(i) * 2.9) + tt * 0.08
-		var rr: float = rad * (1.12 if i % 2 == 0 else 1.5) + 0.16 + 0.9 * co * (0.6 + 0.4 * f)
+		var rr: float = rad * (1.12 if i % 2 == 0 else 1.5) + 0.16 + 0.25 * co * (0.6 + 0.4 * f)
 		var pos: Vector3 = Vector3(cos(ang) * rr, 0.03 + 0.02 * float(i % 2) + 0.06 * co * (1.0 - co), sin(ang) * rr)
 		var largo: float = clampf(TAU * rr / float(N_ESPUMA_BASE) * (1.9 if i % 2 == 0 else 1.5), 0.3, 2.0) * (0.5 + 0.5 * grow) * (1.0 + 0.5 * co)
 		var ancho: float = (0.16 + 0.07 * fposmod(f * 7.3, 1.0)) * (0.7 + rm * 0.8) * (0.4 + 0.6 * grow)
@@ -940,15 +997,15 @@ func _emitir_pilar(delta: float) -> void:
 		var d2: Vector3 = Vector3(cos(ang2), 0.0, sin(ang2))
 		var loc2: Vector3 = Vector3(d2.x * rx * 1.15, 0.12, d2.z * rz * 1.15)
 		g.call("emitir", tr * loc2, bas * (d2 * randf_range(1.6, 3.4) + Vector3(0, randf_range(1.8, 3.6), 0)), randf_range(0.5, 0.8), randf_range(0.05, 0.1), 0, 0.9, randf_range(0.4, 1.0), 1.0)
-	# 3) al desplomarse: se desprenden del cuerpo hacia fuera
+	# 3) al desplomarse (perder presión): las gotas se sueltan y CAEN casi en vertical alrededor de la base, no salen despedidas
 	var cae: float = smoothstep(0.0, 0.2, co) * (1.0 - smoothstep(0.55, 0.9, co))
 	_pil_acc3 += 52.0 * cae * vive * delta
 	while _pil_acc3 >= 1.0:
 		_pil_acc3 -= 1.0
 		var ang3: float = randf() * TAU
 		var d3: Vector3 = Vector3(cos(ang3), 0.0, sin(ang3))
-		var loc3: Vector3 = Vector3(d3.x * rx * 1.3, randf_range(0.1, 1.0) * maxf(top, 0.3), d3.z * rz * 1.3)
-		g.call("emitir", tr * loc3, bas * (d3 * randf_range(1.0, 3.0) * (0.7 + rm) + Vector3(0, randf_range(-0.5, 1.6), 0)), randf_range(0.45, 0.8), randf_range(0.06, 0.12), 0, 0.9, randf_range(0.4, 1.0), 1.0)
+		var loc3: Vector3 = Vector3(d3.x * rx * randf_range(0.8, 1.3), randf_range(0.1, 1.0) * maxf(top, 0.3), d3.z * rz * randf_range(0.8, 1.3))
+		g.call("emitir", tr * loc3, bas * (d3 * randf_range(0.1, 0.45) + Vector3(0, randf_range(-0.6, 0.3), 0)), randf_range(0.45, 0.8), randf_range(0.06, 0.12), 0, 0.9, randf_range(0.4, 1.0), 1.0)
 
 
 # ------------------------------------------------------------------ OLA (fase 4) ------------------------------------------------------------------
@@ -981,32 +1038,45 @@ func _ola(c: Node3D) -> void:
 	# espuma en franjas, pegada al pie delantero
 	_ola_fra = AguaMallas.franjas_mm("Franjas", N_FRANJAS_OLA)
 	c.add_child(_ola_fra)
-	# charco ancho que deja al caer
+	# LÁMINA que corre por el suelo cuando rompe (16/11; antes un charco de anillos redondos que no tenía que ver con cómo caía): del pie hasta 1,5·alto más allá (un muro alto llega más lejos)
+	# y con el ancho del muro; nada por detrás del pie. Mismo nodo «Charco» para no cambiar la estructura.
 	var q: QuadMesh = QuadMesh.new()
 	q.size = Vector2.ONE
 	q.orientation = PlaneMesh.FACE_Y
 	_ola_charco = MeshInstance3D.new()
 	_ola_charco.name = "Charco"
 	_ola_charco.mesh = q
-	_ola_charco.material_override = AguaMallas.material(AguaMallas.SH_ONDA, {"anillos": 2.0, "charco": 0.8, "u": 0.0, "vida": 1.0, "semilla": randf(), "se_va": 0.9, "fade_canto": 0.3, "suave_prof": 0.0}, 0)
-	_ola_charco.position = Vector3(0, 0.012, -alto * 0.3)
-	_ola_charco.scale = Vector3(2.0 * (a + 0.7) / 0.9, 1.0, 2.0 * (b + alto * 0.85) / 0.9)
+	_ola_charco.material_override = AguaMallas.material(AguaMallas.SH_SUELO, {"radial": 0.0, "semilla": randf(), "suave_prof": 0.0}, 0)
+	var huella: Vector2 = get_meta("huella", Vector2.ZERO) as Vector2        # en el juego: lo que la lógica moja (VfxToyJuego._huella)
+	# por defecto 2 casillas por delante del pie (lo que moja un muro de hechizo en el juego, medido 16/11) y el ancho del muro
+	var largo_lam: float = 2.0 * CASILLA_REF
+	var ancho_lam: float = a + 0.25
+	if huella != Vector2.ZERO:
+		largo_lam = clampf(huella.y, 1.5, 6.0)
+		ancho_lam = clampf(maxf(a + 0.25, huella.x), a + 0.25, 8.0)
+	_ola_lam_dim = Vector2(ancho_lam, largo_lam)
+	_ola_charco.position = Vector3(0, 0.012, 0.1 - largo_lam * 0.5)             # el borde de atrás del quad (+Z) queda en el pie
+	_ola_charco.scale = Vector3(2.0 * ancho_lam, 1.0, largo_lam)
+	_ola_charco.visible = false
 	_ola_charco.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	c.add_child(_ola_charco)
 	_ola_franjas_datos.clear()
 
 
-## Altura (m) de la cresta en el centro (x = 0) con los valores actuales de `crece` y `corte` (sin el ruido de la ondulación).
+## Altura (m) de la cresta en el centro (x = 0) con los valores actuales de `crece` y `corte` (sin el ruido de la ondulación). La MISMA rotura que agua_ola.gdshader: el perfil gira sobre el pie
+## hasta corte 0,5 (θ hasta 1,45 rad; la cresta baja con cosθ) y luego se hunde con gravedad (×(1 − 0,92·g), g = smoothstep(0,3, 1)^1,5).
 func ola_altura() -> float:
 	var rise: float = smoothstep(0.0, 1.0, crece)
-	var f2: float = pow(clampf(corte, 0.0, 1.0), 1.4)
-	return semieje_y * rise * (1.0 - 0.88 * f2)
+	var th: float = 1.45 * smoothstep(0.0, 0.5, corte)
+	var g: float = pow(smoothstep(0.4, 1.0, corte), 1.5)
+	return semieje_y * rise * cos(th) * (1.0 - 0.92 * g)
 
 
-## Cuánto se ha inclinado hacia delante (m) la cabeza de la ola respecto al pie (positivo = hacia -Z): crece al caer.
+## Cuánto se ha adelantado (m) la cabeza de la ola respecto al pie (positivo = hacia -Z): sube hasta ≈ 1×alto al aterrizar la cresta (sen θ) y luego el cuerpo se hunde.
 func ola_inclinacion() -> float:
-	var f2: float = pow(clampf(corte, 0.0, 1.0), 1.4)
-	return f2 * 1.25 * semieje_y * smoothstep(0.0, 1.0, crece) * (1.0 - 0.88 * f2)
+	var th: float = 1.45 * smoothstep(0.0, 0.5, corte)
+	var g: float = pow(smoothstep(0.4, 1.0, corte), 1.5)
+	return semieje_y * smoothstep(0.0, 1.0, crece) * sin(th) * (1.0 + 0.8 * g)
 
 
 func ola_avance() -> float:
@@ -1024,14 +1094,19 @@ func _avanzar_ola(delta: float) -> void:
 	var co: float = corte
 	if cr >= 0.999 and co <= 0.0:
 		_ola_t += delta * velocidad
-	_ola_avance = 0.5 * (1.0 - exp(-_ola_t * 0.6)) + 0.55 * co
+	_ola_avance = 0.5 * (1.0 - exp(-_ola_t * 0.6)) + 0.55 * co     # (el avance de la rotura lo da el giro del perfil en el shader; esto solo es el avance de estar de pie)
 	for h in _ola_hojas:
 		((h as MeshInstance3D).material_override as ShaderMaterial).set_shader_parameter("avance", _ola_avance)
 	(_ola_cuerpo.material_override as ShaderMaterial).set_shader_parameter("avance", _ola_avance)
 	(_ola_cresta.material_override as ShaderMaterial).set_shader_parameter("avance", _ola_avance)
-	# charco: se abre cuando la ola cae y se desvanece al final
+	# lámina del suelo: aparece cuando la cresta aterriza (corte ≈ 0,4-0,5), corre hacia delante, frena (ease-out), se adelgaza y se va al final
 	_ola_charco_u = smoothstep(0.1, 1.0, co)
-	(_ola_charco.material_override as ShaderMaterial).set_shader_parameter("u", _ola_charco_u)
+	var lam: float = smoothstep(0.38, 0.95, co)
+	var ml: ShaderMaterial = _ola_charco.material_override as ShaderMaterial
+	ml.set_shader_parameter("frente", 1.0 - pow(1.0 - lam, 3.0))
+	ml.set_shader_parameter("espesor", 1.0 - 0.6 * lam)
+	ml.set_shader_parameter("alfa", smoothstep(0.38, 0.46, co) * (1.0 - smoothstep(0.88, 1.0, co)))
+	_ola_charco.visible = co > 0.38 and co < 1.0
 	# franjas de espuma del pie: delante de la cortina, tendidas a lo largo de x
 	var a: float = semieje_x
 	var b: float = semieje_z
@@ -1043,11 +1118,13 @@ func _avanzar_ola(delta: float) -> void:
 		var f: float = float(i) / float(N_FRANJAS_OLA - 1)
 		var x: float = lerpf(-a * 0.9, a * 0.9, f) + 0.25 * sin(float(i) * 2.7)
 		var env: float = 1.0 - 0.6 * pow(absf(x) / a, 4.0)
-		var z: float = -_ola_avance - (b * 0.9 + 0.25 * alto * smoothstep(0.0, 1.0, cr)) - 0.12 - 0.55 * co * (0.5 + 0.5 * fposmod(f * 5.3, 1.0))
+		var z: float = -_ola_avance - (b * 0.9 + 0.25 * alto * smoothstep(0.0, 1.0, cr)) - 0.12
+		var z_frente: float = 0.1 - _ola_lam_dim.y * (1.0 - pow(1.0 - smoothstep(0.38, 0.95, co), 3.0)) * (1.0 - 0.28 * pow(x / a, 2.0)) - 0.03
+		z = lerpf(z, z_frente, smoothstep(0.38, 0.55, co))              # al romper, la espuma va en el frente de la lámina que corre por el suelo
 		var pos: Vector3 = Vector3(x, 0.03 + 0.015 * float(i % 2), z + 0.06 * sin(tt * 1.3 + float(i)))
 		var largo: float = clampf(2.0 * a / float(N_FRANJAS_OLA) * (1.7 if i % 2 == 0 else 1.3), 0.4, 2.2) * (0.4 + 0.6 * smoothstep(0.0, 1.0, cr)) * (1.0 + 0.4 * co)
 		var ancho: float = (0.2 + 0.1 * fposmod(f * 7.1, 1.0)) * (0.7 + 0.5 * alto / 1.5) * (0.4 + 0.6 * smoothstep(0.0, 1.0, cr)) * (1.0 + 0.8 * co)
-		var al: float = 0.9 * smoothstep(0.05, 0.5, cr) * (1.0 - smoothstep(0.6, 1.0, co)) * (0.5 + 0.5 * env)
+		var al: float = 0.9 * smoothstep(0.05, 0.5, cr) * (1.0 - smoothstep(0.85, 1.0, co)) * (0.5 + 0.5 * env)
 		AguaMallas.franja_poner(mf, i, pos, largo, ancho, al, 0.5 + 0.5 * fposmod(f * 3.7, 1.0), 0.1 * sin(float(i) * 1.9), f * 9.0)
 		_ola_franjas_datos[i] = {"pos": pos, "largo": largo, "alfa": al}
 
@@ -1077,13 +1154,13 @@ func _emitir_ola(delta: float) -> void:
 		var vel: Vector3 = bas * Vector3(randf_range(-0.5, 0.5), randf_range(0.8, 2.4), -randf_range(0.8, 2.6) * (0.7 + 0.7 * co))
 		g.call("emitir", tr * loc, vel, randf_range(0.5, 0.9), randf_range(0.05, 0.11), 0, 0.9, randf_range(0.5, 1.0), 1.0)
 	# 2) al caer: salpicadura a lo largo del pie delantero
-	var cae: float = smoothstep(0.1, 0.35, co) * (1.0 - smoothstep(0.55, 0.85, co))
+	var cae: float = smoothstep(0.3, 0.45, co) * (1.0 - smoothstep(0.6, 0.85, co))      # cuando la cresta aterriza (≈ corte 0,4-0,5)
 	_ola_acc2 += 34.0 * cae * (a / 3.45) * vive * delta
 	while _ola_acc2 >= 1.0:
 		_ola_acc2 -= 1.0
 		var x2: float = randf_range(-0.92, 0.92) * a
-		var loc2: Vector3 = Vector3(x2, 0.1, -_ola_avance - alto * randf_range(0.2, 0.6))
-		var vel2: Vector3 = bas * Vector3(randf_range(-0.6, 0.6), randf_range(1.2, 3.0), -randf_range(0.5, 2.0))
+		var loc2: Vector3 = Vector3(x2, 0.1, -alto * randf_range(0.7, 1.0))              # donde aterriza la cresta: ≈ 0,8-1×alto por delante del pie
+		var vel2: Vector3 = bas * Vector3(randf_range(-0.6, 0.6), randf_range(1.2, 3.0), -randf_range(0.8, 2.6))
 		g.call("emitir", tr * loc2, vel2, randf_range(0.45, 0.8), randf_range(0.06, 0.12), 0, 0.9, randf_range(0.4, 1.0), 1.0)
 
 ## FIGURAS AÚN SIN HACER (fases 4-5): un elipsoide de agua con el tamaño de los semiejes, para ver el tamaño y la posición. NO es el aspecto final.

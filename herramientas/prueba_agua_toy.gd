@@ -585,7 +585,7 @@ func _pilar() -> void:
 		hmax = maxf(hmax, float(h))
 	var corona: MultiMeshInstance3D = e.find_child("Corona", true, false) as MultiMeshInstance3D
 	_ok("CORONA: %d lenguas (MultiMesh de %d) de alturas distintas (%d valores, de %.2f a %.2f m)" % [alt.size(), corona.multimesh.instance_count, distintas.size(), hmin, hmax],
-		alt.size() >= 10 and corona.multimesh.instance_count == alt.size() and distintas.size() >= 5 and hmax - hmin > 0.8)
+		alt.size() >= 10 and corona.multimesh.instance_count == alt.size() and distintas.size() >= 4 and hmax - hmin > 0.3 and hmax <= 0.9)       # 16/11: salpicadura de nacimiento, ya no pétalos de hasta 2,8 m
 	var alt_bajo: Array = _alturas_corona(1.5)
 	var hmax2: float = 0.0
 	for h2 in alt_bajo:
@@ -596,7 +596,7 @@ func _pilar() -> void:
 	await process_frame
 	e2.definir(AguaToy.Figura.PILAR, 0.5, 2.0, 0.5, false)
 	await process_frame
-	_ok("el alto de la cresta sigue al semieje y (%.2f m con y = 4 · %.2f m con y = 2)" % [e.pilar_cresta(), e2.pilar_cresta()], absf(e.pilar_cresta() - 4.0) < 0.01 and absf(e2.pilar_cresta() - 2.0) < 0.01)
+	_ok("el alto de la cresta sigue al semieje y (%.2f m con y = 4 · %.2f m con y = 2)" % [e.pilar_cresta(), e2.pilar_cresta()], absf(e.pilar_cresta() - 4.0) < 0.15 and absf(e2.pilar_cresta() - 2.0) < 0.08)       # 16/11: ±3 % de latido de presión
 	e2.queue_free()
 	var m_cortina: ShaderMaterial = (e.find_child("Cortina", true, false) as MeshInstance3D).material_override as ShaderMaterial
 	_ok("la cortina recibe el alto y los radios (%.1f, %.2f, %.2f)" % [float(m_cortina.get_shader_parameter("alto")), float(m_cortina.get_shader_parameter("rx")), float(m_cortina.get_shader_parameter("rz"))],
@@ -637,7 +637,7 @@ func _pilar() -> void:
 				sube_cae += 1
 				sube_vy.erase(h)
 	_ok("NACER: empieza a ras de suelo (%.2f m), brota rápido (%.2f m a los 0,2 s) con un pico de altura (%.2f m a los %.2f s, > alto) y se asienta en %.2f m" % [cres0, cres_a_0_2, pico, t_pico, e.pilar_cresta()],
-		cres0 < 0.2 and cres_a_0_2 > 2.0 and pico > 4.0 * 1.05 and absf(e.pilar_cresta() - 4.0) < 0.05)
+		cres0 < 0.2 and cres_a_0_2 > 2.0 and pico > 4.0 * 1.05 and absf(e.pilar_cresta() - 4.0) < 0.15)
 	_ok("las gotas SUBEN desde la cresta (y máx %.2f m) y CAEN (la misma gota pasa de vy > 0,5 a vy < -0,5: %d)" % [y_max, sube_cae], y_max > 3.0 and sube_cae >= 2)
 	var corona_mat: ShaderMaterial = (e.find_child("Corona", true, false) as MultiMeshInstance3D).material_override as ShaderMaterial
 	_ok("la corona está subida (subida %.2f) y algo curvada (curva %.2f)" % [float(corona_mat.get_shader_parameter("subida")), float(corona_mat.get_shader_parameter("curva"))],
@@ -675,19 +675,19 @@ func _pilar() -> void:
 			sube = true
 		prev = c2
 		var t_m: float = float(Time.get_ticks_msec() - t0) / 1000.0
-		if cresta_700 < 0.0 and t_m > 0.7:
+		if cresta_700 < 0.0 and t_m > 0.9:
 			cresta_700 = c2
 		u_charco_max = maxf(u_charco_max, e._pil_charco_u)
 		if charco_al_caer < 0.0 and c2 < 0.6:
 			var u: float = e._pil_charco_u
 			charco_al_caer = smoothstep(0.0, 0.05, u) * (1.0 - smoothstep(0.78, 1.0, u))        # la misma fórmula de agua_onda.gdshader con se_va = 0,78
 		gotas_caida = maxi(gotas_caida, (gotas.call("estados") as Array).size() if is_instance_valid(gotas) else 0)
-	_ok("MORIR: la columna cae sin volver a subir y a los 0,7 s mide %.2f m (< 1,2 m de 4)" % cresta_700, not sube and cresta_700 >= 0.0 and cresta_700 < 1.2)
+	_ok("MORIR: la columna cae sin volver a subir y a los 0,9 s mide %.2f m (< 1,2 m de 4; 16/11: morir dura 1,6 s y aterriza a corte 0,5)" % cresta_700, not sube and cresta_700 >= 0.0 and cresta_700 < 1.2)
 	_ok("MORIR deja un charco que se ensancha (u hasta %.2f) y que sigue visible cuando la columna ya ha caído (opacidad %.2f)" % [u_charco_max, charco_al_caer], u_charco_max > 0.7 and charco_al_caer > 0.3)
 	_ok("MORIR: al desplomarse se sueltan gotas (%d a la vez)" % gotas_caida, gotas_caida >= 4)
 	_ok("PILAR: se libera solo al acabar de morir", not is_instance_valid(e) or e.get_instance_id() != id)
 	print("   PILAR: %d dibujos visibles a la vez (cortina, núcleo, charco, corona, espuma, gotas)" % dib_max)
-	_ok("PILAR: ≤ 7 dibujos", dib_max <= 7)
+	_ok("PILAR: ≤ 8 dibujos (con la falda; la corona y la falda se ocultan cuando no hacen falta)", dib_max <= 8)
 	await process_frame
 
 
