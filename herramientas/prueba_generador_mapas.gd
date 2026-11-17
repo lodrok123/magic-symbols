@@ -114,14 +114,16 @@ func _revisar(par: Dictionary, retoques: Dictionary = {}, puzles: Dictionary = {
 		if tl.size() >= 5 and tl[0] == "pieza" and tl[2] == "bloque":
 			var bx: int = tl[3].to_int()
 			var by: int = tl[4].to_int()
-			_ok((filas[by - 1][bx] == "#" and filas[by + 1][bx] == "#") or (filas[by][bx - 1] == "#" and filas[by][bx + 1] == "#"),
-				"el bloque %s está en una pista cerrada por paredes: %s" % [tl[1], quien], "(%d, %d)" % [bx, by])
-			# Y dentro de la pista no hay nada más (un goblin entre el bloque y la placa lo pararía).
-			for paso_x in [-1, 1]:
-				var x: int = bx + int(paso_x)
-				while x > 0 and x < w - 1 and filas[by][x] != "#" and filas[by - 1][x] == "#" and filas[by + 1][x] == "#":
-					_ok(filas[by][x] == ".", "la pista del bloque %s está despejada: %s" % [tl[1], quien], "(%d, %d) = %s" % [x, by, filas[by][x]])
-					x += int(paso_x)
+			# La pista va de abajo arriba (paredes a izquierda y derecha): tumbada, la pared de delante la tapa en el juego.
+			_ok(filas[by][bx - 1] == "#" and filas[by][bx + 1] == "#",
+				"el bloque %s está en una pista vertical cerrada por paredes: %s" % [tl[1], quien], "(%d, %d)" % [bx, by])
+			# Dentro de la pista no hay nada más (un goblin entre el bloque y la placa lo pararía); arriba acaba en pared y abajo está abierta.
+			for paso_y in [-1, 1]:
+				var y: int = by + int(paso_y)
+				while y > 0 and y < h - 1 and filas[y][bx] != "#" and filas[y][bx - 1] == "#" and filas[y][bx + 1] == "#":
+					_ok(filas[y][bx] == ".", "la pista del bloque %s está despejada: %s" % [tl[1], quien], "(%d, %d) = %s" % [bx, y, filas[y][bx]])
+					y += int(paso_y)
+				_ok((filas[y][bx] == "#") == (int(paso_y) < 0), "la pista del bloque %s se cierra arriba y se abre abajo: %s" % [tl[1], quien], "(%d, %d) = %s" % [bx, y, filas[y][bx]])
 	_ok(n_enlaces == int(m["barreras"]), "un vínculo por barrera: " + quien, "%d vínculos, %d barreras" % [n_enlaces, int(m["barreras"])])
 	for c in puentes:
 		_ok(filas[c.y][c.x] == "~", "el puente está sobre agua: " + quien)
