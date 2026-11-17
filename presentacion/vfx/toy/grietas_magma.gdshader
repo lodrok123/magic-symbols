@@ -10,6 +10,7 @@ uniform float vida : hint_range(0.0, 1.0) = 1.0;
 uniform float semilla = 0.0;
 uniform int brazos = 7;
 uniform float brillo : hint_range(0.0, 4.0) = 1.0;
+uniform float alcance = 2.0;        // 17/11 (inicio del pilar de fuego): radio (0-1) hasta el que han llegado las grietas; ≥ 1,2 = todas (el cráter de magma, como siempre)
 
 vec3 color_calor(float c) {
 	vec3 gris = vec3(0.26, 0.23, 0.24);
@@ -57,6 +58,7 @@ void fragment() {
 	grieta = max(grieta, anillo * 0.75);
 	float centro = exp(-r * r * 9.0);
 	float masa = 1.0 - smoothstep(0.7, 1.0, r + 0.06 * sin(ang * 7.0 + semilla * 9.0));
+	masa *= 1.0 - smoothstep(alcance - 0.18, alcance, r);
 	grieta = clamp(grieta * masa, 0.0, 1.0);
 	vec3 col = color_calor(calor) * (0.6 + 0.5 * calor) * brillo;
 	vec3 negro = vec3(0.07, 0.05, 0.06);

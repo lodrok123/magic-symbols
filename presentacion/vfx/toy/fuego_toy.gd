@@ -53,7 +53,15 @@ const PILAR_VELOCIDAD: float = 1.6       ## × la velocidad de las llamas del pi
 ##   FINAL: se corta por la base; la raíz se estrecha y se suelta y lo que queda arriba es lo último en irse.
 ## A false, el nacer y morir de antes (el cuerpo entero crece y se encoge).
 const PILAR_INICIO_FINAL: bool = true
-const PILAR_AVISO_S: float = 0.2
+const PILAR_AVISO_S: float = 0.35
+## 17/11 (Pablo, con un vídeo de un hechizo de fuego: grietas que corren por el suelo, se encienden, de ellas revienta el fuego y al irse quedan al rojo y se apagan: «pensaba en algo
+## así. Añádelo, crea un fuego que nace y muere»). GRIETAS bajo el pilar (grietas_magma.gdshader, el del cráter de magma): en el aviso salen del centro, oscuras, y se encienden; viven
+## encendidas bajo el pilar; al morir el chorro se va en la primera parte (`PILAR_FINAL_CORTE`) y las grietas se enfrían y se apagan hasta el final (`PILAR_FINAL_S`).
+const PILAR_FINAL_S: float = 1.1
+const PILAR_FINAL_CORTE: float = 0.55    ## fracción del final en la que el chorro ya se ha soltado del todo
+const PILAR_GRIETAS_TAM: float = 6.5     ## diámetro del plano de grietas, en veces el semieje
+const PILAR_GRIETAS_CALOR: float = 0.6   ## calor de las grietas encendidas (0,6 = naranja rojizo; con 0,75 salían amarillentas sobre el charco de luz; 1 sería amarillo)
+const SH_GRIETAS_FUEGO: String = "res://presentacion/vfx/toy/grietas_magma.gdshader"
 const PILAR_BROTE_S: float = 0.45
 const PILAR_AVISO_TAM: float = 5.0       ## diámetro del anillo de aviso al empezar, en veces el semieje
 const PILAR_AVISO_FIN: float = 0.2       ## fracción de ese tamaño al cerrarse
@@ -982,7 +990,22 @@ func _pilar(c: Node3D, luz: OmniLight3D) -> void:
 	_halo(c, "Charco", Vector2(5.2 * rx, 5.2 * rz), Vector3(0, 0.04, 0), 0.45, 1.8, 0, Color(1.0, 0.28, 0.06), {"anillo": 0.5, "irreg": PILAR_IRREG_CHARCO})
 	_halo(c, "Resplandor", Vector2(6.8 * rm, 1.05 * alto), Vector3(0, 0.35 * alto, 0), 0.2, 2.8, 2, Color(1.0, 0.28, 0.06))
 	if PILAR_INICIO_FINAL:
-		_halo(c, "Aviso", Vector2(PILAR_AVISO_TAM * rx, PILAR_AVISO_TAM * rz), Vector3(0, 0.05, 0), 1.3, 1.6, 0, Color(1.0, 0.32, 0.07), {"anillo": 1.0, "vida": 0.0})
+		var pg: PlaneMesh = PlaneMesh.new()
+		pg.size = Vector2(PILAR_GRIETAS_TAM * rx, PILAR_GRIETAS_TAM * rz)
+		var gr: MeshInstance3D = MeshInstance3D.new()
+		gr.name = "Grietas"
+		gr.mesh = pg
+		var mg: ShaderMaterial = ShaderMaterial.new()
+		mg.shader = load(SH_GRIETAS_FUEGO)
+		mg.render_priority = -2
+		mg.set_shader_parameter("semilla", 0.37)
+		mg.set_shader_parameter("brazos", 7)
+		mg.set_shader_parameter("vida", 0.0)
+		gr.material_override = mg
+		gr.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		gr.position = Vector3(0, 0.03, 0)
+		c.add_child(gr)
+		_halo(c, "Aviso", Vector2(PILAR_AVISO_TAM * rx, PILAR_AVISO_TAM * rz), Vector3(0, 0.05, 0), 0.8, 1.6, 0, Color(1.0, 0.32, 0.07), {"anillo": 1.0, "vida": 0.0})
 	var amp: float = clampf(fr, 0.5, 2.0)
 	var vaiven: float = PILAR_VAIVEN_M * amp
 	var raiz: float = lerpf(PILAR_RAIZ_CHATO, PILAR_RAIZ, smoothstep(1.2, 3.0, alto / maxf(rm, 0.01)))
@@ -1211,16 +1234,30 @@ func _pilar_inicio_final(v: float) -> void:
 	var brote: float = 1.0
 	var suelta: float = 0.0
 	var k: float = 1.0
+	var g_calor: float = 0.0
+	var g_vida: float = 0.0
+	var g_alcance: float = 1.3
 	if _pilar_muriendo:
-		suelta = 1.0 - v
+		suelta = clampf((1.0 - v) / PILAR_FINAL_CORTE, 0.0, 1.0)
+		g_calor = PILAR_GRIETAS_CALOR * v * v
+		g_vida = smoothstep(0.0, 0.35, v)
 	else:
 		brote = clampf((v - fa) / (1.0 - fa), 0.0, 1.0)
 		k = clampf(v / fa, 0.0, 1.0)
+		g_alcance = lerpf(0.05, 1.3, k)
+		g_calor = PILAR_GRIETAS_CALOR * lerpf(0.08, 1.0, smoothstep(0.45, 1.0, k))        # primero oscuras, luego al rojo
+		g_vida = smoothstep(0.0, 0.12, k)
 	_param_mats("vida", 1.0)
 	_param_mats("brote", brote)
 	_param_mats("suelta", suelta)
 	if _cuerpo != null:
 		_cuerpo.scale = Vector3.ONE
+		var gr: MeshInstance3D = _cuerpo.get_node_or_null("Grietas") as MeshInstance3D
+		if gr != null:
+			var mg: ShaderMaterial = gr.material_override as ShaderMaterial
+			mg.set_shader_parameter("alcance", g_alcance)
+			mg.set_shader_parameter("calor", g_calor)
+			mg.set_shader_parameter("vida", g_vida)
 		var av: MeshInstance3D = _cuerpo.get_node_or_null("Aviso") as MeshInstance3D
 		if av != null:
 			var e: float = lerpf(1.0, PILAR_AVISO_FIN, k * k)
@@ -1774,7 +1811,7 @@ func _anim_si_hace_falta() -> void:
 	match figura:
 		Figura.PILAR:
 			nacer = (PILAR_AVISO_S + PILAR_BROTE_S) if PILAR_INICIO_FINAL else 0.4
-			morir_s = 0.6
+			morir_s = PILAR_FINAL_S if PILAR_INICIO_FINAL else 0.6
 		Figura.BARRERA:
 			nacer = 0.5
 			morir_s = 0.6
