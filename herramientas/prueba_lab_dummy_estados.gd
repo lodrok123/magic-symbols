@@ -4,6 +4,7 @@ extends SceneTree
 ##   godot --headless --path . --script res://herramientas/prueba_lab_dummy_estados.gd
 ## Comprueba que el dummy queda en el estado que dice `Combate3D.decidir_golpe` (las reglas del juego, no unas propias): cada elemento deja su estado, las combinaciones
 ## reaccionan (fuego sobre mojado = vapor y lo seca; hielo sobre mojado congela más; rayo sobre congelado lo rompe), los relojes se gastan y el texto del panel lo cuenta.
+## 19/11: y que el HAZ de hielo se corta en su tope, avisa una vez al llegar (ahí se congela el dummy) y hace crecer su corona.
 
 var _fallos: int = 0
 
@@ -75,6 +76,30 @@ func _correr() -> void:
 	await process_frame
 	await process_frame
 	_ok("…y al limpiarlo el efecto se suelta", ct != null and is_instance_valid(ct) and (ct as CongeladoToy).soltado())
+	# 19/11: el HAZ de hielo se corta en lo que toca, avisa UNA vez al llegar y su corona crece desde ahí; el aviso es lo que usa el lab para congelar al dummy
+	d.limpiar()
+	var haz: HieloToy = HieloToy.new()
+	haz.definir(HieloToy.Figura.HAZ, 1.5, 0.5, 0.15, false)
+	haz.haz_tope = 1.2
+	haz.haz_tope_radio = LabDummyEstados.RADIO
+	var avisos: Array = [0]
+	haz.haz_llego.connect(func() -> void:
+		avisos[0] = int(avisos[0]) + 1
+		d.aplicar("hielo"))
+	root.add_child(haz)
+	haz.lanzar(-1.0)
+	await process_frame
+	_ok("haz de hielo: antes de llegar no ha avisado y el dummy no está congelado", int(avisos[0]) == 0 and d.congelado <= 0.0)
+	var t2: float = 0.0
+	while t2 < HieloToy.T_NACER_HAZ_SELLO + HieloToy.HAZ_CORONA_CRECE_S + 0.3:
+		await process_frame
+		t2 += root.get_process_delta_time()
+	var es: Dictionary = haz.estado_sello()
+	_ok("haz de hielo: se corta en el tope (largo %.2f m de 1,20; sin tope serían 3,00)" % float(es["largo"]), float(es["largo"]) <= 1.2 + 0.001 and float(es["largo"]) > 1.0)
+	_ok("haz de hielo: avisa UNA vez al llegar (%d) y ahí el dummy queda congelado (%.1f s)" % [int(avisos[0]), d.congelado], int(avisos[0]) == 1 and d.congelado > 0.0)
+	_ok("haz de hielo: el sello está abierto y la corona ha crecido desde el impacto (%d cristales, crecida %.2f)" % [int(es["corona"]), float(es["crecida"])],
+		float(es["abre"]) > 0.9 and int(es["corona"]) >= 8 and float(es["crecida"]) >= 0.99)
+	haz.queue_free()
 	d.queue_free()
 	await process_frame
 	print("FALLOS: %d" % _fallos)

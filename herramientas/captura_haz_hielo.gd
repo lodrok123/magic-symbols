@@ -45,6 +45,8 @@ func _correr() -> void:
 		var cubo: Node3D = lab.get_node_or_null("Cubo%d" % i) as Node3D
 		if cubo != null:
 			cubo.visible = false
+	if a.size() > 1 and a[1] == "dummy":
+		lab.call("dummy_estados")                                   # 2.º argumento «dummy»: el haz da en el dummy de estados del lab
 	await create_timer(0.8).timeout
 	cam.size = 6.0
 	var e: Node3D = lab.call("fuego_param", 4)                     # calentamiento

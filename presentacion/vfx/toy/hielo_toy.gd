@@ -36,6 +36,10 @@ extends EfectoToy
 enum Figura { BOLA, MURO, PILAR, BARRERA, HAZ, SUELO }
 enum EstadoCarga { NINGUNA, CARGANDO, SOLTANDO, APAGANDO, CANCELANDO }
 
+## HAZ (19/11, Pablo: «haz que el haz se corte y aplique el elemento. Que la corona crezca a partir del impacto»): el haz ha llegado a su punta (o a su tope). Se emite una vez
+## por lanzamiento, cuando empieza a crecer la corona. Quien dibuja el golpe (el lab con su dummy) lo usa para aplicar el estado en ese momento. El toy NO congela a nadie.
+signal haz_llego
+
 const HieloMallas = preload("res://presentacion/vfx/toy/hielo_mallas.gd")
 const HieloEsquirlas = preload("res://presentacion/vfx/toy/hielo_esquirlas.gd")
 const CargaHielo = preload("res://presentacion/vfx/toy/carga_hielo_toy.gd")
@@ -196,6 +200,12 @@ var _placa: MeshInstance3D = null       ## SUELO: la losa de hielo
 var _aliento: Node3D = null             ## HAZ: el chorro de vaho (humo toon, en el mundo)
 var _nucleo: Array = []                 ## HAZ: las dos láminas del núcleo azul
 var _acc_aliento: float = 0.0
+## HAZ: algo lo PARA antes de su largo. `haz_tope` = m de la mano a la cara de lo que toca (≤ 0: nada, llega a su largo); `haz_tope_radio` = radio de eso (m): la corona crece
+## alrededor de su pie, no debajo. Hay que ponerlos ANTES de construir el haz (antes de entrar en el árbol o de `definir`).
+var haz_tope: float = -1.0
+var haz_tope_radio: float = 0.0
+var _haz_llegado: bool = false
+var _haz_saliendo: bool = false           ## el haz ha empezado a salir desde cero (lanzado): recién creado está entero (`crece` 1) y eso NO es llegar
 var _sello: MeshInstance3D = null           ## HAZ: el círculo mágico de la mano
 var _corona: MultiMeshInstance3D = null    ## HAZ: cristales que crecen donde da
 var _cor: Array = []
@@ -814,6 +824,8 @@ func _avanzar_placa(esc: float, co: float, tt: float) -> void:
 ## mano hacia fuera (la punta es lo último).
 func _haz(c: Node3D) -> void:
 	_haz_largo = semieje_x * 2.0
+	if haz_tope > 0.0:
+		_haz_largo = minf(_haz_largo, haz_tope)                                # se corta en lo que toca
 	_haz_r = semieje_z * FuegoToy.HAZ_ABRE
 	_haz_alt = maxf(semieje_y, 0.4)
 	var capa: Array = HieloMallas.capa_haz(_haz_largo, _haz_r, _haz_alt, 1.0 + semieje_x)
@@ -879,16 +891,17 @@ func _haz(c: Node3D) -> void:
 			for i in HAZ_CORONA_N:
 				var ang: float = TAU * float(i) / float(HAZ_CORONA_N) + rngc.randf_range(-0.2, 0.2)
 				var dd: Vector3 = Vector3(cos(ang), 0.0, sin(ang))
-				var rr: float = rc * rngc.randf_range(0.25, 1.0)
+				var r_blanco: float = haz_tope_radio if haz_tope > 0.0 else 0.0
+				var rr: float = r_blanco + rc * rngc.randf_range(0.25 if r_blanco <= 0.0 else 0.1, 1.0)
 				var hh: float = rngc.randf_range(HAZ_CORONA_ALTO.x, HAZ_CORONA_ALTO.y) * lerpf(1.0, 0.6, rr / maxf(rc, 0.01))
 				var ww: float = hh * rngc.randf_range(0.13, 0.2)
-				_cor.append({"pos": Vector3(dd.x * rr, 0.0, -_haz_largo + dd.z * rr), "rot": HieloMallas._inclinar(dd, rngc.randf_range(0.55, 1.05), rngc.randf() * TAU), "w": ww, "h": hh,
+				_cor.append({"pos": Vector3(dd.x * rr, 0.0, -_haz_largo - r_blanco + dd.z * rr), "rot": HieloMallas._inclinar(dd, rngc.randf_range(0.55, 1.05), rngc.randf() * TAU), "w": ww, "h": hh,
 					"claro": rngc.randf(), "fase": rngc.randf(), "retraso": rngc.randf_range(0.0, 0.35)})
 			_corona = HieloMallas.crear_mm("Corona", _cor.size(), HieloMallas.cristal(6, 9.0), 0.7, 1)
 			c.add_child(_corona)
 			_escarcha_punta = HieloMallas.escarcha("EscarchaPunta", 0.7, 0.4)
-			_escarcha_punta.position = Vector3(0, 0.012, -_haz_largo)
-			_escarcha_punta.set_meta("lado", rc * 2.6)
+			_escarcha_punta.position = Vector3(0, 0.012, -_haz_largo - (haz_tope_radio if haz_tope > 0.0 else 0.0))
+			_escarcha_punta.set_meta("lado", (rc + (haz_tope_radio if haz_tope > 0.0 else 0.0)) * 2.6)
 			c.add_child(_escarcha_punta)
 	if not HAZ_SIN_CRISTALES:
 		return
@@ -979,9 +992,14 @@ func _avanzar_sello_y_corona(delta: float, cr: float, ch: float, co: float) -> v
 	if _corona == null or not is_instance_valid(_corona):
 		return
 	if ch >= 0.97 and co < 0.55:
+		if _haz_saliendo and not _haz_llegado and delta > 0.0:
+			_haz_llegado = true
+			haz_llego.emit()                                                     # el impacto: desde aquí crece la corona
 		_corona_t += delta
 	elif cr <= 0.001:
 		_corona_t = 0.0
+		_haz_llegado = false
+		_haz_saliendo = true
 	var g: float = clampf(_corona_t / HAZ_CORONA_CRECE_S, 0.0, 1.0)
 	var rota: float = 1.0 - smoothstep(0.6, 0.85, co)
 	var mm: MultiMesh = _corona.multimesh

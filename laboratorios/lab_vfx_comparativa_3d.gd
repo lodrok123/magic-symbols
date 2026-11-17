@@ -456,8 +456,38 @@ func dummy_tecla(mayus: bool, ctrl: bool) -> void:
 		dummy_aplicar()
 
 
+## 19/11: si el DUMMY está en la línea de un haz, el haz le DA. El de HIELO se corta en él (`haz_tope`), le aplica el elemento cuando llega (`haz_llego`) y su corona crece a sus
+## pies. Los demás elementos todavía no saben cortarse en el dummy: lo atraviesan y se le aplica el elemento `HAZ_DUMMY_ESPERA_S` después de lanzar, a ojo.
+## Se llama ANTES de meter el haz en el árbol (se construye en _ready).
+const HAZ_DUMMY_ESPERA_S: float = 0.45
+
+
+func _haz_al_dummy(e, origen: Vector3, dir: Vector3) -> void:
+	if _dummy == null or not is_instance_valid(_dummy):
+		return
+	var dh: Vector3 = Vector3(dir.x, 0.0, dir.z).normalized()
+	var hacia: Vector3 = _dummy.global_position - origen
+	hacia.y = 0.0
+	var lejos: float = hacia.dot(dh)
+	var de_lado: float = (hacia - dh * lejos).length()
+	var cara: float = lejos - LabDummyEstados.RADIO                           # de la mano a la cara del dummy
+	if cara <= 0.2 or de_lado > LabDummyEstados.RADIO + 0.25 or cara > e.semieje_x * 2.0:
+		return                                                                # no está delante, o el haz no llega
+	var el: String = elemento
+	if e is HieloToy:
+		(e as HieloToy).haz_tope = cara
+		(e as HieloToy).haz_tope_radio = LabDummyEstados.RADIO
+		(e as HieloToy).haz_llego.connect(func() -> void:
+			if _dummy != null and is_instance_valid(_dummy):
+				_dummy.aplicar(el))
+	else:
+		get_tree().create_timer(HAZ_DUMMY_ESPERA_S).timeout.connect(func() -> void:
+			if _dummy != null and is_instance_valid(_dummy):
+				_dummy.aplicar(el))
+
+
 func _texto_dummy() -> String:
-	return _dummy.texto() if (_dummy != null and is_instance_valid(_dummy)) else "\nDUMMY DE ESTADOS: Intro lo pone y le aplica el elemento actual (Z lo cambia)"
+	return _dummy.texto() if (_dummy != null and is_instance_valid(_dummy)) else "\nDUMMY DE ESTADOS: Intro lo pone y le aplica el elemento actual (Z lo cambia); con el dummy puesto, un HAZ (F7) le da"
 
 
 ## Supr: el CONGELADO (CongeladoToy: costra de hielo, cuadraditos celestes y vaho) sobre la jugadora del lab durante `dura` s.
@@ -525,6 +555,7 @@ func _poner_param(e, giro: float) -> void:
 	var pie: Vector3 = _pj.global_position
 	if e.figura == FuegoToy.Figura.HAZ:       # los choques han de estar ANTES de entrar en el árbol (el haz se construye en _ready), como en VfxToyJuego
 		_muro_haz(e, e.semieje_x * 2.0, pie + _dir * 0.5, _dir.rotated(Vector3.UP, giro))
+		_haz_al_dummy(e, pie + _dir * 0.5, _dir.rotated(Vector3.UP, giro))
 	_efectos.add_child(e)
 	match e.figura:
 		FuegoToy.Figura.BOLA:
