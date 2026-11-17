@@ -1,0 +1,1344 @@
+extends RefCounted
+## GENERADOR DE MAZMORRAS Y CUEVAS (17/11/2026). Datos puros, sin nodos: de unos parámetros y una semilla saca un plano de letras como los de
+## `mundo/datos_nivel/mapas/*.txt` y las líneas `; pieza` / `; puzle` que lee `Puzle3D`. Lo usa la herramienta visual
+## `herramientas/generador_mapas/GeneradorMapas.tscn` y lo comprueba `herramientas/prueba_generador_mapas.gd`.
+## Sin `class_name` a propósito: se carga con `preload` y no obliga a reimportar el proyecto.
+##
+## TRES ALGORITMOS (`algoritmo`), escritos desde cero a partir de cómo trabajan tres generadores conocidos (no se copia código de ninguno):
+##   «salas»   Salas y pasillos al estilo de donjon (donjon.bin.sh). Rejilla lógica donde las posiciones impares son huecos y las pares muros: se
+##             reparten salas, se les abren puertas, se rellena lo demás con un laberinto (con querencia a seguir recto) y se podan los callejones.
+##             Aquí, además, cada hueco lógico se pinta con `ancho_pasillo` casillas, para que los pasillos no sean de una sola casilla.
+##   «cueva»   Cueva orgánica por autómata celular (la familia del Cave Generator de watabou): ruido, suavizado, se unen las regiones sueltas y se
+##             inunda lo más bajo de un mapa de ruido (`agua`).
+##   «pagina»  Mazmorra de «una página» (la idea del One Page Dungeon de watabou): crece desde una sala raíz pegando salas y pasillos a las que ya
+##             hay, con grupos simétricos respecto al eje de la entrada, y luego se añaden bucles para que no sea un árbol puro.
+##
+## DESPUÉS, IGUAL PARA LOS TRES (`_poblar`): inicio (S) en la sala más al sur, sala del tesoro en la más lejana (tras una puerta con llave si se
+## puede), cofre de la llave en otra sala lejana, goblins (W / A) según el tamaño y la distancia, salas que se cierran hasta limpiarlas (cerrojo +
+## vigía), charcas, braseros (T) y jarrones. Nada de lo que bloquea una casilla puede cortar el paso: se comprueba con un relleno cada vez.
+##
+## Uso:   var gen = preload("res://herramientas/generador_mapas/generador_mazmorra.gd").new()
+##        var mapa: Dictionary = gen.generar({"algoritmo": "salas", "semilla": 7})
+## `retoques` (casilla → "#", "." o "~") son los cambios pintados a mano en la herramienta: se aplican al plano antes de poblarlo.
+
+const MURO: int = 0
+const SUELO: int = 1
+const AGUA: int = 2
+const LETRA: Array[String] = ["#", ".", "~"]
+const DIRS: Array[Vector2i] = [Vector2i(0, -1), Vector2i(1, 0), Vector2i(0, 1), Vector2i(-1, 0)]      ## N, E, S, O
+const ALGORITMOS: Array[String] = ["salas", "cueva", "pagina"]
+const ANCHO_MAX: int = 120
+const ALTO_MAX: int = 120
+const CASILLAS_POR_ENEMIGO: float = 22.0     ## con `enemigos` = 1: un goblin por cada tantas casillas libres de la sala (más en las lejanas), 5 como mucho
+
+# Banderas de la rejilla lógica de «salas».
+const _B: int = 1       ## bloqueada por la forma del mapa
+const _R: int = 2       ## sala
+const _C: int = 4       ## pasillo
+const _P: int = 8       ## perímetro de una sala (donde puede ir una puerta)
+const _D: int = 16      ## puerta
+
+var p: Dictionary = {}
+var rng: RandomNumberGenerator = RandomNumberGenerator.new()
+var w: int = 0
+var h: int = 0
+var g: PackedByteArray = PackedByteArray()
+var salas: Array = []                 ## {id, rect: Rect2i, rol, eje, gemela, viva, enemigos, dist}
+var puertas: Array = []               ## {c: Vector2i, salas: Array[int], tipo: "paso" | "llave" | "cerrojo"}
+var letras: Dictionary = {}           ## casilla → letra del plano (S, W, A, T)
+var objetos: Array = []               ## {c, tipo, id}: lo que la vista dibuja encima
+var lineas: PackedStringArray = PackedStringArray()
+var avisos: PackedStringArray = PackedStringArray()
+var inicio: Vector2i = Vector2i(-1, -1)
+
+var _ocupada: Dictionary = {}
+var _bloqueos: Dictionary = {}
+var _cont: Dictionary = {}
+var _L: PackedInt32Array = PackedInt32Array()
+var _Lid: PackedInt32Array = PackedInt32Array()
+var _lw: int = 0
+var _lh: int = 0
+var _lsalas: Array = []
+var _eje: int = 0
+var _retoques: Dictionary = {}
+
+
+static func parametros_defecto() -> Dictionary:
+	return {
+		"algoritmo": "salas", "semilla": 1, "ancho": 40, "alto": 34,
+		# «salas» (tamaños en huecos lógicos: una sala de 3 con pasillo de 2 mide 8 casillas)
+		"sala_min": 2, "sala_max": 4, "reparto": "dispersas", "densidad_salas": 1.0, "puertas": 50,
+		"recto": 60, "callejones": 100, "ancho_pasillo": 2, "forma": "rectangulo",
+		# «cueva»
+		"relleno": 45, "suavizados": 5, "region_min": 12, "agua": 8,
+		# «pagina» (tamaños en casillas)
+		"n_salas": 9, "lado_min": 4, "lado_max": 8, "simetria": true, "pasillos": 30, "bucles": 30,
+		# contenido
+		"enemigos": 1.0, "arqueros": 30, "jarrones": 1.0, "braseros": 1.0, "charcas": 20,
+		"tesoro": true, "llave": true, "salas_cerradas": 40,
+		# nivel
+		"nombre": "MazmorraGen", "estilo": "cueva", "luz": "cueva", "salida_a": "", "rotulo": true,
+	}
+
+
+func generar(parametros: Dictionary = {}, retoques: Dictionary = {}) -> Dictionary:
+	p = parametros_defecto()
+	p.merge(parametros, true)
+	rng = RandomNumberGenerator.new()
+	rng.seed = int(p["semilla"])
+	salas = []
+	puertas = []
+	letras = {}
+	objetos = []
+	lineas = PackedStringArray()
+	avisos = PackedStringArray()
+	inicio = Vector2i(-1, -1)
+	_ocupada = {}
+	_bloqueos = {}
+	_cont = {}
+	match String(p["algoritmo"]):
+		"cueva":
+			_gen_cueva()
+		"pagina":
+			_gen_pagina()
+		_:
+			p["algoritmo"] = "salas"
+			_gen_salas()
+	_retoques = retoques.duplicate()
+	_aplicar_retoques(retoques)
+	_cerrar_borde()
+	_quitar_inalcanzable()
+	_asegurar_tierra_conectada()
+	_revisar_salas_y_puertas()
+	_poblar()
+	return _resultado()
+
+
+# =====================================================================================================================
+#  Utilidades
+# =====================================================================================================================
+
+func _dentro(c: Vector2i) -> bool:
+	return c.x >= 0 and c.y >= 0 and c.x < w and c.y < h
+
+
+func _tipo(c: Vector2i) -> int:
+	return g[c.y * w + c.x] if _dentro(c) else MURO
+
+
+func _poner(c: Vector2i, t: int) -> void:
+	if c.x >= 1 and c.y >= 1 and c.x < w - 1 and c.y < h - 1:
+		g[c.y * w + c.x] = t
+
+
+func _azar(a: int, b: int) -> int:
+	return rng.randi_range(a, b) if b > a else a
+
+
+func _pct(x: float) -> bool:
+	return rng.randf() * 100.0 < x
+
+
+## Baraja con el generador de la semilla (Array.shuffle usa el global y no sería reproducible).
+func _barajar(a: Array) -> void:
+	for i in range(a.size() - 1, 0, -1):
+		var j: int = rng.randi_range(0, i)
+		var t: Variant = a[i]
+		a[i] = a[j]
+		a[j] = t
+
+
+func _id(base: String) -> String:
+	var n: int = int(_cont.get(base, 0)) + 1
+	_cont[base] = n
+	return "%s_%d" % [base, n]
+
+
+func _vale(i: int, solo_tierra: bool, bloqueadas: Dictionary) -> bool:
+	var t: int = g[i]
+	if t == MURO or (solo_tierra and t == AGUA):
+		return false
+	return bloqueadas.is_empty() or not bloqueadas.has(Vector2i(i % w, i / w))
+
+
+## Componentes conexas (a cuatro vecinas) de lo que se pisa. Devuelve [componente por casilla (-1 = no cuenta), tamaños].
+func _componentes(solo_tierra: bool = false, bloqueadas: Dictionary = {}) -> Array:
+	var comp: PackedInt32Array = PackedInt32Array()
+	comp.resize(w * h)
+	comp.fill(-1)
+	var tams: Array = []
+	for i0 in range(w * h):
+		if comp[i0] >= 0 or not _vale(i0, solo_tierra, bloqueadas):
+			continue
+		var id: int = tams.size()
+		var n: int = 0
+		var pila: PackedInt32Array = PackedInt32Array([i0])
+		comp[i0] = id
+		while not pila.is_empty():
+			var i: int = pila[pila.size() - 1]
+			pila.remove_at(pila.size() - 1)
+			n += 1
+			var x: int = i % w
+			var y: int = i / w
+			for d in DIRS:
+				var nx: int = x + d.x
+				var ny: int = y + d.y
+				if nx < 0 or ny < 0 or nx >= w or ny >= h:
+					continue
+				var j: int = ny * w + nx
+				if comp[j] < 0 and _vale(j, solo_tierra, bloqueadas):
+					comp[j] = id
+					pila.append(j)
+		tams.append(n)
+	return [comp, tams]
+
+
+## Distancia en pasos desde `desde` por lo que se pisa (-1 = no se llega). `bloqueadas`: casillas que no se cruzan.
+func _distancias(desde: Vector2i, bloqueadas: Dictionary = {}) -> PackedInt32Array:
+	var dist: PackedInt32Array = PackedInt32Array()
+	dist.resize(w * h)
+	dist.fill(-1)
+	if not _dentro(desde) or _tipo(desde) == MURO:
+		return dist
+	var cola: PackedInt32Array = PackedInt32Array([desde.y * w + desde.x])
+	dist[cola[0]] = 0
+	var k: int = 0
+	while k < cola.size():
+		var i: int = cola[k]
+		k += 1
+		var x: int = i % w
+		var y: int = i / w
+		for d in DIRS:
+			var c: Vector2i = Vector2i(x + d.x, y + d.y)
+			if not _dentro(c):
+				continue
+			var j: int = c.y * w + c.x
+			if dist[j] >= 0 or g[j] == MURO or bloqueadas.has(c):
+				continue
+			dist[j] = dist[i] + 1
+			cola.append(j)
+	return dist
+
+
+# =====================================================================================================================
+#  «salas»: salas y pasillos sobre una rejilla lógica (impares = huecos, pares = muros)
+# =====================================================================================================================
+
+func _gen_salas() -> void:
+	var a: int = clampi(int(p["ancho_pasillo"]), 1, 3)
+	var nj: int = maxi(4, (clampi(int(p["ancho"]), 12, ANCHO_MAX) - 1) / (a + 1))
+	var ni: int = maxi(4, (clampi(int(p["alto"]), 12, ALTO_MAX) - 1) / (a + 1))
+	_lw = 2 * nj + 1
+	_lh = 2 * ni + 1
+	_L = PackedInt32Array()
+	_L.resize(_lw * _lh)
+	_L.fill(0)
+	_Lid = PackedInt32Array()
+	_Lid.resize(_lw * _lh)
+	_Lid.fill(-1)
+	_lsalas = []
+	# 1 · La forma del mapa bloquea parte de la rejilla.
+	var forma: String = String(p["forma"])
+	for r in range(_lh):
+		for c in range(_lw):
+			var fr: float = (r + 0.5) / float(_lh)
+			var fc: float = (c + 0.5) / float(_lw)
+			var bloq: bool = false
+			match forma:
+				"caja":
+					bloq = fr > 0.36 and fr < 0.64 and fc > 0.36 and fc < 0.64
+				"cruz":
+					bloq = (fr < 0.3 or fr > 0.7) and (fc < 0.3 or fc > 0.7)
+				"redonda":
+					bloq = Vector2(fc - 0.5, fr - 0.5).length() > 0.5
+			if bloq:
+				_L[r * _lw + c] |= _B
+	# 2 · Salas.
+	var smin: int = clampi(int(p["sala_min"]), 1, 8)
+	var smax: int = clampi(int(p["sala_max"]), smin, 10)
+	var dens: float = clampf(float(p["densidad_salas"]), 0.1, 3.0)
+	if String(p["reparto"]) == "densas":
+		for i in range(ni):
+			for j in range(nj):
+				if _L[(2 * i + 1) * _lw + 2 * j + 1] & (_B | _R):
+					continue
+				if not _pct(45.0 * dens):
+					continue
+				var hu: int = _azar(smin, smax)
+				var wu: int = _azar(smin, smax)
+				while not _l_sala(i, j, hu, wu) and (hu > smin or wu > smin):
+					hu = maxi(smin, hu - 1)
+					wu = maxi(smin, wu - 1)
+	else:
+		var quiero: int = maxi(2, int(ceil(ni * nj / float(smax * smax) * 1.6 * dens)))
+		var intentos: int = quiero * 4
+		while _lsalas.size() < quiero and intentos > 0:
+			intentos -= 1
+			var hu2: int = _azar(smin, smax)
+			var wu2: int = _azar(smin, smax)
+			_l_sala(_azar(0, ni - hu2), _azar(0, nj - wu2), hu2, wu2)
+	var red: int = 300
+	while _lsalas.size() < 2 and red > 0:          # con formas raras o salas enormes puede no caber casi nada: al menos dos, pequeñas
+		red -= 1
+		_l_sala(_azar(0, ni - 1), _azar(0, nj - 1), mini(smin, 2), mini(smin, 2))
+	# 3 · Puertas: en cada sala, f + azar(f) huecos del perímetro (f = raíz del área), sin repetir pareja de salas.
+	var pares: Dictionary = {}
+	for id in range(_lsalas.size()):
+		var s: Array = _lsalas[id]
+		var r1: int = 2 * int(s[0]) + 1
+		var c1: int = 2 * int(s[1]) + 1
+		var r2: int = 2 * (int(s[0]) + int(s[2]) - 1) + 1
+		var c2: int = 2 * (int(s[1]) + int(s[3]) - 1) + 1
+		var cand: Array = []                       # [fila puerta, columna puerta, fila de fuera, columna de fuera]
+		for c in range(c1, c2 + 1, 2):
+			cand.append([r1 - 1, c, r1 - 2, c])
+			cand.append([r2 + 1, c, r2 + 2, c])
+		for r in range(r1, r2 + 1, 2):
+			cand.append([r, c1 - 1, r, c1 - 2])
+			cand.append([r, c2 + 1, r, c2 + 2])
+		_barajar(cand)
+		var f: int = int(sqrt(float(int(s[2]) * int(s[3]))))
+		var n: int = f + _azar(0, maxi(f - 1, 0))
+		n = maxi(1, int(round(n * clampf(float(p["puertas"]), 0.0, 200.0) / 50.0)))
+		var puestas: int = 0
+		for k in cand:
+			if puestas >= n:
+				break
+			var rf: int = int(k[2])
+			var cf: int = int(k[3])
+			if rf < 1 or cf < 1 or rf > _lh - 2 or cf > _lw - 2:
+				continue
+			var ip: int = int(k[0]) * _lw + int(k[1])
+			var ifu: int = rf * _lw + cf
+			if (_L[ifu] & _B) or (_L[ip] & (_B | _D)):
+				continue
+			var otro: int = _Lid[ifu]
+			if otro >= 0:
+				var clave: Vector2i = Vector2i(mini(id, otro), maxi(id, otro))
+				if pares.has(clave):
+					continue
+				pares[clave] = true
+			_L[ip] |= _D
+			puestas += 1
+	# 4 · Laberinto en todo hueco libre: recorrido en profundidad con querencia a seguir recto (`recto` %).
+	var recto: float = clampf(float(p["recto"]), 0.0, 100.0)
+	for i in range(ni):
+		for j in range(nj):
+			var r0: int = 2 * i + 1
+			var c0: int = 2 * j + 1
+			if _L[r0 * _lw + c0] & (_B | _R | _C):
+				continue
+			_L[r0 * _lw + c0] |= _C
+			var pila: Array = [[r0, c0, -1]]
+			while not pila.is_empty():
+				var t: Array = pila[pila.size() - 1]
+				var orden: Array = [0, 1, 2, 3]
+				_barajar(orden)
+				if int(t[2]) >= 0 and _pct(recto):
+					orden.erase(int(t[2]))
+					orden.push_front(int(t[2]))
+				var hecho: bool = false
+				for d in orden:
+					var dv: Vector2i = DIRS[int(d)]
+					var nr: int = int(t[0]) + 2 * dv.y
+					var nc: int = int(t[1]) + 2 * dv.x
+					if nr < 1 or nc < 1 or nr > _lh - 2 or nc > _lw - 2:
+						continue
+					var im: int = (int(t[0]) + dv.y) * _lw + int(t[1]) + dv.x
+					var inx: int = nr * _lw + nc
+					if (_L[im] & (_B | _P | _C | _R | _D)) or (_L[inx] & (_B | _P | _C | _R)):
+						continue
+					_L[im] |= _C
+					_L[inx] |= _C
+					pila.append([nr, nc, int(d)])
+					hecho = true
+					break
+				if not hecho:
+					pila.pop_back()
+	# 5 · Podar callejones (`callejones` % de los que hay) y quitar las puertas que ya no dan a nada.
+	var poda: float = clampf(float(p["callejones"]), 0.0, 100.0)
+	for i in range(ni):
+		for j in range(nj):
+			var r: int = 2 * i + 1
+			var c: int = 2 * j + 1
+			if (_L[r * _lw + c] & _C) and not (_L[r * _lw + c] & _R) and _l_abiertos(r, c).size() <= 1 and _pct(poda):
+				_l_colapsar(r, c)
+	_l_revisar_puertas()
+	# 6 · Que todo quede unido: lo suelto se une por el camino más corto de huecos (abriendo puerta si cruza la pared de una sala).
+	_l_conectar()
+	_l_revisar_puertas()
+	# 7 · A casillas: cada hueco lógico son `a` casillas y cada muro, una.
+	w = nj * (a + 1) + 1
+	h = ni * (a + 1) + 1
+	g = PackedByteArray()
+	g.resize(w * h)
+	g.fill(MURO)
+	for r in range(_lh):
+		for c in range(_lw):
+			var v: int = _L[r * _lw + c]
+			if v & _D:
+				g[_l_celda_puerta(r, c, a).y * w + _l_celda_puerta(r, c, a).x] = SUELO
+			elif v & (_R | _C):
+				for y in range(_l_ini(r, a), _l_ini(r, a) + _l_tam(r, a)):
+					for x in range(_l_ini(c, a), _l_ini(c, a) + _l_tam(c, a)):
+						g[y * w + x] = SUELO
+	var nuevo_id: Dictionary = {}
+	for id in range(_lsalas.size()):
+		var s2: Array = _lsalas[id]
+		var rr1: int = 2 * int(s2[0]) + 1
+		var cc1: int = 2 * int(s2[1]) + 1
+		if not (_L[rr1 * _lw + cc1] & _R):
+			continue                               # sala retirada al no poder unirla
+		var rr2: int = 2 * (int(s2[0]) + int(s2[2]) - 1) + 1
+		var cc2: int = 2 * (int(s2[1]) + int(s2[3]) - 1) + 1
+		var rect: Rect2i = Rect2i(_l_ini(cc1, a), _l_ini(rr1, a), _l_ini(cc2, a) + a - _l_ini(cc1, a), _l_ini(rr2, a) + a - _l_ini(rr1, a))
+		nuevo_id[id] = salas.size()
+		_nueva_sala(rect)
+	for r in range(_lh):
+		for c in range(_lw):
+			if not (_L[r * _lw + c] & _D):
+				continue
+			var lados: Array = [[r - 1, c], [r + 1, c]] if r % 2 == 0 else [[r, c - 1], [r, c + 1]]
+			var de: Array = []
+			for l in lados:
+				var sid: int = _Lid[int(l[0]) * _lw + int(l[1])]
+				if sid >= 0 and nuevo_id.has(sid) and not de.has(int(nuevo_id[sid])):
+					de.append(int(nuevo_id[sid]))
+			puertas.append({"c": _l_celda_puerta(r, c, a), "salas": de, "tipo": "paso"})
+
+
+func _l_ini(k: int, a: int) -> int:
+	return (k / 2) * (a + 1) + (1 if k % 2 == 1 else 0)
+
+
+func _l_tam(k: int, a: int) -> int:
+	return a if k % 2 == 1 else 1
+
+
+## La casilla que se abre de una puerta lógica: la del centro del tramo (la puerta siempre es de una casilla, aunque el pasillo sea ancho).
+func _l_celda_puerta(r: int, c: int, a: int) -> Vector2i:
+	if r % 2 == 0:
+		return Vector2i(_l_ini(c, a) + a / 2, _l_ini(r, a))
+	return Vector2i(_l_ini(c, a), _l_ini(r, a) + a / 2)
+
+
+func _l_sala(i: int, j: int, hu: int, wu: int) -> bool:
+	var r1: int = 2 * i + 1
+	var c1: int = 2 * j + 1
+	var r2: int = 2 * (i + hu - 1) + 1
+	var c2: int = 2 * (j + wu - 1) + 1
+	if i < 0 or j < 0 or r2 > _lh - 2 or c2 > _lw - 2:
+		return false
+	for r in range(r1, r2 + 1):
+		for c in range(c1, c2 + 1):
+			if _L[r * _lw + c] & (_B | _R):
+				return false
+	var id: int = _lsalas.size()
+	for r in range(r1, r2 + 1):
+		for c in range(c1, c2 + 1):
+			_L[r * _lw + c] |= _R
+			_Lid[r * _lw + c] = id
+	for r in range(r1 - 1, r2 + 2):
+		for c in range(c1 - 1, c2 + 2):
+			if not (_L[r * _lw + c] & _R):
+				_L[r * _lw + c] |= _P
+	_lsalas.append([i, j, hu, wu])
+	return true
+
+
+## Direcciones (índice de DIRS) por las que un hueco de pasillo sigue abierto: pasillo o puerta.
+func _l_abiertos(r: int, c: int) -> Array:
+	var res: Array = []
+	for d in range(4):
+		if _L[(r + DIRS[d].y) * _lw + c + DIRS[d].x] & (_C | _D):
+			res.append(d)
+	return res
+
+
+## Cierra un callejón desde su punta hasta el primer cruce (o hasta la puerta a la que no llevaba nadie, que se quita).
+func _l_colapsar(r: int, c: int) -> void:
+	while true:
+		var i: int = r * _lw + c
+		if not (_L[i] & _C) or (_L[i] & _R):
+			return
+		var v: Array = _l_abiertos(r, c)
+		if v.size() > 1:
+			return
+		_L[i] &= ~_C
+		if v.is_empty():
+			return
+		var d: Vector2i = DIRS[int(v[0])]
+		var m: int = (r + d.y) * _lw + c + d.x
+		if _L[m] & _D:
+			_L[m] &= ~_D
+			return
+		_L[m] &= ~_C
+		r += 2 * d.y
+		c += 2 * d.x
+
+
+## Una puerta vale si a sus dos lados hay sala o pasillo.
+func _l_revisar_puertas() -> void:
+	for r in range(1, _lh - 1):
+		for c in range(1, _lw - 1):
+			if not (_L[r * _lw + c] & _D):
+				continue
+			var a1: int = _L[(r - 1) * _lw + c] if r % 2 == 0 else _L[r * _lw + c - 1]
+			var a2: int = _L[(r + 1) * _lw + c] if r % 2 == 0 else _L[r * _lw + c + 1]
+			if not (a1 & (_R | _C)) or not (a2 & (_R | _C)):
+				_L[r * _lw + c] &= ~_D
+
+
+func _l_conectar() -> void:
+	var abierto: int = _R | _C | _D
+	for _vuelta in range(80):
+		var comp: PackedInt32Array = PackedInt32Array()
+		comp.resize(_lw * _lh)
+		comp.fill(-1)
+		var tams: Array = []
+		for i0 in range(_lw * _lh):
+			if comp[i0] >= 0 or not (_L[i0] & abierto):
+				continue
+			var n: int = 0
+			var pila: PackedInt32Array = PackedInt32Array([i0])
+			comp[i0] = tams.size()
+			while not pila.is_empty():
+				var i: int = pila[pila.size() - 1]
+				pila.remove_at(pila.size() - 1)
+				n += 1
+				for d in DIRS:
+					var j: int = i + d.y * _lw + d.x          # el borde lógico nunca está abierto: no se sale de la rejilla
+					if comp[j] < 0 and (_L[j] & abierto):
+						comp[j] = tams.size()
+						pila.append(j)
+			tams.append(n)
+		if tams.size() <= 1:
+			return
+		var k: int = 0
+		for t in range(tams.size()):
+			if int(tams[t]) < int(tams[k]):
+				k = t
+		# Búsqueda en anchura por huecos (impar, impar) desde la componente pequeña hasta tocar otra.
+		var prev: Dictionary = {}
+		var cola: PackedInt32Array = PackedInt32Array()
+		for r in range(1, _lh - 1, 2):
+			for c in range(1, _lw - 1, 2):
+				if comp[r * _lw + c] == k:
+					cola.append(r * _lw + c)
+					prev[r * _lw + c] = -1
+		var meta: int = -1
+		var q: int = 0
+		while q < cola.size() and meta < 0:
+			var u: int = cola[q]
+			q += 1
+			var ur: int = u / _lw
+			var uc: int = u % _lw
+			for d in DIRS:
+				var nr: int = ur + 2 * d.y
+				var nc: int = uc + 2 * d.x
+				if nr < 1 or nc < 1 or nr > _lh - 2 or nc > _lw - 2:
+					continue
+				var v: int = nr * _lw + nc
+				var m: int = (ur + d.y) * _lw + uc + d.x
+				if prev.has(v) or (_L[v] & _B) or (_L[m] & _B):
+					continue
+				prev[v] = u
+				if (_L[v] & (_R | _C)) and comp[v] != k:
+					meta = v
+					break
+				cola.append(v)
+		if meta < 0:
+			# Aislada por la forma del mapa: se retira.
+			for i in range(_lw * _lh):
+				if comp[i] == k:
+					_L[i] &= ~abierto
+			continue
+		var cur: int = meta
+		while int(prev[cur]) >= 0:
+			var u2: int = int(prev[cur])
+			var m2: int = (cur + u2) / 2
+			if not (_L[m2] & abierto):
+				_L[m2] |= _D if (_L[m2] & _P) else _C
+			if not (_L[cur] & (_R | _C)):
+				_L[cur] |= _C
+			cur = u2
+
+
+# =====================================================================================================================
+#  «cueva»: autómata celular
+# =====================================================================================================================
+
+func _gen_cueva() -> void:
+	w = clampi(int(p["ancho"]), 12, ANCHO_MAX)
+	h = clampi(int(p["alto"]), 12, ALTO_MAX)
+	g = PackedByteArray()
+	g.resize(w * h)
+	g.fill(MURO)
+	var relleno: float = clampf(float(p["relleno"]), 30.0, 60.0)
+	for y in range(1, h - 1):
+		for x in range(1, w - 1):
+			if not _pct(relleno):
+				g[y * w + x] = SUELO
+	# Suavizado: una casilla es roca si lo son 5 o más de las 9 de su entorno.
+	for _k in range(clampi(int(p["suavizados"]), 0, 12)):
+		var n: PackedByteArray = g.duplicate()
+		for y in range(1, h - 1):
+			for x in range(1, w - 1):
+				var m: int = 0
+				for dy in range(-1, 2):
+					for dx in range(-1, 2):
+						if g[(y + dy) * w + x + dx] == MURO:
+							m += 1
+				n[y * w + x] = MURO if m >= 5 else SUELO
+		g = n
+	# Regiones sueltas: las pequeñas se tapan y las demás se unen con un túnel de dos casillas por el camino más corto.
+	var region_min: int = maxi(1, int(p["region_min"]))
+	for _v in range(60):
+		var res: Array = _componentes()
+		var comp: PackedInt32Array = res[0]
+		var tams: Array = res[1]
+		if tams.size() <= 1:
+			break
+		var k: int = 0
+		for t in range(tams.size()):
+			if int(tams[t]) < int(tams[k]):
+				k = t
+		if int(tams[k]) < region_min:
+			for i in range(w * h):
+				if comp[i] == k:
+					g[i] = MURO
+			continue
+		var prev: PackedInt32Array = PackedInt32Array()
+		prev.resize(w * h)
+		prev.fill(-2)
+		var cola: PackedInt32Array = PackedInt32Array()
+		for i in range(w * h):
+			if comp[i] == k:
+				cola.append(i)
+				prev[i] = -1
+		var meta: int = -1
+		var q: int = 0
+		while q < cola.size() and meta < 0:
+			var i2: int = cola[q]
+			q += 1
+			for d in DIRS:
+				var x2: int = i2 % w + d.x
+				var y2: int = i2 / w + d.y
+				if x2 < 1 or y2 < 1 or x2 > w - 2 or y2 > h - 2:
+					continue
+				var j: int = y2 * w + x2
+				if prev[j] != -2:
+					continue
+				prev[j] = i2
+				if g[j] != MURO:
+					meta = j
+					break
+				cola.append(j)
+		if meta < 0:
+			for i in range(w * h):
+				if comp[i] == k:
+					g[i] = MURO
+			continue
+		var cur: int = prev[meta]
+		while cur >= 0 and comp[cur] != k:
+			var cc: Vector2i = Vector2i(cur % w, cur / w)
+			_poner(cc, SUELO)
+			if _tipo(cc + Vector2i(1, 0)) == MURO:
+				_poner(cc + Vector2i(1, 0), SUELO)
+			if _tipo(cc + Vector2i(0, 1)) == MURO:
+				_poner(cc + Vector2i(0, 1), SUELO)
+			cur = prev[cur]
+	var suelo: int = g.count(SUELO)
+	if suelo < 30:
+		avisos.append("La cueva salió casi toda roca (relleno muy alto): se abre una sala central.")
+		for y in range(h / 2 - 3, h / 2 + 4):
+			for x in range(w / 2 - 4, w / 2 + 5):
+				_poner(Vector2i(x, y), SUELO)
+	# Agua: se inunda lo más bajo de un mapa de ruido (`agua` % del suelo).
+	var pct: float = clampf(float(p["agua"]), 0.0, 40.0)
+	if pct > 0.0:
+		var ruido: FastNoiseLite = FastNoiseLite.new()
+		ruido.seed = int(p["semilla"])
+		ruido.noise_type = FastNoiseLite.TYPE_SIMPLEX_SMOOTH
+		ruido.frequency = 0.09
+		var vals: Array = []
+		for i in range(w * h):
+			if g[i] == SUELO:
+				vals.append(ruido.get_noise_2d(float(i % w), float(i / w)))
+		if not vals.is_empty():
+			vals.sort()
+			var umbral: float = float(vals[clampi(int(vals.size() * pct / 100.0), 0, vals.size() - 1)])
+			for i in range(w * h):
+				if g[i] == SUELO and ruido.get_noise_2d(float(i % w), float(i / w)) < umbral:
+					g[i] = AGUA
+	_cueva_claros()
+
+
+## La cueva no tiene salas: se eligen «claros» (los puntos más anchos, lo más separados posible) para repartir el contenido como si lo fueran.
+func _cueva_claros() -> void:
+	var dist: PackedInt32Array = PackedInt32Array()
+	dist.resize(w * h)
+	dist.fill(-1)
+	var cola: PackedInt32Array = PackedInt32Array()
+	for i in range(w * h):
+		if g[i] == MURO:
+			dist[i] = 0
+			cola.append(i)
+	var q: int = 0
+	while q < cola.size():
+		var i: int = cola[q]
+		q += 1
+		for d in DIRS:
+			var x: int = i % w + d.x
+			var y: int = i / w + d.y
+			if x < 0 or y < 0 or x >= w or y >= h:
+				continue
+			if dist[y * w + x] < 0:
+				dist[y * w + x] = dist[i] + 1
+				cola.append(y * w + x)
+	var cand: Array = []
+	for corte in [3, 2, 1]:
+		cand = []
+		for i in range(w * h):
+			if g[i] == SUELO and dist[i] >= int(corte):
+				cand.append(i)
+		if cand.size() >= 12:
+			break
+	if cand.is_empty():
+		return
+	var quiero: int = clampi(g.count(SUELO) / 70, 3, 12)
+	var elegidos: Array = []
+	var primero: int = int(cand[0])
+	for i in cand:
+		if int(i) / w > primero / w:
+			primero = int(i)                       # el más al sur: ahí irá la entrada
+	elegidos.append(primero)
+	while elegidos.size() < quiero:
+		var mejor: int = -1
+		var mejor_d: int = -1
+		for i in cand:
+			var dmin: int = 1 << 30
+			for e in elegidos:
+				var dx: int = int(i) % w - int(e) % w
+				var dy: int = int(i) / w - int(e) / w
+				dmin = mini(dmin, dx * dx + dy * dy)
+			if dmin > mejor_d:
+				mejor_d = dmin
+				mejor = int(i)
+		if mejor < 0 or mejor_d < 36:
+			break
+		elegidos.append(mejor)
+	for e in elegidos:
+		var c: Vector2i = Vector2i(int(e) % w, int(e) / w)
+		var radio: int = clampi(dist[int(e)], 1, 3)
+		_nueva_sala(Rect2i(c - Vector2i(radio, radio), Vector2i(2 * radio + 1, 2 * radio + 1)))
+
+
+# =====================================================================================================================
+#  «pagina»: crece desde una sala raíz, con grupos simétricos y bucles
+# =====================================================================================================================
+
+func _gen_pagina() -> void:
+	w = clampi(int(p["ancho"]), 15, ANCHO_MAX)
+	h = clampi(int(p["alto"]), 15, ALTO_MAX)
+	g = PackedByteArray()
+	g.resize(w * h)
+	g.fill(MURO)
+	var lmin: int = clampi(int(p["lado_min"]), 2, 12)
+	var lmax: int = clampi(int(p["lado_max"]), lmin, 16)
+	var quiero: int = clampi(int(p["n_salas"]), 2, 40)
+	var sim: bool = bool(p["simetria"])
+	var pasillos: float = clampf(float(p["pasillos"]), 0.0, 90.0)
+	var rw: int = _azar(maxi(lmin, 3), maxi(lmax, 3))
+	if rw % 2 == 0:
+		rw += 1
+	var rh: int = _azar(maxi(lmin, 3), maxi(lmax, 3))
+	rw = mini(rw, w - 4 - (w % 2))
+	rh = mini(rh, h - 4)
+	var raiz: Rect2i = Rect2i((w - rw) / 2, h - 1 - rh, rw, rh)
+	_eje = raiz.position.x + rw / 2
+	_nueva_sala(raiz)
+	salas[0]["eje"] = true
+	var intentos: int = quiero * 80
+	while salas.size() < quiero and intentos > 0:
+		intentos -= 1
+		var ip: int = clampi(salas.size() - 1 - int(absf(rng.randfn(0.0, salas.size() * 0.45))), 0, salas.size() - 1)
+		var padre: Dictionary = salas[ip]
+		var pr: Rect2i = padre["rect"]
+		var lado: int = int([0, 0, 0, 0, 1, 1, 1, 3, 3, 3, 2][_azar(0, 10)])
+		var ww: int = _azar(lmin, lmax)
+		var hh: int = _azar(lmin, lmax)
+		if _pct(pasillos):
+			var largo: int = _azar(4, 8)
+			var grueso: int = _azar(1, 2)
+			ww = grueso if lado % 2 == 0 else largo
+			hh = largo if lado % 2 == 0 else grueso
+		var centrada: bool = sim and bool(padre["eje"]) and lado % 2 == 0
+		if centrada and ww % 2 == 0:
+			ww += 1
+		var x: int = 0
+		var y: int = 0
+		match lado:
+			0:
+				y = pr.position.y - 1 - hh
+				x = _eje - ww / 2 if centrada else _alinear(pr.position.x, pr.size.x, ww)
+			2:
+				y = pr.end.y + 1
+				x = _eje - ww / 2 if centrada else _alinear(pr.position.x, pr.size.x, ww)
+			1:
+				x = pr.end.x + 1
+				y = _alinear(pr.position.y, pr.size.y, hh)
+			_:
+				x = pr.position.x - 1 - ww
+				y = _alinear(pr.position.y, pr.size.y, hh)
+		var rect: Rect2i = Rect2i(x, y, ww, hh)
+		if not _pagina_cabe(rect):
+			continue
+		var pc: Vector2i = _puerta_entre(pr, rect)
+		if pc.x < 0:
+			continue
+		var nueva: int = _nueva_sala(rect)
+		salas[nueva]["eje"] = centrada
+		puertas.append({"c": pc, "salas": [ip, nueva], "tipo": "paso"})
+		if sim and not centrada:
+			var pm: int = ip if bool(padre["eje"]) else int(padre["gemela"])
+			if pm >= 0:
+				var rm: Rect2i = Rect2i(2 * _eje - (x + ww - 1), y, ww, hh)
+				if rm != rect and _pagina_cabe(rm):
+					var gm: int = _nueva_sala(rm)
+					salas[nueva]["gemela"] = gm
+					salas[gm]["gemela"] = nueva
+					puertas.append({"c": Vector2i(2 * _eje - pc.x, pc.y), "salas": [pm, gm], "tipo": "paso"})
+	# Bucles: entre salas que comparten pared y no tienen puerta.
+	var unidas: Dictionary = {}
+	for pu in puertas:
+		var de: Array = pu["salas"]
+		unidas[Vector2i(mini(int(de[0]), int(de[1])), maxi(int(de[0]), int(de[1])))] = true
+	var bucles: float = clampf(float(p["bucles"]), 0.0, 100.0)
+	for i in range(salas.size()):
+		for j in range(i + 1, salas.size()):
+			if unidas.has(Vector2i(i, j)):
+				continue
+			var pc2: Vector2i = _puerta_entre(salas[i]["rect"], salas[j]["rect"])
+			if pc2.x >= 0 and _pct(bucles):
+				puertas.append({"c": pc2, "salas": [i, j], "tipo": "paso"})
+	for s in salas:
+		var r: Rect2i = s["rect"]
+		for yy in range(r.position.y, r.end.y):
+			for xx in range(r.position.x, r.end.x):
+				g[yy * w + xx] = SUELO
+	for pu in puertas:
+		g[int(pu["c"].y) * w + int(pu["c"].x)] = SUELO
+	if salas.size() < quiero:
+		avisos.append("Solo caben %d salas de las %d pedidas en %d × %d: agranda el mapa o achica las salas." % [salas.size(), quiero, w, h])
+
+
+## Dónde empieza un tramo de largo `l` pegado a otro que va de `p0` con largo `pl`: centrado la mitad de las veces; si no, donde caiga con solape.
+func _alinear(p0: int, pl: int, l: int) -> int:
+	if _pct(50.0):
+		return p0 + (pl - l) / 2
+	return _azar(p0 - l + 1, p0 + pl - 1)
+
+
+func _pagina_cabe(rect: Rect2i) -> bool:
+	if not Rect2i(1, 1, w - 2, h - 2).encloses(rect):
+		return false
+	var gorda: Rect2i = rect.grow(1)
+	for s in salas:
+		if gorda.intersects(s["rect"]):
+			return false
+	return true
+
+
+## La casilla de pared entre dos salas separadas por una sola pared y con solape; (-1, -1) si no son vecinas.
+func _puerta_entre(a: Rect2i, b: Rect2i) -> Vector2i:
+	var x0: int = maxi(a.position.x, b.position.x)
+	var x1: int = mini(a.end.x, b.end.x) - 1
+	var y0: int = maxi(a.position.y, b.position.y)
+	var y1: int = mini(a.end.y, b.end.y) - 1
+	if x1 >= x0:
+		if b.end.y + 1 == a.position.y:
+			return Vector2i((x0 + x1) / 2, a.position.y - 1)
+		if a.end.y + 1 == b.position.y:
+			return Vector2i((x0 + x1) / 2, a.end.y)
+	if y1 >= y0:
+		if a.end.x + 1 == b.position.x:
+			return Vector2i(a.end.x, (y0 + y1) / 2)
+		if b.end.x + 1 == a.position.x:
+			return Vector2i(a.position.x - 1, (y0 + y1) / 2)
+	return Vector2i(-1, -1)
+
+
+# =====================================================================================================================
+#  Común: retoques, borde, conexión
+# =====================================================================================================================
+
+func _nueva_sala(rect: Rect2i) -> int:
+	salas.append({"id": salas.size(), "rect": rect, "rol": "", "eje": false, "gemela": -1, "viva": true, "enemigos": 0, "dist": 0})
+	return salas.size() - 1
+
+
+func _aplicar_retoques(retoques: Dictionary) -> void:
+	for c in retoques:
+		var t: int = LETRA.find(String(retoques[c]))
+		if t >= 0 and c is Vector2i:
+			_poner(c, t)
+
+
+func _cerrar_borde() -> void:
+	for x in range(w):
+		g[x] = MURO
+		g[(h - 1) * w + x] = MURO
+	for y in range(h):
+		g[y * w] = MURO
+		g[y * w + w - 1] = MURO
+
+
+## Se queda con la mayor zona conexa; lo demás se tapa (puede pasar al pintar muros a mano o con formas de mapa raras).
+func _quitar_inalcanzable() -> void:
+	var res: Array = _componentes()
+	var comp: PackedInt32Array = res[0]
+	var tams: Array = res[1]
+	if tams.size() <= 1:
+		return
+	var k: int = 0
+	for t in range(tams.size()):
+		if int(tams[t]) > int(tams[k]):
+			k = t
+	var quitadas: int = 0
+	for i in range(w * h):
+		if comp[i] >= 0 and comp[i] != k:
+			g[i] = MURO
+			quitadas += 1
+	avisos.append("%d casillas quedaban aisladas del resto y se han tapado." % quitadas)
+
+
+## El agua honda se nada, pero los enemigos no: si parte la tierra en trozos, se abre un vado (agua → suelo) por el camino más corto.
+func _asegurar_tierra_conectada() -> void:
+	for _v in range(80):
+		var res: Array = _componentes(true)
+		var comp: PackedInt32Array = res[0]
+		var tams: Array = res[1]
+		if tams.size() <= 1:
+			return
+		var k: int = 0
+		for t in range(tams.size()):
+			if int(tams[t]) < int(tams[k]):
+				k = t
+		var prev: PackedInt32Array = PackedInt32Array()
+		prev.resize(w * h)
+		prev.fill(-2)
+		var cola: PackedInt32Array = PackedInt32Array()
+		for i in range(w * h):
+			if comp[i] == k:
+				cola.append(i)
+				prev[i] = -1
+		var meta: int = -1
+		var q: int = 0
+		while q < cola.size() and meta < 0:
+			var i2: int = cola[q]
+			q += 1
+			for d in DIRS:
+				var x: int = i2 % w + d.x
+				var y: int = i2 / w + d.y
+				if x < 0 or y < 0 or x >= w or y >= h:
+					continue
+				var j: int = y * w + x
+				if prev[j] != -2 or g[j] == MURO:
+					continue
+				prev[j] = i2
+				if g[j] == SUELO:
+					meta = j
+					break
+				cola.append(j)
+		if meta < 0:
+			return
+		var cur: int = prev[meta]
+		while cur >= 0 and comp[cur] != k:
+			g[cur] = SUELO
+			cur = prev[cur]
+
+
+func _revisar_salas_y_puertas() -> void:
+	for s in salas:
+		var r: Rect2i = s["rect"]
+		var n: int = 0
+		for y in range(r.position.y, r.end.y):
+			for x in range(r.position.x, r.end.x):
+				if _tipo(Vector2i(x, y)) == SUELO:
+					n += 1
+		if n * 2 < r.get_area() or n == 0:
+			s["viva"] = false
+	var buenas: Array = []
+	for pu in puertas:
+		var c: Vector2i = pu["c"]
+		if _tipo(c) == MURO:
+			continue
+		var de: Array = []
+		for sid in pu["salas"]:
+			if bool(salas[int(sid)]["viva"]):
+				de.append(int(sid))
+		pu["salas"] = de
+		buenas.append(pu)
+	puertas = buenas
+
+
+# =====================================================================================================================
+#  Contenido
+# =====================================================================================================================
+
+func _vivas() -> Array:
+	var res: Array = []
+	for s in salas:
+		if bool(s["viva"]):
+			res.append(s)
+	return res
+
+
+## Casillas de suelo de una sala (sin agua).
+func _celdas_sala(s: Dictionary) -> Array:
+	var res: Array = []
+	var r: Rect2i = s["rect"]
+	for y in range(r.position.y, r.end.y):
+		for x in range(r.position.x, r.end.x):
+			if _tipo(Vector2i(x, y)) == SUELO:
+				res.append(Vector2i(x, y))
+	return res
+
+
+func _puertas_de(id: int) -> Array:
+	var res: Array = []
+	for pu in puertas:
+		if (pu["salas"] as Array).has(id):
+			res.append(pu)
+	return res
+
+
+func _cerca_de_puerta(c: Vector2i, radio: int = 1) -> bool:
+	for pu in puertas:
+		var d: Vector2i = (pu["c"] as Vector2i) - c
+		if absi(d.x) <= radio and absi(d.y) <= radio:
+			return true
+	return false
+
+
+func _libre(c: Vector2i) -> bool:
+	return _tipo(c) == SUELO and not _ocupada.has(c)
+
+
+## La casilla de suelo libre más cercana al centro de la sala.
+func _centro_libre(s: Dictionary) -> Vector2i:
+	var r: Rect2i = s["rect"]
+	var centro: Vector2 = Vector2(r.position) + Vector2(r.size - Vector2i.ONE) * 0.5
+	var mejor: Vector2i = Vector2i(-1, -1)
+	var md: float = INF
+	for c in _celdas_sala(s):
+		if _ocupada.has(c):
+			continue
+		var d: float = Vector2(c).distance_squared_to(centro)
+		if d < md:
+			md = d
+			mejor = c
+	return mejor
+
+
+## ¿Se puede bloquear esta casilla (un cofre, un jarrón, un brasero) sin partir el mapa? La tierra que queda tiene que seguir siendo una sola pieza.
+func _puede_bloquear(c: Vector2i) -> bool:
+	if not _libre(c) or _cerca_de_puerta(c):
+		return false
+	var prueba: Dictionary = _bloqueos.duplicate()
+	prueba[c] = true
+	return (_componentes(true, prueba)[1] as Array).size() <= 1
+
+
+func _ocupar(c: Vector2i, bloquea: bool = false) -> void:
+	_ocupada[c] = true
+	if bloquea:
+		_bloqueos[c] = true
+
+
+func _objeto(c: Vector2i, tipo: String, id: String = "") -> void:
+	objetos.append({"c": c, "tipo": tipo, "id": id})
+
+
+func _rect_txt(r: Rect2i) -> String:
+	return "%d,%d..%d,%d" % [r.position.x, r.position.y, r.end.x - 1, r.end.y - 1]
+
+
+func _poblar() -> void:
+	var vivas: Array = _vivas()
+	if vivas.is_empty():
+		# Sin salas (un mapa retocado hasta dejarlo sin ninguna): todo lo que se pisa hace de sala única.
+		var caja: Rect2i = Rect2i()
+		var hay: bool = false
+		for i in range(w * h):
+			if g[i] == SUELO:
+				var c: Vector2i = Vector2i(i % w, i / w)
+				caja = caja.expand(c) if hay else Rect2i(c, Vector2i.ONE)
+				hay = true
+		if not hay:
+			avisos.append("El mapa no tiene suelo.")
+			return
+		caja.size += Vector2i.ONE
+		_nueva_sala(caja)
+		vivas = _vivas()
+	var nv: String = String(p["nombre"]).to_lower()
+	var cueva: bool = String(p["estilo"]) == "cueva"
+	# 1 · Inicio: la sala más al sur (la cámara mira al norte: se entra desde abajo). En «pagina», la raíz.
+	var s_ini: Dictionary = vivas[0]
+	if String(p["algoritmo"]) != "pagina" or not bool(salas[0]["viva"]):
+		for s in vivas:
+			if (s["rect"] as Rect2i).end.y > (s_ini["rect"] as Rect2i).end.y:
+				s_ini = s
+	else:
+		s_ini = salas[0]
+	s_ini["rol"] = "inicio"
+	inicio = _centro_libre(s_ini)
+	letras[inicio] = "S"
+	_ocupar(inicio)
+	_objeto(inicio, "inicio")
+	lineas.append("; pieza inicio entrada %d %d" % [inicio.x, inicio.y])
+	var salida_a: String = String(p["salida_a"]).strip_edges()
+	if salida_a != "":
+		var mejor: Vector2i = Vector2i(-1, -1)
+		for c in _celdas_sala(s_ini):
+			if _ocupada.has(c) or _cerca_de_puerta(c) or absi(c.x - inicio.x) + absi(c.y - inicio.y) < 2:
+				continue
+			if mejor.x < 0 or c.y > mejor.y or (c.y == mejor.y and absi(c.x - inicio.x) < absi(mejor.x - inicio.x)):
+				mejor = c
+		if mejor.x >= 0:
+			_ocupar(mejor)
+			_objeto(mejor, "salida", "a_salida")
+			lineas.append("; pieza a_salida salida %d %d a=%s" % [mejor.x, mejor.y, salida_a])
+		else:
+			avisos.append("No cabe la salida en la sala de inicio (demasiado pequeña).")
+	# 2 · Distancia de cada sala al inicio.
+	var dist: PackedInt32Array = _distancias(inicio)
+	var dmax: int = 1
+	for s in vivas:
+		var c: Vector2i = _centro_libre(s)
+		s["dist"] = dist[c.y * w + c.x] if c.x >= 0 else 0
+		dmax = maxi(dmax, int(s["dist"]))
+	# 3 · Sala del tesoro: la más lejana; mejor una con una sola puerta, que se cierra con llave.
+	var s_tes: Dictionary = {}
+	var puerta_llave: Dictionary = {}
+	if bool(p["tesoro"]) and vivas.size() >= 2:
+		var orden: Array = vivas.filter(func(s: Dictionary) -> bool: return String(s["rol"]) == "")
+		orden.sort_custom(func(a: Dictionary, b: Dictionary) -> bool: return int(a["dist"]) > int(b["dist"]) or (int(a["dist"]) == int(b["dist"]) and int(a["id"]) < int(b["id"])))
+		for s in orden:
+			if _puertas_de(int(s["id"])).size() == 1:
+				s_tes = s
+				break
+		if s_tes.is_empty() and bool(p["llave"]):
+			# Ninguna sala de una sola puerta: se intenta tapiar las puertas de más de la más lejana (si el resto sigue unido).
+			for s in orden.slice(0, 4):
+				var ps: Array = _puertas_de(int(s["id"]))
+				if ps.size() < 2:
+					continue
+				ps.sort_custom(func(a: Dictionary, b: Dictionary) -> bool: return dist[int(a["c"].y) * w + int(a["c"].x)] < dist[int(b["c"].y) * w + int(b["c"].x)])
+				var copia: PackedByteArray = g.duplicate()
+				for k in range(1, ps.size()):
+					g[int(ps[k]["c"].y) * w + int(ps[k]["c"].x)] = MURO
+				if (_componentes()[1] as Array).size() <= 1:
+					for k in range(1, ps.size()):
+						puertas.erase(ps[k])
+					s_tes = s
+					break
+				g = copia
+		if s_tes.is_empty() and not orden.is_empty():
+			s_tes = orden[0]
+		if not s_tes.is_empty():
+			s_tes["rol"] = "tesoro"
+			var pt: Array = _puertas_de(int(s_tes["id"]))
+			if bool(p["llave"]) and pt.size() == 1 and vivas.size() >= 3:
+				puerta_llave = pt[0]
+	# 4 · La llave: en la sala más lejana a la que se llega SIN cruzar la puerta del tesoro.
+	var s_llave: Dictionary = {}
+	var sitio_llave: Vector2i = Vector2i(-1, -1)
+	if not puerta_llave.is_empty():
+		var sin: PackedInt32Array = _distancias(inicio, {puerta_llave["c"]: true})
+		var md: int = -1
+		for s in vivas:
+			if String(s["rol"]) != "":
+				continue
+			var c: Vector2i = _centro_libre(s)
+			if c.x >= 0 and sin[c.y * w + c.x] > md:
+				md = sin[c.y * w + c.x]
+				s_llave = s
+		# El cofre de la llave se reserva YA: si no cabe, no hay puerta con llave (una puerta sin llave dejaría el tesoro sin salida).
+		if not s_llave.is_empty():
+			sitio_llave = _sitio_bloqueo(s_llave, true)
+			if sitio_llave.x < 0:
+				s_llave = {}
+		if s_llave.is_empty():
+			puerta_llave = {}
+		else:
+			_ocupar(sitio_llave, true)
+			s_llave["rol"] = "llave"
+			puerta_llave["tipo"] = "llave"
+			var pc: Vector2i = puerta_llave["c"]
+			_ocupar(pc)
+			_objeto(pc, "puerta_llave", "puerta_tesoro")
+			lineas.append("; pieza puerta_tesoro puerta %d %d modelo=llave llave=%s.tesoro.llave gasta=no abierto=%s.tesoro.puerta" % [pc.x, pc.y, nv, nv])
+	# 5 · Charcas dentro de las salas grandes (dejando libre el anillo de las paredes: no cortan el paso).
+	for s in vivas:
+		var r: Rect2i = s["rect"]
+		if String(s["rol"]) == "inicio" or r.size.x < 5 or r.size.y < 5 or String(p["algoritmo"]) == "cueva":
+			continue
+		if not _pct(float(p["charcas"])):
+			continue
+		var cw: int = _azar(2, maxi(2, r.size.x - 3))
+		var ch: int = _azar(2, maxi(2, r.size.y - 3))
+		var cx: int = _azar(r.position.x + 1, r.end.x - 1 - cw)
+		var cy: int = _azar(r.position.y + 1, r.end.y - 1 - ch)
+		for y in range(cy, cy + ch):
+			for x in range(cx, cx + cw):
+				var esquina: bool = (x == cx or x == cx + cw - 1) and (y == cy or y == cy + ch - 1)
+				if (esquina and cw >= 3 and ch >= 3) or _ocupada.has(Vector2i(x, y)):
+					continue
+				g[y * w + x] = AGUA
+	# 6 · Cofres (bloquean su casilla).
+	if not s_tes.is_empty():
+		var ct: Vector2i = _sitio_bloqueo(s_tes, true)
+		if ct.x >= 0:
+			_ocupar(ct, true)
+			_objeto(ct, "cofre_tesoro", "tesoro")
+			lineas.append("; pieza tesoro cofre %d %d abierto=%s.tesoro.cofre da=oro:60+pocion:1" % [ct.x, ct.y, nv])
+		else:
+			avisos.append("No cabe el cofre en la sala del tesoro.")
+	# 7 · Enemigos: más cuanto mayor es la sala y más lejos está. La sala del tesoro con llave es premio: sin guardia.
+	var fuerza: float = clampf(float(p["enemigos"]), 0.0, 4.0)
+	var hay_arquero: bool = false
+	for s in vivas:
+		var rol: String = String(s["rol"])
+		if rol == "inicio" or (rol == "tesoro" and not puerta_llave.is_empty()):
+			continue
+		var celdas: Array = _celdas_sala(s).filter(func(c: Vector2i) -> bool: return not _ocupada.has(c) and not _cerca_de_puerta(c) and absi(c.x - inicio.x) + absi(c.y - inicio.y) >= 5)
+		var n: int = clampi(int(round(celdas.size() / CASILLAS_POR_ENEMIGO * fuerza * (0.6 + 0.8 * int(s["dist"]) / float(dmax)))), 0, 5)
+		if rol == "llave" and fuerza > 0.0:
+			n = maxi(n, 1)
+		_barajar(celdas)
+		for k in range(mini(n, celdas.size())):
+			var c: Vector2i = celdas[k]
+			var arquero: bool = _pct(float(p["arqueros"]))
+			letras[c] = "A" if arquero else "W"
+			hay_arquero = hay_arquero or arquero
+			_ocupar(c)
+			_objeto(c, "arquero" if arquero else "guerrero")
+			s["enemigos"] = int(s["enemigos"]) + 1
+	# 8 · Vigías y cerrojos: la sala de la llave siempre lleva vigía (el cofre aparece al limpiarla); otras se cierran hasta vencer.
+	for s in vivas:
+		if int(s["enemigos"]) == 0:
+			continue
+		var rol: String = String(s["rol"])
+		var r: Rect2i = s["rect"]
+		var celdas_puerta: Array = []
+		var compartida: bool = false               # una puerta que ya es el cerrojo de la sala vecina: dos cerrojos no caben en la misma casilla
+		for pu in _puertas_de(int(s["id"])):
+			if String(pu["tipo"]) == "paso":
+				celdas_puerta.append(pu)
+			elif String(pu["tipo"]) == "cerrojo":
+				compartida = true
+		var cierra: bool = rol != "tesoro" and not compartida and not celdas_puerta.is_empty() and r.get_area() >= 12 and _pct(float(p["salas_cerradas"]))
+		if not cierra and rol != "llave":
+			continue
+		var n: int = int(s["id"])
+		var flag: String = "%s.sala_%d.limpia" % [nv, n]
+		lineas.append("; pieza vigia_%d vigia %d %d de=%s flag=%s" % [n, r.position.x, r.position.y, _rect_txt(r), flag])
+		s["vigia"] = true
+		if cierra:
+			var txt: PackedStringArray = PackedStringArray()
+			for pu in celdas_puerta:
+				pu["tipo"] = "cerrojo"
+				txt.append("%d,%d" % [int(pu["c"].x), int(pu["c"].y)])
+				_ocupar(pu["c"])
+				_objeto(pu["c"], "cerrojo", "cerrojo_%d" % n)
+			var c0: Vector2i = celdas_puerta[0]["c"]
+			lineas.append("; pieza cerrojo_%d cerrojo %d %d celdas=%s sala=%s hasta=%s" % [n, c0.x, c0.y, "+".join(txt), _rect_txt(r), flag])
+			lineas.append("; puzle abre_%d cuando=vigia_%d.todos_derrotados hace=cerrojo_%d.abrir" % [n, n, n])
+			if rol == "":
+				s["rol"] = "combate"
+	if not s_llave.is_empty():
+		_objeto(sitio_llave, "cofre_llave", "cofre_llave")
+		var extra: String = " aparece_si=flag.%s.sala_%d.limpia" % [nv, int(s_llave["id"])] if s_llave.has("vigia") else ""
+		lineas.append("; pieza cofre_llave cofre %d %d%s abierto=%s.tesoro.llave" % [sitio_llave.x, sitio_llave.y, extra, nv])
+	# 9 · Braseros (letra T) en los rincones y jarrones contra la pared del fondo.
+	var n_bras: float = clampf(float(p["braseros"]), 0.0, 4.0)
+	var n_jar: float = clampf(float(p["jarrones"]), 0.0, 6.0)
+	for s in vivas:
+		var r: Rect2i = s["rect"]
+		if r.size.x < 3 or r.size.y < 3:
+			continue
+		var quiero_b: int = int(n_bras) + (1 if _pct(fmod(n_bras, 1.0) * 100.0) else 0)
+		var rincones: Array = [r.position, Vector2i(r.end.x - 1, r.position.y), Vector2i(r.position.x, r.end.y - 1), r.end - Vector2i.ONE]
+		_barajar(rincones)
+		for c in rincones:
+			if quiero_b <= 0:
+				break
+			if _puede_bloquear(c):
+				letras[c] = "T"
+				_ocupar(c, true)
+				_objeto(c, "brasero")
+				if cueva:
+					lineas.append("; pieza %s brasero %d %d luz=2.4 modelo=cueva" % [_id("brasero"), c.x, c.y])
+				quiero_b -= 1
+		var quiero_j: int = int(n_jar) + (1 if _pct(fmod(n_jar, 1.0) * 100.0) else 0)
+		var fondo: Array = _celdas_sala(s).filter(func(c: Vector2i) -> bool: return _tipo(c + Vector2i(0, -1)) == MURO)
+		_barajar(fondo)
+		for c in fondo:
+			if quiero_j <= 0:
+				break
+			if _puede_bloquear(c):
+				_ocupar(c, true)
+				var jid: String = _id("jarron")
+				_objeto(c, "jarron", jid)
+				lineas.append("; pieza %s jarron %d %d botin=%s" % [jid, c.x, c.y, "pocion" if _pct(20.0) else "oro"])
+				quiero_j -= 1
+	p["_arqueros"] = hay_arquero
+
+
+## Un sitio para algo que bloquea su casilla: lo más cerca posible del centro de la sala; mejor si la casilla de debajo no es pared
+## (la pared del sur tapa a la cámara lo que tiene justo encima).
+func _sitio_bloqueo(s: Dictionary, evitar_sur: bool) -> Vector2i:
+	var r: Rect2i = s["rect"]
+	var centro: Vector2 = Vector2(r.position) + Vector2(r.size - Vector2i.ONE) * 0.5
+	var celdas: Array = _celdas_sala(s)
+	celdas.sort_custom(func(a: Vector2i, b: Vector2i) -> bool:
+		var da: float = Vector2(a).distance_squared_to(centro)
+		var db: float = Vector2(b).distance_squared_to(centro)
+		return da < db or (da == db and (a.y < b.y or (a.y == b.y and a.x < b.x))))
+	for pasada in range(2 if evitar_sur else 1):
+		for c in celdas:
+			if evitar_sur and pasada == 0 and _tipo(c + Vector2i(0, 1)) == MURO:
+				continue
+			if _puede_bloquear(c):
+				return c
+	return Vector2i(-1, -1)
+
+
+func _resultado() -> Dictionary:
+	var filas: PackedStringArray = PackedStringArray()
+	for y in range(h):
+		var fila: String = ""
+		for x in range(w):
+			fila += String(letras.get(Vector2i(x, y), LETRA[g[y * w + x]]))
+		filas.append(fila)
+	var n_enem: int = 0
+	var n_cofres: int = 0
+	var n_jarrones: int = 0
+	for o in objetos:
+		match String(o["tipo"]):
+			"guerrero", "arquero":
+				n_enem += 1
+			"cofre_tesoro", "cofre_llave":
+				n_cofres += 1
+			"jarron":
+				n_jarrones += 1
+	var pisable: int = w * h - g.count(MURO)
+	return {
+		"parametros": p.duplicate(), "ancho": w, "alto": h, "filas": filas, "inicio": inicio,
+		"salas": _vivas(), "puertas": puertas, "objetos": objetos, "lineas": lineas, "avisos": avisos,
+		"arqueros": bool(p.get("_arqueros", false)), "retoques": _retoques,
+		"stats": {"salas": _vivas().size(), "puertas": puertas.size(), "enemigos": n_enem, "cofres": n_cofres, "jarrones": n_jarrones,
+			"suelo": pisable, "agua": g.count(AGUA), "ocupacion": pisable / float(maxi(1, w * h))},
+	}
