@@ -58,6 +58,11 @@ const PUA_ALTO_MAX: float = 1.3                                        ## m de a
 const PASO_PUA_S: float = 0.05                                        ## s entre el brote de una púa y la siguiente
 const SUBE_PUA_S: float = 0.14                                        ## s que tarda cada púa en salir (con su sobrepaso)
 const N_AVISO: int = 8                                                ## piedrecitas del anillo de aviso de la carga
+## 18/11 (Pablo, con una captura del lab y flechas del anillo del suelo a la roca: «en vez de aglutinarse piedras, que las piedras que conformen la piedra grande se creen de las piedras
+## que se han creado debajo»): las piedrecitas de la carga ya no nacen en el aire alrededor de la mano: SALEN de las piedras del anillo de aviso del suelo y suben a la roca.
+## A false, la convergencia de antes (desde una esfera alrededor de la mano).
+const CARGA_DESDE_ANILLO: bool = true
+const CARGA_SUBIDA_S: float = 0.45                                    ## s que tarda cada piedrecita en subir del anillo a la roca
 const GIRO_AVISO: float = 2.6                                         ## rad/s del anillo de aviso
 ## Velo de Vfx3D.COLOR["piedra"] (0,72·0,58·0,42) sobre la textura, MUY ligero (un 10 %): la textura rocas_albedo ya es parda y con más velo salía rosada frente a los bloques grises del mapa.
 const TINTE_PIEDRA: Color = Color(0.98, 0.96, 0.93)
@@ -788,6 +793,15 @@ func _emitir_carga(delta: float, p: float) -> void:
 	var r_bola: float = _c_r * clampf(_c_escala, 0.05, 1.3) * 0.8
 	while _c_acc >= 1.0:
 		_c_acc -= 1.0
+		if CARGA_DESDE_ANILLO and _c_aviso != null and is_instance_valid(_c_aviso) and _c_prog > 0.08:
+			# desde una de las piedras del anillo (en su sitio de ahora, que gira) en línea recta hasta la superficie de la roca
+			var a: float = _aviso_ang + TAU * float(randi() % N_AVISO) / float(N_AVISO)
+			var ra: float = maxf(_c_r, 0.1) * 2.2 * carga_radio
+			var ini: Vector3 = pies + Vector3(cos(a) * ra, 0.06, sin(a) * ra)
+			var largo: float = ini.length()
+			if largo > r_bola + 0.01:
+				_c_piedras.call("emitir", ini, -ini / largo * (largo - r_bola) / CARGA_SUBIDA_S, CARGA_SUBIDA_S, _c_r * randf_range(0.12, 0.2), Vector3.ZERO)
+			continue
 		var d: Vector3 = Vector3(randf_range(-1, 1), randf_range(-0.8, 0.6), randf_range(-1, 1)).normalized()
 		var rr: float = r0 * randf_range(0.8, 1.2)
 		_c_piedras.call("emitir", d * rr, -d * (rr - r_bola) / 0.4, 0.4, _c_r * randf_range(0.12, 0.2), Vector3.ZERO)
