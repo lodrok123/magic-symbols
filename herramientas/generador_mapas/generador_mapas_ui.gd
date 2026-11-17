@@ -91,6 +91,8 @@ const CAMPOS: Array = [
 	{"k": "estilo", "r": "Estilo", "t": "opcion", "op": [["cueva", "Cueva (roca)"], ["bosque", "Bosque (árboles)"], ["pantano", "Pantano (barro)"]], "a": "Cómo dibuja la maqueta las paredes y el suelo."},
 	{"k": "luz", "r": "Luz", "t": "opcion", "op": [], "a": "La fila de LuzZona3D.ZONAS que ilumina el nivel."},
 	{"k": "rotulo", "r": "Rótulo al entrar", "t": "bool", "a": "Una zona que cubre el mapa y enseña el nombre la primera vez."},
+	{"k": "terreno", "r": "Pintar terreno", "t": "bool", "a": "Los pasillos van de tierra pisada y la sala del tesoro, enlosada (en estilo cueva no se enlosa).\nSin esto todo el suelo es igual y no hay juntas entre suelos que enseñar."},
+	{"k": "acabado", "r": "Acabado del terreno", "t": "bool", "a": "Orillas del agua como en Bosque 01 (orilla integrada, ribera curva con cantos) y juntas y bordes como en Monte Sumicio\n(más relieve, hierba entremezclada con la tierra y la piedra). En estilo cueva solo las orillas.\nSin esto la escena usa la maqueta base, como antes."},
 	{"k": "salida_a", "r": "Salidas (Nivel:entrada, …)", "t": "texto", "a": "Vacío = sin salida. Cada salida es Nivel:entrada, con el nombre del nivel tal como está en Niveles.ESCENAS (MonteSumicio, Bosque_02, Cueva…).\nVarias, separadas por comas: Bosque_02:boca_cueva, MonteSumicio:inicio\nLa primera va en la sala de inicio; cada una de las demás, en una sala lejana, con su propia llegada (entrada_2, entrada_3…)."},
 ]
 
@@ -203,6 +205,12 @@ class Vista extends Control:
 		# El nombre del nivel, como el título de un mapa.
 		draw_string(_titulo, Vector2(28, 62), String((mapa["parametros"] as Dictionary)["nombre"]).replace("_", " "), HORIZONTAL_ALIGNMENT_LEFT, -1, 44,
 			Color(0.8, 0.9, 0.75) if claro else C_TINTA)
+		# El terreno pintado: tierra pisada (g) en ocre y losas (R) en gris azulado, por debajo de todo lo demás.
+		for y in range(filas.size()):
+			for x in range(filas[y].length()):
+				var ct: String = filas[y][x]
+				if ct == "g" or ct == "R":
+					draw_rect(Rect2(origen + Vector2(x, y) * e, Vector2(e, e)), Color(0.55, 0.38, 0.2, 0.22) if ct == "g" else Color(0.42, 0.46, 0.6, 0.28))
 		if not ver_contenido:
 			return
 		# Salas: el papel que hacen (inicio, tesoro, llave, se cierra) y su número.
@@ -714,7 +722,7 @@ func _al_pasar(c: Vector2i) -> void:
 		return
 	var partes: PackedStringArray = PackedStringArray(["(%d, %d)" % [c.x, c.y]])
 	var ch: String = (_mapa["filas"] as PackedStringArray)[c.y][c.x]
-	partes.append({"#": "pared", "~": "agua honda"}.get(ch, "suelo"))
+	partes.append({"#": "pared", "~": "agua honda", "g": "tierra pisada", "R": "losas"}.get(ch, "suelo"))
 	for s in _mapa["salas"]:
 		if (s["rect"] as Rect2i).has_point(c):
 			var rol: String = String(s["rol"])

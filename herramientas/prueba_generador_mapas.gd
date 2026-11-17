@@ -121,7 +121,7 @@ func _revisar(par: Dictionary, retoques: Dictionary = {}, puzles: Dictionary = {
 			for paso_y in [-1, 1]:
 				var y: int = by + int(paso_y)
 				while y > 0 and y < h - 1 and filas[y][bx] != "#" and filas[y][bx - 1] == "#" and filas[y][bx + 1] == "#":
-					_ok(filas[y][bx] == ".", "la pista del bloque %s está despejada: %s" % [tl[1], quien], "(%d, %d) = %s" % [bx, y, filas[y][bx]])
+					_ok(".gR".contains(filas[y][bx]), "la pista del bloque %s está despejada: %s" % [tl[1], quien], "(%d, %d) = %s" % [bx, y, filas[y][bx]])
 					y += int(paso_y)
 				_ok((filas[y][bx] == "#") == (int(paso_y) < 0), "la pista del bloque %s se cierra arriba y se abre abajo: %s" % [tl[1], quien], "(%d, %d) = %s" % [bx, y, filas[y][bx]])
 	_ok(n_enlaces == int(m["barreras"]), "un vínculo por barrera: " + quien, "%d vínculos, %d barreras" % [n_enlaces, int(m["barreras"])])

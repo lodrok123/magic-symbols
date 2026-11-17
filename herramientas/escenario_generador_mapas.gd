@@ -90,7 +90,7 @@ func _escenario() -> void:
 				continue
 			var ch: String = filas[y][x]
 			miradas += 1
-			if ch == "." and Terreno3D.celda_solida(c, 0):
+			if ".gR".contains(ch) and Terreno3D.celda_solida(c, 0):       # suelo, tierra pisada o losas: todo se pisa
 				mal_suelo += 1
 			elif ch == "#" and not Terreno3D.celda_solida(c, 0):
 				mal_pared += 1

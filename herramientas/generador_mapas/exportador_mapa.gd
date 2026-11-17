@@ -14,6 +14,8 @@ const ESTILOS: Array[String] = ["cueva", "bosque", "pantano"]
 const LUCES: Array[String] = ["cueva", "cueva_lava", "cueva_goblin", "cueva_hielo", "cueva_ruinas", "santuario", "ruinas", "bosque", "atardecer", "pantano", "hielo", "fuego", "agua", "clasico"]
 ## Letras que el generador puede poner en el plano.
 const LETRAS_VALIDAS: String = "#.~SWAT"
+const GUION_BASE: String = "res://presentacion/prueba_test2.gd"
+const GUION_ACABADO: String = "res://herramientas/generador_mapas/mundo_generado.gd"
 
 
 static func ruta_mapa(nombre: String) -> String:
@@ -74,7 +76,7 @@ static func texto_mapa(m: Dictionary) -> String:
 	l.append(";  %d salas, %d puertas, %d enemigos, %d cofres, %d jarrones. Escena: escenas/Prueba%s.tscn. Mientras esta cabecera siga aquí, la herramienta puede volver a escribir" % [int(st["salas"]), int(st["puertas"]), int(st["enemigos"]), int(st["cofres"]), int(st["jarrones"]), nombre])
 	l.append(";  este archivo (guarda copia si lo has retocado). Para adoptarlo como nivel hecho a mano, borra la palabra GENERADO de la línea de arriba.")
 	l.append("; " + "=".repeat(118))
-	l.append("; # pared · . suelo · ~ agua honda · S inicio · W goblin guerrero · A goblin arquero · T brasero")
+	l.append("; # pared · . suelo · ~ agua honda · S inicio · W goblin guerrero · A goblin arquero · T brasero · g tierra pisada (pasillos) · R losas (o basalto bajo la lava)")
 	var limpio: Dictionary = {}
 	for k in p:
 		if not String(k).begins_with("_"):
@@ -119,7 +121,8 @@ static func texto_escena(m: Dictionary) -> String:
 	var l: PackedStringArray = PackedStringArray()
 	l.append("[gd_scene format=3]")
 	l.append("")
-	l.append("[ext_resource type=\"Script\" path=\"res://presentacion/prueba_test2.gd\" id=\"1_poc\"]")
+	# Con «Acabado del terreno» la escena lleva la maqueta de los niveles generados (orillas y juntas); sin él, la maqueta base.
+	l.append("[ext_resource type=\"Script\" path=\"%s\" id=\"1_poc\"]" % (GUION_ACABADO if bool(p.get("acabado", true)) else GUION_BASE))
 	l.append("[ext_resource type=\"Script\" path=\"res://escenas/puzle.gd\" id=\"2_pz\"]")
 	if cueva:
 		l.append("[ext_resource type=\"Script\" path=\"res://presentacion/luz_portatil_cueva.gd\" id=\"3_luz\"]")

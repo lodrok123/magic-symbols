@@ -81,6 +81,9 @@ static func parametros_defecto() -> Dictionary:
 		"puzles": 0, "barreras": 2, "b_braseros": true, "b_placa": true, "b_puente": true,
 		# nivel
 		"nombre": "MazmorraGen", "estilo": "cueva", "luz": "cueva", "salida_a": "", "rotulo": true,
+		# terreno: `terreno` pinta tierra en los pasillos y losas en la sala del tesoro (para que haya juntas entre suelos distintos);
+		# `acabado` exporta la escena con mundo_generado.gd (orillas y juntas como en Bosque 01 y Monte Sumicio).
+		"terreno": true, "acabado": true,
 	}
 
 
@@ -1451,6 +1454,37 @@ func _poblar() -> void:
 				quiero_j -= 1
 	p["_arqueros"] = hay_arquero
 	_emitir_barreras(nv)
+	_pintar_terreno()
+
+
+## Con qué suelo se pinta lo que se pisa (17/11). El generador solo escribía suelo `.`, y las juntas del juego salen ENTRE suelos distintos:
+## sin esto un mapa generado no tiene ninguna que enseñar. Lo que queda fuera de las salas (pasillos, umbrales) es TIERRA pisada (`g`) y la
+## sala del tesoro va enlosada (`R`). En estilo «cueva» no se enlosa: allí `R` es el basalto de la lava. Va lo último y solo toca casillas de
+## suelo sin letra propia (un goblin, un brasero o la S mandan sobre el suelo de su casilla).
+func _pintar_terreno() -> void:
+	if not bool(p["terreno"]):
+		return
+	var en_sala: Dictionary = {}
+	for s in _vivas():
+		var r: Rect2i = s["rect"]
+		for y in range(r.position.y, r.end.y):
+			for x in range(r.position.x, r.end.x):
+				en_sala[Vector2i(x, y)] = String(s["rol"])
+	var losas: bool = String(p["estilo"]) != "cueva"
+	for y in range(h):
+		for x in range(w):
+			var c: Vector2i = Vector2i(x, y)
+			if g[y * w + x] != SUELO or letras.has(c):
+				continue
+			var ch: String = ""
+			if not en_sala.has(c):
+				ch = "g"
+			elif losas and String(en_sala[c]) == "tesoro":
+				ch = "R"
+			if ch != "":
+				letras[c] = ch
+				if not _letras_extra.contains(ch):
+					_letras_extra += ch
 
 
 # =====================================================================================================================
