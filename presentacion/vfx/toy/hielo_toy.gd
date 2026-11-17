@@ -63,6 +63,19 @@ const HAZ_VAHO_CLARO: Color = Color(0.9, 0.97, 1.0)
 const HAZ_VAHO_SOMBRA: Color = Color(0.55, 0.8, 1.0)
 const HAZ_VAHO_VIEJO: Color = Color(0.7, 0.86, 0.98)
 const HumoToyHielo = preload("res://presentacion/vfx/toy/humo_toy.gd")
+## INICIO Y FINAL DEL MURO DE HIELO (18/11, Pablo: «ahora haz el inicio y final del muro de hielo»). Mismo esquema que los muros de fuego y de tierra, con el carácter del hielo
+## (crece por escalones y se rompe). Solo dibujo. A false, el muro de antes (todos los cristales a la vez, rotura al azar).
+##   INICIO (`T_NACER_MURO`): en la primera parte (`MURO_AVISO_FRAC`) una lengua de ESCARCHA corre por el suelo del centro a los dos extremos, con vaho en sus frentes; después
+##   los cristales crecen en sus tres escalones, los del centro primero y los de los extremos los últimos.
+##   FINAL (`T_MORIR`, sin cambiar): tiembla y se agrieta, y los cristales estallan en orden, de los EXTREMOS al CENTRO, con vaho; la escarcha es lo último que se derrite.
+const MURO_INICIO_FINAL: bool = true
+const T_NACER_MURO: float = 1.25
+const MURO_AVISO_FRAC: float = 0.28                     ## fracción del nacer en la que la escarcha llega a los extremos (antes de que asome ningún cristal)
+const MURO_ESCALON_FRAC: float = 0.3                    ## retraso de los cristales de los extremos respecto a los del centro (fracción del nacer)
+const MURO_ROMPE_DESDE: float = 0.12                    ## fracción del morir a la que estalla el primer cristal (los de los extremos)
+const MURO_ROMPE_TRAMO: float = 0.4                     ## …y en esta fracción estallan todos, hacia el centro
+const MURO_VAHO_POR_S: float = 22.0
+const MURO_VAHO_VIDA_S: float = 0.5
 const SUELO_GROSOR_MIN: float = 0.08
 const SUELO_GROSOR_MAX: float = 0.6
 const SUELO_OPACIDAD: float = 0.8
@@ -667,7 +680,18 @@ func _bola(c: Node3D) -> void:
 
 ## MURO DE HIELO. Semiejes: x = ANCHO (se tiende a lo largo de x), y = ALTO de los cristales más altos, z = fondo. Dos filas de cristales (la de delante más baja y fina), más altos hacia el centro; escarcha en el pie.
 func _muro(c: Node3D) -> void:
-	_montar_cristales(c, HieloMallas.capa_muro(semieje_x, semieje_z, semieje_y, 1.0 + semieje_x), 2.0)
+	var capa: Array = HieloMallas.capa_muro(semieje_x, semieje_z, semieje_y, 1.0 + semieje_x)
+	if MURO_INICIO_FINAL:
+		for d in capa:
+			var lejos: float = clampf(absf((d["pos"] as Vector3).x) / maxf(semieje_x, 0.01), 0.0, 1.0)
+			d["retraso"] = MURO_AVISO_FRAC + MURO_ESCALON_FRAC * lejos + float(d["retraso"]) * 0.3
+			d["rompe"] = MURO_ROMPE_DESDE + MURO_ROMPE_TRAMO * (1.0 - lejos) + float(d["rompe"]) * 0.08
+		_aliento = HumoToyHielo.new()                                        # el vaho del muro (el mismo humo toon del aliento del haz)
+		_aliento.name = "Vaho"
+		c.add_child(_aliento)
+		_aliento.call("montar", 30, {"claro": HAZ_VAHO_CLARO, "sombra": HAZ_VAHO_SOMBRA, "viejo": HAZ_VAHO_VIEJO, "tam_ini": 0.22, "tam_fin": 0.7, "vida": MURO_VAHO_VIDA_S,
+			"deriva": Vector3(0, 0.3, 0), "mundo": true, "opacidad": 0.6})
+	_montar_cristales(c, capa, 2.0)
 	_escarcha_base(c, 2.0 * semieje_x + 0.9, 2.0 * semieje_z + 1.3, Vector3(0, 0, 0))
 
 
@@ -882,6 +906,13 @@ func _avanzar_cristales(delta: float) -> void:
 		var mf: ShaderMaterial = _suelo.material_override as ShaderMaterial
 		mf.set_shader_parameter("u", esc)
 		mf.set_shader_parameter("vida", 0.9 * smoothstep(0.0, 0.12, cr) * (1.0 - smoothstep(0.45, 1.0, co)))
+		if figura == Figura.MURO and MURO_INICIO_FINAL:
+			# la escarcha corre por el suelo ANTES que los cristales (del centro a los extremos) y es lo último que se derrite
+			var kx: float = smoothstep(0.0, MURO_AVISO_FRAC, cr)
+			_suelo.scale = Vector3(an.x * lerpf(0.06, 1.0, kx), 1.0, an.y * lerpf(0.45, 1.0, maxf(kx * 0.6, esc)))
+			mf.set_shader_parameter("u", maxf(esc, kx))
+			mf.set_shader_parameter("vida", 0.9 * smoothstep(0.0, 0.04, cr) * (1.0 - smoothstep(0.62, 1.0, co)))
+			_avanzar_vaho_muro(delta, cr, co, kx)
 	if _cupula != null and is_instance_valid(_cupula):
 		var kc: float = maxf(esc * (1.0 - smoothstep(0.1, 0.5, co)), 0.001)
 		_cupula.scale = Vector3(semieje_x, semieje_y, semieje_z) * kc
@@ -897,6 +928,27 @@ func _avanzar_cristales(delta: float) -> void:
 		mp.set_shader_parameter("giro", tt * 0.4)
 	if co >= 0.98 and _esq != null and is_instance_valid(_esq) and is_inside_tree():
 		_soltar_esquirlas()                                                  # todo roto: las esquirlas se quedan en el mundo cuando el nodo se libere
+
+
+## MURO: vaho en los dos frentes de la escarcha mientras corre y, al morir, por donde van estallando los cristales (de los extremos al centro).
+func _avanzar_vaho_muro(delta: float, cr: float, co: float, kx: float) -> void:
+	if delta <= 0.0 or _aliento == null or not is_instance_valid(_aliento) or not is_inside_tree():
+		return
+	var naciendo: bool = cr > 0.0 and cr < MURO_AVISO_FRAC + 0.08 and co <= 0.0
+	var rompiendo: bool = co > MURO_ROMPE_DESDE * 0.5 and co < MURO_ROMPE_DESDE + MURO_ROMPE_TRAMO
+	if not naciendo and not rompiendo:
+		return
+	var tr: Transform3D = global_transform
+	_acc_aliento += MURO_VAHO_POR_S * clampf(chispas, 0.0, 1.0) * delta
+	while _acc_aliento >= 1.0:
+		_acc_aliento -= 1.0
+		var lado: float = 1.0 if randf() < 0.5 else -1.0
+		# al nacer, en el frente de la escarcha; al morir, a la altura de los cristales que están estallando (el frente va de los extremos al centro)
+		var frente: float = kx if naciendo else 1.0 - clampf((co - MURO_ROMPE_DESDE) / MURO_ROMPE_TRAMO, 0.0, 1.0)
+		var x: float = lado * semieje_x * clampf(frente + randf_range(-0.12, 0.08), 0.0, 1.0)
+		var y: float = 0.08 if naciendo else semieje_y * randf_range(0.1, 0.7)
+		_aliento.call("emitir", tr * Vector3(x, y, randf_range(-1.0, 1.0) * maxf(semieje_z, 0.15)), tr.basis * Vector3(lado * randf_range(0.1, 0.5), randf_range(0.1, 0.4), randf_range(-0.3, 0.3)),
+			randf_range(0.85, 1.15), randf_range(0.8, 1.3) * (1.0 if naciendo else 1.4))
 
 
 ## Un cristal estalla: suelta sus esquirlas desde varios puntos de su eje, hacia fuera de la figura y arriba.
@@ -943,6 +995,9 @@ func _anim_si_hace_falta() -> void:
 	if figura == Figura.HAZ:
 		nacer = T_NACER_HAZ
 		morir_s = T_MORIR_HAZ
+	elif figura == Figura.MURO and MURO_INICIO_FINAL:
+		nacer = T_NACER_MURO
+		morir_s = T_MORIR
 	elif es_vol:
 		nacer = T_NACER
 		morir_s = T_MORIR
