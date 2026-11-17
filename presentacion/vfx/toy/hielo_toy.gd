@@ -31,7 +31,9 @@ extends EfectoToy
 ##   finalizar(motivo, pos, normal)      atajo para HechizoVivo._terminar(causa)
 ## `impactar()` (contrato EfectoVfx3D) también funciona. `definir`, `describir`, `desde_hechizo` y `preparar` son los de FuegoToy (figura y tamaño salen del Hechizo).
 
-enum Figura { BOLA, MURO, PILAR, BARRERA, HAZ }
+## 18/11 (Pablo, con una captura de una placa de hielo flotante: «esto puede servir para las plataformas. De momento no lo enlaces a una forma existente, crea una nueva llamada "suelo"»):
+## SUELO = una PLACA de hielo tumbada. Semiejes: x z = medio ancho y medio fondo, y = GROSOR (m). No sale de ningún Hechizo (`describir` no la da): se pide con `definir(Figura.SUELO, …)`.
+enum Figura { BOLA, MURO, PILAR, BARRERA, HAZ, SUELO }
 enum EstadoCarga { NINGUNA, CARGANDO, SOLTANDO, APAGANDO, CANCELANDO }
 
 const HieloMallas = preload("res://presentacion/vfx/toy/hielo_mallas.gd")
@@ -44,6 +46,13 @@ const REF_MURO: Vector3 = Vector3(3.45, 1.5, 0.3)
 const REF_PILAR: Vector3 = Vector3(0.5, 4.0, 0.5)
 const REF_BARRERA: Vector3 = Vector3(1.5, 1.5, 1.5)
 const REF_HAZ: Vector3 = Vector3(1.5, 0.5, 0.15)
+const REF_SUELO: Vector3 = Vector3(1.6, 0.22, 1.3)      ## placa de referencia: 3,2 × 2,6 m y 22 cm de grosor
+const SUELO_GROSOR_MIN: float = 0.08
+const SUELO_GROSOR_MAX: float = 0.6
+const SUELO_OPACIDAD: float = 0.8
+const SUELO_GRIETA: float = 0.3                         ## grietas que la placa lleva siempre (0 = lisa, 1 = las de justo antes de romperse)
+const SUELO_ROMPE: float = 0.5                          ## fracción de `corte` a la que la placa se parte (antes tiembla y se agrieta del todo)
+const SUELO_ESQUIRLAS: int = 26                         ## esquirlas que suelta al partirse (por placa de referencia; con el área)
 
 const T_SOLTAR: float = 0.14            ## s que tarda en asentarse al tamaño final al soltar si estaba respirando o sin acabar de crecer
 const T_APAGAR: float = 0.5             ## s que tarda en encogerse el fin sin choque
@@ -119,6 +128,8 @@ var _cris: Array = []                   ## figuras de volumen: los cristales (Hi
 var _cris_mm: MultiMeshInstance3D = null
 var _roto: Array = []                   ## ¿ha estallado ya el cristal j?
 var _suelo: MeshInstance3D = null       ## escarcha de la base
+var _placa: MeshInstance3D = null       ## SUELO: la losa de hielo
+var _placa_rota: bool = false
 var _cupula: MeshInstance3D = null      ## BARRERA: cúpula de cristal muy tenue
 var _punta: MeshInstance3D = null       ## HAZ: destello de la punta
 var _haz_largo: float = 3.0
@@ -555,6 +566,8 @@ func _construir() -> void:
 	_roto = []
 	_suelo = null
 	_cupula = null
+	_placa = null
+	_placa_rota = false
 	_punta = null
 	tam_referencia = Vector3(semieje_x, semieje_y, semieje_z) * 2.0
 	_avance_cabeza = 0.0
@@ -567,6 +580,8 @@ func _construir() -> void:
 			_pilar(cuerpo)
 		Figura.MURO:
 			_muro(cuerpo)
+		Figura.SUELO:
+			_suelo_placa(cuerpo)
 		_:
 			_barrera(cuerpo)
 	_anim_si_hace_falta()
@@ -653,6 +668,45 @@ func _barrera(c: Node3D) -> void:
 	_escarcha_base(c, 2.0 * semieje_x * 1.3, 2.0 * semieje_z * 1.3)
 
 
+# ------------------------------------------------------------------ SUELO ------------------------------------------------------------------
+
+## PLACA DE HIELO (figura SUELO). Semiejes: x z = medio ancho y medio fondo, y = grosor. Una losa translúcida de contorno irregular con sus grietas, el canto blanco de cristalitos de
+## escarcha y un halo de escarcha en el suelo alrededor. Crece desde el centro en los tres escalones del hielo; al morir tiembla, se agrieta, se parte en esquirlas y la escarcha se derrite.
+func _suelo_placa(c: Node3D) -> void:
+	var g: float = clampf(semieje_y, SUELO_GROSOR_MIN, SUELO_GROSOR_MAX)
+	var sem: float = 6.0 + semieje_x
+	_placa = _mi_hielo(c, "Placa", HieloMallas.placa(sem), HieloMallas.material(HieloMallas.SH_CRISTAL, {"opacidad": SUELO_OPACIDAD, "escarcha_base": 0.85, "grieta": SUELO_GRIETA, "semilla": sem}, 0))
+	_placa.scale = Vector3(semieje_x, g, semieje_z)
+	_montar_cristales(c, HieloMallas.capa_borde_placa(semieje_x, semieje_z, g, sem), 6.0)
+	_escarcha_base(c, 2.0 * semieje_x * 1.22 + 0.3, 2.0 * semieje_z * 1.22 + 0.3)
+
+
+## SUELO: la placa sigue a `crece` (se extiende desde el centro por escalones) y a `corte` (se agrieta, tiembla y se parte).
+func _avanzar_placa(esc: float, co: float, tt: float) -> void:
+	if _placa == null or not is_instance_valid(_placa):
+		return
+	var g: float = clampf(semieje_y, SUELO_GROSOR_MIN, SUELO_GROSOR_MAX) * altura
+	var k: float = lerpf(0.12, 1.0, esc)
+	var entera: float = 1.0 - smoothstep(SUELO_ROMPE, SUELO_ROMPE + 0.08, co)
+	_placa.scale = Vector3(semieje_x * ancho * k, maxf(g * lerpf(0.3, 1.0, esc), 0.001), semieje_z * ancho * k) if (esc > 0.001 and entera > 0.001) else Vector3.ONE * 0.0001
+	_placa.position = Vector3(sin(tt * 53.0), 0.0, cos(tt * 47.0)) * 0.012 * minf(co * 6.0, 1.0) if co > 0.0 else Vector3.ZERO
+	var m: ShaderMaterial = _placa.material_override as ShaderMaterial
+	m.set_shader_parameter("grieta", maxf(SUELO_GRIETA, smoothstep(0.0, SUELO_ROMPE * 0.8, co)))
+	m.set_shader_parameter("opacidad", SUELO_OPACIDAD * entera)
+	if co <= 0.001:
+		_placa_rota = false
+	elif co > SUELO_ROMPE and not _placa_rota:
+		_placa_rota = true
+		if _esq != null and is_instance_valid(_esq) and is_inside_tree():
+			_esq.set("suelo_y", global_position.y - 0.02)
+			var tr: Transform3D = global_transform
+			var n: int = int(round(float(SUELO_ESQUIRLAS) * clampf(semieje_x * semieje_z / (REF_SUELO.x * REF_SUELO.z), 0.3, 2.5) * clampf(chispas, 0.0, 1.0)))
+			for q in n:
+				var loc: Vector3 = Vector3(randf_range(-0.9, 0.9) * semieje_x, g * randf_range(0.3, 1.0), randf_range(-0.9, 0.9) * semieje_z)
+				var fuera: Vector3 = Vector3(loc.x, 0.0, loc.z).normalized() if Vector2(loc.x, loc.z).length() > 0.01 else Vector3.RIGHT
+				_esq.call("emitir", tr * loc, tr.basis * (fuera * randf_range(0.3, 1.4) + Vector3(0, randf_range(0.8, 2.2), 0)), randf_range(0.8, 1.3), randf_range(0.07, 0.18), 0.88, randf(), Vector3.ZERO)
+
+
 # ------------------------------------------------------------------ HAZ ------------------------------------------------------------------
 
 ## HAZ DE HIELO: una lanza que NACE de un punto en el origen (la mano) hacia -Z a la altura máx(y, 0,4), con púas a lo largo y un destello en la punta. `crece` la alarga en tres escalones y `corte` la rompe de la
@@ -722,6 +776,8 @@ func _avanzar_cristales(delta: float) -> void:
 		elif co <= 0.001:
 			_roto[j] = false
 		var pos: Vector3 = c["pos"]
+		if figura == Figura.SUELO:
+			pos *= lerpf(0.12, 1.0, _escalon(cr))                             # el canto de cristalitos va con el borde de la placa mientras se extiende
 		if co > 0.0 and rompe > 0.001:                                     # antes de estallar, tiembla
 			pos += Vector3(sin(tt * 53.0 + float(j) * 1.7), 0.0, cos(tt * 47.0 + float(j))) * 0.012 * minf(co * 6.0, 1.0)
 		var f: float = s * rompe
@@ -730,6 +786,7 @@ func _avanzar_cristales(delta: float) -> void:
 	var ms: ShaderMaterial = _cris_mm.material_override as ShaderMaterial
 	ms.set_shader_parameter("grieta", smoothstep(0.0, 0.35, co))
 	var esc: float = _escalon(cr)
+	_avanzar_placa(esc, co, tt)
 	if _suelo != null and is_instance_valid(_suelo):
 		var an: Vector2 = _suelo.get_meta("ancho", Vector2.ONE)
 		var k: float = lerpf(0.3, 1.0, esc)

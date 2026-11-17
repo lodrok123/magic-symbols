@@ -248,6 +248,7 @@ func _unhandled_input(ev: InputEvent) -> void:
 		KEY_F7: fuego_param((_param_i + 1) % FIGURAS_PARAM.size())
 		KEY_F8: fuego_param(maxi(_param_i, 0))
 		KEY_F9: fuego_hechizo(_param_ej); _param_ej = (_param_ej + 1) % EJEMPLOS_HECHIZO.size()
+		KEY_INSERT: suelo_hielo()                                                                             # 18/11: la figura SUELO del hielo (placa), que no sale de ningún hechizo
 		KEY_F10: naturaleza_barrera()
 		KEY_F11: naturaleza_bola()
 		KEY_U: eje_param(0, 1)
@@ -422,6 +423,24 @@ func _nuevo_impacto(variante: int, normal: Vector3, radio: float) -> Node3D:
 		"tierra":
 			return ImpactoTierraToy.crear(variante as ImpactoTierraToy.Variante, normal, radio)
 	return ImpactoFuegoToy.crear(variante as ImpactoFuegoToy.Variante, normal, radio)
+
+
+## Insert: la PLACA de hielo (HieloToy.Figura.SUELO) delante de la jugadora, con su nacer; otra pulsación la rompe (morir) y la siguiente pone otra.
+var _placa_hielo: HieloToy = null
+
+
+func suelo_hielo() -> HieloToy:
+	if _placa_hielo != null and is_instance_valid(_placa_hielo):
+		_placa_hielo.morir()
+		_placa_hielo = null
+		return null
+	var e: HieloToy = HieloToy.new()
+	e.definir(HieloToy.Figura.SUELO, HieloToy.REF_SUELO.x, HieloToy.REF_SUELO.y, HieloToy.REF_SUELO.z, false)
+	_efectos.add_child(e)
+	e.global_position = Vector3(_pj.global_position.x, 0.0, _pj.global_position.z) + Vector3(_dir.x, 0.0, _dir.z).normalized() * 2.6
+	e.lanzar(-1.0)
+	_placa_hielo = e
+	return e
 
 
 ## F7 / F8: crea el FuegoToy (o AguaToy) con la figura y el tamaño de la prueba 3 (i = índice de FIGURAS_PARAM) y lo coloca como las escenas validadas.
