@@ -28,7 +28,7 @@ func _escenario() -> void:
 	var guardado: Dictionary = CastPoints.a_diccionario()
 
 	# --- A · los datos ---
-	_ok("A hay seis variaciones", CastPoints.VARIACIONES.size() == 6 and CastPoints.ORDEN.size() == 6)
+	_ok("A hay seis variaciones en el orden del lab, más la del haz (19/11)", CastPoints.ORDEN.size() == 6 and CastPoints.VARIACIONES.size() == 7 and CastPoints.existe(CastPoints.HAZ) and CastPoints.variacion_de("haz") == CastPoints.HAZ)
 	_ok("A cada posición (x_mano, alto, abajo) tiene al menos dos", _por_posicion("x_mano") >= 2 and _por_posicion("alto") >= 2 and _por_posicion("abajo") >= 2)
 	_ok("A el nombre derivado elige la variación (x_mano → x_mano, alto → alto_cielo, abajo → abajo_golpe)", CastPoints.variacion_de("x_mano") == "x_mano" and CastPoints.variacion_de("alto") == "alto_cielo" and CastPoints.variacion_de("abajo") == "abajo_golpe")
 	_ok("A un nombre desconocido no tiene variación (sin cast point: se lanza como siempre)", CastPoints.variacion_de("cosa") == "")
@@ -197,9 +197,33 @@ func _escenario() -> void:
 	await avanzar_s(1.0)
 	pj.soltar_lanzar()
 
+	# --- HAZ · 19/11 (Pablo): un HAZ sale con la mano extendida y SOSTIENE el gesto lo que dura el haz ---
+	await _esperar_cooldown()
+	var fh: Dictionary = _datos_de("x_mano", "fire")
+	var h_haz: Hechizo = (fh["receta"] as Lanzador3D.Receta3D).hechizo(fh["rune"])
+	_ok("HAZ la receta de prueba de x_mano (ᛁ sola) es un haz", h_haz != null and h_haz.haz)
+	var dura_haz: float = Hechizo.HAZ_DURA_S + (h_haz.permanencia if h_haz != null else 0.0)
+	lanzador.lanzar_ahora(fh, jugador.position, Vector3.RIGHT, true)
+	_ok("HAZ un haz usa su propio cast point (x_haz: el clip a una mano al frente)", pj.cast_activo() and pj.punto_activo() == CastPoints.HAZ and String(pj._cp.get("clip", "")) == "CastOneHandFront",
+		"%s · %s" % [pj.punto_activo(), str(pj._cp.get("clip", ""))])
+	_ok("HAZ el gesto se va a sostener lo que dura el haz (%.2f s)" % dura_haz, pj.cast_activo() and is_equal_approx(float(pj._cp.get("sostener", -1.0)), dura_haz), str(pj._cp.get("sostener", "")))
+	var th: float = 0.0
+	while pj.cast_activo() and not pj.paso_instante() and th < 3.0:
+		th += await avanzar_s(0.03)
+	await avanzar_s(dura_haz * 0.5)
+	_ok("HAZ a mitad del haz el gesto sigue congelado en el instante (mano extendida)", pj.cast_activo() and pj._arbol.retenido and float(pj._cp.get("hold", 0.0)) > 0.0, str(pj._cp.get("hold", "")))
+	await avanzar_s(dura_haz * 0.5 + 0.2)
+	_ok("HAZ al acabar el haz el gesto se suelta", not pj._arbol.retenido)
+	var tw: float = 0.0
+	while lanzador.conjurando and tw < 3.0:
+		tw += await avanzar_s(0.05)
+	await avanzar_s(1.0)
+	pj.soltar_lanzar()
+
 	# --- G · clip a una mano ---
 	CastPoints.usar_una_mano = true
 	CastPoints.POR_NOMBRE["x_mano"] = "x_mano"
+	CastPoints.POR_NOMBRE.erase("haz")                         # la receta de prueba es un haz: aquí se mira la variación x_mano con la fuente a una mano
 	await _esperar_cooldown()
 	var f1: Dictionary = _datos_de("x_mano", "fire")
 	fases.clear()
@@ -382,6 +406,8 @@ func _lanzar_variacion(id: String, fases: Array, pos_fases: Dictionary) -> void:
 	var nombre: String = String(d["posicion"])
 	var antes: String = String(CastPoints.POR_NOMBRE.get(nombre, ""))
 	CastPoints.POR_NOMBRE[nombre] = id
+	var haz_antes: String = String(CastPoints.POR_NOMBRE.get("haz", ""))          # 19/11: la receta de prueba de x_mano es un HAZ (ᛁ sola) y un haz usa ahora su propio gesto:
+	CastPoints.POR_NOMBRE.erase("haz")                                             # se aparta para que aquí salga la variación que se está midiendo (el gesto del haz se mira en H)
 	await _esperar_cooldown()
 	pj.soltar_lanzar()
 	await avanzar_s(0.7)
@@ -422,4 +448,6 @@ func _lanzar_variacion(id: String, fases: Array, pos_fases: Dictionary) -> void:
 		CastPoints.POR_NOMBRE.erase(nombre)
 	else:
 		CastPoints.POR_NOMBRE[nombre] = antes
+	if haz_antes != "":
+		CastPoints.POR_NOMBRE["haz"] = haz_antes
 	await avanzar_s(0.3)

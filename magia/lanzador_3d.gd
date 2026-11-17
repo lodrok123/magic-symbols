@@ -36,6 +36,8 @@ extends Grimorio
 
 ## --- Capas de física del Test 3 ---
 const CAPA_REACTIVO: int = 1 << 8    ## capa 9: lo que implementa on_spell_hit
+## 19/11: los hechizos de haz se lanzan con el gesto de la mano extendida, sostenido lo que dura el haz. A false, el gesto de siempre (el del proyectil).
+const GESTO_HAZ: bool = true
 const CAPA_BLOQUEO: int = 1 << 9     ## capa 10: zonas que paran proyectiles
 const CAPA_SOLIDO: int = Terreno3D.CAPA_SOLIDO     ## capa 11: colisión REAL de las piezas del nivel .tscn (6.10); el valor vive en Terreno3D (M1)
 
@@ -1410,7 +1412,14 @@ func lanzar_ahora(datos: Dictionary, origen: Vector3, dir: Vector3, con_conjuro:
 		jugador.call("mirar_hacia", dir)
 		# T-CP1: el cast point sale del nombre DERIVADO de la receta (x_mano · alto · abajo → variación de CastPoints). Sin variación o sin clip: como siempre.
 		var punto: String = CastPoints.variacion_de(String(receta.geo().get("nombre", "")))
-		jugador.call("lanzar_clip", elemento, receta.forma_vfx(), punto)
+		# 19/11 (Pablo): un HAZ se lanza con la mano extendida (CastPoints.HAZ) y el gesto se SOSTIENE lo que dura el haz (Hechizo.HAZ_DURA_S + su permanencia).
+		var sostener_gesto: float = -1.0
+		var h_gesto: Hechizo = receta.hechizo(rune)
+		var punto_haz: String = CastPoints.variacion_de("haz")
+		if GESTO_HAZ and h_gesto != null and h_gesto.haz and punto_haz != "":
+			punto = punto_haz
+			sostener_gesto = Hechizo.HAZ_DURA_S + h_gesto.permanencia
+		jugador.call("lanzar_clip", elemento, receta.forma_vfx(), punto, sostener_gesto)
 		var activo: String = String(jugador.call("punto_cast")) if jugador.has_method("punto_cast") else ""
 		if activo != "":
 			_cast_point = {"id": activo, "origen": String(CastPoints.datos(activo)["origen"]), "dir": dir, "origen_mundo": origen, "elemento": elemento}

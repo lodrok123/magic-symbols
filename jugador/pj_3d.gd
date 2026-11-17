@@ -894,12 +894,12 @@ const VEL_CAST: float = 1.6
 ## la variación y el brazo del libro quieto; `fraccion_clip()` dice por dónde va. Si el id no existe o su clip no está en el GLB, se lanza como siempre.
 ## El libro YA NO vuelve al cinto aquí (lo contrario de lo que pide el diseño): se queda en la mano mientras dura el lanzamiento y lo devuelve
 ## `soltar_lanzar()` al acabar.
-func lanzar(forma: String, elemento: String, punto: String = "") -> float:
+func lanzar(forma: String, elemento: String, punto: String = "", sostener: float = -1.0) -> float:
 	if _ap == null:
 		return 0.0
 	_quitar_chispas()
 	if punto != "" and CastPoints.existe(punto):
-		var d: float = _lanzar_punto(punto, elemento)
+		var d: float = _lanzar_punto(punto, elemento, sostener)
 		if d > 0.0:
 			return d
 	_cp = {}
@@ -944,8 +944,11 @@ var _libro_lado: String = "izquierda"          ## la mano en la que está ahora 
 
 ## Empieza el clip recortado de la variación `id`. Devuelve los segundos que dura (con la velocidad y el factor del elemento, más el `sostener`), o 0 si no
 ## se puede (variación sin clip en este GLB): entonces `lanzar` cae al camino de siempre.
-func _lanzar_punto(id: String, elemento: String) -> float:
+## `sostener` ≥ 0: s que el gesto se queda congelado en el instante en ESTE lanzamiento (un haz: lo que dura el hechizo); < 0, el de la tabla.
+func _lanzar_punto(id: String, elemento: String, sostener: float = -1.0) -> float:
 	var d: Dictionary = CastPoints.datos(id)
+	if sostener >= 0.0:
+		d["sostener"] = sostener
 	var rol: String = CastPoints.rol_clip(id)
 	var clip: String = _buscar_clip(rol)
 	if clip == "" and rol != String(d["clip"]):
