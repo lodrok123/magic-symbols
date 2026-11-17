@@ -77,7 +77,7 @@ const VIDA_COLUMNA: float = 4.8
 const DIEZ_MUROS: int = 10
 const TAM_CAMARA_JUEGO: float = 6.0                ## PruebaTest2.ZOOM_INICIAL
 const ELEVACION_JUEGO: float = 30.0                ## 90° − inclinación 60° de PruebaTest2
-const CAMARAS: PackedStringArray = ["juego", "cerca", "lejos"]
+const CAMARAS: PackedStringArray = ["juego", "cerca", "lejos", "libre"]
 const DIST_CERCA: float = 2.0
 const DIST_LEJOS: float = 10.0
 const CUBOS: Array = [Vector3(4, 0.6, 3), Vector3(-5, 0.6, -2), Vector3(2, 0.6, -6), Vector3(-3, 0.6, 6)]
@@ -109,6 +109,23 @@ var _masa_modo: int = 0                           ## F12: prototipo de la MASA D
 var _masa: HazMasaVista = null
 var masa_sin_lamina: bool = true                   ## con la masa se quita la salpicadura plana del toy (para juzgar la masa sola)
 var _pared: Node3D = null                          ## la pared de prueba de los impactos (la crea G / B / R, la quita X)
+## 19/11 (Pablo: «permite activar el personaje y las animaciones de casteo asociadas a un hechizo para revisar; permite modificar la cámara para ver mejoras o errores»).
+## GESTO: con `gesto_activo` (Tab), cada figura de F7 / F8 / F9 sale como en el juego: la jugadora hace el gesto de lanzar de esa figura (el cast point de CastPoints) y el efecto
+## NACE en el instante del gesto; un HAZ sostiene la mano extendida lo que dura (Hechizo.HAZ_DURA_S) y vive eso. Mayús+Tab = cámara lenta (×0,25).
+## La figura → el nombre derivado que el juego le daría al hechizo (x_mano · alto · abajo · haz), APROXIMADO: el juego lo saca de la receta, no de la figura.
+const GESTO_DE_FIGURA: Array = ["x_mano", "abajo", "alto", "x_mano", "haz"]      ## BOLA, MURO, PILAR, BARRERA, HAZ
+const CAMARA_LENTA: float = 0.25
+var gesto_activo: bool = false
+var _gesto: Dictionary = {}                         ## {id, clip, a, b, t_inst, vel, sostener, hold, paso}: el gesto en curso (vacío = ninguno)
+var _gesto_pendiente: Node3D = null                 ## el efecto que espera al instante del gesto para nacer
+## CÁMARA LIBRE (C hasta «libre»): órbita alrededor de la jugadora. Ratón: botón derecho arrastrando gira, rueda acerca, botón central arrastrando desplaza. Teclado numérico:
+## 4 / 6 giran, 8 / 2 suben y bajan, 7 / 9 acercan y alejan, 5 la devuelve a como empezó. Las flechas siguen moviendo a la jugadora.
+var _orb_yaw: float = 0.0
+var _orb_pitch: float = 0.45
+var _orb_dist: float = 6.0
+var _orb_pan: Vector3 = Vector3.ZERO
+const ORB_DIST: Vector2 = Vector2(1.2, 40.0)
+const ORB_GIRO_S: float = 1.6                        ## rad/s con el teclado
 var camara_fija: Dictionary = {}                   ## {desde, mira}: si no está vacío, las cámaras cerca / lejos usan esto (lo usan las capturas)
 
 
@@ -214,7 +231,11 @@ func _montar_panel() -> void:
 
 
 func _process(delta: float) -> void:
-	_andar(delta)
+	if _gesto.is_empty():
+		_andar(delta)
+	else:
+		_avanzar_gesto(delta)
+	_teclado_camara_libre(delta)
 	_mover_bolas(delta)
 	_mover_naturaleza(delta)
 	_seguir_camara()
@@ -223,10 +244,13 @@ func _process(delta: float) -> void:
 	if _panel != null:
 		var lp: Array = luces_y_particulas()
 		_panel.text = ("fps %d · luces %d · partículas %d · efectos %d · cámara %s\n1 bola · 2 muro · 3 columna · 4 PARRILLA de los 7 elementos (con parrilla, 8 la rehace) · 5 muro toon · 6 columna toon · 7 bola toon · 0 diez muros · 9 diez toon · X limpia · F muro del haz · F12 masa de fuego (muro / esfera / nada) · Mayús+F12 GAS 3D (port de la demo: esfera / muro / nada) · C cámara · flechas andar · H panel\n%s"
-			% [int(Engine.get_frames_per_second()), lp[0], lp[1], _efectos.get_child_count(), CAMARAS[camara_actual], _texto_mandos_toon()] + _texto_param() + _texto_carga() + _texto_dummy() + "\n8 humo por regla (HumoRegla; con parrilla puesta, Mayús+8): %s (magma: %s)" % ["SÍ" if HumoRegla.hay_alguna() else "no", "sí" if HumoRegla.capas.get("magma", false) else "no"] + "\n. chispas tipo repo (ChispasRepo: rayo, electrificado, brasas de magma): %s · , electrificar un muñeco y una casilla de agua (arcos en su cápsula: %s)" % ["SÍ" if ChispasRepo.hay_alguna() else "no", "sí" if ChispasRepo.activa("electrificado_capsula") else "no"] + LabVientoVeneno.texto()) if _panel_visible else ""
+			% [int(Engine.get_frames_per_second()), lp[0], lp[1], _efectos.get_child_count(), CAMARAS[camara_actual], _texto_mandos_toon()] + _texto_param() + _texto_carga() + _texto_dummy() + _texto_gesto_camara() + "\n8 humo por regla (HumoRegla; con parrilla puesta, Mayús+8): %s (magma: %s)" % ["SÍ" if HumoRegla.hay_alguna() else "no", "sí" if HumoRegla.capas.get("magma", false) else "no"] + "\n. chispas tipo repo (ChispasRepo: rayo, electrificado, brasas de magma): %s · , electrificar un muñeco y una casilla de agua (arcos en su cápsula: %s)" % ["SÍ" if ChispasRepo.hay_alguna() else "no", "sí" if ChispasRepo.activa("electrificado_capsula") else "no"] + LabVientoVeneno.texto()) if _panel_visible else ""
 
 
 func _unhandled_input(ev: InputEvent) -> void:
+	if camara_actual == CAMARAS.find("libre") and (ev is InputEventMouseButton or ev is InputEventMouseMotion):
+		_raton_camara_libre(ev)
+		return
 	if not (ev is InputEventKey) or not ev.is_pressed() or ev.is_echo():
 		return
 	match (ev as InputEventKey).keycode:
@@ -251,6 +275,8 @@ func _unhandled_input(ev: InputEvent) -> void:
 		KEY_INSERT: suelo_hielo()                                                                             # 18/11: la figura SUELO del hielo (placa), que no sale de ningún hechizo
 		KEY_DELETE: congelado_demo()                                                                          # 18/11: el efecto de congelado (CongeladoToy) sobre la jugadora del lab, 3 s
 		KEY_ENTER, KEY_KP_ENTER: dummy_tecla((ev as InputEventKey).shift_pressed, (ev as InputEventKey).ctrl_pressed)   # 18/11: el dummy de estados (LabDummyEstados): le aplica el elemento actual
+		KEY_TAB: tecla_gesto((ev as InputEventKey).shift_pressed)                                         # 19/11: gesto de casteo de la jugadora (Mayús: cámara lenta)
+		KEY_KP_5: reponer_camara_libre()
 		KEY_F10: naturaleza_barrera()
 		KEY_F11: naturaleza_bola()
 		KEY_U: eje_param(0, 1)
@@ -575,6 +601,14 @@ func fuego_hechizo(i: int) -> Node3D:
 func _poner_param(e, giro: float) -> void:
 	_quitar_param()
 	_aplicar_mandos_toy(e)
+	if gesto_activo and _pj != null and _pj._ap != null and not e.viaja:
+		_gesto_y_lanzar(e, giro)
+		return
+	_poner_param_ya(e, giro)
+
+
+## Coloca y lanza el efecto. `vida` > 0: vive eso (el haz con gesto, lo que en el juego).
+func _poner_param_ya(e, giro: float, vida: float = -1.0) -> void:
 	var pie: Vector3 = _pj.global_position
 	if e.figura == FuegoToy.Figura.HAZ:       # los choques han de estar ANTES de entrar en el árbol (el haz se construye en _ready), como en VfxToyJuego
 		_muro_haz(e, e.semieje_x * 2.0, pie + _dir * 0.5, _dir.rotated(Vector3.UP, giro))
@@ -592,7 +626,7 @@ func _poner_param(e, giro: float) -> void:
 			e.global_position = pie + _dir * DISTANCIA_EFECTO
 			e.look_at(e.global_position + _dir, Vector3.UP)     # el X del muro queda de lado al tiro
 	e.rotate_y(giro)
-	e.lanzar(-1.0)
+	e.lanzar(vida)
 	_param = e
 	ultimo_efecto = e
 	_actualizar_masa(e)
@@ -1346,6 +1380,150 @@ func _mover_bolas(delta: float) -> void:
 	_bolas = quedan
 
 
+# ---------------------------------------------------------------- gesto de casteo (19/11) ----------------------------------------------------------------
+
+func tecla_gesto(mayus: bool) -> void:
+	if mayus:
+		Engine.time_scale = 1.0 if Engine.time_scale < 0.99 else CAMARA_LENTA
+	else:
+		gesto_activo = not gesto_activo
+
+
+## El cast point (id de CastPoints) que el juego usaría con esta figura; "" si no hay.
+static func gesto_de(figura: int) -> String:
+	return CastPoints.variacion_de(String(GESTO_DE_FIGURA[clampi(figura, 0, GESTO_DE_FIGURA.size() - 1)]))
+
+
+## La jugadora hace el gesto de la figura de `e` y el efecto nace en el instante (como Lanzador3D con el cast point). Sin clip, sale ya.
+func _gesto_y_lanzar(e, giro: float) -> void:
+	var id: String = gesto_de(int(e.figura))
+	var es_haz: bool = int(e.figura) == FuegoToy.Figura.HAZ
+	var sostener: float = Hechizo.HAZ_DURA_S if es_haz else -1.0
+	if id == "" or not empezar_gesto(id, sostener):
+		_poner_param_ya(e, giro)
+		return
+	if _gesto_pendiente != null and is_instance_valid(_gesto_pendiente) and not _gesto_pendiente.is_inside_tree():
+		_gesto_pendiente.free()
+	_gesto_pendiente = e
+	await get_tree().create_timer(maxf(float(_gesto["t_inst"]) - float(_gesto["a"]), 0.0) / maxf(float(_gesto["vel"]), 0.01)).timeout
+	if _gesto_pendiente != e or not is_instance_valid(e):
+		return                                                        # otro lanzamiento lo ha sustituido
+	_gesto_pendiente = null
+	_poner_param_ya(e, giro, Hechizo.HAZ_DURA_S if es_haz else -1.0)
+
+
+## Empieza el gesto `id` (recorte del clip, a su velocidad) con el libro en la mano. `sostener` ≥ 0: s que se queda congelado en el instante (si no, el de la tabla).
+## El lab no usa el árbol de animación del juego: el clip va directo por el AnimationPlayer. Devuelve false si este modelo no tiene el clip.
+func empezar_gesto(id: String, sostener: float = -1.0) -> bool:
+	var d: Dictionary = CastPoints.datos(id)
+	var clip: String = _pj.clip_de(CastPoints.rol_clip(id))
+	if clip == "":
+		clip = _pj.clip_de(String(d.get("clip", "")))
+	if clip == "" or d.is_empty():
+		return false
+	var largo: float = _pj._ap.get_animation(clip).length
+	var rec: Vector2 = CastPoints.recorte(id)
+	var a: float = rec.x * largo
+	var b: float = rec.y * largo
+	var vel: float = float(d["velocidad"]) / maxf(CastPoints.escala_tiempo(elemento), 0.05)
+	if _pj.has_method("libro_en_manos"):
+		_pj.libro_en_manos(true, 0.25, CastPoints.mano_libro(id), true)
+	_pj._ap.play(clip, 0.12, vel)
+	_pj._ap.seek(a, true)
+	_gesto = {"id": id, "clip": clip, "a": a, "b": b, "t_inst": a + clampf(float(d["instante"]), 0.0, 1.0) * (b - a), "vel": vel,
+		"sostener": sostener if sostener >= 0.0 else float(d["sostener"]), "hold": 0.0, "paso": false}
+	return true
+
+
+func _avanzar_gesto(delta: float) -> void:
+	if _gesto.is_empty() or _pj._ap == null:
+		return
+	if float(_gesto["hold"]) > 0.0:
+		_gesto["hold"] = float(_gesto["hold"]) - delta
+		if float(_gesto["hold"]) <= 0.0:
+			_pj._ap.play()                                              # sigue desde el instante
+		return
+	var t: float = _pj._ap.current_animation_position
+	if not bool(_gesto["paso"]) and t >= float(_gesto["t_inst"]):
+		_gesto["paso"] = true
+		if float(_gesto["sostener"]) > 0.0:
+			_pj._ap.pause()                                             # la mano se queda ahí lo que dure
+			_gesto["hold"] = float(_gesto["sostener"])
+			return
+	if t >= float(_gesto["b"]) - 0.001 or _pj._ap.current_animation != String(_gesto["clip"]):
+		_gesto = {}
+		if _pj.has_method("libro_en_manos"):
+			_pj.libro_en_manos(false)
+		_clip("idle")
+
+
+## (pruebas y capturas) el gesto en curso: {id, sostenido (bool), fase: "" | "hacia" | "sostiene" | "vuelve"}.
+func estado_gesto() -> Dictionary:
+	if _gesto.is_empty():
+		return {"id": "", "fase": ""}
+	return {"id": String(_gesto["id"]), "fase": "sostiene" if float(_gesto["hold"]) > 0.0 else ("vuelve" if bool(_gesto["paso"]) else "hacia")}
+
+
+# ---------------------------------------------------------------- cámara libre (19/11) ----------------------------------------------------------------
+
+func reponer_camara_libre() -> void:
+	_orb_yaw = atan2(-_dir.x, -_dir.z) + 0.6
+	_orb_pitch = 0.45
+	_orb_dist = 6.0
+	_orb_pan = Vector3.ZERO
+
+
+func _raton_camara_libre(ev: InputEvent) -> void:
+	if ev is InputEventMouseButton and (ev as InputEventMouseButton).pressed:
+		var bi: int = (ev as InputEventMouseButton).button_index
+		if bi == MOUSE_BUTTON_WHEEL_UP:
+			_orb_dist = clampf(_orb_dist * 0.9, ORB_DIST.x, ORB_DIST.y)
+		elif bi == MOUSE_BUTTON_WHEEL_DOWN:
+			_orb_dist = clampf(_orb_dist / 0.9, ORB_DIST.x, ORB_DIST.y)
+	elif ev is InputEventMouseMotion:
+		var mm: InputEventMouseMotion = ev
+		if mm.button_mask & MOUSE_BUTTON_MASK_RIGHT:
+			_orb_yaw -= mm.relative.x * 0.008
+			_orb_pitch = clampf(_orb_pitch + mm.relative.y * 0.006, -0.2, 1.5)
+		elif mm.button_mask & MOUSE_BUTTON_MASK_MIDDLE and _cam != null:
+			var k: float = _orb_dist * 0.0015
+			_orb_pan += (-_cam.global_basis.x * mm.relative.x + _cam.global_basis.y * mm.relative.y) * k
+
+
+func _teclado_camara_libre(delta: float) -> void:
+	if camara_actual != CAMARAS.find("libre"):
+		return
+	var d: float = delta / maxf(Engine.time_scale, 0.01)                 # la cámara va a su ritmo aunque el mundo vaya a cámara lenta
+	if Input.is_key_pressed(KEY_KP_4):
+		_orb_yaw += ORB_GIRO_S * d
+	if Input.is_key_pressed(KEY_KP_6):
+		_orb_yaw -= ORB_GIRO_S * d
+	if Input.is_key_pressed(KEY_KP_8):
+		_orb_pitch = clampf(_orb_pitch + ORB_GIRO_S * 0.6 * d, -0.2, 1.5)
+	if Input.is_key_pressed(KEY_KP_2):
+		_orb_pitch = clampf(_orb_pitch - ORB_GIRO_S * 0.6 * d, -0.2, 1.5)
+	if Input.is_key_pressed(KEY_KP_7):
+		_orb_dist = clampf(_orb_dist * (1.0 - 1.2 * d), ORB_DIST.x, ORB_DIST.y)
+	if Input.is_key_pressed(KEY_KP_9):
+		_orb_dist = clampf(_orb_dist * (1.0 + 1.2 * d), ORB_DIST.x, ORB_DIST.y)
+
+
+func _camara_libre() -> void:
+	var foco: Vector3 = _pj.global_position + Vector3(0, 0.9, 0) + _orb_pan
+	var desde: Vector3 = foco + Vector3(sin(_orb_yaw) * cos(_orb_pitch), sin(_orb_pitch), cos(_orb_yaw) * cos(_orb_pitch)) * _orb_dist
+	_cam.global_position = desde
+	_cam.look_at(foco, Vector3.UP)
+
+
+func _texto_gesto_camara() -> String:
+	var eg: Dictionary = estado_gesto()
+	var s: String = "\nGESTO DE CASTEO (Tab): %s%s · Mayús+Tab cámara lenta: %s" % ["SÍ: F7 / F8 / F9 lanzan con el gesto de la figura" if gesto_activo else "no",
+		(" · ahora %s (%s)" % [eg["id"], eg["fase"]]) if String(eg["id"]) != "" else "", "SÍ (×%.2f)" % Engine.time_scale if Engine.time_scale < 0.99 else "no"]
+	if camara_actual == CAMARAS.find("libre"):
+		s += "\nCÁMARA LIBRE: ratón dcho. gira · rueda acerca · central desplaza · teclado num. 4/6 gira, 8/2 sube/baja, 7/9 acerca/aleja, 5 repone"
+	return s
+
+
 # ---------------------------------------------------------------- jugadora y cámara ----------------------------------------------------------------
 
 func _andar(delta: float) -> void:
@@ -1376,6 +1554,8 @@ func poner_camara(i: int) -> void:
 	_cam.projection = Camera3D.PROJECTION_ORTHOGONAL if camara_actual == 0 else Camera3D.PROJECTION_PERSPECTIVE
 	_cam.size = TAM_CAMARA_JUEGO
 	_cam.fov = 60.0
+	if camara_actual == CAMARAS.find("libre"):
+		reponer_camara_libre()
 	_seguir_camara()
 
 
@@ -1387,6 +1567,9 @@ func _seguir_camara() -> void:
 		var atras: Vector3 = Vector3(0, sin(deg_to_rad(ELEVACION_JUEGO)), cos(deg_to_rad(ELEVACION_JUEGO))) * 20.0
 		_cam.global_position = foco + atras
 		_cam.look_at(foco, Vector3.UP)
+		return
+	if camara_actual == CAMARAS.find("libre"):
+		_camara_libre()
 		return
 	if not camara_fija.is_empty():
 		_cam.global_position = camara_fija["desde"]
