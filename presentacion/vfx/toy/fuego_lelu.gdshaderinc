@@ -51,6 +51,11 @@ uniform float vaiven = 0.0;                      // > 0 (m): TODA la malla se la
 uniform float brote : hint_range(0.0, 1.0) = 1.0;    // 0 → 1 al nacer: primero SUBE un chorro fino (alto) y luego ENGORDA (ancho)
 uniform float suelta : hint_range(0.0, 1.0) = 0.0;   // 0 → 1 al morir: un corte roído sube desde la base (la raíz se estrecha y se suelta; lo de arriba se va el último)
 uniform float apaga : hint_range(0.0, 1.0) = 0.0;    // 0 → 1 al morir: el color se va del fuego al pardo oscuro del humo (caliente → frío → humo)
+// MURO, inicio y final (17/11): con `semilargo` > 0 la altura depende de la distancia al centro a lo largo de X (0 centro, 1 extremos): `cierre` 0 → 1 lo SUBE como una cremallera
+// del centro a los extremos; `retira` 0 → 1 lo BAJA de los extremos al centro. Neutros por defecto.
+uniform float semilargo = 0.0;
+uniform float cierre = 1.0;
+uniform float retira : hint_range(0.0, 1.0) = 0.0;
 uniform float fade_base : hint_range(0.0, 0.5) = 0.0;     // fundido de la base (V de 0 a este valor) para que no se vea el pellizco de la UV en el polo
 group_uniforms;
 
@@ -81,6 +86,7 @@ float suavizado(vec2 suv, vec3 vert, vec3 nrm, vec3 vista, mat4 inv_proj) {
 }
 
 #ifndef VBB
+varying float v_alto_l;
 void vertex() {
 	vec2 uvn = vec2(UV.x * 3.0 + semilla * 1.7, (1.0 - UV.y) * 1.5 + TIME * velocidad * 0.5);
 	float n = textureLod(ruido_v, uvn, 0.0).r;
@@ -92,7 +98,12 @@ void vertex() {
 		VERTEX.xz += lado * 2.0 * vaiven * smoothstep(0.05, 0.9, UV.y);
 	}
 	float raiz_suelta = (1.0 - smoothstep(0.0, 0.3, UV.y - suelta)) * min(suelta * 6.0, 1.0);
-	VERTEX.y *= altura * brote_alto();
+	v_alto_l = 1.0;
+	if (semilargo > 0.0) {
+		float dl = abs(VERTEX.x) / semilargo;
+		v_alto_l = smoothstep(0.0, 0.35, cierre * 1.35 - dl) * (1.0 - smoothstep(0.0, 0.35, dl - (1.0 - retira * 1.35)));
+	}
+	VERTEX.y *= altura * brote_alto() * v_alto_l;
 	VERTEX.xz *= ancho * brote_ancho() * mix(1.0, 0.4, raiz_suelta);
 }
 #endif
@@ -134,6 +145,9 @@ void fragment() {
 	float a = smoothstep(umbral, umbral + blandura, f);
 	a *= (fade_base > 0.0 ? smoothstep(0.0, fade_base, UV.y) : 1.0);
 	a *= step(v_base, UV.y) * (1.0 - smoothstep(0.88, 1.0, vg));          // (8) fundido arriba
+#ifndef VBB
+	a *= smoothstep(0.0, 0.12, v_alto_l);
+#endif
 	if (suelta > 0.0) {
 		float corte_s = suelta * 1.15 + (fino - 0.5) * 0.14 * min(suelta * 6.0, 1.0);
 		a *= smoothstep(corte_s - 0.03, corte_s + 0.1, UV.y);
