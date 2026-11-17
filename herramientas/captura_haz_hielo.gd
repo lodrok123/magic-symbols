@@ -7,8 +7,8 @@ extends SceneTree
 const TAM: Vector2i = Vector2i(1000, 720)
 const CELDA: Vector2i = Vector2i(760, 460)
 const COLS: int = 2
-const T_VIVE: Array = [0.15, 0.4, 0.9, 1.5]
-const T_MUERE: Array = [0.25, 0.6]
+const T_VIVE: Array = [0.18, 0.5, 1.0, 1.7]
+const T_MUERE: Array = [0.3, 0.65]
 
 var _dir: String = "docs/capturas/hielo_2026-11-18/haz"
 

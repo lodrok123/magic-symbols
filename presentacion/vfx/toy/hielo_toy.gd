@@ -64,6 +64,25 @@ const HAZ_RAFAGA_COLOR: Color = Color(0.86, 0.96, 1.0, 0.8)
 const HAZ_COPOS: int = 30
 const HAZ_COPO_TAM: Vector2 = Vector2(0.02, 0.05)
 const HAZ_COPO_COLOR: Color = Color(0.6, 0.93, 1.0)
+## 19/11 (Pablo, con un vídeo de un «ice breath»: «para el inicio el cast debe extender la mano y aparecer este sello; desde ahí debe canalizarse un haz de hielo (como un viento
+## helado) que congele al impacto; te pongo una refe para los pies»). Interpretación de Claude: «los pies» = el pie del haz, donde da.
+##   SELLO: un círculo mágico de copo de nieve (hielo_sello.gdshader) delante de la mano, de cara al haz. Se abre PRIMERO (`HAZ_SELLO_FRAC` del nacer) y el haz sale de él
+##   después; gira despacio mientras se canaliza; al morir el haz se va antes y el sello se cierra el último.
+##   CORONA: donde da el haz crece en el suelo una corona de cristales inclinados hacia fuera (en los tres escalones del hielo), con su mancha de escarcha; se queda mientras
+##   el haz da y se rompe al final.
+## A false, el haz sin sello ni corona.
+const HAZ_SELLO: bool = true
+const T_NACER_HAZ_SELLO: float = 0.9
+const HAZ_SELLO_FRAC: float = 0.3                       ## fracción del nacer en la que solo se abre el sello (el haz sale después)
+const HAZ_SELLO_DIAM: float = 2.4                       ## diámetro del sello, en radios del haz…
+const HAZ_SELLO_DIAM_MIN: float = 0.7                   ## …y como poco esto (m)
+const HAZ_SELLO_GIRO: float = 0.7                       ## rad/s
+const SH_SELLO: String = "res://presentacion/vfx/toy/hielo_sello.gdshader"
+const HAZ_CORONA: bool = true                          ## la corona de cristales y la escarcha donde da el haz (a false, solo el sello)
+const HAZ_CORONA_N: int = 13                            ## cristales de la corona del impacto
+const HAZ_CORONA_RADIO: float = 1.7                     ## radio de la corona, en radios del haz
+const HAZ_CORONA_ALTO: Vector2 = Vector2(0.35, 0.95)    ## alto de sus cristales (m, del más bajo al más alto)
+const HAZ_CORONA_CRECE_S: float = 0.55                  ## s que tarda en crecer desde que el haz llega
 const HAZ_AGUJA: float = 0.45                           ## grosor de la lanza y de sus púas, en veces el de antes
 const HAZ_NUCLEO_ANCHO: float = 1.2                     ## ancho de las láminas del núcleo, en radios del haz
 const HAZ_NUCLEO_COLOR: Color = Color(0.62, 0.86, 1.0, 0.5)      ## centro de la lámina
@@ -177,6 +196,12 @@ var _placa: MeshInstance3D = null       ## SUELO: la losa de hielo
 var _aliento: Node3D = null             ## HAZ: el chorro de vaho (humo toon, en el mundo)
 var _nucleo: Array = []                 ## HAZ: las dos láminas del núcleo azul
 var _acc_aliento: float = 0.0
+var _sello: MeshInstance3D = null           ## HAZ: el círculo mágico de la mano
+var _corona: MultiMeshInstance3D = null    ## HAZ: cristales que crecen donde da
+var _cor: Array = []
+var _corona_t: float = 0.0
+var _escarcha_punta: MeshInstance3D = null
+var _giro_sello: float = 0.0
 var _rafagas: MultiMeshInstance3D = null      ## HAZ: trazos del viento helado
 var _raf: Array = []
 var _copos: MultiMeshInstance3D = null        ## HAZ: motas de hielo que arrastra
@@ -623,6 +648,11 @@ func _construir() -> void:
 	_aliento = null
 	_nucleo = []
 	_acc_aliento = 0.0
+	_sello = null
+	_corona = null
+	_cor = []
+	_corona_t = 0.0
+	_escarcha_punta = null
 	_rafagas = null
 	_raf = []
 	_copos = null
@@ -832,6 +862,34 @@ func _haz(c: Node3D) -> void:
 	c.add_child(_aliento)
 	_aliento.call("montar", HAZ_VAHO_RESERVA, {"claro": HAZ_VAHO_CLARO, "sombra": HAZ_VAHO_SOMBRA, "viejo": HAZ_VAHO_VIEJO, "tam_ini": HAZ_VAHO_TAM.x * _haz_r, "tam_fin": HAZ_VAHO_TAM.y * _haz_r,
 		"vida": HAZ_VAHO_VIDA_S, "deriva": Vector3(0, 0.15, 0), "mundo": true, "opacidad": 0.7})
+	if HAZ_SELLO:
+		var qs: QuadMesh = QuadMesh.new()
+		qs.size = Vector2.ONE * minf(maxf(_haz_r * HAZ_SELLO_DIAM, HAZ_SELLO_DIAM_MIN), _haz_alt * 1.9)           # nunca más que la altura de la mano: con 6,5 radios el suelo lo cortaba por la mitad
+		var msello: ShaderMaterial = ShaderMaterial.new()                    # material propio: el sello no usa las texturas ni la paleta que pone HieloMallas.material
+		msello.shader = load(SH_SELLO)
+		msello.render_priority = 2
+		msello.set_shader_parameter("vida", 0.0)
+		msello.set_shader_parameter("abre", 0.0)
+		_sello = _mi_hielo(c, "Sello", qs, msello)
+		_sello.position = Vector3(0, _haz_alt, -0.12)                           # el quad mira a ±Z: de cara al haz
+		if HAZ_CORONA:
+			var rngc: RandomNumberGenerator = RandomNumberGenerator.new()
+			rngc.seed = 97
+			var rc: float = _haz_r * HAZ_CORONA_RADIO
+			for i in HAZ_CORONA_N:
+				var ang: float = TAU * float(i) / float(HAZ_CORONA_N) + rngc.randf_range(-0.2, 0.2)
+				var dd: Vector3 = Vector3(cos(ang), 0.0, sin(ang))
+				var rr: float = rc * rngc.randf_range(0.25, 1.0)
+				var hh: float = rngc.randf_range(HAZ_CORONA_ALTO.x, HAZ_CORONA_ALTO.y) * lerpf(1.0, 0.6, rr / maxf(rc, 0.01))
+				var ww: float = hh * rngc.randf_range(0.13, 0.2)
+				_cor.append({"pos": Vector3(dd.x * rr, 0.0, -_haz_largo + dd.z * rr), "rot": HieloMallas._inclinar(dd, rngc.randf_range(0.55, 1.05), rngc.randf() * TAU), "w": ww, "h": hh,
+					"claro": rngc.randf(), "fase": rngc.randf(), "retraso": rngc.randf_range(0.0, 0.35)})
+			_corona = HieloMallas.crear_mm("Corona", _cor.size(), HieloMallas.cristal(6, 9.0), 0.7, 1)
+			c.add_child(_corona)
+			_escarcha_punta = HieloMallas.escarcha("EscarchaPunta", 0.7, 0.4)
+			_escarcha_punta.position = Vector3(0, 0.012, -_haz_largo)
+			_escarcha_punta.set_meta("lado", rc * 2.6)
+			c.add_child(_escarcha_punta)
 	if not HAZ_SIN_CRISTALES:
 		return
 	if _punta != null:
@@ -879,7 +937,9 @@ func _avanzar_aliento(delta: float, cr: float, co: float) -> void:
 	if _nucleo.is_empty():
 		return
 	var largo: float = maxf(-_haz_z_punta(), 0.001)
-	var vive: float = smoothstep(0.0, 0.15, cr) * (1.0 - smoothstep(0.05, 0.5, co))
+	var ch: float = _crece_haz()
+	var vive: float = smoothstep(0.0, 0.15, ch) * (1.0 - smoothstep(0.05, 0.5, co))
+	_avanzar_sello_y_corona(delta, cr, ch, co)
 	var w: float = _haz_r * HAZ_NUCLEO_ANCHO * ancho
 	for k2 in _nucleo.size():
 		var mi: MeshInstance3D = _nucleo[k2]
@@ -903,6 +963,53 @@ func _avanzar_aliento(delta: float, cr: float, co: float) -> void:
 		# el del chorro corre hacia la punta (con la fricción del humo llega más o menos a ella); el de la punta se abre en nube
 		var vel: Vector3 = Vector3(randf_range(-0.6, 0.6), randf_range(-0.1, 0.5), randf_range(-0.6, 0.3)) if en_punta else Vector3(randf_range(-0.2, 0.2), randf_range(-0.1, 0.2), -largo * 2.3)
 		_aliento.call("emitir", tr * loc, tr.basis * vel, randf_range(0.85, 1.15), randf_range(0.8, 1.2) * (1.25 if en_punta else 1.0), -1.0, 1.0 if en_punta else 1.7)       # el del chorro, estirado: jirón, no bola
+
+
+## HAZ: el sello se abre antes que el haz (con un pequeño sobrepaso), gira mientras se canaliza y se cierra el último; la corona crece en el suelo donde da el haz, por escalones,
+## desde que llega, y se rompe al final.
+func _avanzar_sello_y_corona(delta: float, cr: float, ch: float, co: float) -> void:
+	if _sello != null and is_instance_valid(_sello):
+		_giro_sello += HAZ_SELLO_GIRO * delta
+		var ab: float = smoothstep(0.0, HAZ_SELLO_FRAC, cr)
+		ab = ab * (1.0 + 0.18 * sin(ab * PI)) * (1.0 - smoothstep(0.55, 0.97, co))
+		var ms: ShaderMaterial = _sello.material_override as ShaderMaterial
+		ms.set_shader_parameter("abre", ab)
+		ms.set_shader_parameter("giro", _giro_sello)
+		ms.set_shader_parameter("vida", smoothstep(0.0, 0.06, cr) * (1.0 - smoothstep(0.8, 1.0, co)))
+	if _corona == null or not is_instance_valid(_corona):
+		return
+	if ch >= 0.97 and co < 0.55:
+		_corona_t += delta
+	elif cr <= 0.001:
+		_corona_t = 0.0
+	var g: float = clampf(_corona_t / HAZ_CORONA_CRECE_S, 0.0, 1.0)
+	var rota: float = 1.0 - smoothstep(0.6, 0.85, co)
+	var mm: MultiMesh = _corona.multimesh
+	for i in _cor.size():
+		var d: Dictionary = _cor[i]
+		var ret: float = float(d["retraso"])
+		var f: float = escalon(clampf((g - ret) / maxf(1.0 - ret, 0.01), 0.0, 1.0)) * rota
+		if f <= 0.001:
+			HieloMallas.ocultar(mm, i)
+		else:
+			HieloMallas.poner(mm, i, d["pos"], d["rot"], float(d["w"]) * ancho, float(d["h"]) * altura * f, float(d["w"]) * ancho, float(d["claro"]), 0.95, float(d["fase"]))
+	if _escarcha_punta != null and is_instance_valid(_escarcha_punta):
+		var lado: float = float(_escarcha_punta.get_meta("lado", 1.0)) * lerpf(0.25, 1.0, escalon(g))
+		_escarcha_punta.scale = Vector3(lado, 1.0, lado)
+		var me: ShaderMaterial = _escarcha_punta.material_override as ShaderMaterial
+		me.set_shader_parameter("u", escalon(g))
+		me.set_shader_parameter("vida", 0.9 * smoothstep(0.0, 0.1, g) * (1.0 - smoothstep(0.7, 1.0, co)))
+
+
+## (pruebas) apertura del sello (0-1,x), cristales de la corona visibles y cuánto ha crecido (0-1).
+func estado_sello() -> Dictionary:
+	var n: int = 0
+	if _corona != null and is_instance_valid(_corona):
+		for i in _cor.size():
+			if _corona.multimesh.get_instance_transform(i).basis.get_scale().y > 0.01:
+				n += 1
+	return {"abre": float((_sello.material_override as ShaderMaterial).get_shader_parameter("abre")) if (_sello != null and is_instance_valid(_sello)) else -1.0,
+		"corona": n, "crecida": clampf(_corona_t / HAZ_CORONA_CRECE_S, 0.0, 1.0), "largo": -_haz_z_punta()}
 
 
 ## HAZ, viento helado: las ráfagas y los copos corren de la mano a la punta (`p` 0 → 1 y vuelta a empezar), girando alrededor del eje; nacen y se apagan en los extremos.
@@ -946,7 +1053,14 @@ func _avanzar_viento_helado(delta: float, largo: float, vive: float) -> void:
 
 ## Posición local de la punta de la lanza con `crece` actual.
 func _haz_z_punta() -> float:
-	return -_escalon(crece) * _haz_largo * 0.97
+	return -_escalon(_crece_haz()) * _haz_largo * 0.97
+
+
+## `crece` del HAZ descontando el tramo en que solo se abre el sello (con sello, el haz empieza a salir a `HAZ_SELLO_FRAC`).
+func _crece_haz() -> float:
+	if not (HAZ_ALIENTO and HAZ_SELLO) or _sello == null:
+		return crece
+	return clampf((crece - HAZ_SELLO_FRAC) / (1.0 - HAZ_SELLO_FRAC), 0.0, 1.0)
 
 
 # ------------------------------------------------------------------ crecer y romperse ------------------------------------------------------------------
@@ -1100,7 +1214,7 @@ func _anim_si_hace_falta() -> void:
 	var nacer: float = T_NACER_BOLA
 	var morir_s: float = T_MORIR_BOLA
 	if figura == Figura.HAZ:
-		nacer = T_NACER_HAZ
+		nacer = T_NACER_HAZ_SELLO if (HAZ_ALIENTO and HAZ_SELLO) else T_NACER_HAZ
 		morir_s = T_MORIR_HAZ
 	elif figura == Figura.MURO and MURO_INICIO_FINAL:
 		nacer = T_NACER_MURO

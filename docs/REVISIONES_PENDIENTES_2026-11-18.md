@@ -40,6 +40,7 @@ Cada punto dice dónde verlo en el lab, qué queda dudoso y su entrada del diari
 - [ ] **Efecto de congelado** (522) — tecla `Supr`, o el dummy con hielo. *Dudas:* no visto sobre un enemigo de verdad; la costra son bolas de hielo, no envuelve la forma del cuerpo; asoma algún cuadradito lila sin explicar.
 - [ ] **Haz de hielo = viento helado, sin cristales** (523, 526) — ráfagas, copos y vaho estirado; *las ráfagas son muy finas y casi no se ven en fotogramas*. *Dudas:* **no está comprobado en el juego que el haz congele a un enemigo y a un objeto** (se deduce del código y de las pruebas); el efecto sobre objetos tiene tamaño fijo y no se ha visto; no hay impacto propio (escarcha que se extiende).
 - [ ] **Muro: inicio y final** (524) — *Dudas:* vaho escaso; la escarcha del aviso es una elipse que se estira.
+- [ ] **Haz: sello en la mano y corona de cristales donde da** (528) — *Falta:* el gesto de extender la mano (animación del personaje, sin hacer); la corona no se recoloca si el haz da antes en un enemigo o un muro.
 - [ ] **Barrera sin cúpula** (527) — *Dudas:* queda abierta por arriba, ya no cierra como un domo.
 - Sin hacer: pilar, barrera y bola de hielo; enlazar «suelo» a una forma o a una plataforma.
 
@@ -53,6 +54,7 @@ Cada punto dice dónde verlo en el lab, qué queda dudoso y su entrada del diari
 - `prueba_golem_combate`: 7 fallos.
 - `prueba_limo_combate`: intermitente (falló 3 de 4 pasadas con el código original).
 - `prueba_viento_tierra_toy`: una vez falló «[viento] en vuelo la estela…»; no se repitió en cinco pasadas.
+- `prueba_haz_tamano`: 0 fallos, pero a veces el motor se cierra de golpe al salir (12 de ~75 pasadas el 19/11, a rachas); no usa el hielo y no se sabe la causa.
 - `prueba_agua_toy`: el fallo intermitente de la bola no se reprodujo; queda un diagnóstico extra en la prueba.
 
 ## Lo que ninguna de estas cosas tiene
