@@ -47,6 +47,8 @@ const MURO_AFILA: float = 0.96           ## ancho arriba / ancho abajo de la ban
 const MURO_AFILA_IN: float = 0.92        ## ídem la banda interior (0,7 antes)
 const MURO_RUIDO_CONTORNO: float = 0.24  ## m que el ruido saca y mete la silueta (`amplitud_vert`; 0,16 antes)
 const MURO_VELOCIDAD: float = 1.6        ## × la velocidad de las llamas del muro
+## 17/11 noche (Pablo: «tiene contornos muy definidos, habría que darle ruido al contorno de la forma»): × el desplazamiento de vértices de las capas del pilar (la silueta entra y sale más).
+const PILAR_RUIDO_CONTORNO: float = 1.8
 const PILAR_VELOCIDAD: float = 1.6       ## × la velocidad de las llamas del pilar
 ## INICIO Y FINAL DEL PILAR (17/11, Pablo: «quiero un inicio y un final en los hechizos… igual que la carga de la bola»; «pilar primero»). Solo dibujo.
 ##   INICIO: un anillo en el suelo se cierra hacia el centro (`PILAR_AVISO_S`) y del centro brota un chorro fino que sube y luego engorda (`PILAR_BROTE_S`).
@@ -62,8 +64,15 @@ const PILAR_AVISO_S: float = 0.35
 ## Referencias: desglose de una explosión estilizada en Godot (el color pasa de caliente a frío a humo y el mismo ruido lo deshace) y el de Adrift Arena (el fuego no se para: se funde en
 ## un humo que se expande y sube).
 const PILAR_HUMO_FINAL: bool = true
-const PILAR_HUMO_CANT: int = 16           ## bocanadas a la vez como mucho
-const PILAR_HUMO_VIDA_S: float = 1.2      ## s que dura cada bocanada
+## 17/11 noche (Pablo: «para el humo… darle más consistencia»; elige el HUMO TOON DEL JUEGO): «HumoFinal» ya no son sprites blandos sino las bocanadas toon de dos tonos de
+## humo_toy.gd (las de la tierra y el viento), en pardo oscuro: nacen a la altura por la que va el corte, se hinchan y se carcomen.
+const PILAR_HUMO_CANT: int = 20           ## bocanadas en todo el final
+const PILAR_HUMO_VIDA_S: float = 1.4      ## s que dura cada bocanada
+const PILAR_HUMO_TAM: Vector2 = Vector2(1.1, 3.2)      ## diámetro al nacer y al final, en veces el semieje del pilar
+const PILAR_HUMO_CLARO: Color = Color(0.46, 0.34, 0.28)
+const PILAR_HUMO_SOMBRA: Color = Color(0.25, 0.16, 0.12)
+const PILAR_HUMO_VIEJO: Color = Color(0.33, 0.29, 0.28)
+const HumoToyFuego = preload("res://presentacion/vfx/toy/humo_toy.gd")
 const PILAR_HUMO_HASTA: float = 1.01      ## deja de salir humo cuando el corte ha subido esta fracción del pilar
 ## OJO (lo cazó `prueba_vfx_toy`): «morir» cuenta DENTRO de la vida del hechizo (empieza cuando quedan `dura_morir` s). Con un final de 2 s el fuego se iba 1,2 s antes de que acabara
 ## el hechizo y un pilar de 1 s tardaba 2 en liberarse. Por eso el final va en dos tiempos: el chorro se suelta en `PILAR_FINAL_S` (dentro de la vida) y, al acabar, el RESCOLDO
@@ -1030,8 +1039,11 @@ func _pilar(c: Node3D, luz: OmniLight3D) -> void:
 	_halo(c, "Charco", Vector2(5.2 * rx, 5.2 * rz), Vector3(0, 0.04, 0), 0.45, 1.8, 0, Color(1.0, 0.28, 0.06), {"anillo": 0.5, "irreg": PILAR_IRREG_CHARCO})
 	_halo(c, "Resplandor", Vector2(6.8 * rm, 1.05 * alto), Vector3(0, 0.35 * alto, 0), 0.2, 2.8, 2, Color(1.0, 0.28, 0.06))
 	if PILAR_INICIO_FINAL and PILAR_HUMO_FINAL:
-		var hf: GPUParticles3D = _humo_generico(c, "HumoFinal", Vector3(0, alto * 0.5, 0), Vector3(rx * 0.55, alto * 0.38, rz * 0.55), PILAR_HUMO_CANT, 0.9)
-		hf.lifetime = PILAR_HUMO_VIDA_S
+		var hf: Node3D = HumoToyFuego.new()
+		hf.name = "HumoFinal"
+		c.add_child(hf)
+		hf.call("montar", PILAR_HUMO_CANT, {"claro": PILAR_HUMO_CLARO, "sombra": PILAR_HUMO_SOMBRA, "viejo": PILAR_HUMO_VIEJO, "tam_ini": PILAR_HUMO_TAM.x * rm, "tam_fin": PILAR_HUMO_TAM.y * rm,
+			"vida": PILAR_HUMO_VIDA_S, "deriva": Vector3(0, 0.7, 0), "mundo": true})
 	if PILAR_INICIO_FINAL:
 		var pg: PlaneMesh = PlaneMesh.new()
 		pg.size = Vector2(PILAR_GRIETAS_TAM * rx, PILAR_GRIETAS_TAM * rz)
@@ -1057,7 +1069,7 @@ func _pilar(c: Node3D, luz: OmniLight3D) -> void:
 	var m: Array = FuegoToyMallas.M_PILAR
 	_fuego(c, "Exterior", FuegoToyMallas.banda(rx, rz, 2.0, FuegoToyMallas.perfil_lengua(alto, raiz, PILAR_PANZA_V, PILAR_PUNTA), FuegoToyMallas.segmentos(l1)), Vector3.ZERO,
 		{"repeticion": Vector2(FuegoToyMallas.repeticiones_u(l1, m[0]), PILAR_ESTIRA * alto / float(m[1])), "rep_ruido": Vector2(FuegoToyMallas.repeticiones_u(l1, m[2]), alto / float(m[3])),
-		"umbral": 0.27, "desfase": PILAR_RELLENO, "fuerza_grad": PILAR_EROSION, "pot_grad": PILAR_EROSION_POT, "vaiven": vaiven, "semilla": 0.2, "velocidad": 0.9 * PILAR_VELOCIDAD, "amplitud_vert": 0.2 * amp, "base_irreg": base_irr, "calor_extra": PILAR_CALOR}, 0)
+		"umbral": 0.27, "desfase": PILAR_RELLENO, "fuerza_grad": PILAR_EROSION, "pot_grad": PILAR_EROSION_POT, "vaiven": vaiven, "semilla": 0.2, "velocidad": 0.9 * PILAR_VELOCIDAD, "amplitud_vert": 0.2 * amp * PILAR_RUIDO_CONTORNO, "base_irreg": base_irr, "calor_extra": PILAR_CALOR}, 0)
 	var rxi: float = rx * 0.6
 	var rzi: float = rz * 0.6
 	var hi: float = alto * 0.775
@@ -1065,7 +1077,7 @@ func _pilar(c: Node3D, luz: OmniLight3D) -> void:
 	var mn: Array = FuegoToyMallas.M_PILAR_IN
 	_fuego(c, "Nucleo", FuegoToyMallas.banda(rxi, rzi, 2.0, FuegoToyMallas.perfil_lengua(hi, raiz, PILAR_PANZA_V, PILAR_PUNTA), FuegoToyMallas.segmentos(l2)), Vector3.ZERO,
 		{"repeticion": Vector2(FuegoToyMallas.repeticiones_u(l2, mn[0]), PILAR_ESTIRA * hi / float(mn[1])), "rep_ruido": Vector2(FuegoToyMallas.repeticiones_u(l2, mn[2]), hi / float(mn[3])),
-		"umbral": 0.27, "desfase": PILAR_RELLENO, "fuerza_grad": PILAR_EROSION, "pot_grad": PILAR_EROSION_POT, "vaiven": vaiven, "semilla": 0.6, "velocidad": 1.5 * PILAR_VELOCIDAD, "calor_extra": 0.3 + PILAR_CALOR, "brillo": 1.1, "amplitud_vert": 0.12 * amp}, 1)
+		"umbral": 0.27, "desfase": PILAR_RELLENO, "fuerza_grad": PILAR_EROSION, "pot_grad": PILAR_EROSION_POT, "vaiven": vaiven, "semilla": 0.6, "velocidad": 1.5 * PILAR_VELOCIDAD, "calor_extra": 0.3 + PILAR_CALOR, "brillo": 1.1, "amplitud_vert": 0.12 * amp * PILAR_RUIDO_CONTORNO}, 1)
 	# Pilares mÃ¡s gordos que el validado (r 0,5): un cilindro de lenguas con solo dos capas se ve hueco (un aro a rayas). Se aÃ±aden capas intermedias, una cada ~0,4 m de
 	# radio por encima de 0,55 (mÃ¡x. 3), entre el exterior y el nÃºcleo, cada una con su semilla y su velocidad, para que el pilar se vea tan lleno como el validado.
 	var n_extra: int = clampi(int(round((rm - 0.55) / 0.4)) + (1 if rm > 0.55 else 0), 0, 3)
@@ -1078,7 +1090,7 @@ func _pilar(c: Node3D, luz: OmniLight3D) -> void:
 		_fuego(c, "Capa%d" % i, FuegoToyMallas.banda(rxc, rzc, 2.0, FuegoToyMallas.perfil_lengua(hc, raiz, PILAR_PANZA_V, PILAR_PUNTA), FuegoToyMallas.segmentos(lc)),
 			Vector3.ZERO, {"repeticion": Vector2(FuegoToyMallas.repeticiones_u(lc, m[0]), PILAR_ESTIRA * hc / float(m[1])), "rep_ruido": Vector2(FuegoToyMallas.repeticiones_u(lc, m[2]), hc / float(m[3])),
 			"umbral": 0.27, "desfase": PILAR_RELLENO, "fuerza_grad": PILAR_EROSION, "pot_grad": PILAR_EROSION_POT, "vaiven": vaiven, "semilla": 0.33 + 0.21 * float(i), "velocidad": (1.1 + 0.2 * float(i)) * PILAR_VELOCIDAD, "calor_extra": 0.15 + PILAR_CALOR,
-			"amplitud_vert": 0.16 * amp}, 1)
+			"amplitud_vert": 0.16 * amp * PILAR_RUIDO_CONTORNO}, 1)
 	_laminas_vbb(c, "Lenguas", FuegoToyMallas.laminas_lengua(rx, rz, alto), FuegoToyMallas.M_PILAR, {"umbral": 0.27, "desfase": PILAR_RELLENO, "fuerza_grad": PILAR_EROSION, "pot_grad": PILAR_EROSION_POT, "vaiven": vaiven, "semilla": 0.45, "velocidad": 1.1 * PILAR_VELOCIDAD,
 			"amplitud_vert": 0.2 * amp, "afila": 0.72})
 	_laminas_vbb(c, "BaseLenguas", FuegoToyMallas.laminas_base_pilar(rx * raiz * 1.2, rz * raiz * 1.2, alto), FuegoToyMallas.M_PILAR, {"umbral": 0.27, "desfase": PILAR_RELLENO, "fuerza_grad": PILAR_EROSION, "pot_grad": PILAR_EROSION_POT, "vaiven": vaiven, "semilla": 0.8, "velocidad": 1.3 * PILAR_VELOCIDAD,
@@ -1289,6 +1301,7 @@ func _set_aparicion(v: float) -> void:
 
 var _pilar_muriendo: bool = false
 var _pilar_rescoldo_suelto: bool = false
+var _pilar_humo_n: int = 0
 
 
 ## El rescoldo del pilar: las grietas y el humo pasan a colgar del padre del efecto (que se libera ya), se enfrían y se apagan por su cuenta y se borran solos.
@@ -1305,11 +1318,10 @@ func _soltar_rescoldo() -> void:
 		tw.tween_property(mg, "shader_parameter/calor", 0.0, PILAR_RESCOLDO_S)
 		tw.parallel().tween_property(mg, "shader_parameter/vida", 0.0, PILAR_RESCOLDO_S).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
 		tw.tween_callback(gr.queue_free)
-	var hf: GPUParticles3D = _cuerpo.get_node_or_null("HumoFinal") as GPUParticles3D
+	var hf: Node3D = _cuerpo.get_node_or_null("HumoFinal") as Node3D
 	if hf != null:
 		hf.reparent(padre, true)
 		hf.add_to_group("rescoldo_fuego")
-		hf.emitting = false
 		var tw2: Tween = hf.create_tween()
 		tw2.tween_interval(PILAR_HUMO_VIDA_S + 0.1)
 		tw2.tween_callback(hf.queue_free)
@@ -1347,12 +1359,19 @@ func _pilar_inicio_final(v: float) -> void:
 			_cuerpo.scale = Vector3.ONE                 # EfectoToy lo acaba de encoger (aparicion 0): sin esto el rescoldo se descolgaba al 65 % y con el humo a ras de suelo
 		_soltar_rescoldo()
 		return
-	var hf: GPUParticles3D = (_cuerpo.get_node_or_null("HumoFinal") as GPUParticles3D) if _cuerpo != null else null
+	var hf: Node3D = (_cuerpo.get_node_or_null("HumoFinal") as Node3D) if _cuerpo != null else null
 	if hf != null:
-		var sale: bool = _pilar_muriendo and suelta > 0.02 and suelta < PILAR_HUMO_HASTA
-		hf.amount_ratio = clampf(0.25 + 1.5 * suelta, 0.0, 1.0)                 # cada vez más bocanadas
-		if hf.emitting != sale:
-			hf.emitting = sale
+		if not _pilar_muriendo:
+			_pilar_humo_n = 0
+		else:
+			var quiero: int = int(float(PILAR_HUMO_CANT) * clampf(suelta * 1.15, 0.0, 1.0))       # van saliendo según sube el corte
+			while _pilar_humo_n < quiero:
+				_pilar_humo_n += 1
+				var ang: float = randf() * TAU
+				var rr: float = randf() * 0.5
+				var y: float = semieje_y * clampf(suelta + randf_range(-0.2, 0.3), 0.06, 1.0)
+				hf.call("emitir", global_transform * Vector3(cos(ang) * semieje_x * rr, y, sin(ang) * semieje_z * rr), Vector3(cos(ang) * 0.2, randf_range(0.5, 1.0), sin(ang) * 0.2),
+					randf_range(0.85, 1.15), randf_range(0.8, 1.2))
 	if _cuerpo != null:
 		_cuerpo.scale = Vector3.ONE
 		var gr: MeshInstance3D = _cuerpo.get_node_or_null("Grietas") as MeshInstance3D
