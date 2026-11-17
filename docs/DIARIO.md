@@ -5480,3 +5480,11 @@ Los dos pendientes de la 493. Sin commit todavía.
 - Pruebas: `prueba_generador_mapas` 16 154 comprobaciones, 0 fallos (nuevas: el activador de cada barrera sale del catálogo, todo bloque está en pista cerrada por paredes y la pista está despejada); `escenario_generador_mapas` 0 fallos en salas, pagina y cueva.
 
 **No hecho.** Ninguna barrera abierta jugando. El escenario con el juego real solo monta barreras en «pagina» (con sus parámetros, «salas» y «cueva» salen sin ninguna, igual que antes del cambio); ahí `piedra_pista` se monta como puzle suelto pero no como activador. Las plantillas siguen sin girarse: la pista se empuja siempre de izquierda a derecha.
+
+## 515 — Juego (17/11): **Generador de mapas: las pistas del catálogo, con pared de dos casillas** (playtest de Pablo: «hay un muro que no se generó», junto a la entrada de la pista del bloque)
+
+- **Qué pasaba.** Las paredes de `piedra_pista` y `hielo_pista` tenían una casilla de grueso y quedaban sueltas en medio de la sala. La casilla de la punta (suelo por tres lados) es en el estilo «cueva» una pieza de esquina (`cueva_esquina_ext`, `_pared_cueva` de la maqueta) que no llena la casilla: se veía un hueco entre ella y la pared siguiente, aunque no se podía pasar.
+- **Arreglo, sin tocar la maqueta:** las dos plantillas pasan a tener paredes de DOS casillas de grueso (6 × 5 y 7 × 5), así ninguna casilla de pared queda de punta. Comprobado con una captura del juego (salas, semilla 5, 3 barreras): la pista sale cerrada, sin huecos.
+- Prueba nueva en `prueba_generador_mapas`: ninguna pared de una plantilla del catálogo tiene suelo por tres lados. 16 515 comprobaciones, 0 fallos. Barreras (30 semillas × 3): salas 86, pagina 89, cueva 44 de 90; en pagina la placa sale poco (11) porque la pista ocupa más.
+
+**No hecho / visto.** El mismo hueco puede salir en cualquier pared de una casilla que acabe en punta fuera del catálogo (un tabique suelto del algoritmo «salas», un muro pintado a mano): es de `_pared_cueva` (Pipeline), no se ha tocado. Con la cámara del juego la pared de delante tapa el interior de la pista (la jugadora se ve en silueta). Sigue sin abrirse ninguna barrera jugando.

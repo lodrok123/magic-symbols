@@ -6,8 +6,11 @@
 ;  La sala E2 de la Sala del Empuje. El bloque de hielo resbala por una pista de una casilla cerrada por paredes y se pasa de la placa:
 ;  una barrera de tierra detrás de la placa lo para encima. Si llega a la pared se deshace a los 3 s y vuelve a su sitio.
 ;  Se empuja desde la casilla de la izquierda, que es la única abierta. Enlaza la señal a una puerta o un puente con el pincel «enlazar».
+;  Paredes de dos casillas de grueso, como en piedra_pista (una sola deja un hueco visible en la punta).
+#######
 #######
 ......#
 #######
-; pieza bloque bloque 1 1 material=hielo
-; pieza placa pulsador 2 1 modo=presencia modelo=cueva
+#######
+; pieza bloque bloque 1 2 material=hielo
+; pieza placa pulsador 2 2 modo=presencia modelo=cueva

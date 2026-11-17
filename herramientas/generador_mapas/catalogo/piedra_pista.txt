@@ -7,8 +7,12 @@
 ;  paredes, así no se puede arrinconar. La piedra avanza una casilla por empujón: dos empujones desde la izquierda y queda sobre la placa,
 ;  que está pegada a la pared del fondo (no se puede pasar de largo). La placa pide peso 3: la jugadora sola no la baja.
 ;  Se entra por la casilla de la izquierda, que es la única abierta.
+;  Las paredes de la pista tienen DOS casillas de grueso: con una sola, la punta de la pared (suelo por tres lados) es en el juego una pieza
+;  de esquina estrecha que deja un hueco por el que se ve a través.
+######
 ######
 .....#
 ######
-; pieza bloque bloque 2 1 material=piedra
-; pieza placa pulsador 4 1 modo=presencia peso=3 $MODELO
+######
+; pieza bloque bloque 2 2 material=piedra
+; pieza placa pulsador 4 2 modo=presencia peso=3 $MODELO

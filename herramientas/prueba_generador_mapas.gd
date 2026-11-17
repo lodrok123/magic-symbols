@@ -289,6 +289,19 @@ func _catalogo() -> void:
 	var cat: Dictionary = Catalogo.todos()
 	_ok(cat.size() >= 4, "el catálogo carga sus plantillas", str(cat.keys()))
 	for cid in cat:
+		# Ninguna pared de la plantilla queda de punta (suelo por tres lados si la plantilla va en medio de una sala): en el juego esa
+		# casilla es una pieza de esquina estrecha que deja un hueco visible (playtest de Pablo, 17/11).
+		var fp: Array = cat[cid]["filas"]
+		for y in range(fp.size()):
+			for x in range(String(fp[y]).length()):
+				if String(fp[y])[x] != "#":
+					continue
+				var abiertos: int = 0
+				for d in [Vector2i(0, -1), Vector2i(1, 0), Vector2i(0, 1), Vector2i(-1, 0)]:
+					var q: Vector2i = Vector2i(x, y) + d
+					if q.y < 0 or q.y >= fp.size() or q.x < 0 or q.x >= String(fp[q.y]).length() or String(fp[q.y])[q.x] != "#":
+						abiertos += 1
+				_ok(abiertos <= 2, "ninguna pared de «%s» queda de punta" % cid, "(%d, %d) con %d lados abiertos" % [x, y, abiertos])
 		var puestos: int = 0
 		for alg in ["salas", "pagina"]:
 			for s in range(1, 9):
