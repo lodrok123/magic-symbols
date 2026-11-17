@@ -70,7 +70,7 @@ static func parametros_defecto() -> Dictionary:
 		"sala_min": 2, "sala_max": 4, "reparto": "dispersas", "densidad_salas": 1.0, "puertas": 50,
 		"recto": 60, "callejones": 100, "ancho_pasillo": 2, "forma": "rectangulo",
 		# «cueva»
-		"relleno": 45, "suavizados": 5, "region_min": 12, "agua": 8,
+		"relleno": 56, "suavizados": 2, "region_min": 12, "agua": 8, "silueta": 60, "metodo": "fractal", "octavas": 4, "tamano_sala": 10.0,
 		# «pagina» (tamaños en casillas)
 		"n_salas": 9, "lado_min": 4, "lado_max": 8, "simetria": true, "pasillos": 30, "bucles": 30,
 		# contenido
@@ -574,11 +574,47 @@ func _gen_cueva() -> void:
 	g = PackedByteArray()
 	g.resize(w * h)
 	g.fill(MURO)
-	var relleno: float = clampf(float(p["relleno"]), 30.0, 60.0)
+	var relleno: float = clampf(float(p["relleno"]), 30.0, 75.0)
+	# Silueta: con 0 la cueva llena el rectángulo; cuanto más, más roca hacia los bordes (con ruido), y sale una mancha irregular
+	# con entrantes y brazos, como las del Cave Generator, en vez de un rectángulo de roca.
+	var silueta: float = clampf(float(p["silueta"]), 0.0, 100.0)
+	var contorno: FastNoiseLite = FastNoiseLite.new()
+	contorno.seed = int(p["semilla"]) + 7919
+	contorno.noise_type = FastNoiseLite.TYPE_SIMPLEX_SMOOTH
+	contorno.frequency = 0.07
+	# «fractal»: el suelo es lo más alto de un ruido fractal (varias octavas sumadas: la misma forma se repite en grande y en pequeño,
+	# y de ahí salen las salas anchas unidas por gargantas y los bordes recortados). «automata»: ruido casilla a casilla, que luego se suaviza.
+	var fractal: bool = String(p["metodo"]) != "automata"
+	var campo: FastNoiseLite = FastNoiseLite.new()
+	campo.seed = int(p["semilla"])
+	campo.noise_type = FastNoiseLite.TYPE_SIMPLEX_SMOOTH
+	campo.fractal_type = FastNoiseLite.FRACTAL_FBM
+	campo.fractal_octaves = clampi(int(p["octavas"]), 1, 6)
+	campo.fractal_lacunarity = 2.0
+	campo.fractal_gain = 0.55
+	campo.frequency = 1.0 / clampf(float(p["tamano_sala"]), 4.0, 40.0)
+	var alturas: PackedFloat32Array = PackedFloat32Array()
+	alturas.resize(w * h)
+	var orden: Array = []
 	for y in range(1, h - 1):
 		for x in range(1, w - 1):
-			if not _pct(relleno):
+			var dx: float = (x - (w - 1) * 0.5) / ((w - 2) * 0.5)
+			var dy: float = (y - (h - 1) * 0.5) / ((h - 2) * 0.5)
+			var lejos: float = sqrt(dx * dx + dy * dy) + 0.4 * contorno.get_noise_2d(float(x), float(y))
+			var borde: float = silueta * smoothstep(0.5, 1.0, lejos)
+			if fractal:
+				alturas[y * w + x] = campo.get_noise_2d(float(x), float(y)) - borde * 0.007
+				orden.append(alturas[y * w + x])
+			elif not _pct(relleno + borde):
 				g[y * w + x] = SUELO
+	if fractal and not orden.is_empty():
+		# El corte se pone donde deja de suelo justo la parte pedida (100 − roca).
+		orden.sort()
+		var corte: float = float(orden[clampi(int(orden.size() * relleno / 100.0), 0, orden.size() - 1)])
+		for y in range(1, h - 1):
+			for x in range(1, w - 1):
+				if alturas[y * w + x] > corte:
+					g[y * w + x] = SUELO
 	# Suavizado: una casilla es roca si lo son 5 o más de las 9 de su entorno.
 	for _k in range(clampi(int(p["suavizados"]), 0, 12)):
 		var n: PackedByteArray = g.duplicate()
@@ -1061,6 +1097,22 @@ func _objeto(c: Vector2i, tipo: String, id: String = "") -> void:
 	objetos.append({"c": c, "tipo": tipo, "id": id})
 
 
+## Una salida en la sala `s`, lejos de `ref` (donde aparece la jugadora): la casilla libre más al sur y, a igualdad, la más alineada con `ref`.
+func _poner_salida(s: Dictionary, destino: String, n: int, ref: Vector2i) -> bool:
+	var mejor: Vector2i = Vector2i(-1, -1)
+	for c in _celdas_sala(s):
+		if _ocupada.has(c) or _cerca_de_puerta(c) or absi(c.x - ref.x) + absi(c.y - ref.y) < 2:
+			continue
+		if mejor.x < 0 or c.y > mejor.y or (c.y == mejor.y and absi(c.x - ref.x) < absi(mejor.x - ref.x)):
+			mejor = c
+	if mejor.x < 0:
+		return false
+	_ocupar(mejor)
+	_objeto(mejor, "salida", "a_salida_%d" % n)
+	lineas.append("; pieza a_salida_%d salida %d %d a=%s" % [n, mejor.x, mejor.y, destino])
+	return true
+
+
 func _rect_txt(r: Rect2i) -> String:
 	return "%d,%d..%d,%d" % [r.position.x, r.position.y, r.end.x - 1, r.end.y - 1]
 
@@ -1098,20 +1150,12 @@ func _poblar() -> void:
 	_ocupar(inicio)
 	_objeto(inicio, "inicio")
 	lineas.append("; pieza inicio entrada %d %d" % [inicio.x, inicio.y])
-	var salida_a: String = String(p["salida_a"]).strip_edges()
-	if salida_a != "":
-		var mejor: Vector2i = Vector2i(-1, -1)
-		for c in _celdas_sala(s_ini):
-			if _ocupada.has(c) or _cerca_de_puerta(c) or absi(c.x - inicio.x) + absi(c.y - inicio.y) < 2:
-				continue
-			if mejor.x < 0 or c.y > mejor.y or (c.y == mejor.y and absi(c.x - inicio.x) < absi(mejor.x - inicio.x)):
-				mejor = c
-		if mejor.x >= 0:
-			_ocupar(mejor)
-			_objeto(mejor, "salida", "a_salida")
-			lineas.append("; pieza a_salida salida %d %d a=%s" % [mejor.x, mejor.y, salida_a])
-		else:
-			avisos.append("No cabe la salida en la sala de inicio (demasiado pequeña).")
+	# Salidas: varias, separadas por comas. La primera va en la sala de inicio; las demás, cada una en una sala lejana (más abajo).
+	var destinos: PackedStringArray = PackedStringArray()
+	for d in String(p["salida_a"]).replace(";", ",").replace(" ", ",").split(",", false):
+		destinos.append(d)
+	if destinos.size() > 0 and not _poner_salida(s_ini, destinos[0], 1, inicio):
+		avisos.append("No cabe la salida en la sala de inicio (demasiado pequeña).")
 	# 2 · Distancia de cada sala al inicio.
 	var dist: PackedInt32Array = _distancias(inicio)
 	var dmax: int = 1
@@ -1180,6 +1224,36 @@ func _poblar() -> void:
 			_ocupar(pc)
 			_objeto(pc, "puerta_llave", "puerta_tesoro")
 			lineas.append("; pieza puerta_tesoro puerta %d %d modelo=llave llave=%s.tesoro.llave gasta=no abierto=%s.tesoro.puerta" % [pc.x, pc.y, nv, nv])
+	# 4b · Las demás salidas: cada una en la sala sin papel más alejada de las salidas ya puestas, con su propia entrada (`entrada_<n>`)
+	# para que el otro nivel pueda traer a la jugadora justo ahí.
+	var con_salida: Array = [s_ini]
+	for k in range(1, destinos.size()):
+		var sala_k: Dictionary = {}
+		var lejania: float = -1.0
+		for s in vivas:
+			if String(s["rol"]) != "":
+				continue
+			var dm: float = INF
+			for u in con_salida:
+				dm = minf(dm, Vector2((s["rect"] as Rect2i).get_center()).distance_to(Vector2((u["rect"] as Rect2i).get_center())))
+			if dm > lejania:
+				lejania = dm
+				sala_k = s
+		var puesta: bool = false
+		if not sala_k.is_empty():
+			var llegada: Vector2i = _centro_libre(sala_k)
+			if llegada.x >= 0:
+				_ocupar(llegada)
+				if _poner_salida(sala_k, destinos[k], k + 1, llegada):
+					sala_k["rol"] = "salida"
+					con_salida.append(sala_k)
+					_objeto(llegada, "entrada", "entrada_%d" % (k + 1))
+					lineas.append("; pieza entrada_%d entrada %d %d" % [k + 1, llegada.x, llegada.y])
+					puesta = true
+				else:
+					_ocupada.erase(llegada)
+		if not puesta:
+			avisos.append("No queda sala libre para la salida a %s: añade salas o quita salidas." % destinos[k])
 	# 5 · Charcas dentro de las salas grandes (dejando libre el anillo de las paredes: no cortan el paso).
 	for s in vivas:
 		var r: Rect2i = s["rect"]
@@ -1211,8 +1285,8 @@ func _poblar() -> void:
 	var hay_arquero: bool = false
 	for s in vivas:
 		var rol: String = String(s["rol"])
-		if rol == "inicio" or (rol == "tesoro" and not puerta_llave.is_empty()):
-			continue
+		if rol == "inicio" or rol == "salida" or (rol == "tesoro" and not puerta_llave.is_empty()):
+			continue                               # donde se llega de otro nivel no espera nadie
 		var celdas: Array = _celdas_sala(s).filter(func(c: Vector2i) -> bool: return not _ocupada.has(c) and not _cerca_de_puerta(c) and absi(c.x - inicio.x) + absi(c.y - inicio.y) >= 5)
 		var n: int = clampi(int(round(celdas.size() / CASILLAS_POR_ENEMIGO * fuerza * (0.6 + 0.8 * int(s["dist"]) / float(dmax)))), 0, 5)
 		if rol == "llave" and fuerza > 0.0:

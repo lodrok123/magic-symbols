@@ -18,11 +18,12 @@ const C_AGUA: Color = Color(0.45, 0.68, 0.82)
 const C_TINTA: Color = Color(0.12, 0.1, 0.09)
 const ROLES: Dictionary = {
 	"inicio": ["inicio", Color(0.35, 0.75, 0.4)], "tesoro": ["tesoro", Color(0.95, 0.75, 0.2)],
-	"llave": ["llave", Color(0.65, 0.45, 0.9)], "combate": ["se cierra", Color(0.9, 0.35, 0.3)],
+	"llave": ["llave", Color(0.65, 0.45, 0.9)], "combate": ["se cierra", Color(0.9, 0.35, 0.3)], "salida": ["otra salida", Color(0.25, 0.7, 0.8)],
 }
 ## tipo de objeto → [letra que se pinta, color, forma (0 círculo, 1 cuadrado), nombre]
 const ICONOS: Dictionary = {
 	"inicio": ["S", Color(0.2, 0.65, 0.3), 0, "inicio de la jugadora"], "salida": ["E", Color(0.25, 0.7, 0.8), 1, "salida a otro nivel"],
+	"entrada": ["e", Color(0.2, 0.65, 0.3), 0, "llegada desde otro nivel"],
 	"guerrero": ["W", Color(0.8, 0.25, 0.2), 0, "goblin guerrero"], "arquero": ["A", Color(0.85, 0.45, 0.15), 0, "goblin arquero"],
 	"brasero": ["T", Color(0.95, 0.6, 0.15), 0, "brasero"], "jarron": ["j", Color(0.6, 0.5, 0.38), 0, "jarrón"],
 	"cofre_tesoro": ["$", Color(0.9, 0.7, 0.1), 1, "cofre del tesoro"], "cofre_llave": ["K", Color(0.6, 0.4, 0.85), 1, "cofre de la llave"],
@@ -30,12 +31,12 @@ const ICONOS: Dictionary = {
 }
 ## Cambiar uno de estos cambia la forma del mapa: los retoques pintados a mano dejan de tener sentido y se borran.
 const CLAVES_FORMA: Array[String] = ["algoritmo", "semilla", "ancho", "alto", "sala_min", "sala_max", "reparto", "densidad_salas", "puertas", "recto", "callejones",
-	"ancho_pasillo", "forma", "relleno", "suavizados", "region_min", "agua", "n_salas", "lado_min", "lado_max", "simetria", "pasillos", "bucles"]
+	"ancho_pasillo", "forma", "relleno", "silueta", "metodo", "octavas", "tamano_sala", "suavizados", "region_min", "agua", "n_salas", "lado_min", "lado_max", "simetria", "pasillos", "bucles"]
 
 ## Los campos del panel. t: titulo | opcion | int | float | bool | texto. `alg`: solo se ve con ese algoritmo.
 const CAMPOS: Array = [
 	{"t": "titulo", "r": "MAPA"},
-	{"k": "algoritmo", "r": "Algoritmo", "t": "opcion", "op": [["salas", "Salas y pasillos (donjon)"], ["cueva", "Cueva orgánica (autómata)"], ["pagina", "Una página (sala a sala)"]],
+	{"k": "algoritmo", "r": "Algoritmo", "t": "opcion", "op": [["salas", "Salas y pasillos (donjon)"], ["cueva", "Cueva o claro de bosque (orgánico)"], ["pagina", "Una página (sala a sala)"]],
 		"a": "Salas y pasillos: rejilla de salas unidas por un laberinto podado.\nCueva: roca natural por autómata celular, con agua.\nUna página: crece desde la entrada pegando salas, con simetría y bucles."},
 	{"k": "semilla", "r": "Semilla", "t": "int", "min": 0, "max": 9999999, "a": "La misma semilla con los mismos parámetros da siempre el mismo mapa."},
 	{"k": "ancho", "r": "Ancho (casillas)", "t": "int", "min": 12, "max": 120, "a": "Una casilla son 2,3 u del juego. La Cueva mide 27 × 25; el Bosque 02, 40 × 40."},
@@ -50,8 +51,13 @@ const CAMPOS: Array = [
 	{"k": "recto", "r": "Pasillos rectos (%)", "t": "int", "min": 0, "max": 100, "paso": 5, "alg": "salas", "a": "0 = laberinto retorcido; 100 = pasillos largos y rectos."},
 	{"k": "callejones", "r": "Podar callejones (%)", "t": "int", "min": 0, "max": 100, "paso": 5, "alg": "salas", "a": "100 = no queda ningún pasillo sin salida; 0 = se queda el laberinto entero."},
 	{"k": "forma", "r": "Forma del mapa", "t": "opcion", "op": [["rectangulo", "Rectángulo"], ["caja", "Caja (hueco central)"], ["cruz", "Cruz"], ["redonda", "Redonda"]], "alg": "salas"},
-	{"t": "titulo", "r": "CUEVA", "alg": "cueva"},
-	{"k": "relleno", "r": "Roca inicial (%)", "t": "int", "min": 30, "max": 60, "alg": "cueva", "a": "Menos = cueva abierta; más = galerías estrechas. Entre 42 y 48 da las mejores."},
+	{"t": "titulo", "r": "CUEVA / CLARO DE BOSQUE", "alg": "cueva"},
+	{"k": "metodo", "r": "Método", "t": "opcion", "op": [["fractal", "Fractal (ruido en octavas)"], ["automata", "Autómata celular"]], "alg": "cueva",
+		"a": "Fractal: salas anchas unidas por gargantas, con el borde recortado a varias escalas.\nAutómata: galerías más enredadas y parejas."},
+	{"k": "tamano_sala", "r": "Tamaño de las salas", "t": "float", "min": 4.0, "max": 40.0, "paso": 1.0, "alg": "cueva", "a": "Solo fractal: casillas que mide, más o menos, cada bolsa de la cueva. Pequeño = muchas salitas; grande = pocas y amplias."},
+	{"k": "octavas", "r": "Detalle (octavas)", "t": "int", "min": 1, "max": 6, "alg": "cueva", "a": "Solo fractal: 1 = formas lisas y redondas; 5-6 = borde muy recortado, con recovecos."},
+	{"k": "relleno", "r": "Roca inicial (%)", "t": "int", "min": 30, "max": 75, "alg": "cueva", "a": "Menos = cueva abierta; más = galerías estrechas. Entre 42 y 48 da las mejores."},
+	{"k": "silueta", "r": "Silueta irregular (%)", "t": "int", "min": 0, "max": 100, "paso": 5, "alg": "cueva", "a": "0 = la cueva llena todo el rectángulo. Más = una mancha irregular con brazos y entrantes, como las del Cave Generator."},
 	{"k": "suavizados", "r": "Suavizados", "t": "int", "min": 0, "max": 12, "alg": "cueva", "a": "Pasadas del autómata: más = paredes más redondas."},
 	{"k": "region_min", "r": "Bolsa mínima (casillas)", "t": "int", "min": 1, "max": 80, "alg": "cueva", "a": "Las bolsas sueltas más pequeñas que esto se tapan; las demás se unen con un túnel."},
 	{"k": "agua", "r": "Agua (%)", "t": "int", "min": 0, "max": 40, "alg": "cueva", "a": "Parte del suelo que se inunda (lo más bajo). Si el agua parte la cueva, se abre un vado."},
@@ -76,7 +82,7 @@ const CAMPOS: Array = [
 	{"k": "estilo", "r": "Estilo", "t": "opcion", "op": [["cueva", "Cueva (roca)"], ["bosque", "Bosque (árboles)"], ["pantano", "Pantano (barro)"]], "a": "Cómo dibuja la maqueta las paredes y el suelo."},
 	{"k": "luz", "r": "Luz", "t": "opcion", "op": [], "a": "La fila de LuzZona3D.ZONAS que ilumina el nivel."},
 	{"k": "rotulo", "r": "Rótulo al entrar", "t": "bool", "a": "Una zona que cubre el mapa y enseña el nombre la primera vez."},
-	{"k": "salida_a", "r": "Salida a (Nivel:entrada)", "t": "texto", "a": "Vacío = sin salida. Ejemplo: Bosque_02:boca_cueva. Pone una salida en la sala de inicio."},
+	{"k": "salida_a", "r": "Salidas (Nivel:entrada, …)", "t": "texto", "a": "Vacío = sin salida. Cada salida es Nivel:entrada, con el nombre del nivel tal como está en Niveles.ESCENAS (MonteSumicio, Bosque_02, Cueva…).\nVarias, separadas por comas: Bosque_02:boca_cueva, MonteSumicio:inicio\nLa primera va en la sala de inicio; cada una de las demás, en una sala lejana, con su propia llegada (entrada_2, entrada_3…)."},
 ]
 
 
@@ -96,13 +102,43 @@ class Vista extends Control:
 	var _pintando: bool = false
 	var _tam: Vector2i = Vector2i.ZERO
 
+	var ver_contenido: bool = true
+	var _papel: ColorRect = ColorRect.new()          ## el plano lo pinta un shader (papel_mapa.gdshader) detrás de lo que dibuja `_draw`
+	var _material: ShaderMaterial = ShaderMaterial.new()
+	var _titulo: SystemFont = SystemFont.new()
+
 	func _init() -> void:
 		clip_contents = true
 		mouse_filter = Control.MOUSE_FILTER_STOP
 		focus_mode = Control.FOCUS_CLICK
+		_titulo.font_names = PackedStringArray(["Palatino Linotype", "Book Antiqua", "Georgia", "serif"])
+		_material.shader = load("res://herramientas/generador_mapas/papel_mapa.gdshader")
+		_papel.material = _material
+		_papel.show_behind_parent = true
+		_papel.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		_papel.set_anchors_preset(Control.PRESET_FULL_RECT)
+		add_child(_papel)
+
+	## Dónde y cómo pinta el shader: lo que cambia al mover la vista o hacer zoom.
+	func _colocar_papel() -> void:
+		_material.set_shader_parameter("tam_vista", size)
+		_material.set_shader_parameter("origen", origen)
+		_material.set_shader_parameter("escala", escala)
 
 	func poner(m: Dictionary) -> void:
 		mapa = m
+		# El plano, a una textura de un píxel por casilla: R = se pisa, G = agua.
+		var filas: PackedStringArray = m["filas"]
+		var img: Image = Image.create(int(m["ancho"]), int(m["alto"]), false, Image.FORMAT_RGB8)
+		for y in range(int(m["alto"])):
+			for x in range(int(m["ancho"])):
+				var ch: String = filas[y][x]
+				img.set_pixel(x, y, Color(0.0 if ch == "#" else 1.0, 1.0 if ch == "~" else 0.0, 0.0))
+		var par: Dictionary = m["parametros"]
+		_material.set_shader_parameter("mapa", ImageTexture.create_from_image(img))
+		_material.set_shader_parameter("tam", Vector2(int(m["ancho"]), int(m["alto"])))
+		_material.set_shader_parameter("modo", 0 if String(par["estilo"]) == "cueva" else 1)
+		_material.set_shader_parameter("temblor", 0.22 if String(par["algoritmo"]) == "cueva" else 0.07)
 		var t: Vector2i = Vector2i(int(m["ancho"]), int(m["alto"]))
 		if t != _tam:
 			_tam = t
@@ -113,8 +149,8 @@ class Vista extends Control:
 	func ajustar() -> void:
 		if _tam.x <= 0 or size.x < 20.0 or size.y < 20.0:
 			return
-		escala = clampf(floorf(minf((size.x - 24.0) / _tam.x, (size.y - 24.0) / _tam.y)), 3.0, 48.0)
-		origen = ((size - Vector2(_tam) * escala) * 0.5).floor()
+		escala = clampf(floorf(minf((size.x - 24.0) / _tam.x, (size.y - 96.0) / _tam.y)), 3.0, 48.0)
+		origen = ((size - Vector2(_tam) * escala) * 0.5).floor() + Vector2(0, 30)
 		queue_redraw()
 
 	func _notification(que: int) -> void:
@@ -148,57 +184,29 @@ class Vista extends Control:
 			sobre.emit(celda_en(mm.position))
 
 	func _draw() -> void:
-		draw_rect(Rect2(Vector2.ZERO, size), C_FONDO)
+		_colocar_papel()
 		if mapa.is_empty():
 			return
 		var filas: PackedStringArray = mapa["filas"]
-		var w: int = int(mapa["ancho"])
-		var h: int = int(mapa["alto"])
 		var e: float = escala
-		draw_rect(Rect2(origen, Vector2(w, h) * e), C_MURO)
-		for y in range(h):
-			var fila: String = filas[y]
-			var x: int = 0
-			while x < w:                                # tramos seguidos del mismo color en un solo rectángulo
-				var ch: String = fila[x]
-				var x0: int = x
-				while x < w and (fila[x] == "~") == (ch == "~") and (fila[x] == "#") == (ch == "#"):
-					x += 1
-				if ch != "#":
-					draw_rect(Rect2(origen + Vector2(x0, y) * e, Vector2(x - x0, 1) * e), C_AGUA if ch == "~" else C_SUELO)
-		# Salas: tinte del papel que hacen y su número.
+		var claro: bool = String((mapa["parametros"] as Dictionary)["estilo"]) != "cueva"
+		# El nombre del nivel, como el título de un mapa.
+		draw_string(_titulo, Vector2(28, 62), String((mapa["parametros"] as Dictionary)["nombre"]).replace("_", " "), HORIZONTAL_ALIGNMENT_LEFT, -1, 44,
+			Color(0.8, 0.9, 0.75) if claro else C_TINTA)
+		if not ver_contenido:
+			return
+		# Salas: el papel que hacen (inicio, tesoro, llave, se cierra) y su número.
 		var fuente: Font = get_theme_default_font()
 		for s in mapa["salas"]:
 			var r: Rect2i = s["rect"]
 			var rol: String = String(s["rol"])
 			if ROLES.has(rol):
 				var col: Color = ROLES[rol][1]
-				for sy in range(maxi(r.position.y, 0), mini(r.end.y, h)):          # solo lo que se pisa: en una cueva el «claro» pisa roca
-					for sx in range(maxi(r.position.x, 0), mini(r.end.x, w)):
-						if filas[sy][sx] != "#":
-							draw_rect(Rect2(origen + Vector2(sx, sy) * e, Vector2(e, e)), Color(col, 0.3))
 				if String((mapa["parametros"] as Dictionary)["algoritmo"]) != "cueva":
-					draw_rect(Rect2(origen + Vector2(r.position) * e, Vector2(r.size) * e).grow(-1.0), Color(col, 0.9), false, 2.0)
-		# Rejilla y trazo de tinta en el borde del suelo.
-		if e >= 9.0:
-			for y in range(h + 1):
-				draw_line(origen + Vector2(0, y) * e, origen + Vector2(w, y) * e, Color(0, 0, 0, 0.07))
-			for x in range(w + 1):
-				draw_line(origen + Vector2(x, 0) * e, origen + Vector2(x, h) * e, Color(0, 0, 0, 0.07))
-		var grosor: float = clampf(e * 0.14, 1.0, 3.0)
-		for y in range(1, h - 1):
-			for x in range(1, w - 1):
-				if filas[y][x] == "#":
-					continue
-				var p0: Vector2 = origen + Vector2(x, y) * e
-				if filas[y - 1][x] == "#":
-					draw_line(p0, p0 + Vector2(e, 0), C_TINTA, grosor)
-				if filas[y + 1][x] == "#":
-					draw_line(p0 + Vector2(0, e), p0 + Vector2(e, e), C_TINTA, grosor)
-				if filas[y][x - 1] == "#":
-					draw_line(p0, p0 + Vector2(0, e), C_TINTA, grosor)
-				if filas[y][x + 1] == "#":
-					draw_line(p0 + Vector2(e, 0), p0 + Vector2(e, e), C_TINTA, grosor)
+					draw_rect(Rect2(origen + Vector2(r.position) * e, Vector2(r.size) * e).grow(-e * 0.2), Color(col, 0.22))
+					draw_rect(Rect2(origen + Vector2(r.position) * e, Vector2(r.size) * e).grow(-e * 0.2), Color(col, 0.9), false, 2.0)
+				else:
+					draw_arc(origen + (Vector2(r.position) + Vector2(r.size) * 0.5) * e, r.size.x * 0.5 * e, 0.0, TAU, 48, Color(col, 0.9), 2.0)
 		# Puertas sin pieza: una traviesa marrón.
 		for pu in mapa["puertas"]:
 			if String(pu["tipo"]) != "paso":
@@ -215,9 +223,11 @@ class Vista extends Control:
 			var oc: Vector2i = o["c"]
 			var cen: Vector2 = origen + (Vector2(oc) + Vector2(0.5, 0.5)) * e
 			if int(ic[2]) == 1:
-				draw_rect(Rect2(cen - Vector2(e, e) * 0.42, Vector2(e, e) * 0.84), ic[1])
+				draw_rect(Rect2(cen - Vector2(e, e) * 0.4, Vector2(e, e) * 0.8), C_TINTA)
+				draw_rect(Rect2(cen - Vector2(e, e) * 0.34, Vector2(e, e) * 0.68), ic[1])
 			else:
-				draw_circle(cen, e * 0.42, ic[1])
+				draw_circle(cen, e * 0.4, C_TINTA)
+				draw_circle(cen, e * 0.34, ic[1])
 			if e >= 9.0:
 				draw_string(fuente, cen + Vector2(-e * 0.5, tam_letra * 0.36), String(ic[0]), HORIZONTAL_ALIGNMENT_CENTER, e, tam_letra, Color.WHITE)
 		if e >= 12.0:
@@ -357,6 +367,12 @@ func _montar() -> void:
 	_pincel.item_selected.connect(func(i: int) -> void: _vista.pincel = String(_pincel.get_item_metadata(i)))
 	pie.add_child(_pincel)
 	_boton(pie, "Borrar retoques", _borrar_retoques, "Quita todo lo pintado a mano.")
+	var ver: CheckBox = CheckBox.new()
+	ver.text = "Contenido"
+	ver.button_pressed = true
+	ver.tooltip_text = "Desmarcado se ve solo el mapa, sin enemigos, cofres ni salas marcadas."
+	ver.toggled.connect(_al_ver_contenido)
+	pie.add_child(ver)
 	_abrir = MenuButton.new()
 	_abrir.text = "Abrir mapa generado ▾"
 	_abrir.flat = false
@@ -387,6 +403,11 @@ func _montar() -> void:
 	_confirmar.confirmed.connect(_al_confirmar)
 	add_child(_confirmar)
 	_decir("Nada se escribe en el proyecto hasta pulsar «Exportar a Godot». Rueda = zoom · botón derecho = mover la vista.")
+
+
+func _al_ver_contenido(si: bool) -> void:
+	_vista.ver_contenido = si
+	_vista.queue_redraw()
 
 
 func _borrar_retoques() -> void:
@@ -552,6 +573,18 @@ func _regenerar() -> void:
 			l.append("[color=#e8c56a]● %s ya existe (lo generó esta herramienta): exportar lo sobrescribe.[/color]" % String(est["mapa"]).get_file())
 	for a in _mapa["avisos"]:
 		l.append("[color=#e8c56a]● %s[/color]" % a)
+	# Las salidas: bien escritas y a un nivel que el juego conozca.
+	var conocidos: Dictionary = load("res://nucleo/niveles.gd").ESCENAS
+	for d in String(_par["salida_a"]).replace(";", ",").replace(" ", ",").split(",", false):
+		var trozos: PackedStringArray = d.split(":")
+		if trozos.size() != 2 or trozos[0] == "" or trozos[1] == "":
+			l.append("[color=#ff7a6b]✖ Salida «%s» mal escrita: es Nivel:entrada (por ejemplo MonteSumicio:inicio). El juego la ignoraría.[/color]" % d)
+		elif not conocidos.has(trozos[0]):
+			var parecido: String = ""
+			for k in conocidos:
+				if String(k).to_lower().replace("_", "") == trozos[0].to_lower().replace("_", ""):
+					parecido = " ¿Querías decir «%s»?" % String(k)
+			l.append("[color=#e8c56a]● Salida «%s»: el nivel «%s» no está en Niveles.ESCENAS; al pisarla avisará «no lleva a ningún sitio».%s[/color]" % [d, trozos[0], parecido])
 	_resumen.text = "\n".join(l)
 
 

@@ -21,10 +21,13 @@ const VARIANTES: Array = [
 	{"algoritmo": "salas", "puertas": 0, "callejones": 100, "charcas": 100, "salas_cerradas": 100, "enemigos": 3.0, "jarrones": 4.0, "braseros": 3.0},
 	{"algoritmo": "salas", "tesoro": false}, {"algoritmo": "salas", "llave": false, "enemigos": 0.0}, {"algoritmo": "salas", "ancho": 12, "alto": 12},
 	{"algoritmo": "cueva", "relleno": 55}, {"algoritmo": "cueva", "relleno": 35, "agua": 40}, {"algoritmo": "cueva", "suavizados": 0, "region_min": 1},
-	{"algoritmo": "cueva", "ancho": 90, "alto": 70, "agua": 20}, {"algoritmo": "cueva", "ancho": 12, "alto": 12},
+	{"algoritmo": "cueva", "ancho": 90, "alto": 70, "agua": 20}, {"algoritmo": "cueva", "silueta": 0}, {"algoritmo": "cueva", "silueta": 100, "relleno": 50}, {"algoritmo": "cueva", "ancho": 12, "alto": 12},
 	{"algoritmo": "pagina", "simetria": false, "bucles": 100}, {"algoritmo": "pagina", "n_salas": 30, "ancho": 70, "alto": 60, "pasillos": 60},
 	{"algoritmo": "pagina", "n_salas": 40, "ancho": 15, "alto": 15}, {"algoritmo": "pagina", "lado_min": 2, "lado_max": 3, "salas_cerradas": 100, "charcas": 100},
 	{"algoritmo": "pagina", "salida_a": "Bosque_02:boca_cueva", "estilo": "bosque", "luz": "bosque"},
+	{"algoritmo": "cueva", "metodo": "automata"}, {"algoritmo": "cueva", "octavas": 6, "tamano_sala": 6.0}, {"algoritmo": "cueva", "octavas": 1, "tamano_sala": 30.0, "silueta": 100},
+	{"algoritmo": "salas", "salida_a": "Bosque_02:boca_cueva, MonteSumicio:inicio, Cueva:desde_bosque"}, {"algoritmo": "cueva", "salida_a": "A:b,C:d;E:f G:h"},
+	{"algoritmo": "pagina", "n_salas": 3, "salida_a": "A:b,C:d,E:f,G:h,I:j"},
 ]
 
 var _fallos: int = 0

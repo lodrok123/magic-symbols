@@ -24,7 +24,7 @@ func _escenario() -> void:
 	_borrar()
 	Flags.nuevo()
 	Estado.nuevo()
-	var m: Dictionary = Generador.new().generar({"algoritmo": alg, "semilla": 3, "nombre": _nombre, "salas_cerradas": 100, "charcas": 60})
+	var m: Dictionary = Generador.new().generar({"algoritmo": alg, "semilla": 3, "nombre": _nombre, "salas_cerradas": 100, "charcas": 60, "salida_a": "Cueva:desde_bosque, Bosque_02:boca_cueva"})
 	var antes_mapas: int = DirAccess.get_files_at(Exportador.DIR_MAPAS).size()
 	var antes_escenas: int = DirAccess.get_files_at(Exportador.DIR_ESCENAS).size()
 	var res: Dictionary = Exportador.exportar(m)
