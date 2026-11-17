@@ -294,6 +294,8 @@ var _pincel: OptionButton = null
 var _abrir: MenuButton = null
 var _confirmar: ConfirmationDialog = null
 var _tras_confirmar: Callable = Callable()
+var _pid_horno: int = 0                 ## el proceso que está horneando (0 = ninguno)
+var _nombre_horno: String = ""
 var _mono: SystemFont = SystemFont.new()
 var _cargando: bool = false
 
@@ -316,6 +318,8 @@ func _ready() -> void:
 func _process(_delta: float) -> void:
 	if _sucio:
 		_regenerar()
+	if _pid_horno > 0 and not OS.is_process_running(_pid_horno):
+		_fin_hornear()
 
 
 func _unhandled_key_input(ev: InputEvent) -> void:
@@ -430,6 +434,7 @@ func _montar() -> void:
 	_boton(pie, "Copiar texto", _copiar_texto, "Copia el .txt al portapapeles sin escribir nada.")
 	_boton(pie, "Exportar a Godot", func() -> void: _exportar(false), "Escribe mapas/<Nombre>.txt y escenas/Prueba<Nombre>.tscn.")
 	_boton(pie, "Probar en el juego", func() -> void: _exportar(true), "Exporta y abre el nivel en otra ventana.")
+	_boton(pie, "Hornear", _hornear, "Exporta y convierte el nivel en mundo/datos_nivel/Nivel_<Nombre>.tscn, EDITABLE en Godot (mover, girar, borrar y añadir piezas a mano).\nEs lo mismo que pulsar F9 dentro del juego. Es el último paso: con el nivel horneado, la herramienta ya no vuelve a exportar ese nombre.")
 	var pie2: HBoxContainer = HBoxContainer.new()
 	todo.add_child(pie2)
 	_estado = Label.new()
@@ -619,7 +624,7 @@ func _regenerar() -> void:
 		if String(est["mapa"]) != "" and not bool(est["mapa_nuestro"]):
 			l.append("[color=#ff7a6b]✖ Ya existe %s hecho a mano: no se pisará. Cambia el nombre.[/color]" % String(est["mapa"]).get_file())
 		elif String(est["horneado"]) != "":
-			l.append("[color=#ff7a6b]✖ Existe %s (horneado): la maqueta cargaría ese. Cambia el nombre.[/color]" % String(est["horneado"]).get_file())
+			l.append("[color=#ff7a6b]✖ Existe %s (horneado): este nombre ya no se exporta, para no pisar tus ediciones. Edítalo en Godot o cambia el nombre.[/color]" % String(est["horneado"]).get_file())
 		elif String(est["mapa"]) != "":
 			l.append("[color=#e8c56a]● %s ya existe (lo generó esta herramienta): exportar lo sobrescribe.[/color]" % String(est["mapa"]).get_file())
 	for a in _mapa["avisos"]:
@@ -741,6 +746,13 @@ func _exportar(probar: bool) -> void:
 		_decir("No se exporta: " + mal)
 		return
 	var est: Dictionary = Exportador.estado_destino(nombre)
+	if probar and String(est["horneado"]) != "" and String(est["escena"]) != "":
+		# Ya horneado: no se exporta (pisaría el .txt del que depende el horneado); se abre tal como está, con las ediciones a mano.
+		var pid_h: int = OS.create_process(OS.get_executable_path(), ["--path", ProjectSettings.globalize_path("res://"), String(est["escena"])])
+		_decir(("Abriendo el nivel HORNEADO %s (no se exporta: manda el .tscn con tus ediciones)." % String(est["horneado"]).get_file()) if pid_h > 0 else "No se pudo abrir el juego.")
+		return
+	_confirmar.title = "Exportar"
+	_confirmar.ok_button_text = "Sobrescribir"
 	if String(est["mapa"]) != "" and bool(est["mapa_nuestro"]):
 		_confirmar.dialog_text = "%s ya existe (lo generó esta herramienta).\n¿Sobrescribirlo con el mapa que estás viendo?\nSi lo habías retocado a mano se guarda antes una copia." % String(est["mapa"]).get_file()
 		_tras_confirmar = _hacer_exportar.bind(probar)
@@ -764,6 +776,67 @@ func _hacer_exportar(probar: bool) -> void:
 		var pid: int = OS.create_process(OS.get_executable_path(), ["--path", ProjectSettings.globalize_path("res://"), Exportador.ruta_escena(nombre)])
 		if pid <= 0:
 			_decir("Exportado, pero no se pudo abrir el juego. Ábrelo a mano: " + Exportador.ruta_escena(nombre))
+
+
+# --- hornear ---
+
+## Botón «Hornear»: exporta el mapa que se ve y lo convierte en `Nivel_<Nombre>.tscn`, el nivel editable en Godot. Lo hace otro proceso
+## sin ventana (hornear_generado.gd), que abre el nivel y llama al `hornear()` de la maqueta: lo mismo que F9 dentro del juego.
+func _hornear() -> void:
+	if _pid_horno > 0:
+		_decir("Ya se está horneando «%s»: espera a que acabe." % _nombre_horno)
+		return
+	if _sucio:
+		_regenerar()
+	var nombre: String = String(_par["nombre"])
+	var mal: String = Exportador.nombre_valido(nombre)
+	if mal != "":
+		_decir("No se hornea: " + mal)
+		return
+	var errores: PackedStringArray = Exportador.validar(_mapa)
+	if not errores.is_empty():
+		_decir("No se hornea: el mapa no pasa la validación (%s)" % errores[0])
+		return
+	var est: Dictionary = Exportador.estado_destino(nombre)
+	if String(est["horneado"]) != "":
+		_decir("«%s» ya está horneado: edítalo en Godot (%s). Para hornear otro mapa, cambia el «Nombre del nivel»." % [nombre, String(est["horneado"])])
+		return
+	var txt: String = "Se exporta «%s» y se convierte en mundo/datos_nivel/Nivel_%s.tscn, editable en Godot.\n\n" % [nombre, nombre]
+	txt += "· Es el último paso: con el nivel horneado, esta herramienta ya no vuelve a exportar ese nombre (no pisa tus ediciones).\n"
+	txt += "· En el .tscn se editan las paredes y el decorado. El suelo, los enemigos y los puzles siguen saliendo de mapas/%s.txt.\n" % nombre
+	if String(_par["estilo"]) == "cueva":
+		txt += "\n⚠ ESTILO «CUEVA»: comprobado el 17/11, al hornear las paredes de cueva DEJAN DE BLOQUEAR (la jugadora se mete en la roca).\n"
+		txt += "Con estilo «bosque» el horneado sí funciona. Puedes hornear igualmente, pero el nivel no será jugable hasta arreglar eso en el juego.\n"
+	_confirmar.title = "Hornear"
+	_confirmar.ok_button_text = "Hornear"
+	_confirmar.dialog_text = txt
+	_tras_confirmar = _hacer_hornear
+	_confirmar.popup_centered()
+
+
+func _hacer_hornear() -> void:
+	var res: Dictionary = Exportador.exportar(_mapa)
+	if not bool(res["ok"]):
+		_decir("NO horneado: " + String(res["error"]))
+		return
+	_nombre_horno = String(_par["nombre"])
+	_pid_horno = OS.create_process(OS.get_executable_path(), ["--headless", "--path", ProjectSettings.globalize_path("res://"),
+		"--script", "res://herramientas/generador_mapas/hornear_generado.gd", "--", _nombre_horno])
+	if _pid_horno <= 0:
+		_pid_horno = 0
+		_decir("Exportado, pero no se pudo lanzar el horneado. A mano: abre el nivel con «Probar en el juego» y pulsa F9.")
+		return
+	_decir("HORNEANDO «%s»… tarda unos segundos (otro proceso abre el nivel sin ventana y lo guarda)." % _nombre_horno)
+
+
+func _fin_hornear() -> void:
+	_pid_horno = 0
+	var est: Dictionary = Exportador.estado_destino(_nombre_horno)
+	if String(est["horneado"]) != "":
+		_decir("Horneado: %s. Ábrelo en el editor de Godot para retocarlo; «Probar en el juego» lo abre ya horneado." % String(est["horneado"]))
+	else:
+		_decir("El horneado de «%s» no ha dejado el archivo. A mano: «Probar en el juego» y F9 dentro del nivel (el aviso sale en su pantalla)." % _nombre_horno)
+	_sucio = true                  # el resumen pasa a decir que ya está horneado
 
 
 # --- abrir un mapa generado ---
