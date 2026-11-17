@@ -146,6 +146,7 @@ const GLIFO: Dictionary = {
 	"retorno": "Retorno: al acabar la ida, el proyectil vuelve y golpea de nuevo. Un segundo ᛃ no suma nada más.",
 	"buscar": "Buscar: el proyectil se imanta al enemigo vivo más cercano de su cono. Cada ᚨ abre más el cono: ±60°, ±90° y ±120° (tope 3).",
 	"retardo": "Carga: lo que sale tarda 1 s más por glifo en salir (tope 3 s) y a cambio nace un 20 % más grande y con un 25 % más de daño por glifo.",
+	"suelo": "Suelo: el hechizo se planta en la casilla que señalas y no viaja. Hielo sobre agua: plataforma que se pisa; hielo en suelo: escarcha que hace patinar a los enemigos pequeños y medianos. Tierra sobre un vacío: plataforma; sobre agua: nada; en suelo: capa que ralentiza. Con cualquier otro elemento es una trampa de un solo uso que explota cuando un enemigo la pisa (a los 20 s sin pisar se va; cada ᛉ la alarga).",
 	"posicion": "Posición: el hechizo nace en el punto de suelo que señalas dentro del anillo de alcance.",
 	"atraccion": "Atracción: lo que toca es tirado hacia ti si viaja, o hacia el centro si se queda.",
 	"espejo": "Espejo: lo que viaja o nace lejos sale también hacia atrás.",

@@ -129,6 +129,8 @@ const GLYPHS: Dictionary = {
 	# 30/10 (H5): ᚦ perforar y ᚨ buscar tienen su PNG de la lámina (thurisaz.png, ansuz.png). ᛃ retorno (jera) NO tiene PNG todavía: sin entrada aquí el libro lo pinta con el trazo a mano (como «pilar»); pendiente del Pipeline.
 	"perforar": preload("res://art/ui/glyphs/thurisaz.png"),
 	"buscar": preload("res://art/ui/glyphs/ansuz.png"),
+	# 18/11: ᛒ suelo (berkana.png, que estaba libre en la lámina).
+	"suelo": preload("res://art/ui/glyphs/berkana.png"),
 }
 
 ## NOMBRE QUE VE EL JUGADOR (23/10, decisión de Pablo): el id de un glifo es el de sus muestras grabadas (`GestureLibrary`), su PNG y las tablas, y NO se renombra. Lo que se
@@ -416,6 +418,11 @@ const GLIFOS: Dictionary = {
 	"retardo": {"cuenta_dano": CARGA_PESO_DANO, "repertorio": "retardo", "cooldown": 1.0, "tinta": {"por_glifo": 0.0, "tope": 0.0}, "momento": "inicio", "paso": 3, "modificadores": [{"campo": "retardo", "op": "suma", "valor": 1.0, "tope": 3.0},
 		{"campo": "semiejes.x", "op": "multiplica", "valor": CRECER_TOPE_V2 * CRECER_TOPE_V2, "hasta": CARGA_RANGO_V2}, {"campo": "semiejes.y", "op": "multiplica", "valor": CRECER_TOPE_V2 * CRECER_TOPE_V2, "hasta": CARGA_RANGO_V2},
 		{"campo": "semiejes.z", "op": "multiplica", "valor": CRECER_TOPE_V2 * CRECER_TOPE_V2, "hasta": CARGA_RANGO_V2}, {"campo": "potencia", "op": "multiplica", "valor": CARGA_POTENCIA_V2, "hasta": CARGA_RANGO_V2}]},
+	# ᛒ suelo (18/11, diseño de Pablo): el hechizo NO viaja ni nace en la mano: se PLANTA en la casilla del suelo a la que apuntas (`en_punto`) y hace lo que toque según su ELEMENTO y lo que haya en ella
+	# (`GlifoSuelo`: hielo sobre agua = plataforma; hielo en suelo = escarcha que hace patinar; tierra sobre vacío = plataforma; tierra sobre agua = nada; tierra en suelo = capa que ralentiza;
+	# el resto = trampa de un solo uso que explota con el color del elemento). Los campos que fija: `suelo` y `en_punto`. Cuenta para el daño (la trampa pega con el daño del hechizo).
+	"suelo": {"repertorio": "suelo", "cooldown": 2.0, "tinta": {"por_glifo": 3.0, "tope": 3.0}, "momento": "inicio", "paso": 3, "modificadores": [
+		{"campo": "suelo", "op": "fija", "valor": true}, {"campo": "en_punto", "op": "fija", "valor": true}]},
 	# Experimental. La Sala del Chamán lo añade desde su página de combate.
 	"posicion": {"cuenta_dano": false, "repertorio": "posicion", "cooldown": 0.0, "tinta": {"por_glifo": 4.0, "tope": 4.0}, "momento": "inicio", "paso": 1,
 		"modificadores": [{"campo": "en_punto", "op": "fija", "valor": true}]},
