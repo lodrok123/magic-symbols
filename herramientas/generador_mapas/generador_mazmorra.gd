@@ -1516,6 +1516,10 @@ func _intentar_barrera_b(paso: Dictionary, n: int, vivas: Array, cueva: bool) ->
 	for c in celdas:
 		if _ocupada.has(c) or (c as Vector2i).distance_squared_to(inicio) < 9:
 			return false
+		for b in _barreras:                          # ni pegada a otra barrera: dos puentes juntos se leen como uno
+			for cb0 in b["celdas"]:
+				if (c as Vector2i).distance_squared_to(cb0) <= 8:
+					return false
 		bloq[c] = true
 	# ¿Corta de verdad? Tiene que dejar bastante mapa a cada lado.
 	var base: PackedInt32Array = _distancias(inicio, solo_llave)
