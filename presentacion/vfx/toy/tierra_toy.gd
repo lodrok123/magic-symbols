@@ -45,6 +45,10 @@ const SH_GRIETAS: String = "res://presentacion/vfx/toy/tierra_grietas.gdshader"
 const SH_DECAL: String = "res://presentacion/vfx/toy/decal_suelo.gdshader"      ## 7/11: decal de suelo (se pega al relieve), referencia de LeLu que paso Pablo
 const COLOR_PUA: Color = Color(0.56, 0.38, 0.24)                     ## pardo tierra del suelo del bosque, subido el 7/11 (en el juego la pua quedaba muy oscura contra la hierba)
 const COLOR_LAJA: Color = Color(0.56, 0.38, 0.24)               ## 7/11: igual que la púa (antes más oscura: las lajas inclinadas enseñaban su cara en sombra como un trazo negro)
+## 17/11 (Pablo: «para la tierra utiliza el shader y textura de la tierra como línea»): TODA la tierra del toy (bola, muro, pilar, barrera, terrones y fragmentos) lleva el material de las
+## púas de la línea (modo `plano` de tierra_roca.gdshader: estratos pardos, de la raíz oscura a la punta ocre, `ACLARA_PUA`) en vez de la textura gris de las rocas del mapa. Las mallas no
+## cambian. A false, la roca gris de antes.
+const TODO_COMO_LINEA: bool = true
 const PUAS_MAX: int = 14                                              ## púas de una línea (el resto hasta MAX_BLOQUES, lajas)
 const ACLARA_PUA: float = 1.15                                        ## x el albedo de la pua y la laja (7/11: en el Bosque salian casi negras contra la hierba)
 const NORMAL_ARRIBA_JUEGO: float = 0.45                               ## 12/11: en el juego la normal de púas y lajas se dobla esto hacia arriba (`normal_arriba` del shader de roca: el sol casi vertical del Bosque les daba de canto)
@@ -354,6 +358,10 @@ static func material_roca(p: Dictionary = {}) -> ShaderMaterial:
 	m.set_shader_parameter("tinte", TINTE_PIEDRA)
 	for k in p:
 		m.set_shader_parameter(k, p[k])
+	if TODO_COMO_LINEA and float(p.get("plano", 0.0)) < 0.5:
+		m.set_shader_parameter("plano", 1.0)
+		m.set_shader_parameter("color_plano", COLOR_PUA)
+		m.set_shader_parameter("aclara_pua", ACLARA_PUA)
 	return m
 
 

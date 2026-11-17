@@ -38,7 +38,7 @@ func _correr() -> void:
 	_lab = (load("res://laboratorios/LabVfxComparativa3D.tscn") as PackedScene).instantiate() as Node3D
 	root.add_child(_lab)
 	_lab.set("_panel_visible", false)
-	_lab.call("poner_elemento", "fuego")
+	_lab.call("poner_elemento", a[1] if a.size() > 1 else "fuego")      # 2.º argumento: otro elemento (p. ej. tierra) con la misma tira
 	_lab.call("poner_camara", 0)                                   # la del juego: ortogonal, inclinada 60°
 	for i in 4:
 		var cubo: Node3D = _lab.get_node_or_null("Cubo%d" % i) as Node3D
