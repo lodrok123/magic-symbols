@@ -38,7 +38,7 @@ Cada punto dice dónde verlo en el lab, qué queda dudoso y su entrada del diari
 
 - [ ] **Figura nueva «suelo»: placa de hielo** (521) — tecla `Insert` (otra pulsación la rompe). *Dudas:* solo dibujo: ni se pisa, ni flota, ni la crea ningún hechizo.
 - [ ] **Efecto de congelado** (522) — tecla `Supr`, o el dummy con hielo. *Dudas:* no visto sobre un enemigo de verdad; la costra son bolas de hielo, no envuelve la forma del cuerpo; asoma algún cuadradito lila sin explicar.
-- [ ] **Haz de hielo = aliento de frío** (523) — *Dudas:* **no está comprobado en el juego que el haz congele a un enemigo y a un objeto** (se deduce del código y de las pruebas); el efecto sobre objetos tiene tamaño fijo y no se ha visto; no hay impacto propio (escarcha que se extiende); las púas de la aguja sobresalen del chorro.
+- [ ] **Haz de hielo = viento helado, sin cristales** (523, 526) — ráfagas, copos y vaho estirado; *las ráfagas son muy finas y casi no se ven en fotogramas*. *Dudas:* **no está comprobado en el juego que el haz congele a un enemigo y a un objeto** (se deduce del código y de las pruebas); el efecto sobre objetos tiene tamaño fijo y no se ha visto; no hay impacto propio (escarcha que se extiende).
 - [ ] **Muro: inicio y final** (524) — *Dudas:* vaho escaso; la escarcha del aviso es una elipse que se estira.
 - Sin hacer: pilar, barrera y bola de hielo; enlazar «suelo» a una forma o a una plataforma.
 

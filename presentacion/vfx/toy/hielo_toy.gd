@@ -51,14 +51,27 @@ const REF_SUELO: Vector3 = Vector3(1.6, 0.22, 1.3)      ## placa de referencia: 
 ## (`HAZ_AGUJA`: una aguja de hielo dentro del chorro), van: un NÚCLEO azul a lo largo del haz (dos láminas cruzadas, mezcla normal: el hielo no es luz), un CHORRO de vaho
 ## pálido que corre de la mano a la punta (humo toon) y una NUBE de escarcha en la punta. A false, la lanza de antes.
 const HAZ_ALIENTO: bool = true
+## 19/11 (Pablo: «quita los cristales en el haz de hielo, fíjate más en lo que pase: debe sentirse como un viento helado»): el haz ya NO dibuja cristales (ni lanza ni púas, ni
+## esquirlas al irse). Es aire que corre: RÁFAGAS (trazos finos y largos que vuelan de la mano a la punta girando alrededor del eje), COPOS (motas de hielo que el aire arrastra),
+## el vaho estirado en la dirección del chorro y el núcleo azul, más tenue. La lista de cristales se conserva SIN ANCHO (no se ve): lleva los escalones con los que el haz se alarga.
+const HAZ_SIN_CRISTALES: bool = true
+const HAZ_RAFAGAS: int = 16
+const HAZ_RAFAGA_VEL: Vector2 = Vector2(1.7, 2.8)       ## largos del haz por segundo a los que corre cada ráfaga
+const HAZ_RAFAGA_LARGO: Vector2 = Vector2(0.18, 0.42)   ## largo de la ráfaga, en largos del haz
+const HAZ_RAFAGA_ANCHO: Vector2 = Vector2(0.02, 0.05)   ## ancho (m)
+const HAZ_RAFAGA_GIRO: float = 5.0                      ## rad por largo de haz que gira alrededor del eje (la hélice del viento)
+const HAZ_RAFAGA_COLOR: Color = Color(0.86, 0.96, 1.0, 0.8)
+const HAZ_COPOS: int = 30
+const HAZ_COPO_TAM: Vector2 = Vector2(0.02, 0.05)
+const HAZ_COPO_COLOR: Color = Color(0.6, 0.93, 1.0)
 const HAZ_AGUJA: float = 0.45                           ## grosor de la lanza y de sus púas, en veces el de antes
 const HAZ_NUCLEO_ANCHO: float = 1.2                     ## ancho de las láminas del núcleo, en radios del haz
-const HAZ_NUCLEO_COLOR: Color = Color(0.62, 0.86, 1.0, 0.8)      ## centro de la lámina
+const HAZ_NUCLEO_COLOR: Color = Color(0.62, 0.86, 1.0, 0.5)      ## centro de la lámina
 const HAZ_NUCLEO_BORDE: Color = Color(0.22, 0.55, 1.0, 0.0)      ## hacia los lados: azul más hondo y transparente
-const HAZ_VAHO_POR_S: float = 30.0                      ## bocanadas por segundo del chorro
+const HAZ_VAHO_POR_S: float = 40.0                      ## bocanadas por segundo del chorro
 const HAZ_VAHO_RESERVA: int = 48
 const HAZ_VAHO_VIDA_S: float = 0.6
-const HAZ_VAHO_TAM: Vector2 = Vector2(0.5, 1.5)         ## diámetro de la bocanada al nacer y al final, en radios del haz (con 1,6 → 4,6 era una nube que lo tapaba todo)
+const HAZ_VAHO_TAM: Vector2 = Vector2(0.55, 1.7)         ## diámetro de la bocanada al nacer y al final, en radios del haz (con 1,6 → 4,6 era una nube que lo tapaba todo)
 const HAZ_VAHO_CLARO: Color = Color(0.9, 0.97, 1.0)
 const HAZ_VAHO_SOMBRA: Color = Color(0.55, 0.8, 1.0)
 const HAZ_VAHO_VIEJO: Color = Color(0.7, 0.86, 0.98)
@@ -161,6 +174,10 @@ var _placa: MeshInstance3D = null       ## SUELO: la losa de hielo
 var _aliento: Node3D = null             ## HAZ: el chorro de vaho (humo toon, en el mundo)
 var _nucleo: Array = []                 ## HAZ: las dos láminas del núcleo azul
 var _acc_aliento: float = 0.0
+var _rafagas: MultiMeshInstance3D = null      ## HAZ: trazos del viento helado
+var _raf: Array = []
+var _copos: MultiMeshInstance3D = null        ## HAZ: motas de hielo que arrastra
+var _cop: Array = []
 var _placa_rota: bool = false
 var _cupula: MeshInstance3D = null      ## BARRERA: cúpula de cristal muy tenue
 var _punta: MeshInstance3D = null       ## HAZ: destello de la punta
@@ -603,6 +620,10 @@ func _construir() -> void:
 	_aliento = null
 	_nucleo = []
 	_acc_aliento = 0.0
+	_rafagas = null
+	_raf = []
+	_copos = null
+	_cop = []
 	_punta = null
 	tam_referencia = Vector3(semieje_x, semieje_y, semieje_z) * 2.0
 	_avance_cabeza = 0.0
@@ -766,8 +787,10 @@ func _haz(c: Node3D) -> void:
 		var dist: float = clampf(-(d["pos"] as Vector3).z / maxf(_haz_largo, 0.01), 0.0, 1.0)
 		d["rompe"] = clampf(dist * 0.55, 0.0, 0.55) if float(d["h"]) < _haz_largo * 0.9 else 0.3
 		if HAZ_ALIENTO:
-			d["wx"] = float(d["wx"]) * HAZ_AGUJA
-			d["wz"] = float(d["wz"]) * HAZ_AGUJA
+			d["wx"] = 0.0 if HAZ_SIN_CRISTALES else float(d["wx"]) * HAZ_AGUJA
+			d["wz"] = 0.0 if HAZ_SIN_CRISTALES else float(d["wz"]) * HAZ_AGUJA
+			if HAZ_SIN_CRISTALES:
+				d["esq"] = 0                                                  # ni esquirlas al irse: el viento no se rompe
 	_montar_cristales(c, capa, 5.0)
 	_punta = HieloMallas.destello("Punta")
 	_punta.position = Vector3(0, _haz_alt, -_haz_largo)
@@ -805,6 +828,46 @@ func _haz(c: Node3D) -> void:
 	c.add_child(_aliento)
 	_aliento.call("montar", HAZ_VAHO_RESERVA, {"claro": HAZ_VAHO_CLARO, "sombra": HAZ_VAHO_SOMBRA, "viejo": HAZ_VAHO_VIEJO, "tam_ini": HAZ_VAHO_TAM.x * _haz_r, "tam_fin": HAZ_VAHO_TAM.y * _haz_r,
 		"vida": HAZ_VAHO_VIDA_S, "deriva": Vector3(0, 0.15, 0), "mundo": true, "opacidad": 0.7})
+	if not HAZ_SIN_CRISTALES:
+		return
+	if _punta != null:
+		_punta.visible = false                                               # el destello de cristal de la punta tampoco: en la punta hay nube
+	for tipo in 2:
+		var n: int = HAZ_RAFAGAS if tipo == 0 else HAZ_COPOS
+		var mm: MultiMesh = MultiMesh.new()
+		mm.transform_format = MultiMesh.TRANSFORM_3D
+		var qm: QuadMesh = QuadMesh.new()
+		qm.size = Vector2.ONE
+		mm.mesh = qm
+		mm.instance_count = n
+		var mmi: MultiMeshInstance3D = MultiMeshInstance3D.new()
+		mmi.name = "Rafagas" if tipo == 0 else "Copos"
+		mmi.multimesh = mm
+		var sm2: StandardMaterial3D = StandardMaterial3D.new()
+		sm2.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+		sm2.cull_mode = BaseMaterial3D.CULL_DISABLED
+		if tipo == 0:
+			sm2.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+			sm2.albedo_color = HAZ_RAFAGA_COLOR
+		else:
+			sm2.albedo_color = HAZ_COPO_COLOR
+			sm2.billboard_mode = BaseMaterial3D.BILLBOARD_ENABLED
+			sm2.billboard_keep_scale = true
+		mmi.material_override = sm2
+		mmi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		mmi.custom_aabb = AABB(Vector3.ONE * -40.0, Vector3.ONE * 80.0)
+		c.add_child(mmi)
+		for i in n:
+			var it: Dictionary = {"p": randf(), "ang": randf() * TAU, "r": randf_range(0.25, 1.35), "vel": randf_range(HAZ_RAFAGA_VEL.x, HAZ_RAFAGA_VEL.y) * (1.0 if tipo == 0 else 0.7),
+				"largo": randf_range(HAZ_RAFAGA_LARGO.x, HAZ_RAFAGA_LARGO.y), "ancho": randf_range(HAZ_RAFAGA_ANCHO.x, HAZ_RAFAGA_ANCHO.y), "tam": randf_range(HAZ_COPO_TAM.x, HAZ_COPO_TAM.y), "fase": randf() * TAU}
+			if tipo == 0:
+				_raf.append(it)
+			else:
+				_cop.append(it)
+		if tipo == 0:
+			_rafagas = mmi
+		else:
+			_copos = mmi
 
 
 ## HAZ, aliento de frío: el núcleo azul se alarga con la lanza y se apaga con `corte`; el vaho sale de la mano y corre hasta la punta mientras el haz vive, con más nube en la punta.
@@ -823,6 +886,7 @@ func _avanzar_aliento(delta: float, cr: float, co: float) -> void:
 		var eje_y: Vector3 = Vector3.FORWARD * largo
 		mi.transform = Transform3D(Basis(eje_x, eje_y, eje_x.cross(eje_y).normalized()), Vector3(0, _haz_alt, -largo * 0.5))
 		(mi.material_override as StandardMaterial3D).albedo_color = Color(1, 1, 1, vive)
+	_avanzar_viento_helado(delta, largo, vive)
 	if delta <= 0.0 or vive <= 0.05 or _aliento == null or not is_instance_valid(_aliento) or not is_inside_tree():
 		return
 	var tr: Transform3D = global_transform
@@ -834,7 +898,46 @@ func _avanzar_aliento(delta: float, cr: float, co: float) -> void:
 		var loc: Vector3 = Vector3(randf_range(-1.0, 1.0) * _haz_r, _haz_alt + randf_range(-1.0, 1.0) * _haz_r, z0)
 		# el del chorro corre hacia la punta (con la fricción del humo llega más o menos a ella); el de la punta se abre en nube
 		var vel: Vector3 = Vector3(randf_range(-0.6, 0.6), randf_range(-0.1, 0.5), randf_range(-0.6, 0.3)) if en_punta else Vector3(randf_range(-0.2, 0.2), randf_range(-0.1, 0.2), -largo * 2.3)
-		_aliento.call("emitir", tr * loc, tr.basis * vel, randf_range(0.85, 1.15), randf_range(0.8, 1.2) * (1.25 if en_punta else 1.0))
+		_aliento.call("emitir", tr * loc, tr.basis * vel, randf_range(0.85, 1.15), randf_range(0.8, 1.2) * (1.25 if en_punta else 1.0), -1.0, 1.0 if en_punta else 1.7)       # el del chorro, estirado: jirón, no bola
+
+
+## HAZ, viento helado: las ráfagas y los copos corren de la mano a la punta (`p` 0 → 1 y vuelta a empezar), girando alrededor del eje; nacen y se apagan en los extremos.
+func _avanzar_viento_helado(delta: float, largo: float, vive: float) -> void:
+	var oculto: Transform3D = Transform3D(Basis.from_scale(Vector3.ONE * 0.0001), Vector3(0, -50, 0))
+	if _rafagas != null and is_instance_valid(_rafagas):
+		var mm: MultiMesh = _rafagas.multimesh
+		for i in _raf.size():
+			var it: Dictionary = _raf[i]
+			it["p"] = fposmod(float(it["p"]) + float(it["vel"]) * delta, 1.0)
+			var pr: float = float(it["p"])
+			var k2: float = sin(pr * PI) * vive
+			if k2 <= 0.02:
+				mm.set_instance_transform(i, oculto)
+				continue
+			var ang: float = float(it["ang"]) + pr * HAZ_RAFAGA_GIRO
+			var rr: float = _haz_r * float(it["r"]) * lerpf(0.6, 1.25, pr)                       # el chorro se abre un poco hacia la punta
+			var radial: Vector3 = Vector3(cos(ang), sin(ang), 0.0)
+			var lr: float = largo * float(it["largo"])
+			var centro: Vector3 = Vector3(radial.x * rr, _haz_alt + radial.y * rr, -largo * pr)
+			# el quad (1 × 1 en su XY): su Y a lo largo del haz, su X en la tangente del giro (se ve fino desde cualquier lado porque cada una mira distinto)
+			var eje_y: Vector3 = (Vector3.FORWARD + Vector3(-radial.y, radial.x, 0.0) * 0.12).normalized() * lr
+			var eje_x: Vector3 = Vector3(-radial.y, radial.x, 0.0) * float(it["ancho"]) * k2
+			mm.set_instance_transform(i, Transform3D(Basis(eje_x, eje_y, eje_x.cross(eje_y).normalized()), centro))
+	if _copos != null and is_instance_valid(_copos):
+		var mc: MultiMesh = _copos.multimesh
+		var tt: float = Time.get_ticks_msec() * 0.001
+		for i in _cop.size():
+			var ic: Dictionary = _cop[i]
+			ic["p"] = fposmod(float(ic["p"]) + float(ic["vel"]) * delta, 1.0)
+			var pc: float = float(ic["p"])
+			var kc: float = sin(pc * PI) * vive * (0.6 + 0.4 * sin(tt * 11.0 + float(ic["fase"])))
+			if kc <= 0.02:
+				mc.set_instance_transform(i, oculto)
+				continue
+			var ac: float = float(ic["ang"]) + pc * HAZ_RAFAGA_GIRO * 0.7
+			var rc: float = _haz_r * float(ic["r"]) * lerpf(0.7, 1.5, pc)
+			var tam: float = float(ic["tam"]) * kc
+			mc.set_instance_transform(i, Transform3D(Basis.from_scale(Vector3(tam, tam, tam)), Vector3(cos(ac) * rc, _haz_alt + sin(ac) * rc, -largo * pc)))
 
 
 ## Posición local de la punta de la lanza con `crece` actual.
