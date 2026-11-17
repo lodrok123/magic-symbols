@@ -457,9 +457,13 @@ func dummy_tecla(mayus: bool, ctrl: bool) -> void:
 
 
 ## 19/11: si el DUMMY está en la línea de un haz, el haz le DA. El de HIELO se corta en él (`haz_tope`), le aplica el elemento cuando llega (`haz_llego`) y su corona crece a sus
-## pies. Los demás elementos todavía no saben cortarse en el dummy: lo atraviesan y se le aplica el elemento `HAZ_DUMMY_ESPERA_S` después de lanzar, a ojo.
+## pies. FUEGO, AGUA y RAYO se cortan con su `choques` (el del juego) y dibujan su impacto; TIERRA para su línea de púas (`haz_tope`); VIENTO y MAGMA no saben cortarse y lo atraviesan.
+## A todos estos el elemento se les aplica por tiempo, a ojo (no avisan al llegar).
 ## Se llama ANTES de meter el haz en el árbol (se construye en _ready).
 const HAZ_DUMMY_ESPERA_S: float = 0.45
+## «muro» = el haz se corta en el dummy (lo que pidió Pablo para verlo). OJO: en el JUEGO un haz solo se corta en topes (muros, casillas sólidas, barreras) y a los enemigos y objetos
+## los ATRAVIESA envolviéndolos (HazChoque.largo_corte); para ver eso aquí, «enemigo».
+const HAZ_DUMMY_TIPO: String = "muro"
 
 
 func _haz_al_dummy(e, origen: Vector3, dir: Vector3) -> void:
@@ -481,7 +485,26 @@ func _haz_al_dummy(e, origen: Vector3, dir: Vector3) -> void:
 			if _dummy != null and is_instance_valid(_dummy):
 				_dummy.aplicar(el))
 	else:
-		get_tree().create_timer(HAZ_DUMMY_ESPERA_S).timeout.connect(func() -> void:
+		var largo: float = e.semieje_x * 2.0
+		var cortado: bool = false
+		if "choques" in e:
+			# FUEGO, AGUA y RAYO: el choque del juego (mismo formato que el muro de F), en la cara del dummy. Con tipo «muro» el haz se CORTA ahí y dibuja su impacto;
+			# con «enemigo» (HAZ_DUMMY_TIPO) lo atravesaría envolviéndolo, que es lo que hace el juego con los enemigos.
+			var punto: Vector3 = origen + dh * cara
+			var nuevos: Array = VfxToyJuego._choques_locales([{"punto": Vector3(punto.x, 1.0, punto.z), "normal": -dh, "tipo": HAZ_DUMMY_TIPO}], origen, dh * largo)
+			var d_muro: float = INF
+			for ch in e.choques:
+				if ch is Dictionary and (ch as Dictionary).has("d"):
+					d_muro = minf(d_muro, float((ch as Dictionary)["d"]))
+			if cara < d_muro:                                                    # el dummy está antes que el muro de F (si lo hay): manda el dummy
+				e.choques = nuevos
+				cortado = true
+		elif "haz_tope" in e:
+			e.haz_tope = cara                                                     # TIERRA: la línea de púas se para en el dummy
+			cortado = true
+		# estos haces no avisan al llegar: el elemento se aplica cuando el haz ha recorrido, a ojo, el trecho hasta el dummy (VIENTO y MAGMA no se cortan: lo atraviesan)
+		var espera: float = HAZ_DUMMY_ESPERA_S * (clampf(cara / maxf(largo, 0.01), 0.25, 1.0) if cortado else 1.0)
+		get_tree().create_timer(espera).timeout.connect(func() -> void:
 			if _dummy != null and is_instance_valid(_dummy):
 				_dummy.aplicar(el))
 

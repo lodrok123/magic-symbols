@@ -50,6 +50,7 @@ Cada punto dice dónde verlo en el lab, qué queda dudoso y su entrada del diari
 
 ## Laboratorio
 
+- [ ] **Los demás haces dan en el dummy** (531) — fuego, agua y rayo se cortan y dibujan su impacto; tierra para sus púas; viento y magma lo atraviesan. *Ojo:* en el juego un haz NO se corta en enemigos (solo en muros): lo del lab es para ver el impacto. El dummy solo tiene efecto en el cuerpo para congelado y aturdido.
 - [ ] **El haz de hielo da en el dummy** (529) — pon el dummy con `Intro` y lanza el haz con `F7`: se corta en él, lo congela al llegar y la corona crece a sus pies. *Dudas:* solo en el lab y solo el hielo; en el juego el haz aún no se corta en enemigos ni muros.
 - [ ] **Dummy de estados** (525) — `Intro` le aplica el elemento actual; `Mayús+Intro` lo limpia; `Ctrl+Intro` lo quita. *Dudas:* usa la runa de serie (sin glifos) y las reglas de un enemigo normal, no las del gólem, el limo o el elemental; no recibe daño ni se empuja.
 

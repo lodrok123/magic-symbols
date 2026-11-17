@@ -566,6 +566,8 @@ var _c_aviso: MultiMeshInstance3D = null  ## CARGA: anillo de piedrecitas que gi
 var _aviso_ang: float = 0.0
 var _grietas_muro: Array = []                ## MURO: las dos medias grietas del suelo (centro → extremos)
 var _acc_g: float = 0.0
+## HAZ (línea de púas), 19/11: algo la PARA antes de su largo. `haz_tope` = m del origen a la cara de lo que toca (≤ 0: nada). Como en HieloToy: ponerlo ANTES de construir.
+var haz_tope: float = -1.0
 var _marca_pilar: MeshInstance3D = null    ## PILAR: decal de tierra partida bajo la columna
 var _y_act: Array = []                  ## (pruebas) desplazamiento vertical actual de cada bloque (m; < 0 = aún bajo tierra)
 
@@ -1277,6 +1279,8 @@ func _barrera(c: Node3D) -> void:
 ## En tierra, la retirada también avanza del inicio a la punta.
 func _haz(c: Node3D) -> void:
 	_haz_largo = semieje_x * 2.0
+	if haz_tope > 0.0:
+		_haz_largo = minf(_haz_largo, haz_tope)                                # las púas no brotan más allá de lo que toca
 	_haz_r = semieje_z * FuegoToy.HAZ_ABRE
 	_haz_alt = maxf(semieje_y, 0.4)
 	var rng: RandomNumberGenerator = RandomNumberGenerator.new()
