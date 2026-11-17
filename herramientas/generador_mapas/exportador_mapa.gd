@@ -88,6 +88,14 @@ static func texto_mapa(m: Dictionary) -> String:
 		for c in claves:
 			t.append("%d,%d%s" % [int(c.x), int(c.y), String(ret[c])])
 		l.append("; retoques " + " ".join(t))
+	var enl: Dictionary = m.get("enlaces_mano", {})
+	if not enl.is_empty():
+		var ids_enl: Array = enl.keys()
+		ids_enl.sort()
+		var te: PackedStringArray = PackedStringArray()
+		for id in ids_enl:
+			te.append("%s>%s" % [String(id), String(enl[id])])
+		l.append("; enlaces " + " ".join(te))
 	l.append(";")
 	if bool(p["rotulo"]):
 		l.append("; zona 1,1..%d,%d %s mezcla=0.8 rotulo=%s" % [int(m["ancho"]) - 2, int(m["alto"]) - 2, String(p["luz"]), nombre])
@@ -184,6 +192,23 @@ static func validar(m: Dictionary) -> PackedStringArray:
 				pisables += 1
 	if visto.size() != pisables:
 		err.append("%d casillas no se alcanzan desde el inicio." % (pisables - visto.size()))
+	# Lo que el propio generador da por imposible (una barrera sin enlazar, un enlace que deja el mapa sin solución).
+	err.append_array(m.get("errores", PackedStringArray()))
+	# Toda puerta, puente y cerrojo tiene que tener algo que lo abra: una llave o una regla `hace=<id>.abrir|tender|alternar`.
+	var abre: Dictionary = {}
+	for linea in m["lineas"]:
+		for trozo in String(linea).split(" ", false):
+			if trozo.begins_with("hace=") or trozo.begins_with("y="):
+				var accion: PackedStringArray = trozo.substr(trozo.find("=") + 1).split(".")
+				if accion.size() >= 2 and (accion[1].begins_with("abrir") or accion[1].begins_with("tender") or accion[1].begins_with("alternar")):
+					abre[accion[0]] = true
+	for linea in m["lineas"]:
+		var tp: PackedStringArray = String(linea).substr(1).strip_edges().split(" ", false)
+		if tp.size() >= 5 and tp[0] == "pieza" and (tp[2] == "puerta" or tp[2] == "puente" or tp[2] == "cerrojo"):
+			if not abre.has(tp[1]) and not String(linea).contains(" llave="):
+				var aviso: String = "%s «%s» de (%s, %s) no tiene nada que la abra: enlázala con un activador." % [tp[2].capitalize(), tp[1], tp[3], tp[4]]
+				if not err.has(aviso) and not "\n".join(err).contains("«%s»" % tp[1]):
+					err.append(aviso)
 	# Las piezas: sobre algo que se pisa, con id único.
 	var ids: Dictionary = {}
 	for linea in m["lineas"]:
@@ -203,7 +228,7 @@ static func validar(m: Dictionary) -> PackedStringArray:
 		var cy: int = t[4].to_int()
 		if cx < 1 or cy < 1 or cx > w - 2 or cy > h - 2 or filas[cy][cx] == "#":
 			err.append("La pieza %s cae en pared o fuera del mapa (%d, %d)." % [t[1], cx, cy])
-		elif filas[cy][cx] == "~":
+		elif filas[cy][cx] == "~" and t[2] != "puente":
 			err.append("La pieza %s cae en el agua (%d, %d)." % [t[1], cx, cy])
 	return err
 
@@ -282,7 +307,21 @@ static func _regenerado(texto: String) -> String:
 	if par.is_empty():
 		return ""
 	var gen: RefCounted = load("res://herramientas/generador_mapas/generador_mazmorra.gd").new()
-	return texto_mapa(gen.generar(_tipar(par), retoques_de(texto)))
+	return texto_mapa(gen.generar(_tipar(par), retoques_de(texto), enlaces_de(texto)))
+
+
+## Los enlaces cambiados a mano guardados en un mapa generado (la línea `; enlaces barrera>activador …`): id de barrera → id de activador ("" = suelta).
+static func enlaces_de(texto: String) -> Dictionary:
+	var res: Dictionary = {}
+	for linea in texto.split("\n"):
+		var l: String = String(linea).strip_edges()
+		if not l.begins_with("; enlaces "):
+			continue
+		for t in l.substr(10).split(" ", false):
+			var ab: PackedStringArray = t.split(">")
+			if ab.size() == 2:
+				res[ab[0]] = ab[1]
+	return res
 
 
 ## Los retoques a mano guardados en un mapa generado (la línea `; retoques x,y<letra> …`): casilla → letra.

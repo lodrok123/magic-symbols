@@ -24,11 +24,11 @@ func _escenario() -> void:
 	_borrar()
 	Flags.nuevo()
 	Estado.nuevo()
-	var m: Dictionary = Generador.new().generar({"algoritmo": alg, "semilla": 3, "nombre": _nombre, "salas_cerradas": 100, "charcas": 60, "salida_a": "Cueva:desde_bosque, Bosque_02:boca_cueva"})
+	var m: Dictionary = Generador.new().generar({"algoritmo": alg, "semilla": 3, "nombre": _nombre, "salas_cerradas": 100, "charcas": 60, "barreras": 4, "salida_a": "Cueva:desde_bosque, Bosque_02:boca_cueva"})
 	var antes_mapas: int = DirAccess.get_files_at(Exportador.DIR_MAPAS).size()
 	var antes_escenas: int = DirAccess.get_files_at(Exportador.DIR_ESCENAS).size()
 	var res: Dictionary = Exportador.exportar(m)
-	_ok("1 exportar «%s» (%s) va bien" % [_nombre, alg], bool(res["ok"]), String(res["error"]))
+	_ok("1 exportar «%s» (%s) va bien, con %d barreras" % [_nombre, alg, int(m["barreras"])], bool(res["ok"]), String(res["error"]))
 	if not bool(res["ok"]):
 		return
 	_ok("1 escribe el .txt y la escena, y nada más", (res["escritos"] as Array).size() == 2 and String(res["copia"]) == ""

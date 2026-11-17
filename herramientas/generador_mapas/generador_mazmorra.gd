@@ -76,12 +76,32 @@ static func parametros_defecto() -> Dictionary:
 		# contenido
 		"enemigos": 1.0, "arqueros": 30, "jarrones": 1.0, "braseros": 1.0, "charcas": 20,
 		"tesoro": true, "llave": true, "salas_cerradas": 40,
+		"barreras": 2, "b_braseros": true, "b_placa": true, "b_puente": true,
 		# nivel
 		"nombre": "MazmorraGen", "estilo": "cueva", "luz": "cueva", "salida_a": "", "rotulo": true,
 	}
 
 
-func generar(parametros: Dictionary = {}, retoques: Dictionary = {}) -> Dictionary:
+## Barreras (17/11, ver _poblar 4c): pasos obligados cerrados por una PUERTA o un PUENTE plegado, que abre un ACTIVADOR (braseros + contador,
+## o placa de peso + bloque empujable) colocado donde se llega sin cruzar la barrera. `enlaces_mano` (id de barrera → id de activador, o "")
+## cambia a mano qué abre qué; una barrera sin enlace, o un enlace que deja el mapa sin solución, va a `errores` y el mapa no se exporta.
+var errores: PackedStringArray = PackedStringArray()
+var enlaces: Array = []                ## {de: Vector2i, a: Vector2i, de_id, a_id, fijo}: lo que la vista dibuja como vínculo
+var _puentes: Dictionary = {}          ## casillas de agua con puente: cuentan como tierra (se cruzan cuando el puente está tendido)
+var _barreras: Array = []              ## {id, tipo: "puerta" | "puente", celdas, pos, act}
+var _activadores: Dictionary = {}      ## id → {id, tipo, celdas (a las que hay que llegar), pos, senal}
+var _enlaces_mano: Dictionary = {}
+var _llave_barrera: Dictionary = {}    ## la puerta con llave como barrera: {celdas, act_celdas}
+
+
+func generar(parametros: Dictionary = {}, retoques: Dictionary = {}, enlaces_mano: Dictionary = {}) -> Dictionary:
+	errores = PackedStringArray()
+	enlaces = []
+	_puentes = {}
+	_barreras = []
+	_activadores = {}
+	_enlaces_mano = enlaces_mano.duplicate()
+	_llave_barrera = {}
 	p = parametros_defecto()
 	p.merge(parametros, true)
 	rng = RandomNumberGenerator.new()
@@ -156,7 +176,7 @@ func _id(base: String) -> String:
 
 func _vale(i: int, solo_tierra: bool, bloqueadas: Dictionary) -> bool:
 	var t: int = g[i]
-	if t == MURO or (solo_tierra and t == AGUA):
+	if t == MURO or (solo_tierra and t == AGUA and not _puentes.has(Vector2i(i % w, i / w))):
 		return false
 	return bloqueadas.is_empty() or not bloqueadas.has(Vector2i(i % w, i / w))
 
@@ -213,7 +233,8 @@ func _distancias(desde: Vector2i, bloqueadas: Dictionary = {}) -> PackedInt32Arr
 			if not _dentro(c):
 				continue
 			var j: int = c.y * w + c.x
-			if dist[j] >= 0 or g[j] == MURO or bloqueadas.has(c):
+			# El agua honda es pared para quien anda (el nado está desactivado en el juego): solo se cruza por un puente tendido.
+			if dist[j] >= 0 or g[j] == MURO or bloqueadas.has(c) or (g[j] == AGUA and not _puentes.has(c)):
 				continue
 			dist[j] = dist[i] + 1
 			cola.append(j)
@@ -1084,6 +1105,18 @@ func _puede_bloquear(c: Vector2i) -> bool:
 		return false
 	var prueba: Dictionary = _bloqueos.duplicate()
 	prueba[c] = true
+	# Lo que ya bloquea y hay que TOCAR (cofres, braseros, bloques) tiene que conservar al menos una casilla libre al lado.
+	for d in DIRS:
+		var v: Vector2i = c + d
+		if not _bloqueos.has(v):
+			continue
+		var libres: int = 0
+		for d2 in DIRS:
+			var u: Vector2i = v + d2
+			if (_tipo(u) == SUELO or _puentes.has(u)) and not prueba.has(u):
+				libres += 1
+		if libres == 0:
+			return false
 	return (_componentes(true, prueba)[1] as Array).size() <= 1
 
 
@@ -1220,6 +1253,7 @@ func _poblar() -> void:
 			_ocupar(sitio_llave, true)
 			s_llave["rol"] = "llave"
 			puerta_llave["tipo"] = "llave"
+			_llave_barrera = {"celdas": [puerta_llave["c"]], "act_celdas": [sitio_llave]}
 			var pc: Vector2i = puerta_llave["c"]
 			_ocupar(pc)
 			_objeto(pc, "puerta_llave", "puerta_tesoro")
@@ -1254,6 +1288,18 @@ func _poblar() -> void:
 					_ocupada.erase(llegada)
 		if not puesta:
 			avisos.append("No queda sala libre para la salida a %s: añade salas o quita salidas." % destinos[k])
+	# 4c · Barreras: pasos obligados que se cierran con una puerta o un puente y se abren con un activador puesto ANTES de la barrera.
+	var quiero_barreras: int = clampi(int(p["barreras"]), 0, 8)
+	if quiero_barreras > 0:
+		if not bool(p["b_braseros"]) and not bool(p["b_placa"]):
+			avisos.append("Hay barreras pedidas pero ningún activador permitido (braseros o placa): no se pone ninguna.")
+		else:
+			for paso in _pasos_candidatos():
+				if _barreras.size() >= quiero_barreras:
+					break
+				_intentar_barrera(paso, _barreras.size() + 1, vivas, cueva)
+			if _barreras.size() < quiero_barreras:
+				avisos.append("Solo caben %d barreras de las %d pedidas (hacen falta pasos obligados y salas libres para sus activadores)." % [_barreras.size(), quiero_barreras])
 	# 5 · Charcas dentro de las salas grandes (dejando libre el anillo de las paredes: no cortan el paso).
 	for s in vivas:
 		var r: Rect2i = s["rect"]
@@ -1265,12 +1311,24 @@ func _poblar() -> void:
 		var ch: int = _azar(2, maxi(2, r.size.y - 3))
 		var cx: int = _azar(r.position.x + 1, r.end.x - 1 - cw)
 		var cy: int = _azar(r.position.y + 1, r.end.y - 1 - ch)
+		var sin_charca: PackedByteArray = g.duplicate()
 		for y in range(cy, cy + ch):
 			for x in range(cx, cx + cw):
 				var esquina: bool = (x == cx or x == cx + cw - 1) and (y == cy or y == cy + ch - 1)
-				if (esquina and cw >= 3 and ch >= 3) or _ocupada.has(Vector2i(x, y)):
+				if esquina and cw >= 3 and ch >= 3:
+					continue
+				# Ni encima ni pegada a nada ya colocado (un cofre, un activador, la línea del bloque): el agua es pared y lo dejaría aislado.
+				var pegada: bool = false
+				for oy in range(-1, 2):
+					for ox in range(-1, 2):
+						pegada = pegada or _ocupada.has(Vector2i(x + ox, y + oy))
+				if pegada:
 					continue
 				g[y * w + x] = AGUA
+		# Los huecos que deja la regla anterior pueden quedar como una isla dentro de la charca: si la tierra se parte o el mapa
+		# deja de poder completarse, esta sala se queda sin charca.
+		if (_componentes(true, _bloqueos)[1] as Array).size() > 1 or not _resoluble():
+			g = sin_charca
 	# 6 · Cofres (bloquean su casilla).
 	if not s_tes.is_empty():
 		var ct: Vector2i = _sitio_bloqueo(s_tes, true)
@@ -1369,6 +1427,322 @@ func _poblar() -> void:
 				lineas.append("; pieza %s jarron %d %d botin=%s" % [jid, c.x, c.y, "pocion" if _pct(20.0) else "oro"])
 				quiero_j -= 1
 	p["_arqueros"] = hay_arquero
+	_emitir_barreras(nv)
+
+
+# =====================================================================================================================
+#  Barreras: puerta o puente + activador, y el vínculo entre los dos
+# =====================================================================================================================
+
+## Dónde puede ir una barrera. Con puertas (salas, pagina): cada puerta abierta. Sin ellas (cueva): cada estrechamiento de una o dos casillas
+## entre dos paredes. Que de verdad corte el mapa lo comprueba `_intentar_barrera`.
+func _pasos_candidatos() -> Array:
+	var res: Array = []
+	for pu in puertas:
+		if String(pu["tipo"]) == "paso" and not _ocupada.has(pu["c"]):
+			res.append({"celdas": [pu["c"]], "puerta": pu})
+	if res.is_empty():
+		for y in range(1, h - 1):
+			var x: int = 1
+			while x < w - 1:
+				if g[y * w + x] != SUELO:
+					x += 1
+					continue
+				var x0: int = x
+				while g[y * w + x] == SUELO:
+					x += 1
+				if x - x0 <= 2 and g[y * w + x0 - 1] == MURO and g[y * w + x] == MURO:
+					var tramo: Array = []
+					for xx in range(x0, x):
+						tramo.append(Vector2i(xx, y))
+					res.append({"celdas": tramo, "puerta": null})
+		for x in range(1, w - 1):
+			var y: int = 1
+			while y < h - 1:
+				if g[y * w + x] != SUELO:
+					y += 1
+					continue
+				var y0: int = y
+				while g[y * w + x] == SUELO:
+					y += 1
+				if y - y0 <= 2 and g[(y0 - 1) * w + x] == MURO and g[y * w + x] == MURO:
+					var tramo2: Array = []
+					for yy in range(y0, y):
+						tramo2.append(Vector2i(x, yy))
+					res.append({"celdas": tramo2, "puerta": null})
+	_barajar(res)
+	res = res.slice(0, 22)
+	# Salas de 2 a 4 puertas: se puede cerrar una y tapiar las demás (la sala entera queda detrás de la barrera).
+	var de_sala: Array = []
+	for s in _vivas():
+		var ps: Array = _puertas_de(int(s["id"]))
+		var todas_paso: bool = String(s["rol"]) == "" and ps.size() >= 2 and ps.size() <= 4
+		for pu in ps:
+			todas_paso = todas_paso and String(pu["tipo"]) == "paso" and not _ocupada.has(pu["c"])
+		if todas_paso:
+			var k: int = _azar(0, ps.size() - 1)
+			var otras: Array = ps.duplicate()
+			otras.remove_at(k)
+			de_sala.append({"celdas": [ps[k]["c"]], "puerta": ps[k], "tapiar": otras})
+	_barajar(de_sala)
+	res.append_array(de_sala.slice(0, 12))
+	return res
+
+
+## Con `tapiar` (una sala de varias puertas): primero se tapian las otras puertas, si el resto del mapa sigue unido; así la que queda es paso obligado.
+func _intentar_barrera(paso: Dictionary, n: int, vivas: Array, cueva: bool) -> bool:
+	var g0: PackedByteArray = g.duplicate()
+	var tap: Array = paso.get("tapiar", [])
+	for pu in tap:
+		g[int(pu["c"].y) * w + int(pu["c"].x)] = MURO
+	if not tap.is_empty() and (_componentes()[1] as Array).size() > 1:
+		g = g0
+		return false
+	if _intentar_barrera_b(paso, n, vivas, cueva):
+		for pu in tap:
+			puertas.erase(pu)
+		return true
+	g = g0
+	return false
+
+
+func _intentar_barrera_b(paso: Dictionary, n: int, vivas: Array, cueva: bool) -> bool:
+	var celdas: Array = paso["celdas"]
+	var solo_llave: Dictionary = {}
+	if not _llave_barrera.is_empty():
+		for c in _llave_barrera["celdas"]:
+			solo_llave[c] = true
+	var bloq: Dictionary = solo_llave.duplicate()
+	for c in celdas:
+		if _ocupada.has(c) or (c as Vector2i).distance_squared_to(inicio) < 9:
+			return false
+		bloq[c] = true
+	# ¿Corta de verdad? Tiene que dejar bastante mapa a cada lado.
+	var base: PackedInt32Array = _distancias(inicio, solo_llave)
+	var antes: PackedInt32Array = _distancias(inicio, bloq)
+	var n_antes: int = 0
+	var n_despues: int = 0
+	for i in range(w * h):
+		if antes[i] >= 0:
+			n_antes += 1
+		elif base[i] >= 0 and not bloq.has(Vector2i(i % w, i / w)):
+			n_despues += 1
+	if n_antes < 12 or n_despues < 12:
+		return false
+	var puente: bool = paso["puerta"] == null or (bool(p["b_puente"]) and _pct(50.0))
+	if paso["puerta"] == null and not bool(p["b_puente"]):
+		return false
+	# El activador: en una sala a la que se llega sin cruzar esta barrera, cuanto más lejos del inicio mejor.
+	var salas_antes: Array = []
+	for s in vivas:
+		var cs: Vector2i = _centro_libre(s)
+		if cs.x >= 0 and antes[cs.y * w + cs.x] >= 0 and not s.has("activador"):
+			s["_d"] = antes[cs.y * w + cs.x]
+			salas_antes.append(s)
+	salas_antes.sort_custom(func(a: Dictionary, b: Dictionary) -> bool: return int(a["_d"]) > int(b["_d"]) or (int(a["_d"]) == int(b["_d"]) and int(a["id"]) < int(b["id"])))
+	var tipos: Array = []
+	if bool(p["b_braseros"]):
+		tipos.append("braseros")
+	if bool(p["b_placa"]):
+		tipos.append("placa")
+	_barajar(tipos)
+	var plan: Dictionary = {}
+	var sala_act: Dictionary = {}
+	for s in salas_antes.slice(0, 6):
+		for t in tipos:
+			plan = _plan_braseros(s) if String(t) == "braseros" else _plan_placa(s)
+			if not plan.is_empty():
+				plan["tipo"] = t
+				sala_act = s
+				break
+		if not plan.is_empty():
+			break
+	if plan.is_empty():
+		return false
+	# Se pone todo y se comprueba que el mapa entero se sigue pudiendo completar; si no, se deshace.
+	var foto: Array = [g.duplicate(), lineas.duplicate(), objetos.duplicate(), _ocupada.duplicate(), _bloqueos.duplicate(), letras.duplicate(),
+		_puentes.duplicate(), _activadores.duplicate(), _barreras.duplicate()]
+	var bid: String = ("puente_%d" if puente else "puerta_%d") % n
+	var c0: Vector2i = celdas[0]
+	if puente:
+		var txt: PackedStringArray = PackedStringArray()
+		for c in celdas:
+			g[int(c.y) * w + int(c.x)] = AGUA
+			_puentes[c] = true
+			txt.append("%d,%d" % [int(c.x), int(c.y)])
+		lineas.append("; pieza %s puente %d %d celdas=%s" % [bid, c0.x, c0.y, "+".join(txt)])
+	else:
+		lineas.append("; pieza %s puerta %d %d" % [bid, c0.x, c0.y])
+	for c in celdas:
+		_ocupar(c)
+		_objeto(c, "puente" if puente else "puerta", bid)
+	var aid: String = ""
+	if String(plan["tipo"]) == "braseros":
+		aid = "luces_%d" % n
+		var de: PackedStringArray = PackedStringArray()
+		var letra: int = 0
+		for c in plan["braseros"]:
+			letras[c] = "T"
+			_ocupar(c, true)
+			_objeto(c, "brasero", aid)
+			de.append("%d,%d" % [int(c.x), int(c.y)])
+			if cueva:
+				lineas.append("; pieza luz_%d_%s brasero %d %d luz=2.4 modelo=cueva" % [n, "ab"[letra], int(c.x), int(c.y)])
+			letra += 1
+		var cc: Vector2i = plan["contador"]
+		_ocupar(cc)
+		_objeto(cc, "contador", aid)
+		lineas.append("; pieza %s contador %d %d de=%s" % [aid, cc.x, cc.y, "+".join(de)])
+		_activadores[aid] = {"id": aid, "tipo": "braseros", "celdas": plan["braseros"], "pos": cc, "senal": "todos"}
+	else:
+		aid = "placa_%d" % n
+		var cb: Vector2i = plan["bloque"]
+		var cp: Vector2i = plan["placa"]
+		for c in plan["linea"]:
+			_ocupar(c)
+		_ocupar(cb, true)
+		_objeto(cb, "bloque", "bloque_%d" % n)
+		_objeto(cp, "placa", aid)
+		lineas.append("; pieza bloque_%d bloque %d %d material=piedra" % [n, cb.x, cb.y])
+		lineas.append("; pieza %s pulsador %d %d modo=presencia peso=3%s" % [aid, cp.x, cp.y, " modelo=cueva" if cueva else ""])
+		_activadores[aid] = {"id": aid, "tipo": "placa", "celdas": [plan["atras"], cb], "pos": cp, "senal": "pulsado"}
+	_barreras.append({"id": bid, "tipo": "puente" if puente else "puerta", "celdas": celdas, "pos": c0, "act": aid})
+	if not _resoluble():
+		g = foto[0]
+		lineas = foto[1]
+		objetos = foto[2]
+		_ocupada = foto[3]
+		_bloqueos = foto[4]
+		letras = foto[5]
+		_puentes = foto[6]
+		_activadores = foto[7]
+		_barreras = foto[8]
+		return false
+	sala_act["activador"] = true
+	if paso["puerta"] != null:
+		paso["puerta"]["tipo"] = "barrera"
+	return true
+
+
+## Dos braseros (bloquean) y la casilla del contador, en una sala. Vacío si no caben.
+func _plan_braseros(s: Dictionary) -> Dictionary:
+	var celdas: Array = _celdas_sala(s).filter(func(c: Vector2i) -> bool: return _libre(c) and not _cerca_de_puerta(c))
+	if celdas.size() < 6:
+		return {}
+	_barajar(celdas)
+	var b1: Vector2i = Vector2i(-1, -1)
+	var b2: Vector2i = Vector2i(-1, -1)
+	for c in celdas:
+		if _puede_bloquear(c):
+			b1 = c
+			break
+	if b1.x < 0:
+		return {}
+	_bloqueos[b1] = true
+	for c in celdas:
+		if (c as Vector2i).distance_squared_to(b1) >= 4 and _puede_bloquear(c):
+			b2 = c
+			break
+	_bloqueos.erase(b1)
+	if b2.x < 0:
+		return {}
+	for c in celdas:
+		if c != b1 and c != b2:
+			return {"braseros": [b1, b2], "contador": c}
+	return {}
+
+
+## Un bloque de piedra, la placa a 2 o 3 casillas en línea recta y sitio detrás del bloque para empujarlo. Vacío si no caben.
+func _plan_placa(s: Dictionary) -> Dictionary:
+	var r: Rect2i = s["rect"]
+	var celdas: Array = _celdas_sala(s).filter(func(c: Vector2i) -> bool: return _libre(c) and not _cerca_de_puerta(c))
+	_barajar(celdas)
+	var dirs: Array = [0, 1, 2, 3]
+	_barajar(dirs)
+	for c in celdas:
+		for di in dirs:
+			var d: Vector2i = DIRS[int(di)]
+			for largo in [3, 2]:
+				var linea: Array = [c - d]
+				var bien: bool = true
+				for k in range(0, int(largo) + 1):
+					linea.append(c + d * k)
+				for l in linea:
+					if not _libre(l) or _cerca_de_puerta(l) or not r.has_point(l):
+						bien = false
+						break
+				if not bien:
+					continue
+				var fin: Vector2i = c + d * int(largo)
+				if _puede_bloquear(c) and _puede_bloquear(fin):
+					return {"bloque": c, "placa": fin, "atras": c - d, "linea": linea}
+	return {}
+
+
+## ¿Se llega a todas estas casillas? Una que bloquea (brasero, bloque, cofre) vale si se llega a una de sus vecinas.
+func _alcanza(alc: PackedInt32Array, celdas: Array) -> bool:
+	for c in celdas:
+		var si: bool = alc[int(c.y) * w + int(c.x)] >= 0
+		for d in DIRS:
+			var v: Vector2i = (c as Vector2i) + d
+			si = si or (_dentro(v) and alc[v.y * w + v.x] >= 0)
+		if not si:
+			return false
+	return true
+
+
+## Juega el mapa en abstracto: con todo cerrado, abre cada barrera cuyo activador se alcanza y repite. ¿Acaban todas abiertas?
+func _resoluble() -> bool:
+	var abiertas: Dictionary = {}
+	var total: int = _barreras.size() + (0 if _llave_barrera.is_empty() else 1)
+	for _v in range(total + 1):
+		var bloq: Dictionary = {}
+		for b in _barreras:
+			if not abiertas.has(b["id"]):
+				for c in b["celdas"]:
+					bloq[c] = true
+		if not _llave_barrera.is_empty() and not abiertas.has("_llave"):
+			for c in _llave_barrera["celdas"]:
+				bloq[c] = true
+		var alc: PackedInt32Array = _distancias(inicio, bloq)
+		var cambio: bool = false
+		for b in _barreras:
+			var a: String = String(b["act"])
+			if not abiertas.has(b["id"]) and _activadores.has(a) and _alcanza(alc, _activadores[a]["celdas"]):
+				abiertas[b["id"]] = true
+				cambio = true
+		if not _llave_barrera.is_empty() and not abiertas.has("_llave") and _alcanza(alc, _llave_barrera["act_celdas"]):
+			abiertas["_llave"] = true
+			cambio = true
+		if not cambio:
+			break
+	return abiertas.size() == total
+
+
+## Aplica los enlaces a mano, escribe las reglas (activador → flag → barrera, para que lo abierto siga abierto al volver de otro nivel)
+## y deja en `enlaces` lo que la vista dibuja. Lo que no cuadra va a `errores`.
+func _emitir_barreras(nv: String) -> void:
+	for b in _barreras:
+		if _enlaces_mano.has(b["id"]):
+			var a: String = String(_enlaces_mano[b["id"]])
+			if a == "" or _activadores.has(a):
+				b["act"] = a
+	for b in _barreras:
+		var nombre: String = "El puente" if String(b["tipo"]) == "puente" else "La puerta"
+		var pos: Vector2i = b["pos"]
+		if String(b["act"]) == "":
+			errores.append("%s «%s» de (%d, %d) no está enlazada a nada que la abra." % [nombre, String(b["id"]), pos.x, pos.y])
+			enlaces.append({"de": Vector2i(-1, -1), "a": pos, "de_id": "", "a_id": b["id"], "fijo": false})
+			continue
+		var act: Dictionary = _activadores[String(b["act"])]
+		var flag: String = "%s.%s.abierta" % [nv, String(b["id"])]
+		lineas.append("; puzle resuelve_%s cuando=%s.%s hace=flag.poner(%s)" % [String(b["id"]), String(act["id"]), String(act["senal"]), flag])
+		lineas.append("; puzle abre_%s cuando=flag.%s hace=%s.%s" % [String(b["id"]), flag, String(b["id"]), "tender" if String(b["tipo"]) == "puente" else "abrir"])
+		enlaces.append({"de": act["pos"], "a": pos, "de_id": act["id"], "a_id": b["id"], "fijo": false})
+	if not _llave_barrera.is_empty():
+		enlaces.append({"de": _llave_barrera["act_celdas"][0], "a": _llave_barrera["celdas"][0], "de_id": "cofre_llave", "a_id": "puerta_tesoro", "fijo": true})
+	if errores.is_empty() and not _resoluble():
+		errores.append("Con estos enlaces el mapa no se puede completar: algún activador queda detrás de la barrera que abre.")
 
 
 ## Un sitio para algo que bloquea su casilla: lo más cerca posible del centro de la sala; mejor si la casilla de debajo no es pared
@@ -1413,6 +1787,7 @@ func _resultado() -> Dictionary:
 		"parametros": p.duplicate(), "ancho": w, "alto": h, "filas": filas, "inicio": inicio,
 		"salas": _vivas(), "puertas": puertas, "objetos": objetos, "lineas": lineas, "avisos": avisos,
 		"arqueros": bool(p.get("_arqueros", false)), "retoques": _retoques,
+		"errores": errores, "enlaces": enlaces, "enlaces_mano": _enlaces_mano, "activadores": _activadores.keys(), "barreras": _barreras.size(),
 		"stats": {"salas": _vivas().size(), "puertas": puertas.size(), "enemigos": n_enem, "cofres": n_cofres, "jarrones": n_jarrones,
 			"suelo": pisable, "agua": g.count(AGUA), "ocupacion": pisable / float(maxi(1, w * h))},
 	}

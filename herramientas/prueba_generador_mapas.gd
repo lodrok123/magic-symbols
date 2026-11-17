@@ -42,6 +42,7 @@ func _initialize() -> void:
 	_retoques()
 	_texto()
 	_nombres()
+	_enlaces_a_mano()
 	print("%d comprobaciones en %d ms" % [_hechas, Time.get_ticks_msec() - t0])
 	print("FALLOS: %d" % _fallos)
 	quit(1 if _fallos > 0 else 0)
@@ -72,12 +73,15 @@ func _revisar(par: Dictionary, retoques: Dictionary = {}) -> Dictionary:
 	_ok(w <= 120 and h <= 120 and w >= 12 and h >= 12, "tamaño dentro de límites: " + quien, "%d × %d" % [w, h])
 	# 4 · Tierra de una pieza contando los bloqueos.
 	var bloquea: Dictionary = {}
+	var puentes: Dictionary = {}
 	var puerta_llave: Vector2i = Vector2i(-1, -1)
 	var cofre_llave: Vector2i = Vector2i(-1, -1)
 	for o in m["objetos"]:
 		match String(o["tipo"]):
-			"cofre_tesoro", "cofre_llave", "jarron", "brasero":
+			"cofre_tesoro", "cofre_llave", "jarron", "brasero", "bloque":
 				bloquea[o["c"]] = true
+			"puente":
+				puentes[o["c"]] = true             # agua con puente: cuenta como tierra (se cruza con el puente tendido)
 		if String(o["tipo"]) == "puerta_llave":
 			puerta_llave = o["c"]
 		if String(o["tipo"]) == "cofre_llave":
@@ -85,9 +89,22 @@ func _revisar(par: Dictionary, retoques: Dictionary = {}) -> Dictionary:
 	var tierra: int = 0
 	for y in range(h):
 		for x in range(w):
-			if filas[y][x] != "#" and filas[y][x] != "~" and not bloquea.has(Vector2i(x, y)):
+			if filas[y][x] != "#" and (filas[y][x] != "~" or puentes.has(Vector2i(x, y))) and not bloquea.has(Vector2i(x, y)):
 				tierra += 1
-	var alcanzo: Dictionary = _relleno(filas, m["inicio"], bloquea, true)
+	var filas_puente: PackedStringArray = filas.duplicate()
+	for c in puentes:
+		filas_puente[c.y] = filas_puente[c.y].substr(0, c.x) + "." + filas_puente[c.y].substr(c.x + 1)
+	var alcanzo: Dictionary = _relleno(filas_puente, m["inicio"], bloquea, true)
+	# Barreras: sin errores, cada una con su vínculo, y cada puente sobre agua.
+	_ok((m["errores"] as PackedStringArray).is_empty(), "el generador no da errores de barreras: " + quien, "; ".join(m["errores"]))
+	var n_enlaces: int = 0
+	for en in m["enlaces"]:
+		if not bool(en["fijo"]):
+			n_enlaces += 1
+			_ok((en["de"] as Vector2i).x >= 0, "la barrera %s tiene activador: %s" % [String(en["a_id"]), quien])
+	_ok(n_enlaces == int(m["barreras"]), "un vínculo por barrera: " + quien, "%d vínculos, %d barreras" % [n_enlaces, int(m["barreras"])])
+	for c in puentes:
+		_ok(filas[c.y][c.x] == "~", "el puente está sobre agua: " + quien)
 	_ok(alcanzo.size() == tierra, "la tierra es una sola pieza (con bloqueos): " + quien, "%d de %d" % [alcanzo.size(), tierra])
 	# 5 · La llave, sin cruzar su puerta.
 	_ok((puerta_llave.x >= 0) == (cofre_llave.x >= 0), "puerta con llave y cofre de la llave van juntos: " + quien)
@@ -210,6 +227,38 @@ func _retoques() -> void:
 		_ok(muro, "el muro pintado a mano está en el mapa: " + alg)
 		_ok(filas[0][0] == "#", "el borde no se puede abrir pintando: " + alg)
 	_resumen("6 los retoques a mano se aplican y el mapa sigue siendo válido", antes)
+
+
+## 9 · Enlazar a mano: soltar una barrera da error y no se exporta; darle la vuelta a dos enlaces o bien vale o bien da el error de «sin solución»,
+## pero nunca un mapa válido que no se pueda completar; y el enlace a mano se guarda en el .txt y vuelve a salir.
+func _enlaces_a_mano() -> void:
+	var antes: int = _fallos
+	var probados: int = 0
+	for alg in Generador.ALGORITMOS:
+		for s in range(1, 30):
+			var par: Dictionary = {"algoritmo": alg, "semilla": s, "barreras": 3, "nombre": "PruebaEnlaces"}
+			var m: Dictionary = Generador.new().generar(par)
+			var barreras: Array = []
+			for en in m["enlaces"]:
+				if not bool(en["fijo"]):
+					barreras.append(en)
+			if barreras.is_empty():
+				continue
+			probados += 1
+			var suelta: Dictionary = Generador.new().generar(par, {}, {String(barreras[0]["a_id"]): ""})
+			var err: PackedStringArray = Exportador.validar(suelta)
+			_ok(not err.is_empty() and "; ".join(err).contains(String(barreras[0]["a_id"])), "soltar %s da error: %s semilla %d" % [String(barreras[0]["a_id"]), alg, s], "; ".join(err))
+			_ok(not bool(Exportador.exportar(suelta)["ok"]), "con una barrera suelta no se exporta: %s semilla %d" % [alg, s])
+			_ok(not "\n".join(suelta["lineas"]).contains("hace=%s." % String(barreras[0]["a_id"])), "la barrera suelta no tiene regla: %s semilla %d" % [alg, s])
+			if barreras.size() >= 2:
+				var cruce: Dictionary = {String(barreras[0]["a_id"]): String(barreras[1]["de_id"]), String(barreras[1]["a_id"]): String(barreras[0]["de_id"])}
+				var mc: Dictionary = Generador.new().generar(par, {}, cruce)
+				var txt: String = "\n".join(mc["lineas"])
+				_ok(txt.contains("cuando=%s." % String(barreras[1]["de_id"])) and txt.contains("cuando=%s." % String(barreras[0]["de_id"])), "el cruce de enlaces sale en las reglas: %s semilla %d" % [alg, s])
+				_ok(Exportador.enlaces_de(Exportador.texto_mapa(mc)) == cruce, "los enlaces a mano se guardan en el .txt: %s semilla %d" % [alg, s])
+				_ok(Exportador._sin_fecha(Exportador._regenerado(Exportador.texto_mapa(mc))) == Exportador._sin_fecha(Exportador.texto_mapa(mc)), "y de ahí vuelve a salir el mismo archivo: %s semilla %d" % [alg, s])
+	_ok(probados >= 30, "hay mapas con barreras para probar", "%d" % probados)
+	_resumen("9 enlazar a mano: lo suelto da error y no se exporta; los cambios se guardan (%d mapas)" % probados, antes)
 
 
 func _texto() -> void:

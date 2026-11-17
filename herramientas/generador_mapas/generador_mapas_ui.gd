@@ -24,6 +24,9 @@ const ROLES: Dictionary = {
 const ICONOS: Dictionary = {
 	"inicio": ["S", Color(0.2, 0.65, 0.3), 0, "inicio de la jugadora"], "salida": ["E", Color(0.25, 0.7, 0.8), 1, "salida a otro nivel"],
 	"entrada": ["e", Color(0.2, 0.65, 0.3), 0, "llegada desde otro nivel"],
+	"puerta": ["P", Color(0.45, 0.3, 0.2), 1, "puerta cerrada (la abre su activador)"], "puente": ["=", Color(0.2, 0.45, 0.7), 1, "puente plegado (lo tiende su activador)"],
+	"contador": ["#", Color(0.95, 0.6, 0.15), 1, "contador de braseros (activador)"], "placa": ["_", Color(0.5, 0.5, 0.55), 1, "placa de peso (activador)"],
+	"bloque": ["B", Color(0.4, 0.38, 0.36), 1, "bloque empujable"],
 	"guerrero": ["W", Color(0.8, 0.25, 0.2), 0, "goblin guerrero"], "arquero": ["A", Color(0.85, 0.45, 0.15), 0, "goblin arquero"],
 	"brasero": ["T", Color(0.95, 0.6, 0.15), 0, "brasero"], "jarron": ["j", Color(0.6, 0.5, 0.38), 0, "jarrón"],
 	"cofre_tesoro": ["$", Color(0.9, 0.7, 0.1), 1, "cofre del tesoro"], "cofre_llave": ["K", Color(0.6, 0.4, 0.85), 1, "cofre de la llave"],
@@ -72,6 +75,10 @@ const CAMPOS: Array = [
 	{"k": "enemigos", "r": "Enemigos", "t": "float", "min": 0.0, "max": 4.0, "paso": 0.1, "a": "0 = ninguno; 1 = un goblin por cada ~22 casillas de sala (más en las lejanas); 5 por sala como mucho."},
 	{"k": "arqueros", "r": "Arqueros (%)", "t": "int", "min": 0, "max": 100, "paso": 5, "a": "Parte de los goblins que son arqueros (letra A) en vez de guerreros (W)."},
 	{"k": "salas_cerradas", "r": "Salas que se cierran (%)", "t": "int", "min": 0, "max": 100, "paso": 5, "a": "Salas con enemigos que cierran sus puertas al entrar y se abren al vencer (cerrojo + vigía)."},
+	{"k": "barreras", "r": "Barreras con puzle", "t": "int", "min": 0, "max": 8, "a": "Pasos obligados cerrados por una puerta o un puente, que abre un activador colocado antes de la barrera.\nLa flecha amarilla de la vista une cada activador con lo que abre. Con el pincel «enlazar» se cambia a mano."},
+	{"k": "b_braseros", "r": "Activador: braseros", "t": "bool", "a": "Dos braseros y un contador: al encender los dos, se abre."},
+	{"k": "b_placa", "r": "Activador: placa + bloque", "t": "bool", "a": "Una placa de peso y un bloque de piedra que hay que empujar encima."},
+	{"k": "b_puente", "r": "Barrera: puentes", "t": "bool", "a": "Marcado: la mitad de las barreras son puentes plegados bajo el agua (en las cuevas, todas). Desmarcado: solo puertas."},
 	{"k": "tesoro", "r": "Sala del tesoro", "t": "bool", "a": "La sala más lejana lleva un cofre (60 de oro y una poción)."},
 	{"k": "llave", "r": "Tesoro con llave", "t": "bool", "a": "La sala del tesoro se cierra con una puerta de llave; la llave está en el cofre de otra sala lejana, que aparece al limpiarla."},
 	{"k": "charcas", "r": "Salas con charca (%)", "t": "int", "min": 0, "max": 100, "paso": 5, "a": "Salas de 5 × 5 o más con una charca de agua honda en medio."},
@@ -103,6 +110,7 @@ class Vista extends Control:
 	var _tam: Vector2i = Vector2i.ZERO
 
 	var ver_contenido: bool = true
+	var seleccion: String = ""                     ## id del activador elegido con el pincel «enlazar»
 	var _papel: ColorRect = ColorRect.new()          ## el plano lo pinta un shader (papel_mapa.gdshader) detrás de lo que dibuja `_draw`
 	var _material: ShaderMaterial = ShaderMaterial.new()
 	var _titulo: SystemFont = SystemFont.new()
@@ -234,6 +242,31 @@ class Vista extends Control:
 			for s in mapa["salas"]:
 				var r2: Rect2i = s["rect"]
 				draw_string(fuente, origen + Vector2(r2.position) * e + Vector2(3, tam_letra * 0.8 + 1), str(int(s["id"])), HORIZONTAL_ALIGNMENT_LEFT, -1, int(tam_letra * 0.75), Color(0, 0, 0, 0.45))
+		# Vínculos: una flecha del activador a lo que abre (amarilla; morada la de la llave, que es fija). Lo que no tiene, en rojo.
+		for en in mapa.get("enlaces", []):
+			var pa: Vector2 = origen + (Vector2(en["a"]) + Vector2(0.5, 0.5)) * e
+			if (en["de"] as Vector2i).x < 0:
+				draw_arc(pa, e * 0.8, 0.0, TAU, 32, Color(1.0, 0.2, 0.15), 3.0)
+				draw_string(fuente, pa + Vector2(e * 0.7, -e * 0.6), "sin enlazar", HORIZONTAL_ALIGNMENT_LEFT, -1, maxi(tam_letra, 13), Color(1.0, 0.25, 0.2))
+				continue
+			var pd: Vector2 = origen + (Vector2(en["de"]) + Vector2(0.5, 0.5)) * e
+			var cv: Color = Color(0.75, 0.55, 0.95) if bool(en["fijo"]) else Color(1.0, 0.82, 0.2)
+			var comba: Vector2 = (pd + pa) * 0.5 + (pa - pd).orthogonal() * 0.14
+			var pts: PackedVector2Array = PackedVector2Array()
+			for i in range(17):
+				var t: float = i / 16.0
+				pts.append(pd.lerp(comba, t).lerp(comba.lerp(pa, t), t))
+			var hacia: Vector2 = (pa - pts[14]).normalized()
+			var punta: Vector2 = pa - hacia * e * 0.45
+			pts[16] = punta - hacia * e * 0.4
+			draw_polyline(pts, C_TINTA, 5.5, true)
+			draw_polyline(pts, cv, 2.5, true)
+			draw_colored_polygon(PackedVector2Array([punta, punta - hacia * e * 0.55 + hacia.orthogonal() * e * 0.3, punta - hacia * e * 0.55 - hacia.orthogonal() * e * 0.3]), cv)
+			draw_circle(pd, e * 0.17, cv)
+		if seleccion != "":
+			for o in mapa["objetos"]:
+				if String(o["id"]) == seleccion:
+					draw_arc(origen + (Vector2(o["c"]) + Vector2(0.5, 0.5)) * e, e * 0.62, 0.0, TAU, 32, Color(0.2, 0.9, 1.0), 3.0)
 
 
 # =====================================================================================================================
@@ -242,6 +275,7 @@ class Vista extends Control:
 
 var _par: Dictionary = Generador.parametros_defecto()
 var _retoques: Dictionary = {}
+var _enlaces: Dictionary = {}             ## enlaces cambiados a mano: id de barrera -> id de activador ("" = suelta)
 var _mapa: Dictionary = {}
 var _sucio: bool = true
 var _controles: Dictionary = {}          ## clave → control
@@ -360,13 +394,13 @@ func _montar() -> void:
 	lp.text = "   Pincel:"
 	pie.add_child(lp)
 	_pincel = OptionButton.new()
-	for it in [["", "ninguno"], ["#", "# pared"], [".", ". suelo"], ["~", "~ agua"], ["borrar", "goma (quita el retoque)"]]:
+	for it in [["", "ninguno"], ["#", "# pared"], [".", ". suelo"], ["~", "~ agua"], ["borrar", "goma (quita el retoque)"], ["enlazar", "enlazar (activador → puerta/puente)"]]:
 		_pincel.add_item(String(it[1]))
 		_pincel.set_item_metadata(_pincel.item_count - 1, String(it[0]))
 	_pincel.tooltip_text = "Con un pincel elegido, el botón izquierdo pinta sobre la vista. El contenido (enemigos, cofres…) se recoloca solo."
 	_pincel.item_selected.connect(func(i: int) -> void: _vista.pincel = String(_pincel.get_item_metadata(i)))
 	pie.add_child(_pincel)
-	_boton(pie, "Borrar retoques", _borrar_retoques, "Quita todo lo pintado a mano.")
+	_boton(pie, "Borrar retoques", _borrar_retoques, "Quita todo lo pintado a mano y los enlaces cambiados a mano.")
 	var ver: CheckBox = CheckBox.new()
 	ver.text = "Contenido"
 	ver.button_pressed = true
@@ -412,6 +446,7 @@ func _al_ver_contenido(si: bool) -> void:
 
 func _borrar_retoques() -> void:
 	_retoques.clear()
+	_enlaces.clear()
 	_sucio = true
 
 
@@ -503,6 +538,8 @@ func _cambio(k: String, valor: Variant) -> void:
 	if _cargando:
 		return
 	_par[k] = valor
+	if CLAVES_FORMA.has(k):
+		_enlaces.clear()
 	if CLAVES_FORMA.has(k) and not _retoques.is_empty():
 		_retoques.clear()
 		_decir("Ha cambiado la forma del mapa: los retoques pintados a mano se han borrado.")
@@ -533,6 +570,7 @@ func _poner_control(k: String, valor: Variant) -> void:
 
 func _otra_semilla() -> void:
 	_retoques.clear()
+	_enlaces.clear()
 	_par["semilla"] = randi() % 1000000
 	_poner_control("semilla", _par["semilla"])
 	_sucio = true
@@ -543,7 +581,7 @@ func _regenerar() -> void:
 	for f in _filas:
 		(f[0] as Control).visible = String(f[1]) == "" or String(f[1]) == String(_par["algoritmo"])
 	var t0: int = Time.get_ticks_usec()
-	_mapa = Generador.new().generar(_par, _retoques)
+	_mapa = Generador.new().generar(_par, _retoques, _enlaces)
 	var ms: float = (Time.get_ticks_usec() - t0) / 1000.0
 	_vista.poner(_mapa)
 	_texto.text = Exportador.texto_mapa(_mapa)
@@ -592,13 +630,39 @@ func _al_pintar(c: Vector2i) -> void:
 	if _mapa.is_empty() or c.x < 1 or c.y < 1 or c.x > int(_mapa["ancho"]) - 2 or c.y > int(_mapa["alto"]) - 2:
 		return
 	var letra: String = _vista.pincel
-	if letra == "borrar":
+	if letra == "enlazar":
+		_enlazar_en(c)
+	elif letra == "borrar":
 		if _retoques.has(c):
 			_retoques.erase(c)
 			_sucio = true
 	elif String(_retoques.get(c, "")) != letra:
 		_retoques[c] = letra
 		_sucio = true
+
+
+## Pincel «enlazar»: un clic en un activador (contador, sus braseros, placa o su bloque) lo elige; un clic en una puerta o un puente
+## lo enlaza con el elegido. Un clic en una puerta o un puente sin nada elegido lo deja suelto (y el mapa da error hasta enlazarlo).
+func _enlazar_en(c: Vector2i) -> void:
+	for o in _mapa["objetos"]:
+		if (o["c"] as Vector2i) != c or String(o["id"]) == "":
+			continue
+		var id: String = String(o["id"])
+		var tipo: String = String(o["tipo"])
+		if tipo == "bloque":
+			id = id.replace("bloque_", "placa_")
+		if (_mapa["activadores"] as Array).has(id):
+			if _vista.seleccion != id:
+				_vista.seleccion = id
+				_vista.queue_redraw()
+				_decir("Activador «%s» elegido: ahora haz clic en la puerta o el puente que debe abrir." % id)
+		elif tipo == "puerta" or tipo == "puente":
+			if String(_enlaces.get(id, "?")) != _vista.seleccion:
+				_enlaces[id] = _vista.seleccion
+				_decir(("«%s» enlazada con «%s»." % [id, _vista.seleccion]) if _vista.seleccion != "" else ("«%s» se queda sin enlace: elige antes un activador y vuelve a hacer clic en ella." % id))
+				_vista.seleccion = ""
+				_sucio = true
+		return
 
 
 func _al_pasar(c: Vector2i) -> void:
@@ -692,6 +756,7 @@ func _al_abrir(id: int) -> void:
 	_par = Generador.parametros_defecto()
 	_par.merge(par, true)
 	_retoques = Exportador.retoques_de(texto)
+	_enlaces = Exportador.enlaces_de(texto)
 	for k in _controles:
 		_poner_control(String(k), _par[k])
 	_decir("Abierto %s: mismos parámetros, semilla y retoques con los que se exportó." % nombre)
