@@ -312,10 +312,12 @@ func _tierra_sube() -> void:
 	_ok("por el camino algún bloque se pasa de su sitio (sobrepaso máx %.2f m > 0)" % maxy, maxy > 0.03)
 	e.queue_free()
 	await process_frame
-	# nacer de verdad: polvo en la anticipación y polvo + fragmentos al asentarse
+	# nacer de verdad: polvo en la anticipación y polvo + fragmentos al asentarse. 18/11: con el PILAR (nace en 0,55 s y se hunde, como todas hasta ahora); el MURO tiene desde hoy su
+	# inicio lento y su estallido, que se miran justo debajo.
 	var m: TierraToy = _nueva("tierra") as TierraToy
 	await process_frame
-	m.definir(TierraToy.Figura.MURO, 3.45, 1.5, 0.3, false)
+	m.definir(TierraToy.Figura.PILAR if TierraToy.MURO_INICIO_FINAL else TierraToy.Figura.MURO, 0.5 if TierraToy.MURO_INICIO_FINAL else 3.45, 4.0 if TierraToy.MURO_INICIO_FINAL else 1.5,
+		0.5 if TierraToy.MURO_INICIO_FINAL else 0.3, false)
 	await process_frame
 	m.sube = 0.0
 	m.lanzar(-1.0)
@@ -338,6 +340,40 @@ func _tierra_sube() -> void:
 	await _esperar(0.6)
 	_ok("…y la figura se libera sola", not is_instance_valid(m))
 	await _esperar(2.2)
+	# 18/11 (Pablo): el MURO nace DESPACIO (primero la grieta, del centro a los extremos; luego las rocas) y al morir ESTALLA en piedras pequeñas, no se hunde
+	if TierraToy.MURO_INICIO_FINAL:
+		var w: TierraToy = _nueva("tierra") as TierraToy
+		await process_frame
+		w.definir(TierraToy.Figura.MURO, 3.45, 1.5, 0.3, false)
+		await process_frame
+		w.sube = 0.0
+		w.lanzar(-1.0)
+		await _esperar(TierraToy.T_NACER_MURO * TierraToy.MURO_GRIETA_FRAC * 0.6)
+		var muro_bajo: bool = true
+		for y5 in w.alturas_actuales():
+			muro_bajo = muro_bajo and float(y5) < -0.05                    # las piedras del pie miden poco: basta con que sigan bajo tierra
+		var eg: Dictionary = w.estado_grietas_muro()
+		_ok("muro: inicio lento: con la grieta a medias (avance %.2f) ninguna roca ha salido todavía" % float(eg["avance"]), muro_bajo and float(eg["avance"]) > 0.2 and float(eg["avance"]) < 1.0 and float(eg["vida"]) > 0.5)
+		await _esperar(TierraToy.T_NACER_MURO)
+		var muro_en_sitio: bool = true
+		for y6 in w.alturas_actuales():
+			muro_en_sitio = muro_en_sitio and absf(float(y6)) < 0.02
+		_ok("muro: al acabar de nacer todas las rocas están en su sitio y la grieta, entera", muro_en_sitio and float(w.estado_grietas_muro()["avance"]) >= 0.999)
+		var n_rocas: int = (w.get("_bloques") as Array).size()
+		var padre_w: Node = w.get_parent()
+		w.morir()
+		await _esperar(TierraToy.T_MORIR_MURO * (TierraToy.MURO_ESTALLA_DESDE + TierraToy.MURO_ESTALLA_TRAMO + 0.08))
+		var muro_sin_hundir: bool = true
+		if is_instance_valid(w):
+			for y7 in w.alturas_actuales():
+				muro_sin_hundir = muro_sin_hundir and float(y7) > -0.05
+		var tw: Node = padre_w.find_child("Terrones", true, false)                 # del muro o, si ya los ha soltado, del padre
+		var n_trozos: int = int(tw.call("vivas")) if tw != null else -1
+		_ok("muro: morir: las rocas ESTALLAN (%d trozos de %d rocas) y no se hunden" % [n_trozos, n_rocas], muro_sin_hundir and n_trozos >= 2 * n_rocas)
+		await _esperar(TierraToy.T_MORIR_MURO * 0.35 + 0.15)
+		var tw2: Node = padre_w.find_child("Terrones", true, false)
+		_ok("muro: …la figura se libera sola y los trozos siguen cayendo (%d, ya del padre)" % (int(tw2.call("vivas")) if tw2 != null else -1), not is_instance_valid(w) and tw2 != null and int(tw2.call("vivas")) >= 1)
+		await _esperar(2.3)
 
 
 # ------------------------------------------------------------------ 4b. tierra: el haz de púas en secuencia ------------------------------------------------------------------
