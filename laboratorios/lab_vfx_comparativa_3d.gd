@@ -223,7 +223,7 @@ func _process(delta: float) -> void:
 	if _panel != null:
 		var lp: Array = luces_y_particulas()
 		_panel.text = ("fps %d · luces %d · partículas %d · efectos %d · cámara %s\n1 bola · 2 muro · 3 columna · 4 PARRILLA de los 7 elementos (con parrilla, 8 la rehace) · 5 muro toon · 6 columna toon · 7 bola toon · 0 diez muros · 9 diez toon · X limpia · F muro del haz · F12 masa de fuego (muro / esfera / nada) · Mayús+F12 GAS 3D (port de la demo: esfera / muro / nada) · C cámara · flechas andar · H panel\n%s"
-			% [int(Engine.get_frames_per_second()), lp[0], lp[1], _efectos.get_child_count(), CAMARAS[camara_actual], _texto_mandos_toon()] + _texto_param() + _texto_carga() + "\n8 humo por regla (HumoRegla; con parrilla puesta, Mayús+8): %s (magma: %s)" % ["SÍ" if HumoRegla.hay_alguna() else "no", "sí" if HumoRegla.capas.get("magma", false) else "no"] + "\n. chispas tipo repo (ChispasRepo: rayo, electrificado, brasas de magma): %s · , electrificar un muñeco y una casilla de agua (arcos en su cápsula: %s)" % ["SÍ" if ChispasRepo.hay_alguna() else "no", "sí" if ChispasRepo.activa("electrificado_capsula") else "no"] + LabVientoVeneno.texto()) if _panel_visible else ""
+			% [int(Engine.get_frames_per_second()), lp[0], lp[1], _efectos.get_child_count(), CAMARAS[camara_actual], _texto_mandos_toon()] + _texto_param() + _texto_carga() + _texto_dummy() + "\n8 humo por regla (HumoRegla; con parrilla puesta, Mayús+8): %s (magma: %s)" % ["SÍ" if HumoRegla.hay_alguna() else "no", "sí" if HumoRegla.capas.get("magma", false) else "no"] + "\n. chispas tipo repo (ChispasRepo: rayo, electrificado, brasas de magma): %s · , electrificar un muñeco y una casilla de agua (arcos en su cápsula: %s)" % ["SÍ" if ChispasRepo.hay_alguna() else "no", "sí" if ChispasRepo.activa("electrificado_capsula") else "no"] + LabVientoVeneno.texto()) if _panel_visible else ""
 
 
 func _unhandled_input(ev: InputEvent) -> void:
@@ -250,6 +250,7 @@ func _unhandled_input(ev: InputEvent) -> void:
 		KEY_F9: fuego_hechizo(_param_ej); _param_ej = (_param_ej + 1) % EJEMPLOS_HECHIZO.size()
 		KEY_INSERT: suelo_hielo()                                                                             # 18/11: la figura SUELO del hielo (placa), que no sale de ningún hechizo
 		KEY_DELETE: congelado_demo()                                                                          # 18/11: el efecto de congelado (CongeladoToy) sobre la jugadora del lab, 3 s
+		KEY_ENTER, KEY_KP_ENTER: dummy_tecla((ev as InputEventKey).shift_pressed, (ev as InputEventKey).ctrl_pressed)   # 18/11: el dummy de estados (LabDummyEstados): le aplica el elemento actual
 		KEY_F10: naturaleza_barrera()
 		KEY_F11: naturaleza_bola()
 		KEY_U: eje_param(0, 1)
@@ -424,6 +425,39 @@ func _nuevo_impacto(variante: int, normal: Vector3, radio: float) -> Node3D:
 		"tierra":
 			return ImpactoTierraToy.crear(variante as ImpactoTierraToy.Variante, normal, radio)
 	return ImpactoFuegoToy.crear(variante as ImpactoFuegoToy.Variante, normal, radio)
+
+
+## Intro: el DUMMY DE ESTADOS (laboratorios/lab_dummy_estados.gd). La primera vez lo pone delante de la jugadora; cada Intro le aplica el elemento actual (Z lo cambia) con las reglas
+## del juego y el panel dice en qué estado queda. Mayús+Intro le quita los estados; Ctrl+Intro quita el dummy.
+var _dummy: LabDummyEstados = null
+
+
+func dummy_estados() -> LabDummyEstados:
+	if _dummy == null or not is_instance_valid(_dummy):
+		_dummy = LabDummyEstados.new()
+		_dummy.name = "DummyEstados"
+		add_child(_dummy)                                              # del lab, no de `_efectos`: X (limpiar efectos) no se lo lleva
+		_dummy.global_position = Vector3(_pj.global_position.x, 0.0, _pj.global_position.z) + Vector3(_dir.x, 0.0, _dir.z).normalized() * DISTANCIA_EFECTO
+	return _dummy
+
+
+func dummy_aplicar(el: String = "") -> Dictionary:
+	return dummy_estados().aplicar(el if el != "" else elemento)
+
+
+func dummy_tecla(mayus: bool, ctrl: bool) -> void:
+	if ctrl:
+		if _dummy != null and is_instance_valid(_dummy):
+			_dummy.queue_free()
+		_dummy = null
+	elif mayus:
+		dummy_estados().limpiar()
+	else:
+		dummy_aplicar()
+
+
+func _texto_dummy() -> String:
+	return _dummy.texto() if (_dummy != null and is_instance_valid(_dummy)) else "\nDUMMY DE ESTADOS: Intro lo pone y le aplica el elemento actual (Z lo cambia)"
 
 
 ## Supr: el CONGELADO (CongeladoToy: costra de hielo, cuadraditos celestes y vaho) sobre la jugadora del lab durante `dura` s.
