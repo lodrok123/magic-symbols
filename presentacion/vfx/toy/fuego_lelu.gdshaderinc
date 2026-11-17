@@ -47,6 +47,9 @@ uniform float vida : hint_range(0.0, 1.0) = 1.0;
 uniform float vert_polo : hint_range(0.0, 1.0) = 0.0;     // 1 = el desplazamiento de vértices se apaga en la punta (silueta redonda en el polo)
 uniform float base_irreg : hint_range(0.0, 0.5) = 0.0;   // > 0 (V): la base deja de ser un borde uniforme: el contacto con el suelo sube a alturas distintas según el ruido (lenguas de distinta altura y grosor)
 uniform float vaiven = 0.0;                      // > 0 (m): TODA la malla se ladea a la vez con una onda que sube (el pilar de una lengua); no depende de `semilla`: las capas van juntas
+// INICIO Y FINAL (17/11, Pablo: «quiero un inicio y un final en los hechizos»; primero el pilar). Los dos neutros por defecto: nada más cambia.
+uniform float brote : hint_range(0.0, 1.0) = 1.0;    // 0 → 1 al nacer: primero SUBE un chorro fino (alto) y luego ENGORDA (ancho)
+uniform float suelta : hint_range(0.0, 1.0) = 0.0;   // 0 → 1 al morir: un corte roído sube desde la base (la raíz se estrecha y se suelta; lo de arriba se va el último)
 uniform float fade_base : hint_range(0.0, 0.5) = 0.0;     // fundido de la base (V de 0 a este valor) para que no se vea el pellizco de la UV en el polo
 group_uniforms;
 
@@ -57,6 +60,9 @@ uniform float fade_canto : hint_range(0.0, 1.0) = 0.0;        // > 0: la lámina
 uniform float suave_prof : hint_range(0.0, 3.0) = 0.0;        // > 0: fundido contra la geometría opaca de detrás (partículas blandas), en metros
 uniform sampler2D tex_prof : hint_depth_texture, repeat_disable, filter_nearest;
 group_uniforms;
+
+float brote_alto() { return smoothstep(0.0, 0.65, brote); }
+float brote_ancho() { return mix(0.2, 1.0, smoothstep(0.4, 1.0, brote)); }
 
 float suavizado(vec2 suv, vec3 vert, vec3 nrm, vec3 vista, mat4 inv_proj) {
 	float s = 1.0;
@@ -84,8 +90,9 @@ void vertex() {
 		vec2 lado = vec2(textureLod(ruido_v, q, 0.0).r, textureLod(ruido_v, q + vec2(0.51, 0.27), 0.0).r) - 0.5;
 		VERTEX.xz += lado * 2.0 * vaiven * smoothstep(0.05, 0.9, UV.y);
 	}
-	VERTEX.y *= altura;
-	VERTEX.xz *= ancho;
+	float raiz_suelta = (1.0 - smoothstep(0.0, 0.3, UV.y - suelta)) * min(suelta * 6.0, 1.0);
+	VERTEX.y *= altura * brote_alto();
+	VERTEX.xz *= ancho * brote_ancho() * mix(1.0, 0.4, raiz_suelta);
 }
 #endif
 
@@ -126,6 +133,10 @@ void fragment() {
 	float a = smoothstep(umbral, umbral + blandura, f);
 	a *= (fade_base > 0.0 ? smoothstep(0.0, fade_base, UV.y) : 1.0);
 	a *= step(v_base, UV.y) * (1.0 - smoothstep(0.88, 1.0, vg));          // (8) fundido arriba
+	if (suelta > 0.0) {
+		float corte_s = suelta * 1.15 + (fino - 0.5) * 0.14 * min(suelta * 6.0, 1.0);
+		a *= smoothstep(corte_s - 0.03, corte_s + 0.1, UV.y);
+	}
 #ifndef VBB
 	if (base_irreg > 0.0) {
 		float nb = texture(ruido_a, vec2(UV.x * rep_ruido.x * 2.5 + sm * 3.0, 0.31)).r * 0.65 + texture(ruido_fino, vec2(UV.x * rep_ruido.x * 6.1 + 0.4, 0.7)).r * 0.35;

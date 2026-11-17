@@ -48,6 +48,15 @@ const MURO_AFILA_IN: float = 0.92        ## ídem la banda interior (0,7 antes)
 const MURO_RUIDO_CONTORNO: float = 0.24  ## m que el ruido saca y mete la silueta (`amplitud_vert`; 0,16 antes)
 const MURO_VELOCIDAD: float = 1.6        ## × la velocidad de las llamas del muro
 const PILAR_VELOCIDAD: float = 1.6       ## × la velocidad de las llamas del pilar
+## INICIO Y FINAL DEL PILAR (17/11, Pablo: «quiero un inicio y un final en los hechizos… igual que la carga de la bola»; «pilar primero»). Solo dibujo.
+##   INICIO: un anillo en el suelo se cierra hacia el centro (`PILAR_AVISO_S`) y del centro brota un chorro fino que sube y luego engorda (`PILAR_BROTE_S`).
+##   FINAL: se corta por la base; la raíz se estrecha y se suelta y lo que queda arriba es lo último en irse.
+## A false, el nacer y morir de antes (el cuerpo entero crece y se encoge).
+const PILAR_INICIO_FINAL: bool = true
+const PILAR_AVISO_S: float = 0.2
+const PILAR_BROTE_S: float = 0.45
+const PILAR_AVISO_TAM: float = 5.0       ## diámetro del anillo de aviso al empezar, en veces el semieje
+const PILAR_AVISO_FIN: float = 0.2       ## fracción de ese tamaño al cerrarse
 ## PILAR = UNA LENGUA (17/11, Pablo, con un vídeo de chorros de fuego: «para el pilar de fuego pero con solo una lengua»): la silueta ya no es un cilindro de lenguas sino un solo chorro,
 ## estrecho en la raíz, que se abre hasta la panza y se deshace en la punta, lleno por dentro, con vetas verticales y con un vaivén de todo el chorro a la vez.
 const PILAR_RAIZ: float = 0.45           ## radio en el suelo, en veces el semieje
@@ -972,6 +981,8 @@ func _pilar(c: Node3D, luz: OmniLight3D) -> void:
 	var fr: float = rm / REF_PILAR.x
 	_halo(c, "Charco", Vector2(5.2 * rx, 5.2 * rz), Vector3(0, 0.04, 0), 0.45, 1.8, 0, Color(1.0, 0.28, 0.06), {"anillo": 0.5, "irreg": PILAR_IRREG_CHARCO})
 	_halo(c, "Resplandor", Vector2(6.8 * rm, 1.05 * alto), Vector3(0, 0.35 * alto, 0), 0.2, 2.8, 2, Color(1.0, 0.28, 0.06))
+	if PILAR_INICIO_FINAL:
+		_halo(c, "Aviso", Vector2(PILAR_AVISO_TAM * rx, PILAR_AVISO_TAM * rz), Vector3(0, 0.05, 0), 1.3, 1.6, 0, Color(1.0, 0.32, 0.07), {"anillo": 1.0, "vida": 0.0})
 	var amp: float = clampf(fr, 0.5, 2.0)
 	var vaiven: float = PILAR_VAIVEN_M * amp
 	var raiz: float = lerpf(PILAR_RAIZ_CHATO, PILAR_RAIZ, smoothstep(1.2, 3.0, alto / maxf(rm, 0.01)))
@@ -1178,8 +1189,43 @@ func _calor_forma(v: float) -> void:
 
 
 func _set_aparicion(v: float) -> void:
+	var baja: bool = v < aparicion - 0.00001
+	var sube: bool = v > aparicion + 0.00001
 	super._set_aparicion(v)
 	_calor_forma(v)
+	if PILAR_INICIO_FINAL and _listo and figura == Figura.PILAR:
+		if baja:
+			_pilar_muriendo = true
+		elif sube:
+			_pilar_muriendo = false
+		_pilar_inicio_final(v)
+
+
+var _pilar_muriendo: bool = false
+
+
+## Reparte `aparicion` en las tres fases del pilar: aviso (anillo que se cierra), brote (chorro que sube y engorda) y, al bajar, final (corte que sube desde la base).
+## El cuerpo ya no se encoge ni se desvanece entero: lo hacen `brote` y `suelta` en el shader. Los halos (charco, resplandor) siguen a `aparicion` como antes.
+func _pilar_inicio_final(v: float) -> void:
+	var fa: float = PILAR_AVISO_S / (PILAR_AVISO_S + PILAR_BROTE_S)
+	var brote: float = 1.0
+	var suelta: float = 0.0
+	var k: float = 1.0
+	if _pilar_muriendo:
+		suelta = 1.0 - v
+	else:
+		brote = clampf((v - fa) / (1.0 - fa), 0.0, 1.0)
+		k = clampf(v / fa, 0.0, 1.0)
+	_param_mats("vida", 1.0)
+	_param_mats("brote", brote)
+	_param_mats("suelta", suelta)
+	if _cuerpo != null:
+		_cuerpo.scale = Vector3.ONE
+		var av: MeshInstance3D = _cuerpo.get_node_or_null("Aviso") as MeshInstance3D
+		if av != null:
+			var e: float = lerpf(1.0, PILAR_AVISO_FIN, k * k)
+			av.scale = Vector3(e, 1.0, e)
+			(av.material_override as ShaderMaterial).set_shader_parameter("vida", smoothstep(0.0, 0.2, k) * (1.0 - smoothstep(0.8, 1.0, k)))
 
 
 ## Extras del impacto de la bola: resplandor del suelo que se apaga y chispas con estela que caen. Cuelgan de un nodo propio (el toy se va) que se borra solo.
@@ -1727,7 +1773,7 @@ func _anim_si_hace_falta() -> void:
 	var morir_s: float = 0.5
 	match figura:
 		Figura.PILAR:
-			nacer = 0.4
+			nacer = (PILAR_AVISO_S + PILAR_BROTE_S) if PILAR_INICIO_FINAL else 0.4
 			morir_s = 0.6
 		Figura.BARRERA:
 			nacer = 0.5
