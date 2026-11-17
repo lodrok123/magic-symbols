@@ -89,6 +89,9 @@ const MURO_ROMPE_DESDE: float = 0.12                    ## fracción del morir a
 const MURO_ROMPE_TRAMO: float = 0.4                     ## …y en esta fracción estallan todos, hacia el centro
 const MURO_VAHO_POR_S: float = 22.0
 const MURO_VAHO_VIDA_S: float = 0.5
+## 19/11 (Pablo, con una captura de la barrera: «esa pared del fondo, ¿qué es?» … «mejor quítala porque no se lee bien»): la barrera de hielo ya NO lleva la cúpula (la esfera facetada
+## tenue que envolvía la jaula: su cara trasera se leía como una pared). Queda la jaula de cristales y la escarcha. A true, vuelve.
+const BARRERA_CUPULA: bool = false
 const SUELO_GROSOR_MIN: float = 0.08
 const SUELO_GROSOR_MAX: float = 0.6
 const SUELO_OPACIDAD: float = 0.8
@@ -729,9 +732,10 @@ func _pilar(c: Node3D) -> void:
 ## BARRERA DE HIELO. Elipsoide x y z con el centro a 0,4·y sobre el suelo (como la del fuego): una jaula de cristales sobre la elipse del suelo inclinados hacia dentro, y una cúpula de cristal muy tenue.
 func _barrera(c: Node3D) -> void:
 	_montar_cristales(c, HieloMallas.capa_barrera(semieje_x, semieje_y, semieje_z, 1.0 + semieje_x), 4.0)
-	_cupula = _mi_hielo(c, "Cupula", HieloMallas.bloque(0.04, 7.0), HieloMallas.material(HieloMallas.SH_CRISTAL, {"opacidad": 0.13, "escarcha_base": 0.0, "rim_pot": 2.6}, 0))
-	_cupula.position = Vector3(0, 0.4 * semieje_y, 0)
-	_cupula.scale = Vector3(semieje_x, semieje_y, semieje_z)
+	if BARRERA_CUPULA:
+		_cupula = _mi_hielo(c, "Cupula", HieloMallas.bloque(0.04, 7.0), HieloMallas.material(HieloMallas.SH_CRISTAL, {"opacidad": 0.13, "escarcha_base": 0.0, "rim_pot": 2.6}, 0))
+		_cupula.position = Vector3(0, 0.4 * semieje_y, 0)
+		_cupula.scale = Vector3(semieje_x, semieje_y, semieje_z)
 	_escarcha_base(c, 2.0 * semieje_x * 1.3, 2.0 * semieje_z * 1.3)
 
 

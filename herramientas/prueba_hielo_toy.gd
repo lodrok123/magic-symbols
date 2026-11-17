@@ -222,7 +222,8 @@ func _figuras() -> void:
 				_ok("[PILAR] espiga central de alto %.2f (semieje y %.2f), %d cristales" % [c["ymax"], s.y, e._cris.size()], absf(float(c["ymax"]) - s.y) < s.y * 0.05 and e._cris.size() >= 8)
 			3:
 				var r: float = maxf(absf(float(c["xmin"])), float(c["xmax"]))
-				_ok("[BARRERA] jaula de %d cristales dentro del radio (%.2f de %.2f) y cúpula tenue" % [e._cris.size(), r, s.x], r <= s.x * 1.01 and e._cris.size() >= 10 and e.find_child("Cupula", true, false) != null)
+				_ok("[BARRERA] jaula de %d cristales dentro del radio (%.2f de %.2f) y %s" % [e._cris.size(), r, s.x, "cúpula tenue" if HieloToy.BARRERA_CUPULA else "SIN cúpula (19/11, Pablo: no se leía bien)"],
+					r <= s.x * 1.01 and e._cris.size() >= 10 and (e.find_child("Cupula", true, false) != null) == HieloToy.BARRERA_CUPULA)
 			4:
 				_ok("[HAZ] lanza + púas: largo %.2f de %.2f m, sale del origen y mira a -Z; destello en la punta" % [-float(c["zmin"]), s.x * 2.0], absf(-float(c["zmin"]) - s.x * 2.0) < 0.35 and float(c["zmax"]) <= 0.3 and e.find_child("Punta", true, false) != null)
 		if int(f[1]) >= 1 and int(f[1]) <= 3:
