@@ -1,0 +1,14 @@
+; catalogo piedra_pista
+; titulo Bloque de piedra en la pista
+; tipo salida
+; activa placa.pulsado
+; barrera si
+;  El peso de la piedra (Bosque 02, sala 10) con la regla de la Sala del Empuje: el bloque vive en una pista de una casilla cerrada por
+;  paredes, así no se puede arrinconar. La piedra avanza una casilla por empujón: dos empujones desde la izquierda y queda sobre la placa,
+;  que está pegada a la pared del fondo (no se puede pasar de largo). La placa pide peso 3: la jugadora sola no la baja.
+;  Se entra por la casilla de la izquierda, que es la única abierta.
+######
+.....#
+######
+; pieza bloque bloque 2 1 material=piedra
+; pieza placa pulsador 4 1 modo=presencia peso=3 $MODELO

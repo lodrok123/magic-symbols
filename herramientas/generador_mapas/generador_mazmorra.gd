@@ -99,6 +99,8 @@ var _llave_barrera: Dictionary = {}    ## la puerta con llave como barrera: {cel
 var puzles_puestos: Dictionary = {}     ## sala -> puzle del catalogo que lleva
 var _puzles_mano: Dictionary = {}       ## sala -> puzle del catalogo pedido a mano
 var _n_cat: int = 0
+var _ultimo_act: String = ""            ## el activador que dejó la última plantilla `salida` estampada
+var _nv: String = ""                    ## el nombre del nivel en minúsculas (para las flags)
 var _letras_extra: String = ""
 
 
@@ -1180,6 +1182,7 @@ func _poblar() -> void:
 		_nueva_sala(caja)
 		vivas = _vivas()
 	var nv: String = String(p["nombre"]).to_lower()
+	_nv = nv
 	var cueva: bool = String(p["estilo"]) == "cueva"
 	# 1 · Inicio: la sala más al sur (la cámara mira al norte: se entra desde abajo). En «pagina», la raíz.
 	var s_ini: Dictionary = vivas[0]
@@ -1390,7 +1393,13 @@ func _poblar() -> void:
 			continue
 		var n: int = int(s["id"])
 		var flag: String = "%s.sala_%d.limpia" % [nv, n]
-		lineas.append("; pieza vigia_%d vigia %d %d de=%s flag=%s" % [n, r.position.x, r.position.y, _rect_txt(r), flag])
+		var cv: Vector2i = r.position                # la esquina de la sala, o su primera casilla de suelo si la esquina es pared
+		if _tipo(cv) == MURO:                        # (una plantilla del catálogo pone paredes dentro o agranda la sala)
+			for c in _celdas_sala(s):
+				if _tipo(c) == SUELO:
+					cv = c
+					break
+		lineas.append("; pieza vigia_%d vigia %d %d de=%s flag=%s" % [n, cv.x, cv.y, _rect_txt(r), flag])
 		s["vigia"] = true
 		if cierra:
 			var txt: PackedStringArray = PackedStringArray()
@@ -1558,143 +1567,67 @@ func _intentar_barrera_b(paso: Dictionary, n: int, vivas: Array, cueva: bool) ->
 			s["_d"] = antes[cs.y * w + cs.x]
 			salas_antes.append(s)
 	salas_antes.sort_custom(func(a: Dictionary, b: Dictionary) -> bool: return int(a["_d"]) > int(b["_d"]) or (int(a["_d"]) == int(b["_d"]) and int(a["id"]) < int(b["id"])))
-	var tipos: Array = []
-	if bool(p["b_braseros"]):
-		tipos.append("braseros")
-	if bool(p["b_placa"]):
-		tipos.append("placa")
-	_barajar(tipos)
-	var plan: Dictionary = {}
-	var sala_act: Dictionary = {}
-	for s in salas_antes.slice(0, 6):
-		for t in tipos:
-			plan = _plan_braseros(s) if String(t) == "braseros" else _plan_placa(s)
-			if not plan.is_empty():
-				plan["tipo"] = t
-				sala_act = s
-				break
-		if not plan.is_empty():
-			break
-	if plan.is_empty():
-		return false
-	# Se pone todo y se comprueba que el mapa entero se sigue pudiendo completar; si no, se deshace.
-	var foto: Array = [g.duplicate(), lineas.duplicate(), objetos.duplicate(), _ocupada.duplicate(), _bloqueos.duplicate(), letras.duplicate(),
-		_puentes.duplicate(), _activadores.duplicate(), _barreras.duplicate()]
+	# Las plantillas del catálogo que valen de activador (`; tipo salida` + `; barrera si`), según lo que se permita en el panel:
+	# «braseros» = las que acaban en un contador (señal `todos`); «placa» = las que acaban en una placa (señal `pulsado`).
+	var cat: Dictionary = Catalogo.todos()
+	var plantillas: Array = []
+	var ids: Array = cat.keys()
+	ids.sort()
+	for cid in ids:
+		var e: Dictionary = cat[cid]
+		if String(e["tipo"]) != "salida" or not bool(e["barrera"]) or not String(e["activa"]).contains("."):
+			continue
+		var senal: String = String(e["activa"]).split(".")[1]
+		if (senal == "todos" and not bool(p["b_braseros"])) or (senal == "pulsado" and not bool(p["b_placa"])):
+			continue
+		plantillas.append(cid)
+	_barajar(plantillas)
 	var bid: String = ("puente_%d" if puente else "puerta_%d") % n
 	var c0: Vector2i = celdas[0]
-	if puente:
-		var txt: PackedStringArray = PackedStringArray()
-		for c in celdas:
-			g[int(c.y) * w + int(c.x)] = AGUA
-			_puentes[c] = true
-			txt.append("%d,%d" % [int(c.x), int(c.y)])
-		lineas.append("; pieza %s puente %d %d celdas=%s" % [bid, c0.x, c0.y, "+".join(txt)])
-	else:
-		lineas.append("; pieza %s puerta %d %d" % [bid, c0.x, c0.y])
-	for c in celdas:
-		_ocupar(c)
-		_objeto(c, "puente" if puente else "puerta", bid)
-	var aid: String = ""
-	if String(plan["tipo"]) == "braseros":
-		aid = "luces_%d" % n
-		var de: PackedStringArray = PackedStringArray()
-		var letra: int = 0
-		for c in plan["braseros"]:
-			letras[c] = "T"
-			_ocupar(c, true)
-			_objeto(c, "brasero", aid)
-			de.append("%d,%d" % [int(c.x), int(c.y)])
-			if cueva:
-				lineas.append("; pieza luz_%d_%s brasero %d %d luz=2.4 modelo=cueva" % [n, "ab"[letra], int(c.x), int(c.y)])
-			letra += 1
-		var cc: Vector2i = plan["contador"]
-		_ocupar(cc)
-		_objeto(cc, "contador", aid)
-		lineas.append("; pieza %s contador %d %d de=%s" % [aid, cc.x, cc.y, "+".join(de)])
-		_activadores[aid] = {"id": aid, "tipo": "braseros", "celdas": plan["braseros"], "pos": cc, "senal": "todos"}
-	else:
-		aid = "placa_%d" % n
-		var cb: Vector2i = plan["bloque"]
-		var cp: Vector2i = plan["placa"]
-		for c in plan["linea"]:
-			_ocupar(c)
-		_ocupar(cb, true)
-		_objeto(cb, "bloque", "bloque_%d" % n)
-		_objeto(cp, "placa", aid)
-		lineas.append("; pieza bloque_%d bloque %d %d material=piedra" % [n, cb.x, cb.y])
-		lineas.append("; pieza %s pulsador %d %d modo=presencia peso=3%s" % [aid, cp.x, cp.y, " modelo=cueva" if cueva else ""])
-		_activadores[aid] = {"id": aid, "tipo": "placa", "celdas": [plan["atras"], cb], "pos": cp, "senal": "pulsado"}
-	_barreras.append({"id": bid, "tipo": "puente" if puente else "puerta", "celdas": celdas, "pos": c0, "act": aid})
-	if not _resoluble():
-		g = foto[0]
-		lineas = foto[1]
-		objetos = foto[2]
-		_ocupada = foto[3]
-		_bloqueos = foto[4]
-		letras = foto[5]
-		_puentes = foto[6]
-		_activadores = foto[7]
-		_barreras = foto[8]
-		return false
-	sala_act["activador"] = true
-	if paso["puerta"] != null:
-		paso["puerta"]["tipo"] = "barrera"
-	return true
-
-
-## Dos braseros (bloquean) y la casilla del contador, en una sala. Vacío si no caben.
-func _plan_braseros(s: Dictionary) -> Dictionary:
-	var celdas: Array = _celdas_sala(s).filter(func(c: Vector2i) -> bool: return _libre(c) and not _cerca_de_puerta(c))
-	if celdas.size() < 6:
-		return {}
-	_barajar(celdas)
-	var b1: Vector2i = Vector2i(-1, -1)
-	var b2: Vector2i = Vector2i(-1, -1)
-	for c in celdas:
-		if _puede_bloquear(c):
-			b1 = c
-			break
-	if b1.x < 0:
-		return {}
-	_bloqueos[b1] = true
-	for c in celdas:
-		if (c as Vector2i).distance_squared_to(b1) >= 4 and _puede_bloquear(c):
-			b2 = c
-			break
-	_bloqueos.erase(b1)
-	if b2.x < 0:
-		return {}
-	for c in celdas:
-		if c != b1 and c != b2:
-			return {"braseros": [b1, b2], "contador": c}
-	return {}
-
-
-## Un bloque de piedra, la placa a 2 o 3 casillas en línea recta y sitio detrás del bloque para empujarlo. Vacío si no caben.
-func _plan_placa(s: Dictionary) -> Dictionary:
-	var r: Rect2i = s["rect"]
-	var celdas: Array = _celdas_sala(s).filter(func(c: Vector2i) -> bool: return _libre(c) and not _cerca_de_puerta(c))
-	_barajar(celdas)
-	var dirs: Array = [0, 1, 2, 3]
-	_barajar(dirs)
-	for c in celdas:
-		for di in dirs:
-			var d: Vector2i = DIRS[int(di)]
-			for largo in [3, 2]:
-				var linea: Array = [c - d]
-				var bien: bool = true
-				for k in range(0, int(largo) + 1):
-					linea.append(c + d * k)
-				for l in linea:
-					if not _libre(l) or _cerca_de_puerta(l) or not r.has_point(l):
-						bien = false
-						break
-				if not bien:
-					continue
-				var fin: Vector2i = c + d * int(largo)
-				if _puede_bloquear(c) and _puede_bloquear(fin):
-					return {"bloque": c, "placa": fin, "atras": c - d, "linea": linea}
-	return {}
+	# Se estampa el activador, se pone la barrera y se comprueba que el mapa entero se sigue pudiendo completar; si no, se deshace
+	# y se prueba con la siguiente sala o la siguiente plantilla.
+	for cid in plantillas:                           # primero la plantilla (al azar) y luego dónde cabe: así salen repartidas
+		for s in salas_antes.slice(0, 6):
+			var foto: Array = [g.duplicate(), lineas.duplicate(), objetos.duplicate(), _ocupada.duplicate(), _bloqueos.duplicate(), letras.duplicate(),
+				_puentes.duplicate(), _activadores.duplicate(), _barreras.duplicate(), _letras_extra, _n_cat, s["rect"]]
+			if _poner_puzle(s, String(cid), _nv, true) != "":
+				continue
+			var aid: String = _ultimo_act
+			var bien: bool = aid != ""
+			for c in celdas:                             # la plantilla no puede haber tocado el paso que se va a cerrar
+				bien = bien and _tipo(c) == SUELO and not _ocupada.has(c)
+			if bien:
+				if puente:
+					var txt: PackedStringArray = PackedStringArray()
+					for c in celdas:
+						g[int(c.y) * w + int(c.x)] = AGUA
+						_puentes[c] = true
+						txt.append("%d,%d" % [int(c.x), int(c.y)])
+					lineas.append("; pieza %s puente %d %d celdas=%s" % [bid, c0.x, c0.y, "+".join(txt)])
+				else:
+					lineas.append("; pieza %s puerta %d %d" % [bid, c0.x, c0.y])
+				for c in celdas:
+					_ocupar(c)
+					_objeto(c, "puente" if puente else "puerta", bid)
+				_barreras.append({"id": bid, "tipo": "puente" if puente else "puerta", "celdas": celdas, "pos": c0, "act": aid})
+				if _resoluble():
+					if paso["puerta"] != null:
+						paso["puerta"]["tipo"] = "barrera"
+					return true
+			g = foto[0]
+			lineas = foto[1]
+			objetos = foto[2]
+			_ocupada = foto[3]
+			_bloqueos = foto[4]
+			letras = foto[5]
+			_puentes = foto[6]
+			_activadores = foto[7]
+			_barreras = foto[8]
+			_letras_extra = foto[9]
+			_n_cat = foto[10]
+			s["rect"] = foto[11]
+			s.erase("activador")
+	return false
 
 
 ## ¿Se llega a todas estas casillas? Una que bloquea (brasero, bloque, cofre) vale si se llega a una de sus vecinas.
@@ -1858,7 +1791,7 @@ func _colocar_catalogo(vivas: Array, nv: String) -> void:
 
 
 ## Pone el puzle `cid` en la sala `s`. Devuelve "" si se pudo; si no, por qué.
-func _poner_puzle(s: Dictionary, cid: String, nv: String) -> String:
+func _poner_puzle(s: Dictionary, cid: String, nv: String, de_barrera: bool = false) -> String:
 	var cat: Dictionary = Catalogo.todos()
 	if not cat.has(cid):
 		return "no está en el catálogo."
@@ -1898,12 +1831,15 @@ func _poner_puzle(s: Dictionary, cid: String, nv: String) -> String:
 			var db: float = Vector2(b).distance_squared_to(centro)
 			return da < db or (da == db and (a.y < b.y or (a.y == b.y and a.x < b.x))))
 	for sitio in sitios.slice(0, 24):
-		if _estampar(s, e, filas, tw, th, sitio, nv):
+		if _estampar(s, e, filas, tw, th, sitio, nv, de_barrera):
 			return ""
 	return "no cabe (la plantilla mide %d × %d y la sala %d × %d; al agrandarla tropieza con otra sala o con el borde, o corta el paso)." % [tw, th, r.size.x, r.size.y]
 
 
-func _estampar(s: Dictionary, e: Dictionary, filas: Array, tw: int, th: int, sitio: Vector2i, nv: String) -> bool:
+## `de_barrera`: la plantilla es el activador de una barrera automática. La sala conserva su papel (no pasa a ser «sala de puzle») y el
+## activador que deja queda en `_ultimo_act`.
+func _estampar(s: Dictionary, e: Dictionary, filas: Array, tw: int, th: int, sitio: Vector2i, nv: String, de_barrera: bool = false) -> bool:
+	_ultimo_act = ""
 	var r: Rect2i = s["rect"]
 	var zona: Rect2i = Rect2i(sitio, Vector2i(tw, th))
 	if not Rect2i(1, 1, w - 2, h - 2).encloses(zona):
@@ -1917,13 +1853,14 @@ func _estampar(s: Dictionary, e: Dictionary, filas: Array, tw: int, th: int, sit
 					return false
 	for y in range(th):
 		for x in range(tw):
-			if String(filas[y])[x] != " " and _ocupada.has(sitio + Vector2i(x, y)):
-				return false
+			if String(filas[y])[x] != " " and (_ocupada.has(sitio + Vector2i(x, y)) or _retoques.has(sitio + Vector2i(x, y))):
+				return false                             # ni encima de otra cosa ni de un retoque pintado a mano
 	var foto: Array = [g.duplicate(), lineas.duplicate(), objetos.duplicate(), _ocupada.duplicate(), _bloqueos.duplicate(), letras.duplicate(),
 		_puentes.duplicate(), _activadores.duplicate(), _letras_extra]
 	_n_cat += 1
 	var inst: String = "cat%d" % _n_cat
 	var paso: bool = String(e["tipo"]) == "paso"
+	var con_paredes: bool = "".join(filas).contains("#")
 	for y in range(th):
 		for x in range(tw):
 			var ch: String = String(filas[y])[x]
@@ -1935,6 +1872,8 @@ func _estampar(s: Dictionary, e: Dictionary, filas: Array, tw: int, th: int, sit
 					g[c.y * w + c.x] = MURO
 				".":
 					g[c.y * w + c.x] = SUELO
+					if con_paredes:
+						_ocupar(c)                       # el suelo de una pista es del puzle: ni enemigos ni jarrones dentro
 				"~":
 					g[c.y * w + c.x] = AGUA
 					_ocupar(c)
@@ -1943,12 +1882,16 @@ func _estampar(s: Dictionary, e: Dictionary, filas: Array, tw: int, th: int, sit
 				_:
 					g[c.y * w + c.x] = SUELO
 					letras[c] = ch
-					_ocupar(c)
-					objetos.append({"c": c, "tipo": "catalogo", "id": inst, "txt": ch})
+					_ocupar(c, ch == "T")                # un brasero bloquea su casilla
+					objetos.append({"c": c, "tipo": "brasero" if ch == "T" else "catalogo", "id": inst, "txt": ch})
 					if not _letras_extra.contains(ch) and not "#.~SWAT".contains(ch):
 						_letras_extra += ch
 	var mal: bool = false
-	for l in e["lineas"]:
+	var todas: Array = (e["lineas"] as Array).duplicate()
+	if String(p["estilo"]) == "cueva":
+		todas.append_array(e["lineas_cueva"])
+	var de_contador: Dictionary = {}                 # id del contador → las casillas de sus braseros (a las que hay que llegar)
+	for l in todas:
 		var l2: String = _linea_de_catalogo(String(l), e, sitio, inst, nv, tw, th)
 		var t: PackedStringArray = l2.substr(1).strip_edges().split(" ", false)
 		if t.size() >= 5 and t[0] == "pieza":
@@ -1956,14 +1899,25 @@ func _estampar(s: Dictionary, e: Dictionary, filas: Array, tw: int, th: int, sit
 			if not _dentro(cp) or _tipo(cp) == MURO:
 				mal = true
 			_ocupar(cp)
-			objetos.append({"c": cp, "tipo": "catalogo", "id": t[1], "txt": t[2].substr(0, 1).to_upper()})
+			# Un brasero con línea propia ya está dibujado por su letra T. Lo demás, con el icono de su tipo si lo tiene.
+			if t[2] != "brasero":
+				var icono: String = String({"bloque": "bloque", "pulsador": "placa", "contador": "contador"}.get(t[2], "catalogo"))
+				objetos.append({"c": cp, "tipo": icono, "id": t[1], "txt": t[2].substr(0, 1).to_upper()})
+			for k in range(5, t.size()):
+				if t[2] == "contador" and t[k].begins_with("de="):
+					var cs: Array = []
+					for par in t[k].substr(3).split("+", false):
+						var xy: PackedStringArray = par.split(",")
+						if xy.size() == 2:
+							cs.append(Vector2i(xy[0].to_int(), xy[1].to_int()))
+					de_contador[t[1]] = cs
 		lineas.append(l2)
 	if String(e["tipo"]) == "salida" and String(e["activa"]).contains("."):
 		var act: PackedStringArray = String(e["activa"]).split(".")
 		var aid: String = inst + "_" + act[0]
 		for o in objetos:
 			if String(o["id"]) == aid:
-				_activadores[aid] = {"id": aid, "tipo": "catalogo", "celdas": [o["c"]], "pos": o["c"], "senal": act[1]}
+				_activadores[aid] = {"id": aid, "tipo": "catalogo", "celdas": de_contador.get(aid, [o["c"]]), "pos": o["c"], "senal": act[1]}
 		mal = mal or not _activadores.has(aid)
 	# Todo lo que se pisa sigue unido, la tierra también (contando lo cruzable) y el mapa se puede completar. Si no, se deshace.
 	if mal or (_componentes()[1] as Array).size() > 1 or (_componentes(true, _bloqueos)[1] as Array).size() > 1 or not _resoluble():
@@ -1978,21 +1932,25 @@ func _estampar(s: Dictionary, e: Dictionary, filas: Array, tw: int, th: int, sit
 		_letras_extra = foto[8]
 		_n_cat -= 1
 		return false
-	s["rol"] = "puzle"
+	if String(e["tipo"]) == "salida" and String(e["activa"]).contains("."):
+		_ultimo_act = inst + "_" + String(e["activa"]).split(".")[0]
 	s["activador"] = true
-	s["catalogo"] = String(e["id"])
-	s["titulo"] = String(e["titulo"])
 	s["rect"] = r.merge(zona)
-	puzles_puestos[int(s["id"])] = String(e["id"])
+	if not de_barrera:
+		s["rol"] = "puzle"
+		s["catalogo"] = String(e["id"])
+		s["titulo"] = String(e["titulo"])
+		puzles_puestos[int(s["id"])] = String(e["id"])
 	return true
 
 
 ## Una línea `; pieza` / `; puzle` de la plantilla, llevada al mapa: comodines, casillas trasladadas e ids con el prefijo de la instancia.
 func _linea_de_catalogo(l: String, e: Dictionary, sitio: Vector2i, inst: String, nv: String, tw: int, th: int) -> String:
 	var t: String = l.substr(1).strip_edges().replace("$NIVEL", nv).replace("$ID", inst).replace("$X1", str(tw - 1)).replace("$Y1", str(th - 1))
+	t = t.replace("$MODELO", "modelo=cueva" if String(p["estilo"]) == "cueva" else "")
 	var partes: PackedStringArray = t.split(" ", false)
 	var locales: Array = []
-	for otra in e["lineas"]:
+	for otra in (e["lineas"] as Array) + (e["lineas_cueva"] as Array):
 		var po: PackedStringArray = String(otra).substr(1).strip_edges().split(" ", false)
 		if po.size() >= 2:
 			locales.append(po[1])

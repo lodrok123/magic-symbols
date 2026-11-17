@@ -81,8 +81,8 @@ func _revisar(par: Dictionary, retoques: Dictionary = {}, puzles: Dictionary = {
 	var cofre_llave: Vector2i = Vector2i(-1, -1)
 	for o in m["objetos"]:
 		match String(o["tipo"]):
-			"cofre_tesoro", "cofre_llave", "jarron", "brasero", "bloque":
-				bloquea[o["c"]] = true
+			"cofre_tesoro", "cofre_llave", "jarron", "brasero":
+				bloquea[o["c"]] = true                 # el bloque no: se empuja, y su pista (lo que hay detrás de él) se pisa al empujarlo
 			_:
 				pass
 		if String(o["tipo"]) == "puerta_llave":
@@ -107,6 +107,21 @@ func _revisar(par: Dictionary, retoques: Dictionary = {}, puzles: Dictionary = {
 		if not bool(en["fijo"]):
 			n_enlaces += 1
 			_ok((en["de"] as Vector2i).x >= 0, "la barrera %s tiene activador: %s" % [String(en["a_id"]), quien])
+			_ok(String(en["de_id"]).begins_with("cat"), "el activador de %s sale del catálogo: %s" % [String(en["a_id"]), quien], String(en["de_id"]))
+	# Regla de la Sala del Empuje: todo bloque vive en una pista de una casilla cerrada por paredes (no se puede arrinconar).
+	for l in m["lineas"]:
+		var tl: PackedStringArray = String(l).substr(1).strip_edges().split(" ", false)
+		if tl.size() >= 5 and tl[0] == "pieza" and tl[2] == "bloque":
+			var bx: int = tl[3].to_int()
+			var by: int = tl[4].to_int()
+			_ok((filas[by - 1][bx] == "#" and filas[by + 1][bx] == "#") or (filas[by][bx - 1] == "#" and filas[by][bx + 1] == "#"),
+				"el bloque %s está en una pista cerrada por paredes: %s" % [tl[1], quien], "(%d, %d)" % [bx, by])
+			# Y dentro de la pista no hay nada más (un goblin entre el bloque y la placa lo pararía).
+			for paso_x in [-1, 1]:
+				var x: int = bx + int(paso_x)
+				while x > 0 and x < w - 1 and filas[by][x] != "#" and filas[by - 1][x] == "#" and filas[by + 1][x] == "#":
+					_ok(filas[by][x] == ".", "la pista del bloque %s está despejada: %s" % [tl[1], quien], "(%d, %d) = %s" % [x, by, filas[by][x]])
+					x += int(paso_x)
 	_ok(n_enlaces == int(m["barreras"]), "un vínculo por barrera: " + quien, "%d vínculos, %d barreras" % [n_enlaces, int(m["barreras"])])
 	for c in puentes:
 		_ok(filas[c.y][c.x] == "~", "el puente está sobre agua: " + quien)

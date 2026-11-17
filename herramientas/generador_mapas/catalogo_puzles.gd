@@ -9,12 +9,15 @@ extends RefCounted
 ##                                   enlazar a una puerta o un puente del mapa (pincel «enlazar»)
 ##   ; pide <elementos>              qué necesita la jugadora (solo informativo)
 ##   ; activa <pieza>.<señal>        solo `salida`: la señal que cuenta como «resuelto»
+##   ; barrera si                    solo `salida`: el generador puede elegirla él solo como activador de una barrera (puerta o puente).
+##                                   Sin esto la plantilla solo se pone a mano o con «Puzles del catálogo».
 ##   ; estira x                      la plantilla es una franja: cada fila se repite hasta el ancho de la sala (una letra por fila)
+##   ; cueva pieza …                 una línea que solo se escribe si el estilo del mapa es «cueva» (el brasero con el modelo de la Cueva)
 ##   <filas del plano>               # pared · . suelo · ~ agua · espacio = no tocar · cualquier otra letra = suelo con esa letra del juego
 ##   ; pieza … / ; puzle …           como en un mapa. Los ids son locales (al colocar se les pone delante `cat<n>_`).
 ##
 ## Comodines en las líneas: `$NIVEL` (el nivel en minúsculas), `$ID` (`cat<n>`, para flags: `$NIVEL.$ID.hecho`), `$X1` y `$Y1`
-## (última columna y fila de la plantilla ya estirada). Añadir un puzle = añadir un archivo; no hay que tocar código.
+## (última columna y fila de la plantilla ya estirada) y `$MODELO` (`modelo=cueva` si el estilo del mapa es «cueva»; si no, nada). Añadir un puzle = añadir un archivo; no hay que tocar código.
 
 const CARPETA: String = "res://herramientas/generador_mapas/catalogo/"
 const TIPOS: Array[String] = ["premio", "paso", "salida"]
@@ -45,7 +48,7 @@ static func _leer() -> Dictionary:
 
 
 static func leer_texto(texto: String, id_defecto: String = "") -> Dictionary:
-	var e: Dictionary = {"id": id_defecto, "titulo": id_defecto, "tipo": "premio", "pide": "", "activa": "", "estira": "", "filas": [], "lineas": [], "ancho": 0, "alto": 0}
+	var e: Dictionary = {"id": id_defecto, "titulo": id_defecto, "tipo": "premio", "pide": "", "activa": "", "estira": "", "barrera": false, "filas": [], "lineas": [], "lineas_cueva": [], "ancho": 0, "alto": 0}
 	for linea in texto.split("\n"):
 		var l: String = String(linea).replace("\r", "")
 		if l.strip_edges() == "":
@@ -69,6 +72,11 @@ static func leer_texto(texto: String, id_defecto: String = "") -> Dictionary:
 					e["activa"] = resto
 				"estira":
 					e["estira"] = resto
+				"barrera":
+					e["barrera"] = resto == "si"
+				"cueva":
+					if resto.begins_with("pieza ") or resto.begins_with("puzle "):
+						(e["lineas_cueva"] as Array).append("; " + resto)
 				"pieza", "puzle":
 					(e["lineas"] as Array).append("; " + t)
 			continue

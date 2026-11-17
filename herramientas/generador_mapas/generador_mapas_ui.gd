@@ -78,8 +78,8 @@ const CAMPOS: Array = [
 	{"k": "salas_cerradas", "r": "Salas que se cierran (%)", "t": "int", "min": 0, "max": 100, "paso": 5, "a": "Salas con enemigos que cierran sus puertas al entrar y se abren al vencer (cerrojo + vigía)."},
 	{"k": "puzles", "r": "Puzles del catálogo", "t": "int", "min": 0, "max": 12, "a": "Cuántos puzles del catálogo se reparten solos en salas libres. Para poner uno concreto en una sala: pincel «puzle: …» y clic en la sala.\nLas plantillas están en herramientas/generador_mapas/catalogo/ (un .txt por puzle)."},
 	{"k": "barreras", "r": "Barreras con puzle", "t": "int", "min": 0, "max": 8, "a": "Pasos obligados cerrados por una puerta o un puente, que abre un activador colocado antes de la barrera.\nLa flecha amarilla de la vista une cada activador con lo que abre. Con el pincel «enlazar» se cambia a mano."},
-	{"k": "b_braseros", "r": "Activador: braseros", "t": "bool", "a": "Dos braseros y un contador: al encender los dos, se abre."},
-	{"k": "b_placa", "r": "Activador: placa + bloque", "t": "bool", "a": "Una placa de peso y un bloque de piedra que hay que empujar encima."},
+	{"k": "b_braseros", "r": "Activador: braseros", "t": "bool", "a": "Plantillas del catálogo que acaban en un contador de braseros (braseros_puerta): al encenderlos, se abre."},
+	{"k": "b_placa", "r": "Activador: placa + bloque", "t": "bool", "a": "Plantillas del catálogo que acaban en una placa (piedra_pista): un bloque de piedra en una pista cerrada por paredes, que se empuja hasta la placa.\nPara que otra plantilla valga de activador, ponle «; barrera si» en su .txt."},
 	{"k": "b_puente", "r": "Barrera: puentes", "t": "bool", "a": "Marcado: la mitad de las barreras son puentes plegados bajo el agua (en las cuevas, todas). Desmarcado: solo puertas."},
 	{"k": "tesoro", "r": "Sala del tesoro", "t": "bool", "a": "La sala más lejana lleva un cofre (60 de oro y una poción)."},
 	{"k": "llave", "r": "Tesoro con llave", "t": "bool", "a": "La sala del tesoro se cierra con una puerta de llave; la llave está en el cofre de otra sala lejana, que aparece al limpiarla."},
@@ -683,8 +683,12 @@ func _enlazar_en(c: Vector2i) -> void:
 			continue
 		var id: String = String(o["id"])
 		var tipo: String = String(o["tipo"])
-		if tipo == "bloque":
-			id = id.replace("bloque_", "placa_")
+		if not (_mapa["activadores"] as Array).has(id) and id.begins_with("cat"):
+			# Una pieza cualquiera del puzle (un brasero, el bloque) vale para elegir el activador de su plantilla.
+			var prefijo: String = id.split("_")[0] + "_"
+			for a in _mapa["activadores"]:
+				if String(a).begins_with(prefijo):
+					id = String(a)
 		if (_mapa["activadores"] as Array).has(id):
 			if _vista.seleccion != id:
 				_vista.seleccion = id
