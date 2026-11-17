@@ -911,6 +911,11 @@ const ESCALA_VFX_NUEVO: float = 0.6
 @export_range(0.2, 1.0) var diorama_nitidez: float = 0.6
 ## 16/10 (Fase 14.2, b): falda biselada al pie de cada escalón y borde de agua + anillo de cantos rodados en el labio (BordePiedras3D).
 @export var bordes_blandos: bool = true
+## 17/11: el acabado del terreno, en todos los niveles (antes cada parte estaba atada a un nivel). `orilla_integrada`: la orilla del agua como
+## en Bosque 01 v01 (orilla integrada, ribera curva con cantos, juntas suaves; ver `_preparar_contacto_suelo`). `juntas_entremezcladas`: las
+## juntas y los bordes de Monte Sumicio (ver `_aplicar_juntas_entremezcladas`). Poner a false en la escena de un nivel para dejarlo como estaba.
+@export var orilla_integrada: bool = true
+@export var juntas_entremezcladas: bool = true
 ## 21/10 (V3 de PLAN_EOW_VISUAL): el LABIO redondeado de la arista de arriba de los bordes (orillas del agua, escalones de `Terreno3D.alturas`, borde del
 ## mapa y huecos del mapa): una tira de `BORDE_LABIO_ANCHO` u por encima del bloque (ver BordePiedras3D). Desmarcar = las aristas vivas de antes.
 @export var bisel_suelo: bool = true
@@ -1689,7 +1694,10 @@ const VERDES_COPA: Dictionary = {
 ## Albedo medio por material, en lineal y en la misma cuadrícula que el suelo.
 ## El filtrado suaviza el cambio en el contacto sin leer el suelo ya iluminado.
 func _preparar_contacto_suelo(mat: ShaderMaterial) -> void:
-	if nivel != "Bosque_01_v01":
+	# 17/11 (Pablo: «traslada todos los cambios de terreno a todos los mapas… sí, a todos»): esto solo se preparaba si el nivel se llamaba
+	# `Bosque_01_v01`, y de ello cuelgan la orilla integrada, la ribera curva con cantos y las juntas suaves. Ahora, en todos los niveles;
+	# `orilla_integrada = false` en la escena lo quita en ese nivel.
+	if not orilla_integrada:
 		return
 	for familia in ["hierba", "camino", "tierra", "piedra"]:
 		var tex: Texture2D = mat.get_shader_parameter("t_" + familia)
@@ -1701,6 +1709,43 @@ func _preparar_contacto_suelo(mat: ShaderMaterial) -> void:
 		for x in range(_lado):
 			_pintar_contacto(Vector2i(x, y))
 	_contacto_tex = ImageTexture.create_from_image(_contacto_img)
+
+
+## 17/11 (Pablo: «traslada todos los cambios de terreno a todos los mapas… sí, a todos»): las JUNTAS Y LOS BORDES que se afinaron en Monte
+## Sumicio el 14/11, en todos los niveles: más relieve en el suelo y en la hierba, la franja pintada de la junta casi lisa, sin franja de hojas
+## y con la frontera de la hierba rota por ruido fino (matas y calvas entremezcladas con la tierra y la piedra). Los valores son los de
+## `escenas/monte_sumicio_mundo.gd` (allí está el porqué de cada uno); si se cambian allí, hay que cambiarlos aquí. Sumicio vuelve a poner
+## los suyos en `_vestir_suelo`. En estilo «cueva» no se aplica: todo el suelo es roca y el borde de hierba ya está apagado.
+## `juntas_entremezcladas = false` en la escena deja el nivel con las juntas de antes.
+const JUNTAS_RUGOSIDAD: float = 2.5
+const JUNTAS_RELIEVE_HIERBA: float = 0.4
+const JUNTAS_RELIEVE_JUNTA: float = 0.4
+const JUNTAS_BORDE_EXTIENDE: float = 1.0
+const JUNTAS_BORDE_FUNDIDO: float = 1.0
+const JUNTAS_BORDE_FUERZA: float = 0.0
+const JUNTAS_MEZCLA_HIERBA: float = 1.2
+const JUNTAS_BORDE_TINTE: Color = Color(0.82, 0.87, 0.64)
+
+
+func _aplicar_juntas_entremezcladas() -> void:
+	if not juntas_entremezcladas or _mat_suelo == null or estilo == "cueva":
+		return
+	# La «junta suave» que acompaña a la orilla integrada funde la hierba con la tierra en un degradado borroso: justo lo que Pablo rechazó en
+	# Sumicio el 14/11 («debajo la hierba pasa a la tierra en un degradado borroso»). Donde van estas juntas, esa se apaga (las teclas de la
+	# maqueta siguen pudiendo encenderla para comparar). Se hace ANTES de `_preparar_contacto_suelo`, que es quien se lo pasa al shader.
+	_junta_vegetal_suave = false
+	_junta_piedra_suave = false
+	if estilo != "pantano":
+		# En el Pantano el relieve de Sumicio sobre el barro mojado sale como un grano brillante por todo el suelo: allí se queda el de siempre.
+		_rugosidad = JUNTAS_RUGOSIDAD
+		_mat_suelo.set_shader_parameter("rugosidad", _rugosidad)
+	_mat_suelo.set_shader_parameter("relieve_hierba", JUNTAS_RELIEVE_HIERBA)
+	_mat_suelo.set_shader_parameter("relieve_junta", JUNTAS_RELIEVE_JUNTA)
+	_mat_suelo.set_shader_parameter("borde_extiende", JUNTAS_BORDE_EXTIENDE)
+	_mat_suelo.set_shader_parameter("borde_fundido", JUNTAS_BORDE_FUNDIDO)
+	_mat_suelo.set_shader_parameter("borde_fuerza", JUNTAS_BORDE_FUERZA)
+	_mat_suelo.set_shader_parameter("mezcla_hierba", JUNTAS_MEZCLA_HIERBA)
+	_mat_suelo.set_shader_parameter("borde_tinte", JUNTAS_BORDE_TINTE)
 
 
 func _pintar_contacto(c: Vector2i) -> void:
@@ -1973,6 +2018,7 @@ func _construir_suelo(dibujar: bool = true) -> void:
 		mat_suelo.set_shader_parameter("escombro_fuerza", 1.0)
 	_aplicar_joints(mat_suelo)       # joints: tiras de transición (mapa de «fuera» + tabla de pares)
 	_mat_suelo = mat_suelo
+	_aplicar_juntas_entremezcladas()
 	_preparar_contacto_suelo(mat_suelo)
 	if _contacto_tex != null:
 		mat_suelo.set_shader_parameter("ribera_mascara", _mascara_ribera())

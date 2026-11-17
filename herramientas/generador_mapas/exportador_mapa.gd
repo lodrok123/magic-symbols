@@ -14,8 +14,6 @@ const ESTILOS: Array[String] = ["cueva", "bosque", "pantano"]
 const LUCES: Array[String] = ["cueva", "cueva_lava", "cueva_goblin", "cueva_hielo", "cueva_ruinas", "santuario", "ruinas", "bosque", "atardecer", "pantano", "hielo", "fuego", "agua", "clasico"]
 ## Letras que el generador puede poner en el plano.
 const LETRAS_VALIDAS: String = "#.~SWAT"
-const GUION_BASE: String = "res://presentacion/prueba_test2.gd"
-const GUION_ACABADO: String = "res://herramientas/generador_mapas/mundo_generado.gd"
 
 
 static func ruta_mapa(nombre: String) -> String:
@@ -121,8 +119,7 @@ static func texto_escena(m: Dictionary) -> String:
 	var l: PackedStringArray = PackedStringArray()
 	l.append("[gd_scene format=3]")
 	l.append("")
-	# Con «Acabado del terreno» la escena lleva la maqueta de los niveles generados (orillas y juntas); sin él, la maqueta base.
-	l.append("[ext_resource type=\"Script\" path=\"%s\" id=\"1_poc\"]" % (GUION_ACABADO if bool(p.get("acabado", true)) else GUION_BASE))
+	l.append("[ext_resource type=\"Script\" path=\"res://presentacion/prueba_test2.gd\" id=\"1_poc\"]")
 	l.append("[ext_resource type=\"Script\" path=\"res://escenas/puzle.gd\" id=\"2_pz\"]")
 	if cueva:
 		l.append("[ext_resource type=\"Script\" path=\"res://presentacion/luz_portatil_cueva.gd\" id=\"3_luz\"]")
@@ -138,6 +135,10 @@ static func texto_escena(m: Dictionary) -> String:
 	if bool(m.get("arqueros", false)):
 		l.append("arqueros = true")
 	l.append("kit = \"pruebas\"")
+	if not bool(p.get("acabado", true)):
+		# El acabado del terreno (orillas y juntas) es de serie en la maqueta desde el 17/11; sin la casilla, se apaga en esta escena.
+		l.append("orilla_integrada = false")
+		l.append("juntas_entremezcladas = false")
 	l.append("%s = true" % MARCA_ESCENA)
 	if cueva:
 		l.append("")

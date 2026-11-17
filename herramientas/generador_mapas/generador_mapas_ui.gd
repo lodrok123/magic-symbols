@@ -92,7 +92,7 @@ const CAMPOS: Array = [
 	{"k": "luz", "r": "Luz", "t": "opcion", "op": [], "a": "La fila de LuzZona3D.ZONAS que ilumina el nivel."},
 	{"k": "rotulo", "r": "Rótulo al entrar", "t": "bool", "a": "Una zona que cubre el mapa y enseña el nombre la primera vez."},
 	{"k": "terreno", "r": "Pintar terreno", "t": "bool", "a": "Los pasillos van de tierra pisada y la sala del tesoro, enlosada (en estilo cueva no se enlosa).\nSin esto todo el suelo es igual y no hay juntas entre suelos que enseñar."},
-	{"k": "acabado", "r": "Acabado del terreno", "t": "bool", "a": "Orillas del agua como en Bosque 01 (orilla integrada, ribera curva con cantos) y juntas y bordes como en Monte Sumicio\n(más relieve, hierba entremezclada con la tierra y la piedra). En estilo cueva solo las orillas.\nSin esto la escena usa la maqueta base, como antes."},
+	{"k": "acabado", "r": "Acabado del terreno", "t": "bool", "a": "Orillas del agua como en Bosque 01 (orilla integrada, ribera curva con cantos) y juntas y bordes como en Monte Sumicio\n(más relieve, hierba entremezclada con la tierra y la piedra). En estilo cueva solo las orillas.\nEs el acabado de serie de todos los niveles del juego; sin la casilla, este nivel se exporta sin él."},
 	{"k": "salida_a", "r": "Salidas (Nivel:entrada, …)", "t": "texto", "a": "Vacío = sin salida. Cada salida es Nivel:entrada, con el nombre del nivel tal como está en Niveles.ESCENAS (MonteSumicio, Bosque_02, Cueva…).\nVarias, separadas por comas: Bosque_02:boca_cueva, MonteSumicio:inicio\nLa primera va en la sala de inicio; cada una de las demás, en una sala lejana, con su propia llegada (entrada_2, entrada_3…)."},
 ]
 

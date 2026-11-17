@@ -82,7 +82,7 @@ static func parametros_defecto() -> Dictionary:
 		# nivel
 		"nombre": "MazmorraGen", "estilo": "cueva", "luz": "cueva", "salida_a": "", "rotulo": true,
 		# terreno: `terreno` pinta tierra en los pasillos y losas en la sala del tesoro (para que haya juntas entre suelos distintos);
-		# `acabado` exporta la escena con mundo_generado.gd (orillas y juntas como en Bosque 01 y Monte Sumicio).
+		# `acabado` = el acabado de serie de la maqueta (orillas y juntas); con false la escena se exporta con él apagado.
 		"terreno": true, "acabado": true,
 	}
 
