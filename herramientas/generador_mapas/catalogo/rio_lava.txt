@@ -1,0 +1,12 @@
+; catalogo rio_lava
+; titulo Río de lava
+; tipo paso
+; pide agua
+; estira x
+;  El río de lava de la Cueva (C3), de lado a lado de la sala. El agua o el hielo lo enfrían en roca (la casilla y sus cuatro vecinas) y
+;  se cruza; a los 10 s la roca vuelve a ser lava. R = basalto, el suelo que queda bajo la lava.
+.
+R
+R
+.
+; pieza rio lava 0 1 celdas=0,1..$X1,2 vuelve=10

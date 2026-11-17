@@ -13,6 +13,7 @@ extends SceneTree
 
 const Generador = preload("res://herramientas/generador_mapas/generador_mazmorra.gd")
 const Exportador = preload("res://herramientas/generador_mapas/exportador_mapa.gd")
+const Catalogo = preload("res://herramientas/generador_mapas/catalogo_puzles.gd")
 const SEMILLAS: int = 40
 const VARIANTES: Array = [
 	{"algoritmo": "salas", "forma": "caja"}, {"algoritmo": "salas", "forma": "cruz"}, {"algoritmo": "salas", "forma": "redonda", "ancho": 50, "alto": 50},
@@ -28,6 +29,7 @@ const VARIANTES: Array = [
 	{"algoritmo": "cueva", "metodo": "automata"}, {"algoritmo": "cueva", "octavas": 6, "tamano_sala": 6.0}, {"algoritmo": "cueva", "octavas": 1, "tamano_sala": 30.0, "silueta": 100},
 	{"algoritmo": "salas", "salida_a": "Bosque_02:boca_cueva, MonteSumicio:inicio, Cueva:desde_bosque"}, {"algoritmo": "cueva", "salida_a": "A:b,C:d;E:f G:h"},
 	{"algoritmo": "pagina", "n_salas": 3, "salida_a": "A:b,C:d,E:f,G:h,I:j"},
+	{"algoritmo": "salas", "puzles": 4}, {"algoritmo": "pagina", "puzles": 6, "barreras": 4}, {"algoritmo": "cueva", "puzles": 3},
 ]
 
 var _fallos: int = 0
@@ -43,6 +45,7 @@ func _initialize() -> void:
 	_texto()
 	_nombres()
 	_enlaces_a_mano()
+	_catalogo()
 	print("%d comprobaciones en %d ms" % [_hechas, Time.get_ticks_msec() - t0])
 	print("FALLOS: %d" % _fallos)
 	quit(1 if _fallos > 0 else 0)
@@ -60,8 +63,8 @@ func _resumen(texto: String, antes: int) -> void:
 
 
 ## Todas las comprobaciones de un mapa. Devuelve el mapa.
-func _revisar(par: Dictionary, retoques: Dictionary = {}) -> Dictionary:
-	var m: Dictionary = Generador.new().generar(par, retoques)
+func _revisar(par: Dictionary, retoques: Dictionary = {}, puzles: Dictionary = {}) -> Dictionary:
+	var m: Dictionary = Generador.new().generar(par, retoques, {}, puzles)
 	var quien: String = "%s semilla %d %s" % [String(m["parametros"]["algoritmo"]), int(m["parametros"]["semilla"]), str(par)]
 	var err: PackedStringArray = Exportador.validar(m)
 	_ok(err.is_empty(), "validar: " + quien, "; ".join(err))
@@ -80,12 +83,14 @@ func _revisar(par: Dictionary, retoques: Dictionary = {}) -> Dictionary:
 		match String(o["tipo"]):
 			"cofre_tesoro", "cofre_llave", "jarron", "brasero", "bloque":
 				bloquea[o["c"]] = true
-			"puente":
-				puentes[o["c"]] = true             # agua con puente: cuenta como tierra (se cruza con el puente tendido)
+			_:
+				pass
 		if String(o["tipo"]) == "puerta_llave":
 			puerta_llave = o["c"]
 		if String(o["tipo"]) == "cofre_llave":
 			cofre_llave = o["c"]
+	for cz in m["cruzables"]:                  # agua con puente o de un puzle de paso: cuenta como tierra (se cruza al resolverlo)
+		puentes[cz] = true
 	var tierra: int = 0
 	for y in range(h):
 		for x in range(w):
@@ -259,6 +264,53 @@ func _enlaces_a_mano() -> void:
 				_ok(Exportador._sin_fecha(Exportador._regenerado(Exportador.texto_mapa(mc))) == Exportador._sin_fecha(Exportador.texto_mapa(mc)), "y de ahí vuelve a salir el mismo archivo: %s semilla %d" % [alg, s])
 	_ok(probados >= 30, "hay mapas con barreras para probar", "%d" % probados)
 	_resumen("9 enlazar a mano: lo suelto da error y no se exporta; los cambios se guardan (%d mapas)" % probados, antes)
+
+
+## 10 · Catálogo de puzles: cada plantilla se puede poner a mano en alguna sala y el mapa sigue siendo válido; sus líneas salen con el
+## prefijo de la instancia y dentro del mapa; si no cabe, avisa y no rompe nada; en salas pequeñas el suelo se ajusta (se excava);
+## los puzles a mano se guardan en el .txt.
+func _catalogo() -> void:
+	var antes: int = _fallos
+	var cat: Dictionary = Catalogo.todos()
+	_ok(cat.size() >= 4, "el catálogo carga sus plantillas", str(cat.keys()))
+	for cid in cat:
+		var puestos: int = 0
+		for alg in ["salas", "pagina"]:
+			for s in range(1, 9):
+				var par: Dictionary = {"algoritmo": alg, "semilla": s, "nombre": "PruebaCat"}
+				var base: Dictionary = Generador.new().generar(par)
+				for sala in base["salas"]:
+					if String(sala["rol"]) == "inicio":
+						continue
+					var m: Dictionary = _revisar(par, {}, {int(sala["id"]): cid})
+					if (m["puzles"] as Dictionary).get(int(sala["id"]), "") != cid:
+						continue
+					puestos += 1
+					var txt: String = "\n".join(m["lineas"])
+					_ok(txt.contains("cat1_") or (cat[cid]["lineas"] as Array).is_empty(), "las piezas de «%s» llevan el prefijo de la instancia" % cid)
+					_ok(not txt.contains("$"), "no queda ningún comodín sin sustituir en «%s»" % cid, txt)
+					_ok(Exportador.puzles_de(Exportador.texto_mapa(m)) == {int(sala["id"]): cid}, "el puzle a mano se guarda en el .txt: " + cid)
+					break
+		_ok(puestos >= 8, "«%s» se puede poner en al menos 8 de 16 mapas" % cid, "%d" % puestos)
+	# Salas pequeñas (2-3 casillas): la plantilla de 5 × 3 no cabe y el suelo se ajusta.
+	var excavados: int = 0
+	for s in range(1, 13):
+		var par2: Dictionary = {"algoritmo": "pagina", "semilla": s, "lado_min": 2, "lado_max": 3, "pasillos": 0, "n_salas": 6}
+		var base2: Dictionary = Generador.new().generar(par2)
+		for sala in base2["salas"]:
+			if String(sala["rol"]) == "inicio":
+				continue
+			var m2: Dictionary = _revisar(par2, {}, {int(sala["id"]): "braseros_premio"})
+			if (m2["puzles"] as Dictionary).has(int(sala["id"])):
+				excavados += 1
+				_ok("\n".join(m2["filas"]).count("#") < "\n".join(base2["filas"]).count("#"), "poner el puzle en una sala pequeña excava roca: semilla %d" % s)
+				break
+			else:
+				_ok("\n".join(m2["avisos"]).contains("braseros_premio"), "si no cabe ni excavando, lo dice: semilla %d" % s, "\n".join(m2["avisos"]))
+	_ok(excavados >= 8, "el autoajuste del suelo funciona en casi todas las semillas", "%d de 12" % excavados)
+	var no: Dictionary = _revisar({"algoritmo": "salas", "semilla": 2}, {}, {999: "rio_lava", 1: "no_existe"})
+	_ok((no["avisos"] as PackedStringArray).size() >= 2 and (no["puzles"] as Dictionary).is_empty(), "una sala o un puzle que no existen avisan y no rompen", "\n".join(no["avisos"]))
+	_resumen("10 catálogo de puzles: %d plantillas, a mano, con autoajuste del suelo" % cat.size(), antes)
 
 
 func _texto() -> void:

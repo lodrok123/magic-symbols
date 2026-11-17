@@ -1,0 +1,83 @@
+extends RefCounted
+## CATÁLOGO DE PUZLES del generador de mapas (17/11/2026). Cada puzle es un `.txt` de `herramientas/generador_mapas/catalogo/`, escrito
+## con el mismo idioma que los mapas del juego, pero con las casillas contadas desde la esquina de la plantilla (0,0 arriba a la izquierda):
+##
+##   ; catalogo <id>                 nombre corto (el del archivo)
+##   ; titulo <texto>                lo que se lee en la herramienta
+##   ; tipo premio | paso | salida   premio: al resolverlo aparece algo dentro de la sala · paso: el puzle ES la barrera (se cruza al
+##                                   resolverlo; su agua cuenta como cruzable) · salida: al resolverlo emite una señal que se puede
+##                                   enlazar a una puerta o un puente del mapa (pincel «enlazar»)
+##   ; pide <elementos>              qué necesita la jugadora (solo informativo)
+##   ; activa <pieza>.<señal>        solo `salida`: la señal que cuenta como «resuelto»
+##   ; estira x                      la plantilla es una franja: cada fila se repite hasta el ancho de la sala (una letra por fila)
+##   <filas del plano>               # pared · . suelo · ~ agua · espacio = no tocar · cualquier otra letra = suelo con esa letra del juego
+##   ; pieza … / ; puzle …           como en un mapa. Los ids son locales (al colocar se les pone delante `cat<n>_`).
+##
+## Comodines en las líneas: `$NIVEL` (el nivel en minúsculas), `$ID` (`cat<n>`, para flags: `$NIVEL.$ID.hecho`), `$X1` y `$Y1`
+## (última columna y fila de la plantilla ya estirada). Añadir un puzle = añadir un archivo; no hay que tocar código.
+
+const CARPETA: String = "res://herramientas/generador_mapas/catalogo/"
+const TIPOS: Array[String] = ["premio", "paso", "salida"]
+
+static var _cache: Dictionary = {}
+
+
+static func todos() -> Dictionary:
+	if _cache.is_empty():
+		_cache = _leer()
+	return _cache
+
+
+static func recargar() -> void:
+	_cache = _leer()
+
+
+static func _leer() -> Dictionary:
+	var res: Dictionary = {}
+	var archivos: PackedStringArray = DirAccess.get_files_at(CARPETA)
+	archivos.sort()
+	for f in archivos:
+		if not f.ends_with(".txt"):
+			continue
+		var e: Dictionary = leer_texto(FileAccess.get_file_as_string(CARPETA + f), f.get_basename())
+		res[String(e["id"])] = e
+	return res
+
+
+static func leer_texto(texto: String, id_defecto: String = "") -> Dictionary:
+	var e: Dictionary = {"id": id_defecto, "titulo": id_defecto, "tipo": "premio", "pide": "", "activa": "", "estira": "", "filas": [], "lineas": [], "ancho": 0, "alto": 0}
+	for linea in texto.split("\n"):
+		var l: String = String(linea).replace("\r", "")
+		if l.strip_edges() == "":
+			continue
+		if l.begins_with(";"):
+			var t: String = l.substr(1).strip_edges()
+			var p: PackedStringArray = t.split(" ", false)
+			if p.is_empty():
+				continue
+			var resto: String = t.substr(p[0].length()).strip_edges()
+			match p[0]:
+				"catalogo":
+					e["id"] = resto
+				"titulo":
+					e["titulo"] = resto
+				"tipo":
+					e["tipo"] = resto if TIPOS.has(resto) else "premio"
+				"pide":
+					e["pide"] = resto
+				"activa":
+					e["activa"] = resto
+				"estira":
+					e["estira"] = resto
+				"pieza", "puzle":
+					(e["lineas"] as Array).append("; " + t)
+			continue
+		(e["filas"] as Array).append(l)
+	var ancho: int = 0
+	for f in e["filas"]:
+		ancho = maxi(ancho, String(f).length())
+	for i in range((e["filas"] as Array).size()):
+		e["filas"][i] = String(e["filas"][i]) + " ".repeat(ancho - String(e["filas"][i]).length())
+	e["ancho"] = ancho
+	e["alto"] = (e["filas"] as Array).size()
+	return e

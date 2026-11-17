@@ -21,6 +21,8 @@ extends RefCounted
 ##        var mapa: Dictionary = gen.generar({"algoritmo": "salas", "semilla": 7})
 ## `retoques` (casilla → "#", "." o "~") son los cambios pintados a mano en la herramienta: se aplican al plano antes de poblarlo.
 
+const Catalogo = preload("res://herramientas/generador_mapas/catalogo_puzles.gd")
+
 const MURO: int = 0
 const SUELO: int = 1
 const AGUA: int = 2
@@ -76,7 +78,7 @@ static func parametros_defecto() -> Dictionary:
 		# contenido
 		"enemigos": 1.0, "arqueros": 30, "jarrones": 1.0, "braseros": 1.0, "charcas": 20,
 		"tesoro": true, "llave": true, "salas_cerradas": 40,
-		"barreras": 2, "b_braseros": true, "b_placa": true, "b_puente": true,
+		"puzles": 0, "barreras": 2, "b_braseros": true, "b_placa": true, "b_puente": true,
 		# nivel
 		"nombre": "MazmorraGen", "estilo": "cueva", "luz": "cueva", "salida_a": "", "rotulo": true,
 	}
@@ -94,7 +96,17 @@ var _enlaces_mano: Dictionary = {}
 var _llave_barrera: Dictionary = {}    ## la puerta con llave como barrera: {celdas, act_celdas}
 
 
-func generar(parametros: Dictionary = {}, retoques: Dictionary = {}, enlaces_mano: Dictionary = {}) -> Dictionary:
+var puzles_puestos: Dictionary = {}     ## sala -> puzle del catalogo que lleva
+var _puzles_mano: Dictionary = {}       ## sala -> puzle del catalogo pedido a mano
+var _n_cat: int = 0
+var _letras_extra: String = ""
+
+
+func generar(parametros: Dictionary = {}, retoques: Dictionary = {}, enlaces_mano: Dictionary = {}, puzles_mano: Dictionary = {}) -> Dictionary:
+	puzles_puestos = {}
+	_puzles_mano = puzles_mano.duplicate()
+	_n_cat = 0
+	_letras_extra = ""
 	errores = PackedStringArray()
 	enlaces = []
 	_puentes = {}
@@ -1189,6 +1201,8 @@ func _poblar() -> void:
 		destinos.append(d)
 	if destinos.size() > 0 and not _poner_salida(s_ini, destinos[0], 1, inicio):
 		avisos.append("No cabe la salida en la sala de inicio (demasiado pequeña).")
+	# 1b · Puzles del catalogo: antes de repartir papeles, porque cambian el suelo de su sala.
+	_colocar_catalogo(vivas, nv)
 	# 2 · Distancia de cada sala al inicio.
 	var dist: PackedInt32Array = _distancias(inicio)
 	var dmax: int = 1
@@ -1303,7 +1317,7 @@ func _poblar() -> void:
 	# 5 · Charcas dentro de las salas grandes (dejando libre el anillo de las paredes: no cortan el paso).
 	for s in vivas:
 		var r: Rect2i = s["rect"]
-		if String(s["rol"]) == "inicio" or r.size.x < 5 or r.size.y < 5 or String(p["algoritmo"]) == "cueva":
+		if String(s["rol"]) == "inicio" or String(s["rol"]) == "puzle" or r.size.x < 5 or r.size.y < 5 or String(p["algoritmo"]) == "cueva":
 			continue
 		if not _pct(float(p["charcas"])):
 			continue
@@ -1343,7 +1357,7 @@ func _poblar() -> void:
 	var hay_arquero: bool = false
 	for s in vivas:
 		var rol: String = String(s["rol"])
-		if rol == "inicio" or rol == "salida" or (rol == "tesoro" and not puerta_llave.is_empty()):
+		if rol == "inicio" or rol == "salida" or rol == "puzle" or (rol == "tesoro" and not puerta_llave.is_empty()):
 			continue                               # donde se llega de otro nivel no espera nadie
 		var celdas: Array = _celdas_sala(s).filter(func(c: Vector2i) -> bool: return not _ocupada.has(c) and not _cerca_de_puerta(c) and absi(c.x - inicio.x) + absi(c.y - inicio.y) >= 5)
 		var n: int = clampi(int(round(celdas.size() / CASILLAS_POR_ENEMIGO * fuerza * (0.6 + 0.8 * int(s["dist"]) / float(dmax)))), 0, 5)
@@ -1399,7 +1413,7 @@ func _poblar() -> void:
 	var n_jar: float = clampf(float(p["jarrones"]), 0.0, 6.0)
 	for s in vivas:
 		var r: Rect2i = s["rect"]
-		if r.size.x < 3 or r.size.y < 3:
+		if r.size.x < 3 or r.size.y < 3 or String(s["rol"]) == "puzle":
 			continue
 		var quiero_b: int = int(n_bras) + (1 if _pct(fmod(n_bras, 1.0) * 100.0) else 0)
 		var rincones: Array = [r.position, Vector2i(r.end.x - 1, r.position.y), Vector2i(r.position.x, r.end.y - 1), r.end - Vector2i.ONE]
@@ -1792,6 +1806,216 @@ func _resultado() -> Dictionary:
 		"salas": _vivas(), "puertas": puertas, "objetos": objetos, "lineas": lineas, "avisos": avisos,
 		"arqueros": bool(p.get("_arqueros", false)), "retoques": _retoques,
 		"errores": errores, "enlaces": enlaces, "enlaces_mano": _enlaces_mano, "activadores": _activadores.keys(), "barreras": _barreras.size(),
+		"puzles": puzles_puestos, "puzles_mano": _puzles_mano, "cruzables": _puentes.keys(), "letras_extra": _letras_extra,
 		"stats": {"salas": _vivas().size(), "puertas": puertas.size(), "enemigos": n_enem, "cofres": n_cofres, "jarrones": n_jarrones,
 			"suelo": pisable, "agua": g.count(AGUA), "ocupacion": pisable / float(maxi(1, w * h))},
 	}
+
+
+# =====================================================================================================================
+#  Catálogo de puzles: una plantilla estampada en una sala (catalogo_puzles.gd)
+# =====================================================================================================================
+
+## Los puzles pedidos a mano (sala → puzle) y después los automáticos (`puzles`), en salas que aún no tienen papel.
+func _colocar_catalogo(vivas: Array, nv: String) -> void:
+	var cat: Dictionary = Catalogo.todos()
+	var a_mano: Array = _puzles_mano.keys()
+	a_mano.sort()
+	for sid in a_mano:
+		var cid: String = String(_puzles_mano[sid])
+		var s: Dictionary = {}
+		for v in vivas:
+			if int(v["id"]) == int(sid):
+				s = v
+		if s.is_empty():
+			avisos.append("El puzle «%s» estaba puesto en la sala %d, que ya no existe." % [cid, int(sid)])
+		elif String(s["rol"]) != "":
+			avisos.append("El puzle «%s» no se pone en la sala %d: es la sala de %s." % [cid, int(sid), String(s["rol"])])
+		else:
+			var motivo: String = _poner_puzle(s, cid, nv)
+			if motivo != "":
+				avisos.append("El puzle «%s» no se ha podido poner en la sala %d: %s" % [cid, int(sid), motivo])
+	var quiero: int = clampi(int(p["puzles"]), 0, 12)
+	if quiero <= 0 or cat.is_empty():
+		return
+	var ids: Array = cat.keys()
+	ids.sort()
+	_barajar(ids)
+	var libres: Array = vivas.filter(func(s: Dictionary) -> bool: return String(s["rol"]) == "")
+	_barajar(libres)
+	var puestos: int = 0
+	var turno: int = 0
+	for s in libres:
+		if puestos >= quiero:
+			break
+		for k in range(ids.size()):
+			if _poner_puzle(s, String(ids[(turno + k) % ids.size()]), nv) == "":
+				puestos += 1
+				turno += k + 1
+				break
+	if puestos < quiero:
+		avisos.append("Solo caben %d puzles del catálogo de los %d pedidos." % [puestos, quiero])
+
+
+## Pone el puzle `cid` en la sala `s`. Devuelve "" si se pudo; si no, por qué.
+func _poner_puzle(s: Dictionary, cid: String, nv: String) -> String:
+	var cat: Dictionary = Catalogo.todos()
+	if not cat.has(cid):
+		return "no está en el catálogo."
+	var e: Dictionary = cat[cid]
+	var r: Rect2i = s["rect"]
+	var filas: Array = (e["filas"] as Array).duplicate()
+	var tw: int = int(e["ancho"])
+	var th: int = int(e["alto"])
+	var sitios: Array = []
+	if String(e["estira"]) == "x":
+		# Una franja: cada fila se repite hasta el ancho de la sala y se prueba en cada altura, la del centro primero.
+		tw = r.size.x
+		for i in range(filas.size()):
+			filas[i] = String(filas[i]).substr(0, 1).repeat(tw)
+		for y in range(r.position.y, r.end.y - th + 1):
+			sitios.append(Vector2i(r.position.x, y))
+	else:
+		for y in range(r.position.y, r.end.y - th + 1):
+			for x in range(r.position.x, r.end.x - tw + 1):
+				sitios.append(Vector2i(x, y))
+	var centro: Vector2 = Vector2(r.position) + Vector2(r.size - Vector2i(tw, th)) * 0.5
+	sitios.sort_custom(func(a: Vector2i, b: Vector2i) -> bool:
+		var da: float = Vector2(a).distance_squared_to(centro)
+		var db: float = Vector2(b).distance_squared_to(centro)
+		return da < db or (da == db and (a.y < b.y or (a.y == b.y and a.x < b.x))))
+	if sitios.is_empty():
+		# No cabe dentro: AUTOAJUSTE DEL SUELO. Se centra sobre la sala y se excava en la roca de alrededor lo que falte.
+		# En el eje en que no cabe, la plantilla cubre la sala y puede crecer hacia un lado, hacia el otro o a los dos; se prueba todo,
+		# lo mas centrado primero.
+		var xs: Array = range(r.end.x - tw, r.position.x + 1) if tw > r.size.x else range(r.position.x, r.end.x - tw + 1)
+		var ys: Array = range(r.end.y - th, r.position.y + 1) if th > r.size.y else range(r.position.y, r.end.y - th + 1)
+		for y in ys:
+			for x in xs:
+				sitios.append(Vector2i(x, y))
+		sitios.sort_custom(func(a: Vector2i, b: Vector2i) -> bool:
+			var da: float = Vector2(a).distance_squared_to(centro)
+			var db: float = Vector2(b).distance_squared_to(centro)
+			return da < db or (da == db and (a.y < b.y or (a.y == b.y and a.x < b.x))))
+	for sitio in sitios.slice(0, 24):
+		if _estampar(s, e, filas, tw, th, sitio, nv):
+			return ""
+	return "no cabe (la plantilla mide %d × %d y la sala %d × %d; al agrandarla tropieza con otra sala o con el borde, o corta el paso)." % [tw, th, r.size.x, r.size.y]
+
+
+func _estampar(s: Dictionary, e: Dictionary, filas: Array, tw: int, th: int, sitio: Vector2i, nv: String) -> bool:
+	var r: Rect2i = s["rect"]
+	var zona: Rect2i = Rect2i(sitio, Vector2i(tw, th))
+	if not Rect2i(1, 1, w - 2, h - 2).encloses(zona):
+		return false
+	if not r.encloses(zona):
+		# Lo que se sale de la sala tiene que ser roca, y quedar con una pared de roca alrededor (no se abre a otra sala ni a un pasillo).
+		for y in range(zona.position.y - 1, zona.end.y + 1):
+			for x in range(zona.position.x - 1, zona.end.x + 1):
+				var c: Vector2i = Vector2i(x, y)
+				if not r.grow(1).has_point(c) and _tipo(c) != MURO:
+					return false
+	for y in range(th):
+		for x in range(tw):
+			if String(filas[y])[x] != " " and _ocupada.has(sitio + Vector2i(x, y)):
+				return false
+	var foto: Array = [g.duplicate(), lineas.duplicate(), objetos.duplicate(), _ocupada.duplicate(), _bloqueos.duplicate(), letras.duplicate(),
+		_puentes.duplicate(), _activadores.duplicate(), _letras_extra]
+	_n_cat += 1
+	var inst: String = "cat%d" % _n_cat
+	var paso: bool = String(e["tipo"]) == "paso"
+	for y in range(th):
+		for x in range(tw):
+			var ch: String = String(filas[y])[x]
+			var c: Vector2i = sitio + Vector2i(x, y)
+			match ch:
+				" ":
+					pass
+				"#":
+					g[c.y * w + c.x] = MURO
+				".":
+					g[c.y * w + c.x] = SUELO
+				"~":
+					g[c.y * w + c.x] = AGUA
+					_ocupar(c)
+					if paso:
+						_puentes[c] = true           # se cruza al resolver el puzle (helada): cuenta como paso
+				_:
+					g[c.y * w + c.x] = SUELO
+					letras[c] = ch
+					_ocupar(c)
+					objetos.append({"c": c, "tipo": "catalogo", "id": inst, "txt": ch})
+					if not _letras_extra.contains(ch) and not "#.~SWAT".contains(ch):
+						_letras_extra += ch
+	var mal: bool = false
+	for l in e["lineas"]:
+		var l2: String = _linea_de_catalogo(String(l), e, sitio, inst, nv, tw, th)
+		var t: PackedStringArray = l2.substr(1).strip_edges().split(" ", false)
+		if t.size() >= 5 and t[0] == "pieza":
+			var cp: Vector2i = Vector2i(t[3].to_int(), t[4].to_int())
+			if not _dentro(cp) or _tipo(cp) == MURO:
+				mal = true
+			_ocupar(cp)
+			objetos.append({"c": cp, "tipo": "catalogo", "id": t[1], "txt": t[2].substr(0, 1).to_upper()})
+		lineas.append(l2)
+	if String(e["tipo"]) == "salida" and String(e["activa"]).contains("."):
+		var act: PackedStringArray = String(e["activa"]).split(".")
+		var aid: String = inst + "_" + act[0]
+		for o in objetos:
+			if String(o["id"]) == aid:
+				_activadores[aid] = {"id": aid, "tipo": "catalogo", "celdas": [o["c"]], "pos": o["c"], "senal": act[1]}
+		mal = mal or not _activadores.has(aid)
+	# Todo lo que se pisa sigue unido, la tierra también (contando lo cruzable) y el mapa se puede completar. Si no, se deshace.
+	if mal or (_componentes()[1] as Array).size() > 1 or (_componentes(true, _bloqueos)[1] as Array).size() > 1 or not _resoluble():
+		g = foto[0]
+		lineas = foto[1]
+		objetos = foto[2]
+		_ocupada = foto[3]
+		_bloqueos = foto[4]
+		letras = foto[5]
+		_puentes = foto[6]
+		_activadores = foto[7]
+		_letras_extra = foto[8]
+		_n_cat -= 1
+		return false
+	s["rol"] = "puzle"
+	s["activador"] = true
+	s["catalogo"] = String(e["id"])
+	s["titulo"] = String(e["titulo"])
+	s["rect"] = r.merge(zona)
+	puzles_puestos[int(s["id"])] = String(e["id"])
+	return true
+
+
+## Una línea `; pieza` / `; puzle` de la plantilla, llevada al mapa: comodines, casillas trasladadas e ids con el prefijo de la instancia.
+func _linea_de_catalogo(l: String, e: Dictionary, sitio: Vector2i, inst: String, nv: String, tw: int, th: int) -> String:
+	var t: String = l.substr(1).strip_edges().replace("$NIVEL", nv).replace("$ID", inst).replace("$X1", str(tw - 1)).replace("$Y1", str(th - 1))
+	var partes: PackedStringArray = t.split(" ", false)
+	var locales: Array = []
+	for otra in e["lineas"]:
+		var po: PackedStringArray = String(otra).substr(1).strip_edges().split(" ", false)
+		if po.size() >= 2:
+			locales.append(po[1])
+	var es_pieza: bool = partes[0] == "pieza" and partes.size() >= 5
+	if es_pieza:
+		partes[3] = str(partes[3].to_int() + sitio.x)
+		partes[4] = str(partes[4].to_int() + sitio.y)
+	var pares: RegEx = RegEx.create_from_string("(\\d+),(\\d+)")
+	for i in range(5 if es_pieza else 2, partes.size()):
+		var kv: PackedStringArray = partes[i].split("=", true, 1)
+		if kv.size() != 2:
+			continue
+		var valor: String = kv[1]
+		if ["celdas", "de", "sala", "en", "camino", "canal", "bloque"].has(kv[0]) or valor.contains("casilla("):
+			var res: String = ""
+			var desde: int = 0
+			for m in pares.search_all(valor):
+				res += valor.substr(desde, m.get_start() - desde) + "%d,%d" % [m.get_string(1).to_int() + sitio.x, m.get_string(2).to_int() + sitio.y]
+				desde = m.get_end()
+			valor = res + valor.substr(desde)
+		for id in locales:
+			var er: RegEx = RegEx.create_from_string("(?<![A-Za-z0-9_.])" + String(id) + "(?![A-Za-z0-9_])")
+			valor = er.sub(valor, inst + "_" + String(id), true)
+		partes[i] = kv[0] + "=" + valor
+	partes[1] = inst + "_" + partes[1]
+	return "; " + " ".join(partes)

@@ -96,6 +96,14 @@ static func texto_mapa(m: Dictionary) -> String:
 		for id in ids_enl:
 			te.append("%s>%s" % [String(id), String(enl[id])])
 		l.append("; enlaces " + " ".join(te))
+	var pzm: Dictionary = m.get("puzles_mano", {})
+	if not pzm.is_empty():
+		var salas_pz: Array = pzm.keys()
+		salas_pz.sort()
+		var tp: PackedStringArray = PackedStringArray()
+		for sid in salas_pz:
+			tp.append("%d>%s" % [int(sid), String(pzm[sid])])
+		l.append("; puzles " + " ".join(tp))
 	l.append(";")
 	if bool(p["rotulo"]):
 		l.append("; zona 1,1..%d,%d %s mezcla=0.8 rotulo=%s" % [int(m["ancho"]) - 2, int(m["alto"]) - 2, String(p["luz"]), nombre])
@@ -160,7 +168,7 @@ static func validar(m: Dictionary) -> PackedStringArray:
 			return err
 		for x in range(w):
 			var ch: String = filas[y][x]
-			if not LETRAS_VALIDAS.contains(ch):
+			if not LETRAS_VALIDAS.contains(ch) and not String(m.get("letras_extra", "")).contains(ch):
 				err.append("Letra desconocida «%s» en (%d, %d)." % [ch, x, y])
 			if (x == 0 or y == 0 or x == w - 1 or y == h - 1) and ch != "#":
 				err.append("El borde no es pared en (%d, %d)." % [x, y])
@@ -228,7 +236,7 @@ static func validar(m: Dictionary) -> PackedStringArray:
 		var cy: int = t[4].to_int()
 		if cx < 1 or cy < 1 or cx > w - 2 or cy > h - 2 or filas[cy][cx] == "#":
 			err.append("La pieza %s cae en pared o fuera del mapa (%d, %d)." % [t[1], cx, cy])
-		elif filas[cy][cx] == "~" and t[2] != "puente":
+		elif filas[cy][cx] == "~" and t[2] != "puente" and not t[1].begins_with("cat"):
 			err.append("La pieza %s cae en el agua (%d, %d)." % [t[1], cx, cy])
 	return err
 
@@ -307,7 +315,21 @@ static func _regenerado(texto: String) -> String:
 	if par.is_empty():
 		return ""
 	var gen: RefCounted = load("res://herramientas/generador_mapas/generador_mazmorra.gd").new()
-	return texto_mapa(gen.generar(_tipar(par), retoques_de(texto), enlaces_de(texto)))
+	return texto_mapa(gen.generar(_tipar(par), retoques_de(texto), enlaces_de(texto), puzles_de(texto)))
+
+
+## Los puzles del catalogo puestos a mano (la linea `; puzles sala>puzle`): sala -> id del puzle.
+static func puzles_de(texto: String) -> Dictionary:
+	var res: Dictionary = {}
+	for linea in texto.split("\n"):
+		var l: String = String(linea).strip_edges()
+		if not l.begins_with("; puzles "):
+			continue
+		for t in l.substr(9).split(" ", false):
+			var ab: PackedStringArray = t.split(">")
+			if ab.size() == 2 and ab[0].is_valid_int():
+				res[ab[0].to_int()] = ab[1]
+	return res
 
 
 ## Los enlaces cambiados a mano guardados en un mapa generado (la línea `; enlaces barrera>activador …`): id de barrera → id de activador ("" = suelta).

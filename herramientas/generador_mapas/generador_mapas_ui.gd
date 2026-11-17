@@ -9,6 +9,7 @@ extends Control
 
 const Generador = preload("res://herramientas/generador_mapas/generador_mazmorra.gd")
 const Exportador = preload("res://herramientas/generador_mapas/exportador_mapa.gd")
+const Catalogo = preload("res://herramientas/generador_mapas/catalogo_puzles.gd")
 
 const C_FONDO: Color = Color(0.13, 0.12, 0.11)
 const C_PANEL: Color = Color(0.17, 0.16, 0.15)
@@ -18,7 +19,7 @@ const C_AGUA: Color = Color(0.45, 0.68, 0.82)
 const C_TINTA: Color = Color(0.12, 0.1, 0.09)
 const ROLES: Dictionary = {
 	"inicio": ["inicio", Color(0.35, 0.75, 0.4)], "tesoro": ["tesoro", Color(0.95, 0.75, 0.2)],
-	"llave": ["llave", Color(0.65, 0.45, 0.9)], "combate": ["se cierra", Color(0.9, 0.35, 0.3)], "salida": ["otra salida", Color(0.25, 0.7, 0.8)],
+	"llave": ["llave", Color(0.65, 0.45, 0.9)], "combate": ["se cierra", Color(0.9, 0.35, 0.3)], "salida": ["otra salida", Color(0.25, 0.7, 0.8)], "puzle": ["puzle del catálogo", Color(0.1, 0.6, 0.55)],
 }
 ## tipo de objeto → [letra que se pinta, color, forma (0 círculo, 1 cuadrado), nombre]
 const ICONOS: Dictionary = {
@@ -26,7 +27,7 @@ const ICONOS: Dictionary = {
 	"entrada": ["e", Color(0.2, 0.65, 0.3), 0, "llegada desde otro nivel"],
 	"puerta": ["P", Color(0.45, 0.3, 0.2), 1, "puerta cerrada (la abre su activador)"], "puente": ["=", Color(0.2, 0.45, 0.7), 1, "puente plegado (lo tiende su activador)"],
 	"contador": ["#", Color(0.95, 0.6, 0.15), 1, "contador de braseros (activador)"], "placa": ["_", Color(0.5, 0.5, 0.55), 1, "placa de peso (activador)"],
-	"bloque": ["B", Color(0.4, 0.38, 0.36), 1, "bloque empujable"],
+	"bloque": ["B", Color(0.4, 0.38, 0.36), 1, "bloque empujable"], "catalogo": ["?", Color(0.1, 0.5, 0.48), 1, "pieza de un puzle del catálogo"],
 	"guerrero": ["W", Color(0.8, 0.25, 0.2), 0, "goblin guerrero"], "arquero": ["A", Color(0.85, 0.45, 0.15), 0, "goblin arquero"],
 	"brasero": ["T", Color(0.95, 0.6, 0.15), 0, "brasero"], "jarron": ["j", Color(0.6, 0.5, 0.38), 0, "jarrón"],
 	"cofre_tesoro": ["$", Color(0.9, 0.7, 0.1), 1, "cofre del tesoro"], "cofre_llave": ["K", Color(0.6, 0.4, 0.85), 1, "cofre de la llave"],
@@ -75,6 +76,7 @@ const CAMPOS: Array = [
 	{"k": "enemigos", "r": "Enemigos", "t": "float", "min": 0.0, "max": 4.0, "paso": 0.1, "a": "0 = ninguno; 1 = un goblin por cada ~22 casillas de sala (más en las lejanas); 5 por sala como mucho."},
 	{"k": "arqueros", "r": "Arqueros (%)", "t": "int", "min": 0, "max": 100, "paso": 5, "a": "Parte de los goblins que son arqueros (letra A) en vez de guerreros (W)."},
 	{"k": "salas_cerradas", "r": "Salas que se cierran (%)", "t": "int", "min": 0, "max": 100, "paso": 5, "a": "Salas con enemigos que cierran sus puertas al entrar y se abren al vencer (cerrojo + vigía)."},
+	{"k": "puzles", "r": "Puzles del catálogo", "t": "int", "min": 0, "max": 12, "a": "Cuántos puzles del catálogo se reparten solos en salas libres. Para poner uno concreto en una sala: pincel «puzle: …» y clic en la sala.\nLas plantillas están en herramientas/generador_mapas/catalogo/ (un .txt por puzle)."},
 	{"k": "barreras", "r": "Barreras con puzle", "t": "int", "min": 0, "max": 8, "a": "Pasos obligados cerrados por una puerta o un puente, que abre un activador colocado antes de la barrera.\nLa flecha amarilla de la vista une cada activador con lo que abre. Con el pincel «enlazar» se cambia a mano."},
 	{"k": "b_braseros", "r": "Activador: braseros", "t": "bool", "a": "Dos braseros y un contador: al encender los dos, se abre."},
 	{"k": "b_placa", "r": "Activador: placa + bloque", "t": "bool", "a": "Una placa de peso y un bloque de piedra que hay que empujar encima."},
@@ -228,6 +230,8 @@ class Vista extends Control:
 		var tam_letra: int = int(clampf(e * 0.62, 7.0, 26.0))
 		for o in mapa["objetos"]:
 			var ic: Array = ICONOS.get(String(o["tipo"]), ["?", Color.MAGENTA, 0, ""])
+			if String(o.get("txt", "")) == "R":
+				ic = ["R", Color(0.85, 0.36, 0.1), 1, "lava"]          # el basalto bajo la lava de un puzle: en naranja, que se lea como río
 			var oc: Vector2i = o["c"]
 			var cen: Vector2 = origen + (Vector2(oc) + Vector2(0.5, 0.5)) * e
 			if int(ic[2]) == 1:
@@ -237,11 +241,11 @@ class Vista extends Control:
 				draw_circle(cen, e * 0.4, C_TINTA)
 				draw_circle(cen, e * 0.34, ic[1])
 			if e >= 9.0:
-				draw_string(fuente, cen + Vector2(-e * 0.5, tam_letra * 0.36), String(ic[0]), HORIZONTAL_ALIGNMENT_CENTER, e, tam_letra, Color.WHITE)
+				draw_string(fuente, cen + Vector2(-e * 0.5, tam_letra * 0.36), String(o.get("txt", ic[0])), HORIZONTAL_ALIGNMENT_CENTER, e, tam_letra, Color.WHITE)
 		if e >= 12.0:
 			for s in mapa["salas"]:
 				var r2: Rect2i = s["rect"]
-				draw_string(fuente, origen + Vector2(r2.position) * e + Vector2(3, tam_letra * 0.8 + 1), str(int(s["id"])), HORIZONTAL_ALIGNMENT_LEFT, -1, int(tam_letra * 0.75), Color(0, 0, 0, 0.45))
+				draw_string(fuente, origen + Vector2(r2.position) * e + Vector2(3, tam_letra * 0.8 + 1), str(int(s["id"])) + ("  " + String(s["titulo"]) if s.has("titulo") else ""), HORIZONTAL_ALIGNMENT_LEFT, -1, int(tam_letra * 0.75), Color(0, 0, 0, 0.7 if s.has("titulo") else 0.45))
 		# Vínculos: una flecha del activador a lo que abre (amarilla; morada la de la llave, que es fija). Lo que no tiene, en rojo.
 		for en in mapa.get("enlaces", []):
 			var pa: Vector2 = origen + (Vector2(en["a"]) + Vector2(0.5, 0.5)) * e
@@ -275,6 +279,7 @@ class Vista extends Control:
 
 var _par: Dictionary = Generador.parametros_defecto()
 var _retoques: Dictionary = {}
+var _puzles: Dictionary = {}              ## puzles del catalogo puestos a mano: sala -> id del puzle
 var _enlaces: Dictionary = {}             ## enlaces cambiados a mano: id de barrera -> id de activador ("" = suelta)
 var _mapa: Dictionary = {}
 var _sucio: bool = true
@@ -397,6 +402,11 @@ func _montar() -> void:
 	for it in [["", "ninguno"], ["#", "# pared"], [".", ". suelo"], ["~", "~ agua"], ["borrar", "goma (quita el retoque)"], ["enlazar", "enlazar (activador → puerta/puente)"]]:
 		_pincel.add_item(String(it[1]))
 		_pincel.set_item_metadata(_pincel.item_count - 1, String(it[0]))
+	for cid in Catalogo.todos():
+		_pincel.add_item("puzle: " + String(Catalogo.todos()[cid]["titulo"]))
+		_pincel.set_item_metadata(_pincel.item_count - 1, "cat:" + String(cid))
+	_pincel.add_item("quitar puzle de la sala")
+	_pincel.set_item_metadata(_pincel.item_count - 1, "cat:")
 	_pincel.tooltip_text = "Con un pincel elegido, el botón izquierdo pinta sobre la vista. El contenido (enemigos, cofres…) se recoloca solo."
 	_pincel.item_selected.connect(func(i: int) -> void: _vista.pincel = String(_pincel.get_item_metadata(i)))
 	pie.add_child(_pincel)
@@ -447,6 +457,7 @@ func _al_ver_contenido(si: bool) -> void:
 func _borrar_retoques() -> void:
 	_retoques.clear()
 	_enlaces.clear()
+	_puzles.clear()
 	_sucio = true
 
 
@@ -540,6 +551,7 @@ func _cambio(k: String, valor: Variant) -> void:
 	_par[k] = valor
 	if CLAVES_FORMA.has(k):
 		_enlaces.clear()
+		_puzles.clear()
 	if CLAVES_FORMA.has(k) and not _retoques.is_empty():
 		_retoques.clear()
 		_decir("Ha cambiado la forma del mapa: los retoques pintados a mano se han borrado.")
@@ -571,6 +583,7 @@ func _poner_control(k: String, valor: Variant) -> void:
 func _otra_semilla() -> void:
 	_retoques.clear()
 	_enlaces.clear()
+	_puzles.clear()
 	_par["semilla"] = randi() % 1000000
 	_poner_control("semilla", _par["semilla"])
 	_sucio = true
@@ -581,7 +594,7 @@ func _regenerar() -> void:
 	for f in _filas:
 		(f[0] as Control).visible = String(f[1]) == "" or String(f[1]) == String(_par["algoritmo"])
 	var t0: int = Time.get_ticks_usec()
-	_mapa = Generador.new().generar(_par, _retoques, _enlaces)
+	_mapa = Generador.new().generar(_par, _retoques, _enlaces, _puzles)
 	var ms: float = (Time.get_ticks_usec() - t0) / 1000.0
 	_vista.poner(_mapa)
 	_texto.text = Exportador.texto_mapa(_mapa)
@@ -630,7 +643,9 @@ func _al_pintar(c: Vector2i) -> void:
 	if _mapa.is_empty() or c.x < 1 or c.y < 1 or c.x > int(_mapa["ancho"]) - 2 or c.y > int(_mapa["alto"]) - 2:
 		return
 	var letra: String = _vista.pincel
-	if letra == "enlazar":
+	if letra.begins_with("cat:"):
+		_puzle_en(c, letra.substr(4))
+	elif letra == "enlazar":
 		_enlazar_en(c)
 	elif letra == "borrar":
 		if _retoques.has(c):
@@ -639,6 +654,25 @@ func _al_pintar(c: Vector2i) -> void:
 	elif String(_retoques.get(c, "")) != letra:
 		_retoques[c] = letra
 		_sucio = true
+
+
+## Pincel «puzle: …»: un clic en una sala le pone ese puzle del catálogo (o se lo quita). Si no cabe, el generador ajusta el suelo;
+## si ni así, lo dice en el panel de la derecha.
+func _puzle_en(c: Vector2i, cid: String) -> void:
+	for s in _mapa["salas"]:
+		if not (s["rect"] as Rect2i).has_point(c):
+			continue
+		var sid: int = int(s["id"])
+		if cid == "":
+			if _puzles.has(sid):
+				_puzles.erase(sid)
+				_decir("Puzle quitado de la sala %d." % sid)
+				_sucio = true
+		elif String(_puzles.get(sid, "")) != cid:
+			_puzles[sid] = cid
+			_decir("Puzle «%s» pedido para la sala %d. Si no aparece, mira el aviso amarillo del panel de la derecha." % [cid, sid])
+			_sucio = true
+		return
 
 
 ## Pincel «enlazar»: un clic en un activador (contador, sus braseros, placa o su bloque) lo elige; un clic en una puerta o un puente
@@ -757,6 +791,7 @@ func _al_abrir(id: int) -> void:
 	_par.merge(par, true)
 	_retoques = Exportador.retoques_de(texto)
 	_enlaces = Exportador.enlaces_de(texto)
+	_puzles = Exportador.puzles_de(texto)
 	for k in _controles:
 		_poner_control(String(k), _par[k])
 	_decir("Abierto %s: mismos parámetros, semilla y retoques con los que se exportó." % nombre)
