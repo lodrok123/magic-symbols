@@ -49,6 +49,19 @@ const COLOR_LAJA: Color = Color(0.56, 0.38, 0.24)               ## 7/11: igual q
 ## púas de la línea (modo `plano` de tierra_roca.gdshader: estratos pardos, de la raíz oscura a la punta ocre, `ACLARA_PUA`) en vez de la textura gris de las rocas del mapa. Las mallas no
 ## cambian. A false, la roca gris de antes.
 const TODO_COMO_LINEA: bool = true
+## 18/11 (Pablo: «haz el inicio y final del pilar de tierra: crea una columna tipo la de Zhongli en Genshin Impact, pero respeta las texturas, con forma final de pico»): el PILAR es
+## UNA COLUMNA PRISMÁTICA de piedra (malla propia `columna_0`: prisma de `COLUMNA_LADOS` caras, algo más estrecho en el hombro, rematado en PICO), con el material de estratos de la
+## línea, y esquirlas de la misma malla alrededor de la base. Sale de golpe de una marca de tierra partida y al morir se hunde en ella. A false, las rocas del mapa de antes.
+const PILAR_COLUMNA: bool = true
+const MALLA_COLUMNA: String = "columna_0"
+const COLUMNA_LADOS: int = 6
+const COLUMNA_HOMBRO_Y: float = 0.74                                  ## altura (0-1) a la que acaba el fuste y empieza el pico
+const COLUMNA_HOMBRO_R: float = 0.88                                  ## radio del hombro, en veces el de la base
+const COLUMNA_PICO_DESVIO: float = 0.12                               ## cuánto se sale la punta del eje (en radios de base): un pico tallado, no un lápiz
+const COLUMNA_SOBREPASO: float = 0.16                                 ## la columna se pasa esto de su sitio al salir y cae (el resto de bloques, SOBREPASO)
+const PILAR_MARCA_TAM: float = 5.5                                    ## diámetro de la marca de tierra partida, en veces el semieje
+const PILAR_MARCA_ALTO: float = 0.3                                   ## alto de la caja del decal (m): lo que puede subir o bajar el suelo dentro de la marca (con 0,8 la marca pintaba también 40 cm del pie de la columna: rayas negras)
+const TEX_MARCA_SUELO: String = "res://assets/vfx/lelu_noise/T_Groundmark19.png"      ## la misma marca de suelo del golpe de tierra (pack de LeLu)
 const PUAS_MAX: int = 14                                              ## púas de una línea (el resto hasta MAX_BLOQUES, lajas)
 const ACLARA_PUA: float = 1.15                                        ## x el albedo de la pua y la laja (7/11: en el Bosque salian casi negras contra la hierba)
 const NORMAL_ARRIBA_JUEGO: float = 0.45                               ## 12/11: en el juego la normal de púas y lajas se dobla esto hacia arriba (`normal_arriba` del shader de roca: el sol casi vertical del Bosque les daba de canto)
@@ -113,6 +126,10 @@ static func malla_roca(id: String) -> Mesh:
 		m = malla_pua(int(id.substr(4)))
 		_mallas[id] = m
 		return m
+	if id.begins_with("columna_"):
+		m = malla_columna(int(id.substr(8)))
+		_mallas[id] = m
+		return m
 	if id.begins_with("laja_"):
 		m = malla_laja(int(id.substr(5)))
 		_mallas[id] = m
@@ -138,7 +155,7 @@ static func malla_roca(id: String) -> Mesh:
 
 ## ¿Es una pieza propia del haz (púa o laja: color plano)?
 static func es_plana(id: String) -> bool:
-	return id.begins_with("pua_") or id.begins_with("laja_")
+	return id.begins_with("pua_") or id.begins_with("laja_") or id.begins_with("columna_")
 
 
 ## Triángulo con normal PLANA (vértices sin compartir: cada cara es una faceta), con la normal HACIA FUERA de `centro` y el orden de los vértices de cara (horario visto desde fuera, como pide
@@ -199,6 +216,33 @@ static func malla_pua(variante: int) -> ArrayMesh:
 		datos[Mesh.ARRAY_INDEX] = arr[Mesh.ARRAY_INDEX]
 		res.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, datos)
 	return res
+
+## COLUMNA del pilar: prisma de COLUMNA_LADOS caras planas, base en y = 0, alto 1, radio de base ≤ 0,5; el fuste se estrecha un poco hasta el hombro y de ahí sale un PICO de caras
+## planas con la punta algo fuera del eje. Facetas de normal plana (`_tri`). Se escala con `asentar`; las bandas de estratos van por su altura (0-1).
+static func malla_columna(variante: int) -> ArrayMesh:
+	var rng: RandomNumberGenerator = RandomNumberGenerator.new()
+	rng.seed = 331 + variante * 7
+	var abajo: Array = []
+	var hombro: Array = []
+	var giro: float = rng.randf() * TAU
+	for i in COLUMNA_LADOS:
+		var a: float = giro + TAU * float(i) / float(COLUMNA_LADOS) + rng.randf_range(-0.07, 0.07)
+		var r: float = 0.5 * rng.randf_range(0.93, 1.0)
+		abajo.append(Vector3(cos(a) * r, 0.0, sin(a) * r))
+		hombro.append(Vector3(cos(a) * r * COLUMNA_HOMBRO_R, COLUMNA_HOMBRO_Y + rng.randf_range(-0.05, 0.05), sin(a) * r * COLUMNA_HOMBRO_R))
+	var ap: float = rng.randf() * TAU
+	var pico: Vector3 = Vector3(cos(ap) * 0.5 * COLUMNA_PICO_DESVIO, 1.0, sin(ap) * 0.5 * COLUMNA_PICO_DESVIO)
+	var st: SurfaceTool = SurfaceTool.new()
+	st.begin(Mesh.PRIMITIVE_TRIANGLES)
+	var cf: Vector3 = Vector3(0.0, COLUMNA_HOMBRO_Y * 0.5, 0.0)
+	var cp: Vector3 = Vector3(0.0, COLUMNA_HOMBRO_Y, 0.0)
+	for i in COLUMNA_LADOS:
+		var j: int = (i + 1) % COLUMNA_LADOS
+		_tri(st, abajo[i], hombro[i], abajo[j], cf)                # fuste
+		_tri(st, abajo[j], hombro[i], hombro[j], cf)
+		_tri(st, hombro[i], pico, hombro[j], cp)                   # pico
+	return st.commit()
+
 
 ## LAJA de losa facetada: polígono irregular de 5-6 lados extruido fino (alto 0,12 del lado), base en y = 0, lado ≈ 1.
 static func malla_laja(variante: int) -> ArrayMesh:
@@ -504,6 +548,7 @@ var _brillo: MeshInstance3D = null      ## BARRERA: disco pardo-naranja tenue de
 var _t_cerrada: float = -1.0            ## BARRERA: instante (s de vida) en que se cerró la cúpula
 var _c_aviso: MultiMeshInstance3D = null  ## CARGA: anillo de piedrecitas que gira a ras de suelo bajo los pies
 var _aviso_ang: float = 0.0
+var _marca_pilar: MeshInstance3D = null    ## PILAR: decal de tierra partida bajo la columna
 var _y_act: Array = []                  ## (pruebas) desplazamiento vertical actual de cada bloque (m; < 0 = aún bajo tierra)
 
 
@@ -989,6 +1034,7 @@ func _construir() -> void:
 	_bloques_mms = []
 	_grietas = null
 	_brillo = null
+	_marca_pilar = null
 	_t_cerrada = -1.0
 	_asentado = false
 	_hundiendo = false
@@ -1118,6 +1164,24 @@ func _pilar(c: Node3D) -> void:
 	var rng: RandomNumberGenerator = RandomNumberGenerator.new()
 	rng.seed = 37
 	var capa: Array = []
+	if PILAR_COLUMNA:
+		var col: Dictionary = _b(MALLA_COLUMNA, Vector3.ZERO, Basis(Vector3.UP, rng.randf() * TAU), semieje_x * 2.0, semieje_y, semieje_z * 2.0, 0.0, rng)
+		col["sobre"] = COLUMNA_SOBREPASO
+		capa.append(col)
+		for k in 4:                                                                    # esquirlas de la misma piedra, inclinadas hacia fuera, que saltan cuando la columna ya asoma
+			var ae: float = TAU * float(k) / 4.0 + rng.randf_range(-0.35, 0.35)
+			var de: Vector3 = Vector3(cos(ae), 0.0, sin(ae))
+			var pe: Vector3 = Vector3(de.x * semieje_x * 1.05, 0.0, de.z * semieje_z * 1.05)
+			capa.append(_b(MALLA_COLUMNA, pe, HieloMallas._inclinar(de, rng.randf_range(0.28, 0.46), ae + rng.randf_range(-0.4, 0.4)), semieje_x * 0.8, semieje_y * rng.randf_range(0.18, 0.34),
+				semieje_z * 0.8, 0.3 + 0.06 * float(k), rng))
+			_pie(capa, pe, de, semieje_x * 1.1, semieje_y * 0.4, 0.45 + 0.05 * float(k), rng, MAX_BLOQUES)
+		_montar_bloques(c, capa)
+		var dm: float = PILAR_MARCA_TAM * maxf(semieje_x, semieje_z)
+		_marca_pilar = crear_decal_suelo("Marca", dm, dm, PILAR_MARCA_ALTO, {"mascara": load(TEX_MARCA_SUELO), "vida": 0.0, "fuerza": 1.0}, Vector3.ZERO, -3)
+		_marca_pilar.rotation.y = rng.randf() * TAU
+		_marca_pilar.set_meta("lado", dm)
+		c.add_child(_marca_pilar)
+		return
 	capa.append(_b("roca_est_4", Vector3.ZERO, Basis(Vector3.UP, rng.randf() * TAU), semieje_x * 1.5, semieje_y, semieje_z * 1.5, 0.0, rng))
 	for k in 4:
 		var a: float = TAU * float(k) / 4.0 + rng.randf_range(-0.3, 0.3)
@@ -1363,9 +1427,26 @@ func _avanzar_bloques(delta: float) -> void:
 		else:
 			HieloMallas.ocultar(mm, idx)
 	_avanzar_grietas(sb, hd)
+	_avanzar_marca_pilar(sb, hd)
 	_avanzar_brillo(delta, techo_puesto and sb >= 0.999 and figura == Figura.BARRERA, hd)
 	if delta > 0.0 and is_inside_tree():
 		_polvo_de_bloques(delta, sb, hd, k_ant, asentados if not es_haz else 0)
+
+
+## PILAR: la marca de tierra partida se abre desde el centro mientras la columna tiembla y sale (el aviso), se queda bajo ella y se cierra cuando ya se ha hundido.
+func _avanzar_marca_pilar(sb: float, hd: float) -> void:
+	if _marca_pilar == null or not is_instance_valid(_marca_pilar):
+		return
+	var lado: float = float(_marca_pilar.get_meta("lado", 1.0)) * lerpf(0.3, 1.0, smoothstep(0.0, 0.5, sb))
+	_marca_pilar.scale = Vector3(lado, PILAR_MARCA_ALTO, lado)
+	(_marca_pilar.material_override as ShaderMaterial).set_shader_parameter("vida", smoothstep(0.0, 0.06, sb) * (1.0 - smoothstep(0.55, 1.0, hd)))
+
+
+## (pruebas) lado actual (m) y `vida` de la marca del pilar (-1 si no la hay).
+func estado_marca_pilar() -> Dictionary:
+	if _marca_pilar == null or not is_instance_valid(_marca_pilar):
+		return {"lado": -1.0, "vida": -1.0}
+	return {"lado": _marca_pilar.scale.x, "vida": float((_marca_pilar.material_override as ShaderMaterial).get_shader_parameter("vida"))}
 
 
 ## HAZ: las grietas corren por delante de las púas (`avance` = hasta dónde ha llegado la secuencia, un tramo por delante) y se van al hundirse.

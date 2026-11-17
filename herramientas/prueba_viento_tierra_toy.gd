@@ -256,7 +256,7 @@ func _figuras(cl: String) -> void:
 				for b in bloques:
 					mallas[String((b as Dictionary)["malla"])] = true
 					var idm: String = String((b as Dictionary)["malla"])
-					del_mapa = del_mapa and (idm.begins_with("roca_est_") or idm.begins_with("piedra_est_") or (int(f[1]) == 4 and TierraToy.es_plana(idm)))      # el haz: púas y lajas propias
+					del_mapa = del_mapa and (idm.begins_with("roca_est_") or idm.begins_with("piedra_est_") or ((int(f[1]) == 4 or (int(f[1]) == 2 and TierraToy.PILAR_COLUMNA)) and TierraToy.es_plana(idm)))      # el haz: púas y lajas propias; 18/11, el pilar: su columna propia (Pablo)
 				for mi in mms:
 					inst += (mi as MultiMeshInstance3D).multimesh.instance_count
 					del_mapa = del_mapa and (mi as MultiMeshInstance3D).multimesh.mesh is ArrayMesh and ((mi as MultiMeshInstance3D).material_override as ShaderMaterial).get_shader_parameter("albedo_tex") is Texture2D
