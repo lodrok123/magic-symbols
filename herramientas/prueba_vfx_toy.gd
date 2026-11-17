@@ -586,7 +586,7 @@ func _pulido() -> void:
 	var p10: FuegoToy = _ft(F.PILAR, 1.0, 1.5, 1.0)
 	await process_frame
 	# 17/11: el pilar lleva una malla más que la escena validada, el anillo de aviso de su inicio («Aviso»); capas de fuego, las mismas 2
-	var de_mas: int = 2 if FuegoToy.PILAR_INICIO_FINAL else 0      # «Aviso» y «Grietas»
+	var de_mas: int = 2 if FuegoToy.PILAR_INICIO_FINAL else 0      # «Aviso» y «Grietas» («HumoFinal» son partículas, no cuenta aquí)
 	_ok("pilar 0,5·4 (el validado) sigue con 2 capas, sin capas añadidas (y %d mallas de más: el anillo de aviso y las grietas)" % de_mas, p05.find_child("Capa0", true, false) == null
 		and (p05.find_child("Aviso", true, false) != null) == FuegoToy.PILAR_INICIO_FINAL
 		and p05.find_children("*", "MeshInstance3D", true, false).size() == val.find_children("*", "MeshInstance3D", true, false).size() + de_mas)

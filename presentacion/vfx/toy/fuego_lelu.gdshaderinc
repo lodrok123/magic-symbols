@@ -50,6 +50,7 @@ uniform float vaiven = 0.0;                      // > 0 (m): TODA la malla se la
 // INICIO Y FINAL (17/11, Pablo: «quiero un inicio y un final en los hechizos»; primero el pilar). Los dos neutros por defecto: nada más cambia.
 uniform float brote : hint_range(0.0, 1.0) = 1.0;    // 0 → 1 al nacer: primero SUBE un chorro fino (alto) y luego ENGORDA (ancho)
 uniform float suelta : hint_range(0.0, 1.0) = 0.0;   // 0 → 1 al morir: un corte roído sube desde la base (la raíz se estrecha y se suelta; lo de arriba se va el último)
+uniform float apaga : hint_range(0.0, 1.0) = 0.0;    // 0 → 1 al morir: el color se va del fuego al pardo oscuro del humo (caliente → frío → humo)
 uniform float fade_base : hint_range(0.0, 0.5) = 0.0;     // fundido de la base (V de 0 a este valor) para que no se vea el pellizco de la UV en el polo
 group_uniforms;
 
@@ -162,6 +163,7 @@ void fragment() {
 		col = mix(col, texture(rampa, vec2(0.3, 0.5)).rgb, clamp(fres * 2.0, 0.0, 1.0) * (1.0 - a));
 		alfa = max(alfa, fres * 0.35);
 	}
+	col = mix(col, vec3(0.2, 0.1, 0.06), apaga * 0.85);
 	ALBEDO = col * brillo * titila;
 	ALPHA = clamp(alfa * vida * suavizado(SCREEN_UV, VERTEX, NORMAL, VIEW, INV_PROJECTION_MATRIX), 0.0, 1.0);
 #ifdef VBB

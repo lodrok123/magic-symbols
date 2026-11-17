@@ -57,10 +57,28 @@ const PILAR_AVISO_S: float = 0.35
 ## 17/11 (Pablo, con un vídeo de un hechizo de fuego: grietas que corren por el suelo, se encienden, de ellas revienta el fuego y al irse quedan al rojo y se apagan: «pensaba en algo
 ## así. Añádelo, crea un fuego que nace y muere»). GRIETAS bajo el pilar (grietas_magma.gdshader, el del cráter de magma): en el aviso salen del centro, oscuras, y se encienden; viven
 ## encendidas bajo el pilar; al morir el chorro se va en la primera parte (`PILAR_FINAL_CORTE`) y las grietas se enfrían y se apagan hasta el final (`PILAR_FINAL_S`).
-const PILAR_FINAL_S: float = 1.1
-const PILAR_FINAL_CORTE: float = 0.55    ## fracción del final en la que el chorro ya se ha soltado del todo
+## 17/11 tarde (Pablo: «falta el cómo muere el pilar: aumentaría volumétricamente el humo hasta que se consumiera el fuego del todo»). Al morir, el fuego se oscurece hacia el pardo del
+## humo (`apaga` del shader) mientras una columna de humo («HumoFinal», el humo pardo de `_humo_generico`) crece a lo alto del pilar: cada vez más bocanadas y cada una hinchándose.
+## Referencias: desglose de una explosión estilizada en Godot (el color pasa de caliente a frío a humo y el mismo ruido lo deshace) y el de Adrift Arena (el fuego no se para: se funde en
+## un humo que se expande y sube).
+const PILAR_HUMO_FINAL: bool = true
+const PILAR_HUMO_CANT: int = 16           ## bocanadas a la vez como mucho
+const PILAR_HUMO_VIDA_S: float = 1.2      ## s que dura cada bocanada
+const PILAR_HUMO_HASTA: float = 1.01      ## deja de salir humo cuando el corte ha subido esta fracción del pilar
+## OJO (lo cazó `prueba_vfx_toy`): «morir» cuenta DENTRO de la vida del hechizo (empieza cuando quedan `dura_morir` s). Con un final de 2 s el fuego se iba 1,2 s antes de que acabara
+## el hechizo y un pilar de 1 s tardaba 2 en liberarse. Por eso el final va en dos tiempos: el chorro se suelta en `PILAR_FINAL_S` (dentro de la vida) y, al acabar, el RESCOLDO
+## (las grietas y el humo) se descuelga del efecto, se queda en el suelo `PILAR_RESCOLDO_S` enfriándose y se borra solo: no alarga el hechizo.
+const PILAR_RESCOLDO_S: float = 1.5
+const PILAR_FINAL_S: float = 0.8
+const PILAR_FINAL_CORTE: float = 1.0    ## fracción del final en la que el chorro ya se ha soltado del todo
 const PILAR_GRIETAS_TAM: float = 6.5     ## diámetro del plano de grietas, en veces el semieje
 const PILAR_GRIETAS_CALOR: float = 0.6   ## calor de las grietas encendidas (0,6 = naranja rojizo; con 0,75 salían amarillentas sobre el charco de luz; 1 sería amarillo)
+## MURO: las mismas líneas del suelo, pero solo dos grietas que corren a lo largo del muro, una a cada lado (grietas_linea.gdshader). Salen del centro hacia los extremos al nacer y se
+## enfrían al morir.
+const MURO_GRIETAS: bool = true
+const MURO_GRIETAS_LADO_M: float = 0.35   ## m del borde del muro a cada grieta
+const MURO_GRIETAS_MARGEN_M: float = 0.9  ## m que el plano de grietas sobresale del muro por cada lado (sitio para las ramas)
+const SH_GRIETAS_MURO: String = "res://presentacion/vfx/toy/grietas_linea.gdshader"
 const SH_GRIETAS_FUEGO: String = "res://presentacion/vfx/toy/grietas_magma.gdshader"
 const PILAR_BROTE_S: float = 0.45
 const PILAR_AVISO_TAM: float = 5.0       ## diámetro del anillo de aviso al empezar, en veces el semieje
@@ -953,6 +971,28 @@ func _muro(c: Node3D, luz: OmniLight3D) -> void:
 	_halo(c, "Charco", Vector2(7.6 * fl, 2.4 * fb), Vector3(0, 0.04, 0), 0.5, 1.6, 0, Color(1.0, 0.28, 0.06), {"latido": 0.05})
 	_halo(c, "Resplandor", Vector2(7.2 * fl, 2.2 * fa), Vector3(0, 0.55 * fa, 0), 0.22, 2.6, 2, Color(1.0, 0.28, 0.06))
 	# banda exterior: el contorno es una superelipse de 2a Ã— 2b; las repeticiones de la textura se cuentan por METROS de contorno (no se estira al alargar)
+	if MURO_GRIETAS:
+		var largo_g: float = 2.0 * a + 2.0 * MURO_GRIETAS_MARGEN_M
+		var ancho_g: float = 2.0 * (b + MURO_GRIETAS_LADO_M + MURO_GRIETAS_MARGEN_M)
+		var pg: PlaneMesh = PlaneMesh.new()
+		pg.size = Vector2(largo_g, ancho_g)
+		var gr: MeshInstance3D = MeshInstance3D.new()
+		gr.name = "Grietas"
+		gr.mesh = pg
+		var mg: ShaderMaterial = ShaderMaterial.new()
+		mg.shader = load(SH_GRIETAS_MURO)
+		mg.render_priority = -2
+		mg.set_shader_parameter("semilla", 0.37)
+		mg.set_shader_parameter("largo_m", largo_g)
+		mg.set_shader_parameter("ancho_m", ancho_g)
+		mg.set_shader_parameter("lado_m", b + MURO_GRIETAS_LADO_M)
+		mg.set_shader_parameter("chamusco", 0.0)                 # solo las líneas: la sombra de debajo se leía como una losa gris rectangular
+		mg.set_shader_parameter("grosor_m", 0.055)
+		mg.set_shader_parameter("calor", PILAR_GRIETAS_CALOR)
+		gr.material_override = mg
+		gr.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		gr.position = Vector3(0, 0.03, 0)
+		c.add_child(gr)
 	var seg: int = FuegoToyMallas.segmentos(FuegoToyMallas.largo_contorno(a, b, 6.0))
 	var banda: ArrayMesh = FuegoToyMallas.banda(a, b, 6.0, FuegoToyMallas.perfil_muro(alto, MURO_AFILA, MURO_ANILLOS), seg)
 	var m: Array = FuegoToyMallas.M_MURO
@@ -989,6 +1029,9 @@ func _pilar(c: Node3D, luz: OmniLight3D) -> void:
 	var fr: float = rm / REF_PILAR.x
 	_halo(c, "Charco", Vector2(5.2 * rx, 5.2 * rz), Vector3(0, 0.04, 0), 0.45, 1.8, 0, Color(1.0, 0.28, 0.06), {"anillo": 0.5, "irreg": PILAR_IRREG_CHARCO})
 	_halo(c, "Resplandor", Vector2(6.8 * rm, 1.05 * alto), Vector3(0, 0.35 * alto, 0), 0.2, 2.8, 2, Color(1.0, 0.28, 0.06))
+	if PILAR_INICIO_FINAL and PILAR_HUMO_FINAL:
+		var hf: GPUParticles3D = _humo_generico(c, "HumoFinal", Vector3(0, alto * 0.5, 0), Vector3(rx * 0.55, alto * 0.38, rz * 0.55), PILAR_HUMO_CANT, 0.9)
+		hf.lifetime = PILAR_HUMO_VIDA_S
 	if PILAR_INICIO_FINAL:
 		var pg: PlaneMesh = PlaneMesh.new()
 		pg.size = Vector2(PILAR_GRIETAS_TAM * rx, PILAR_GRIETAS_TAM * rz)
@@ -1216,8 +1259,28 @@ func _set_aparicion(v: float) -> void:
 	var sube: bool = v > aparicion + 0.00001
 	super._set_aparicion(v)
 	_calor_forma(v)
+	if MURO_GRIETAS and _listo and figura == Figura.MURO and _cuerpo != null:
+		var gm: MeshInstance3D = _cuerpo.get_node_or_null("Grietas") as MeshInstance3D
+		if gm != null:
+			var mm: ShaderMaterial = gm.material_override as ShaderMaterial
+			if baja:
+				gm.set_meta("muriendo", true)
+			elif sube:
+				gm.set_meta("muriendo", false)
+			if bool(gm.get_meta("muriendo", false)):
+				mm.set_shader_parameter("alcance", 1.3)
+				mm.set_shader_parameter("calor", PILAR_GRIETAS_CALOR * v * v)
+				mm.set_shader_parameter("vida", smoothstep(0.0, 0.35, v))
+			else:
+				mm.set_shader_parameter("alcance", lerpf(0.05, 1.3, smoothstep(0.0, 0.7, v)))
+				mm.set_shader_parameter("calor", PILAR_GRIETAS_CALOR * lerpf(0.08, 1.0, smoothstep(0.3, 1.0, v)))
+				mm.set_shader_parameter("vida", smoothstep(0.0, 0.1, v))
 	if PILAR_INICIO_FINAL and _listo and figura == Figura.PILAR:
-		if baja:
+		# «muriendo» lo dice la animación que suena, no que `aparicion` baje: al lanzar baja de 1 a 0 (primera clave de «nacer») y eso soltaba el rescoldo nada más nacer
+		var ap: AnimationPlayer = get_node_or_null("Anim") as AnimationPlayer
+		if ap != null and ap.is_playing():
+			_pilar_muriendo = String(ap.current_animation) == "morir"
+		elif baja:
 			_pilar_muriendo = true
 		elif sube:
 			_pilar_muriendo = false
@@ -1225,6 +1288,31 @@ func _set_aparicion(v: float) -> void:
 
 
 var _pilar_muriendo: bool = false
+var _pilar_rescoldo_suelto: bool = false
+
+
+## El rescoldo del pilar: las grietas y el humo pasan a colgar del padre del efecto (que se libera ya), se enfrían y se apagan por su cuenta y se borran solos.
+func _soltar_rescoldo() -> void:
+	var padre: Node = get_parent()
+	if padre == null or _cuerpo == null or not is_inside_tree():
+		return
+	var gr: MeshInstance3D = _cuerpo.get_node_or_null("Grietas") as MeshInstance3D
+	if gr != null:
+		gr.reparent(padre, true)
+		gr.add_to_group("rescoldo_fuego")
+		var mg: ShaderMaterial = gr.material_override as ShaderMaterial
+		var tw: Tween = gr.create_tween()
+		tw.tween_property(mg, "shader_parameter/calor", 0.0, PILAR_RESCOLDO_S)
+		tw.parallel().tween_property(mg, "shader_parameter/vida", 0.0, PILAR_RESCOLDO_S).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
+		tw.tween_callback(gr.queue_free)
+	var hf: GPUParticles3D = _cuerpo.get_node_or_null("HumoFinal") as GPUParticles3D
+	if hf != null:
+		hf.reparent(padre, true)
+		hf.add_to_group("rescoldo_fuego")
+		hf.emitting = false
+		var tw2: Tween = hf.create_tween()
+		tw2.tween_interval(PILAR_HUMO_VIDA_S + 0.1)
+		tw2.tween_callback(hf.queue_free)
 
 
 ## Reparte `aparicion` en las tres fases del pilar: aviso (anillo que se cierra), brote (chorro que sube y engorda) y, al bajar, final (corte que sube desde la base).
@@ -1239,8 +1327,8 @@ func _pilar_inicio_final(v: float) -> void:
 	var g_alcance: float = 1.3
 	if _pilar_muriendo:
 		suelta = clampf((1.0 - v) / PILAR_FINAL_CORTE, 0.0, 1.0)
-		g_calor = PILAR_GRIETAS_CALOR * v * v
-		g_vida = smoothstep(0.0, 0.35, v)
+		g_calor = PILAR_GRIETAS_CALOR * lerpf(0.75, 1.0, v)          # siguen encendidas: se enfrían después, en el rescoldo
+		g_vida = 1.0
 	else:
 		brote = clampf((v - fa) / (1.0 - fa), 0.0, 1.0)
 		k = clampf(v / fa, 0.0, 1.0)
@@ -1250,6 +1338,21 @@ func _pilar_inicio_final(v: float) -> void:
 	_param_mats("vida", 1.0)
 	_param_mats("brote", brote)
 	_param_mats("suelta", suelta)
+	_param_mats("apaga", smoothstep(0.1, 0.9, suelta) if PILAR_HUMO_FINAL else 0.0)
+	if not _pilar_muriendo:
+		_pilar_rescoldo_suelto = false
+	elif v <= 0.001 and not _pilar_rescoldo_suelto:
+		_pilar_rescoldo_suelto = true
+		if _cuerpo != null:
+			_cuerpo.scale = Vector3.ONE                 # EfectoToy lo acaba de encoger (aparicion 0): sin esto el rescoldo se descolgaba al 65 % y con el humo a ras de suelo
+		_soltar_rescoldo()
+		return
+	var hf: GPUParticles3D = (_cuerpo.get_node_or_null("HumoFinal") as GPUParticles3D) if _cuerpo != null else null
+	if hf != null:
+		var sale: bool = _pilar_muriendo and suelta > 0.02 and suelta < PILAR_HUMO_HASTA
+		hf.amount_ratio = clampf(0.25 + 1.5 * suelta, 0.0, 1.0)                 # cada vez más bocanadas
+		if hf.emitting != sale:
+			hf.emitting = sale
 	if _cuerpo != null:
 		_cuerpo.scale = Vector3.ONE
 		var gr: MeshInstance3D = _cuerpo.get_node_or_null("Grietas") as MeshInstance3D
