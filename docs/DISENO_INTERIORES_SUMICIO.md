@@ -161,4 +161,4 @@ Tamaño de referencia: una casilla del juego mide 2,3 m; Mid mide ~1,2 m; los Su
    cinco plantas con mobiliario de formas simples, la escalera con fundido y **la audiencia ya en el despacho** (planta 4): Marimanta, el
    cofre del uniforme y el legendario viven arriba (`PLANTA_DE`); el cofre mágico se queda en el aula por ser un servicio.
 3. **Biblioteca, estudio y celdas** con sus piezas · salas montadas el 14/11 con formas simples; faltan los `.glb` de Meshy de la tabla de arriba.
-4. **Gremio del gorro verde** y retoques de la tienda.
+4. **Gremio del gorro verde** · **HECHO el 14/11** (diario 509): quinta palloza en (8,13), interior en (37,55) con obrador, armero y botín, y el trueque (tienda gremio). Quedan los retoques de la tienda del este.
