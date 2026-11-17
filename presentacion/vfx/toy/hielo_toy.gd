@@ -47,6 +47,22 @@ const REF_PILAR: Vector3 = Vector3(0.5, 4.0, 0.5)
 const REF_BARRERA: Vector3 = Vector3(1.5, 1.5, 1.5)
 const REF_HAZ: Vector3 = Vector3(1.5, 0.5, 0.15)
 const REF_SUELO: Vector3 = Vector3(1.6, 0.22, 1.3)      ## placa de referencia: 3,2 × 2,6 m y 22 cm de grosor
+## 18/11 (Pablo, con un vídeo de una estatua que escupe frío: «ejemplo de haz de hielo»): el HAZ es un ALIENTO DE FRÍO, no solo una lanza. Sobre la lanza de siempre, afinada
+## (`HAZ_AGUJA`: una aguja de hielo dentro del chorro), van: un NÚCLEO azul a lo largo del haz (dos láminas cruzadas, mezcla normal: el hielo no es luz), un CHORRO de vaho
+## pálido que corre de la mano a la punta (humo toon) y una NUBE de escarcha en la punta. A false, la lanza de antes.
+const HAZ_ALIENTO: bool = true
+const HAZ_AGUJA: float = 0.45                           ## grosor de la lanza y de sus púas, en veces el de antes
+const HAZ_NUCLEO_ANCHO: float = 1.2                     ## ancho de las láminas del núcleo, en radios del haz
+const HAZ_NUCLEO_COLOR: Color = Color(0.62, 0.86, 1.0, 0.8)      ## centro de la lámina
+const HAZ_NUCLEO_BORDE: Color = Color(0.22, 0.55, 1.0, 0.0)      ## hacia los lados: azul más hondo y transparente
+const HAZ_VAHO_POR_S: float = 30.0                      ## bocanadas por segundo del chorro
+const HAZ_VAHO_RESERVA: int = 48
+const HAZ_VAHO_VIDA_S: float = 0.6
+const HAZ_VAHO_TAM: Vector2 = Vector2(0.5, 1.5)         ## diámetro de la bocanada al nacer y al final, en radios del haz (con 1,6 → 4,6 era una nube que lo tapaba todo)
+const HAZ_VAHO_CLARO: Color = Color(0.9, 0.97, 1.0)
+const HAZ_VAHO_SOMBRA: Color = Color(0.55, 0.8, 1.0)
+const HAZ_VAHO_VIEJO: Color = Color(0.7, 0.86, 0.98)
+const HumoToyHielo = preload("res://presentacion/vfx/toy/humo_toy.gd")
 const SUELO_GROSOR_MIN: float = 0.08
 const SUELO_GROSOR_MAX: float = 0.6
 const SUELO_OPACIDAD: float = 0.8
@@ -129,6 +145,9 @@ var _cris_mm: MultiMeshInstance3D = null
 var _roto: Array = []                   ## ¿ha estallado ya el cristal j?
 var _suelo: MeshInstance3D = null       ## escarcha de la base
 var _placa: MeshInstance3D = null       ## SUELO: la losa de hielo
+var _aliento: Node3D = null             ## HAZ: el chorro de vaho (humo toon, en el mundo)
+var _nucleo: Array = []                 ## HAZ: las dos láminas del núcleo azul
+var _acc_aliento: float = 0.0
 var _placa_rota: bool = false
 var _cupula: MeshInstance3D = null      ## BARRERA: cúpula de cristal muy tenue
 var _punta: MeshInstance3D = null       ## HAZ: destello de la punta
@@ -568,6 +587,9 @@ func _construir() -> void:
 	_cupula = null
 	_placa = null
 	_placa_rota = false
+	_aliento = null
+	_nucleo = []
+	_acc_aliento = 0.0
 	_punta = null
 	tam_referencia = Vector3(semieje_x, semieje_y, semieje_z) * 2.0
 	_avance_cabeza = 0.0
@@ -719,10 +741,76 @@ func _haz(c: Node3D) -> void:
 	for d in capa:
 		var dist: float = clampf(-(d["pos"] as Vector3).z / maxf(_haz_largo, 0.01), 0.0, 1.0)
 		d["rompe"] = clampf(dist * 0.55, 0.0, 0.55) if float(d["h"]) < _haz_largo * 0.9 else 0.3
+		if HAZ_ALIENTO:
+			d["wx"] = float(d["wx"]) * HAZ_AGUJA
+			d["wz"] = float(d["wz"]) * HAZ_AGUJA
 	_montar_cristales(c, capa, 5.0)
 	_punta = HieloMallas.destello("Punta")
 	_punta.position = Vector3(0, _haz_alt, -_haz_largo)
 	c.add_child(_punta)
+	if not HAZ_ALIENTO:
+		return
+	var grad: Gradient = Gradient.new()
+	grad.offsets = PackedFloat32Array([0.0, 0.5, 1.0])
+	grad.colors = PackedColorArray([HAZ_NUCLEO_BORDE, HAZ_NUCLEO_COLOR, HAZ_NUCLEO_BORDE])
+	var gt: GradientTexture2D = GradientTexture2D.new()
+	gt.gradient = grad
+	gt.width = 64
+	gt.height = 4
+	gt.fill_from = Vector2(0.0, 0.5)
+	gt.fill_to = Vector2(1.0, 0.5)
+	for k2 in 2:
+		var q: QuadMesh = QuadMesh.new()
+		q.size = Vector2.ONE
+		var sm: StandardMaterial3D = StandardMaterial3D.new()
+		sm.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+		sm.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+		sm.cull_mode = BaseMaterial3D.CULL_DISABLED
+		sm.albedo_texture = gt
+		sm.albedo_color = Color(1, 1, 1, 0)
+		sm.render_priority = -1
+		var mi: MeshInstance3D = MeshInstance3D.new()
+		mi.name = "Nucleo%d" % k2
+		mi.mesh = q
+		mi.material_override = sm
+		mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		c.add_child(mi)
+		_nucleo.append(mi)
+	_aliento = HumoToyHielo.new()
+	_aliento.name = "Aliento"
+	c.add_child(_aliento)
+	_aliento.call("montar", HAZ_VAHO_RESERVA, {"claro": HAZ_VAHO_CLARO, "sombra": HAZ_VAHO_SOMBRA, "viejo": HAZ_VAHO_VIEJO, "tam_ini": HAZ_VAHO_TAM.x * _haz_r, "tam_fin": HAZ_VAHO_TAM.y * _haz_r,
+		"vida": HAZ_VAHO_VIDA_S, "deriva": Vector3(0, 0.15, 0), "mundo": true, "opacidad": 0.7})
+
+
+## HAZ, aliento de frío: el núcleo azul se alarga con la lanza y se apaga con `corte`; el vaho sale de la mano y corre hasta la punta mientras el haz vive, con más nube en la punta.
+func _avanzar_aliento(delta: float, cr: float, co: float) -> void:
+	if _nucleo.is_empty():
+		return
+	var largo: float = maxf(-_haz_z_punta(), 0.001)
+	var vive: float = smoothstep(0.0, 0.15, cr) * (1.0 - smoothstep(0.05, 0.5, co))
+	var w: float = _haz_r * HAZ_NUCLEO_ANCHO * ancho
+	for k2 in _nucleo.size():
+		var mi: MeshInstance3D = _nucleo[k2]
+		if mi == null or not is_instance_valid(mi):
+			continue
+		# el quad mide 1 × 1 en su XY: su X se pone a lo ancho (tumbada: X del mundo; de canto: Y) y su Y a lo largo del haz (−Z)
+		var eje_x: Vector3 = (Vector3.RIGHT if k2 == 0 else Vector3.UP) * w
+		var eje_y: Vector3 = Vector3.FORWARD * largo
+		mi.transform = Transform3D(Basis(eje_x, eje_y, eje_x.cross(eje_y).normalized()), Vector3(0, _haz_alt, -largo * 0.5))
+		(mi.material_override as StandardMaterial3D).albedo_color = Color(1, 1, 1, vive)
+	if delta <= 0.0 or vive <= 0.05 or _aliento == null or not is_instance_valid(_aliento) or not is_inside_tree():
+		return
+	var tr: Transform3D = global_transform
+	_acc_aliento += HAZ_VAHO_POR_S * clampf(chispas, 0.0, 1.0) * delta
+	while _acc_aliento >= 1.0:
+		_acc_aliento -= 1.0
+		var en_punta: bool = randf() < 0.3
+		var z0: float = -largo * (randf_range(0.85, 1.0) if en_punta else randf_range(0.0, 0.25))
+		var loc: Vector3 = Vector3(randf_range(-1.0, 1.0) * _haz_r, _haz_alt + randf_range(-1.0, 1.0) * _haz_r, z0)
+		# el del chorro corre hacia la punta (con la fricción del humo llega más o menos a ella); el de la punta se abre en nube
+		var vel: Vector3 = Vector3(randf_range(-0.6, 0.6), randf_range(-0.1, 0.5), randf_range(-0.6, 0.3)) if en_punta else Vector3(randf_range(-0.2, 0.2), randf_range(-0.1, 0.2), -largo * 2.3)
+		_aliento.call("emitir", tr * loc, tr.basis * vel, randf_range(0.85, 1.15), randf_range(0.8, 1.2) * (1.25 if en_punta else 1.0))
 
 
 ## Posición local de la punta de la lanza con `crece` actual.
@@ -798,6 +886,7 @@ func _avanzar_cristales(delta: float) -> void:
 		var kc: float = maxf(esc * (1.0 - smoothstep(0.1, 0.5, co)), 0.001)
 		_cupula.scale = Vector3(semieje_x, semieje_y, semieje_z) * kc
 		_cupula.position = Vector3(0, 0.4 * semieje_y * kc, 0)
+	_avanzar_aliento(delta, cr, co)
 	if _punta != null and is_instance_valid(_punta):
 		var vive: float = smoothstep(0.7, 1.0, cr) * (1.0 - smoothstep(0.0, 0.3, co))
 		_punta.position = Vector3(0, _haz_alt, _haz_z_punta())

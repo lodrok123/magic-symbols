@@ -252,6 +252,8 @@ var _mojado_s: float = 0.0           ## s que le quedan empapado (se cuenta con 
 var _dosis_calor: int = 0            ## R2: calores recibidos estando mojado desde la última vez que se mojó (ver DOSIS_CALOR_MOJADO)
 var _conduce_s: float = 0.0          ## R2 (`conduce`): s que le quedan mojado y conduciendo
 var _congelado_s: float = 0.0        ## R2 (`congelable`): s que le quedan congelado
+const CONGELADO_VFX_ALTO: float = 1.0      ## m: alto y radio del efecto de congelado (CongeladoToy) sobre un objeto; a ojo, no sale del tamaño de cada objeto
+const CONGELADO_VFX_RADIO: float = 0.45
 var _enredado_s: float = 0.0         ## R2: s que le quedan enredado
 var _escarcha_s: float = 0.0         ## R2: s de escarcha (hielo sobre metal / tela)
 var _caliente_s: float = 0.0         ## R2: s al rojo (magma sobre metal)
@@ -948,6 +950,8 @@ func _poner_congelado(si: bool) -> void:
 	if si:
 		set_process(true)
 		_reaccionar(Mundo3D.R_CONGELADO)
+		if not antes:
+			CongeladoToy.poner(self, CONGELADO_VFX_ALTO, CONGELADO_VFX_RADIO, CONGELADO_S)      # 18/11: costra, cuadraditos celestes y vaho mientras dura (se quita solo si el calor lo descongela antes)
 	else:
 		_reaccionar(Mundo3D.R_DERRETIDO)
 	if antes != si:

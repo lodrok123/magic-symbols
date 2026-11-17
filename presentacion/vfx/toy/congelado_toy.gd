@@ -147,6 +147,8 @@ func _process(delta: float) -> void:
 			return
 	elif not is_instance_valid(objetivo) or (dura > 0.0 and _t >= dura):
 		soltar()
+	elif objetivo.get("_congelado_s") != null and float(objetivo.get("_congelado_s")) <= 0.0:
+		soltar()                                      # un objeto `congelable` (Objeto3D) que se ha descongelado antes de tiempo (calor)
 	elif dura <= 0.0:
 		var c: Variant = objetivo.get("congelado")
 		if (c != null and float(c) <= 0.0) or bool(objetivo.get("muerto")):
