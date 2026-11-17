@@ -4028,7 +4028,9 @@ func _colocar_empujables() -> void:
 ##   ninguna                   → roca maciza: una pared con giro al azar, para que no quede un hueco que parezca paso
 ## `GIRO_CUEVA` corrige hacia dónde mira cada modelo de Tripo (medido en las capturas de herramientas/captura_cueva.gd).
 const GIRO_CUEVA: Dictionary = {"cueva_pared": 0.0, "cueva_esquina_ext": 0.0, "cueva_esquina_int": 0.0}
-const DECOR_CUEVA: Array = ["estalagmitas_a", "estalagmitas_b", "rocas_pequenas", "estalagmitas_a", "piedras"]
+## Las piezas que `_pared_cueva` pone en una casilla `#`. En un nivel horneado bloquean su casilla entera (ver `_instanciar_nivel`).
+const PAREDES_CUEVA: Array = ["cueva_pared", "cueva_esquina_ext", "cueva_esquina_int"]
+const DECOR_CUEVA: Array =["estalagmitas_a", "estalagmitas_b", "rocas_pequenas", "estalagmitas_a", "piedras"]
 
 
 func _pared_cueva(c: Vector2i) -> void:
@@ -4880,6 +4882,12 @@ func _instanciar_nivel() -> void:
 				var k_m: float = t.basis.get_scale().x
 				var mitad_m: Vector3 = (t.basis.orthonormalized() * (((f_m["tam"] as Vector3) if not bool(f_m["cilindro"]) else Vector3(float(f_m["radio"]) * 2.0, 1.0, float(f_m["radio"]) * 2.0)) * 0.5 * k_m)).abs()
 				_marcar_muro_caja(t * ((f_m["centro"] as Vector3) * k_m), mitad_m)
+			elif PAREDES_CUEVA.has(id):
+				# 17/11 (Pablo, generador de mapas: «arregla las paredes de cueva para que bloqueen al hornear»): el kit de paredes de la Cueva no trae
+				# `cuerpo`, así que un nivel de cueva HORNEADO se quedaba sin paredes (la jugadora se metía una o dos casillas en la roca). Una pared de
+				# cueva llena su casilla: se bloquea ENTERA, igual que hace la letra `#` cuando el nivel sale de las letras. Sin `_celdas_pieza`: pasa a
+				# la fuente de solidez como bloqueo de casilla (`_activar_solidez_por_nodos`). Si se mueve la pieza en el editor, bloquea donde quede.
+				_bloqueadas[_celda_de(p)] = true
 			else:
 				_avisos.append("pieza %s bloquea pero no tiene `cuerpo`" % pz.name)
 		if decorado_por_lotes:

@@ -804,9 +804,6 @@ func _hornear() -> void:
 	var txt: String = "Se exporta «%s» y se convierte en mundo/datos_nivel/Nivel_%s.tscn, editable en Godot.\n\n" % [nombre, nombre]
 	txt += "· Es el último paso: con el nivel horneado, esta herramienta ya no vuelve a exportar ese nombre (no pisa tus ediciones).\n"
 	txt += "· En el .tscn se editan las paredes y el decorado. El suelo, los enemigos y los puzles siguen saliendo de mapas/%s.txt.\n" % nombre
-	if String(_par["estilo"]) == "cueva":
-		txt += "\n⚠ ESTILO «CUEVA»: comprobado el 17/11, al hornear las paredes de cueva DEJAN DE BLOQUEAR (la jugadora se mete en la roca).\n"
-		txt += "Con estilo «bosque» el horneado sí funciona. Puedes hornear igualmente, pero el nivel no será jugable hasta arreglar eso en el juego.\n"
 	_confirmar.title = "Hornear"
 	_confirmar.ok_button_text = "Hornear"
 	_confirmar.dialog_text = txt
