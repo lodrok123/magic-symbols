@@ -1516,6 +1516,8 @@ func _efectos(delta: float) -> void:
 	var estaba_congelado: bool = congelado > 0.0
 	mojado = maxf(0.0, mojado - delta)
 	congelado = maxf(0.0, congelado - delta)
+	if congelado > 0.0 and not has_method("congelar_en_bloque"):          # 18/11: bloques de hielo pegados, cuadraditos celestes y vaho (CongeladoToy; se quita solo). El limo ya se hace cubo
+		CongeladoToy.asegurar(self, altura)
 	if estaba_mojado and mojado <= 0.0:
 		_reaccionar(Mundo3D.R_SECADO)
 	if estaba_congelado and congelado <= 0.0:

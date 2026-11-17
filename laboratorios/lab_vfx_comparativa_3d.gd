@@ -249,6 +249,7 @@ func _unhandled_input(ev: InputEvent) -> void:
 		KEY_F8: fuego_param(maxi(_param_i, 0))
 		KEY_F9: fuego_hechizo(_param_ej); _param_ej = (_param_ej + 1) % EJEMPLOS_HECHIZO.size()
 		KEY_INSERT: suelo_hielo()                                                                             # 18/11: la figura SUELO del hielo (placa), que no sale de ningún hechizo
+		KEY_DELETE: congelado_demo()                                                                          # 18/11: el efecto de congelado (CongeladoToy) sobre la jugadora del lab, 3 s
 		KEY_F10: naturaleza_barrera()
 		KEY_F11: naturaleza_bola()
 		KEY_U: eje_param(0, 1)
@@ -423,6 +424,12 @@ func _nuevo_impacto(variante: int, normal: Vector3, radio: float) -> Node3D:
 		"tierra":
 			return ImpactoTierraToy.crear(variante as ImpactoTierraToy.Variante, normal, radio)
 	return ImpactoFuegoToy.crear(variante as ImpactoFuegoToy.Variante, normal, radio)
+
+
+## Supr: el CONGELADO (CongeladoToy: costra de hielo, cuadraditos celestes y vaho) sobre la jugadora del lab durante `dura` s.
+func congelado_demo(dura: float = 3.0) -> CongeladoToy:
+	var esc: float = _pj.global_basis.get_scale().y                  # el efecto va en metros del mundo (no cuelga de la jugadora, que en el lab va escalada)
+	return CongeladoToy.poner(_pj, 1.5 * esc, 0.34 * esc, dura)
 
 
 ## Insert: la PLACA de hielo (HieloToy.Figura.SUELO) delante de la jugadora, con su nacer; otra pulsación la rompe (morir) y la siguiente pone otra.
