@@ -76,7 +76,7 @@ const NUEVOS: Array = [
 		"texto": "F11 · TÓTEMS QUE ESCUPEN FUEGO\nTres tótems de piedra lanzan una bola cada 3 s por su fila, uno tras otro.\nCruza los carriles (filas 18, 20 y 22) por turnos y descansa en las de en medio hasta la placa del fondo.\nAgua a un tótem: lo apaga 8 s · botón: apaga los tres 8 s.",
 		"ids": {"t1": "f11_t1", "t2": "f11_t2", "t3": "f11_t3", "placa": "f11_placa", "boton": "f11_boton"}},
 	{"nombre": "F12 respiraderos", "entrada": Vector2i(28, 17), "cartel": Vector2i(30, 19),
-		"texto": "F12 · RESPIRADEROS DE VENENO\nDos rejas del pasillo exhalan una nube verde cada 10 s (8 s de vida): casi siempre está lleno.\nQuema la niebla con fuego y cruza por el hueco hasta la placa del fondo.\nAgua a una reja: la atasca 8 s · botón: atasca las dos 10 s.",
+		"texto": "F12 · RESPIRADEROS DE VENENO\nDos rejas del pasillo exhalan una nube verde cada 10 s (9 s de vida): siempre está lleno.\nEl fuego prende el gas (a la reja o a su nube): arde 6 s y no sale veneno; cruza hasta la placa del fondo.\nAgua a una reja: la atasca 8 s (y apaga su llama) · botón: atasca las dos 10 s.",
 		"ids": {"r1": "f12_r1", "r2": "f12_r2", "placa": "f12_placa", "boton": "f12_boton"}},
 ]
 ## Papeles que toda sala tiene en su diccionario aunque no los use (null): el HUD y el escenario los leen sin mirar si existen.

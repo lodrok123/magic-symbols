@@ -139,11 +139,12 @@
 ; pieza f11_boton pulsador 22 17 modo=magia
 ; puzle f11_boton_apaga cuando=f11_boton.pulsado hace=f11_t1.apagar(8) y=f11_t2.apagar(8) y=f11_t3.apagar(8)
 ; --- F12 RESPIRADEROS DE VENENO (18/11, sala (3,2), x 25..31, y 17..23): pasillo de una casilla (x=28, y 18..23) entre muros (27,y) y (29,y), al que se llega por (28,14..16) desde la sala de los dragones. Dos respiraderos
-; ---   en el suelo, (28,19) y (28,21), exhalan cada 10 s una nube de veneno de 8 s y 1 casilla de radio, con 1 s de desfase entre ellos: casi siempre hay nube en todo el pasillo (solo quedan 2 s limpios). QUEMAR la niebla
-; ---   (fuego a una nube: NubeVeneno3D baja su vida a 4 s y arde en 1,5 casillas, o sea las dos) abre un hueco de unos 5 s hasta la siguiente exhalacion para llegar a la placa (28,23). El agua a una reja la atasca 8 s;
+; ---   en el suelo, (28,19) y (28,21), exhalan cada 10 s una nube de veneno de 9 s y 1 casilla de radio, con 1 s de desfase entre ellos: casi siempre hay nube en todo el pasillo (solo queda 1 s limpio por reja, menos de lo que
+; ---   se tarda en atravesar una nube: sin fuego no se cruza sin envenenarse). El FUEGO a una reja o a su nube PRENDE EL GAS (quema=0.5: la nube se consume en 0,5 s; arde=6: la reja arde 6 s sin exhalar, con llama y luz
+; ---   rojizas, y despues vuelve a su ciclo desde 0): el fuego prende el gas, ~16 s sin veneno para llegar a la placa (28,23). El agua a una reja la atasca 8 s (y apaga su llama);
 ; ---   boton ! (30,17) las atasca las dos 10 s. El pasillo se mira desde (28,17).
-; pieza f12_r1 respiradero 28 19 cada=10 vida=8 radio=1 desfase=8
-; pieza f12_r2 respiradero 28 21 cada=10 vida=8 radio=1 desfase=7
+; pieza f12_r1 respiradero 28 19 cada=10 vida=9 radio=1 desfase=8 quema=0.5 arde=6
+; pieza f12_r2 respiradero 28 21 cada=10 vida=9 radio=1 desfase=7 quema=0.5 arde=6
 ; pieza f12_placa pulsador 28 23 modo=presencia
 ; pieza f12_boton pulsador 30 17 modo=magia
 ; puzle f12_boton_atasca cuando=f12_boton.pulsado hace=f12_r1.apagar(10) y=f12_r2.apagar(10)

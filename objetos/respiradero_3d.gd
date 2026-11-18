@@ -6,15 +6,22 @@ extends Area3D
 ## y brilla cada vez más: se ve venir. No bloquea su casilla (se pisa; lo peligroso es la nube).
 ##
 ## QUÉ LE HACE CADA ELEMENTO (decisión de esta pieza, lo más barato que es coherente con lo que ya hace la nube):
-##   · FUEGO: no apaga el respiradero (el gas sigue saliendo) pero SÍ quema la nube que ya hay: `NubeVeneno3D` baja su vida a `consume_s` (4 s) en 1,5 casillas. El hueco que abre depende de cuándo se queme:
-##     lo que falte hasta la siguiente exhalación menos lo que tarde la nube en consumirse. Con `cada=10 vida=8`: sin quemar, 2 s de aire limpio entre nube y nube; quemándola al poco de nacer, unos 5 s.
-##   · AGUA o HIELO (`Materia.via`, como la trampa de pared): atascan la reja `T_AGUA_S` s (8): no exhala ni avisa. `agua=no` en la pieza lo impide. La TIERRA y el resto no le hacen nada.
-##   · `apagar(s)` / `encender()` (acciones del mapa, igual que `trampa_flechas`).
+##   · FUEGO (a la reja o a una nube suya): PRENDE EL GAS (`prender`). Estado «ardiendo» durante `arde_s` s (clave `arde=`, 6): la reja no exhala ni avisa, su nube viva se consume al instante (las nubes que suelta
+##     llevan `consume_propio_s = quema_s`, clave `quema=`, 0,5 s, en vez de los 4 s de la tabla `veneno`, que siguen valiendo para el chamán, la colmena y la pieza `nube_veneno`) y se ve: una llama pequeña de
+##     primitivas rojo-naranja (nunca amarilla) y luz cálida en vez de la verde. Al acabar (`se_apaga_llama`) vuelve a su ciclo DESDE 0 (la primera nube, `cada` s después). La nube de una reja que arde avisa a su reja
+##     (`NubeVeneno3D.quemar` → `prender`): fuego a la niebla o a la reja es lo mismo, y el fuego a una nube prende también la reja vecina si su nube cae en el radio (1,5 casillas). Una reja ATASCADA no prende
+##     (mojada); `spell_reacts` es true para el fuego siempre (el proyectil se gasta en la reja). El hueco limpio que deja es `arde_s` + `cada` s (el aviso de la siguiente nube va en el último segundo).
+##   · AGUA o HIELO (`Materia.via`, como la trampa de pared): atascan la reja `T_AGUA_S` s (8): no exhala ni avisa; SOBRE UNA REJA ARDIENDO apagan además la llama (`se_apaga_llama`) y la dejan atascada.
+##     `agua=no` en la pieza lo impide. La TIERRA y el resto no le hacen nada.
+##   · `apagar(s)` / `encender()` (acciones del mapa, igual que `trampa_flechas`). `apagar` también quita la llama.
+## Señales `exhala`, `apagado`, `encendido_otra_vez`, `prende` (empieza a arder) y `se_apaga_llama`; condiciones de la pieza `activo` | `apagado` | `ardiendo`.
 ## Pieza `respiradero` del mapa (escenas/puzle.gd); dueño: Juego.
 
 signal exhala                       ## acaba de salir una nube
 signal apagado                      ## se atascó (agua, hielo o una regla)
 signal encendido_otra_vez           ## volvió a funcionar
+signal prende                       ## el fuego prendió el gas: empieza a arder
+signal se_apaga_llama               ## la llama se acabó (`arde_s`) o la apagó el agua / una regla
 
 const CADA_DEFECTO: float = 8.0
 const VIDA_DEFECTO: float = 5.0
@@ -24,6 +31,11 @@ const ALTO_CAJA_U: float = 1.5      ## alto de la caja con la que recibe hechizo
 const T_AGUA_S: float = 8.0
 const COLOR_REJA: Color = Color(0.26, 0.28, 0.22)
 const COLOR_GAS: Color = Color(0.55, 0.85, 0.25)
+const QUEMA_DEFECTO: float = 0.5    ## s que tarda en consumirse una nube suya cuando arde (`consume_propio_s`)
+const ARDE_DEFECTO: float = 6.0     ## s que arde la reja tras prenderla el fuego
+const COLOR_LLAMA: Color = Color(1.0, 0.36, 0.08)          ## rojo-naranja (nunca amarillo)
+const COLOR_LLAMA_FONDO: Color = Color(0.82, 0.14, 0.05)
+const COLOR_LLAMA_LUZ: Color = Color(1.0, 0.42, 0.14)
 const DIRS: Dictionary = {"n": Vector3(0.0, 0.0, -1.0), "e": Vector3(1.0, 0.0, 0.0), "s": Vector3(0.0, 0.0, 1.0), "o": Vector3(-1.0, 0.0, 0.0)}
 
 var celda: Vector2i = Vector2i.ZERO
@@ -37,8 +49,15 @@ var activo: bool = true             ## false = atascado (agua, hielo o una regla
 var exhalaciones: int = 0           ## cuántas nubes ha soltado (las pruebas)
 var ultima: NubeVeneno3D = null     ## la última nube que soltó (las pruebas)
 var en_aviso: bool = false
+var quema_s: float = QUEMA_DEFECTO  ## lo que tardan en consumirse sus nubes cuando arden
+var arde_s: float = ARDE_DEFECTO    ## lo que arde la reja tras prenderla el fuego
+var ardiendo: bool = false          ## el gas está prendido: no exhala ni avisa
 
 var _t: float = 0.0                 ## s desde la última exhalación
+var _arde_t: float = 0.0            ## s que le quedan de arder
+var _t_llama: float = 0.0
+var _llama: Node3D = null
+var _conos: Array = []
 var _apagado_t: float = 0.0
 var _apagado_fijo: bool = false
 var _mat_gas: StandardMaterial3D = null
@@ -126,6 +145,31 @@ func _construir() -> void:
 	_luz.shadow_enabled = false
 	_luz.position = Vector3(0.0, 0.5, 0.0)
 	add_child(_luz)
+	# La llama (solo mientras arde): tres lenguas de primitivas, rojo-naranja.
+	_llama = Node3D.new()
+	_llama.name = "Llama"
+	_llama.position = Vector3(0.0, 0.15, 0.0)
+	_llama.visible = false
+	add_child(_llama)
+	var lenguas: Array = [[Vector3(0.0, 0.0, 0.0), 0.30, 0.95, COLOR_LLAMA], [Vector3(0.32, 0.0, 0.12), 0.22, 0.65, COLOR_LLAMA_FONDO], [Vector3(-0.30, 0.0, -0.18), 0.24, 0.72, COLOR_LLAMA]]
+	for l in lenguas:
+		var cono := MeshInstance3D.new()
+		var cm := CylinderMesh.new()
+		cm.top_radius = 0.0
+		cm.bottom_radius = float(l[1])
+		cm.height = float(l[2])
+		cm.radial_segments = 8
+		cono.mesh = cm
+		var mt := StandardMaterial3D.new()
+		mt.albedo_color = l[3]
+		mt.emission_enabled = true
+		mt.emission = l[3]
+		mt.emission_energy_multiplier = 2.2
+		mt.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+		cono.material_override = mt
+		cono.position = (l[0] as Vector3) + Vector3(0.0, float(l[2]) * 0.5, 0.0)
+		_llama.add_child(cono)
+		_conos.append(cono)
 
 
 # ---------------------------------------------------------------------------------------------------------------------
@@ -141,6 +185,15 @@ func _physics_process(delta: float) -> void:
 		en_aviso = false
 		_pintar(0.0)
 		return
+	if ardiendo:
+		_arde_t -= delta
+		en_aviso = false
+		_quemar_nubes()                  # por si le quedara alguna nube viva
+		if _arde_t <= 0.0:
+			_quitar_llama(true)
+		else:
+			_pintar(0.0, delta)
+		return
 	_t += delta
 	if _t >= cada:
 		_t = fposmod(_t, cada)
@@ -150,14 +203,18 @@ func _physics_process(delta: float) -> void:
 	_pintar(clampf((_t - (cada - aviso)) / aviso, 0.0, 1.0) if en_aviso else 0.0)
 
 
-## Suelta una nube ahora (el reloj lo hace solo; público para las pruebas).
+## Suelta una nube ahora (el reloj lo hace solo; público para las pruebas). Ardiendo no exhala (null).
 func exhalar() -> NubeVeneno3D:
+	if ardiendo:
+		return null
 	exhalaciones += 1
 	var donde: Vector3 = Terreno3D.centro_de(celda, Terreno3D.y_pies(celda))
 	if dir != "":
 		donde += (DIRS[dir] as Vector3) * Terreno3D.casilla * 0.5
 	var padre: Node = _contenedor()
 	var nube: NubeVeneno3D = NubeVeneno3D.crear(padre, donde, vida, radio)
+	nube.consume_propio_s = quema_s
+	nube.respiradero = self
 	ultima = nube
 	exhala.emit()
 	return nube
@@ -171,11 +228,68 @@ func _contenedor() -> Node:
 	return get_parent() if get_parent() != null else self
 
 
-func _pintar(k: float) -> void:
+func _pintar(k: float, delta: float = 0.0) -> void:
+	if ardiendo:
+		# La llama (luz cálida y la boca rojiza en vez de verde) parpadea con el reloj de la reja.
+		_t_llama += delta
+		if _mat_gas != null:
+			_mat_gas.emission = COLOR_LLAMA_FONDO
+			_mat_gas.emission_energy_multiplier = 1.6
+		if _luz != null:
+			_luz.light_color = COLOR_LLAMA_LUZ
+			_luz.light_energy = 1.7 + 0.4 * sin(_t_llama * 17.0) + 0.2 * sin(_t_llama * 29.0)
+		for i in range(_conos.size()):
+			var cn: MeshInstance3D = _conos[i]
+			var f: float = _t_llama * (11.0 + 3.0 * float(i)) + float(i) * 2.1
+			cn.scale = Vector3(1.0 + 0.10 * sin(f * 1.3), 1.0 + 0.22 * sin(f), 1.0 + 0.10 * sin(f * 1.3 + 1.0))
+		return
 	if _mat_gas != null:
+		_mat_gas.emission = COLOR_GAS
 		_mat_gas.emission_energy_multiplier = (0.2 + 2.8 * k) if activo else 0.0
 	if _luz != null:
+		_luz.light_color = COLOR_GAS
 		_luz.light_energy = 1.4 * k if activo else 0.0
+
+
+# ---------------------------------------------------------------------------------------------------------------------
+#  Prender el gas
+# ---------------------------------------------------------------------------------------------------------------------
+
+## El fuego prende el gas: arde `arde_s` s (no exhala ni avisa) y su nube viva se consume al instante. false si ya ardía o está atascada (mojada).
+func prender() -> bool:
+	if ardiendo or not activo:
+		return false
+	ardiendo = true
+	_arde_t = arde_s
+	_t_llama = 0.0
+	en_aviso = false
+	if _llama != null:
+		_llama.visible = true
+	_quemar_nubes()
+	_pintar(0.0)
+	prende.emit()
+	return true
+
+
+## Quema al instante las nubes vivas que soltó esta reja (cada una tarda `quema_s`, por su `consume_propio_s`).
+func _quemar_nubes() -> void:
+	for v in NubeVeneno3D.vivas.duplicate():
+		if is_instance_valid(v) and (v as NubeVeneno3D).respiradero == self and not (v as NubeVeneno3D).ardiendo:
+			(v as NubeVeneno3D).quemar(quema_s)
+
+
+## Quita la llama. `ciclo_nuevo`: acabó de arder (vuelve a su ciclo desde 0); si no, la apagó el agua o una regla (el ciclo lo gobierna el atasco).
+func _quitar_llama(ciclo_nuevo: bool) -> void:
+	if not ardiendo:
+		return
+	ardiendo = false
+	_arde_t = 0.0
+	if _llama != null:
+		_llama.visible = false
+	if ciclo_nuevo:
+		_t = 0.0
+	_pintar(0.0)
+	se_apaga_llama.emit()
 
 
 # ---------------------------------------------------------------------------------------------------------------------
@@ -186,6 +300,7 @@ func _pintar(k: float) -> void:
 func apagar(segundos: float = 0.0) -> void:
 	var estaba: bool = activo
 	activo = false
+	_quitar_llama(false)
 	if segundos > 0.0:
 		_apagado_fijo = false
 		_apagado_t = maxf(_apagado_t, segundos)
@@ -209,17 +324,19 @@ func encender() -> void:
 # --- Contrato con los hechizos (el agua y el hielo la atascan) ---
 
 func on_spell_hit(rune_data: RuneData, _direccion: Vector3 = Vector3.ZERO, hechizo: Hechizo = null) -> void:
-	if not apaga_con_agua:
-		return
 	var e: String = Materia.via(Materia.de(hechizo if hechizo != null else rune_data))
-	if e == "agua" or e == "hielo":
+	if e == "fuego":
+		prender()
+	elif apaga_con_agua and (e == "agua" or e == "hielo"):
 		apagar(T_AGUA_S)
 
 
 func spell_reacts(rune_data: RuneData, _direccion: Vector3 = Vector3.ZERO, hechizo: Hechizo = null) -> bool:
+	var e: String = Materia.via(Materia.de(hechizo if hechizo != null else rune_data))
+	if e == "fuego":
+		return true
 	if not apaga_con_agua or not activo:
 		return false
-	var e: String = Materia.via(Materia.de(hechizo if hechizo != null else rune_data))
 	return e == "agua" or e == "hielo"
 
 

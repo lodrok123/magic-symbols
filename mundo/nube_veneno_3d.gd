@@ -10,6 +10,8 @@ extends Area3D
 ## `sigue_s` s más (el `envenenar` que ya había). Se comprueba en horizontal (radio en CASILLAS) y con una altura parecida.
 ## EL VIENTO la empuja en su dirección durante `T_SOPLO` s y la dispersa: su vida baja a `dispersa_s` como mucho (`on_spell_hit` de viento y `push`). EL FUEGO la consume: su vida baja a `consume_s`;
 ## y cualquier casilla que PRENDA a ≤ `consume_casillas` de ella también (`EstadoZona3D._al_cambiar_suelo` → `quemar_en`). Es un reactivo de hechizos más (capa `Lanzador3D.CAPA_REACTIVO`).
+## 18/11: `consume_propio_s` (−1 = la tabla) cambia SOLO para esa nube lo que tarda en consumirse cuando arde; lo pone el `Respiradero3D` (0,5 s) y esa nube, al arder, avisa a su `respiradero` (`prender`). Las nubes
+## del chamán, la colmena y la pieza `nube_veneno` no lo tienen: siguen con `consume_s`.
 ## SE REGISTRA en `vivas` al entrar en el árbol: `EstadoZona3D.estados_en` dice que una casilla bajo una nube tiene `veneno`, y `a_dic` / `desde_dic` la guardan y la recrean.
 
 signal disipada
@@ -34,6 +36,8 @@ var deriva: Vector3 = Vector3.ZERO
 var jugador: Jugador3D = null                  ## null = la del lanzador del nivel (`Botin.jugador_de`)
 var envenenadas: int = 0                       ## veces que envenenó a la jugadora (las pruebas)
 var envenenados: int = 0                       ## veces que envenenó a un enemigo
+var consume_propio_s: float = -1.0             ## 18/11: lo que tarda ESTA nube en consumirse cuando arde (`quemar`, `quemar_en`, fuego a la nube). -1 = el de la tabla (`consume_s` de `veneno`); solo lo pone el respiradero
+var respiradero: Node = null                   ## 18/11: la reja que la soltó (la avisa de que arde: el fuego a la nube prende el gas). null = las demás nubes (chamán, colmena, pieza `nube_veneno`)
 var _soplo: float = 0.0
 var _vfx: NubeVenenoVfx = null                 ## su dibujo (presentacion/vfx/toy/nube_veneno_vfx.gd): translucido, no toca la logica
 var _edad: float = 0.0                          ## s desde que nacio (el dibujo brota desde el centro)
@@ -180,13 +184,15 @@ func soplar(dir: Vector3) -> void:
 	vida = minf(vida, disp)
 
 
-## El fuego la consume: su vida baja a `segundos` como mucho y arde (la presentación puede teñirla).
+## El fuego la consume: su vida baja a `segundos` como mucho (o a `consume_propio_s` si lo tiene) y arde (la presentación puede teñirla). Si la soltó un respiradero, le avisa de que el gas arde.
 func quemar(segundos: float) -> void:
 	if _muerta:
 		return
 	ardiendo = true
 	permanente = false
-	vida = minf(vida, segundos)
+	vida = minf(vida, segundos if consume_propio_s < 0.0 else consume_propio_s)
+	if respiradero != null and is_instance_valid(respiradero) and respiradero.has_method("prender"):
+		respiradero.call("prender")
 
 
 ## Las nubes a ≤ `casillas` casillas de `punto` arden y se consumen en `segundos`. Devuelve cuántas. Lo llama el suelo al prenderse (`EstadoZona3D`).
@@ -248,7 +254,7 @@ func retirar() -> void:
 
 func a_dic() -> Dictionary:
 	var p: Vector3 = _pos()
-	return {"pos": [p.x, p.y, p.z], "vida": vida, "vida_max": vida_max, "radio": radio, "permanente": permanente, "ardiendo": ardiendo}
+	return {"pos": [p.x, p.y, p.z], "vida": vida, "vida_max": vida_max, "radio": radio, "permanente": permanente, "ardiendo": ardiendo, "consume_propio_s": consume_propio_s}
 
 
 static func desde_dic(en: Node, d: Dictionary) -> NubeVeneno3D:
@@ -260,4 +266,5 @@ static func desde_dic(en: Node, d: Dictionary) -> NubeVeneno3D:
 	n.vida_max = float(d.get("vida_max", n.vida))
 	n.permanente = bool(d.get("permanente", false))
 	n.ardiendo = bool(d.get("ardiendo", false))
+	n.consume_propio_s = float(d.get("consume_propio_s", -1.0))
 	return n

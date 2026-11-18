@@ -415,9 +415,18 @@ func _f12_estado_inicial() -> void:
 	for y in range(18, 24):
 		lados = lados and Terreno3D.letra_de(Vector2i(27, y)) == "#" and Terreno3D.letra_de(Vector2i(29, y)) == "#"
 	_ok("F12.1 pasillo de una casilla (x = 28, y 18–23) entre muros, con dos respiraderos en (28,19) y (28,21)", lados and r1 != null and r2 != null and r1.celda == Vector2i(28, 19) and r2.celda == Vector2i(28, 21))
-	_ok("F12.2 cada uno exhala cada %.0f s una nube de %.0f s y %.0f casilla de radio; los separa 1 s de desfase; no bloquean su casilla" % [r1.cada, r1.vida, r1.radio],
-		r1.cada == 10.0 and r1.vida == 8.0 and r1.radio == 1.0 and absf(r1.desfase_s - r2.desfase_s - 1.0) < 0.01 and not Terreno3D.bloqueada(r1.celda) and not Terreno3D.bloqueada(r2.celda))
+	# (18/11, arreglo de F12) ANTES F12.2 pedía vida = 8 (2 s limpios por reja); ahora 9 (1 s): con 2 s limpios se cruzaba la zona de la reja 1 y casi la de la 2 sin fuego (ver F12.3b).
+	_ok("F12.2 cada uno exhala cada %.0f s una nube de %.0f s y %.0f casilla de radio; los separa 1 s de desfase; no bloquean su casilla; la nube se consume en %.1f s al arder y la reja arde %.0f s" % [r1.cada, r1.vida, r1.radio, r1.quema_s, r1.arde_s],
+		r1.cada == 10.0 and r1.vida == 9.0 and r1.radio == 1.0 and absf(r1.desfase_s - r2.desfase_s - 1.0) < 0.01 and not Terreno3D.bloqueada(r1.celda) and not Terreno3D.bloqueada(r2.celda)
+		and r1.quema_s == 0.5 and r2.quema_s == 0.5 and r1.arde_s == 6.0 and r2.arde_s == 6.0)
 	_ok("F12.3 de serie casi siempre hay nube: %.0f s de vida de cada %.0f s (solo %.0f s limpios)" % [r1.vida, r1.cada, r1.cada - r1.vida], r1.cada - r1.vida <= 2.5)
+	# Sin fuego no se cruza sin envenenarse: atravesar la nube de una reja (diámetro = 2 · radio · casilla) a la velocidad máxima de la jugadora (correr, sin rodar) dura MÁS que el rato que la reja está limpia.
+	var j0: Jugador3D = jugador as Jugador3D
+	var t_atravesar: float = 2.0 * r1.radio * Terreno3D.casilla / float(j0.get("_vel_correr"))
+	_ok("F12.3b sin fuego no se cruza: atravesar una nube corriendo tarda %.2f s y la reja solo queda limpia %.1f s (el veneno además dura 3 s tras salir)" % [t_atravesar, r1.cada - r1.vida], t_atravesar > r1.cada - r1.vida and t_atravesar > r2.cada - r2.vida)
+	var fuego_r: RuneData = load("res://nucleo/fire_rune.tres") as RuneData
+	var agua_r: RuneData = load("res://nucleo/water_rune.tres") as RuneData
+	_ok("F12.3c la reja reacciona al fuego y al agua (`spell_reacts`)", r1.spell_reacts(fuego_r) and r1.spell_reacts(agua_r))
 
 
 func _f12_natural() -> void:
@@ -429,37 +438,57 @@ func _f12_natural() -> void:
 	var j: Jugador3D = jugador as Jugador3D
 	await _preparar_j(Vector2i(28, 17), Vector3(0.0, 0.0, 1.0))
 	var rec: Dictionary = _vigilar_respiraderos(r1, r2)
+	var ev: Dictionary = {"prende1": [], "prende2": [], "apaga1": [], "apaga2": []}      # cuándo prende y cuándo se apaga la llama de cada reja
+	r1.prende.connect(func() -> void: (ev["prende1"] as Array).append(reloj.t))
+	r2.prende.connect(func() -> void: (ev["prende2"] as Array).append(reloj.t))
+	r1.se_apaga_llama.connect(func() -> void: (ev["apaga1"] as Array).append(reloj.t))
+	r2.se_apaga_llama.connect(func() -> void: (ev["apaga2"] as Array).append(reloj.t))
 	var t0: float = reloj.t
 	while (reloj.t - t0 < 16.0) and ((rec["r1"] as Array).is_empty() or (rec["r2"] as Array).is_empty()):
 		await process_frame
 	var t_exh: float = reloj.t - t0
-	_ok("F12.4 los dos respiraderos exhalan (a los %.1f s) y sale una nube de veneno de cada uno, de 1 casilla" % t_exh,
-		r1.ultima != null and r2.ultima != null and is_instance_valid(r1.ultima) and is_instance_valid(r2.ultima) and r1.ultima.radio == 1.0 and r2.ultima.vida_max == 8.0 and NubeVeneno3D.cubre(Vector2i(28, 19)) and NubeVeneno3D.cubre(Vector2i(28, 21)))
+	_ok("F12.4 los dos respiraderos exhalan (a los %.1f s) y sale una nube de veneno de cada uno, de 1 casilla, que se consume en %.1f s al arder y avisa a su reja" % [t_exh, r1.quema_s],
+		r1.ultima != null and r2.ultima != null and is_instance_valid(r1.ultima) and is_instance_valid(r2.ultima) and r1.ultima.radio == 1.0 and r2.ultima.vida_max == 9.0 and NubeVeneno3D.cubre(Vector2i(28, 19)) and NubeVeneno3D.cubre(Vector2i(28, 21))
+		and r1.ultima.consume_propio_s == 0.5 and r1.ultima.respiradero == r1 and r2.ultima.respiradero == r2)
 	_ok("F12.5 las dos nubes cubren casi todo el pasillo (%d de 5 casillas)" % _nubes_en_pasillo(), _nubes_en_pasillo() >= 4)
-	# 1 · Fuego a la niebla recién exhalada: se consume en unos 4 s.
+	# 1 · Fuego a la niebla recién exhalada: PRENDE EL GAS. (18/11, arreglo de F12) ANTES la nube se consumía en 4 s (la fila `veneno` de la tabla) y la reja no hacía nada: ahora 0,5 s y las dos rejas arden 6 s.
 	_ok("F12.7 fuego + flecha a la niebla sale", lanzar_a_celda("fuego", ["flecha"], Vector2i(28, 19), Vector2i(28, 17)))
-	var t_fuego: float = reloj.t
-	await avanzar_s(1.0)
-	_ok("F12.8 el fuego prende las dos nubes (arden y se consumen en 1,5 casillas)", (r1.ultima.ardiendo or not is_instance_valid(r1.ultima)) and (r2.ultima.ardiendo or not is_instance_valid(r2.ultima)))
+	var tf: float = reloj.t
+	while reloj.t - tf < 3.0 and not (r1.ardiendo and r2.ardiendo):      # la flecha tarda en llegar a la nube
+		await process_frame
+	await avanzar_s(0.1)
+	_ok("F12.8 el fuego prende el gas de las dos rejas (arden: `prende`) y sus nubes arden", r1.ardiendo and r2.ardiendo and (r1.ultima.ardiendo or not is_instance_valid(r1.ultima)) and (r2.ultima.ardiendo or not is_instance_valid(r2.ultima)) and (ev["prende1"] as Array).size() == 1)
+	var t_prende: float = float((ev["prende1"] as Array)[0]) if (ev["prende1"] as Array).size() > 0 else reloj.t
 	var n_exh1: int = r1.exhalaciones
 	var n_exh2: int = r2.exhalaciones
-	while reloj.t - t_fuego < 9.0 and _nubes_en_pasillo() > 0:
+	var vista: Dictionary = _llama_visible(r1)
+	_ok("F12.8b se ve: llama pequeña (visible), de rojo-naranja (nunca amarilla), y la luz cálida en vez de la verde", vista["ok"], str(vista))
+	while reloj.t - t_prende < 3.0 and _nubes_en_pasillo() > 0:
 		await process_frame
 	var t_limpio: float = reloj.t
-	_ok("F12.9 el pasillo queda limpio a los %.1f s del fuego (la nube vivía 8 s, quemada 4)" % (t_limpio - t_fuego), _nubes_en_pasillo() == 0 and t_limpio - t_fuego <= 5.5)
-	# 2 · El hueco: cruzar con la niebla quemada, antes de la siguiente exhalación.
+	_ok("F12.9 la nube desaparece a los %.2f s de prender (≤ 0,6 s; antes 4 s) y el pasillo queda limpio" % (t_limpio - t_prende), _nubes_en_pasillo() == 0 and t_limpio - t_prende <= 0.6)
+	# 2 · Cruzar con el gas prendido: las rejas no exhalan mientras arden.
+	# La propia flecha de fuego deja una zona de llamas en el punto de impacto (`Lanzador3D.ZonaV2`, pulsos de plasma): quema a la lanzadora que se queda dentro (fuego amigo, no es el gas). Se espera a que se acabe
+	# (si no, cruzar justo después hiere) y se cruza deprisa: la llama de la reja dura 6 s.
+	var t_zona: float = reloj.t
+	while reloj.t - t_zona < 8.0 and _zonas_vivas() > 0:
+		await avanzar(3)
+	var t_zona_fin: float = reloj.t - t_prende
 	var vida1: float = j.vida
-	var hueco: float = minf(float(r1.cada) - r1._t, float(r2.cada) - r2._t)       # lo que falta para la próxima exhalación (la primera de las dos)
+	var traza: String = ""
+	var t_cruce0: float = reloj.t
 	for y in [18, 19, 20, 21, 22, 23]:
 		colocar_jugador(Vector2i(28, y))
-		await avanzar_s(0.35)
-	_ok("F12.10 en el hueco (%.1f s hasta la siguiente exhalación) se cruza el pasillo entero hasta la placa (28,23) sin veneno" % hueco, placa.activo and r1.exhalaciones == n_exh1 and r2.exhalaciones == n_exh2 and j.vida >= vida1 - 0.01 and float(j.get("_veneno_t")) <= 0.0, "vida %.1f→%.1f" % [vida1, j.vida])
-	_ok("F12.11 el hueco que abre quemar es mayor que el natural: %.1f s frente a %.0f s" % [hueco, r1.cada - r1.vida], hueco + (reloj.t - t_limpio) >= 3.0)
-	# 3 · El agua atasca una reja 8 s (se le tira con el pasillo aún limpio: con la nube delante, la nube se traga la flecha).
+		await avanzar_s(0.2)
+		traza += " y%d:%.0f/v%.1f" % [y, j.vida, float(j.get("_veneno_t"))]
+	traza += " | zona de llamas de la flecha viva hasta %.1f s tras prender; cruce %.1f–%.1f s" % [t_zona_fin, t_cruce0 - t_prende, reloj.t - t_prende]
+	_ok("F12.10 con las dos rejas ardiendo (%.1f s desde que prendieron) se cruza el pasillo entero hasta la placa (28,23) sin veneno y sin que exhalen" % (reloj.t - t_prende), r1.ardiendo and r2.ardiendo and placa.activo and r1.exhalaciones == n_exh1 and r2.exhalaciones == n_exh2 and j.vida >= vida1 - 0.01 and float(j.get("_veneno_t")) <= 0.0, "vida %.1f→%.1f%s" % [vida1, j.vida, traza])
+	_ok("F12.11 ni exhala ni avisa mientras arde (`en_aviso` falso, ninguna nube en el pasillo)", not r1.en_aviso and not r2.en_aviso and _nubes_en_pasillo() == 0)
+	# 3 · El agua sobre una reja ARDIENDO apaga la llama y la deja atascada 8 s.
 	var n_antes: int = r1.exhalaciones
-	_ok("F12.12 agua + flecha al respiradero de (28,19) sale (a %.1f s de la siguiente exhalación)" % (r1.cada - r1._t), lanzar_a_celda("agua", ["flecha"], Vector2i(28, 19), Vector2i(28, 17)))
+	_ok("F12.12 agua + flecha a la reja de (28,19), que aún arde, sale (arde desde hace %.1f s)" % (reloj.t - t_prende), r1.ardiendo and lanzar_a_celda("agua", ["flecha"], Vector2i(28, 19), Vector2i(28, 17)))
 	await avanzar_s(1.0)
-	_ok("F12.13 queda atascado (no exhala)", not r1.activo and r1.exhalaciones == n_antes)
+	_ok("F12.13 queda atascada (no exhala), con la llama fuera (`se_apaga_llama`: %d vez) " % (ev["apaga1"] as Array).size(), not r1.activo and not r1.ardiendo and r1.exhalaciones == n_antes and (ev["apaga1"] as Array).size() == 1 and not (r1.get_node("Llama") as Node3D).visible)
 	await avanzar_s(6.5)
 	_ok("F12.14 … sigue atascado 7,5 s después (el otro respiradero sí sigue a lo suyo: %d exhalaciones más)" % (r2.exhalaciones - n_exh2), not r1.activo and r1.exhalaciones == n_antes)
 	await avanzar_s(1.5)
@@ -474,6 +503,93 @@ func _f12_natural() -> void:
 	await avanzar_s(2.0)
 	var veneno: float = float(j.get("_veneno_t"))
 	_ok("F12.6 quien entra en la niebla se envenena (la nube lo cuenta %d veces; pierde %.1f de vida)" % [r2.ultima.envenenadas, vida0 - j.vida], r2.ultima.envenenadas > 0 and (veneno > 0.0 or j.vida < vida0))
+	var a2: Array = ev["apaga2"]
+	var e2: Array = rec["r2"]
+	var dur_llama: float = float(a2[0]) - float((ev["prende2"] as Array)[0]) if a2.size() > 0 and (ev["prende2"] as Array).size() > 0 else -1.0
+	var hasta_exhalar: float = float(e2.back()) - float(a2[0]) if a2.size() > 0 else -1.0
+	_ok("F12.14b la reja de (28,21) ardió %.1f s (arde=6), se apagó la llama (`se_apaga_llama`) y volvió a su ciclo DESDE 0: exhaló %.1f s después (cada 10)" % [dur_llama, hasta_exhalar],
+		a2.size() == 1 and absf(dur_llama - r2.arde_s) <= 0.15 and absf(hasta_exhalar - r2.cada) <= 0.15 and not r2.ardiendo)
+	await _f12_fuego_directo_y_nube_normal()
+
+
+## Una nube NORMAL (no de respiradero) y el fuego directo a una reja sin nube, con el laboratorio recargado.
+func _f12_fuego_directo_y_nube_normal() -> void:
+	await _recargar_lab()
+	var q: Dictionary = _sala("F12")
+	var r1: Respiradero3D = q["r1"]
+	var r2: Respiradero3D = q["r2"]
+	var j: Jugador3D = jugador as Jugador3D
+	var apaga: Array = []
+	r1.se_apaga_llama.connect(func() -> void: apaga.append(reloj.t))
+	# (el velo de precalentado deja correr un rato de juego al cargar, y a 20 fps ya pudo exhalar: se quitan las nubes que haya)
+	for n in NubeVeneno3D.vivas.duplicate():
+		if is_instance_valid(n):
+			(n as NubeVeneno3D).retirar()
+	r1._t = r1.cada - 3.0        # a la reja de (28,19) le tocaría exhalar a los 3 s (sin nube viva suya ahora); la otra, lejos de exhalar
+	r2._t = 0.0
+	await _preparar_j(Vector2i(28, 17), Vector3(0.0, 0.0, 1.0))
+	var n0: int = r1.exhalaciones
+	_ok("F12.30 la reja de (28,19) no tiene nube viva ni arde, y le faltan unos 3 s para exhalar", not is_instance_valid(r1.ultima) and not r1.ardiendo and NubeVeneno3D.vivas.is_empty() and r1.cada - r1._t > 2.0)
+	_ok("F12.31 fuego + flecha a la reja (sin nube) sale", lanzar_a_celda("fuego", ["flecha"], Vector2i(28, 19), Vector2i(28, 17)))
+	var tf: float = reloj.t
+	while reloj.t - tf < 3.0 and not r1.ardiendo:
+		await process_frame
+	await avanzar_s(0.1)
+	var vista: Dictionary = _llama_visible(r1)
+	_ok("F12.32 el fuego directo a la reja sin nube la prende igual: arde y se ve la llama", r1.ardiendo and vista["ok"] and r1.exhalaciones == n0 and not r2.ardiendo, str(vista))
+	# Dejar pasar lo que le tocaría exhalar si no ardiera (a los ~3 s de arrancar: ya pasaron 0,5 + las del aviso): ardiendo no sale nada.
+	await avanzar_s(3.0)
+	_ok("F12.33 ardiendo no exhala aunque le tocara (le faltaban 3 s para exhalar y ya pasaron %.1f desde el arranque)" % (3.5 + 0.3), r1.exhalaciones == n0 and not is_instance_valid(r1.ultima) and r1.ardiendo)
+	var t_ard: float = reloj.t
+	var t_fin: float = reloj.t
+	while reloj.t - t_ard < 8.0 and r1.ardiendo:
+		await process_frame
+	t_fin = reloj.t
+	_ok("F12.34 la llama se acaba (%d `se_apaga_llama`) y no hubo veneno entre medias" % apaga.size(), not r1.ardiendo and apaga.size() == 1 and r1.exhalaciones == n0, "ardió %.1f s más desde F12.23" % (t_fin - t_ard))
+	# Una nube de veneno NORMAL (como la del chamán o la pieza `nube_veneno`): el fuego la consume en `consume_s` de la tabla (4 s), no en 0,5 s. Lejos de los respiraderos (sala F10).
+	var fila: Dictionary = BD.estado_mundo("veneno")
+	var consume: float = float(fila.get("consume_s", 4))
+	var nube: NubeVeneno3D = NubeVeneno3D.crear(maqueta, Terreno3D.centro_de(Vector2i(20, 13), Terreno3D.y_pies(Vector2i(20, 13))), 20.0, 1.0)
+	_ok("F12.35 una nube normal no lleva tiempo propio ni reja (consume_propio_s %.1f)" % nube.consume_propio_s, nube.consume_propio_s < 0.0 and nube.respiradero == null)
+	await _preparar_j(Vector2i(20, 15), Vector3(0.0, 0.0, -1.0))
+	_ok("F12.36 fuego + flecha a la nube normal sale", lanzar_a_celda("fuego", ["flecha"], Vector2i(20, 13), Vector2i(20, 15)))
+	var t_a: float = -1.0
+	var t_d: float = -1.0
+	var tt: float = reloj.t
+	while reloj.t - tt < 10.0 and t_d < 0.0:
+		await process_frame
+		if t_a < 0.0 and is_instance_valid(nube) and nube.ardiendo:
+			t_a = reloj.t
+		if not is_instance_valid(nube) or nube._muerta:
+			t_d = reloj.t
+	var dt: float = t_d - t_a if t_a >= 0.0 and t_d >= 0.0 else -1.0
+	_ok("F12.37 la nube normal tarda %.2f s en consumirse tras arder (tabla: consume_s = %.1f s; la de la reja, 0,5)" % [dt, consume], dt >= consume - 0.3 and dt <= consume + 0.4)
+
+
+## Cuántas zonas de hechizo con pulsos (llamas de la flecha de fuego...) hay vivas sobre el pasillo de F12 (x = 28, y 18–23). (Las de las trampas de otras salas no cuentan.)
+func _zonas_vivas() -> int:
+	var n: int = 0
+	for z in root.find_children("*", "Node3D", true, false):
+		if z is Lanzador3D.ZonaV2 and not (z as Node).is_queued_for_deletion():
+			for y in range(18, 24):
+				if (z as Lanzador3D.ZonaV2).celdas.has(Vector2i(28, y)):
+					n += 1
+					break
+	return n
+
+
+## ¿Se ve que arde? La llama es visible, sus lenguas son rojo-naranja (verde ≤ 0,55 y rojo > verde: ninguna amarilla) y la luz es cálida (rojo > verde en vez del verde del gas).
+func _llama_visible(r: Respiradero3D) -> Dictionary:
+	var llama: Node3D = r.get_node_or_null("Llama") as Node3D
+	var luz: OmniLight3D = r.get_node_or_null("Luz") as OmniLight3D
+	if llama == null or luz == null:
+		return {"ok": false, "motivo": "sin Llama o sin Luz"}
+	var colores_ok: bool = llama.get_child_count() >= 3
+	for c in llama.get_children():
+		var m: StandardMaterial3D = (c as MeshInstance3D).material_override as StandardMaterial3D
+		colores_ok = colores_ok and m != null and m.albedo_color.g <= 0.55 and m.albedo_color.r > m.albedo_color.g * 1.8 and m.albedo_color.b < 0.2
+	var cal: bool = luz.light_color.r > luz.light_color.g * 1.8 and luz.light_energy > 0.5
+	return {"ok": llama.visible and colores_ok and cal, "visible": llama.visible, "lenguas": llama.get_child_count(), "colores_ok": colores_ok, "luz": luz.light_color, "energia": luz.light_energy}
 
 
 func _esperar_sin_veneno(j: Jugador3D, max_s: float = 6.0) -> void:
