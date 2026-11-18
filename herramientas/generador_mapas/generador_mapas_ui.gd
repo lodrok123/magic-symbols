@@ -93,7 +93,7 @@ const CAMPOS: Array = [
 	{"k": "rotulo", "r": "Rótulo al entrar", "t": "bool", "a": "Una zona que cubre el mapa y enseña el nombre la primera vez."},
 	{"k": "terreno", "r": "Pintar terreno", "t": "bool", "a": "Los pasillos van de tierra pisada y la sala del tesoro, enlosada (en estilo cueva no se enlosa).\nSin esto todo el suelo es igual y no hay juntas entre suelos que enseñar."},
 	{"k": "acabado", "r": "Acabado del terreno", "t": "bool", "a": "Orillas del agua como en Bosque 01 (orilla integrada, ribera curva con cantos) y juntas y bordes como en Monte Sumicio\n(más relieve, hierba entremezclada con la tierra y la piedra). En estilo cueva solo las orillas.\nEs el acabado de serie de todos los niveles del juego; sin la casilla, este nivel se exporta sin él."},
-	{"k": "salida_a", "r": "Salidas (Nivel:entrada, …)", "t": "texto", "a": "Vacío = sin salida. Cada salida es Nivel:entrada, con el nombre del nivel tal como está en Niveles.ESCENAS (MonteSumicio, Bosque_02, Cueva…).\nVarias, separadas por comas: Bosque_02:boca_cueva, MonteSumicio:inicio\nLa primera va en la sala de inicio; cada una de las demás, en una sala lejana, con su propia llegada (entrada_2, entrada_3…)."},
+	{"k": "salida_a", "r": "Salidas (Nivel:entrada, …)", "t": "texto", "a": "Vacío = sin salida. Cada salida es Nivel:entrada, con el nombre del nivel tal como está en Niveles.ESCENAS (MonteSumicio, Bosque_02, Cueva…).\nVarias, separadas por comas: Bosque_02:boca_cueva, MonteSumicio:inicio\nLa primera va en la sala de inicio; cada una de las demás, en una sala lejana, con su propia llegada (entrada_2, entrada_3…).\nPara dar NOMBRE a la llegada (por donde se entra aquí viniendo de aquel nivel): Nivel:entrada=llegada.\nEjemplo para un Bosque 02 nuevo: MonteSumicio:desde_fraga=desde_sumicio, Cueva:desde_bosque=boca_cueva"},
 ]
 
 
@@ -654,7 +654,7 @@ func _regenerar() -> void:
 	else:
 		var est: Dictionary = Exportador.estado_destino(String(_par["nombre"]))
 		if String(est["mapa"]) != "" and not bool(est["mapa_nuestro"]):
-			l.append("[color=#ff7a6b]✖ Ya existe %s hecho a mano: no se pisará. Cambia el nombre.[/color]" % String(est["mapa"]).get_file())
+			l.append("[color=#e8c56a]● %s es un nivel HECHO A MANO. Al exportar se te pedirá confirmar que lo sustituyes (se guarda copia de todo lo viejo).[/color]" % String(est["mapa"]).get_file())
 		elif String(est["horneado"]) != "":
 			l.append("[color=#ff7a6b]✖ Existe %s (horneado): este nombre ya no se exporta, para no pisar tus ediciones. Edítalo en Godot o cambia el nombre.[/color]" % String(est["horneado"]).get_file())
 		elif String(est["mapa"]) != "":
@@ -664,7 +664,7 @@ func _regenerar() -> void:
 	# Las salidas: bien escritas y a un nivel que el juego conozca.
 	var conocidos: Dictionary = load("res://nucleo/niveles.gd").ESCENAS
 	for d in String(_par["salida_a"]).replace(";", ",").replace(" ", ",").split(",", false):
-		var trozos: PackedStringArray = d.split(":")
+		var trozos: PackedStringArray = d.split("=", true, 1)[0].split(":")       # lo de detrás del «=» es el nombre de la llegada de aquí
 		if trozos.size() != 2 or trozos[0] == "" or trozos[1] == "":
 			l.append("[color=#ff7a6b]✖ Salida «%s» mal escrita: es Nivel:entrada (por ejemplo MonteSumicio:inicio). El juego la ignoraría.[/color]" % d)
 		elif not conocidos.has(trozos[0]):
@@ -778,23 +778,43 @@ func _exportar(probar: bool) -> void:
 		_decir("No se exporta: " + mal)
 		return
 	var est: Dictionary = Exportador.estado_destino(nombre)
-	if probar and String(est["horneado"]) != "" and String(est["escena"]) != "":
+	if probar and String(est["horneado"]) != "" and String(est["escena"]) != "" and not _es_ajeno(est):
 		# Ya horneado: no se exporta (pisaría el .txt del que depende el horneado); se abre tal como está, con las ediciones a mano.
 		var pid_h: int = OS.create_process(OS.get_executable_path(), ["--path", ProjectSettings.globalize_path("res://"), String(est["escena"])])
 		_decir(("Abriendo el nivel HORNEADO %s (no se exporta: manda el .tscn con tus ediciones)." % String(est["horneado"]).get_file()) if pid_h > 0 else "No se pudo abrir el juego.")
 		return
 	_confirmar.title = "Exportar"
 	_confirmar.ok_button_text = "Sobrescribir"
-	if String(est["mapa"]) != "" and bool(est["mapa_nuestro"]):
-		_confirmar.dialog_text = "%s ya existe (lo generó esta herramienta).\n¿Sobrescribirlo con el mapa que estás viendo?\nSi lo habías retocado a mano se guarda antes una copia." % String(est["mapa"]).get_file()
-		_tras_confirmar = _hacer_exportar.bind(probar)
+	if _es_ajeno(est):
+		# Un nivel HECHO A MANO con ese nombre (18/11, Pablo: «Sustituir los viejos»): se puede ocupar su sitio, guardando copia de todo.
+		var viejo: PackedStringArray = PackedStringArray()
+		if String(est["mapa"]) != "" and not bool(est["mapa_nuestro"]):
+			viejo.append("· %s  →  se guarda una copia al lado (…_copia_<fecha>_a_mano.txt)" % String(est["mapa"]))
+		if String(est["escena"]) != "" and not bool(est["escena_nuestra"]):
+			viejo.append("· %s  →  se guarda una copia al lado; la escena nueva NO lleva sus reglas (el nodo «Reglas»: misiones, diálogos, lo que mira por nombre)" % String(est["escena"]))
+		if String(est["horneado"]) != "":
+			viejo.append("· %s  →  se renombra a …_copia_<fecha>.tscn (el nivel editado a mano en Godot deja de cargarse)" % String(est["horneado"]))
+		_confirmar.title = "Sustituir un nivel hecho a mano"
+		_confirmar.ok_button_text = "Sustituir"
+		_confirmar.dialog_text = "«%s» es un nivel HECHO A MANO. Si sigues, el mapa que estás viendo ocupa su sitio:\n\n%s\n\nNo se borra nada, pero el nivel viejo deja de ser el que carga el juego, y las pruebas escritas para él fallarán.\nLos niveles que viajan a «%s» seguirán llegando si el mapa nuevo tiene llegadas con los mismos nombres\n(en «Salidas»: Nivel:entrada=nombre_de_la_llegada)." % [nombre, "\n".join(viejo), nombre]
+		_tras_confirmar = _hacer_exportar.bind(probar, true)
 		_confirmar.popup_centered()
 		return
-	_hacer_exportar(probar)
+	if String(est["mapa"]) != "" and bool(est["mapa_nuestro"]):
+		_confirmar.dialog_text = "%s ya existe (lo generó esta herramienta).\n¿Sobrescribirlo con el mapa que estás viendo?\nSi lo habías retocado a mano se guarda antes una copia." % String(est["mapa"]).get_file()
+		_tras_confirmar = _hacer_exportar.bind(probar, false)
+		_confirmar.popup_centered()
+		return
+	_hacer_exportar(probar, false)
 
 
-func _hacer_exportar(probar: bool) -> void:
-	var res: Dictionary = Exportador.exportar(_mapa)
+## ¿Hay con ese nombre un mapa o una escena que NO generó esta herramienta?
+func _es_ajeno(est: Dictionary) -> bool:
+	return (String(est["mapa"]) != "" and not bool(est["mapa_nuestro"])) or (String(est["escena"]) != "" and not bool(est["escena_nuestra"]))
+
+
+func _hacer_exportar(probar: bool, sustituir: bool = false) -> void:
+	var res: Dictionary = Exportador.exportar(_mapa, sustituir)
 	if not bool(res["ok"]):
 		_decir("NO exportado: " + String(res["error"]))
 		return
@@ -802,7 +822,15 @@ func _hacer_exportar(probar: bool) -> void:
 	var txt: String = "Exportado: " + " y ".join(PackedStringArray(res["escritos"]))
 	if String(res["copia"]) != "":
 		txt += " (copia del anterior: %s)" % String(res["copia"]).get_file()
-	_decir(txt + ". Para viajar a él desde otro nivel, añade «%s» a Niveles.ESCENAS." % nombre)
+	if not (res["apartados"] as Array).is_empty():
+		var nombres_ap: PackedStringArray = PackedStringArray()
+		for ap in res["apartados"]:
+			nombres_ap.append(String(ap).get_file())
+		txt = "SUSTITUIDO «%s». Lo viejo queda en: %s" % [nombre, ", ".join(nombres_ap)]
+	if load("res://nucleo/niveles.gd").ESCENAS.has(nombre):
+		_decir(txt + ".")
+	else:
+		_decir(txt + ". Para viajar a él desde otro nivel, añade «%s» a Niveles.ESCENAS." % nombre)
 	_sucio = true                  # el resumen pasa a decir que el archivo ya existe
 	if probar:
 		var pid: int = OS.create_process(OS.get_executable_path(), ["--path", ProjectSettings.globalize_path("res://"), Exportador.ruta_escena(nombre)])

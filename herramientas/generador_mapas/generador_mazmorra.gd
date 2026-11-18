@@ -1202,9 +1202,17 @@ func _poblar() -> void:
 	_objeto(inicio, "inicio")
 	lineas.append("; pieza inicio entrada %d %d" % [inicio.x, inicio.y])
 	# Salidas: varias, separadas por comas. La primera va en la sala de inicio; las demás, cada una en una sala lejana (más abajo).
+	# 18/11: `Nivel:entrada=llegada` da NOMBRE a la llegada que acompaña a esa salida (por donde se entra a este nivel viniendo de aquel).
+	# Hace falta para sustituir un nivel al que ya viajan otros: las cuevas salen a `Bosque_02:boca_cueva`, así que el Bosque 02 nuevo
+	# necesita una llegada que se llame `boca_cueva`. Sin `=`, las de siempre: `inicio` la primera y `entrada_2`, `entrada_3`… las demás.
 	var destinos: PackedStringArray = PackedStringArray()
+	var llegadas: PackedStringArray = PackedStringArray()
 	for d in String(p["salida_a"]).replace(";", ",").replace(" ", ",").split(",", false):
-		destinos.append(d)
+		var trozos_d: PackedStringArray = d.split("=", true, 1)
+		destinos.append(trozos_d[0])
+		llegadas.append(trozos_d[1] if trozos_d.size() > 1 else "")
+	if llegadas.size() > 0 and llegadas[0] != "" and llegadas[0] != "inicio":
+		lineas.append("; pieza %s entrada %d %d" % [llegadas[0], inicio.x, inicio.y])       # la sala de inicio, también con ese nombre
 	if destinos.size() > 0 and not _poner_salida(s_ini, destinos[0], 1, inicio):
 		avisos.append("No cabe la salida en la sala de inicio (demasiado pequeña).")
 	# 1b · Puzles del catalogo: antes de repartir papeles, porque cambian el suelo de su sala.
@@ -1301,8 +1309,9 @@ func _poblar() -> void:
 				if _poner_salida(sala_k, destinos[k], k + 1, llegada):
 					sala_k["rol"] = "salida"
 					con_salida.append(sala_k)
-					_objeto(llegada, "entrada", "entrada_%d" % (k + 1))
-					lineas.append("; pieza entrada_%d entrada %d %d" % [k + 1, llegada.x, llegada.y])
+					var id_llegada: String = llegadas[k] if llegadas[k] != "" else "entrada_%d" % (k + 1)
+					_objeto(llegada, "entrada", id_llegada)
+					lineas.append("; pieza %s entrada %d %d" % [id_llegada, llegada.x, llegada.y])
 					puesta = true
 				else:
 					_ocupada.erase(llegada)

@@ -20,7 +20,12 @@ static func ruta_mapa(nombre: String) -> String:
 	return DIR_MAPAS + nombre + ".txt"
 
 
+## La escena del nivel. Si el juego ya conoce ese nombre (`Niveles.ESCENAS`), es la escena que tiene apuntada, se llame como se llame
+## (Bosque_02 → escenas/PruebaBosque02.tscn, sin el guion bajo): así, al sustituir un nivel, los viajes desde otros niveles llegan al nuevo.
 static func ruta_escena(nombre: String) -> String:
+	var conocidos: Dictionary = load("res://nucleo/niveles.gd").ESCENAS
+	if conocidos.has(nombre):
+		return String(conocidos[nombre])
 	return DIR_ESCENAS + "Prueba" + nombre + ".tscn"
 
 
@@ -56,7 +61,8 @@ static func estado_destino(nombre: String) -> Dictionary:
 	res["mapa"] = _existente(DIR_MAPAS, nombre + ".txt")
 	if String(res["mapa"]) != "":
 		res["mapa_nuestro"] = FileAccess.get_file_as_string(String(res["mapa"])).contains(MARCA)
-	res["escena"] = _existente(DIR_ESCENAS, "Prueba" + nombre + ".tscn")
+	var re: String = ruta_escena(nombre)
+	res["escena"] = _existente(re.get_base_dir() + "/", re.get_file())
 	if String(res["escena"]) != "":
 		res["escena_nuestra"] = FileAccess.get_file_as_string(String(res["escena"])).contains(MARCA_ESCENA)
 	res["horneado"] = _existente(DIR_NIVELES, "Nivel_" + nombre + ".tscn")
@@ -246,8 +252,11 @@ static func validar(m: Dictionary) -> PackedStringArray:
 
 
 ## Escribe el mapa y la escena. Devuelve {ok, error, escritos: [rutas], copia: ruta de la copia del .txt anterior o ""}.
-static func exportar(m: Dictionary) -> Dictionary:
-	var res: Dictionary = {"ok": false, "error": "", "escritos": [], "copia": ""}
+## `sustituir` (18/11, Pablo: «Sustituir los viejos», por Bosque_01 y Bosque_02): permite ocupar el nombre de un nivel HECHO A MANO. Nada se
+## borra: el .txt y la escena viejos se COPIAN al lado como `<nombre>_copia_<fecha>_a_mano.*` y el nivel horneado (`Nivel_<Nombre>.tscn`) se
+## RENOMBRA a `..._copia_<fecha>.tscn` (si se quedara, la maqueta lo cargaría en vez del mapa nuevo). `apartados` lleva esas rutas.
+static func exportar(m: Dictionary, sustituir: bool = false) -> Dictionary:
+	var res: Dictionary = {"ok": false, "error": "", "escritos": [], "copia": "", "apartados": []}
 	var nombre: String = String((m["parametros"] as Dictionary)["nombre"])
 	var mal: String = nombre_valido(nombre)
 	if mal != "":
@@ -258,18 +267,39 @@ static func exportar(m: Dictionary) -> Dictionary:
 		res["error"] = "El mapa no pasa la validación: " + errores[0]
 		return res
 	var est: Dictionary = estado_destino(nombre)
-	if String(est["mapa"]) != "" and not bool(est["mapa_nuestro"]):
-		res["error"] = "Ya existe %s y no lo generó esta herramienta: no se pisa. Elige otro nombre." % String(est["mapa"]).get_file()
-		return res
-	if String(est["escena"]) != "" and not bool(est["escena_nuestra"]):
-		res["error"] = "Ya existe %s y no la generó esta herramienta: no se pisa. Elige otro nombre." % String(est["escena"]).get_file()
-		return res
-	if String(est["horneado"]) != "":
-		res["error"] = "Existe %s (nivel horneado): la maqueta cargaría ese y no el mapa nuevo. Elige otro nombre." % String(est["horneado"]).get_file()
-		return res
+	var ajeno: bool = (String(est["mapa"]) != "" and not bool(est["mapa_nuestro"])) or (String(est["escena"]) != "" and not bool(est["escena_nuestra"]))
+	if not (sustituir and ajeno):
+		if String(est["mapa"]) != "" and not bool(est["mapa_nuestro"]):
+			res["error"] = "Ya existe %s y no lo generó esta herramienta: no se pisa. Elige otro nombre." % String(est["mapa"]).get_file()
+			return res
+		if String(est["escena"]) != "" and not bool(est["escena_nuestra"]):
+			res["error"] = "Ya existe %s y no la generó esta herramienta: no se pisa. Elige otro nombre." % String(est["escena"]).get_file()
+			return res
+		if String(est["horneado"]) != "":
+			res["error"] = "Existe %s (nivel horneado): la maqueta cargaría ese y no el mapa nuevo. Elige otro nombre." % String(est["horneado"]).get_file()
+			return res
+	else:
+		# Sustituir un nivel hecho a mano: primero se aparta TODO lo viejo; si algo no se puede apartar, no se escribe nada.
+		var sello: String = Time.get_datetime_string_from_system().replace("-", "").replace(":", "").replace("T", "_")
+		for clave in ["mapa", "escena"]:
+			var viejo_r: String = String(est[clave])
+			if viejo_r == "" or bool(est[clave + ("_nuestro" if clave == "mapa" else "_nuestra")]):
+				continue
+			var copia_r: String = "%s_copia_%s_a_mano.%s" % [viejo_r.get_basename(), sello, viejo_r.get_extension()]
+			if DirAccess.copy_absolute(ProjectSettings.globalize_path(viejo_r), ProjectSettings.globalize_path(copia_r)) != OK:
+				res["error"] = "No se pudo guardar la copia de %s: no se sustituye nada." % viejo_r.get_file()
+				return res
+			(res["apartados"] as Array).append(copia_r)
+		if String(est["horneado"]) != "":
+			var horno: String = String(est["horneado"])
+			var copia_h: String = "%s_copia_%s.tscn" % [horno.get_basename(), sello]
+			if DirAccess.rename_absolute(ProjectSettings.globalize_path(horno), ProjectSettings.globalize_path(copia_h)) != OK:
+				res["error"] = "No se pudo apartar %s (¿lo tiene abierto Godot?): no se sustituye nada." % horno.get_file()
+				return res
+			(res["apartados"] as Array).append(copia_h)
 	var texto: String = texto_mapa(m)
 	var destino: String = String(est["mapa"]) if String(est["mapa"]) != "" else ruta_mapa(nombre)
-	if String(est["mapa"]) != "":
+	if String(est["mapa"]) != "" and bool(est["mapa_nuestro"]):
 		var viejo: String = FileAccess.get_file_as_string(destino)
 		var previsto: int = viejo.find("; generador ")
 		var hash_viejo: String = _sin_fecha(viejo)
