@@ -317,6 +317,8 @@ class Vista extends Control:
 				continue
 			var pd: Vector2 = origen + (Vector2(en["de"]) + Vector2(0.5, 0.5)) * e
 			var cv: Color = Color(0.75, 0.55, 0.95) if bool(en["fijo"]) else Color(1.0, 0.82, 0.2)
+			if bool(en.get("aparece", false)):
+				cv = Color(0.35, 0.9, 0.45)                # enemigo → cofre que aparece al caer
 			var comba: Vector2 = (pd + pa) * 0.5 + (pa - pd).orthogonal() * 0.14
 			var pts: PackedVector2Array = PackedVector2Array()
 			for i in range(17):
@@ -342,6 +344,8 @@ class Vista extends Control:
 var _par: Dictionary = Generador.parametros_defecto()
 var _retoques: Dictionary = {}
 var _puzles: Dictionary = {}              ## puzles del catalogo puestos a mano: sala -> id del puzle
+var _apariciones: Array = []              ## cofres que aparecen al caer enemigos: [{cofre, enemigos: []}] (extremos `a<n>` o `x,y`)
+var _enl_enemigo: String = ""             ## pincel «enlazar»: el enemigo elegido, a la espera del clic en un cofre
 var _anadidos: Array = []                 ## enemigos y cofres añadidos a mano: [{que, tipo, premio, c}]
 var _lista_enemigos: VBoxContainer = null
 var _lista_cofres: VBoxContainer = null
@@ -495,7 +499,7 @@ func _montar() -> void:
 	lp.text = "   Pincel:"
 	pie.add_child(lp)
 	_pincel = OptionButton.new()
-	for it in [["", "ninguno"], ["#", "# pared"], [".", ". suelo"], ["~", "~ agua"], ["borrar", "goma (quita el retoque)"], ["enlazar", "enlazar (activador → puerta/puente)"],
+	for it in [["", "ninguno"], ["#", "# pared"], [".", ". suelo"], ["~", "~ agua"], ["borrar", "goma (quita el retoque)"], ["enlazar", "enlazar (activador → puerta/puente · enemigo → cofre)"],
 			["mover", "mover un elemento (arrastrar)"]]:
 		_pincel.add_item(String(it[1]))
 		_pincel.set_item_metadata(_pincel.item_count - 1, String(it[0]))
@@ -558,6 +562,7 @@ func _borrar_retoques() -> void:
 	_puzles.clear()
 	_movidos.clear()
 	_anadidos.clear()
+	_apariciones.clear()
 	_sucio = true
 
 
@@ -654,6 +659,7 @@ func _cambio(k: String, valor: Variant) -> void:
 		_puzles.clear()
 		_movidos.clear()
 		_anadidos.clear()
+		_apariciones.clear()
 	if CLAVES_FORMA.has(k) and not _retoques.is_empty():
 		_retoques.clear()
 		_decir("Ha cambiado la forma del mapa: los retoques pintados a mano se han borrado.")
@@ -688,6 +694,7 @@ func _otra_semilla() -> void:
 	_puzles.clear()
 	_movidos.clear()
 	_anadidos.clear()
+	_apariciones.clear()
 	_par["semilla"] = randi() % 1000000
 	_poner_control("semilla", _par["semilla"])
 	_sucio = true
@@ -698,7 +705,10 @@ func _regenerar() -> void:
 	for f in _filas:
 		(f[0] as Control).visible = String(f[1]) == "" or String(f[1]) == String(_par["algoritmo"])
 	var t0: int = Time.get_ticks_usec()
-	_mapa = Generador.new().generar(_par, _retoques, _enlaces, _puzles, _movidos, _anadidos)
+	_mapa = Generador.new().generar(_par, _retoques, _enlaces, _puzles, _movidos, _anadidos, _apariciones)
+	_apariciones = []                                             # los enlaces enemigo → cofre que siguen valiendo, con los nombres ya al día
+	for ap in _mapa["apariciones"]:
+		_apariciones.append({"cofre": String(ap["cofre"]), "enemigos": (ap["enemigos"] as Array).duplicate()})
 	_movidos = (_mapa["movidos"] as Dictionary).duplicate()       # lo que de verdad se movió (el sitio pedido puede haberse ajustado)
 	_anadidos = (_mapa["anadidos"] as Array).duplicate(true)      # y lo que de verdad se añadió, en su casilla final
 	var ms: float = (Time.get_ticks_usec() - t0) / 1000.0
@@ -789,6 +799,37 @@ func _puzle_en(c: Vector2i, cid: String) -> void:
 ## Pincel «enlazar»: un clic en un activador (contador, sus braseros, placa o su bloque) lo elige; un clic en una puerta o un puente
 ## lo enlaza con el elegido. Un clic en una puerta o un puente sin nada elegido lo deja suelto (y el mapa da error hasta enlazarlo).
 func _enlazar_en(c: Vector2i) -> void:
+	# Enemigo → cofre (18/11): un clic en un enemigo lo elige; un clic en un cofre hace que ese cofre aparezca al caer el enemigo.
+	for o in _mapa["objetos"]:
+		if (o["c"] as Vector2i) != c:
+			continue
+		var tipo_o: String = String(o["tipo"])
+		if TIPOS_ENEMIGO.has(tipo_o):
+			if _vista.resaltada != c:
+				_enl_enemigo = _extremo_de(o)
+				_vista.seleccion = ""
+				_vista.resaltada = c
+				_vista.queue_redraw()
+				_decir("Enemigo elegido (%s): ahora haz clic en el cofre que debe aparecer cuando caiga." % String(ICONOS[tipo_o][3]))
+			return
+		if TIPOS_COFRE.has(tipo_o) and _enl_enemigo != "":
+			if tipo_o == "cofre_llave":
+				_decir("El cofre de la llave no se enlaza: ya aparece al limpiar su sala.")
+				return
+			var cofre: String = _extremo_de(o)
+			var hecho: bool = false
+			for ap in _apariciones:
+				if String(ap["cofre"]) == cofre:
+					if not (ap["enemigos"] as Array).has(_enl_enemigo):
+						(ap["enemigos"] as Array).append(_enl_enemigo)
+					hecho = true
+			if not hecho:
+				_apariciones.append({"cofre": cofre, "enemigos": [_enl_enemigo]})
+			_decir("Enlazado: ese cofre aparecerá cuando caigan todos sus enemigos enlazados. Para quitarlo: pestaña «Cofres», «Que aparezca siempre».")
+			_enl_enemigo = ""
+			_vista.resaltada = Vector2i(-1, -1)
+			_sucio = true
+			return
 	for o in _mapa["objetos"]:
 		if (o["c"] as Vector2i) != c or String(o["id"]) == "":
 			continue
@@ -995,6 +1036,7 @@ func _herramienta(h: String) -> void:
 
 
 func _al_elegir_pincel(i: int) -> void:
+	_enl_enemigo = ""                                             # un enemigo a medio enlazar no se queda elegido al cambiar de pincel
 	_herramienta("")
 	_vista.pincel = String(_pincel.get_item_metadata(i))
 
@@ -1137,13 +1179,20 @@ func _refrescar_cofres() -> void:
 			texto += "\n   da: 60 de oro y una poción (lo pone el generador)"
 		else:
 			texto += "\n   da: la llave del tesoro (lo pone el generador)"
+		var atado: Array = _enemigos_de_cofre(o)
+		if not atado.is_empty():
+			texto += "\n   aparece al caer %s (flecha verde)" % ("su enemigo" if atado.size() == 1 else "sus %d enemigos" % atado.size())
 		var t: Label = _rotulo_pz(texto, Color(0.92, 0.92, 0.92), 14)
 		t.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		fila.add_child(t)
+		var botones: VBoxContainer = VBoxContainer.new()
 		if o.has("anadido"):
-			_boton(fila, "Quitar", _quitar_anadido.bind(int(o["anadido"])), "Quita este cofre.")
+			_boton(botones, "Quitar", _quitar_anadido.bind(int(o["anadido"])), "Quita este cofre.")
+		if not atado.is_empty():
+			_boton(botones, "Que aparezca siempre", _soltar_cofre.bind(_extremo_de(o)), "Quita el enlace con sus enemigos: el cofre está a la vista desde el principio.")
+		fila.add_child(botones)
 		_lista_cofres.add_child(fila)
-	_lista_cofres.add_child(_rotulo_pz("Para cambiar un cofre de sitio: pincel «mover» (abajo) y arrástralo.", Color(0.75, 0.75, 0.75), 12))
+	_lista_cofres.add_child(_rotulo_pz("Para cambiar un cofre de sitio: pincel «mover» (abajo) y arrástralo.\nPara que un cofre APAREZCA AL CAER UN ENEMIGO: pincel «enlazar» (abajo), clic en el enemigo y clic en el cofre. Con varios enemigos enlazados, aparece cuando caen todos.", Color(0.75, 0.75, 0.75), 12))
 
 
 ## La recompensa de un cofre añadido, dicha para leerla.
@@ -1175,8 +1224,54 @@ func _al_clicar(c: Vector2i) -> void:
 				_herramienta("")
 
 
+## Cómo se nombra un elemento en un enlace enemigo → cofre: `a<n>` si es un añadido a mano; si no, la casilla donde lo puso el
+## generador (la de antes de moverlo), para que el enlace no se pierda al mover.
+func _extremo_de(o: Dictionary) -> String:
+	if o.has("anadido"):
+		return "a%d" % int(o["anadido"])
+	var c: Vector2i = o["c"]
+	for k in _movidos:
+		if (_movidos[k] as Vector2i) == c:
+			c = k
+	return "%d,%d" % [c.x, c.y]
+
+
+## Los enemigos de los que depende el cofre `o` (vacío si aparece siempre).
+func _enemigos_de_cofre(o: Dictionary) -> Array:
+	var cofre: String = _extremo_de(o)
+	for ap in _apariciones:
+		if String(ap["cofre"]) == cofre:
+			return ap["enemigos"]
+	return []
+
+
+func _soltar_cofre(cofre: String) -> void:
+	for i in range(_apariciones.size() - 1, -1, -1):
+		if String(_apariciones[i]["cofre"]) == cofre:
+			_apariciones.remove_at(i)
+	_decir("Ese cofre vuelve a estar a la vista desde el principio.")
+	_sucio = true
+
+
 func _quitar_anadido(i: int) -> void:
 	if i >= 0 and i < _anadidos.size():
+		# Los enlaces enemigo → cofre nombran los añadidos por su número: los que apuntan a este se quitan y los posteriores bajan uno.
+		var renombrar: Callable = func(e: String) -> String:
+			if e.begins_with("a") and e.substr(1).is_valid_int():
+				var n: int = e.substr(1).to_int()
+				return "" if n == i else ("a%d" % (n - 1) if n > i else e)
+			return e
+		for k in range(_apariciones.size() - 1, -1, -1):
+			var ap: Dictionary = _apariciones[k]
+			ap["cofre"] = renombrar.call(String(ap["cofre"]))
+			var quedan: Array = []
+			for en in ap["enemigos"]:
+				var nuevo: String = renombrar.call(String(en))
+				if nuevo != "":
+					quedan.append(nuevo)
+			ap["enemigos"] = quedan
+			if String(ap["cofre"]) == "" or quedan.is_empty():
+				_apariciones.remove_at(k)
 		_anadidos.remove_at(i)
 		_decir("Quitado.")
 		_sucio = true
@@ -1413,6 +1508,7 @@ func _al_abrir(id: int) -> void:
 	_puzles = Exportador.puzles_de(texto)
 	_movidos = Exportador.movidos_de(texto)
 	_anadidos = Exportador.anadidos_de(texto)
+	_apariciones = Exportador.apariciones_de(texto)
 	for k in _controles:
 		_poner_control(String(k), _par[k])
 	_decir("Abierto %s: mismos parámetros, semilla y retoques con los que se exportó." % nombre)

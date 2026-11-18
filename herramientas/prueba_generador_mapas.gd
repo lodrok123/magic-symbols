@@ -48,6 +48,7 @@ func _initialize() -> void:
 	_catalogo()
 	_mover_elementos()
 	_anadir_enemigos_y_cofres()
+	_cofres_que_aparecen()
 	print("%d comprobaciones en %d ms" % [_hechas, Time.get_ticks_msec() - t0])
 	print("FALLOS: %d" % _fallos)
 	quit(1 if _fallos > 0 else 0)
@@ -443,6 +444,71 @@ func _anadir_enemigos_y_cofres() -> void:
 	_ok(puestos > 200 and ajustados > 20, "se han puesto muchos, y algunos ajustados de sitio", "%d puestos, %d ajustados" % [puestos, ajustados])
 	_ok(premios_comunes.size() >= 5, "los cofres comunes sortean premios distintos", str(premios_comunes.keys()))
 	_resumen("12 enemigos y cofres añadidos a mano: %d puestos, %d ajustados de sitio, %d premios distintos en los comunes" % [puestos, ajustados, premios_comunes.size()], antes)
+
+
+## 13 · Cofres que aparecen al caer enemigos: el enlace escribe un vigía con las casillas de sus enemigos y la condición en el cofre;
+## sigue al enemigo cuando se mueve; un extremo que no existe se descarta con aviso; el cofre de la llave no se enlaza; y se guarda en el .txt.
+## (Que el cofre aparezca de verdad al caer cada tipo de enemigo se comprobó en el juego: DIARIO, 18/11.)
+func _cofres_que_aparecen() -> void:
+	var antes: int = _fallos
+	var enlazados: int = 0
+	for alg in Generador.ALGORITMOS:
+		for s in range(1, 5):
+			var par: Dictionary = {"algoritmo": alg, "semilla": s, "nombre": "PruebaAparece", "barreras": 2}
+			var base: Dictionary = Generador.new().generar(par)
+			var quien: String = "%s semilla %d" % [alg, s]
+			var goblins: Array = []
+			var tesoro: Vector2i = Vector2i(-1, -1)
+			var llave: Vector2i = Vector2i(-1, -1)
+			var ocupadas: Dictionary = {}
+			for o in base["objetos"]:
+				ocupadas[o["c"]] = true
+				if String(o["tipo"]) == "guerrero" or String(o["tipo"]) == "arquero":
+					goblins.append(o["c"])
+				elif String(o["tipo"]) == "cofre_tesoro":
+					tesoro = o["c"]
+				elif String(o["tipo"]) == "cofre_llave":
+					llave = o["c"]
+			if goblins.size() < 2 or tesoro.x < 0:
+				continue
+			var libres: Array = []
+			for y in range(1, int(base["alto"]) - 1):
+				for x in range(1, int(base["ancho"]) - 1):
+					if base["filas"][y][x] == "." and not ocupadas.has(Vector2i(x, y)) and (x + y * 3) % 7 == 0:
+						libres.append(Vector2i(x, y))
+			var g0: Vector2i = goblins[0]
+			var g1: Vector2i = goblins[1]
+			var anad: Array = [{"que": "enemigo", "tipo": "limo", "c": libres[0]}, {"que": "cofre", "tipo": "comun", "c": libres[1]}]
+			var apar: Array = [{"cofre": "%d,%d" % [tesoro.x, tesoro.y], "enemigos": ["%d,%d" % [g0.x, g0.y], "%d,%d" % [g1.x, g1.y]]},
+				{"cofre": "a1", "enemigos": ["a0"]}, {"cofre": "a7", "enemigos": ["a0"]}, {"cofre": "a1", "enemigos": ["0,0"]}]
+			if llave.x >= 0:
+				apar.append({"cofre": "%d,%d" % [llave.x, llave.y], "enemigos": ["a0"]})
+			# Con el primer goblin movido a otra casilla: el enlace tiene que nombrar la casilla NUEVA.
+			var movidos: Dictionary = {g0: libres[2]}
+			var m: Dictionary = Generador.new().generar(par, {}, {}, {}, movidos, anad, apar)
+			_ok((Exportador.validar(m) as PackedStringArray).is_empty(), "el mapa con cofres enlazados es válido: " + quien, str(Exportador.validar(m)))
+			var hechas: Array = m["apariciones"]
+			_ok(hechas.size() == 2, "valen el enlace del tesoro y el del cofre añadido; los imposibles se descartan: " + quien, str(hechas))
+			var avisos: String = "\n".join(m["avisos"])
+			_ok(avisos.contains("ya no está en el mapa"), "un extremo que no existe se descarta con aviso: " + quien)
+			var lineas: String = "\n".join(m["lineas"])
+			if hechas.size() == 2:
+				enlazados += 2
+				var g0_fin: Vector2i = (m["movidos"] as Dictionary).get(g0, g0)
+				_ok(lineas.contains("de=%d,%d+%d,%d flag=" % [g0_fin.x, g0_fin.y, g1.x, g1.y]), "el vigía del tesoro nombra a sus dos goblins, el movido en su casilla nueva: " + quien, "%s y %s" % [g0_fin, g1])
+				_ok(lineas.contains("; pieza tesoro cofre") and lineas.contains("da=oro:60+pocion:1 aparece_si=flag.pruebaaparece.tesoro.aparece"), "el cofre del tesoro lleva su condición de aparecer: " + quien)
+				_ok(lineas.count(" vigia_ap") == 2 and lineas.count(".aparece") == 4, "un vigía y una condición por enlace: " + quien, "%d vigías" % lineas.count(" vigia_ap"))
+				var flechas: int = 0
+				for en in m["enlaces"]:
+					flechas += 1 if bool(en.get("aparece", false)) else 0
+				_ok(flechas == 3, "una flecha por enemigo enlazado: " + quien, str(flechas))
+			if llave.x >= 0:
+				_ok(lineas.count("; pieza cofre_llave cofre") == 1 and not lineas.contains("cofre_llave.aparece"), "el cofre de la llave no se enlaza: " + quien)
+			var texto: String = Exportador.texto_mapa(m)
+			_ok(Exportador.apariciones_de(texto).size() == hechas.size(), "los enlaces se guardan en el .txt: " + quien)
+			_ok(Exportador._sin_fecha(Exportador._regenerado(texto)) == Exportador._sin_fecha(texto), "y de ahí vuelve a salir el mismo archivo: " + quien)
+	_ok(enlazados >= 12, "hay mapas con cofres enlazados para probar", str(enlazados))
+	_resumen("13 cofres que aparecen al caer enemigos: %d enlaces en mapas de los tres algoritmos" % enlazados, antes)
 
 
 ## 10 · Catálogo de puzles: cada plantilla se puede poner a mano en alguna sala y el mapa sigue siendo válido; sus líneas salen con el

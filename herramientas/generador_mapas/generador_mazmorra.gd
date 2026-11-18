@@ -149,13 +149,24 @@ const COFRES: Dictionary = {
 ## Lo añadido a mano que se pide: [{que: "enemigo" | "cofre", tipo, premio (cofres), c: Vector2i}]. Ver `_aplicar_anadidos`.
 var _anadidos_pedidos: Array = []
 var anadidos_hechos: Array = []         ## lo que de verdad se puso, con su casilla final (la pedida o la válida más cercana)
+var _indice_hecho: Array = []           ## por cada añadido pedido, su sitio en `anadidos_hechos` (-1 si no se pudo poner)
+## COFRES QUE APARECEN AL CAER ENEMIGOS (18/11, Pablo: «enlazar que un enemigo muerto haga aparecer un cofre»): [{cofre, enemigos: []}].
+## Cada extremo se nombra de forma que sobreviva a mover cosas: `a<n>` = el añadido a mano número n; `x,y` = la casilla donde el
+## generador puso el elemento (aunque después se haya movido). Ver `_aplicar_apariciones`.
+var _apariciones_pedidas: Array = []
+var apariciones_hechas: Array = []
+const TIPOS_ENEMIGO: Array[String] = ["guerrero", "arquero", "limo", "golem", "chaman", "mouro", "elemental"]
+const COFRES_ENLAZABLES: Array[String] = ["cofre_tesoro", "cofre_comun", "cofre_epico", "cofre_legendario"]
 var _ultimo_act: String = ""            ## el activador que dejó la última plantilla `salida` estampada
 var _nv: String = ""                    ## el nombre del nivel en minúsculas (para las flags)
 var _letras_extra: String = ""
 
 
 func generar(parametros: Dictionary = {}, retoques: Dictionary = {}, enlaces_mano: Dictionary = {}, puzles_mano: Dictionary = {}, movidos: Dictionary = {},
-		anadidos: Array = []) -> Dictionary:
+		anadidos: Array = [], apariciones: Array = []) -> Dictionary:
+	_apariciones_pedidas = apariciones.duplicate(true)
+	apariciones_hechas = []
+	_indice_hecho = []
 	_movidos_pedidos = movidos.duplicate()
 	movidos_hechos = {}
 	_anadidos_pedidos = anadidos.duplicate(true)
@@ -1516,6 +1527,7 @@ func _poblar() -> void:
 	p["_arqueros"] = hay_arquero
 	_aplicar_movidos()
 	_aplicar_anadidos(nv)
+	_aplicar_apariciones(nv)
 	_emitir_barreras(nv)
 	_pintar_terreno()
 
@@ -1536,6 +1548,7 @@ func _aplicar_anadidos(nv: String) -> void:
 		var tipo: String = String(ped.get("tipo", ""))
 		var pedido: Vector2i = ped.get("c", Vector2i(-1, -1))
 		var es_cofre: bool = que == "cofre"
+		_indice_hecho.append(-1)
 		if (es_cofre and not COFRES.has(tipo)) or (not es_cofre and not ENEMIGOS.has(tipo)):
 			avisos.append("Lo añadido a mano en (%d, %d) no se reconoce («%s»): se descarta." % [pedido.x, pedido.y, tipo])
 			continue
@@ -1612,7 +1625,79 @@ func _aplicar_anadidos(nv: String) -> void:
 			else:
 				lineas.append("; pieza %s %s %d %d%s" % [eid, String(def_e["pieza"]), puesto.x, puesto.y, String(def_e.get("extra", ""))])
 		objetos[objetos.size() - 1]["anadido"] = anadidos_hechos.size()       # para que la herramienta sepa cuál de la lista es
+		_indice_hecho[_indice_hecho.size() - 1] = anadidos_hechos.size()
 		anadidos_hechos.append(hecho)
+
+
+## Dónde está ahora lo que nombra un extremo (`a<n>` o `x,y`), y cómo se nombra tras recolocar los añadidos. [casilla, nombre]; casilla (-1, -1) si ya no existe.
+func _extremo(e: String) -> Array:
+	if e.begins_with("a") and e.substr(1).is_valid_int():
+		var i: int = e.substr(1).to_int()
+		if i < 0 or i >= _indice_hecho.size() or int(_indice_hecho[i]) < 0:
+			return [Vector2i(-1, -1), e]
+		return [anadidos_hechos[int(_indice_hecho[i])]["c"], "a%d" % int(_indice_hecho[i])]
+	var xy: PackedStringArray = e.split(",")
+	if xy.size() != 2 or not xy[0].is_valid_int() or not xy[1].is_valid_int():
+		return [Vector2i(-1, -1), e]
+	var origen: Vector2i = Vector2i(xy[0].to_int(), xy[1].to_int())
+	return [movidos_hechos.get(origen, origen), e]
+
+
+## El objeto de uno de esos tipos que hay en la casilla ({} si ninguno).
+func _objeto_en(c: Vector2i, tipos: Array) -> Dictionary:
+	for o in objetos:
+		if (o["c"] as Vector2i) == c and tipos.has(String(o["tipo"])):
+			return o
+	return {}
+
+
+## Cofres que aparecen cuando caen sus enemigos. Usa lo que el juego ya tiene: un VIGÍA que vigila a los enemigos que nacen en unas
+## casillas y pone una flag cuando han caído todos, y `aparece_si=flag.…` en el cofre (lo mismo que el generador hace con el cofre de la
+## llave). Va al final, con todo movido y añadido. Un extremo que ya no existe se descarta con aviso; el cofre de la llave no se enlaza
+## (ya aparece al limpiar su sala).
+func _aplicar_apariciones(nv: String) -> void:
+	var n: int = 0
+	for ap_v in _apariciones_pedidas:
+		var ap: Dictionary = ap_v
+		var ec: Array = _extremo(String(ap.get("cofre", "")))
+		var cofre: Dictionary = _objeto_en(ec[0], COFRES_ENLAZABLES) if (ec[0] as Vector2i).x >= 0 else {}
+		if cofre.is_empty():
+			avisos.append("Un cofre que aparecía al caer enemigos ya no está en el mapa: ese enlace se descarta.")
+			continue
+		var celdas: Array = []
+		var nombres: Array = []
+		for en in ap.get("enemigos", []):
+			var ee: Array = _extremo(String(en))
+			if (ee[0] as Vector2i).x >= 0 and not _objeto_en(ee[0], TIPOS_ENEMIGO).is_empty() and not celdas.has(ee[0]):
+				celdas.append(ee[0])
+				nombres.append(ee[1])
+			else:
+				avisos.append("Un enemigo enlazado al cofre de (%d, %d) ya no está en el mapa: se quita de ese enlace." % [(ec[0] as Vector2i).x, (ec[0] as Vector2i).y])
+		if celdas.is_empty():
+			avisos.append("El cofre de (%d, %d) se ha quedado sin enemigos enlazados: vuelve a aparecer desde el principio." % [(ec[0] as Vector2i).x, (ec[0] as Vector2i).y])
+			continue
+		# La línea del cofre: se le añade la condición de aparecer.
+		var cc: Vector2i = ec[0]
+		var puesta: bool = false
+		var cid: String = ""
+		for i in range(lineas.size()):
+			var t: PackedStringArray = lineas[i].substr(1).strip_edges().split(" ", false)
+			if t.size() >= 5 and t[0] == "pieza" and t[2] == "cofre" and t[3].to_int() == cc.x and t[4].to_int() == cc.y and not lineas[i].contains(" aparece_si="):
+				cid = t[1]
+				lineas[i] = lineas[i] + " aparece_si=flag.%s.%s.aparece" % [nv, cid]
+				puesta = true
+				break
+		if not puesta:
+			avisos.append("El cofre de (%d, %d) ya tiene su propia condición para aparecer: no se le añade otra." % [cc.x, cc.y])
+			continue
+		n += 1
+		var txt: PackedStringArray = PackedStringArray()
+		for c in celdas:
+			txt.append("%d,%d" % [int(c.x), int(c.y)])
+		lineas.append("; pieza vigia_ap%d vigia %d %d de=%s flag=%s.%s.aparece" % [n, int(celdas[0].x), int(celdas[0].y), "+".join(txt), nv, cid])
+		apariciones_hechas.append({"cofre": ec[1], "enemigos": nombres, "c": cc, "de": celdas})
+		for c in celdas:
+			enlaces.append({"de": c, "a": cc, "de_id": "", "a_id": cid, "fijo": true, "aparece": true})
 
 
 # =====================================================================================================================
@@ -2033,7 +2118,7 @@ func _resultado() -> Dictionary:
 		"arqueros": bool(p.get("_arqueros", false)), "retoques": _retoques,
 		"errores": errores, "enlaces": enlaces, "enlaces_mano": _enlaces_mano, "activadores": _activadores.keys(), "barreras": _barreras.size(),
 		"puzles": puzles_puestos, "puzles_mano": _puzles_mano, "cruzables": _puentes.keys(), "letras_extra": _letras_extra,
-		"movidos": movidos_hechos, "movidos_pedidos": _movidos_pedidos, "anadidos": anadidos_hechos,
+		"movidos": movidos_hechos, "movidos_pedidos": _movidos_pedidos, "anadidos": anadidos_hechos, "apariciones": apariciones_hechas,
 		"stats": {"salas": _vivas().size(), "puertas": puertas.size(), "enemigos": n_enem, "cofres": n_cofres, "jarrones": n_jarrones,
 			"suelo": pisable, "agua": g.count(AGUA), "ocupacion": pisable / float(maxi(1, w * h))},
 	}

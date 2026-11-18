@@ -124,6 +124,12 @@ static func texto_mapa(m: Dictionary) -> String:
 		for a in an:
 			ta.append("%s|%s|%s|%d,%d" % [String(a["que"]), String(a["tipo"]), String(a.get("premio", "")), int(a["c"].x), int(a["c"].y)])
 		l.append("; anadidos " + " ".join(ta))
+	var apa: Array = m.get("apariciones", [])
+	if not apa.is_empty():
+		var tap: PackedStringArray = PackedStringArray()
+		for ap in apa:
+			tap.append("%s<%s" % [String(ap["cofre"]), "+".join(PackedStringArray(ap["enemigos"]))])
+		l.append("; apariciones " + " ".join(tap))
 	l.append(";")
 	if bool(p["rotulo"]):
 		l.append("; zona 1,1..%d,%d %s mezcla=0.8 rotulo=%s" % [int(m["ancho"]) - 2, int(m["alto"]) - 2, String(p["luz"]), nombre])
@@ -363,7 +369,22 @@ static func _regenerado(texto: String) -> String:
 	if par.is_empty():
 		return ""
 	var gen: RefCounted = load("res://herramientas/generador_mapas/generador_mazmorra.gd").new()
-	return texto_mapa(gen.generar(_tipar(par), retoques_de(texto), enlaces_de(texto), puzles_de(texto), movidos_de(texto), anadidos_de(texto)))
+	return texto_mapa(gen.generar(_tipar(par), retoques_de(texto), enlaces_de(texto), puzles_de(texto), movidos_de(texto), anadidos_de(texto), apariciones_de(texto)))
+
+
+## Los cofres que aparecen al caer enemigos (la línea `; apariciones cofre<enemigo+enemigo …`; cada extremo es `a<n>`, un añadido a
+## mano, o `x,y`, la casilla donde el generador puso el elemento).
+static func apariciones_de(texto: String) -> Array:
+	var res: Array = []
+	for linea in texto.split("\n"):
+		var l: String = String(linea).strip_edges()
+		if not l.begins_with("; apariciones "):
+			continue
+		for t in l.substr(14).split(" ", false):
+			var ab: PackedStringArray = t.split("<")
+			if ab.size() == 2 and ab[0] != "" and ab[1] != "":
+				res.append({"cofre": ab[0], "enemigos": Array(ab[1].split("+", false))})
+	return res
 
 
 ## Los enemigos y cofres añadidos a mano (la línea `; anadidos que|tipo|premio|x,y …`), en el orden en que se pusieron.
