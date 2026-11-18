@@ -92,11 +92,11 @@
 ; puzle f5_charco_apaga cuando=f5_charco.alcanzado hace=f5_antorcha.apagar
 ; puzle f5_boton_derrite cuando=f5_boton.pulsado hace=f5_hielo.abrir
 ; puzle f5_placa_enciende cuando=f5_placa.pulsado hace=f5_antorcha.encender
-; --- F6 BARRILES PEQUENOS LANZABLES (5/11): dos en la sala del inicio (10,13) y (14,13), y en la sala de al lado (2,1) otro (18,12) y un barril grande de blanco (22,12). E coge, E lanza (se carga sobre
+; --- F6 BARRILES PEQUENOS LANZABLES (5/11): dos en la sala del inicio (10,13) y (14,13), y en la sala de al lado (2,1) otro (22,10) (F10) y un barril grande de blanco (22,12). E coge, E lanza (se carga sobre
 ; ---   la cabeza); encendido (hechizo de fuego o rayo, o junto a algo que arda) la mecha corre tambien en brazos (2,4 s) y explota al caer o al acabar; sin encender no explota. Radio 1,6 u, dano 20/12.
 ; pieza f6_peq1 barril 10 13 tam=pequeno
 ; pieza f6_peq2 barril 14 13 tam=pequeno
-; pieza f6_peq3 barril 18 12 tam=pequeno
+; pieza f6_peq3 barril 22 10 tam=pequeno
 ; pieza f6_grande barril 22 12
 ; --- F7 DRAGONES CRONOMETRADOS (5/11, docs/TRAMPAS_PARED_2026-11-05.md; sala (3,1), x 25..31, y 9..13): dos cabezas de dragon metidas en el muro norte, (26,8) y (30,8), que dan al sur (mira=s) y escupen un chorro
 ; ---   por las columnas x=26 y x=30 (alcance 5: cubren de y=9 a y=13, no se rodean). Cada una: 1,5 s de fuego y 2,0 s de descanso (aviso de brasas y humo en los ultimos 0,5 s). La segunda empieza 1,75 s desfasada:
@@ -120,8 +120,9 @@
 ; pieza t_fl_boton pulsador 9 18 modo=magia
 ; puzle t_fl_boton_apaga cuando=t_fl_boton.pulsado hace=t_fl_fuego.apagar
 ; --- F10 LLEVA LA POLVORA (18/11, sala (2,1), x 17..23, y 9..15): el nicho del rincon noroeste (17..18, 9..10) esta tapado por un MURO AGRIETADO en (18,11) (muros de piedra en (19,9) (19,10) y (17,11)); dentro, un cofre que aparece al
-; ---   romperse. El barril PEQUENO de (18,12) es la llave: se coge (E), se enciende con fuego (la mecha dura 2,4 s y corre tambien en brazos) y se LANZA contra el muro; explota al chocar, a ~1,2 u de su centro (radio 1,6) y lo rompe de una vez.
-; ---   Dejarlo encendido en su casilla no sirve (explota a 2,3 u: fuera de radio) y el barril GRANDE de (22,12) es un senuelo (a 9 u del muro). Vias: boton ! (18,14) enciende el barril pequeno (sin llevarlo no abre nada) · placa @ (22,14) rompe el muro.
+; ---   romperse. El barril PEQUENO de (22,10), en la otra punta de la sala, es la llave: se coge (E), se enciende con fuego (la mecha dura 2,4 s y corre tambien en brazos), se LLEVA y se lanza o se deja junto al muro; el pequeno
+; ---   mide su radio (1,6 u) a la CASILLA del muro: lo rompe si explota en la casilla de al lado (1,15 u de su cara desde el centro; en diagonal, 1,63 u, no) o al chocar contra el. Encendido donde nace (a 4 casillas) no llega, y
+; ---   el barril GRANDE de (22,12) es un senuelo (a 9 u del muro). Vias: boton ! (18,14) enciende el barril pequeno donde esta (sin llevarlo no abre nada) · placa @ (22,14) rompe el muro.
 ; pieza f10_muro muro 18 11 golpes=2
 ; pieza f10_cofre cofre 17 10 aparece_si=f10_muro.roto da=oro:25
 ; pieza f10_boton pulsador 18 14 modo=magia

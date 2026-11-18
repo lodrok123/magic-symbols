@@ -67,10 +67,10 @@ const TRAMPAS: Array = [
 		"ids": {"a": "t_fl_fuego", "s1": "t_fl_s1", "s2": "t_fl_s2", "barril": "t_fl_barril", "boton": "t_fl_boton"}},
 ]
 ## PUZLES NUEVOS (18/11/2026): tres salas más, aparte de las anteriores para no tocar `_puzles` ni `_trampas` (que cuentan las pruebas). Teclas 9, 0 y «-» (a la izquierda de la 1 en el teclado español: la tecla de al lado del 0).
-##   F10 (2,1) LLEVA LA PÓLVORA: un muro agrietado tapa un nicho con un cofre; el barril pequeño de (18,12) se coge, se enciende con fuego y se lanza contra el muro. Botón `!` enciende el barril; placa `@` rompe el muro.
+##   F10 (2,1) LLEVA LA PÓLVORA: un muro agrietado tapa un nicho con un cofre; el barril pequeño de (22,10) (la otra punta de la sala) se coge, se enciende con fuego, se lleva y se lanza o se deja junto al muro. Botón `!` enciende el barril donde está; placa `@` rompe el muro.
 const NUEVOS: Array = [
 	{"nombre": "F10 pólvora", "entrada": Vector2i(19, 13), "cartel": Vector2i(21, 10),
-		"texto": "F10 · LLEVA LA PÓLVORA\nCoge el barril pequeño (E), enciéndelo con fuego y LÁNZALO contra el muro agrietado del rincón\n(la mecha dura 2,4 s). Dejarlo arder en su sitio no basta y el barril grande es un señuelo.\nBotón: enciende el pequeño · placa: rompe el muro.",
+		"texto": "F10 · LLEVA LA PÓLVORA\nCoge el barril pequeño del fondo (E), enciéndelo con fuego y LLÉVALO junto al muro agrietado del rincón:\nlánzalo contra él o déjalo en la casilla de al lado (la mecha dura 2,4 s). Donde nace no llega; el grande es un señuelo.\nBotón: enciende el pequeño donde está · placa: rompe el muro.",
 		"ids": {"muro": "f10_muro", "cofre": "f10_cofre", "barril": "f6_peq3", "grande": "f6_grande", "boton": "f10_boton", "placa": "f10_placa"}},
 	{"nombre": "F11 tótems", "entrada": Vector2i(20, 17), "cartel": Vector2i(21, 19),
 		"texto": "F11 · TÓTEMS QUE ESCUPEN FUEGO\nTres tótems de piedra lanzan una bola cada 3 s por su fila, uno tras otro.\nCruza los carriles (filas 18, 20 y 22) por turnos y descansa en las de en medio hasta la placa del fondo.\nAgua a un tótem: lo apaga 8 s · botón: apaga los tres 8 s.",

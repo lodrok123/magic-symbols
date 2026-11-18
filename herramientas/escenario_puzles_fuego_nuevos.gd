@@ -23,6 +23,8 @@ func _escenario() -> void:
 		await _f10_natural()
 		await _f11_natural()
 		await _f12_natural()
+	elif modo == "muro":
+		await _f10_muro()
 	else:
 		await _f10_botones()
 		await _f11_botones()
@@ -96,14 +98,20 @@ func _f10_estado_inicial() -> void:
 	var peq: Barril3D = q["barril"]
 	var grande: Barril3D = _nodo("f6_grande") as Barril3D
 	_ok("F10.1 el muro agrietado tapa la entrada del nicho (casilla (18,11) bloqueada) y el cofre del premio aún no existe", muro != null and not muro.roto_ya and Terreno3D.bloqueada(Vector2i(18, 11)) and cofre != null and bool(cofre.get("es_oculto")))
-	_ok("F10.2 hay un barril PEQUEÑO lanzable en (18,12) y uno GRANDE en (22,12), los dos enteros", peq != null and peq.pequeno and peq.celda == Vector2i(18, 12) and not peq.encendido and not peq.explotado
+	_ok("F10.2 hay un barril PEQUEÑO lanzable en (22,10), al otro lado de la sala, y uno GRANDE en (22,12), los dos enteros", peq != null and peq.pequeno and peq.celda == Vector2i(22, 10) and not peq.encendido and not peq.explotado
 		and grande != null and not grande.pequeno and grande.celda == Vector2i(22, 12) and not grande.explotado)
-	# Lo que dice el código (Barril3D / MuroAgrietado3D): la explosión llega a lo del grupo `explosionable` que esté a ≤ radio del PUNTO de la explosión (centro a centro).
+	# Lo que dice el código (Barril3D / MuroAgrietado3D): la explosión llega a lo del grupo `explosionable`. El barril PEQUEÑO mide al punto más cercano de su CASILLA (no a su centro), con radio 1,6 u.
 	_ok("F10.3 el muro es `explosionable` y sabe recibir una explosión: la del barril lo rompe de una vez", muro.is_in_group("explosionable") and muro.has_method("recibir_explosion") and not muro.por_pulso)
-	var medio: float = Terreno3D.casilla * 0.5
-	var alcance_muro: float = Barril3D.RADIO_PEQUENO + Barril3D.EXTRA_SOLIDO_PEQUENO
-	_ok("F10.4 geometría: el alcance del barril pequeño contra lo explosionable (%.2f u) llega al centro del muro desde su borde (a %.2f u) pero NO desde el centro de la casilla de al lado (a %.2f u): hay que LANZARLO contra el muro" % [alcance_muro, medio, Terreno3D.casilla],
-		alcance_muro > medio + 0.4 and alcance_muro < Terreno3D.casilla)
+	# (18/11, cambio de regla) ANTES F10.4 decía: «el alcance del pequeño (1,6 + 0,45) llega al muro desde su borde pero no desde el centro de la casilla de al lado: hay que lanzarlo». Con la regla nueva
+	# desde el centro de la casilla de al lado SÍ llega (1,15 u de la cara), y lo que obliga a llevarlo es que nace lejos (F10.4b).
+	var c_muro: Vector3 = muro.global_position
+	var d_vecina: float = Barril3D.distancia_a_casilla(Terreno3D.centro_de(Vector2i(18, 12)), c_muro)
+	var d_diagonal: float = Barril3D.distancia_a_casilla(Terreno3D.centro_de(Vector2i(19, 12)), c_muro)
+	_ok("F10.4 geometría: desde el centro de la casilla de al lado del muro el pequeño está a %.2f u de su cara (radio %.1f: lo rompe) y en diagonal a %.2f u (no)" % [d_vecina, Barril3D.RADIO_PEQUENO, d_diagonal],
+		d_vecina <= Barril3D.RADIO_PEQUENO and d_diagonal > Barril3D.RADIO_PEQUENO)
+	var d_origen: float = Barril3D.distancia_a_casilla(peq.global_position, c_muro)
+	_ok("F10.4b el barril pequeño NO nace al alcance del muro: su casilla de origen está a %.1f u de la cara (más de 3 casillas de centro a centro) y hay que llevarlo" % d_origen,
+		d_origen > Barril3D.RADIO_PEQUENO and (peq.global_position - c_muro).length() >= 3.0 * Terreno3D.casilla)
 	_ok("F10.5 el barril grande, de radio %.1f u, no llega al muro desde donde está (a %.1f u)" % [Barril3D.RADIO, (muro.global_position - grande.global_position).length()], (muro.global_position - grande.global_position).length() > Barril3D.RADIO)
 
 
@@ -124,9 +132,9 @@ func _f10_natural() -> void:
 	await avanzar_s(0.5)
 	_ok("F10.7 el barril grande explota y el muro sigue entero (el señuelo no abre el nicho)", int(rec_g["n"]) == 1 and not muro.roto_ya and Terreno3D.bloqueada(Vector2i(18, 11)))
 	# 2 · La vía: coger el pequeño, encenderlo con fuego y lanzarlo contra el muro.
-	await _preparar_j(Vector2i(18, 13), Vector3(0.0, 0.0, -1.0))
+	await _preparar_j(Vector2i(22, 11), Vector3(0.0, 0.0, -1.0))
 	var rec: Dictionary = _vigilar(peq)
-	_ok("F10.8 fuego + flecha al barril pequeño (a una casilla) sale", lanzar_a_celda("fuego", ["flecha"], Vector2i(18, 12), Vector2i(18, 13)))
+	_ok("F10.8 fuego + flecha al barril pequeño (a una casilla) sale", lanzar_a_celda("fuego", ["flecha"], Vector2i(22, 10), Vector2i(22, 11)))
 	var t_enc: float = reloj.t
 	# La jugadora pulsa E en cuanto puede (mientras lanza el hechizo no puede coger): se reintenta cada fotograma.
 	var coge: bool = false
@@ -140,13 +148,15 @@ func _f10_natural() -> void:
 	await avanzar(2)
 	var queda: float = peq.mecha_restante() if is_instance_valid(peq) else -1.0
 	_ok("F10.9 lo coge ENCENDIDO (E posible a los %.2f s, en las manos a los %.2f s del fuego) y la mecha sigue (le quedaba %.2f)" % [t_coge, t_manos, queda], coge and en_manos and peq.encendido and peq.en_brazos and queda > 0.15, "en_manos %s" % str(en_manos))
+	# Lo lleva a la otra punta de la sala (teletransporte: ir andando gastaría la mecha, que aquí no es lo que se prueba) y lo lanza contra el muro.
+	colocar_jugador(Vector2i(18, 13))
 	j.mirar_hacia(Vector3(0.0, 0.0, -1.0))
 	(j.pj as Pj3D).mirar(Vector3(0.0, 0.0, -1.0), 1.0)
 	c.lanzar()
 	await _espera_rec(rec, 4.0)
 	await avanzar_s(0.3)
-	var d_muro: float = (rec["punto"] as Vector3 - muro.global_position).length() if int(rec["n"]) > 0 else -1.0
-	_ok("F10.10 explota al chocar con el muro, a %.2f u de su centro (alcance contra muros %.2f)" % [d_muro, Barril3D.RADIO_PEQUENO + Barril3D.EXTRA_SOLIDO_PEQUENO], int(rec["n"]) == 1 and d_muro > 0.0 and d_muro <= Barril3D.RADIO_PEQUENO + Barril3D.EXTRA_SOLIDO_PEQUENO, "t %.2f" % (float(rec["t"]) - t_enc))
+	var d_muro: float = Barril3D.distancia_a_casilla(rec["punto"] as Vector3, muro.global_position) if int(rec["n"]) > 0 else -1.0
+	_ok("F10.10 explota al chocar con el muro, a %.2f u de su casilla (radio %.1f)" % [d_muro, Barril3D.RADIO_PEQUENO], int(rec["n"]) == 1 and d_muro >= 0.0 and d_muro <= Barril3D.RADIO_PEQUENO, "t %.2f" % (float(rec["t"]) - t_enc))
 	_ok("F10.11 el muro se rompe (`roto`) y libera su casilla", muro.roto_ya and not Terreno3D.bloqueada(Vector2i(18, 11)))
 	await avanzar_s(0.5)
 	_ok("F10.12 aparece el cofre del nicho (cerrado) y se abre con E: da su botín", not bool(cofre.get("es_oculto")) and bool(cofre.get("es_cerrado")))
@@ -164,19 +174,83 @@ func _f10_botones() -> void:
 	var boton: Pulsador3D = lab.call("pulsador_en", Vector2i(18, 14)) as Pulsador3D
 	var placa: Pulsador3D = lab.call("pulsador_en", Vector2i(22, 14)) as Pulsador3D
 	_ok("F10.20 el botón `!` (18,14) y la placa `@` (22,14) existen", boton != null and placa != null)
-	# El botón enciende el barril pequeño donde está: sin llevarlo, explota en su casilla (a 2,3 u del muro) y NO lo rompe.
+	# El botón enciende el barril pequeño donde está (en (22,10), lejos): sin llevarlo, explota en su casilla y NO rompe el muro.
 	var rec: Dictionary = _vigilar(peq)
 	boton.pulsar()
 	await avanzar(2)
 	_ok("F10.21 el botón enciende el barril pequeño", peq.encendido)
 	await _espera_rec(rec, 5.0)
 	await avanzar_s(0.5)
-	_ok("F10.22 explota en su casilla y NO rompe el muro (hay que llevarlo: a %.1f u del centro, radio %.1f)" % [((rec["punto"] as Vector3) - muro.global_position).length(), Barril3D.RADIO_PEQUENO],
-		int(rec["n"]) == 1 and not muro.roto_ya and ((rec["punto"] as Vector3) - muro.global_position).length() > Barril3D.RADIO_PEQUENO)
+	var d_casilla: float = Barril3D.distancia_a_casilla(rec["punto"] as Vector3, muro.global_position)
+	_ok("F10.22 explota en su sitio y NO rompe el muro (hay que llevarlo: a %.1f u de su casilla, radio %.1f)" % [d_casilla, Barril3D.RADIO_PEQUENO],
+		int(rec["n"]) == 1 and not muro.roto_ya and d_casilla > Barril3D.RADIO_PEQUENO)
 	# La placa rompe el muro directamente (el control: separa «falla la explosión» de «falla el disparador»).
 	colocar_jugador(Vector2i(22, 14))
 	await avanzar_s(0.6)
 	_ok("F10.23 la placa rompe el muro y hace aparecer el cofre", placa.veces == 1 and muro.roto_ya and not bool(cofre.get("es_oculto")))
+
+
+# --- La regla del barril pequeño contra el muro (18/11): mide al punto más cercano de la CASILLA del muro, con radio 1,6 u. Cada caso rompe (o no) el muro, y lo roto no se deshace: cada caso recarga el laboratorio.
+##   godot --headless --fixed-fps 20|30|60 --path . --script res://herramientas/escenario_puzles_fuego_nuevos_muro.gd
+
+func _recargar_lab() -> void:
+	if maqueta != null and is_instance_valid(maqueta):
+		maqueta.queue_free()
+		await avanzar(10)
+	await cargar(RUTA_LAB)
+	lab = maqueta.get_node_or_null("Reglas")
+
+
+## Un caso: coge el barril pequeño (sin encender) desde `desde` mirando `dir`, lo enciende en las manos y lo `accion`a ("soltar" lo deja delante; "lanzar" lo tira). Comprueba dónde explota y si el muro se rompe.
+func _f10_muro_caso(id: String, desde: Vector2i, dir: Vector3, accion: String, celda_esperada: Vector2i, rompe: bool, recargar: bool = true) -> void:
+	if recargar:
+		await _recargar_lab()
+	var q: Dictionary = _sala("F10")
+	var muro: MuroAgrietado3D = q["muro"]
+	var peq: Barril3D = q["barril"]
+	var j: Jugador3D = jugador as Jugador3D
+	var c: CargarObjeto3D = j.carga
+	lanzador.tinta = null
+	var rec: Dictionary = _vigilar(peq)
+	await _preparar_j(desde, dir)
+	var t0: float = reloj.t
+	await avanzar(10)
+	var fps: float = 10.0 / maxf(reloj.t - t0, 0.001)
+	var coge: bool = false
+	var t_coge: float = reloj.t
+	while not coge and reloj.t - t_coge < 2.0:
+		coge = c.coger(peq)
+		if not coge:
+			await process_frame
+	var en_manos: bool = coge and await _hasta_estado(c, CargarObjeto3D.Estado.CARGANDO)
+	_ok("%s.1 coge el barril pequeño (a unos %.0f fps)" % [id, fps], coge and en_manos and not peq.encendido)
+	if not en_manos:
+		return
+	peq.encender()
+	j.mirar_hacia(dir)                       # al cogerlo se vuelve hacia el barril: se vuelve a poner de cara a donde va
+	(j.pj as Pj3D).mirar(dir, 1.0)
+	await avanzar(2)
+	var hecho: bool = c.soltar() if accion == "soltar" else c.lanzar()
+	_ok("%s.2 lo %s encendido" % [id, accion], hecho and peq.encendido)
+	await _espera_rec(rec, 5.0)
+	await avanzar_s(0.5)
+	var punto: Vector3 = rec["punto"] as Vector3
+	var d: float = Barril3D.distancia_a_casilla(punto, muro.global_position)
+	var cel: Vector2i = Terreno3D.celda_de(punto)
+	_ok("%s.3 explota una sola vez en %s (esperada %s), a %.2f u de la casilla del muro (radio %.1f)" % [id, str(cel), str(celda_esperada), d, Barril3D.RADIO_PEQUENO], int(rec["n"]) == 1 and cel == celda_esperada, "punto (%.2f, %.2f), jugadora en (%.2f, %.2f)" % [punto.x, punto.z, j.position.x, j.position.z])
+	_ok("%s.4 el muro %s" % [id, "se rompe y libera su casilla" if rompe else "NO se rompe"], muro.roto_ya == rompe and Terreno3D.bloqueada(Vector2i(18, 11)) != rompe, "roto_ya %s" % str(muro.roto_ya))
+
+
+func _f10_muro() -> void:
+	await _f10_estado_inicial()
+	# A · dejado (soltar) ENCENDIDO en la casilla de al lado del muro: lo rompe (1,15 u de su cara).
+	await _f10_muro_caso("F10.A", Vector2i(18, 13), Vector3(0.0, 0.0, -1.0), "soltar", Vector2i(18, 12), true, false)
+	# B · lanzado y caído en el suelo de esa casilla (3 casillas de alcance desde (21,12) hacia el oeste): lo rompe.
+	await _f10_muro_caso("F10.B", Vector2i(21, 12), Vector3(-1.0, 0.0, 0.0), "lanzar", Vector2i(18, 12), true)
+	# C · lanzado de frente contra el muro desde (18,13): explota al chocar (donde estaba un fotograma antes) y lo rompe, a cualquier tasa de fotogramas.
+	await _f10_muro_caso("F10.C", Vector2i(18, 13), Vector3(0.0, 0.0, -1.0), "lanzar", Vector2i(18, 12), true)
+	# D · en diagonal (casilla (19,12), 1,63 u de la cara): no lo rompe.
+	await _f10_muro_caso("F10.D", Vector2i(19, 15), Vector3(0.0, 0.0, -1.0), "lanzar", Vector2i(19, 12), false)
 
 
 # ---------------------------------------------------------------------------------------------------------------------
