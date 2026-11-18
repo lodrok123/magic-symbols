@@ -5535,3 +5535,14 @@ Los dos pendientes de la 493. Sin commit todavía.
 - **Comprobado:** capturas de antes y después de 9 de los 10 niveles de `Niveles.ESCENAS` (cargan todos, mismos avisos que antes). Escenarios, todos a 0 fallos y sin errores de script: `escenario_bosque_01_v01`, `escenario_bosque_01`, `escenario_bosque_02`, `escenario_cueva_completa`, `escenario_generador_mapas` (salas y cueva) y `prueba_generador_mapas`.
 
 **No hecho / visto.** Bosque 02 no se ha podido capturar (mi guion de capturas se queda colgado en ese nivel, con el acabado y sin él): pasa su escenario, pero no lo he visto. El resto de escenarios del juego no se han pasado. En la captura del Pantano falta una mata de hierba que sí estaba en la de antes; no he averiguado si es por el cambio. Las escenas de laboratorio que usan la maqueta también reciben el acabado y no se han mirado. Para dejar un nivel como estaba: `orilla_integrada = false` y `juntas_entremezcladas = false` en su escena.
+## 521 — Juego (18/11): **Generador de mapas: pestaña «Puzles»** (Pablo: «una pestaña de puzzles con desplegable para introducirlos y poderlos mover de sala a sala»)
+
+- El panel izquierdo de la herramienta tiene ahora dos pestañas: «Mapa» (los parámetros de siempre) y «Puzles».
+- **Añadir:** un desplegable con los puzles del catálogo (el tipo, lo que pide y su tamaño salen al pasar el ratón), otro con las salas libres y el botón «Añadir».
+- **Puestos a mano:** cada uno con su sala, «Mover a…» (otra sala libre) y «Quitar». Si no ha cabido, sale en rojo.
+- **Repartidos solos** (los de «Puzles del catálogo»): también con «Mover a…», que lo deja puesto a mano en la sala elegida y descuenta uno de los automáticos.
+- El número de cada sala se dibuja ahora en una chapa oscura con letra blanca (antes era gris claro y apenas se leía): es el que piden los desplegables.
+- Sigue valiendo el pincel «puzle: …». Los puzles a mano se guardan en el .txt como antes (`; puzles`).
+- Probado llamando a lo que llaman los controles (añadir, mover uno a mano, mover uno automático, quitar): el mapa queda como se pide en los cuatro casos. Con ratón, sin probar.
+
+**Visto.** Al mover o quitar un puzle, los que el generador reparte solo pueden cambiar de sala (se vuelven a repartir). Una sala lleva un puzle como mucho.

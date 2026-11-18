@@ -253,7 +253,15 @@ class Vista extends Control:
 		if e >= 12.0:
 			for s in mapa["salas"]:
 				var r2: Rect2i = s["rect"]
-				draw_string(fuente, origen + Vector2(r2.position) * e + Vector2(3, tam_letra * 0.8 + 1), str(int(s["id"])) + ("  " + String(s["titulo"]) if s.has("titulo") else ""), HORIZONTAL_ALIGNMENT_LEFT, -1, int(tam_letra * 0.75), Color(0, 0, 0, 0.7 if s.has("titulo") else 0.45))
+				# El número de la sala, en una chapa oscura que se lea sobre cualquier fondo: es el que piden los desplegables de la pestaña «Puzles».
+				var num: String = str(int(s["id"]))
+				var tam_num: int = maxi(11, int(tam_letra * 0.85))
+				var esquina: Vector2 = origen + Vector2(r2.position) * e + Vector2(2, 2)
+				var ancho_num: float = fuente.get_string_size(num, HORIZONTAL_ALIGNMENT_LEFT, -1, tam_num).x + 8.0
+				draw_rect(Rect2(esquina, Vector2(ancho_num, tam_num + 5.0)), Color(0.08, 0.08, 0.1, 0.78))
+				draw_string(fuente, esquina + Vector2(4, tam_num), num, HORIZONTAL_ALIGNMENT_LEFT, -1, tam_num, Color.WHITE)
+				if s.has("titulo"):
+					draw_string(fuente, esquina + Vector2(ancho_num + 5.0, tam_num), String(s["titulo"]), HORIZONTAL_ALIGNMENT_LEFT, -1, int(tam_letra * 0.75), Color(0, 0, 0, 0.7))
 		# Vínculos: una flecha del activador a lo que abre (amarilla; morada la de la llave, que es fija). Lo que no tiene, en rojo.
 		for en in mapa.get("enlaces", []):
 			var pa: Vector2 = origen + (Vector2(en["a"]) + Vector2(0.5, 0.5)) * e
@@ -302,7 +310,10 @@ var _pincel: OptionButton = null
 var _abrir: MenuButton = null
 var _confirmar: ConfirmationDialog = null
 var _tras_confirmar: Callable = Callable()
-var _pid_horno: int = 0                 ## el proceso que está horneando (0 = ninguno)
+var _lista_puzles: VBoxContainer = null  ## el contenido de la pestaña «Puzles» (se rehace cada vez que cambia el mapa)
+var _pz_que: String = ""                ## lo elegido en «Añadir»: qué puzle…
+var _pz_sala: int = -1                  ## …y en qué sala
+var _pid_horno: int = 0                ## el proceso que está horneando (0 = ninguno)
 var _nombre_horno: String = ""
 var _mono: SystemFont = SystemFont.new()
 var _cargando: bool = false
@@ -355,10 +366,22 @@ func _montar() -> void:
 	cuerpo.add_theme_constant_override("separation", 8)
 	todo.add_child(cuerpo)
 	# --- izquierda: parámetros ---
+	# Dos pestañas: «Mapa» (los parámetros de siempre) y «Puzles» (añadir, mover y quitar puzles del catálogo sin usar el pincel).
+	var pestanas: TabContainer = TabContainer.new()
+	pestanas.custom_minimum_size = Vector2(350, 0)
+	cuerpo.add_child(pestanas)
 	var barra: ScrollContainer = ScrollContainer.new()
-	barra.custom_minimum_size = Vector2(350, 0)
+	barra.name = "Mapa"
 	barra.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
-	cuerpo.add_child(barra)
+	pestanas.add_child(barra)
+	var barra_pz: ScrollContainer = ScrollContainer.new()
+	barra_pz.name = "Puzles"
+	barra_pz.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	pestanas.add_child(barra_pz)
+	_lista_puzles = VBoxContainer.new()
+	_lista_puzles.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_lista_puzles.add_theme_constant_override("separation", 6)
+	barra_pz.add_child(_lista_puzles)
 	var lista: VBoxContainer = VBoxContainer.new()
 	lista.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	lista.add_theme_constant_override("separation", 3)
@@ -610,6 +633,7 @@ func _regenerar() -> void:
 	_mapa = Generador.new().generar(_par, _retoques, _enlaces, _puzles)
 	var ms: float = (Time.get_ticks_usec() - t0) / 1000.0
 	_vista.poner(_mapa)
+	_refrescar_puzles()
 	_texto.text = Exportador.texto_mapa(_mapa)
 	var st: Dictionary = _mapa["stats"]
 	var l: PackedStringArray = PackedStringArray()
@@ -784,6 +808,147 @@ func _hacer_exportar(probar: bool) -> void:
 		var pid: int = OS.create_process(OS.get_executable_path(), ["--path", ProjectSettings.globalize_path("res://"), Exportador.ruta_escena(nombre)])
 		if pid <= 0:
 			_decir("Exportado, pero no se pudo abrir el juego. Ábrelo a mano: " + Exportador.ruta_escena(nombre))
+
+
+# --- pestaña «Puzles» ---
+
+## Una sala, dicha como se ve en el mapa: su número (el que lleva pintado) y su tamaño.
+func _nombre_sala(s: Dictionary) -> String:
+	var r: Rect2i = s["rect"]
+	return "Sala %d · %d × %d" % [int(s["id"]), r.size.x, r.size.y]
+
+
+## Un desplegable de salas libres (sin papel: ni inicio, ni tesoro, ni llave, ni otro puzle). `primera` es el texto de la opción vacía.
+func _desplegable_salas(primera: String, elegida: int = -1) -> OptionButton:
+	var ob: OptionButton = OptionButton.new()
+	ob.add_item(primera)
+	ob.set_item_metadata(0, -1)
+	for s in _mapa["salas"]:
+		if String(s["rol"]) == "":
+			ob.add_item(_nombre_sala(s))
+			ob.set_item_metadata(ob.item_count - 1, int(s["id"]))
+			if int(s["id"]) == elegida:
+				ob.select(ob.item_count - 1)
+	return ob
+
+
+func _rotulo_pz(texto: String, color: Color = Color(0.95, 0.75, 0.35), tam: int = 13) -> Label:
+	var t: Label = Label.new()
+	t.text = texto
+	t.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	t.add_theme_color_override("font_color", color)
+	t.add_theme_font_size_override("font_size", tam)
+	return t
+
+
+## Rehace la pestaña con lo que hay en el mapa: el formulario de añadir, los puzles puestos a mano (con «Mover a…» y «Quitar») y los
+## que ha repartido el generador solo (con «Mover a…», que lo fija a mano en la sala elegida y descuenta uno de los automáticos).
+func _refrescar_puzles() -> void:
+	if _lista_puzles == null:
+		return
+	for h in _lista_puzles.get_children():
+		_lista_puzles.remove_child(h)
+		h.queue_free()
+	var cat: Dictionary = Catalogo.todos()
+	var puestos: Dictionary = _mapa["puzles"]
+	_lista_puzles.add_child(_rotulo_pz("AÑADIR UN PUZLE"))
+	var que: OptionButton = OptionButton.new()
+	que.add_item("(elige un puzle)")
+	que.set_item_metadata(0, "")
+	var ids: Array = cat.keys()
+	ids.sort()
+	for cid in ids:
+		que.add_item(String(cat[cid]["titulo"]))
+		que.set_item_metadata(que.item_count - 1, String(cid))
+		que.set_item_tooltip(que.item_count - 1, "%s · tipo «%s»%s · %d × %d casillas" % [String(cid), String(cat[cid]["tipo"]),
+			(" · pide " + String(cat[cid]["pide"])) if String(cat[cid]["pide"]) != "" else "", int(cat[cid]["ancho"]), int(cat[cid]["alto"])])
+		if String(cid) == _pz_que:
+			que.select(que.item_count - 1)
+	que.item_selected.connect(func(i: int) -> void: _pz_que = String(que.get_item_metadata(i)))
+	_lista_puzles.add_child(que)
+	var fila_a: HBoxContainer = HBoxContainer.new()
+	var donde: OptionButton = _desplegable_salas("(elige una sala)", _pz_sala)
+	donde.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	donde.item_selected.connect(func(i: int) -> void: _pz_sala = int(donde.get_item_metadata(i)))
+	fila_a.add_child(donde)
+	_boton(fila_a, "Añadir", _pz_anadir, "Pone el puzle elegido en la sala elegida. Si no cabe, se excava la roca de alrededor; si ni así, lo dice abajo.")
+	_lista_puzles.add_child(fila_a)
+	_lista_puzles.add_child(_rotulo_pz("El número de cada sala es el que lleva pintado en el mapa. Solo salen las salas libres: una sala lleva un puzle como mucho.", Color(0.75, 0.75, 0.75), 12))
+	# Puestos a mano.
+	_lista_puzles.add_child(_rotulo_pz("\nPUESTOS A MANO (%d)" % _puzles.size()))
+	var a_mano: Array = _puzles.keys()
+	a_mano.sort()
+	for sid in a_mano:
+		var cid: String = String(_puzles[sid])
+		var bien: bool = String(puestos.get(int(sid), "")) == cid
+		_lista_puzles.add_child(_fila_puzle(int(sid), cid, true, bien))
+	if _puzles.is_empty():
+		_lista_puzles.add_child(_rotulo_pz("Ninguno todavía.", Color(0.75, 0.75, 0.75), 12))
+	# Repartidos por el generador.
+	var solos: Array = []
+	for sid in puestos:
+		if not _puzles.has(sid):
+			solos.append(sid)
+	solos.sort()
+	_lista_puzles.add_child(_rotulo_pz("\nREPARTIDOS SOLOS (%d)" % solos.size()))
+	for sid in solos:
+		_lista_puzles.add_child(_fila_puzle(int(sid), String(puestos[sid]), false, true))
+	if solos.is_empty():
+		_lista_puzles.add_child(_rotulo_pz("Ninguno. Su número se pide en «Puzles del catálogo», en la pestaña Mapa.", Color(0.75, 0.75, 0.75), 12))
+
+
+## La fila de un puzle: dónde está, «Mover a…» y «Quitar».
+func _fila_puzle(sid: int, cid: String, a_mano: bool, bien: bool) -> Control:
+	var cat: Dictionary = Catalogo.todos()
+	var caja: VBoxContainer = VBoxContainer.new()
+	var titulo: String = String(cat[cid]["titulo"]) if cat.has(cid) else cid
+	var sala_txt: String = "Sala %d" % sid
+	for s in _mapa["salas"]:
+		if int(s["id"]) == sid:
+			sala_txt = _nombre_sala(s)
+	caja.add_child(_rotulo_pz(("%s — %s" % [sala_txt, titulo]) if bien else ("✖ %s — %s: NO se ha podido poner (mira el aviso amarillo de la derecha)" % [sala_txt, titulo]),
+		Color(0.92, 0.92, 0.92) if bien else Color(1.0, 0.48, 0.42), 14))
+	var fila: HBoxContainer = HBoxContainer.new()
+	var mover: OptionButton = _desplegable_salas("Mover a…")
+	mover.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	mover.tooltip_text = "Lleva este puzle a otra sala libre." if a_mano else "Lo lleva a la sala elegida y lo deja puesto a mano (se descuenta uno de «Puzles del catálogo»)."
+	mover.item_selected.connect(func(i: int) -> void: _pz_mover(sid, cid, int(mover.get_item_metadata(i)), a_mano))
+	fila.add_child(mover)
+	if a_mano:
+		_boton(fila, "Quitar", func() -> void: _pz_quitar(sid), "Quita este puzle de su sala.")
+	caja.add_child(fila)
+	return caja
+
+
+func _pz_anadir() -> void:
+	if _pz_que == "" or _pz_sala < 0:
+		_decir("Elige primero un puzle y una sala.")
+		return
+	_puzles[_pz_sala] = _pz_que
+	_decir("Puzle «%s» pedido para la sala %d." % [_pz_que, _pz_sala])
+	_pz_sala = -1
+	_sucio = true
+
+
+func _pz_mover(de: int, cid: String, a: int, a_mano: bool) -> void:
+	if a < 0 or a == de:
+		return
+	if a_mano:
+		_puzles.erase(de)
+	else:
+		# Era de los repartidos solos: pasa a estar puesto a mano y se pide uno menos de los automáticos, para que no salga otro en su lugar.
+		_par["puzles"] = maxi(0, int(_par["puzles"]) - 1)
+		_poner_control("puzles", _par["puzles"])
+	_puzles[a] = cid
+	_decir("Puzle «%s» movido de la sala %d a la sala %d." % [cid, de, a])
+	_sucio = true
+
+
+func _pz_quitar(sid: int) -> void:
+	if _puzles.has(sid):
+		_puzles.erase(sid)
+		_decir("Puzle quitado de la sala %d." % sid)
+		_sucio = true
 
 
 # --- hornear ---
