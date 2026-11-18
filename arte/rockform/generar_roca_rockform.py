@@ -27,6 +27,7 @@ ap.add_argument('--tris', type=int, default=2500)      # triángulos de la versi
 ap.add_argument('--lado', type=float, default=2.0)      # metros del lado horizontal más largo ya exportada
 ap.add_argument('--corte_abajo', type=float, default=0.0)   # fracción del alto que se recorta por abajo (base plana)
 ap.add_argument('--corte_arriba', type=float, default=0.0)  # fracción del alto que se recorta por arriba (techo plano y pisable)
+ap.add_argument('--aplana', type=float, nargs=2, default=[1.0, 1.0])   # techo pisable: desde qué fracción del alto y cuánto queda del relieve por encima (0.6 0.25 = lo que pasa del 60 % se queda en un cuarto)
 a = ap.parse_args(sys.argv[sys.argv.index('--') + 1:])
 
 blend = os.path.join(os.environ['APPDATA'], 'Blender Foundation', 'Blender', '5.2', 'extensions',
@@ -121,6 +122,15 @@ if a.corte_abajo > 0.0 or a.corte_arriba > 0.0:
                         f.normal_flip()
     bm.to_mesh(alta); bm.free()
 
+# Techo pisable: lo que sobresale de la cota `aplana[0]` se comprime a `aplana[1]` de su relieve (no es un corte: las losas siguen marcadas).
+if a.aplana[1] < 1.0:
+    zs = [v.co.z for v in alta.vertices]
+    z0, z1 = min(zs), max(zs)
+    cota = z0 + (z1 - z0) * a.aplana[0]
+    for v in alta.vertices:
+        if v.co.z > cota:
+            v.co.z = cota + (v.co.z - cota) * a.aplana[1]
+
 # Versión low-poly: decimate hasta los triángulos pedidos.
 nombre = os.path.splitext(os.path.basename(a.glb))[0]
 baja = bpy.data.objects.new(nombre, alta)
@@ -146,6 +156,16 @@ for p in final.polygons:
     p.use_smooth = not a.facetas
 print('RF_BAJA', nombre, 'tris', len(final.polygons), 'tam_final_xyz',
       round((max(xs) - min(xs)) * k, 2), round((max(ys) - min(ys)) * k, 2), round((max(zs) - min(zs)) * k, 2))
+
+# Medida del techo: de las caras que miran hacia arriba, a qué altura quedan respecto al punto más alto (1 = todo a ras, pisable sin flotar).
+final.update()
+alto_f = max(v.co.z for v in final.vertices)
+arriba = [(p.center.z / alto_f, p.area) for p in final.polygons if p.normal.z > 0.7 and p.center.z > alto_f * 0.4]
+area = sum(x[1] for x in arriba)
+media = sum(x[0] * x[1] for x in arriba) / area
+bajo = sum(x[1] for x in arriba if x[0] < 0.85) / area
+print('RF_TECHO altura_media_del_techo', round(media, 3), 'minima', round(min(x[0] for x in arriba), 3),
+      'area_por_debajo_del_85', round(bajo, 3))
 
 for o in bpy.data.objects:
     o.select_set(False)
