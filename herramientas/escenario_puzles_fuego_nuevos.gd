@@ -21,8 +21,10 @@ func _escenario() -> void:
 	_ok("0 el mapa y las piezas nuevas se montan sin avisos", (lab.get("_avisos") as Array).is_empty(), str(lab.get("_avisos")))
 	if modo == "natural":
 		await _f10_natural()
+		await _f11_natural()
 	else:
 		await _f10_botones()
+		await _f11_botones()
 
 
 # ---------------------------------------------------------------------------------------------------------------------
@@ -173,3 +175,137 @@ func _f10_botones() -> void:
 	colocar_jugador(Vector2i(22, 14))
 	await avanzar_s(0.6)
 	_ok("F10.23 la placa rompe el muro y hace aparecer el cofre", placa.veces == 1 and muro.roto_ya and not bool(cofre.get("es_oculto")))
+
+
+# ---------------------------------------------------------------------------------------------------------------------
+#  F11 · Tótems que escupen fuego
+# ---------------------------------------------------------------------------------------------------------------------
+
+func _f11_totems() -> Array:
+	var q: Dictionary = _sala("F11")
+	return [q["t1"], q["t2"], q["t3"]]
+
+
+## Apunta cuándo dispara cada tótem (señal `dispara`): {fila del tótem -> [tiempos]}.
+func _vigilar_totems(ts: Array) -> Dictionary:
+	var rec: Dictionary = {}
+	for t in ts:
+		var tf: TrampaFlechas3D = t
+		var y: int = tf.celda.y
+		rec[y] = []
+		tf.dispara.connect(func() -> void: (rec[y] as Array).append(reloj.t))
+	return rec
+
+
+func _golpes_totems(ts: Array) -> int:
+	var n: int = 0
+	for t in ts:
+		n += int((t as TrampaFlechas3D).golpes_jugadora)
+	return n
+
+
+func _f11_estado_inicial() -> void:
+	var ts: Array = _f11_totems()
+	var celdas: Array = [Vector2i(17, 18), Vector2i(17, 20), Vector2i(17, 22)]
+	var bien: bool = true
+	var boca_fuera: bool = true
+	for i in range(3):
+		var tf: TrampaFlechas3D = ts[i]
+		bien = bien and tf != null and tf.exenta and tf.celda == celdas[i] and tf.mira == "e" and Terreno3D.letra_de(tf.celda) != "#" and Terreno3D.bloqueada(tf.celda) and tf.elemento == "fuego"
+		boca_fuera = boca_fuera and tf != null and Terreno3D.celda_de(tf.boca_mundo()) == tf.celda + Vector2i(1, 0)
+	_ok("F11.1 tres tótems EXENTOS: `trampa_flechas` de pie en una casilla de SUELO (no metidos en un muro «#»), que la bloquea, mirando al este y de fuego", bien)
+	_ok("F11.2 la boca de cada uno cae en la casilla de delante (la bola no nace dentro del sólido)", boca_fuera)
+	var d: Array = [(ts[0] as TrampaFlechas3D).desfase_s, (ts[1] as TrampaFlechas3D).desfase_s, (ts[2] as TrampaFlechas3D).desfase_s]
+	_ok("F11.3 los tres están desfasados un segundo (ciclo %.1f s: desfases %s)" % [(ts[0] as TrampaFlechas3D).cada_s, str(d)], absf(float(d[1]) - float(d[0]) - 1.0) < 0.01 and absf(float(d[2]) - float(d[1]) - 1.0) < 0.01)
+
+
+func _f11_natural() -> void:
+	await _f11_estado_inicial()
+	var ts: Array = _f11_totems()
+	var q: Dictionary = _sala("F11")
+	var placa: Pulsador3D = q["placa"]
+	var j: Jugador3D = jugador as Jugador3D
+	# 1 · El ritmo: en la fila segura (y = 19) se mide cuándo dispara cada uno.
+	await _preparar_j(Vector2i(20, 19), Vector3.RIGHT)
+	var rec: Dictionary = _vigilar_totems(ts)
+	var v0: float = j.vida
+	await avanzar_s(10.0)
+	var ok_ritmo: bool = true
+	var info: String = ""
+	for y in [18, 20, 22]:
+		var tt: Array = rec[y]
+		ok_ritmo = ok_ritmo and tt.size() >= 3
+		if tt.size() >= 3:
+			ok_ritmo = ok_ritmo and absf(float(tt[1]) - float(tt[0]) - 3.0) < 0.2 and absf(float(tt[2]) - float(tt[1]) - 3.0) < 0.2
+		info += "fila %d: %d disparos  " % [y, tt.size()]
+	_ok("F11.4 cada tótem dispara cada 3 s (%s)" % info, ok_ritmo)
+	var off1: float = fposmod(float((rec[20] as Array)[0]) - float((rec[18] as Array)[0]), 3.0)
+	var off2: float = fposmod(float((rec[22] as Array)[0]) - float((rec[20] as Array)[0]), 3.0)
+	# (el desfase de cada uno es «en qué punto del ciclo empieza»: el de más desfase dispara antes, así que la ola va de la fila 22 a la 18; lo que importa es el segundo de separación)
+	_ok("F11.5 escalonados: un disparo por segundo entre filas contiguas (diferencias %.2f s y %.2f s módulo 3)" % [off1, off2], absf(minf(off1, 3.0 - off1) - 1.0) < 0.25 and absf(minf(off2, 3.0 - off2) - 1.0) < 0.25)
+	_ok("F11.6 en la fila de descanso (y = 19) no la toca ninguna bola en 10 s", _golpes_totems(ts) == 0 and j.vida >= v0 - 0.01)
+	# 2 · Quedarse en un carril de fuego hiere.
+	await _preparar_j(Vector2i(20, 18), Vector3.RIGHT)
+	var t0: float = reloj.t
+	while reloj.t - t0 < 4.0 and _golpes_totems(ts) == 0:
+		await process_frame
+	_ok("F11.7 quedarse en el carril (20,18) recibe la bola de fuego en %.1f s y pierde vida" % (reloj.t - t0), _golpes_totems(ts) >= 1 and j.vida < Estado.i().vida_max - 0.5)
+	# 3 · Cruzar por turnos: entrar a cada carril justo después de que pase su bola, salir antes de la siguiente.
+	await _preparar_j(Vector2i(20, 17), Vector3.RIGHT)
+	var golpes0: int = _golpes_totems(ts)
+	var vida0: float = j.vida
+	var sin_hueco: bool = false
+	for y in [18, 20, 22]:
+		var espera0: float = reloj.t
+		while not (reloj.t - float((rec[y] as Array).back()) >= 1.2 and reloj.t - float((rec[y] as Array).back()) <= 1.8):
+			await process_frame
+			if reloj.t - espera0 > 8.0:
+				sin_hueco = true
+				break
+		colocar_jugador(Vector2i(20, y))
+		await avanzar_s(0.3)
+		colocar_jugador(Vector2i(20, y + 1))
+		await avanzar_s(0.1)
+	await avanzar_s(0.6)
+	_ok("F11.8 cruzando por turnos (carril a carril, %.0f s en total) llega a la placa (20,23) sin recibir ninguna bola" % (reloj.t - t0), not sin_hueco and placa.activo and _golpes_totems(ts) == golpes0 and j.vida >= vida0 - 0.01)
+	# 4 · El agua apaga un tótem 8 s (T_AGUA_S) y luego vuelve.
+	var t2: TrampaFlechas3D = ts[1]
+	await _preparar_j(Vector2i(19, 21), Vector3(-2.0, 0.0, -1.0).normalized())
+	_ok("F11.9 agua + flecha al tótem del medio sale", lanzar_a_celda("agua", ["flecha"], Vector2i(17, 20), Vector2i(19, 21)))
+	await avanzar_s(1.5)
+	var d_antes: int = t2.disparos
+	_ok("F11.10 el tótem queda apagado por el agua (no dispara)", not t2.activa)
+	await avanzar_s(6.0)
+	_ok("F11.11 … y sigue sin disparar 7 s después (%d disparos más)" % (t2.disparos - d_antes), t2.disparos == d_antes and not t2.activa)
+	await avanzar_s(5.0)
+	_ok("F11.12 … y a los 8 s de apagado vuelve a funcionar", t2.activa and t2.disparos > d_antes)
+
+
+func _f11_botones() -> void:
+	await _f11_estado_inicial()
+	var ts: Array = _f11_totems()
+	var q: Dictionary = _sala("F11")
+	var placa: Pulsador3D = q["placa"]
+	var boton: Pulsador3D = q["boton"]
+	_ok("F11.20 el botón `!` (22,17) y la placa `@` (20,23) existen", boton != null and placa != null and boton.celda == Vector2i(22, 17) and placa.celda == Vector2i(20, 23))
+	await _preparar_j(Vector2i(20, 19), Vector3.RIGHT)
+	var rec: Dictionary = _vigilar_totems(ts)
+	await avanzar_s(4.0)
+	_ok("F11.21 antes del botón disparan", int((rec[18] as Array).size()) >= 1)
+	boton.pulsar()
+	await avanzar(2)
+	var apagados: bool = true
+	for t in ts:
+		apagados = apagados and not (t as TrampaFlechas3D).activa
+	var n0: Array = [(rec[18] as Array).size(), (rec[20] as Array).size(), (rec[22] as Array).size()]
+	await avanzar_s(6.0)
+	var n1: Array = [(rec[18] as Array).size(), (rec[20] as Array).size(), (rec[22] as Array).size()]
+	_ok("F11.22 el botón apaga los tres tótems y no disparan en 6 s", apagados and n0 == n1, "%s -> %s" % [str(n0), str(n1)])
+	await avanzar_s(3.5)
+	var vuelve: bool = true
+	for t in ts:
+		vuelve = vuelve and (t as TrampaFlechas3D).activa
+	_ok("F11.23 pasados los 8 s vuelven a funcionar", vuelve)
+	colocar_jugador(Vector2i(20, 23))
+	await avanzar_s(0.5)
+	_ok("F11.24 la placa del fondo se pisa", placa.veces == 1 and placa.activo)

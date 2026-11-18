@@ -72,6 +72,9 @@ const NUEVOS: Array = [
 	{"nombre": "F10 pólvora", "entrada": Vector2i(19, 13), "cartel": Vector2i(21, 10),
 		"texto": "F10 · LLEVA LA PÓLVORA\nCoge el barril pequeño (E), enciéndelo con fuego y LÁNZALO contra el muro agrietado del rincón\n(la mecha dura 2,4 s). Dejarlo arder en su sitio no basta y el barril grande es un señuelo.\nBotón: enciende el pequeño · placa: rompe el muro.",
 		"ids": {"muro": "f10_muro", "cofre": "f10_cofre", "barril": "f6_peq3", "grande": "f6_grande", "boton": "f10_boton", "placa": "f10_placa"}},
+	{"nombre": "F11 tótems", "entrada": Vector2i(20, 17), "cartel": Vector2i(21, 19),
+		"texto": "F11 · TÓTEMS QUE ESCUPEN FUEGO\nTres tótems de piedra lanzan una bola cada 3 s por su fila, uno tras otro.\nCruza los carriles (filas 18, 20 y 22) por turnos y descansa en las de en medio hasta la placa del fondo.\nAgua a un tótem: lo apaga 8 s · botón: apaga los tres 8 s.",
+		"ids": {"t1": "f11_t1", "t2": "f11_t2", "t3": "f11_t3", "placa": "f11_placa", "boton": "f11_boton"}},
 ]
 ## Papeles que toda sala tiene en su diccionario aunque no los use (null): el HUD y el escenario los leen sin mirar si existen.
 const PAPELES_SIEMPRE: Array = ["detector", "compuerta", "puerta", "contador"]
@@ -393,4 +396,11 @@ func _estado_nuevo(q: Dictionary) -> String:
 	if barril != null and is_instance_valid(barril):
 		var b: Barril3D = barril
 		s += "  barril pequeño %s" % ("EXPLOTADO" if b.explotado else ("encendido %.1f s" % (b.mecha_restante() * b.t_mecha) if b.encendido else "entero"))
+	for papel in ["t1", "t2", "t3"]:
+		var tr: Variant = q.get(papel)
+		if tr != null and is_instance_valid(tr):
+			s += "  %s %s" % [papel.to_upper(), _estado_trampa(tr)]
+	var pl: Variant = q.get("placa")
+	if pl != null and is_instance_valid(pl):
+		s += "  placa %s" % ("PISADA" if bool((pl as Object).get("activo")) else "libre")
 	return s

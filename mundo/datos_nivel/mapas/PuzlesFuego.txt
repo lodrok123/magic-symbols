@@ -128,6 +128,15 @@
 ; pieza f10_placa pulsador 22 14 modo=presencia
 ; puzle f10_boton_enciende cuando=f10_boton.pulsado hace=f6_peq3.encender
 ; puzle f10_placa_rompe cuando=f10_placa.pulsado hace=f10_muro.romper
+; --- F11 TOTEMS QUE ESCUPEN FUEGO (18/11, sala (2,2), x 17..23, y 17..23): trampa de ruinas. Tres totems EXENTOS (de pie en una casilla de suelo del borde oeste, no metidos en un muro) en (17,18) (17,20) (17,22) que miran
+; ---   al este y disparan una bola de fuego cada 3 s por su fila, desfasados 1 s (un disparo por segundo entre las tres filas). Se entra por (20,16) y hay que llegar a la placa (20,23) cruzando los carriles y
+; ---   descansando en las filas 19 y 21 (sin bola). Una bola hiere 12; el agua a un totem lo apaga 8 s; boton ! (22,17) apaga los tres 8 s. Sin `cerca`: una trampa dormida reinicia su ciclo en cada fotograma y el escalonado dependeria de cuando se despierta cada una.
+; pieza f11_t1 trampa_flechas 17 18 mira=e exenta=si cada=3.0 desfase=0 elemento=fuego alcance=7
+; pieza f11_t2 trampa_flechas 17 20 mira=e exenta=si cada=3.0 desfase=1.0 elemento=fuego alcance=7
+; pieza f11_t3 trampa_flechas 17 22 mira=e exenta=si cada=3.0 desfase=2.0 elemento=fuego alcance=7
+; pieza f11_placa pulsador 20 23 modo=presencia
+; pieza f11_boton pulsador 22 17 modo=magia
+; puzle f11_boton_apaga cuando=f11_boton.pulsado hace=f11_t1.apagar(8) y=f11_t2.apagar(8) y=f11_t3.apagar(8)
 ; ---------------------------------------------------------------------------------------------------------------------------------
 #################################
 #.......#...Z...#.-.....#......Z#
@@ -146,11 +155,11 @@
 #.!...@.#.......#.!...@.#########
 #.......#.......#.......#########
 ####.#######.#######.############
-#.......#.......#.......#.......#
+#.......#.......#.....!.#.......#
 #.......#!......#.......#.......#
 #.......#.....z.#.......#.......#
 #@......#.....z.#.......#.......#
 #.......#.......#.......#.......#
 #.......#.......#.......#.......#
-#.......#.......#.......#.......#
+#.......#.......#...@...#.......#
 #################################

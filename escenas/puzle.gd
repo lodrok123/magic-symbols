@@ -164,6 +164,8 @@ extends Node
 ##              descansa `apagada` s, avisando con brasas y humo 0,5 s antes. `desfase` = punto del ciclo en el que empieza (0 = en reposo). `agua=no`: el agua y el hielo no la apagan (8 s). `cerca=<n>`: dormida (ciclo parado) mientras la jugadora esté a más de n casillas de la casilla de delante. Hiere a la jugadora 10 por tick
 ##   trampa_flechas  mira=n|e|s|o (s)  cada=<s> (1.2)  desfase=<s> (0)  alcance=<casillas> (8)  vel=<casillas/s> (3.5)  elemento=fuego|ninguno|agua|… (fuego)  agua=si|no (si)  cerca=<casillas> (0)   TrampaFlechas3D (5/11): mascarón de piedra en el muro
 ##              que dispara cada `cada` s una FLECHA (fuego + ᛇ: hechizo real que vuela recto, prende lo inflamable y se para en muros y bloques; `elemento=ninguno`: flecha normal, 12 a la jugadora), con la ranura iluminada 0,35 s antes
+##              18/11: `exenta=si` = TÓTEM DE RUINAS: x,y es una casilla de SUELO (no una `#`); el mascarón queda de pie en ella con un bloque de piedra detrás, la bloquea y dispara hacia `mira` desde su borde de delante.
+##              Todo lo demás (cada, desfase, alcance, cerca, agua, apagar/encender) es igual. Ej.: `; pieza t1 trampa_flechas 17 18 mira=e exenta=si cada=3.0 desfase=0`
 ##
 
 ## SEÑALES (`cuando=<id>.<señal>`; sin señal vale la primera de cada fila):
@@ -476,7 +478,7 @@ const CLAVES: Dictionary = {
 	"mouro": {"mamoa": "id", "quieto": "b"},
 	"compana": {"animas": "f", "camino": "celdas"},
 	"trampa_dragon": {"mira": "s:n|e|s|o", "ciclo": "par", "desfase": "f", "alcance": "f", "elemento": "s:fuego|agua|hielo|rayo|tierra|viento", "agua": "b", "cerca": "f"},
-	"trampa_flechas": {"mira": "s:n|e|s|o", "cada": "f", "desfase": "f", "alcance": "f", "vel": "f", "elemento": "s:fuego|ninguno|agua|hielo|rayo|tierra|viento", "agua": "b", "cerca": "f"},
+	"trampa_flechas": {"mira": "s:n|e|s|o", "cada": "f", "desfase": "f", "alcance": "f", "vel": "f", "elemento": "s:fuego|ninguno|agua|hielo|rayo|tierra|viento", "agua": "b", "cerca": "f", "exenta": "b"},
 }
 ## C3: pieza del cofre, cuánto de cerca hay que estar para abrirlo con E (la casilla mide 2,3; igual que el Bosque), cada cuánto miran su estado
 ## las piezas lógicas (vigía, cerrojo, cofre) y los avisos de un vigía que no encuentra enemigos.
@@ -1991,7 +1993,7 @@ func _casilla_valida(pz: Pieza, c: Vector2i) -> bool:
 		_avisar_pieza(pz, "la casilla %s está fuera del mapa" % c)
 		return false
 	var letra: String = Terreno3D.letra_de(c)
-	if pz.tipo in TRAMPAS_PARED:
+	if pz.tipo in TRAMPAS_PARED and not bool(pz.p.get("exenta", false)):
 		# 5/11: la trampa de pared va METIDA en un muro (su x,y es una `#`) y da a la casilla de `mira`, que tiene que ser suelo.
 		if letra != "#":
 			_avisar_pieza(pz, "la casilla %s es «%s»: una trampa de pared va en una casilla de muro «#» (x y = el muro; `mira` = hacia dónde da)" % [c, letra])
@@ -2189,6 +2191,8 @@ func _crear(pz: Pieza) -> void:
 			tf.preparar_ciclo(float(pz.p.get("cada", TrampaFlechas3D.CADA_DEFECTO)), float(pz.p.get("desfase", 0.0)), float(pz.p.get("vel", TrampaFlechas3D.VEL_DEFECTO)))
 			tf.apaga_con_agua = bool(pz.p.get("agua", true))
 			tf.cerca = float(pz.p.get("cerca", 0.0))
+			if bool(pz.p.get("exenta", false)):
+				tf.como_exenta()                  # tótem: de pie en una casilla de suelo, no metido en un muro
 			cont.add_child(tf)
 			pz.nodo = tf
 		"emisor":
