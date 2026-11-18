@@ -23,7 +23,11 @@ extends EfectoToy
 ##   progreso_carga() -> float · soltar(dir) · cancelar_carga() · impactar_en(pos, normal, escala) (ImpactoTierraToy GOLPE: piedrecitas con gravedad + nube de polvo pardo a ras de suelo)
 ##   rebotar(pos, normal) -> Vector3 · terminar_sin_choque() (la roca se deshace en terrones que caen, FIN) · finalizar(motivo, pos, normal)
 
-enum Figura { BOLA, MURO, PILAR, BARRERA, HAZ }
+## 18/11 (Pablo: «enlázalo a la forma suelo para tierra»): SUELO = la PLATAFORMA de tierra, la losa de RockForm (`MALLA_PLATAFORMA`, una por casilla) con la textura de tierra en
+## triplanar. Misma figura que la «suelo» del hielo (HieloToy.Figura.SUELO, en main): semiejes x z = medio ancho y medio fondo, y = GROSOR (m). No sale de ningún Hechizo (`describir`
+## no la da): se pide con `definir(Figura.SUELO, …)`. En el juego la plataforma la sigue dibujando el Lanzador (`levantar_plataforma_tierra`) con esta misma malla y este mismo material.
+enum Figura { BOLA, MURO, PILAR, BARRERA, HAZ, SUELO }
+const REF_SUELO: Vector3 = Vector3(1.15, 0.45, 1.15)    ## plataforma de referencia: una casilla (2,3 × 2,3 m) y 45 cm de grosor, como `Lanzador3D.ALTO_PLATAFORMA_TIERRA`
 enum EstadoCarga { NINGUNA, CARGANDO, SOLTANDO, APAGANDO, CANCELANDO }
 
 const HumoToy = preload("res://presentacion/vfx/toy/humo_toy.gd")
@@ -993,6 +997,8 @@ func _construir() -> void:
 			_pilar(cuerpo)
 		Figura.MURO:
 			_muro(cuerpo)
+		Figura.SUELO:
+			_suelo(cuerpo)
 		_:
 			_barrera(cuerpo)
 	_anim_si_hace_falta()
@@ -1041,6 +1047,11 @@ func _montar_bloques(c: Node3D, capa: Array) -> void:
 			(mi.material_override as ShaderMaterial).set_shader_parameter("base_tierra", 1.0)
 			(mi.material_override as ShaderMaterial).set_shader_parameter("aclara_pua", ACLARA_PUA)
 			(mi.material_override as ShaderMaterial).set_shader_parameter("normal_arriba", normal_arriba)
+		if String(id).begins_with("plataforma_rf_"):
+			# la losa de RockForm no trae UV: la textura de tierra del mundo en triplanar, como `material_plataforma`
+			(mi.material_override as ShaderMaterial).set_shader_parameter("triplanar", 1.0)
+			(mi.material_override as ShaderMaterial).set_shader_parameter("tex_triplanar", load(TEX_PLATAFORMA))
+			(mi.material_override as ShaderMaterial).set_shader_parameter("escala_triplanar", ESCALA_TEX_PLATAFORMA)
 		c.add_child(mi)
 		_bloques_mms.append(mi)
 		for j in lista.size():
@@ -1114,6 +1125,26 @@ func _pilar(c: Node3D) -> void:
 		var pos: Vector3 = Vector3(d.x * semieje_x * 1.15, 0.0, d.z * semieje_z * 1.15)
 		capa.append(_b(id, pos, HieloMallas._inclinar(d, rng.randf_range(0.08, 0.18), a + rng.randf_range(-0.4, 0.4)), semieje_x * 1.1, semieje_y * rng.randf_range(0.28, 0.5), semieje_z * 1.1, 0.12 + 0.05 * float(k), rng))
 		_pie(capa, pos, d, semieje_x * 1.1, semieje_y * 0.4, 0.35 + 0.05 * float(k), rng, MAX_BLOQUES)
+	_montar_bloques(c, capa)
+
+
+## SUELO: la plataforma de tierra. Losas de RockForm (`MALLA_PLATAFORMA`) que llenan el rectángulo 2·x × 2·z, una por casilla (como `Lanzador3D.levantar_plataforma_tierra`), cada una
+## girada un cuarto de vuelta más que la anterior y con un pelín de retraso. Suben del suelo y se hunden con el peso de las demás figuras (`_avanzar_bloques`). y = grosor.
+func _suelo(c: Node3D) -> void:
+	var rng: RandomNumberGenerator = RandomNumberGenerator.new()
+	rng.seed = 53
+	var capa: Array = []
+	var nx: int = maxi(1, int(round(2.0 * semieje_x / maxf(casilla, 0.1))))
+	var nz: int = maxi(1, int(round(2.0 * semieje_z / maxf(casilla, 0.1))))
+	var wx: float = 2.0 * semieje_x / float(nx)
+	var wz: float = 2.0 * semieje_z / float(nz)
+	for iz in nz:
+		for ix in nx:
+			var cuartos: int = ix + iz
+			var pos: Vector3 = Vector3(-semieje_x + wx * (float(ix) + 0.5), 0.0, -semieje_z + wz * (float(iz) + 0.5))
+			# `asentar` escala antes de girar: en los cuartos impares el ancho y el fondo de la losa van cambiados
+			capa.append(_b(MALLA_PLATAFORMA, pos, Basis(Vector3.UP, PI * 0.5 * float(cuartos)), wz if cuartos % 2 == 1 else wx, semieje_y, wx if cuartos % 2 == 1 else wz,
+				minf(0.06 * float(cuartos), 0.4), rng))
 	_montar_bloques(c, capa)
 
 
