@@ -153,6 +153,17 @@
 ; puzle q10_cierra cuando=q10_nivel.perdido hace=q10_puerta.cerrar
 ; puzle q10_enciende_boton cuando=q10_boton.pulsado hace=q10_barril.encender
 ; puzle q10_enciende_placa cuando=q10_placa.pulsado hace=q10_barril.encender
+; --- Q11 DOS RIEGOS A LA VEZ (18/11, sala (3,2), x 25..31, y 17..23): dos pulsadores de AGUA (26,19) y (28,19), en la misma fila y a 2 casillas, con rearme 0,35 s. La puerta (28,22) abre cuando se pulsa uno y el otro sigue
+; ---   activo (`si=`): hay que mojar los dos casi a la vez. UNA LINEA de agua (dos glifos `linea`: un haz de 4 casillas que golpea todo su recorrido en el mismo fotograma) desde (25,19) hacia el este los moja a los dos. Dos flechas sueltas
+; ---   no: la primera para en el primer pulsador y la segunda tiene que apuntarse, soltarse y llegar antes de 0,35 s (el rearme). Vias: boton ! (26,22) es de CONTROL (cualquier magia lo pulsa y no abre nada) · placa @ (30,22) abre.
+; pieza q11_a pulsador 26 19 modo=agua rearme=0.35
+; pieza q11_b pulsador 28 19 modo=agua rearme=0.35
+; pieza q11_puerta puerta 28 22
+; pieza q11_control pulsador 26 22 modo=magia rearme=2
+; pieza q11_placa pulsador 30 22 modo=presencia
+; puzle q11_a_luego_b cuando=q11_a.pulsado si=q11_b.activo hace=q11_puerta.abrir
+; puzle q11_b_luego_a cuando=q11_b.pulsado si=q11_a.activo hace=q11_puerta.abrir
+; puzle q11_pisa cuando=q11_placa.pulsado hace=q11_puerta.abrir
 #################################
 #.......#......Z#.-.....#...-...#
 #.cc.cc.#.!.Lu..#.-.....#...-...#
@@ -172,9 +183,9 @@
 ####.#######.#######.#######.####
 #.......#.......#.......#.......#
 #.cc....#.......#.......#.......#
-#.cc-u..#.!.%.@.#.......#.......#
+#.cc-u..#.!.%.@.#.......#.%.%...#
 #.......#.......#.ec.ci.#.......#
 #.!.....#.......#.......#.......#
-#Z....@.#...Z...#.!Z..@.#.......#
+#Z....@.#...Z...#.!Z..@.#.!.Z.@.#
 #.......#.......#.......#.......#
 #################################
