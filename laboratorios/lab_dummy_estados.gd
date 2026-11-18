@@ -122,10 +122,12 @@ func _process(delta: float) -> void:
 		_pintar()
 
 
-## Lo que se ve además del tinte: la costra, los cuadraditos y el vaho del congelado (CongeladoToy) y los arcos del aturdido por rayo (EstadoRayoToy).
+## Lo que se ve además del tinte: el cuerpo en llamas del que arde (ArdiendoToy), la costra, los cuadraditos y el vaho del congelado (CongeladoToy) y los arcos del aturdido por rayo (EstadoRayoToy).
 func _efectos_de_estado() -> void:
 	if congelado > 0.0:
 		CongeladoToy.asegurar(self, ALTO, RADIO)
+	if quemando > 0.0 and not muerto:                                    # 18/11: el cuerpo incandescente, lenguas, brasas y luz (ArdiendoToy)
+		ArdiendoToy.asegurar(self, ALTO, RADIO)
 	if aturdido > 0.0 and (_arcos == null or not is_instance_valid(_arcos)):
 		_arcos = EstadoRayoToy.para_entidad(ALTO, RADIO, aturdido)
 		add_child(_arcos)

@@ -229,6 +229,7 @@ const RADIO_FLECHA_FUEGO: float = 0.15          ## lo que «toca» una flecha en
 ## flecha ardiendo, hechizo). true = un enemigo ardiendo prende al enemigo que toca.
 const CONTACTO_ENTRE_ENEMIGOS: bool = false
 const COLOR_FLECHA_ARDIENDO: Color = Color(1.0, 0.5, 0.15)
+const TINTE_ARDIENDO: Color = Color(1.2, 0.42, 0.2)         ## tinte del cuerpo de un enemigo con ArdiendoToy (rojo-naranja, sin amarillo)
 ## Una flecha ardiendo ha alcanzado a `objetivo` (el jugador): quien tenga mecánica de quemadura la escucha. El jugador no tiene aún (ver `quemar`).
 signal flecha_ardiente_impacta(objetivo: Node3D)
 
@@ -1553,6 +1554,8 @@ func _efectos(delta: float) -> void:
 	congelado = maxf(0.0, congelado - delta)
 	if congelado > 0.0 and not has_method("congelar_en_bloque"):          # 18/11: bloques de hielo pegados, cuadraditos celestes y vaho (CongeladoToy; se quita solo). El limo ya se hace cubo
 		CongeladoToy.asegurar(self, altura)
+	if quemando > 0.0 and not muerto:                                     # 18/11: el cuerpo incandescente, lenguas en cabeza y hombros, brasas y luz (ArdiendoToy; se quita solo)
+		ArdiendoToy.asegurar(self, altura)
 	if estaba_mojado and mojado <= 0.0:
 		_reaccionar(Mundo3D.R_SECADO)
 	if estaba_congelado and congelado <= 0.0:
@@ -2792,7 +2795,8 @@ func _dibujar_estado(delta: float) -> void:
 	if congelado > 0.0:
 		c = c.lerp(Color(0.6, 0.9, 1.4), 0.7)
 	elif quemando > 0.0:
-		c = c.lerp(Color(1.5, 0.7, 0.4), 0.5 + 0.3 * sin(Time.get_ticks_msec() * 0.02))
+		# Con la envoltura de ArdiendoToy el cuerpo ya brilla solo: el tinte pasa a un rojo-naranja más oscuro (el de antes, melocotón claro, lavaba la capa de llamas y tiraba a pálido)
+		c = c.lerp(TINTE_ARDIENDO if ArdiendoToy.envuelve(self) else Color(1.5, 0.7, 0.4), 0.5 + 0.3 * sin(Time.get_ticks_msec() * 0.02))
 	elif mojado > 0.0:
 		c = c.lerp(Color(0.6, 0.75, 1.2), 0.45)
 	if _t_conjuro > 0.0:                      # brillo sutil que lo cura

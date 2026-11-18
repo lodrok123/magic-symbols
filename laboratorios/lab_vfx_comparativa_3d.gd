@@ -244,7 +244,7 @@ func _process(delta: float) -> void:
 	if _panel != null:
 		var lp: Array = luces_y_particulas()
 		_panel.text = ("fps %d · luces %d · partículas %d · efectos %d · cámara %s\n1 bola · 2 muro · 3 columna · 4 PARRILLA de los 7 elementos (con parrilla, 8 la rehace) · 5 muro toon · 6 columna toon · 7 bola toon · 0 diez muros · 9 diez toon · X limpia · F muro del haz · F12 masa de fuego (muro / esfera / nada) · Mayús+F12 GAS 3D (port de la demo: esfera / muro / nada) · C cámara · flechas andar · H panel\n%s"
-			% [int(Engine.get_frames_per_second()), lp[0], lp[1], _efectos.get_child_count(), CAMARAS[camara_actual], _texto_mandos_toon()] + _texto_param() + _texto_carga() + _texto_dummy() + _texto_gesto_camara() + "\n8 humo por regla (HumoRegla; con parrilla puesta, Mayús+8): %s (magma: %s)" % ["SÍ" if HumoRegla.hay_alguna() else "no", "sí" if HumoRegla.capas.get("magma", false) else "no"] + "\n. chispas tipo repo (ChispasRepo: rayo, electrificado, brasas de magma): %s · , electrificar un muñeco y una casilla de agua (arcos en su cápsula: %s)" % ["SÍ" if ChispasRepo.hay_alguna() else "no", "sí" if ChispasRepo.activa("electrificado_capsula") else "no"] + LabVientoVeneno.texto()) if _panel_visible else ""
+			% [int(Engine.get_frames_per_second()), lp[0], lp[1], _efectos.get_child_count(), CAMARAS[camara_actual], _texto_mandos_toon()] + _texto_param() + _texto_carga() + _texto_dummy() + _texto_gesto_camara() + "\nSupr congelado (CongeladoToy) · \\ arder (ArdiendoToy: cuerpo incandescente, lenguas, brasas y luz; el dummy con fuego también) · Insert placa de hielo" + "\n8 humo por regla (HumoRegla; con parrilla puesta, Mayús+8): %s (magma: %s)" % ["SÍ" if HumoRegla.hay_alguna() else "no", "sí" if HumoRegla.capas.get("magma", false) else "no"] + "\n. chispas tipo repo (ChispasRepo: rayo, electrificado, brasas de magma): %s · , electrificar un muñeco y una casilla de agua (arcos en su cápsula: %s)" % ["SÍ" if ChispasRepo.hay_alguna() else "no", "sí" if ChispasRepo.activa("electrificado_capsula") else "no"] + LabVientoVeneno.texto()) if _panel_visible else ""
 
 
 func _unhandled_input(ev: InputEvent) -> void:
@@ -274,6 +274,7 @@ func _unhandled_input(ev: InputEvent) -> void:
 		KEY_F9: fuego_hechizo(_param_ej); _param_ej = (_param_ej + 1) % EJEMPLOS_HECHIZO.size()
 		KEY_INSERT: suelo_hielo()                                                                             # 18/11: la figura SUELO del hielo (placa), que no sale de ningún hechizo
 		KEY_DELETE: congelado_demo()                                                                          # 18/11: el efecto de congelado (CongeladoToy) sobre la jugadora del lab, 3 s
+		KEY_BACKSLASH: ardiendo_demo()                                                                        # 18/11: el efecto de arder (ArdiendoToy) sobre la jugadora del lab, 4 s
 		KEY_ENTER, KEY_KP_ENTER: dummy_tecla((ev as InputEventKey).shift_pressed, (ev as InputEventKey).ctrl_pressed)   # 18/11: el dummy de estados (LabDummyEstados): le aplica el elemento actual
 		KEY_TAB: tecla_gesto((ev as InputEventKey).shift_pressed)                                         # 19/11: gesto de casteo de la jugadora (Mayús: cámara lenta)
 		KEY_KP_5: reponer_camara_libre()
@@ -543,6 +544,13 @@ func _texto_dummy() -> String:
 func congelado_demo(dura: float = 3.0) -> CongeladoToy:
 	var esc: float = _pj.global_basis.get_scale().y                  # el efecto va en metros del mundo (no cuelga de la jugadora, que en el lab va escalada)
 	return CongeladoToy.poner(_pj, 1.5 * esc, 0.34 * esc, dura)
+
+
+## \ (tecla de la barra invertida): el ARDER (ArdiendoToy: el cuerpo incandescente, lenguas en cabeza y hombros, brasas y luz) sobre la jugadora del lab durante `dura` s.
+## Con el dummy de estados puesto (Intro con el fuego como elemento) se ve igual sobre él mientras le dura la quemadura.
+func ardiendo_demo(dura: float = 4.0) -> ArdiendoToy:
+	var esc: float = _pj.global_basis.get_scale().y
+	return ArdiendoToy.poner(_pj, 1.5 * esc, 0.34 * esc, dura)
 
 
 ## Insert: la PLACA de hielo (HieloToy.Figura.SUELO) delante de la jugadora, con su nacer; otra pulsación la rompe (morir) y la siguiente pone otra.

@@ -12,6 +12,7 @@ extends RefCounted
 const NOMBRE_LLAMAS: String = "LlamasCuerpo"
 const HumoToy = preload("res://presentacion/vfx/toy/humo_toy.gd")
 const COLOR_MADERA: Color = Color(0.55, 0.36, 0.2, 1.0)
+const PILAR_CON_ARDIENDO: float = 0.6              ## × el tamaño del pilar de llamas del cuerpo cuando el nodo lleva ArdiendoToy (1 = el de siempre)
 const HUESO_MANO_QUEMADA: String = "LeftHand"      ## la mano del escudo (final del nombre del hueso, como en Equipo3D)
 const VIDA_RESTO_MANO_QUEMADA: float = 1.4         ## s que sigue ahí (sin emitir) lo que ya había salido, antes de quitar el attachment
 
@@ -29,6 +30,8 @@ static func llamas_cuerpo(nodo: Node3D, escala: float = 1.0, dura: float = 0.0) 
 	if nodo == null:
 		return null
 	var h: float = _alto(nodo) * escala
+	if ArdiendoToy.envuelve(nodo):
+		h *= PILAR_CON_ARDIENDO                      # el cuerpo ya arde por entero (ArdiendoToy): el pilar baja para no taparlo
 	return _llama_adherida(nodo, Vector3.UP * h * 0.04, 0.34 * h, 1.05 * h, 0.45, dura)
 
 
