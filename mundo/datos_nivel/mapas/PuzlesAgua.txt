@@ -29,6 +29,9 @@
 ; giro 28 5 90
 ; giro 28 6 90
 ; giro 28 7 90
+; giro 27 25 180
+; giro 26 25 90
+; giro 26 26 90
 ; ---------------------------------------------------------------------------------------------------------------------------------
 ; Piezas y puzles de cada sala (Fase 12.3: los lee escenas/puzle.gd; la gramatica esta en su cabecera). El laboratorio solo pone HUD,
 ; teclas y carteles. Las tinajas del lab vierten 0.5 u3/s durante 20 u3 (Pablo, 15/10); el arroyo de Q3 echa 1.5 u3/s.
@@ -164,6 +167,20 @@
 ; puzle q11_a_luego_b cuando=q11_a.pulsado si=q11_b.activo hace=q11_puerta.abrir
 ; puzle q11_b_luego_a cuando=q11_b.pulsado si=q11_a.activo hace=q11_puerta.abrir
 ; puzle q11_pisa cuando=q11_placa.pulsado hace=q11_puerta.abrir
+; --- Q12 FOSO CON COFRE FLOTANTE (18/11, sala (3,3), x 25..31, y 25..31; la fila de salas que se anadio debajo, con hueco en (4,24) (12,24) (20,24) (28,24); las otras tres salas nuevas estan libres). Se entra por (28,24) a (28,25).
+; ---   Un FOSO en forma de O abierta (13 casillas c: x=26 y 27..30, y=30 x 27..30, x=30 y 26..29, y (29,26)) rodea una isla de 3 x 3 (27..29, 27..29) a la que se llega por la PASARELA de suelo (28,26). Una balsa con un cofre encima
+; ---   descansa en el fondo del foso, en (26,30), lejos de la pasarela y de la isla (a 3,2 u de la casilla mas cercana: fuera del alcance de E, 2,7 u), y el cofre esta SELLADO hasta que la balsa atraque (abre_si=balsa.atracada).
+; ---   La tinaja de (27,25) (canal L (26,25) y (26,26), como la de Q1) llena el foso al mojarla: con 0,2 u de agua la balsa flota y deriva a 1,5 u/s por el borde (27,30 .. 30,30, 30,29 .. 30,26) hasta el MUELLE (29,26), pegado a la pasarela:
+; ---   desde (28,26) el cofre queda a una casilla y se abre con E. Vias: boton ! (29,25) y placa @ (30,25) mojan la tinaja; agua a la tinaja (27,25) tambien.
+; pieza q12_foso cuenca 26 27 celdas=26,27..26,30+27,30..30,30+30,26..30,29+29,26
+; pieza q12_tinaja tinaja 27 25 canal=26,25+26,26
+; pieza q12_balsa balsa 26 30 ruta=27,30+28,30+29,30+30,30+30,29+30,28+30,27+30,26+29,26 cofre=q12_cofre calado=0.2 vel=1.5
+; pieza q12_cofre cofre 26 30 abre_si=q12_balsa.atracada da=oro:40
+; pieza q12_boton pulsador 29 25 modo=magia
+; pieza q12_placa pulsador 30 25 modo=presencia
+; puzle q12_vierte cuando=q12_tinaja.agua_llega hace=q12_tinaja.abrir_cauce(0.5,20)
+; puzle q12_moja_boton cuando=q12_boton.pulsado hace=q12_tinaja.mojar
+; puzle q12_moja_placa cuando=q12_placa.pulsado hace=q12_tinaja.mojar
 #################################
 #.......#......Z#.-.....#...-...#
 #.cc.cc.#.!.Lu..#.-.....#...-...#
@@ -188,4 +205,12 @@
 #.!.....#.......#.......#.......#
 #Z....@.#...Z...#.!Z..@.#.!.Z.@.#
 #.......#.......#.......#.......#
+####.#######.#######.#######.####
+#.......#.......#.......##Lu.!@##
+#.......#.......#.......##-..cc##
+#.......#.......#.......##c...c##
+#.......#.......#.......##c...c##
+#.......#.......#.......##c...c##
+#.......#.......#.......##ccccc##
+#.......#.......#.......#########
 #################################

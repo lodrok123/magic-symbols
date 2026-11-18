@@ -94,6 +94,9 @@ const NUEVOS: Array = [
 	{"nombre": "Q11 dos riegos", "entrada": Vector2i(25, 19), "cartel": Vector2i(28, 17),
 		"texto": "Q11 · DOS RIEGOS A LA VEZ\nLos dos botones azules solo se quedan pulsados 0,35 s: hay que mojarlos casi a la vez.\nUna LÍNEA de agua (dos glifos ᛁ) desde el oeste de la fila los moja a los dos; dos flechas sueltas no llegan.\nEl rojo es de control (no abre nada) · la placa amarilla abre.",
 		"ids": {"a": "q11_a", "b": "q11_b", "puerta": "q11_puerta", "control": "q11_control", "placa": "q11_placa"}},
+	{"nombre": "Q12 foso y balsa", "entrada": Vector2i(28, 25), "cartel": Vector2i(28, 28),
+		"texto": "Q12 · FOSO CON COFRE FLOTANTE\nEl cofre está en una balsa, en el fondo del foso, lejos de la pasarela, y sellado.\nLlena el foso (agua a la tinaja, o botón/placa): la balsa flota y deriva hasta la pasarela (14 s).\nCuando atraca, el cofre se abre con E desde la pasarela.",
+		"ids": {"balsa": "q12_balsa", "cofre": "q12_cofre", "tinaja": "q12_tinaja", "boton": "q12_boton", "placa": "q12_placa"}},
 ]
 ## Papeles que toda sala tiene en su diccionario aunque no los use (null): el HUD y el escenario los leen sin mirar si existen.
 const PAPELES_SIEMPRE: Array = ["detector", "compuerta", "puerta"]
@@ -323,4 +326,12 @@ func _estado_nuevo(q: Dictionary) -> String:
 	var p: Variant = q.get("puerta")
 	if p != null and is_instance_valid(p):
 		s += "  puerta %s" % ("ABIERTA" if bool((p as Object).get("abierta")) else "cerrada")
+	var ba: Variant = q.get("balsa")
+	if ba != null and is_instance_valid(ba):
+		var b: Balsa3D = ba
+		s += "  balsa %s %d%%" % ["ATRACADA" if b.atracada else ("flota" if b.flota else "en el fondo"), int(b.progreso() * 100.0)]
+		s += "  agua en su casilla %.2f" % (Terreno3D.agua_sim.profundidad_casilla(b.celda_actual()) if Terreno3D.agua_sim != null else 0.0)
+	var cf: Variant = q.get("cofre")
+	if cf != null and is_instance_valid(cf):
+		s += "  cofre %s" % ("abierto" if bool((cf as Object).get("es_abierto")) else ("sellado" if not bool((cf as Object).call("sellado_cumplido")) else "listo (E)"))
 	return s

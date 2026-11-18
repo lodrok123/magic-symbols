@@ -21,8 +21,10 @@ func _escenario() -> void:
 	_ok("0 el mapa y las piezas nuevas se montan sin avisos", (lab.get("_avisos") as Array).is_empty(), str(lab.get("_avisos")))
 	if modo == "natural":
 		await _q11_natural()
+		await _q12_natural()
 	else:
 		await _q11_botones()
+		await _q12_botones()
 
 
 # ---------------------------------------------------------------------------------------------------------------------
@@ -98,3 +100,125 @@ func _q11_botones() -> void:
 	colocar_jugador(Vector2i(30, 22))
 	await avanzar_s(0.6)
 	_ok("Q11.23 la placa abre la puerta", placa.veces == 1 and bool(puerta.get("abierta")))
+
+
+# ---------------------------------------------------------------------------------------------------------------------
+#  Q12 · Foso con cofre flotante
+# ---------------------------------------------------------------------------------------------------------------------
+
+const FOSO: Array = [Vector2i(26, 27), Vector2i(26, 28), Vector2i(26, 29), Vector2i(26, 30), Vector2i(27, 30), Vector2i(28, 30), Vector2i(29, 30), Vector2i(30, 30),
+	Vector2i(30, 29), Vector2i(30, 28), Vector2i(30, 27), Vector2i(30, 26), Vector2i(29, 26)]
+## Casillas por las que se anda en la sala (entrada, pasarela e isla): desde ninguna se alcanza el cofre en reposo con E.
+const PISABLES: Array = [Vector2i(28, 25), Vector2i(27, 25), Vector2i(29, 25), Vector2i(30, 25), Vector2i(27, 26), Vector2i(28, 26), Vector2i(27, 27), Vector2i(28, 27), Vector2i(29, 27),
+	Vector2i(27, 28), Vector2i(28, 28), Vector2i(29, 28), Vector2i(27, 29), Vector2i(28, 29), Vector2i(29, 29)]
+
+
+func _puzle3d() -> Puzle3D:
+	return lab.get("_puzle_nodo") as Puzle3D
+
+
+func _foso_max() -> float:
+	var m: float = 0.0
+	for c in FOSO:
+		m = maxf(m, Terreno3D.agua_sim.profundidad_casilla(c as Vector2i))
+	return m
+
+
+func _foso_min() -> float:
+	var m: float = INF
+	for c in FOSO:
+		m = minf(m, Terreno3D.agua_sim.profundidad_casilla(c as Vector2i))
+	return m
+
+
+## Abre un cofre como la jugadora (E): reintenta cada 0,2 s mientras aún está apareciendo y espera a que acabe de abrirse (el botín se da al terminar).
+func _abrir_cofre(cofre: Variant, max_s: float = 6.0) -> bool:
+	var t0: float = reloj.t
+	while reloj.t - t0 < max_s and not bool(cofre.get("es_abierto")):
+		cofre.call("abrir")
+		await avanzar_s(0.2)
+	return bool(cofre.get("es_abierto"))
+
+
+func _q12_estado_inicial() -> void:
+	var q: Dictionary = _sala("Q12")
+	var balsa: Balsa3D = q["balsa"]
+	var cofre: Variant = q["cofre"]
+	_ok("Q12.1 la balsa descansa en (26,30), con una ruta de %d casillas hasta el muelle (29,26); el foso (13 casillas) está seco" % balsa.ruta.size(),
+		balsa.celda_actual() == Vector2i(26, 30) and balsa.ruta.size() == 10 and balsa.ruta.back() == Vector2i(29, 26) and not balsa.flota and not balsa.atracada and _foso_max() == 0.0)
+	_ok("Q12.2 el cofre va encima de la balsa (hijo suyo), abajo, en el fondo del foso (%.2f u bajo el suelo)" % (Terreno3D.y_pies(Vector2i(28, 26)) - (cofre as Node3D).global_position.y),
+		(cofre as Node3D).get_parent() == balsa and (cofre as Node3D).global_position.y < Terreno3D.y_pies(Vector2i(28, 26)) - 0.5)
+	var cerca: float = INF
+	for c in PISABLES:
+		cerca = minf(cerca, Vector2(Terreno3D.centro_de(c as Vector2i, 0.0).x - (cofre as Node3D).global_position.x, Terreno3D.centro_de(c as Vector2i, 0.0).z - (cofre as Node3D).global_position.z).length())
+	_ok("Q12.3 en reposo el cofre queda LEJOS: la casilla de la sala más cercana está a %.2f u y E alcanza %.1f u" % [cerca, Puzle3D.ALCANCE_COFRE], cerca > Puzle3D.ALCANCE_COFRE)
+	_ok("Q12.4 y está SELLADO (abre_si = balsa atracada): E no lo abre", bool(cofre.get("es_cerrado")) and not bool(cofre.call("sellado_cumplido")) and not bool(cofre.call("abrir")))
+	var muelle: float = Vector2(Terreno3D.centro_de(Vector2i(29, 26), 0.0).x - Terreno3D.centro_de(Vector2i(28, 26), 0.0).x, Terreno3D.centro_de(Vector2i(29, 26), 0.0).z - Terreno3D.centro_de(Vector2i(28, 26), 0.0).z).length()
+	_ok("Q12.5 el muelle (29,26) queda pegado a la pasarela (28,26): a %.2f u, dentro del alcance de E" % muelle, muelle <= Puzle3D.ALCANCE_COFRE)
+
+
+func _q12_natural() -> void:
+	await _q12_estado_inicial()
+	var q: Dictionary = _sala("Q12")
+	var balsa: Balsa3D = q["balsa"]
+	var cofre: Variant = q["cofre"]
+	lanzador.tinta = null
+	var y_reposo: float = balsa.global_position.y
+	await avanzar_s(4.0)
+	_ok("Q12.6 con el foso vacío la balsa no se mueve (4 s)", not balsa.flota and balsa.indice == 0 and absf(balsa.global_position.y - y_reposo) < 0.02)
+	# La vía: agua a la tinaja, desde la casilla del este de su fila.
+	_ok("Q12.7 agua + flecha a la tinaja (27,25) sale", lanzar_a_celda("agua", ["flecha"], Vector2i(27, 25), Vector2i(29, 25)))
+	var r: Dictionary = {"t_agua": -1.0, "t_flota": -1.0, "t_atraca": -1.0, "sellado_en_ruta": true, "vio_ruta": false, "prof_flota": 0.0, "y_flota": 0.0, "min_prof_ruta": INF}
+	var t0: float = reloj.t
+	await avanzar_vigilando(150.0, 0.5, func(t: float) -> void:
+		if float(r["t_agua"]) < 0.0 and _foso_max() > 0.02:
+			r["t_agua"] = t
+		if float(r["t_flota"]) < 0.0 and balsa.flota:
+			r["t_flota"] = t
+			r["prof_flota"] = Terreno3D.agua_sim.profundidad_casilla(balsa.celda_actual())
+		if balsa.flota and balsa.indice > 0 and not balsa.atracada:
+			r["vio_ruta"] = true
+			r["y_flota"] = maxf(float(r["y_flota"]), balsa.global_position.y - y_reposo)
+			r["min_prof_ruta"] = minf(float(r["min_prof_ruta"]), Terreno3D.agua_sim.profundidad_casilla(balsa.celda_actual()))
+			if bool(cofre.call("sellado_cumplido")):
+				r["sellado_en_ruta"] = false
+		if float(r["t_atraca"]) < 0.0 and balsa.atracada:
+			r["t_atraca"] = t
+	)
+	_ok("Q12.8 el agua de la tinaja llega al foso (a los %.1f s)" % float(r["t_agua"]), float(r["t_agua"]) > 0.0)
+	_ok("Q12.9 la balsa empieza a FLOTAR cuando el agua de su casilla llega a %.2f u (a los %.1f s, con %.2f u)" % [balsa.calado, float(r["t_flota"]), float(r["prof_flota"])], float(r["t_flota"]) > 0.0 and float(r["prof_flota"]) >= balsa.calado - 0.01)
+	_ok("Q12.10 flotando SUBE con el agua (%.2f u sobre el fondo) y DERIVA por el foso" % float(r["y_flota"]), bool(r["vio_ruta"]) and float(r["y_flota"]) > 0.1)
+	_ok("Q12.11 mientras deriva el cofre sigue sellado", bool(r["sellado_en_ruta"]) and bool(r["vio_ruta"]))
+	_ok("Q12.12 en la ruta siempre hubo agua de calado bajo la balsa (mínimo %.2f u)" % float(r["min_prof_ruta"]), float(r["min_prof_ruta"]) >= balsa.calado * 0.5)
+	_ok("Q12.13 la balsa ATRACA en el muelle (29,26) a los %.1f s (%.1f s de deriva)" % [float(r["t_atraca"]), float(r["t_atraca"]) - float(r["t_flota"])], float(r["t_atraca"]) > 0.0 and balsa.atracada and balsa.celda_actual() == Vector2i(29, 26))
+	var celda_cofre: Vector2i = cofre.get("celda")
+	colocar_jugador(Vector2i(28, 26))
+	await avanzar_s(0.5)
+	var d: float = ((cofre as Node3D).global_position - jugador.global_position).length()
+	_ok("Q12.14 el cofre queda en el muelle (casilla %s, a %.2f u de la jugadora en la pasarela) y deja de estar sellado" % [str(celda_cofre), Vector2((cofre as Node3D).global_position.x - jugador.global_position.x, (cofre as Node3D).global_position.z - jugador.global_position.z).length()],
+		celda_cofre == Vector2i(29, 26) and bool(cofre.call("sellado_cumplido")) and Vector2((cofre as Node3D).global_position.x - jugador.global_position.x, (cofre as Node3D).global_position.z - jugador.global_position.z).length() <= Puzle3D.ALCANCE_COFRE, "3D %.2f" % d)
+	var oro0: int = Estado.i().oro
+	var abierto: bool = await _abrir_cofre(cofre)
+	_ok("Q12.15 se abre con E desde la pasarela y da su botín (40 de oro)", abierto and Estado.i().oro - oro0 == 40, "oro +%d" % (Estado.i().oro - oro0))
+
+
+func _q12_botones() -> void:
+	await _q12_estado_inicial()
+	var q: Dictionary = _sala("Q12")
+	var balsa: Balsa3D = q["balsa"]
+	var boton: Pulsador3D = q["boton"]
+	var placa: Pulsador3D = q["placa"]
+	_ok("Q12.20 el botón `!` (29,25) y la placa `@` (30,25) existen", boton != null and placa != null and boton.celda == Vector2i(29, 25) and placa.celda == Vector2i(30, 25))
+	boton.pulsar()
+	var r: Dictionary = {"t_agua": -1.0, "t_flota": -1.0}
+	await avanzar_vigilando(90.0, 0.5, func(t: float) -> void:
+		if float(r["t_agua"]) < 0.0 and _foso_max() > 0.02:
+			r["t_agua"] = t
+		if float(r["t_flota"]) < 0.0 and balsa.flota:
+			r["t_flota"] = t
+	)
+	_ok("Q12.21 el botón moja la tinaja: llega agua al foso (a los %.1f s) y la balsa flota (a los %.1f s)" % [float(r["t_agua"]), float(r["t_flota"])], float(r["t_agua"]) > 0.0 and float(r["t_flota"]) > 0.0)
+	colocar_jugador(Vector2i(30, 25))
+	await avanzar_s(0.5)
+	var regla: Variant = _puzle3d().puzle("q12_moja_placa")
+	_ok("Q12.22 la placa dispara su regla (moja la tinaja)", placa.veces == 1 and regla != null and int(regla["veces"]) == 1)

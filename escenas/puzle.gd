@@ -151,6 +151,11 @@ extends Node
 ##              veneno (`NubeVeneno3D`, con esa `vida` y ese `radio`) cada `cada` s; un segundo antes la reja brilla de verde. `dir`: la nube brota media casilla hacia ese lado (sin ella, centrada en la reja).
 ##              `desfase` = punto del ciclo en el que empieza (0 = acaba de exhalar). El FUEGO no apaga la reja pero quema la nube que ya hay (NubeVeneno3D: su vida baja a 4 s en 1,5 casillas: el hueco que deja depende
 ##              de cuánto falte para la siguiente exhalación). El AGUA y el HIELO la atascan 8 s (`agua=no`: nada la atasca). Señales `exhala`, `apagado`; condición `activo`|`apagado`; acciones `apagar(s)` | `encender`
+##   balsa      ruta=<lista de casillas>  cofre=<id de un cofre>  calado=<u> (0.2)  vel=<u/s> (1.5)   Balsa3D (18/11): una plataforma de tablones en x,y (una casilla `c` del foso; el REPOSO). Descansa en el fondo y FLOTA cuando el agua
+##              de su casilla llega a `calado` (sube con la superficie, de ahí su altura); entonces DERIVA casilla a casilla por la `ruta` (en orden: x,y,… con «+»; la última es el MUELLE) a `vel` u/s, y solo avanza si en la
+##              casilla siguiente hay agua de `calado` (si el foso se seca, queda varada y se hunde donde esté). Al llegar queda ATRACADA, aunque luego se hunda. `cofre=<id>`: lleva ese cofre encima (el cofre se mueve con
+##              ella y la casilla que bloquea también); para que no se abra desde el fondo del foso vacío, el cofre lleva `abre_si=<id de la balsa>.atracada`. Ej. (Q12 de PuzlesAgua):
+##              `; pieza b balsa 26 30 ruta=27,30+28,30 cofre=cf` · `; pieza cf cofre 26 30 abre_si=b.atracada`. Señales `atraca`, `flota`, `se_hunde`; condiciones `atracada`|`en_ruta`, `a_flote`|`hundida`. Sin acciones.
 ##   nido       (sin claves)                                                        Nido3D (F1): el viento suelta una `pluma`, como mucho cada 45 s. Señal `suelta`
 ##   bancal     flag=<nivel.sala.hecho> (obligatoria)                                Tierra o arena. Agua → Naturaleza germina la casilla y guarda la flag.
 ##              Señal `germino`; condiciones `germinado` y `pendiente`. La flag restaura la hierba al volver al mapa.
@@ -281,7 +286,7 @@ const SENAL_DEFECTO: Dictionary = {
 	"jarron": "roto", "caja": "roto", "salida": "usada",
 	"columna": "cae", "estatuas": "completa", "estalagmita": "cae", "geoda": "explota", "bloque": "movido", "roca_empujable": "movido",
 	"guardian": "levanta", "puente": "tendido", "trampa_dragon": "escupe", "trampa_flechas": "dispara",
-	"colmena": "cae_panal", "nube_veneno": "disipada", "respiradero": "exhala", "nido": "suelta", "musgo": "recogida", "helecho_cueva": "recogida", "seta_palida": "recogida",
+	"colmena": "cae_panal", "nube_veneno": "disipada", "respiradero": "exhala", "balsa": "atraca", "nido": "suelta", "musgo": "recogida", "helecho_cueva": "recogida", "seta_palida": "recogida",
 	"flor": "recogida", "raiz": "recogida", "lavanda": "recogida", "bayas": "recogida", "helecho": "recogida", "flor_silvestre": "recogida",
 	"bancal": "germino", "mamoa": "tapada",
 }
@@ -332,6 +337,7 @@ const SENALES: Dictionary = {
 	"colmena": {"cae_panal": ["panal_cae", 0, null], "arde": ["arde", 0, null]},
 	"nube_veneno": {"disipada": ["disipada", 0, null]},
 	"respiradero": {"exhala": ["exhala", 0, null], "apagado": ["apagado", 0, null]},
+	"balsa": {"atraca": ["atraca", 0, null], "flota": ["a_flote", 1, true], "se_hunde": ["a_flote", 1, false]},
 	"nido": {"suelta": ["suelta", 0, null]},
 	"bancal": {"germino": ["germino", 0, null]},
 	"musgo": {"recogida": ["recogido", 1, null]},
@@ -377,6 +383,7 @@ const CONDICIONES: Dictionary = {
 	"trampa_flechas": {"activa": ["activa", true], "apagada": ["activa", false]},
 	"colmena": {"colgada": ["colgada", true], "vacia": ["colgada", false]},
 	"respiradero": {"activo": ["activo", true], "apagado": ["activo", false]},
+	"balsa": {"atracada": ["atracada", true], "en_ruta": ["atracada", false], "a_flote": ["flota", true], "hundida": ["flota", false]},
 	"musgo": {"recogida": ["recogido_ya", true], "en_suelo": ["recogido_ya", false]},
 	"helecho_cueva": {"recogida": ["recogido_ya", true], "en_suelo": ["recogido_ya", false]},
 	"seta_palida": {"recogida": ["recogido_ya", true], "en_suelo": ["recogido_ya", false]},
@@ -461,6 +468,7 @@ const CLAVES: Dictionary = {
 	"bancal": {"flag": "flag"},
 	"nube_veneno": {"vida": "f", "radio": "f"},
 	"respiradero": {"cada": "f", "vida": "f", "radio": "f", "dir": "s:n|e|s|o", "desfase": "f", "agua": "b"},
+	"balsa": {"ruta": "celdas", "cofre": "id", "calado": "f", "vel": "f"},
 	"nido": {},
 	"arbol": {"modelo": "s:arbol_redondo|arbol_redondo_2|pino|pino_2"},
 	"cristal": {"cada": "f", "alcance": "f"},
@@ -529,8 +537,8 @@ const LETRA_MAQUETA: Dictionary = {"tinaja": "u", "totem": "i", "emisor": "e", "
 ## Trampas de pared (5/11): van en una casilla de MURO y miran a una casilla de suelo.
 const TRAMPAS_PARED: Array = ["trampa_dragon", "trampa_flechas"]
 ## Piezas que necesitan la simulación de agua (`agua_fisica = true` en la escena).
-const NECESITAN_AGUA: Array = ["cuenca", "manantial", "nivel", "compuerta", "molino"]
-const NECESITAN_CAUCE: Array = ["cuenca", "manantial", "nivel", "compuerta", "molino"]
+const NECESITAN_AGUA: Array = ["cuenca", "manantial", "nivel", "compuerta", "molino", "balsa"]
+const NECESITAN_CAUCE: Array = ["cuenca", "manantial", "nivel", "compuerta", "molino", "balsa"]
 
 
 ## Una pieza declarada: su ficha (y su nodo, si es de las que lo tienen; `cuenca` y `manantial` son solo datos).
@@ -2528,6 +2536,15 @@ func _crear(pz: Pieza) -> void:
 			rp.apaga_con_agua = bool(pz.p.get("agua", true))
 			cont.add_child(rp)
 			pz.nodo = rp
+		"balsa":
+			# 18/11: plataforma que flota cuando el agua de su casilla llega a `calado` y deriva por la `ruta` hasta el muelle (objetos/balsa_3d.gd). El cofre que lleva se le pone en `_enlazar`.
+			var ba2 := Balsa3D.new()
+			ba2.name = pz.id
+			var ruta_b: Array = [pz.celda]
+			ruta_b.append_array(pz.p.get("ruta", []))
+			ba2.preparar(ruta_b, float(pz.p.get("calado", Balsa3D.CALADO_DEFECTO)), float(pz.p.get("vel", Balsa3D.VEL_DEFECTO)))
+			cont.add_child(ba2)
+			pz.nodo = ba2
 		"nido":
 			var nd2 := Nido3D.new()
 			nd2.name = pz.id
@@ -2636,6 +2653,14 @@ func _enlazar(pz: Pieza) -> void:
 				_avisar_pieza(pz, "mamoa=%s: no es una pieza mámoa que se haya montado" % pz.p["mamoa"])
 			else:
 				(pz.nodo as MouroEspectro3D).asignar_mamoa(pm.nodo as Mamoa3D)
+		"balsa":
+			if not pz.p.has("cofre"):
+				return
+			var pc2: Pieza = _piezas.get(pz.p["cofre"], null)
+			if pc2 == null or pc2.tipo != "cofre" or not is_instance_valid(pc2.nodo):
+				_avisar_pieza(pz, "cofre=%s: no es un cofre que se haya montado" % pz.p["cofre"])
+			else:
+				(pz.nodo as Balsa3D).llevar(pc2.nodo as Node3D)
 		"cuerda":
 			if not pz.p.has("sostiene"):
 				return
