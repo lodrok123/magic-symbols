@@ -32,10 +32,9 @@ func _escenario() -> void:
 	await avanzar_s(1.0)
 	var piezas: int = 0
 	var losas: int = 0
-	for n in lanzador.mundo.get_children():
-		if str(n.name).contains("PlataformaTierra"):    # la segunda se llama «@PlataformaTierra@N»: Godot renombra el nodo repetido
-			piezas += 1
-			losas += n.find_children("*", "MeshInstance3D", true, false).size()
+	for p in lanzador._plataformas_tierra:    # por la lista del Lanzador, no por nombre: Godot renombra el segundo nodo «PlataformaTierra»
+		piezas += 1
+		losas += (p["nodo"] as Node).find_children("*", "MeshInstance3D", true, false).size()
 	_ok("1 hay dos plataformas con una losa por casilla (piezas %d, losas %d)" % [piezas, losas], piezas == 2 and losas == 4)
 	var img: Image = root.get_viewport().get_texture().get_image()
 	var ruta: String = ProjectSettings.globalize_path(_png) if _png.begins_with("res://") else _png
