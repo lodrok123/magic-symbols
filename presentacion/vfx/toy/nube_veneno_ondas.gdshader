@@ -41,14 +41,20 @@ void fragment() {
 	float borde = 1.0 - smoothstep(R * 0.88, R, d);  // todo se desvanece hacia el borde actual
 	float nucleo = exp(-pow(d / (0.28 * R + 0.02), 2.0));
 	float denso = 1.0 - smoothstep(0.0, R, d);      // relleno: más denso en el centro
-	float relleno = (0.36 + 0.30 * denso * denso) * borde;
-	float al = relleno + halo * 0.85 * fuerza * borde + filo * 0.6 * fuerza * borde + nucleo * 0.25;
-	al = clamp(al, 0.0, 0.95) * alfa;
+	// 18/11 (Pablo: «más contraste»): el relleno entre ondas baja (deja ver el suelo), el halo de cada frente es el verde oscuro de la paleta MÁS oscuro (×0,4) y casi opaco, el filo sube al verde del núcleo,
+	// y el borde actual de la nube lleva un aro oscuro fijo: sobre hierba clara se leen anillos oscuros con un filo de luz; sobre suelo oscuro, el filo.
+	float aro = (1.0 - smoothstep(0.0, 0.07, abs(d - R * 0.93))) * step(d, R);
+	float relleno = (0.14 + 0.30 * denso * denso) * borde;
+	float f = min(fuerza, 1.6);
+	float al = relleno + halo * 0.95 * f * borde + filo * 0.5 * f * borde + nucleo * 0.25 + aro * 0.55;
+	al = clamp(al, 0.0, 0.97) * alfa;
 	if (al < 0.01) {
 		discard;
 	}
+	vec3 sombra = color_oscuro * 0.4;
 	vec3 col = mix(color_oscuro, color, clamp(denso * denso * 0.6 + nucleo * 0.7, 0.0, 1.0));
-	col = mix(col, color_claro, clamp(filo * 1.2, 0.0, 1.0));
+	col = mix(col, sombra, clamp(max(halo, aro) * 1.1, 0.0, 1.0));
+	col = mix(col, color_nucleo, clamp(filo * 1.3, 0.0, 1.0));
 	col = mix(col, color_nucleo, clamp(nucleo * 0.8, 0.0, 1.0));
 	ALBEDO = col;
 	ALPHA = al;
