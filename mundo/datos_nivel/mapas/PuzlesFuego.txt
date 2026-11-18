@@ -119,6 +119,15 @@
 ; pieza t_fl_barril barril 14 21
 ; pieza t_fl_boton pulsador 9 18 modo=magia
 ; puzle t_fl_boton_apaga cuando=t_fl_boton.pulsado hace=t_fl_fuego.apagar
+; --- F10 LLEVA LA POLVORA (18/11, sala (2,1), x 17..23, y 9..15): el nicho del rincon noroeste (17..18, 9..10) esta tapado por un MURO AGRIETADO en (18,11) (muros de piedra en (19,9) (19,10) y (17,11)); dentro, un cofre que aparece al
+; ---   romperse. El barril PEQUENO de (18,12) es la llave: se coge (E), se enciende con fuego (la mecha dura 2,4 s y corre tambien en brazos) y se LANZA contra el muro; explota al chocar, a ~1,2 u de su centro (radio 1,6) y lo rompe de una vez.
+; ---   Dejarlo encendido en su casilla no sirve (explota a 2,3 u: fuera de radio) y el barril GRANDE de (22,12) es un senuelo (a 9 u del muro). Vias: boton ! (18,14) enciende el barril pequeno (sin llevarlo no abre nada) · placa @ (22,14) rompe el muro.
+; pieza f10_muro muro 18 11 golpes=2
+; pieza f10_cofre cofre 17 10 aparece_si=f10_muro.roto da=oro:25
+; pieza f10_boton pulsador 18 14 modo=magia
+; pieza f10_placa pulsador 22 14 modo=presencia
+; puzle f10_boton_enciende cuando=f10_boton.pulsado hace=f6_peq3.encender
+; puzle f10_placa_rompe cuando=f10_placa.pulsado hace=f10_muro.romper
 ; ---------------------------------------------------------------------------------------------------------------------------------
 #################################
 #.......#...Z...#.-.....#......Z#
@@ -129,12 +138,12 @@
 #Z!...@.#.T...T.#!-..@..#.!...@.#
 #.......#.!...@.#.-.....#.......#
 ####.#######.#######.#######.####
-#......Z#.......#.......#.......#
-#.......#.......#.......#!......#
-#T.T.T.T#.......#.......#.......#
+#......Z#.......#..#....#.......#
+#.......#.......#..#....#!......#
+#T.T.T.T#.......##......#.......#
 #...........S..................@#
 #.......#.......#.......#.......#
-#.!...@.#.......#.......#########
+#.!...@.#.......#.!...@.#########
 #.......#.......#.......#########
 ####.#######.#######.############
 #.......#.......#.......#.......#

@@ -436,6 +436,16 @@ func al_impactar_lanzado(punto: Vector3) -> void:
 	_explotar()
 
 
+## 18/11/2026 (puzle F10 «Lleva la pólvora»): el barril pequeño LANZADO contra un muro explota donde estaba un fotograma antes de chocar (`CargarObjeto3D._volar` usa la posición previa): entre 1,15 u (el borde de la
+## casilla) y 1,15 + lo que avanza en un fotograma (12 u/s: 0,4 u a 30 fps, 0,6 a 20), y su radio es 1,6. Medido: a 20 fps el muro se quedaba a 1,73 u y no se rompía. Para lo que rompe (`explosionable`) el alcance del
+## pequeño suma EXTRA_SOLIDO_PEQUENO: sigue sin llegar a la casilla de al lado desde su centro (2,3 u > 1,6 + 0,45), así que dejarlo encendido en su sitio no rompe nada, pero lanzarlo ya no depende de los fotogramas por segundo.
+const EXTRA_SOLIDO_PEQUENO: float = 0.45
+
+
+func alcance_extra_solido() -> float:
+	return EXTRA_SOLIDO_PEQUENO if pequeno else 0.0
+
+
 ## Dónde se centra la explosión: el barril, y si el pequeño va por el aire o en las manos, el suelo bajo él (el decal y el daño se miden desde el suelo).
 func _punto_explosion() -> Vector3:
 	var p: Vector3 = global_position
@@ -457,7 +467,7 @@ func _explotar() -> void:
 	_sin_celda = true
 	# Lo que está al alcance y sabe recibir una explosión.
 	for n in get_tree().get_nodes_in_group("explosionable"):
-		if is_instance_valid(n) and n != self and n is Node3D and (n as Node3D).global_position.distance_to(punto) <= radio and n.has_method("recibir_explosion"):
+		if is_instance_valid(n) and n != self and n is Node3D and (n as Node3D).global_position.distance_to(punto) <= radio + alcance_extra_solido() and n.has_method("recibir_explosion"):
 			n.call("recibir_explosion", punto)
 	# Cadena: los otros barriles al alcance se encienden (cada uno con su mecha y su aviso).
 	for n in get_tree().get_nodes_in_group(GRUPO_BARRILES):
