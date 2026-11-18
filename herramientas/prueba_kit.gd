@@ -65,6 +65,7 @@ func _initialize() -> void:
 	await process_frame
 	_progresion()
 	_bosque()
+	_demo()
 	await _costras()
 	print("FALLOS: %d" % _fallos)
 	quit(1 if _fallos > 0 else 0)
@@ -115,6 +116,28 @@ func _bosque() -> void:
 	Lanzador3D.aplicar_progresion("Bosque")
 	_ok("5 sin kit otra vez: sin hielo", not Repertoire.element_active("hielo") and Repertoire.active_sigils().size() == 1)
 	Lanzador3D.aplicar_progresion("todo")      # no dejamos la progresión del Bosque puesta para el resto
+
+
+## 18/11 (Pablo): el kit de la demo, solo fuego, agua y tierra y seis glifos.
+func _demo() -> void:
+	var clave: String = Lanzador3D.aplicar_progresion("demo")
+	_ok("13 demo: progresión «demo»", clave == "demo")
+	var sellos: PackedStringArray = Repertoire.active_elements()
+	_ok("13 demo: sellos exactamente fuego, agua y tierra", sellos.size() == 3 and sellos.has("fuego") and sellos.has("agua") and sellos.has("tierra"), str(sellos))
+	_ok("13 demo: sin viento, hielo ni rayo", not Repertoire.element_active("viento") and not Repertoire.element_active("hielo") and not Repertoire.element_active("rayo"))
+	var glifos: PackedStringArray = Repertoire.active_sigils()
+	var esperados: Array = ["flecha", "linea", "barrera", "altura", "raido", "suelo"]
+	var coinciden: bool = glifos.size() == esperados.size()
+	for g in esperados:
+		coinciden = coinciden and glifos.has(g)
+	_ok("13 demo: glifos exactamente flecha, linea, barrera, altura, raido y suelo", coinciden, str(glifos))
+	_ok("13 demo: tres páginas, seis glifos por página", Repertoire.max_pages == 3 and Repertoire.max_sigils_per_page == 6)
+	_ok("13 demo: libro «bosque»", Repertoire.libro == "bosque", Repertoire.libro)
+	var m := MundoFalso.new()
+	m.kit = "demo"
+	_ok("13 demo: con `kit = \"demo\"`, progresion_de devuelve «demo»", Lanzador3D.progresion_de(m) == "demo")
+	m.free()
+	Lanzador3D.aplicar_progresion("todo")
 
 
 func _costras() -> void:

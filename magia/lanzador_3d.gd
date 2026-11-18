@@ -132,6 +132,10 @@ const PROGRESIONES: Dictionary = {
 	# 28/10 (Pablo: «la barrera como concepto, sin más elementos que el fuego»): la Gruta Batida nueva. FUEGO + FLECHA y nada más: los tótems enseñan la barrera
 	# y el cofre del santuario da ᛜ (Puzle3D, `glifo=barrera`). La versión de tres elementos queda en docs/GRUTA_PERMANENCIA.md con el kit «barrera».
 	"gruta": {"sellos": ["fuego"], "glifos": ["flecha"], "paginas": 1, "glifos_por_pagina": 2, "libro": "bosque", "capacidad": CAPACIDAD_PRIMER_LIBRO},
+	# 18/11 (Pablo): kit de la demo: solo fuego, agua y tierra (sin viento, hielo, rayo ni reacciones). Es el repertorio COMPLETO de la demo (el techo), no el de arranque:
+	# cuando existan los cofres que dan cada sello y glifo, el arranque será fuego + flecha, como en «bosque».
+	"demo": {"sellos": ["fuego", "agua", "tierra"], "glifos": ["flecha", "linea", "barrera", "altura", "raido", "suelo"],
+		"paginas": 3, "glifos_por_pagina": 6, "libro": "bosque", "capacidad": CAPACIDAD_PRIMER_LIBRO},
 }
 const PROGRESION_FORZADA: String = ""          ## «nivel1», «todo»…: manda sobre el nombre del nivel (para probar)
 const PALETA_RUNAS: bool = true               ## paleta F1 de pruebas (rune_palette.gd), como en Blockout y TestJugabilidad
