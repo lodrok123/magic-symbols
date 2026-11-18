@@ -49,11 +49,12 @@ const ALFA_BORDE: float = 0.85
 ## lenguas: [clave, huesos por orden de preferencia (final del nombre), subida sobre el hueso (× alto) con el primero y con los demás, radio (× alto), alto de la llama (× alto), sitio de reserva sin esqueleto (x en radios, y × alto)]
 ## La cabeza va en la CORONILLA (HeadTop_End en Mixamo; si no hay, el hueso de la cabeza y un poco más arriba); los hombros, en la articulación del brazo (LeftArm), no en la clavícula.
 const LENGUAS: Array = [
-	["cabeza", ["HeadTop_End", "Head"], -0.17, 0.1, 0.12, 0.48, Vector2(0.0, 0.92)],
-	["hombro_izq", ["LeftArm", "LeftShoulder"], 0.0, 0.0, 0.10, 0.34, Vector2(-0.95, 0.72)],
-	["hombro_der", ["RightArm", "RightShoulder"], 0.0, 0.0, 0.10, 0.34, Vector2(0.95, 0.72)],
-	["mano_izq", ["LeftHand"], -0.03, -0.03, 0.08, 0.26, Vector2(-1.25, 0.42)],
-	["mano_der", ["RightHand"], -0.03, -0.03, 0.08, 0.26, Vector2(1.25, 0.42)],
+	# 18/11 (Pablo, 2ª referencia: «las lenguas son muy largas»): lamidas cortas, casi tan anchas como altas; antes 0,48 / 0,34 / 0,26.
+	["cabeza", ["HeadTop_End", "Head"], -0.17, 0.1, 0.12, 0.22, Vector2(0.0, 0.92)],
+	["hombro_izq", ["LeftArm", "LeftShoulder"], 0.0, 0.0, 0.10, 0.16, Vector2(-0.95, 0.72)],
+	["hombro_der", ["RightArm", "RightShoulder"], 0.0, 0.0, 0.10, 0.16, Vector2(0.95, 0.72)],
+	["mano_izq", ["LeftHand"], -0.03, -0.03, 0.08, 0.13, Vector2(-1.25, 0.42)],
+	["mano_der", ["RightHand"], -0.03, -0.03, 0.08, 0.13, Vector2(1.25, 0.42)],
 ]
 ## El pilar de FuegoToy solo se ve bien a partir de cierto tamaño (si se le dan semiejes pequeños, sus láminas se quedan anchas y chatas): se monta a este tamaño de referencia y el nodo
 ## se ESCALA a lo que se quiere (más estrecho que alto).

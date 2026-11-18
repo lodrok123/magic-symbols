@@ -12,7 +12,7 @@ extends RefCounted
 const NOMBRE_LLAMAS: String = "LlamasCuerpo"
 const HumoToy = preload("res://presentacion/vfx/toy/humo_toy.gd")
 const COLOR_MADERA: Color = Color(0.55, 0.36, 0.2, 1.0)
-const PILAR_CON_ARDIENDO: float = 0.6              ## × el tamaño del pilar de llamas del cuerpo cuando el nodo lleva ArdiendoToy (1 = el de siempre)
+const PILAR_CON_ARDIENDO: float = 0.35             ## × el tamaño del pilar de llamas del cuerpo cuando el nodo lleva ArdiendoToy (1 = el de siempre)
 const HUESO_MANO_QUEMADA: String = "LeftHand"      ## la mano del escudo (final del nombre del hueso, como en Equipo3D)
 const VIDA_RESTO_MANO_QUEMADA: float = 1.4         ## s que sigue ahí (sin emitir) lo que ya había salido, antes de quitar el attachment
 
