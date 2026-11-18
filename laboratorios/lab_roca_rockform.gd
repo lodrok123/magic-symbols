@@ -7,7 +7,8 @@ extends Node3D
 ##
 ##
 ## PLATAFORMA DE TIERRA (18/11, Pablo: «de esta lista puedes probar 8 y 13 para la plataforma de tierra»). Fila de delante: la plataforma que
-## levanta hoy el hechizo (`Lanzador3D.levantar_plataforma_tierra`: la losa `TierraToy.MALLA_LOSA` estirada a una casilla) y cuatro candidatas
+## levantaba el hechizo hasta el 18/11 (la losa `TierraToy.MALLA_LOSA` estirada a una casilla) y cuatro candidatas. ELEGIDA: «8 facetada»
+## (`plataforma_rf_08_b` = `TierraToy.MALLA_PLATAFORMA`, ya enganchada en `Lanzador3D.levantar_plataforma_tierra`). Las cuatro candidatas son
 ## de RockForm, dos de la familia 8 (Jagged Slabs) y dos de la 13 (Floating Islands, recortadas por abajo). Todas con el mismo `TierraToy.asentar`
 ## que usa el juego (2,3 × 0,45 × 2,3 m) y el shader de roca del juego; las candidatas en color plano porque no traen UV.
 ##
@@ -141,7 +142,7 @@ func _montar_plataformas() -> void:
 	actual.position = Vector3(x0, 0.0, Z_PLATAFORMAS)
 	add_child(actual)
 	_asentar(actual, true)
-	_etiqueta("Juego: plataforma actual", actual.position + Vector3(0.0, 1.0, 0.0), 30)
+	_etiqueta("Plataforma anterior (roca_est_2)",actual.position + Vector3(0.0, 1.0, 0.0), 30)
 	for i in PLATAFORMAS.size():
 		var escena := load("res://arte/rockform/%s.glb" % PLATAFORMAS[i][0]) as PackedScene
 		if escena == null:

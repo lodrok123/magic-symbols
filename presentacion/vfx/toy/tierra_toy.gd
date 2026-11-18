@@ -33,7 +33,9 @@ const RUTA_ROCA: String = "res://arte/meshy/piezas/%s.glb"                      
 const TEX_ALBEDO: String = "res://arte/meshy/piezas/tex_rocas_est/rocas_albedo.png"
 const MALLA_BOLA: String = "piedra_est_0"          ## la más redonda (0,82 × 0,80 × 0,74 m)
 const MALLA_TERRON: String = "piedra_est_1"        ## terrones, piedrecitas y fragmentos (0,69 m, 426 vértices)
-const MALLA_LOSA: String = "roca_est_2"            ## losa facetada compartida por el muro y la plataforma
+const MALLA_LOSA: String = "roca_est_2"            ## losa facetada del muro (hasta el 18/11 también era la plataforma)
+const MALLA_PLATAFORMA: String = "plataforma_rf_08_b"   ## 18/11 (Pablo: «8 facetada»): losas de RockForm, familia 8 Jagged Slabs. Sin UV: va con `plano` = 1. Una por casilla
+const RUTA_ROCKFORM: String = "res://arte/rockform/%s.glb"                                   ## mallas generadas con arte/rockform/generar_roca_rockform.py (ids `plataforma_rf_*`)
 const MALLAS_MURO: Array = ["roca_est_1", MALLA_LOSA, "roca_est_1", "roca_est_0", MALLA_LOSA, "roca_est_0"]   ## bloque, losa, bloque, redonda, losa, redonda (la alta roca_est_4 salía como una púa en el muro: solo en el pilar)
 const MALLAS_PIE: Array = ["piedra_est_1", "piedra_est_3"]           ## dos tipos: con los 3 del muro / pilar hacen los 5 MultiMesh de tope
 const MAX_TIPOS: int = 5                                              ## MultiMesh (tipos de roca) por figura como mucho
@@ -109,7 +111,7 @@ static func malla_roca(id: String) -> Mesh:
 		m = malla_laja(int(id.substr(5)))
 		_mallas[id] = m
 		return m
-	var ps: PackedScene = load(RUTA_ROCA % id) as PackedScene
+	var ps: PackedScene = load((RUTA_ROCKFORM if id.begins_with("plataforma_rf_") else RUTA_ROCA) % id) as PackedScene
 	if ps != null:
 		var n: Node = ps.instantiate()
 		var l: Array = n.find_children("*", "MeshInstance3D", true, false)
