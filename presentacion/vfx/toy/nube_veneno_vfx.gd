@@ -9,6 +9,9 @@ extends Node3D
 ## ESTADOS, todos derivados de lo que ya sabe la nube (no guarda lógica propia):
 ##   NACER (brota desde el centro, T_NACER s) · VIVIR (remolino y respiración; la permanente no parpadea) · VIENTO (la nube se mueve: las bocanadas se quedan ATRÁS según la velocidad, así que se estira
 ##   y se deshilacha sola) · FUEGO (se amarillea, se consume bocanada a bocanada soltando chispas) · DISIPARSE (en el último T_DESVANECE s sube, se ensancha y se apaga).
+## ONDAS DEL ORIGEN (18/11, seta venenosa; opcional: `montar(radio, true)`, solo las nubes de respiradero): un quad a ras de suelo con el shader nube_veneno_ondas que dibuja anillos concéntricos que NACEN en el centro
+## (la seta) y viajan hacia fuera hasta el BORDE ACTUAL de la nube, uno cada ONDA_PERIODO s (N_ONDAS a la vez), con el centro más denso y el borde desvaneciéndose: en un fotograma suelto se ve de dónde sale el veneno.
+## Mientras la nube crece (`crecimiento` de `avanzar`, 0..1 = radio actual / final) las ondas van más marcadas y las bocanadas, la mancha y los anillos siguen ese radio en vez del brote de T_NACER. Mismos verdes.
 ## Rendimiento: con `MAX_COMPLETOS` nubes dibujadas a la vez, las siguientes salen en versión LIGERA (menos bocanadas, sin burbujas ni motas). `estado()` lo leen las pruebas.
 
 const N_BOCANADAS: int = 16
@@ -18,6 +21,8 @@ const N_MOTAS: int = 14
 const N_MOTAS_VIVAS: int = 5                   ## las que se ven en reposo (el resto solo al arder)
 const MAX_COMPLETOS: int = 6
 
+const ONDA_PERIODO: float = 0.7                ## s entre dos ondas (las ondas del origen)
+const N_ONDAS: int = 3                         ## ondas a la vez: cada una tarda N_ONDAS · ONDA_PERIODO s en llegar al borde
 const T_NACER: float = 0.8
 const T_DESVANECE: float = 1.4
 const V_VIENTO: float = 1.4                    ## u/s: velocidad con la que se considera «a pleno viento» (= NubeVeneno3D.DERIVA)
@@ -61,6 +66,9 @@ var _mm_bur: MultiMeshInstance3D = null
 var _mm_mot: MultiMeshInstance3D = null
 var _suelo: MeshInstance3D = null
 var _mat_suelo: ShaderMaterial = null
+var ondas: bool = false                        ## lleva los anillos del origen (solo las nubes de respiradero)
+var _ondas_mi: MeshInstance3D = null
+var _mat_ondas: ShaderMaterial = null
 ## Lo último dibujado (las pruebas: en headless el MultiMesh no guarda datos)
 var _alfas: PackedFloat32Array = PackedFloat32Array()
 var _tams: PackedFloat32Array = PackedFloat32Array()
@@ -78,8 +86,9 @@ var _humo: HumoRegla = null
 var _humo_hecho: bool = false
 
 
-func montar(p_radio_u: float) -> void:
+func montar(p_radio_u: float, p_ondas: bool = false) -> void:
 	radio_u = maxf(p_radio_u, 0.1)
+	ondas = p_ondas
 	ligero = NubeVenenoVfx.completos >= MAX_COMPLETOS
 	if not _contado:
 		_contado = true
@@ -126,6 +135,26 @@ func montar(p_radio_u: float) -> void:
 	_suelo.position = Vector3(0.0, 0.05, 0.0)
 	_suelo.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	add_child(_suelo)
+	if ondas:
+		var qo := QuadMesh.new()
+		qo.size = Vector2(radio_u * 2.0, radio_u * 2.0)
+		_mat_ondas = ShaderMaterial.new()
+		_mat_ondas.shader = load("res://presentacion/vfx/toy/nube_veneno_ondas.gdshader") as Shader
+		_mat_ondas.set_shader_parameter("color_oscuro", VERDE_OSCURO)
+		_mat_ondas.set_shader_parameter("color", VERDE)
+		_mat_ondas.set_shader_parameter("color_claro", VERDE_CLARO)
+		_mat_ondas.set_shader_parameter("color_nucleo", VERDE_NUCLEO)
+		_mat_ondas.set_shader_parameter("periodo", ONDA_PERIODO)
+		_mat_ondas.set_shader_parameter("n_ondas", N_ONDAS)
+		_mat_ondas.set_shader_parameter("ancho", clampf(0.26 / radio_u, 0.02, 0.2))        # el frente mide ~0,26 u de ancho sea cual sea el radio
+		_ondas_mi = MeshInstance3D.new()
+		_ondas_mi.name = "Ondas"
+		_ondas_mi.mesh = qo
+		_ondas_mi.material_override = _mat_ondas
+		_ondas_mi.rotation = Vector3(-PI * 0.5, 0.0, 0.0)
+		_ondas_mi.position = Vector3(0.0, 0.07, 0.0)
+		_ondas_mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		add_child(_ondas_mi)
 
 
 func _exit_tree() -> void:
@@ -140,8 +169,9 @@ func _enter_tree() -> void:
 		NubeVenenoVfx.completos += 1
 
 
-## Un paso del dibujo. `p_mundo` es la posición de la nube; el resto es su estado (edad en s, vida que le queda, si es permanente, si arde).
-func avanzar(dt: float, p_mundo: Vector3, edad: float, vida: float, vida_max: float, permanente: bool, ardiendo: bool) -> void:
+## Un paso del dibujo. `p_mundo` es la posición de la nube; el resto es su estado (edad en s, vida que le queda, si es permanente, si arde). `crecimiento` (0..1) = radio actual / radio final de una nube
+## que se extiende (la de un respiradero): sustituye al brote de T_NACER; -1 = la nube de siempre.
+func avanzar(dt: float, p_mundo: Vector3, edad: float, vida: float, vida_max: float, permanente: bool, ardiendo: bool, crecimiento: float = -1.0) -> void:
 	if _mm_boc == null:
 		return
 	_t += dt
@@ -153,7 +183,7 @@ func avanzar(dt: float, p_mundo: Vector3, edad: float, vida: float, vida_max: fl
 		_vel = _vel.lerp(Vector3.ZERO, 0.5)
 	_prev = p_mundo
 	_tiene_prev = true
-	var nacer: float = smoothstep(0.0, 1.0, edad / T_NACER)
+	var nacer: float = smoothstep(0.0, 1.0, edad / T_NACER) if crecimiento < 0.0 else clampf(crecimiento, 0.0, 1.0)
 	var desv: float = 1.0 if permanente else smoothstep(0.0, 1.0, vida / minf(T_DESVANECE, maxf(vida_max * 0.5, 0.2)))
 	var consumo: float = 0.0
 	var quema: float = 0.0
@@ -230,6 +260,15 @@ func avanzar(dt: float, p_mundo: Vector3, edad: float, vida: float, vida_max: fl
 	_mat_suelo.set_shader_parameter("crece", maxf(nacer, 0.02))
 	_mat_suelo.set_shader_parameter("tiempo", _t)
 	_mat_suelo.set_shader_parameter("remolino", 1.0 if gas else 0.0)
+	# --- ondas del origen (solo las de respiradero) ---
+	var ondas_vivas: int = 0
+	if _mat_ondas != null:
+		var a_ond: float = smoothstep(0.0, 0.3, edad) * desv * (1.0 - consumo * 0.9)
+		_mat_ondas.set_shader_parameter("edad", edad)
+		_mat_ondas.set_shader_parameter("radio_k", maxf(nacer, 0.03))
+		_mat_ondas.set_shader_parameter("fuerza", 1.0 + 0.6 * (1.0 - clampf(nacer, 0.0, 1.0)) if crecimiento >= 0.0 else 1.0)
+		_mat_ondas.set_shader_parameter("alfa", a_ond)
+		ondas_vivas = mini(N_ONDAS, int(floorf(edad / ONDA_PERIODO)) + 1) if a_ond > 0.02 else 0
 	# --- burbujas y motas ---
 	var gen: float = nacer * desv
 	var burb_vivas: int = 0
@@ -294,7 +333,7 @@ func avanzar(dt: float, p_mundo: Vector3, edad: float, vida: float, vida_max: fl
 			mo.set_instance_transform(k, Transform3D(Basis.IDENTITY.scaled(Vector3(tam_m, tam_m, tam_m)), Vector3(mx - _vel.x * 0.3, my, mz - _vel.z * 0.3)))
 			cm.a = amota
 			mo.set_instance_color(k, cm.srgb_to_linear())
-	_est = {"nacer": nacer, "desv": desv, "consumo": consumo, "quema": quema, "viento": viento, "alfa_max": amax, "burbujas": burb_vivas, "motas": mota_vivas, "vel": _vel,
+	_est = {"nacer": nacer, "desv": desv, "consumo": consumo, "quema": quema, "viento": viento, "alfa_max": amax, "burbujas": burb_vivas, "motas": mota_vivas, "vel": _vel, "ondas": ondas, "ondas_vivas": ondas_vivas, "crecimiento": crecimiento,
 		"gas_pesado": gas, "muestras": campo.muestras if campo != null else 0, "solidos": campo.solidos() if campo != null else 0,
 		"humo": _humo if _humo != null and is_instance_valid(_humo) else null, "humo_emitidas": _humo.emitidas if _humo != null and is_instance_valid(_humo) else 0}
 

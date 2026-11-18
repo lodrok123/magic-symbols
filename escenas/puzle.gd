@@ -147,11 +147,13 @@ extends Node
 ##              veneno 3 s y nada de panal. Primitivas hasta que haya pieza. Señales `cae_panal`, `arde`; condición `colgada`|`vacia`
 ##   nube_veneno  vida=<s> (6; 0 = permanente)  radio=<casillas> (1)                 NubeVeneno3D (F4, 29/10): una nube de veneno con vida propia. Envenena a quien esté dentro (2 de vida/s y 3 s después; el antídoto, la capucha de musgo y el
 ##              limo, el chamán y el gólem no se envenenan), el VIENTO la empuja y la dispersa (8 s) y el FUEGO la consume (4 s). Se guarda en la partida. Señal `disipada`
-##   respiradero  cada=<s> (8)  vida=<s> (5)  radio=<casillas> (1)  dir=n|e|s|o  desfase=<s> (0)  agua=si|no (si)  quema=<s> (0.5)  arde=<s> (6)   Respiradero3D (18/11): una reja en el suelo (x,y es una casilla de SUELO; no bloquea) que EXHALA una nube de
-##              veneno (`NubeVeneno3D`, con esa `vida` y ese `radio`) cada `cada` s; un segundo antes la reja brilla de verde. `dir`: la nube brota media casilla hacia ese lado (sin ella, centrada en la reja).
-##              `desfase` = punto del ciclo en el que empieza (0 = acaba de exhalar). El FUEGO (a la reja o a una nube suya) PRENDE EL GAS: la reja arde `arde=<s>` (6) sin exhalar ni avisar, con una llama pequeña rojo-naranja y luz cálida; su
+##   respiradero  cada=<s> (8)  vida=<s> (5)  radio=<casillas> (1)  crece=<s> (1.5)  dir=n|e|s|o  desfase=<s> (0)  agua=si|no (si)  quema=<s> (0.5)  arde=<s> (6)   Respiradero3D (18/11; alias `seta_veneno`): una SETA venenosa grande
+##              en el suelo (x,y es una casilla de SUELO; no bloquea; antes era una reja) que EXHALA una nube de veneno (`NubeVeneno3D`, con esa `vida` y ese `radio`) cada `cada` s; un segundo antes la seta se hincha y brilla de verde
+##              y al exhalar se encoge de golpe (puf). La nube NO nace completa: crece desde el centro de la seta hasta su `radio` en `crece=<s>` (de verdad: lo que envenena es el radio de cada momento; 0 = nace completa) y lleva ondas
+##              (anillos que salen de la seta hasta el borde) para que se vea de dónde viene. `dir`: la nube brota media casilla hacia ese lado (sin ella, centrada en la seta).
+##              `desfase` = punto del ciclo en el que empieza (0 = acaba de exhalar). El FUEGO (a la seta o a una nube suya) PRENDE EL GAS: la seta arde `arde=<s>` (6) sin exhalar ni avisar, con una llama pequeña rojo-naranja sobre el sombrero y luz cálida; su
 ##              nube viva se consume en `quema=<s>` (0,5; es su `consume_propio_s`: las demás nubes, 4 s de la tabla `veneno`); al acabar vuelve a su ciclo desde 0. El AGUA y el HIELO la atascan 8 s (`agua=no`: nada la atasca) y,
-##              sobre una reja ardiendo, apagan la llama y la dejan atascada. Señales `exhala`, `apagado`, `prende`, `se_apaga_llama`; condición `activo`|`apagado`|`ardiendo`; acciones `apagar(s)` | `encender`
+##              sobre una seta ardiendo, apagan la llama y la dejan atascada. Señales `exhala`, `apagado`, `prende`, `se_apaga_llama`; condición `activo`|`apagado`|`ardiendo`; acciones `apagar(s)` | `encender`
 ##   balsa      ruta=<lista de casillas>  cofre=<id de un cofre>  calado=<u> (0.2)  vel=<u/s> (1.5)   Balsa3D (18/11): una plataforma de tablones en x,y (una casilla `c` del foso; el REPOSO). Descansa en el fondo y FLOTA cuando el agua
 ##              de su casilla llega a `calado` (sube con la superficie, de ahí su altura); entonces DERIVA casilla a casilla por la `ruta` (en orden: x,y,… con «+»; la última es el MUELLE) a `vel` u/s, y solo avanza si en la
 ##              casilla siguiente hay agua de `calado` (si el foso se seca, queda varada y se hunde donde esté). Al llegar queda ATRACADA, aunque luego se hunda. `cofre=<id>`: lleva ese cofre encima (el cofre se mueve con
@@ -432,6 +434,8 @@ const ACCIONES: Dictionary = {
 	"trampa_flechas": {"apagar": 1, "encender": 0},
 	"respiradero": {"apagar": 1, "encender": 0},
 }
+## Otros nombres de un tipo de pieza (se normalizan al leer la línea: la pieza queda con el tipo de la derecha, así que condiciones, acciones y señales son las suyas). 18/11: `seta_veneno` = `respiradero`.
+const ALIAS_TIPO: Dictionary = {"seta_veneno": "respiradero"}
 ## Claves de cada tipo de pieza y qué valor admiten: «f» número, «b» sí/no, «celdas» lista de casillas, «fijo» número o sí, «s:a|b» una de esas palabras.
 const CLAVES: Dictionary = {
 	"pulsador": {"modo": "s:magia|agua|presencia", "rearme": "f", "modelo": "s:cueva", "peso": "f"},
@@ -468,7 +472,7 @@ const CLAVES: Dictionary = {
 	"colmena": {},
 	"bancal": {"flag": "flag"},
 	"nube_veneno": {"vida": "f", "radio": "f"},
-	"respiradero": {"cada": "f", "vida": "f", "radio": "f", "dir": "s:n|e|s|o", "desfase": "f", "agua": "b", "quema": "f", "arde": "f"},
+	"respiradero": {"cada": "f", "vida": "f", "radio": "f", "crece": "f", "dir": "s:n|e|s|o", "desfase": "f", "agua": "b", "quema": "f", "arde": "f"},
 	"balsa": {"ruta": "celdas", "cofre": "id", "calado": "f", "vel": "f"},
 	"nido": {},
 	"arbol": {"modelo": "s:arbol_redondo|arbol_redondo_2|pino|pino_2"},
@@ -1461,7 +1465,7 @@ static func _leer_pieza(p: PackedStringArray, n: int, l: String, por_id: Diction
 		_aviso_linea(avisos, n, l, "pieza incompleta: se escribe «pieza <id> <tipo> <x> <y> [clave=valor …]»")
 		return null
 	var id: String = p[1]
-	var tipo: String = p[2]
+	var tipo: String = String(ALIAS_TIPO.get(p[2], p[2]))      # 18/11: `seta_veneno` es el `respiradero` (misma clase, mismas claves)
 	if not _id_valido(id):
 		_aviso_linea(avisos, n, l, "id no válido «%s» (letras, cifras y «_»)" % id)
 		return null
@@ -2529,12 +2533,13 @@ func _crear(pz: Pieza) -> void:
 			nb.name = pz.id
 			pz.nodo = nb
 		"respiradero":
-			# 18/11: la reja que exhala una nube de veneno cada `cada` s (objetos/respiradero_3d.gd). Cuelga del contenedor de piezas; las nubes que suelta, también.
+			# 18/11: la seta venenosa (antes reja; alias `seta_veneno`) que exhala una nube de veneno cada `cada` s y la extiende en `crece` s (objetos/respiradero_3d.gd). Cuelga del contenedor de piezas; las nubes que suelta, también.
 			var rp := Respiradero3D.new()
 			rp.name = pz.id
 			rp.preparar(pz.celda, float(pz.p.get("cada", Respiradero3D.CADA_DEFECTO)), float(pz.p.get("vida", Respiradero3D.VIDA_DEFECTO)), float(pz.p.get("radio", Respiradero3D.RADIO_DEFECTO)),
 				String(pz.p.get("dir", "")), float(pz.p.get("desfase", 0.0)), mundo as Node)
 			rp.apaga_con_agua = bool(pz.p.get("agua", true))
+			rp.crece = maxf(float(pz.p.get("crece", Respiradero3D.CRECE_DEFECTO)), 0.0)
 			rp.quema_s = maxf(float(pz.p.get("quema", Respiradero3D.QUEMA_DEFECTO)), 0.0)
 			rp.arde_s = maxf(float(pz.p.get("arde", Respiradero3D.ARDE_DEFECTO)), 0.1)
 			cont.add_child(rp)

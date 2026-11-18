@@ -450,7 +450,10 @@ func _f12_natural() -> void:
 	_ok("F12.4 los dos respiraderos exhalan (a los %.1f s) y sale una nube de veneno de cada uno, de 1 casilla, que se consume en %.1f s al arder y avisa a su reja" % [t_exh, r1.quema_s],
 		r1.ultima != null and r2.ultima != null and is_instance_valid(r1.ultima) and is_instance_valid(r2.ultima) and r1.ultima.radio == 1.0 and r2.ultima.vida_max == 9.0 and NubeVeneno3D.cubre(Vector2i(28, 19)) and NubeVeneno3D.cubre(Vector2i(28, 21))
 		and r1.ultima.consume_propio_s == 0.5 and r1.ultima.respiradero == r1 and r2.ultima.respiradero == r2)
-	_ok("F12.5 las dos nubes cubren casi todo el pasillo (%d de 5 casillas)" % _nubes_en_pasillo(), _nubes_en_pasillo() >= 4)
+	# (18/11, seta venenosa) ANTES la nube nacía completa y esto se miraba nada más exhalar; ahora brota del centro y se extiende en `crece` s: se espera a que ambas hayan crecido (la regla cambió, la afirmación es la misma).
+	var espera_crece: float = maxf(r1.crece, r2.crece) + 0.1
+	await avanzar_s(espera_crece)
+	_ok("F12.5 las dos nubes, ya extendidas (%.1f s), cubren casi todo el pasillo (%d de 5 casillas)" % [espera_crece, _nubes_en_pasillo()], _nubes_en_pasillo() >= 4 and is_instance_valid(r1.ultima) and is_instance_valid(r2.ultima))
 	# 1 · Fuego a la niebla recién exhalada: PRENDE EL GAS. (18/11, arreglo de F12) ANTES la nube se consumía en 4 s (la fila `veneno` de la tabla) y la reja no hacía nada: ahora 0,5 s y las dos rejas arden 6 s.
 	_ok("F12.7 fuego + flecha a la niebla sale", lanzar_a_celda("fuego", ["flecha"], Vector2i(28, 19), Vector2i(28, 17)))
 	var tf: float = reloj.t
@@ -510,6 +513,7 @@ func _f12_natural() -> void:
 	_ok("F12.14b la reja de (28,21) ardió %.1f s (arde=6), se apagó la llama (`se_apaga_llama`) y volvió a su ciclo DESDE 0: exhaló %.1f s después (cada 10)" % [dur_llama, hasta_exhalar],
 		a2.size() == 1 and absf(dur_llama - r2.arde_s) <= 0.15 and absf(hasta_exhalar - r2.cada) <= 0.15 and not r2.ardiendo)
 	await _f12_fuego_directo_y_nube_normal()
+	await _f12_seta()
 
 
 ## Una nube NORMAL (no de respiradero) y el fuego directo a una reja sin nube, con el laboratorio recargado.
@@ -590,6 +594,188 @@ func _llama_visible(r: Respiradero3D) -> Dictionary:
 		colores_ok = colores_ok and m != null and m.albedo_color.g <= 0.55 and m.albedo_color.r > m.albedo_color.g * 1.8 and m.albedo_color.b < 0.2
 	var cal: bool = luz.light_color.r > luz.light_color.g * 1.8 and luz.light_energy > 0.5
 	return {"ok": llama.visible and colores_ok and cal, "visible": llama.visible, "lenguas": llama.get_child_count(), "colores_ok": colores_ok, "luz": luz.light_color, "energia": luz.light_energy}
+
+
+## F12 · LA SETA (18/11): tipo y alias, modelo, aviso (hinchada) / «puf» / atasco / llama, la nube que se EXTIENDE de verdad (radio de cada momento, colisión, casillas, fuego), las ondas (solo en las de respiradero),
+## guardado, y que cruzar sin fuego envenena (barrido de todas las salidas posibles + un cruce real) con el crecimiento puesto.
+func _f12_seta() -> void:
+	await _recargar_lab()
+	var q: Dictionary = _sala("F12")
+	var r1: Respiradero3D = q["r1"]
+	var r2: Respiradero3D = q["r2"]
+	var j: Jugador3D = jugador as Jugador3D
+	# --- tipo `seta_veneno` = `respiradero` (misma clase), y la clave nueva `crece`
+	var pr: Dictionary = Puzle3D.parsear("; pieza a seta_veneno 1 1 cada=9 crece=0.5\n; pieza b respiradero 2 1\n")
+	var ps: Array = pr["piezas"]
+	var alias_ok: bool = ps.size() == 2 and (pr["avisos"] as Array).is_empty() and String((ps[0] as Puzle3D.Pieza).tipo) == "respiradero" and String((ps[1] as Puzle3D.Pieza).tipo) == "respiradero" and float((ps[0] as Puzle3D.Pieza).p.get("crece", -1.0)) == 0.5
+	var pf12: Puzle3D.Pieza = _puzle3d().pieza("f12_r1")
+	_ok("F12.40 el tipo `seta_veneno` y el tipo `respiradero` dan la misma pieza (la clase `Respiradero3D`, con `crece=`); la sala F12 usa `seta_veneno`", alias_ok and r1 is Respiradero3D and pf12 != null and pf12.tipo == "respiradero" and r1.crece == 1.5 and r2.crece == 1.5, str(pr["avisos"]))
+	# --- el aspecto: la pieza del decorado a medida (no una reja), teñida de verde
+	var modelo: Node3D = r1.get_node_or_null("Seta/Modelo") as Node3D
+	var mallas: int = r1.find_children("*", "MeshInstance3D", true, false).size() - 3        # (las 3 lenguas de la llama no son de la seta)
+	_ok("F12.41 el respiradero es una SETA: su modelo (%.2f u de alto, %d mallas) mide ≈ 1,6 u y no queda nada de la reja (Marco, Boca, Barrotes)" % [r1._alto_visible, mallas],
+		modelo != null and mallas >= 1 and absf(r1._alto_visible - Respiradero3D.ALTO_SETA) < 0.15 and r1.get_node_or_null("Marco") == null and r1.get_node_or_null("Boca") == null and r1.get_node_or_null("Barrote0") == null and r1._mats.size() >= 1)
+	# --- aviso: hinchada y brillando; no ardiendo ni atascada
+	r1.desfase_s = 0.0
+	r1._t = r1.cada - 0.9
+	r2._t = 0.0
+	await avanzar_s(0.5)
+	var e_aviso: Vector3 = r1.escala_seta()
+	var brillo_aviso: float = (r1._mats[0] as StandardMaterial3D).emission_energy_multiplier
+	var k_aviso: float = r1.hinchazon()
+	_ok("F12.42 en el aviso la seta está HINCHADA (escala %.2f×%.2f, hinchazón %.2f) y brilla (emisión %.2f), y ni arde ni está atascada" % [e_aviso.x, e_aviso.y, k_aviso, brillo_aviso],
+		r1.en_aviso and k_aviso > 0.2 and e_aviso.x > 1.08 and e_aviso.y > 1.05 and brillo_aviso > 0.3 and not r1.ardiendo and r1.activo and not (r1.get_node("Llama") as Node3D).visible)
+	var n_exh: int = r1.exhalaciones
+	var seguro: int = 0
+	while seguro < 300 and r1.exhalaciones == n_exh:
+		seguro += 1
+		await process_frame
+	var e_puf: Vector3 = r1.escala_seta()
+	_ok("F12.43 al exhalar se ENCOGE de golpe (puf %.2f, escala %.2f×%.2f, menos que 1) y deja de estar hinchada (%.2f)" % [r1.puf(), e_puf.x, e_puf.y, r1.hinchazon()], r1.puf() > 0.5 and e_puf.x < 0.95 and e_puf.y < 0.95 and r1.hinchazon() < 0.05)
+	await avanzar_s(Respiradero3D.T_PUF + 0.2)
+	var e_calma: Vector3 = r1.escala_seta()
+	_ok("F12.44 … y vuelve a su tamaño (%.2f×%.2f)" % [e_calma.x, e_calma.y], absf(e_calma.x - 1.0) < 0.06 and absf(e_calma.y - 1.0) < 0.06)
+	# --- la nube de la seta: sale con crecimiento y con ondas, desde el centro de la seta
+	var nube: NubeVeneno3D = r1.ultima
+	var d_nube: NubeVenenoVfx = nube.get_node_or_null("Dibujo") as NubeVenenoVfx
+	_ok("F12.45 la nube de la seta lleva `crece_s` = %.1f s y `ondas`, nace en el centro de la seta, y su dibujo monta los anillos" % nube.crece_s,
+		nube.crece_s == r1.crece and nube.ondas and nube.respiradero == r1 and d_nube != null and d_nube.ondas and d_nube.get_node_or_null("Ondas") != null and Vector2(nube.global_position.x - r1.global_position.x, nube.global_position.z - r1.global_position.z).length() < 0.01)
+	await avanzar_s(0.2)
+	var est0: Dictionary = d_nube.estado()
+	var edad0: float = nube._edad
+	await avanzar_s(1.5)
+	var est2: Dictionary = d_nube.estado()
+	_ok("F12.46 las ondas están activas en la nube de respiradero (%d a los %.1f s de nacer, %d a los %.1f s; tope %d, una nueva cada %.1f s)" % [int(est0["ondas_vivas"]), edad0, int(est2["ondas_vivas"]), nube._edad, NubeVenenoVfx.N_ONDAS, NubeVenenoVfx.ONDA_PERIODO],
+		bool(est0["ondas"]) and int(est0["ondas_vivas"]) >= 1 and int(est0["ondas_vivas"]) < NubeVenenoVfx.N_ONDAS and int(est2["ondas_vivas"]) == NubeVenenoVfx.N_ONDAS)
+	# --- atascada: apagada y sin brillo; ardiendo: llama sobre el sombrero y sin hinchazón
+	r1.apagar(30.0)
+	await avanzar(3)
+	_ok("F12.47 atascada (agua): sin brillo (emisión %.2f), más oscura y sin hinchar" % (r1._mats[0] as StandardMaterial3D).emission_energy_multiplier, not r1.activo and (r1._mats[0] as StandardMaterial3D).emission_energy_multiplier == 0.0 and r1.hinchazon() == 0.0 and r1.escala_seta().y < 1.0 and ((r1._mats[0] as StandardMaterial3D).albedo_color.g < (r1._albedos[0] as Color).g))
+	r1.encender()
+	r2.prender()
+	await avanzar(3)
+	var llama: Node3D = r2.get_node("Llama") as Node3D
+	_ok("F12.48 ardiendo: llama visible sobre el sombrero (a %.2f u de la base), no hinchada (escala %.2f) y sin aviso" % [llama.position.y, r2.escala_seta().y], r2.ardiendo and llama.visible and llama.position.y > Respiradero3D.ALTO_SETA * 0.5 and r2.escala_seta() == Vector3.ONE and r2.hinchazon() == 0.0 and not r2.en_aviso)
+	r2.apagar(0.0)
+	r2.encender()
+	# --- la nube CRECE de verdad: radio ~0 al nacer, `radio` a los `crece` s (±1 fotograma), punto del borde fuera al nacer y dentro al final. Aislada (sin reloj propio) en la sala F10, lejos de las setas.
+	for n in NubeVeneno3D.vivas.duplicate():
+		if is_instance_valid(n):
+			(n as NubeVeneno3D).retirar()
+	var cas: float = Terreno3D.casilla
+	var base: Vector3 = Terreno3D.centro_de(Vector2i(20, 13), Terreno3D.y_pies(Vector2i(20, 13)))
+	var g: NubeVeneno3D = NubeVeneno3D.crear(maqueta, base, 30.0, 1.0, null, 1.5, true)
+	g.set_process(false)
+	var borde: Vector3 = base + Vector3(cas * 0.9, 0.0, 0.0)               # a 0,9 del radio final
+	var vecina: Vector2i = Vector2i(21, 13)
+	var r0: float = g.radio_actual()
+	var shape0: float = ((g.get_child(0) as CollisionShape3D).shape as SphereShape3D).radius
+	_ok("F12.50 recién nacida el radio es ≈ 0 (%.3f casillas), el punto del borde NO está dentro, no cubre la casilla de al lado y su esfera de colisión es mínima (%.2f u)" % [r0, shape0],
+		r0 < 0.01 and not g.dentro(borde) and not g.cubre_celda(vecina) and shape0 < 0.1 and g.fraccion_radio() < 0.01)
+	var puntos: Array = [0.25, 0.5, 1.0]
+	var radios: Array = []
+	var frames: int = 0
+	var llega: int = -1
+	var prev: float = -1.0
+	var creciente: bool = true
+	var dt: float = 1.0 / 30.0
+	while frames < 60:
+		g.avanzar(dt)
+		frames += 1
+		var rr: float = g.radio_actual()
+		creciente = creciente and rr >= prev - 1.0e-6
+		prev = rr
+		if llega < 0 and rr >= g.radio - 1.0e-6:
+			llega = frames
+		for pt in puntos:
+			if frames == int(round(float(pt) * 30.0 * g.crece_s / 1.0)) and radios.size() < 3:
+				radios.append(rr)
+	var shape_f: float = ((g.get_child(0) as CollisionShape3D).shape as SphereShape3D).radius
+	_ok("F12.51 el radio sube sin retroceder y llega a `radio` a los %d fotogramas (%.2f s; crece = %.1f s ⇒ %d ± 1); a 1/4 y 1/2 del tiempo: %.2f y %.2f casillas" % [llega, float(llega) * dt, g.crece_s, int(round(g.crece_s * 30.0)), radios[0] if radios.size() > 0 else -1.0, radios[1] if radios.size() > 1 else -1.0],
+		creciente and absi(llega - int(round(g.crece_s * 30.0))) <= 1 and radios.size() >= 2 and float(radios[0]) > 0.1 and float(radios[0]) < float(radios[1]) and float(radios[1]) < g.radio)
+	_ok("F12.52 ya extendida (%.0f s): el punto del borde está dentro, cubre la casilla de al lado y la esfera mide `radio` (%.2f u = %.2f)" % [float(frames) * dt, shape_f, g.radio * cas], g.dentro(borde) and g.cubre_celda(vecina) and absf(shape_f - g.radio * cas) < 0.01 and g.radio_actual() == g.radio)
+	# --- el fuego usa el radio de cada momento (`quemar_en` con 0 casillas de margen): a 2 u de una nube recién nacida no llega; a la extendida, sí
+	var h: NubeVeneno3D = NubeVeneno3D.crear(maqueta, base + Vector3(0.0, 0.0, 6.0), 30.0, 1.0, null, 1.5, true)
+	h.set_process(false)
+	var punto_f: Vector3 = h.global_position + Vector3(2.0, 0.0, 0.0)
+	var arde_nace: int = NubeVeneno3D.quemar_en(punto_f, 0.0, 0.5)
+	for i in 50:
+		h.avanzar(dt)
+	var arde_fin: int = NubeVeneno3D.quemar_en(punto_f, 0.0, 0.5)
+	_ok("F12.53 `quemar_en` usa el radio actual: a 2 u de una nube recién nacida no la alcanza (%d) y de la extendida, sí (%d)" % [arde_nace, arde_fin], arde_nace == 0 and arde_fin == 1 and h.ardiendo)
+	h.retirar()
+	# --- una nube NORMAL nace a radio completo y sin ondas
+	var nm: NubeVeneno3D = NubeVeneno3D.crear(maqueta, base + Vector3(0.0, 0.0, -6.0), 30.0, 1.0)
+	nm.set_process(false)
+	var shape_n: float = ((nm.get_child(0) as CollisionShape3D).shape as SphereShape3D).radius
+	var dn: NubeVenenoVfx = nm.get_node_or_null("Dibujo") as NubeVenenoVfx
+	nm.avanzar(dt)
+	var en: Dictionary = dn.estado()
+	_ok("F12.54 una nube normal nace a radio completo (%.2f casillas, `crece_s` %.0f, esfera %.2f u), con el punto del borde dentro desde el principio y SIN ondas (ondas %s, vivas %d, sin nodo Ondas: %s)" % [nm.radio_actual(), nm.crece_s, shape_n, str(bool(en["ondas"])), int(en["ondas_vivas"]), str(dn.get_node_or_null("Ondas") == null)],
+		nm.crece_s == 0.0 and nm.radio_actual() == nm.radio and nm.dentro(nm.global_position + Vector3(cas * 0.9, 0.0, 0.0)) and absf(shape_n - nm.radio * cas) < 0.01 and not nm.ondas and not bool(en["ondas"]) and int(en["ondas_vivas"]) == 0 and dn.get_node_or_null("Ondas") == null and float(en["crecimiento"]) < 0.0)
+	# --- guardado: la que se está extendiendo sigue por donde iba
+	var s1: NubeVeneno3D = NubeVeneno3D.crear(maqueta, base + Vector3(6.0, 0.0, 0.0), 30.0, 1.0, null, 1.5, true)
+	s1.set_process(false)
+	for i in 18:
+		s1.avanzar(dt)
+	var dic: Dictionary = s1.a_dic()
+	var s2: NubeVeneno3D = NubeVeneno3D.desde_dic(maqueta, dic)
+	s2.set_process(false)
+	var dic_n: Dictionary = nm.a_dic()
+	var s3: NubeVeneno3D = NubeVeneno3D.desde_dic(maqueta, dic_n)
+	s3.set_process(false)
+	_ok("F12.55 a_dic/desde_dic guardan `crece_s`, `ondas` y la edad (extendida a %.2f de %.2f casillas; recreada: %.2f, ondas %s); una normal vuelve normal" % [s1.radio_actual(), s1.radio, s2.radio_actual(), str(s2.ondas)],
+		s2.crece_s == 1.5 and s2.ondas and absf(s2.radio_actual() - s1.radio_actual()) < 0.01 and s2.radio_actual() < s2.radio and s3.crece_s == 0.0 and not s3.ondas and s3.radio_actual() == s3.radio)
+	for n in [g, nm, s1, s2, s3]:
+		if is_instance_valid(n):
+			(n as NubeVeneno3D).retirar()
+	# --- cruzar sin fuego envenena, con el crecimiento puesto: barrido de todas las salidas posibles (modelo con las cifras de la sala) y un cruce real
+	var v: float = float(j.get("_vel_correr"))
+	var libres: int = _salidas_libres(r1, r2, v)
+	var libres_rapido: int = _salidas_libres(r1, r2, v * 1.25)
+	_ok("F12.56 sin fuego no hay ninguna salida que cruce el pasillo sin entrar en una nube aunque la nube nazca pequeña (%d salidas libres a %.1f u/s y %d a %.2f u/s, barriendo un ciclo cada 0,05 s)" % [libres, v, libres_rapido, v * 1.25], libres == 0 and libres_rapido == 0)
+	await _preparar_j(Vector2i(28, 17), Vector3(0.0, 0.0, 1.0))
+	for n in NubeVeneno3D.vivas.duplicate():
+		if is_instance_valid(n):
+			(n as NubeVeneno3D).retirar()
+	r1._t = r1.cada - 0.5
+	r2._t = r2.cada - 0.5
+	await avanzar_s(1.0)                                                      # las dos exhalan y empiezan a extenderse
+	var vida0: float = j.vida
+	var llego: bool = await mover_hacia(Vector2i(28, 23), 12.0, 0.5)
+	await avanzar_s(0.5)
+	var env: bool = float(j.get("_veneno_t")) > 0.0 or j.vida < vida0
+	_ok("F12.57 cruzar el pasillo a pie SIN fuego envenena (llega a la placa: %s; veneno %.1f s, vida %.1f→%.1f)" % [str(llego), float(j.get("_veneno_t")), vida0, j.vida], env)
+
+
+## Cuántas salidas (de un barrido cada 0,05 s sobre un ciclo, en régimen) cruzan el pasillo de la casilla (28,17) a la (28,23) a `v` u/s sin que ninguna nube de las dos setas (radio de cada momento: la curva de
+## crecimiento y la vida de la sala) alcance a la jugadora. Modelo con los números de las dos setas; la jugadora va por el eje del pasillo, que pasa por el centro de las dos.
+func _salidas_libres(r1: Respiradero3D, r2: Respiradero3D, v: float) -> int:
+	var cas: float = Terreno3D.casilla
+	var z0: float = Terreno3D.centro_de(Vector2i(28, 17), 0.0).z
+	var z1: float = Terreno3D.centro_de(Vector2i(28, 23), 0.0).z
+	var libres: int = 0
+	var t0: float = r1.cada
+	while t0 < r1.cada * 2.0:
+		var libre: bool = true
+		var t: float = t0
+		while libre:
+			var z: float = z0 + v * (t - t0)
+			if z > z1:
+				break
+			for r in [r1, r2]:
+				var zr: float = (r as Respiradero3D).global_position.z
+				var primera: float = (r as Respiradero3D).cada - fposmod((r as Respiradero3D).desfase_s, (r as Respiradero3D).cada)
+				var n: int = int(floor((t - primera) / (r as Respiradero3D).cada))
+				for k in [n - 1, n, n + 1]:
+					var edad: float = t - (primera + float(k) * (r as Respiradero3D).cada)
+					if edad >= 0.0 and edad <= (r as Respiradero3D).vida and absf(z - zr) <= (r as Respiradero3D).radio * cas * NubeVeneno3D.fraccion_en(edad, (r as Respiradero3D).crece):
+						libre = false
+			t += 0.02
+		if libre:
+			libres += 1
+		t0 += 0.05
+	return libres
 
 
 func _esperar_sin_veneno(j: Jugador3D, max_s: float = 6.0) -> void:
