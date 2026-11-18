@@ -354,7 +354,8 @@ var _sa_nivel: String = ""                ## pestaña «Salidas»: a qué nivel 
 var _sa_entrada: String = ""              ## …por cuál de sus llegadas se entra allí…
 var _sa_modo: String = "pisar"            ## …cómo se activa (pisar | usar)…
 var _sa_ancho: int = 1                    ## …cuántas casillas ocupa…
-var _sa_marca: bool = true                ## …si lleva marca en el suelo…
+var _sa_acceso: String = ""               ## …cómo se llega a ella ("" tal cual | sendero | boca)…
+var _sa_marca: bool = true               ## …si lleva marca en el suelo…
 var _sa_llegada: String = ""              ## …y cómo se llama la llegada de este lado ("" = automático)
 ## Llegadas que un nivel crea por código y no están en su .txt (para que salgan en el desplegable).
 const LLEGADAS_POR_CODIGO: Dictionary = {"MonteSumicio": ["desde_fraga"]}
@@ -1293,6 +1294,15 @@ func _refrescar_salidas() -> void:
 		ancho.tooltip_text = "Casillas seguidas que ocupa: 2 o 3 para una puerta ancha. Van de lado a lado; si no caben, de arriba abajo."
 		ancho.value_changed.connect(func(v: float) -> void: _sa_ancho = int(v))
 		_fila_campo(_lista_salidas, "Ancho (casillas)", ancho)
+		var acc: OptionButton = OptionButton.new()
+		for it in [["", "tal cual (solo la marca)"], ["sendero", "con sendero de losas"], ["boca", "boca en la pared de arriba"]]:
+			acc.add_item(String(it[1]))
+			acc.set_item_metadata(acc.item_count - 1, String(it[0]))
+			if String(it[0]) == _sa_acceso:
+				acc.select(acc.item_count - 1)
+		acc.tooltip_text = "Para que se intuya que por ahí se sale.\n· Sendero: unas casillas de losas (basalto en la cueva) que llegan hasta la salida por el camino que viene del inicio.\n· Boca: excava un hueco de dos casillas hacia arriba en la pared de la sala más cercana al clic; la salida queda al fondo. Ocupa una casilla de ancho.\n  Si cerca no hay pared de arriba con roca detrás, se pone en el suelo con sendero y lo avisa."
+		acc.item_selected.connect(func(i: int) -> void: _sa_acceso = String(acc.get_item_metadata(i)))
+		_fila_campo(_lista_salidas, "Acceso", acc)
 		var marca: CheckBox = CheckBox.new()
 		marca.button_pressed = _sa_marca
 		marca.text = "se ve en el suelo"
@@ -1320,7 +1330,8 @@ func _refrescar_salidas() -> void:
 		var fila: HBoxContainer = HBoxContainer.new()
 		var t: Label = _rotulo_pz("→ %s · %s · (%d, %d)\n   %s%s · %s\n   llegada de aquí: «%s»" % [String(a["tipo"]), _sala_de(a["c"]), int(a["c"].x), int(a["c"].y),
 			"al pisarla" if String(a.get("modo", "pisar")) == "pisar" else "pulsando E", "" if int(a.get("ancho", 1)) == 1 else " · %d casillas" % int(a["ancho"]),
-			"con marca" if bool(a.get("marca", true)) else "sin marca", String(a.get("llegada", ""))], Color(0.92, 0.92, 0.92), 14)
+			("con marca" if bool(a.get("marca", true)) else "sin marca") + String({"sendero": " · sendero de losas", "boca": " · boca en la pared"}.get(String(a.get("acceso", "")), "")),
+			String(a.get("llegada", ""))], Color(0.92, 0.92, 0.92), 14)
 		t.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		fila.add_child(t)
 		_boton(fila, "Quitar", _quitar_anadido.bind(i), "Quita esta salida y su llegada.")
@@ -1361,7 +1372,7 @@ func _al_clicar(c: Vector2i) -> void:
 		"poner:salida":
 			if _sa_nivel != "" and _sa_entrada.strip_edges() != "":
 				var destino: String = "%s:%s" % [_sa_nivel, _sa_entrada.strip_edges()]
-				_anadidos.append({"que": "salida", "tipo": destino, "modo": _sa_modo, "ancho": _sa_ancho, "marca": _sa_marca, "llegada": _sa_llegada.strip_edges(), "c": c})
+				_anadidos.append({"que": "salida", "tipo": destino, "modo": _sa_modo, "ancho": _sa_ancho, "marca": _sa_marca, "llegada": _sa_llegada.strip_edges(), "acceso": _sa_acceso, "c": c})
 				_decir("Salida a %s añadida en (%d, %d). Si ha quedado en otra casilla, lo explica el aviso amarillo de la derecha." % [destino, c.x, c.y])
 				_sa_llegada = ""                             # el nombre de la llegada es de ESTA salida: la siguiente pide el suyo
 				_sucio = true

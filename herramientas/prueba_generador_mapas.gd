@@ -519,6 +519,7 @@ func _cofres_que_aparecen() -> void:
 func _salidas_a_mano() -> void:
 	var antes: int = _fallos
 	var puestas: int = 0
+	var accesos_boca: int = 0
 	for alg in Generador.ALGORITMOS:
 		for s in range(1, 5):
 			var par: Dictionary = {"algoritmo": alg, "semilla": s, "nombre": "PruebaSalidas", "barreras": 2}
@@ -534,7 +535,7 @@ func _salidas_a_mano() -> void:
 			var anad: Array = []
 			for k in range(8):
 				anad.append({"que": "salida", "tipo": "Cueva:desde_bosque", "modo": "usar" if k % 2 == 1 else "pisar", "ancho": 1 + k % 4, "marca": k % 3 != 0,
-					"llegada": ("puerta_%d" % k) if k < 4 else "", "c": sitios[(k * 3) % sitios.size()]})
+					"llegada": ("puerta_%d" % k) if k < 4 else "", "acceso": ["", "sendero", "boca"][k % 3], "c": sitios[(k * 3) % sitios.size()]})
 			anad.append({"que": "salida", "tipo": "sin_dos_puntos", "c": sitios[0]})
 			anad.append({"que": "salida", "tipo": "Cueva:desde_bosque", "llegada": "puerta_0", "c": sitios[1]})       # nombre repetido
 			anad.append({"que": "salida", "tipo": "Cueva:desde_bosque", "llegada": "con espacio", "c": sitios[2]})    # nombre que no vale
@@ -557,6 +558,15 @@ func _salidas_a_mano() -> void:
 					pegada = pegada or (c - e).length_squared() == 1
 				_ok(seguidas, "sus casillas son suelo y van seguidas: " + quien, str(celdas))
 				_ok(pegada and not celdas.has(e) and m["filas"][e.y][e.x] != "#", "su llegada está pegada a ella, en suelo y no encima: " + quien, "%s / %s" % [celdas, e])
+				# El acceso: las losas del sendero son suelo con la letra R; una boca ocupa una casilla y entra hacia arriba (la salida, encima de su llegada).
+				for lo in a["losas"]:
+					_ok(m["filas"][lo.y][lo.x] == "R", "las losas del acceso son losas en el plano: " + quien, "%s = %s" % [lo, m["filas"][lo.y][lo.x]])
+				_ok(String(a["acceso"]) == "" or not (a["losas"] as Array).is_empty(), "un acceso con sendero o boca pinta alguna losa: " + quien, str(a))
+				_ok(String(a["acceso"]) != "" or (a["losas"] as Array).is_empty(), "una salida «tal cual» no pinta losas: " + quien)
+				if String(a["acceso"]) == "boca":
+					accesos_boca += 1
+					_ok(celdas.size() == 1 and (celdas[0] as Vector2i) == e + Vector2i(0, -1), "la boca entra hacia arriba: la salida queda encima de su llegada: " + quien, "%s / %s" % [celdas, e])
+					_ok(base["filas"][(celdas[0] as Vector2i).y][(celdas[0] as Vector2i).x] == "#", "y está excavada en lo que era pared: " + quien)
 				_ok(not nombres.has(String(a["llegada"])), "cada llegada tiene un nombre distinto: " + quien, String(a["llegada"]))
 				nombres[String(a["llegada"])] = true
 				_ok(lineas.contains("; pieza %s entrada %d %d" % [String(a["llegada"]), e.x, e.y]), "la llegada tiene su línea: " + quien, String(a["llegada"]))
@@ -571,7 +581,8 @@ func _salidas_a_mano() -> void:
 			_ok(Exportador.anadidos_de(texto).size() == (m["anadidos"] as Array).size(), "las salidas se guardan en el .txt: " + quien)
 			_ok(Exportador._sin_fecha(Exportador._regenerado(texto)) == Exportador._sin_fecha(texto), "y de ahí vuelve a salir el mismo archivo: " + quien)
 	_ok(puestas >= 60, "se han puesto muchas salidas", str(puestas))
-	_resumen("14 salidas añadidas a mano: %d puestas en mapas de los tres algoritmos" % puestas, antes)
+	_ok(accesos_boca >= 8, "varias de ellas con boca en la pared", str(accesos_boca))
+	_resumen("14 salidas añadidas a mano: %d puestas en mapas de los tres algoritmos, %d con boca en la pared" % [puestas, accesos_boca], antes)
 
 
 ## 10 · Catálogo de puzles: cada plantilla se puede poner a mano en alguna sala y el mapa sigue siendo válido; sus líneas salen con el

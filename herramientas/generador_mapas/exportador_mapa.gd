@@ -406,11 +406,12 @@ static func anadidos_de(texto: String) -> Array:
 				elif trozos[0] == "salida":
 					# El tercer campo de una salida es `modo;ancho;marca;llegada`.
 					var ajustes: PackedStringArray = trozos[2].split(";")
-					if ajustes.size() == 4:
+					if ajustes.size() >= 4:
 						a["modo"] = ajustes[0]
 						a["ancho"] = ajustes[1].to_int()
 						a["marca"] = ajustes[2] != "no"
 						a["llegada"] = ajustes[3]
+						a["acceso"] = ajustes[4] if ajustes.size() >= 5 else ""
 				res.append(a)
 	return res
 

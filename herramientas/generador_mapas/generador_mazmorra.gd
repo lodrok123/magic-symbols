@@ -1646,6 +1646,9 @@ func _anadir_salida(ped: Dictionary) -> void:
 	var modo: String = "usar" if String(ped.get("modo", "pisar")) == "usar" else "pisar"
 	var ancho: int = clampi(int(ped.get("ancho", 1)), 1, 4)
 	var marca: bool = bool(ped.get("marca", true))
+	var acceso: String = String(ped.get("acceso", ""))
+	if not ["", "sendero", "boca"].has(acceso):
+		acceso = ""
 	var n_sal: int = 1
 	for a in anadidos_hechos:
 		n_sal += 1 if String(a["que"]) == "salida" else 0
@@ -1678,7 +1681,46 @@ func _anadir_salida(ped: Dictionary) -> void:
 		return da < db or (da == db and (a.y < b.y or (a.y == b.y and a.x < b.x))))
 	var celdas: Array = []
 	var entra: Vector2i = Vector2i(-1, -1)
-	for c in candidatos.slice(0, 60):
+	var ancla: Vector2i = Vector2i(-1, -1)          # lo que se guarda como «c» (en una boca, la casilla de la sala que tiene delante)
+	if acceso == "boca":
+		# BOCA EN LA PARED: se excava un hueco de dos casillas HACIA ARRIBA en la pared de una sala; la salida va al fondo y la llegada, en
+		# la casilla de en medio. Solo hacia arriba: con la cámara del juego un pasillo de una casilla que va de lado a lado queda tapado
+		# por la pared de delante, y uno hacia abajo queda detrás de ella. Tiene que ser roca por los dos lados y seguir siéndolo detrás.
+		# Si la pared da para dos casillas, la llegada va en la de en medio; si solo da para una (lo normal en «salas», donde detrás de la
+		# pared suele haber un pasillo), queda un NICHO de una casilla con la salida dentro y la llegada delante, en la sala.
+		var cerca: Array = []
+		for dy in range(-10, 11):
+			for dx in range(-10, 11):
+				var cb: Vector2i = pedido + Vector2i(dx, dy)
+				if _dentro(cb) and _libre(cb) and not letras.has(cb):
+					cerca.append(cb)
+		cerca.sort_custom(func(a: Vector2i, b: Vector2i) -> bool:
+			var da: int = (a - pedido).length_squared()
+			var db: int = (b - pedido).length_squared()
+			return da < db or (da == db and (a.y < b.y or (a.y == b.y and a.x < b.x))))
+		for f in cerca:
+			var n1: Vector2i = (f as Vector2i) + Vector2i(0, -1)
+			var n2: Vector2i = (f as Vector2i) + Vector2i(0, -2)
+			var una: bool = n1.y >= 1
+			for q in [n1, n2, n1 + Vector2i(-1, 0), n1 + Vector2i(1, 0), n2 + Vector2i(-1, 0), n2 + Vector2i(1, 0)]:
+				una = una and _dentro(q) and _tipo(q) == MURO and not _retoques.has(q)
+			if not una:
+				continue
+			var dos: bool = n2.y >= 1
+			for q in [n2 + Vector2i(0, -1), n2 + Vector2i(-1, -1), n2 + Vector2i(1, -1)]:
+				dos = dos and _dentro(q) and _tipo(q) == MURO and not _retoques.has(q)
+			g[n1.y * w + n1.x] = SUELO
+			if dos:
+				g[n2.y * w + n2.x] = SUELO
+			celdas = [n2] if dos else [n1]
+			entra = n1 if dos else (f as Vector2i)
+			ancla = f
+			ancho = 1
+			break
+		if celdas.is_empty():
+			avisos.append("Cerca de (%d, %d) no hay una pared de arriba con roca detrás donde abrir la boca de la salida a %s: se pone en el suelo, con sendero." % [pedido.x, pedido.y, destino])
+			acceso = "sendero"
+	for c in candidatos.slice(0, 60) if celdas.is_empty() else []:
 		for paso in [Vector2i(1, 0), Vector2i(0, 1)]:
 			var fila: Array = []
 			for k in range(ancho):
@@ -1704,7 +1746,9 @@ func _anadir_salida(ped: Dictionary) -> void:
 		avisos.append("No se ha podido poner la salida a %s cerca de (%d, %d): no hay %d casillas libres seguidas con otra al lado para la llegada. No se añade." % [destino, pedido.x, pedido.y, ancho])
 		return
 	var c0: Vector2i = celdas[0]
-	if c0 != pedido:
+	if ancla.x < 0:
+		ancla = c0
+	if ancla != pedido:
 		avisos.append("La salida a %s que ponías en (%d, %d) ha quedado en (%d, %d): era el sitio válido más cercano." % [destino, pedido.x, pedido.y, c0.x, c0.y])
 	var txt: PackedStringArray = PackedStringArray()
 	for q in celdas:
@@ -1718,9 +1762,39 @@ func _anadir_salida(ped: Dictionary) -> void:
 	lineas.append("; pieza %s salida %d %d a=%s%s%s%s" % [sid, c0.x, c0.y, destino, (" celdas=" + "+".join(txt)) if ancho > 1 else "",
 		" modo=usar" if modo == "usar" else "", "" if marca else " marca=no"])
 	lineas.append("; pieza %s entrada %d %d" % [llegada, entra.x, entra.y])
+	# EL ACCESO, para que se intuya que por ahí se sale: un SENDERO de losas (`R`: losas en el bosque, basalto en la cueva; la tierra `g`
+	# no valdría, que es la de los pasillos) que llega a la salida siguiendo el camino más corto desde el inicio. Con sendero, 8 casillas;
+	# una boca lleva las suyas y 3 más dentro de la sala. No pisa casillas con algo encima ni con letra propia.
+	var losas: Array = []
+	if acceso == "sendero" or acceso == "boca":
+		var dist: PackedInt32Array = _distancias(inicio)
+		var paso_s: Vector2i = entra
+		var largo: int = 8 if acceso == "sendero" else 4
+		var visto: Dictionary = {}
+		for _k in range(largo):
+			if not _dentro(paso_s) or dist[paso_s.y * w + paso_s.x] < 0:
+				break
+			visto[paso_s] = true
+			if _tipo(paso_s) == SUELO and not letras.has(paso_s) and (paso_s == entra or not _ocupada.has(paso_s)):
+				letras[paso_s] = "R"
+				losas.append(paso_s)
+			var mejor: Vector2i = paso_s
+			for d in DIRS:
+				var v: Vector2i = paso_s + d
+				if _dentro(v) and not visto.has(v) and dist[v.y * w + v.x] >= 0 and dist[v.y * w + v.x] < dist[mejor.y * w + mejor.x]:
+					mejor = v
+			if mejor == paso_s:
+				break
+			paso_s = mejor
+		if acceso == "sendero":
+			for q in celdas:
+				if not letras.has(q):
+					letras[q] = "R"
+		if not _letras_extra.contains("R"):
+			_letras_extra += "R"
 	_indice_hecho[_indice_hecho.size() - 1] = anadidos_hechos.size()
-	anadidos_hechos.append({"que": "salida", "tipo": destino, "c": c0, "modo": modo, "ancho": ancho, "marca": marca, "llegada": llegada,
-		"celdas": celdas, "entrada": entra, "premio": "%s;%d;%s;%s" % [modo, ancho, "si" if marca else "no", llegada]})
+	anadidos_hechos.append({"que": "salida", "tipo": destino, "c": ancla, "modo": modo, "ancho": ancho, "marca": marca, "llegada": llegada, "acceso": acceso,
+		"celdas": celdas, "entrada": entra, "losas": losas, "premio": "%s;%d;%s;%s;%s" % [modo, ancho, "si" if marca else "no", llegada, acceso]})
 
 
 ## Dónde está ahora lo que nombra un extremo (`a<n>` o `x,y`), y cómo se nombra tras recolocar los añadidos. [casilla, nombre]; casilla (-1, -1) si ya no existe.

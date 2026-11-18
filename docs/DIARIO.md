@@ -5604,3 +5604,14 @@ Los dos pendientes de la 493. Sin commit todavía.
 - `prueba_generador_mapas` sección 14 nueva (104 salidas en los tres algoritmos, en suelo y en paredes): 41 027 comprobaciones, 0 fallos. `escenario_generador_mapas` 0 fallos (salas, cueva). La pestaña, con clics simulados.
 
 **No hecho / visto.** El viaje solo se ha comprobado hasta que EMPIEZA (no se ha esperado a llegar a la Cueva ni se ha vuelto). **Cuelgue sin explicar:** con mi guion de pruebas CON VENTANA, un mapa con salida a Monte Sumicio se quedó parado tras cargar 2 veces de 3; es el mismo síntoma que al intentar capturar el Bosque 02 hecho a mano (que también sale a Sumicio), y sin ventana no pasa, así que parece cosa de cómo lanzo yo la escena y no del mapa; pero no lo he visto funcionar con ventana. El juego no tiene modelo para la salida (solo la marca). Para llegar a un nivel generado desde otro sigue haciendo falta añadirlo a `nucleo/niveles.gd`. Sin probar con el ratón de verdad.
+## 527 — Juego (18/11): **Generador de mapas: el acceso a una salida (sendero de losas o boca en la pared)** (Pablo: «para las salidas genera varias opciones o un camino que intuya que hay camino»)
+
+- Campo nuevo **«Acceso»** en la pestaña «Salidas», con tres opciones:
+  - **Tal cual:** solo la marca del suelo, como hasta ahora.
+  - **Con sendero de losas:** unas 8 casillas de `R` (losas en el bosque, basalto en la cueva; la tierra `g` no valía, que es la de los pasillos) que llegan a la salida por el camino más corto desde el inicio. No pisa casillas con algo encima.
+  - **Boca en la pared de arriba:** excava un hueco hacia arriba en la pared de la sala más cercana al clic (dos casillas si hay roca; un nicho de una si detrás hay un pasillo), con la salida al fondo y un tramo corto de losas delante. Solo hacia arriba: de lado, la pared de delante tapa el pasillo con la cámara del juego (lo visto con las pistas el 17/11). Si no hay sitio a 10 casillas, se pone en el suelo con sendero y lo avisa.
+- Cuántas veces encuentra sitio la boca pidiéndola junto al inicio (30 semillas): salas 20, cueva 20, pagina 28.
+- **Visto en el juego** (bosque y cueva, mapa de prueba borrado después): el sendero cruza la hierba hasta la salida; la boca es un hueco entre los árboles / en la roca con la marca al fondo, y andando hacia arriba dentro de ella empieza el viaje a la Cueva.
+- `prueba_generador_mapas` sección 14 ampliada (108 salidas, 23 con boca: las losas son `R` en el plano, la boca entra hacia arriba y está excavada en lo que era pared): 41 613 comprobaciones, 0 fallos. `escenario_generador_mapas` 0 fallos (salas, cueva).
+
+**No hecho / visto.** Lo de «varias opciones» lo he entendido como varias formas de que se vea la salida; no genera varias posiciones candidatas para elegir. El sendero no llega hasta el inicio (8 casillas). El juego sigue sin modelo propio para la salida (un arco, un portal). Estilo «pantano» sin mirar.
