@@ -1,0 +1,61 @@
+[gd_scene format=3]
+
+[ext_resource type="Material" path="res://arte/suelo_meshy/madera_torre_sumicio.tres" id="1_madera"]
+
+[sub_resource type="BoxMesh" id="Larguero"]
+material = ExtResource("1_madera")
+size = Vector3(0.135, 0.145, 2.33)
+
+[sub_resource type="BoxMesh" id="Travesano"]
+material = ExtResource("1_madera")
+size = Vector3(1.92, 0.145, 0.14)
+
+[sub_resource type="BoxMesh" id="Umbral"]
+material = ExtResource("1_madera")
+size = Vector3(1.78, 0.085, 0.125)
+
+[sub_resource type="BoxMesh" id="Costado"]
+material = ExtResource("1_madera")
+size = Vector3(0.065, 1.21, 2.337)
+
+[sub_resource type="BoxMesh" id="Testero"]
+material = ExtResource("1_madera")
+size = Vector3(1.78, 1.21, 0.068)
+
+[sub_resource type="BoxMesh" id="Base"]
+material = ExtResource("1_madera")
+size = Vector3(1.79, 0.13, 2.33)
+
+[node name="CercoEscalera" type="Node3D"]
+
+[node name="LargueroInterior" type="MeshInstance3D" parent="."]
+position = Vector3(-0.85, -0.0725, 0)
+mesh = SubResource("Larguero")
+
+[node name="LargueroExterior" type="MeshInstance3D" parent="."]
+position = Vector3(0.85, -0.0725, 0)
+mesh = SubResource("Larguero")
+
+[node name="TravesanoFondo" type="MeshInstance3D" parent="."]
+position = Vector3(0, -0.0725, 1.123)
+mesh = SubResource("Travesano")
+
+[node name="Umbral" type="MeshInstance3D" parent="."]
+position = Vector3(0, -0.0425, -1.113)
+mesh = SubResource("Umbral")
+
+[node name="CostadoInterior" type="MeshInstance3D" parent="."]
+position = Vector3(-0.878, -0.695, 0)
+mesh = SubResource("Costado")
+
+[node name="CostadoExterior" type="MeshInstance3D" parent="."]
+position = Vector3(0.878, -0.695, 0)
+mesh = SubResource("Costado")
+
+[node name="Testero" type="MeshInstance3D" parent="."]
+position = Vector3(0, -0.695, 1.134)
+mesh = SubResource("Testero")
+
+[node name="Fondo" type="MeshInstance3D" parent="."]
+position = Vector3(0, -1.35, 0)
+mesh = SubResource("Base")

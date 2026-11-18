@@ -1,0 +1,39 @@
+[gd_scene format=3 uid="uid://ctfa4kwsgo6v3"]
+
+[ext_resource type="Script" uid="uid://efiox817fp21" path="res://escenas/interior_torre.gd" id="1_torre"]
+[ext_resource type="PackedScene" path="res://escenas/interiores_sumicio/Torre_0_Aula.tscn" id="2_aula"]
+[ext_resource type="PackedScene" path="res://escenas/interiores_sumicio/Torre_1_Estudio.tscn" id="3_estudio"]
+[ext_resource type="PackedScene" path="res://escenas/interiores_sumicio/Torre_2_Biblioteca.tscn" id="4_biblioteca"]
+[ext_resource type="PackedScene" path="res://escenas/interiores_sumicio/Torre_3_Celdas.tscn" id="5_celdas"]
+[ext_resource type="PackedScene" path="res://escenas/interiores_sumicio/Torre_4_Despacho.tscn" id="6_despacho"]
+
+[node name="InteriorTorre" type="Node3D" unique_id=295276366]
+script = ExtResource("1_torre")
+centro = Vector2i(30, 55)
+
+[node name="Camara" type="Camera3D" parent="." unique_id=196905949]
+position = Vector3(0, 5.1, 8.85)
+rotation = Vector3(-0.451, 0, 0)
+fov = 58.0
+far = 18.0
+
+[node name="Plantas" type="Node3D" parent="." unique_id=1241703757]
+
+[node name="Aula" parent="Plantas" unique_id=1487539232 instance=ExtResource("2_aula")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -9.9658966e-05, -0.0029771328, 0.0014778376)
+
+[node name="Estudio" parent="Plantas" unique_id=1276079188 instance=ExtResource("3_estudio")]
+process_mode = 4
+visible = false
+
+[node name="Biblioteca" parent="Plantas" unique_id=966586537 instance=ExtResource("4_biblioteca")]
+process_mode = 4
+visible = false
+
+[node name="Celdas" parent="Plantas" unique_id=490865303 instance=ExtResource("5_celdas")]
+process_mode = 4
+visible = false
+
+[node name="Despacho" parent="Plantas" unique_id=478957569 instance=ExtResource("6_despacho")]
+process_mode = 4
+visible = false

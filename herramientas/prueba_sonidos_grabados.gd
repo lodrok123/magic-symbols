@@ -39,6 +39,24 @@ func _initialize() -> void:
 	var original: AudioStream = load(Sfx3D.CARPETA + String(Sfx3D.AMBIENTES["fuego"]["f"]))
 	_ok("3 el recurso importado no se toca (el bucle va en una copia)", original is AudioStreamWAV and (original as AudioStreamWAV).loop_mode != AudioStreamWAV.LOOP_FORWARD)
 	# 10/11: foley de Sonniss («f_sn»). Los archivos sn_* no viajan en el repositorio: o están TODOS los de una entrada (y entonces suenan) o ninguno (y suena «f»).
+	# 13/11: «f_lc» (pack de magia, sí va en el repositorio): todos sus archivos existen y mandan sobre «f_sn» y «f» con PACK_MAGIA encendido.
+	var faltan_lc: Array = []
+	var mal_lc: Array = []
+	var n_lc: int = 0
+	for cat in [Sfx.CATALOGO, Sfx3D.CATALOGO]:
+		for clave in cat:
+			var cfg_lc: Dictionary = cat[clave]
+			if not cfg_lc.has("f_lc"):
+				continue
+			for f in cfg_lc["f_lc"]:
+				n_lc += 1
+				if not ResourceLoader.exists(Sfx.CARPETA + String(f)) or load(Sfx.CARPETA + String(f)) == null:
+					faltan_lc.append("%s/%s" % [clave, f])
+			if Sfx.archivos_de(cfg_lc) != cfg_lc["f_lc"]:
+				mal_lc.append(clave)
+	_ok("5 los sonidos «f_lc» existen y se cargan", faltan_lc.is_empty(), "%d archivos · faltan %s" % [n_lc, str(faltan_lc)])
+	_ok("5 archivos_de: «f_lc» manda con PACK_MAGIA encendido", mal_lc.is_empty(), str(mal_lc))
+	Sfx.PACK_MAGIA = false                       # el punto 4 mide «f_sn» contra «f», sin el pack por medio
 	var n_sn: int = 0
 	var a_medias: Array = []
 	var mal_elegido: Array = []
@@ -63,5 +81,6 @@ func _initialize() -> void:
 				mal_elegido.append(clave)
 	_ok("4 las entradas con «f_sn» tienen todos sus archivos o ninguno", a_medias.is_empty(), "%d archivos sn_ aquí · a medias %s" % [n_sn, str(a_medias)])
 	_ok("4 archivos_de: «f_sn» si están y SONNISS encendido; «f» si no", mal_elegido.is_empty(), str(mal_elegido))
+	Sfx.PACK_MAGIA = true
 	print("FALLOS: %d" % _fallos)
 	quit(1 if _fallos > 0 else 0)

@@ -120,5 +120,7 @@ func _physics_process(delta: float) -> void:
 func _acabar(causa: String) -> void:
 	vivo = false
 	causa_fin = causa
+	if causa != "alcance" and causa != "burbuja":
+		Sfx.play(self, "flecha_clava")     # 13/11 (inventario SFX): antes no sonaba
 	fin.emit(causa)
 	queue_free()

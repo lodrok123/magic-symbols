@@ -327,6 +327,7 @@ func caer_rayo(alcance: float = 6.0) -> Vector2i:
 	var punto: Vector3 = Terreno3D.centro_de(c, Terreno3D.y_pies(c))
 	if Mundo3D.actual != null and is_instance_valid(Mundo3D.actual):
 		Mundo3D.actual.avisar_impacto(punto, "rayo", Terreno3D.casilla)
+		Sfx.play_en(Mundo3D.actual, "trueno", punto)     # 13/11 (inventario SFX): antes no sonaba
 	rayo_cayo.emit(c)
 	var j: Node3D = _jugadora()
 	if j != null and j.has_method("recibir_dano") and Terreno3D.celda_de(j.position) == c:

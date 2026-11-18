@@ -1,0 +1,94 @@
+[gd_resource type="MeshLibrary" format=3 uid="uid://bjlnuxkdl14o1"]
+
+[ext_resource type="Texture2D" uid="uid://cymiy4nixmtx4" path="res://arte/suelo_meshy/hierba_arriba.png" id="1_lmm4h"]
+[ext_resource type="Texture2D" uid="uid://onran68cheei" path="res://arte/suelo_meshy/path_arriba.png" id="2_omti7"]
+[ext_resource type="Texture2D" uid="uid://dyfdu8e5or3ai" path="res://arte/suelo_meshy/losas_piedra.png" id="3_0emgl"]
+[ext_resource type="Texture2D" uid="uid://c0htmfoljj1ee" path="res://arte/suelo_meshy/empedrado_sumicio.png" id="4_mkine"]
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_tcgdq"]
+albedo_color = Color(0.77254903, 0.7882353, 0.7254902, 1)
+albedo_texture = ExtResource("1_lmm4h")
+uv1_scale = Vector3(0.3, 0.3, 0.3)
+uv1_triplanar = true
+uv1_world_triplanar = true
+
+[sub_resource type="BoxMesh" id="BoxMesh_nkufs"]
+material = SubResource("StandardMaterial3D_tcgdq")
+size = Vector3(2.3, 3.105, 2.3)
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_4v535"]
+albedo_color = Color(0.7764706, 0.7176471, 0.6313726, 1)
+albedo_texture = ExtResource("2_omti7")
+uv1_scale = Vector3(0.3, 0.3, 0.3)
+uv1_triplanar = true
+uv1_world_triplanar = true
+
+[sub_resource type="BoxMesh" id="BoxMesh_jq33u"]
+material = SubResource("StandardMaterial3D_4v535")
+size = Vector3(2.3, 3.105, 2.3)
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_tmc1m"]
+albedo_color = Color(0.77254903, 0.7882353, 0.7254902, 1)
+albedo_texture = ExtResource("3_0emgl")
+uv1_scale = Vector3(0.3, 0.3, 0.3)
+uv1_triplanar = true
+uv1_world_triplanar = true
+
+[sub_resource type="BoxMesh" id="BoxMesh_rlghn"]
+material = SubResource("StandardMaterial3D_tmc1m")
+size = Vector3(2.3, 3.105, 2.3)
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_gnow5"]
+albedo_color = Color(0.77254903, 0.7882353, 0.7254902, 1)
+albedo_texture = ExtResource("4_mkine")
+uv1_scale = Vector3(0.3, 0.3, 0.3)
+uv1_triplanar = true
+uv1_world_triplanar = true
+
+[sub_resource type="BoxMesh" id="BoxMesh_qki7i"]
+material = SubResource("StandardMaterial3D_gnow5")
+size = Vector3(2.3, 3.105, 2.3)
+
+[resource]
+item/0/name = "HIERBA"
+item/0/mesh = SubResource("BoxMesh_nkufs")
+item/0/mesh_transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.5175, 0)
+item/0/mesh_cast_shadow = 1
+item/0/shapes = []
+item/0/navigation_mesh_transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0)
+item/0/navigation_layers = 1
+item/1/name = "TIERRA"
+item/1/mesh = SubResource("BoxMesh_jq33u")
+item/1/mesh_transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.5175, 0)
+item/1/mesh_cast_shadow = 1
+item/1/shapes = []
+item/1/navigation_mesh_transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0)
+item/1/navigation_layers = 1
+item/3/name = "EMPEDRADO"
+item/3/mesh = SubResource("BoxMesh_qki7i")
+item/3/mesh_transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.5175, 0)
+item/3/mesh_cast_shadow = 1
+item/3/shapes = []
+item/3/navigation_mesh_transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0)
+item/3/navigation_layers = 1
+item/4/name = "HIERBA_MEDIA"
+item/4/mesh = SubResource("BoxMesh_nkufs")
+item/4/mesh_transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.77625, 0)
+item/4/mesh_cast_shadow = 1
+item/4/shapes = []
+item/4/navigation_mesh_transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0)
+item/4/navigation_layers = 1
+item/5/name = "TIERRA_MEDIA"
+item/5/mesh = SubResource("BoxMesh_jq33u")
+item/5/mesh_transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.77625, 0)
+item/5/mesh_cast_shadow = 1
+item/5/shapes = []
+item/5/navigation_mesh_transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0)
+item/5/navigation_layers = 1
+item/7/name = "EMPEDRADO_MEDIA"
+item/7/mesh = SubResource("BoxMesh_qki7i")
+item/7/mesh_transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.77625, 0)
+item/7/mesh_cast_shadow = 1
+item/7/shapes = []
+item/7/navigation_mesh_transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0)
+item/7/navigation_layers = 1

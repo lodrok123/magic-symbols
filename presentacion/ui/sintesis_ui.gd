@@ -31,6 +31,7 @@ func abrir(lugar: String) -> void:
 		return
 	_lugar = lugar
 	_pausa_propia = true
+	Sfx.play_ui("bolsa")     # 13/11 (inventario SFX): antes no sonaba
 	get_tree().paused = true
 	_fondo.show()
 	_ids = Sintesis.conocidas(lugar)
@@ -48,6 +49,8 @@ func abrir(lugar: String) -> void:
 
 
 func cerrar() -> void:
+	if _fondo.visible:
+		Sfx.play_ui("bolsa")     # 13/11 (inventario SFX): antes no sonaba
 	_fondo.hide()
 	_mezcla.clear()
 	if _pausa_propia:
@@ -77,6 +80,7 @@ func _poner(id: String) -> void:
 	if _receta.is_empty() or Estado.i().cuenta(id) <= int(_mezcla.get(id, 0)):
 		return
 	_mezcla[id] = int(_mezcla.get(id, 0)) + 1
+	Sfx.play_ui("ui_tick")     # 13/11 (inventario SFX): antes no sonaba
 	_aviso.text = ""
 	_actualizar()
 
@@ -87,6 +91,7 @@ func _quitar(id: String) -> void:
 		_mezcla.erase(id)
 	else:
 		_mezcla[id] = quedan
+	Sfx.play_ui("ui_tick")     # 13/11 (inventario SFX): antes no sonaba
 	_aviso.text = ""
 	_actualizar()
 
@@ -95,6 +100,7 @@ func _sintetizar() -> void:
 	if not Sintesis.hacer(_receta, _mezcla, _lugar):
 		return
 	_mezcla.clear()
+	Sfx.play_ui("sintetizar")     # 13/11 (inventario SFX): antes no sonaba
 	_aviso.text = "Síntesis completada. El resultado está en tu inventario."
 	_actualizar()
 	Partida.autoguardar(get_tree(), "sintesis", {}, true)

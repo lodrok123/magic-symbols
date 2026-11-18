@@ -1612,7 +1612,13 @@ func _disparar(datos: Dictionary, origen: Vector3, dir: Vector3, retardo: float)
 	var forma: String = receta.forma()
 	ultimo_disparo = {"pagina": indice + 1, "origen": origen, "dir": dir}
 	conjuro_fase.emit("disparo", elemento, _pos_mano())
-	_sonar_fase_v2("disparo", elemento)
+	# 13/11 (Pablo): una FLECHA (hechizo que viaja) con sonido propio dado de alta («<elemento>_flecha»; hoy el hielo) sale con él y no con el del elemento.
+	var snd_flecha: String = "%s_flecha" % elemento
+	if Sfx.CATALOGO.has(snd_flecha) and bool(receta.geo().get("viaja", false)):
+		sonidos_fase.append({"fase": "disparo", "pedido": snd_flecha, "suena": snd_flecha, "elemento": elemento})
+		Sfx.play(self, snd_flecha)
+	else:
+		_sonar_fase_v2("disparo", elemento)
 	var hechizo: Hechizo = hechizo_de(datos)
 	if bool(datos.get("sobrecarga", false)):
 		Combate3D.flotante(mundo, _pos_mano() + Vector3(0.0, 0.5, 0.0), ROTULO_SOBRECARGA, COLOR_ROTULO_SOBRECARGA, 1.2)      # C1: el rótulo de lo que acaba de salir
@@ -2488,7 +2494,10 @@ func absorber_golpe(cantidad: float, desde: Vector3) -> bool:
 	if _barrera_activa == null or not is_instance_valid(_barrera_activa):
 		_barrera_activa = null
 		return false
-	return _barrera_activa.absorber(cantidad, desde)
+	var absorbido: bool = _barrera_activa.absorber(cantidad, desde)
+	if absorbido:
+		Sfx.play(self, "escudo_golpe")     # 13/11 (inventario SFX): antes no sonaba
+	return absorbido
 
 
 ## ¿Hay una burbuja VIVA que contenga este punto? Para lo ajeno que vuela (la flecha de un goblin) y quiere saber si ya la tocó.
@@ -2502,7 +2511,10 @@ func burbuja_recibe(elemento: String, punto: Vector3, atacante: Combate3D = null
 	if _barrera_activa == null or not is_instance_valid(_barrera_activa):
 		_barrera_activa = null
 		return false
-	return _barrera_activa.reventar(elemento, punto, atacante)
+	var reventada: bool = _barrera_activa.reventar(elemento, punto, atacante)
+	if reventada:
+		Sfx.play_en(self, "escudo_roto", punto)     # 13/11 (inventario SFX): antes no sonaba
+	return reventada
 
 
 ## Lo que le pasa al mundo cuando una burbuja de `barrera` revienta con `recibido` en `punto` (tabla REACCIONES_BURBUJA). Estática: se

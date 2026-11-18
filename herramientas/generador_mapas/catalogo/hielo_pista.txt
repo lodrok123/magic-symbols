@@ -1,0 +1,19 @@
+; catalogo hielo_pista
+; titulo Bloque de hielo en la pista
+; tipo salida
+; pide tierra
+; activa placa.pulsado
+;  La sala E2 de la Sala del Empuje. El bloque de hielo resbala por una pista de una casilla cerrada por paredes y se pasa de la placa:
+;  una barrera de tierra detrás de la placa lo para encima. Si llega a la pared se deshace a los 3 s y vuelve a su sitio.
+;  La pista va de ABAJO ARRIBA y se empuja desde la casilla de abajo, que es la única abierta y queda de cara a la cámara (tumbada,
+;  la pared de delante tapaba el pasillo). Enlaza la señal a una puerta o un puente con el pincel «enlazar».
+;  Paredes de dos casillas de grueso, como en piedra_pista (una sola deja un hueco visible en la punta).
+#####
+##.##
+##.##
+##.##
+##.##
+##.##
+##.##
+; pieza bloque bloque 2 5 material=hielo
+; pieza placa pulsador 2 4 modo=presencia modelo=cueva

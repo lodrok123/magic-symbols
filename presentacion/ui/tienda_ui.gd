@@ -46,6 +46,8 @@ const MOTIVOS: Dictionary = {
 }
 
 var abierta: bool = false
+## 14/11: modo VENDER (Tab o clic en la pestaña «Vender»): la lista es lo que lleva la jugadora y el botón vende (`Tiendas.vender`).
+var vendiendo: bool = false
 var tienda: String = ""
 var elegido: int = 0
 var cantidad: int = 1
@@ -100,6 +102,7 @@ func abrir(id: String) -> void:
 	cantidad = 1
 	_scroll = 0
 	mensaje = ""
+	vendiendo = false
 	_oferta = Tiendas.oferta(tienda)
 	if abierta:
 		_panel.queue_redraw()
@@ -182,8 +185,44 @@ func cambiar_cantidad(d: int) -> void:
 	_panel.queue_redraw()
 
 
-## Compra `cantidad` del elegido. Devuelve si se compró; si no, el motivo queda en `mensaje`.
+## Cambia entre comprar y vender.
+func cambiar_modo(vender_: bool) -> void:
+	if vendiendo == vender_:
+		return
+	vendiendo = vender_
+	elegido = 0
+	cantidad = 1
+	_scroll = 0
+	mensaje = ""
+	Sfx.play_ui("ui_tick")
+	_refrescar()
+
+
+## Vende `cantidad` del elegido (modo vender).
+func vender() -> bool:
+	var f: Dictionary = fila_elegida()
+	if f.is_empty():
+		return false
+	var o: String = String(f["objeto"])
+	var n: int = mini(cantidad, Estado.i().cuenta(o))
+	var precio: int = Tiendas.precio_venta(o) * n
+	if not Tiendas.vender(tienda, o, n):
+		mensaje = "No se puede vender"
+		mensaje_bien = false
+		Sfx.play_ui("no_puedes_ui")
+		_panel.queue_redraw()
+		return false
+	mensaje = "Has vendido %s%s por %d de oro" % [Objetos.nombre(o), "" if n == 1 else " ×%d" % n, precio]
+	mensaje_bien = true
+	Sfx.play_ui("moneda")
+	_refrescar()
+	return true
+
+
+## Compra (o vende, en modo vender) `cantidad` del elegido. Devuelve si se hizo; si no, el motivo queda en `mensaje`.
 func comprar() -> bool:
+	if vendiendo:
+		return vender()
 	var f: Dictionary = fila_elegida()
 	if f.is_empty():
 		return false
@@ -210,7 +249,7 @@ func _refrescar() -> void:
 	if not abierta:
 		return
 	var id_antes: String = String(fila_elegida().get("objeto", ""))
-	_oferta = Tiendas.oferta(tienda)
+	_oferta = Tiendas.vendibles() if vendiendo else Tiendas.oferta(tienda)
 	elegido = 0
 	for k in range(_oferta.size()):
 		if String(_oferta[k]["objeto"]) == id_antes:
@@ -244,6 +283,9 @@ func _input(event: InputEvent) -> void:
 			KEY_ENTER, KEY_KP_ENTER, KEY_SPACE:
 				if not (event as InputEventKey).echo:
 					comprar()
+			KEY_TAB, KEY_Q:
+				if not (event as InputEventKey).echo:
+					cambiar_modo(not vendiendo)
 			KEY_ESCAPE, KEY_E, KEY_I:
 				if not (event as InputEventKey).echo:
 					cerrar()
@@ -261,6 +303,12 @@ func _input(event: InputEvent) -> void:
 
 
 func _clic(p: Vector2) -> void:
+	if _rect_pestana(false).has_point(p):
+		cambiar_modo(false)
+		return
+	if _rect_pestana(true).has_point(p):
+		cambiar_modo(true)
+		return
 	for v in range(FILAS_VISIBLES):
 		var i: int = _scroll + v
 		if i < _oferta.size() and _rect_fila(v).has_point(p):
@@ -277,6 +325,11 @@ func _clic(p: Vector2) -> void:
 		comprar()
 	elif _rect_salir().has_point(p):
 		cerrar()
+
+
+## Las dos pestañas de la cabecera, a la derecha del nombre de la tienda: «Comprar» y «Vender».
+static func _rect_pestana(vender_: bool) -> Rect2:
+	return Rect2(LISTA_X + 390.0 + (124.0 if vender_ else 0.0), 46.0, 116.0, 36.0)
 
 
 static func _rect_fila(v: int) -> Rect2:
@@ -339,7 +392,14 @@ class Lamina extends Control:
 		_caja(r.grow(-20.0), BolsaUI.PERGAMINO, BolsaUI.LINEA, 2, 14)
 		BolsaUI.discontinuo(self, BolsaUI.camino(r.grow(-8.0), 18.0), BolsaUI.COSTURA, 2.0, 7.0, 5.0)
 		# Cabecera: el nombre de la tienda y el oro.
-		draw_string(f, Vector2(TiendaUI.MARGEN, 74.0), String(TiendaUI.NOMBRES.get(ui.tienda, ui.tienda.capitalize())), HORIZONTAL_ALIGNMENT_LEFT, 400.0, 32, MenuPestanas.TINTA)
+		draw_string(f, Vector2(TiendaUI.MARGEN, 74.0), String(TiendaUI.NOMBRES.get(ui.tienda, ui.tienda.capitalize())), HORIZONTAL_ALIGNMENT_LEFT, 380.0, 28, MenuPestanas.TINTA)
+		# Pestañas Comprar | Vender (Tab).
+		for v in [false, true]:
+			var rp: Rect2 = TiendaUI._rect_pestana(v)
+			var activa: bool = ui.vendiendo == v
+			_caja(rp, TiendaUI.AMBAR if activa else TiendaUI.FILA, TiendaUI.AMBAR_BORDE if activa else BolsaUI.LINEA, 2 if activa else 1, 9)
+			draw_string(f, rp.position + Vector2(0.0, 25.0), "Vender" if v else "Comprar", HORIZONTAL_ALIGNMENT_CENTER, rp.size.x, 17, MenuPestanas.TINTA)
+		draw_string(f, Vector2(TiendaUI._rect_pestana(false).position.x, 40.0), "Tab", HORIZONTAL_ALIGNMENT_LEFT, -1, 12, MenuPestanas.TINTA_SUAVE)
 		var oro_txt: String = str(Estado.i().oro)
 		var w_oro: float = f.get_string_size(oro_txt, HORIZONTAL_ALIGNMENT_LEFT, -1, 26).x
 		_moneda(Vector2(size.x - TiendaUI.MARGEN - w_oro - 24.0, 64.0), 30.0)
@@ -354,7 +414,7 @@ class Lamina extends Control:
 	func _draw_lista(f: Font) -> void:
 		var oferta: Array = ui.oferta()
 		if oferta.is_empty():
-			draw_string(f, Vector2(TiendaUI.LISTA_X, TiendaUI.LISTA_Y + 30.0), "No le queda nada que vender", HORIZONTAL_ALIGNMENT_LEFT, TiendaUI.LISTA_ANCHO, 17, MenuPestanas.TINTA_SUAVE)
+			draw_string(f, Vector2(TiendaUI.LISTA_X, TiendaUI.LISTA_Y + 30.0), "No llevas nada que se pueda vender" if ui.vendiendo else "No le queda nada que vender", HORIZONTAL_ALIGNMENT_LEFT, TiendaUI.LISTA_ANCHO, 17, MenuPestanas.TINTA_SUAVE)
 			return
 		for v in range(TiendaUI.FILAS_VISIBLES):
 			var i: int = ui._scroll + v
@@ -400,6 +460,8 @@ class Lamina extends Control:
 		var q: int = int(o["quedan"])
 		var tienes: int = Estado.i().cuenta(id)
 		var pie: String = ("Quedan %d" % q if q >= 0 else "Sin límite") + ("  ·  Tienes %d" % tienes if tienes > 0 else "")
+		if ui.vendiendo:
+			pie = "Tienes %d  ·  Te pagan %d por unidad" % [tienes, int(o["precio"])]
 		draw_string(f, Vector2(dr.position.x, dr.end.y - 16.0), pie, HORIZONTAL_ALIGNMENT_CENTER, dr.size.x, 16, MenuPestanas.TINTA)
 
 	func _draw_barra(f: Font) -> void:
@@ -415,13 +477,15 @@ class Lamina extends Control:
 		var x_total: float = rc.end.x + 40.0
 		draw_line(Vector2(rc.end.x + 18.0, rc.position.y + 8.0), Vector2(rc.end.x + 18.0, rc.end.y - 8.0), BolsaUI.LINEA, 1.0)
 		_moneda(Vector2(x_total + 12.0, rc.position.y + rc.size.y * 0.5), 24.0)
-		var falta: bool = total > Estado.i().oro
-		draw_string(f, Vector2(x_total + 32.0, rc.position.y + 31.0), str(total), HORIZONTAL_ALIGNMENT_LEFT, -1, 22, TiendaUI.ROJO if falta else MenuPestanas.TINTA)
-		# Comprar.
+		var falta: bool = total > Estado.i().oro and not ui.vendiendo
+		draw_string(f, Vector2(x_total + 32.0, rc.position.y + 31.0), ("+%d" % total) if ui.vendiendo else str(total), HORIZONTAL_ALIGNMENT_LEFT, -1, 22, TiendaUI.ROJO if falta else (TiendaUI.VERDE if ui.vendiendo else MenuPestanas.TINTA))
+		# Comprar / Vender.
 		var rb: Rect2 = TiendaUI._rect_comprar()
-		var se_puede: bool = not o.is_empty() and bool(Tiendas.puede(ui.tienda, String(o["objeto"]), ui.cantidad)["ok"])
+		var se_puede: bool = false
+		if not o.is_empty():
+			se_puede = Estado.i().cuenta(String(o["objeto"])) >= ui.cantidad if ui.vendiendo else bool(Tiendas.puede(ui.tienda, String(o["objeto"]), ui.cantidad)["ok"])
 		_caja(rb, TiendaUI.BOTON if se_puede else TiendaUI.BOTON_APAGADO, BolsaUI.CUERO_SOMBRA, 2, 10)
-		draw_string(f, rb.position + Vector2(0.0, 31.0), "Comprar", HORIZONTAL_ALIGNMENT_CENTER, rb.size.x, 20, Color.WHITE if se_puede else Color(1, 1, 1, 0.8))
+		draw_string(f, rb.position + Vector2(0.0, 31.0), "Vender" if ui.vendiendo else "Comprar", HORIZONTAL_ALIGNMENT_CENTER, rb.size.x, 20, Color.WHITE if se_puede else Color(1, 1, 1, 0.8))
 		# Salir.
 		var rs: Rect2 = TiendaUI._rect_salir()
 		draw_line(Vector2(rs.position.x - 8.0, rs.position.y + 8.0), Vector2(rs.position.x - 8.0, rs.end.y - 8.0), BolsaUI.LINEA, 1.0)

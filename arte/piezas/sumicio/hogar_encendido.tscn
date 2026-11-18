@@ -1,0 +1,15 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://arte/piezas/sumicio/hogar_encendido.gd" id="1_fuego"]
+[ext_resource type="PackedScene" path="res://arte/piezas/fogata.tscn" id="2_fogata"]
+
+[node name="Hogar" type="Node3D"]
+script = ExtResource("1_fuego")
+
+[node name="Fogata" parent="." instance=ExtResource("2_fogata")]
+
+[node name="Luz" type="OmniLight3D" parent="."]
+position = Vector3(0, 0.45, 0)
+light_color = Color(1, 0.52, 0.24, 1)
+light_energy = 0.72
+omni_range = 3.8

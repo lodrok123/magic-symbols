@@ -1,0 +1,14 @@
+[gd_scene format=3]
+
+[ext_resource type="Texture2D" path="res://arte/piezas/sumicio/libro_cubierta_castano.png" id="1_bff3k"]
+[ext_resource type="ArrayMesh" path="res://arte/meshy/piezas/sumicio_libro.res" id="2_icxwo"]
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_1uyoq"]
+resource_name = "Cubierta castaño"
+cull_mode = 2
+albedo_texture = ExtResource("1_bff3k")
+metadata/_gltf_primary_texture_coord = 0
+
+[node name="LibroCastano" type="MeshInstance3D" unique_id=454667163]
+material_override = SubResource("StandardMaterial3D_1uyoq")
+mesh = ExtResource("2_icxwo")

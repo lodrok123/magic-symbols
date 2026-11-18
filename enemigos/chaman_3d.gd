@@ -279,6 +279,7 @@ func _ia_vigila(delta: float) -> void:
 	if ve:
 		if objetivo == null:
 			flotante(mundo, position + Vector3(0, altura + ALTO_BARRA_EXTRA, 0), "!", Color(1, 0.85, 0.2))
+			Sfx3D.play(self, snd_alerta)     # 13/11 (inventario SFX): antes no sonaba
 		objetivo = jugador
 		vista_perdida = 0.0
 	elif objetivo != null:
@@ -486,6 +487,7 @@ func _ia_lanzando(delta: float) -> void:
 
 func _soltar_bola() -> void:
 	_bola_soltada = true
+	Sfx3D.play(self, "veneno_bola")     # 13/11 (pack de magia): antes no sonaba
 	var b: BastonChaman3D = pj.baston()
 	var origen: Vector3 = b.cima_global() if b != null else position + Vector3(0, altura * 0.8, 0)
 	var destino: Vector3 = jugador.position

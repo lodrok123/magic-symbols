@@ -123,6 +123,54 @@ static func puede(tienda: String, objeto: String, n: int = 1, e: Estado = null) 
 	return r
 
 
+## --- VENDER (14/11, playtest de Pablo: «una opción para vender, para liberar inventario») ---
+## Se vende a cualquier tienda por la mitad de lo que cuesta en la tienda más barata que lo tenga; lo que ninguna vende, por su calidad (PRECIO_CALIDAD).
+## No se vende lo de la categoría «clave» de la bolsa (llaves, ropa, glifos, mejoras): son de la historia o del vestuario.
+signal vendido(tienda: String, objeto: String, n: int, precio: int)
+const PRECIO_CALIDAD: Dictionary = {"comun": 2, "epico": 15, "legendario": 40}
+
+
+static func se_vende(objeto: String) -> bool:
+	return objeto != "oro" and Objetos.existe(objeto) and Objetos.categoria(objeto) != "clave"
+
+
+## Lo que paga una tienda por UNA unidad de `objeto` (0 = no lo compra).
+static func precio_venta(objeto: String) -> int:
+	if not se_vende(objeto):
+		return 0
+	var mas_barato: int = -1
+	for t in BD.tiendas():
+		var f: Dictionary = _fila(String(t), objeto)
+		if not f.is_empty() and (mas_barato < 0 or int(f["precio"]) < mas_barato):
+			mas_barato = int(f["precio"])
+	if mas_barato > 0:
+		return maxi(1, mas_barato / 2)
+	return int(PRECIO_CALIDAD.get(Objetos.calidad(objeto), 2))
+
+
+## Lo que la jugadora puede vender ahora: [{objeto, precio (por unidad), quedan (las que tiene)}], en el orden de la mochila.
+static func vendibles(e: Estado = null) -> Array:
+	var est: Estado = _est(e)
+	var r: Array = []
+	for id in est.items:
+		var n: int = int(est.items[id])
+		if n > 0 and precio_venta(String(id)) > 0:
+			r.append({"objeto": String(id), "precio": precio_venta(String(id)), "quedan": n})
+	return r
+
+
+## Vende `n` de `objeto`: lo saca de la mochila y paga. false (sin tocar nada) si no se vende o no tiene tantos.
+static func vender(tienda: String, objeto: String, n: int = 1, e: Estado = null) -> bool:
+	var est: Estado = _est(e)
+	var precio: int = precio_venta(objeto) * n
+	if n <= 0 or precio <= 0 or est.cuenta(objeto) < n or not est.quitar(objeto, n):
+		return false
+	est.dar_oro(precio)
+	PlayLog.event("venta", {"tienda": tienda, "objeto": objeto, "n": n, "precio": precio, "oro": est.oro})
+	i().vendido.emit(tienda, objeto, n, precio)
+	return true
+
+
 ## Compra `n` de `objeto`: cobra el oro, lo mete en la mochila y lo apunta contra las existencias. false (sin tocar nada) si `puede` dice que no.
 static func comprar(tienda: String, objeto: String, n: int = 1, e: Estado = null) -> bool:
 	var est: Estado = _est(e)

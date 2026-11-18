@@ -119,8 +119,14 @@ static func modo(id: String) -> String:
 static func cascos(vis: Node3D, modo_pieza: String, base_min: float = BANDA_MIN) -> Array:
 	if vis == null or modo_pieza == "ninguna":
 		return []
-	var tris: PackedVector3Array = _triangulos(vis, Transform3D.IDENTITY)
-	if tris.is_empty():
+	return cascos_triangulos(_triangulos(vis, Transform3D.IDENTITY), modo_pieza, base_min)
+
+
+## 14/11: lo mismo que `cascos`, pero a partir de triángulos ya puestos en el espacio de la pieza (base en y = 0) y con el tope de la franja
+## a elegir. Para quien mide solo una parte de un nodo (el «Modelo» de un edificio, sin sus muros de ayuda ocultos) o una malla suelta
+## (las rocas de la vegetación de Monte Sumicio). `tope` < BANDA_MAX deja fuera lo que queda por encima de la cabeza (aleros de paja).
+static func cascos_triangulos(tris: PackedVector3Array, modo_pieza: String, base_min: float = BANDA_MIN, tope: float = BANDA_MAX) -> Array:
+	if modo_pieza == "ninguna" or tris.is_empty():
 		return []
 	var ymax_modelo: float = -INF
 	for p in tris:
@@ -141,7 +147,7 @@ static func cascos(vis: Node3D, modo_pieza: String, base_min: float = BANDA_MIN)
 				mejor = area
 				res = cand
 	else:
-		res = _cascos_banda(tris, base_min, BANDA_MAX, false)
+		res = _cascos_banda(tris, base_min, tope, false)
 	# fuera lo diminuto y, si son demasiados, se quedan los de mayor planta
 	var buenos: Array = []
 	for nube in res:

@@ -2,7 +2,7 @@ extends "res://herramientas/prueba_bosque_02_recorrido.gd"
 ## ESCENARIO BOSQUE 02 (Juego, 3/11): lo que NO es la resolubilidad (esa es `prueba_bosque_02_recorrido.gd`, de la que reutiliza los instrumentos): las zonas y el viaje de ida y vuelta a la Cueva.
 ##  1 · Las zonas: diez líneas `; zona`, sin avisos; cada región con su luz, su mezcla (5 s los exteriores, ≤ 1 s las salas) y su nombre; el rótulo de la primera vez sale una sola vez.
 ##  2 · Se juega un trozo de verdad (braseros y cofre de la linde, tronco-puente, pasillo de la Cueva con tronco y setos quemados, telaraña y tótem de fuego de las ruinas) y se sale por la boca
-##      de la Cueva (34,24): carga la Cueva (aparece en `desde_bosque`), y su salida `a_bosque` (3..5,18) devuelve al Bosque 02 en su `boca_cueva` (33,24).
+##      de la Cueva (34,36): carga la Cueva (aparece en `desde_bosque`), y su salida `a_bosque` (3..5,18) devuelve al Bosque 02 en su `boca_cueva` (33,36).
 ##  3 · Se conserva TODO lo resuelto: las flags, el cofre de la linde nace abierto (sin repetir el botín), el tronco-puente sigue tumbado, el tronco y los setos no vuelven, la telaraña quemada tampoco,
 ##      el tótem de fuego vuelve despierto, los braseros-guía vuelven encendidos, la misión conserva su progreso y Puzle3D monta sin avisos.
 ##     godot --headless --fixed-fps 30 --path . --script res://herramientas/escenario_bosque_02.gd
@@ -52,12 +52,12 @@ func _esperar_viaje() -> void:
 # ---------------------------------------------------------------------------------------------------------------------
 
 func _zonas() -> void:
-	_ok("Z1.1 el mapa declara 10 líneas de zona y todas se leen sin aviso", zonas != null and zonas.zonas.size() == 10 and zonas.avisos.is_empty(), "%d zonas, avisos %s" % [zonas.zonas.size() if zonas != null else -1, str(zonas.avisos) if zonas != null else ""])
+	_ok("Z1.1 el mapa declara 11 líneas de zona (con el sendero norte, 13/11) y todas se leen sin aviso", zonas != null and zonas.zonas.size() == 11 and zonas.avisos.is_empty(), "%d zonas, avisos %s" % [zonas.zonas.size() if zonas != null else -1, str(zonas.avisos) if zonas != null else ""])
 	# [casilla, luz, mezcla, nombre]
 	var esperado: Array = [
-		[Vector2i(7, 32), "bosque", 5.0, "linde"], [Vector2i(19, 33), "bosque", 5.0, "bosque_denso"], [Vector2i(33, 25), "ruinas", 1.0, "boca_cueva"], [Vector2i(21, 16), "atardecer", 5.0, "pradera"],
-		[Vector2i(8, 9), "ruinas", 5.0, "plaza_oeste"], [Vector2i(19, 9), "ruinas", 5.0, "ruinas_este"], [Vector2i(30, 8), "agua", 5.0, "estanque"], [Vector2i(32, 15), "fuego", 1.0, "campamento"],
-		[Vector2i(8, 16), "santuario", 1.0, "santuario"], [Vector2i(8, 23), "ruinas", 1.0, "escondite"]]
+		[Vector2i(7, 44), "bosque", 5.0, "linde"], [Vector2i(19, 45), "bosque", 5.0, "bosque_denso"], [Vector2i(33, 37), "ruinas", 1.0, "boca_cueva"], [Vector2i(21, 28), "atardecer", 5.0, "pradera"],
+		[Vector2i(8, 21), "ruinas", 5.0, "plaza_oeste"], [Vector2i(19, 21), "ruinas", 5.0, "ruinas_este"], [Vector2i(30, 20), "agua", 5.0, "estanque"], [Vector2i(32, 27), "fuego", 1.0, "campamento"],
+		[Vector2i(8, 28), "santuario", 1.0, "santuario"], [Vector2i(8, 35), "ruinas", 1.0, "escondite"], [Vector2i(24, 3), "bosque", 5.0, "sendero_norte"]]
 	var mal: Array = []
 	for e in esperado:
 		var zn: Dictionary = zonas.zona_en(e[0] as Vector2i)
@@ -66,7 +66,7 @@ func _zonas() -> void:
 	_ok("Z1.2 cada región tiene su luz, su mezcla (5 s los exteriores, ≤ 1 s las salas) y su nombre", mal.is_empty(), str(mal))
 	_ok("Z1.3 el rótulo de la linde salió al empezar, una sola vez", (zonas.rotulos_mostrados as Array).count("La linde del arroyo") <= 1, str(zonas.rotulos_mostrados))
 	# Hay que MOVER a la jugadora a pie para que sondee la zona: se la lleva a la pradera y de vuelta
-	await caminar(Vector2i(12, 32), "Z1.4")
+	await caminar(Vector2i(12, 44), "Z1.4")
 	await avanzar_s(1.0)
 	_ok("Z1.4 la jugadora en la linde: zona «linde» y luz «bosque»", zonas.nombre_actual == "linde" and String((zonas.actual as Dictionary).get("luz", "")) == "bosque", zonas.nombre_actual)
 
@@ -81,9 +81,9 @@ func _ida_y_vuelta() -> void:
 	await _pasillo_cueva()
 	# telaraña y tótem de fuego de las ruinas
 	var tot: Array = reglas.get("_totems") as Array
-	await disparar("fuego", ["flecha"], Vector2i(22, 9), Vector2i(22, 7), "V2.1")
-	await esperar(func() -> bool: return _libre(Vector2i(22, 7)), 20.0)
-	await disparar("fuego", ["flecha"], Vector2i(22, 8), Vector2i(22, 6), "V2.2")      # con la telaraña consumida aún disolviéndose (diario 347: ya no se come la flecha)
+	await disparar("fuego", ["flecha"], Vector2i(22, 21), Vector2i(22, 19), "V2.1")
+	await esperar(func() -> bool: return _libre(Vector2i(22, 19)), 20.0)
+	await disparar("fuego", ["flecha"], Vector2i(22, 20), Vector2i(22, 18), "V2.2")      # con la telaraña consumida aún disolviéndose (diario 347: ya no se come la flecha)
 	var fuego: bool = await esperar(func() -> bool: return bool(tot[0].activo), 6.0)
 	_ok("V2.3 el tótem de fuego despierta (flag `bosque02.totem.fuego`)", fuego and _flag("bosque02.totem.fuego"))
 	# Foto de lo resuelto ANTES de salir
@@ -93,10 +93,10 @@ func _ida_y_vuelta() -> void:
 	var vida: float = float(jugador.get("vida"))
 	_ok("V2.4 antes de salir hay %d flags de bosque02 y la misión lleva %d/%d" % [flags_antes.size(), progreso_antes.x, progreso_antes.y], flags_antes.size() >= 8 and progreso_antes.x >= 2)
 	var vieja: Node = maqueta
-	await caminar(Vector2i(33, 24), "V2.5")
+	await caminar(Vector2i(33, 36), "V2.5")
 	await avanzar_s(0.5)
 	_ok("V2.6 llegar junto a la boca no la dispara", not Niveles.en_curso and maqueta == vieja)
-	colocar_jugador(Vector2i(34, 24))
+	colocar_jugador(Vector2i(34, 36))
 	await _esperar_viaje()
 	_ok("V2.7 pisar la boca carga la Cueva: otra escena y la del Bosque se ha ido", maqueta != vieja and not is_instance_valid(vieja) and String(maqueta.get("nivel")) == "Cueva" and jugador != null)
 	if jugador == null or String(maqueta.get("nivel")) != "Cueva":
@@ -111,7 +111,7 @@ func _ida_y_vuelta() -> void:
 	if reglas == null or z == null or jugador == null:
 		return
 	await avanzar_s(1.0)
-	_ok("V2.11 la jugadora aparece en `boca_cueva` (33,24) del Bosque 02, con el oro", Terreno3D.celda_de(jugador.position) == Vector2i(33, 24) and Estado.i().oro == oro, str(Terreno3D.celda_de(jugador.position)))
+	_ok("V2.11 la jugadora aparece en `boca_cueva` (33,36) del Bosque 02, con el oro", Terreno3D.celda_de(jugador.position) == Vector2i(33, 36) and Estado.i().oro == oro, str(Terreno3D.celda_de(jugador.position)))
 	_ok("V2.12 el diario apunta los dos viajes (Bosque 02 → Cueva → Bosque 02)", Niveles.viajes.size() == 2 and String(Niveles.viajes[0]["a"]) == "Cueva" and String(Niveles.viajes[1]["a"]) == "Bosque_02" and String(Niveles.viajes[1]["entrada"]) == "boca_cueva")
 	_ok("V2.13 Puzle3D de la escena nueva monta todo sin avisos", z.avisos.is_empty(), str(z.avisos))
 	# --- TODO lo resuelto sigue resuelto ---
@@ -120,12 +120,12 @@ func _ida_y_vuelta() -> void:
 	_ok("V3.2 el cofre de la linde nace ABIERTO (la flag manda) y no repite el botín", linde != null and linde.es_abierto and Estado.i().oro == oro)
 	var tronco: TroncoPuente3D = reglas.get("_tronco_puente") as TroncoPuente3D
 	await avanzar_s(1.0)
-	_ok("V3.3 el tronco-puente sigue tumbado sobre el arroyo: las dos casillas del río se pisan", tronco != null and tronco.cayo and _libre(Vector2i(14, 31)) and _libre(Vector2i(15, 31)))
-	_ok("V3.4 el tronco y los setos del pasillo no vuelven: (22,24), (26,24) y (27,24) libres", _libre(Vector2i(22, 24)) and _libre(Vector2i(26, 24)) and _libre(Vector2i(27, 24)))
-	_ok("V3.5 la telaraña quemada del tótem de fuego no vuelve", _libre(Vector2i(22, 7)))
+	_ok("V3.3 el tronco-puente sigue tumbado sobre el arroyo: las dos casillas del río se pisan", tronco != null and tronco.cayo and _libre(Vector2i(14, 43)) and _libre(Vector2i(15, 43)))
+	_ok("V3.4 el tronco y los setos del pasillo no vuelven: (22,36), (26,36) y (27,36) libres", _libre(Vector2i(22, 36)) and _libre(Vector2i(26, 36)) and _libre(Vector2i(27, 36)))
+	_ok("V3.5 la telaraña quemada del tótem de fuego no vuelve", _libre(Vector2i(22, 19)))
 	var tot2: Array = reglas.get("_totems") as Array
 	_ok("V3.6 el tótem de fuego vuelve DESPIERTO (se lee de su flag al montar); los otros dos, dormidos", bool(tot2[0].activo) and not bool(tot2[1].activo) and not bool(tot2[2].activo))
 	_ok("V3.7 los tres braseros-guía vuelven encendidos y los dos de la linde, apagados", _braseros_guia_encendidos() and reglas.call("_braseros_encendidos") == 0)
 	_ok("V3.8 la misión conserva su progreso (%d/%d) y no se redefine" % [progreso_antes.x, progreso_antes.y], Misiones.i().progreso("bosque_02") == progreso_antes)
-	_ok("V3.9 hay camino a pie otra vez hasta la boca (34,24) desde la entrada", hay_camino(Vector2i(34, 24)))
+	_ok("V3.9 hay camino a pie otra vez hasta la boca (34,36) desde la entrada", hay_camino(Vector2i(34, 36)))
 	_ok("V3.10 el rótulo de la boca de la Cueva sale a la vuelta solo si no se había visto (la zona cuenta una vez)", (zonas.rotulos_mostrados as Array).count("La boca de la cueva") <= 1, str(zonas.rotulos_mostrados))

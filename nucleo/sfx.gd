@@ -48,13 +48,13 @@ const CARPETA: String = "res://audio/"
 ## 2/11 (tarea R): `static var` y no `const` para poder añadir una entrada EN CALIENTE (las pruebas, y los impactos por elemento de lentikula cuando se bajen) sin tocar este archivo.
 static var CATALOGO: Dictionary = {
 	# --- Elementos (sintetizados). Los busca for_element por etiqueta.
-	"fuego":   {"f": ["elem_fuego.wav"],   "db": -8.0,  "tono": 0.10},
-	"agua":    {"f": ["elem_agua.wav"],    "db": -7.0,  "tono": 0.10},
+	"fuego":   {"f_lc": ["lc_fuego_0.ogg", "lc_fuego_1.ogg", "lc_fuego_2.ogg", "lc_fuego_3.ogg"], "f": ["elem_fuego.wav"],   "db": -8.0,  "tono": 0.10},
+	"agua":    {"f_lc": ["lc_agua_0.ogg", "lc_agua_1.ogg", "lc_agua_2.ogg"], "f": ["elem_agua.wav"],    "db": -7.0,  "tono": 0.10},
 	# 27/10: hielo y rayo GRABADOS (OpenGameArt, CC0: «Ice spells» de bart y «Electricity Game Sound Pack» de faxcorp; audio/LICENCIAS.md).
-	"hielo":   {"f": ["oga_congelar_1.wav"], "db": -8.0,  "tono": 0.08},
-	"rayo":    {"f": ["oga_relampago_0.wav", "oga_relampago_1.wav"], "db": -10.0, "tono": 0.08},
-	"viento":  {"f": ["elem_viento.wav"],  "db": -11.0, "tono": 0.12},
-	"tierra":  {"f": ["elem_tierra.wav"],  "db": -8.0,  "tono": 0.10},
+	"hielo":   {"f_lc": ["lc_hielo_0.ogg", "lc_hielo_1.ogg", "lc_hielo_2.ogg", "lc_hielo_3.ogg"], "f": ["oga_congelar_1.wav"], "db": -8.0,  "tono": 0.08},
+	"rayo":    {"f_lc": ["lc_rayo_0.ogg", "lc_rayo_1.ogg", "lc_rayo_2.ogg", "lc_rayo_3.ogg"], "f": ["oga_relampago_0.wav", "oga_relampago_1.wav"], "db": -10.0, "tono": 0.08},
+	"viento":  {"f_lc": ["lc_viento_0.ogg", "lc_viento_1.ogg", "lc_viento_2.ogg", "lc_viento_3.ogg"], "f": ["elem_viento.wav"], "f_sn": ["sn_viento_0.ogg"],  "db": -11.0, "tono": 0.12},
+	"tierra":  {"f_lc": ["lc_tierra_0.ogg", "lc_tierra_1.ogg", "lc_tierra_2.ogg", "lc_tierra_3.ogg"], "f": ["elem_tierra.wav"],  "db": -8.0,  "tono": 0.10},
 	"tiempo":  {"f": ["elem_tiempo.wav"],  "db": -10.0, "tono": 0.05},
 
 	# --- Magia del mundo (sintetizados).
@@ -65,8 +65,8 @@ static var CATALOGO: Dictionary = {
 	"rodar":    {"f": ["rodar.wav"],    "db": -8.0,  "tono": 0.08},
 	"arco":     {"f": ["arco.wav"],     "db": -9.0,  "tono": 0.08},
 	"pira":     {"f": ["pira.wav"],     "db": -6.0,  "tono": 0.0},
-	"dano":     {"f": ["dano.wav"],     "db": -7.0,  "tono": 0.10},
-	"muerte":   {"f": ["muerte.wav"],   "db": -8.0,  "tono": 0.0},     # 31/10 (tarea U2): −4 → −8; suena en la pantalla de muerte por play_ui
+	"dano":     {"f": ["dano.wav"], "f_sn": ["sn_dano_0.ogg"],     "db": -7.0,  "tono": 0.10},
+	"muerte":   {"f": ["muerte.wav"], "f_sn": ["sn_muerte_0.ogg"],   "db": -8.0,  "tono": 0.0},     # 31/10 (tarea U2): −4 → −8; suena en la pantalla de muerte por play_ui
 
 	# --- Foley (Kenney, CC0).
 	"paso": {"f": ["paso_0.ogg", "paso_1.ogg", "paso_2.ogg",
@@ -76,10 +76,10 @@ static var CATALOGO: Dictionary = {
 		"db": -5.0, "tono": 0.05},
 	"puerta_cierra": {"f": ["puerta_cierra_0.ogg", "puerta_cierra_1.ogg"],
 		"db": -6.0, "tono": 0.05},
-	"libro_abre":    {"f": ["libro_abre.ogg"],   "db": -7.0, "tono": 0.04},
+	"libro_abre":    {"f": ["libro_abre.ogg"], "f_sn": ["sn_libro_abre_0.ogg"],   "db": -7.0, "tono": 0.04},
 	"libro_cierra":  {"f": ["libro_cierra.ogg"], "db": -7.0, "tono": 0.04},
-	"pagina":        {"f": ["pagina_0.ogg", "pagina_1.ogg", "pagina_2.ogg"],
-		"db": -10.0, "tono": 0.06},
+	"pagina":        {"f": ["pagina_0.ogg", "pagina_1.ogg", "pagina_2.ogg"], "f_sn": ["sn_pagina_0.ogg"],
+		"db": -6.0, "tono": 0.06},      # 13/11 (Pablo): hojeo de libro antiguo, y más alto (−10 → −6)
 	# 2/11 (tarea R): «f» = lo grabado nuevo, «f_sint» = lo que sonaba antes (con GRABADOS = false suena este). Ver docs/DIARIO.md 306 para el porqué de cada archivo.
 	"clavar":        {"f": ["kenney_clavar_0.ogg", "kenney_clavar_1.ogg"], "f_sint": ["clavar.ogg"], "db": -10.0, "tono": 0.12},
 	"creak":         {"f": ["creak.ogg"],  "db": -11.0, "tono": 0.08},
@@ -103,24 +103,24 @@ static var CATALOGO: Dictionary = {
 	"descarga_electrica": {"f": ["oga_relampago_1.wav"], "db": -10.0, "tono": 0.08},
 	"chasquidos_electricos": {"f": ["oga_descarga_chasquidos.wav"], "db": -14.0, "tono": 0.0},
 	# 2/11 (tercera tanda, C3): AMBIENTE POR ZONA (nucleo/ambiente_zona.gd; audio/gen_sfx_interfaz.py `ambiente_zonas`). Bucles planos en el bus «Mundo» a −18 dB; los pájaros son tres trinos sueltos.
-	"amb_bosque":  {"f": ["amb_bosque_loop.wav"],  "db": -18.0, "tono": 0.0},
-	"amb_cueva":   {"f": ["amb_cueva_loop.wav"],   "db": -18.0, "tono": 0.0},
+	"amb_bosque":  {"f": ["amb_bosque_loop.wav"], "f_sn": ["sn_amb_bosque_0.ogg"],  "db": -18.0, "tono": 0.0},
+	"amb_cueva":   {"f": ["amb_cueva_loop.wav"], "f_sn": ["sn_amb_cueva_0.ogg"],   "db": -18.0, "tono": 0.0},
 	"amb_sala":    {"f": ["amb_sala_loop.wav"],    "db": -18.0, "tono": 0.0},
-	"amb_grillos": {"f": ["amb_grillos_loop.wav"], "db": -18.0, "tono": 0.0},
+	"amb_grillos": {"f": ["amb_grillos_loop.wav"], "f_sn": ["sn_amb_grillos_0.ogg"], "db": -18.0, "tono": 0.0},
 	"amb_pajaros": {"f": ["amb_pajaros_0.wav", "amb_pajaros_1.wav", "amb_pajaros_2.wav"], "db": -18.0, "tono": 0.06},
 	"pulso_resonante": {"f": ["pulso_resonante.wav"], "db": -10.0, "tono": 0.02},      # 26/10: sonido propio del pulso (audio/gen_sfx_pulso.py); lo usan Pulso3D y todo lo que responde
 	"sello_no": {"f": ["sello_no.wav"], "db": -12.0, "tono": 0.03},
 
 	# --- Piezas de puzle (16/10, Pipeline; audio/gen_sfx_puzles.py). Las llama PiezaPuzle3D al cambiar de estado; el Juego puede llamarlas
 	# también con Sfx.play(nodo, "nombre"). «llenado» se toca con `Sfx.llenado(nodo, nivel)` para que el tono suba con el agua.
-	"boton_clic":        {"f": ["boton_clic.wav"],        "db": -8.0,  "tono": 0.05},
+	"boton_clic":        {"f": ["boton_clic.wav"], "f_sn": ["sn_boton_clic_0.ogg"],        "db": -8.0,  "tono": 0.05},
 	"placa_hunde":       {"f": ["placa_hunde.wav"],       "db": -7.0,  "tono": 0.06},
 	"compuerta_baja":    {"f": ["compuerta_baja.wav"],    "db": -7.0,  "tono": 0.05},
 	"hielo_quiebra":     {"f": ["hielo_quiebra.wav"], "f_sn": ["sn_hielo_quiebra_0.ogg", "sn_hielo_quiebra_1.ogg", "sn_hielo_quiebra_2.ogg"], "db": -9.0,  "tono": 0.08},
 	"mecha":             {"f": ["mecha.wav"],             "db": -11.0, "tono": 0.04},
 	"explosion":         {"f": ["explosion.wav"], "f_sn": ["sn_explosion_0.ogg"], "db": -6.0,  "tono": 0.06},
 	"rueda_chirria":     {"f": ["rueda_chirria.wav"],     "db": -13.0, "tono": 0.1},
-	"zumbido_electrico": {"f": ["zumbido_electrico.wav"], "db": -12.0, "tono": 0.03},
+	"zumbido_electrico": {"f": ["zumbido_electrico.wav"], "f_sn": ["sn_zumbido_electrico_0.ogg"], "db": -12.0, "tono": 0.03},
 	"llenado":           {"f": ["llenado.wav"],           "db": -10.0, "tono": 0.0},
 
 	# --- Fases del conjuro V2 (18/10, Pipeline; audio/gen_sfx_hechizos.py, diario 160/162). Las llama Lanzador3D._sonar_fase_v2: «<elemento>_carga» al
@@ -131,7 +131,7 @@ static var CATALOGO: Dictionary = {
 	"fuego_carga_bucle": {"f": ["fuego_carga_bucle.wav"], "db": -14.0, "tono": 0.0},
 	"agua_carga":   {"f": ["agua_carga.wav"],   "db": -9.0,  "tono": 0.04},
 	"hielo_carga":  {"f": ["hielo_carga.wav"],  "db": -11.0, "tono": 0.03},
-	"rayo_carga":   {"f": ["rayo_carga.wav"],   "db": -9.0,  "tono": 0.04},
+	"rayo_carga":   {"f": ["rayo_carga.wav"], "f_sn": ["sn_rayo_carga_0.ogg"],   "db": -9.0,  "tono": 0.04},
 	"viento_carga": {"f": ["viento_carga.wav"], "db": -12.0, "tono": 0.05},
 	"tierra_carga": {"f": ["tierra_carga.wav"], "db": -8.0,  "tono": 0.04},
 	"tiempo_carga": {"f": ["tiempo_carga.wav"], "db": -11.0, "tono": 0.02},
@@ -141,22 +141,22 @@ static var CATALOGO: Dictionary = {
 
 	# --- Reacciones del mundo (21/10, Pipeline; audio/gen_sfx_reacciones.py; PL2 de PLAN_EOW). Los elige `ReaccionesVfx3D` por el nombre de la reacción
 	# (`Mundo3D.reaccion`); el Juego no los llama. «arde_bucle» se pide con `Sfx.bucle` (suena mientras algo arde). Primera versión sintetizada: SE AFINA ESCUCHANDO.
-	"siseo_apagado":    {"f": ["siseo_apagado.wav"],    "db": -9.0,  "tono": 0.08},
+	"siseo_apagado":    {"f": ["siseo_apagado.wav"], "f_sn": ["sn_siseo_apagado_0.ogg"],    "db": -9.0,  "tono": 0.08},
 	"chapoteo":         {"f": ["chapoteo.wav"],         "db": -8.0,  "tono": 0.10},
 	"hundido_burbujas": {"f": ["hundido_burbujas.wav"], "f_sn": ["sn_hundido_burbujas_0.ogg"], "db": -8.0,  "tono": 0.05},
-	"arde_bucle":       {"f": ["oga_fuego_crepita_loop.wav"], "db": -12.0, "tono": 0.0},     # 27/10: el crepitar grabado (CC0)
-	"escudo_golpe":     {"f": ["escudo_golpe.wav"],     "db": -8.0,  "tono": 0.10},
-	"escudo_roto":      {"f": ["escudo_roto.wav"],      "db": -6.0,  "tono": 0.06},
-	"aturdido":         {"f": ["aturdido.wav"],         "db": -11.0, "tono": 0.05},
+	"arde_bucle":       {"f": ["oga_fuego_crepita_loop.wav"], "f_sn": ["sn_arde_bucle_0.ogg"], "db": -12.0, "tono": 0.0},     # 27/10: el crepitar grabado (CC0)
+	"escudo_golpe":     {"f": ["escudo_golpe.wav"], "f_sn": ["sn_escudo_golpe_0.ogg"],     "db": -8.0,  "tono": 0.10},
+	"escudo_roto":      {"f": ["escudo_roto.wav"], "f_sn": ["sn_escudo_roto_0.ogg"],      "db": -6.0,  "tono": 0.06},
+	"aturdido":         {"f": ["aturdido.wav"], "f_sn": ["sn_aturdido_0.ogg"],         "db": -11.0, "tono": 0.05},
 	"empujado":         {"f": ["empujado.wav"],         "db": -11.0, "tono": 0.10},
 	# 28/10 (Juego, gamefeel lote 1; audio/gen_sfx_sensacion.py): la salida común de todo hechizo, el «no puedes» seco y el aviso de ataque de un enemigo (C3).
 	"lanzar_salida":    {"f": ["lanzar_salida.wav"],    "db": -12.0, "tono": 0.06},
-	"no_puedes":        {"f": ["no_puedes.wav"],        "db": -8.0,  "tono": 0.05},
+	"no_puedes":        {"f": ["no_puedes.wav"], "f_sn": ["sn_no_puedes_0.ogg"],        "db": -8.0,  "tono": 0.05},
 	"no_puedes_ui":     {"f": ["kenney_error_0.ogg", "kenney_error_1.ogg", "kenney_error_2.ogg", "kenney_error_3.ogg"], "f_sint": ["no_puedes.wav"], "db": -12.0, "tono": 0.04},   # 2/11 (R): el «no» de los MENÚS; el del mundo (arriba) no cambia
 	"aviso_ataque":     {"f": ["aviso_ataque.wav"],     "db": -13.0, "tono": 0.03},
-	"tiempo_tic":       {"f": ["tiempo_tic.wav"],       "db": -10.0, "tono": 0.0},
-	"reaccion_grande":  {"f": ["reaccion_grande.wav"],  "db": -7.0,  "tono": 0.04},
-	"moneda":           {"f": ["kenney_monedas_0.ogg", "kenney_monedas_1.ogg"], "f_sint": ["moneda.wav"], "db": -14.0, "tono": 0.08},
+	"tiempo_tic":       {"f": ["tiempo_tic.wav"], "f_sn": ["sn_tiempo_tic_0.ogg"],       "db": -10.0, "tono": 0.0},
+	"reaccion_grande":  {"f": ["reaccion_grande.wav"], "f_sn": ["sn_reaccion_grande_0.ogg"],  "db": -7.0,  "tono": 0.04},
+	"moneda":           {"f": ["kenney_monedas_0.ogg", "kenney_monedas_1.ogg"], "f_sn": ["sn_moneda_0.ogg", "sn_moneda_1.ogg"], "f_sint": ["moneda.wav"], "db": -14.0, "tono": 0.08},
 	# 29/10 (gamefeel lote 3): la capa de combate (en bucle; la pone Sensacion3D.DirectorSensacion con su propio volumen) y el remate al limpiar la sala.
 	"combate_loop":     {"f": ["combate_loop.wav"],     "db": -17.0, "tono": 0.0},
 	"sala_limpia":      {"f": ["sala_limpia.wav"],      "db": -9.0,  "tono": 0.0},
@@ -166,26 +166,26 @@ static var CATALOGO: Dictionary = {
 	"dano_jugadora":    {"f": ["dano_jugadora.wav"], "f_sn": ["sn_dano_jugadora_0.ogg"], "db": -7.0,  "tono": 0.08},
 	"latido":           {"f": ["latido.wav"],           "db": -8.0,  "tono": 0.0},
 	"voltereta":        {"f": ["voltereta.wav"], "f_sn": ["sn_voltereta_0.ogg", "sn_voltereta_1.ogg", "sn_voltereta_2.ogg"], "db": -14.0, "tono": 0.10},
-	"recarga_lista":    {"f": ["recarga_lista.wav"],    "db": -16.0, "tono": 0.03},
+	"recarga_lista":    {"f": ["recarga_lista.wav"], "f_sn": ["sn_recarga_lista_0.ogg"],    "db": -16.0, "tono": 0.03},
 	"golpe_mundo":      {"f": ["golpe_mundo.wav"],      "db": -11.0, "tono": 0.10},
-	"carga_bucle":      {"f": ["carga_bucle.wav"],      "db": -18.0, "tono": 0.0},
+	"carga_bucle":      {"f": ["carga_bucle.wav"], "f_sn": ["sn_carga_bucle_0.ogg"],      "db": -18.0, "tono": 0.0},
 	"secado":           {"f": ["secado.wav"],           "db": -13.0, "tono": 0.08},
 	"derretido":        {"f": ["derretido.wav"],        "db": -11.0, "tono": 0.08},
 
 	# --- Respuesta positiva al jugador (21/10, Juego; audio/gen_sfx_logros.py; PLAN_EOW_VISUAL §4). Los elige `Logros3D.TABLA` por el nombre del logro
 	# (`Mundo3D.logro`). Campanas sintetizadas, tono casi fijo (son música: un do-mi-sol desafinado al azar suena a error). SE AFINA ESCUCHANDO.
 	"logro_pista":     {"f": ["logro_pista.wav"],     "db": -14.0, "tono": 0.01},
-	"logro_acierto":   {"f": ["logro_acierto.wav"],   "db": -9.0,  "tono": 0.01},
-	"objetivo_cumplido": {"f": ["objetivo_cumplido.wav"], "db": -12.0, "tono": 0.0},
-	"puzle_resuelto": {"f": ["puzle_resuelto.wav"], "db": -8.0, "tono": 0.0},
+	"logro_acierto":   {"f": ["logro_acierto.wav"], "f_sn": ["sn_logro_acierto_0.ogg"],   "db": -9.0,  "tono": 0.01},
+	"objetivo_cumplido": {"f": ["objetivo_cumplido.wav"], "f_sn": ["sn_objetivo_cumplido_0.ogg"], "db": -12.0, "tono": 0.0},
+	"puzle_resuelto": {"f": ["puzle_resuelto.wav"], "f_sn": ["sn_puzle_resuelto_0.ogg"], "db": -8.0, "tono": 0.0},
 	"mision_completada": {"f": ["mision_completada.wav"], "db": -8.0, "tono": 0.0},
-	"logro_brillo":    {"f": ["logro_brillo.wav"],    "db": -12.0, "tono": 0.01},
+	"logro_brillo":    {"f": ["logro_brillo.wav"], "f_sn": ["sn_logro_brillo_0.ogg"],    "db": -12.0, "tono": 0.01},
 	"logro_fanfarria": {"f": ["logro_fanfarria.wav"], "db": -7.0,  "tono": 0.0},
-	"cofre_revelado": {"f": ["cofre_revelado.wav"], "db": -11.0, "tono": 0.0},
+	"cofre_revelado": {"f": ["cofre_revelado.wav"], "f_sn": ["sn_cofre_revelado_0.ogg"], "db": -11.0, "tono": 0.0},
 
 	# --- Interfaz (31/10, gamefeel tarea M; audio/gen_sfx_interfaz.py). Suenan por `Sfx.play_ui` (bus «Interfaz», sin posición). Son los cinco de `nucleo/sonidos.gd` (que queda como alias)
 	# más los de la mochila. «pitch» (solo `play_ui`) es el tono base del archivo: `pocion_fin` es la poción +15 %. «moneda» (arriba) también se toca por `play_ui` al subir el oro.
-	"bolsa":      {"f": ["kenney_bolsa_tela.ogg", "kenney_bolsa_1.ogg"], "f_sint": ["bolsa.wav"], "db": -10.0, "tono": 0.04},
+	"bolsa":      {"f": ["kenney_bolsa_tela.ogg", "kenney_bolsa_1.ogg"], "f_sn": ["sn_bolsa_0.ogg"], "f_sint": ["bolsa.wav"], "db": -10.0, "tono": 0.04},
 	"brasero_linde_paso": {"f": ["brasero_linde_paso.wav"], "db": -10.0, "tono": 0.0},
 	"brasero_linde_resuelto": {"f": ["brasero_linde_resuelto.wav"], "db": -8.0, "tono": 0.0},
 	"pocion":     {"f": ["pocion.wav"],     "db": -8.0,  "tono": 0.0},
@@ -196,8 +196,8 @@ static var CATALOGO: Dictionary = {
 	"ui_tick":    {"f": ["kenney_clic_0.ogg", "kenney_clic_1.ogg", "kenney_clic_2.ogg", "kenney_clic_3.ogg", "kenney_clic_4.ogg"], "f_sint": ["ui_tick.wav"], "db": -20.0, "tono": 0.04},
 	"ui_equipar": {"f": ["kenney_equipar_0.ogg", "kenney_equipar_1.ogg"], "f_sint": ["ui_equipar.wav"], "db": -12.0, "tono": 0.0},
 	# 31/10 (gamefeel tarea U): el barrido al vaciar la página del grimorio y el tono suave de la vuelta tras morir (audio/gen_sfx_interfaz.py).
-	"barrido":    {"f": ["barrido.wav"],    "db": -12.0, "tono": 0.04},
-	"reaparecer": {"f": ["reaparecer.wav"], "db": -14.0, "tono": 0.0},
+	"barrido":    {"f": ["barrido.wav"], "f_sn": ["sn_barrido_0.ogg"],    "db": -12.0, "tono": 0.04},
+	"reaparecer": {"f_lc": ["lc_reaparecer_0.ogg"], "f": ["reaparecer.wav"], "db": -14.0, "tono": 0.0},
 	# 31/10 (gamefeel U5): el chasquido seco de la tapa del cofre al abrirse.
 	"cofre_tapa": {"f": ["kenney_cofre_tapa_0.ogg", "kenney_cofre_tapa_1.ogg", "kenney_cofre_tapa_2.ogg"], "f_sint": ["cofre_tapa.wav"], "db": -10.0, "tono": 0.05},
 	# 1/11 (gamefeel tarea D): el ping de «has acertado la debilidad» y el golpe sordo de «resiste» (del mundo: `Sfx.play(enemigo, …)`, bus Master).
@@ -206,9 +206,23 @@ static var CATALOGO: Dictionary = {
 	# 1/11 (gamefeel tarea E2): el remate de la muerte por elemento, tras el grito (`Combate3D._muerte_elemental`). «pira_muerte» y «derrumbe_muerte» son los de siempre más bajos.
 	"pira_muerte":     {"f": ["pira.wav"],     "db": -14.0, "tono": 0.0},
 	"derrumbe_muerte": {"f": ["derrumbe.wav"], "db": -12.0, "tono": 0.10},
-	"hielo_rompe":     {"f": ["hielo_rompe.wav"], "db": -9.0, "tono": 0.06},
-	"chispazo":        {"f": ["chispazo.wav"],    "db": -11.0, "tono": 0.06},
-	"salpicadura":     {"f": ["salpicadura.wav"], "db": -10.0, "tono": 0.08},
+	"hielo_rompe":     {"f": ["hielo_rompe.wav"], "f_sn": ["sn_hielo_rompe_0.ogg"], "db": -9.0, "tono": 0.06},
+	"chispazo":        {"f_lc": ["lc_chispazo_0.ogg", "lc_chispazo_1.ogg", "lc_chispazo_2.ogg"], "f": ["chispazo.wav"], "f_sn": ["sn_chispazo_0.ogg"],    "db": -11.0, "tono": 0.06},
+	"salpicadura":     {"f_lc": ["lc_salpicadura_0.ogg", "lc_salpicadura_1.ogg", "lc_salpicadura_2.ogg"], "f": ["salpicadura.wav"], "f_sn": ["sn_salpicadura_0.ogg"], "db": -10.0, "tono": 0.08},
+	# 13/11 (Pipeline, inventario de SFX; docs/INVENTARIO_SFX_2026-11-13.md): acciones que no sonaban. «f» es el respaldo que ya estaba en audio/ (suena en un clon sin el lote de Sonniss).
+	# magma y naturaleza: el Lanzador pedía «magma_carga»/«magma» y «naturaleza_carga»/«naturaleza» y no existía ninguno (carga y disparo mudos). naturaleza suena a madera que rueda (elección de Pablo); sin el lote, toma el de tierra.
+	"magma":        {"f_lc": ["lc_magma_0.ogg", "lc_magma_1.ogg", "lc_magma_2.ogg"], "f": ["elem_fuego.wav"],  "f_sn": ["sn_magma_0.ogg"], "db": -8.0, "tono": 0.08},
+	"naturaleza":   {"f": ["elem_tierra.wav"], "f_sn": ["sn_naturaleza_0.ogg"], "db": -9.0, "tono": 0.10},
+	"explosion_barril": {"f": ["explosion.wav"], "f_sn": ["sn_explosion_barril_0.ogg", "sn_explosion_barril_1.ogg"], "db": -5.0, "tono": 0.06},   # 13/11 (Pablo): el barril revienta con petardazo (Barril3D._explotar)
+	"salto":        {"f": ["voltereta.wav"],   "f_sn": ["sn_salto_0.ogg"],     "db": -20.0, "tono": 0.10},      # Jugador3D._vertical al despegar
+	"aterrizar":    {"f": ["golpe_sordo.wav"], "f_sn": ["sn_aterrizar_0.ogg"], "db": -16.0, "tono": 0.10},      # Jugador3D._vertical al tocar suelo (no en el agua)
+	"flecha_clava": {"f": ["kenney_clavar_0.ogg", "kenney_clavar_1.ogg"], "f_sn": ["sn_flecha_clava_0.ogg"], "db": -10.0, "tono": 0.10},   # la flecha del arquero y la de la trampa al llegar
+	"trueno":       {"f_lc": ["lc_trueno_0.ogg", "lc_trueno_1.ogg", "lc_trueno_2.ogg"], "f": ["oga_relampago_0.wav"], "f_sn": ["sn_trueno_0.ogg"], "db": -8.0, "tono": 0.06},      # EstadoZona3D.caer_rayo (tormenta)
+	"sintetizar":   {"f": ["pocion.wav"], "f_sn": ["sn_sintetizar_0.ogg"], "db": -10.0, "tono": 0.0},            # SintesisUI._sintetizar (play_ui)
+	"tinta_sube":   {"f": ["logro_fanfarria.wav"], "db": -8.0, "tono": 0.0},   # Tinta._ganar: sube la tinta máxima (play_ui). Sin grabación propia: la fanfarria sintetizada
+	# 13/11 (Pablo): DISPARO DE UNA FLECHA por elemento. Si existe «<elemento>_flecha», el hechizo que viaja suena con él al salir en vez de con el del elemento
+	# (`Lanzador3D._disparar`). Hoy solo el hielo; dar de alta «fuego_flecha», etc. basta para los demás.
+	"hielo_flecha": {"f_lc": ["lc_hielo_flecha_0.ogg", "lc_hielo_flecha_1.ogg", "lc_hielo_flecha_2.ogg", "lc_hielo_flecha_3.ogg"], "f": ["oga_congelar_1.wav"], "db": -8.0, "tono": 0.06},
 }
 
 ## El bus de la interfaz. Vive en `default_bus_layout.tres` (−6 dB, enviado a Master); si no está (pruebas sin el layout), `play_ui` lo crea al primer uso.
@@ -234,14 +248,24 @@ static var SUAVIZADO_PLUMA: float = 0.05      ## s de suavizado del volumen
 ## Esos archivos NO viajan en el repositorio (`.gitignore`): la licencia de Sonniss permite usarlos en el juego pero no publicarlos como archivos sueltos, y el repo es público.
 ## En un clon sin ellos, o con SONNISS = false, suena «f» como siempre. Para compararlos de oído: fila S:SONNISS del panel F3. Cómo regenerarlos: audio/LICENCIAS.md.
 static var SONNISS: bool = true
+## 13/11 (Pipeline): true = las entradas con clave «f_lc» suenan con el «Magic Spell Full Pack» de Leonardo Calvo (CC BY 4.0; archivos `audio/lc_*.ogg`, que SÍ van en el
+## repositorio). Manda sobre «f_sn» y sobre «f». Con false suena lo de antes: para comparar de oído. Cómo se generan: audio/procesa_magic_spell.py.
+static var PACK_MAGIA: bool = true
 static var _sn_hay: Dictionary = {}          ## primer archivo de «f_sn» -> ¿está importado aquí? (se mira una vez)
 
 
 ## Los archivos que suenan para una entrada de catálogo (de Sfx o de Sfx3D): «f_sint» si GRABADOS está apagado y la entrada la tiene; «f_sn» si la entrada la tiene,
 ## SONNISS está encendido y los archivos existen aquí; si no, «f».
+## 13/11: antes que «f_sn» se mira «f_lc» (pack de magia, `PACK_MAGIA`).
 static func archivos_de(cfg: Dictionary) -> Array:
 	if not GRABADOS and cfg.has("f_sint"):
 		return cfg["f_sint"] as Array
+	if PACK_MAGIA and cfg.has("f_lc"):
+		var primero_lc: String = String((cfg["f_lc"] as Array)[0])
+		if not _sn_hay.has(primero_lc):
+			_sn_hay[primero_lc] = ResourceLoader.exists(CARPETA + primero_lc)
+		if bool(_sn_hay[primero_lc]):
+			return cfg["f_lc"] as Array
 	if SONNISS and cfg.has("f_sn"):
 		var primero: String = String((cfg["f_sn"] as Array)[0])
 		if not _sn_hay.has(primero):

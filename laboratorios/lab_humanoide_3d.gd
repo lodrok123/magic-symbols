@@ -30,6 +30,12 @@ extends Node3D
 const PERSONAJES: Dictionary = {
 	"chibi_elf": 1.0, "elfo_base": 1.0, "alchemist_elf": 0.95, "bookseller_chibi": 0.95, "goblin_warrior_chibi": 0.85, "goblin_archer_chibi": 0.85, "goblin_base": 0.85, "marimanta": 0.8,"goblin_asesino": 0.85, "jugadora_base": 1.0,
 	"ranger_human": 1.1, "grandmaster": 1.0, "woodland_wanderer": 1.0, "woodland_wanderer_v1": 1.0, "woodland_wanderer_orig": 1.0,
+	"tendera_sumicio": 1.06, "anciano_sumicio": 1.06,
+	"wanderer_sumicio": 1.06, "mira_sumicio": 1.16,
+	"iria_sumicio": 1.06,
+	"mosscap_sumicio": 0.97,
+	"grubwick_sumicio": 1.1,
+	"grumbletwig_sumicio": 0.91, "forest_witch_sumicio": 0.89,
 	# Santa Compaña (9/11): las dos variantes comparten GLB (Pj3D.MODELO_DE) y solo cambian la pieza que portan y el andar, así
 	# que entran las DOS para poder compararlas aquí. Con «como el juego» marcado salen con su cruz o su vela y su propio walk.
 	"santa_compana_cruz": 0.85, "santa_compana_vela": 0.85, "fantasma_elfo_rig": 0.9}
@@ -222,7 +228,9 @@ func _elegir_personaje(id: String, juego: int = -1) -> void:
 					_roles_clip[c] = []
 				(_roles_clip[c] as Array).append(String(rol))
 	else:
-		_modelo = (load(ruta) as PackedScene).instantiate() as Node3D
+		# El laboratorio edita las claves y los bucles. Usa clips propios cuando carga un GLB.
+		var escena := ResourceLoader.load(ruta, "PackedScene", ResourceLoader.CACHE_MODE_IGNORE) as PackedScene
+		_modelo = escena.instantiate() as Node3D
 		add_child(_modelo)
 		sks = _modelo.find_children("*", "Skeleton3D", true, false)
 		aps = _modelo.find_children("*", "AnimationPlayer", true, false)
@@ -267,6 +275,10 @@ func _elegir_personaje(id: String, juego: int = -1) -> void:
 	var inicial: String = "walking" if _ap.has_animation("walking") else ("Walking" if _ap.has_animation("Walking") else String(_ap.get_animation_list()[0]))
 	if _juego and _pj.clip_de("idle") != "":
 		inicial = _pj.clip_de("idle")        # lo primero que se mira de la jugadora es su postura quieta
+	elif id in ["tendera_sumicio", "anciano_sumicio", "mosscap_sumicio"]:
+		inicial = "idle"
+	elif id == "forest_witch_sumicio":
+		inicial = "idle_mixamo"
 	_elegir_clip(inicial)
 
 
@@ -657,7 +669,8 @@ func _elegir_comparacion(id2: String) -> void:
 		_dist = maxf(_alto, alto2) * 3.2 + 0.8
 		_poner_clip_comparacion()
 		return
-	_modelo2 = (load(ruta) as PackedScene).instantiate() as Node3D
+	var escena := ResourceLoader.load(ruta, "PackedScene", ResourceLoader.CACHE_MODE_IGNORE) as PackedScene
+	_modelo2 = escena.instantiate() as Node3D
 	add_child(_modelo2)
 	var aps: Array[Node] = _modelo2.find_children("*", "AnimationPlayer", true, false)
 	if not aps.is_empty():

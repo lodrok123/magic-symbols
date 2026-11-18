@@ -113,7 +113,7 @@ func _ready() -> void:
 	debil = ""
 	resiste = ""
 	tinte = Color.WHITE
-	snd_alerta = ""
+	snd_alerta = "golem_rugido"     # 13/11 (inventario SFX): antes no sonaba
 	snd_muere = "derrumbe"
 	snd_paso = "paso_golem"                  # 2/11 (tarea R): pisadas pesadas, una cada 1,8 u andadas
 	zancada_sonido = 1.8
@@ -767,7 +767,7 @@ func _impacto_golpe() -> void:
 				fuera.y = 0.0
 				jugador.push(fuera.normalized() if fuera.length() > 0.05 else _dir_ataque, EMPUJE_GOLPE)
 				golpes_dados += 1
-	Sfx3D.play(self, "derrumbe")
+	Sfx3D.play(self, "impacto_suelo")     # 13/11 (elección de Pablo) (antes «derrumbe»)
 	var suelo := Vector3(_pos_ataque0.x, position.y, _pos_ataque0.z) + _dir_ataque * (ZONA_DESDE + ZONA_LARGO * 0.4)
 	if not Sensacion3D.mazazo(self, suelo, _dir_ataque):    # gamefeel: polvo bajo los puños y temblor suave
 		var fx: Variant = mundo.get("_fx") if mundo != null else null

@@ -1,0 +1,6 @@
+[gd_scene format=3]
+
+[ext_resource type="ArrayMesh" path="res://arte/meshy/piezas/sumicio_piedra_runica.res" id="1_gelsv"]
+
+[node name="PiedraRunica" type="MeshInstance3D" unique_id=1954875324]
+mesh = ExtResource("1_gelsv")

@@ -24,7 +24,7 @@ bola_helada	Bola helada	lanzable	frio>=3,proteccion>=1	-	0	bola_helada:1	alquimi
 fruto_chispa	Fruto chispa	lanzable	electrico>=3	-	0	fruto_chispa:1	alquimista,hoguera	al tener los ingredientes	10/11: lanzable; flor cargada + alga cargada
 tinta_frasco_1	Frasco hondo I	mejora	tinta>=4,electrico>=2	-	30	mejora:tinta_frasco	alquimista	siempre	cada frasco recarga +10 % de la barra
 tinta_frasco_2	Frasco hondo II	mejora	tinta>=6,electrico>=3,raro>=5	nucleo_eco	60	mejora:tinta_frasco	alquimista	mejora:tinta_frasco>=1	+10 %
-bolsa_1	Bolsa más honda	mejora	tierra>=3,proteccion>=2	-	20	mejora:capacidad	alquimista	siempre	+4 huecos de mochila (tope 20); sustituye a la compra de hoy
+bolsa_1	Bolsa más honda	mejora	tierra>=3,proteccion>=2	-	20	mejora:capacidad	alquimista	siempre	+4 huecos de mochila (tope 24); sustituye a la compra de hoy
 cura_1	Poción más dulce	mejora	vital>=5,agua>=2	-	20	mejora:cura_pocion	alquimista	siempre	las pociones curan +10
 defensa_1	Piel de corteza I	mejora	proteccion>=4,tierra>=3	-	30	mejora:defensa	alquimista	siempre	la jugadora gana DEF 1 (la fórmula de Dano, como los enemigos)
 defensa_2	Piel de corteza II	mejora	proteccion>=6,tierra>=4,raro>=4	-	60	mejora:defensa	alquimista	mejora:defensa>=1	DEF 2

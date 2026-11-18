@@ -1,9 +1,16 @@
 [gd_scene format=3]
 
-[ext_resource type="Script" path="res://presentacion/prueba_test2.gd" id="1_mundo"]
+[ext_resource type="Script" path="res://escenas/monte_sumicio_mundo.gd" id="1_mundo"]
 [ext_resource type="Script" path="res://escenas/monte_sumicio_visita.gd" id="2_visita"]
 [ext_resource type="Script" path="res://escenas/monte_sumicio_maqueta.gd" id="3_maqueta"]
-[ext_resource type="PackedScene" path="res://escenas/InteriorPalloza.tscn" id="4_casa"]
+[ext_resource type="PackedScene" path="res://escenas/interiores_sumicio/Palloza_Iria.tscn" id="4_iria"]
+[ext_resource type="PackedScene" path="res://escenas/InteriorTorre.tscn" id="5_torre"]
+[ext_resource type="PackedScene" path="res://escenas/interiores_sumicio/Palloza_Brais.tscn" id="6_brais"]
+[ext_resource type="PackedScene" path="res://escenas/interiores_sumicio/Palloza_Sabela.tscn" id="7_sabela"]
+[ext_resource type="PackedScene" path="res://escenas/interiores_sumicio/Tienda.tscn" id="8_tienda"]
+[ext_resource type="PackedScene" path="res://escenas/interiores_sumicio/Gremio.tscn" id="9_gremio"]
+[ext_resource type="PackedScene" path="res://arte/piezas/sumicio/sumiciu.tscn" id="10_sumiciu"]
+[ext_resource type="PackedScene" path="res://arte/piezas/sumicio/flor_lila.tscn" id="11_flor"]
 
 [node name="PruebaMonteSumicio" type="Node3D"]
 script = ExtResource("1_mundo")
@@ -26,16 +33,29 @@ script = ExtResource("2_visita")
 
 [node name="Interiores" type="Node3D" parent="."]
 
-[node name="PallozaNorte" parent="Interiores" instance=ExtResource("4_casa")]
-centro = Vector2i(2, 55)
+[node name="PallozaNorte" parent="Interiores" instance=ExtResource("4_iria")]
+position = Vector3(5.75, 0, 127.65)
 
-[node name="PallozaCentral" parent="Interiores" instance=ExtResource("4_casa")]
-centro = Vector2i(9, 55)
-casa_brais = true
+[node name="PallozaCentral" parent="Interiores" instance=ExtResource("6_brais")]
+position = Vector3(21.85, 0, 127.65)
 
-[node name="PallozaSur" parent="Interiores" instance=ExtResource("4_casa")]
-centro = Vector2i(16, 55)
+[node name="PallozaSur" parent="Interiores" instance=ExtResource("7_sabela")]
+position = Vector3(37.95, 0, 127.65)
 
-[node name="TiendaEste" parent="Interiores" instance=ExtResource("4_casa")]
-centro = Vector2i(23, 55)
-tienda = true
+[node name="TiendaEste" parent="Interiores" instance=ExtResource("8_tienda")]
+position = Vector3(54.05, 0, 127.65)
+
+[node name="PallozaGremio" parent="Interiores" instance=ExtResource("9_gremio")]
+position = Vector3(86.25, 0, 127.65)
+
+[node name="TorreVerde" parent="Interiores" instance=ExtResource("5_torre")]
+position = Vector3(70.15, 0, 127.65)
+
+[node name="Wanderer" parent="." instance=ExtResource("10_sumiciu")]
+position = Vector3(31.05, 3.105, 24.15)
+rotation = Vector3(0, -0.65, 0)
+oficio = 6
+
+[node name="Hierbas" parent="Wanderer" instance=ExtResource("11_flor")]
+position = Vector3(-0.093, 0, 0.29)
+scale = Vector3(0.65, 0.65, 0.65)

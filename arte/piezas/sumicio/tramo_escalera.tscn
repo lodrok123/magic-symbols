@@ -1,0 +1,9 @@
+[gd_scene format=3]
+
+[ext_resource type="ArrayMesh" path="res://arte/meshy/piezas/torre_escalera.res" id="1_escalera"]
+[ext_resource type="Material" path="res://arte/suelo_meshy/madera_torre_sumicio.tres" id="2_madera"]
+
+[node name="TramoEscalera" type="MeshInstance3D"]
+material_override = ExtResource("2_madera")
+instance_shader_parameters/tablones = false
+mesh = ExtResource("1_escalera")

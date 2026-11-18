@@ -1,0 +1,7 @@
+[gd_resource type="ShaderMaterial" load_steps=2 format=3]
+
+[ext_resource type="Shader" path="res://arte/suelo_meshy/madera_torre_sumicio.gdshader" id="1_madera"]
+
+[resource]
+resource_name = "Madera de la Torre Verde"
+shader = ExtResource("1_madera")

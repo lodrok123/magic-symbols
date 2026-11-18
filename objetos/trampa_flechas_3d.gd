@@ -286,6 +286,8 @@ func _disparar() -> void:
 	_t_fogonazo = FOGONAZO_S
 	dispara.emit()
 	var origen: Vector3 = boca_mundo()
+	if not RUNAS.has(elemento):
+		Sfx3D.play(self, "arco")     # 13/11 (inventario SFX): antes no sonaba (la flecha normal; la de fuego es un hechizo y ya suena)
 	if RUNAS.has(elemento):
 		var h: Hechizo = construir_hechizo({"flecha": 1}, {"velocidad": vel, "distancia_max": float(alcance), "gravedad": 0.0, "impulso_salida": 0.0, "golpea_lanzador": false, "rebotes": 0,
 				"semiejes.x": SEMIEJE_FLECHA_M, "semiejes.y": SEMIEJE_FLECHA_M, "semiejes.z": SEMIEJE_FLECHA_M})

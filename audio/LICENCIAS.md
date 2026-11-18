@@ -117,6 +117,70 @@ el 27/10/2026 y se renombraron con el prefijo `oga_`. Los usan `Sfx.CATALOGO` y 
 Los sintetizados a los que sustituyen (`agua_loop`, `fuego_loop`, `elem_hielo`, `elem_rayo`, `congelar`, `arde_bucle`
 y las pisadas `paso_*`) siguen en esta carpeta por si se quiere volver atrás: basta con cambiar el nombre en el catálogo.
 
+## Magic Spell Full Pack de Leonardo Calvo — `audio/lc_*.ogg` (13/11) · SÍ están en el repositorio
+
+425 sonidos de hechizos en nueve elementos (fuego, agua, viento, tierra, hielo, rayo, ácido, oscuro y sagrado). Autor: **Leonardo Calvo**
+(www.leonardocalvocomposer.com). **Licencia CC BY 4.0** (https://creativecommons.org/licenses/by/4.0/; el pack trae `License CC BY 4.0 Deed.pdf`):
+uso libre y comercial, se puede modificar y redistribuir **citando al autor**. Por eso estos archivos viajan en git, y **hay que nombrarlo en los créditos del juego**:
+«Magic Spell Full Pack, de Leonardo Calvo (CC BY 4.0); sonidos recortados y pasados a mono».
+
+Clave «f_lc» de `Sfx.CATALOGO` y `Sfx3D.CATALOGO`: manda sobre «f_sn» y «f»; `Sfx.PACK_MAGIA = false` la apaga para comparar.
+**Cómo regenerarlos:** extraer del pack los ogg de 48 kHz (en la máquina `pablo`: `C:\Users\pablo\Downloads\magic_spell_pack_48k`) y
+`python audio/procesa_magic_spell.py <esa carpeta> audio`. El recorte es automático (arranque en la primera señal, corte donde la envolvente cae 26 dB
+bajo el pico, tope de duración por sonido) y el volumen se iguala al del archivo que sustituye. **Elegidos por el nombre de la pista, sin escucharlos.**
+
+| archivo en audio/ | entrada del catálogo | pista original |
+|---|---|---|
+| `lc_fuego_0.ogg` | Sfx `fuego` | `fire_spell_fireball_burst_warm_01.ogg` |
+| `lc_fuego_1.ogg` | Sfx `fuego` | `fire_spell_fireball_burst_warm_02.ogg` |
+| `lc_fuego_2.ogg` | Sfx `fuego` | `fire_spell_fireball_burst_warm_03.ogg` |
+| `lc_fuego_3.ogg` | Sfx `fuego` | `fire_spell_fireball_burst_warm_04.ogg` |
+| `lc_magma_0.ogg` | Sfx `magma` | `fire_spell_fireball_burst_dark_01.ogg` |
+| `lc_magma_1.ogg` | Sfx `magma` | `fire_spell_fireball_burst_dark_02.ogg` |
+| `lc_magma_2.ogg` | Sfx `magma` | `fire_spell_fireball_burst_dark_03.ogg` |
+| `lc_agua_0.ogg` | Sfx `agua` | `water_spell_cast_fast_ball_power_02.ogg` |
+| `lc_agua_1.ogg` | Sfx `agua` | `water_spell_cast_fast_ball_power_03.ogg` |
+| `lc_agua_2.ogg` | Sfx `agua` | `water_spell_cast_fast_ball_power_04.ogg` |
+| `lc_salpicadura_0.ogg` | Sfx `salpicadura` | `water_spell_cast_thick_splash_01.ogg` |
+| `lc_salpicadura_1.ogg` | Sfx `salpicadura` | `water_spell_cast_thick_splash_02.ogg` |
+| `lc_salpicadura_2.ogg` | Sfx `salpicadura` | `water_spell_cast_thick_splash_03.ogg` |
+| `lc_viento_0.ogg` | Sfx `viento` | `wind_spell_cast_air_sharp_shoot_01.ogg` |
+| `lc_viento_1.ogg` | Sfx `viento` | `wind_spell_cast_air_sharp_shoot_02.ogg` |
+| `lc_viento_2.ogg` | Sfx `viento` | `wind_spell_cast_air_sharp_shoot_03.ogg` |
+| `lc_viento_3.ogg` | Sfx `viento` | `wind_spell_cast_air_sharp_shoot_04.ogg` |
+| `lc_tierra_0.ogg` | Sfx `tierra` | `earth_spell_cast_throw_rock_fast_whoosh_impact_01.ogg` |
+| `lc_tierra_1.ogg` | Sfx `tierra` | `earth_spell_cast_throw_rock_fast_whoosh_impact_02.ogg` |
+| `lc_tierra_2.ogg` | Sfx `tierra` | `earth_spell_cast_throw_rock_fast_whoosh_impact_03.ogg` |
+| `lc_tierra_3.ogg` | Sfx `tierra` | `earth_spell_cast_throw_rock_fast_whoosh_impact_04.ogg` |
+| `lc_rayo_0.ogg` | Sfx `rayo` | `lighting_spell_electric_zap_blast_sparkle_bright_01.ogg` |
+| `lc_rayo_1.ogg` | Sfx `rayo` | `lighting_spell_electric_zap_blast_sparkle_bright_02.ogg` |
+| `lc_rayo_2.ogg` | Sfx `rayo` | `lighting_spell_electric_zap_blast_sparkle_bright_03.ogg` |
+| `lc_rayo_3.ogg` | Sfx `rayo` | `lighting_spell_electric_zap_blast_sparkle_bright_04.ogg` |
+| `lc_chispazo_0.ogg` | Sfx `chispazo` | `lighting_spell_electric_zap_blast_sparkle_dark_01.ogg` |
+| `lc_chispazo_1.ogg` | Sfx `chispazo` | `lighting_spell_electric_zap_blast_sparkle_dark_02.ogg` |
+| `lc_chispazo_2.ogg` | Sfx `chispazo` | `lighting_spell_electric_zap_blast_sparkle_dark_03.ogg` |
+| `lc_trueno_0.ogg` | Sfx `trueno` | `lighting_spell_electric_impact_thunder_dark_dry_01.ogg` |
+| `lc_trueno_1.ogg` | Sfx `trueno` | `lighting_spell_electric_impact_thunder_dark_dry_02.ogg` |
+| `lc_trueno_2.ogg` | Sfx `trueno` | `lighting_spell_electric_impact_thunder_dark_dry_03.ogg` |
+| `lc_hielo_0.ogg` | Sfx `hielo` | `Ice_Spell_cast_and_impact_01.ogg` |
+| `lc_hielo_1.ogg` | Sfx `hielo` | `Ice_Spell_cast_and_impact_02.ogg` |
+| `lc_hielo_2.ogg` | Sfx `hielo` | `Ice_Spell_cast_and_impact_03.ogg` |
+| `lc_hielo_3.ogg` | Sfx `hielo` | `Ice_Spell_cast_and_impact_04.ogg` |
+| `lc_hielo_flecha_0.ogg` | Sfx `hielo_flecha` | `Ice_Spell_fast_impact_01.ogg` |
+| `lc_hielo_flecha_1.ogg` | Sfx `hielo_flecha` | `Ice_Spell_fast_impact_02.ogg` |
+| `lc_hielo_flecha_2.ogg` | Sfx `hielo_flecha` | `Ice_Spell_fast_impact_03.ogg` |
+| `lc_hielo_flecha_3.ogg` | Sfx `hielo_flecha` | `Ice_Spell_fast_impact_04.ogg` |
+| `lc_reaparecer_0.ogg` | Sfx `reaparecer` | `Holy_spell_revive_cast_01.ogg` |
+| `lc_veneno_bola_0.ogg` | Sfx3D `veneno_bola` | `acid_spell_cast_squish_ball_01.ogg` |
+| `lc_veneno_bola_1.ogg` | Sfx3D `veneno_bola` | `acid_spell_cast_squish_ball_02.ogg` |
+| `lc_veneno_bola_2.ogg` | Sfx3D `veneno_bola` | `acid_spell_cast_squish_ball_03.ogg` |
+| `lc_veneno_charco_0.ogg` | Sfx3D `veneno_charco` | `acid_spell_cast_squish_ball_impact_01.ogg` |
+| `lc_veneno_charco_1.ogg` | Sfx3D `veneno_charco` | `acid_spell_cast_squish_ball_impact_02.ogg` |
+| `lc_veneno_charco_2.ogg` | Sfx3D `veneno_charco` | `acid_spell_cast_squish_ball_impact_03.ogg` |
+| `lc_raices_brotan_0.ogg` | Sfx3D `raices_brotan` | `earth_spell_cast_rise_ground_01.ogg` |
+| `lc_raices_brotan_1.ogg` | Sfx3D `raices_brotan` | `earth_spell_cast_rise_ground_02.ogg` |
+| `lc_raices_brotan_2.ogg` | Sfx3D `raices_brotan` | `earth_spell_cast_rise_ground_03.ogg` |
+
 ## Lote GDC 2026 de Sonniss — `audio/sn_*.ogg` (10/11) · NO están en el repositorio
 
 Foley profesional del muestrario gratuito «GDC 2026 Game Audio Bundle» (https://gdc.sonniss.com/, 347 pistas de 17 librerías, 8 GB).
@@ -152,6 +216,67 @@ El script recorta la toma, pasa a mono 44,1 kHz, funde, iguala el pico a −3 dB
 | `sn_voltereta_0.ogg` | Sfx `voltereta` | `FOLYClth_ClothMovement24_InMotionAudio_FoleyT-Shirt.wav` | InMotionAudio - Foley T-Shirt |
 | `sn_voltereta_1.ogg` | Sfx `voltereta` | `FOLYClth_ClothMovement24_InMotionAudio_FoleyT-Shirt.wav` | InMotionAudio - Foley T-Shirt |
 | `sn_voltereta_2.ogg` | Sfx `voltereta` | `FOLYClth_ClothMovement29_InMotionAudio_FoleyT-Shirt.wav` | InMotionAudio - Foley T-Shirt |
+| `sn_siseo_apagado_0.ogg` | Sfx `siseo_apagado` | `42 Campfire, Putting Out Fire, Water from Bottle, Variation, Close.wav` | Ivo Vicic - Campfire - Bonfire FX |
+| `sn_chispazo_0.ogg` | Sfx `chispazo` | `ELECArc_ArcDesign15_InMotionAudio_Arc.wav` | InMotionAudio - Arc |
+| `sn_rayo_carga_0.ogg` | Sfx `rayo_carga` | `ELECArc_ArcPowerUpDesign04_InMotionAudio_Arc.wav` | InMotionAudio - Arc |
+| `sn_zumbido_electrico_0.ogg` | Sfx `zumbido_electrico` | `ELECBuzz_Buzz27_InMotionAudio_Arc.wav` | InMotionAudio - Arc |
+| `sn_viento_0.ogg` | Sfx `viento` | `WINDDsgn_Wind, Rush, Whoosh, Long x5 01_344 Audio_Elemental Palette Designed Vol 1.wav` | 344 Audio - Elemental Palette Designed Vol. 1 |
+| `sn_magma_0.ogg` | Sfx `magma` | `FIREWhsh_Whoosh Fire Deep Growl Monster Saturated Crisp 03_ESM_EMWI.wav` | Epic Stock Media - Elemental Mutation Whooshes and Impacts |
+| `sn_salpicadura_0.ogg` | Sfx `salpicadura` | `WATRMisc_Water, Liquid Impact, Bubble, Sci Fi, Hit 04_344 Audio_Elemental Palette Designed Vol 1.wav` | 344 Audio - Elemental Palette Designed Vol. 1 |
+| `sn_hielo_rompe_0.ogg` | Sfx `hielo_rompe` | `ICEBrk_Skill Freeze Whoosh Break Impact Layered Movement Shatter 03_ESM_TDG.wav` | Epic Stock Media - Tower Defense Game |
+| `sn_escudo_roto_0.ogg` | Sfx `escudo_roto` | `GLASMvmt_Whoosh Glass Crystal Fragments Sharp Shards Dry 05_ESM_EMWI.wav` | Epic Stock Media - Elemental Mutation Whooshes and Impacts |
+| `sn_escudo_golpe_0.ogg` | Sfx y Sfx3D `escudo_golpe` | `METLImpt_Metal Old File Impact Tap Against Tire Iron Metallic Hit 01_ESM_HDGM.wav` | Epic Stock Media - HD Game Materials |
+| `sn_dano_0.ogg` | Sfx `dano` | `FGHTImpt_Combat Punch Impact Light Hit Delay Crunchy Vintage Quick Smack 05_ESM_AG.wav` | Epic Stock Media - Anime Game |
+| `sn_no_puedes_0.ogg` | Sfx `no_puedes` | `Deny Muted.wav` | Cinematic Sound Design - UI Interaction Elements |
+| `sn_moneda_0.ogg` | Sfx `moneda` | `Ting Coins.wav` | Cinematic Sound Design - UI Interaction Elements |
+| `sn_moneda_1.ogg` | Sfx `moneda` | `Foley Coin Flip Single Fast.wav` | Cinematic Sound Design - Hybrid Game & UI Elements |
+| `sn_logro_acierto_0.ogg` | Sfx `logro_acierto` | `Interface Plucks Happy.wav` | Cinematic Sound Design - User Interface |
+| `sn_objetivo_cumplido_0.ogg` | Sfx `objetivo_cumplido` | `Game Entry Happy Short.wav` | Cinematic Sound Design - Hybrid Game & UI Elements |
+| `sn_logro_brillo_0.ogg` | Sfx `logro_brillo` | `Button Arp Twinkle.wav` | Cinematic Sound Design - User Interface |
+| `sn_cofre_revelado_0.ogg` | Sfx `cofre_revelado` | `GAMEMisc_Magic Creation 23_CB Sounddesign_APPlicable Sounds.wav` | CB_Sounddesign - Applicable Sounds - Organic UI and Building Games SFX |
+| `sn_bolsa_0.ogg` | Sfx `bolsa` | `CLOTHFlp_Action Inventory Open Flip Cloth Canvas Bag Slide Light 02_ESM_FG2.wav` | Epic Stock Media - Fantasy Game 2 - Sound Kit for Enchanted Realms |
+| `sn_aturdido_0.ogg` | Sfx `aturdido` | `Cartoon Confused Dizzy.wav` | Cinematic Sound Design - Cartoon Bloopers |
+| `sn_reaccion_grande_0.ogg` | Sfx `reaccion_grande` | `Impact Cut Sweep.wav` | Cinematic Sound Design - Colossal Impacts |
+| `sn_barrido_0.ogg` | Sfx `barrido` | `OBJMisc_ScratchCard_SurfaceWipe_04_InMotionAudio_ScratchCard.wav` | InMotionAudio - Scratch Card |
+| `sn_recarga_lista_0.ogg` | Sfx `recarga_lista` | `MECHClik_USALightSwitch_On05_InMotionAudio_USAHotel.wav` | InMotionAudio - USA Hotel |
+| `sn_muerte_0.ogg` | Sfx `muerte` | `Cartoon Transition Bass Down.wav` | Cinematic Sound Design - Cartoon & Animation Vol 2 |
+| `sn_tiempo_tic_0.ogg` | Sfx `tiempo_tic` | `CLOCKTick_Crooked Antique Clock_344 Audio_Antique Clocks.wav` | 344 Audio - Antique Clocks |
+| `sn_boton_clic_0.ogg` | Sfx `boton_clic` | `MECHLtch_Click Deep Mechanism Latch Button Nearfield Thunk 02_ESM_HDLM.wav` | Epic Stock Media - HD Lock And Mechanism Sound Design Kit |
+| `sn_amb_bosque_0.ogg` | Sfx `amb_bosque` | `AMBSwmp_Meadow Pipits calling many Insects humming Wind blowing through Grass_JSE_HoN_Stereo.wav` | Just Sound Effects - Highlands of Norway |
+| `sn_amb_grillos_0.ogg` | Sfx `amb_grillos` | `AMBSubn_Ambience, Forest Crickets, Birds, Connecticut 02_344 Audio_East Coast America.wav` | 344 Audio - East Coast America Vol. 1 |
+| `sn_amb_cueva_0.ogg` | Sfx `amb_cueva` | `WINDInt_ChimneyWind05_InMotionAudio_ChimneyWind.wav` | InMotionAudio - Chimney Wind |
+| `sn_sintetizar_0.ogg` | Sfx `sintetizar` | `MAGAngl_Magic Light Spell Enchantment Potion Effect Tonal Bright 03_ESM_FG2.wav` | Epic Stock Media - Fantasy Game 2 - Sound Kit for Enchanted Realms |
+| `sn_flecha_clava_0.ogg` | Sfx `flecha_clava` | `Arrow Hit Rattle.wav` | Cinematic Sound Design - Cartoon Bloopers |
+| `sn_aterrizar_0.ogg` | Sfx `aterrizar` | `FOLYClth_SinglePats04_InMotionAudio_FoleyT-Shirt.wav` | InMotionAudio - Foley T-Shirt |
+| `sn_salto_0.ogg` | Sfx `salto` | `Woosh Sweep Slide Infographics Basic.wav` | Cinematic Sound Design - Ultra Transitions & Impacts |
+| `sn_golem_rugido_0.ogg` | Sfx3D `golem_rugido` | `ANMLRept_Large Herbivore Roar 01_344 Audio_Dinosaurs Vol 2.wav` | 344 Audio - Dinosaurs Vol. 2 |
+| `sn_jefe_rugido_0.ogg` | Sfx3D `jefe_rugido` | `ANMLRept_T Rex_344 Audio_Dinosaurs.wav` | 344 Audio - Dinosaurs Vol. 1 |
+| `sn_limo_divide_0.ogg` | Sfx3D `limo_divide` | `Cartoon Bubbles Short.wav` | Cinematic Sound Design - Cartoon & Animation Vol 2 |
+| `sn_trueno_0.ogg` | Sfx `trueno` | `THUN_Interior Thunder Rumble_JF_INT Storm_01.wav` | Jake Fielding - Interior Wind Rain and Storms |
+| `sn_puzle_resuelto_0.ogg` | Sfx `puzle_resuelto` | `Accept Boing Crunch.wav` | Cinematic Sound Design - UI Interaction Elements |
+| `sn_loberno_ladrido_0.ogg` | Sfx3D `loberno_ladrido` | `ANMLDog_Dog Barks, Multiple, Indoors, Perspective,_344 Audio_Dog Vocalisations_02.wav` | 344 Audio - Dog Vocalisations Vol. 1 |
+| `sn_loberno_ladrido_1.ogg` | Sfx3D `loberno_ladrido` | `ANMLDog_Dog Barks, Multiple, Indoors, Perspective,_344 Audio_Dog Vocalisations_02.wav` | 344 Audio - Dog Vocalisations Vol. 1 |
+| `sn_loberno_ladrido_2.ogg` | Sfx3D `loberno_ladrido` | `ANMLDog_Dog Barks, Multiple, Indoors, Perspective,_344 Audio_Dog Vocalisations_02.wav` | 344 Audio - Dog Vocalisations Vol. 1 |
+| `sn_loberno_muere_0.ogg` | Sfx3D `loberno_muere` | `ANMLDog_Dog Shuffle, Grunt, Movement, Lying Down_344 Audio_Dog Vocalisations.wav` | 344 Audio - Dog Vocalisations Vol. 1 |
+| `sn_impacto_suelo_0.ogg` | Sfx3D `impacto_suelo` | `SWSH_SWING IMPACTS Quick Heavy Weapon Swing To Thud Impact Var 01_DDUMAIS_MWP2.wav` | David Dumais Audio - Melee Weapons Sound Effects Pack 2 |
+| `sn_impacto_suelo_1.ogg` | Sfx3D `impacto_suelo` | `SWSH_SWING IMPACTS Quick Heavy Weapon Swing To Thud Impact Var 01_DDUMAIS_MWP2.wav` | David Dumais Audio - Melee Weapons Sound Effects Pack 2 |
+| `sn_impacto_suelo_2.ogg` | Sfx3D `impacto_suelo` | `SWSH_SWING IMPACTS Quick Heavy Weapon Swing To Thud Impact Var 01_DDUMAIS_MWP2.wav` | David Dumais Audio - Melee Weapons Sound Effects Pack 2 |
+| `sn_impacto_suelo_3.ogg` | Sfx3D `impacto_suelo` | `SWSH_SWING IMPACTS Quick Heavy Weapon Swing To Thud Impact Var 01_DDUMAIS_MWP2.wav` | David Dumais Audio - Melee Weapons Sound Effects Pack 2 |
+| `sn_libro_abre_0.ogg` | Sfx `libro_abre` | `PAPRMisc_Pile Of Antique Books Falling Over 8_344 Audio_Antiques - Books.wav` | 344 Audio - Antique Books |
+| `sn_pagina_0.ogg` | Sfx `pagina` | `PAPRMisc_Antique Books Flicking Through Pages 11_344 Audio_Antiques - Books.wav` | 344 Audio - Antique Books |
+| `sn_carga_bucle_0.ogg` | Sfx `carga_bucle` | `PAPRMisc_Antique Books Slow Page Turns 6_344 Audio_Antiques - Books.wav` | 344 Audio - Antique Books |
+| `sn_naturaleza_0.ogg` | Sfx `naturaleza` | `WOODFric_Wood Shaker Microphone Head Roll Table Alternate Grainy 05_ESM_HDGM.wav` | Epic Stock Media - HD Game Materials |
+| `sn_arco_carga_0.ogg` | Sfx3D `arco_carga` | `WOODFric_Wood Shaker Microphone Head Roll Table Alternate Grainy 05_ESM_HDGM.wav` | Epic Stock Media - HD Game Materials |
+| `sn_maza_impacto_0.ogg` | Sfx3D `maza_impacto` | `Impact Cut Sweep.wav` | Cinematic Sound Design - Colossal Impacts |
+| `sn_explosion_barril_0.ogg` | Sfx `explosion_barril` | `13 Fireworks_powerful explosions_multiples in a row_near.wav` | Ivo Vicic - Fireworks FX |
+| `sn_explosion_barril_1.ogg` | Sfx `explosion_barril` | `13 Fireworks_powerful explosions_multiples in a row_near.wav` | Ivo Vicic - Fireworks FX |
+| `sn_arde_bucle_0.ogg` | Sfx `arde_bucle` | `24 Campfire, Dropping Fresh Pine Branches in Fire, Crackling, Sizzling Strong, Close 02.wav` | Ivo Vicic - Campfire - Bonfire FX |
+
+**Segunda tanda (13/11, 39 archivos, las filas desde `sn_siseo_apagado_0`):** 27 sustituyen a un sonido sintetizado o de Kenney y 12 son de acciones que no sonaban
+(inventario completo en `docs/INVENTARIO_SFX_2026-11-13.md`). En esta tanda el script iguala además el RMS al del archivo que sustituye (opción «como») y
+hace bucle sin costura en los tres ambientes (opción «bucle»). En la máquina `pablo` el lote está en `C:\Users\pablo\Downloads\sonniss_gdc2026`.
+
+**Tercera tanda (13/11, 18 archivos, desde `sn_puzle_resuelto_0`):** pistas que eligió Pablo de oído, con su destino. Sale `sn_silbido_arma_0` (lo sustituye `sn_maza_impacto_0`).
 
 Elegidos por el nombre de la pista y medidos (duración, pico y RMS parecidos a lo que sustituyen), **sin escucharlos**: valida Pablo de oído
 con `docs/escucha_sonniss.html` (antes y después de cada uno).

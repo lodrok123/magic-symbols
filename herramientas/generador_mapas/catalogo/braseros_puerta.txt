@@ -1,0 +1,13 @@
+; catalogo braseros_puerta
+; titulo Dos braseros que abren
+; tipo salida
+; pide fuego
+; activa luces.todos
+; barrera si
+;  Dos braseros apagados y su contador. Al encender los dos, la señal abre la puerta o tiende el puente al que esté enlazada.
+;  Es el activador que antes ponía el generador por código en las barreras.
+T.T
+...
+; pieza luces contador 1 1 de=0,0+2,0
+; cueva pieza luz_a brasero 0 0 luz=2.4 modelo=cueva
+; cueva pieza luz_b brasero 2 0 luz=2.4 modelo=cueva

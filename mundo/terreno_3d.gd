@@ -267,7 +267,9 @@ class FuenteSolidez extends RefCounted:
 		for c in toca:
 			for r in (_fijos.get(c, []) as Array):
 				var nf: Node3D = (r as WeakRef).get_ref() as Node3D
-				if nf != null and nf.is_inside_tree() and nf.is_visible_in_tree():
+				# 14/11: el nodo que se apuntó a mano cuenta aunque esté oculta la sala que lo contiene (los interiores de Monte Sumicio
+				# se esconden hasta entrar): manda su propia visibilidad, no la de sus padres.
+				if nf != null and nf.is_inside_tree() and nf.visible:
 					for f0 in _formas_de_nodo(nf, c, true):
 						if not formas.has(c):
 							formas[c] = []
@@ -325,7 +327,9 @@ class FuenteSolidez extends RefCounted:
 			var h: Node = pila.pop_back()
 			if h != n and "celda" in h and h.get("celda") is Vector2i and h.get("celda") != c:
 				continue                                 # un hijo que es otro objeto, de otra casilla
-			if h is MeshInstance3D and (h as MeshInstance3D).mesh != null and (h as MeshInstance3D).is_visible_in_tree() \
+			if h != n and h is Node3D and not (h as Node3D).visible:
+				continue                                 # 14/11: lo oculto DENTRO del objeto no cuenta (visibilidad relativa a `n`, no a la sala)
+			if h is MeshInstance3D and (h as MeshInstance3D).mesh != null and (fijo or (h as MeshInstance3D).is_visible_in_tree()) \
 					and not ((h as MeshInstance3D).mesh is QuadMesh) and not ((h as MeshInstance3D).mesh is PlaneMesh):
 				var gt: Transform3D = (h as MeshInstance3D).global_transform
 				for v in (h as MeshInstance3D).mesh.get_faces():
@@ -542,7 +546,7 @@ class FuenteNodos extends FuenteSolidez:
 		q.collision_mask = Terreno3D.CAPA_SOLIDO
 		for y in range(lado):
 			for x in range(lado):
-				q.transform = Transform3D(Basis(), Terreno3D.centro_de(Vector2i(x, y), Terreno3D.alto_suelo + 2.0))
+				q.transform = Transform3D(Basis(), Terreno3D.centro_de(Vector2i(x, y), suelo_de(Vector2i(x, y)) + 2.0))
 				if not espacio.intersect_shape(q, 1).is_empty():
 					celdas[Vector2i(x, y)] = true
 		# De las casillas tocadas, las que la forma cubre por el centro: son las que cuentan como bloqueadas enteras.
@@ -551,7 +555,7 @@ class FuenteNodos extends FuenteSolidez:
 		qc.shape = _caja_centro
 		qc.collision_mask = Terreno3D.CAPA_SOLIDO
 		for c in celdas.keys():
-			qc.transform = Transform3D(Basis(), Terreno3D.centro_de(c, Terreno3D.alto_suelo + 2.0))
+			qc.transform = Transform3D(Basis(), Terreno3D.centro_de(c, suelo_de(c) + 2.0))
 			if not espacio.intersect_shape(qc, 1).is_empty():
 				cubiertas[c] = true
 		# La casilla donde está la pieza (su origen) cuenta siempre, aunque la forma quede descentrada (pieza arrastrada a un borde).
@@ -563,6 +567,13 @@ class FuenteNodos extends FuenteSolidez:
 				if celdas.has(co):
 					cubiertas[co] = true
 		return celdas.size()
+
+	## 14/11 (Monte Sumicio, suelo a 2-3 u): la altura a la que se mide cada casilla. Antes era `alto_suelo` fijo: en un nivel con
+	## escalones de terreno la esfera del cuerpo (a 0,6 sobre ESE suelo) pasaba por debajo de las piezas de la terraza alta y no chocaba
+	## con nada, y por eso Sumicio tenía la solidez por casillas (muros invisibles de 2,3 u). Nunca por debajo de `alto_suelo` (el agua
+	## y los cauces, más bajos, se miden como siempre): en los niveles llanos da exactamente lo de antes.
+	static func suelo_de(c: Vector2i) -> float:
+		return maxf(Terreno3D.alto_suelo, Terreno3D.y_pies(c))
 
 	func bloquea(c: Vector2i) -> bool:
 		return cubiertas.has(c) or extras.has(c)
@@ -596,7 +607,7 @@ class FuenteNodos extends FuenteSolidez:
 			var q := PhysicsShapeQueryParameters3D.new()
 			q.shape = _bola
 			q.collision_mask = Terreno3D.CAPA_SOLIDO
-			q.transform = Transform3D(Basis(), Vector3(p.x, Terreno3D.alto_suelo + 0.6, p.z))
+			q.transform = Transform3D(Basis(), Vector3(p.x, suelo_de(c) + 0.6, p.z))
 			if not espacio.intersect_shape(q, 1).is_empty():
 				return true
 		if extras.has(c):
@@ -994,17 +1005,41 @@ const MARGEN_HUELLA: float = 0.3
 ## Las piedras y los troncos tumbados de ≤ `ColisionPieza.ALTO_MIN_SOLIDO` (0,45 u) no bloquean (no tienen cuerpo); en vez de atravesarlos con los pies, la jugadora SUBE encima: su suelo sube hasta
 ## alto · fracción (`ColisionPieza.REALCE`) en el centro de la pieza y baja suave a 0 en su borde. Vector2i (casilla de la pieza y las 8 vecinas) → Array de Vector4(x, z, radio, altura del realce).
 static var realces: Dictionary = {}
+## Rampas visuales al pie de los desniveles (PendientesSuelo3D). Vector2i (casilla baja) → Array de
+## [Vector2 normal hacia abajo, posición del borde a lo largo de la normal, ancho, desnivel].
+static var rampas: Dictionary = {}
+## Tramos de interior con anchura propia. Sus alturas son relativas al suelo de la casilla.
+static var rampas_acotadas: Array[Dictionary] = []
 const REALCE_BORDE: float = 0.55           ## fracción del radio, desde el borde hacia dentro, en que el realce sube de 0 al máximo
 
 
 ## Cuánto sube el suelo (u) en el punto `p` por las piedras y los troncos bajos que hay ahí. 0 casi siempre.
 static func realce_en(p: Vector3) -> float:
-	if realces.is_empty():
-		return 0.0
-	var lista: Variant = realces.get(celda_de(p))
-	if lista == null:
+	for tramo in rampas_acotadas:
+		var inicio: Vector3 = tramo.inicio
+		var fin: Vector3 = tramo.fin
+		var eje := Vector2(fin.x - inicio.x, fin.z - inicio.z)
+		var largo := eje.length()
+		if largo <= 0.001:
+			continue
+		eje /= largo
+		var desde := Vector2(p.x - inicio.x, p.z - inicio.z)
+		var avance := desde.dot(eje)
+		if avance >= 0.0 and avance <= largo and absf(desde.cross(eje)) <= float(tramo.semiancho):
+			return lerpf(inicio.y, fin.y, avance / largo)
+	if realces.is_empty() and rampas.is_empty():
 		return 0.0
 	var mejor: float = 0.0
+	# Rampas visuales al pie de un desnivel (PendientesSuelo3D): los pies suben por ellas.
+	var rs: Variant = rampas.get(celda_de(p))
+	if rs != null:
+		for r in (rs as Array):
+			var d: float = Vector2(p.x, p.z).dot(r[0]) - float(r[1])
+			if d >= 0.0 and d < float(r[2]):
+				mejor = maxf(mejor, float(r[3]) * (1.0 - d / float(r[2])))
+	var lista: Variant = realces.get(celda_de(p))
+	if lista == null:
+		return mejor
 	for r in (lista as Array):
 		var rv: Vector4 = r
 		var d: float = Vector2(p.x - rv.x, p.z - rv.y).length()
@@ -1138,6 +1173,7 @@ static func configurar(p_mundo: Node3D) -> void:
 	permanentes.clear()
 	y_puentes.clear()
 	realces_terreno.clear()
+	rampas_acotadas.clear()
 	estados.limpiar()                    # nivel nuevo: ni hielo ni electricidad de antes
 	estados.olvidar_materiales()         # B4: ni los materiales de la pieza `; material` del nivel anterior (`limpiar` no los toca: también corre al cargar una partida)
 	agua_sim = null

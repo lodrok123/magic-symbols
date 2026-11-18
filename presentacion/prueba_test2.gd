@@ -175,6 +175,9 @@ uniform float borde_fuerza = 0.0;                                       // 0 = s
 uniform float borde_ancho = 0.9;                                        // alto de la franja en unidades de mundo (0,4 casillas)
 uniform float borde_oscuro = 0.78;                                      // lo que se oscurece la hierba pegada a la frontera (1 = nada)
 uniform vec3 borde_tinte : source_color = vec3(0.80, 0.90, 0.72);       // las hojas de Meshy son más claras que la hierba del suelo
+uniform float mezcla_hierba = 0.0;      // 14/11: cuánto rompe el ruido fino la frontera de la hierba (matas y calvas entremezcladas); 0 = degradado liso, como siempre
+uniform float borde_fundido = 0.0;      // 14/11: 1 = la franja se desvanece hacia el otro suelo con el corte roto por ruido (calvas entre las hojas); 0 = como siempre
+uniform float borde_extiende = 0.0;     // 14/11: 1 = la franja se extiende en coordenadas de mundo (sin abanicos en curvas); 0 = proyectada sobre la frontera, como siempre
 // 16/10 (Juego, 14.2 · P4): BORDES ENTRE TODOS LOS MATERIALES. El borde de hierba de arriba cubre «hierba contra lo que sea»; esto cubre las parejas
 // que quedaban en una mezcla blanda y difusa: camino↔tierra, camino↔piedra y tierra↔piedra. En cada pareja un material «lame» al otro: su color
 // se funde sobre el vecino en un degradado de `par_lame` u, con el filo deshilachado por un ruido fino de `par_ruido` u y un poco de sombra en el
@@ -293,6 +296,8 @@ uniform bool acceso_cueva_integrado = false;
 uniform bool respetar_especular_luz = false;
 uniform float rugosidad = 0.5;            // 0 liso · 1 muy rugoso (tecla B)
 uniform float tam_rugosidad = 1.4;        // unidades de mundo por repetición del relieve
+uniform float relieve_hierba = 0.0;       // 14/11: relieve de más en la hierba (que por defecto lleva la mitad que el camino); 0 = como siempre
+uniform float relieve_junta = 1.0;        // 14/11: relieve que conserva la franja pintada de la junta hierba→otro suelo: 1 = como siempre · 0 = lisa
 // Relieve PROPIO de la tierra: mapa de normales sacado de su textura (piedras en relieve, musgo y gravilla). Si no hay
 // (usa_normal_tierra = 0) la tierra usa el relieve genérico de arriba, como siempre.
 uniform sampler2D normal_tierra : hint_normal, filter_linear_mipmap, repeat_enable;
@@ -413,6 +418,14 @@ void fragment() {
 	vec4 r = texture(campo, c / lado);
 	vec2 uvm = (c + (r.rg - 0.5) * 2.0 * ruido) / lado;
 	vec4 w0 = texture(mapa, uvm);
+	if (mezcla_hierba > 0.0) {
+		// 14/11 (Pablo: «la junta… un fade que se entremezcle con la tierra»): el mapa es de un tipo por casilla, filtrado, así que la hierba pasa a
+		// lo vecino en un degradado liso. Aquí la frontera de la hierba se empuja con ruido FINO solo cerca de ella: salen matas de hierba sobre la
+		// tierra y calvas de tierra en la hierba, entremezcladas, en vez de la mancha borrosa.
+		float nf = texture(campo, c / lado * 47.0).b * 0.6 + texture(campo, c / lado * 121.0 + vec2(0.13, 0.57)).g * 0.4;
+		float cerca_h = clamp(w0.r * (1.0 - w0.r) * 4.0, 0.0, 1.0);          // 1 en la frontera, 0 dentro de la hierba o fuera de ella
+		w0.r = clamp(w0.r + (nf - 0.5) * mezcla_hierba * cerca_h, 0.0, 1.0);
+	}
 	vec4 w = smoothstep(vec4(0.5 - dureza), vec4(0.5 + dureza), w0);
 	float s = w.r + w.g + w.b + w.a;
 	if (s < 0.05) {
@@ -503,6 +516,7 @@ void fragment() {
 	// BORDE DE HIERBA. `mapa` guarda un tipo por casilla y, filtrado, su canal R (hierba) sube de 0 a 1 en una casilla: ahí está la frontera.
 	// De él salen la dirección (el gradiente) y la distancia con signo `sb` (u de mundo; + = hacia el otro suelo) a la línea R = 0,5. uvm ya
 	// lleva el ruido de borde, así la franja sigue la frontera orgánica del suelo y no la recta de la rejilla.
+	float tapa_junta = 0.0;     // 14/11: cuánto de este píxel es la franja pintada de la junta (hojas del borde o lámina): ahí el relieve se quita según `relieve_junta`
 	if (borde_fuerza > 0.0) {
 		float eb = 0.5 / lado;
 		vec2 gb = vec2(texture(mapa, uvm + vec2(eb, 0.0)).r - texture(mapa, uvm - vec2(eb, 0.0)).r,
@@ -547,8 +561,30 @@ void fragment() {
 			if (vb > 0.0 && vb < 1.0) {
 				float ub = dot(pm.xz, vec2(-nb.y, nb.x)) / (borde_ancho * 5.15);   // 5,15 = 885 / 172, para no estirar las hojas
 				vec4 hb = texture(t_borde, vec2(ub, vb));
+				if (borde_extiende > 0.0) {
+					// 14/11 (Pablo: «sospecho que estás estirando la textura en vez de extenderla»): `ub` proyecta sobre la tangente de la frontera, que gira
+					// píxel a píxel en curvas y esquinas: ahí la coordenada se dispara y las hojas salen en abanico (rayas). Como la lámina de joints, se
+					// extiende en coordenadas de MUNDO: una muestra a lo largo de X y otra a lo largo de Z, mezcladas según hacia dónde corre la frontera.
+					float esc_b = borde_ancho * 5.15;
+					vec4 hx = texture(t_borde, vec2(pm.x / esc_b, vb));
+					vec4 hz = texture(t_borde, vec2(pm.z / esc_b + 0.37, vb));
+					float corre_x = smoothstep(0.25, 0.75, nb.y * nb.y);           // frontera tendida a lo largo de X (su normal mira en Z)
+					hb = mix(hb, mix(hz, hx, corre_x), borde_extiende);
+				}
+				if (borde_fundido > 0.0) {
+					// 14/11 (Pablo: «debería tener la textura como un fade y entremezclarse con la tierra»): la franja se desvanece hacia el otro suelo
+					// con el corte roto por ruido (quedan calvas de tierra entre las hojas) y entra suave por el lado de la hierba, sin canto duro.
+					// Ruido de grano fino (~1 m y ~0,4 m): con el de grano grueso la franja solo se difuminaba, no se entremezclaba.
+					float rb = texture(campo, c / lado * 55.0).b * 0.55 + texture(campo, c / lado * 140.0 + vec2(0.31, 0.67)).g * 0.45;
+					float hacia_fuera = smoothstep(0.15, 1.0, vb);                                     // 0 en la hierba, 1 en el filo
+					float queda = smoothstep(0.35, 0.65, (1.0 - hacia_fuera) * 1.15 + (rb - 0.5) * 1.6);
+					float desde_hierba = smoothstep(0.0, 0.25, vb);
+					hb.a *= mix(1.0, queda * mix(0.5, 1.0, desde_hierba), borde_fundido);
+				}
 				col = mix(col, hb.rgb * borde_tinte, hb.a * fb * borde_fuerza * (1.0 - 0.85 * cubre) * (1.0 - suaviza_borde));
+				tapa_junta = max(tapa_junta, hb.a * fb * borde_fuerza * (1.0 - suaviza_borde));
 			}
+			tapa_junta = max(tapa_junta, cubre);
 
 		}
 	}
@@ -648,7 +684,9 @@ void fragment() {
 		vec2 gt = mix(g1, g2, m);
 		nr = normalize(vec3(mix(nr.xy, gt + nr.xy * 0.3, w.b), 1.0));
 	}
-	float fuerza = rugosidad * (0.5 + 0.5 * (w.g + w.b) + 0.8 * w.a) * (1.0 - he);
+	// 14/11: `relieve_hierba` suma relieve SOLO en la hierba (w.r); 0 en todos los niveles salvo los que lo pidan (Monte Sumicio).
+	float fuerza = rugosidad * (0.5 + 0.5 * (w.g + w.b) + 0.8 * w.a + relieve_hierba * w.r) * (1.0 - he);
+	fuerza *= mix(1.0, relieve_junta, tapa_junta);     // la franja pintada de la junta ya trae su dibujo: el ruido de la normal la ensucia
 	NORMAL_MAP = nr * 0.5 + 0.5;
 	NORMAL_MAP_DEPTH = fuerza * 2.2;
 }
@@ -869,6 +907,11 @@ const ESCALA_VFX_NUEVO: float = 0.6
 @export_range(0.2, 1.0) var diorama_nitidez: float = 0.6
 ## 16/10 (Fase 14.2, b): falda biselada al pie de cada escalón y borde de agua + anillo de cantos rodados en el labio (BordePiedras3D).
 @export var bordes_blandos: bool = true
+## 17/11: el acabado del terreno, en todos los niveles (antes cada parte estaba atada a un nivel). `orilla_integrada`: la orilla del agua como
+## en Bosque 01 v01 (orilla integrada, ribera curva con cantos, juntas suaves; ver `_preparar_contacto_suelo`). `juntas_entremezcladas`: las
+## juntas y los bordes de Monte Sumicio (ver `_aplicar_juntas_entremezcladas`). Poner a false en la escena de un nivel para dejarlo como estaba.
+@export var orilla_integrada: bool = true
+@export var juntas_entremezcladas: bool = true
 ## 21/10 (V3 de PLAN_EOW_VISUAL): el LABIO redondeado de la arista de arriba de los bordes (orillas del agua, escalones de `Terreno3D.alturas`, borde del
 ## mapa y huecos del mapa): una tira de `BORDE_LABIO_ANCHO` u por encima del bloque (ver BordePiedras3D). Desmarcar = las aristas vivas de antes.
 @export var bisel_suelo: bool = true
@@ -1035,6 +1078,9 @@ var _velo: Control = null
 var _t_velo: float = 0.0
 var _f_velo: int = 0
 var _ms_velo: int = 0
+## 13/11 (viajes): los shaders de los efectos ya se compilaron en un nivel anterior de esta sesión (Godot guarda los pipelines): el velo ya no
+## espera los PRECALENTAR segundos, solo sus fotogramas. Volver de Monte Sumicio al Bosque 02 se ahorra ~2 s de negro.
+static var _ya_precalentado: bool = false
 var _ms_estado: float = 0.0
 var _bloques_reales: Array[BloqueEmpujable3D] = []   ## los empujables del nivel (BloqueEmpujable3D reales; ya no hay cubos visuales)
 var _contraste: float = 2.5
@@ -1261,10 +1307,14 @@ func _ready() -> void:
 		Ocluso3D.preparar()
 		Albedos3D.parchear_ocluso()         # albedos: la corrección de las piezas entra en el shader común (idempotente); el interruptor es el uniforme global
 		Albedos3D.poner_piezas(albedos_eow)
+	_crono("antes de bibliotecas")
 	_cargar_bibliotecas()
+	_crono("bibliotecas")
 	_construir_suelo()
+	_crono("suelo")
 	_modo_escena = usar_escena and not _modo_nivel and ResourceLoader.exists(_ruta_escena())
 	_colocar_letras()
+	_crono("letras")
 	_montar_canal()
 	_montar_agua_fisica()
 	_colocar_extras()
@@ -1273,18 +1323,24 @@ func _ready() -> void:
 	elif _modo_escena:
 		_instanciar_escena()
 	_colocar_empujables()
+	_crono("canal, agua, extras, nivel, empujables")
 	_sembrar_adornos()
+	_crono("adornos")
 	_construir_lotes()
+	_crono("lotes")
 	if _contacto_tex != null:
 		_construir_ruina_integrada()
 		_tex_manta_bosque = _generar_manta_bosque()
 		_mat_suelo.set_shader_parameter("manta_bosque", _tex_manta_bosque)
 		_mat_suelo.set_shader_parameter("manta_bosque_activa", _materiales_integrados)
+	_crono("ruina y manta")
 	_sembrar_hierba()
+	_crono("hierba")
 	_ambiente()
 	for b in _bibliotecas:
 		b.free()
 	_bibliotecas.clear()
+	_busqueda_piezas.clear()      # guardaba nodos de las bibliotecas que se acaban de liberar
 	# El .tscn del nivel se instancia fuera del árbol solo para leerlo: hay que liberarlo a mano. Si no, todas sus piezas,
 	# mallas y marcadores se quedaban vivos hasta cerrar el juego (Godot lo avisa al parar: «mesh is null», «leaked»).
 	if _nivel_raiz != null and is_instance_valid(_nivel_raiz):
@@ -1368,6 +1424,7 @@ func _ready() -> void:
 	_ocultar_correa_mochila()
 	if _modo_escena or _modo_nivel:
 		_activar_solidez_por_nodos()
+	_antes_de_cargar_partida()
 	# 2/11 (tercera tanda A1): «Continuar»/«Cargar» valen para cualquier nivel, no solo Jugabilidad3D: se carga la ranura ANTES de que las reglas definan sus misiones.
 	if Partida.continuar:
 		var jug_c: Node = get_node_or_null("Jugador3D")
@@ -1379,6 +1436,18 @@ func _ready() -> void:
 		_reglas.iniciar(self)
 	elif vitrina_vfx:
 		_vitrina_vfx()
+	_crono("resto de _ready")
+
+
+## 13/11: cronómetro del montaje. Solo escribe con la variable de entorno MS_MEDIR_MONTAJE=1 (para medir los viajes entre niveles).
+static var _crono_t: int = -1
+func _crono(que: String) -> void:
+	if OS.get_environment("MS_MEDIR_MONTAJE") != "1":
+		return
+	var ahora: int = Time.get_ticks_msec()
+	if _crono_t >= 0 and que != "antes de bibliotecas":
+		print("[montaje %s] %s: %d ms" % [nivel, que, ahora - _crono_t])
+	_crono_t = ahora
 
 
 ## 13/10 (M5): los datos del mapa en Terreno3D son estáticos y sobreviven a esta escena: al salir se sueltan, o el nivel siguiente
@@ -1620,7 +1689,10 @@ const VERDES_COPA: Dictionary = {
 ## Albedo medio por material, en lineal y en la misma cuadrícula que el suelo.
 ## El filtrado suaviza el cambio en el contacto sin leer el suelo ya iluminado.
 func _preparar_contacto_suelo(mat: ShaderMaterial) -> void:
-	if nivel != "Bosque_01_v01":
+	# 17/11 (Pablo: «traslada todos los cambios de terreno a todos los mapas… sí, a todos»): esto solo se preparaba si el nivel se llamaba
+	# `Bosque_01_v01`, y de ello cuelgan la orilla integrada, la ribera curva con cantos y las juntas suaves. Ahora, en todos los niveles;
+	# `orilla_integrada = false` en la escena lo quita en ese nivel.
+	if not orilla_integrada:
 		return
 	for familia in ["hierba", "camino", "tierra", "piedra"]:
 		var tex: Texture2D = mat.get_shader_parameter("t_" + familia)
@@ -1632,6 +1704,43 @@ func _preparar_contacto_suelo(mat: ShaderMaterial) -> void:
 		for x in range(_lado):
 			_pintar_contacto(Vector2i(x, y))
 	_contacto_tex = ImageTexture.create_from_image(_contacto_img)
+
+
+## 17/11 (Pablo: «traslada todos los cambios de terreno a todos los mapas… sí, a todos»): las JUNTAS Y LOS BORDES que se afinaron en Monte
+## Sumicio el 14/11, en todos los niveles: más relieve en el suelo y en la hierba, la franja pintada de la junta casi lisa, sin franja de hojas
+## y con la frontera de la hierba rota por ruido fino (matas y calvas entremezcladas con la tierra y la piedra). Los valores son los de
+## `escenas/monte_sumicio_mundo.gd` (allí está el porqué de cada uno); si se cambian allí, hay que cambiarlos aquí. Sumicio vuelve a poner
+## los suyos en `_vestir_suelo`. En estilo «cueva» no se aplica: todo el suelo es roca y el borde de hierba ya está apagado.
+## `juntas_entremezcladas = false` en la escena deja el nivel con las juntas de antes.
+const JUNTAS_RUGOSIDAD: float = 2.5
+const JUNTAS_RELIEVE_HIERBA: float = 0.4
+const JUNTAS_RELIEVE_JUNTA: float = 0.4
+const JUNTAS_BORDE_EXTIENDE: float = 1.0
+const JUNTAS_BORDE_FUNDIDO: float = 1.0
+const JUNTAS_BORDE_FUERZA: float = 0.0
+const JUNTAS_MEZCLA_HIERBA: float = 1.2
+const JUNTAS_BORDE_TINTE: Color = Color(0.82, 0.87, 0.64)
+
+
+func _aplicar_juntas_entremezcladas() -> void:
+	if not juntas_entremezcladas or _mat_suelo == null or estilo == "cueva":
+		return
+	# La «junta suave» que acompaña a la orilla integrada funde la hierba con la tierra en un degradado borroso: justo lo que Pablo rechazó en
+	# Sumicio el 14/11 («debajo la hierba pasa a la tierra en un degradado borroso»). Donde van estas juntas, esa se apaga (las teclas de la
+	# maqueta siguen pudiendo encenderla para comparar). Se hace ANTES de `_preparar_contacto_suelo`, que es quien se lo pasa al shader.
+	_junta_vegetal_suave = false
+	_junta_piedra_suave = false
+	if estilo != "pantano":
+		# En el Pantano el relieve de Sumicio sobre el barro mojado sale como un grano brillante por todo el suelo: allí se queda el de siempre.
+		_rugosidad = JUNTAS_RUGOSIDAD
+		_mat_suelo.set_shader_parameter("rugosidad", _rugosidad)
+	_mat_suelo.set_shader_parameter("relieve_hierba", JUNTAS_RELIEVE_HIERBA)
+	_mat_suelo.set_shader_parameter("relieve_junta", JUNTAS_RELIEVE_JUNTA)
+	_mat_suelo.set_shader_parameter("borde_extiende", JUNTAS_BORDE_EXTIENDE)
+	_mat_suelo.set_shader_parameter("borde_fundido", JUNTAS_BORDE_FUNDIDO)
+	_mat_suelo.set_shader_parameter("borde_fuerza", JUNTAS_BORDE_FUERZA)
+	_mat_suelo.set_shader_parameter("mezcla_hierba", JUNTAS_MEZCLA_HIERBA)
+	_mat_suelo.set_shader_parameter("borde_tinte", JUNTAS_BORDE_TINTE)
 
 
 func _pintar_contacto(c: Vector2i) -> void:
@@ -1810,7 +1919,11 @@ func _mascara_ribera() -> ImageTexture:
 	return ImageTexture.create_from_image(mapa)
 
 
-func _construir_suelo() -> void:
+func _antes_de_cargar_partida() -> void:
+	pass
+
+
+func _construir_suelo(dibujar: bool = true) -> void:
 	# Mapa de tipos para el shader.
 	_germinadas.clear()       # un mapa nuevo empieza sin germinaciones de la partida anterior
 	var img := Image.create_empty(_lado, _lado, false, Image.FORMAT_RGBA8)
@@ -1830,10 +1943,8 @@ func _construir_suelo() -> void:
 				_img_zona_v.set_pixel(x, y, Color(1.0 if lz == "v" or lz == "," else 0.0, 0.0, 0.0, 0.0))     # `,` = hierba corta (9.6)
 	_img_campo = _campo_ruido(_lado * 8)
 	Ambiente3D.preparar_global()   # el shader declara amb_sombra
-	var sh := Shader.new()
-	sh.code = CODIGO_SUELO
 	var mat_suelo := ShaderMaterial.new()
-	mat_suelo.shader = sh
+	mat_suelo.shader = _shader_de(CODIGO_SUELO)
 	_tex_mapa = ImageTexture.create_from_image(img)
 	mat_suelo.set_shader_parameter("mapa", _tex_mapa)
 	mat_suelo.set_shader_parameter("campo", ImageTexture.create_from_image(_img_campo))
@@ -1902,6 +2013,7 @@ func _construir_suelo() -> void:
 		mat_suelo.set_shader_parameter("escombro_fuerza", 1.0)
 	_aplicar_joints(mat_suelo)       # joints: tiras de transición (mapa de «fuera» + tabla de pares)
 	_mat_suelo = mat_suelo
+	_aplicar_juntas_entremezcladas()
 	_preparar_contacto_suelo(mat_suelo)
 	if _contacto_tex != null:
 		mat_suelo.set_shader_parameter("ribera_mascara", _mascara_ribera())
@@ -1921,10 +2033,8 @@ func _construir_suelo() -> void:
 		if estilo == "pantano":          # 8/11: los costados (la pared de las charcas, el borde del mapa) son barro oscuro, no la franja anaranjada del bosque
 			mat_lado.albedo_color = mat_lado.albedo_color * Color(0.55, 0.62, 0.52)
 	Ambiente3D.preparar_global()
-	var sha := Shader.new()
-	sha.code = CODIGO_AGUA
 	_mat_agua = ShaderMaterial.new()
-	_mat_agua.shader = sha
+	_mat_agua.shader = _shader_de(CODIGO_AGUA)
 	_mat_agua.set_shader_parameter("orilla", ImageTexture.create_from_image(_mapa_orilla()))
 	_mat_agua.set_shader_parameter("campo", mat_suelo.get_shader_parameter("campo"))
 	_mat_agua.set_shader_parameter("t_agua", _tex(SUELO + "water_arriba.png"))
@@ -1936,6 +2046,9 @@ func _construir_suelo() -> void:
 	_mat_agua.set_shader_parameter("contraste", maxf(_contraste * 0.6, 1.0))
 	_mat_agua.set_shader_parameter("estilizada", 1.0 if agua_estilizada else 0.0)
 	_subir_estado_juego()      # el suelo y el agua reciben el estado oficial (la hierba, cuando se siembra)
+
+	if not dibujar:
+		return
 
 	var tierra: Array[Transform3D] = []
 	var agua: Array[Transform3D] = []
@@ -2864,18 +2977,64 @@ func _sembrar_hierba() -> void:
 
 ## Campo de ruido para deformar los bordes (RG), mezclar dos muestras de textura (B) y variar el tono (A).
 ## Ruido de valor hecho aquí (no en el shader) para que CPU y GPU vean exactamente lo mismo.
+## 13/11 (viajes entre niveles): era ~2,4 s de cada montaje (416 × 416 píxeles × 7 ruidos × 4 hashes en GDScript). Ahora los valores al azar de la rejilla
+## se calculan UNA vez por ruido (`_rejilla_azar`) y el campo hecho se guarda por tamaño (solo depende de `_lado`): volver a un mapa ya visto no cuesta nada.
+## El resultado es el mismo bit a bit que el de `_vruido` (mismas cuentas, en el mismo orden).
+static var _campos_hechos: Dictionary = {}
+
+## 13/11: el Shader del suelo y el del agua, uno por código para toda la sesión (si no, cada nivel los recompila en su primer fotograma).
+static var _shaders: Dictionary = {}
+
+static func _shader_de(codigo: String) -> Shader:
+	if not _shaders.has(codigo):
+		var sh := Shader.new()
+		sh.code = codigo
+		_shaders[codigo] = sh
+	return _shaders[codigo]
+
 func _campo_ruido(n: int) -> Image:
+	var clave := Vector2i(n, _lado)
+	if _campos_hechos.has(clave):
+		return _campos_hechos[clave]
 	var img := Image.create_empty(n, n, false, Image.FORMAT_RGBA8)
 	var celdas: float = float(_lado)
+	var escalas: Array = [1.7, 4.3, 1.7, 4.3, 0.6, 0.35, 1.1]
+	var tablas: Array = []
+	var anchos: PackedInt32Array = PackedInt32Array()
+	for sal in range(escalas.size()):
+		var w: int = ceili(celdas * float(escalas[sal])) + 2
+		anchos.append(w)
+		tablas.append(_rejilla_azar(w, sal))
 	for y in range(n):
 		for x in range(n):
 			var c := Vector2(float(x) + 0.5, float(y) + 0.5) / float(n) * celdas
-			var r: float = _vruido(c * 1.7, 0) * 0.67 + _vruido(c * 4.3, 1) * 0.33
-			var g: float = _vruido(c * 1.7, 2) * 0.67 + _vruido(c * 4.3, 3) * 0.33
-			var b: float = _vruido(c * 0.6, 4)
-			var a: float = _vruido(c * 0.35, 5) * 0.7 + _vruido(c * 1.1, 6) * 0.3
+			var r: float = _vruido_t(c * 1.7, tablas[0], anchos[0]) * 0.67 + _vruido_t(c * 4.3, tablas[1], anchos[1]) * 0.33
+			var g: float = _vruido_t(c * 1.7, tablas[2], anchos[2]) * 0.67 + _vruido_t(c * 4.3, tablas[3], anchos[3]) * 0.33
+			var b: float = _vruido_t(c * 0.6, tablas[4], anchos[4])
+			var a: float = _vruido_t(c * 0.35, tablas[5], anchos[5]) * 0.7 + _vruido_t(c * 1.1, tablas[6], anchos[6]) * 0.3
 			img.set_pixel(x, y, Color(r, g, b, a))
+	_campos_hechos[clave] = img
 	return img
+
+
+## Los `_azar` de la rejilla de un ruido (casillas 0..w-1 en x e y), en una tabla.
+func _rejilla_azar(w: int, sal: int) -> PackedFloat64Array:
+	var t := PackedFloat64Array()
+	t.resize(w * w)
+	for iy in range(w):
+		for ix in range(w):
+			t[iy * w + ix] = _azar(Vector2i(ix, iy), sal)
+	return t
+
+
+## `_vruido` leyendo la rejilla de la tabla (p siempre positivo y dentro de la tabla).
+func _vruido_t(p: Vector2, t: PackedFloat64Array, w: int) -> float:
+	var ix: int = floori(p.x)
+	var iy: int = floori(p.y)
+	var f: Vector2 = p - Vector2(ix, iy)
+	f = f * f * (Vector2(3.0, 3.0) - 2.0 * f)
+	var k: int = iy * w + ix
+	return lerpf(lerpf(t[k], t[k + 1], f.x), lerpf(t[k + w], t[k + w + 1], f.x), f.y)
 
 
 ## Ruido de valor: interpola números al azar puestos en una rejilla.
@@ -3052,6 +3211,7 @@ func _multimalla(malla: Mesh, transformaciones: Array[Transform3D]) -> void:
 ## --- Decorado: bibliotecas de Meshy ---
 
 func _cargar_bibliotecas() -> void:
+	_busqueda_piezas.clear()
 	for ruta in rutas_piezas_sueltas() + BIBLIOTECAS:
 		var r: String = String(ruta)
 		if not ResourceLoader.exists(r):
@@ -3086,18 +3246,34 @@ func _id_real(id: String) -> String:
 	return id
 
 
-func _hay_pieza(id: String) -> bool:
+## 13/11: lo que encuentra `find_child` en las bibliotecas, por id: [nodo de la primera biblioteca que lo tiene (o null), ¿está en alguna suelta?].
+## Se buscaba de nuevo (recorriendo todas las bibliotecas) hasta tres veces por pieza puesta: ~1 s del montaje del Bosque 02.
+var _busqueda_piezas: Dictionary = {}
+
+func _buscar_pieza(id: String) -> Array:
+	if _busqueda_piezas.has(id):
+		return _busqueda_piezas[id]
+	var primero: Node3D = null
+	var suelta: bool = false
 	for b in _bibliotecas:
-		if b.find_child(id, true, false) is Node3D:
-			return true
-	return false
+		var n: Node = b.find_child(id, true, false)
+		if n is Node3D:
+			if primero == null:
+				primero = n as Node3D
+			if String(b.scene_file_path).begins_with(CARPETA_PIEZAS):
+				suelta = true
+				break
+	var res: Array = [primero, suelta]
+	_busqueda_piezas[id] = res
+	return res
+
+
+func _hay_pieza(id: String) -> bool:
+	return _buscar_pieza(id)[0] != null
 
 
 func _en_piezas_sueltas(id: String) -> bool:
-	for b in _bibliotecas:
-		if String(b.scene_file_path).begins_with(CARPETA_PIEZAS) and b.find_child(id, true, false) is Node3D:
-			return true
-	return false
+	return bool(_buscar_pieza(id)[1])
 
 
 ## Copia de una pieza escalada a su medida, con la base en y = 0. null si no está en ninguna biblioteca.
@@ -3110,13 +3286,12 @@ func _pieza(id: String) -> Node3D:
 			var suelto_n: Node3D = escena_suelta.instantiate() as Node3D
 			suelto_n.rotation.y = deg_to_rad(Pieza3D.giro_de(id))      # giro por modelo: lo endereza (ver Pieza3D.GIRO_MODELO), antes de medirlo en _normalizar
 			return _a_paleta(_normalizar(suelto_n, id), id)
-	for b in _bibliotecas:
-		var n: Node = b.find_child(id, true, false)
-		if n != null and n is Node3D:
-			var copia: Node3D = (n as Node3D).duplicate() as Node3D
-			copia.transform = Transform3D.IDENTITY
-			copia.rotation.y = deg_to_rad(Pieza3D.giro_de(id))       # 4/11: enderezar el modelo (Pieza3D.GIRO_MODELO), antes de medirlo
-			return _a_paleta(_normalizar(copia, id), id)
+	var n: Node3D = _buscar_pieza(id)[0]
+	if n != null:
+		var copia: Node3D = n.duplicate() as Node3D
+		copia.transform = Transform3D.IDENTITY
+		copia.rotation.y = deg_to_rad(Pieza3D.giro_de(id))       # 4/11: enderezar el modelo (Pieza3D.GIRO_MODELO), antes de medirlo
+		return _a_paleta(_normalizar(copia, id), id)
 	if not _avisos.has("sin pieza " + id):
 		_avisos.append("sin pieza " + id)
 	return null
@@ -3856,7 +4031,9 @@ func _colocar_empujables() -> void:
 ##   ninguna                   → roca maciza: una pared con giro al azar, para que no quede un hueco que parezca paso
 ## `GIRO_CUEVA` corrige hacia dónde mira cada modelo de Tripo (medido en las capturas de herramientas/captura_cueva.gd).
 const GIRO_CUEVA: Dictionary = {"cueva_pared": 0.0, "cueva_esquina_ext": 0.0, "cueva_esquina_int": 0.0}
-const DECOR_CUEVA: Array = ["estalagmitas_a", "estalagmitas_b", "rocas_pequenas", "estalagmitas_a", "piedras"]
+## Las piezas que `_pared_cueva` pone en una casilla `#`. En un nivel horneado bloquean su casilla entera (ver `_instanciar_nivel`).
+const PAREDES_CUEVA: Array = ["cueva_pared", "cueva_esquina_ext", "cueva_esquina_int"]
+const DECOR_CUEVA: Array =["estalagmitas_a", "estalagmitas_b", "rocas_pequenas", "estalagmitas_a", "piedras"]
 
 
 func _pared_cueva(c: Vector2i) -> void:
@@ -4533,7 +4710,7 @@ func _leer_nivel_de(raiz: Node) -> void:
 		var c2 := Vector2i(u.x, u.z)
 		mn = Vector2i(mini(mn.x, c2.x), mini(mn.y, c2.y))
 		mx = Vector2i(maxi(mx.x, c2.x), maxi(mx.y, c2.y))
-		if u.y != 0:
+		if u.y != 0 and not bool(suelo.get_meta("plantas_jugables", false)):
 			otras_plantas += 1
 		if not por_celda.has(c2) or int((por_celda[c2] as Array)[0]) < u.y:
 			por_celda[c2] = [u.y, suelo.get_cell_item(u)]
@@ -4703,6 +4880,12 @@ func _instanciar_nivel() -> void:
 				var k_m: float = t.basis.get_scale().x
 				var mitad_m: Vector3 = (t.basis.orthonormalized() * (((f_m["tam"] as Vector3) if not bool(f_m["cilindro"]) else Vector3(float(f_m["radio"]) * 2.0, 1.0, float(f_m["radio"]) * 2.0)) * 0.5 * k_m)).abs()
 				_marcar_muro_caja(t * ((f_m["centro"] as Vector3) * k_m), mitad_m)
+			elif PAREDES_CUEVA.has(id):
+				# 17/11 (Pablo, generador de mapas: «arregla las paredes de cueva para que bloqueen al hornear»): el kit de paredes de la Cueva no trae
+				# `cuerpo`, así que un nivel de cueva HORNEADO se quedaba sin paredes (la jugadora se metía una o dos casillas en la roca). Una pared de
+				# cueva llena su casilla: se bloquea ENTERA, igual que hace la letra `#` cuando el nivel sale de las letras. Sin `_celdas_pieza`: pasa a
+				# la fuente de solidez como bloqueo de casilla (`_activar_solidez_por_nodos`). Si se mueve la pieza en el editor, bloquea donde quede.
+				_bloqueadas[_celda_de(p)] = true
 			else:
 				_avisos.append("pieza %s bloquea pero no tiene `cuerpo`" % pz.name)
 		if decorado_por_lotes:
@@ -6225,10 +6408,11 @@ func _process(delta: float) -> void:
 		# Tiempo REAL (no suma de deltas): si el equipo va lento o compila shaders a tirones, el velo no se eterniza.
 		_f_velo += 1
 		_t_velo = float(Time.get_ticks_msec() - _ms_velo) / 1000.0
-		if _f_velo > 10 and _t_velo >= PRECALENTAR:
+		if _f_velo > 10 and (_t_velo >= PRECALENTAR or _ya_precalentado):
 			_velo.queue_free()
 			_velo = null
 			_precalentando = false
+			_ya_precalentado = true
 	_t_hud += delta
 	if _t_hud > 0.3:
 		_t_hud = 0.0
