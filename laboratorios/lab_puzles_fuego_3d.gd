@@ -75,6 +75,9 @@ const NUEVOS: Array = [
 	{"nombre": "F11 tótems", "entrada": Vector2i(20, 17), "cartel": Vector2i(21, 19),
 		"texto": "F11 · TÓTEMS QUE ESCUPEN FUEGO\nTres tótems de piedra lanzan una bola cada 3 s por su fila, uno tras otro.\nCruza los carriles (filas 18, 20 y 22) por turnos y descansa en las de en medio hasta la placa del fondo.\nAgua a un tótem: lo apaga 8 s · botón: apaga los tres 8 s.",
 		"ids": {"t1": "f11_t1", "t2": "f11_t2", "t3": "f11_t3", "placa": "f11_placa", "boton": "f11_boton"}},
+	{"nombre": "F12 respiraderos", "entrada": Vector2i(28, 17), "cartel": Vector2i(30, 19),
+		"texto": "F12 · RESPIRADEROS DE VENENO\nDos rejas del pasillo exhalan una nube verde cada 10 s (8 s de vida): casi siempre está lleno.\nQuema la niebla con fuego y cruza por el hueco hasta la placa del fondo.\nAgua a una reja: la atasca 8 s · botón: atasca las dos 10 s.",
+		"ids": {"r1": "f12_r1", "r2": "f12_r2", "placa": "f12_placa", "boton": "f12_boton"}},
 ]
 ## Papeles que toda sala tiene en su diccionario aunque no los use (null): el HUD y el escenario los leen sin mirar si existen.
 const PAPELES_SIEMPRE: Array = ["detector", "compuerta", "puerta", "contador"]
@@ -400,6 +403,12 @@ func _estado_nuevo(q: Dictionary) -> String:
 		var tr: Variant = q.get(papel)
 		if tr != null and is_instance_valid(tr):
 			s += "  %s %s" % [papel.to_upper(), _estado_trampa(tr)]
+	for papel in ["r1", "r2"]:
+		var rp: Variant = q.get(papel)
+		if rp != null and is_instance_valid(rp):
+			var r: Respiradero3D = rp
+			s += "  %s %s" % [papel.to_upper(), "ATASCADO" if not r.activo else ("AVISA" if r.en_aviso else "exhala en %.0f s" % (r.cada - r._t))]
+	s += "  nubes %d" % NubeVeneno3D.vivas.size() if q.has("r1") else ""
 	var pl: Variant = q.get("placa")
 	if pl != null and is_instance_valid(pl):
 		s += "  placa %s" % ("PISADA" if bool((pl as Object).get("activo")) else "libre")

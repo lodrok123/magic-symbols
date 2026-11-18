@@ -22,9 +22,11 @@ func _escenario() -> void:
 	if modo == "natural":
 		await _f10_natural()
 		await _f11_natural()
+		await _f12_natural()
 	else:
 		await _f10_botones()
 		await _f11_botones()
+		await _f12_botones()
 
 
 # ---------------------------------------------------------------------------------------------------------------------
@@ -309,3 +311,121 @@ func _f11_botones() -> void:
 	colocar_jugador(Vector2i(20, 23))
 	await avanzar_s(0.5)
 	_ok("F11.24 la placa del fondo se pisa", placa.veces == 1 and placa.activo)
+
+
+# ---------------------------------------------------------------------------------------------------------------------
+#  F12 · Respiraderos de veneno
+# ---------------------------------------------------------------------------------------------------------------------
+
+## Apunta cuándo exhala cada respiradero: {"r1": [t…], "r2": [t…]}.
+func _vigilar_respiraderos(r1: Respiradero3D, r2: Respiradero3D) -> Dictionary:
+	var rec: Dictionary = {"r1": [], "r2": []}
+	r1.exhala.connect(func() -> void: (rec["r1"] as Array).append(reloj.t))
+	r2.exhala.connect(func() -> void: (rec["r2"] as Array).append(reloj.t))
+	return rec
+
+
+func _nubes_en_pasillo() -> int:
+	var n: int = 0
+	for y in [18, 19, 20, 21, 22]:
+		if NubeVeneno3D.cubre(Vector2i(28, y)):
+			n += 1
+	return n
+
+
+func _f12_estado_inicial() -> void:
+	var q: Dictionary = _sala("F12")
+	var r1: Respiradero3D = q["r1"]
+	var r2: Respiradero3D = q["r2"]
+	var lados: bool = true
+	for y in range(18, 24):
+		lados = lados and Terreno3D.letra_de(Vector2i(27, y)) == "#" and Terreno3D.letra_de(Vector2i(29, y)) == "#"
+	_ok("F12.1 pasillo de una casilla (x = 28, y 18–23) entre muros, con dos respiraderos en (28,19) y (28,21)", lados and r1 != null and r2 != null and r1.celda == Vector2i(28, 19) and r2.celda == Vector2i(28, 21))
+	_ok("F12.2 cada uno exhala cada %.0f s una nube de %.0f s y %.0f casilla de radio; los separa 1 s de desfase; no bloquean su casilla" % [r1.cada, r1.vida, r1.radio],
+		r1.cada == 10.0 and r1.vida == 8.0 and r1.radio == 1.0 and absf(r1.desfase_s - r2.desfase_s - 1.0) < 0.01 and not Terreno3D.bloqueada(r1.celda) and not Terreno3D.bloqueada(r2.celda))
+	_ok("F12.3 de serie casi siempre hay nube: %.0f s de vida de cada %.0f s (solo %.0f s limpios)" % [r1.vida, r1.cada, r1.cada - r1.vida], r1.cada - r1.vida <= 2.5)
+
+
+func _f12_natural() -> void:
+	await _f12_estado_inicial()
+	var q: Dictionary = _sala("F12")
+	var r1: Respiradero3D = q["r1"]
+	var r2: Respiradero3D = q["r2"]
+	var placa: Pulsador3D = q["placa"]
+	var j: Jugador3D = jugador as Jugador3D
+	await _preparar_j(Vector2i(28, 17), Vector3(0.0, 0.0, 1.0))
+	var rec: Dictionary = _vigilar_respiraderos(r1, r2)
+	var t0: float = reloj.t
+	while (reloj.t - t0 < 16.0) and ((rec["r1"] as Array).is_empty() or (rec["r2"] as Array).is_empty()):
+		await process_frame
+	var t_exh: float = reloj.t - t0
+	_ok("F12.4 los dos respiraderos exhalan (a los %.1f s) y sale una nube de veneno de cada uno, de 1 casilla" % t_exh,
+		r1.ultima != null and r2.ultima != null and is_instance_valid(r1.ultima) and is_instance_valid(r2.ultima) and r1.ultima.radio == 1.0 and r2.ultima.vida_max == 8.0 and NubeVeneno3D.cubre(Vector2i(28, 19)) and NubeVeneno3D.cubre(Vector2i(28, 21)))
+	_ok("F12.5 las dos nubes cubren casi todo el pasillo (%d de 5 casillas)" % _nubes_en_pasillo(), _nubes_en_pasillo() >= 4)
+	# 1 · Fuego a la niebla recién exhalada: se consume en unos 4 s.
+	_ok("F12.7 fuego + flecha a la niebla sale", lanzar_a_celda("fuego", ["flecha"], Vector2i(28, 19), Vector2i(28, 17)))
+	var t_fuego: float = reloj.t
+	await avanzar_s(1.0)
+	_ok("F12.8 el fuego prende las dos nubes (arden y se consumen en 1,5 casillas)", (r1.ultima.ardiendo or not is_instance_valid(r1.ultima)) and (r2.ultima.ardiendo or not is_instance_valid(r2.ultima)))
+	var n_exh1: int = r1.exhalaciones
+	var n_exh2: int = r2.exhalaciones
+	while reloj.t - t_fuego < 9.0 and _nubes_en_pasillo() > 0:
+		await process_frame
+	var t_limpio: float = reloj.t
+	_ok("F12.9 el pasillo queda limpio a los %.1f s del fuego (la nube vivía 8 s, quemada 4)" % (t_limpio - t_fuego), _nubes_en_pasillo() == 0 and t_limpio - t_fuego <= 5.5)
+	# 2 · El hueco: cruzar con la niebla quemada, antes de la siguiente exhalación.
+	var vida1: float = j.vida
+	var hueco: float = minf(float(r1.cada) - r1._t, float(r2.cada) - r2._t)       # lo que falta para la próxima exhalación (la primera de las dos)
+	for y in [18, 19, 20, 21, 22, 23]:
+		colocar_jugador(Vector2i(28, y))
+		await avanzar_s(0.35)
+	_ok("F12.10 en el hueco (%.1f s hasta la siguiente exhalación) se cruza el pasillo entero hasta la placa (28,23) sin veneno" % hueco, placa.activo and r1.exhalaciones == n_exh1 and r2.exhalaciones == n_exh2 and j.vida >= vida1 - 0.01 and float(j.get("_veneno_t")) <= 0.0, "vida %.1f→%.1f" % [vida1, j.vida])
+	_ok("F12.11 el hueco que abre quemar es mayor que el natural: %.1f s frente a %.0f s" % [hueco, r1.cada - r1.vida], hueco + (reloj.t - t_limpio) >= 3.0)
+	# 3 · El agua atasca una reja 8 s (se le tira con el pasillo aún limpio: con la nube delante, la nube se traga la flecha).
+	var n_antes: int = r1.exhalaciones
+	_ok("F12.12 agua + flecha al respiradero de (28,19) sale (a %.1f s de la siguiente exhalación)" % (r1.cada - r1._t), lanzar_a_celda("agua", ["flecha"], Vector2i(28, 19), Vector2i(28, 17)))
+	await avanzar_s(1.0)
+	_ok("F12.13 queda atascado (no exhala)", not r1.activo and r1.exhalaciones == n_antes)
+	await avanzar_s(6.5)
+	_ok("F12.14 … sigue atascado 7,5 s después (el otro respiradero sí sigue a lo suyo: %d exhalaciones más)" % (r2.exhalaciones - n_exh2), not r1.activo and r1.exhalaciones == n_antes)
+	await avanzar_s(1.5)
+	_ok("F12.15 … y a los 8 s se destapa", r1.activo)
+	# 4 · Sin quemar: la nube envenena de verdad (se espera a la siguiente exhalación del respiradero que sigue activo).
+	var n_r2: int = r2.exhalaciones
+	var tw: float = reloj.t
+	while reloj.t - tw < 12.0 and r2.exhalaciones == n_r2:
+		await process_frame
+	colocar_jugador(Vector2i(28, 21))
+	var vida0: float = j.vida
+	await avanzar_s(2.0)
+	var veneno: float = float(j.get("_veneno_t"))
+	_ok("F12.6 quien entra en la niebla se envenena (la nube lo cuenta %d veces; pierde %.1f de vida)" % [r2.ultima.envenenadas, vida0 - j.vida], r2.ultima.envenenadas > 0 and (veneno > 0.0 or j.vida < vida0))
+
+
+func _esperar_sin_veneno(j: Jugador3D, max_s: float = 6.0) -> void:
+	var t0: float = reloj.t
+	while reloj.t - t0 < max_s and float(j.get("_veneno_t")) > 0.0:
+		await process_frame
+
+
+func _f12_botones() -> void:
+	await _f12_estado_inicial()
+	var q: Dictionary = _sala("F12")
+	var r1: Respiradero3D = q["r1"]
+	var r2: Respiradero3D = q["r2"]
+	var placa: Pulsador3D = q["placa"]
+	var boton: Pulsador3D = q["boton"]
+	_ok("F12.20 el botón `!` (30,17) y la placa `@` (28,23) existen", boton != null and placa != null and boton.celda == Vector2i(30, 17) and placa.celda == Vector2i(28, 23))
+	await _preparar_j(Vector2i(30, 16), Vector3(0.0, 0.0, 1.0))
+	boton.pulsar()
+	await avanzar(2)
+	var n1: int = r1.exhalaciones
+	var n2: int = r2.exhalaciones
+	_ok("F12.21 el botón atasca los dos respiraderos", not r1.activo and not r2.activo)
+	await avanzar_s(9.0)
+	_ok("F12.22 en 9 s no exhalan (y no hay nubes nuevas)", r1.exhalaciones == n1 and r2.exhalaciones == n2)
+	await avanzar_s(1.5)
+	_ok("F12.23 pasados los 10 s se destapan", r1.activo and r2.activo)
+	colocar_jugador(Vector2i(28, 23))
+	await avanzar_s(0.5)
+	_ok("F12.24 la placa del fondo se pisa", placa.veces == 1 and placa.activo)

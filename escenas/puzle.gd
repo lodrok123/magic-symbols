@@ -147,6 +147,10 @@ extends Node
 ##              veneno 3 s y nada de panal. Primitivas hasta que haya pieza. Señales `cae_panal`, `arde`; condición `colgada`|`vacia`
 ##   nube_veneno  vida=<s> (6; 0 = permanente)  radio=<casillas> (1)                 NubeVeneno3D (F4, 29/10): una nube de veneno con vida propia. Envenena a quien esté dentro (2 de vida/s y 3 s después; el antídoto, la capucha de musgo y el
 ##              limo, el chamán y el gólem no se envenenan), el VIENTO la empuja y la dispersa (8 s) y el FUEGO la consume (4 s). Se guarda en la partida. Señal `disipada`
+##   respiradero  cada=<s> (8)  vida=<s> (5)  radio=<casillas> (1)  dir=n|e|s|o  desfase=<s> (0)  agua=si|no (si)   Respiradero3D (18/11): una reja en el suelo (x,y es una casilla de SUELO; no bloquea) que EXHALA una nube de
+##              veneno (`NubeVeneno3D`, con esa `vida` y ese `radio`) cada `cada` s; un segundo antes la reja brilla de verde. `dir`: la nube brota media casilla hacia ese lado (sin ella, centrada en la reja).
+##              `desfase` = punto del ciclo en el que empieza (0 = acaba de exhalar). El FUEGO no apaga la reja pero quema la nube que ya hay (NubeVeneno3D: su vida baja a 4 s en 1,5 casillas: el hueco que deja depende
+##              de cuánto falte para la siguiente exhalación). El AGUA y el HIELO la atascan 8 s (`agua=no`: nada la atasca). Señales `exhala`, `apagado`; condición `activo`|`apagado`; acciones `apagar(s)` | `encender`
 ##   nido       (sin claves)                                                        Nido3D (F1): el viento suelta una `pluma`, como mucho cada 45 s. Señal `suelta`
 ##   bancal     flag=<nivel.sala.hecho> (obligatoria)                                Tierra o arena. Agua → Naturaleza germina la casilla y guarda la flag.
 ##              Señal `germino`; condiciones `germinado` y `pendiente`. La flag restaura la hierba al volver al mapa.
@@ -173,7 +177,7 @@ extends Node
 ##   molino     girando | parado            nexo       conduce | corta            barril  explota
 ##   puerta     abierta | cerrada           totem      activado                   tinaja  agua_llega
 ##   emisor     descarga
-##   trampa_dragon  escupe | calla | apagada          trampa_flechas  dispara | apagada
+##   trampa_dragon  escupe | calla | apagada          trampa_flechas  dispara | apagada          respiradero  exhala | apagado
 ##   brasero    encendido | apagado          contador   todos | no_todos            cuerda  rota
 ##   seto       consumido
 ##   vigia      todos_derrotados             cerrojo  cerrado | abierto            cofre   aparecido | abierto
@@ -226,6 +230,7 @@ extends Node
 ##   cristal             latir (suelta un pulso ahora)                            receptor  activar | apagar     prisma  girar     pared_hueca  abrir
 ##   emisor              pulso(alcance) (la fuente suelta un Pulso3D de rayo por el agua y las vetas; alcance en casillas, 12 por defecto)
 ##   trampa_dragon, trampa_flechas   apagar(s) (s segundos; sin argumento, hasta `encender`) | encender         (condiciones: activa | apagada)
+##   respiradero         apagar(s) | encender         (condiciones: activo | apagado)
 ##   jarron, caja        romper (como un golpe)                salida   usar (la dispara, como si la jugadora la pisara)      columna  romper (la tumba)
 ##   zona       poner(<estado>[,<segundos>]) | quitar(<estado>)     (F4, 29/10: los estados DINÁMICOS del mundo de `estados_mundo.tsv`, p. ej. `hace=zona.poner(tormenta,60)` o `zona.poner(vendaval)`; sin segundos, los de la tabla
 ##              o hasta `zona.quitar`. «zona» es palabra reservada como «flag»; el veneno no se pone así: es de las nubes (`nube_veneno`))
@@ -276,7 +281,7 @@ const SENAL_DEFECTO: Dictionary = {
 	"jarron": "roto", "caja": "roto", "salida": "usada",
 	"columna": "cae", "estatuas": "completa", "estalagmita": "cae", "geoda": "explota", "bloque": "movido", "roca_empujable": "movido",
 	"guardian": "levanta", "puente": "tendido", "trampa_dragon": "escupe", "trampa_flechas": "dispara",
-	"colmena": "cae_panal", "nube_veneno": "disipada", "nido": "suelta", "musgo": "recogida", "helecho_cueva": "recogida", "seta_palida": "recogida",
+	"colmena": "cae_panal", "nube_veneno": "disipada", "respiradero": "exhala", "nido": "suelta", "musgo": "recogida", "helecho_cueva": "recogida", "seta_palida": "recogida",
 	"flor": "recogida", "raiz": "recogida", "lavanda": "recogida", "bayas": "recogida", "helecho": "recogida", "flor_silvestre": "recogida",
 	"bancal": "germino", "mamoa": "tapada",
 }
@@ -326,6 +331,7 @@ const SENALES: Dictionary = {
 	"trampa_flechas": {"dispara": ["dispara", 0, null], "apagada": ["apagada", 0, null]},
 	"colmena": {"cae_panal": ["panal_cae", 0, null], "arde": ["arde", 0, null]},
 	"nube_veneno": {"disipada": ["disipada", 0, null]},
+	"respiradero": {"exhala": ["exhala", 0, null], "apagado": ["apagado", 0, null]},
 	"nido": {"suelta": ["suelta", 0, null]},
 	"bancal": {"germino": ["germino", 0, null]},
 	"musgo": {"recogida": ["recogido", 1, null]},
@@ -370,6 +376,7 @@ const CONDICIONES: Dictionary = {
 	"trampa_dragon": {"activa": ["activa", true], "apagada": ["activa", false]},
 	"trampa_flechas": {"activa": ["activa", true], "apagada": ["activa", false]},
 	"colmena": {"colgada": ["colgada", true], "vacia": ["colgada", false]},
+	"respiradero": {"activo": ["activo", true], "apagado": ["activo", false]},
 	"musgo": {"recogida": ["recogido_ya", true], "en_suelo": ["recogido_ya", false]},
 	"helecho_cueva": {"recogida": ["recogido_ya", true], "en_suelo": ["recogido_ya", false]},
 	"seta_palida": {"recogida": ["recogido_ya", true], "en_suelo": ["recogido_ya", false]},
@@ -415,6 +422,7 @@ const ACCIONES: Dictionary = {
 	"mamoa": {"tapar": 0, "destapar": 0},
 	"trampa_dragon": {"apagar": 1, "encender": 0},
 	"trampa_flechas": {"apagar": 1, "encender": 0},
+	"respiradero": {"apagar": 1, "encender": 0},
 }
 ## Claves de cada tipo de pieza y qué valor admiten: «f» número, «b» sí/no, «celdas» lista de casillas, «fijo» número o sí, «s:a|b» una de esas palabras.
 const CLAVES: Dictionary = {
@@ -452,6 +460,7 @@ const CLAVES: Dictionary = {
 	"colmena": {},
 	"bancal": {"flag": "flag"},
 	"nube_veneno": {"vida": "f", "radio": "f"},
+	"respiradero": {"cada": "f", "vida": "f", "radio": "f", "dir": "s:n|e|s|o", "desfase": "f", "agua": "b"},
 	"nido": {},
 	"arbol": {"modelo": "s:arbol_redondo|arbol_redondo_2|pino|pino_2"},
 	"cristal": {"cada": "f", "alcance": "f"},
@@ -2510,6 +2519,15 @@ func _crear(pz: Pieza) -> void:
 			var nb: NubeVeneno3D = NubeVeneno3D.crear(cont, Terreno3D.centro_de(pz.celda, Terreno3D.y_pies(pz.celda)), float(pz.p.get("vida", 6.0)), float(pz.p.get("radio", 1.0)))
 			nb.name = pz.id
 			pz.nodo = nb
+		"respiradero":
+			# 18/11: la reja que exhala una nube de veneno cada `cada` s (objetos/respiradero_3d.gd). Cuelga del contenedor de piezas; las nubes que suelta, también.
+			var rp := Respiradero3D.new()
+			rp.name = pz.id
+			rp.preparar(pz.celda, float(pz.p.get("cada", Respiradero3D.CADA_DEFECTO)), float(pz.p.get("vida", Respiradero3D.VIDA_DEFECTO)), float(pz.p.get("radio", Respiradero3D.RADIO_DEFECTO)),
+				String(pz.p.get("dir", "")), float(pz.p.get("desfase", 0.0)), mundo as Node)
+			rp.apaga_con_agua = bool(pz.p.get("agua", true))
+			cont.add_child(rp)
+			pz.nodo = rp
 		"nido":
 			var nd2 := Nido3D.new()
 			nd2.name = pz.id
@@ -3408,7 +3426,7 @@ func _ejecutar(a: Dictionary) -> void:
 					nd.call("encender")
 		"apagar":
 			if nd != null:
-				if pz.tipo in TRAMPAS_PARED:
+				if pz.tipo in TRAMPAS_PARED or pz.tipo == "respiradero":
 					nd.call("apagar", float(args[0]) if args.size() > 0 else 0.0)        # `apagar(s)`: s segundos; sin argumento, hasta `encender`
 				else:
 					nd.call("apagar_llama" if pz.tipo == "brasero" else "apagar")
