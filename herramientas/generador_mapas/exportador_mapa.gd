@@ -110,6 +110,14 @@ static func texto_mapa(m: Dictionary) -> String:
 		for sid in salas_pz:
 			tp.append("%d>%s" % [int(sid), String(pzm[sid])])
 		l.append("; puzles " + " ".join(tp))
+	var mov: Dictionary = m.get("movidos", {})
+	if not mov.is_empty():
+		var origenes: Array = mov.keys()
+		origenes.sort()
+		var tm: PackedStringArray = PackedStringArray()
+		for de in origenes:
+			tm.append("%d,%d>%d,%d" % [int(de.x), int(de.y), int(mov[de].x), int(mov[de].y)])
+		l.append("; movidos " + " ".join(tm))
 	l.append(";")
 	if bool(p["rotulo"]):
 		l.append("; zona 1,1..%d,%d %s mezcla=0.8 rotulo=%s" % [int(m["ancho"]) - 2, int(m["alto"]) - 2, String(p["luz"]), nombre])
@@ -349,7 +357,25 @@ static func _regenerado(texto: String) -> String:
 	if par.is_empty():
 		return ""
 	var gen: RefCounted = load("res://herramientas/generador_mapas/generador_mazmorra.gd").new()
-	return texto_mapa(gen.generar(_tipar(par), retoques_de(texto), enlaces_de(texto), puzles_de(texto)))
+	return texto_mapa(gen.generar(_tipar(par), retoques_de(texto), enlaces_de(texto), puzles_de(texto), movidos_de(texto)))
+
+
+## Los elementos movidos a mano (la línea `; movidos x,y>x,y …`): casilla donde lo puso el generador → casilla donde quedó.
+static func movidos_de(texto: String) -> Dictionary:
+	var res: Dictionary = {}
+	for linea in texto.split("\n"):
+		var l: String = String(linea).strip_edges()
+		if not l.begins_with("; movidos "):
+			continue
+		for t in l.substr(10).split(" ", false):
+			var ab: PackedStringArray = t.split(">")
+			if ab.size() != 2:
+				continue
+			var de: PackedStringArray = ab[0].split(",")
+			var a: PackedStringArray = ab[1].split(",")
+			if de.size() == 2 and a.size() == 2 and de[0].is_valid_int() and de[1].is_valid_int() and a[0].is_valid_int() and a[1].is_valid_int():
+				res[Vector2i(de[0].to_int(), de[1].to_int())] = Vector2i(a[0].to_int(), a[1].to_int())
+	return res
 
 
 ## Los puzles del catalogo puestos a mano (la linea `; puzles sala>puzle`): sala -> id del puzle.

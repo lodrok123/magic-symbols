@@ -104,6 +104,11 @@ const CAMPOS: Array = [
 class Vista extends Control:
 	signal pintada(c: Vector2i)
 	signal sobre(c: Vector2i)
+	## Pincel «mover»: se agarra un elemento, se arrastra y se suelta. Solo al soltar se regenera el mapa.
+	signal agarrada(c: Vector2i)
+	signal soltada(c: Vector2i)
+	var arrastre_de: Vector2i = Vector2i(-1, -1)      ## casilla del elemento agarrado ((-1, -1) = ninguno)
+	var arrastre_a: Vector2i = Vector2i(-1, -1)       ## casilla bajo el cursor mientras se arrastra
 
 	var mapa: Dictionary = {}
 	var escala: float = 16.0
@@ -182,6 +187,14 @@ class Vista extends Control:
 				queue_redraw()
 			elif b.button_index == MOUSE_BUTTON_RIGHT or b.button_index == MOUSE_BUTTON_MIDDLE:
 				_moviendo = b.pressed
+			elif b.button_index == MOUSE_BUTTON_LEFT and pincel == "mover":
+				if b.pressed:
+					arrastre_a = celda_en(b.position)
+					agarrada.emit(arrastre_a)             # quien escucha pone `arrastre_de` si ahí hay algo que se pueda mover
+				elif arrastre_de.x >= 0:
+					soltada.emit(celda_en(b.position))
+					arrastre_de = Vector2i(-1, -1)
+				queue_redraw()
 			elif b.button_index == MOUSE_BUTTON_LEFT:
 				_pintando = b.pressed and pincel != ""
 				if _pintando:
@@ -190,6 +203,9 @@ class Vista extends Control:
 			var mm: InputEventMouseMotion = ev
 			if _moviendo:
 				origen += mm.relative
+				queue_redraw()
+			elif arrastre_de.x >= 0:
+				arrastre_a = celda_en(mm.position)
 				queue_redraw()
 			elif _pintando:
 				pintada.emit(celda_en(mm.position))
@@ -262,6 +278,21 @@ class Vista extends Control:
 				draw_string(fuente, esquina + Vector2(4, tam_num), num, HORIZONTAL_ALIGNMENT_LEFT, -1, tam_num, Color.WHITE)
 				if s.has("titulo"):
 					draw_string(fuente, esquina + Vector2(ancho_num + 5.0, tam_num), String(s["titulo"]), HORIZONTAL_ALIGNMENT_LEFT, -1, int(tam_letra * 0.75), Color(0, 0, 0, 0.7))
+		# Elementos movidos a mano: una raya fina desde donde los puso el generador hasta donde están.
+		for de_m in (mapa.get("movidos", {}) as Dictionary):
+			var a_m: Vector2i = mapa["movidos"][de_m]
+			var p0: Vector2 = origen + (Vector2(de_m) + Vector2(0.5, 0.5)) * e
+			var p1: Vector2 = origen + (Vector2(a_m) + Vector2(0.5, 0.5)) * e
+			draw_dashed_line(p0, p1, Color(0.1, 0.75, 0.85, 0.8), 1.5, 4.0)
+			draw_arc(p0, e * 0.22, 0.0, TAU, 16, Color(0.1, 0.75, 0.85, 0.8), 1.5)
+		# El elemento agarrado con el pincel «mover» y la casilla donde se soltaría.
+		if arrastre_de.x >= 0:
+			var q0: Vector2 = origen + (Vector2(arrastre_de) + Vector2(0.5, 0.5)) * e
+			var q1: Vector2 = origen + (Vector2(arrastre_a) + Vector2(0.5, 0.5)) * e
+			draw_arc(q0, e * 0.62, 0.0, TAU, 24, Color(0.1, 0.85, 0.95), 2.5)
+			draw_line(q0, q1, Color(0.1, 0.85, 0.95), 2.0)
+			draw_rect(Rect2(origen + Vector2(arrastre_a) * e, Vector2(e, e)), Color(0.1, 0.85, 0.95, 0.35))
+			draw_rect(Rect2(origen + Vector2(arrastre_a) * e, Vector2(e, e)), Color(0.1, 0.85, 0.95), false, 2.0)
 		# Vínculos: una flecha del activador a lo que abre (amarilla; morada la de la llave, que es fija). Lo que no tiene, en rojo.
 		for en in mapa.get("enlaces", []):
 			var pa: Vector2 = origen + (Vector2(en["a"]) + Vector2(0.5, 0.5)) * e
@@ -296,6 +327,7 @@ class Vista extends Control:
 var _par: Dictionary = Generador.parametros_defecto()
 var _retoques: Dictionary = {}
 var _puzles: Dictionary = {}              ## puzles del catalogo puestos a mano: sala -> id del puzle
+var _movidos: Dictionary = {}             ## elementos movidos a mano: casilla donde lo puso el generador -> casilla donde está
 var _enlaces: Dictionary = {}             ## enlaces cambiados a mano: id de barrera -> id de activador ("" = suelta)
 var _mapa: Dictionary = {}
 var _sucio: bool = true
@@ -393,6 +425,8 @@ func _montar() -> void:
 	_vista.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_vista.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	_vista.pintada.connect(_al_pintar)
+	_vista.agarrada.connect(_al_agarrar)
+	_vista.soltada.connect(_al_soltar)
 	_vista.sobre.connect(_al_pasar)
 	cuerpo.add_child(_vista)
 	# --- derecha: resumen y texto ---
@@ -434,7 +468,8 @@ func _montar() -> void:
 	lp.text = "   Pincel:"
 	pie.add_child(lp)
 	_pincel = OptionButton.new()
-	for it in [["", "ninguno"], ["#", "# pared"], [".", ". suelo"], ["~", "~ agua"], ["borrar", "goma (quita el retoque)"], ["enlazar", "enlazar (activador → puerta/puente)"]]:
+	for it in [["", "ninguno"], ["#", "# pared"], [".", ". suelo"], ["~", "~ agua"], ["borrar", "goma (quita el retoque)"], ["enlazar", "enlazar (activador → puerta/puente)"],
+			["mover", "mover un elemento (arrastrar)"]]:
 		_pincel.add_item(String(it[1]))
 		_pincel.set_item_metadata(_pincel.item_count - 1, String(it[0]))
 	for cid in Catalogo.todos():
@@ -494,6 +529,7 @@ func _borrar_retoques() -> void:
 	_retoques.clear()
 	_enlaces.clear()
 	_puzles.clear()
+	_movidos.clear()
 	_sucio = true
 
 
@@ -588,6 +624,7 @@ func _cambio(k: String, valor: Variant) -> void:
 	if CLAVES_FORMA.has(k):
 		_enlaces.clear()
 		_puzles.clear()
+		_movidos.clear()
 	if CLAVES_FORMA.has(k) and not _retoques.is_empty():
 		_retoques.clear()
 		_decir("Ha cambiado la forma del mapa: los retoques pintados a mano se han borrado.")
@@ -620,6 +657,7 @@ func _otra_semilla() -> void:
 	_retoques.clear()
 	_enlaces.clear()
 	_puzles.clear()
+	_movidos.clear()
 	_par["semilla"] = randi() % 1000000
 	_poner_control("semilla", _par["semilla"])
 	_sucio = true
@@ -630,7 +668,8 @@ func _regenerar() -> void:
 	for f in _filas:
 		(f[0] as Control).visible = String(f[1]) == "" or String(f[1]) == String(_par["algoritmo"])
 	var t0: int = Time.get_ticks_usec()
-	_mapa = Generador.new().generar(_par, _retoques, _enlaces, _puzles)
+	_mapa = Generador.new().generar(_par, _retoques, _enlaces, _puzles, _movidos)
+	_movidos = (_mapa["movidos"] as Dictionary).duplicate()       # lo que de verdad se movió (el sitio pedido puede haberse ajustado)
 	var ms: float = (Time.get_ticks_usec() - t0) / 1000.0
 	_vista.poner(_mapa)
 	_refrescar_puzles()
@@ -643,6 +682,8 @@ func _regenerar() -> void:
 		int(st["enemigos"]), int(st["cofres"]), int(st["jarrones"]), int(st["suelo"]), int(round(float(st["ocupacion"]) * 100.0)), int(st["agua"])])
 	if not _retoques.is_empty():
 		l.append("%d casillas retocadas a mano." % _retoques.size())
+	if not _movidos.is_empty():
+		l.append("%d elementos movidos a mano (raya azul: de dónde vienen)." % _movidos.size())
 	var errores: PackedStringArray = Exportador.validar(_mapa)
 	var mal: String = Exportador.nombre_valido(String(_par["nombre"]))
 	if errores.is_empty():
@@ -836,6 +877,44 @@ func _hacer_exportar(probar: bool, sustituir: bool = false) -> void:
 		var pid: int = OS.create_process(OS.get_executable_path(), ["--path", ProjectSettings.globalize_path("res://"), Exportador.ruta_escena(nombre)])
 		if pid <= 0:
 			_decir("Exportado, pero no se pudo abrir el juego. Ábrelo a mano: " + Exportador.ruta_escena(nombre))
+
+
+# --- pincel «mover» ---
+
+## Lo que se puede mover y está en esa casilla ("" si nada): su nombre para decirlo.
+func _movible_en(c: Vector2i) -> String:
+	for o in _mapa["objetos"]:
+		if (o["c"] as Vector2i) == c and Generador.MOVIBLES.has(String(o["tipo"])) and not String(o["id"]).begins_with("cat"):
+			return String(ICONOS.get(String(o["tipo"]), ["", null, 0, String(o["tipo"])])[3])
+	return ""
+
+
+func _al_agarrar(c: Vector2i) -> void:
+	var que: String = _movible_en(c)
+	if que == "":
+		_vista.arrastre_de = Vector2i(-1, -1)
+		_decir("Ahí no hay nada que se pueda mover. Se mueven enemigos, braseros, jarrones, cofres, el inicio, las salidas y sus llegadas; un puzle entero, en la pestaña «Puzles».")
+		return
+	_vista.arrastre_de = c
+	_decir("Agarrado: %s de (%d, %d). Suéltalo donde lo quieras; si ese sitio no vale, se pone en el válido más cercano." % [que, c.x, c.y])
+
+
+func _al_soltar(c: Vector2i) -> void:
+	var de: Vector2i = _vista.arrastre_de
+	if de.x < 0 or c == de:
+		return
+	# Si lo agarrado ya se había movido antes, su movimiento es el mismo: solo cambia el destino.
+	var origen_real: Vector2i = de
+	for k in _movidos:
+		if (_movidos[k] as Vector2i) == de:
+			origen_real = k
+	if c == origen_real:
+		_movidos.erase(origen_real)                    # devuelto a donde lo puso el generador
+		_decir("Devuelto a su sitio original (%d, %d)." % [c.x, c.y])
+	else:
+		_movidos[origen_real] = c
+		_decir("Movido a (%d, %d). Si ha quedado en otra casilla o no se ha movido, lo explica el aviso amarillo de la derecha." % [c.x, c.y])
+	_sucio = true
 
 
 # --- pestaña «Puzles» ---
@@ -1067,6 +1146,7 @@ func _al_abrir(id: int) -> void:
 	_retoques = Exportador.retoques_de(texto)
 	_enlaces = Exportador.enlaces_de(texto)
 	_puzles = Exportador.puzles_de(texto)
+	_movidos = Exportador.movidos_de(texto)
 	for k in _controles:
 		_poner_control(String(k), _par[k])
 	_decir("Abierto %s: mismos parámetros, semilla y retoques con los que se exportó." % nombre)

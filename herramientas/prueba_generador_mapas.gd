@@ -46,6 +46,7 @@ func _initialize() -> void:
 	_nombres()
 	_enlaces_a_mano()
 	_catalogo()
+	_mover_elementos()
 	print("%d comprobaciones en %d ms" % [_hechas, Time.get_ticks_msec() - t0])
 	print("FALLOS: %d" % _fallos)
 	quit(1 if _fallos > 0 else 0)
@@ -63,8 +64,8 @@ func _resumen(texto: String, antes: int) -> void:
 
 
 ## Todas las comprobaciones de un mapa. Devuelve el mapa.
-func _revisar(par: Dictionary, retoques: Dictionary = {}, puzles: Dictionary = {}) -> Dictionary:
-	var m: Dictionary = Generador.new().generar(par, retoques, {}, puzles)
+func _revisar(par: Dictionary, retoques: Dictionary = {}, puzles: Dictionary = {}, movidos: Dictionary = {}) -> Dictionary:
+	var m: Dictionary = Generador.new().generar(par, retoques, {}, puzles, movidos)
 	var quien: String = "%s semilla %d %s" % [String(m["parametros"]["algoritmo"]), int(m["parametros"]["semilla"]), str(par)]
 	var err: PackedStringArray = Exportador.validar(m)
 	_ok(err.is_empty(), "validar: " + quien, "; ".join(err))
@@ -281,6 +282,87 @@ func _enlaces_a_mano() -> void:
 				_ok(Exportador._sin_fecha(Exportador._regenerado(Exportador.texto_mapa(mc))) == Exportador._sin_fecha(Exportador.texto_mapa(mc)), "y de ahí vuelve a salir el mismo archivo: %s semilla %d" % [alg, s])
 	_ok(probados >= 30, "hay mapas con barreras para probar", "%d" % probados)
 	_resumen("9 enlazar a mano: lo suelto da error y no se exporta; los cambios se guardan (%d mapas)" % probados, antes)
+
+
+## Cuántos objetos hay de cada tipo y cuántas letras de cada clase: mover no crea ni destruye nada.
+func _censo(m: Dictionary) -> Dictionary:
+	var res: Dictionary = {}
+	for o in m["objetos"]:
+		res[String(o["tipo"])] = int(res.get(String(o["tipo"]), 0)) + 1
+	for fila in m["filas"]:
+		for ch in ["S", "W", "A", "T"]:
+			res["letra " + String(ch)] = int(res.get("letra " + String(ch), 0)) + String(fila).count(String(ch))
+	return res
+
+
+## 11 · Mover elementos a mano: cada tipo movible se lleva a un sitio bueno (queda justo ahí), a una pared (queda en el suelo válido
+## más cercano), a la otra punta del mapa y encima de otra cosa. En todos los casos el mapa pasa TODAS las comprobaciones de siempre
+## (válido, tierra de una pieza, llave alcanzable, barreras con solución), no aparece ni desaparece nada, y lo movido se guarda en el .txt.
+func _mover_elementos() -> void:
+	var antes: int = _fallos
+	var probados: Dictionary = {}
+	var exactos: int = 0
+	var ajustados: int = 0
+	var rechazados: int = 0
+	for alg in Generador.ALGORITMOS:
+		for s in range(1, 7):
+			var par: Dictionary = {"algoritmo": alg, "semilla": s, "nombre": "PruebaMover", "barreras": 2, "salida_a": "Cueva:desde_bosque, MonteSumicio:inicio"}
+			var base: Dictionary = Generador.new().generar(par)
+			var filas: PackedStringArray = base["filas"]
+			var w: int = int(base["ancho"])
+			var h: int = int(base["alto"])
+			var ocupadas: Dictionary = {}
+			for o in base["objetos"]:
+				ocupadas[o["c"]] = true
+			var visto_tipo: Dictionary = {}
+			for o in base["objetos"]:
+				var tipo: String = String(o["tipo"])
+				if not Generador.MOVIBLES.has(tipo) or String(o["id"]).begins_with("cat") or visto_tipo.has(tipo):
+					continue
+				visto_tipo[tipo] = true
+				probados[tipo] = true
+				var de: Vector2i = o["c"]
+				# Destinos: el vecino libre más cercano, una pared pegada, la esquina opuesta del mapa y la casilla de otro objeto.
+				var destinos: Array = [Vector2i(0, 0), Vector2i(w - 1 - de.x, h - 1 - de.y)]
+				for r in range(1, 5):
+					for d in [Vector2i(r, 0), Vector2i(-r, 0), Vector2i(0, r), Vector2i(0, -r)]:
+						var c: Vector2i = de + d
+						if c.x > 0 and c.y > 0 and c.x < w - 1 and c.y < h - 1 and filas[c.y][c.x] == "." and not ocupadas.has(c) and destinos.size() < 3:
+							destinos.append(c)
+				for otro in base["objetos"]:
+					if (otro["c"] as Vector2i) != de and destinos.size() < 4:
+						destinos.append(otro["c"])
+				for a in destinos:
+					var m: Dictionary = _revisar(par, {}, {}, {de: a})
+					var quien: String = "%s semilla %d, %s de %s a %s" % [alg, s, tipo, de, a]
+					_ok(_censo(m) == _censo(base), "mover no crea ni destruye nada: " + quien, "%s / %s" % [_censo(m), _censo(base)])
+					var hechos: Dictionary = m["movidos"]
+					if hechos.has(de):
+						var fin: Vector2i = hechos[de]
+						var esta: bool = false
+						for o2 in m["objetos"]:
+							esta = esta or ((o2["c"] as Vector2i) == fin and String(o2["tipo"]) == tipo)
+						_ok(esta, "el elemento está donde dice que ha quedado: " + quien, str(fin))
+						_ok(m["filas"][fin.y][fin.x] != "#" and m["filas"][fin.y][fin.x] != "~", "y ha quedado en suelo: " + quien, m["filas"][fin.y][fin.x])
+						if fin == (a as Vector2i):
+							exactos += 1
+						else:
+							ajustados += 1
+							_ok("\n".join(m["avisos"]).contains("ha quedado en"), "si el sitio se ajusta, se avisa: " + quien)
+						var texto: String = Exportador.texto_mapa(m)
+						_ok(Exportador.movidos_de(texto) == hechos, "lo movido se guarda en el .txt: " + quien)
+						_ok(Exportador._sin_fecha(Exportador._regenerado(texto)) == Exportador._sin_fecha(texto), "y de ahí vuelve a salir el mismo archivo: " + quien)
+					else:
+						rechazados += 1
+						_ok("\n".join(m["avisos"]).contains("No se ha podido mover"), "si no se puede mover, se avisa: " + quien, "\n".join(m["avisos"]))
+						_ok(m["filas"] == base["filas"], "y el mapa queda como estaba: " + quien)
+	for tipo in Generador.MOVIBLES:
+		_ok(probados.has(tipo), "se ha probado a mover un «%s»" % tipo)
+	_ok(exactos > 50 and ajustados > 50, "hay casos de sitio exacto y de sitio ajustado", "%d exactos, %d ajustados, %d rechazados" % [exactos, ajustados, rechazados])
+	# Un movimiento que apunta a una casilla donde ya no hay nada se descarta con aviso y no rompe.
+	var huerfano: Dictionary = _revisar({"algoritmo": "salas", "semilla": 3, "nombre": "PruebaMover"}, {}, {}, {Vector2i(0, 0): Vector2i(5, 5)})
+	_ok((huerfano["movidos"] as Dictionary).is_empty() and "\n".join(huerfano["avisos"]).contains("ya no hay nada"), "un movimiento sin elemento se descarta con aviso")
+	_resumen("11 mover elementos a mano: %d en su sitio, %d ajustados al válido más cercano, %d rechazados" % [exactos, ajustados, rechazados], antes)
 
 
 ## 10 · Catálogo de puzles: cada plantilla se puede poner a mano en alguna sala y el mapa sigue siendo válido; sus líneas salen con el

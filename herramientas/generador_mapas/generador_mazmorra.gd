@@ -102,12 +102,20 @@ var _llave_barrera: Dictionary = {}    ## la puerta con llave como barrera: {cel
 var puzles_puestos: Dictionary = {}     ## sala -> puzle del catalogo que lleva
 var _puzles_mano: Dictionary = {}       ## sala -> puzle del catalogo pedido a mano
 var _n_cat: int = 0
+## Elementos movidos a mano (18/11): casilla donde el generador lo puso → casilla donde se quiere. Ver `_aplicar_movidos`.
+var _movidos_pedidos: Dictionary = {}
+var movidos_hechos: Dictionary = {}     ## lo que de verdad se movió: casilla de origen → casilla donde ha quedado (puede no ser la pedida)
+## Lo que se puede mover a mano. Las puertas, los puentes y los cerrojos no (son la forma del mapa); las piezas de un puzle del catálogo
+## tampoco: el puzle entero se mueve de sala en la pestaña «Puzles».
+const MOVIBLES: Array[String] = ["guerrero", "arquero", "brasero", "jarron", "cofre_tesoro", "cofre_llave", "salida", "entrada", "inicio"]
 var _ultimo_act: String = ""            ## el activador que dejó la última plantilla `salida` estampada
 var _nv: String = ""                    ## el nombre del nivel en minúsculas (para las flags)
 var _letras_extra: String = ""
 
 
-func generar(parametros: Dictionary = {}, retoques: Dictionary = {}, enlaces_mano: Dictionary = {}, puzles_mano: Dictionary = {}) -> Dictionary:
+func generar(parametros: Dictionary = {}, retoques: Dictionary = {}, enlaces_mano: Dictionary = {}, puzles_mano: Dictionary = {}, movidos: Dictionary = {}) -> Dictionary:
+	_movidos_pedidos = movidos.duplicate()
+	movidos_hechos = {}
 	puzles_puestos = {}
 	_puzles_mano = puzles_mano.duplicate()
 	_n_cat = 0
@@ -1462,8 +1470,110 @@ func _poblar() -> void:
 				lineas.append("; pieza %s jarron %d %d botin=%s" % [jid, c.x, c.y, "pocion" if _pct(20.0) else "oro"])
 				quiero_j -= 1
 	p["_arqueros"] = hay_arquero
+	_aplicar_movidos()
 	_emitir_barreras(nv)
 	_pintar_terreno()
+
+
+# =====================================================================================================================
+#  Elementos movidos a mano
+# =====================================================================================================================
+
+## Lleva cada elemento movido a mano a su sitio nuevo (18/11, Pablo: «que pueda seleccionar un elemento y moverlo de lugar; la
+## autorresolución debe seguir funcionando para eliminar errores»). Va al final, con todo ya colocado: no cambia nada de lo que el
+## generador decide, solo traslada. Y NO se fía del sitio pedido: prueba primero ese y luego los más cercanos, y se queda con el primero
+## en el que el mapa sigue siendo jugable. Si no hay ninguno, el elemento se queda donde estaba y lo dice.
+##   · La casilla tiene que ser suelo libre (ni pared, ni agua, ni otra cosa encima).
+##   · Lo que bloquea (cofre, jarrón, brasero) no puede partir el mapa ni tapar algo que hay que tocar.
+##   · El cofre del tesoro, el de la llave y el inicio no salen de su sala (su papel es de esa sala), y un enemigo no sale de una sala
+##     con vigía (el vigía cuenta los de dentro: fuera, la sala quedaría sin nadie a quien vencer).
+##   · Después de mover, el mapa entero se tiene que seguir pudiendo completar (`_resoluble`) y la tierra, seguir unida.
+func _aplicar_movidos() -> void:
+	var origenes: Array = _movidos_pedidos.keys()
+	origenes.sort()
+	for de in origenes:
+		var pedido: Vector2i = _movidos_pedidos[de]
+		var movidos_aqui: Array = objetos.filter(func(o: Dictionary) -> bool:
+			return (o["c"] as Vector2i) == (de as Vector2i) and MOVIBLES.has(String(o["tipo"])) and not String(o["id"]).begins_with("cat"))
+		if movidos_aqui.is_empty():
+			avisos.append("En (%d, %d) ya no hay nada que se pueda mover (el mapa ha cambiado): ese movimiento se descarta." % [(de as Vector2i).x, (de as Vector2i).y])
+			continue
+		var tipo: String = String(movidos_aqui[0]["tipo"])
+		var bloquea: bool = _bloqueos.has(de)
+		# ¿De qué sala no puede salir?
+		var sala_de: Dictionary = {}
+		for s in _vivas():
+			if (s["rect"] as Rect2i).has_point(de):
+				sala_de = s
+		var atado: bool = not sala_de.is_empty() and (tipo == "cofre_tesoro" or tipo == "cofre_llave" or tipo == "inicio"
+			or ((tipo == "guerrero" or tipo == "arquero") and sala_de.has("vigia")))
+		# Candidatos: el sitio pedido y, si no vale, los de alrededor, de cerca a lejos.
+		# Lo que no puede salir de su sala se prueba en TODA su sala (soltarlo lejos lo lleva al borde más cercano de la sala).
+		var candidatos: Array = []
+		var zona: Rect2i = (sala_de["rect"] as Rect2i) if atado else Rect2i(pedido - Vector2i(6, 6), Vector2i(13, 13))
+		for y in range(zona.position.y, zona.end.y):
+			for x in range(zona.position.x, zona.end.x):
+				var c: Vector2i = Vector2i(x, y)
+				if c != (de as Vector2i) and _dentro(c) and _tipo(c) == SUELO and not _ocupada.has(c) and not letras.has(c):
+					candidatos.append(c)
+		candidatos.sort_custom(func(a: Vector2i, b: Vector2i) -> bool:
+			var da: int = (a - pedido).length_squared()
+			var db: int = (b - pedido).length_squared()
+			return da < db or (da == db and (a.y < b.y or (a.y == b.y and a.x < b.x))))
+		var puesto: Vector2i = Vector2i(-1, -1)
+		for c in candidatos.slice(0, 40):
+			var foto: Array = [lineas.duplicate(), objetos.duplicate(true), _ocupada.duplicate(), _bloqueos.duplicate(), letras.duplicate(), inicio, _llave_barrera.duplicate(true)]
+			_ocupada.erase(de)
+			_bloqueos.erase(de)
+			var vale: bool = _puede_bloquear(c) if bloquea else true
+			if vale:
+				_trasladar(de, c, bloquea)
+				vale = (_componentes(true, _bloqueos)[1] as Array).size() <= 1 and _resoluble()
+			if vale:
+				puesto = c
+				break
+			lineas = foto[0]
+			objetos = foto[1]
+			_ocupada = foto[2]
+			_bloqueos = foto[3]
+			letras = foto[4]
+			inicio = foto[5]
+			_llave_barrera = foto[6]
+		if puesto.x < 0:
+			avisos.append("No se ha podido mover lo de (%d, %d) cerca de (%d, %d): cortaría el paso, dejaría el mapa sin solución o no hay sitio%s. Se queda donde estaba." % [
+				(de as Vector2i).x, (de as Vector2i).y, pedido.x, pedido.y, " dentro de su sala" if atado else ""])
+			continue
+		movidos_hechos[de] = puesto
+		if puesto != pedido:
+			avisos.append("Lo que movías a (%d, %d) ha quedado en (%d, %d): era el sitio válido más cercano%s." % [pedido.x, pedido.y, puesto.x, puesto.y,
+				" (no puede salir de su sala)" if atado else ""])
+
+
+## Traslada de `de` a `a` todo lo movible que hay en la casilla: el dibujo, la letra del plano, las líneas `; pieza` y lo que el generador
+## recuerda de esa casilla (ocupada, bloqueo, inicio, cofre de la llave).
+func _trasladar(de: Vector2i, a: Vector2i, bloquea: bool) -> void:
+	for o in objetos:
+		if (o["c"] as Vector2i) == de and MOVIBLES.has(String(o["tipo"])) and not String(o["id"]).begins_with("cat"):
+			o["c"] = a
+	if letras.has(de):
+		letras[a] = letras[de]
+		letras.erase(de)
+	for i in range(lineas.size()):
+		var t: PackedStringArray = lineas[i].substr(1).strip_edges().split(" ", false)
+		if t.size() >= 5 and t[0] == "pieza" and ["jarron", "cofre", "salida", "entrada"].has(t[2]) and t[3].to_int() == de.x and t[4].to_int() == de.y and not t[1].begins_with("cat"):
+			t[3] = str(a.x)
+			t[4] = str(a.y)
+			lineas[i] = "; " + " ".join(t)
+	_ocupada.erase(de)
+	_bloqueos.erase(de)
+	_ocupar(a, bloquea)
+	if inicio == de:
+		inicio = a
+	if not _llave_barrera.is_empty():
+		var ac: Array = _llave_barrera["act_celdas"]
+		for i in range(ac.size()):
+			if (ac[i] as Vector2i) == de:
+				ac[i] = a
 
 
 ## Con qué suelo se pinta lo que se pisa (17/11). El generador solo escribía suelo `.`, y las juntas del juego salen ENTRE suelos distintos:
@@ -1783,6 +1893,7 @@ func _resultado() -> Dictionary:
 		"arqueros": bool(p.get("_arqueros", false)), "retoques": _retoques,
 		"errores": errores, "enlaces": enlaces, "enlaces_mano": _enlaces_mano, "activadores": _activadores.keys(), "barreras": _barreras.size(),
 		"puzles": puzles_puestos, "puzles_mano": _puzles_mano, "cruzables": _puentes.keys(), "letras_extra": _letras_extra,
+		"movidos": movidos_hechos, "movidos_pedidos": _movidos_pedidos,
 		"stats": {"salas": _vivas().size(), "puertas": puertas.size(), "enemigos": n_enem, "cofres": n_cofres, "jarrones": n_jarrones,
 			"suelo": pisable, "agua": g.count(AGUA), "ocupacion": pisable / float(maxi(1, w * h))},
 	}
