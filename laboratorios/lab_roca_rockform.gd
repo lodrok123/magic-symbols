@@ -5,7 +5,14 @@ extends Node3D
 ## estilizado que ya usa el juego (`roca_est_musgo_1`), sobre un suelo plano, para comparar forma, tamaño y cómo coge la luz.
 ## La roca de RockForm llega SIN material ni UV (el addon se lo quita a la versión low-poly): aquí se le pone un color liso.
 ##
+##
+## PLATAFORMA DE TIERRA (18/11, Pablo: «de esta lista puedes probar 8 y 13 para la plataforma de tierra»). Fila de delante: la plataforma que
+## levanta hoy el hechizo (`Lanzador3D.levantar_plataforma_tierra`: la losa `TierraToy.MALLA_LOSA` estirada a una casilla) y cuatro candidatas
+## de RockForm, dos de la familia 8 (Jagged Slabs) y dos de la 13 (Floating Islands, recortadas por abajo). Todas con el mismo `TierraToy.asentar`
+## que usa el juego (2,3 × 0,45 × 2,3 m) y el shader de roca del juego; las candidatas en color plano porque no traen UV.
+##
 ## Teclas: arrastrar = orbitar · rueda = zoom · C cambia el color de la roca (pardo cueva / gris / musgo) · L gira la luz
+##   P plataformas: talla del juego (estiradas a la casilla) / proporción con la que salieron de Blender
 ## Abrir: laboratorios/LabRocaRockform.tscn y F6.
 ## Captura automática (para pruebas): `-- --captura=C:/ruta/imagen.png` guarda una imagen tras unos fotogramas y cierra.
 
@@ -16,14 +23,23 @@ const SEPARACION: float = 1.7
 const COLORES: Array = [Color(0.45, 0.39, 0.33), Color(0.52, 0.52, 0.5), Color(0.36, 0.42, 0.27)]
 const NOMBRES_COLOR: Array = ["pardo cueva", "gris", "musgo"]
 
+## Candidatas a plataforma de tierra: archivo en arte/rockform y rótulo.
+const PLATAFORMAS: Array = [
+	["plataforma_rf_08_a", "8 · Jagged Slabs A (suave)"], ["plataforma_rf_08_b", "8 · Jagged Slabs B (facetada)"],
+	["plataforma_rf_13_a", "13 · Floating Islands A (suave)"], ["plataforma_rf_13_b", "13 · Floating Islands B (facetada)"]]
+const PASO_PLATAFORMA: float = 3.0     ## separación entre plataformas (m)
+const Z_PLATAFORMAS: float = 3.6       ## la fila va delante de las rocas
+
+var _plataformas: Array = []           ## MeshInstance3D de las candidatas (para alternar la talla)
+var _talla_juego: bool = true
 var _cam: Camera3D = null
 var _luz: DirectionalLight3D = null
 var _mat: StandardMaterial3D = null
 var _texto: Label = null
 var _yaw: float = 0.6
-var _pitch: float = 0.45
-var _dist: float = 6.5
-var _foco: Vector3 = Vector3(0.0, 0.7, 0.0)
+var _pitch: float = 0.55
+var _dist: float = 13.5
+var _foco: Vector3 = Vector3(0.0, 0.3, 2.8)
 var _color: int = 0
 var _tris: int = 0
 var _tam: Vector3 = Vector3.ZERO
@@ -38,6 +54,7 @@ func _ready() -> void:
 	_montar_entorno()
 	_montar_roca_rockform()
 	_montar_roca_juego()
+	_montar_plataformas()
 	_montar_panel()
 	_colocar_camara()
 
@@ -114,6 +131,46 @@ func _montar_roca_juego() -> void:
 	_etiqueta("Juego: %s" % ROCA_JUEGO, v.position + Vector3(0.0, float(Pieza3D.MEDIDA.get(ROCA_JUEGO, 1.3)) + 0.35, 0.0))
 
 
+## Fila de plataformas: primero la del juego, luego las candidatas. Mismo tamaño y misma colocación que `Lanzador3D.levantar_plataforma_tierra`.
+func _montar_plataformas() -> void:
+	var n: int = PLATAFORMAS.size() + 1
+	var x0: float = -PASO_PLATAFORMA * float(n - 1) * 0.5
+	var actual := MeshInstance3D.new()
+	actual.mesh = TierraToy.malla_roca(TierraToy.MALLA_LOSA)
+	actual.material_override = TierraToy.material_roca({"base_tierra": 1.0})
+	actual.position = Vector3(x0, 0.0, Z_PLATAFORMAS)
+	add_child(actual)
+	_asentar(actual, true)
+	_etiqueta("Juego: plataforma actual", actual.position + Vector3(0.0, 1.0, 0.0), 30)
+	for i in PLATAFORMAS.size():
+		var escena := load("res://arte/rockform/%s.glb" % PLATAFORMAS[i][0]) as PackedScene
+		if escena == null:
+			push_error("LabRocaRockform: falta %s.glb" % PLATAFORMAS[i][0])
+			continue
+		var raiz: Node = escena.instantiate()
+		var mallas: Array = _mallas(raiz)
+		var mi := MeshInstance3D.new()
+		mi.mesh = (mallas[0] as MeshInstance3D).mesh
+		raiz.free()
+		mi.material_override = TierraToy.material_roca({"base_tierra": 1.0, "plano": 1.0})
+		mi.position = Vector3(x0 + PASO_PLATAFORMA * float(i + 1), 0.0, Z_PLATAFORMAS)
+		add_child(mi)
+		_asentar(mi, true)
+		_plataformas.append(mi)
+		_etiqueta(str(PLATAFORMAS[i][1]), mi.position + Vector3(0.0, 1.0, 0.0), 30)
+
+
+## Estira la malla a la casilla de la plataforma (como el juego) o la deja con su proporción de Blender (solo centrada y apoyada).
+func _asentar(mi: MeshInstance3D, talla_juego: bool) -> void:
+	var p: Vector3 = mi.position
+	if talla_juego:
+		mi.transform = TierraToy.asentar(mi.mesh, Basis.IDENTITY, Terreno3D.casilla, Lanzador3D.ALTO_PLATAFORMA_TIERRA, Terreno3D.casilla, Vector3.ZERO)
+	else:
+		var a: AABB = mi.mesh.get_aabb()
+		mi.transform = Transform3D(Basis.IDENTITY, -Vector3(a.position.x + a.size.x * 0.5, a.position.y, a.position.z + a.size.z * 0.5))
+	mi.position += p
+
+
 func _mallas(n: Node) -> Array:
 	var r: Array = []
 	if n is MeshInstance3D:
@@ -123,11 +180,11 @@ func _mallas(n: Node) -> Array:
 	return r
 
 
-func _etiqueta(texto: String, pos: Vector3) -> void:
+func _etiqueta(texto: String, pos: Vector3, cuerpo: int = 40) -> void:
 	var l := Label3D.new()
 	l.text = texto
 	l.billboard = BaseMaterial3D.BILLBOARD_ENABLED
-	l.font_size = 40
+	l.font_size = cuerpo
 	l.pixel_size = 0.005
 	l.outline_size = 10
 	l.position = pos
@@ -147,8 +204,9 @@ func _montar_panel() -> void:
 
 
 func _refrescar_texto() -> void:
-	_texto.text = "Roca de RockForm: %d triángulos · %.2f × %.2f × %.2f m (ancho × alto × fondo) · color: %s\nArrastrar = orbitar · rueda = zoom · C color · L girar la luz" % [
-		_tris, _tam.x, _tam.y, _tam.z, NOMBRES_COLOR[_color]]
+	_texto.text = "Roca de RockForm: %d triángulos · %.2f × %.2f × %.2f m (ancho × alto × fondo) · color: %s\nPlataformas: %s (P cambia)\nArrastrar = orbitar · rueda = zoom · C color · L girar la luz" % [
+		_tris, _tam.x, _tam.y, _tam.z, NOMBRES_COLOR[_color],
+		"talla del juego 2,30 × 0,45 × 2,30 m" if _talla_juego else "proporción de Blender, sin estirar"]
 
 
 func _colocar_camara() -> void:
@@ -179,6 +237,14 @@ func _unhandled_input(e: InputEvent) -> void:
 			_refrescar_texto()
 		elif k.keycode == KEY_L:
 			_luz.rotate_y(deg_to_rad(30.0))
+		elif k.keycode == KEY_P:
+			_talla_juego = not _talla_juego
+			for mi in _plataformas:
+				var p: Vector3 = Vector3((mi as MeshInstance3D).position.x, 0.0, Z_PLATAFORMAS)
+				(mi as MeshInstance3D).transform = Transform3D.IDENTITY
+				(mi as MeshInstance3D).position = p
+				_asentar(mi, _talla_juego)
+			_refrescar_texto()
 
 
 func _process(_dt: float) -> void:
