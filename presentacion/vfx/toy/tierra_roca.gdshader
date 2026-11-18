@@ -28,17 +28,34 @@ uniform float aclara_pua : hint_range(1.0, 2.5) = 1.0;
 // (solo `plano`) hacia la vertical del mundo: siguen con la luz y la sombra de la escena (sin emisión), pero la reciben como el suelo que las rodea y conservan algo de su facetado.
 // Lo pone el juego (VfxToyJuego, `TierraToy.NORMAL_ARRIBA_JUEGO`); a 0 —el lab— la púa es exactamente la de antes.
 uniform float normal_arriba : hint_range(0.0, 1.0) = 0.0;
+// 18/11: TRIPLANAR para las mallas SIN UV (la plataforma de tierra de RockForm, `TierraToy.MALLA_PLATAFORMA`). Con `triplanar` = 1 el albedo sale de `tex_triplanar`
+// (una textura de suelo que se repite) proyectada por los tres ejes de la PIEZA, en metros (posición local × escala del nodo): no depende de la posición en el mundo, así que
+// la textura no resbala mientras la plataforma sube o se hunde. `escala_triplanar` = repeticiones por metro. A 0 (todo lo demás) el shader es exactamente el de antes.
+uniform float triplanar : hint_range(0.0, 1.0) = 0.0;
+uniform sampler2D tex_triplanar : source_color, filter_linear_mipmap, repeat_enable;
+uniform float escala_triplanar : hint_range(0.05, 4.0) = 0.6;
 
 varying float altura;
 varying float tono;
+varying vec3 pos_tri;
+varying vec3 nor_tri;
 
 void vertex() {
 	altura = VERTEX.y;
 	tono = instancias > 0.5 ? INSTANCE_CUSTOM.r : 0.5;
+	pos_tri = VERTEX * vec3(length(MODEL_MATRIX[0].xyz), length(MODEL_MATRIX[1].xyz), length(MODEL_MATRIX[2].xyz));
+	nor_tri = NORMAL;
 }
 
 void fragment() {
 	vec3 col = texture(albedo_tex, UV).rgb * tinte;
+	if (triplanar > 0.0) {
+		vec3 peso = pow(abs(normalize(nor_tri)), vec3(4.0));
+		peso /= peso.x + peso.y + peso.z;
+		vec3 p = pos_tri * escala_triplanar;
+		vec3 tri = texture(tex_triplanar, p.zy).rgb * peso.x + texture(tex_triplanar, p.xz).rgb * peso.y + texture(tex_triplanar, p.xy).rgb * peso.z;
+		col = mix(col, tri * tinte, triplanar);
+	}
 	// La altura local de las púas está normalizada. Una transición corta
 	// mantiene las bandas legibles sin dibujar una línea dura entre ellas.
 	vec3 estrato = mix(color_plano * 0.85, color_plano, smoothstep(0.19, 0.27, altura));

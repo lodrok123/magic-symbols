@@ -153,7 +153,11 @@ func _montar_plataformas() -> void:
 		var mi := MeshInstance3D.new()
 		mi.mesh = (mallas[0] as MeshInstance3D).mesh
 		raiz.free()
-		mi.material_override = TierraToy.material_roca({"base_tierra": 1.0, "plano": 1.0})
+		# La elegida va como en el juego (textura de tierra en triplanar); las demás, en color plano.
+		if PLATAFORMAS[i][0] == TierraToy.MALLA_PLATAFORMA:
+			mi.material_override = TierraToy.material_plataforma()
+		else:
+			mi.material_override = TierraToy.material_roca({"base_tierra": 1.0, "plano": 1.0})
 		mi.position = Vector3(x0 + PASO_PLATAFORMA * float(i + 1), 0.0, Z_PLATAFORMAS)
 		add_child(mi)
 		_asentar(mi, true)

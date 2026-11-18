@@ -2653,9 +2653,9 @@ func levantar_plataforma_tierra(celdas: Array[Vector2i], vida: float) -> void:
 	colision.shape = forma
 	pieza.add_child(colision)
 	# 18/11 (Pablo: «8 facetada»): la losa de RockForm (`TierraToy.MALLA_PLATAFORMA`), UNA POR CASILLA y cada una girada un cuarto de vuelta más que la
-	# anterior, en vez de una sola losa estirada a todo el tramo (un puente de 4 casillas la deformaba ×4). No trae UV: color plano del shader de roca.
+	# anterior, en vez de una sola losa estirada a todo el tramo (un puente de 4 casillas la deformaba ×4). No trae UV: textura de tierra en triplanar.
 	var malla: Mesh = TierraToy.malla_roca(TierraToy.MALLA_PLATAFORMA)
-	var material: ShaderMaterial = TierraToy.material_roca({"base_tierra": 1.0, "plano": 1.0})
+	var material: ShaderMaterial = TierraToy.material_plataforma()
 	for i in celdas.size():
 		var visual := MeshInstance3D.new()
 		visual.mesh = malla

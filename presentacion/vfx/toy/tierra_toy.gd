@@ -35,6 +35,8 @@ const MALLA_BOLA: String = "piedra_est_0"          ## la más redonda (0,82 × 0
 const MALLA_TERRON: String = "piedra_est_1"        ## terrones, piedrecitas y fragmentos (0,69 m, 426 vértices)
 const MALLA_LOSA: String = "roca_est_2"            ## losa facetada del muro (hasta el 18/11 también era la plataforma)
 const MALLA_PLATAFORMA: String = "plataforma_rf_08_b"   ## 18/11 (Pablo: «8 facetada»): losas de RockForm, familia 8 Jagged Slabs. Sin UV: va con `plano` = 1. Una por casilla
+const TEX_PLATAFORMA: String = "res://arte/suelo_meshy/tierra_arriba.png"   ## 18/11 (Pablo: «ponle textura, que no sea color plano»): la tierra del suelo del mundo, en triplanar (la malla no trae UV)
+const ESCALA_TEX_PLATAFORMA: float = 0.6                ## repeticiones de la textura por metro
 const RUTA_ROCKFORM: String = "res://arte/rockform/%s.glb"                                   ## mallas generadas con arte/rockform/generar_roca_rockform.py (ids `plataforma_rf_*`)
 const MALLAS_MURO: Array = ["roca_est_1", MALLA_LOSA, "roca_est_1", "roca_est_0", MALLA_LOSA, "roca_est_0"]   ## bloque, losa, bloque, redonda, losa, redonda (la alta roca_est_4 salía como una púa en el muro: solo en el pilar)
 const MALLAS_PIE: Array = ["piedra_est_1", "piedra_est_3"]           ## dos tipos: con los 3 del muro / pilar hacen los 5 MultiMesh de tope
@@ -358,6 +360,11 @@ static func material_roca(p: Dictionary = {}) -> ShaderMaterial:
 	for k in p:
 		m.set_shader_parameter(k, p[k])
 	return m
+
+
+## Material de la plataforma de tierra: el shader de roca con la textura de tierra del mundo en triplanar (la losa de RockForm no trae UV) y la base manchada.
+static func material_plataforma() -> ShaderMaterial:
+	return material_roca({"base_tierra": 1.0, "triplanar": 1.0, "tex_triplanar": load(TEX_PLATAFORMA), "escala_triplanar": ESCALA_TEX_PLATAFORMA})
 
 
 ## MultiMesh de `n` rocas (`malla`) con el material de la roca para instancias. `base_tierra` = 1: la base manchada de tierra (bloques que salen del suelo).
