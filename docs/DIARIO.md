@@ -5589,3 +5589,18 @@ Los dos pendientes de la 493. Sin commit todavía.
 - `prueba_generador_mapas` sección 13 nueva: 40 019 comprobaciones, 0 fallos. `escenario_generador_mapas` 0 fallos (salas, cueva). El pincel, con clics simulados sobre la vista (goblin → tesoro, limo añadido → cofre añadido, mover el goblin, quitar el limo, soltar el cofre).
 
 **No hecho / visto.** Sin probar con el ratón de verdad ni jugando (matar al enemigo con hechizos y ver salir el cofre). Si el enemigo enlazado está en una sala que se cierra, no se ha comprobado cómo conviven su vigía y el de la sala. No hay enlace al revés ni con otras cosas (que un enemigo muerto abra una puerta, por ejemplo).
+## 526 — Juego (18/11): **Generador de mapas: pestaña «Salidas»** (Pablo: «¿cómo podría elegir cómo se sale? Haría falta algo que dibuje una salida con casilla que cuando se pise cambie la escena… Sí, hazla»)
+
+- **Lo que ya había:** la casilla E del mapa ya es eso (`salida` de Puzle3D: al pisarla carga el nivel con fundido a negro). Faltaba poder elegir cómo es.
+- **Pestaña «Salidas»** (quinta; el panel izquierdo se ha ensanchado para que quepan las cinco): se elige y se pone con un clic en el mapa.
+  - «Lleva a»: desplegable con los niveles de `Niveles.ESCENAS`.
+  - «Entra allí por»: desplegable con las llegadas que tiene ese nivel (las `; pieza <nombre> entrada` de su mapa, más `desde_fraga` de Monte Sumicio, que la crea por código), y una casilla para escribirla si no sale.
+  - «Se activa»: al pisarla o pulsando E encima (`modo=usar`).
+  - «Ancho»: de 1 a 4 casillas seguidas (`celdas=`), de lado a lado o, si no caben, de arriba abajo.
+  - «Marca»: con o sin marca en el suelo. «Llegada de aquí»: el nombre del punto por el que se entra a ESTE nivel viniendo de aquel (vacío = `llegada_m<n>`).
+  - Lista de salidas del mapa (las añadidas, con «Quitar», y las del campo «Salidas» de la pestaña Mapa, que se cambian allí).
+- **Por dentro:** son añadidos a mano de clase «salida» (`_anadir_salida`): mismo ajuste de sitio que enemigos y cofres (hacen falta sus casillas libres seguidas y otra pegada para la llegada), se mueven con el pincel «mover» (la llegada va con su salida), se guardan en el .txt.
+- **Comprobado EN EL JUEGO** (mapas de prueba, borrados después; sin autoguardar para no tocar la partida de Pablo): apareciendo en la llegada, al lado de la salida, no se dispara; andando hasta la de dos casillas empieza el viaje a `Cueva:desde_bosque`; la de «pulsar E» no viaja por pisarla y sí al pulsar E. Un mapa con salidas a Monte Sumicio y a la Cueva a la vez carga sin ventana dos veces de dos, con sus dos llegadas montadas.
+- `prueba_generador_mapas` sección 14 nueva (104 salidas en los tres algoritmos, en suelo y en paredes): 41 027 comprobaciones, 0 fallos. `escenario_generador_mapas` 0 fallos (salas, cueva). La pestaña, con clics simulados.
+
+**No hecho / visto.** El viaje solo se ha comprobado hasta que EMPIEZA (no se ha esperado a llegar a la Cueva ni se ha vuelto). **Cuelgue sin explicar:** con mi guion de pruebas CON VENTANA, un mapa con salida a Monte Sumicio se quedó parado tras cargar 2 veces de 3; es el mismo síntoma que al intentar capturar el Bosque 02 hecho a mano (que también sale a Sumicio), y sin ventana no pasa, así que parece cosa de cómo lanzo yo la escena y no del mapa; pero no lo he visto funcionar con ventana. El juego no tiene modelo para la salida (solo la marca). Para llegar a un nivel generado desde otro sigue haciendo falta añadirlo a `nucleo/niveles.gd`. Sin probar con el ratón de verdad.

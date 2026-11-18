@@ -49,6 +49,7 @@ func _initialize() -> void:
 	_mover_elementos()
 	_anadir_enemigos_y_cofres()
 	_cofres_que_aparecen()
+	_salidas_a_mano()
 	print("%d comprobaciones en %d ms" % [_hechas, Time.get_ticks_msec() - t0])
 	print("FALLOS: %d" % _fallos)
 	quit(1 if _fallos > 0 else 0)
@@ -509,6 +510,68 @@ func _cofres_que_aparecen() -> void:
 			_ok(Exportador._sin_fecha(Exportador._regenerado(texto)) == Exportador._sin_fecha(texto), "y de ahí vuelve a salir el mismo archivo: " + quien)
 	_ok(enlazados >= 12, "hay mapas con cofres enlazados para probar", str(enlazados))
 	_resumen("13 cofres que aparecen al caer enemigos: %d enlaces en mapas de los tres algoritmos" % enlazados, antes)
+
+
+## 14 · Salidas añadidas a mano: de 1 a 4 casillas, al pisar o con E, con marca o sin ella, con nombre de llegada o sin él, pedidas
+## en suelo y en paredes. Cada una queda en casillas de suelo seguidas con su llegada pegada (y no encima); la línea dice lo pedido;
+## un destino mal escrito o un nombre de llegada repetido se avisan; y se guardan en el .txt.
+## (Que al pisarla o al pulsar E empiece el viaje se comprobó en el juego: DIARIO, 18/11.)
+func _salidas_a_mano() -> void:
+	var antes: int = _fallos
+	var puestas: int = 0
+	for alg in Generador.ALGORITMOS:
+		for s in range(1, 5):
+			var par: Dictionary = {"algoritmo": alg, "semilla": s, "nombre": "PruebaSalidas", "barreras": 2}
+			var base: Dictionary = Generador.new().generar(par)
+			var w: int = int(base["ancho"])
+			var h: int = int(base["alto"])
+			var quien: String = "%s semilla %d" % [alg, s]
+			var sitios: Array = []
+			for y in range(1, h - 1):
+				for x in range(1, w - 1):
+					if (x * 7 + y * 11) % 53 == 0:
+						sitios.append(Vector2i(x, y))             # suelo o pared, lo que caiga
+			var anad: Array = []
+			for k in range(8):
+				anad.append({"que": "salida", "tipo": "Cueva:desde_bosque", "modo": "usar" if k % 2 == 1 else "pisar", "ancho": 1 + k % 4, "marca": k % 3 != 0,
+					"llegada": ("puerta_%d" % k) if k < 4 else "", "c": sitios[(k * 3) % sitios.size()]})
+			anad.append({"que": "salida", "tipo": "sin_dos_puntos", "c": sitios[0]})
+			anad.append({"que": "salida", "tipo": "Cueva:desde_bosque", "llegada": "puerta_0", "c": sitios[1]})       # nombre repetido
+			anad.append({"que": "salida", "tipo": "Cueva:desde_bosque", "llegada": "con espacio", "c": sitios[2]})    # nombre que no vale
+			var m: Dictionary = _revisar(par, {}, {}, {}, anad)
+			var avisos: String = "\n".join(m["avisos"])
+			_ok(avisos.contains("no dice a dónde va"), "una salida sin destino se descarta con aviso: " + quien)
+			_ok(avisos.count("no vale") >= 1, "un nombre de llegada repetido o mal escrito se avisa: " + quien, avisos)
+			var lineas: String = "\n".join(m["lineas"])
+			var nombres: Dictionary = {}
+			for a in m["anadidos"]:
+				puestas += 1
+				var celdas: Array = a["celdas"]
+				var e: Vector2i = a["entrada"]
+				_ok(celdas.size() == int(a["ancho"]), "la salida ocupa las casillas pedidas: " + quien, str(a))
+				var seguidas: bool = true
+				var pegada: bool = false
+				for i in range(celdas.size()):
+					var c: Vector2i = celdas[i]
+					seguidas = seguidas and m["filas"][c.y][c.x] != "#" and m["filas"][c.y][c.x] != "~" and (i == 0 or (c - (celdas[i - 1] as Vector2i)).length_squared() == 1)
+					pegada = pegada or (c - e).length_squared() == 1
+				_ok(seguidas, "sus casillas son suelo y van seguidas: " + quien, str(celdas))
+				_ok(pegada and not celdas.has(e) and m["filas"][e.y][e.x] != "#", "su llegada está pegada a ella, en suelo y no encima: " + quien, "%s / %s" % [celdas, e])
+				_ok(not nombres.has(String(a["llegada"])), "cada llegada tiene un nombre distinto: " + quien, String(a["llegada"]))
+				nombres[String(a["llegada"])] = true
+				_ok(lineas.contains("; pieza %s entrada %d %d" % [String(a["llegada"]), e.x, e.y]), "la llegada tiene su línea: " + quien, String(a["llegada"]))
+				var c0: Vector2i = celdas[0]
+				var mia: String = ""
+				for l in m["lineas"]:
+					if String(l).contains(" salida %d %d a=Cueva:desde_bosque" % [c0.x, c0.y]):
+						mia = String(l)
+				_ok(mia != "" and mia.contains(" modo=usar") == (String(a["modo"]) == "usar") and mia.contains(" marca=no") == (not bool(a["marca"])) and mia.contains(" celdas=") == (int(a["ancho"]) > 1),
+					"la línea de la salida dice el modo, la marca y las casillas pedidas: " + quien, mia)
+			var texto: String = Exportador.texto_mapa(m)
+			_ok(Exportador.anadidos_de(texto).size() == (m["anadidos"] as Array).size(), "las salidas se guardan en el .txt: " + quien)
+			_ok(Exportador._sin_fecha(Exportador._regenerado(texto)) == Exportador._sin_fecha(texto), "y de ahí vuelve a salir el mismo archivo: " + quien)
+	_ok(puestas >= 60, "se han puesto muchas salidas", str(puestas))
+	_resumen("14 salidas añadidas a mano: %d puestas en mapas de los tres algoritmos" % puestas, antes)
 
 
 ## 10 · Catálogo de puzles: cada plantilla se puede poner a mano en alguna sala y el mapa sigue siendo válido; sus líneas salen con el

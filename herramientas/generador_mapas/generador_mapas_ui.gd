@@ -349,6 +349,15 @@ var _enl_enemigo: String = ""             ## pincel «enlazar»: el enemigo eleg
 var _anadidos: Array = []                 ## enemigos y cofres añadidos a mano: [{que, tipo, premio, c}]
 var _lista_enemigos: VBoxContainer = null
 var _lista_cofres: VBoxContainer = null
+var _lista_salidas: VBoxContainer = null
+var _sa_nivel: String = ""                ## pestaña «Salidas»: a qué nivel lleva ("" = ninguna herramienta puesta)…
+var _sa_entrada: String = ""              ## …por cuál de sus llegadas se entra allí…
+var _sa_modo: String = "pisar"            ## …cómo se activa (pisar | usar)…
+var _sa_ancho: int = 1                    ## …cuántas casillas ocupa…
+var _sa_marca: bool = true                ## …si lleva marca en el suelo…
+var _sa_llegada: String = ""              ## …y cómo se llama la llegada de este lado ("" = automático)
+## Llegadas que un nivel crea por código y no están en su .txt (para que salgan en el desplegable).
+const LLEGADAS_POR_CODIGO: Dictionary = {"MonteSumicio": ["desde_fraga"]}
 var _en_tipo: String = ""                 ## pestaña «Enemigos»: el tipo elegido para añadir ("" = ninguno)
 var _llevar_c: Vector2i = Vector2i(-1, -1)   ## …y el enemigo del mapa elegido para llevarlo a otro sitio
 var _co_calidad: String = ""              ## pestaña «Cofres»: la calidad elegida ("" = ninguna)
@@ -426,7 +435,7 @@ func _montar() -> void:
 	# --- izquierda: parámetros ---
 	# Dos pestañas: «Mapa» (los parámetros de siempre) y «Puzles» (añadir, mover y quitar puzles del catálogo sin usar el pincel).
 	var pestanas: TabContainer = TabContainer.new()
-	pestanas.custom_minimum_size = Vector2(350, 0)
+	pestanas.custom_minimum_size = Vector2(440, 0)                # caben las cinco pestañas sin flechas de desplazar
 	cuerpo.add_child(pestanas)
 	var barra: ScrollContainer = ScrollContainer.new()
 	barra.name = "Mapa"
@@ -443,6 +452,7 @@ func _montar() -> void:
 	# «Enemigos» y «Cofres»: se elige en la pestaña y se pone con un clic en el mapa.
 	_lista_enemigos = _pestana(pestanas, "Enemigos")
 	_lista_cofres = _pestana(pestanas, "Cofres")
+	_lista_salidas = _pestana(pestanas, "Salidas")
 	pestanas.tab_changed.connect(func(_i: int) -> void: _herramienta(""))       # al cambiar de pestaña no se queda una herramienta puesta
 	var lista: VBoxContainer = VBoxContainer.new()
 	lista.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -716,6 +726,7 @@ func _regenerar() -> void:
 	_refrescar_puzles()
 	_refrescar_enemigos()
 	_refrescar_cofres()
+	_refrescar_salidas()
 	_texto.text = Exportador.texto_mapa(_mapa)
 	var st: Dictionary = _mapa["stats"]
 	var l: PackedStringArray = PackedStringArray()
@@ -958,7 +969,7 @@ func _hacer_exportar(probar: bool, sustituir: bool = false) -> void:
 ## Lo que se puede mover y está en esa casilla ("" si nada): su nombre para decirlo.
 func _movible_en(c: Vector2i) -> String:
 	for o in _mapa["objetos"]:
-		if (o["c"] as Vector2i) == c and Generador.MOVIBLES.has(String(o["tipo"])) and not String(o["id"]).begins_with("cat"):
+		if (o["c"] as Vector2i) == c and Generador.MOVIBLES.has(String(o["tipo"])) and not String(o["id"]).begins_with("cat") and not o.has("de_salida"):
 			return String(ICONOS.get(String(o["tipo"]), ["", null, 0, String(o["tipo"])])[3])
 	return ""
 
@@ -1024,6 +1035,7 @@ func _herramienta(h: String) -> void:
 	if h == "":
 		_en_tipo = ""
 		_co_calidad = ""
+		_sa_nivel = ""
 		_llevar_c = Vector2i(-1, -1)
 		_vista.resaltada = Vector2i(-1, -1)
 		_vista.pincel = String(_pincel.get_item_metadata(_pincel.selected))
@@ -1033,6 +1045,7 @@ func _herramienta(h: String) -> void:
 	_vista.queue_redraw()
 	_refrescar_enemigos.call_deferred()
 	_refrescar_cofres.call_deferred()
+	_refrescar_salidas.call_deferred()
 
 
 func _al_elegir_pincel(i: int) -> void:
@@ -1195,6 +1208,133 @@ func _refrescar_cofres() -> void:
 	_lista_cofres.add_child(_rotulo_pz("Para cambiar un cofre de sitio: pincel «mover» (abajo) y arrástralo.\nPara que un cofre APAREZCA AL CAER UN ENEMIGO: pincel «enlazar» (abajo), clic en el enemigo y clic en el cofre. Con varios enemigos enlazados, aparece cuando caen todos.", Color(0.75, 0.75, 0.75), 12))
 
 
+## Las llegadas que tiene un nivel del juego: las `; pieza <nombre> entrada` de su mapa y las que crea por código.
+func _llegadas_de(nivel: String) -> Array:
+	var res: Array = []
+	var ruta: String = HorneadorNivel.ruta_mapa(nivel)
+	if ruta != "":
+		for linea in FileAccess.get_file_as_string(ruta).split("\n"):
+			var t: PackedStringArray = String(linea).strip_edges().substr(1).strip_edges().split(" ", false)
+			if String(linea).begins_with(";") and t.size() >= 3 and t[0] == "pieza" and t[2] == "entrada" and not res.has(t[1]):
+				res.append(t[1])
+	for extra in LLEGADAS_POR_CODIGO.get(nivel, []):
+		if not res.has(extra):
+			res.append(extra)
+	return res
+
+
+func _fila_campo(lista: VBoxContainer, rotulo: String, control: Control) -> void:
+	var fila: HBoxContainer = HBoxContainer.new()
+	var r: Label = _rotulo_pz(rotulo, Color(0.92, 0.92, 0.92), 13)
+	r.custom_minimum_size = Vector2(130, 0)
+	r.autowrap_mode = TextServer.AUTOWRAP_OFF
+	fila.add_child(r)
+	control.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	fila.add_child(control)
+	lista.add_child(fila)
+
+
+func _refrescar_salidas() -> void:
+	if _lista_salidas == null or _mapa.is_empty():
+		return
+	_vaciar(_lista_salidas)
+	_lista_salidas.add_child(_rotulo_pz("AÑADIR UNA SALIDA"))
+	var niveles: Array = load("res://nucleo/niveles.gd").ESCENAS.keys()
+	niveles.sort()
+	var niv: OptionButton = OptionButton.new()
+	niv.add_item("(elige el nivel)")
+	niv.set_item_metadata(0, "")
+	for n in niveles:
+		niv.add_item(String(n))
+		niv.set_item_metadata(niv.item_count - 1, String(n))
+		if String(n) == _sa_nivel:
+			niv.select(niv.item_count - 1)
+	niv.item_selected.connect(func(i: int) -> void:
+		var elegido: String = String(niv.get_item_metadata(i))
+		_herramienta("")
+		_sa_nivel = elegido
+		if elegido != "":
+			var hay: Array = _llegadas_de(elegido)
+			_sa_entrada = String(hay[0]) if not hay.is_empty() else "inicio"
+			_herramienta("poner:salida"))
+	_fila_campo(_lista_salidas, "Lleva a", niv)
+	if _sa_nivel != "":
+		var llegadas: Array = _llegadas_de(_sa_nivel)
+		var escrito: LineEdit = LineEdit.new()
+		escrito.text = _sa_entrada
+		escrito.tooltip_text = "El nombre de la llegada del nivel de destino. Si no existe allí, el juego te deja en su punto de aparición."
+		escrito.text_changed.connect(func(t: String) -> void: _sa_entrada = t)
+		if not llegadas.is_empty():
+			var ent: OptionButton = OptionButton.new()
+			for l in llegadas:
+				ent.add_item(String(l))
+				if String(l) == _sa_entrada:
+					ent.select(ent.item_count - 1)
+			ent.item_selected.connect(func(i: int) -> void:
+				_sa_entrada = ent.get_item_text(i)
+				escrito.text = _sa_entrada)
+			_fila_campo(_lista_salidas, "Entra allí por", ent)
+			_fila_campo(_lista_salidas, "(o escríbela)", escrito)
+		else:
+			_fila_campo(_lista_salidas, "Entra allí por", escrito)
+			_lista_salidas.add_child(_rotulo_pz("No he encontrado llegadas con nombre en el mapa de %s. Si el nombre no existe allí, el juego te deja en su punto de aparición." % _sa_nivel, Color(0.9, 0.78, 0.4), 12))
+		var modo: OptionButton = OptionButton.new()
+		modo.add_item("al pisarla")
+		modo.set_item_metadata(0, "pisar")
+		modo.add_item("pulsando E encima")
+		modo.set_item_metadata(1, "usar")
+		modo.select(1 if _sa_modo == "usar" else 0)
+		modo.item_selected.connect(func(i: int) -> void: _sa_modo = String(modo.get_item_metadata(i)))
+		_fila_campo(_lista_salidas, "Se activa", modo)
+		var ancho: SpinBox = SpinBox.new()
+		ancho.min_value = 1
+		ancho.max_value = 4
+		ancho.value = _sa_ancho
+		ancho.tooltip_text = "Casillas seguidas que ocupa: 2 o 3 para una puerta ancha. Van de lado a lado; si no caben, de arriba abajo."
+		ancho.value_changed.connect(func(v: float) -> void: _sa_ancho = int(v))
+		_fila_campo(_lista_salidas, "Ancho (casillas)", ancho)
+		var marca: CheckBox = CheckBox.new()
+		marca.button_pressed = _sa_marca
+		marca.text = "se ve en el suelo"
+		marca.toggled.connect(func(si: bool) -> void: _sa_marca = si)
+		_fila_campo(_lista_salidas, "Marca", marca)
+		var lleg: LineEdit = LineEdit.new()
+		lleg.text = _sa_llegada
+		lleg.placeholder_text = "automático"
+		lleg.tooltip_text = "Cómo se llama el punto por el que se entra AQUÍ viniendo de ese nivel. Es lo que otro nivel pone en su salida: <este nivel>:<este nombre>.\nLetras sin acento, cifras y «_». Vacío: llegada_m1, llegada_m2…"
+		lleg.text_changed.connect(func(t: String) -> void: _sa_llegada = t)
+		_fila_campo(_lista_salidas, "Llegada de aquí", lleg)
+		_lista_salidas.add_child(_rotulo_pz("▶ Haz clic en el mapa donde quieras la salida a %s. Sigue puesta: cada clic añade otra." % _sa_nivel, Color(0.4, 0.9, 1.0), 12))
+	else:
+		_lista_salidas.add_child(_rotulo_pz("Elige a qué nivel lleva y haz clic en el mapa. Al pisarla (o al pulsar E, según elijas) el juego carga ese nivel con un fundido a negro. Junto a cada salida se pone su llegada: por donde se entra aquí viniendo de allí.", Color(0.75, 0.75, 0.75), 12))
+	# Todas las salidas del mapa.
+	var puestas: Array = []
+	for o in _mapa["objetos"]:
+		if String(o["tipo"]) == "salida" and not puestas.has(String(o["id"])):
+			puestas.append(String(o["id"]))
+	_lista_salidas.add_child(_rotulo_pz("\nSALIDAS DEL MAPA (%d)" % puestas.size()))
+	for i in range(_anadidos.size()):
+		var a: Dictionary = _anadidos[i]
+		if String(a["que"]) != "salida":
+			continue
+		var fila: HBoxContainer = HBoxContainer.new()
+		var t: Label = _rotulo_pz("→ %s · %s · (%d, %d)\n   %s%s · %s\n   llegada de aquí: «%s»" % [String(a["tipo"]), _sala_de(a["c"]), int(a["c"].x), int(a["c"].y),
+			"al pisarla" if String(a.get("modo", "pisar")) == "pisar" else "pulsando E", "" if int(a.get("ancho", 1)) == 1 else " · %d casillas" % int(a["ancho"]),
+			"con marca" if bool(a.get("marca", true)) else "sin marca", String(a.get("llegada", ""))], Color(0.92, 0.92, 0.92), 14)
+		t.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		fila.add_child(t)
+		_boton(fila, "Quitar", _quitar_anadido.bind(i), "Quita esta salida y su llegada.")
+		_lista_salidas.add_child(fila)
+	for l in _mapa["lineas"]:
+		var tl: PackedStringArray = String(l).substr(1).strip_edges().split(" ", false)
+		if tl.size() >= 6 and tl[0] == "pieza" and tl[2] == "salida" and tl[1].begins_with("a_salida_"):
+			_lista_salidas.add_child(_rotulo_pz("→ %s · %s · (%s, %s)\n   del campo «Salidas» de la pestaña Mapa (se cambia allí)" % [tl[5].trim_prefix("a="), _sala_de(Vector2i(tl[3].to_int(), tl[4].to_int())), tl[3], tl[4]],
+				Color(0.8, 0.8, 0.8), 14))
+	if puestas.is_empty():
+		_lista_salidas.add_child(_rotulo_pz("Ninguna todavía.", Color(0.75, 0.75, 0.75), 12))
+	_lista_salidas.add_child(_rotulo_pz("Para cambiar una salida de sitio: pincel «mover» (abajo) y arrástrala. Para que OTRO nivel pueda venir a este, este nivel tiene que estar en la lista de niveles del juego (nucleo/niveles.gd).", Color(0.75, 0.75, 0.75), 12))
+
+
 ## La recompensa de un cofre añadido, dicha para leerla.
 func _premio_dicho(a: Dictionary) -> String:
 	var calidad: String = String(a["tipo"])
@@ -1218,6 +1358,15 @@ func _al_clicar(c: Vector2i) -> void:
 				_anadidos.append({"que": "cofre", "tipo": _co_calidad, "premio": _co_premio, "c": c})
 				_decir("Cofre %s añadido en (%d, %d). Si ha quedado en otra casilla, lo explica el aviso amarillo de la derecha." % [String(Generador.COFRES[_co_calidad]["titulo"]).to_lower(), c.x, c.y])
 				_sucio = true
+		"poner:salida":
+			if _sa_nivel != "" and _sa_entrada.strip_edges() != "":
+				var destino: String = "%s:%s" % [_sa_nivel, _sa_entrada.strip_edges()]
+				_anadidos.append({"que": "salida", "tipo": destino, "modo": _sa_modo, "ancho": _sa_ancho, "marca": _sa_marca, "llegada": _sa_llegada.strip_edges(), "c": c})
+				_decir("Salida a %s añadida en (%d, %d). Si ha quedado en otra casilla, lo explica el aviso amarillo de la derecha." % [destino, c.x, c.y])
+				_sa_llegada = ""                             # el nombre de la llegada es de ESTA salida: la siguiente pide el suyo
+				_sucio = true
+			else:
+				_decir("Falta el nombre de la llegada del nivel de destino.")
 		"llevar":
 			if _llevar_c.x >= 0:
 				_mover_elemento(_llevar_c, c)

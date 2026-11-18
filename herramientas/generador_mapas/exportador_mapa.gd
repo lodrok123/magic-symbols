@@ -403,6 +403,14 @@ static func anadidos_de(texto: String) -> Array:
 				var a: Dictionary = {"que": trozos[0], "tipo": trozos[1], "c": Vector2i(xy[0].to_int(), xy[1].to_int())}
 				if trozos[0] == "cofre" and trozos[1] != "comun":
 					a["premio"] = trozos[2]
+				elif trozos[0] == "salida":
+					# El tercer campo de una salida es `modo;ancho;marca;llegada`.
+					var ajustes: PackedStringArray = trozos[2].split(";")
+					if ajustes.size() == 4:
+						a["modo"] = ajustes[0]
+						a["ancho"] = ajustes[1].to_int()
+						a["marca"] = ajustes[2] != "no"
+						a["llegada"] = ajustes[3]
 				res.append(a)
 	return res
 

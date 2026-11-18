@@ -1549,6 +1549,9 @@ func _aplicar_anadidos(nv: String) -> void:
 		var pedido: Vector2i = ped.get("c", Vector2i(-1, -1))
 		var es_cofre: bool = que == "cofre"
 		_indice_hecho.append(-1)
+		if que == "salida":
+			_anadir_salida(ped)
+			continue
 		if (es_cofre and not COFRES.has(tipo)) or (not es_cofre and not ENEMIGOS.has(tipo)):
 			avisos.append("Lo añadido a mano en (%d, %d) no se reconoce («%s»): se descarta." % [pedido.x, pedido.y, tipo])
 			continue
@@ -1627,6 +1630,97 @@ func _aplicar_anadidos(nv: String) -> void:
 		objetos[objetos.size() - 1]["anadido"] = anadidos_hechos.size()       # para que la herramienta sepa cuál de la lista es
 		_indice_hecho[_indice_hecho.size() - 1] = anadidos_hechos.size()
 		anadidos_hechos.append(hecho)
+
+
+## Una SALIDA añadida a mano (18/11, pestaña «Salidas»): `tipo` = el destino `Nivel:entrada`; `modo` pisar | usar; `ancho` = casillas
+## seguidas que ocupa (una puerta ancha); `marca` = se dibuja la marca en el suelo; `llegada` = cómo se llama el punto por el que se
+## entra AQUÍ viniendo de allí (vacío = `llegada_m<n>`). Se pone en la casilla pedida o en la válida más cercana: hace falta sitio para
+## todas sus casillas (en fila, de lado a lado o, si no, de arriba abajo) y una casilla libre pegada para la llegada. No bloquea.
+func _anadir_salida(ped: Dictionary) -> void:
+	var destino: String = String(ped.get("tipo", ""))
+	var pedido: Vector2i = ped.get("c", Vector2i(-1, -1))
+	var partes: PackedStringArray = destino.split(":")
+	if partes.size() != 2 or partes[0] == "" or partes[1] == "":
+		avisos.append("La salida de (%d, %d) no dice a dónde va («%s» no es Nivel:entrada): se descarta." % [pedido.x, pedido.y, destino])
+		return
+	var modo: String = "usar" if String(ped.get("modo", "pisar")) == "usar" else "pisar"
+	var ancho: int = clampi(int(ped.get("ancho", 1)), 1, 4)
+	var marca: bool = bool(ped.get("marca", true))
+	var n_sal: int = 1
+	for a in anadidos_hechos:
+		n_sal += 1 if String(a["que"]) == "salida" else 0
+	var sid: String = "salida_m%d" % n_sal
+	# El nombre de la llegada: el pedido si es un nombre limpio que no esté ya cogido; si no, uno propio.
+	var llegada: String = String(ped.get("llegada", "")).strip_edges()
+	var cogidos: Dictionary = {}
+	for l in lineas:
+		var tl: PackedStringArray = l.substr(1).strip_edges().split(" ", false)
+		if tl.size() >= 3 and tl[0] == "pieza":
+			cogidos[tl[1]] = true
+	var limpio: bool = llegada != ""
+	for i in range(llegada.length()):
+		var ch: String = llegada[i]
+		limpio = limpio and ((ch >= "a" and ch <= "z") or (ch >= "A" and ch <= "Z") or (ch >= "0" and ch <= "9") or ch == "_")
+	if llegada != "" and (not limpio or cogidos.has(llegada)):
+		avisos.append("La llegada «%s» de la salida a %s no vale (%s): se llama «llegada_m%d»." % [llegada, destino, "ese nombre ya lo usa otra pieza" if limpio else "solo letras sin acento, cifras y «_»", n_sal])
+		llegada = ""
+	if llegada == "":
+		llegada = "llegada_m%d" % n_sal
+	var candidatos: Array = []
+	for dy in range(-6, 7):
+		for dx in range(-6, 7):
+			var c: Vector2i = pedido + Vector2i(dx, dy)
+			if _dentro(c) and _libre(c) and not letras.has(c):
+				candidatos.append(c)
+	candidatos.sort_custom(func(a: Vector2i, b: Vector2i) -> bool:
+		var da: int = (a - pedido).length_squared()
+		var db: int = (b - pedido).length_squared()
+		return da < db or (da == db and (a.y < b.y or (a.y == b.y and a.x < b.x))))
+	var celdas: Array = []
+	var entra: Vector2i = Vector2i(-1, -1)
+	for c in candidatos.slice(0, 60):
+		for paso in [Vector2i(1, 0), Vector2i(0, 1)]:
+			var fila: Array = []
+			for k in range(ancho):
+				var q: Vector2i = (c as Vector2i) + (paso as Vector2i) * k
+				if _dentro(q) and _libre(q) and not letras.has(q):
+					fila.append(q)
+			if fila.size() != ancho:
+				continue
+			# La llegada: una casilla libre pegada a la salida (no encima: al llegar no hay que estar pisándola).
+			var e: Vector2i = Vector2i(-1, -1)
+			for q in fila:
+				for d in DIRS:
+					var v: Vector2i = (q as Vector2i) + d
+					if e.x < 0 and not fila.has(v) and _dentro(v) and _libre(v) and not letras.has(v):
+						e = v
+			if e.x >= 0:
+				celdas = fila
+				entra = e
+				break
+		if not celdas.is_empty():
+			break
+	if celdas.is_empty():
+		avisos.append("No se ha podido poner la salida a %s cerca de (%d, %d): no hay %d casillas libres seguidas con otra al lado para la llegada. No se añade." % [destino, pedido.x, pedido.y, ancho])
+		return
+	var c0: Vector2i = celdas[0]
+	if c0 != pedido:
+		avisos.append("La salida a %s que ponías en (%d, %d) ha quedado en (%d, %d): era el sitio válido más cercano." % [destino, pedido.x, pedido.y, c0.x, c0.y])
+	var txt: PackedStringArray = PackedStringArray()
+	for q in celdas:
+		_ocupar(q)
+		_objeto(q, "salida", sid)
+		objetos[objetos.size() - 1]["anadido"] = anadidos_hechos.size()
+		txt.append("%d,%d" % [int(q.x), int(q.y)])
+	_ocupar(entra)
+	_objeto(entra, "entrada", llegada)
+	objetos[objetos.size() - 1]["de_salida"] = true          # se mueve con su salida, no suelta
+	lineas.append("; pieza %s salida %d %d a=%s%s%s%s" % [sid, c0.x, c0.y, destino, (" celdas=" + "+".join(txt)) if ancho > 1 else "",
+		" modo=usar" if modo == "usar" else "", "" if marca else " marca=no"])
+	lineas.append("; pieza %s entrada %d %d" % [llegada, entra.x, entra.y])
+	_indice_hecho[_indice_hecho.size() - 1] = anadidos_hechos.size()
+	anadidos_hechos.append({"que": "salida", "tipo": destino, "c": c0, "modo": modo, "ancho": ancho, "marca": marca, "llegada": llegada,
+		"celdas": celdas, "entrada": entra, "premio": "%s;%d;%s;%s" % [modo, ancho, "si" if marca else "no", llegada]})
 
 
 ## Dónde está ahora lo que nombra un extremo (`a<n>` o `x,y`), y cómo se nombra tras recolocar los añadidos. [casilla, nombre]; casilla (-1, -1) si ya no existe.
