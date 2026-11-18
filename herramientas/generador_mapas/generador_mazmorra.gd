@@ -107,15 +107,59 @@ var _movidos_pedidos: Dictionary = {}
 var movidos_hechos: Dictionary = {}     ## lo que de verdad se movió: casilla de origen → casilla donde ha quedado (puede no ser la pedida)
 ## Lo que se puede mover a mano. Las puertas, los puentes y los cerrojos no (son la forma del mapa); las piezas de un puzle del catálogo
 ## tampoco: el puzle entero se mueve de sala en la pestaña «Puzles».
-const MOVIBLES: Array[String] = ["guerrero", "arquero", "brasero", "jarron", "cofre_tesoro", "cofre_llave", "salida", "entrada", "inicio"]
+const MOVIBLES: Array[String] = ["guerrero", "arquero", "brasero", "jarron", "cofre_tesoro", "cofre_llave", "salida", "entrada", "inicio",
+	"limo", "golem", "chaman", "mouro", "elemental", "cofre_comun", "cofre_epico", "cofre_legendario"]
+
+## ENEMIGOS que se pueden añadir a mano (18/11, pestaña «Enemigos»). Son los que el juego sabe montar desde un mapa de letras sin guion
+## de nivel: los goblins y el elemental van por LETRA; limo, gólem, chamán y mouro, por línea `; pieza` (escenas/puzle.gd).
+## No están el loberno, el canouro ni el goblin asesino: esos los crea el guion de cada nivel hecho a mano leyendo `; marcador`, y un
+## mapa generado no lleva guion. Tampoco la Santa Compaña (pide un camino de casillas). `icono` = el tipo con que se dibuja.
+const ORDEN_ENEMIGOS: Array[String] = ["guerrero", "arquero", "limo", "limo_fuego", "limo_agua", "limo_tierra", "limo_grande", "golem", "chaman", "mouro", "elemental"]
+const ENEMIGOS: Dictionary = {
+	"guerrero": {"titulo": "Goblin guerrero", "letra": "W", "icono": "guerrero"},
+	"arquero": {"titulo": "Goblin arquero", "letra": "A", "icono": "arquero"},
+	"limo": {"titulo": "Limo", "pieza": "limo", "icono": "limo"},
+	"limo_fuego": {"titulo": "Limo de fuego", "pieza": "limo", "extra": " elemento=fuego", "icono": "limo"},
+	"limo_agua": {"titulo": "Limo de agua", "pieza": "limo", "extra": " elemento=agua", "icono": "limo"},
+	"limo_tierra": {"titulo": "Limo de tierra", "pieza": "limo", "extra": " elemento=tierra", "icono": "limo"},
+	"limo_grande": {"titulo": "Limo grande", "pieza": "limo", "extra": " grande=si", "icono": "limo"},
+	"golem": {"titulo": "Gólem de piedra", "pieza": "golem", "icono": "golem"},
+	"chaman": {"titulo": "Chamán goblin", "pieza": "chaman", "icono": "chaman"},
+	"mouro": {"titulo": "Mouro (espectro)", "pieza": "mouro", "icono": "mouro"},
+	"elemental": {"titulo": "Elemental del bosque (jefe)", "letra": "G", "icono": "elemental"},
+}
+
+## COFRES que se pueden añadir a mano (pestaña «Cofres»), por CALIDAD (Pablo, 18/11: «pedir calidad; recompensa aleatoria para los
+## comunes y recompensas específicas para épico y legendario»).
+##   · común: la recompensa se SORTEA entre `premios` (con la semilla del mapa y el número del cofre: sale siempre la misma para el mismo mapa).
+##   · épico (`modelo=epico`): una recompensa concreta, a elegir de `premios` (texto de `da=` → cómo se dice).
+##   · legendario (`modelo=legendario`): un GLIFO del libro (`glifo=`, con su secuencia de cofre legendario) y un botín fijo; o sin glifo.
+const ORDEN_COFRES: Array[String] = ["comun", "epico", "legendario"]
+const COFRES: Dictionary = {
+	"comun": {"titulo": "Común", "modelo": "", "premios": ["oro:20", "oro:30", "oro:45", "oro:25+pocion:1", "pocion:2", "oro:15+tonico_tinta:1",
+		"oro:20+antidoto:1", "oro:20+esquirla_cristal:2", "tabla:cofre_pequeno"]},
+	"epico": {"titulo": "Épico", "modelo": "epico", "premios": {
+		"tunica_salamandra:1": "Túnica de salamandra", "capa_escarcha:1": "Capa de escarcha", "capucha_musgo:1": "Capucha de musgo",
+		"nucleo_eco:1": "Núcleo de eco", "trozo_corazon:1+oro:60": "Trozo de corazón y 60 de oro", "frasco_vacio:1+oro:40": "Frasco de reserva y 40 de oro",
+		"engarce_glifo:1": "Engarce de glifo", "hoja_grimorio:1+oro:50": "Hoja de grimorio y 50 de oro"}},
+	"legendario": {"titulo": "Legendario", "modelo": "legendario", "da": "oro:150+pocion_grande:2", "premios": {
+		"glifo:barrera": "Glifo «barrera»", "glifo:linea": "Glifo «línea»", "glifo:raido": "Glifo «raido» (pulso)",
+		"glifo:permanencia": "Glifo «permanencia»", "trozo_corazon:1": "Sin glifo: un trozo de corazón más"}},
+}
+## Lo añadido a mano que se pide: [{que: "enemigo" | "cofre", tipo, premio (cofres), c: Vector2i}]. Ver `_aplicar_anadidos`.
+var _anadidos_pedidos: Array = []
+var anadidos_hechos: Array = []         ## lo que de verdad se puso, con su casilla final (la pedida o la válida más cercana)
 var _ultimo_act: String = ""            ## el activador que dejó la última plantilla `salida` estampada
 var _nv: String = ""                    ## el nombre del nivel en minúsculas (para las flags)
 var _letras_extra: String = ""
 
 
-func generar(parametros: Dictionary = {}, retoques: Dictionary = {}, enlaces_mano: Dictionary = {}, puzles_mano: Dictionary = {}, movidos: Dictionary = {}) -> Dictionary:
+func generar(parametros: Dictionary = {}, retoques: Dictionary = {}, enlaces_mano: Dictionary = {}, puzles_mano: Dictionary = {}, movidos: Dictionary = {},
+		anadidos: Array = []) -> Dictionary:
 	_movidos_pedidos = movidos.duplicate()
 	movidos_hechos = {}
+	_anadidos_pedidos = anadidos.duplicate(true)
+	anadidos_hechos = []
 	puzles_puestos = {}
 	_puzles_mano = puzles_mano.duplicate()
 	_n_cat = 0
@@ -1471,8 +1515,104 @@ func _poblar() -> void:
 				quiero_j -= 1
 	p["_arqueros"] = hay_arquero
 	_aplicar_movidos()
+	_aplicar_anadidos(nv)
 	_emitir_barreras(nv)
 	_pintar_terreno()
+
+
+# =====================================================================================================================
+#  Enemigos y cofres añadidos a mano
+# =====================================================================================================================
+
+## Pone los enemigos y cofres que se han añadido a mano (pestañas «Enemigos» y «Cofres»: se elige y se hace clic en el mapa). Va después
+## de mover y con el mismo cuidado: se prueba la casilla pedida y, si no vale, las más cercanas; se queda con la primera que sea suelo
+## libre y, para un cofre (que bloquea su casilla), que no parta el mapa ni lo deje sin solución. Si no hay sitio, no se pone y lo dice.
+func _aplicar_anadidos(nv: String) -> void:
+	var n_enem: int = 0
+	var n_cofre: int = 0
+	for pedido_v in _anadidos_pedidos:
+		var ped: Dictionary = pedido_v
+		var que: String = String(ped.get("que", ""))
+		var tipo: String = String(ped.get("tipo", ""))
+		var pedido: Vector2i = ped.get("c", Vector2i(-1, -1))
+		var es_cofre: bool = que == "cofre"
+		if (es_cofre and not COFRES.has(tipo)) or (not es_cofre and not ENEMIGOS.has(tipo)):
+			avisos.append("Lo añadido a mano en (%d, %d) no se reconoce («%s»): se descarta." % [pedido.x, pedido.y, tipo])
+			continue
+		var candidatos: Array = []
+		for dy in range(-6, 7):
+			for dx in range(-6, 7):
+				var c: Vector2i = pedido + Vector2i(dx, dy)
+				if _dentro(c) and _tipo(c) == SUELO and not _ocupada.has(c) and not letras.has(c):
+					candidatos.append(c)
+		candidatos.sort_custom(func(a: Vector2i, b: Vector2i) -> bool:
+			var da: int = (a - pedido).length_squared()
+			var db: int = (b - pedido).length_squared()
+			return da < db or (da == db and (a.y < b.y or (a.y == b.y and a.x < b.x))))
+		var puesto: Vector2i = Vector2i(-1, -1)
+		for c in candidatos.slice(0, 40):
+			if not es_cofre:
+				puesto = c                               # un enemigo no bloquea: cualquier suelo libre vale
+				break
+			if not _puede_bloquear(c):
+				continue
+			_ocupar(c, true)
+			if (_componentes(true, _bloqueos)[1] as Array).size() <= 1 and _resoluble():
+				puesto = c
+				break
+			_ocupada.erase(c)
+			_bloqueos.erase(c)
+		var nombre: String = ("un cofre %s" % String(COFRES[tipo]["titulo"]).to_lower()) if es_cofre else String(ENEMIGOS[tipo]["titulo"])
+		if puesto.x < 0:
+			avisos.append("No se ha podido poner %s cerca de (%d, %d): no hay suelo libre%s. No se añade." % [nombre, pedido.x, pedido.y,
+				" donde no corte el paso" if es_cofre else ""])
+			continue
+		if puesto != pedido:
+			avisos.append("%s que ponías en (%d, %d) ha quedado en (%d, %d): era el sitio válido más cercano." % [(nombre.substr(0, 1).to_upper() + nombre.substr(1)) if not es_cofre else "El cofre",
+				pedido.x, pedido.y, puesto.x, puesto.y])
+		var hecho: Dictionary = {"que": que, "tipo": tipo, "c": puesto}
+		if es_cofre:
+			n_cofre += 1
+			var def: Dictionary = COFRES[tipo]
+			var da: String = String(def.get("da", ""))
+			var premio: String = String(ped.get("premio", ""))
+			var extra: String = ""
+			if tipo == "comun":
+				# Sorteada, pero siempre la misma para este mapa y este cofre.
+				var dado: RandomNumberGenerator = RandomNumberGenerator.new()
+				dado.seed = hash("cofre %d de la semilla %d" % [n_cofre, int(p["semilla"])])
+				var bolsa: Array = def["premios"]
+				premio = String(bolsa[dado.randi() % bolsa.size()])
+				da = premio
+			else:
+				if not (def["premios"] as Dictionary).has(premio):
+					premio = String((def["premios"] as Dictionary).keys()[0])
+				if premio.begins_with("glifo:"):
+					extra = " glifo=" + premio.substr(6)
+				else:
+					da = premio if da == "" else da + "+" + premio
+			hecho["premio"] = premio
+			hecho["da"] = da
+			var cid: String = "cofre_m%d" % n_cofre
+			_objeto(puesto, "cofre_" + tipo, cid)
+			lineas.append("; pieza %s cofre %d %d%s%s abierto=%s.%s.abierto da=%s" % [cid, puesto.x, puesto.y,
+				(" modelo=" + String(def["modelo"])) if String(def["modelo"]) != "" else "", extra, nv, cid, da])
+		else:
+			n_enem += 1
+			var def_e: Dictionary = ENEMIGOS[tipo]
+			var eid: String = "enemigo_m%d" % n_enem
+			_ocupar(puesto)
+			_objeto(puesto, String(def_e["icono"]), eid)
+			if def_e.has("letra"):
+				letras[puesto] = String(def_e["letra"])
+				if not _letras_extra.contains(String(def_e["letra"])) and not "#.~SWAT".contains(String(def_e["letra"])):
+					_letras_extra += String(def_e["letra"])
+				if tipo == "arquero":
+					p["_arqueros"] = true
+			else:
+				lineas.append("; pieza %s %s %d %d%s" % [eid, String(def_e["pieza"]), puesto.x, puesto.y, String(def_e.get("extra", ""))])
+		objetos[objetos.size() - 1]["anadido"] = anadidos_hechos.size()       # para que la herramienta sepa cuál de la lista es
+		anadidos_hechos.append(hecho)
 
 
 # =====================================================================================================================
@@ -1880,9 +2020,9 @@ func _resultado() -> Dictionary:
 	var n_jarrones: int = 0
 	for o in objetos:
 		match String(o["tipo"]):
-			"guerrero", "arquero":
+			"guerrero", "arquero", "limo", "golem", "chaman", "mouro", "elemental":
 				n_enem += 1
-			"cofre_tesoro", "cofre_llave":
+			"cofre_tesoro", "cofre_llave", "cofre_comun", "cofre_epico", "cofre_legendario":
 				n_cofres += 1
 			"jarron":
 				n_jarrones += 1
@@ -1893,7 +2033,7 @@ func _resultado() -> Dictionary:
 		"arqueros": bool(p.get("_arqueros", false)), "retoques": _retoques,
 		"errores": errores, "enlaces": enlaces, "enlaces_mano": _enlaces_mano, "activadores": _activadores.keys(), "barreras": _barreras.size(),
 		"puzles": puzles_puestos, "puzles_mano": _puzles_mano, "cruzables": _puentes.keys(), "letras_extra": _letras_extra,
-		"movidos": movidos_hechos, "movidos_pedidos": _movidos_pedidos,
+		"movidos": movidos_hechos, "movidos_pedidos": _movidos_pedidos, "anadidos": anadidos_hechos,
 		"stats": {"salas": _vivas().size(), "puertas": puertas.size(), "enemigos": n_enem, "cofres": n_cofres, "jarrones": n_jarrones,
 			"suelo": pisable, "agua": g.count(AGUA), "ocupacion": pisable / float(maxi(1, w * h))},
 	}

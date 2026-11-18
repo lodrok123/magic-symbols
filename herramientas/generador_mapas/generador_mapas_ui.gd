@@ -32,7 +32,14 @@ const ICONOS: Dictionary = {
 	"brasero": ["T", Color(0.95, 0.6, 0.15), 0, "brasero"], "jarron": ["j", Color(0.6, 0.5, 0.38), 0, "jarrón"],
 	"cofre_tesoro": ["$", Color(0.9, 0.7, 0.1), 1, "cofre del tesoro"], "cofre_llave": ["K", Color(0.6, 0.4, 0.85), 1, "cofre de la llave"],
 	"puerta_llave": ["L", Color(0.6, 0.4, 0.85), 1, "puerta con llave"], "cerrojo": ["X", Color(0.85, 0.3, 0.25), 1, "cerrojo de sala"],
+	# Enemigos y cofres añadidos a mano (pestañas «Enemigos» y «Cofres»).
+	"limo": ["l", Color(0.3, 0.7, 0.35), 0, "limo"], "golem": ["g", Color(0.5, 0.5, 0.55), 0, "gólem"], "chaman": ["c", Color(0.6, 0.3, 0.7), 0, "chamán"],
+	"mouro": ["m", Color(0.35, 0.6, 0.75), 0, "mouro"], "elemental": ["G", Color(0.15, 0.45, 0.2), 0, "elemental del bosque (jefe)"],
+	"cofre_comun": ["c", Color(0.6, 0.42, 0.22), 1, "cofre común"], "cofre_epico": ["é", Color(0.55, 0.3, 0.8), 1, "cofre épico"],
+	"cofre_legendario": ["!", Color(0.95, 0.7, 0.1), 1, "cofre legendario"],
 }
+const TIPOS_ENEMIGO: Array[String] = ["guerrero", "arquero", "limo", "golem", "chaman", "mouro", "elemental"]
+const TIPOS_COFRE: Array[String] = ["cofre_tesoro", "cofre_llave", "cofre_comun", "cofre_epico", "cofre_legendario"]
 ## Cambiar uno de estos cambia la forma del mapa: los retoques pintados a mano dejan de tener sentido y se borran.
 const CLAVES_FORMA: Array[String] = ["algoritmo", "semilla", "ancho", "alto", "sala_min", "sala_max", "reparto", "densidad_salas", "puertas", "recto", "callejones",
 	"ancho_pasillo", "forma", "relleno", "silueta", "metodo", "octavas", "tamano_sala", "suavizados", "region_min", "agua", "n_salas", "lado_min", "lado_max", "simetria", "pasillos", "bucles"]
@@ -107,6 +114,9 @@ class Vista extends Control:
 	## Pincel «mover»: se agarra un elemento, se arrastra y se suelta. Solo al soltar se regenera el mapa.
 	signal agarrada(c: Vector2i)
 	signal soltada(c: Vector2i)
+	## Herramientas de las pestañas «Enemigos» y «Cofres» (pincel «poner:…» o «llevar»): un clic, sin arrastre.
+	signal clicada(c: Vector2i)
+	var resaltada: Vector2i = Vector2i(-1, -1)        ## el enemigo elegido para llevarlo a otro sitio
 	var arrastre_de: Vector2i = Vector2i(-1, -1)      ## casilla del elemento agarrado ((-1, -1) = ninguno)
 	var arrastre_a: Vector2i = Vector2i(-1, -1)       ## casilla bajo el cursor mientras se arrastra
 
@@ -187,6 +197,9 @@ class Vista extends Control:
 				queue_redraw()
 			elif b.button_index == MOUSE_BUTTON_RIGHT or b.button_index == MOUSE_BUTTON_MIDDLE:
 				_moviendo = b.pressed
+			elif b.button_index == MOUSE_BUTTON_LEFT and (pincel.begins_with("poner") or pincel == "llevar"):
+				if b.pressed:
+					clicada.emit(celda_en(b.position))
 			elif b.button_index == MOUSE_BUTTON_LEFT and pincel == "mover":
 				if b.pressed:
 					arrastre_a = celda_en(b.position)
@@ -285,6 +298,8 @@ class Vista extends Control:
 			var p1: Vector2 = origen + (Vector2(a_m) + Vector2(0.5, 0.5)) * e
 			draw_dashed_line(p0, p1, Color(0.1, 0.75, 0.85, 0.8), 1.5, 4.0)
 			draw_arc(p0, e * 0.22, 0.0, TAU, 16, Color(0.1, 0.75, 0.85, 0.8), 1.5)
+		if resaltada.x >= 0:
+			draw_arc(origen + (Vector2(resaltada) + Vector2(0.5, 0.5)) * e, e * 0.66, 0.0, TAU, 24, Color(0.1, 0.85, 0.95), 3.0)
 		# El elemento agarrado con el pincel «mover» y la casilla donde se soltaría.
 		if arrastre_de.x >= 0:
 			var q0: Vector2 = origen + (Vector2(arrastre_de) + Vector2(0.5, 0.5)) * e
@@ -327,6 +342,13 @@ class Vista extends Control:
 var _par: Dictionary = Generador.parametros_defecto()
 var _retoques: Dictionary = {}
 var _puzles: Dictionary = {}              ## puzles del catalogo puestos a mano: sala -> id del puzle
+var _anadidos: Array = []                 ## enemigos y cofres añadidos a mano: [{que, tipo, premio, c}]
+var _lista_enemigos: VBoxContainer = null
+var _lista_cofres: VBoxContainer = null
+var _en_tipo: String = ""                 ## pestaña «Enemigos»: el tipo elegido para añadir ("" = ninguno)
+var _llevar_c: Vector2i = Vector2i(-1, -1)   ## …y el enemigo del mapa elegido para llevarlo a otro sitio
+var _co_calidad: String = ""              ## pestaña «Cofres»: la calidad elegida ("" = ninguna)
+var _co_premio: String = ""               ## …y la recompensa (épico y legendario)
 var _movidos: Dictionary = {}             ## elementos movidos a mano: casilla donde lo puso el generador -> casilla donde está
 var _enlaces: Dictionary = {}             ## enlaces cambiados a mano: id de barrera -> id de activador ("" = suelta)
 var _mapa: Dictionary = {}
@@ -414,6 +436,10 @@ func _montar() -> void:
 	_lista_puzles.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_lista_puzles.add_theme_constant_override("separation", 6)
 	barra_pz.add_child(_lista_puzles)
+	# «Enemigos» y «Cofres»: se elige en la pestaña y se pone con un clic en el mapa.
+	_lista_enemigos = _pestana(pestanas, "Enemigos")
+	_lista_cofres = _pestana(pestanas, "Cofres")
+	pestanas.tab_changed.connect(func(_i: int) -> void: _herramienta(""))       # al cambiar de pestaña no se queda una herramienta puesta
 	var lista: VBoxContainer = VBoxContainer.new()
 	lista.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	lista.add_theme_constant_override("separation", 3)
@@ -425,6 +451,7 @@ func _montar() -> void:
 	_vista.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_vista.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	_vista.pintada.connect(_al_pintar)
+	_vista.clicada.connect(_al_clicar)
 	_vista.agarrada.connect(_al_agarrar)
 	_vista.soltada.connect(_al_soltar)
 	_vista.sobre.connect(_al_pasar)
@@ -478,7 +505,7 @@ func _montar() -> void:
 	_pincel.add_item("quitar puzle de la sala")
 	_pincel.set_item_metadata(_pincel.item_count - 1, "cat:")
 	_pincel.tooltip_text = "Con un pincel elegido, el botón izquierdo pinta sobre la vista. El contenido (enemigos, cofres…) se recoloca solo."
-	_pincel.item_selected.connect(func(i: int) -> void: _vista.pincel = String(_pincel.get_item_metadata(i)))
+	_pincel.item_selected.connect(_al_elegir_pincel)
 	pie.add_child(_pincel)
 	_boton(pie, "Borrar retoques", _borrar_retoques, "Quita todo lo pintado a mano y los enlaces cambiados a mano.")
 	var ver: CheckBox = CheckBox.new()
@@ -530,6 +557,7 @@ func _borrar_retoques() -> void:
 	_enlaces.clear()
 	_puzles.clear()
 	_movidos.clear()
+	_anadidos.clear()
 	_sucio = true
 
 
@@ -625,6 +653,7 @@ func _cambio(k: String, valor: Variant) -> void:
 		_enlaces.clear()
 		_puzles.clear()
 		_movidos.clear()
+		_anadidos.clear()
 	if CLAVES_FORMA.has(k) and not _retoques.is_empty():
 		_retoques.clear()
 		_decir("Ha cambiado la forma del mapa: los retoques pintados a mano se han borrado.")
@@ -658,6 +687,7 @@ func _otra_semilla() -> void:
 	_enlaces.clear()
 	_puzles.clear()
 	_movidos.clear()
+	_anadidos.clear()
 	_par["semilla"] = randi() % 1000000
 	_poner_control("semilla", _par["semilla"])
 	_sucio = true
@@ -668,11 +698,14 @@ func _regenerar() -> void:
 	for f in _filas:
 		(f[0] as Control).visible = String(f[1]) == "" or String(f[1]) == String(_par["algoritmo"])
 	var t0: int = Time.get_ticks_usec()
-	_mapa = Generador.new().generar(_par, _retoques, _enlaces, _puzles, _movidos)
+	_mapa = Generador.new().generar(_par, _retoques, _enlaces, _puzles, _movidos, _anadidos)
 	_movidos = (_mapa["movidos"] as Dictionary).duplicate()       # lo que de verdad se movió (el sitio pedido puede haberse ajustado)
+	_anadidos = (_mapa["anadidos"] as Array).duplicate(true)      # y lo que de verdad se añadió, en su casilla final
 	var ms: float = (Time.get_ticks_usec() - t0) / 1000.0
 	_vista.poner(_mapa)
 	_refrescar_puzles()
+	_refrescar_enemigos()
+	_refrescar_cofres()
 	_texto.text = Exportador.texto_mapa(_mapa)
 	var st: Dictionary = _mapa["stats"]
 	var l: PackedStringArray = PackedStringArray()
@@ -900,9 +933,20 @@ func _al_agarrar(c: Vector2i) -> void:
 
 
 func _al_soltar(c: Vector2i) -> void:
-	var de: Vector2i = _vista.arrastre_de
+	_mover_elemento(_vista.arrastre_de, c)
+
+
+## Lleva lo que hay en `de` a `c` (lo usa el pincel «mover» y «Mover un enemigo del mapa» de la pestaña «Enemigos»).
+func _mover_elemento(de: Vector2i, c: Vector2i) -> void:
 	if de.x < 0 or c == de:
 		return
+	# Algo añadido a mano no es un «movido»: se le cambia la casilla en su propia lista.
+	for o in _mapa["objetos"]:
+		if (o["c"] as Vector2i) == de and o.has("anadido") and int(o["anadido"]) < _anadidos.size():
+			_anadidos[int(o["anadido"])]["c"] = c
+			_decir("Movido a (%d, %d). Si ha quedado en otra casilla, lo explica el aviso amarillo de la derecha." % [c.x, c.y])
+			_sucio = true
+			return
 	# Si lo agarrado ya se había movido antes, su movimiento es el mismo: solo cambia el destino.
 	var origen_real: Vector2i = de
 	for k in _movidos:
@@ -915,6 +959,227 @@ func _al_soltar(c: Vector2i) -> void:
 		_movidos[origen_real] = c
 		_decir("Movido a (%d, %d). Si ha quedado en otra casilla o no se ha movido, lo explica el aviso amarillo de la derecha." % [c.x, c.y])
 	_sucio = true
+
+
+# --- pestañas «Enemigos» y «Cofres»: se elige en la pestaña y se pone con un clic en el mapa ---
+
+func _pestana(pestanas: TabContainer, nombre: String) -> VBoxContainer:
+	var barra: ScrollContainer = ScrollContainer.new()
+	barra.name = nombre
+	barra.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	pestanas.add_child(barra)
+	var lista: VBoxContainer = VBoxContainer.new()
+	lista.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	lista.add_theme_constant_override("separation", 6)
+	barra.add_child(lista)
+	return lista
+
+
+## Pone la herramienta de una pestaña ("poner:enemigo", "poner:cofre", "llevar") o la quita (""). Con una puesta, el pincel de abajo
+## pasa a «ninguno»; al quitarla, vuelve a mandar el pincel de abajo.
+func _herramienta(h: String) -> void:
+	if _pincel == null:
+		return
+	if h == "":
+		_en_tipo = ""
+		_co_calidad = ""
+		_llevar_c = Vector2i(-1, -1)
+		_vista.resaltada = Vector2i(-1, -1)
+		_vista.pincel = String(_pincel.get_item_metadata(_pincel.selected))
+	else:
+		_pincel.select(0)
+		_vista.pincel = h
+	_vista.queue_redraw()
+	_refrescar_enemigos.call_deferred()
+	_refrescar_cofres.call_deferred()
+
+
+func _al_elegir_pincel(i: int) -> void:
+	_herramienta("")
+	_vista.pincel = String(_pincel.get_item_metadata(i))
+
+
+func _vaciar(lista: VBoxContainer) -> void:
+	for h in lista.get_children():
+		lista.remove_child(h)
+		h.queue_free()
+
+
+## La primera letra en mayúscula (`capitalize` de Godot pone en mayúscula TODAS las palabras).
+func _mayus(s: String) -> String:
+	return s.substr(0, 1).to_upper() + s.substr(1)
+
+
+## En qué sala cae una casilla, para decirlo ("" si en ninguna: un pasillo).
+func _sala_de(c: Vector2i) -> String:
+	for s in _mapa["salas"]:
+		if (s["rect"] as Rect2i).has_point(c):
+			return "sala %d" % int(s["id"])
+	return "pasillo"
+
+
+func _refrescar_enemigos() -> void:
+	if _lista_enemigos == null or _mapa.is_empty():
+		return
+	_vaciar(_lista_enemigos)
+	_lista_enemigos.add_child(_rotulo_pz("AÑADIR UN ENEMIGO"))
+	var que: OptionButton = OptionButton.new()
+	que.add_item("(ninguno)")
+	que.set_item_metadata(0, "")
+	for id in Generador.ORDEN_ENEMIGOS:
+		que.add_item(String(Generador.ENEMIGOS[id]["titulo"]))
+		que.set_item_metadata(que.item_count - 1, String(id))
+		if String(id) == _en_tipo:
+			que.select(que.item_count - 1)
+	que.item_selected.connect(func(i: int) -> void:
+		var elegido: String = String(que.get_item_metadata(i))
+		_herramienta("")
+		_en_tipo = elegido
+		if elegido != "":
+			_herramienta("poner:enemigo"))
+	_lista_enemigos.add_child(que)
+	_lista_enemigos.add_child(_rotulo_pz(("▶ Haz clic en el mapa donde quieras un «%s». Sigue puesto: cada clic añade otro. Para dejarlo, elige «(ninguno)»." % String(Generador.ENEMIGOS[_en_tipo]["titulo"]))
+		if _en_tipo != "" else "Elige un enemigo y haz clic en el mapa donde lo quieras. Si la casilla no vale, queda en la válida más cercana.",
+		Color(0.4, 0.9, 1.0) if _en_tipo != "" else Color(0.75, 0.75, 0.75), 12))
+	# Mover uno de los que ya están (los que repartió el generador y los añadidos).
+	var enemigos: Array = (_mapa["objetos"] as Array).filter(func(o: Dictionary) -> bool: return TIPOS_ENEMIGO.has(String(o["tipo"])))
+	_lista_enemigos.add_child(_rotulo_pz("\nMOVER UN ENEMIGO DEL MAPA (%d)" % enemigos.size()))
+	var cual: OptionButton = OptionButton.new()
+	cual.add_item("(elige cuál)")
+	cual.set_item_metadata(0, Vector2i(-1, -1))
+	for o in enemigos:
+		var c: Vector2i = o["c"]
+		cual.add_item("%s · %s · (%d, %d)%s" % [_mayus(String(ICONOS[String(o["tipo"])][3])), _sala_de(c), c.x, c.y, " · añadido" if o.has("anadido") else ""])
+		cual.set_item_metadata(cual.item_count - 1, c)
+		if c == _llevar_c:
+			cual.select(cual.item_count - 1)
+	cual.item_selected.connect(func(i: int) -> void:
+		var elegida: Vector2i = cual.get_item_metadata(i)
+		_herramienta("")
+		_llevar_c = elegida
+		if elegida.x >= 0:
+			_vista.resaltada = elegida
+			_herramienta("llevar"))
+	_lista_enemigos.add_child(cual)
+	_lista_enemigos.add_child(_rotulo_pz("▶ Está rodeado en azul en el mapa. Haz clic donde lo quieras." if _llevar_c.x >= 0
+		else "Elige uno (se rodea en azul en el mapa) y haz clic donde lo quieras. También vale el pincel «mover».",
+		Color(0.4, 0.9, 1.0) if _llevar_c.x >= 0 else Color(0.75, 0.75, 0.75), 12))
+	# Los añadidos a mano, con «Quitar».
+	var n: int = 0
+	for a in _anadidos:
+		n += 1 if String(a["que"]) == "enemigo" else 0
+	_lista_enemigos.add_child(_rotulo_pz("\nAÑADIDOS A MANO (%d)" % n))
+	for i in range(_anadidos.size()):
+		var a: Dictionary = _anadidos[i]
+		if String(a["que"]) != "enemigo":
+			continue
+		var fila: HBoxContainer = HBoxContainer.new()
+		var t: Label = _rotulo_pz("%s · %s · (%d, %d)" % [String(Generador.ENEMIGOS[String(a["tipo"])]["titulo"]), _sala_de(a["c"]), int(a["c"].x), int(a["c"].y)], Color(0.92, 0.92, 0.92), 14)
+		t.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		fila.add_child(t)
+		_boton(fila, "Quitar", _quitar_anadido.bind(i), "Quita este enemigo.")
+		_lista_enemigos.add_child(fila)
+	if n == 0:
+		_lista_enemigos.add_child(_rotulo_pz("Ninguno todavía. Los que reparte el generador se piden en «Enemigos», en la pestaña Mapa.", Color(0.75, 0.75, 0.75), 12))
+
+
+func _refrescar_cofres() -> void:
+	if _lista_cofres == null or _mapa.is_empty():
+		return
+	_vaciar(_lista_cofres)
+	_lista_cofres.add_child(_rotulo_pz("AÑADIR UN COFRE"))
+	var cal: OptionButton = OptionButton.new()
+	cal.add_item("(elige la calidad)")
+	cal.set_item_metadata(0, "")
+	for id in Generador.ORDEN_COFRES:
+		cal.add_item(String(Generador.COFRES[id]["titulo"]))
+		cal.set_item_metadata(cal.item_count - 1, String(id))
+		if String(id) == _co_calidad:
+			cal.select(cal.item_count - 1)
+	cal.item_selected.connect(func(i: int) -> void:
+		var elegida: String = String(cal.get_item_metadata(i))
+		_herramienta("")
+		_co_calidad = elegida
+		_co_premio = ""
+		if elegida != "":
+			if Generador.COFRES[elegida]["premios"] is Dictionary:
+				_co_premio = String((Generador.COFRES[elegida]["premios"] as Dictionary).keys()[0])
+			_herramienta("poner:cofre"))
+	_lista_cofres.add_child(cal)
+	if _co_calidad == "comun":
+		_lista_cofres.add_child(_rotulo_pz("Recompensa: SE SORTEA (oro, pociones, algún objeto). Para el mismo mapa sale siempre la misma; se ve abajo al ponerlo.", Color(0.92, 0.92, 0.92), 13))
+	elif _co_calidad != "":
+		_lista_cofres.add_child(_rotulo_pz("Recompensa:", Color(0.92, 0.92, 0.92), 13))
+		var pr: OptionButton = OptionButton.new()
+		var premios: Dictionary = Generador.COFRES[_co_calidad]["premios"]
+		for clave in premios:
+			pr.add_item(String(premios[clave]))
+			pr.set_item_metadata(pr.item_count - 1, String(clave))
+			if String(clave) == _co_premio:
+				pr.select(pr.item_count - 1)
+		pr.item_selected.connect(func(i: int) -> void: _co_premio = String(pr.get_item_metadata(i)))
+		_lista_cofres.add_child(pr)
+		if _co_calidad == "legendario":
+			_lista_cofres.add_child(_rotulo_pz("Además de lo elegido da siempre 150 de oro y 2 pociones grandes.", Color(0.75, 0.75, 0.75), 12))
+	_lista_cofres.add_child(_rotulo_pz(("▶ Haz clic en el mapa donde quieras el cofre %s. Sigue puesto: cada clic añade otro." % String(Generador.COFRES[_co_calidad]["titulo"]).to_lower())
+		if _co_calidad != "" else "Elige la calidad y haz clic en el mapa. Un cofre ocupa su casilla: si ahí cortaría el paso, queda en la válida más cercana.",
+		Color(0.4, 0.9, 1.0) if _co_calidad != "" else Color(0.75, 0.75, 0.75), 12))
+	# Todos los cofres del mapa.
+	var cofres: Array = (_mapa["objetos"] as Array).filter(func(o: Dictionary) -> bool: return TIPOS_COFRE.has(String(o["tipo"])))
+	_lista_cofres.add_child(_rotulo_pz("\nCOFRES DEL MAPA (%d)" % cofres.size()))
+	for o in cofres:
+		var c: Vector2i = o["c"]
+		var fila: HBoxContainer = HBoxContainer.new()
+		var texto: String = "%s · %s · (%d, %d)" % [_mayus(String(ICONOS[String(o["tipo"])][3])), _sala_de(c), c.x, c.y]
+		if o.has("anadido") and int(o["anadido"]) < _anadidos.size():
+			texto += "\n   da: " + _premio_dicho(_anadidos[int(o["anadido"])])
+		elif String(o["tipo"]) == "cofre_tesoro":
+			texto += "\n   da: 60 de oro y una poción (lo pone el generador)"
+		else:
+			texto += "\n   da: la llave del tesoro (lo pone el generador)"
+		var t: Label = _rotulo_pz(texto, Color(0.92, 0.92, 0.92), 14)
+		t.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		fila.add_child(t)
+		if o.has("anadido"):
+			_boton(fila, "Quitar", _quitar_anadido.bind(int(o["anadido"])), "Quita este cofre.")
+		_lista_cofres.add_child(fila)
+	_lista_cofres.add_child(_rotulo_pz("Para cambiar un cofre de sitio: pincel «mover» (abajo) y arrástralo.", Color(0.75, 0.75, 0.75), 12))
+
+
+## La recompensa de un cofre añadido, dicha para leerla.
+func _premio_dicho(a: Dictionary) -> String:
+	var calidad: String = String(a["tipo"])
+	var premios = Generador.COFRES[calidad]["premios"]
+	if premios is Dictionary and (premios as Dictionary).has(String(a.get("premio", ""))):
+		return String(premios[String(a["premio"])]) + (" + 150 de oro y 2 pociones grandes" if calidad == "legendario" else "")
+	return String(a.get("da", a.get("premio", "?"))).replace("+", " + ").replace(":", " × ").replace("tabla × cofre_pequeno", "una tirada de la tabla «cofre pequeño»") + " (sorteado)"
+
+
+func _al_clicar(c: Vector2i) -> void:
+	if _mapa.is_empty() or c.x < 1 or c.y < 1 or c.x > int(_mapa["ancho"]) - 2 or c.y > int(_mapa["alto"]) - 2:
+		return
+	match _vista.pincel:
+		"poner:enemigo":
+			if _en_tipo != "":
+				_anadidos.append({"que": "enemigo", "tipo": _en_tipo, "c": c})
+				_decir("%s añadido en (%d, %d). Si ha quedado en otra casilla, lo explica el aviso amarillo de la derecha." % [String(Generador.ENEMIGOS[_en_tipo]["titulo"]), c.x, c.y])
+				_sucio = true
+		"poner:cofre":
+			if _co_calidad != "":
+				_anadidos.append({"que": "cofre", "tipo": _co_calidad, "premio": _co_premio, "c": c})
+				_decir("Cofre %s añadido en (%d, %d). Si ha quedado en otra casilla, lo explica el aviso amarillo de la derecha." % [String(Generador.COFRES[_co_calidad]["titulo"]).to_lower(), c.x, c.y])
+				_sucio = true
+		"llevar":
+			if _llevar_c.x >= 0:
+				_mover_elemento(_llevar_c, c)
+				_herramienta("")
+
+
+func _quitar_anadido(i: int) -> void:
+	if i >= 0 and i < _anadidos.size():
+		_anadidos.remove_at(i)
+		_decir("Quitado.")
+		_sucio = true
 
 
 # --- pestaña «Puzles» ---
@@ -1147,6 +1412,7 @@ func _al_abrir(id: int) -> void:
 	_enlaces = Exportador.enlaces_de(texto)
 	_puzles = Exportador.puzles_de(texto)
 	_movidos = Exportador.movidos_de(texto)
+	_anadidos = Exportador.anadidos_de(texto)
 	for k in _controles:
 		_poner_control(String(k), _par[k])
 	_decir("Abierto %s: mismos parámetros, semilla y retoques con los que se exportó." % nombre)

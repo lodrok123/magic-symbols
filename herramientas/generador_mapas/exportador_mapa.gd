@@ -80,7 +80,7 @@ static func texto_mapa(m: Dictionary) -> String:
 	l.append(";  %d salas, %d puertas, %d enemigos, %d cofres, %d jarrones. Escena: escenas/Prueba%s.tscn. Mientras esta cabecera siga aquí, la herramienta puede volver a escribir" % [int(st["salas"]), int(st["puertas"]), int(st["enemigos"]), int(st["cofres"]), int(st["jarrones"]), nombre])
 	l.append(";  este archivo (guarda copia si lo has retocado). Para adoptarlo como nivel hecho a mano, borra la palabra GENERADO de la línea de arriba.")
 	l.append("; " + "=".repeat(118))
-	l.append("; # pared · . suelo · ~ agua honda · S inicio · W goblin guerrero · A goblin arquero · T brasero · g tierra pisada (pasillos) · R losas (o basalto bajo la lava)")
+	l.append("; # pared · . suelo · ~ agua honda · S inicio · W goblin guerrero · A goblin arquero · T brasero · g tierra pisada (pasillos) · R losas (o basalto bajo la lava) · G elemental del bosque")
 	var limpio: Dictionary = {}
 	for k in p:
 		if not String(k).begins_with("_"):
@@ -118,6 +118,12 @@ static func texto_mapa(m: Dictionary) -> String:
 		for de in origenes:
 			tm.append("%d,%d>%d,%d" % [int(de.x), int(de.y), int(mov[de].x), int(mov[de].y)])
 		l.append("; movidos " + " ".join(tm))
+	var an: Array = m.get("anadidos", [])
+	if not an.is_empty():
+		var ta: PackedStringArray = PackedStringArray()
+		for a in an:
+			ta.append("%s|%s|%s|%d,%d" % [String(a["que"]), String(a["tipo"]), String(a.get("premio", "")), int(a["c"].x), int(a["c"].y)])
+		l.append("; anadidos " + " ".join(ta))
 	l.append(";")
 	if bool(p["rotulo"]):
 		l.append("; zona 1,1..%d,%d %s mezcla=0.8 rotulo=%s" % [int(m["ancho"]) - 2, int(m["alto"]) - 2, String(p["luz"]), nombre])
@@ -357,7 +363,27 @@ static func _regenerado(texto: String) -> String:
 	if par.is_empty():
 		return ""
 	var gen: RefCounted = load("res://herramientas/generador_mapas/generador_mazmorra.gd").new()
-	return texto_mapa(gen.generar(_tipar(par), retoques_de(texto), enlaces_de(texto), puzles_de(texto), movidos_de(texto)))
+	return texto_mapa(gen.generar(_tipar(par), retoques_de(texto), enlaces_de(texto), puzles_de(texto), movidos_de(texto), anadidos_de(texto)))
+
+
+## Los enemigos y cofres añadidos a mano (la línea `; anadidos que|tipo|premio|x,y …`), en el orden en que se pusieron.
+static func anadidos_de(texto: String) -> Array:
+	var res: Array = []
+	for linea in texto.split("\n"):
+		var l: String = String(linea).strip_edges()
+		if not l.begins_with("; anadidos "):
+			continue
+		for t in l.substr(11).split(" ", false):
+			var trozos: PackedStringArray = t.split("|")
+			if trozos.size() != 4:
+				continue
+			var xy: PackedStringArray = trozos[3].split(",")
+			if xy.size() == 2 and xy[0].is_valid_int() and xy[1].is_valid_int():
+				var a: Dictionary = {"que": trozos[0], "tipo": trozos[1], "c": Vector2i(xy[0].to_int(), xy[1].to_int())}
+				if trozos[0] == "cofre" and trozos[1] != "comun":
+					a["premio"] = trozos[2]
+				res.append(a)
+	return res
 
 
 ## Los elementos movidos a mano (la línea `; movidos x,y>x,y …`): casilla donde lo puso el generador → casilla donde quedó.
