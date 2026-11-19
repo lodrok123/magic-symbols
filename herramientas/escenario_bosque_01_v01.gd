@@ -206,6 +206,8 @@ func _linde_y_barrera() -> void:
 	var fases: Array = []
 	var t0: float = reloj.t
 	while not seq.hecha and reloj.t - t0 < 12.0:
+		if seq.esperando_input:
+			seq.continuar()
 		await process_frame
 		if fases.is_empty() or fases.back() != seq.fase:
 			fases.append(seq.fase)

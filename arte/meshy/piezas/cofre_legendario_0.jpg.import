@@ -3,9 +3,10 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://b1y8fa3ldu8ij"
-path="res://.godot/imported/cofre_legendario_0.jpg-a6bc85b023d35a154b8d493243146fb2.ctex"
+path.s3tc="res://.godot/imported/cofre_legendario_0.jpg-a6bc85b023d35a154b8d493243146fb2.s3tc.ctex"
 metadata={
-"vram_texture": false
+"imported_formats": ["s3tc_bptc"],
+"vram_texture": true
 }
 generator_parameters={
 "md5": "990b24e6b7c81e82d3b213bd12b1b13a"
@@ -14,11 +15,11 @@ generator_parameters={
 [deps]
 
 source_file="res://arte/meshy/piezas/cofre_legendario_0.jpg"
-dest_files=["res://.godot/imported/cofre_legendario_0.jpg-a6bc85b023d35a154b8d493243146fb2.ctex"]
+dest_files=["res://.godot/imported/cofre_legendario_0.jpg-a6bc85b023d35a154b8d493243146fb2.s3tc.ctex"]
 
 [params]
 
-compress/mode=0
+compress/mode=2
 compress/high_quality=false
 compress/lossy_quality=0.7
 compress/uastc_level=0
@@ -40,4 +41,4 @@ process/normal_map_invert_y=false
 process/hdr_as_srgb=false
 process/hdr_clamp_exposure=false
 process/size_limit=0
-detect_3d/compress_to=1
+detect_3d/compress_to=0

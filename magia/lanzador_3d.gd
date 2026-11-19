@@ -2668,11 +2668,18 @@ func levantar_plataforma_tierra(celdas: Array[Vector2i], vida: float, base_y: fl
 	var colision := CollisionShape3D.new()
 	colision.shape = forma
 	pieza.add_child(colision)
-	var visual := MeshInstance3D.new()
-	visual.mesh = TierraToy.malla_roca(TierraToy.MALLA_LOSA)
-	visual.material_override = TierraToy.material_roca({"base_tierra": 1.0})
-	visual.transform = TierraToy.asentar(visual.mesh, Basis.IDENTITY, tamano.x, tamano.y, tamano.z, Vector3.DOWN * tamano.y * 0.5)
-	pieza.add_child(visual)
+	# 18/11 (Pablo: «8 facetada»): la losa de RockForm (`TierraToy.MALLA_PLATAFORMA`), UNA POR CASILLA y cada una girada un cuarto de vuelta más que la
+	# anterior, en vez de una sola losa estirada a todo el tramo (un puente de 4 casillas la deformaba ×4). No trae UV: textura de tierra en triplanar.
+	var malla: Mesh = TierraToy.malla_roca(TierraToy.MALLA_PLATAFORMA)
+	var material: ShaderMaterial = TierraToy.material_plataforma()
+	for i in celdas.size():
+		var visual := MeshInstance3D.new()
+		visual.mesh = malla
+		visual.material_override = material
+		var en_pieza: Vector3 = centro_de(celdas[i], base) - centro
+		visual.transform = TierraToy.asentar(malla, Basis(Vector3.UP, PI * 0.5 * float(i)), Terreno3D.casilla, tamano.y, Terreno3D.casilla,
+			Vector3(en_pieza.x, -tamano.y * 0.5, en_pieza.z))
+		pieza.add_child(visual)
 	mundo.add_child(pieza)
 	pieza.global_position = centro - Vector3.UP * ALTO_PLATAFORMA_TIERRA * 0.5
 	pieza.create_tween().tween_property(pieza, "global_position:y", centro.y + ALTO_PLATAFORMA_TIERRA * 0.5, 0.25)

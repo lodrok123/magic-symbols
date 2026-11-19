@@ -1,0 +1,94 @@
+########################################
+#.....#..........W####..............####
+#.W...............####..............####
+#.....#..######W..####..###########.####
+#.....#.W.....#...#..#..#.....A..#....T#
+#....T#..######......#..#........#.A...#
+##.####...........#..#..#..W.....#.....#
+#....T#...........#.....#....A...#.....#
+#.T.T.#.................#........~.....#
+#.A...##.#####.#######..#W.......#.....#
+#.....#....T#...........#........#.....#
+#.....#..W..#...........#........#...W.#
+##.####...W.#############........#.....#
+#...WT#.....#.......A..T#........#.....#
+#.....#.....#........W..#.......T#.....#
+#.....#.....#...........###########.####
+#.T.T.#.....#...........#..............#
+#.....#.....#W.........................#
+#..A..#######...........###########~#..#
+#.....#######.......W...#...........#..#
+#.....#######...........#...........#..#
+##.##.##############.####......W....#..#
+#..#..........T####.....#.........W.#..#
+#..#...........####.....#T..........#..#
+#..#.~~........########.#############..#
+#..#.~~........#T.......#..............#
+#..#.~~........#....W..................#
+####.~~........#..~~~~..########.####..#
+####.~~........#..~~~~..#T..........#..#
+####...........#........#..............#
+#########################.....S.....#..#
+#########################...........#..#
+#########################..............#
+########################################
+; ======================================================================================================================
+;  GENERADO por herramientas/generador_mapas. 2026-11-17. Nivel «MazmorraGen», 40 × 34, algoritmo «salas», semilla 5.
+;  12 salas, 20 puertas, 22 enemigos, 2 cofres, 11 jarrones. Escena: escenas/PruebaMazmorraGen.tscn. Mientras esta cabecera siga aquí, la herramienta puede volver a escribir
+;  este archivo (guarda copia si lo has retocado). Para adoptarlo como nivel hecho a mano, borra la palabra GENERADO de la línea de arriba.
+; ======================================================================================================================
+; # pared · . suelo · ~ agua honda · S inicio · W goblin guerrero · A goblin arquero · T brasero
+; generador {"agua":8,"algoritmo":"salas","alto":34,"ancho":40,"ancho_pasillo":2,"arqueros":30,"b_braseros":true,"b_placa":true,"b_puente":true,"barreras":3,"braseros":1.0,"bucles":30,"callejones":100,"charcas":20,"densidad_salas":1.0,"enemigos":1.0,"estilo":"cueva","forma":"rectangulo","jarrones":1.0,"lado_max":8,"lado_min":4,"llave":true,"luz":"cueva","metodo":"fractal","n_salas":9,"nombre":"MazmorraGen","octavas":4,"pasillos":30,"puertas":50,"puzles":0,"recto":60,"region_min":12,"relleno":56,"reparto":"dispersas","rotulo":true,"sala_max":4,"sala_min":2,"salas_cerradas":40,"salida_a":"","semilla":5,"silueta":60,"simetria":true,"suavizados":2,"tamano_sala":10.0,"tesoro":true}
+;
+; zona 1,1..38,32 cueva mezcla=0.8 rotulo=MazmorraGen
+;
+; pieza inicio entrada 30 30
+; pieza puerta_tesoro puerta 5 21 modelo=llave llave=mazmorragen.tesoro.llave gasta=no abierto=mazmorragen.tesoro.puerta
+; pieza cat1_bloque bloque 11 4 material=piedra
+; pieza cat1_placa pulsador 13 4 modo=presencia peso=3 modelo=cueva
+; pieza puerta_1 puerta 8 9
+; pieza cat2_luces contador 3 17 de=2,16+4,16
+; pieza cat2_luz_a brasero 2 16 luz=2.4 modelo=cueva
+; pieza cat2_luz_b brasero 4 16 luz=2.4 modelo=cueva
+; pieza puente_2 puente 33 8 celdas=33,8
+; pieza cat3_luces contador 3 9 de=2,8+4,8
+; pieza cat3_luz_a brasero 2 8 luz=2.4 modelo=cueva
+; pieza cat3_luz_b brasero 4 8 luz=2.4 modelo=cueva
+; pieza puente_3 puente 35 18 celdas=35,18
+; pieza tesoro cofre 9 25 abierto=mazmorragen.tesoro.cofre da=oro:60+pocion:1
+; pieza vigia_3 vigia 13 13 de=13,13..23,20 flag=mazmorragen.sala_3.limpia
+; pieza cerrojo_3 cerrojo 24 17 celdas=24,17+20,21 sala=13,13..23,20 hasta=mazmorragen.sala_3.limpia
+; puzle abre_3 cuando=vigia_3.todos_derrotados hace=cerrojo_3.abrir
+; pieza vigia_4 vigia 1 1 de=1,1..5,5 flag=mazmorragen.sala_4.limpia
+; pieza vigia_11 vigia 16 25 de=16,25..23,29 flag=mazmorragen.sala_11.limpia
+; pieza cerrojo_11 cerrojo 23 24 celdas=23,24+24,26 sala=16,25..23,29 hasta=mazmorragen.sala_11.limpia
+; puzle abre_11 cuando=vigia_11.todos_derrotados hace=cerrojo_11.abrir
+; pieza cofre_llave cofre 3 3 aparece_si=flag.mazmorragen.sala_4.limpia abierto=mazmorragen.tesoro.llave
+; pieza brasero_1 brasero 32 14 luz=2.4 modelo=cueva
+; pieza jarron_1 jarron 26 4 botin=oro
+; pieza brasero_2 brasero 14 22 luz=2.4 modelo=cueva
+; pieza jarron_2 jarron 13 22 botin=oro
+; pieza brasero_3 brasero 25 28 luz=2.4 modelo=cueva
+; pieza jarron_3 jarron 30 28 botin=oro
+; pieza brasero_4 brasero 23 13 luz=2.4 modelo=cueva
+; pieza jarron_4 jarron 13 13 botin=oro
+; pieza brasero_5 brasero 5 5 luz=2.4 modelo=cueva
+; pieza jarron_5 jarron 1 1 botin=oro
+; pieza brasero_6 brasero 25 23 luz=2.4 modelo=cueva
+; pieza jarron_6 jarron 32 19 botin=oro
+; pieza jarron_7 jarron 12 1 botin=pocion
+; pieza brasero_7 brasero 38 4 luz=2.4 modelo=cueva
+; pieza jarron_8 jarron 37 4 botin=pocion
+; pieza brasero_8 brasero 5 7 luz=2.4 modelo=cueva
+; pieza jarron_9 jarron 4 7 botin=oro
+; pieza brasero_9 brasero 11 10 luz=2.4 modelo=cueva
+; pieza jarron_10 jarron 10 10 botin=oro
+; pieza brasero_10 brasero 5 13 luz=2.4 modelo=cueva
+; pieza brasero_11 brasero 16 25 luz=2.4 modelo=cueva
+; pieza jarron_11 jarron 19 25 botin=pocion
+; puzle resuelve_puerta_1 cuando=cat1_placa.pulsado hace=flag.poner(mazmorragen.puerta_1.abierta)
+; puzle abre_puerta_1 cuando=flag.mazmorragen.puerta_1.abierta hace=puerta_1.abrir
+; puzle resuelve_puente_2 cuando=cat2_luces.todos hace=flag.poner(mazmorragen.puente_2.abierta)
+; puzle abre_puente_2 cuando=flag.mazmorragen.puente_2.abierta hace=puente_2.tender
+; puzle resuelve_puente_3 cuando=cat3_luces.todos hace=flag.poner(mazmorragen.puente_3.abierta)
+; puzle abre_puente_3 cuando=flag.mazmorragen.puente_3.abierta hace=puente_3.tender

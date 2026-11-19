@@ -3,9 +3,10 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://bbe017cmmu7l0"
-path="res://.godot/imported/jugadora_base_BakedMaterial_albedo.jpg-a13dab509083c85ab2768cc4728f6234.ctex"
+path.s3tc="res://.godot/imported/jugadora_base_BakedMaterial_albedo.jpg-a13dab509083c85ab2768cc4728f6234.s3tc.ctex"
 metadata={
-"vram_texture": false
+"imported_formats": ["s3tc_bptc"],
+"vram_texture": true
 }
 generator_parameters={
 "md5": "7880c87f9a6bc1a4718b6273734a80d4"
@@ -14,11 +15,11 @@ generator_parameters={
 [deps]
 
 source_file="res://arte/modelos/jugadora_base_BakedMaterial_albedo.jpg"
-dest_files=["res://.godot/imported/jugadora_base_BakedMaterial_albedo.jpg-a13dab509083c85ab2768cc4728f6234.ctex"]
+dest_files=["res://.godot/imported/jugadora_base_BakedMaterial_albedo.jpg-a13dab509083c85ab2768cc4728f6234.s3tc.ctex"]
 
 [params]
 
-compress/mode=0
+compress/mode=2
 compress/high_quality=false
 compress/lossy_quality=0.7
 compress/uastc_level=0
@@ -40,4 +41,4 @@ process/normal_map_invert_y=false
 process/hdr_as_srgb=false
 process/hdr_clamp_exposure=false
 process/size_limit=0
-detect_3d/compress_to=1
+detect_3d/compress_to=0

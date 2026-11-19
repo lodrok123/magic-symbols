@@ -102,12 +102,75 @@ var _llave_barrera: Dictionary = {}    ## la puerta con llave como barrera: {cel
 var puzles_puestos: Dictionary = {}     ## sala -> puzle del catalogo que lleva
 var _puzles_mano: Dictionary = {}       ## sala -> puzle del catalogo pedido a mano
 var _n_cat: int = 0
+## Elementos movidos a mano (18/11): casilla donde el generador lo puso → casilla donde se quiere. Ver `_aplicar_movidos`.
+var _movidos_pedidos: Dictionary = {}
+var movidos_hechos: Dictionary = {}     ## lo que de verdad se movió: casilla de origen → casilla donde ha quedado (puede no ser la pedida)
+## Lo que se puede mover a mano. Las puertas, los puentes y los cerrojos no (son la forma del mapa); las piezas de un puzle del catálogo
+## tampoco: el puzle entero se mueve de sala en la pestaña «Puzles».
+const MOVIBLES: Array[String] = ["guerrero", "arquero", "brasero", "jarron", "cofre_tesoro", "cofre_llave", "salida", "entrada", "inicio",
+	"limo", "golem", "chaman", "mouro", "elemental", "cofre_comun", "cofre_epico", "cofre_legendario"]
+
+## ENEMIGOS que se pueden añadir a mano (18/11, pestaña «Enemigos»). Son los que el juego sabe montar desde un mapa de letras sin guion
+## de nivel: los goblins y el elemental van por LETRA; limo, gólem, chamán y mouro, por línea `; pieza` (escenas/puzle.gd).
+## No están el loberno, el canouro ni el goblin asesino: esos los crea el guion de cada nivel hecho a mano leyendo `; marcador`, y un
+## mapa generado no lleva guion. Tampoco la Santa Compaña (pide un camino de casillas). `icono` = el tipo con que se dibuja.
+const ORDEN_ENEMIGOS: Array[String] = ["guerrero", "arquero", "limo", "limo_fuego", "limo_agua", "limo_tierra", "limo_grande", "golem", "chaman", "mouro", "elemental"]
+const ENEMIGOS: Dictionary = {
+	"guerrero": {"titulo": "Goblin guerrero", "letra": "W", "icono": "guerrero"},
+	"arquero": {"titulo": "Goblin arquero", "letra": "A", "icono": "arquero"},
+	"limo": {"titulo": "Limo", "pieza": "limo", "icono": "limo"},
+	"limo_fuego": {"titulo": "Limo de fuego", "pieza": "limo", "extra": " elemento=fuego", "icono": "limo"},
+	"limo_agua": {"titulo": "Limo de agua", "pieza": "limo", "extra": " elemento=agua", "icono": "limo"},
+	"limo_tierra": {"titulo": "Limo de tierra", "pieza": "limo", "extra": " elemento=tierra", "icono": "limo"},
+	"limo_grande": {"titulo": "Limo grande", "pieza": "limo", "extra": " grande=si", "icono": "limo"},
+	"golem": {"titulo": "Gólem de piedra", "pieza": "golem", "icono": "golem"},
+	"chaman": {"titulo": "Chamán goblin", "pieza": "chaman", "icono": "chaman"},
+	"mouro": {"titulo": "Mouro (espectro)", "pieza": "mouro", "icono": "mouro"},
+	"elemental": {"titulo": "Elemental del bosque (jefe)", "letra": "G", "icono": "elemental"},
+}
+
+## COFRES que se pueden añadir a mano (pestaña «Cofres»), por CALIDAD (Pablo, 18/11: «pedir calidad; recompensa aleatoria para los
+## comunes y recompensas específicas para épico y legendario»).
+##   · común: la recompensa se SORTEA entre `premios` (con la semilla del mapa y el número del cofre: sale siempre la misma para el mismo mapa).
+##   · épico (`modelo=epico`): una recompensa concreta, a elegir de `premios` (texto de `da=` → cómo se dice).
+##   · legendario (`modelo=legendario`): un GLIFO del libro (`glifo=`, con su secuencia de cofre legendario) y un botín fijo; o sin glifo.
+const ORDEN_COFRES: Array[String] = ["comun", "epico", "legendario"]
+const COFRES: Dictionary = {
+	"comun": {"titulo": "Común", "modelo": "", "premios": ["oro:20", "oro:30", "oro:45", "oro:25+pocion:1", "pocion:2", "oro:15+tonico_tinta:1",
+		"oro:20+antidoto:1", "oro:20+esquirla_cristal:2", "tabla:cofre_pequeno"]},
+	"epico": {"titulo": "Épico", "modelo": "epico", "premios": {
+		"tunica_salamandra:1": "Túnica de salamandra", "capa_escarcha:1": "Capa de escarcha", "capucha_musgo:1": "Capucha de musgo",
+		"nucleo_eco:1": "Núcleo de eco", "trozo_corazon:1+oro:60": "Trozo de corazón y 60 de oro", "frasco_vacio:1+oro:40": "Frasco de reserva y 40 de oro",
+		"engarce_glifo:1": "Engarce de glifo", "hoja_grimorio:1+oro:50": "Hoja de grimorio y 50 de oro"}},
+	"legendario": {"titulo": "Legendario", "modelo": "legendario", "da": "oro:150+pocion_grande:2", "premios": {
+		"glifo:barrera": "Glifo «barrera»", "glifo:linea": "Glifo «línea»", "glifo:raido": "Glifo «raido» (pulso)",
+		"glifo:permanencia": "Glifo «permanencia»", "trozo_corazon:1": "Sin glifo: un trozo de corazón más"}},
+}
+## Lo añadido a mano que se pide: [{que: "enemigo" | "cofre", tipo, premio (cofres), c: Vector2i}]. Ver `_aplicar_anadidos`.
+var _anadidos_pedidos: Array = []
+var anadidos_hechos: Array = []         ## lo que de verdad se puso, con su casilla final (la pedida o la válida más cercana)
+var _indice_hecho: Array = []           ## por cada añadido pedido, su sitio en `anadidos_hechos` (-1 si no se pudo poner)
+## COFRES QUE APARECEN AL CAER ENEMIGOS (18/11, Pablo: «enlazar que un enemigo muerto haga aparecer un cofre»): [{cofre, enemigos: []}].
+## Cada extremo se nombra de forma que sobreviva a mover cosas: `a<n>` = el añadido a mano número n; `x,y` = la casilla donde el
+## generador puso el elemento (aunque después se haya movido). Ver `_aplicar_apariciones`.
+var _apariciones_pedidas: Array = []
+var apariciones_hechas: Array = []
+const TIPOS_ENEMIGO: Array[String] = ["guerrero", "arquero", "limo", "golem", "chaman", "mouro", "elemental"]
+const COFRES_ENLAZABLES: Array[String] = ["cofre_tesoro", "cofre_comun", "cofre_epico", "cofre_legendario"]
 var _ultimo_act: String = ""            ## el activador que dejó la última plantilla `salida` estampada
 var _nv: String = ""                    ## el nombre del nivel en minúsculas (para las flags)
 var _letras_extra: String = ""
 
 
-func generar(parametros: Dictionary = {}, retoques: Dictionary = {}, enlaces_mano: Dictionary = {}, puzles_mano: Dictionary = {}) -> Dictionary:
+func generar(parametros: Dictionary = {}, retoques: Dictionary = {}, enlaces_mano: Dictionary = {}, puzles_mano: Dictionary = {}, movidos: Dictionary = {},
+		anadidos: Array = [], apariciones: Array = []) -> Dictionary:
+	_apariciones_pedidas = apariciones.duplicate(true)
+	apariciones_hechas = []
+	_indice_hecho = []
+	_movidos_pedidos = movidos.duplicate()
+	movidos_hechos = {}
+	_anadidos_pedidos = anadidos.duplicate(true)
+	anadidos_hechos = []
 	puzles_puestos = {}
 	_puzles_mano = puzles_mano.duplicate()
 	_n_cat = 0
@@ -1202,9 +1265,17 @@ func _poblar() -> void:
 	_objeto(inicio, "inicio")
 	lineas.append("; pieza inicio entrada %d %d" % [inicio.x, inicio.y])
 	# Salidas: varias, separadas por comas. La primera va en la sala de inicio; las demás, cada una en una sala lejana (más abajo).
+	# 18/11: `Nivel:entrada=llegada` da NOMBRE a la llegada que acompaña a esa salida (por donde se entra a este nivel viniendo de aquel).
+	# Hace falta para sustituir un nivel al que ya viajan otros: las cuevas salen a `Bosque_02:boca_cueva`, así que el Bosque 02 nuevo
+	# necesita una llegada que se llame `boca_cueva`. Sin `=`, las de siempre: `inicio` la primera y `entrada_2`, `entrada_3`… las demás.
 	var destinos: PackedStringArray = PackedStringArray()
+	var llegadas: PackedStringArray = PackedStringArray()
 	for d in String(p["salida_a"]).replace(";", ",").replace(" ", ",").split(",", false):
-		destinos.append(d)
+		var trozos_d: PackedStringArray = d.split("=", true, 1)
+		destinos.append(trozos_d[0])
+		llegadas.append(trozos_d[1] if trozos_d.size() > 1 else "")
+	if llegadas.size() > 0 and llegadas[0] != "" and llegadas[0] != "inicio":
+		lineas.append("; pieza %s entrada %d %d" % [llegadas[0], inicio.x, inicio.y])       # la sala de inicio, también con ese nombre
 	if destinos.size() > 0 and not _poner_salida(s_ini, destinos[0], 1, inicio):
 		avisos.append("No cabe la salida en la sala de inicio (demasiado pequeña).")
 	# 1b · Puzles del catalogo: antes de repartir papeles, porque cambian el suelo de su sala.
@@ -1301,8 +1372,9 @@ func _poblar() -> void:
 				if _poner_salida(sala_k, destinos[k], k + 1, llegada):
 					sala_k["rol"] = "salida"
 					con_salida.append(sala_k)
-					_objeto(llegada, "entrada", "entrada_%d" % (k + 1))
-					lineas.append("; pieza entrada_%d entrada %d %d" % [k + 1, llegada.x, llegada.y])
+					var id_llegada: String = llegadas[k] if llegadas[k] != "" else "entrada_%d" % (k + 1)
+					_objeto(llegada, "entrada", id_llegada)
+					lineas.append("; pieza %s entrada %d %d" % [id_llegada, llegada.x, llegada.y])
 					puesta = true
 				else:
 					_ocupada.erase(llegada)
@@ -1453,8 +1525,448 @@ func _poblar() -> void:
 				lineas.append("; pieza %s jarron %d %d botin=%s" % [jid, c.x, c.y, "pocion" if _pct(20.0) else "oro"])
 				quiero_j -= 1
 	p["_arqueros"] = hay_arquero
+	_aplicar_movidos()
+	_aplicar_anadidos(nv)
+	_aplicar_apariciones(nv)
 	_emitir_barreras(nv)
 	_pintar_terreno()
+
+
+# =====================================================================================================================
+#  Enemigos y cofres añadidos a mano
+# =====================================================================================================================
+
+## Pone los enemigos y cofres que se han añadido a mano (pestañas «Enemigos» y «Cofres»: se elige y se hace clic en el mapa). Va después
+## de mover y con el mismo cuidado: se prueba la casilla pedida y, si no vale, las más cercanas; se queda con la primera que sea suelo
+## libre y, para un cofre (que bloquea su casilla), que no parta el mapa ni lo deje sin solución. Si no hay sitio, no se pone y lo dice.
+func _aplicar_anadidos(nv: String) -> void:
+	var n_enem: int = 0
+	var n_cofre: int = 0
+	for pedido_v in _anadidos_pedidos:
+		var ped: Dictionary = pedido_v
+		var que: String = String(ped.get("que", ""))
+		var tipo: String = String(ped.get("tipo", ""))
+		var pedido: Vector2i = ped.get("c", Vector2i(-1, -1))
+		var es_cofre: bool = que == "cofre"
+		_indice_hecho.append(-1)
+		if que == "salida":
+			_anadir_salida(ped)
+			continue
+		if (es_cofre and not COFRES.has(tipo)) or (not es_cofre and not ENEMIGOS.has(tipo)):
+			avisos.append("Lo añadido a mano en (%d, %d) no se reconoce («%s»): se descarta." % [pedido.x, pedido.y, tipo])
+			continue
+		var candidatos: Array = []
+		for dy in range(-6, 7):
+			for dx in range(-6, 7):
+				var c: Vector2i = pedido + Vector2i(dx, dy)
+				if _dentro(c) and _tipo(c) == SUELO and not _ocupada.has(c) and not letras.has(c):
+					candidatos.append(c)
+		candidatos.sort_custom(func(a: Vector2i, b: Vector2i) -> bool:
+			var da: int = (a - pedido).length_squared()
+			var db: int = (b - pedido).length_squared()
+			return da < db or (da == db and (a.y < b.y or (a.y == b.y and a.x < b.x))))
+		var puesto: Vector2i = Vector2i(-1, -1)
+		for c in candidatos.slice(0, 40):
+			if not es_cofre:
+				puesto = c                               # un enemigo no bloquea: cualquier suelo libre vale
+				break
+			if not _puede_bloquear(c):
+				continue
+			_ocupar(c, true)
+			if (_componentes(true, _bloqueos)[1] as Array).size() <= 1 and _resoluble():
+				puesto = c
+				break
+			_ocupada.erase(c)
+			_bloqueos.erase(c)
+		var nombre: String = ("un cofre %s" % String(COFRES[tipo]["titulo"]).to_lower()) if es_cofre else String(ENEMIGOS[tipo]["titulo"])
+		if puesto.x < 0:
+			avisos.append("No se ha podido poner %s cerca de (%d, %d): no hay suelo libre%s. No se añade." % [nombre, pedido.x, pedido.y,
+				" donde no corte el paso" if es_cofre else ""])
+			continue
+		if puesto != pedido:
+			avisos.append("%s que ponías en (%d, %d) ha quedado en (%d, %d): era el sitio válido más cercano." % [(nombre.substr(0, 1).to_upper() + nombre.substr(1)) if not es_cofre else "El cofre",
+				pedido.x, pedido.y, puesto.x, puesto.y])
+		var hecho: Dictionary = {"que": que, "tipo": tipo, "c": puesto}
+		if es_cofre:
+			n_cofre += 1
+			var def: Dictionary = COFRES[tipo]
+			var da: String = String(def.get("da", ""))
+			var premio: String = String(ped.get("premio", ""))
+			var extra: String = ""
+			if tipo == "comun":
+				# Sorteada, pero siempre la misma para este mapa y este cofre.
+				var dado: RandomNumberGenerator = RandomNumberGenerator.new()
+				dado.seed = hash("cofre %d de la semilla %d" % [n_cofre, int(p["semilla"])])
+				var bolsa: Array = def["premios"]
+				premio = String(bolsa[dado.randi() % bolsa.size()])
+				da = premio
+			else:
+				if not (def["premios"] as Dictionary).has(premio):
+					premio = String((def["premios"] as Dictionary).keys()[0])
+				if premio.begins_with("glifo:"):
+					extra = " glifo=" + premio.substr(6)
+				else:
+					da = premio if da == "" else da + "+" + premio
+			hecho["premio"] = premio
+			hecho["da"] = da
+			var cid: String = "cofre_m%d" % n_cofre
+			_objeto(puesto, "cofre_" + tipo, cid)
+			lineas.append("; pieza %s cofre %d %d%s%s abierto=%s.%s.abierto da=%s" % [cid, puesto.x, puesto.y,
+				(" modelo=" + String(def["modelo"])) if String(def["modelo"]) != "" else "", extra, nv, cid, da])
+		else:
+			n_enem += 1
+			var def_e: Dictionary = ENEMIGOS[tipo]
+			var eid: String = "enemigo_m%d" % n_enem
+			_ocupar(puesto)
+			_objeto(puesto, String(def_e["icono"]), eid)
+			if def_e.has("letra"):
+				letras[puesto] = String(def_e["letra"])
+				if not _letras_extra.contains(String(def_e["letra"])) and not "#.~SWAT".contains(String(def_e["letra"])):
+					_letras_extra += String(def_e["letra"])
+				if tipo == "arquero":
+					p["_arqueros"] = true
+			else:
+				lineas.append("; pieza %s %s %d %d%s" % [eid, String(def_e["pieza"]), puesto.x, puesto.y, String(def_e.get("extra", ""))])
+		objetos[objetos.size() - 1]["anadido"] = anadidos_hechos.size()       # para que la herramienta sepa cuál de la lista es
+		_indice_hecho[_indice_hecho.size() - 1] = anadidos_hechos.size()
+		anadidos_hechos.append(hecho)
+
+
+## Una SALIDA añadida a mano (18/11, pestaña «Salidas»): `tipo` = el destino `Nivel:entrada`; `modo` pisar | usar; `ancho` = casillas
+## seguidas que ocupa (una puerta ancha); `marca` = se dibuja la marca en el suelo; `llegada` = cómo se llama el punto por el que se
+## entra AQUÍ viniendo de allí (vacío = `llegada_m<n>`). Se pone en la casilla pedida o en la válida más cercana: hace falta sitio para
+## todas sus casillas (en fila, de lado a lado o, si no, de arriba abajo) y una casilla libre pegada para la llegada. No bloquea.
+func _anadir_salida(ped: Dictionary) -> void:
+	var destino: String = String(ped.get("tipo", ""))
+	var pedido: Vector2i = ped.get("c", Vector2i(-1, -1))
+	var partes: PackedStringArray = destino.split(":")
+	if partes.size() != 2 or partes[0] == "" or partes[1] == "":
+		avisos.append("La salida de (%d, %d) no dice a dónde va («%s» no es Nivel:entrada): se descarta." % [pedido.x, pedido.y, destino])
+		return
+	var modo: String = "usar" if String(ped.get("modo", "pisar")) == "usar" else "pisar"
+	var ancho: int = clampi(int(ped.get("ancho", 1)), 1, 4)
+	var marca: bool = bool(ped.get("marca", true))
+	var acceso: String = String(ped.get("acceso", ""))
+	if not ["", "sendero", "boca"].has(acceso):
+		acceso = ""
+	var n_sal: int = 1
+	for a in anadidos_hechos:
+		n_sal += 1 if String(a["que"]) == "salida" else 0
+	var sid: String = "salida_m%d" % n_sal
+	# El nombre de la llegada: el pedido si es un nombre limpio que no esté ya cogido; si no, uno propio.
+	var llegada: String = String(ped.get("llegada", "")).strip_edges()
+	var cogidos: Dictionary = {}
+	for l in lineas:
+		var tl: PackedStringArray = l.substr(1).strip_edges().split(" ", false)
+		if tl.size() >= 3 and tl[0] == "pieza":
+			cogidos[tl[1]] = true
+	var limpio: bool = llegada != ""
+	for i in range(llegada.length()):
+		var ch: String = llegada[i]
+		limpio = limpio and ((ch >= "a" and ch <= "z") or (ch >= "A" and ch <= "Z") or (ch >= "0" and ch <= "9") or ch == "_")
+	if llegada != "" and (not limpio or cogidos.has(llegada)):
+		avisos.append("La llegada «%s» de la salida a %s no vale (%s): se llama «llegada_m%d»." % [llegada, destino, "ese nombre ya lo usa otra pieza" if limpio else "solo letras sin acento, cifras y «_»", n_sal])
+		llegada = ""
+	if llegada == "":
+		llegada = "llegada_m%d" % n_sal
+	var candidatos: Array = []
+	for dy in range(-6, 7):
+		for dx in range(-6, 7):
+			var c: Vector2i = pedido + Vector2i(dx, dy)
+			if _dentro(c) and _libre(c) and not letras.has(c):
+				candidatos.append(c)
+	candidatos.sort_custom(func(a: Vector2i, b: Vector2i) -> bool:
+		var da: int = (a - pedido).length_squared()
+		var db: int = (b - pedido).length_squared()
+		return da < db or (da == db and (a.y < b.y or (a.y == b.y and a.x < b.x))))
+	var celdas: Array = []
+	var entra: Vector2i = Vector2i(-1, -1)
+	var ancla: Vector2i = Vector2i(-1, -1)          # lo que se guarda como «c» (en una boca, la casilla de la sala que tiene delante)
+	if acceso == "boca":
+		# BOCA EN LA PARED: se excava un hueco de dos casillas HACIA ARRIBA en la pared de una sala; la salida va al fondo y la llegada, en
+		# la casilla de en medio. Solo hacia arriba: con la cámara del juego un pasillo de una casilla que va de lado a lado queda tapado
+		# por la pared de delante, y uno hacia abajo queda detrás de ella. Tiene que ser roca por los dos lados y seguir siéndolo detrás.
+		# Si la pared da para dos casillas, la llegada va en la de en medio; si solo da para una (lo normal en «salas», donde detrás de la
+		# pared suele haber un pasillo), queda un NICHO de una casilla con la salida dentro y la llegada delante, en la sala.
+		var cerca: Array = []
+		for dy in range(-10, 11):
+			for dx in range(-10, 11):
+				var cb: Vector2i = pedido + Vector2i(dx, dy)
+				if _dentro(cb) and _libre(cb) and not letras.has(cb):
+					cerca.append(cb)
+		cerca.sort_custom(func(a: Vector2i, b: Vector2i) -> bool:
+			var da: int = (a - pedido).length_squared()
+			var db: int = (b - pedido).length_squared()
+			return da < db or (da == db and (a.y < b.y or (a.y == b.y and a.x < b.x))))
+		for f in cerca:
+			var n1: Vector2i = (f as Vector2i) + Vector2i(0, -1)
+			var n2: Vector2i = (f as Vector2i) + Vector2i(0, -2)
+			var una: bool = n1.y >= 1
+			for q in [n1, n2, n1 + Vector2i(-1, 0), n1 + Vector2i(1, 0), n2 + Vector2i(-1, 0), n2 + Vector2i(1, 0)]:
+				una = una and _dentro(q) and _tipo(q) == MURO and not _retoques.has(q)
+			if not una:
+				continue
+			var dos: bool = n2.y >= 1
+			for q in [n2 + Vector2i(0, -1), n2 + Vector2i(-1, -1), n2 + Vector2i(1, -1)]:
+				dos = dos and _dentro(q) and _tipo(q) == MURO and not _retoques.has(q)
+			g[n1.y * w + n1.x] = SUELO
+			if dos:
+				g[n2.y * w + n2.x] = SUELO
+			celdas = [n2] if dos else [n1]
+			entra = n1 if dos else (f as Vector2i)
+			ancla = f
+			ancho = 1
+			break
+		if celdas.is_empty():
+			avisos.append("Cerca de (%d, %d) no hay una pared de arriba con roca detrás donde abrir la boca de la salida a %s: se pone en el suelo, con sendero." % [pedido.x, pedido.y, destino])
+			acceso = "sendero"
+	for c in candidatos.slice(0, 60) if celdas.is_empty() else []:
+		for paso in [Vector2i(1, 0), Vector2i(0, 1)]:
+			var fila: Array = []
+			for k in range(ancho):
+				var q: Vector2i = (c as Vector2i) + (paso as Vector2i) * k
+				if _dentro(q) and _libre(q) and not letras.has(q):
+					fila.append(q)
+			if fila.size() != ancho:
+				continue
+			# La llegada: una casilla libre pegada a la salida (no encima: al llegar no hay que estar pisándola).
+			var e: Vector2i = Vector2i(-1, -1)
+			for q in fila:
+				for d in DIRS:
+					var v: Vector2i = (q as Vector2i) + d
+					if e.x < 0 and not fila.has(v) and _dentro(v) and _libre(v) and not letras.has(v):
+						e = v
+			if e.x >= 0:
+				celdas = fila
+				entra = e
+				break
+		if not celdas.is_empty():
+			break
+	if celdas.is_empty():
+		avisos.append("No se ha podido poner la salida a %s cerca de (%d, %d): no hay %d casillas libres seguidas con otra al lado para la llegada. No se añade." % [destino, pedido.x, pedido.y, ancho])
+		return
+	var c0: Vector2i = celdas[0]
+	if ancla.x < 0:
+		ancla = c0
+	if ancla != pedido:
+		avisos.append("La salida a %s que ponías en (%d, %d) ha quedado en (%d, %d): era el sitio válido más cercano." % [destino, pedido.x, pedido.y, c0.x, c0.y])
+	var txt: PackedStringArray = PackedStringArray()
+	for q in celdas:
+		_ocupar(q)
+		_objeto(q, "salida", sid)
+		objetos[objetos.size() - 1]["anadido"] = anadidos_hechos.size()
+		txt.append("%d,%d" % [int(q.x), int(q.y)])
+	_ocupar(entra)
+	_objeto(entra, "entrada", llegada)
+	objetos[objetos.size() - 1]["de_salida"] = true          # se mueve con su salida, no suelta
+	lineas.append("; pieza %s salida %d %d a=%s%s%s%s" % [sid, c0.x, c0.y, destino, (" celdas=" + "+".join(txt)) if ancho > 1 else "",
+		" modo=usar" if modo == "usar" else "", "" if marca else " marca=no"])
+	lineas.append("; pieza %s entrada %d %d" % [llegada, entra.x, entra.y])
+	# EL ACCESO, para que se intuya que por ahí se sale: un SENDERO de losas (`R`: losas en el bosque, basalto en la cueva; la tierra `g`
+	# no valdría, que es la de los pasillos) que llega a la salida siguiendo el camino más corto desde el inicio. Con sendero, 8 casillas;
+	# una boca lleva las suyas y 3 más dentro de la sala. No pisa casillas con algo encima ni con letra propia.
+	var losas: Array = []
+	if acceso == "sendero" or acceso == "boca":
+		var dist: PackedInt32Array = _distancias(inicio)
+		var paso_s: Vector2i = entra
+		var largo: int = 8 if acceso == "sendero" else 4
+		var visto: Dictionary = {}
+		for _k in range(largo):
+			if not _dentro(paso_s) or dist[paso_s.y * w + paso_s.x] < 0:
+				break
+			visto[paso_s] = true
+			if _tipo(paso_s) == SUELO and not letras.has(paso_s) and (paso_s == entra or not _ocupada.has(paso_s)):
+				letras[paso_s] = "R"
+				losas.append(paso_s)
+			var mejor: Vector2i = paso_s
+			for d in DIRS:
+				var v: Vector2i = paso_s + d
+				if _dentro(v) and not visto.has(v) and dist[v.y * w + v.x] >= 0 and dist[v.y * w + v.x] < dist[mejor.y * w + mejor.x]:
+					mejor = v
+			if mejor == paso_s:
+				break
+			paso_s = mejor
+		if acceso == "sendero":
+			for q in celdas:
+				if not letras.has(q):
+					letras[q] = "R"
+		if not _letras_extra.contains("R"):
+			_letras_extra += "R"
+	_indice_hecho[_indice_hecho.size() - 1] = anadidos_hechos.size()
+	anadidos_hechos.append({"que": "salida", "tipo": destino, "c": ancla, "modo": modo, "ancho": ancho, "marca": marca, "llegada": llegada, "acceso": acceso,
+		"celdas": celdas, "entrada": entra, "losas": losas, "premio": "%s;%d;%s;%s;%s" % [modo, ancho, "si" if marca else "no", llegada, acceso]})
+
+
+## Dónde está ahora lo que nombra un extremo (`a<n>` o `x,y`), y cómo se nombra tras recolocar los añadidos. [casilla, nombre]; casilla (-1, -1) si ya no existe.
+func _extremo(e: String) -> Array:
+	if e.begins_with("a") and e.substr(1).is_valid_int():
+		var i: int = e.substr(1).to_int()
+		if i < 0 or i >= _indice_hecho.size() or int(_indice_hecho[i]) < 0:
+			return [Vector2i(-1, -1), e]
+		return [anadidos_hechos[int(_indice_hecho[i])]["c"], "a%d" % int(_indice_hecho[i])]
+	var xy: PackedStringArray = e.split(",")
+	if xy.size() != 2 or not xy[0].is_valid_int() or not xy[1].is_valid_int():
+		return [Vector2i(-1, -1), e]
+	var origen: Vector2i = Vector2i(xy[0].to_int(), xy[1].to_int())
+	return [movidos_hechos.get(origen, origen), e]
+
+
+## El objeto de uno de esos tipos que hay en la casilla ({} si ninguno).
+func _objeto_en(c: Vector2i, tipos: Array) -> Dictionary:
+	for o in objetos:
+		if (o["c"] as Vector2i) == c and tipos.has(String(o["tipo"])):
+			return o
+	return {}
+
+
+## Cofres que aparecen cuando caen sus enemigos. Usa lo que el juego ya tiene: un VIGÍA que vigila a los enemigos que nacen en unas
+## casillas y pone una flag cuando han caído todos, y `aparece_si=flag.…` en el cofre (lo mismo que el generador hace con el cofre de la
+## llave). Va al final, con todo movido y añadido. Un extremo que ya no existe se descarta con aviso; el cofre de la llave no se enlaza
+## (ya aparece al limpiar su sala).
+func _aplicar_apariciones(nv: String) -> void:
+	var n: int = 0
+	for ap_v in _apariciones_pedidas:
+		var ap: Dictionary = ap_v
+		var ec: Array = _extremo(String(ap.get("cofre", "")))
+		var cofre: Dictionary = _objeto_en(ec[0], COFRES_ENLAZABLES) if (ec[0] as Vector2i).x >= 0 else {}
+		if cofre.is_empty():
+			avisos.append("Un cofre que aparecía al caer enemigos ya no está en el mapa: ese enlace se descarta.")
+			continue
+		var celdas: Array = []
+		var nombres: Array = []
+		for en in ap.get("enemigos", []):
+			var ee: Array = _extremo(String(en))
+			if (ee[0] as Vector2i).x >= 0 and not _objeto_en(ee[0], TIPOS_ENEMIGO).is_empty() and not celdas.has(ee[0]):
+				celdas.append(ee[0])
+				nombres.append(ee[1])
+			else:
+				avisos.append("Un enemigo enlazado al cofre de (%d, %d) ya no está en el mapa: se quita de ese enlace." % [(ec[0] as Vector2i).x, (ec[0] as Vector2i).y])
+		if celdas.is_empty():
+			avisos.append("El cofre de (%d, %d) se ha quedado sin enemigos enlazados: vuelve a aparecer desde el principio." % [(ec[0] as Vector2i).x, (ec[0] as Vector2i).y])
+			continue
+		# La línea del cofre: se le añade la condición de aparecer.
+		var cc: Vector2i = ec[0]
+		var puesta: bool = false
+		var cid: String = ""
+		for i in range(lineas.size()):
+			var t: PackedStringArray = lineas[i].substr(1).strip_edges().split(" ", false)
+			if t.size() >= 5 and t[0] == "pieza" and t[2] == "cofre" and t[3].to_int() == cc.x and t[4].to_int() == cc.y and not lineas[i].contains(" aparece_si="):
+				cid = t[1]
+				lineas[i] = lineas[i] + " aparece_si=flag.%s.%s.aparece" % [nv, cid]
+				puesta = true
+				break
+		if not puesta:
+			avisos.append("El cofre de (%d, %d) ya tiene su propia condición para aparecer: no se le añade otra." % [cc.x, cc.y])
+			continue
+		n += 1
+		var txt: PackedStringArray = PackedStringArray()
+		for c in celdas:
+			txt.append("%d,%d" % [int(c.x), int(c.y)])
+		lineas.append("; pieza vigia_ap%d vigia %d %d de=%s flag=%s.%s.aparece" % [n, int(celdas[0].x), int(celdas[0].y), "+".join(txt), nv, cid])
+		apariciones_hechas.append({"cofre": ec[1], "enemigos": nombres, "c": cc, "de": celdas})
+		for c in celdas:
+			enlaces.append({"de": c, "a": cc, "de_id": "", "a_id": cid, "fijo": true, "aparece": true})
+
+
+# =====================================================================================================================
+#  Elementos movidos a mano
+# =====================================================================================================================
+
+## Lleva cada elemento movido a mano a su sitio nuevo (18/11, Pablo: «que pueda seleccionar un elemento y moverlo de lugar; la
+## autorresolución debe seguir funcionando para eliminar errores»). Va al final, con todo ya colocado: no cambia nada de lo que el
+## generador decide, solo traslada. Y NO se fía del sitio pedido: prueba primero ese y luego los más cercanos, y se queda con el primero
+## en el que el mapa sigue siendo jugable. Si no hay ninguno, el elemento se queda donde estaba y lo dice.
+##   · La casilla tiene que ser suelo libre (ni pared, ni agua, ni otra cosa encima).
+##   · Lo que bloquea (cofre, jarrón, brasero) no puede partir el mapa ni tapar algo que hay que tocar.
+##   · El cofre del tesoro, el de la llave y el inicio no salen de su sala (su papel es de esa sala), y un enemigo no sale de una sala
+##     con vigía (el vigía cuenta los de dentro: fuera, la sala quedaría sin nadie a quien vencer).
+##   · Después de mover, el mapa entero se tiene que seguir pudiendo completar (`_resoluble`) y la tierra, seguir unida.
+func _aplicar_movidos() -> void:
+	var origenes: Array = _movidos_pedidos.keys()
+	origenes.sort()
+	for de in origenes:
+		var pedido: Vector2i = _movidos_pedidos[de]
+		var movidos_aqui: Array = objetos.filter(func(o: Dictionary) -> bool:
+			return (o["c"] as Vector2i) == (de as Vector2i) and MOVIBLES.has(String(o["tipo"])) and not String(o["id"]).begins_with("cat"))
+		if movidos_aqui.is_empty():
+			avisos.append("En (%d, %d) ya no hay nada que se pueda mover (el mapa ha cambiado): ese movimiento se descarta." % [(de as Vector2i).x, (de as Vector2i).y])
+			continue
+		var tipo: String = String(movidos_aqui[0]["tipo"])
+		var bloquea: bool = _bloqueos.has(de)
+		# ¿De qué sala no puede salir?
+		var sala_de: Dictionary = {}
+		for s in _vivas():
+			if (s["rect"] as Rect2i).has_point(de):
+				sala_de = s
+		var atado: bool = not sala_de.is_empty() and (tipo == "cofre_tesoro" or tipo == "cofre_llave" or tipo == "inicio"
+			or ((tipo == "guerrero" or tipo == "arquero") and sala_de.has("vigia")))
+		# Candidatos: el sitio pedido y, si no vale, los de alrededor, de cerca a lejos.
+		# Lo que no puede salir de su sala se prueba en TODA su sala (soltarlo lejos lo lleva al borde más cercano de la sala).
+		var candidatos: Array = []
+		var zona: Rect2i = (sala_de["rect"] as Rect2i) if atado else Rect2i(pedido - Vector2i(6, 6), Vector2i(13, 13))
+		for y in range(zona.position.y, zona.end.y):
+			for x in range(zona.position.x, zona.end.x):
+				var c: Vector2i = Vector2i(x, y)
+				if c != (de as Vector2i) and _dentro(c) and _tipo(c) == SUELO and not _ocupada.has(c) and not letras.has(c):
+					candidatos.append(c)
+		candidatos.sort_custom(func(a: Vector2i, b: Vector2i) -> bool:
+			var da: int = (a - pedido).length_squared()
+			var db: int = (b - pedido).length_squared()
+			return da < db or (da == db and (a.y < b.y or (a.y == b.y and a.x < b.x))))
+		var puesto: Vector2i = Vector2i(-1, -1)
+		for c in candidatos.slice(0, 40):
+			var foto: Array = [lineas.duplicate(), objetos.duplicate(true), _ocupada.duplicate(), _bloqueos.duplicate(), letras.duplicate(), inicio, _llave_barrera.duplicate(true)]
+			_ocupada.erase(de)
+			_bloqueos.erase(de)
+			var vale: bool = _puede_bloquear(c) if bloquea else true
+			if vale:
+				_trasladar(de, c, bloquea)
+				vale = (_componentes(true, _bloqueos)[1] as Array).size() <= 1 and _resoluble()
+			if vale:
+				puesto = c
+				break
+			lineas = foto[0]
+			objetos = foto[1]
+			_ocupada = foto[2]
+			_bloqueos = foto[3]
+			letras = foto[4]
+			inicio = foto[5]
+			_llave_barrera = foto[6]
+		if puesto.x < 0:
+			avisos.append("No se ha podido mover lo de (%d, %d) cerca de (%d, %d): cortaría el paso, dejaría el mapa sin solución o no hay sitio%s. Se queda donde estaba." % [
+				(de as Vector2i).x, (de as Vector2i).y, pedido.x, pedido.y, " dentro de su sala" if atado else ""])
+			continue
+		movidos_hechos[de] = puesto
+		if puesto != pedido:
+			avisos.append("Lo que movías a (%d, %d) ha quedado en (%d, %d): era el sitio válido más cercano%s." % [pedido.x, pedido.y, puesto.x, puesto.y,
+				" (no puede salir de su sala)" if atado else ""])
+
+
+## Traslada de `de` a `a` todo lo movible que hay en la casilla: el dibujo, la letra del plano, las líneas `; pieza` y lo que el generador
+## recuerda de esa casilla (ocupada, bloqueo, inicio, cofre de la llave).
+func _trasladar(de: Vector2i, a: Vector2i, bloquea: bool) -> void:
+	for o in objetos:
+		if (o["c"] as Vector2i) == de and MOVIBLES.has(String(o["tipo"])) and not String(o["id"]).begins_with("cat"):
+			o["c"] = a
+	if letras.has(de):
+		letras[a] = letras[de]
+		letras.erase(de)
+	for i in range(lineas.size()):
+		var t: PackedStringArray = lineas[i].substr(1).strip_edges().split(" ", false)
+		if t.size() >= 5 and t[0] == "pieza" and ["jarron", "cofre", "salida", "entrada"].has(t[2]) and t[3].to_int() == de.x and t[4].to_int() == de.y and not t[1].begins_with("cat"):
+			t[3] = str(a.x)
+			t[4] = str(a.y)
+			lineas[i] = "; " + " ".join(t)
+	_ocupada.erase(de)
+	_bloqueos.erase(de)
+	_ocupar(a, bloquea)
+	if inicio == de:
+		inicio = a
+	if not _llave_barrera.is_empty():
+		var ac: Array = _llave_barrera["act_celdas"]
+		for i in range(ac.size()):
+			if (ac[i] as Vector2i) == de:
+				ac[i] = a
 
 
 ## Con qué suelo se pinta lo que se pisa (17/11). El generador solo escribía suelo `.`, y las juntas del juego salen ENTRE suelos distintos:
@@ -1761,9 +2273,9 @@ func _resultado() -> Dictionary:
 	var n_jarrones: int = 0
 	for o in objetos:
 		match String(o["tipo"]):
-			"guerrero", "arquero":
+			"guerrero", "arquero", "limo", "golem", "chaman", "mouro", "elemental":
 				n_enem += 1
-			"cofre_tesoro", "cofre_llave":
+			"cofre_tesoro", "cofre_llave", "cofre_comun", "cofre_epico", "cofre_legendario":
 				n_cofres += 1
 			"jarron":
 				n_jarrones += 1
@@ -1774,6 +2286,7 @@ func _resultado() -> Dictionary:
 		"arqueros": bool(p.get("_arqueros", false)), "retoques": _retoques,
 		"errores": errores, "enlaces": enlaces, "enlaces_mano": _enlaces_mano, "activadores": _activadores.keys(), "barreras": _barreras.size(),
 		"puzles": puzles_puestos, "puzles_mano": _puzles_mano, "cruzables": _puentes.keys(), "letras_extra": _letras_extra,
+		"movidos": movidos_hechos, "movidos_pedidos": _movidos_pedidos, "anadidos": anadidos_hechos, "apariciones": apariciones_hechas,
 		"stats": {"salas": _vivas().size(), "puertas": puertas.size(), "enemigos": n_enem, "cofres": n_cofres, "jarrones": n_jarrones,
 			"suelo": pisable, "agua": g.count(AGUA), "ocupacion": pisable / float(maxi(1, w * h))},
 	}

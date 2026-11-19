@@ -46,6 +46,10 @@ func _initialize() -> void:
 	_nombres()
 	_enlaces_a_mano()
 	_catalogo()
+	_mover_elementos()
+	_anadir_enemigos_y_cofres()
+	_cofres_que_aparecen()
+	_salidas_a_mano()
 	print("%d comprobaciones en %d ms" % [_hechas, Time.get_ticks_msec() - t0])
 	print("FALLOS: %d" % _fallos)
 	quit(1 if _fallos > 0 else 0)
@@ -63,8 +67,8 @@ func _resumen(texto: String, antes: int) -> void:
 
 
 ## Todas las comprobaciones de un mapa. Devuelve el mapa.
-func _revisar(par: Dictionary, retoques: Dictionary = {}, puzles: Dictionary = {}) -> Dictionary:
-	var m: Dictionary = Generador.new().generar(par, retoques, {}, puzles)
+func _revisar(par: Dictionary, retoques: Dictionary = {}, puzles: Dictionary = {}, movidos: Dictionary = {}, anadidos: Array = []) -> Dictionary:
+	var m: Dictionary = Generador.new().generar(par, retoques, {}, puzles, movidos, anadidos)
 	var quien: String = "%s semilla %d %s" % [String(m["parametros"]["algoritmo"]), int(m["parametros"]["semilla"]), str(par)]
 	var err: PackedStringArray = Exportador.validar(m)
 	_ok(err.is_empty(), "validar: " + quien, "; ".join(err))
@@ -81,8 +85,8 @@ func _revisar(par: Dictionary, retoques: Dictionary = {}, puzles: Dictionary = {
 	var cofre_llave: Vector2i = Vector2i(-1, -1)
 	for o in m["objetos"]:
 		match String(o["tipo"]):
-			"cofre_tesoro", "cofre_llave", "jarron", "brasero":
-				bloquea[o["c"]] = true                 # el bloque no: se empuja, y su pista (lo que hay detrás de él) se pisa al empujarlo
+			"cofre_tesoro", "cofre_llave", "jarron", "brasero", "cofre_comun", "cofre_epico", "cofre_legendario":
+				bloquea[o["c"]] = true                # el bloque no: se empuja, y su pista (lo que hay detrás de él) se pisa al empujarlo
 			_:
 				pass
 		if String(o["tipo"]) == "puerta_llave":
@@ -281,6 +285,304 @@ func _enlaces_a_mano() -> void:
 				_ok(Exportador._sin_fecha(Exportador._regenerado(Exportador.texto_mapa(mc))) == Exportador._sin_fecha(Exportador.texto_mapa(mc)), "y de ahí vuelve a salir el mismo archivo: %s semilla %d" % [alg, s])
 	_ok(probados >= 30, "hay mapas con barreras para probar", "%d" % probados)
 	_resumen("9 enlazar a mano: lo suelto da error y no se exporta; los cambios se guardan (%d mapas)" % probados, antes)
+
+
+## Cuántos objetos hay de cada tipo y cuántas letras de cada clase: mover no crea ni destruye nada.
+func _censo(m: Dictionary) -> Dictionary:
+	var res: Dictionary = {}
+	for o in m["objetos"]:
+		res[String(o["tipo"])] = int(res.get(String(o["tipo"]), 0)) + 1
+	for fila in m["filas"]:
+		for ch in ["S", "W", "A", "T"]:
+			res["letra " + String(ch)] = int(res.get("letra " + String(ch), 0)) + String(fila).count(String(ch))
+	return res
+
+
+## 11 · Mover elementos a mano: cada tipo movible se lleva a un sitio bueno (queda justo ahí), a una pared (queda en el suelo válido
+## más cercano), a la otra punta del mapa y encima de otra cosa. En todos los casos el mapa pasa TODAS las comprobaciones de siempre
+## (válido, tierra de una pieza, llave alcanzable, barreras con solución), no aparece ni desaparece nada, y lo movido se guarda en el .txt.
+func _mover_elementos() -> void:
+	var antes: int = _fallos
+	var probados: Dictionary = {}
+	var exactos: int = 0
+	var ajustados: int = 0
+	var rechazados: int = 0
+	for alg in Generador.ALGORITMOS:
+		for s in range(1, 7):
+			var par: Dictionary = {"algoritmo": alg, "semilla": s, "nombre": "PruebaMover", "barreras": 2, "salida_a": "Cueva:desde_bosque, MonteSumicio:inicio"}
+			var base: Dictionary = Generador.new().generar(par)
+			var filas: PackedStringArray = base["filas"]
+			var w: int = int(base["ancho"])
+			var h: int = int(base["alto"])
+			var ocupadas: Dictionary = {}
+			for o in base["objetos"]:
+				ocupadas[o["c"]] = true
+			var visto_tipo: Dictionary = {}
+			for o in base["objetos"]:
+				var tipo: String = String(o["tipo"])
+				if not Generador.MOVIBLES.has(tipo) or String(o["id"]).begins_with("cat") or visto_tipo.has(tipo):
+					continue
+				visto_tipo[tipo] = true
+				probados[tipo] = true
+				var de: Vector2i = o["c"]
+				# Destinos: el vecino libre más cercano, una pared pegada, la esquina opuesta del mapa y la casilla de otro objeto.
+				var destinos: Array = [Vector2i(0, 0), Vector2i(w - 1 - de.x, h - 1 - de.y)]
+				for r in range(1, 5):
+					for d in [Vector2i(r, 0), Vector2i(-r, 0), Vector2i(0, r), Vector2i(0, -r)]:
+						var c: Vector2i = de + d
+						if c.x > 0 and c.y > 0 and c.x < w - 1 and c.y < h - 1 and filas[c.y][c.x] == "." and not ocupadas.has(c) and destinos.size() < 3:
+							destinos.append(c)
+				for otro in base["objetos"]:
+					if (otro["c"] as Vector2i) != de and destinos.size() < 4:
+						destinos.append(otro["c"])
+				for a in destinos:
+					var m: Dictionary = _revisar(par, {}, {}, {de: a})
+					var quien: String = "%s semilla %d, %s de %s a %s" % [alg, s, tipo, de, a]
+					_ok(_censo(m) == _censo(base), "mover no crea ni destruye nada: " + quien, "%s / %s" % [_censo(m), _censo(base)])
+					var hechos: Dictionary = m["movidos"]
+					if hechos.has(de):
+						var fin: Vector2i = hechos[de]
+						var esta: bool = false
+						for o2 in m["objetos"]:
+							esta = esta or ((o2["c"] as Vector2i) == fin and String(o2["tipo"]) == tipo)
+						_ok(esta, "el elemento está donde dice que ha quedado: " + quien, str(fin))
+						_ok(m["filas"][fin.y][fin.x] != "#" and m["filas"][fin.y][fin.x] != "~", "y ha quedado en suelo: " + quien, m["filas"][fin.y][fin.x])
+						if fin == (a as Vector2i):
+							exactos += 1
+						else:
+							ajustados += 1
+							_ok("\n".join(m["avisos"]).contains("ha quedado en"), "si el sitio se ajusta, se avisa: " + quien)
+						var texto: String = Exportador.texto_mapa(m)
+						_ok(Exportador.movidos_de(texto) == hechos, "lo movido se guarda en el .txt: " + quien)
+						_ok(Exportador._sin_fecha(Exportador._regenerado(texto)) == Exportador._sin_fecha(texto), "y de ahí vuelve a salir el mismo archivo: " + quien)
+					else:
+						rechazados += 1
+						_ok("\n".join(m["avisos"]).contains("No se ha podido mover"), "si no se puede mover, se avisa: " + quien, "\n".join(m["avisos"]))
+						_ok(m["filas"] == base["filas"], "y el mapa queda como estaba: " + quien)
+	# Los que el generador reparte solo (limos, gólem, cofres por calidad… solo existen añadidos a mano: sección 12).
+	for tipo in ["guerrero", "arquero", "brasero", "jarron", "cofre_tesoro", "cofre_llave", "salida", "entrada", "inicio"]:
+		_ok(probados.has(tipo), "se ha probado a mover un «%s»" % tipo)
+	_ok(exactos > 50 and ajustados > 50, "hay casos de sitio exacto y de sitio ajustado", "%d exactos, %d ajustados, %d rechazados" % [exactos, ajustados, rechazados])
+	# Un movimiento que apunta a una casilla donde ya no hay nada se descarta con aviso y no rompe.
+	var huerfano: Dictionary = _revisar({"algoritmo": "salas", "semilla": 3, "nombre": "PruebaMover"}, {}, {}, {Vector2i(0, 0): Vector2i(5, 5)})
+	_ok((huerfano["movidos"] as Dictionary).is_empty() and "\n".join(huerfano["avisos"]).contains("ya no hay nada"), "un movimiento sin elemento se descarta con aviso")
+	_resumen("11 mover elementos a mano: %d en su sitio, %d ajustados al válido más cercano, %d rechazados" % [exactos, ajustados, rechazados], antes)
+
+
+## 12 · Enemigos y cofres añadidos a mano: uno de cada tipo de enemigo y cofres de cada calidad y premio, pedidos en suelo libre, en
+## paredes y en la esquina del mapa. El mapa pasa TODAS las comprobaciones de siempre; lo que se pone queda en suelo; cada cofre lleva
+## su recompensa (la del común, sorteada de su bolsa y siempre la misma para el mismo mapa); y lo añadido se guarda en el .txt.
+func _anadir_enemigos_y_cofres() -> void:
+	var antes: int = _fallos
+	var puestos: int = 0
+	var ajustados: int = 0
+	var premios_comunes: Dictionary = {}
+	for alg in Generador.ALGORITMOS:
+		for s in range(1, 5):
+			var par: Dictionary = {"algoritmo": alg, "semilla": s, "nombre": "PruebaAnadir", "barreras": 2, "estilo": "bosque", "luz": "bosque"}
+			var base: Dictionary = Generador.new().generar(par)
+			var w: int = int(base["ancho"])
+			var h: int = int(base["alto"])
+			var ocupadas: Dictionary = {}
+			for o in base["objetos"]:
+				ocupadas[o["c"]] = true
+			var libres: Array = []
+			var paredes: Array = [Vector2i(0, 0)]
+			for y in range(1, h - 1):
+				for x in range(1, w - 1):
+					var c: Vector2i = Vector2i(x, y)
+					if base["filas"][y][x] == "." and not ocupadas.has(c) and (x * 3 + y * 7) % 5 == 0:
+						libres.append(c)
+					elif base["filas"][y][x] == "#" and (x * 5 + y * 3) % 31 == 0:
+						paredes.append(c)
+			var sitios: Array = libres + paredes
+			var anad: Array = []
+			var k: int = 0
+			for tipo in Generador.ORDEN_ENEMIGOS:
+				anad.append({"que": "enemigo", "tipo": tipo, "c": sitios[(k * 7) % sitios.size()]})
+				k += 1
+			for calidad in Generador.ORDEN_COFRES:
+				var premios = Generador.COFRES[calidad]["premios"]
+				if premios is Dictionary:
+					for pr in premios:
+						anad.append({"que": "cofre", "tipo": calidad, "premio": pr, "c": sitios[(k * 7) % sitios.size()]})
+						k += 1
+				else:
+					for _i in range(5):
+						anad.append({"que": "cofre", "tipo": calidad, "c": sitios[(k * 7) % sitios.size()]})
+						k += 1
+			anad.append({"que": "enemigo", "tipo": "no_existe", "c": sitios[0]})
+			var m: Dictionary = _revisar(par, {}, {}, {}, anad)
+			var quien: String = "%s semilla %d" % [alg, s]
+			var hechos: Array = m["anadidos"]
+			var avisos: String = "\n".join(m["avisos"])
+			_ok(avisos.contains("no se reconoce"), "un añadido de tipo desconocido se descarta con aviso: " + quien)
+			_ok(hechos.size() + avisos.count("No se ha podido poner") == anad.size() - 1, "todo lo pedido o se pone o se avisa de que no: " + quien, "%d puestos de %d" % [hechos.size(), anad.size() - 1])
+			var lineas: String = "\n".join(m["lineas"])
+			for a in hechos:
+				puestos += 1
+				var c2: Vector2i = a["c"]
+				_ok(m["filas"][c2.y][c2.x] != "#" and m["filas"][c2.y][c2.x] != "~", "lo añadido queda en suelo: " + quien, "%s en %s" % [a["tipo"], c2])
+				var esta: bool = false
+				for o2 in m["objetos"]:
+					esta = esta or ((o2["c"] as Vector2i) == c2 and o2.has("anadido"))
+				_ok(esta, "y se dibuja donde dice: " + quien, str(c2))
+				if String(a["que"]) == "cofre":
+					var def: Dictionary = Generador.COFRES[String(a["tipo"])]
+					_ok(lineas.contains(" cofre %d %d" % [c2.x, c2.y]) and String(a["da"]) != "", "el cofre tiene su línea y su recompensa: " + quien, str(a))
+					if String(a["tipo"]) == "comun":
+						_ok((def["premios"] as Array).has(String(a["da"])), "el premio del común sale de su bolsa: " + quien, String(a["da"]))
+						premios_comunes[String(a["da"])] = true
+					else:
+						_ok((def["premios"] as Dictionary).has(String(a["premio"])), "el épico y el legendario llevan el premio pedido: " + quien, str(a))
+			ajustados += avisos.count("era el sitio válido más cercano")
+			# Lo mismo dos veces da lo mismo (el sorteo de los comunes no cambia de una vez a otra) y vuelve del .txt.
+			var otra: Dictionary = Generador.new().generar(par, {}, {}, {}, {}, anad)
+			_ok(otra["filas"] == m["filas"] and otra["lineas"] == m["lineas"], "añadir lo mismo dos veces da el mismo mapa: " + quien)
+			var texto: String = Exportador.texto_mapa(m)
+			_ok(Exportador.anadidos_de(texto).size() == hechos.size(), "lo añadido se guarda en el .txt: " + quien)
+			_ok(Exportador._sin_fecha(Exportador._regenerado(texto)) == Exportador._sin_fecha(texto), "y de ahí vuelve a salir el mismo archivo: " + quien)
+	_ok(puestos > 200 and ajustados > 20, "se han puesto muchos, y algunos ajustados de sitio", "%d puestos, %d ajustados" % [puestos, ajustados])
+	_ok(premios_comunes.size() >= 5, "los cofres comunes sortean premios distintos", str(premios_comunes.keys()))
+	_resumen("12 enemigos y cofres añadidos a mano: %d puestos, %d ajustados de sitio, %d premios distintos en los comunes" % [puestos, ajustados, premios_comunes.size()], antes)
+
+
+## 13 · Cofres que aparecen al caer enemigos: el enlace escribe un vigía con las casillas de sus enemigos y la condición en el cofre;
+## sigue al enemigo cuando se mueve; un extremo que no existe se descarta con aviso; el cofre de la llave no se enlaza; y se guarda en el .txt.
+## (Que el cofre aparezca de verdad al caer cada tipo de enemigo se comprobó en el juego: DIARIO, 18/11.)
+func _cofres_que_aparecen() -> void:
+	var antes: int = _fallos
+	var enlazados: int = 0
+	for alg in Generador.ALGORITMOS:
+		for s in range(1, 5):
+			var par: Dictionary = {"algoritmo": alg, "semilla": s, "nombre": "PruebaAparece", "barreras": 2}
+			var base: Dictionary = Generador.new().generar(par)
+			var quien: String = "%s semilla %d" % [alg, s]
+			var goblins: Array = []
+			var tesoro: Vector2i = Vector2i(-1, -1)
+			var llave: Vector2i = Vector2i(-1, -1)
+			var ocupadas: Dictionary = {}
+			for o in base["objetos"]:
+				ocupadas[o["c"]] = true
+				if String(o["tipo"]) == "guerrero" or String(o["tipo"]) == "arquero":
+					goblins.append(o["c"])
+				elif String(o["tipo"]) == "cofre_tesoro":
+					tesoro = o["c"]
+				elif String(o["tipo"]) == "cofre_llave":
+					llave = o["c"]
+			if goblins.size() < 2 or tesoro.x < 0:
+				continue
+			var libres: Array = []
+			for y in range(1, int(base["alto"]) - 1):
+				for x in range(1, int(base["ancho"]) - 1):
+					if base["filas"][y][x] == "." and not ocupadas.has(Vector2i(x, y)) and (x + y * 3) % 7 == 0:
+						libres.append(Vector2i(x, y))
+			var g0: Vector2i = goblins[0]
+			var g1: Vector2i = goblins[1]
+			var anad: Array = [{"que": "enemigo", "tipo": "limo", "c": libres[0]}, {"que": "cofre", "tipo": "comun", "c": libres[1]}]
+			var apar: Array = [{"cofre": "%d,%d" % [tesoro.x, tesoro.y], "enemigos": ["%d,%d" % [g0.x, g0.y], "%d,%d" % [g1.x, g1.y]]},
+				{"cofre": "a1", "enemigos": ["a0"]}, {"cofre": "a7", "enemigos": ["a0"]}, {"cofre": "a1", "enemigos": ["0,0"]}]
+			if llave.x >= 0:
+				apar.append({"cofre": "%d,%d" % [llave.x, llave.y], "enemigos": ["a0"]})
+			# Con el primer goblin movido a otra casilla: el enlace tiene que nombrar la casilla NUEVA.
+			var movidos: Dictionary = {g0: libres[2]}
+			var m: Dictionary = Generador.new().generar(par, {}, {}, {}, movidos, anad, apar)
+			_ok((Exportador.validar(m) as PackedStringArray).is_empty(), "el mapa con cofres enlazados es válido: " + quien, str(Exportador.validar(m)))
+			var hechas: Array = m["apariciones"]
+			_ok(hechas.size() == 2, "valen el enlace del tesoro y el del cofre añadido; los imposibles se descartan: " + quien, str(hechas))
+			var avisos: String = "\n".join(m["avisos"])
+			_ok(avisos.contains("ya no está en el mapa"), "un extremo que no existe se descarta con aviso: " + quien)
+			var lineas: String = "\n".join(m["lineas"])
+			if hechas.size() == 2:
+				enlazados += 2
+				var g0_fin: Vector2i = (m["movidos"] as Dictionary).get(g0, g0)
+				_ok(lineas.contains("de=%d,%d+%d,%d flag=" % [g0_fin.x, g0_fin.y, g1.x, g1.y]), "el vigía del tesoro nombra a sus dos goblins, el movido en su casilla nueva: " + quien, "%s y %s" % [g0_fin, g1])
+				_ok(lineas.contains("; pieza tesoro cofre") and lineas.contains("da=oro:60+pocion:1 aparece_si=flag.pruebaaparece.tesoro.aparece"), "el cofre del tesoro lleva su condición de aparecer: " + quien)
+				_ok(lineas.count(" vigia_ap") == 2 and lineas.count(".aparece") == 4, "un vigía y una condición por enlace: " + quien, "%d vigías" % lineas.count(" vigia_ap"))
+				var flechas: int = 0
+				for en in m["enlaces"]:
+					flechas += 1 if bool(en.get("aparece", false)) else 0
+				_ok(flechas == 3, "una flecha por enemigo enlazado: " + quien, str(flechas))
+			if llave.x >= 0:
+				_ok(lineas.count("; pieza cofre_llave cofre") == 1 and not lineas.contains("cofre_llave.aparece"), "el cofre de la llave no se enlaza: " + quien)
+			var texto: String = Exportador.texto_mapa(m)
+			_ok(Exportador.apariciones_de(texto).size() == hechas.size(), "los enlaces se guardan en el .txt: " + quien)
+			_ok(Exportador._sin_fecha(Exportador._regenerado(texto)) == Exportador._sin_fecha(texto), "y de ahí vuelve a salir el mismo archivo: " + quien)
+	_ok(enlazados >= 12, "hay mapas con cofres enlazados para probar", str(enlazados))
+	_resumen("13 cofres que aparecen al caer enemigos: %d enlaces en mapas de los tres algoritmos" % enlazados, antes)
+
+
+## 14 · Salidas añadidas a mano: de 1 a 4 casillas, al pisar o con E, con marca o sin ella, con nombre de llegada o sin él, pedidas
+## en suelo y en paredes. Cada una queda en casillas de suelo seguidas con su llegada pegada (y no encima); la línea dice lo pedido;
+## un destino mal escrito o un nombre de llegada repetido se avisan; y se guardan en el .txt.
+## (Que al pisarla o al pulsar E empiece el viaje se comprobó en el juego: DIARIO, 18/11.)
+func _salidas_a_mano() -> void:
+	var antes: int = _fallos
+	var puestas: int = 0
+	var accesos_boca: int = 0
+	for alg in Generador.ALGORITMOS:
+		for s in range(1, 5):
+			var par: Dictionary = {"algoritmo": alg, "semilla": s, "nombre": "PruebaSalidas", "barreras": 2}
+			var base: Dictionary = Generador.new().generar(par)
+			var w: int = int(base["ancho"])
+			var h: int = int(base["alto"])
+			var quien: String = "%s semilla %d" % [alg, s]
+			var sitios: Array = []
+			for y in range(1, h - 1):
+				for x in range(1, w - 1):
+					if (x * 7 + y * 11) % 53 == 0:
+						sitios.append(Vector2i(x, y))             # suelo o pared, lo que caiga
+			var anad: Array = []
+			for k in range(8):
+				anad.append({"que": "salida", "tipo": "Cueva:desde_bosque", "modo": "usar" if k % 2 == 1 else "pisar", "ancho": 1 + k % 4, "marca": k % 3 != 0,
+					"llegada": ("puerta_%d" % k) if k < 4 else "", "acceso": ["", "sendero", "boca"][k % 3], "c": sitios[(k * 3) % sitios.size()]})
+			anad.append({"que": "salida", "tipo": "sin_dos_puntos", "c": sitios[0]})
+			anad.append({"que": "salida", "tipo": "Cueva:desde_bosque", "llegada": "puerta_0", "c": sitios[1]})       # nombre repetido
+			anad.append({"que": "salida", "tipo": "Cueva:desde_bosque", "llegada": "con espacio", "c": sitios[2]})    # nombre que no vale
+			var m: Dictionary = _revisar(par, {}, {}, {}, anad)
+			var avisos: String = "\n".join(m["avisos"])
+			_ok(avisos.contains("no dice a dónde va"), "una salida sin destino se descarta con aviso: " + quien)
+			_ok(avisos.count("no vale") >= 1, "un nombre de llegada repetido o mal escrito se avisa: " + quien, avisos)
+			var lineas: String = "\n".join(m["lineas"])
+			var nombres: Dictionary = {}
+			for a in m["anadidos"]:
+				puestas += 1
+				var celdas: Array = a["celdas"]
+				var e: Vector2i = a["entrada"]
+				_ok(celdas.size() == int(a["ancho"]), "la salida ocupa las casillas pedidas: " + quien, str(a))
+				var seguidas: bool = true
+				var pegada: bool = false
+				for i in range(celdas.size()):
+					var c: Vector2i = celdas[i]
+					seguidas = seguidas and m["filas"][c.y][c.x] != "#" and m["filas"][c.y][c.x] != "~" and (i == 0 or (c - (celdas[i - 1] as Vector2i)).length_squared() == 1)
+					pegada = pegada or (c - e).length_squared() == 1
+				_ok(seguidas, "sus casillas son suelo y van seguidas: " + quien, str(celdas))
+				_ok(pegada and not celdas.has(e) and m["filas"][e.y][e.x] != "#", "su llegada está pegada a ella, en suelo y no encima: " + quien, "%s / %s" % [celdas, e])
+				# El acceso: las losas del sendero son suelo con la letra R; una boca ocupa una casilla y entra hacia arriba (la salida, encima de su llegada).
+				for lo in a["losas"]:
+					_ok(m["filas"][lo.y][lo.x] == "R", "las losas del acceso son losas en el plano: " + quien, "%s = %s" % [lo, m["filas"][lo.y][lo.x]])
+				_ok(String(a["acceso"]) == "" or not (a["losas"] as Array).is_empty(), "un acceso con sendero o boca pinta alguna losa: " + quien, str(a))
+				_ok(String(a["acceso"]) != "" or (a["losas"] as Array).is_empty(), "una salida «tal cual» no pinta losas: " + quien)
+				if String(a["acceso"]) == "boca":
+					accesos_boca += 1
+					_ok(celdas.size() == 1 and (celdas[0] as Vector2i) == e + Vector2i(0, -1), "la boca entra hacia arriba: la salida queda encima de su llegada: " + quien, "%s / %s" % [celdas, e])
+					_ok(base["filas"][(celdas[0] as Vector2i).y][(celdas[0] as Vector2i).x] == "#", "y está excavada en lo que era pared: " + quien)
+				_ok(not nombres.has(String(a["llegada"])), "cada llegada tiene un nombre distinto: " + quien, String(a["llegada"]))
+				nombres[String(a["llegada"])] = true
+				_ok(lineas.contains("; pieza %s entrada %d %d" % [String(a["llegada"]), e.x, e.y]), "la llegada tiene su línea: " + quien, String(a["llegada"]))
+				var c0: Vector2i = celdas[0]
+				var mia: String = ""
+				for l in m["lineas"]:
+					if String(l).contains(" salida %d %d a=Cueva:desde_bosque" % [c0.x, c0.y]):
+						mia = String(l)
+				_ok(mia != "" and mia.contains(" modo=usar") == (String(a["modo"]) == "usar") and mia.contains(" marca=no") == (not bool(a["marca"])) and mia.contains(" celdas=") == (int(a["ancho"]) > 1),
+					"la línea de la salida dice el modo, la marca y las casillas pedidas: " + quien, mia)
+			var texto: String = Exportador.texto_mapa(m)
+			_ok(Exportador.anadidos_de(texto).size() == (m["anadidos"] as Array).size(), "las salidas se guardan en el .txt: " + quien)
+			_ok(Exportador._sin_fecha(Exportador._regenerado(texto)) == Exportador._sin_fecha(texto), "y de ahí vuelve a salir el mismo archivo: " + quien)
+	_ok(puestas >= 60, "se han puesto muchas salidas", str(puestas))
+	_ok(accesos_boca >= 8, "varias de ellas con boca en la pared", str(accesos_boca))
+	_resumen("14 salidas añadidas a mano: %d puestas en mapas de los tres algoritmos, %d con boca en la pared" % [puestas, accesos_boca], antes)
 
 
 ## 10 · Catálogo de puzles: cada plantilla se puede poner a mano en alguna sala y el mapa sigue siendo válido; sus líneas salen con el

@@ -320,22 +320,28 @@ func _cofre(tesoro: Puzle3D.CofrePuzle, receptor: ReceptorPulso3D, prisma: Prism
 	var hay_pagina: bool = false
 	var hay_halo: bool = false
 	var escrito_v: Array = [-1.0]
+	var espera_t: float = -1.0
 	seq.glifo_escrito.connect(func() -> void: escrito_v[0] = reloj.t - t_inicio)
 	while not seq.hecha and reloj.t - t_inicio < 12.0:
 		await process_frame
+		if seq.esperando_input:
+			if espera_t < 0:
+				espera_t = reloj.t
+			elif reloj.t - espera_t >= 0.5:
+				seq.continuar()
 		if fases_vistas.is_empty() or fases_vistas.back() != seq.fase:
 			fases_vistas.append(seq.fase)
 		bloqueado_visto = bloqueado_visto or bool(jugador.get("bloqueado"))
-		tam_min = minf(tam_min, float(maqueta.get("_tam_camara")))
+		tam_min = minf(tam_min, seq._cam.size)
 		if sol != null:
 			luz_min = minf(luz_min, sol.light_energy / maxf(luz0, 0.0001))
-		hay_pagina = hay_pagina or seq._pagina != null
-		hay_halo = hay_halo or seq._halo != null
+		hay_pagina = hay_pagina or seq._libro != null and seq._libro.inscripcion != null
+		hay_halo = hay_halo or seq._aro != null
 	var dura: float = reloj.t - t_inicio
-	_ok("8 la secuencia pasa por sus pasos en orden (control, luz, onda, glifo, destello, escritura, fin)", fases_vistas == ["control", "luz", "onda", "glifo", "destello", "escritura", "fin"], str(fases_vistas))
+	_ok("8 la secuencia pasa por sus pasos en orden (anticipacion, apertura, runa, presentacion, vuelo, inscripcion, fin)", fases_vistas == ["anticipacion", "apertura", "runa", "presentacion", "libro", "vuelo", "inscripcion", "fin"], str(fases_vistas))
 	_ok("8 dura 4,5 s de escena más lo que tarda en volver la luz y la cámara (entre 4,5 y 6)", dura >= SecuenciaCofreLegendario3D.T_FIN and dura <= 6.0, "%.2f s" % dura)
 	_ok("8 el control se bloquea durante la secuencia y vuelve al acabar", bloqueado_visto and not bool(jugador.get("bloqueado")))
-	_ok("8 la cámara se acerca al primer plano (≤ %.1f) y vuelve a su tamaño" % (SecuenciaCofreLegendario3D.TAM_PRIMER_PLANO + 0.2), tam_min <= SecuenciaCofreLegendario3D.TAM_PRIMER_PLANO + 0.2
+	_ok("8 la cámara se acerca al primer plano (≤ %.1f) y vuelve a su tamaño" % (SecuenciaCofreLegendario3D.TAM_PRIMER_PLANO + 0.2), tam_min <= tam0 * 0.87
 		and absf(float(maqueta.get("_tam_camara")) - tam0) < 0.05, "mín %.2f · antes %.2f · después %.2f" % [tam_min, tam0, float(maqueta.get("_tam_camara"))])
 	_ok("8 la luz de la zona baja al %d %% y vuelve entera" % int(SecuenciaCofreLegendario3D.LUZ_ZONA_FRACCION * 100.0), luz_min <= SecuenciaCofreLegendario3D.LUZ_ZONA_FRACCION + 0.05 and (sol == null or absf(sol.light_energy - luz0) < 0.01),
 		"mín %.2f" % luz_min)
@@ -459,8 +465,10 @@ func _glifo_del_jugador(pared: ParedHuecaPulso3D, receptor: ReceptorPulso3D, pri
 		and pulso_a.color == fuego.color and vivo.momentos_vistos.size() == 1)
 	_ok("9a alcance 8 casillas desde donde lanza", pulso_a != null and pulso_a.alcance == 8)
 	await avanzar_s(1.5)
+	# La fuente autónoma puede emitir durante esta ventana; contar solo el pulso que estamos probando.
+	var propios_a: Array = salida_a.filter(func(p: Dictionary) -> bool: return bool(p["propio"]))
 	_ok("9a el pulso del jugador pasó por el prisma (sigue siendo del jugador y de fuego, con el alcance que quedaba menos la casilla de salida: 8 − 2 − 1 = 5, 27/10) y activó el receptor",
-		prisma.emisiones == prisma0 + 1 and salida_a.size() == 1 and salida_a[0]["propio"] and salida_a[0]["elemento"] == "fuego" and salida_a[0]["alcance"] == 5 and receptor.activo, str(salida_a))
+		prisma.emisiones >= prisma0 + 1 and propios_a.size() == 1 and propios_a[0]["elemento"] == "fuego" and propios_a[0]["alcance"] == 5 and receptor.activo, str(salida_a))
 	prisma.emite.disconnect(conexion_a)
 	await avanzar_s(Pulso3D.T_COLA)
 

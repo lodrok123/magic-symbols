@@ -317,6 +317,7 @@ func _unhandled_input(ev: InputEvent) -> void:
 		KEY_COMMA: electrificar()                                                                             # 11/11: un muñeco con cápsula electrificado y una casilla de agua electrificada
 		KEY_HOME: LabVientoVeneno.alternar_campo(self, _pj.global_position, _dir)                                     # 11/11: campo de viento (laboratorios/lab_viento_veneno.gd); Inicio (las teclas , y . son de las chispas)
 		KEY_END: LabVientoVeneno.paso_veneno(_efectos, _pj.global_position, _dir, (ev as InputEventKey).shift_pressed)   # 11/11: nube de veneno como gas pesado; Fin (Mayús+Fin: gas pesado sí / no)
+		KEY_INSERT: suelo_tierra((ev as InputEventKey).shift_pressed)                                         # 18/11: la figura SUELO de la tierra (plataforma de RockForm); Mayús = puente de 3 casillas. OJO al unir con main: allí Insert es `suelo_hielo()`
 
 
 # ---------------------------------------------------------------- efectos ----------------------------------------------------------------
@@ -452,6 +453,25 @@ func _nuevo_impacto(variante: int, normal: Vector3, radio: float) -> Node3D:
 		"tierra":
 			return ImpactoTierraToy.crear(variante as ImpactoTierraToy.Variante, normal, radio)
 	return ImpactoFuegoToy.crear(variante as ImpactoFuegoToy.Variante, normal, radio)
+
+
+## Insert: la PLATAFORMA de tierra (TierraToy.Figura.SUELO) delante de la jugadora, saliendo del suelo; otra pulsación la hunde (morir) y la siguiente pone otra.
+## `puente` (Mayús+Insert): tres casillas de largo en vez de una.
+var _plataforma_tierra: TierraToy = null
+
+
+func suelo_tierra(puente: bool = false) -> TierraToy:
+	if _plataforma_tierra != null and is_instance_valid(_plataforma_tierra):
+		_plataforma_tierra.morir()
+		_plataforma_tierra = null
+		return null
+	var e: TierraToy = TierraToy.new()
+	e.definir(TierraToy.Figura.SUELO, TierraToy.REF_SUELO.x * (3.0 if puente else 1.0), TierraToy.REF_SUELO.y, TierraToy.REF_SUELO.z, false)
+	_efectos.add_child(e)
+	e.global_position = Vector3(_pj.global_position.x, 0.0, _pj.global_position.z) + Vector3(_dir.x, 0.0, _dir.z).normalized() * 2.6
+	e.lanzar(-1.0)
+	_plataforma_tierra = e
+	return e
 
 
 ## Intro: el DUMMY DE ESTADOS (laboratorios/lab_dummy_estados.gd). La primera vez lo pone delante de la jugadora; cada Intro le aplica el elemento actual (Z lo cambia) con las reglas

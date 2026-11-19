@@ -179,12 +179,22 @@ static func textura_matcap() -> ImageTexture:
 
 
 ## El material de juguete para una superficie opaca. `base` es el StandardMaterial3D duplicado del modelo (de él salen la textura y el color de partida).
+## 13/11 (viajes entre niveles): un Shader por código, compartido por todos los materiales (los parámetros van en cada ShaderMaterial). Antes cada
+## superficie de cada personaje estrenaba su Shader y Godot volvía a compilar sus pipelines en el primer fotograma de cada nivel (~1 s en negro al volver al Bosque 02).
+static var _shaders: Dictionary = {}
+
+static func _shader_de(codigo: String) -> Shader:
+	if not _shaders.has(codigo):
+		var sh := Shader.new()
+		sh.code = codigo
+		_shaders[codigo] = sh
+	return _shaders[codigo]
+
+
 static func juguete(base: StandardMaterial3D) -> ShaderMaterial:
 	Ambiente3D.preparar_global()   # antes de compilar: el shader declara amb_sombra_pers
-	var sh := Shader.new()
-	sh.code = CODIGO_JUGUETE.replace("cull_back", "cull_disabled") if base.cull_mode == BaseMaterial3D.CULL_DISABLED else CODIGO_JUGUETE   # la elfa viene a doble cara
 	var m := ShaderMaterial.new()
-	m.shader = sh
+	m.shader = _shader_de(CODIGO_JUGUETE.replace("cull_back", "cull_disabled") if base.cull_mode == BaseMaterial3D.CULL_DISABLED else CODIGO_JUGUETE)   # la elfa viene a doble cara
 	m.set_shader_parameter("tiene_tex", base.albedo_texture != null)
 	if base.albedo_texture != null:
 		m.set_shader_parameter("albedo_tex", base.albedo_texture)
@@ -219,10 +229,8 @@ const PRIORIDAD_SILUETA: int = 20
 
 
 static func rim(color: Color, potencia: float, intensidad: float) -> ShaderMaterial:
-	var sh := Shader.new()
-	sh.code = CODIGO_RIM
 	var m := ShaderMaterial.new()
-	m.shader = sh
+	m.shader = _shader_de(CODIGO_RIM)
 	m.set_shader_parameter("color", Vector3(color.r, color.g, color.b))
 	m.set_shader_parameter("potencia", potencia)
 	m.set_shader_parameter("intensidad", intensidad)
@@ -232,10 +240,8 @@ static func rim(color: Color, potencia: float, intensidad: float) -> ShaderMater
 const PRIORIDAD_CONTORNO: int = 19
 
 static func contorno(color: Color, sesgo: float, grosor_px: float) -> ShaderMaterial:
-	var sh := Shader.new()
-	sh.code = CODIGO_CONTORNO
 	var m := ShaderMaterial.new()
-	m.shader = sh
+	m.shader = _shader_de(CODIGO_CONTORNO)
 	m.render_priority = PRIORIDAD_CONTORNO
 	m.set_shader_parameter("color", color)
 	m.set_shader_parameter("sesgo", sesgo)
@@ -244,10 +250,8 @@ static func contorno(color: Color, sesgo: float, grosor_px: float) -> ShaderMate
 
 
 static func silueta(color: Color, sesgo: float) -> ShaderMaterial:
-	var sh := Shader.new()
-	sh.code = CODIGO_SILUETA
 	var m := ShaderMaterial.new()
-	m.shader = sh
+	m.shader = _shader_de(CODIGO_SILUETA)
 	m.render_priority = PRIORIDAD_SILUETA
 	m.set_shader_parameter("color", color)
 	m.set_shader_parameter("sesgo", sesgo)

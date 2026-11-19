@@ -20,7 +20,12 @@ static func ruta_mapa(nombre: String) -> String:
 	return DIR_MAPAS + nombre + ".txt"
 
 
+## La escena del nivel. Si el juego ya conoce ese nombre (`Niveles.ESCENAS`), es la escena que tiene apuntada, se llame como se llame
+## (Bosque_02 → escenas/PruebaBosque02.tscn, sin el guion bajo): así, al sustituir un nivel, los viajes desde otros niveles llegan al nuevo.
 static func ruta_escena(nombre: String) -> String:
+	var conocidos: Dictionary = load("res://nucleo/niveles.gd").ESCENAS
+	if conocidos.has(nombre):
+		return String(conocidos[nombre])
 	return DIR_ESCENAS + "Prueba" + nombre + ".tscn"
 
 
@@ -56,7 +61,8 @@ static func estado_destino(nombre: String) -> Dictionary:
 	res["mapa"] = _existente(DIR_MAPAS, nombre + ".txt")
 	if String(res["mapa"]) != "":
 		res["mapa_nuestro"] = FileAccess.get_file_as_string(String(res["mapa"])).contains(MARCA)
-	res["escena"] = _existente(DIR_ESCENAS, "Prueba" + nombre + ".tscn")
+	var re: String = ruta_escena(nombre)
+	res["escena"] = _existente(re.get_base_dir() + "/", re.get_file())
 	if String(res["escena"]) != "":
 		res["escena_nuestra"] = FileAccess.get_file_as_string(String(res["escena"])).contains(MARCA_ESCENA)
 	res["horneado"] = _existente(DIR_NIVELES, "Nivel_" + nombre + ".tscn")
@@ -74,7 +80,7 @@ static func texto_mapa(m: Dictionary) -> String:
 	l.append(";  %d salas, %d puertas, %d enemigos, %d cofres, %d jarrones. Escena: escenas/Prueba%s.tscn. Mientras esta cabecera siga aquí, la herramienta puede volver a escribir" % [int(st["salas"]), int(st["puertas"]), int(st["enemigos"]), int(st["cofres"]), int(st["jarrones"]), nombre])
 	l.append(";  este archivo (guarda copia si lo has retocado). Para adoptarlo como nivel hecho a mano, borra la palabra GENERADO de la línea de arriba.")
 	l.append("; " + "=".repeat(118))
-	l.append("; # pared · . suelo · ~ agua honda · S inicio · W goblin guerrero · A goblin arquero · T brasero · g tierra pisada (pasillos) · R losas (o basalto bajo la lava)")
+	l.append("; # pared · . suelo · ~ agua honda · S inicio · W goblin guerrero · A goblin arquero · T brasero · g tierra pisada (pasillos) · R losas (o basalto bajo la lava) · G elemental del bosque")
 	var limpio: Dictionary = {}
 	for k in p:
 		if not String(k).begins_with("_"):
@@ -104,6 +110,26 @@ static func texto_mapa(m: Dictionary) -> String:
 		for sid in salas_pz:
 			tp.append("%d>%s" % [int(sid), String(pzm[sid])])
 		l.append("; puzles " + " ".join(tp))
+	var mov: Dictionary = m.get("movidos", {})
+	if not mov.is_empty():
+		var origenes: Array = mov.keys()
+		origenes.sort()
+		var tm: PackedStringArray = PackedStringArray()
+		for de in origenes:
+			tm.append("%d,%d>%d,%d" % [int(de.x), int(de.y), int(mov[de].x), int(mov[de].y)])
+		l.append("; movidos " + " ".join(tm))
+	var an: Array = m.get("anadidos", [])
+	if not an.is_empty():
+		var ta: PackedStringArray = PackedStringArray()
+		for a in an:
+			ta.append("%s|%s|%s|%d,%d" % [String(a["que"]), String(a["tipo"]), String(a.get("premio", "")), int(a["c"].x), int(a["c"].y)])
+		l.append("; anadidos " + " ".join(ta))
+	var apa: Array = m.get("apariciones", [])
+	if not apa.is_empty():
+		var tap: PackedStringArray = PackedStringArray()
+		for ap in apa:
+			tap.append("%s<%s" % [String(ap["cofre"]), "+".join(PackedStringArray(ap["enemigos"]))])
+		l.append("; apariciones " + " ".join(tap))
 	l.append(";")
 	if bool(p["rotulo"]):
 		l.append("; zona 1,1..%d,%d %s mezcla=0.8 rotulo=%s" % [int(m["ancho"]) - 2, int(m["alto"]) - 2, String(p["luz"]), nombre])
@@ -246,8 +272,11 @@ static func validar(m: Dictionary) -> PackedStringArray:
 
 
 ## Escribe el mapa y la escena. Devuelve {ok, error, escritos: [rutas], copia: ruta de la copia del .txt anterior o ""}.
-static func exportar(m: Dictionary) -> Dictionary:
-	var res: Dictionary = {"ok": false, "error": "", "escritos": [], "copia": ""}
+## `sustituir` (18/11, Pablo: «Sustituir los viejos», por Bosque_01 y Bosque_02): permite ocupar el nombre de un nivel HECHO A MANO. Nada se
+## borra: el .txt y la escena viejos se COPIAN al lado como `<nombre>_copia_<fecha>_a_mano.*` y el nivel horneado (`Nivel_<Nombre>.tscn`) se
+## RENOMBRA a `..._copia_<fecha>.tscn` (si se quedara, la maqueta lo cargaría en vez del mapa nuevo). `apartados` lleva esas rutas.
+static func exportar(m: Dictionary, sustituir: bool = false) -> Dictionary:
+	var res: Dictionary = {"ok": false, "error": "", "escritos": [], "copia": "", "apartados": []}
 	var nombre: String = String((m["parametros"] as Dictionary)["nombre"])
 	var mal: String = nombre_valido(nombre)
 	if mal != "":
@@ -258,18 +287,39 @@ static func exportar(m: Dictionary) -> Dictionary:
 		res["error"] = "El mapa no pasa la validación: " + errores[0]
 		return res
 	var est: Dictionary = estado_destino(nombre)
-	if String(est["mapa"]) != "" and not bool(est["mapa_nuestro"]):
-		res["error"] = "Ya existe %s y no lo generó esta herramienta: no se pisa. Elige otro nombre." % String(est["mapa"]).get_file()
-		return res
-	if String(est["escena"]) != "" and not bool(est["escena_nuestra"]):
-		res["error"] = "Ya existe %s y no la generó esta herramienta: no se pisa. Elige otro nombre." % String(est["escena"]).get_file()
-		return res
-	if String(est["horneado"]) != "":
-		res["error"] = "Existe %s (nivel horneado): la maqueta cargaría ese y no el mapa nuevo. Elige otro nombre." % String(est["horneado"]).get_file()
-		return res
+	var ajeno: bool = (String(est["mapa"]) != "" and not bool(est["mapa_nuestro"])) or (String(est["escena"]) != "" and not bool(est["escena_nuestra"]))
+	if not (sustituir and ajeno):
+		if String(est["mapa"]) != "" and not bool(est["mapa_nuestro"]):
+			res["error"] = "Ya existe %s y no lo generó esta herramienta: no se pisa. Elige otro nombre." % String(est["mapa"]).get_file()
+			return res
+		if String(est["escena"]) != "" and not bool(est["escena_nuestra"]):
+			res["error"] = "Ya existe %s y no la generó esta herramienta: no se pisa. Elige otro nombre." % String(est["escena"]).get_file()
+			return res
+		if String(est["horneado"]) != "":
+			res["error"] = "Existe %s (nivel horneado): la maqueta cargaría ese y no el mapa nuevo. Elige otro nombre." % String(est["horneado"]).get_file()
+			return res
+	else:
+		# Sustituir un nivel hecho a mano: primero se aparta TODO lo viejo; si algo no se puede apartar, no se escribe nada.
+		var sello: String = Time.get_datetime_string_from_system().replace("-", "").replace(":", "").replace("T", "_")
+		for clave in ["mapa", "escena"]:
+			var viejo_r: String = String(est[clave])
+			if viejo_r == "" or bool(est[clave + ("_nuestro" if clave == "mapa" else "_nuestra")]):
+				continue
+			var copia_r: String = "%s_copia_%s_a_mano.%s" % [viejo_r.get_basename(), sello, viejo_r.get_extension()]
+			if DirAccess.copy_absolute(ProjectSettings.globalize_path(viejo_r), ProjectSettings.globalize_path(copia_r)) != OK:
+				res["error"] = "No se pudo guardar la copia de %s: no se sustituye nada." % viejo_r.get_file()
+				return res
+			(res["apartados"] as Array).append(copia_r)
+		if String(est["horneado"]) != "":
+			var horno: String = String(est["horneado"])
+			var copia_h: String = "%s_copia_%s.tscn" % [horno.get_basename(), sello]
+			if DirAccess.rename_absolute(ProjectSettings.globalize_path(horno), ProjectSettings.globalize_path(copia_h)) != OK:
+				res["error"] = "No se pudo apartar %s (¿lo tiene abierto Godot?): no se sustituye nada." % horno.get_file()
+				return res
+			(res["apartados"] as Array).append(copia_h)
 	var texto: String = texto_mapa(m)
 	var destino: String = String(est["mapa"]) if String(est["mapa"]) != "" else ruta_mapa(nombre)
-	if String(est["mapa"]) != "":
+	if String(est["mapa"]) != "" and bool(est["mapa_nuestro"]):
 		var viejo: String = FileAccess.get_file_as_string(destino)
 		var previsto: int = viejo.find("; generador ")
 		var hash_viejo: String = _sin_fecha(viejo)
@@ -319,7 +369,69 @@ static func _regenerado(texto: String) -> String:
 	if par.is_empty():
 		return ""
 	var gen: RefCounted = load("res://herramientas/generador_mapas/generador_mazmorra.gd").new()
-	return texto_mapa(gen.generar(_tipar(par), retoques_de(texto), enlaces_de(texto), puzles_de(texto)))
+	return texto_mapa(gen.generar(_tipar(par), retoques_de(texto), enlaces_de(texto), puzles_de(texto), movidos_de(texto), anadidos_de(texto), apariciones_de(texto)))
+
+
+## Los cofres que aparecen al caer enemigos (la línea `; apariciones cofre<enemigo+enemigo …`; cada extremo es `a<n>`, un añadido a
+## mano, o `x,y`, la casilla donde el generador puso el elemento).
+static func apariciones_de(texto: String) -> Array:
+	var res: Array = []
+	for linea in texto.split("\n"):
+		var l: String = String(linea).strip_edges()
+		if not l.begins_with("; apariciones "):
+			continue
+		for t in l.substr(14).split(" ", false):
+			var ab: PackedStringArray = t.split("<")
+			if ab.size() == 2 and ab[0] != "" and ab[1] != "":
+				res.append({"cofre": ab[0], "enemigos": Array(ab[1].split("+", false))})
+	return res
+
+
+## Los enemigos y cofres añadidos a mano (la línea `; anadidos que|tipo|premio|x,y …`), en el orden en que se pusieron.
+static func anadidos_de(texto: String) -> Array:
+	var res: Array = []
+	for linea in texto.split("\n"):
+		var l: String = String(linea).strip_edges()
+		if not l.begins_with("; anadidos "):
+			continue
+		for t in l.substr(11).split(" ", false):
+			var trozos: PackedStringArray = t.split("|")
+			if trozos.size() != 4:
+				continue
+			var xy: PackedStringArray = trozos[3].split(",")
+			if xy.size() == 2 and xy[0].is_valid_int() and xy[1].is_valid_int():
+				var a: Dictionary = {"que": trozos[0], "tipo": trozos[1], "c": Vector2i(xy[0].to_int(), xy[1].to_int())}
+				if trozos[0] == "cofre" and trozos[1] != "comun":
+					a["premio"] = trozos[2]
+				elif trozos[0] == "salida":
+					# El tercer campo de una salida es `modo;ancho;marca;llegada`.
+					var ajustes: PackedStringArray = trozos[2].split(";")
+					if ajustes.size() >= 4:
+						a["modo"] = ajustes[0]
+						a["ancho"] = ajustes[1].to_int()
+						a["marca"] = ajustes[2] != "no"
+						a["llegada"] = ajustes[3]
+						a["acceso"] = ajustes[4] if ajustes.size() >= 5 else ""
+				res.append(a)
+	return res
+
+
+## Los elementos movidos a mano (la línea `; movidos x,y>x,y …`): casilla donde lo puso el generador → casilla donde quedó.
+static func movidos_de(texto: String) -> Dictionary:
+	var res: Dictionary = {}
+	for linea in texto.split("\n"):
+		var l: String = String(linea).strip_edges()
+		if not l.begins_with("; movidos "):
+			continue
+		for t in l.substr(10).split(" ", false):
+			var ab: PackedStringArray = t.split(">")
+			if ab.size() != 2:
+				continue
+			var de: PackedStringArray = ab[0].split(",")
+			var a: PackedStringArray = ab[1].split(",")
+			if de.size() == 2 and a.size() == 2 and de[0].is_valid_int() and de[1].is_valid_int() and a[0].is_valid_int() and a[1].is_valid_int():
+				res[Vector2i(de[0].to_int(), de[1].to_int())] = Vector2i(a[0].to_int(), a[1].to_int())
+	return res
 
 
 ## Los puzles del catalogo puestos a mano (la linea `; puzles sala>puzle`): sala -> id del puzle.

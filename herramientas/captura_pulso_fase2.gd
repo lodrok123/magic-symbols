@@ -168,6 +168,8 @@ func _cofre(tesoro: Puzle3D.CofrePuzle, receptor: ReceptorPulso3D) -> void:
 	var cuando: Array = [0.35, 0.95, 1.5, 2.1, 2.62, 2.9, 3.5, 4.2, 4.9]
 	var i: int = 0
 	while i < cuando.size() and not seq.hecha:
+		if seq.esperando_input:
+			seq.continuar()
 		await process_frame
 		if seq.t >= float(cuando[i]):
 			await _foto("cofre_%d_t%03d" % [i + 1, int(round(float(cuando[i]) * 100.0))])

@@ -410,11 +410,21 @@ static func aplicar_continuar(mundo_nivel: Node, jug: Node) -> bool:
 		(jug as Node3D).position = p
 		jug.set("puntos_inicio", p)
 	else:
-		for e in mundo_nivel.get_tree().get_nodes_in_group("entrada_nivel"):
-			if is_instance_valid(e) and String(e.get("nombre")) == String(j.get("entrada", "")):
-				Niveles.colocar(mundo_nivel, e)
-				break
+		var entrada: String = String(j.get("entrada", ""))
+		if entrada != "" and not _colocar_en_entrada(mundo_nivel, entrada):
+			# Puzle3D monta las entradas de los mapas en diferido, después de _ready del mundo.
+			_colocar_en_entrada.call_deferred(mundo_nivel, entrada)
 	return true
+
+
+static func _colocar_en_entrada(mundo_nivel: Node, entrada: String) -> bool:
+	if not is_instance_valid(mundo_nivel) or not mundo_nivel.is_inside_tree():
+		return false
+	for e in mundo_nivel.get_tree().get_nodes_in_group("entrada_nivel"):
+		if is_instance_valid(e) and mundo_nivel.is_ancestor_of(e) and String(e.get("nombre")) == entrada:
+			Niveles.colocar(mundo_nivel, e)
+			return true
+	return false
 
 
 ## Guarda en la ranura 0 («auto») lo del nivel que está en el árbol. false si no se hizo: apagado, headless sin permiso, sin nivel ni jugadora, jugadora caída o árbol en pausa (entonces

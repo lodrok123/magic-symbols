@@ -1326,6 +1326,8 @@ func _pasar_libro(mano: String) -> void:
 ## en la otra mano, pasa a esta. `cerrado`: el estado en mano es `en_mano_cerrado` (lanzando) en vez de `en_mano_abierto` (apuntando).
 ## Es LA transición del libro (ver arriba): `abrir` true saca el libro a la mano; false lo manda al cinto volando.
 func libro_en_manos(abrir: bool, dur: float = 0.3, mano: String = "izquierda", cerrado: bool = false) -> void:
+	if _ceremonia_libro_activa:
+		return
 	if _modelo == null:
 		return
 	if not abrir:
@@ -2517,3 +2519,36 @@ func _desplazamiento(clip: String) -> float:
 	return 0.0
 
 
+
+
+## Cesión visual reversible. No cambia los estados cinto/mano ni duplica sus tweens.
+var _ceremonia_libro_activa: bool = false
+var _ceremonia_visibilidad: Dictionary = {}
+var _ceremonia_brazo_peso: float = 0.0
+
+func iniciar_ceremonia_libro() -> bool:
+	if _ceremonia_libro_activa:
+		return false
+	libro_asentar()
+	_ceremonia_brazo_peso = _brazo.influence if is_instance_valid(_brazo) else 0.0
+	_ceremonia_libro_activa = true
+	for libro: Node3D in [_libro_cinto(), _libro]:
+		if is_instance_valid(libro):
+			_ceremonia_visibilidad[libro] = libro.visible
+			libro.visible = false
+	_brazo_libro_peso(0.0)
+	return true
+
+func terminar_ceremonia_libro() -> void:
+	if not _ceremonia_libro_activa:
+		return
+	for libro in _ceremonia_visibilidad:
+		if is_instance_valid(libro):
+			libro.visible = bool(_ceremonia_visibilidad[libro])
+	_ceremonia_visibilidad.clear()
+	_ceremonia_libro_activa = false
+	_brazo_libro_peso(_ceremonia_brazo_peso)
+
+func punto_ceremonia_libro() -> Vector3:
+	var cinto: Node3D = _libro_cinto()
+	return cinto.global_position if is_instance_valid(cinto) else global_position + Vector3.UP * 0.45
