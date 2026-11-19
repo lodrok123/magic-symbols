@@ -23,6 +23,9 @@ const OREJA_X_MIN: float = 0.29
 const OREJA_Z_MIN: float = 1.27
 const OREJA_Z_MAX: float = 1.40
 const OREJA_ATRAS_MAX: float = 0.12
+## Puntas de la melena (ver _zona_triangulo): por debajo de esta altura y de aquí hacia atrás (la cara está en atras ≈ −0,25).
+const PELO_BAJO_Z: float = 1.33
+const PELO_BAJO_ATRAS_MIN: float = -0.30      # −0,08 dejaba fuera los mechones que caen por delante de la oreja
 ## VISIBILIDAD (26/10, Pablo: «también una textura rota en la cara»). Hasta hoy el pelo era lo de detrás de un plano más unas cajas junto a las orejas y el
 ## cuello; la última caja (|x| > 0,18, de z 1,10 a 1,55 y hasta 20 cm por delante de la cara) partía por la mitad los mechones que enmarcan la cara y con la
 ## capucha quedaban trozos de pelo sueltos y parches de la piel de debajo. Ahora un triángulo de la cabeza es `pelo` si NO SE VE desde fuera con la capucha y la
@@ -356,6 +359,11 @@ func _zona_triangulo(pos: PackedVector3Array, uv: PackedVector2Array, dominante:
 		if oreja:
 			# La capucha también tapa las orejas (se asomaban por la pared lateral): van a `pelo`, que solo se apaga con la capucha puesta.
 			return ZONAS.find("pelo")
+		# 19/11 (Pablo, maniquí con la capa verde: «hay pelos hacia afuera»): las puntas de la melena que cuelgan por los lados y por detrás a la altura del
+		# cuello asomaban entre la capucha y la capa. Lo que es PELO (por color: ni piel ni tela clara), cae por debajo de PELO_BAJO_Z y no está delante de
+		# la cara va a `pelo`, se vea o no: con capucha la melena queda recogida dentro.
+		if altura < PELO_BAJO_Z and atras > PELO_BAJO_ATRAS_MIN and _es_pelo(_color(img, uv[a], uv[b], uv[c])):
+			return ZONAS.find("pelo")
 		# 26/10 (Pablo: «también una textura rota en la cara»): lo demás, por VISIBILIDAD y no por cajas. Las cajas de las hebras (|x| > 0,18 hasta 20 cm por
 		# delante del plano de la cara) cortaban por la mitad los mechones que enmarcan la cara: con la capucha se veían trozos de pelo sueltos y la piel de debajo.
 		return ZONAS.find("cabeza" if visible else "pelo")
@@ -383,6 +391,12 @@ func _es_piel(col: Color) -> bool:
 	var mn: float = minf(col.r, minf(col.g, col.b))
 	var sat: float = (mx - mn) / maxf(mx, 0.001)
 	return mn > PIEL_MIN and sat < PIEL_SATURACION_MAX
+
+
+## Naranja de la melena (≈ 0,98 / 0,60 / 0,47): rojo alto y azul por debajo del 58 % del rojo. NO «todo lo que no es piel»: así se llevó los ojos
+## (oscuros), y la boca y el colorete son rosas (azul al 65–80 % del rojo).
+func _es_pelo(col: Color) -> bool:
+	return col.r > 0.7 and col.b < col.r * 0.58 and col.g < col.r * 0.75 and col.g > col.b
 
 
 func _color(img: Image, a: Vector2, b: Vector2, c: Vector2) -> Color:

@@ -13,6 +13,8 @@ capucha sigue casando con el cuello de la capa). Caras, UV, normales, pesos, hue
 La altura es el eje Y del glTF (Y arriba). `medir` no escribe: dice los límites de la malla.
 Con `lado=<x0,x1,f>` el desplazamiento es entero hasta x0 y se queda en la fracción f desde x1: la pared del lado hacia el que NO
 se mueve la prenda se acerca menos a la cabeza (la capucha roja con todo a -7 cm metía 87 vértices bajo la piel de la izquierda).
+Con `cenir=<factor> eje=<x,y>` (y z0/z1 para la rampa en altura) la prenda se ESTRECHA alrededor del eje vertical del cuerpo: 0.88
+deja el contorno al 88 %. Para una prenda holgada sobre el maniquí, que es más delgado que la jugadora vestida de antes.
 Con `delante=<metros> caja=<x0,x1,y0,y1,z0,z1>` (metros, ejes de Blender: delante es -Y) empuja además hacia delante lo que cae
 dentro de la caja, entrando poco a poco desde sus caras: para abombar un hundimiento por el que asoma el pelo.
 La capucha roja del juego (12/11) sale de la de antes (git: 64fbf0e9) con dos pasadas:
@@ -45,6 +47,7 @@ def main():
     entrada, salida = a[0], a[1]
     dx, z0, z1, unidad = 0.0, None, None, 1.0
     delante, caja, lado = 0.0, None, None
+    cenir, eje = 1.0, (0.0, 0.0)
     for x in a[2:]:
         if x.startswith("dx="):
             dx = float(x[3:])
@@ -56,6 +59,10 @@ def main():
             unidad = float(x[7:])
         if x.startswith("delante="):
             delante = float(x[8:])
+        if x.startswith("cenir="):
+            cenir = float(x[6:])
+        if x.startswith("eje="):
+            eje = tuple(float(v) for v in x[4:].split(","))
         if x.startswith("lado="):
             lado = [float(v) for v in x[5:].split(",")]
         if x.startswith("caja="):
@@ -94,6 +101,15 @@ def main():
                 peso = 1.0
                 if z0 is not None and z1 is not None:
                     peso = suave((y - z0) / (z1 - z0))
+                if cenir != 1.0 and not medir and peso > 0.0:
+                    # CEÑIR: acerca al eje vertical del cuerpo (eje = X, Y de Blender en metros; delante es -Y = +Z del glTF)
+                    k = 1.0 + (cenir - 1.0) * peso
+                    ex, ez = eje[0] / unidad, -eje[1] / unidad
+                    x = ex + (x - ex) * k
+                    z = ez + (z - ez) * k
+                    struct.pack_into("<f", datos, base + i * paso, x)
+                    struct.pack_into("<f", datos, base + i * paso + 8, z)
+                    movidos += 1
                 if lado is not None:
                     # el lado contrario se mueve menos: factor 1 hasta x0 y `f` desde x1 (X de antes de mover, en metros)
                     peso *= 1.0 + (lado[2] - 1.0) * suave((x * unidad - lado[0]) / (lado[1] - lado[0]))

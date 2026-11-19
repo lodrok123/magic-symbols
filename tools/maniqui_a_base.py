@@ -173,6 +173,40 @@ def main():
     nor = [tuple(t) for t in nor_n] if nor_n else None
     idx = list(idx_n)
 
+    # ---- EL PELO, A LA CABEZA (Pablo, 19/11: «hay pelos hacia afuera»). Las puntas de la melena caen junto a los hombros y el punto más
+    # cercano de la base era la camisa: heredaban el peso del hombro, se estiraban con el brazo y partir_base_zonas.gd no las
+    # contaba como cabeza (no las tapaba la capucha). En el maniquí lo único de color saturado es el pelo (la piel y la ropa
+    # interior son claras): todo vértice así cuelga entero del hueso Head.
+    if "pelo_a_cabeza" in a:
+        import os
+        import tempfile
+
+        import bpy
+        import numpy as np
+        ruta_t = os.path.join(tempfile.mkdtemp(prefix="maniqui_"), "nueva.png" if "png" in mime else "nueva.jpg")
+        with open(ruta_t, "wb") as f:
+            f.write(datos_img)
+        img_n = bpy.data.images.load(ruta_t)
+        wn, hn = img_n.size[0], img_n.size[1]
+        px_n = np.empty(wn * hn * 4, dtype=np.float32)
+        img_n.pixels.foreach_get(px_n)
+        px_n = px_n.reshape(hn, wn, 4)
+        nombres_j = [base.json["nodes"][j].get("name", "") for j in base.json["skins"][0]["joints"]]
+        j_cabeza = nombres_j.index("mixamorig_Head")
+        y_min = cb[1][0] + (cb[1][1] - cb[1][0]) * 0.60          # solo de los hombros para arriba
+        cambiados = 0
+        for v in range(len(pos)):
+            if pos[v][1] < y_min:
+                continue
+            c = px_n[min(hn - 1, max(0, int((1.0 - uv[v][1]) * hn))), min(wn - 1, max(0, int(uv[v][0] * wn)))]
+            mx, mn = max(c[0], c[1], c[2]), min(c[0], c[1], c[2])
+            if mx > 0.3 and (mx - mn) / mx > 0.33 and c[0] >= c[1] >= c[2]:
+                if art[v][0] != j_cabeza or pes[v][0] < 0.999:
+                    cambiados += 1
+                art[v] = (j_cabeza, 0, 0, 0)
+                pes[v] = (1.0, 0.0, 0.0, 0.0)
+        print("MAN PELO: %d vertices de color de pelo pasan a colgar solo de la cabeza" % cambiados)
+
     # ---- BOTAS de la base (Pablo, 19/11: «mete las botas de la jugadora base»; van a ser siempre las mismas)
     z_bota = None
     for x in a[3:]:

@@ -121,7 +121,7 @@ const DESCRIPCION: Dictionary = {
 	"piernas_lobo": "Mallas marrones de montar, ceñidas, con zapatos de hebilla (ranura de piernas). Del atuendo del loberno.",
 	# --- Atuendos (Vestuario del menú; Atuendos) ---
 	"atuendo_verde": "Túnica, capa corta y capucha verdes: lo que llevas al salir de casa.",
-	"atuendo_sumicio": "El uniforme de Monte Sumicio: capa-caperuza roja de punta caída, bombachos, polainas y botines.",
+	"atuendo_sumicio": "El uniforme de Monte Sumicio: capa-caperuza roja de punta caída.",
 	"atuendo_lobo": "Chaleco azul cruzado, banda roja con broche de loberno y mallas de montar.",
 	"capa_escarcha": "Capa bordada con seda helada: te hace inmune al frío y da 1 de defensa.",
 	"tunica_salamandra": "Túnica teñida con resina y jirones: te hace inmune al calor y da 1 de defensa.",
