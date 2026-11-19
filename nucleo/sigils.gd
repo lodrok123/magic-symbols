@@ -129,6 +129,8 @@ const GLYPHS: Dictionary = {
 	# 30/10 (H5): ᚦ perforar y ᚨ buscar tienen su PNG de la lámina (thurisaz.png, ansuz.png). ᛃ retorno (jera) NO tiene PNG todavía: sin entrada aquí el libro lo pinta con el trazo a mano (como «pilar»); pendiente del Pipeline.
 	"perforar": preload("res://art/ui/glyphs/thurisaz.png"),
 	"buscar": preload("res://art/ui/glyphs/ansuz.png"),
+	# 18/11: ᛒ suelo (berkana.png, que estaba libre en la lámina).
+	"suelo": preload("res://art/ui/glyphs/berkana.png"),
 }
 
 ## NOMBRE QUE VE EL JUGADOR (23/10, decisión de Pablo): el id de un glifo es el de sus muestras grabadas (`GestureLibrary`), su PNG y las tablas, y NO se renombra. Lo que se
@@ -148,8 +150,6 @@ static func nombre_visible(id: String) -> String:
 ## su elemento a cada casilla que cruza. Dura poco: unas 4 casillas de camino.
 ##   WALL_SPEED     píxeles por segundo (una flecha va a 300)
 ##   WALL_LIFETIME  segundos que dura; recorre WALL_SPEED x WALL_LIFETIME = ~240 px
-const WALL_SPEED: float = 110.0
-const WALL_LIFETIME: float = 2.2
 
 ## --- APILAR EL MISMO GLIFO ---
 ##
@@ -161,16 +161,7 @@ const WALL_LIFETIME: float = 2.2
 ##   barreras  el aro crece de radio y la barrera que avanza se ensancha
 ##   flechas   el chorro llega más lejos y se queda más rato
 ##   cada glifo repetido suma STACK_COOLDOWN a la recarga: lo grande no es gratis
-const STACK_SIZE_GAIN: float = 0.6      ## cuánto crece el radio del aro por raíz de barreras extra
-const MAX_SIZE_FACTOR: float = 3.0      ## techo del radio, en veces el aro normal
-const MAX_WALL_HALF: int = 4            ## techo de la anchura: 2 x esto + 1 casillas
-const STACK_HOLD_GAIN: float = 0.8      ## segundos de retención por raíz de flechas extra
-const MAX_JET_CELLS: int = 8            ## techo del largo del chorro, en casillas
 const STACK_COOLDOWN: float = 0.5       ## recarga extra por cada glifo repetido
-
-## Cuánto crece el aro con `n` barreras (1 = normal).
-static func size_factor(n: int) -> float:
-	return minf(1.0 + STACK_SIZE_GAIN * sqrt(float(maxi(n - 1, 0))), MAX_SIZE_FACTOR)
 
 
 ## Un paso de lo que flota y te sigue: va hacia `objetivo` con suavidad (llega
@@ -181,20 +172,6 @@ static func flotar(actual: Vector2, objetivo: Vector2, delta: float) -> Vector2:
 	return actual.lerp(objetivo, 1.0 - exp(-FOLLOW_RATE * delta)) + balanceo * delta * 6.0
 
 
-## Casillas a cada lado del centro de la barrera plana (1 = 3 casillas de ancho).
-static func wall_half(n: int) -> int:
-	return mini(roundi(1.0 + 0.9 * sqrt(float(maxi(n - 1, 0)))), MAX_WALL_HALF)
-
-
-## Casillas que ocupa el chorro de `n` flechas (con 2 o más).
-static func jet_cells(n: int) -> int:
-	return mini(roundi(2.0 * sqrt(float(n))), MAX_JET_CELLS)
-
-
-## Segundos EXTRA que se queda el chorro de `n` flechas.
-static func jet_hold(n: int) -> float:
-	return STACK_HOLD_GAIN * sqrt(float(maxi(n - 1, 0)))
-
 
 ## --- LA CALIDAD DEL TRAZO ---
 ##
@@ -203,9 +180,6 @@ static func jet_hold(n: int) -> float:
 ## trazo limpio da 1.0. El factor multiplica la duración de lo que se queda y el
 ## alcance del muro y de la flecha.
 const QUALITY_MIN: float = 0.6
-
-## Cuántas manifestaciones forman un corro.
-const RING_POINTS: int = 6
 
 ## Cuánto dura un hechizo quieto normal. Levitación suma sobre esto.
 const BASE_LIFETIME: float = 1.5
@@ -217,11 +191,7 @@ const BASE_LIFETIME: float = 1.5
 ## un solo trazo. Sin tope, la combinación más creativa sería también la
 ## que tira los fotogramas, y eso enseña justo lo contrario de lo que
 ## queremos: a no experimentar.
-const PULSE_SPEED: float = 95.0         ## píxeles por segundo a los que se abre una onda
-const WAVE_GAP: float = 0.5             ## segundos entre una onda y la siguiente (repetición + pulso)
-const FOLLOW_LIFETIME: float = 6.0      ## segundos que te sigue lo que levita solo
 const FOLLOW_RATE: float = 7.0          ## lo rápido que te alcanza (más = más pegado)
-const MAX_MANIFESTATIONS: int = 48
 
 ## Un trazo recto simple sigue valiendo como atajo del sello
 ## equivalente: dibujas una raya y sale una flecha. El trazo es azúcar;
@@ -308,7 +278,6 @@ const FACTOR_DECRECIENTE_ALTURA_V2: float = 0.85
 const PASO_ALTURA_V2: float = 0.30         ## m que suma el 1.er ᛏ al semieje Y (los siguientes, ×FACTOR_DECRECIENTE_ALTURA_V2 cada uno)
 ## 30/10 (playtest de Pablo, «reducir un 50 % el parámetro inicial y reducir un 25 % cada suma de glifo»; INTERPRETACIÓN pendiente de confirmar): el 1.er ᛁ suma 0,25 m (la mitad de 0,5) y cada
 ## ᛁ siguiente suma un 25 % MENOS que el anterior: 0,25 · 0,1875 · 0,1406 …, o sea semieje = base + PASO · (1 − f^n) / (1 − f). Nunca pasa de base + PASO / (1 − f) = 1,10 (el tope de 3,0 no se alcanza).
-const FACTOR_DECRECIENTE_EJE_V2: float = 0.75
 ## 3/11/2026 (Pablo: «aumenta la distancia de una línea a 1 casilla. Sucesivas líneas 0,5 casillas»): la 1.ª ᛁ alarga el volumen 1 casilla (semieje +0,50) y cada siguiente 0,5 casillas (semieje +0,25), en ancho (linea_x) o en
 ## fondo (linea_z): semieje = base + 0,50 + 0,25 · (n − 1) (ya NO decreciente geométrico: FACTOR_DECRECIENTE_EJE_V2 queda sin uso). Ancho total (m = casillas) y casillas que ocupa un muro (ᛜ + ᛁ; entran las de lado cuyo centro cae dentro) con 1..6 ᛁ:
 ##   1 → 1,20 (1 casilla) · 2 → 1,70 (1) · 3 → 2,20 (3) · 4 → 2,70 (3) · 5 → 3,20 (3) · 6 → 3,70 (3)   [semieje 0,60 · 0,85 · 1,10 · 1,35 · 1,60 · 1,85]. ᛜ + 5 ᛁ = muro de 3 casillas con los 6 glifos de una página (con 3 ᛁ ya).
@@ -449,6 +418,11 @@ const GLIFOS: Dictionary = {
 	"retardo": {"cuenta_dano": CARGA_PESO_DANO, "repertorio": "retardo", "cooldown": 1.0, "tinta": {"por_glifo": 0.0, "tope": 0.0}, "momento": "inicio", "paso": 3, "modificadores": [{"campo": "retardo", "op": "suma", "valor": 1.0, "tope": 3.0},
 		{"campo": "semiejes.x", "op": "multiplica", "valor": CRECER_TOPE_V2 * CRECER_TOPE_V2, "hasta": CARGA_RANGO_V2}, {"campo": "semiejes.y", "op": "multiplica", "valor": CRECER_TOPE_V2 * CRECER_TOPE_V2, "hasta": CARGA_RANGO_V2},
 		{"campo": "semiejes.z", "op": "multiplica", "valor": CRECER_TOPE_V2 * CRECER_TOPE_V2, "hasta": CARGA_RANGO_V2}, {"campo": "potencia", "op": "multiplica", "valor": CARGA_POTENCIA_V2, "hasta": CARGA_RANGO_V2}]},
+	# ᛒ suelo (18/11, diseño de Pablo): el hechizo NO viaja ni nace en la mano: se PLANTA en la casilla del suelo a la que apuntas (`en_punto`) y hace lo que toque según su ELEMENTO y lo que haya en ella
+	# (`GlifoSuelo`: hielo sobre agua = plataforma; hielo en suelo = escarcha que hace patinar; tierra sobre vacío = plataforma; tierra sobre agua = nada; tierra en suelo = capa que ralentiza;
+	# el resto = trampa de un solo uso que explota con el color del elemento). Los campos que fija: `suelo` y `en_punto`. Cuenta para el daño (la trampa pega con el daño del hechizo).
+	"suelo": {"repertorio": "suelo", "cooldown": 2.0, "tinta": {"por_glifo": 3.0, "tope": 3.0}, "momento": "inicio", "paso": 3, "modificadores": [
+		{"campo": "suelo", "op": "fija", "valor": true}, {"campo": "en_punto", "op": "fija", "valor": true}]},
 	# Experimental. La Sala del Chamán lo añade desde su página de combate.
 	"posicion": {"cuenta_dano": false, "repertorio": "posicion", "cooldown": 0.0, "tinta": {"por_glifo": 4.0, "tope": 4.0}, "momento": "inicio", "paso": 1,
 		"modificadores": [{"campo": "en_punto", "op": "fija", "valor": true}]},

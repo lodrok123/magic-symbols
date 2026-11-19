@@ -72,9 +72,9 @@ func _generar(nombres: Array, restante: int, desde: int, actual: Array, salida: 
 
 # --- La tabla de glifos ---
 func _tablas() -> void:
-	# 13/11 (T9): antes se comparaba `GLIFOS` con `GLIFOS_V2` (retirada). Ahora se fija QUÉ glifos tiene la tabla y en qué orden (los de la V2, los cuatro de H5 y la posición experimental) y que cada uno
+	# 13/11 (T9): antes se comparaba `GLIFOS` con `GLIFOS_V2` (retirada). Ahora se fija QUÉ glifos tiene la tabla y en qué orden (los de la V2, los cuatro de H5, ᛒ suelo (18/11) y la posición experimental) y que cada uno
 	# trae repertorio, recarga y modificadores con campos que existen en `Hechizo`.
-	_ok(Sigils.GLIFOS.keys() == GLIFOS_DE_LA_V2 + ["perforar", "retorno", "buscar", "retardo", "posicion"], "GLIFOS no tiene los glifos / el orden de siempre: %s" % str(Sigils.GLIFOS.keys()))
+	_ok(Sigils.GLIFOS.keys() == GLIFOS_DE_LA_V2 + ["perforar", "retorno", "buscar", "retardo", "suelo", "posicion"], "GLIFOS no tiene los glifos / el orden de siempre: %s" % str(Sigils.GLIFOS.keys()))
 	for nombre in Sigils.GLIFOS:
 		var n: Dictionary = Sigils.GLIFOS[nombre]
 		_ok(String(n["repertorio"]) != "" and float(n["cooldown"]) >= 0.0 and not (n["modificadores"] as Array).is_empty(), "%s: sin repertorio, recarga o modificadores" % nombre)

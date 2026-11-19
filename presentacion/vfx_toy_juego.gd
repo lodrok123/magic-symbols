@@ -16,7 +16,7 @@ extends Node
 
 const AJUSTE: String = "magic_symbols/vfx_procedural"
 const AJUSTE_ELEMENTOS: String = "magic_symbols/vfx_procedural_elementos"
-const ELEMENTOS_DEFECTO: String = "fuego,agua,rayo,magma,viento,tierra"      ## 6/11: magma, viento y tierra se encienden de serie (Pablo quiere verlos en el juego); el hielo sigue con el dibujo de antes
+const ELEMENTOS_DEFECTO: String = "fuego,agua,hielo,rayo,magma,viento,tierra"      ## 6/11: magma, viento y tierra se encienden de serie; 19/11: y el HIELO (Pablo aprueba todo el VFX de hielo: «aceptados todos»)
 const ELEMENTOS: PackedStringArray = ["fuego", "agua", "hielo", "rayo", "magma", "viento", "tierra"]      ## los que SABE dibujar el toy (cuáles lo hacen de verdad: `usa_toy`)
 const MAX_VIVOS: int = 12
 const VIDA_MIN: float = 1.0
@@ -95,7 +95,7 @@ static func oculta_terraza(c: Vector2i) -> bool:
 	return usa_toy("tierra") and Terreno3D.alturas_temporales.has(c)
 
 
-## Los elementos que dibuja el toy: `magic_symbols/vfx_procedural_elementos` (lista separada por comas; «fuego,agua,rayo,magma,viento,tierra» por defecto: el hielo sigue con el dibujo de antes hasta que Pablo lo apruebe).
+## Los elementos que dibuja el toy: `magic_symbols/vfx_procedural_elementos` (lista separada por comas; los siete por defecto desde el 19/11, cuando Pablo aprobó el hielo; antes el hielo iba con el dibujo de antes).
 ## ÚNICO criterio del juego: VfxToyJuego, VfxElemento3D y ConjuroVfx3D preguntan aquí.
 static func elementos_activos() -> PackedStringArray:
 	var r: PackedStringArray = []
@@ -533,9 +533,14 @@ func _en_hechizo(_estado: String, elemento: String, g: Dictionary, origen: Vecto
 	if elemento == "tierra" and _estado == "solido" and int(g.get("niveles", 0)) > 0 and not (g.get("celdas", []) as Array).is_empty() and not g.has("estalla"):
 		_tierra_sobre_celdas(hv.h, g, sitios, d, vida)      # 422: el toy cubre el sólido real (casillas × niveles), no la cresta del fuego
 		return
+	# 16/11 (rastro del agua): la lógica pone el CENTRO del volumen `GeometriaV2.adelanto(g)` casillas por delante de quien lanza (el muro de agua nace una casilla delante, `celdas` y el agua
+	# que se vierte salen de ahí), pero este camino lo colocaba en el pie del evento SIN el adelanto (`_volumen_que_viaja` y `_tierra_sobre_celdas` sí lo cuentan): el dibujo quedaba a ≈ 4 casillas
+	# (9 m) del agua que de verdad moja. Medido en PruebaBosque: toy en el pie del jugador, suelo mojado centrado 4 casillas al frente.
+	var adelanto_u: float = maxf(Lanzador3D.GeometriaV2.adelanto(hv.h.geo()), 0.0) * Terreno3D.casilla
 	var primero: bool = true
 	for pie in sitios:
-		var t: Node3D = _volumen(elemento, hv.h, pie as Vector3, d, vida)
+		var pie_c: Vector3 = (pie as Vector3) + d * adelanto_u
+		var t: Node3D = _volumen(elemento, hv.h, pie_c, d, vida, _huella(g, pie_c, d))
 		if t != null and not primero:
 			_sin_luz(t)                            # presupuesto: una sola luz por hechizo
 		if t != null and g.has("estalla"):
@@ -546,10 +551,30 @@ func _en_hechizo(_estado: String, elemento: String, g: Dictionary, origen: Vecto
 		primero = false
 
 
-func _volumen(elemento: String, h: Hechizo, pie: Vector3, d: Vector3, vida: float) -> Node3D:
+## La HUELLA que la lógica moja alrededor del centro de un volumen (16/11): x = semiancho de sus casillas (el radio, para el pilar);
+## y = hasta dónde llegan las casillas por delante del centro. El AguaToy la usa para que la lámina que corre por el suelo al morir cubra más o menos lo que queda mojado.
+func _huella(g: Dictionary, centro: Vector3, d: Vector3) -> Vector2:
+	var celdas: Array = g.get("celdas", []) as Array
+	if celdas.is_empty():
+		return Vector2.ZERO
+	var cas: float = Terreno3D.casilla
+	var lado: Vector2 = Vector2(-d.z, d.x)
+	var semi: float = 0.0
+	var delante: float = 0.0
+	for c in celdas:
+		var p: Vector3 = Terreno3D.centro_de(c as Vector2i, 0.0) - centro
+		semi = maxf(semi, absf(Vector2(p.x, p.z).dot(lado)) + cas * 0.5)
+		delante = maxf(delante, Vector2(p.x, p.z).dot(Vector2(d.x, d.z)) + cas * 0.5)
+	# El suelo que moja la simulación llega ≈ 2 casillas del centro (medido 16/11 tras recortar el agua del hechizo: pilar 5×5, muro 5-6 × 5): la lámina del toy llega al mismo sitio
+	return Vector2(maxf(semi + cas * 0.6, cas * 1.75), maxf(delante + cas * 0.6, cas * 2.0))
+
+
+func _volumen(elemento: String, h: Hechizo, pie: Vector3, d: Vector3, vida: float, huella: Vector2 = Vector2.ZERO) -> Node3D:
 	if _vivos >= MAX_VIVOS:
 		return null
 	var t: Node3D = _nuevo(elemento)
+	if huella != Vector2.ZERO:
+		t.set_meta("huella", huella)                  # antes de colgarlo: el toy construye sus mallas al entrar en el árbol
 	t.call("desde_hechizo", h)
 	_colgar(t)
 	var pos: Vector3 = pie
@@ -738,10 +763,14 @@ func _haz(elemento: String, h: Hechizo, hz: Dictionary, suelo: float, vida: floa
 	var k: float = HazGas.escala_de(h)
 	if "escala_haz" in t:
 		t.set("escala_haz", k)
-	t.call("definir", FuegoToy.Figura.HAZ, largo * 0.5, alto, Hechizo.HAZ_ANCHO * Terreno3D.casilla * 0.5 * k, false)
 	var al: Vector3 = Vector3(hasta.x - inicio.x, 0.0, hasta.z - inicio.z)
+	var chq: Array = _choques_locales(hz.get("choques", []) as Array, inicio, al)
+	var hielo: HieloToy = t as HieloToy
+	if hielo != null:
+		_hielo_impacto(hielo, chq, largo)        # 19/11 (opción 19b): antes de construir el haz; solo el dibujo, la lógica no cambia
+	t.call("definir", FuegoToy.Figura.HAZ, largo * 0.5, alto, Hechizo.HAZ_ANCHO * Terreno3D.casilla * 0.5 * k, false)
 	if "choques" in t:
-		t.set("choques", _choques_locales(hz.get("choques", []) as Array, inicio, al))       # 9/11: la salpicadura y la luz del suelo se dibujan donde la lógica dice que choca
+		t.set("choques", chq)       # 9/11: la salpicadura y la luz del suelo se dibujan donde la lógica dice que choca
 	_colgar(t)
 	t.global_position = Vector3(inicio.x, suelo, inicio.z)
 	if al.length() > 0.01:
@@ -781,6 +810,42 @@ func _haz_con_gas(h: Hechizo, hz: Dictionary, suelo: float, vida: float, element
 	if gas == null or not is_instance_valid(gas):
 		gas = HazGasJuego.conectar(_mundo)
 	return gas.haz(h, hz, suelo, vida, elemento) != null
+
+
+## Radio (m) que se da a un enemigo u objeto atravesado por el haz de hielo: la corona crece alrededor de su pie, fuera de este radio.
+const HIELO_RADIO_IMPACTO: float = 0.35
+
+
+## 19/11 (opción 19b): dónde dibuja su impacto el haz de HIELO, a partir de los mismos choques locales que fuego, agua y rayo. Devuelve {tope, impacto, radio}:
+## un TOPE (muro, casilla sólida, barrera) corta el dibujo (`HazChoque.largo_corte`) y la corona crece en él; sin tope, el primer ENEMIGO u OBJETO atravesado pone la corona a su pie y el haz
+## se dibuja entero (la lógica lo atraviesa); sin choques, la corona en la punta. -1 = no aplica.
+static func hielo_impacto_de(choques: Array, largo: float) -> Dictionary:
+	if not FuegoToy.haz_ideas:
+		return {"tope": -1.0, "impacto": -1.0, "radio": 0.0}
+	var corte: float = HazChoque.largo_corte(choques, largo)
+	if corte < largo - 0.0001:
+		return {"tope": corte, "impacto": -1.0, "radio": 0.0}
+	var primero: float = -1.0
+	for ch in choques:
+		if not (ch is Dictionary and (ch as Dictionary).has("d")):
+			continue
+		var tipo: String = String((ch as Dictionary).get("tipo", "muro"))
+		if tipo != "enemigo" and tipo != "objeto":
+			continue
+		var d: float = float((ch as Dictionary)["d"])
+		if primero < 0.0 or d < primero:
+			primero = d
+	if primero > 0.0:
+		return {"tope": -1.0, "impacto": minf(primero, largo), "radio": HIELO_RADIO_IMPACTO}
+	return {"tope": -1.0, "impacto": -1.0, "radio": 0.0}
+
+
+static func _hielo_impacto(t: HieloToy, choques: Array, largo: float) -> void:
+	var r: Dictionary = hielo_impacto_de(choques, largo)
+	t.haz_tope = float(r["tope"])
+	t.haz_tope_radio = 0.0
+	t.haz_impacto = float(r["impacto"])
+	t.haz_impacto_radio = float(r["radio"])
 
 
 ## Los choques del haz (mundo: punto y normal) en el espacio del toy, que mira a -Z desde la mano (`al` = hacia dónde va el haz): [{d: m a lo largo, x: m a un lado, n: normal local}].

@@ -30,7 +30,6 @@ const HALO_DESTELLO: float = 1.4
 const T_DESTELLO: float = 0.7
 const T_TEMBLOR: float = 0.4
 const TEMBLOR: float = 0.06
-const COLOR_FALLO: Color = Color(0.55, 0.55, 0.62)
 const TONO_FALLO: float = 0.38
 const TONO_PASO: Array = [0.85, 1.05, 1.3, 1.55]
 const MOTAS_ACIERTO: int = 12

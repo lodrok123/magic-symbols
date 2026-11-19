@@ -36,6 +36,9 @@ extends Node3D
 ##     con daño en área de su tamaño final (`_estallar`, `Hechizo.radio_estallido`): lo que ya dibuja `AguaToy.area_al_impactar`.
 
 ## --- MATERIA V2 (R2, 17/10; docs/GLIFOS_RECETA.md §2.3-2.4): lo que llena el volumen lo decide el estado de la materia, UNA vez por estado ---
+## 16/11 (Pablo: «ocupa casi todo el mapa»; decidió «las dos cosas»): un hechizo echa la MITAD del agua que dice `volumen_agua_v2` (el agua escurría en una película que mojaba el doble de ancho que la huella
+## lógica: un pilar de 1 casilla mojaba 7×7) y la que queda como película fina la absorbe el suelo (AguaSim3D.marcar_hechizo / HZ_PELICULA). prueba_materia_v2 mide ahora contra `volumen_agua_v2 × FACTOR_AGUA_HECHIZO`.
+const FACTOR_AGUA_HECHIZO: float = 0.5
 const T_LLENADO_V2: float = 1.0             ## líquido: s que tarda en echar el agua de su volumen
 const T_CAIDA_BASE_V2: float = 0.4          ## líquido: cuándo entra el agua en AguaSim = T_CAIDA_BASE_V2 + T_CAIDA_POR_Y_V2 × semieje_y (máx. T_CAIDA_MAX_V2): casa con la caída de la masa del VFX (155)
 const T_CAIDA_POR_Y_V2: float = 0.07
@@ -1198,7 +1201,7 @@ func _materia_liquido(ctx: Dictionary) -> int:
 	var volumen: float = Sigils.volumen_agua_v2(ctx["g"])
 	if lanz != null and h.solidez > 0.0 and h.glifos_linea() > 0 and not h.viaja:
 		volumen = minf(volumen, lanz.limite_agua_muro)
-	var total: float = volumen * pow(Terreno3D.casilla, 3.0) * float(ctx.get("fraccion", 1.0))   # R3: copias y tandas reparten el volumen
+	var total: float = volumen * pow(Terreno3D.casilla, 3.0) * float(ctx.get("fraccion", 1.0)) * FACTOR_AGUA_HECHIZO   # R3: copias y tandas reparten el volumen
 	var parte: float = total / float(libres.size())
 	# El agua entra en la simulación cuando la masa del VFX por estado ha caído (t_caida); la solidez, si hay, protege desde el principio.
 	var echar: Callable = func() -> void:
@@ -1209,6 +1212,7 @@ func _materia_liquido(ctx: Dictionary) -> int:
 			else:
 				sim.fuente_en(cc, parte / T_LLENADO_V2)
 				sim.limitar_fuente(cc, parte)
+				sim.marcar_hechizo(cc)             # solo donde NO había manantial: es agua de hechizo en suelo llano, la que se absorbe si queda en película
 	_despues(tiempo_caida(ctx["g"]), echar)
 	_registrar_charco(libres, tiempo_caida(ctx["g"]))
 	return libres.size()

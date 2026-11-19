@@ -42,7 +42,6 @@ const FILAS_TABLA: int = 34                      ## filas de la tabla de F1 que 
 const COLOR_ORIGEN: Dictionary = {"elemento": "#ffb070", "glifo": "#8fd6ff", "calidad": "#c9a0ff", "lab": "#ffe45e", "derivado": "#8a8a8a", "defecto": "#707070"}
 const GOBLIN_ATACANTE: Vector2i = Vector2i(23, 12)
 const RUTA_GUARDADO: String = "user://lab_hechizos.json"
-const FASES_CONJURO: Array = ["runa", "voluta", "forma", "disparo"]
 const CAMARA_LATERAL_TAM: float = 7.0
 ## Glifos que LabRecetas3D no alcanza con el Numpad (solo tiene KP_1..KP_8): tecla -> posición en `Sigils.GLIFOS`. KP_9 = 9.º (ᛉ permanencia), KP_. = 10.º (ᚱ «pulso», 23/10).
 const TECLAS_GLIFO_EXTRA: Dictionary = {KEY_KP_9: 8, KEY_KP_PERIOD: 9}
@@ -252,7 +251,6 @@ var _t_disparo_us: int = 0
 var _agua_base: Dictionary = {}                ## Vector2i -> profundidad que tenía la casilla al abrir el lab
 var _fuentes_base: Dictionary = {}             ## Vector2i -> caudal que tenía (los manantiales del mapa se respetan; los de los hechizos se apagan)
 var _panel_extra: Dictionary = {}              ## nombre -> Button / Label del panel de modos
-var _impacto_nodos: Dictionary = {}
 
 
 func nivel_mapa() -> String:

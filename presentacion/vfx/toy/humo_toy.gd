@@ -116,17 +116,6 @@ func multimesh() -> MultiMesh:
 	return _mi.multimesh if _mi != null else null
 
 
-## Cambia un color o un número del material después de montar (p. ej. `aparicion`).
-func poner_param(nombre: String, v: Variant) -> void:
-	p[nombre] = v
-	if _mi != null:
-		var m: ShaderMaterial = _mi.material_override as ShaderMaterial
-		match nombre:
-			"claro": m.set_shader_parameter("color_claro", v)
-			"sombra": m.set_shader_parameter("color_sombra", v)
-			"viejo": m.set_shader_parameter("color_viejo", v)
-			"erosion", "estirado", "umbral", "ruido_borde", "opacidad": m.set_shader_parameter(nombre, float(v))
-
 
 ## Una bocanada nueva en `pos` (mundo si `mundo`, si no local) con velocidad `vel`. `vida_k` y `tam_k` multiplican la vida y el tamaño de la reserva; `giro` = orientación inicial en pantalla (rad);
 ## `alargado` = relación alto/ancho (1 redonda, 2 el doble de alta: jirón). Devuelve el hueco o -1 si no hay sitio.

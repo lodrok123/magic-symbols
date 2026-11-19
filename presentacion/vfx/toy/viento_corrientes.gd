@@ -5,6 +5,7 @@ const Cintas = preload("res://presentacion/vfx/toy/rayo_trazos.gd")
 var _trazos: Array = []
 var _contorno_escudo: MeshInstance3D
 var _contorno_tornado: MeshInstance3D
+var _disco: MeshInstance3D
 var _cortina: MeshInstance3D
 var _ejes_cortina := Vector3.ZERO
 ## CAMPO DE VIENTO (11/11, CampoViento; null = las cintas de siempre). Si lo hay, los PUNTOS de cada cinta se desplazan con lo que el campo desvía respecto al viento de la figura
@@ -26,6 +27,10 @@ var _emp_cache: Array = []             ## empujes del rodeo de cada cinta (ídem
 var _justos_cache: Array = []
 var _ult_d: float = 1000.0             ## distancia a la piel de la última muestra tras _rodeo
 var _n_cinta: int = 0
+## Cuánto de la TURBULENCIA del campo llega a las cintas de la figura que se dibuja (1 = todo). La columna de viento (PILAR) solo deja un 0,2: con el campo encendido (de serie) el desvío de
+## hasta 0,45 m en 5 puntos de control, interpolado con Catmull-Rom, convertía sus vetas rectas en garabatos con picos y se perdía la silueta de cilindro (capturas del 16/11). El RODEO de los
+## sólidos no se toca: una columna sí debe abrirse alrededor de lo que tiene delante.
+var _turb_k: float = 1.0
 var _paridad: int = 0
 
 
@@ -45,6 +50,7 @@ func dibujar(figura: StringName, ejes: Vector3, tiempo: float, opacidad: float, 
 	puntos_desviados = 0
 	_ult_in = PackedVector3Array()
 	_n_cinta = 0
+	_turb_k = 0.2 if figura == &"PILAR" else 1.0
 	_paridad = 1 - _paridad
 	if opacidad > 0.01:
 		match figura:
@@ -57,7 +63,7 @@ func dibujar(figura: StringName, ejes: Vector3, tiempo: float, opacidad: float, 
 			&"HAZ":
 				_haz(ejes, tiempo, opacidad)
 			&"PILAR":
-				_tornado(ejes, tiempo, opacidad)
+				_columna(ejes, tiempo, opacidad)
 			&"MURO":
 				_muro(ejes, tiempo, opacidad)
 			&"BARRERA":
@@ -68,16 +74,17 @@ func dibujar(figura: StringName, ejes: Vector3, tiempo: float, opacidad: float, 
 		_borde_escudo(ejes, opacidad)
 	elif figura == &"PILAR":
 		_borde_tornado(ejes, tiempo, opacidad)
+		_disco_suelo(ejes, tiempo, opacidad)
 	elif figura == &"MURO":
 		_cortina_muro(ejes, tiempo, opacidad)
 	Cintas.volcar_cintas(self, _trazos, ancho, false)
 
 
-func _guardar(puntos: PackedVector3Array, grosor: float, alfa: float, tinte: float = 1.0) -> void:
+func _guardar(puntos: PackedVector3Array, grosor: float, alfa: float, tinte: float = 1.0, cola: float = 0.73, huso: bool = false) -> void:
 	if campo != null and is_inside_tree():
 		puntos = _desviar(puntos)
 	_trazos.append({"puntos": puntos, "ancho": grosor, "punta": grosor * 0.35,
-		"alfa": alfa, "alfa_punta": alfa * 0.73, "tinte": tinte})
+		"alfa": alfa, "alfa_punta": alfa * cola, "tinte": tinte, "huso": huso})   # `cola`: lo que queda de alfa en la punta (la columna de viento la apaga casi del todo)
 
 
 func _rafaga(ejes: Vector3, tiempo: float, alfa: float, estela: float) -> void:
@@ -202,30 +209,125 @@ func _haz(ejes: Vector3, tiempo: float, alfa: float) -> void:
 				uve.append(Vector3(0.0, ejes.y, -_z_haz(fase, largo)) + giro_v * Vector3(s * abre, 0.0, absf(s) * abre * 1.15))
 			_guardar(uve, clampf(radio * 0.40, 0.07, 0.16), alfa * sin(PI * fase), 0.0)
 
-func _tornado(ejes: Vector3, tiempo: float, alfa: float) -> void:
-	for i in 23:
-		var fase: float = fposmod(tiempo * 0.88 + float(i) * 0.38197, 1.0)
+## PILAR = COLUMNA DE VIENTO ASCENDENTE (16/11/2026, queja de Pablo: «el pilar no tiene una forma establecida; lo cambiaría a columna de viento ascendente, porque estamos escribiendo una
+## altitud + elemento»). Antes (`_tornado`) eran 23 tramos cortos sin silueta que se leían como virutas. 3.ª ronda (referencia: la ráfaga ascendente de Venti en Genshin; se toma su LENGUAJE,
+## no su efecto): un disco de luz en el suelo, medias lunas que barren la base y CINTAS ANCHAS EN HÉLICE que suben envolviendo la columna, con hilos finos verticales por dentro.
+## El viento es ráfaga, nunca masa: todo son cintas (el disco del suelo es luz tenue, no volumen). Lo que se conserva de las rondas anteriores: eje quieto, silueta que coincide con la
+## huella, la altura NO baja al morir (viento_toy.gd), el ancho y el alfa van con `alfa` (= aparición × escala) para que al morir adelgacen a la vez y se vayan hacia arriba, y la
+## turbulencia del campo al 20 % (`_turb_k`).
+##  · HÉLICES: 6-8 cintas anchas (0,12-0,28 m), ventana del 50-70 % de la altura que asciende deprisa, giro `torsion` rad en toda la altura y radio que abre de 1,0 a 1,25.
+##  · MEDIAS LUNAS de base: 3 cintas en arco de ~160° a 0,1-0,35 m del suelo que giran rápido y se repiten una cada ~0,3 s (al nacer salen más anchas, con fuerza).
+##  · HILOS: 8 finos y rápidos por dentro (radio 0,4-0,8): la corriente ascendente. Ya no son el cuerpo.
+## Las cintas van con tinte 1,0 (cinta lisa de viento_corriente.gdshader): con 0,82, el de los tornados, el shader las ensancha y serpentea y salían con nudos.
+## Las anchas llevan `huso` (rayo_trazos.gd): gruesas en el centro y afiladas en las puntas.
+## Presupuesto ≈ 6-8 × 36 × 2 + 3 × 16 × 2 + 8 × 14 ≈ 700 puntos (el tornado tenía 23 × 42 = 966).
+## `torsion`: radianes de giro de una hélice a lo largo de TODA la altura (7,0 ≈ 1,1 vueltas). Es el enganche de la «curvatura» general de los hechizos (aún no conectado a nada): con más
+## torsión y un perfil cónico esto vuelve a ser un tornado; con 0 son líneas rectas.
+var torsion: float = 7.0
+
+const COL_HILOS: int = 8
+const COL_LUNAS: int = 3
+const COL_CIMA: float = 1.12                     ## las líneas suben un poco por encima del tope (nivel 1) y se desvanecen: el aire sigue subiendo, no se corta
+const COL_TORSION_POR_ESBELTEZ: float = 2.6      ## rad de torsión como mucho por unidad de esbeltez (alto / radio): la columna baja y ancha gira menos para que sus cintas sigan subiendo
+const T_LUNA: float = 0.9                       ## vida de cada media luna: con 3 en rueda sale una cada 0,3 s
+
+
+## Radio de la columna en cada nivel (0 = suelo, 1 = cima), en múltiplos de los semiejes.
+static func perfil_columna(nivel: float) -> float:
+	return 0.9 + 0.35 * (1.0 - smoothstep(0.0, 0.15, nivel)) + 0.10 * smoothstep(0.15, 0.5, nivel) + 0.15 * smoothstep(0.6, 1.0, nivel)
+
+
+func _columna(ejes: Vector3, tiempo: float, alfa: float) -> void:
+	var vida: float = clampf(alfa, 0.0, 1.0)             # el ancho de todo va con esto: al morir adelgaza a la vez en toda la altura
+	var giro_t: float = tiempo * 0.5                      # la columna entera gira despacio: da vida sin mover el eje
+	var radio_m: float = maxf(ejes.x, ejes.z)
+	var nace: float = 1.0 + 0.5 * (1.0 - smoothstep(0.0, 0.6, tiempo))   # los primeros 0,6 s todo sale más ancho: nacer con fuerza
+	# COLUMNA BAJA Y ANCHA (16/11, «se lee regular»): con la misma torsión en menos altura y más radio las hélices quedaban casi horizontales (aros apilados, un muelle) y no se leía que el
+	# aire SUBE. La torsión se limita por la esbeltez (alto / radio) para que la cinta conserve pendiente; con esbeltez ≥ 2,7 (la de referencia es 8) no cambia nada. `chata` 0..1 alarga los hilos.
+	var esbeltez: float = ejes.y / maxf(radio_m, 0.05)
+	var tors: float = minf(torsion, COL_TORSION_POR_ESBELTEZ * esbeltez)
+	var chata: float = 1.0 - smoothstep(1.2, 2.7, esbeltez)
+	# HÉLICES
+	var n_hel: int = clampi(roundi(4.0 + 3.0 * radio_m), 6, 8)
+	for i in n_hel:
 		var semilla: float = float(i) * 2.39996
-		var angulo: float = tiempo * 7.2 + semilla
-		var inicio: float = fase * 0.88
-		var subida: float = 0.13 + 0.19 * (0.5 + 0.5 * sin(semilla))
-		var arco: float = 3.4 + 5.2 * (0.5 + 0.5 * cos(semilla * 1.7))
+		var largo: float = 0.5 + 0.2 * fposmod(float(i) * 0.618, 1.0)
+		var fase: float = fposmod(tiempo * (0.80 + 0.08 * float(i % 3)) + float(i) / float(n_hel), 1.0)
+		var inicio: float = lerpf(-0.5 * largo, COL_CIMA - 0.5 * largo, fase)
+		var n0: float = maxf(inicio, 0.0)
+		var n1: float = minf(inicio + largo, COL_CIMA)
+		if n1 - n0 < 0.05:
+			continue
+		var base: float = float(i) * TAU / float(n_hel) + giro_t
 		var puntos := PackedVector3Array()
-		for j in 42:
-			var u: float = float(j) / 41.0
-			var giro: float = angulo + u * arco + 0.24 * sin(u * TAU + semilla)
-			var ondulacion: float = sin(giro * 1.35 + semilla) * 0.055
-			var nivel: float = clampf(inicio + subida * u + ondulacion, 0.0, 1.10)
-			var radio: float = lerpf(0.53, 1.64, nivel) + sin(giro * 1.7 + semilla) * 0.15
-			radio *= 0.83 + 0.28 * sin(PI * u) + 0.13 * cos(semilla)
-			var eje_x: float = sin(nivel * 5.5 - tiempo * 2.4) * ejes.x * (0.13 + nivel * 0.38)
-			var eje_z: float = cos(nivel * 4.0 - tiempo * 1.8) * ejes.z * nivel * 0.27
-			puntos.append(Vector3(cos(giro) * ejes.x * radio + eje_x,
-				0.06 + ejes.y * nivel, sin(giro) * ejes.z * radio + eje_z))
-		var es_hilo: bool = i % 3 == 0
-		var grueso: float = clampf(ejes.x * (0.13 if es_hilo else 0.43 + 0.19 * sin(semilla)), 0.04, 0.40)
-		var fuerza: float = alfa * sin(PI * fase)
-		_guardar(puntos, grueso, fuerza * (0.58 if es_hilo else 0.92), 0.82)
+		for j in 36:
+			var nivel: float = lerpf(n1, n0, float(j) / 35.0)   # de la cabeza (arriba) a la cola (abajo)
+			var ang: float = base + tors * nivel
+			var r: float = lerpf(1.0, 1.25, clampf(nivel, 0.0, 1.0)) * (0.97 + 0.06 * sin(semilla))
+			puntos.append(Vector3(cos(ang) * ejes.x * r, 0.08 + ejes.y * nivel, sin(ang) * ejes.z * r))
+		var grueso: float = clampf(ejes.x * 0.3, 0.12, 0.28) * vida * nace
+		var env: float = smoothstep(0.0, 0.18, fase) * (1.0 - smoothstep(0.82, 1.0, fase))
+		_guardar(puntos, grueso * 1.8, alfa * env * 0.2, 1.0, 1.0, true)      # velo
+		_guardar(puntos, grueso, alfa * env * 0.92, 1.0, 1.0, true)
+	# HILOS verticales: la corriente ascendente
+	for i in COL_HILOS:
+		var semilla: float = float(i) * 2.39996 + 1.3
+		var largo: float = (0.3 + 0.2 * fposmod(float(i) * 0.618, 1.0)) * lerpf(1.0, 1.7, chata)      # en la columna baja un hilo del 30-50 % medía medio metro: virutas
+		var fase: float = fposmod(tiempo * 1.5 + float(i) * 0.37, 1.0)
+		var inicio: float = lerpf(-0.5 * largo, COL_CIMA - 0.5 * largo, fase)
+		var n0: float = maxf(inicio, 0.0)
+		var n1: float = minf(inicio + largo, COL_CIMA)
+		if n1 - n0 < 0.05:
+			continue
+		var base: float = float(i) * TAU / float(COL_HILOS) + giro_t * 1.6 + 0.5
+		var r: float = 0.4 + 0.4 * fposmod(semilla, 1.0)
+		var puntos := PackedVector3Array()
+		for j in 14:
+			var nivel: float = lerpf(n1, n0, float(j) / 13.0)
+			var ang: float = base + 0.12 * tors * nivel
+			puntos.append(Vector3(cos(ang) * ejes.x * r, 0.08 + ejes.y * nivel, sin(ang) * ejes.z * r))
+		var env: float = smoothstep(0.0, 0.2, fase) * (1.0 - smoothstep(0.8, 1.0, fase))
+		_guardar(puntos, clampf(ejes.x * 0.14, 0.03, 0.07) * vida, alfa * env * 0.7, 1.0, 0.3)
+	# MEDIAS LUNAS de la base: arcos anchos a ras de suelo que barren girando rápido; una nueva cada T_LUNA / COL_LUNAS s
+	for i in COL_LUNAS:
+		var fase: float = fposmod(tiempo / T_LUNA + float(i) / float(COL_LUNAS), 1.0)
+		var env: float = smoothstep(0.0, 0.12, fase) * (1.0 - smoothstep(0.55, 1.0, fase))
+		if env < 0.02:
+			continue
+		var centro: float = float(i) * 2.1 + fase * TAU * 1.3          # ~0,7 s por vuelta
+		var abre: float = lerpf(1.0, 1.3, fase) * (1.0 + 0.2 * (1.0 - smoothstep(0.0, 0.5, tiempo)))
+		var y: float = 0.08 + minf(ejes.y * 0.08, 0.27) * fase
+		var puntos := PackedVector3Array()
+		for j in 16:
+			var ang: float = centro + lerpf(-1.4, 1.4, float(j) / 15.0)
+			puntos.append(Vector3(cos(ang) * ejes.x * abre, y + 0.04 * sin(ang * 2.0), sin(ang) * ejes.z * abre))
+		var grueso: float = clampf(ejes.x * 0.4, 0.14, 0.3) * vida * nace
+		_guardar(puntos, grueso * 1.7, alfa * env * 0.2, 1.0, 1.0, true)
+		_guardar(puntos, grueso, alfa * env * 0.95, 1.0, 1.0, true)
+
+
+## DISCO DE SUELO (3.ª ronda): un quad a ras de suelo con viento_disco.gdshader. Al nacer un anillo se abre del centro a la huella en ~0,15 s; después queda un disco tenue con rayas
+## radiales que giran despacio, y se apaga con `opacidad` al morir. Es luz en el suelo, no una masa: opacidad baja y sin volumen.
+func _disco_suelo(ejes: Vector3, tiempo: float, opacidad: float) -> void:
+	if _disco == null:
+		var plano := PlaneMesh.new()
+		plano.size = Vector2(2.6, 2.6)
+		var material := ShaderMaterial.new()
+		material.shader = preload("res://presentacion/vfx/toy/viento_disco.gdshader")
+		material.set_shader_parameter("claro", VientoToy.CLARO)
+		material.set_shader_parameter("sombra", VientoToy.SOMBRA)
+		_disco = MeshInstance3D.new()
+		_disco.name = "DiscoSuelo"
+		_disco.mesh = plano
+		_disco.material_override = material
+		_disco.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		add_child(_disco)
+	_disco.position.y = 0.04
+	_disco.scale = Vector3(ejes.x, 1.0, ejes.z)
+	var m := _disco.material_override as ShaderMaterial
+	m.set_shader_parameter("tiempo", tiempo)
+	m.set_shader_parameter("abre", smoothstep(0.0, 0.15, tiempo))
+	m.set_shader_parameter("opacidad", opacidad)
 
 
 func _muro(ejes: Vector3, tiempo: float, alfa: float) -> void:
@@ -410,7 +512,7 @@ func _desviar(puntos: PackedVector3Array) -> PackedVector3Array:
 		centro += pw
 		if rehacer:
 			# solo la TURBULENCIA (11/11): la piel del campo, vista en 5 puntos de control, daba picos de 0,45 m que no rodeaban; el rodeo lo hace _rodeo
-			offs[m] = inv.basis * ((campo.turbulencia_libre(pw) if campo.parte_turbulencia else Vector3.ZERO) * campo_tau * (0.3 + 0.7 * float(j) / float(n - 1))).limit_length(campo_max)
+			offs[m] = inv.basis * ((campo.turbulencia_libre(pw) if campo.parte_turbulencia else Vector3.ZERO) * campo_tau * _turb_k * (0.3 + 0.7 * float(j) / float(n - 1))).limit_length(campo_max * _turb_k)
 	if rehacer:
 		while _offs_cache.size() <= cual:
 			_offs_cache.append(PackedVector3Array())

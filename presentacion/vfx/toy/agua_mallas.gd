@@ -21,6 +21,7 @@ const SH_ESPUMA: String = DIR + "agua_espuma.gdshader"
 const SH_OLA: String = DIR + "agua_ola.gdshader"
 const SH_OLA_LAMINA: String = DIR + "agua_ola_lamina.gdshader"
 const SH_FRANJA: String = DIR + "agua_franja.gdshader"
+const SH_SUELO: String = DIR + "agua_suelo.gdshader"
 const SH_SPRITE: String = DIR + "lelu_sprite_mix.gdshader"
 const PUFF: String = "res://assets/vfx/kenney_puff/whitePuff03.png"
 
@@ -117,7 +118,8 @@ static func lengua(p: Vector3, w: float, h: float, fuera: Vector3, rng: RandomNu
 	return {"pos": p, "w": w, "h": h, "fuera": fuera, "sem": rng.randf() * 7.0, "dly": dly, "alfa": alfa}
 
 
-## CORONA del pilar: un anillo de lenguas altas y de distinta altura alrededor de la base, más unas bajas y sueltas, más lejos. Determinista.
+## CORONA del pilar = SALPICADURA DE NACIMIENTO (16/11/2026): un anillo de lenguas BAJAS (alto·0,08..0,18, tope 0,9 m) alrededor de la base que suben con el brote y caen cuando la columna se asienta, más unas
+## pocas diminutas y sueltas. Antes eran 7-13 láminas de hasta 2,8 m abiertas hacia fuera mientras el pilar vivía: pétalos, una rosa de agua en vez de un géiser. Determinista.
 static func lenguas_corona(rx: float, rz: float, alto: float) -> Array:
 	var rng: RandomNumberGenerator = RandomNumberGenerator.new()
 	rng.seed = 20261105
@@ -128,7 +130,7 @@ static func lenguas_corona(rx: float, rz: float, alto: float) -> Array:
 	for i in n:
 		var ang: float = fase + TAU * (float(i) + rng.randf_range(-0.25, 0.25)) / float(n)
 		var rr: float = rng.randf_range(0.95, 1.35)
-		var h: float = clampf(alto * rng.randf_range(0.22, 0.5), 0.55, 2.8)
+		var h: float = clampf(alto * rng.randf_range(0.08, 0.18), 0.25, 0.9)
 		if i % 3 == 0:
 			h *= 0.5                                                   # alturas bien distintas: una de cada tres, baja
 		var d: Vector3 = Vector3(cos(ang), 0.0, sin(ang))
@@ -137,7 +139,7 @@ static func lenguas_corona(rx: float, rz: float, alto: float) -> Array:
 		var ang2: float = fase + rng.randf() * TAU
 		var d2: Vector3 = Vector3(cos(ang2), 0.0, sin(ang2))
 		var rr2: float = rng.randf_range(1.7, 2.5)
-		var h2: float = clampf(alto * rng.randf_range(0.05, 0.1), 0.22, 0.7)
+		var h2: float = clampf(alto * rng.randf_range(0.03, 0.06), 0.12, 0.3)
 		r.append(lengua(Vector3(d2.x * rx * rr2 + d2.x * 0.1, 0.0, d2.z * rz * rr2 + d2.z * 0.1), h2 * 0.9, h2, d2, rng, rng.randf_range(0.2, 0.9), 0.85))
 	return r
 
@@ -249,7 +251,7 @@ static func ola_laminas(a: float, b: float, alto: float, cuerpo: bool) -> Array:
 	rng.seed = 20261107 + (1 if cuerpo else 0)
 	var paso: float = 0.7
 	var n: int = clampi(int(round(2.0 * a * 0.95 / paso)) + 1, 3, 24)
-	var filas: Array = [-0.8 * b, 0.0, 0.9 * b, 0.25 * alto + 1.6 * b] if cuerpo else [-0.9 * b, 0.1 * b, 0.8 * b]
+	var filas: Array = [-0.6 * b, 0.1 * b, 0.8 * b, 0.25 * alto + 0.9 * b] if cuerpo else [-0.9 * b, 0.1 * b, 0.8 * b]
 	var r: Array = []
 	for fi in filas.size():
 		for i in n:

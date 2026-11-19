@@ -26,7 +26,6 @@ static var SSAO_INTENSIDAD: float = 1.2  ## cuánto oscurece (por defecto 2,0: a
 const SSAO_PODER: float = 1.5            ## curva: más alto = el AO se concentra en las esquinas
 const SSAO_DETALLE: float = 0.5
 const SSAO_AFECTA_LUZ: float = 0.0       ## 0 = solo oscurece el AMBIENTE (no la luz directa del sol: la sombra del sol ya la pone la sombra)
-const SSAO_AFECTA_REFLEJOS: float = 0.5  ## cuánto atenúa también la luz de la sonda de reflejos
 
 ## --- Tonemap ---
 ## «Como antes» = `Environment.TONE_MAPPER_LINEAR` (sin tonemap). ELEGIDO FILMIC con exposición 0,8, MEDIDO en la sala 1/2/5 del lab (docs/capturas/look_v1v2/MEDIDAS.txt):

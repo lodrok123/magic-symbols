@@ -56,7 +56,7 @@ void vertex() {
 	float sube = smoothstep(0.0, 0.8, UV.y);
 	VERTEX.x *= mix(1.0, afila, UV.y);
 	VERTEX.x += (n - 0.5) * 2.0 * amplitud_vert * ondulacion * sube / max(esc.x, 0.001);      // el balanceo de la lengua, en metros
-	VERTEX.y *= altura;
-	VERTEX.x *= ancho;
+	VERTEX.y *= altura * brote_alto();
+	VERTEX.x *= ancho * brote_ancho();
 	MODELVIEW_MATRIX = VIEW_MATRIX * mat4(vec4(der * esc.x, 0.0), vec4(0.0, esc.y, 0.0, 0.0), vec4(to * esc.z, 0.0), MODEL_MATRIX[3]);
 }

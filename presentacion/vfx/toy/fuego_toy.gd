@@ -32,6 +32,89 @@ const SH_HAZ: String = "res://presentacion/vfx/toy/haz_toy.gdshader"
 ## PILAR (base irregular): altura máxima (m) a la que sube el borde de contacto con el suelo y cuánto se desdibuja el charco de luz.
 const PILAR_BASE_M: float = 0.45
 const PILAR_IRREG_CHARCO: float = 0.28
+## MURO = CORTINA DENSA (17/11, Pablo, con un vídeo de muros de fuego entre columnas): el muro ya no es una red calada de lenguas (se veía a través) sino un cuerpo lleno que solo se
+## rompe en lenguas arriba, con vetas verticales. Mismos mandos que el pilar de una lengua.
+const MURO_RELLENO: float = 0.68         ## `desfase` (0,45 era la red calada de antes)
+const MURO_EROSION: float = 1.3          ## `fuerza_grad`
+const MURO_EROSION_POT: float = 2.0      ## `pot_grad`: la erosión, arriba
+const MURO_ESTIRA: float = 0.7           ## repeticiones verticales de la textura (< 1 = vetas más largas)
+const MURO_CALOR: float = -0.28          ## compensa en la rampa el relleno de más: sin amarillo
+const MURO_BASE_M: float = 0.3           ## altura máx. (m) a la que sube el contacto con el suelo según el ruido: con el cuerpo lleno, el corte recto de la base se notaba
+const MURO_ANILLOS: int = 28             ## anillos de la banda (antes 14): con el cuerpo lleno se veían los pliegues entre anillos como rayas horizontales
+## 17/11 tarde (Pablo, con captura del lab: «más recto y con ruido en su contorno y aumenta la velocidad de las llamas»): el muro se estrechaba al 78 % arriba y, con la cámara del juego,
+## se leía como un trapecio de lados limpios.
+const MURO_AFILA: float = 0.96           ## ancho arriba / ancho abajo de la banda (0,78 antes): casi a plomo
+const MURO_AFILA_IN: float = 0.92        ## ídem la banda interior (0,7 antes)
+const MURO_RUIDO_CONTORNO: float = 0.24  ## m que el ruido saca y mete la silueta (`amplitud_vert`; 0,16 antes)
+const MURO_VELOCIDAD: float = 1.6        ## × la velocidad de las llamas del muro
+## 17/11 noche (Pablo: «tiene contornos muy definidos, habría que darle ruido al contorno de la forma»): × el desplazamiento de vértices de las capas del pilar (la silueta entra y sale más).
+const PILAR_RUIDO_CONTORNO: float = 1.8
+const PILAR_VELOCIDAD: float = 1.6       ## × la velocidad de las llamas del pilar
+## INICIO Y FINAL DEL PILAR (17/11, Pablo: «quiero un inicio y un final en los hechizos… igual que la carga de la bola»; «pilar primero»). Solo dibujo.
+##   INICIO: un anillo en el suelo se cierra hacia el centro (`PILAR_AVISO_S`) y del centro brota un chorro fino que sube y luego engorda (`PILAR_BROTE_S`).
+##   FINAL: se corta por la base; la raíz se estrecha y se suelta y lo que queda arriba es lo último en irse.
+## A false, el nacer y morir de antes (el cuerpo entero crece y se encoge).
+const PILAR_INICIO_FINAL: bool = true
+const PILAR_AVISO_S: float = 0.35
+## 17/11 (Pablo, con un vídeo de un hechizo de fuego: grietas que corren por el suelo, se encienden, de ellas revienta el fuego y al irse quedan al rojo y se apagan: «pensaba en algo
+## así. Añádelo, crea un fuego que nace y muere»). GRIETAS bajo el pilar (grietas_magma.gdshader, el del cráter de magma): en el aviso salen del centro, oscuras, y se encienden; viven
+## encendidas bajo el pilar; al morir el chorro se va en la primera parte (`PILAR_FINAL_CORTE`) y las grietas se enfrían y se apagan hasta el final (`PILAR_FINAL_S`).
+## 17/11 tarde (Pablo: «falta el cómo muere el pilar: aumentaría volumétricamente el humo hasta que se consumiera el fuego del todo»). Al morir, el fuego se oscurece hacia el pardo del
+## humo (`apaga` del shader) mientras una columna de humo («HumoFinal», el humo pardo de `_humo_generico`) crece a lo alto del pilar: cada vez más bocanadas y cada una hinchándose.
+## Referencias: desglose de una explosión estilizada en Godot (el color pasa de caliente a frío a humo y el mismo ruido lo deshace) y el de Adrift Arena (el fuego no se para: se funde en
+## un humo que se expande y sube).
+const PILAR_HUMO_FINAL: bool = true
+## 17/11 noche (Pablo: «para el humo… darle más consistencia»; elige el HUMO TOON DEL JUEGO): «HumoFinal» ya no son sprites blandos sino las bocanadas toon de dos tonos de
+## humo_toy.gd (las de la tierra y el viento), en pardo oscuro: nacen a la altura por la que va el corte, se hinchan y se carcomen.
+const PILAR_HUMO_CANT: int = 20           ## bocanadas en todo el final
+const PILAR_HUMO_VIDA_S: float = 1.4      ## s que dura cada bocanada
+const PILAR_HUMO_TAM: Vector2 = Vector2(1.1, 3.2)      ## diámetro al nacer y al final, en veces el semieje del pilar
+const PILAR_HUMO_CLARO: Color = Color(0.46, 0.34, 0.28)
+const PILAR_HUMO_SOMBRA: Color = Color(0.25, 0.16, 0.12)
+const PILAR_HUMO_VIEJO: Color = Color(0.33, 0.29, 0.28)
+const HumoToyFuego = preload("res://presentacion/vfx/toy/humo_toy.gd")
+const PILAR_HUMO_HASTA: float = 1.01      ## deja de salir humo cuando el corte ha subido esta fracción del pilar
+## OJO (lo cazó `prueba_vfx_toy`): «morir» cuenta DENTRO de la vida del hechizo (empieza cuando quedan `dura_morir` s). Con un final de 2 s el fuego se iba 1,2 s antes de que acabara
+## el hechizo y un pilar de 1 s tardaba 2 en liberarse. Por eso el final va en dos tiempos: el chorro se suelta en `PILAR_FINAL_S` (dentro de la vida) y, al acabar, el RESCOLDO
+## (las grietas y el humo) se descuelga del efecto, se queda en el suelo `PILAR_RESCOLDO_S` enfriándose y se borra solo: no alarga el hechizo.
+const PILAR_RESCOLDO_S: float = 1.5
+const PILAR_FINAL_S: float = 0.8
+const PILAR_FINAL_CORTE: float = 1.0    ## fracción del final en la que el chorro ya se ha soltado del todo
+const PILAR_GRIETAS_TAM: float = 6.5     ## diámetro del plano de grietas, en veces el semieje
+const PILAR_GRIETAS_CALOR: float = 0.6   ## calor de las grietas encendidas (0,6 = naranja rojizo; con 0,75 salían amarillentas sobre el charco de luz; 1 sería amarillo)
+## MURO: las mismas líneas del suelo, pero solo dos grietas que corren a lo largo del muro, una a cada lado (grietas_linea.gdshader). Salen del centro hacia los extremos al nacer y se
+## enfrían al morir.
+const MURO_GRIETAS: bool = true
+## INICIO Y FINAL DEL MURO (17/11, Pablo: «ahora haz el inicio y final del muro de fuego»). Solo dibujo; mismo esquema que el pilar.
+##   INICIO: las dos grietas corren del centro a los extremos y se encienden (`MURO_AVISO_S`); detrás, el muro sube como una cremallera, del centro hacia fuera (`MURO_BROTE_S`).
+##   FINAL (`MURO_FINAL_S`, dentro de la vida del hechizo): el muro se retira de los extremos al centro soltando humo toon por donde se va; después, el RESCOLDO (grietas y humo)
+##   se descuelga y se enfría `PILAR_RESCOLDO_S` por su cuenta.
+## A false, el nacer y morir de antes (el cuerpo entero crece y se encoge).
+const MURO_INICIO_FINAL: bool = true
+const MURO_AVISO_S: float = 0.25
+const MURO_BROTE_S: float = 0.45
+const MURO_FINAL_S: float = 0.8
+const MURO_HUMO_POR_M: float = 3.0        ## bocanadas de humo por metro de muro en todo el final
+const MURO_HUMO_TAM: Vector2 = Vector2(0.45, 1.25)     ## diámetro de la bocanada al nacer y al final, en veces el alto del muro
+const MURO_GRIETAS_LADO_M: float = 0.35   ## m del borde del muro a cada grieta
+const MURO_GRIETAS_MARGEN_M: float = 0.9  ## m que el plano de grietas sobresale del muro por cada lado (sitio para las ramas)
+const SH_GRIETAS_MURO: String = "res://presentacion/vfx/toy/grietas_linea.gdshader"
+const SH_GRIETAS_FUEGO: String = "res://presentacion/vfx/toy/grietas_magma.gdshader"
+const PILAR_BROTE_S: float = 0.45
+const PILAR_AVISO_TAM: float = 5.0       ## diámetro del anillo de aviso al empezar, en veces el semieje
+const PILAR_AVISO_FIN: float = 0.2       ## fracción de ese tamaño al cerrarse
+## PILAR = UNA LENGUA (17/11, Pablo, con un vídeo de chorros de fuego: «para el pilar de fuego pero con solo una lengua»): la silueta ya no es un cilindro de lenguas sino un solo chorro,
+## estrecho en la raíz, que se abre hasta la panza y se deshace en la punta, lleno por dentro, con vetas verticales y con un vaivén de todo el chorro a la vez.
+const PILAR_RAIZ: float = 0.45           ## radio en el suelo, en veces el semieje
+const PILAR_PANZA_V: float = 0.55        ## altura (0-1) a la que el chorro llega a su ancho entero
+const PILAR_PUNTA: float = 0.8           ## radio arriba, en veces el semieje (la punta la roe el shader)
+const PILAR_RELLENO: float = 0.72        ## `desfase` del shader: más = cuerpo más lleno (0,5 era el cilindro calado de antes)
+const PILAR_EROSION: float = 1.25        ## `fuerza_grad`: cuánto se roe hacia arriba
+const PILAR_EROSION_POT: float = 2.2     ## `pot_grad`: más = la erosión se concentra en la punta
+const PILAR_ESTIRA: float = 0.65         ## repeticiones verticales de la textura (< 1 = vetas más largas)
+const PILAR_RAIZ_CHATO: float = 0.8      ## raíz de un pilar bajo y ancho (alto/radio < 1,2): casi no se estrecha, que si no parece un cuenco
+const PILAR_CALOR: float = -0.2          ## compensa en la rampa el relleno de más: el corazón se queda en naranja, sin amarillo ni blanco
+const PILAR_VAIVEN_M: float = 0.16       ## metros que se ladea el chorro entero (pilar de referencia, r 0,5)
 const HAZ_R_ORIGEN: float = 0.012
 const HAZ_ABRE: float = 3.0
 ## HAZ, ideas de la demo de gas de three.js (9/11/2026): salpicadura donde choca, punta de humo y luz en el suelo (ver `_haz`).
@@ -66,8 +149,6 @@ const AFILA_COLA: float = 3.0              ## cuÃ¡nto se estrecha la cola con 
 const CABEZA_VUELO: float = 1.75            ## Ã— el radio de la cabeza en vuelo
 const ALARGADO_VUELO: float = 0.16          ## cuÃ¡nto se alarga la cola (mayor = mÃ¡s corta; la validada 0,1)
 const DEFORM_VUELO: float = 0.28            ## deformaciÃ³n del contorno en vuelo (la validada 0,6: la cabeza sale con puntas)
-## Una repeticiÃ³n de la textura de lenguas cada tantos metros de contorno (media de lo medido en las tres escenas validadas: 2,90 Â· 3,14 Â· 3,14).
-const METROS_POR_REPETICION: float = 2.9
 
 @export_group("Figura y ejes (m)")
 @export var figura: Figura = Figura.BOLA: set = _set_figura
@@ -128,7 +209,6 @@ const POP_REBOTE: float = 0.07
 const T_APAGAR: float = 0.5             ## s que tarda en encogerse el fin sin choque
 const T_CANCELAR: float = 0.2
 const RESPIRO_HZ: float = 1.4
-const RADIO_CONVERGE: float = 3.0       ## radio de la esfera de la que salen las chispas de la carga (Ã— radio final)
 
 var _construido: bool = false
 var _pendiente: bool = false
@@ -656,6 +736,9 @@ func desde_hechizo(h: Hechizo) -> void:
 ##   Â· solidez > 0 (barrera): MURO si es alargada en planta (largo â‰¥ 2 Ã— fondo), si no BARRERA (cÃºpula).
 ##   Â· sin solidez: nombre_derivado Â«altoÂ» â†’ PILAR; alargado en planta â†’ MURO; lo demÃ¡s (esfera, elipsoide, zona plana redonda) â†’ BOLA (nota si es plana).
 ## Los semiejes de Hechizo estÃ¡n en casillas y se pasan a metros con `casilla` (2,3, como VfxElemento3D).
+const ALTO_DIBUJO: float = 1.2          ## × la altura con la que se DIBUJA un hechizo plantado en el suelo respecto a su lógica (1 = como antes). Vale para todos los elementos: todos usan este `describir`
+
+
 static func describir(h: Hechizo, casilla_m: float = 2.3) -> Dictionary:
 	var vuela: bool = (h.viaja or h.velocidad > 0.0) and not h.volumen_viaja      # 3/11 (R1): el volumen sólido que viaja (ᛜ + ᛇ) es un MURO/BARRERA que se desplaza, no una bola con cola
 	var s: Vector3 = (h.semiejes_vuelo if vuela else h.semiejes) * casilla_m
@@ -693,7 +776,11 @@ static func describir(h: Hechizo, casilla_m: float = 2.3) -> Dictionary:
 		giro = PI * 0.5
 	if fig == Figura.HAZ:
 		return {"figura": fig, "x": h.alcance_haz * casilla_m * 0.5, "y": y_haz, "z": z_haz, "viaja": false, "giro_y": 0.0, "nombre": nombre, "nota": "", "escala": HazGas.escala_de(h)}
-	return {"figura": fig, "x": x, "y": s.y, "z": z, "viaja": vuela and not h.haz, "giro_y": giro, "nombre": nombre, "nota": nota}
+	# 17/11 (Pablo: «haz que de base todos los hechizos sean un poco más altos, sube p. ej. un 20 %»): SOLO DIBUJO. Lo que está plantado en el suelo (muro, pilar, barrera y zona quieta) se
+	# dibuja ALTO_DIBUJO veces más alto que su lógica; la lógica (casillas, niveles, daño) no cambia. No se aplica a lo que vuela (la bola no se alarga) ni al haz. La tierra sólida no pasa
+	# por aquí (VfxToyJuego la dibuja con sus niveles reales, que es lo que se pisa).
+	var alto_dib: float = s.y * (1.0 if vuela else ALTO_DIBUJO)
+	return {"figura": fig, "x": x, "y": alto_dib, "z": z, "viaja": vuela and not h.haz, "giro_y": giro, "nombre": nombre, "nota": nota}
 
 
 ## Radio Â«grandeÂ» del efecto, en metros: lo usan la luz y la cÃ¡mara del lab.
@@ -904,24 +991,52 @@ func _muro(c: Node3D, luz: OmniLight3D) -> void:
 	_halo(c, "Charco", Vector2(7.6 * fl, 2.4 * fb), Vector3(0, 0.04, 0), 0.5, 1.6, 0, Color(1.0, 0.28, 0.06), {"latido": 0.05})
 	_halo(c, "Resplandor", Vector2(7.2 * fl, 2.2 * fa), Vector3(0, 0.55 * fa, 0), 0.22, 2.6, 2, Color(1.0, 0.28, 0.06))
 	# banda exterior: el contorno es una superelipse de 2a Ã— 2b; las repeticiones de la textura se cuentan por METROS de contorno (no se estira al alargar)
+	if MURO_GRIETAS:
+		var largo_g: float = 2.0 * a + 2.0 * MURO_GRIETAS_MARGEN_M
+		var ancho_g: float = 2.0 * (b + MURO_GRIETAS_LADO_M + MURO_GRIETAS_MARGEN_M)
+		var pg: PlaneMesh = PlaneMesh.new()
+		pg.size = Vector2(largo_g, ancho_g)
+		var gr: MeshInstance3D = MeshInstance3D.new()
+		gr.name = "Grietas"
+		gr.mesh = pg
+		var mg: ShaderMaterial = ShaderMaterial.new()
+		mg.shader = load(SH_GRIETAS_MURO)
+		mg.render_priority = -2
+		mg.set_shader_parameter("semilla", 0.37)
+		mg.set_shader_parameter("largo_m", largo_g)
+		mg.set_shader_parameter("ancho_m", ancho_g)
+		mg.set_shader_parameter("lado_m", b + MURO_GRIETAS_LADO_M)
+		mg.set_shader_parameter("chamusco", 0.0)                 # solo las líneas: la sombra de debajo se leía como una losa gris rectangular
+		mg.set_shader_parameter("grosor_m", 0.055)
+		mg.set_shader_parameter("calor", PILAR_GRIETAS_CALOR)
+		gr.material_override = mg
+		gr.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		gr.position = Vector3(0, 0.03, 0)
+		c.add_child(gr)
+	if MURO_INICIO_FINAL:
+		var hf: Node3D = HumoToyFuego.new()
+		hf.name = "HumoFinal"
+		c.add_child(hf)
+		hf.call("montar", clampi(int(round(MURO_HUMO_POR_M * 2.0 * a)), 8, 36), {"claro": PILAR_HUMO_CLARO, "sombra": PILAR_HUMO_SOMBRA, "viejo": PILAR_HUMO_VIEJO,
+			"tam_ini": MURO_HUMO_TAM.x * alto, "tam_fin": MURO_HUMO_TAM.y * alto, "vida": PILAR_HUMO_VIDA_S, "deriva": Vector3(0, 0.7, 0), "mundo": true})
 	var seg: int = FuegoToyMallas.segmentos(FuegoToyMallas.largo_contorno(a, b, 6.0))
-	var banda: ArrayMesh = FuegoToyMallas.banda(a, b, 6.0, FuegoToyMallas.perfil_muro(alto, 0.78), seg)
+	var banda: ArrayMesh = FuegoToyMallas.banda(a, b, 6.0, FuegoToyMallas.perfil_muro(alto, MURO_AFILA, MURO_ANILLOS), seg)
 	var m: Array = FuegoToyMallas.M_MURO
 	var largo: float = FuegoToyMallas.largo_contorno(a, b, 6.0)
-	_fuego(c, "Banda", banda, Vector3.ZERO, {"repeticion": Vector2(FuegoToyMallas.repeticiones_u(largo, m[0]), alto / float(m[1])),
-		"rep_ruido": Vector2(FuegoToyMallas.repeticiones_u(largo, m[2]), alto / float(m[3])), "semilla": 0.05, "velocidad": 1.0, "umbral": 0.27, "desfase": 0.45,
-		"fuerza_grad": 1.05, "amplitud_vert": 0.16 * clampf(b / REF_MURO.z, 0.5, 2.0)}, 0)
+	_fuego(c, "Banda", banda, Vector3.ZERO, {"repeticion": Vector2(FuegoToyMallas.repeticiones_u(largo, m[0]), MURO_ESTIRA * alto / float(m[1])),
+		"rep_ruido": Vector2(FuegoToyMallas.repeticiones_u(largo, m[2]), alto / float(m[3])), "calor_extra": MURO_CALOR, "semilla": 0.05, "velocidad": 1.0 * MURO_VELOCIDAD, "umbral": 0.27, "desfase": MURO_RELLENO, "pot_grad": MURO_EROSION_POT,
+		"fuerza_grad": MURO_EROSION, "amplitud_vert": MURO_RUIDO_CONTORNO * clampf(b / REF_MURO.z, 0.5, 2.0), "base_irreg": clampf(MURO_BASE_M / alto, 0.03, 0.3), "semilargo": a if MURO_INICIO_FINAL else 0.0}, 0)
 	var ai: float = a * 0.957
 	var bi: float = b * 0.4
 	var hi: float = alto * 0.7
 	var largo_i: float = FuegoToyMallas.largo_contorno(ai, bi, 6.0)
 	var mi_: Array = FuegoToyMallas.M_MURO_IN
-	var banda_in: ArrayMesh = FuegoToyMallas.banda(ai, bi, 6.0, FuegoToyMallas.perfil_muro(hi, 0.7), FuegoToyMallas.segmentos(largo_i))
-	_fuego(c, "Interior", banda_in, Vector3.ZERO, {"repeticion": Vector2(FuegoToyMallas.repeticiones_u(largo_i, mi_[0]), hi / float(mi_[1])),
-		"rep_ruido": Vector2(FuegoToyMallas.repeticiones_u(largo_i, mi_[2]), hi / float(mi_[3])), "semilla": 0.4, "velocidad": 1.5, "umbral": 0.27, "desfase": 0.45,
-		"fuerza_grad": 1.0, "calor_extra": 0.3, "brillo": 1.1, "amplitud_vert": 0.16 * clampf(b / REF_MURO.z, 0.5, 2.0)}, 1)
-	_laminas_vbb(c, "Lenguas", FuegoToyMallas.laminas_muro(a, b, alto), FuegoToyMallas.M_MURO, {"semilla": 0.05, "velocidad": 1.0, "umbral": 0.27, "desfase": 0.45, "fuerza_grad": 1.05,
-			"amplitud_vert": 0.16 * clampf(b / REF_MURO.z, 0.5, 2.0), "afila": 0.78, "usa_normal": 1.0, "el_min": 0.9})
+	var banda_in: ArrayMesh = FuegoToyMallas.banda(ai, bi, 6.0, FuegoToyMallas.perfil_muro(hi, MURO_AFILA_IN, MURO_ANILLOS), FuegoToyMallas.segmentos(largo_i))
+	_fuego(c, "Interior", banda_in, Vector3.ZERO, {"repeticion": Vector2(FuegoToyMallas.repeticiones_u(largo_i, mi_[0]), MURO_ESTIRA * hi / float(mi_[1])),
+		"rep_ruido": Vector2(FuegoToyMallas.repeticiones_u(largo_i, mi_[2]), hi / float(mi_[3])), "semilla": 0.4, "velocidad": 1.5 * MURO_VELOCIDAD, "umbral": 0.27, "desfase": MURO_RELLENO, "pot_grad": MURO_EROSION_POT,
+		"fuerza_grad": MURO_EROSION, "calor_extra": 0.3 + MURO_CALOR, "semilargo": ai if MURO_INICIO_FINAL else 0.0, "brillo": 1.1, "amplitud_vert": MURO_RUIDO_CONTORNO * clampf(b / REF_MURO.z, 0.5, 2.0)}, 1)
+	_laminas_vbb(c, "Lenguas", FuegoToyMallas.laminas_muro(a, b, alto), FuegoToyMallas.M_MURO, {"calor_extra": MURO_CALOR, "semilla": 0.05, "velocidad": 1.0 * MURO_VELOCIDAD, "umbral": 0.27, "desfase": MURO_RELLENO, "pot_grad": MURO_EROSION_POT, "fuerza_grad": MURO_EROSION,
+			"amplitud_vert": MURO_RUIDO_CONTORNO * clampf(b / REF_MURO.z, 0.5, 2.0), "afila": MURO_AFILA, "usa_normal": 1.0, "el_min": 0.9})
 	var vv: float = clampf(fa, 0.5, 2.5)
 	_trocitos(c, _cant(3.0, fl, 1, 10), Vector3(a * 0.87, 0.05, b * 0.5), Vector3(0, 0.667 * alto, 0), vv)
 	_particulas(c, "Chispas", _cant(14.0, fl, 5, 60), 1.4, 0.07, Vector3(a * 0.93, 0.1, b * 0.67), Vector2(0.3, 0.9) * vv, Vector3(0, 1, 0), 30.0, Vector3(0, 0.3, 0) * vv,
@@ -940,21 +1055,46 @@ func _pilar(c: Node3D, luz: OmniLight3D) -> void:
 	var fr: float = rm / REF_PILAR.x
 	_halo(c, "Charco", Vector2(5.2 * rx, 5.2 * rz), Vector3(0, 0.04, 0), 0.45, 1.8, 0, Color(1.0, 0.28, 0.06), {"anillo": 0.5, "irreg": PILAR_IRREG_CHARCO})
 	_halo(c, "Resplandor", Vector2(6.8 * rm, 1.05 * alto), Vector3(0, 0.35 * alto, 0), 0.2, 2.8, 2, Color(1.0, 0.28, 0.06))
+	if PILAR_INICIO_FINAL and PILAR_HUMO_FINAL:
+		var hf: Node3D = HumoToyFuego.new()
+		hf.name = "HumoFinal"
+		c.add_child(hf)
+		hf.call("montar", PILAR_HUMO_CANT, {"claro": PILAR_HUMO_CLARO, "sombra": PILAR_HUMO_SOMBRA, "viejo": PILAR_HUMO_VIEJO, "tam_ini": PILAR_HUMO_TAM.x * rm, "tam_fin": PILAR_HUMO_TAM.y * rm,
+			"vida": PILAR_HUMO_VIDA_S, "deriva": Vector3(0, 0.7, 0), "mundo": true})
+	if PILAR_INICIO_FINAL:
+		var pg: PlaneMesh = PlaneMesh.new()
+		pg.size = Vector2(PILAR_GRIETAS_TAM * rx, PILAR_GRIETAS_TAM * rz)
+		var gr: MeshInstance3D = MeshInstance3D.new()
+		gr.name = "Grietas"
+		gr.mesh = pg
+		var mg: ShaderMaterial = ShaderMaterial.new()
+		mg.shader = load(SH_GRIETAS_FUEGO)
+		mg.render_priority = -2
+		mg.set_shader_parameter("semilla", 0.37)
+		mg.set_shader_parameter("brazos", 7)
+		mg.set_shader_parameter("vida", 0.0)
+		gr.material_override = mg
+		gr.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		gr.position = Vector3(0, 0.03, 0)
+		c.add_child(gr)
+		_halo(c, "Aviso", Vector2(PILAR_AVISO_TAM * rx, PILAR_AVISO_TAM * rz), Vector3(0, 0.05, 0), 0.8, 1.6, 0, Color(1.0, 0.32, 0.07), {"anillo": 1.0, "vida": 0.0})
 	var amp: float = clampf(fr, 0.5, 2.0)
+	var vaiven: float = PILAR_VAIVEN_M * amp
+	var raiz: float = lerpf(PILAR_RAIZ_CHATO, PILAR_RAIZ, smoothstep(1.2, 3.0, alto / maxf(rm, 0.01)))
 	var base_irr: float = clampf(PILAR_BASE_M / alto, 0.03, 0.3)          # altura máx. (en V) a la que sube el contacto con el suelo según el ruido: ~0,45 m
 	var l1: float = FuegoToyMallas.perimetro_elipse(rx, rz)
 	var m: Array = FuegoToyMallas.M_PILAR
-	_fuego(c, "Exterior", FuegoToyMallas.banda(rx, rz, 2.0, FuegoToyMallas.perfil_cilindro(0.72, alto), FuegoToyMallas.segmentos(l1)), Vector3.ZERO,
-		{"repeticion": Vector2(FuegoToyMallas.repeticiones_u(l1, m[0]), alto / float(m[1])), "rep_ruido": Vector2(FuegoToyMallas.repeticiones_u(l1, m[2]), alto / float(m[3])),
-		"umbral": 0.27, "desfase": 0.5, "fuerza_grad": 1.0, "pot_grad": 1.6, "semilla": 0.2, "velocidad": 0.9, "amplitud_vert": 0.2 * amp, "base_irreg": base_irr}, 0)
+	_fuego(c, "Exterior", FuegoToyMallas.banda(rx, rz, 2.0, FuegoToyMallas.perfil_lengua(alto, raiz, PILAR_PANZA_V, PILAR_PUNTA), FuegoToyMallas.segmentos(l1)), Vector3.ZERO,
+		{"repeticion": Vector2(FuegoToyMallas.repeticiones_u(l1, m[0]), PILAR_ESTIRA * alto / float(m[1])), "rep_ruido": Vector2(FuegoToyMallas.repeticiones_u(l1, m[2]), alto / float(m[3])),
+		"umbral": 0.27, "desfase": PILAR_RELLENO, "fuerza_grad": PILAR_EROSION, "pot_grad": PILAR_EROSION_POT, "vaiven": vaiven, "semilla": 0.2, "velocidad": 0.9 * PILAR_VELOCIDAD, "amplitud_vert": 0.2 * amp * PILAR_RUIDO_CONTORNO, "base_irreg": base_irr, "calor_extra": PILAR_CALOR}, 0)
 	var rxi: float = rx * 0.6
 	var rzi: float = rz * 0.6
 	var hi: float = alto * 0.775
 	var l2: float = FuegoToyMallas.perimetro_elipse(rxi, rzi)
 	var mn: Array = FuegoToyMallas.M_PILAR_IN
-	_fuego(c, "Nucleo", FuegoToyMallas.banda(rxi, rzi, 2.0, FuegoToyMallas.perfil_cilindro(0.5333, hi), FuegoToyMallas.segmentos(l2)), Vector3.ZERO,
-		{"repeticion": Vector2(FuegoToyMallas.repeticiones_u(l2, mn[0]), hi / float(mn[1])), "rep_ruido": Vector2(FuegoToyMallas.repeticiones_u(l2, mn[2]), hi / float(mn[3])),
-		"umbral": 0.27, "desfase": 0.5, "fuerza_grad": 1.0, "pot_grad": 1.6, "semilla": 0.6, "velocidad": 1.5, "calor_extra": 0.3, "brillo": 1.1, "amplitud_vert": 0.12 * amp}, 1)
+	_fuego(c, "Nucleo", FuegoToyMallas.banda(rxi, rzi, 2.0, FuegoToyMallas.perfil_lengua(hi, raiz, PILAR_PANZA_V, PILAR_PUNTA), FuegoToyMallas.segmentos(l2)), Vector3.ZERO,
+		{"repeticion": Vector2(FuegoToyMallas.repeticiones_u(l2, mn[0]), PILAR_ESTIRA * hi / float(mn[1])), "rep_ruido": Vector2(FuegoToyMallas.repeticiones_u(l2, mn[2]), hi / float(mn[3])),
+		"umbral": 0.27, "desfase": PILAR_RELLENO, "fuerza_grad": PILAR_EROSION, "pot_grad": PILAR_EROSION_POT, "vaiven": vaiven, "semilla": 0.6, "velocidad": 1.5 * PILAR_VELOCIDAD, "calor_extra": 0.3 + PILAR_CALOR, "brillo": 1.1, "amplitud_vert": 0.12 * amp * PILAR_RUIDO_CONTORNO}, 1)
 	# Pilares mÃ¡s gordos que el validado (r 0,5): un cilindro de lenguas con solo dos capas se ve hueco (un aro a rayas). Se aÃ±aden capas intermedias, una cada ~0,4 m de
 	# radio por encima de 0,55 (mÃ¡x. 3), entre el exterior y el nÃºcleo, cada una con su semilla y su velocidad, para que el pilar se vea tan lleno como el validado.
 	var n_extra: int = clampi(int(round((rm - 0.55) / 0.4)) + (1 if rm > 0.55 else 0), 0, 3)
@@ -964,13 +1104,13 @@ func _pilar(c: Node3D, luz: OmniLight3D) -> void:
 		var rzc: float = rz * f
 		var hc: float = alto * lerpf(1.0, 0.775, float(i + 1) / float(n_extra + 1))
 		var lc: float = FuegoToyMallas.perimetro_elipse(rxc, rzc)
-		_fuego(c, "Capa%d" % i, FuegoToyMallas.banda(rxc, rzc, 2.0, FuegoToyMallas.perfil_cilindro(lerpf(0.72, 0.5333, float(i + 1) / float(n_extra + 1)), hc), FuegoToyMallas.segmentos(lc)),
-			Vector3.ZERO, {"repeticion": Vector2(FuegoToyMallas.repeticiones_u(lc, m[0]), hc / float(m[1])), "rep_ruido": Vector2(FuegoToyMallas.repeticiones_u(lc, m[2]), hc / float(m[3])),
-			"umbral": 0.27, "desfase": 0.5, "fuerza_grad": 1.0, "pot_grad": 1.6, "semilla": 0.33 + 0.21 * float(i), "velocidad": 1.1 + 0.2 * float(i), "calor_extra": 0.15,
-			"amplitud_vert": 0.16 * amp}, 1)
-	_laminas_vbb(c, "Lenguas", FuegoToyMallas.laminas_pilar(rx, rz, alto), FuegoToyMallas.M_PILAR, {"umbral": 0.27, "desfase": 0.5, "fuerza_grad": 1.0, "pot_grad": 1.6, "semilla": 0.45, "velocidad": 1.1,
+		_fuego(c, "Capa%d" % i, FuegoToyMallas.banda(rxc, rzc, 2.0, FuegoToyMallas.perfil_lengua(hc, raiz, PILAR_PANZA_V, PILAR_PUNTA), FuegoToyMallas.segmentos(lc)),
+			Vector3.ZERO, {"repeticion": Vector2(FuegoToyMallas.repeticiones_u(lc, m[0]), PILAR_ESTIRA * hc / float(m[1])), "rep_ruido": Vector2(FuegoToyMallas.repeticiones_u(lc, m[2]), hc / float(m[3])),
+			"umbral": 0.27, "desfase": PILAR_RELLENO, "fuerza_grad": PILAR_EROSION, "pot_grad": PILAR_EROSION_POT, "vaiven": vaiven, "semilla": 0.33 + 0.21 * float(i), "velocidad": (1.1 + 0.2 * float(i)) * PILAR_VELOCIDAD, "calor_extra": 0.15 + PILAR_CALOR,
+			"amplitud_vert": 0.16 * amp * PILAR_RUIDO_CONTORNO}, 1)
+	_laminas_vbb(c, "Lenguas", FuegoToyMallas.laminas_lengua(rx, rz, alto), FuegoToyMallas.M_PILAR, {"umbral": 0.27, "desfase": PILAR_RELLENO, "fuerza_grad": PILAR_EROSION, "pot_grad": PILAR_EROSION_POT, "vaiven": vaiven, "semilla": 0.45, "velocidad": 1.1 * PILAR_VELOCIDAD,
 			"amplitud_vert": 0.2 * amp, "afila": 0.72})
-	_laminas_vbb(c, "BaseLenguas", FuegoToyMallas.laminas_base_pilar(rx, rz, alto), FuegoToyMallas.M_PILAR, {"umbral": 0.27, "desfase": 0.5, "fuerza_grad": 1.0, "pot_grad": 1.6, "semilla": 0.8, "velocidad": 1.3,
+	_laminas_vbb(c, "BaseLenguas", FuegoToyMallas.laminas_base_pilar(rx * raiz * 1.2, rz * raiz * 1.2, alto), FuegoToyMallas.M_PILAR, {"umbral": 0.27, "desfase": PILAR_RELLENO, "fuerza_grad": PILAR_EROSION, "pot_grad": PILAR_EROSION_POT, "vaiven": vaiven, "semilla": 0.8, "velocidad": 1.3 * PILAR_VELOCIDAD,
 			"amplitud_vert": 0.1 * amp, "afila": 0.6, "el_ini": 0.99, "el_fin": 1.0})
 	var area: float = sqrt(clampf(fr * fa, 0.05, 6.0))
 	var vv: float = clampf(fa, 0.5, 2.5)
@@ -1144,8 +1284,185 @@ func _calor_forma(v: float) -> void:
 
 
 func _set_aparicion(v: float) -> void:
+	var baja: bool = v < aparicion - 0.00001
+	var sube: bool = v > aparicion + 0.00001
 	super._set_aparicion(v)
 	_calor_forma(v)
+	if MURO_INICIO_FINAL and _listo and figura == Figura.MURO and _cuerpo != null:
+		var apm: AnimationPlayer = get_node_or_null("Anim") as AnimationPlayer
+		if apm != null and apm.is_playing():
+			_pilar_muriendo = String(apm.current_animation) == "morir"
+		elif baja:
+			_pilar_muriendo = true
+		elif sube:
+			_pilar_muriendo = false
+		_muro_inicio_final(v)
+	elif MURO_GRIETAS and _listo and figura == Figura.MURO and _cuerpo != null:
+		var gm: MeshInstance3D = _cuerpo.get_node_or_null("Grietas") as MeshInstance3D
+		if gm != null:
+			var mm: ShaderMaterial = gm.material_override as ShaderMaterial
+			if baja:
+				gm.set_meta("muriendo", true)
+			elif sube:
+				gm.set_meta("muriendo", false)
+			if bool(gm.get_meta("muriendo", false)):
+				mm.set_shader_parameter("alcance", 1.3)
+				mm.set_shader_parameter("calor", PILAR_GRIETAS_CALOR * v * v)
+				mm.set_shader_parameter("vida", smoothstep(0.0, 0.35, v))
+			else:
+				mm.set_shader_parameter("alcance", lerpf(0.05, 1.3, smoothstep(0.0, 0.7, v)))
+				mm.set_shader_parameter("calor", PILAR_GRIETAS_CALOR * lerpf(0.08, 1.0, smoothstep(0.3, 1.0, v)))
+				mm.set_shader_parameter("vida", smoothstep(0.0, 0.1, v))
+	if PILAR_INICIO_FINAL and _listo and figura == Figura.PILAR:
+		# «muriendo» lo dice la animación que suena, no que `aparicion` baje: al lanzar baja de 1 a 0 (primera clave de «nacer») y eso soltaba el rescoldo nada más nacer
+		var ap: AnimationPlayer = get_node_or_null("Anim") as AnimationPlayer
+		if ap != null and ap.is_playing():
+			_pilar_muriendo = String(ap.current_animation) == "morir"
+		elif baja:
+			_pilar_muriendo = true
+		elif sube:
+			_pilar_muriendo = false
+		_pilar_inicio_final(v)
+
+
+var _pilar_muriendo: bool = false
+var _pilar_rescoldo_suelto: bool = false
+var _pilar_humo_n: int = 0
+
+
+## Reparte `aparicion` en las fases del muro: aviso (las grietas corren), brote (cremallera del centro a los extremos) y, al morir, retirada de los extremos al centro con humo.
+## Comparte con el pilar las banderas de «muriendo» y del rescoldo (un FuegoToy es una sola figura).
+func _muro_inicio_final(v: float) -> void:
+	var fa: float = MURO_AVISO_S / (MURO_AVISO_S + MURO_BROTE_S)
+	var cierre: float = 1.0
+	var retira: float = 0.0
+	var g_calor: float = PILAR_GRIETAS_CALOR
+	var g_vida: float = 1.0
+	var g_alcance: float = 1.3
+	if _pilar_muriendo:
+		retira = 1.0 - v
+		g_calor = PILAR_GRIETAS_CALOR * lerpf(0.75, 1.0, v)
+	else:
+		var k: float = clampf(v / fa, 0.0, 1.0)
+		cierre = clampf((v - fa) / (1.0 - fa), 0.0, 1.0)
+		g_alcance = lerpf(0.05, 1.3, k)
+		g_calor = PILAR_GRIETAS_CALOR * lerpf(0.08, 1.0, smoothstep(0.45, 1.0, k))
+		g_vida = smoothstep(0.0, 0.12, k)
+	for m in _mats:
+		if m == null or m.shader == null:
+			continue
+		# las láminas billboard no tienen cremallera (no saben dónde están a lo largo del muro): entran y salen por opacidad
+		var es_lamina: bool = m.shader.resource_path.get_file() == "fuego_lelu_vbb.gdshader"
+		m.set_shader_parameter("vida", (v if _pilar_muriendo else cierre) if es_lamina else 1.0)
+		m.set_shader_parameter("cierre", cierre)
+		m.set_shader_parameter("retira", retira)
+	_cuerpo.scale = Vector3.ONE
+	var gr: MeshInstance3D = _cuerpo.get_node_or_null("Grietas") as MeshInstance3D
+	if gr != null:
+		var mg: ShaderMaterial = gr.material_override as ShaderMaterial
+		mg.set_shader_parameter("alcance", g_alcance)
+		mg.set_shader_parameter("calor", g_calor)
+		mg.set_shader_parameter("vida", g_vida)
+	if not _pilar_muriendo:
+		_pilar_rescoldo_suelto = false
+		_pilar_humo_n = 0
+		return
+	var hf: Node3D = _cuerpo.get_node_or_null("HumoFinal") as Node3D
+	if hf != null:
+		var total: int = clampi(int(round(MURO_HUMO_POR_M * 2.0 * semieje_x)), 8, 36)
+		var quiero: int = int(float(total) * clampf(retira * 1.15, 0.0, 1.0))
+		while _pilar_humo_n < quiero:
+			_pilar_humo_n += 1
+			var lado: float = 1.0 if _pilar_humo_n % 2 == 0 else -1.0                      # los dos frentes que se retiran
+			var x: float = lado * semieje_x * clampf(1.0 - retira + randf_range(-0.12, 0.12), 0.0, 1.0)
+			hf.call("emitir", global_transform * Vector3(x, semieje_y * randf_range(0.25, 0.85), randf_range(-1.0, 1.0) * semieje_z), Vector3(lado * 0.15, randf_range(0.4, 0.9), 0.0),
+				randf_range(0.85, 1.15), randf_range(0.8, 1.2))
+	if v <= 0.001 and not _pilar_rescoldo_suelto:
+		_pilar_rescoldo_suelto = true
+		_soltar_rescoldo()
+
+
+## El rescoldo del pilar: las grietas y el humo pasan a colgar del padre del efecto (que se libera ya), se enfrían y se apagan por su cuenta y se borran solos.
+func _soltar_rescoldo() -> void:
+	var padre: Node = get_parent()
+	if padre == null or _cuerpo == null or not is_inside_tree():
+		return
+	var gr: MeshInstance3D = _cuerpo.get_node_or_null("Grietas") as MeshInstance3D
+	if gr != null:
+		gr.reparent(padre, true)
+		gr.add_to_group("rescoldo_fuego")
+		var mg: ShaderMaterial = gr.material_override as ShaderMaterial
+		var tw: Tween = gr.create_tween()
+		tw.tween_property(mg, "shader_parameter/calor", 0.0, PILAR_RESCOLDO_S)
+		tw.parallel().tween_property(mg, "shader_parameter/vida", 0.0, PILAR_RESCOLDO_S).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
+		tw.tween_callback(gr.queue_free)
+	var hf: Node3D = _cuerpo.get_node_or_null("HumoFinal") as Node3D
+	if hf != null:
+		hf.reparent(padre, true)
+		hf.add_to_group("rescoldo_fuego")
+		var tw2: Tween = hf.create_tween()
+		tw2.tween_interval(PILAR_HUMO_VIDA_S + 0.1)
+		tw2.tween_callback(hf.queue_free)
+
+
+## Reparte `aparicion` en las tres fases del pilar: aviso (anillo que se cierra), brote (chorro que sube y engorda) y, al bajar, final (corte que sube desde la base).
+## El cuerpo ya no se encoge ni se desvanece entero: lo hacen `brote` y `suelta` en el shader. Los halos (charco, resplandor) siguen a `aparicion` como antes.
+func _pilar_inicio_final(v: float) -> void:
+	var fa: float = PILAR_AVISO_S / (PILAR_AVISO_S + PILAR_BROTE_S)
+	var brote: float = 1.0
+	var suelta: float = 0.0
+	var k: float = 1.0
+	var g_calor: float = 0.0
+	var g_vida: float = 0.0
+	var g_alcance: float = 1.3
+	if _pilar_muriendo:
+		suelta = clampf((1.0 - v) / PILAR_FINAL_CORTE, 0.0, 1.0)
+		g_calor = PILAR_GRIETAS_CALOR * lerpf(0.75, 1.0, v)          # siguen encendidas: se enfrían después, en el rescoldo
+		g_vida = 1.0
+	else:
+		brote = clampf((v - fa) / (1.0 - fa), 0.0, 1.0)
+		k = clampf(v / fa, 0.0, 1.0)
+		g_alcance = lerpf(0.05, 1.3, k)
+		g_calor = PILAR_GRIETAS_CALOR * lerpf(0.08, 1.0, smoothstep(0.45, 1.0, k))        # primero oscuras, luego al rojo
+		g_vida = smoothstep(0.0, 0.12, k)
+	_param_mats("vida", 1.0)
+	_param_mats("brote", brote)
+	_param_mats("suelta", suelta)
+	_param_mats("apaga", smoothstep(0.1, 0.9, suelta) if PILAR_HUMO_FINAL else 0.0)
+	if not _pilar_muriendo:
+		_pilar_rescoldo_suelto = false
+	elif v <= 0.001 and not _pilar_rescoldo_suelto:
+		_pilar_rescoldo_suelto = true
+		if _cuerpo != null:
+			_cuerpo.scale = Vector3.ONE                 # EfectoToy lo acaba de encoger (aparicion 0): sin esto el rescoldo se descolgaba al 65 % y con el humo a ras de suelo
+		_soltar_rescoldo()
+		return
+	var hf: Node3D = (_cuerpo.get_node_or_null("HumoFinal") as Node3D) if _cuerpo != null else null
+	if hf != null:
+		if not _pilar_muriendo:
+			_pilar_humo_n = 0
+		else:
+			var quiero: int = int(float(PILAR_HUMO_CANT) * clampf(suelta * 1.15, 0.0, 1.0))       # van saliendo según sube el corte
+			while _pilar_humo_n < quiero:
+				_pilar_humo_n += 1
+				var ang: float = randf() * TAU
+				var rr: float = randf() * 0.5
+				var y: float = semieje_y * clampf(suelta + randf_range(-0.2, 0.3), 0.06, 1.0)
+				hf.call("emitir", global_transform * Vector3(cos(ang) * semieje_x * rr, y, sin(ang) * semieje_z * rr), Vector3(cos(ang) * 0.2, randf_range(0.5, 1.0), sin(ang) * 0.2),
+					randf_range(0.85, 1.15), randf_range(0.8, 1.2))
+	if _cuerpo != null:
+		_cuerpo.scale = Vector3.ONE
+		var gr: MeshInstance3D = _cuerpo.get_node_or_null("Grietas") as MeshInstance3D
+		if gr != null:
+			var mg: ShaderMaterial = gr.material_override as ShaderMaterial
+			mg.set_shader_parameter("alcance", g_alcance)
+			mg.set_shader_parameter("calor", g_calor)
+			mg.set_shader_parameter("vida", g_vida)
+		var av: MeshInstance3D = _cuerpo.get_node_or_null("Aviso") as MeshInstance3D
+		if av != null:
+			var e: float = lerpf(1.0, PILAR_AVISO_FIN, k * k)
+			av.scale = Vector3(e, 1.0, e)
+			(av.material_override as ShaderMaterial).set_shader_parameter("vida", smoothstep(0.0, 0.2, k) * (1.0 - smoothstep(0.8, 1.0, k)))
 
 
 ## Extras del impacto de la bola: resplandor del suelo que se apaga y chispas con estela que caen. Cuelgan de un nodo propio (el toy se va) que se borra solo.
@@ -1692,9 +2009,13 @@ func _anim_si_hace_falta() -> void:
 	var nacer: float = 0.3
 	var morir_s: float = 0.5
 	match figura:
+		Figura.MURO:
+			if MURO_INICIO_FINAL:
+				nacer = MURO_AVISO_S + MURO_BROTE_S
+				morir_s = MURO_FINAL_S
 		Figura.PILAR:
-			nacer = 0.4
-			morir_s = 0.6
+			nacer = (PILAR_AVISO_S + PILAR_BROTE_S) if PILAR_INICIO_FINAL else 0.4
+			morir_s = PILAR_FINAL_S if PILAR_INICIO_FINAL else 0.6
 		Figura.BARRERA:
 			nacer = 0.5
 			morir_s = 0.6

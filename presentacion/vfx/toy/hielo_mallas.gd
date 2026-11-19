@@ -80,6 +80,52 @@ static func cristal(lados: int = 6, semilla: float = 1.0) -> ArrayMesh:
 	return st.commit()
 
 
+## PLACA unidad (figura SUELO, 18/11): una losa de hielo de contorno irregular (rectángulo muy redondeado de semiejes 1 × 1, con entrantes y salientes), alto 1, base en y = 0. La cara de
+## arriba es plana y algo más pequeña que la base (bisel). UV de la cara de arriba = planta (para las grietas); COLOR.r = altura (la escarcha blanquea el canto de abajo).
+static func placa(semilla: float = 1.0, seg: int = 28) -> ArrayMesh:
+	var st: SurfaceTool = SurfaceTool.new()
+	st.begin(Mesh.PRIMITIVE_TRIANGLES)
+	var abajo: Array = []
+	var arriba: Array = []
+	for i in seg:
+		var a: float = TAU * float(i) / float(seg)
+		var c: float = cos(a)
+		var sn: float = sin(a)
+		var r: float = 1.0 + 0.09 * (_hash(semilla * 2.3 + float(i)) - 0.5) + 0.05 * sin(a * 3.0 + semilla * 5.0)
+		var p: Vector3 = Vector3(signf(c) * pow(absf(c), 0.55) * r, 0.0, signf(sn) * pow(absf(sn), 0.55) * r)
+		abajo.append(p)
+		arriba.append(Vector3(p.x * 0.95, 1.0, p.z * 0.95))
+	var centro: Vector3 = Vector3(0, 0.5, 0)
+	var tapa: Vector3 = Vector3(0, 1.0, 0)
+	for i in seg:
+		var j: int = (i + 1) % seg
+		var u0: float = float(i) / float(seg) * 6.0
+		var u1: float = float(i + 1) / float(seg) * 6.0
+		_tri(st, abajo[i], abajo[j], arriba[j], centro, [Vector2(u0, 0), Vector2(u1, 0), Vector2(u1, 1)], 0.0, 0.0, 1.0)
+		_tri(st, abajo[i], arriba[j], arriba[i], centro, [Vector2(u0, 0), Vector2(u1, 1), Vector2(u0, 1)], 0.0, 1.0, 1.0)
+		var a0: Vector3 = arriba[i]
+		var a1: Vector3 = arriba[j]
+		_tri(st, tapa, a0, a1, centro, [Vector2(0.5, 0.5), Vector2(a0.x * 0.5 + 0.5, a0.z * 0.5 + 0.5), Vector2(a1.x * 0.5 + 0.5, a1.z * 0.5 + 0.5)], 1.0, 1.0, 1.0)
+	return st.commit()
+
+
+## SUELO: cristalitos de escarcha a lo largo del borde de la placa (semiejes a × b), bajos y torcidos hacia fuera: el canto blanco y dentado del hielo.
+static func capa_borde_placa(a: float, b: float, grosor: float, semilla: float = 1.0) -> Array:
+	var rng: RandomNumberGenerator = RandomNumberGenerator.new()
+	rng.seed = int(semilla * 1000.0) + 23
+	var res: Array = []
+	var n: int = clampi(int(round(FuegoToyMallas.perimetro_elipse(a, b) * 1.15 / 0.2)), 10, MAX_CRISTALES - 4)
+	for i in n:
+		var ang: float = TAU * float(i) / float(n) + rng.randf_range(-0.08, 0.08)
+		var c: float = cos(ang)
+		var sn: float = sin(ang)
+		var p: Vector3 = Vector3(signf(c) * pow(absf(c), 0.55) * a, 0.0, signf(sn) * pow(absf(sn), 0.55) * b) * rng.randf_range(0.97, 1.05)
+		var dd: Vector3 = Vector3(p.x, 0.0, p.z).normalized()
+		var w: float = rng.randf_range(0.045, 0.1)
+		res.append(_c(p, _inclinar(dd, rng.randf_range(0.35, 0.9), rng.randf() * TAU), w, grosor * rng.randf_range(0.7, 1.4), w, rng.randf_range(0.0, 0.12), rng, 1))
+	return res
+
+
 ## Esquirla unidad: tetraedro alargado (punta arriba en y = 1, base en y = -0,35, radio 0,5).
 static func esquirla() -> ArrayMesh:
 	var st: SurfaceTool = SurfaceTool.new()

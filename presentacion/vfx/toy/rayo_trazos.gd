@@ -122,6 +122,8 @@ static func volcar_cintas(mi: MeshInstance3D, cintas: Array, ancho: float, irreg
 			var mitra: float = 1.0 / maxf(lado.dot(lado_b), 0.60)
 			var u: float = float(i) / float(n)
 			var radio: float = lerpf(cinta["ancho"], cinta["punta"], u) * ancho * 0.5
+			if cinta.get("huso", false):
+				radio = float(cinta["ancho"]) * ancho * 0.5 * pow(maxf(sin(PI * u), 0.0), 0.7)   # opcional (viento): gruesa en el centro y afilada en las dos puntas, no gruesa en la cabeza y fina en la cola
 			if irregular and prueba_descarga and not suave:
 				radio *= 0.76 + 0.24 * sin(largo * 10.0 + float(base) * 0.81)
 			var color := Color(0.0 if suave else 1.0, cinta.get("tinte", 1.0), 1.0, lerpf(cinta["alfa"], cinta["alfa_punta"], u))

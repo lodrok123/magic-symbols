@@ -10,13 +10,12 @@ varying float altura;
 void vertex() {
 	altura = VERTEX.y + 0.5;
 	if (tornado) {
-		float nivel = altura * 1.1;
-		float radio = mix(0.75, 1.92, altura) + sin(nivel * 10.0 - tiempo * 2.8) * 0.08;
-		vec2 eje = vec2(
-			sin(nivel * 5.5 - tiempo * 2.4) * (0.13 + nivel * 0.38),
-			cos(nivel * 4.0 - tiempo * 1.8) * nivel * 0.27
-		);
-		VERTEX.xz = VERTEX.xz * radio + eje * 0.5;
+		// COLUMNA DE VIENTO (16/11): el mismo perfil que las vetas (perfil_columna en viento_corrientes.gd) y el eje quieto. Antes esto era un CONO (0,75 -> 1,92) con el eje
+		// tambaleandose: la silueta se salia del cilindro de la huella del hechizo y las vetas, que ahora van rectas, no la tocaban.
+		float nivel = clamp(altura * 1.1, 0.0, 1.0);   // el contorno mide 1,1 veces la altura de las vetas
+		// sin boca ensanchada: el ensanche de la base (que las vetas si llevan) dejaba dos manchas redondas en los costados de la columna baja
+		float radio = 1.0 + 0.12 * smoothstep(0.6, 1.0, nivel);
+		VERTEX.xz = VERTEX.xz * radio;
 	}
 }
 

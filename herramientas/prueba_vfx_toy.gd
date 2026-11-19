@@ -367,6 +367,10 @@ func _parametrico() -> void:
 			for u in ["repeticion", "rep_ruido"]:
 				var r1: Vector2 = _param(v, nodo, u)
 				var r2: Vector2 = _param(e, nodo, u)
+				if p[1] == F.PILAR and u == "repeticion":
+					r1.y *= FuegoToy.PILAR_ESTIRA                      # 17/11, pilar de UNA lengua: las vetas se estiran a propósito respecto de la escena validada
+				elif p[1] == F.MURO and u == "repeticion":
+					r1.y *= FuegoToy.MURO_ESTIRA                       # 17/11, muro = cortina densa: ídem
 				_ok("%s/%s: %s = %s (validada %s)" % [p[0], nodo, u, str(r2), str(r1)], absf(r1.x - r2.x) < 0.001 and absf(r1.y - r2.y) < 0.06)
 		v.queue_free()
 		e.queue_free()
@@ -423,7 +427,8 @@ func _parametrico() -> void:
 		var largo: float = maxf(esp.x, esp.z)
 		var corto: float = minf(esp.x, esp.z)
 		var xx: float = e.semieje_x if e.figura != F.MURO else e.semieje_x
-		var ok_t: bool = _cerca(e.semieje_y, esp.y, 0.01)
+		# 17/11: lo plantado en el suelo se DIBUJA FuegoToy.ALTO_DIBUJO veces más alto que su lógica (Pablo: «todos los hechizos un poco más altos, un 20 %»); lo que vuela, no
+		var ok_t: bool = _cerca(e.semieje_y, esp.y * (1.0 if c[2] > 0.0 else FuegoToy.ALTO_DIBUJO), 0.01)
 		if e.figura == F.MURO:
 			ok_t = ok_t and _cerca(e.semieje_x, largo, 0.01) and _cerca(e.semieje_z, corto, 0.01)
 		else:
@@ -534,7 +539,7 @@ func _volumen() -> void:
 	if lm != null and lp != null:
 		var n: int = lm.multimesh.instance_count
 		_ok("muro 3,45·1,5·0,3: %d láminas (entre 12 y 90)" % n, n >= 12 and n <= 90)
-		_ok("pilar 0,5·4: %d láminas (entre 6 y 60)" % lp.multimesh.instance_count, lp.multimesh.instance_count >= 6 and lp.multimesh.instance_count <= 60)
+		_ok("pilar 0,5·4: %d láminas (3: una sola lengua, pegadas al eje; antes un anillo de 6 a 60)" % lp.multimesh.instance_count, lp.multimesh.instance_count == 3)
 		var zmin: float = 1e9
 		var zmax: float = -1e9
 		var semillas: Dictionary = {}
@@ -580,7 +585,11 @@ func _pulido() -> void:
 	var p12: FuegoToy = _ft(F.PILAR, 1.2, 4.6, 1.2)
 	var p10: FuegoToy = _ft(F.PILAR, 1.0, 1.5, 1.0)
 	await process_frame
-	_ok("pilar 0,5·4 (el validado) sigue con 2 capas, sin capas añadidas", p05.find_child("Capa0", true, false) == null and p05.find_children("*", "MeshInstance3D", true, false).size() == val.find_children("*", "MeshInstance3D", true, false).size())
+	# 17/11: el pilar lleva una malla más que la escena validada, el anillo de aviso de su inicio («Aviso»); capas de fuego, las mismas 2
+	var de_mas: int = 2 if FuegoToy.PILAR_INICIO_FINAL else 0      # «Aviso» y «Grietas» («HumoFinal» son partículas, no cuenta aquí)
+	_ok("pilar 0,5·4 (el validado) sigue con 2 capas, sin capas añadidas (y %d mallas de más: el anillo de aviso y las grietas)" % de_mas, p05.find_child("Capa0", true, false) == null
+		and (p05.find_child("Aviso", true, false) != null) == FuegoToy.PILAR_INICIO_FINAL
+		and p05.find_children("*", "MeshInstance3D", true, false).size() == val.find_children("*", "MeshInstance3D", true, false).size() + de_mas)
 	var n12: int = 0
 	for n in p12.get_children()[0].get_children():
 		if String(n.name).begins_with("Capa"):

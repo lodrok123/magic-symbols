@@ -114,12 +114,6 @@ func poner_nivel(y_agua: float) -> void:
 		filo.position.y = 0.5 - 0.0175 / h
 
 
-## Vacía la marca (un nivel que se reinicia).
-func borrar_humedad() -> void:
-	_y_max = -1000.0
-	for mi in _humedad:
-		mi.visible = false
-
 
 func mostrar_lado(i: int, visible_: bool) -> void:
 	if i >= 0 and i < _paredes.size():

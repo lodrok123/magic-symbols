@@ -28,7 +28,15 @@ const COLOR_PIEDRA_OSCURA: Color = Color(0.24, 0.21, 0.19)
 const COLOR_BRASA: Color = Color(1.0, 0.36, 0.08)         ## rojo-naranja de la rampa de FuegoToy: nunca amarillo dominante
 const COLOR_BRASA_VIVA: Color = Color(1.0, 0.5, 0.12)
 
-var celda: Vector2i = Vector2i.ZERO         ## la casilla de MURO en la que va
+## EXENTA (18/11/2026, tótem de ruinas): `como_exenta()` la saca del muro. En vez de ir metida en una `#` de la que sale, se queda DE PIE en una casilla de SUELO (la bloquea, como un pilar), con su losa a
+## FONDO_EXENTA_U del borde de delante y un bloque de piedra detrás (CUERPO_EXENTA_U de fondo; con ese bloque la losa se lee como un monolito de tres dimensiones). Todo lo demás es lo mismo: mismas claves
+## (`mira`, `cada`, `desfase`, `alcance`, `cerca`, `agua`), mismo hechizo real, mismo apagado con agua; la boca queda a 1,3 u del centro de su casilla, o sea en la casilla de delante. Su caja de hechizos
+## abarca también el bloque, para que el agua que le da por un lado le llegue. En el mapa: `; pieza <id> trampa_flechas x y mira=e exenta=si` con x,y una casilla de SUELO.
+const FONDO_EXENTA_U: float = 0.15
+const CUERPO_EXENTA_U: float = 0.9
+
+var exenta: bool = false                    ## true = de pie en una casilla de suelo (tótem), no metida en un muro
+var celda: Vector2i = Vector2i.ZERO         ## la casilla de MURO en la que va (exenta: la de SUELO en la que está)
 var mira: String = "s"
 var dir: Vector3 = Vector3(0.0, 0.0, 1.0)   ## hacia fuera del muro (mundo)
 var elemento: String = "fuego"
@@ -63,6 +71,20 @@ func preparar(p_celda: Vector2i, p_mira: String, p_elemento: String, p_alcance: 
 	rotation.y = atan2(dir.x, dir.z)
 
 
+## La saca del muro (tótem exento): se llama justo DESPUÉS de `preparar` y ANTES de colgarla del árbol. La casilla `celda` pasa a ser su peana, de suelo, y queda bloqueada.
+func como_exenta() -> void:
+	exenta = true
+	var suelo: float = Terreno3D.y_pies(celda) if Terreno3D.hay_mundo() and Terreno3D.en_mapa(celda) else Terreno3D.alto_suelo
+	position = Terreno3D.centro_de(celda, suelo) + dir * (Terreno3D.casilla * 0.5 - FONDO_EXENTA_U)
+	Terreno3D.bloquear_celda(celda)
+
+
+## Bloque de piedra detrás de la losa (solo exenta): plinto y fuste. Local: +Z hacia fuera, así que el cuerpo está en z < 0.
+func _construir_peana() -> void:
+	_caja("Plinto", Vector3(1.9, 0.3, CUERPO_EXENTA_U + 0.1), Vector3(0.0, 0.15, -CUERPO_EXENTA_U * 0.5 + 0.05), _material(COLOR_PIEDRA_OSCURA))
+	_caja("Fuste", Vector3(1.5, 1.7, CUERPO_EXENTA_U - 0.05), Vector3(0.0, 0.3 + 0.85, -CUERPO_EXENTA_U * 0.5 + 0.02), _material(COLOR_PIEDRA))
+
+
 func celda_delante_offset() -> Vector2i:
 	return Vector2i(int(roundf(dir.x)), int(roundf(dir.z)))
 
@@ -79,9 +101,10 @@ func _ready() -> void:
 	var forma := CollisionShape3D.new()
 	var caja := BoxShape3D.new()
 	var prof: float = prof_cuerpo()
-	caja.size = Vector3(1.6, ALTO_CUERPO_U, prof)
+	var fondo: float = prof + (CUERPO_EXENTA_U if exenta else 0.0)          # exenta: la caja abarca también el bloque de detrás
+	caja.size = Vector3(1.6, ALTO_CUERPO_U, fondo)
 	forma.shape = caja
-	forma.position = Vector3(0.0, ALTO_CUERPO_U * 0.5, prof * 0.5)
+	forma.position = Vector3(0.0, ALTO_CUERPO_U * 0.5, prof - fondo * 0.5)
 	add_child(forma)
 	_luz = OmniLight3D.new()
 	_luz.name = "Luz"
@@ -92,6 +115,8 @@ func _ready() -> void:
 	_luz.position = boca_local()
 	add_child(_luz)
 	_construir()
+	if exenta:
+		_construir_peana()
 	set_physics_process(true)
 
 

@@ -86,6 +86,7 @@ const T_EMPUJAR: float = 0.35                ## s apretando contra un bloque peg
 const EMPUJE_CARDINAL: float = 0.8           ## componente mínima (de la dirección normalizada) para contar como «hacia una cara»: la diagonal (0,71) no empuja
 const EMPUJE_TOQUE: float = 0.30             ## u: con el contorno del bloque conocido, está «pegada» si un paso así de corto hacia él ya choca (12/11)
 const EMPUJE_PEGADA: float = 0.3            ## × casilla: lo que hay que haberse adelantado desde el centro de su casilla hacia el bloque (a ≤ 0,7 · S de su centro)
+const T_LANZAR_SOSTENIDO_MAX: float = 12.0  ## tope (s) de un lanzamiento con el gesto sostenido (haz con mucha permanencia)
 const VEL_CLIP_CARGA: float = 0.4           ## velocidad del clip `empujar` mientras carga los T_EMPUJAR s sin moverse (se lee el esfuerzo)
 const ZANCADA_EMPUJAR: float = 0.9          ## u/s de suelo por cada 1,0 de velocidad del clip `empujar` (ESTIMADO, afinar a ojo; como walk x1,6 = 1,6 u/s en commit 93fd42f7): la velocidad del clip = la real del bloque / esto
 
@@ -170,7 +171,6 @@ var _roll_vel: float = 0.0
 var _roll_cd: float = 0.0                    ## reutilización
 var _roll_previa: bool = false
 var _t_beber: float = 0.0
-var _beber_previa: bool = false
 var _t_gesto: float = 0.0                    ## lo que queda de un gesto (`gesto()`: agacharse, ofrecer, saludo...); 0 = no hay
 ## true mientras el jugador EMPUJA un bloque (`BloqueEmpujable3D`, 27/10): al andar suena el clip `empujar` (bucle, sin avance) en vez de `walk`/`run`. Lo calcula `_gestionar_empuje` cada fotograma: es true
 ## mientras anda con dirección cardinal contra un bloque pegado a ella (aunque no se mueva: así se lee «está atascado») y mientras va ACOPLADA a él moviéndose (su posición la marca el bloque); false al soltar,
@@ -371,11 +371,11 @@ func mirada() -> Vector3:
 ## Al soltar: el clip de la forma (Pj3D.ANIM_CAST, o readandwrite) y las motas, lo que dure el clip (entre 0,5 y 1,4 s).
 ## T-CP1: con `punto` (id de CastPoints) el clip es el del cast point (recortado, a su velocidad, con el libro en la mano que toca) y `_t_lanzar` dura
 ## lo que dura ese recorte; el disparo lo espera `Lanzador3D` mirando `fraccion_cast()`.
-func lanzar_clip(elemento: String, forma: String, punto: String = "") -> void:
+func lanzar_clip(elemento: String, forma: String, punto: String = "", sostener: float = -1.0) -> void:
 	pj.mirar(_mirada, 1.0)
-	var d_punto: float = pj.lanzar(forma, elemento, punto)      # pone las motas del elemento y el clip de la forma (en bucle)
+	var d_punto: float = pj.lanzar(forma, elemento, punto, sostener)      # pone las motas del elemento y el clip de la forma (en bucle)
 	if pj.cast_activo():
-		_t_lanzar = clampf(d_punto, 0.4, 4.0)
+		_t_lanzar = clampf(d_punto, 0.4, 4.0 if sostener < 0.0 else T_LANZAR_SOSTENIDO_MAX)       # 19/11: un haz sostiene el gesto lo que dura (y la jugadora no se mueve mientras)
 		_lanzando = true
 		return
 	# 6.2: el clip de la forma se reproduce UNA vez entera y el jugador espera a que acabe antes de volver a idle.

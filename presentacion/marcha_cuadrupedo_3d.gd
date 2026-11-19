@@ -106,7 +106,6 @@ var _mov_s: float = 0.0                  ## 0..1 «en marcha» suavizado
 var _cab_media: float = 0.0              ## pitch medio del lomo (para estabilizar)
 var _cab_ini: bool = false
 var _fase: float = 0.0
-var _clip_len: float = 1.0
 var _clip_vel: float = 1.0
 var _etiqueta: String = ""
 

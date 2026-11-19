@@ -221,10 +221,6 @@ func edad() -> float:
 	return _t
 
 
-## El paso del frente en este momento (dentro de un `on_pulso` es el paso en que tocó a ese nodo).
-func paso_actual() -> int:
-	return _paso_actual
-
 
 ## Alcance que le queda al pulso en el paso actual (lo que puede seguir un prisma).
 func alcance_restante() -> int:

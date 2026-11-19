@@ -13,6 +13,7 @@ extends SceneTree
 ##   8. API de HieloToy: impactar_en / rebotar / terminar_sin_choque / finalizar; describir y desde_hechizo = los del fuego (misma casilla y misma escala)
 ##   9. PRESUPUESTO en todo el ciclo y en los tamaños extremos: 0 luces, 0 GPUParticles3D, ≤ 300 partículas (instancias de MultiMesh), 0 aditivos
 ##  10. LAB: Z cicla fuego → agua → hielo → rayo y G / B / N / F7 crean hielo cuando el elemento es hielo; VfxToyJuego crea HieloToy
+##  11. HAZ EN EL JUEGO (19/11, opción 19b): con un TOPE el haz se corta y la corona crece en él; con un ENEMIGO en medio el haz sigue entero y la corona crece a su pie; sin choques, en la punta
 ## NO comprueba (necesita ventana y GPU): el aspecto ni que los shaders compilen (se ve en la lámina de docs/capturas/comparativa_vfx/godot_toy/hielo_rayo/). Imprime FALLOS: n.
 
 const HieloMallas = preload("res://presentacion/vfx/toy/hielo_mallas.gd")
@@ -57,6 +58,7 @@ func _correr() -> void:
 	await _api()
 	await _extremos()
 	await _lab()
+	await _haz_juego()
 	print("máximo visto en todo el ciclo: %d luces, %d GPUParticles3D, %d partículas (MultiMesh), %d materiales aditivos" % [_max_luces, _max_gpu, _max_part, _aditivos])
 	_ok("presupuesto: 0 luces, 0 GPUParticles3D, ≤ %d partículas, 0 aditivos" % MAX_PARTICULAS, _max_luces == 0 and _max_gpu == 0 and _max_part <= MAX_PARTICULAS and _aditivos == 0)
 	print("FALLOS: %d" % _fallos)
@@ -222,7 +224,8 @@ func _figuras() -> void:
 				_ok("[PILAR] espiga central de alto %.2f (semieje y %.2f), %d cristales" % [c["ymax"], s.y, e._cris.size()], absf(float(c["ymax"]) - s.y) < s.y * 0.05 and e._cris.size() >= 8)
 			3:
 				var r: float = maxf(absf(float(c["xmin"])), float(c["xmax"]))
-				_ok("[BARRERA] jaula de %d cristales dentro del radio (%.2f de %.2f) y cúpula tenue" % [e._cris.size(), r, s.x], r <= s.x * 1.01 and e._cris.size() >= 10 and e.find_child("Cupula", true, false) != null)
+				_ok("[BARRERA] jaula de %d cristales dentro del radio (%.2f de %.2f) y %s" % [e._cris.size(), r, s.x, "cúpula tenue" if HieloToy.BARRERA_CUPULA else "SIN cúpula (19/11, Pablo: no se leía bien)"],
+					r <= s.x * 1.01 and e._cris.size() >= 10 and (e.find_child("Cupula", true, false) != null) == HieloToy.BARRERA_CUPULA)
 			4:
 				_ok("[HAZ] lanza + púas: largo %.2f de %.2f m, sale del origen y mira a -Z; destello en la punta" % [-float(c["zmin"]), s.x * 2.0], absf(-float(c["zmin"]) - s.x * 2.0) < 0.35 and float(c["zmax"]) <= 0.3 and e.find_child("Punta", true, false) != null)
 		if int(f[1]) >= 1 and int(f[1]) <= 3:
@@ -741,3 +744,49 @@ func _lab() -> void:
 	t.free()
 	_ok("VfxToyJuego.reemplaza(«hielo») depende del selector y de la lista de elementos (%s)" % str(VfxToyJuego.ELEMENTOS), VfxToyJuego.ELEMENTOS.has("hielo") and VfxToyJuego.ELEMENTOS.has("rayo") and VfxToyJuego.usa_toy("hielo") == (VfxToyJuego.activo() and VfxToyJuego.elementos_activos().has("hielo")))
 	vj.free()
+
+
+# ------------------------------------------------------------------ 11. el haz en el juego ------------------------------------------------------------------
+
+## Un haz de hielo (semieje x 1,5: 3 m) con los choques que le pasaría el juego; devuelve su estado_sello() tras llegar y crecer la corona.
+func _haz_con(choques: Array) -> Dictionary:
+	var e: HieloToy = HieloToy.new()
+	VfxToyJuego._hielo_impacto(e, choques, 3.0)
+	e.definir(HieloToy.Figura.HAZ, 1.5, 0.5, 0.15, false)
+	_raiz.add_child(e)
+	e.lanzar(-1.0)
+	var t0: int = Time.get_ticks_msec()
+	var est: Dictionary = e.estado_sello()
+	while float(Time.get_ticks_msec() - t0) < 2500.0 and float(est["crecida"]) < 0.99:
+		await process_frame
+		_medir()
+		est = e.estado_sello()
+	est["haz_tope"] = e.haz_tope
+	e.queue_free()
+	await process_frame
+	return est
+
+
+func _haz_juego() -> void:
+	print("== el haz de hielo dibuja su impacto en el juego (19b)")
+	var muro: Dictionary = {"d": 1.8, "x": 0.0, "n": Vector3(0, 0, 1), "tipo": "muro"}
+	var enemigo: Dictionary = {"d": 1.4, "x": 0.1, "n": Vector3(0, 0, 1), "tipo": "enemigo"}
+	var objeto: Dictionary = {"d": 2.2, "x": 0.0, "n": Vector3(0, 0, 1), "tipo": "objeto"}
+	var r0: Dictionary = VfxToyJuego.hielo_impacto_de([], 3.0)
+	_ok("sin choques: ni tope ni impacto", float(r0["tope"]) < 0.0 and float(r0["impacto"]) < 0.0)
+	var r1: Dictionary = VfxToyJuego.hielo_impacto_de([muro], 3.0)
+	_ok("con un muro a 1,8 m el tope es el de HazChoque.largo_corte (%.2f)" % float(r1["tope"]), absf(float(r1["tope"]) - HazChoque.largo_corte([muro], 3.0)) < 0.001 and float(r1["impacto"]) < 0.0)
+	var r2: Dictionary = VfxToyJuego.hielo_impacto_de([enemigo, objeto], 3.0)
+	_ok("con un enemigo y un objeto: sin tope, el impacto es el PRIMERO (%.2f)" % float(r2["impacto"]), float(r2["tope"]) < 0.0 and absf(float(r2["impacto"]) - 1.4) < 0.001 and float(r2["radio"]) > 0.0)
+	var r3: Dictionary = VfxToyJuego.hielo_impacto_de([enemigo, muro], 3.0)
+	_ok("enemigo delante de un muro: manda el tope", float(r3["tope"]) > 0.0 and float(r3["impacto"]) < 0.0)
+	var sin: Dictionary = await _haz_con([])
+	_ok("sin choques: haz entero (%.2f de 3 m) y corona en la punta (%.2f m), %d cristales" % [float(sin["largo_total"]), float(sin["z_corona"]), int(sin["corona"])],
+		absf(float(sin["largo_total"]) - 3.0) < 0.01 and absf(float(sin["z_corona"]) - 3.0) < 0.01 and int(sin["corona"]) > 0 and float(sin["crecida"]) > 0.99)
+	var con_tope: Dictionary = await _haz_con([muro])
+	_ok("con un tope: el haz se corta (%.2f m < 3) y la corona crece en él (%.2f m), %d cristales" % [float(con_tope["largo_total"]), float(con_tope["z_corona"]), int(con_tope["corona"])],
+		float(con_tope["largo_total"]) < 2.0 and float(con_tope["largo_total"]) > 1.7 and float(con_tope["z_corona"]) >= float(con_tope["largo_total"]) - 0.01 and float(con_tope["z_corona"]) < float(con_tope["largo_total"]) + 0.1
+		and int(con_tope["corona"]) > 0)
+	var con_enemigo: Dictionary = await _haz_con([enemigo])
+	_ok("con un enemigo en medio: el haz NO se corta (%.2f m) y la corona crece a su pie (%.2f m), %d cristales" % [float(con_enemigo["largo_total"]), float(con_enemigo["z_corona"]), int(con_enemigo["corona"])],
+		absf(float(con_enemigo["largo_total"]) - 3.0) < 0.01 and absf(float(con_enemigo["z_corona"]) - 1.4) < 0.01 and float(con_enemigo["haz_tope"]) < 0.0 and int(con_enemigo["corona"]) > 0)

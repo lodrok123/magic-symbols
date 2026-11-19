@@ -79,8 +79,6 @@ const PJ_ELEMENTAL: Array = ["elemental_bosque"]
 ## (COPIAR_MODELOS.cmd los copia desde el pipeline): mientras falten, `_personaje` usa el siguiente de la lista.
 const PJ_ALQUIMISTA: Array = ["alchemist_elf", "elfo_base", "bookseller_chibi", "chibi_test"]   # 22/10: elfo_base, el elfo básico, antes que la librera
 const PJ_ARQUERO: Array = ["goblin_archer_chibi", "goblin_espadachin", "goblin_warrior_chibi"]
-## Goblin asesino (22/10): dos dagas, ataque doble y movimiento agazapado; mismo comportamiento cuerpo a cuerpo que el guerrero. Sin letra de mapa todavía: se crea con `_personaje(PJ_ASESINO, pos)`.
-const PJ_ASESINO: Array = ["goblin_asesino", "goblin_espadachin", "goblin_warrior_chibi"]
 const PJ_GUARDABOSQUES: Array = ["ranger_human", "bookseller_chibi", "chibi_test"]
 const ALTO_PJ: Dictionary = {"woodland_wanderer": 1.0, "chibi_elf_v2": 1.0, "chibi_elf": 1.0, "chibi_test": 1.0, "bookseller_chibi": 0.95,
 	"goblin_warrior_chibi": 0.85, "goblin_warrior": 0.85, "goblin_espadachin": 0.85, "jugadora_base": 1.0,      # 24/10: la jugadora (base + ropa por piezas), primera de PJ_JUGADOR
@@ -147,8 +145,6 @@ const FRACCION_SOMBRA: float = 0.125
 ## Solo en las piezas de los lotes (el decorado que no reacciona): un seto que arde lleva los materiales de Reactivo3D.
 const VIENTO_DECORADO: Dictionary = {"arbol_redondo": 1.0, "arbol_redondo_2": 1.0, "pino": 0.6, "pino_2": 0.6,
 	"arbusto": 1.0, "arbusto_flores": 1.0, "arbusto_otono": 1.0}
-## Rejillas de prueba del tamaño de textura (Paso 4): px que ocupa en pantalla un metro a 1080p con el zoom inicial.
-const PX_POR_UNIDAD_1080: float = 1080.0 / ZOOM_INICIAL
 
 const COLOR_ELEMENTO: Dictionary = {
 	"fuego": Color(1.0, 0.55, 0.25), "agua": Color(0.45, 0.75, 1.0), "rayo": Color(1.0, 0.92, 0.4),
@@ -1035,7 +1031,6 @@ const TOCONES: Array = ["tocon", "tocon_alto", "tocon_hueco", "tocon_seco"]
 var _celdas_muro: Dictionary = {}      ## casillas de muro (Vector2i -> true)
 ## 12/10 (Pablo): NPCs y objetos (reactivos) colisionan por su CONTORNO: un círculo en los pies, no la casilla entera.
 const RADIO_CONTORNO_NPC: float = 0.3
-const RADIO_CONTORNO_OBJETO: float = 0.4
 var _npcs_contorno: Array = []         ## Pj3D de NPC quietos (los registra `_npc`)
 var _solidos: Node3D = null            ## cuerpos de colisión de esas piezas
 
@@ -3712,25 +3707,6 @@ func _poner_puente_fijo(c: Vector2i) -> void:
 	_props.add_child(n)
 
 
-## El puente plegable de la cámara de rayo: levantado contra la orilla oeste (bloquea la casilla) hasta que lo tiende el
-## tótem de rayo. La bisagra es el borde oeste de la casilla.
-func _poner_puente(c: Vector2i) -> void:
-	var raiz: Node3D = _pieza(_id_real("puente"))
-	if raiz == null:
-		return
-	var modelo: Node3D = raiz.get_child(0) as Node3D
-	raiz.remove_child(modelo)
-	raiz.free()
-	var cuerpo := Node3D.new()
-	cuerpo.name = "puente"
-	cuerpo.rotation_degrees = Vector3(0.0, 90.0, 0.0)
-	cuerpo.position = Vector3(S * 0.5, 0.0, 0.0)
-	cuerpo.add_child(modelo)
-	var bisagra: Vector3 = _centro_celda(c, ALTO_AGUA + 0.05) - Vector3(S * 0.5, 0.0, 0.0)
-	_bloqueadas[c] = true
-	var r: Reactivo3D = _nuevo_reactivo("puente", c, bisagra, cuerpo, "")
-	_props.add_child(r)
-
 
 ## El tótem de rayo tiende el puente (nivel_base._on_interruptor).
 func _enlazar_reactivos() -> void:
@@ -4027,25 +4003,6 @@ func _construir_sombras() -> void:
 	mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	_efectos.add_child(mi)
 
-
-## Hielo = la textura del agua desaturada y aclarada (no hay textura de hielo propia).
-func _textura_hielo(agua: Texture2D) -> Texture2D:
-	if agua == null:
-		return null
-	var img: Image = agua.get_image()
-	if img == null:
-		return agua
-	if img.is_compressed():
-		img.decompress()
-	img.convert(Image.FORMAT_RGBA8)
-	img.resize(256, 256)
-	for y in range(img.get_height()):
-		for x in range(img.get_width()):
-			var c: Color = img.get_pixel(x, y)
-			var g: float = c.get_luminance()
-			img.set_pixel(x, y, Color(lerpf(c.r, g, 0.75), lerpf(c.g, g, 0.7), lerpf(c.b, g, 0.55)).lightened(0.35))
-	img.generate_mipmaps()
-	return ImageTexture.create_from_image(img)
 
 
 ## Bloques empujables del nivel (los de `Jugabilidad3D.EMPUJABLES`, el Test 2 y los marcadores `empujable` del .tscn): BLOQUES REALES (`BloqueEmpujable3D`, 13/11, tarea 18), no cubos
@@ -4680,11 +4637,6 @@ func limites() -> Rect2i:
 		return Rect2i(0, 0, _ancho, _alto)
 	return Rect2i(0, 0, _lado, _lado)
 
-
-## La casilla del GridMap del .tscn que es la (0, 0) del mundo (para pasar de casillas del editor a casillas del juego:
-## juego = editor - origen_nivel()). Con las letras, (0, 0).
-func origen_nivel() -> Vector2i:
-	return _origen if _modo_nivel else Vector2i.ZERO
 
 
 ## Transform de un nodo del .tscn en el mundo de la maqueta: respecto a la raíz del nivel y desplazado -_origen casillas.
@@ -6375,11 +6327,6 @@ func _unhandled_input(ev: InputEvent) -> void:
 				_imprimir_postura()
 
 
-## Tipo de hierba: 0 briznas · 1 tarjetas pintadas · 2 las dos (tecla J).
-func set_modo_hierba(m: int) -> void:
-	if _hierba != null:
-		_hierba.set_modo(m)
-
 
 ## Impactos de prueba (capturas y QA): [["fuego", Vector2i(12, 8)], ["agua", Vector2i(13, 8)], ...].
 func impactar_en(lista: Array) -> void:
@@ -6390,18 +6337,6 @@ func impactar_en(lista: Array) -> void:
 		if _juego_aplica_estado():      # con Lanzador, el estado lo escribe `Lanzador3D.al_impactar`, que aquí no pasa: se hace como él
 			Mundo3D.aplicar_accion(AccionElemental.nueva(String(e[0]), punto))
 
-
-## Escribe en la consola el estado de cada casilla viva (QA): fase de la hierba y canales del suelo.
-func imprimir_estado() -> void:
-	for c in _hf:
-		var d: Dictionary = _hf[c]
-		print("CAPTURA estado ", c, " fase=", Fase.find_key(int(d["fase"])), " t=", snappedf(float(d["t"]), 0.1))
-	var img: Image = Terreno3D.estados.imagen()
-	for y in range(mini(_lado, img.get_height())):
-		for x in range(mini(_lado, img.get_width())):
-			var p: Color = img.get_pixel(x, y)
-			if p.r > 0.0 or p.g > 0.0 or p.b > 0.0:
-				print("CAPTURA canales ", Vector2i(x, y), " R=", snappedf(p.r, 0.01), " G=", p.g, " B=", p.b)
 
 
 ## Lleva a la chibi a una casilla (para pruebas y capturas).
@@ -6969,12 +6904,6 @@ func parar_chorro_agua(chorro: Variant) -> void:
 		_gotas_agua.detener(chorro as GPUParticles3D)
 
 
-## Una salpicadura de gotas donde cae agua (un impacto, una caída al canal).
-func salpicadura_agua(pos: Vector3) -> void:
-	var g: AguaMetaballs3D = _asegurar_gotas_agua()
-	if g != null:
-		g.salpicadura(pos)
-
 
 func _actualizar_suelo_mojado() -> void:
 	if _mat_suelo == null or _agua_render == null or _agua_render.sim == null:
@@ -7088,14 +7017,6 @@ func _al_llenarse_canal(celda_rayo: Vector2i) -> void:
 	if _en_mapa(celda_rayo) and (_letra(celda_rayo) == "~" or _es_canal(celda_rayo)):
 		electrificar_agua([celda_rayo])
 
-
-## ¿Alguna casilla vecina de `c` (en las 4 direcciones) tiene la letra `l`?
-func _adyacente_letra(c: Vector2i, l: String) -> bool:
-	for v in [Vector2i(1, 0), Vector2i(-1, 0), Vector2i(0, 1), Vector2i(0, -1)]:
-		var n: Vector2i = c + v
-		if _en_mapa(n) and _letra(n) == l:
-			return true
-	return false
 
 
 ## 12/10: ¿la casilla de canal `c` tiene abierto su lado hacia `v` (Vector2i en 4 direcciones)? Los lados salen del marcador:

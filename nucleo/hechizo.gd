@@ -46,7 +46,7 @@ const CAMPOS: Array = [
 	["semiejes", "forma"], ["grosor_min", "forma"], ["copias", "forma"], ["separacion", "forma"], ["dispersion", "forma"], ["crece", "forma"], ["escala_nace", "forma"], ["solidez", "forma"], ["resuena", "forma"],
 	["velocidad", "movimiento"], ["aceleracion", "movimiento"], ["gravedad", "movimiento"], ["distancia_max", "movimiento"], ["elevacion", "movimiento"],
 	["persiste", "movimiento"], ["permanencia", "movimiento"], ["retardo", "movimiento"], ["intervalo", "movimiento"],
-	["altura_salida", "movimiento"], ["impulso_salida", "movimiento"], ["rebotes", "movimiento"], ["elasticidad", "movimiento"], ["retorna", "movimiento"], ["busca", "movimiento"], ["en_punto", "movimiento"],
+	["altura_salida", "movimiento"], ["impulso_salida", "movimiento"], ["rebotes", "movimiento"], ["elasticidad", "movimiento"], ["retorna", "movimiento"], ["busca", "movimiento"], ["en_punto", "movimiento"], ["suelo", "movimiento"],
 	["dano", "combate"], ["dano_periodico", "combate"], ["potencia", "combate"], ["empuje", "combate"], ["fuerza_golpe", "combate"], ["perfora", "combate"], ["radio_explosion", "combate"], ["golpea_lanzador", "combate"],
 	["quema", "estados"], ["moja", "estados"], ["congela", "estados"], ["congela_mojado", "estados"], ["aturde", "estados"],
 	["ralentiza", "estados"], ["ralentiza_fuerza", "estados"], ["interrumpe", "estados"], ["veneno", "estados"], ["veneno_dps", "estados"], ["intensidad_estado", "estados"], ["deja", "estados"],
@@ -64,9 +64,6 @@ const CAMPOS: Array = [
 ## Todas las acciones de un evento se ordenan con `ordenar_acciones` (paso y orden de tabla del glifo que las puso, ver `_aplicar`); el `emitir_pulso` de ᚱ es una acción más del catálogo.
 const EVENTOS: PackedStringArray = ["al_nacer", "al_golpear", "al_matar", "al_impactar", "al_detenerse", "al_expirar", "al_rebotar", "al_viajar"]
 const ACCIONES: PackedStringArray = ["danar_area", "crear_hijo", "estado_suelo", "sonido", "vfx", "emitir_pulso"]
-## Los tres eventos de final y el valor fino de `Sigils.GLIFOS[…]["momento"]` que corresponde a cada uno.
-const EVENTOS_FINAL: PackedStringArray = ["al_impactar", "al_detenerse", "al_expirar"]
-const MOMENTO_DE_FINAL: Dictionary = {"al_impactar": "impacto", "al_detenerse": "detencion", "al_expirar": "extincion"}
 ## `choca_con` es una máscara de bits; 0 = «la de siempre» = mundo + enemigos.
 const CHOCA_MUNDO: int = 1
 const CHOCA_ENEMIGOS: int = 2
@@ -138,7 +135,7 @@ const EDITABLES: Dictionary = {
 	"impulso_salida": {"paso": 0.1, "min": 0.0, "max": 5.0},
 	"persiste": {"paso": 0.5, "min": 0.0, "max": 25.0}, "permanencia": {"paso": 0.5, "min": 0.0, "max": 25.0}, "retardo": {"paso": 0.1, "min": 0.0, "max": 5.0}, "intervalo": {"paso": 0.05, "min": 0.05, "max": 2.0},
 	"rebotes": {"paso": 1.0, "min": 0.0, "max": 6.0}, "elasticidad": {"paso": 0.1, "min": 0.0, "max": 1.0},
-	"retorna": {"tipo": "bool"}, "en_punto": {"tipo": "bool"}, "busca": {"paso": 0.25, "min": 0.0, "max": 4.0},
+	"retorna": {"tipo": "bool"}, "en_punto": {"tipo": "bool"}, "suelo": {"tipo": "bool"}, "busca": {"paso": 0.25, "min": 0.0, "max": 4.0},
 	"dano": {"paso": 5.0, "min": 0.0, "max": 300.0}, "dano_periodico": {"paso": 1.0, "min": 0.0, "max": 100.0}, "potencia": {"paso": 0.25, "min": 0.0, "max": 5.0},
 	"empuje": {"paso": 0.1, "min": 0.0, "max": 1.0}, "fuerza_golpe": {"paso": 100.0, "min": 0.0, "max": 3000.0},
 	"perfora": {"paso": 1.0, "min": 0.0, "max": 5.0}, "radio_explosion": {"paso": 0.25, "min": 0.0, "max": 5.0}, "golpea_lanzador": {"tipo": "bool"},
@@ -198,6 +195,7 @@ var rebotes: int = 0                   ## cambios de dirección al chocar
 var elasticidad: float = 0.2           ## 0–1: velocidad que conserva al rebotar · ESPEC §1.4 (aún no la lee nadie)
 var retorna: bool = false              ## vuelve al lanzador al acabar · HC4
 var en_punto: bool = false            ## nace donde apunta el cursor (dentro del anillo de alcance) y no en el lanzador · 18/10 diseño de Pablo («cast on point»)
+var suelo: bool = false                ## ᛒ «suelo» (18/11, diseño de Pablo): no viaja ni nace en la mano: se PLANTA en la casilla apuntada (plataforma, capa o trampa según elemento y casilla: `GlifoSuelo`)
 var busca: float = 0.0                 ## fuerza de giro hacia un objetivo (0 = recto) · HC4
 
 # --- Daño y combate ---
@@ -1088,6 +1086,8 @@ static func frases_cambio(dif: Array) -> Array:
 				numerico = true
 			"en_punto":
 				texto = "nace donde apuntas" if bool(b) else "ya no nace donde apuntas"
+			"suelo":
+				texto = "se planta en el suelo" if bool(b) else "ya no se planta en el suelo"
 			"solidez":
 				texto = "bloquea el paso" if float(b) > float(a) else "ya no bloquea"
 			"crece":

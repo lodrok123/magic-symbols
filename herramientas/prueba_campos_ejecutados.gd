@@ -35,6 +35,7 @@ const V_LENTA: float = 2.0                      ## m/s de las flechas de estas p
 ## Campos que NO producen ninguna diferencia observable en HechizoVivo ni en Combate3D, con el motivo (la auditoría los llama «solo dato» y «sombra del RuneData»). La prueba comprueba
 ## que de verdad no se notan: si alguno empieza a leerse, tiene que SALIR de esta lista. El valor de `CAMBIO_SOLO_DATO` es el que se prueba.
 const CAMPOS_SOLO_DATO: Dictionary = {
+	"suelo": "NO LO LEE HechizoVivo: ᛒ lo lee Lanzador3D.lanzar_hechizo (planta con GlifoSuelo, antes de crear ningún HechizoVivo); se prueba en prueba_glifo_suelo",
 	"intensidad_estado": "SOLO DATO: ESPEC §1.5 «× todas las duraciones de estado»; ninguna duración la multiplica",
 	"elasticidad": "SOLO DATO: el rebote invierte la velocidad entera (HechizoVivo._avanzar); no conserva una fracción",
 	"ralentiza_fuerza": "SOLO DATO: Combate3D.vel_mult usa un 0,6 fijo (casualmente 1 − 0,4 de la tierra); el campo no se lee",
@@ -46,7 +47,7 @@ const CAMPOS_SOLO_DATO: Dictionary = {
 }
 ## El valor ≠ defecto con que se prueba cada campo de arriba.
 const CAMBIO_SOLO_DATO: Dictionary = {
-	"intensidad_estado": 3.0, "elasticidad": 0.9, "ralentiza_fuerza": 0.9, "densidad": 4.0,
+	"suelo": true, "intensidad_estado": 3.0, "elasticidad": 0.9, "ralentiza_fuerza": 0.9, "densidad": 4.0,
 	"empuje": 0.9, "deja": "helado", "pisable": false, "color": Color(0.1, 0.9, 0.3),
 }
 

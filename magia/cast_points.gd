@@ -27,7 +27,8 @@ extends RefCounted
 ## Todo es `static var` para que el laboratorio lo toque en vivo; nada se guarda solo: G del lab escribe user://cast_points.json y P imprime esta tabla.
 
 ## Qué variación usa cada nombre derivado.
-static var POR_NOMBRE: Dictionary = {"x_mano": "x_mano", "alto": "alto_cielo", "abajo": "abajo_golpe"}
+## 19/11: «haz» no es un nombre derivado (un haz se deriva como «x_mano»): es la entrada que mira el lanzador cuando el hechizo ES un haz. Sin ella, un haz usa la de su nombre.
+static var POR_NOMBRE: Dictionary = {"x_mano": "x_mano", "alto": "alto_cielo", "abajo": "abajo_golpe", "haz": "x_haz"}
 
 ## Las seis variaciones de partida (LAB_CASTPOINT §2.2).
 static var VARIACIONES: Dictionary = {
@@ -41,9 +42,17 @@ static var VARIACIONES: Dictionary = {
 		"anticipacion": [0.25, 0.35, 0.40], "mano_libro": "derecha", "velocidad": 1.6, "clip_una_mano": "cast_mano_alto"},
 	"abajo_golpe": {"posicion": "abajo", "clip": "cast_corro", "inicio": 0.35, "fin": 0.80, "instante": 0.62, "origen": "suelo_delante", "sostener": 0.0,
 		"anticipacion": [0.25, 0.35, 0.40], "mano_libro": "izquierda", "velocidad": 1.6, "clip_una_mano": "cast_mano_suelo"},
+	# 19/11 (Pablo: «el gesto de extender la mano; esto se usará con figuras tipo haz. El gesto debe sostenerse durante la duración del hechizo»): el clip a una mano al frente
+	# (CastOneHandFront, 1,10 s). El `sostener` de la tabla es 0: lo que dura el haz lo pasa el lanzador en cada lanzamiento (`Lanzador3D`, `Pj3D.lanzar(..., sostener)`).
+	# `inicio`, `fin` e `instante` están puestos A OJO (no se ha medido en qué fotograma queda el brazo extendido): afinar en el lab de cast points.
+	"x_haz": {"posicion": "x_mano", "clip": "cast_mano_frente", "inicio": 0.10, "fin": 0.95, "instante": 0.50, "origen": "mano_libre", "sostener": 0.0,
+		"anticipacion": [0.30, 0.35, 0.35], "mano_libro": "izquierda", "velocidad": 1.6, "clip_una_mano": "cast_mano_frente"},
 	"abajo_deja": {"posicion": "abajo", "clip": "pick_up", "inicio": 0.45, "fin": 0.80, "instante": 0.60, "origen": "suelo_delante", "sostener": 0.0,
 		"anticipacion": [0.25, 0.35, 0.40], "mano_libro": "izquierda", "velocidad": 2.5, "clip_una_mano": "cast_mano_suelo"},
 }
+
+## La variación de serie de los haces (`POR_NOMBRE["haz"]`). No está en ORDEN: el lab de cast points recorre las seis de siempre.
+const HAZ: String = "x_haz"
 
 ## El orden en que el lab recorre las variaciones (Tab y 1–6).
 const ORDEN: Array = ["x_mano", "x_empuje", "alto_cielo", "alto_alza", "abajo_golpe", "abajo_deja"]

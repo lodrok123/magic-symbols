@@ -254,12 +254,6 @@ func energia_en(c: Vector2i) -> float:
 	return _curva(float((_vivas[c] as Array)[0]))
 
 
-## El color con el que brilla la casilla ahora (el del último pulso que pasó; base si nunca).
-func color_en(c: Vector2i) -> Color:
-	if _vivas.has(c):
-		return (_vivas[c] as Array)[1] as Color
-	return Pulso3D.COLOR_BASE
-
 
 ## Los huecos de enlace: con el bloque de tierra puesto la losa se sube a su cara de arriba (`y_pies` cuenta la tierra levantada) y se ve entera, para que se vea pasar el frente; sin él, a ras y rota.
 func _seguir_enlaces() -> void:

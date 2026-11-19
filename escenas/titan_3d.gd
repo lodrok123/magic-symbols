@@ -15,7 +15,6 @@ extends Node3D
 const MUSGO: Color = Color(0.27, 0.40, 0.13)
 const ROCA: Color = Color(0.36, 0.34, 0.31)
 const ROCA_CLARA: Color = Color(0.45, 0.42, 0.37)
-const ALTURA_REF: float = 62.0               ## (sin uso desde la pose recostada: el titán mide ~45 u de alto y ~125 de largo)
 
 ## Cada pieza: n nombre, c centro, r radios, g giro en grados (x,y,z; orden YXZ de Godot), m cuánto musgo cubre lo que mira arriba
 ## (0 piedra, 1 todo), a amplitud del ruido (más = más tosco), t árboles, esp simétrica en x. Origen: x=0 en el eje del cuerpo, z=0 en el

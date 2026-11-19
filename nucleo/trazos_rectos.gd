@@ -63,6 +63,7 @@ const SELLOS: Dictionary = {
 	"permanencia": "D|DR,UR",     # ᛉ  palo y la V de arriba
 	"perforar": "D|DR,DL",        # ᚦ  palo y el pico «>»
 	"buscar": "D|DR|DR",          # ᚨ  palo y dos ramas que bajan
+	"suelo": "D|DR,DL,DR,DL",     # ᛒ  palo y los dos picos «>» seguidos (como una B de lados rectos)
 }
 
 ## OTRAS FORMAS que también valen para una entrada, además de la de la tabla (que es la que se enseña en la guía). Mismo formato.

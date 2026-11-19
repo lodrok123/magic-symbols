@@ -229,6 +229,7 @@ const RADIO_FLECHA_FUEGO: float = 0.15          ## lo que «toca» una flecha en
 ## flecha ardiendo, hechizo). true = un enemigo ardiendo prende al enemigo que toca.
 const CONTACTO_ENTRE_ENEMIGOS: bool = false
 const COLOR_FLECHA_ARDIENDO: Color = Color(1.0, 0.5, 0.15)
+const TINTE_ARDIENDO: Color = Color(1.2, 0.42, 0.2)         ## tinte del cuerpo de un enemigo con ArdiendoToy (rojo-naranja, sin amarillo)
 ## Una flecha ardiendo ha alcanzado a `objetivo` (el jugador): quien tenga mecánica de quemadura la escucha. El jugador no tiene aún (ver `quemar`).
 signal flecha_ardiente_impacta(objetivo: Node3D)
 
@@ -257,6 +258,13 @@ const COLOR_LLAMARADA: Color = Color(1.0, 0.45, 0.15)   ## rótulo «¡Llamarada
 const ENRAIZADO_S: float = 1.5                  ## s que lo sujetan las raíces; ×2 si estaba mojado (la tierra mojada agarra más)
 const MAGMA_LENTO_S: float = 2.0                ## s de `lento` que deja el magma (los mismos que la tierra)
 const COLOR_ENRAIZADO: Color = Color(0.45, 0.7, 0.25)   ## rótulo «¡Enraizado!»: el verde de la naturaleza
+## 18/11 (ᛒ suelo, diseño de Pablo): la escarcha de ᛒ hace PATINAR a los enemigos pequeños y medianos, no a los grandes. Criterio de tamaño (no existía): la `masa` (goblin 1, chamán 0,9, limo 0,6 y
+## 1,2 el grande, gato 0,5; elemental 3,3 y gólem 6). Patina quien pesa `MASA_MAX_PATINA` o menos. Patinar = perder el control `T_PATINA` s: desliza en la dirección en que iba, frenando poco a poco
+## (`V_PATINA` u/s al empezar), sin andar ni atacar; después tiene `T_PATINA_INMUNE` s de agarre antes de poder volver a patinar (una capa de escarcha no lo deja deslizando sin fin).
+const MASA_MAX_PATINA: float = 2.0
+const T_PATINA: float = 0.9
+const V_PATINA: float = 3.5
+const T_PATINA_INMUNE: float = 1.2
 ## Cae al agua: si tras un EMPUJE (o porque el suelo se le va: el hielo se derrite, el agua sube) su casilla es agua honda y no helada, se HUNDE: baja bajo la
 ## superficie en TIEMPO_HUNDIMIENTO, avisa a Mundo3D (nombre del aviso: AVISO_HUNDIDO, para las burbujas), muere SIN botín y emite `hundido`.
 ## Un goblin que anda por su cuenta NO entra en el agua: solo el empuje (`_mover_paso(..., true)`) puede meterlo.
@@ -330,7 +338,10 @@ var _brasero_cerca_e: bool = false
 var mojado: float = 0.0
 var congelado: float = 0.0
 var lento: float = 0.0
-var cegado: float = 0.0                 ## B2 (6/11): s que le quedan ciego (agua sobre quemado): `_ve` devuelve false
+var patina: float = 0.0                 ## ᛒ suelo (18/11): s que le quedan patinando sobre la escarcha (ver `patinar`)
+var _dir_patina: Vector3 = Vector3.ZERO
+var _t_patina_inmune: float = 0.0
+var cegado: float = 0.0                ## B2 (6/11): s que le quedan ciego (agua sobre quemado): `_ve` devuelve false
 ## 11/11 (bomba de humo, PROPUESTA_CONSUMIBLES §8): s que le quedan INVESTIGANDO. Mientras dure no se rinde aunque no vea a la jugadora: va a buscarla donde la vio por
 ## última vez (`ultima_pos`, estado «busca»). Es la contra del humo: corta la vista pero no borra la alerta.
 var investiga: float = 0.0
@@ -907,6 +918,28 @@ func umbral_correr() -> float:
 ## 28/10: el ritmo de este enemigo (RITMO_GOBLIN si es de la familia goblin; 1 el elemental, el limo, el gólem y el resto).
 func ritmo() -> float:
 	return RITMO_GOBLIN if es_goblin else 1.0
+
+
+## ᛒ suelo (18/11): ¿puede patinar ahora? Pequeño o mediano (`masa` ≤ MASA_MAX_PATINA), vivo, sin patinar ya ni estar en su agarre posterior, y no preso (congelado, enraizado).
+func puede_patinar() -> bool:
+	return not muerto and masa <= MASA_MAX_PATINA and patina <= 0.0 and _t_patina_inmune <= 0.0 and congelado <= 0.0 and enraizado <= 0.0
+
+
+## ᛒ suelo: lo hace patinar `T_PATINA` s hacia `dir` (plano; sin dirección, hacia su objetivo o hacia donde mira). Devuelve si patinó (false si es grande o ya patina).
+func patinar(dir: Vector3 = Vector3.ZERO) -> bool:
+	if not puede_patinar():
+		return false
+	var d := Vector3(dir.x, 0.0, dir.z)
+	if d.length() < 0.01 and objetivo != null and is_instance_valid(objetivo):
+		d = Vector3(objetivo.position.x - position.x, 0.0, objetivo.position.z - position.z)
+	if d.length() < 0.01:
+		d = Vector3(mirada.x, 0.0, mirada.z)
+	if d.length() < 0.01:
+		d = Vector3(0.0, 0.0, 1.0)
+	_dir_patina = d.normalized()
+	patina = T_PATINA
+	texto("Patina", Color(0.75, 0.95, 1.0), 0.4)
+	return true
 
 
 func vel_mult() -> float:
@@ -1519,11 +1552,16 @@ func _efectos(delta: float) -> void:
 	var estaba_congelado: bool = congelado > 0.0
 	mojado = maxf(0.0, mojado - delta)
 	congelado = maxf(0.0, congelado - delta)
+	if congelado > 0.0 and not has_method("congelar_en_bloque"):          # 18/11: bloques de hielo pegados, cuadraditos celestes y vaho (CongeladoToy; se quita solo). El limo ya se hace cubo
+		CongeladoToy.asegurar(self, altura)
+	if quemando > 0.0 and not muerto:                                     # 18/11: el cuerpo incandescente, lenguas en cabeza y hombros, brasas y luz (ArdiendoToy; se quita solo)
+		ArdiendoToy.asegurar(self, altura)
 	if estaba_mojado and mojado <= 0.0:
 		_reaccionar(Mundo3D.R_SECADO)
 	if estaba_congelado and congelado <= 0.0:
 		_reaccionar(Mundo3D.R_DERRETIDO)
 	lento = maxf(0.0, lento - delta)
+	_t_patina_inmune = maxf(0.0, _t_patina_inmune - delta)
 	_t_anim = maxf(0.0, _t_anim - delta)
 	_avanzar_empujado(delta)
 	_ataque = maxf(0.0, _ataque - delta)
@@ -1680,6 +1718,16 @@ func _ia(delta: float) -> void:
 	if _empuje.length() > 0.1:
 		_mover_paso(_empuje * delta, true)          # empujado: SÍ puede acabar en el agua honda (y hundirse); andando por su cuenta, no
 		_empuje = _empuje.lerp(Vector3.ZERO, clampf(DECAIMIENTO_EMPUJE * delta, 0.0, 1.0))
+	if patina > 0.0 and not muerto:
+		# ᛒ suelo: patina. Sin tracción: desliza hacia donde iba, cada vez más despacio; ni anda ni ataca ni carga mientras tanto. Como el empuje, va antes de los demás estados (un quieto también resbala).
+		patina = maxf(patina - delta, 0.0)
+		_mover_paso(_dir_patina * V_PATINA * (patina / T_PATINA) * delta)
+		_cancelar_ataque()
+		_carga = 0.0
+		moviendo = 0
+		if patina <= 0.0:
+			_t_patina_inmune = T_PATINA_INMUNE
+		return
 	if elemental:
 		if _aturdido_v2 and stun_timer <= 0.0:
 			_aturdido_v2 = false
@@ -2747,7 +2795,8 @@ func _dibujar_estado(delta: float) -> void:
 	if congelado > 0.0:
 		c = c.lerp(Color(0.6, 0.9, 1.4), 0.7)
 	elif quemando > 0.0:
-		c = c.lerp(Color(1.5, 0.7, 0.4), 0.5 + 0.3 * sin(Time.get_ticks_msec() * 0.02))
+		# Con la envoltura de ArdiendoToy el cuerpo ya brilla solo: el tinte pasa a un rojo-naranja más oscuro (el de antes, melocotón claro, lavaba la capa de llamas y tiraba a pálido)
+		c = c.lerp(TINTE_ARDIENDO if ArdiendoToy.envuelve(self) else Color(1.5, 0.7, 0.4), 0.5 + 0.3 * sin(Time.get_ticks_msec() * 0.02))
 	elif mojado > 0.0:
 		c = c.lerp(Color(0.6, 0.75, 1.2), 0.45)
 	if _t_conjuro > 0.0:                      # brillo sutil que lo cura
@@ -2953,10 +3002,6 @@ func _preparar_elemental() -> void:
 			(n as Node3D).visible = false       # su barra es la grande de la pantalla
 	_construir_barra_jefe()
 
-
-## Cuánto ha crecido respecto a su tamaño normal (1 = normal).
-func _factor_tamano() -> float:
-	return altura / maxf(_alto_base, 0.01)
 
 
 ## Escala de las medidas del elemental respecto a su altura de referencia (1,7 u).

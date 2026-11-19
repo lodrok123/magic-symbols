@@ -56,8 +56,6 @@ const COLOR_SILUETA_BORDE: Color = Color("8b8273")
 const COLOR_ELEGIDO: Color = Color("e0a526")
 
 var abierta: bool = false
-## Heredado: la textura azul del panel antiguo. Ya no se usa (el panel es de cuero); se deja para no romper a quien la asigne.
-var panel_textura: Texture2D = null
 var _velo: ColorRect
 var _marco: Control
 var _panel: PanelContainer

@@ -22,7 +22,6 @@ const VENENO_DPS: float = 3.0            ## el mismo veneno que la bola del cham
 const VENENO_S: float = 3.0
 const FLAG_TROZO: String = "colmena"     ## el trozo de en medio de `<nivel>.colmena.<id>`
 const COLOR_CERA: Color = Color(0.95, 0.76, 0.3)
-const COLOR_NUBE: Color = Color(0.45, 0.75, 0.25, 0.35)
 
 var celda: Vector2i = Vector2i.ZERO
 var nivel: String = ""
@@ -202,14 +201,6 @@ func _poner_nube() -> void:
 	if get_parent() is Node3D and is_inside_tree():
 		VfxPuzle3D.vapor(get_parent() as Node3D, global_position + Vector3(0.0, ALTO_COLGADA * 0.5, 0.0), 1.4)
 
-
-## ¿Está la jugadora dentro de la nube ahora? (en horizontal a ≤ RADIO_NUBE y a una altura parecida)
-func jugadora_en_nube() -> bool:
-	var j: Jugador3D = Botin.jugador_de(self)
-	if j == null or j.muerto:
-		return false
-	var d: Vector3 = j.global_position - global_position
-	return Vector2(d.x, d.z).length() <= RADIO_NUBE and absf(d.y) <= ALTO_COLGADA + 0.5
 
 
 func _process(delta: float) -> void:

@@ -31,7 +31,6 @@ const T_CLAVAR_BAJA: float = 0.50               ## s en que empieza a bajar de g
 ## El chamán GIRA sobre sí mismo (el nodo rota: `yaw_en(u)`, lo aplica ChamanRitual) con la punta del bastón fuera, a `rho` de él: así la punta recorre el sello CENTRADO EN SUS PIES. El círculo es
 ## una vuelta entera; el rombo, un barrido de esquina a esquina con el cuerpo girando hacia cada una. El clip solo lleva la distancia de la punta (siempre recta delante) y la inclinación del palo.
 const RADIO_TRAZO: float = 0.62                 ## radio del sello que dibuja la punta (= 0,55 u de juego); lo máximo que alcanza con los brazos cortos
-const CENTRO_TRAZO: Vector3 = Vector3(0.0, 0.0, 0.0)       ## el centro del sello son sus pies
 const PUNTA_Y: float = 0.004                    ## la punta roza el suelo a esta altura (el suelo del modelo es y = 0)
 const PUNTA_ALZADA: float = 0.028               ## cuánto se alza entre trazos
 const PALMA_Z: float = 0.15                     ## la mano derecha queda a esto por delante de los pies: de ahí sale la inclinación del palo según hasta dónde llega la punta

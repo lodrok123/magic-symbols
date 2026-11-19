@@ -416,10 +416,6 @@ func rotar_nota() -> String:
 	return String(f["nota"])
 
 
-func poner_nota(texto: String) -> void:
-	_ficha(clave())["nota"] = texto
-	_guardar_auto()
-
 
 ## Quita la marca (y la nota) pero deja la medida.
 func borrar_marca() -> void:

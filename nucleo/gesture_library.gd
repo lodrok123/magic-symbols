@@ -63,6 +63,7 @@ const SIGILS: PackedStringArray = [
 	"perforar",    # ᚦ thurisaz (30/10, H5): el proyectil atraviesa enemigos. Sin muestras hasta que Pablo las grabe con G
 	"retorno",     # ᛃ jera (30/10, H5): el proyectil vuelve al acabar la ida. Sin muestras ni PNG todavía
 	"buscar",      # ᚨ ansuz (30/10, H5): el proyectil gira hacia el enemigo más cercano. Sin muestras hasta que Pablo las grabe con G
+	"suelo",       # ᛒ berkana (18/11, diseño de Pablo): el hechizo se PLANTA en la casilla apuntada (plataforma, capa o trampa según el elemento). Sin muestras hasta que Pablo las grabe con G
 ]
 
 ## El orden en que las teclas 1..9 los seleccionan al grabar. Primero
@@ -73,7 +74,7 @@ const RECORDABLE: PackedStringArray = [
 	"flecha", "barrera", "levitacion", "repeticion", "amplificar",
 	"rebote", "retardo", "pulso", "atraccion", "espejo",
 	# 16/10 (biblia de runas de Pablo): también se graban los que aún no lanzan nada, para tenerlos listos (assets, enemigos, señuelos).
-	"linea", "veneno", "naturaleza", "sombra", "luz", "perforar", "retorno", "buscar", "raido", "permanencia", "berkana",
+	"linea", "veneno", "naturaleza", "sombra", "luz", "perforar", "retorno", "buscar", "raido", "permanencia", "suelo",       # 18/11: «berkana» pasa a ser el glifo «suelo» (el id de las muestras es el del glifo)
 ]
 
 ## --- BIBLIA DE RUNAS (16/10, lámina de Pablo: 24 runas del futhark antiguo) ---
@@ -101,7 +102,7 @@ const BIBLIA: Dictionary = {
 	"permanencia": {"futhark": "ᛉ", "nombre_runa": "algiz", "uso": "sello"},       # antes «algiz», libre (ESPEC_HECHIZO §3, decidido el 19/10)
 	"rayo":       {"futhark": "ᛊ", "nombre_runa": "sowilo", "uso": "elemento"},
 	"levitacion": {"futhark": "ᛏ", "nombre_runa": "tiwaz", "uso": "sello"},
-	"berkana":    {"futhark": "ᛒ", "nombre_runa": "berkana", "uso": "libre"},
+	"suelo":      {"futhark": "ᛒ", "nombre_runa": "berkana", "uso": "sello"},      # 18/11 (diseño de Pablo): antes «berkana», libre. El id es el del glifo (suelo), la runa sigue siendo berkana
 	"tierra":     {"futhark": "ᛗ", "nombre_runa": "mannaz", "uso": "elemento"},
 	"viento":     {"futhark": "ᚢ", "nombre_runa": "uruz (variante de lados rectos, lámina aparte)", "uso": "elemento"},
 	"agua":       {"futhark": "ᛚ", "nombre_runa": "laguz", "uso": "elemento"},
@@ -229,10 +230,6 @@ func remove_last_sample(gesture_name: String) -> void:
 	if templates[gesture_name].is_empty():
 		templates.erase(gesture_name)
 
-
-func clear_all() -> void:
-	templates.clear()
-	trazos.clear()
 
 
 ## Si está vacía, quien reconozca debe recurrir al método antiguo. Es lo

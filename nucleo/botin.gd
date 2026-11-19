@@ -171,12 +171,6 @@ static func soltar(mundo: Node, pos: Vector3, lista: Array, jugador: Jugador3D =
 	return nodos
 
 
-## Atajo: tira la tabla y suelta lo que salga. Devuelve la lista (no los nodos).
-static func tirar_y_soltar(tabla: String, mundo: Node, pos: Vector3, n_tiradas: int = 1) -> Array:
-	var lista: Array = tirar(tabla, n_tiradas)
-	soltar(mundo, pos, lista)
-	return lista
-
 
 # ---------------------------------------------------------------------------------------------------------------------
 #  Hierba segada

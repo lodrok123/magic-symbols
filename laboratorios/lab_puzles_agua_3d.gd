@@ -51,7 +51,6 @@ const NIVEL_MAPA: String = "PuzlesAgua"
 ## sus mensajes y sus cuentas. Si Pablo cambia el .txt, `_comprobar_constantes` lo avisa al arrancar.
 const CAUDAL_TINAJA_LAB: float = 0.5         ## u³/s de las tinajas del lab (Pablo, 15/10: con 1,5 la banda de Q8 se cruza en 3 s y Q1 inunda la sala)
 const VOL_TINAJA_LAB: float = 20.0           ## u³ por tinaja: Q1 necesita 14,3 para 0,45 en 6 casillas; la tinaja vierte unos 40 s
-const CAUDAL_ARROYO: float = 0.6             ## u³/s del manantial de Q4 (y de Q3 hasta el 15/10)
 const CAUDAL_ARROYO_Q3: float = 1.5          ## u³/s del arroyo de Q3. Medido 15/10: con 0,6 el vado se queda en 0,23 (< 0,25, la puerta ya está abierta sin presa)
 const T_HUD: float = 0.2
 
@@ -89,6 +88,16 @@ const SALAS: Array = [
 		"texto": "Q10 · ROCA Y BARRIL\nFuego al barril: explota y rompe la roca que corta el cauce;\nel agua llega al este y abre la puerta. Hielo lo vuelve a cortar.",
 		"ids": {"detector": "q10_nivel", "compuerta": "q10_roca", "puerta": "q10_puerta", "barril": "q10_barril"}},
 ]
+## PUZLES NUEVOS (18/11/2026): salas aparte de las diez de arriba para no tocar `_puzles` (que cuentan las pruebas). Teclas «-» y «=» (a la derecha del 0).
+##   Q11 (3,2) DOS RIEGOS A LA VEZ: dos pulsadores de agua (26,19) y (28,19) con rearme 0,35 s; la puerta (28,22) abre solo si los dos están activos a la vez (una línea de agua los moja a los dos). Botón `!` de control, placa `@` abre.
+const NUEVOS: Array = [
+	{"nombre": "Q11 dos riegos", "entrada": Vector2i(25, 19), "cartel": Vector2i(28, 17),
+		"texto": "Q11 · DOS RIEGOS A LA VEZ\nLos dos botones azules solo se quedan pulsados 0,35 s: hay que mojarlos casi a la vez.\nUna LÍNEA de agua (dos glifos ᛁ) desde el oeste de la fila los moja a los dos; dos flechas sueltas no llegan.\nEl rojo es de control (no abre nada) · la placa amarilla abre.",
+		"ids": {"a": "q11_a", "b": "q11_b", "puerta": "q11_puerta", "control": "q11_control", "placa": "q11_placa"}},
+	{"nombre": "Q12 foso y balsa", "entrada": Vector2i(28, 25), "cartel": Vector2i(28, 28),
+		"texto": "Q12 · FOSO CON COFRE FLOTANTE\nEl cofre está en una balsa, en el fondo del foso, lejos de la pasarela, y sellado.\nLlena el foso (agua a la tinaja, o botón/placa): la balsa flota y deriva hasta la pasarela (14 s).\nCuando atraca, el cofre se abre con E desde la pasarela.",
+		"ids": {"balsa": "q12_balsa", "cofre": "q12_cofre", "tinaja": "q12_tinaja", "boton": "q12_boton", "placa": "q12_placa"}},
+]
 ## Papeles que toda sala tiene en su diccionario aunque no los use (null): el HUD y el escenario los leen sin mirar si existen.
 const PAPELES_SIEMPRE: Array = ["detector", "compuerta", "puerta"]
 
@@ -96,6 +105,7 @@ var m: Variant = null                        ## la maqueta (PruebaTest2). Sin ti
 var _jug: Jugador3D = null
 var _puzle_nodo: Puzle3D = null              ## quien monta las piezas y las reglas desde el .txt
 var _puzles: Array = []                      ## [{nombre, entrada, detector, compuerta, puerta, …}] una por sala
+var _nuevos: Array = []                      ## [{nombre, entrada, puerta, …}] las salas de los puzles nuevos (NUEVOS)
 var _hud: Label = null
 var _t_hud: float = 0.0
 var _avisos: Array = []
@@ -160,6 +170,18 @@ func _montar_salas() -> void:
 			q[papel] = nd
 		_puzles.append(q)
 		_cartel(sala["cartel"] as Vector2i, String(sala["texto"]))
+	for s in NUEVOS:
+		var sala_n: Dictionary = s
+		var qn: Dictionary = {"nombre": sala_n["nombre"], "entrada": sala_n["entrada"]}
+		var ids_n: Dictionary = sala_n["ids"]
+		for papel in ids_n:
+			var nd_n: Node = _puzle_nodo.nodo(String(ids_n[papel]))
+			if nd_n == null:
+				_avisos.append("%s: no hay pieza «%s» (papel «%s») en %s.txt" % [sala_n["nombre"], ids_n[papel], papel, NIVEL_MAPA])
+				push_warning("LabPuzlesAgua3D: " + String(_avisos.back()))
+			qn[papel] = nd_n
+		_nuevos.append(qn)
+		_cartel(sala_n["cartel"] as Vector2i, String(sala_n["texto"]))
 
 
 ## Un cartel flotante en la casilla `c` con las instrucciones de la sala (16/10, Pablo: «no entiendo el puzle»).
@@ -212,6 +234,11 @@ func _unhandled_input(ev: InputEvent) -> void:
 		var n: int = int(teclas[k.keycode])
 		if n < _puzles.size():
 			colocar_jugador(_puzles[n]["entrada"] as Vector2i)
+	var teclas_n: Dictionary = {KEY_MINUS: 0, KEY_EQUAL: 1}      # puzles nuevos: Q11, Q12
+	if teclas_n.has(k.keycode):
+		var nn: int = int(teclas_n[k.keycode])
+		if nn < _nuevos.size():
+			colocar_jugador(_nuevos[nn]["entrada"] as Vector2i)
 
 
 ## Teletransporte del jugador a una casilla (lo mismo que escenario_base.colocar_jugador).
@@ -222,6 +249,14 @@ func colocar_jugador(c: Vector2i) -> void:
 	if _jug.pj != null:
 		_jug.pj.position = p
 	_jug.position = p
+
+
+## Una sala de los puzles nuevos por su nombre corto («Q11», «Q12»); {} si no existe.
+func nuevo(nombre: String) -> Dictionary:
+	for q in _nuevos:
+		if String(q["nombre"]).split(" ")[0] == nombre:
+			return q
+	return {}
 
 
 func puzle(nombre: String) -> Dictionary:
@@ -273,6 +308,30 @@ func _refrescar_hud() -> void:
 		if p != null:
 			linea += "  puerta %s" % ("ABIERTA" if p.abierta else "cerrada")
 		t += linea + "\n"
+	t += "PUZLES NUEVOS · - y = ir a la sala\n"
+	for q in _nuevos:
+		t += "  %-18s%s\n" % [String(q["nombre"]), _estado_nuevo(q)]
 	for a in _avisos:
 		t += "  AVISO " + String(a) + "\n"
 	_hud.text = t
+
+
+## La línea de HUD de una sala de los puzles nuevos.
+func _estado_nuevo(q: Dictionary) -> String:
+	var s: String = ""
+	for papel in ["a", "b"]:
+		var pa: Variant = q.get(papel)
+		if pa != null and is_instance_valid(pa):
+			s += "  %s %s" % [papel.to_upper(), "ACTIVO" if bool((pa as Object).get("activo")) else "libre"]
+	var p: Variant = q.get("puerta")
+	if p != null and is_instance_valid(p):
+		s += "  puerta %s" % ("ABIERTA" if bool((p as Object).get("abierta")) else "cerrada")
+	var ba: Variant = q.get("balsa")
+	if ba != null and is_instance_valid(ba):
+		var b: Balsa3D = ba
+		s += "  balsa %s %d%%" % ["ATRACADA" if b.atracada else ("flota" if b.flota else "en el fondo"), int(b.progreso() * 100.0)]
+		s += "  agua en su casilla %.2f" % (Terreno3D.agua_sim.profundidad_casilla(b.celda_actual()) if Terreno3D.agua_sim != null else 0.0)
+	var cf: Variant = q.get("cofre")
+	if cf != null and is_instance_valid(cf):
+		s += "  cofre %s" % ("abierto" if bool((cf as Object).get("es_abierto")) else ("sellado" if not bool((cf as Object).call("sellado_cumplido")) else "listo (E)"))
+	return s

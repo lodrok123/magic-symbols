@@ -27,7 +27,6 @@ extends RefCounted
 ## nodos que crean llevan sus Tween atados a sí mismos, así que desaparecen con ellos.
 
 ## Ejes del shader (uniform `eje`): de dónde sale la «altura de la llama» (1 = base caliente, 0 = punta que se deshace).
-const EJE_UV_Y: int = 0         ## cono, cilindro, cinta, quads: UV.y = 1 en la base y 0 en la punta
 const EJE_CENTRO: int = 2       ## esfera: el centro (mirando a cámara) es la base, la silueta se deshace
 const EJE_BORDE: int = 3        ## cúpula: la silueta es la base (borde brillante) y el interior se deshace
 

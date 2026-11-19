@@ -155,7 +155,7 @@ func _medir(t: Node) -> Dictionary:
 func _con_selector_apagado() -> void:
 	print("== selector apagado: nada cambia")
 	ProjectSettings.set_setting(VfxToyJuego.AJUSTE, false)
-	_ok("0 project.godot: ajuste general = true y elementos = «fuego,agua,rayo,magma,viento,tierra» (de serie; el hielo, no)", bool(_defecto_proyecto[2]) and bool(_defecto_proyecto[3]) and bool(_defecto_proyecto[0]) and String(_defecto_proyecto[1]) == "fuego,agua,rayo,magma,viento,tierra", str(_defecto_proyecto))
+	_ok("0 project.godot: ajuste general = true y elementos = los siete (19/11: Pablo aprueba el hielo)", bool(_defecto_proyecto[2]) and bool(_defecto_proyecto[3]) and bool(_defecto_proyecto[0]) and String(_defecto_proyecto[1]) == VfxToyJuego.ELEMENTOS_DEFECTO and String(_defecto_proyecto[1]) == "fuego,agua,hielo,rayo,magma,viento,tierra", str(_defecto_proyecto))
 	_ok("0 con el ajuste a false `usa_toy` es false para los cuatro", not VfxToyJuego.activo() and not VfxToyJuego.usa_toy("fuego") and not VfxToyJuego.usa_toy("agua") and not VfxToyJuego.usa_toy("hielo") and not VfxToyJuego.usa_toy("rayo") and not VfxToyJuego.usa_toy("magma") and not VfxToyJuego.usa_toy("viento") and not VfxToyJuego.usa_toy("tierra"))
 	for el in ELEMENTOS:
 		_montar()
@@ -478,7 +478,7 @@ func _de_serie() -> void:
 	print("== de serie (ajuste = true, elementos = «fuego,agua»): fuego y agua con el toy; hielo y rayo como antes")
 	ProjectSettings.set_setting(VfxToyJuego.AJUSTE, true)
 	ProjectSettings.set_setting(VfxToyJuego.AJUSTE_ELEMENTOS, String(_defecto_proyecto[1]))
-	_ok("5 usa_toy: fuego, agua, rayo, magma, viento y tierra sí; hielo y naturaleza no", VfxToyJuego.usa_toy("fuego") and VfxToyJuego.usa_toy("agua") and not VfxToyJuego.usa_toy("hielo") and VfxToyJuego.usa_toy("rayo") and VfxToyJuego.usa_toy("tierra") and VfxToyJuego.usa_toy("viento") and VfxToyJuego.usa_toy("magma") and not VfxToyJuego.usa_toy("naturaleza"))
+	_ok("5 usa_toy: fuego, agua, hielo (19/11), rayo, magma, viento y tierra sí; naturaleza no", VfxToyJuego.usa_toy("fuego") and VfxToyJuego.usa_toy("agua") and VfxToyJuego.usa_toy("hielo") and VfxToyJuego.usa_toy("rayo") and VfxToyJuego.usa_toy("tierra") and VfxToyJuego.usa_toy("viento") and VfxToyJuego.usa_toy("magma") and not VfxToyJuego.usa_toy("naturaleza"))
 	ProjectSettings.set_setting(VfxToyJuego.AJUSTE_ELEMENTOS, " Fuego , rayo,,nada")
 	_ok("5 la lista tolera mayúsculas, espacios y vacíos (%s)" % str(VfxToyJuego.elementos_activos()), VfxToyJuego.usa_toy("fuego") and VfxToyJuego.usa_toy("rayo") and not VfxToyJuego.usa_toy("agua") and not VfxToyJuego.usa_toy("nada"))
 	ProjectSettings.set_setting(VfxToyJuego.AJUSTE_ELEMENTOS, "fuego,agua")

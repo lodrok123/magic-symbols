@@ -20,7 +20,6 @@ var heroe: MeshInstance3D = null
 var cam: Camera3D = null
 var _zoom: float = ZOOM_INICIAL
 var _giro: int = 0                                    ## cuartos de vuelta
-var _foco_extra_y: float = 0.0                        ## para el mirador: la cámara mira más alto
 var _foco_libre: Variant = null                       ## si no es null, la cámara mira ahí en vez de al héroe
 
 

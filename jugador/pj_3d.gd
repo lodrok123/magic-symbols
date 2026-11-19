@@ -894,12 +894,12 @@ const VEL_CAST: float = 1.6
 ## la variación y el brazo del libro quieto; `fraccion_clip()` dice por dónde va. Si el id no existe o su clip no está en el GLB, se lanza como siempre.
 ## El libro YA NO vuelve al cinto aquí (lo contrario de lo que pide el diseño): se queda en la mano mientras dura el lanzamiento y lo devuelve
 ## `soltar_lanzar()` al acabar.
-func lanzar(forma: String, elemento: String, punto: String = "") -> float:
+func lanzar(forma: String, elemento: String, punto: String = "", sostener: float = -1.0) -> float:
 	if _ap == null:
 		return 0.0
 	_quitar_chispas()
 	if punto != "" and CastPoints.existe(punto):
-		var d: float = _lanzar_punto(punto, elemento)
+		var d: float = _lanzar_punto(punto, elemento, sostener)
 		if d > 0.0:
 			return d
 	_cp = {}
@@ -944,8 +944,11 @@ var _libro_lado: String = "izquierda"          ## la mano en la que está ahora 
 
 ## Empieza el clip recortado de la variación `id`. Devuelve los segundos que dura (con la velocidad y el factor del elemento, más el `sostener`), o 0 si no
 ## se puede (variación sin clip en este GLB): entonces `lanzar` cae al camino de siempre.
-func _lanzar_punto(id: String, elemento: String) -> float:
+## `sostener` ≥ 0: s que el gesto se queda congelado en el instante en ESTE lanzamiento (un haz: lo que dura el hechizo); < 0, el de la tabla.
+func _lanzar_punto(id: String, elemento: String, sostener: float = -1.0) -> float:
 	var d: Dictionary = CastPoints.datos(id)
+	if sostener >= 0.0:
+		d["sostener"] = sostener
 	var rol: String = CastPoints.rol_clip(id)
 	var clip: String = _buscar_clip(rol)
 	if clip == "" and rol != String(d["clip"]):
@@ -2352,33 +2355,9 @@ func duracion(nombre: String) -> float:
 ## 6.13 FOTOGRAMA DE APUNTADO del arquero: segundo del clip (a velocidad 1) con los brazos extendidos y el arco en alto; el clip
 ## se bloquea ahí mientras apunta y se suelta desde ahí. En ArcheryShot los brazos están extendidos de ~2,8 s a ~3,7 s; se bloquea en 3,0 s.
 ## `momento_golpe` sigue siendo la fracción (de la duración con que se reproduce) en la que sale la flecha.
-const FOTOGRAMA_APUNTADO: Dictionary = {"goblin_archer_chibi": {"attack": 3.0}}
 const MOMENTO_GOLPE: Dictionary = {"goblin_archer_chibi": {"attack": 0.84}}
 
-## Segundo del clip `nombre` en que se bloquea al apuntar (0 si el personaje no tiene fotograma de bloqueo).
-func fotograma_apuntado(nombre: String) -> float:
-	return float((FOTOGRAMA_APUNTADO.get(id, {}) as Dictionary).get(nombre, 0.0))
 
-
-## Pone el clip `nombre` en su fotograma de apuntado y lo CONGELA (la animación se aguanta mientras se apunta). Devuelve false si no
-## tiene fotograma de bloqueo (entonces se usa `jugar(nombre, true)` como siempre).
-func apuntar_clip(nombre: String = "attack") -> bool:
-	var t: float = fotograma_apuntado(nombre)
-	var clip: String = _buscar_clip(nombre)
-	if _arbol == null or t <= 0.0 or clip == "":
-		return false
-	# El clip desde el fotograma de apuntado hasta el final, RETENIDO (velocidad 0): es el estado «atacar_apuntado». Al soltar sigue desde ahí.
-	if not _arbol.pedir(estado_de(nombre) + "_apuntado", clip, {"desde": t, "bucle": Animation.LOOP_NONE, "mezcla": 0.0, "retenido": true}):
-		return false
-	animacion_actual = nombre
-	return true
-
-
-## Suelta el apuntado: el clip sigue desde donde estaba (velocidad `vel`, 1 por defecto) hasta que sale la flecha y termina.
-func soltar_apuntado(vel: float = 1.0) -> void:
-	if _arbol != null:
-		_arbol.retenido = false
-		_arbol.vel_global = vel
 
 
 func momento_golpe(nombre: String) -> float:

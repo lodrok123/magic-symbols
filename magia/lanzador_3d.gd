@@ -35,8 +35,9 @@ extends Grimorio
 ## llama nunca a _al_impactar a mano: un agua dos veces sobre la misma casilla la helaría.
 
 ## --- Capas de física del Test 3 ---
-const CAPA_HECHIZO: int = 1 << 7     ## capa 8
 const CAPA_REACTIVO: int = 1 << 8    ## capa 9: lo que implementa on_spell_hit
+## 19/11: los hechizos de haz se lanzan con el gesto de la mano extendida, sostenido lo que dura el haz. A false, el gesto de siempre (el del proyectil).
+const GESTO_HAZ: bool = true
 const CAPA_BLOQUEO: int = 1 << 9     ## capa 10: zonas que paran proyectiles
 const CAPA_SOLIDO: int = Terreno3D.CAPA_SOLIDO     ## capa 11: colisión REAL de las piezas del nivel .tscn (6.10); el valor vive en Terreno3D (M1)
 
@@ -72,7 +73,6 @@ const COLOR_ROTULO_DISUELVE: Color = Color(0.8, 0.85, 0.95)
 ## --- Lo que sale ---
 const ALCANCE_FLECHA: float = 3.0           ## casillas (6.5: bola pequeña, alcance corto)
 const RADIO_BOLA: float = 0.25               ## metros (≈ media casilla de diámetro)
-const ALCANCE_HAZ: float = 8.0              ## casillas (rayo)
 const FUERZA_EMPUJE: float = 2600.0         ## la del 2D; Combate3D la reduce a su escala
 
 ## --- Tierra e hielo con duración (§0b) ---
@@ -113,7 +113,7 @@ const AVISO_CADUCA: float = 3.0             ## segundos finales en que parpadea
 const CAPACIDAD_PRIMER_LIBRO: Array = [4, 6]
 const PROGRESIONES: Dictionary = {
 	"todo": {"sellos": ["fuego", "agua", "viento", "tierra", "rayo", "hielo"],
-		"glifos": ["flecha", "barrera", "linea", "altura", "levitacion", "repeticion", "rebote", "pulso", "perforar", "retorno", "buscar", "retardo"],
+		"glifos": ["flecha", "barrera", "linea", "altura", "levitacion", "repeticion", "rebote", "pulso", "perforar", "retorno", "buscar", "retardo", "suelo"],
 		"paginas": 3, "glifos_por_pagina": 6, "libro": "bosque"},
 	# Primer nivel (Pablo, 8/10): UN sello y DOS glifos, una sola página, y como mucho dos glifos en ella.
 	"nivel1": {"sellos": ["fuego"], "glifos": ["flecha", "barrera"], "paginas": 1, "glifos_por_pagina": 2, "libro": "bosque", "capacidad": CAPACIDAD_PRIMER_LIBRO},
@@ -123,7 +123,7 @@ const PROGRESIONES: Dictionary = {
 	# Kit de pruebas (11.15, Pablo 12/10): el Bosque como laboratorio, con TODO el repertorio desde el principio, hielo incluido.
 	# Se elige con `mundo.kit = "pruebas"`; el Bosque3D no quita ni bloquea nada de esto (solo desbloquea, y es idempotente).
 	"pruebas": {"sellos": ["fuego", "agua", "viento", "tierra", "rayo", "hielo"],
-		"glifos": ["flecha", "barrera", "linea", "altura", "levitacion", "repeticion", "rebote", "pulso", "perforar", "retorno", "buscar", "retardo"],
+		"glifos": ["flecha", "barrera", "linea", "altura", "levitacion", "repeticion", "rebote", "pulso", "perforar", "retorno", "buscar", "retardo", "suelo"],
 		"paginas": 3, "glifos_por_pagina": 6, "libro": "bosque"},
 	# 27/10: la Gruta Batida (docs/GRUTA_BATIDA.md), el nivel de la BARRERA: tres elementos (fuego, tierra, hielo) y solo flecha, barrera y línea, para que cada puzle se lea como «¿dónde y de qué levanto la barrera?».
 	# El cofre del final da ᛉ permanencia (la barrera que dura).
@@ -132,12 +132,13 @@ const PROGRESIONES: Dictionary = {
 	# 28/10 (Pablo: «la barrera como concepto, sin más elementos que el fuego»): la Gruta Batida nueva. FUEGO + FLECHA y nada más: los tótems enseñan la barrera
 	# y el cofre del santuario da ᛜ (Puzle3D, `glifo=barrera`). La versión de tres elementos queda en docs/GRUTA_PERMANENCIA.md con el kit «barrera».
 	"gruta": {"sellos": ["fuego"], "glifos": ["flecha"], "paginas": 1, "glifos_por_pagina": 2, "libro": "bosque", "capacidad": CAPACIDAD_PRIMER_LIBRO},
+	# 18/11 (Pablo): kit de la demo: solo fuego, agua y tierra (sin viento, hielo, rayo ni reacciones). Es el repertorio COMPLETO de la demo (el techo), no el de arranque:
+	# cuando existan los cofres que dan cada sello y glifo, el arranque será fuego + flecha, como en «bosque».
+	"demo": {"sellos": ["fuego", "agua", "tierra"], "glifos": ["flecha", "linea", "barrera", "altura", "raido", "suelo"],
+		"paginas": 3, "glifos_por_pagina": 6, "libro": "bosque", "capacidad": CAPACIDAD_PRIMER_LIBRO},
 }
 const PROGRESION_FORZADA: String = ""          ## «nivel1», «todo»…: manda sobre el nombre del nivel (para probar)
 const PALETA_RUNAS: bool = true               ## paleta F1 de pruebas (rune_palette.gd), como en Blockout y TestJugabilidad
-const HUECOS_POR_PAGINA: int = 6
-const ELEMENTOS_TEST3: PackedStringArray = ["fuego", "agua", "viento", "tierra", "rayo", "hielo"]
-const SELLOS_TEST3: PackedStringArray = ["flecha", "barrera", "linea", "altura", "levitacion", "repeticion", "rebote", "pulso"]
 ## 8/10 (8.1c): amplificar, retardo, atracción y espejo quedan fuera del 3D (siguen en el 2D). R3 (17/10): `tamano` y `pilar` se retiran
 ## (cada eje tiene su glifo) y `levitacion` (ᛏ) vale SOLO como `altura`.
 
@@ -219,11 +220,11 @@ var _zonas_v2: Array = []               ## zonas V2 vivas (plasma, gas, campo): 
 var zonas_cruce: Array = []             ## 6/11 (B5): zonas SIN pulso que otro hechizo reconoce al cruzarlas (el charco del agua): ZonaV2. Aparte de `_zonas_v2` a propósito: el limo y las pruebas cuentan esas como zonas de pulso
 var _solideces_v2: Array = []           ## SolidezV2 vivas: lo que bloquea proyectiles y aguanta golpes (propiedad `solidez`)
 var _plataformas_tierra: Array[Dictionary] = []
+var _suelos: Array = []                 ## ᛒ suelo (18/11): lo plantado en una casilla que sigue vivo (GlifoSuelo: placa de hielo, capas de escarcha y de tierra, trampas). El más antiguo se retira al pasar de GlifoSuelo.MAX_VIVOS
 const ALTO_PLATAFORMA_TIERRA: float = 0.45
 var _columnas: Array = []               ## alturas temporales de columnas: {celda, niveles, resta, nodo}
 var _hielo: Dictionary = {}             ## Vector2i -> {agua}: casillas heladas por un hechizo, para soltar el vapor al acabar (SIN contador: C2, 3/11)
 var _t_hielo: float = 0.0
-var _huecos_usados: Array = [{}, {}, {}]    ## por página: clave del sector -> nombre del glifo
 var manifestaciones_vivas: int = 0
 
 signal lanzado(elemento: String, forma: String, manifestaciones: int)
@@ -906,6 +907,8 @@ static func notas_de(hechizo: Hechizo) -> Array[String]:
 	var salida: Array[String] = []
 	if hechizo != null and hechizo.en_punto:
 		salida.append("Nace donde apuntas")
+	if hechizo != null and hechizo.suelo:
+		salida.append("Se planta en el suelo")
 	if hechizo != null:
 		var largo: int = hechizo.longitud_plataforma_tierra()
 		if largo > 1:
@@ -1416,7 +1419,14 @@ func lanzar_ahora(datos: Dictionary, origen: Vector3, dir: Vector3, con_conjuro:
 		jugador.call("mirar_hacia", dir)
 		# T-CP1: el cast point sale del nombre DERIVADO de la receta (x_mano · alto · abajo → variación de CastPoints). Sin variación o sin clip: como siempre.
 		var punto: String = CastPoints.variacion_de(String(receta.geo().get("nombre", "")))
-		jugador.call("lanzar_clip", elemento, receta.forma_vfx(), punto)
+		# 19/11 (Pablo): un HAZ se lanza con la mano extendida (CastPoints.HAZ) y el gesto se SOSTIENE lo que dura el haz (Hechizo.HAZ_DURA_S + su permanencia).
+		var sostener_gesto: float = -1.0
+		var h_gesto: Hechizo = receta.hechizo(rune)
+		var punto_haz: String = CastPoints.variacion_de("haz")
+		if GESTO_HAZ and h_gesto != null and h_gesto.haz and punto_haz != "":
+			punto = punto_haz
+			sostener_gesto = Hechizo.HAZ_DURA_S + h_gesto.permanencia
+		jugador.call("lanzar_clip", elemento, receta.forma_vfx(), punto, sostener_gesto)
 		var activo: String = String(jugador.call("punto_cast")) if jugador.has_method("punto_cast") else ""
 		if activo != "":
 			_cast_point = {"id": activo, "origen": String(CastPoints.datos(activo)["origen"]), "dir": dir, "origen_mundo": origen, "elemento": elemento}
@@ -1902,6 +1912,9 @@ func lanzar_hechizo(hechizo: Hechizo, origen: Vector3, dir: Vector3) -> int:
 	if hechizo == null:
 		return 0                                            # p. ej. una runa cinemática sin permiso (Hechizo.construir devolvió null)
 	hechizo = _con_cambios(hechizo)
+	# ᛒ suelo (18/11, diseño de Pablo): no viaja ni nace en la mano: se PLANTA en la casilla apuntada y hace lo que toque según el elemento (GlifoSuelo). Los demás glifos de forma no la cambian.
+	if hechizo.suelo and hechizo.profundidad == 0:
+		return GlifoSuelo.plantar(self, hechizo, origen)
 	# C2: ráfaga en fila (ᛇ antes de ᚠ). HechizoVivo no admite retardo entre copias, así que se lanza AQUÍ la primera sola y las demás cada `intervalo_copias` s por la misma línea (cada una un
 	# HechizoVivo de una copia). Sin esto las copias saldrían todas a la vez y la fila sería un solo disparo más grueso.
 	if hechizo.rafaga and hechizo.proyectil and hechizo.copias > 1 and hechizo.profundidad == 0 and hechizo.intervalo_copias > 0.0 and is_inside_tree():
@@ -2565,6 +2578,8 @@ func rechazo_de_construccion(datos: Dictionary, origen: Vector3, dir: Vector3 = 
 	var h: Hechizo = hechizo_de(datos)      # H1: el de `_preparar_pagina` (copiado); sin él (laboratorios, pruebas), se construye
 	if h == null:
 		return ""
+	if h.suelo:
+		return GlifoSuelo.rechazo(self, h, origen)       # ᛒ suelo: lo que no se puede plantar ahí (agua con tierra, vacío, casilla ocupada…) se dice ANTES de cobrar
 	if h.glifos.has("posicion"):
 		var yo: Vector3 = (jugador as Node3D).position
 		var distancia: float = Vector2(origen.x - yo.x, origen.z - yo.z).length()
@@ -2636,8 +2651,9 @@ func celdas_plataforma_tierra(h: Hechizo, origen: Vector3, dir: Vector3) -> Arra
 	return celdas
 
 
-func levantar_plataforma_tierra(celdas: Array[Vector2i], vida: float) -> void:
-	var base: float = y_pies(celdas[0])
+## `base_y` (18/11, ᛒ suelo): la cota del suelo en que se apoya la losa; sin ella (INF), la de pies de la primera casilla. Sobre el FONDO de un foso hay que pasarla (el nivel del borde), o la losa quedaría a ras del fondo.
+func levantar_plataforma_tierra(celdas: Array[Vector2i], vida: float, base_y: float = INF) -> void:
+	var base: float = y_pies(celdas[0]) if base_y == INF else base_y
 	var centro: Vector3 = (centro_de(celdas[0], base) + centro_de(celdas.back(), base)) * 0.5
 	var ext: Vector2i = (celdas.back() - celdas[0]).abs() + Vector2i.ONE
 	var tamano := Vector3(float(ext.x) * Terreno3D.casilla, ALTO_PLATAFORMA_TIERRA, float(ext.y) * Terreno3D.casilla)
@@ -2690,7 +2706,7 @@ func _deshacer_plataforma_tierra(plataforma: Dictionary) -> void:
 	var pj: Jugador3D = jugador as Jugador3D
 	if is_instance_valid(pj):
 		var c: Vector2i = celda_de(pj.position)
-		if celdas.has(c) and (Terreno3D.es_vacio(c) or es_agua(c)):
+		if celdas.has(c) and (Terreno3D.es_vacio(c) or es_agua(c) or Terreno3D.es_hueco_cauce(c)):
 			pj.caer_de_plataforma(c, celdas[0])
 	var pieza: Area3D = plataforma["nodo"]
 	pieza.visible = true
@@ -2771,6 +2787,39 @@ func construir_tierra(c: Vector2i, dibujar: bool = true, opc: Dictionary = {}) -
 	return true
 
 
+## ᛒ suelo (18/11): apunta lo recién plantado (GlifoSuelo) y retira el más antiguo si ya hay `GlifoSuelo.MAX_VIVOS` (el suelo se mantiene legible: nunca una alfombra de trampas).
+func registrar_suelo(s: GlifoSuelo) -> void:
+	_suelos.append(s)
+	while _suelos.size() > GlifoSuelo.MAX_VIVOS:
+		var viejo: GlifoSuelo = _suelos.pop_front()
+		if is_instance_valid(viejo):
+			viejo.retirar("desalojado")
+
+
+## Lo plantado que sigue en pie (ni gastado, ni caducado, ni retirado).
+func suelos_vivos() -> Array:
+	var vivos: Array = []
+	for s in _suelos:
+		if is_instance_valid(s) and (s as GlifoSuelo).activo:
+			vivos.append(s)
+	return vivos
+
+
+func _avanzar_suelos(delta: float) -> void:
+	if _suelos.is_empty():
+		return
+	for s in _suelos.duplicate():
+		if is_instance_valid(s) and (s as GlifoSuelo).activo:
+			(s as GlifoSuelo).avanzar(delta)
+	_suelos = _suelos.filter(func(s: Variant) -> bool: return is_instance_valid(s) and (s as GlifoSuelo).activo)
+
+
+## ᛒ suelo, hielo sobre agua: el hielo de agua de esta casilla pasa a la lista de lo helado por un hechizo, para que al soltarse use el camino de siempre (`_derretir`: vapor, placa, agua que vuelve a bloquear).
+func registrar_hielo_agua(c: Vector2i) -> void:
+	if not _hielo.has(c):
+		_hielo[c] = {"agua": true}
+
+
 func _niveles_de_tierra() -> int:
 	var n: int = 0
 	for b in _bloques:
@@ -2836,6 +2885,7 @@ func _recalcular(c: Vector2i) -> void:
 
 func _avanzar_caducidades(delta: float) -> void:
 	_avanzar_plataformas_tierra(delta)
+	_avanzar_suelos(delta)
 	for b in _bloques.duplicate():
 		b["resta"] = float(b["resta"]) - delta
 		var aviso: bool = float(b["resta"]) < AVISO_CADUCA

@@ -9,7 +9,8 @@ extends SceneTree
 const MIN_MUESTRAS: int = 3                 ## muestras mínimas por gesto en la biblioteca (con menos el $P es frágil)
 ## H5 (30/10): los cuatro glifos nuevos se activan por datos y se prueban por contadores; sus muestras las graba Pablo con G después (PENDIENTES). Mientras tengan 0 muestras avisan en vez de fallar;
 ## en cuanto tengan alguna, entran en la regla normal (≥ 3 muestras y ≥ 90 % de acierto). ᚱ y ᛉ NO están aquí a propósito: siguen fallando hasta que Pablo grabe las suyas.
-const PENDIENTES_DE_GRABAR: PackedStringArray = ["perforar", "retorno", "buscar", "retardo"]
+## 18/11: ᛒ suelo entra igual (glifo nuevo del banco de pruebas; el jugador lo traza ya por trazos rectos, sin muestras: TrazosRectos.SELLOS["suelo"]).
+const PENDIENTES_DE_GRABAR: PackedStringArray = ["perforar", "retorno", "buscar", "retardo", "suelo"]
 const TASA_MIN: float = 0.9                 ## fracción mínima de variantes deformadas que se reconocen como SU gesto
 const VARIANTES_POR_MUESTRA: int = 20       ## cuántas deformaciones se prueban por cada muestra grabada
 const ESCALA_MIN: float = 0.9               ## escala por eje (aleatoria, independiente en X e Y: la uniforme la quita normalize)

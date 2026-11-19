@@ -9,7 +9,6 @@ extends Node3D
 ## Nodo suelto: se cuelga donde se quiere (`avisar(en, ...)`) y se borra solo. Su reloj es `_process` (el del juego).
 
 const COLOR_RAIZ: Color = Color(0.36, 0.2, 0.1)           ## marrón tierra
-const COLOR_RAIZ_PUNTA: Color = Color(0.5, 0.17, 0.1)     ## y un tinte rojizo en la mancha, que lo relaciona con el rojo del aviso
 const COLOR_MANCHA: Color = Color(0.32, 0.12, 0.07, 0.55)
 const N_RAICES: int = 9
 const ALTO_RAIZ: float = 1.1                              ## u de alto de una raíz a su altura completa

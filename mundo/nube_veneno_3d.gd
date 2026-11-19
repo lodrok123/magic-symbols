@@ -10,6 +10,11 @@ extends Area3D
 ## `sigue_s` s más (el `envenenar` que ya había). Se comprueba en horizontal (radio en CASILLAS) y con una altura parecida.
 ## EL VIENTO la empuja en su dirección durante `T_SOPLO` s y la dispersa: su vida baja a `dispersa_s` como mucho (`on_spell_hit` de viento y `push`). EL FUEGO la consume: su vida baja a `consume_s`;
 ## y cualquier casilla que PRENDA a ≤ `consume_casillas` de ella también (`EstadoZona3D._al_cambiar_suelo` → `quemar_en`). Es un reactivo de hechizos más (capa `Lanzador3D.CAPA_REACTIVO`).
+## 18/11: `consume_propio_s` (−1 = la tabla) cambia SOLO para esa nube lo que tarda en consumirse cuando arde; lo pone el `Respiradero3D` (0,5 s) y esa nube, al arder, avisa a su `respiradero` (`prender`). Las nubes
+## del chamán, la colmena y la pieza `nube_veneno` no lo tienen: siguen con `consume_s`.
+## 18/11 (seta venenosa): `crece_s` > 0 hace que la nube NAZCA PEQUEÑA y se EXTIENDA desde su centro hasta `radio` en esos segundos (curva de salida rápida: `fraccion_radio`). El crecimiento es de la LÓGICA, no solo del dibujo:
+## `radio_actual()` (casillas) es el que usan `dentro`, `cubre_celda`, `quemar_en` y la esfera de colisión (que se actualiza cada fotograma mientras crece). 0 = como siempre (nace a radio completo): las nubes del chamán,
+## la colmena y la pieza `nube_veneno` no lo tienen. `ondas` pide a su dibujo los anillos que viajan desde el centro hasta el borde (solo las de respiradero). Se guardan (`crece_s`, `ondas`, `edad`).
 ## SE REGISTRA en `vivas` al entrar en el árbol: `EstadoZona3D.estados_en` dice que una casilla bajo una nube tiene `veneno`, y `a_dic` / `desde_dic` la guardan y la recrean.
 
 signal disipada
@@ -34,6 +39,11 @@ var deriva: Vector3 = Vector3.ZERO
 var jugador: Jugador3D = null                  ## null = la del lanzador del nivel (`Botin.jugador_de`)
 var envenenadas: int = 0                       ## veces que envenenó a la jugadora (las pruebas)
 var envenenados: int = 0                       ## veces que envenenó a un enemigo
+var consume_propio_s: float = -1.0             ## 18/11: lo que tarda ESTA nube en consumirse cuando arde (`quemar`, `quemar_en`, fuego a la nube). -1 = el de la tabla (`consume_s` de `veneno`); solo lo pone el respiradero
+var respiradero: Node = null                   ## 18/11: la reja que la soltó (la avisa de que arde: el fuego a la nube prende el gas). null = las demás nubes (chamán, colmena, pieza `nube_veneno`)
+var crece_s: float = 0.0                       ## 18/11: s que tarda en extenderse desde el centro hasta `radio` (0 = nace completa). Lo pone el respiradero (clave `crece=`)
+var ondas: bool = false                        ## 18/11: su dibujo saca anillos que viajan del centro al borde (solo las nubes de respiradero)
+var _esfera: SphereShape3D = null
 var _soplo: float = 0.0
 var _vfx: NubeVenenoVfx = null                 ## su dibujo (presentacion/vfx/toy/nube_veneno_vfx.gd): translucido, no toca la logica
 var _edad: float = 0.0                          ## s desde que nacio (el dibujo brota desde el centro)
@@ -41,7 +51,8 @@ var _muerta: bool = false
 
 
 ## Crea una nube en `pos` (mundo) colgada de `en`. `p_vida` <= 0 = permanente. `p_radio` en casillas.
-static func crear(en: Node, pos: Vector3, p_vida: float = VIDA_DEFECTO, p_radio: float = RADIO_DEFECTO, p_jugador: Jugador3D = null) -> NubeVeneno3D:
+## `p_crece_s` > 0: nace pequeña y se extiende hasta `p_radio` en esos segundos; `p_ondas`: su dibujo lleva los anillos del origen (las dos las pone el respiradero; por defecto, la nube de siempre).
+static func crear(en: Node, pos: Vector3, p_vida: float = VIDA_DEFECTO, p_radio: float = RADIO_DEFECTO, p_jugador: Jugador3D = null, p_crece_s: float = 0.0, p_ondas: bool = false) -> NubeVeneno3D:
 	var n := NubeVeneno3D.new()
 	n.name = "NubeVeneno"
 	n.permanente = p_vida <= 0.0
@@ -49,6 +60,8 @@ static func crear(en: Node, pos: Vector3, p_vida: float = VIDA_DEFECTO, p_radio:
 	n.vida_max = n.vida
 	n.radio = maxf(p_radio, 0.05)
 	n.jugador = p_jugador
+	n.crece_s = maxf(p_crece_s, 0.0)
+	n.ondas = p_ondas
 	en.add_child(n)
 	if n.is_inside_tree():
 		n.global_position = pos
@@ -74,14 +87,15 @@ func _ready() -> void:
 	monitorable = true
 	var forma := CollisionShape3D.new()
 	var esfera := SphereShape3D.new()
-	esfera.radius = radio * Terreno3D.casilla
+	esfera.radius = maxf(radio_actual() * Terreno3D.casilla, 0.02)
+	_esfera = esfera
 	forma.shape = esfera
 	forma.position = Vector3(0.0, 0.8, 0.0)
 	add_child(forma)
 	_vfx = NubeVenenoVfx.new()
 	_vfx.name = "Dibujo"
 	add_child(_vfx)
-	_vfx.montar(radio * Terreno3D.casilla)
+	_vfx.montar(radio * Terreno3D.casilla, ondas)
 
 
 func _process(delta: float) -> void:
@@ -104,8 +118,10 @@ func avanzar(dt: float) -> void:
 			return
 	_envenenar_dentro()
 	_edad += dt
+	if _esfera != null and crece_s > 0.0:
+		_esfera.radius = maxf(radio_actual() * Terreno3D.casilla, 0.02)       # la colisión crece con la nube
 	if _vfx != null:
-		_vfx.avanzar(dt, _pos(), _edad, vida, vida_max, permanente, ardiendo)
+		_vfx.avanzar(dt, _pos(), _edad, vida, vida_max, permanente, ardiendo, fraccion_radio() if crece_s > 0.0 else -1.0)
 
 
 func _pos() -> Vector3:
@@ -141,10 +157,28 @@ func _envenenar_dentro() -> void:
 			envenenado_a.emit(g)
 
 
-## ¿Está el punto `p` (mundo) dentro de la nube? Horizontal a ≤ radio casillas y a una altura parecida.
+## Qué parte del radio final tiene ahora (0..1): 1 si no crece (`crece_s` = 0) o ya creció; si no, una curva de salida rápida (el gas sale a presión y se frena) sobre la edad.
+func fraccion_radio() -> float:
+	return NubeVeneno3D.fraccion_en(_edad, crece_s)
+
+
+## La misma curva sin nube: la fracción del radio a los `edad` s de nacer con un crecimiento de `crece` s (las pruebas y la sala la usan).
+static func fraccion_en(edad: float, crece: float) -> float:
+	if crece <= 0.0:
+		return 1.0
+	var t: float = clampf(edad / crece, 0.0, 1.0)
+	return 1.0 - (1.0 - t) * (1.0 - t)
+
+
+## El radio de AHORA, en casillas: el final (`radio`) salvo mientras la nube se extiende. Es el que vale para envenenar, cubrir casillas, arder y colisionar.
+func radio_actual() -> float:
+	return radio * fraccion_radio()
+
+
+## ¿Está el punto `p` (mundo) dentro de la nube? Horizontal a ≤ radio actual (en casillas) y a una altura parecida.
 func dentro(p: Vector3) -> bool:
 	var c: Vector3 = _pos()
-	return Vector2(p.x - c.x, p.z - c.z).length() <= radio * Terreno3D.casilla and absf(p.y - c.y) <= ALTO_VERTICAL
+	return Vector2(p.x - c.x, p.z - c.z).length() <= radio_actual() * Terreno3D.casilla and absf(p.y - c.y) <= ALTO_VERTICAL
 
 
 ## ¿Cubre la casilla `celda`? (el punto de la casilla más cercano al centro de la nube está dentro de su radio.)
@@ -155,7 +189,7 @@ func cubre_celda(celda: Vector2i) -> bool:
 	var z0: float = float(celda.y) * lado
 	var cx: float = clampf(c.x, x0, x0 + lado)
 	var cz: float = clampf(c.z, z0, z0 + lado)
-	return Vector2(c.x - cx, c.z - cz).length() <= radio * Terreno3D.casilla
+	return Vector2(c.x - cx, c.z - cz).length() <= radio_actual() * Terreno3D.casilla
 
 
 ## ¿Hay alguna nube viva sobre `celda`?
@@ -180,13 +214,15 @@ func soplar(dir: Vector3) -> void:
 	vida = minf(vida, disp)
 
 
-## El fuego la consume: su vida baja a `segundos` como mucho y arde (la presentación puede teñirla).
+## El fuego la consume: su vida baja a `segundos` como mucho (o a `consume_propio_s` si lo tiene) y arde (la presentación puede teñirla). Si la soltó un respiradero, le avisa de que el gas arde.
 func quemar(segundos: float) -> void:
 	if _muerta:
 		return
 	ardiendo = true
 	permanente = false
-	vida = minf(vida, segundos)
+	vida = minf(vida, segundos if consume_propio_s < 0.0 else consume_propio_s)
+	if respiradero != null and is_instance_valid(respiradero) and respiradero.has_method("prender"):
+		respiradero.call("prender")
 
 
 ## Las nubes a ≤ `casillas` casillas de `punto` arden y se consumen en `segundos`. Devuelve cuántas. Lo llama el suelo al prenderse (`EstadoZona3D`).
@@ -197,7 +233,7 @@ static func quemar_en(punto: Vector3, casillas: float, segundos: float) -> int:
 			continue
 		var nube: NubeVeneno3D = v
 		var c: Vector3 = nube._pos()
-		if Vector2(c.x - punto.x, c.z - punto.z).length() <= casillas * Terreno3D.casilla + nube.radio * Terreno3D.casilla:
+		if Vector2(c.x - punto.x, c.z - punto.z).length() <= casillas * Terreno3D.casilla + nube.radio_actual() * Terreno3D.casilla:
 			nube.quemar(segundos)
 			n += 1
 	return n
@@ -248,7 +284,8 @@ func retirar() -> void:
 
 func a_dic() -> Dictionary:
 	var p: Vector3 = _pos()
-	return {"pos": [p.x, p.y, p.z], "vida": vida, "vida_max": vida_max, "radio": radio, "permanente": permanente, "ardiendo": ardiendo}
+	return {"pos": [p.x, p.y, p.z], "vida": vida, "vida_max": vida_max, "radio": radio, "permanente": permanente, "ardiendo": ardiendo, "consume_propio_s": consume_propio_s,
+		"crece_s": crece_s, "ondas": ondas, "edad": _edad}
 
 
 static func desde_dic(en: Node, d: Dictionary) -> NubeVeneno3D:
@@ -256,8 +293,11 @@ static func desde_dic(en: Node, d: Dictionary) -> NubeVeneno3D:
 	if not (pv is Array) or (pv as Array).size() < 3:
 		return null                                  # una nube mal guardada no se recrea
 	var pos: Array = pv
-	var n: NubeVeneno3D = crear(en, Vector3(float(pos[0]), float(pos[1]), float(pos[2])), maxf(float(d.get("vida", VIDA_DEFECTO)), 0.1), float(d.get("radio", RADIO_DEFECTO)))
+	var n: NubeVeneno3D = crear(en, Vector3(float(pos[0]), float(pos[1]), float(pos[2])), maxf(float(d.get("vida", VIDA_DEFECTO)), 0.1), float(d.get("radio", RADIO_DEFECTO)), null, float(d.get("crece_s", 0.0)), bool(d.get("ondas", false)))
+	if n.crece_s > 0.0:
+		n._edad = float(d.get("edad", n.crece_s))              # la que se está extendiendo sigue por donde iba (las normales, como siempre: el dibujo brota de nuevo)
 	n.vida_max = float(d.get("vida_max", n.vida))
 	n.permanente = bool(d.get("permanente", false))
 	n.ardiendo = bool(d.get("ardiendo", false))
+	n.consume_propio_s = float(d.get("consume_propio_s", -1.0))
 	return n

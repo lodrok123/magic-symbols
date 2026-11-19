@@ -23,7 +23,7 @@ extends Node
 ##   F5 (0,0) DERRITE EL BLOQUE: cuenca A llena (2–3,2–3), compuerta de HIELO (4,3), cuenca B (5–6,2–3) y una antorcha (6,5). El fuego derrite el hielo,
 ##            el agua llega a B y a 0,2 el charco APAGA la antorcha. La puerta (1,6) se abre con la antorcha encendida Y el hielo derretido: el orden
 ##            importa. `!` derrite el hielo, `@` enciende la antorcha.
-## Teclas: 1–5 llevan al jugador a la entrada de esa sala (F1, F2, F3, F4, F5) · R recarga la escena · (las de la maqueta siguen valiendo).
+## Teclas: 1–5 llevan al jugador a la entrada de esa sala (F1, F2, F3, F4, F5) · 6–8 a las trampas de pared (F7–F9) · 9, 0 y «-» a los puzles nuevos (F10, F11, F12; ver NUEVOS) · R recarga la escena · (las de la maqueta siguen valiendo).
 ## F6–F10 (caldera, fogata con combustible, luz en cueva, viento y escudo) son de la segunda tanda: las salas (2,1) (3,1) (0,2)–(3,2) están libres.
 
 const NIVEL_MAPA: String = "PuzlesFuego"
@@ -66,6 +66,19 @@ const TRAMPAS: Array = [
 		"texto": "F9 · LA FLECHA DE FUEGO ENCIENDE\nCada 3 s el mascarón abre la boca y lanza una flecha de fuego hacia el sur:\nprende los setos y enciende el barril. Agua a un seto = cortafuegos · botón: lo apaga.",
 		"ids": {"a": "t_fl_fuego", "s1": "t_fl_s1", "s2": "t_fl_s2", "barril": "t_fl_barril", "boton": "t_fl_boton"}},
 ]
+## PUZLES NUEVOS (18/11/2026): tres salas más, aparte de las anteriores para no tocar `_puzles` ni `_trampas` (que cuentan las pruebas). Teclas 9, 0 y «-» (a la izquierda de la 1 en el teclado español: la tecla de al lado del 0).
+##   F10 (2,1) LLEVA LA PÓLVORA: un muro agrietado tapa un nicho con un cofre; el barril pequeño de (22,10) (la otra punta de la sala) se coge, se enciende con fuego, se lleva y se lanza o se deja junto al muro. Botón `!` enciende el barril donde está; placa `@` rompe el muro.
+const NUEVOS: Array = [
+	{"nombre": "F10 pólvora", "entrada": Vector2i(19, 13), "cartel": Vector2i(21, 10),
+		"texto": "F10 · LLEVA LA PÓLVORA\nCoge el barril pequeño del fondo (E), enciéndelo con fuego y LLÉVALO junto al muro agrietado del rincón:\nlánzalo contra él o déjalo en la casilla de al lado (la mecha dura 2,4 s). Donde nace no llega; el grande es un señuelo.\nBotón: enciende el pequeño donde está · placa: rompe el muro.",
+		"ids": {"muro": "f10_muro", "cofre": "f10_cofre", "barril": "f6_peq3", "grande": "f6_grande", "boton": "f10_boton", "placa": "f10_placa"}},
+	{"nombre": "F11 tótems", "entrada": Vector2i(20, 17), "cartel": Vector2i(21, 19),
+		"texto": "F11 · TÓTEMS QUE ESCUPEN FUEGO\nTres tótems de piedra lanzan una bola cada 3 s por su fila, uno tras otro.\nCruza los carriles (filas 18, 20 y 22) por turnos y descansa en las de en medio hasta la placa del fondo.\nAgua a un tótem: lo apaga 8 s · botón: apaga los tres 8 s.",
+		"ids": {"t1": "f11_t1", "t2": "f11_t2", "t3": "f11_t3", "placa": "f11_placa", "boton": "f11_boton"}},
+	{"nombre": "F12 setas de veneno", "entrada": Vector2i(28, 17), "cartel": Vector2i(30, 19),
+		"texto": "F12 · SETAS DE VENENO\nDos setas del pasillo se hinchan y exhalan una nube verde cada 10 s (9 s de vida): nace de la seta, se extiende\ncon ondas y el pasillo siempre está lleno. El fuego prende el gas (a la seta o a su nube): arde 6 s y no sale veneno;\ncruza hasta la placa del fondo. Agua a una seta: la atasca 8 s (y apaga su llama) · botón: atasca las dos 10 s.",
+		"ids": {"r1": "f12_r1", "r2": "f12_r2", "placa": "f12_placa", "boton": "f12_boton"}},
+]
 ## Papeles que toda sala tiene en su diccionario aunque no los use (null): el HUD y el escenario los leen sin mirar si existen.
 const PAPELES_SIEMPRE: Array = ["detector", "compuerta", "puerta", "contador"]
 
@@ -74,6 +87,7 @@ var _jug: Jugador3D = null
 var _puzle_nodo: Puzle3D = null              ## quien monta las piezas y las reglas desde el .txt
 var _puzles: Array = []                      ## [{nombre, entrada, detector, compuerta, puerta, …}] una por sala
 var _trampas: Array = []                     ## [{nombre, entrada, a, b, placa, …}] las tres salas de trampas de pared (TRAMPAS)
+var _nuevos: Array = []                      ## [{nombre, entrada, muro, cofre, …}] las salas de los puzles nuevos (NUEVOS)
 var _hud: Label = null
 var _t_hud: float = 0.0
 var _avisos: Array = []
@@ -146,6 +160,18 @@ func _montar_salas() -> void:
 			qt[papel] = nd_t
 		_trampas.append(qt)
 		_cartel(sala_t["cartel"] as Vector2i, String(sala_t["texto"]))
+	for s in NUEVOS:
+		var sala_n: Dictionary = s
+		var qn: Dictionary = {"nombre": sala_n["nombre"], "entrada": sala_n["entrada"]}
+		var ids_n: Dictionary = sala_n["ids"]
+		for papel in ids_n:
+			var nd_n: Node = _puzle_nodo.nodo(String(ids_n[papel]))
+			if nd_n == null:
+				_avisos.append("%s: no hay pieza «%s» (papel «%s») en %s.txt" % [sala_n["nombre"], ids_n[papel], papel, NIVEL_MAPA])
+				push_warning("LabPuzlesFuego3D: " + String(_avisos.back()))
+			qn[papel] = nd_n
+		_nuevos.append(qn)
+		_cartel(sala_n["cartel"] as Vector2i, String(sala_n["texto"]))
 
 
 ## Un cartel flotante en la casilla `c` con las instrucciones de la sala.
@@ -237,6 +263,11 @@ func _unhandled_input(ev: InputEvent) -> void:
 		var nt: int = int(teclas_t[k.keycode])
 		if nt < _trampas.size():
 			colocar_jugador(_trampas[nt]["entrada"] as Vector2i)
+	var teclas_n: Dictionary = {KEY_9: 0, KEY_0: 1, KEY_MINUS: 2}          # puzles nuevos: F10, F11, F12
+	if teclas_n.has(k.keycode):
+		var nn: int = int(teclas_n[k.keycode])
+		if nn < _nuevos.size():
+			colocar_jugador(_nuevos[nn]["entrada"] as Vector2i)
 
 
 ## Teletransporte del jugador a una casilla (lo mismo que escenario_base.colocar_jugador).
@@ -252,6 +283,14 @@ func colocar_jugador(c: Vector2i) -> void:
 func puzle(nombre: String) -> Dictionary:
 	for q in _puzles:
 		if String(q["nombre"]).split(" ")[0] == nombre:        # «F1», no «F1 antorchas»
+			return q
+	return {}
+
+
+## Una sala de los puzles nuevos por su nombre corto («F10», «F11», «F12»); {} si no existe.
+func nuevo(nombre: String) -> Dictionary:
+	for q in _nuevos:
+		if String(q["nombre"]).split(" ")[0] == nombre:
 			return q
 	return {}
 
@@ -339,6 +378,38 @@ func _refrescar_hud() -> void:
 			var bt: Barril3D = q["barril"]
 			lt += "  barril %s" % ("EXPLOTADO" if bt.explotado else ("encendido" if bt.encendido else "entero"))
 		t += lt + "\n"
+	t += "PUZLES NUEVOS · 9, 0, - ir a la sala\n"
+	for q in _nuevos:
+		t += "  %-18s%s\n" % [String(q["nombre"]), _estado_nuevo(q)]
 	for a in _avisos:
 		t += "  AVISO " + String(a) + "\n"
 	_hud.text = t
+
+
+## La línea de HUD de una sala de los puzles nuevos.
+func _estado_nuevo(q: Dictionary) -> String:
+	var s: String = ""
+	var muro: Variant = q.get("muro")
+	if muro != null and is_instance_valid(muro):
+		s += "  muro %s" % ("ROTO" if bool((muro as Object).get("roto_ya")) else "entero")
+	var cofre: Variant = q.get("cofre")
+	if cofre != null and is_instance_valid(cofre):
+		s += "  cofre %s" % ("abierto" if bool((cofre as Object).get("es_abierto")) else ("cerrado" if bool((cofre as Object).get("es_cerrado")) else "oculto"))
+	var barril: Variant = q.get("barril")
+	if barril != null and is_instance_valid(barril):
+		var b: Barril3D = barril
+		s += "  barril pequeño %s" % ("EXPLOTADO" if b.explotado else ("encendido %.1f s" % (b.mecha_restante() * b.t_mecha) if b.encendido else "entero"))
+	for papel in ["t1", "t2", "t3"]:
+		var tr: Variant = q.get(papel)
+		if tr != null and is_instance_valid(tr):
+			s += "  %s %s" % [papel.to_upper(), _estado_trampa(tr)]
+	for papel in ["r1", "r2"]:
+		var rp: Variant = q.get(papel)
+		if rp != null and is_instance_valid(rp):
+			var r: Respiradero3D = rp
+			s += "  %s %s" % [papel.to_upper(), "ATASCADO" if not r.activo else ("AVISA" if r.en_aviso else "exhala en %.0f s" % (r.cada - r._t))]
+	s += "  nubes %d" % NubeVeneno3D.vivas.size() if q.has("r1") else ""
+	var pl: Variant = q.get("placa")
+	if pl != null and is_instance_valid(pl):
+		s += "  placa %s" % ("PISADA" if bool((pl as Object).get("activo")) else "libre")
+	return s

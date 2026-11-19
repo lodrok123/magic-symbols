@@ -11,7 +11,6 @@ extends RefCounted
 
 ## --- Paleta ---
 const FONDO_PANEL: Color = Color(0.05, 0.04, 0.08, 0.90)    ## oscuro translúcido: se lee sobre hielo, hierba, arena y cueva (prueba: contraste ≥ 7 en el peor caso)
-const FONDO_PANEL_SUAVE: Color = Color(0.05, 0.04, 0.08, 0.78)
 const BORDE_CALIDO: Color = Color(0.87, 0.71, 0.42)          ## el dorado cálido de los marcos
 const BORDE_CALIDO_OSCURO: Color = Color(0.45, 0.32, 0.16)   ## el reborde de dentro, para dar relieve al marco
 const TEXTO: Color = Color(1.0, 0.98, 0.94)                  ## texto claro, sin teñir de rosa ni de amarillo

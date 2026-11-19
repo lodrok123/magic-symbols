@@ -195,13 +195,14 @@ func _caso(estado: String, nombre: String) -> void:
 			_ok("%s: dura `persiste` (%.0f s) y luego no queda nada" % [et, rune.persiste], Terreno3D.alturas.is_empty())
 		"liquido":
 			var sim: AguaSim3D = Terreno3D.agua_sim
-			var esperado: float = Sigils.volumen_agua_v2(g) * pow(Terreno3D.casilla, 3.0)
+			var esperado: float = Sigils.volumen_agua_v2(g) * pow(Terreno3D.casilla, 3.0) * HechizoVivo.FACTOR_AGUA_HECHIZO       # 16/11: un hechizo echa la mitad (FACTOR_AGUA_HECHIZO)
+			var absorbido0: float = sim.absorbido_hz
 			for _i in range(int((HechizoVivo.T_LLENADO_V2 + 0.1) / DT)):
 				sim.paso(DT)
-			var got: float = sim.volumen_total()
+			var got: float = sim.volumen_total() + (sim.absorbido_hz - absorbido0)       # 16/11: el agua que la película de hechizo cede al suelo (HZ_PELICULA) también es agua echada
 			# A 1,1 s los manantiales ya han echado su parte y se han apagado solos (limitar_fuente). Lo que falta hasta el 100 % no es agua sin echar: es la
 			# lámina fina que la propia simulación absorbe mientras el agua se esparce (ABSORBE), de ahí el margen del 10 % por abajo.
-			_ok("%s: agua añadida %.2f u³ ≈ agua del hechizo (volumen_agua_v2) %.2f u³ (entre el 75 y el 101 %%: con volúmenes pequeños la lámina que absorbe la simulación pesa más)" % [et, got, esperado], got >= 0.75 * esperado and got <= 1.01 * esperado)
+			_ok("%s: agua añadida %.2f u³ ≈ agua del hechizo (volumen_agua_v2 × FACTOR_AGUA_HECHIZO) %.2f u³ (agua en la sim + absorbida por el suelo; entre el 95 y el 101 %%: se conserva)" % [et, got, esperado], got >= 0.95 * esperado and got <= 1.01 * esperado)       # 16/11: con lo absorbido contado, el agua se CONSERVA (antes el 75 % dejaba sitio a lo que absorbía el suelo sin contarlo)
 			var apagadas: bool = true
 			for c in celdas_esperadas:
 				apagadas = apagadas and sim.caudal_en(c as Vector2i) == 0.0 and sim.volumen_restante(c as Vector2i) == INF

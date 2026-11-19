@@ -436,6 +436,22 @@ func al_impactar_lanzado(punto: Vector3) -> void:
 	_explotar()
 
 
+## 18/11/2026 (puzle F10 «Lleva la pólvora»), regla de lo `explosionable` (muro agrietado...): el barril GRANDE mide al CENTRO con su radio (2,6); el PEQUEÑO (1,6) mide al punto más cercano de la CASILLA del
+## explosionable (`distancia_a_casilla`, plano XZ, caja de lado `Terreno3D.casilla`). Así rompe un muro desde cualquier punto de la casilla de al lado (1,15 u de la cara desde su centro) y ya no depende de que choque
+## justo contra la pared (lanzado, explota donde estaba un fotograma antes: entre 1,15 y 1,75 u de la cara según los fps), ni de los fotogramas por segundo; en diagonal (1,63 u desde el centro) no llega.
+## Sustituye al parche de 0,45 u (`EXTRA_SOLIDO_PEQUENO`) que había: medía al centro y solo funcionaba contra la pared.
+func _alcanza_a(n: Node3D, punto: Vector3) -> bool:
+	if pequeno:
+		return distancia_a_casilla(punto, n.global_position) <= radio
+	return n.global_position.distance_to(punto) <= radio
+
+
+## Distancia en el plano XZ del `punto` al punto más cercano de la CASILLA (caja de lado `Terreno3D.casilla`) centrada en `centro`; 0 si está dentro. Es como mide el barril PEQUEÑO a lo `explosionable`.
+static func distancia_a_casilla(punto: Vector3, centro: Vector3) -> float:
+	var medio: float = Terreno3D.casilla * 0.5
+	return Vector2(maxf(absf(punto.x - centro.x) - medio, 0.0), maxf(absf(punto.z - centro.z) - medio, 0.0)).length()
+
+
 ## Dónde se centra la explosión: el barril, y si el pequeño va por el aire o en las manos, el suelo bajo él (el decal y el daño se miden desde el suelo).
 func _punto_explosion() -> Vector3:
 	var p: Vector3 = global_position
@@ -457,7 +473,7 @@ func _explotar() -> void:
 	_sin_celda = true
 	# Lo que está al alcance y sabe recibir una explosión.
 	for n in get_tree().get_nodes_in_group("explosionable"):
-		if is_instance_valid(n) and n != self and n is Node3D and (n as Node3D).global_position.distance_to(punto) <= radio and n.has_method("recibir_explosion"):
+		if is_instance_valid(n) and n != self and n is Node3D and _alcanza_a(n as Node3D, punto) and n.has_method("recibir_explosion"):
 			n.call("recibir_explosion", punto)
 	# Cadena: los otros barriles al alcance se encienden (cada uno con su mecha y su aviso).
 	for n in get_tree().get_nodes_in_group(GRUPO_BARRILES):

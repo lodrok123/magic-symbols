@@ -80,6 +80,29 @@ static func perfil_muro(alto: float, s_alto: float, n: int = 14) -> Array:
 	return r
 
 
+## Perfil de UNA LENGUA (pilar, 17/11): el radio sale de `raiz` en el suelo, llega a 1 a la altura `panza_v` (0-1) y se recoge hasta `punta` arriba. Alturas repartidas por igual.
+static func perfil_lengua(alto: float, raiz: float, panza_v: float, punta: float, n: int = 18) -> Array:
+	var r: Array = []
+	for i in n:
+		var v: float = float(i) / float(n - 1)
+		var esc: float = lerpf(raiz, 1.0, smoothstep(0.0, panza_v, v)) if v < panza_v else lerpf(1.0, punta, smoothstep(panza_v, 1.0, v))
+		r.append(Vector2(esc, v * alto))
+	return r
+
+
+## PILAR de una lengua: tres láminas pegadas al eje (para las cámaras bajas; con la del juego no se ven), en vez del anillo de `laminas_pilar`, que se leía como varias lenguas.
+static func laminas_lengua(rx: float, rz: float, alto: float) -> Array:
+	var rng: RandomNumberGenerator = RandomNumberGenerator.new()
+	rng.seed = 20261117
+	var rm: float = (rx + rz) * 0.5
+	var r: Array = []
+	var fase: float = rng.randf() * TAU
+	for i in 3:
+		var ang: float = fase + TAU * float(i) / 3.0
+		r.append(_lamina(Vector3(cos(ang) * rx * 0.12, 0.0, sin(ang) * rz * 0.12), (1.5 * rm + 0.2) * rng.randf_range(0.9, 1.05), alto * rng.randf_range(0.85, 1.0), rng, 0.2 + 0.4 * float(i), 0.85))
+	return r
+
+
 ## Perfil del cilindro del pilar (ahusado: del radio de la base al de arriba, con el mismo suavizado que `_anillos` de montar_efectos_lelu.gd): `ratio_alto` = r_alto / r_base.
 static func perfil_cilindro(ratio_alto: float, alto: float, n: int = 14) -> Array:
 	var claves: Array = [Vector2(0.0, 1.0), Vector2(0.6, lerpf(1.0, ratio_alto, 0.6)), Vector2(1.0, ratio_alto)]
