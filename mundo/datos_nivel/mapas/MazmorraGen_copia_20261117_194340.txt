@@ -1,0 +1,58 @@
+########################################
+########################################
+########################################
+##########...###########################
+#########....###########################
+########....T###########################
+#######...#####W########################
+######...#####...######..###############
+######...####......###~~...#############
+######...###~~.........~.....##..#######
+######....##~...........~~........######
+#######....~...W..........W......#######
+#######...T..........W..T.TT....########
+#######.........................########
+#####............................#######
+####......A..........A............######
+####................WW....###.....T#####
+###.......................###~~......###
+###..A....W##.............####~.......##
+####........~~~........~..####~~......##
+####.........~~...........T####~.T...###
+#####.....T.~~.............#####W..W####
+#####........~.............#############
+#####......................#############
+#####........S......##~~#.##############
+#####..#####......####..################
+#####~~######....#####..################
+#####..###############.~################
+#####..###############.~################
+##....###############~.~~~##############
+#.....###############~.~~.~.~~##########
+#.....################......~~##########
+##...###################.....###########
+########################################
+; ======================================================================================================================
+;  GENERADO por herramientas/generador_mapas. 2026-11-17. Nivel «MazmorraGen», 40 × 34, algoritmo «cueva», semilla 934119.
+;  6 salas, 0 puertas, 12 enemigos, 1 cofres, 4 jarrones. Escena: escenas/PruebaMazmorraGen.tscn. Mientras esta cabecera siga aquí, la herramienta puede volver a escribir
+;  este archivo (guarda copia si lo has retocado). Para adoptarlo como nivel hecho a mano, borra la palabra GENERADO de la línea de arriba.
+; ======================================================================================================================
+; # pared · . suelo · ~ agua honda · S inicio · W goblin guerrero · A goblin arquero · T brasero
+; generador {"agua":8,"algoritmo":"cueva","alto":34,"ancho":40,"ancho_pasillo":2,"arqueros":30,"b_braseros":true,"b_placa":false,"b_puente":true,"barreras":2,"braseros":1.0,"bucles":30,"callejones":100,"charcas":20,"densidad_salas":1.0,"enemigos":1.5,"estilo":"bosque","forma":"rectangulo","jarrones":1.0,"lado_max":8,"lado_min":4,"llave":true,"luz":"bosque","metodo":"fractal","n_salas":9,"nombre":"MazmorraGen","octavas":4,"pasillos":30,"puertas":50,"recto":60,"region_min":12,"relleno":56,"reparto":"dispersas","rotulo":true,"sala_max":4,"sala_min":2,"salas_cerradas":40,"salida_a":"","semilla":934119,"silueta":60,"simetria":true,"suavizados":2,"tamano_sala":10.0,"tesoro":true}
+;
+; zona 1,1..38,32 bosque mezcla=0.8 rotulo=MazmorraGen
+;
+; pieza inicio entrada 13 24
+; pieza puente_1 puente 22 24 celdas=22,24+23,24
+; pieza luces_1 contador 32 16 de=33,20+34,16
+; pieza puente_2 puente 5 26 celdas=5,26+6,26
+; pieza luces_2 contador 25 8 de=24,12+26,12
+; pieza tesoro cofre 35 19 abierto=mazmorragen.tesoro.cofre da=oro:60+pocion:1
+; pieza jarron_1 jarron 36 17 botin=oro
+; pieza jarron_2 jarron 16 7 botin=oro
+; pieza jarron_3 jarron 6 14 botin=oro
+; pieza jarron_4 jarron 26 8 botin=pocion
+; puzle resuelve_puente_1 cuando=luces_1.todos hace=flag.poner(mazmorragen.puente_1.abierta)
+; puzle abre_puente_1 cuando=flag.mazmorragen.puente_1.abierta hace=puente_1.tender
+; puzle resuelve_puente_2 cuando=luces_2.todos hace=flag.poner(mazmorragen.puente_2.abierta)
+; puzle abre_puente_2 cuando=flag.mazmorragen.puente_2.abierta hace=puente_2.tender

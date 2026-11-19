@@ -132,6 +132,17 @@ pestana_siguiente={
 ]
 }
 
+[magic_symbols]
+
+vfx_procedural=true
+vfx_procedural_elementos="fuego,agua,rayo,magma,viento,tierra"
+vfx_haz_gas=true
+vfx_haz_gas_agua=true
+vfx_haz_gas_viento=true
+vfx_haz_gas_rayo=true
+vfx_rayo_revisado=true
+vfx_viento_revisado=true
+
 [physics]
 
 3d/physics_engine="Jolt Physics"
@@ -146,14 +157,3 @@ usar_erosion={
 "type": "bool",
 "value": true
 }
-
-[magic_symbols]
-
-vfx_procedural=true
-vfx_procedural_elementos="fuego,agua,rayo,magma,viento,tierra"
-vfx_haz_gas=true
-vfx_haz_gas_agua=true
-vfx_haz_gas_viento=true
-vfx_haz_gas_rayo=true
-vfx_rayo_revisado=true
-vfx_viento_revisado=true
