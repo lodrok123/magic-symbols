@@ -31,6 +31,11 @@ extends Node3D
 ## (Juego) debe apagarlo mientras `esta_oculto()` y encenderlo con la señal `aparecido` (o mirar `esta_oculto()` antes de ofrecer «abrir»).
 ## Señal nueva: `aparecido` (ya es cerrado y se puede abrir).
 
+var gesto_externo: bool = false
+var calidad: String = "comun"
+var estrellas: CofreEstrellas3D
+var _tweens_apertura: Array[Tween] = []
+
 signal abriendo
 signal abierto
 signal aparecido
@@ -125,6 +130,12 @@ func preparar(raiz: Node) -> bool:
 	_q_reposo = _tapa.quaternion
 	_giro_abrir = _giro_del_clip()
 	add_to_group("cofre_3d")
+	var id: String = str(raiz.get_meta("id", raiz.name)).to_lower()
+	calidad = "legendario" if "legendario" in id else ("epico" if "epico" in id else "comun")
+	estrellas = CofreEstrellas3D.new()
+	estrellas.name = "Estrellas"
+	add_child(estrellas)
+	estrellas.preparar(calidad, _caja())
 	return true
 
 
@@ -170,23 +181,23 @@ func aparecer() -> bool:
 		dur = T_APARECE_DISOLVER
 	elif _asa != null:
 		_asa.scale = _escala0 * ESCALA_APARECE
-		var ts: Tween = _asa.create_tween()
+		var ts: Tween = _tween_apertura(_asa)
 		ts.tween_property(_asa, "scale", _escala0, T_APARECE).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 	# 2) Destello dorado que sube y se apaga (misma luz y color que la anticipación, para que se lea como «lo mismo que se abre»).
 	var luz := OmniLight3D.new()
-	luz.light_color = COLOR_LUZ
+	luz.light_color = Objetos.CALIDADES.get(calidad, Objetos.CALIDADES["comun"])["color"]
 	luz.light_energy = 0.0
 	luz.omni_range = maxf(caja.size.x, caja.size.z) * 3.5
 	luz.shadow_enabled = false
 	luz.position = centro
 	add_child(luz)
-	var tl: Tween = luz.create_tween()
+	var tl: Tween = _tween_apertura(luz)
 	tl.tween_property(luz, "light_energy", 2.4, dur * 0.25)
 	tl.tween_property(luz, "light_energy", 0.0, dur * 1.2).set_trans(Tween.TRANS_SINE)
 	tl.tween_callback(luz.queue_free)
 	# 3) Motas doradas que salen hacia fuera (las de la anticipación entran; estas salen: el gesto es el contrario).
-	VfxKit3D.oro_motas(self, centro, 36, 0.8, 0.08, 1.8, false, false, maxf(caja.size.x, caja.size.z) * 0.4, Vector3.UP, 70.0)
-	var fin: Tween = create_tween()
+	_motas_color(self, centro, 36, 0.8, 0.08, 1.8, false, false, maxf(caja.size.x, caja.size.z) * 0.4, Vector3.UP, 70.0)
+	var fin: Tween = _tween_apertura(self)
 	fin.tween_interval(dur)
 	fin.tween_callback(_terminar_aparicion)
 	return true
@@ -268,9 +279,9 @@ func abrir() -> bool:
 	if _estado != Estado.CERRADO or _tapa == null or not is_inside_tree():
 		return false
 	_estado = Estado.ANTICIPANDO
-	var espera: float = _agachar_jugadora()
+	var espera: float = 0.0 if gesto_externo else _agachar_jugadora()
 	if espera > 0.0:
-		var t0: Tween = create_tween()
+		var t0: Tween = _tween_apertura(self)
 		t0.tween_interval(espera)
 		t0.tween_callback(_empezar_anticipacion)
 	else:
@@ -301,33 +312,36 @@ func _empezar_anticipacion() -> void:
 		return
 	Sfx.play(self, "creak")                  # gamefeel U5: la bisagra cruje al anticipar
 	_anticipacion()
-	var tw: Tween = create_tween()
+	var tw: Tween = _tween_apertura(self)
 	tw.tween_interval(T_ANTICIPA)
 	tw.tween_callback(_girar_tapa)
 
 
 func _anticipacion() -> void:
+	if estrellas != null:
+		var te: Tween = _tween_apertura(self)
+		te.tween_method(func(v: float) -> void: estrellas.iluminar(v), 0.0, 1.0, T_ANTICIPA)
 	var caja: AABB = _caja()
 	var centro_alto: Vector3 = caja.position + Vector3(caja.size.x * 0.5, caja.size.y, caja.size.z * 0.5)
 	# 1) Luz dorada que sube.
 	_luz = OmniLight3D.new()
-	_luz.light_color = COLOR_LUZ
+	_luz.light_color = Objetos.CALIDADES.get(calidad, Objetos.CALIDADES["comun"])["color"]
 	_luz.light_energy = 0.0
 	_luz.omni_range = maxf(caja.size.x, caja.size.z) * 3.5
 	_luz.shadow_enabled = false
 	_luz.position = centro_alto
 	add_child(_luz)
-	var tl: Tween = _luz.create_tween()
+	var tl: Tween = _tween_apertura(_luz)
 	tl.tween_property(_luz, "light_energy", 1.2, T_ANTICIPA).set_trans(Tween.TRANS_QUAD)
 	# 2) Motas que se reúnen desde fuera hacia la juntura (acaban justo cuando se abre).
 	var radio: float = maxf(caja.size.x, caja.size.z) * 0.85
-	VfxKit3D.oro_motas(self, centro_alto - Vector3(0.0, caja.size.y * 0.1, 0.0), 44, T_ANTICIPA * 1.1, 0.1, radio / (T_ANTICIPA * 0.8), true, false, radio)
+	_motas_color(self, centro_alto - Vector3(0.0, caja.size.y * 0.1, 0.0), 44, T_ANTICIPA * 1.1, 0.1, radio / (T_ANTICIPA * 0.8), true, false, radio)
 	# 3) El cofre se encoge (squash) y recupera, y la tapa tiembla hacia arriba dos veces (nunca hacia abajo: se metería en el cuerpo).
 	if _asa != null:
-		var ts: Tween = _asa.create_tween()
+		var ts: Tween = _tween_apertura(_asa)
 		ts.tween_property(_asa, "scale", _escala0 * SQUASH, T_ANTICIPA * 0.7).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
 		ts.tween_property(_asa, "scale", _escala0, T_ANTICIPA * 0.3).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
-	var tt: Tween = _tapa.create_tween()
+	var tt: Tween = _tween_apertura(_tapa)
 	var eje: Vector3 = _giro_abrir.get_axis()
 	var ang: float = _giro_abrir.get_angle() * TEMBLOR
 	for par in [[0.0, 1.0], [1.0, 0.0], [0.0, 0.6], [0.6, 0.0]]:
@@ -339,6 +353,8 @@ func _inclinar_tapa(f: float, eje: Vector3, ang: float) -> void:
 
 
 func _girar_tapa() -> void:
+	if _estado != Estado.ANTICIPANDO:
+		return
 	_estado = Estado.ABRIENDO
 	_tapa.quaternion = _q_reposo
 	abriendo.emit()
@@ -348,37 +364,44 @@ func _girar_tapa() -> void:
 		dura = _anim.get_animation(CLIP_ABRIR).length
 		_anim.play(CLIP_ABRIR)
 	else:
-		var tw: Tween = _tapa.create_tween()
+		var tw: Tween = _tween_apertura(_tapa)
 		tw.tween_method(func(f: float) -> void: _tapa.quaternion = _giro_abrir.slerp(Quaternion.IDENTITY, 1.0 - f) * _q_reposo, 0.0, 1.0, dura)\
 				.set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 	# Ráfaga dorada por el interior, que se alarga mientras gira la tapa, y la cubierta que tapa el hueco.
 	var caja: AABB = _caja()
 	var borde: Vector3 = caja.position + Vector3(caja.size.x * 0.5, caja.size.y * 0.92, caja.size.z * 0.5)
-	VfxKit3D.oro_motas(self, borde, 44, 0.95, 0.085, 2.4, false, false, minf(caja.size.x, caja.size.z) * 0.3, Vector3.UP, 32.0)
-	var continuo: GPUParticles3D = VfxKit3D.oro_motas(self, borde, 36, 0.7, 0.07, 1.6, false, true, minf(caja.size.x, caja.size.z) * 0.32, Vector3.UP, 28.0)
+	_motas_color(self, borde, 44, 0.95, 0.085, 2.4, false, false, minf(caja.size.x, caja.size.z) * 0.3, Vector3.UP, 32.0)
+	var continuo: GPUParticles3D = _motas_color(self, borde, 36, 0.7, 0.07, 1.6, false, true, minf(caja.size.x, caja.size.z) * 0.32, Vector3.UP, 28.0)
 	get_tree().create_timer(dura * 0.9, false).timeout.connect(func() -> void:
 		if is_instance_valid(continuo):
 			continuo.emitting = false
 			get_tree().create_timer(1.0, false).timeout.connect(continuo.queue_free))
-	VfxKit3D.oro_cubierta(self, caja.position + Vector3(caja.size.x * 0.5, caja.size.y * 0.9, caja.size.z * 0.5),
+	_cubierta_color(self, caja.position + Vector3(caja.size.x * 0.5, caja.size.y * 0.9, caja.size.z * 0.5),
 			caja.size.x * 1.15, caja.size.z * 1.15, dura + MARGEN_VFX)
 	if _luz != null:
-		var tl: Tween = _luz.create_tween()
+		var tl: Tween = _tween_apertura(_luz)
 		tl.tween_property(_luz, "light_energy", 3.0, 0.08)
 		tl.tween_property(_luz, "light_energy", 0.0, dura + MARGEN_VFX + 0.2).set_trans(Tween.TRANS_SINE)
 		tl.tween_callback(_luz.queue_free)
-	var fin: Tween = create_tween()
+	var fin: Tween = _tween_apertura(self)
 	fin.tween_interval(dura)
 	fin.tween_callback(_terminar)
 
 
 func _terminar() -> void:
+	if _estado != Estado.ABRIENDO:
+		return
+	if estrellas != null:
+		estrellas.iluminar(0.0, true)
 	_estado = Estado.ABIERTO
 	abierto.emit()
 
 
 ## Pone el cofre ya abierto sin animación ni efectos (cargar una partida). No emite `abierto`: el botín ya se soltó.
 func abrir_ya() -> void:
+	_parar_animaciones()
+	if estrellas != null:
+		estrellas.iluminar(0.0, true)
 	if _tapa == null:
 		return
 	_parar_disolver()                            # cofre disolver
@@ -395,6 +418,9 @@ func abrir_ya() -> void:
 
 ## Lo deja cerrado sin animación (reiniciar el nivel).
 func cerrar() -> void:
+	_parar_animaciones()
+	if estrellas != null:
+		estrellas.iluminar(0.0)
 	if _tapa == null:
 		return
 	_parar_disolver()                            # cofre disolver
@@ -420,19 +446,21 @@ func _empezar_disolver() -> bool:
 		return false
 	if _mats_disolver.is_empty():
 		Ocluso3D.preparar()                      # idempotente
-		_mats_disolver = Ocluso3D.convertir_nodo(_raiz)
+		_mats_disolver = Ocluso3D.convertir_nodo(_asa if _asa != null else _raiz)
 		for m in _mats_disolver:
 			Ocluso3D.configurar_disolver(m, Ocluso3D.DISOLVER_COLOR, CELDA_APARECE)
 	if _mats_disolver.is_empty():
 		return false
 	_poner_disolver(1.0)
-	_tw_disolver = create_tween()
+	_tw_disolver = _tween_apertura(self)
 	_tw_disolver.tween_method(_poner_disolver, 1.0, 0.0, T_APARECE_DISOLVER)
 	return true
 
 
 func _poner_disolver(v: float) -> void:
 	disolver_v = v
+	if estrellas != null:
+		estrellas.visible = v < 0.3
 	for m in _mats_disolver:
 		Ocluso3D.poner_disolver(m, v)
 
@@ -443,3 +471,36 @@ func _parar_disolver() -> void:
 		_tw_disolver.kill()
 	_tw_disolver = null
 	_poner_disolver(0.0)
+
+
+func _tween_apertura(nodo: Node) -> Tween:
+	var tw: Tween = nodo.create_tween()
+	_tweens_apertura.append(tw)
+	return tw
+
+func _parar_animaciones() -> void:
+	for tw in _tweens_apertura:
+		if tw != null and tw.is_valid():
+			tw.kill()
+	_tweens_apertura.clear()
+	for hijo in get_children():
+		if hijo is GPUParticles3D or hijo is Light3D or hijo.name == "CubiertaApertura":
+			(hijo as Node3D).visible = false
+			hijo.queue_free()
+	if is_instance_valid(_luz):
+		_luz.queue_free()
+	_luz = null
+
+func _motas_color(padre: Node3D, pos: Vector3, n: int, vida: float, tam: float, vel: float, dentro: bool = false, continuo: bool = false, radio: float = 0.1, direccion: Vector3 = Vector3.UP, abanico: float = 40.0) -> GPUParticles3D:
+	if calidad == "comun":
+		return VfxKit3D.oro_motas(padre, pos, n, vida, tam, vel, dentro, continuo, radio, direccion, abanico)
+	return VfxCalidad3D.motas(padre, padre.to_global(pos), Objetos.CALIDADES[calidad]["color"], n, vida, tam, vel, radio, continuo, direccion, abanico)
+
+func _cubierta_color(padre: Node3D, centro: Vector3, ancho: float, fondo: float, dura: float) -> void:
+	var cubierta: Node3D = VfxKit3D.oro_cubierta(padre, centro, ancho, fondo, dura)
+	cubierta.name = "CubiertaApertura"
+	for hijo in cubierta.get_children():
+		if hijo is MeshInstance3D:
+			var mat := hijo.material_override as StandardMaterial3D
+			var color: Color = Objetos.CALIDADES[calidad]["color"]
+			mat.albedo_color = Color(color * 1.1, mat.albedo_color.a)

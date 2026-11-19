@@ -173,6 +173,8 @@ func _cofre() -> void:
 	var seq: SecuenciaCofreLegendario3D = tesoro.secuencia
 	var i: int = 0
 	while i < CUANDO_COFRE.size() and not seq.hecha:
+		if seq.esperando_input:
+			seq.continuar()
 		await process_frame
 		if seq.t >= float(CUANDO_COFRE[i]):
 			_ocultar_ui(root)

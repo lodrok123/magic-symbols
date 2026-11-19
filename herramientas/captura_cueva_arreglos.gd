@@ -62,6 +62,8 @@ func _escenario() -> void:
 	var seq: SecuenciaCofreLegendario3D = tesoro.secuencia
 	var guardia: int = 0
 	while not seq.hecha and guardia < 3000:
+		if seq.esperando_input:
+			seq.continuar()
 		await process_frame
 		guardia += 1
 	Engine.time_scale = 1.0

@@ -36,6 +36,8 @@ func _escenario() -> void:
 	var tapa: Node3D = tesoro.modelo.find_child("cofre_tapa", true, false) as Node3D
 	var i: int = 0
 	while i < CUANDO.size() and not seq.hecha:
+		if seq.esperando_input:
+			seq.continuar()
 		await process_frame
 		if seq.t >= float(CUANDO[i]):
 			print("t=%.2f estado %s clip %s · mano izq y %.3f · tapa girada %.2f rad" % [seq.t, pj.estado_anim(), pj.clip_actual(), _y_mano(pj),

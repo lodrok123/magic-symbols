@@ -992,6 +992,8 @@ class CofrePuzle extends Node3D:
 	var gasta: bool = false                      ## gasta=si: al abrirse quita 1 de cada objeto `tener.` de su `abre_si` (la llave de la bolsa)
 	var gastado: Array = []                      ## lo que gastó de verdad (las pruebas)
 	var _gastado_ya: bool = false
+	var _contenido_preparado: Array = []
+	var _contenido_listo: bool = false
 	var botin_dado: Array = []                   ## lo que dio de verdad al abrirse (las pruebas)
 	var glifo: String = ""                       ## glifo= (id del libro): abrirlo da ese glifo con la secuencia del cofre legendario (SecuenciaCofreLegendario3D)
 	var secuencia: SecuenciaCofreLegendario3D = null
@@ -1084,6 +1086,11 @@ class CofrePuzle extends Node3D:
 			VfxCalidad3D.apagar(columna)
 			columna = null
 
+	func _columna_actualizar_ceremonia() -> void:
+		if columna != null:
+			VfxCalidad3D.apagar(columna)
+			columna = null
+
 	func _revisar() -> void:
 		if iniciado and es_oculto and puzle != null and bool(puzle.call("cumple_expr", expr)):
 			aparecer()
@@ -1110,17 +1117,26 @@ class CofrePuzle extends Node3D:
 			return false
 		if not sellado_cumplido():
 			return false
-		if glifo != "" and ctrl != null:
+		if (glifo != "" or calidad in ["epico", "legendario"]) and ctrl != null:
 			# El cofre que da un glifo: lo abre la secuencia (cámara, luz, tapa, glifo, libro). Ella llama a `Cofre3D.abrir` a su hora.
 			if StringName(ctrl.call("estado_nombre")) != &"cerrado":
 				return false
 			_abriendo = true
-			ctrl.connect("abierto", _al_abrirse, CONNECT_ONE_SHOT)
-			_gastar()
 			secuencia = SecuenciaCofreLegendario3D.new()
 			secuencia.name = "Secuencia"
+			_preparar_contenido()
+			if not _contenido_preparado.is_empty():
+				secuencia.objeto_presentado = str(_contenido_preparado[0].get("que", "oro"))
+			secuencia.calidad = calidad if calidad != "" else "legendario"
+			secuencia.recompensa_lista.connect(_al_abrirse, CONNECT_ONE_SHOT)
 			add_child(secuencia)
-			secuencia.iniciar(self, ctrl, mundo, glifo)
+			if not secuencia.iniciar(self, ctrl, mundo, glifo):
+				_abriendo = false
+				secuencia.queue_free()
+				secuencia = null
+				return false
+			_gastar()
+			_columna_actualizar_ceremonia()
 			return true
 		if ctrl == null:
 			_gastar()
@@ -1154,18 +1170,24 @@ class CofrePuzle extends Node3D:
 
 	## `da=`: el botín del cofre, UNA vez, al acabar de abrirse (un cofre que nace ya abierto no vuelve a dar). Oro y lo que quepa en la mochila (lo que no cabe se queda y se avisa).
 	## Devuelve lo que entró: [{que, n}].
+	func _preparar_contenido() -> void:
+		if _contenido_listo:
+			return
+		_contenido_listo = true
+		for it0 in da:
+			if (it0 as Dictionary).has("tabla"):
+				_contenido_preparado.append_array(Botin.tirar(String(it0["tabla"])))
+			else:
+				_contenido_preparado.append(it0)
+
 	func dar_botin() -> Array:
 		var dado: Array = []
 		var texto: PackedStringArray = []
 		var sin_sitio: bool = false
 		var color: Color = Color(1.0, 0.9, 0.6)
 		var mejor: float = -1.0
-		var items: Array = []
-		for it0 in da:
-			if (it0 as Dictionary).has("tabla"):
-				items.append_array(Botin.tirar(String((it0 as Dictionary)["tabla"])))       # F1: `da=tabla:<id>`
-			else:
-				items.append(it0)
+		_preparar_contenido()
+		var items: Array = _contenido_preparado
 		for it in items:
 			var que: String = String((it as Dictionary)["que"])
 			var n: int = int((it as Dictionary)["n"])
