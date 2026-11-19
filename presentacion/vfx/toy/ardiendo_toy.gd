@@ -360,7 +360,12 @@ func _montar_lenguas() -> void:
 
 ## El pilar de FuegoToy está pensado para el suelo: charco, grietas, anillo de aviso, resplandor plano y humo del final. Una lengua que flota en un hombro no los quiere
 ## (salían como losas planas y tacos naranjas en el aire): se ocultan (no se liberan: el FuegoToy guarda referencias y reparte el rescoldo del final con ellos).
-func _quitar_suelo(llama: FuegoToy) -> void:
+## 19/11: también se usa para el pilar del cuerpo (`VfxReaccion3D.llamas_cuerpo`) cuando el enemigo lleva ArdiendoToy: sus trozos de suelo salían como losas rectangulares a los pies.
+static func quitar_suelo(llama: FuegoToy) -> void:
+	_quitar_suelo(llama)
+
+
+static func _quitar_suelo(llama: FuegoToy) -> void:
 	var cuerpo: Node = llama.get_node_or_null("Cuerpo")
 	if cuerpo == null:
 		return

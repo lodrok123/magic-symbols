@@ -12,6 +12,7 @@ extends RefCounted
 const NOMBRE_LLAMAS: String = "LlamasCuerpo"
 const HumoToy = preload("res://presentacion/vfx/toy/humo_toy.gd")
 const COLOR_MADERA: Color = Color(0.55, 0.36, 0.2, 1.0)
+const PILAR_VISIBLE_CON_ARDIENDO: bool = false    ## 19/11 (Pablo: «quita los trozos rectangulares del suelo»): con ArdiendoToy el pilar no se dibuja, como en la referencia
 const PILAR_CON_ARDIENDO: float = 0.35             ## × el tamaño del pilar de llamas del cuerpo cuando el nodo lleva ArdiendoToy (1 = el de siempre)
 const HUESO_MANO_QUEMADA: String = "LeftHand"      ## la mano del escudo (final del nombre del hueso, como en Equipo3D)
 const VIDA_RESTO_MANO_QUEMADA: float = 1.4         ## s que sigue ahí (sin emitir) lo que ya había salido, antes de quitar el attachment
@@ -30,9 +31,14 @@ static func llamas_cuerpo(nodo: Node3D, escala: float = 1.0, dura: float = 0.0) 
 	if nodo == null:
 		return null
 	var h: float = _alto(nodo) * escala
-	if ArdiendoToy.envuelve(nodo):
+	var envuelto: bool = ArdiendoToy.envuelve(nodo)
+	if envuelto:
 		h *= PILAR_CON_ARDIENDO                      # el cuerpo ya arde por entero (ArdiendoToy): el pilar baja para no taparlo
-	return _llama_adherida(nodo, Vector3.UP * h * 0.04, 0.34 * h, 1.05 * h, 0.45, dura)
+	var llama: Node3D = _llama_adherida(nodo, Vector3.UP * h * 0.04, 0.34 * h, 1.05 * h, 0.45, dura)
+	if envuelto and llama is FuegoToy:
+		ArdiendoToy.quitar_suelo(llama as FuegoToy)  # 19/11 (Pablo): sin charco, grietas ni trozos: a los pies salían losas rectangulares
+		llama.visible = PILAR_VISIBLE_CON_ARDIENDO   # el pilar pequeño deja láminas rectangulares a los pies; el nodo sigue (apagar, consumir, sonido)
+	return llama
 
 
 static func llamas_flecha(flecha: Node3D) -> Node3D:
