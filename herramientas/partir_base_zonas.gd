@@ -373,6 +373,10 @@ func _zona_triangulo(pos: PackedVector3Array, uv: PackedVector2Array, dominante:
 		return ZONAS.find("botas" if altura < BOTA_Z_MAX else "piernas")
 	if h.ends_with("UpLeg"):
 		return ZONAS.find("piernas")
+	# 20/11 (pantalón base fundido en el maniquí, tools/maniqui_a_base.py `funde=`): su cintura pesa en Hips y Spine y por la regla de abajo iba a
+	# `cinturon`/`chaleco`, que no apagan las mallas ni los bombachos: asomaría por encima de ellos. Todo lo verde oliva del cuerpo es pantalón → `piernas`.
+	if _es_pantalon(_color(img, uv[a], uv[b], uv[c])):
+		return ZONAS.find("piernas")
 	var brazo: bool = h.contains("Shoulder") or h.contains("Arm") or h.contains("Hand")
 	if brazo and altura < BRAZO_PECHO_Z_MIN:
 		return ZONAS.find("brazos")
@@ -397,6 +401,11 @@ func _es_piel(col: Color) -> bool:
 ## (oscuros), y la boca y el colorete son rosas (azul al 65–80 % del rojo).
 func _es_pelo(col: Color) -> bool:
 	return col.r > 0.7 and col.b < col.r * 0.58 and col.g < col.r * 0.75 and col.g > col.b
+
+
+## Verde oliva del pantalón base: el verde manda sobre el rojo y sobre el azul, y no es un color claro.
+func _es_pantalon(col: Color) -> bool:
+	return col.g >= col.r and col.g > col.b * 1.15 and minf(col.r, minf(col.g, col.b)) < 0.6
 
 
 func _color(img: Image, a: Vector2, b: Vector2, c: Vector2) -> Color:

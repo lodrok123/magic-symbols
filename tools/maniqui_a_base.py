@@ -1,7 +1,7 @@
 """
 Pone un CUERPO NUEVO sin esqueleto (un .glb de Meshy) sobre el esqueleto de un personaje del juego, copiándole los pesos.
 
-    blender.exe -b --python tools/maniqui_a_base.py -- <base_con_esqueleto.glb> <cuerpo_nuevo.glb> <salida.glb> [botas=<altura en m>]
+    blender.exe -b --python tools/maniqui_a_base.py -- <base_con_esqueleto.glb> <cuerpo_nuevo.glb> <salida.glb> [botas=<altura en m>] [pelo_a_cabeza] [funde=<prenda.glb>]
 
 Con `botas=0.43` (la altura de BOTA_Z_MAX en partir_base_zonas.gd) el cuerpo nuevo se queda además con las BOTAS de la base: sus
 triángulos, con sus pesos y su textura (en un atlas con la nueva), y se le quita lo que quedaría dentro de ellas.
@@ -108,6 +108,47 @@ def atlas(datos_a, mime_a, datos_b, mime_b, lado=2048):
     return datos, "image/png", trozos[1]
 
 
+def apilar(datos_atlas, datos_c, mime_c):
+    """En un atlas (a | b) parte la mitad derecha en dos: b arriba (a media altura) y c abajo. Devuelve los bytes del PNG."""
+    import os
+    import tempfile
+
+    import bpy
+    import numpy as np
+
+    carpeta = tempfile.mkdtemp(prefix="maniqui_")
+    rutas = []
+    for k, (datos, mime) in enumerate(((datos_atlas, "image/png"), (datos_c, mime_c))):
+        ruta = os.path.join(carpeta, "t%d.%s" % (k, "png" if "png" in mime else "jpg"))
+        with open(ruta, "wb") as f:
+            f.write(datos)
+        rutas.append(ruta)
+    img = bpy.data.images.load(rutas[0])
+    ancho, h = img.size[0], img.size[1]
+    w = ancho // 2
+    px = np.empty(ancho * h * 4, dtype=np.float32)
+    img.pixels.foreach_get(px)
+    px = px.reshape(h, ancho, 4)
+    img_c = bpy.data.images.load(rutas[1])
+    img_c.scale(w, h // 2)
+    pc = np.empty(w * (h // 2) * 4, dtype=np.float32)
+    img_c.pixels.foreach_get(pc)
+    pc = pc.reshape(h // 2, w, 4)
+    # las filas van de abajo arriba: abajo (v del glTF de 0,5 a 1) la imagen nueva; arriba (v de 0 a 0,5) la que ya estaba, a media altura
+    px[:, w:, :] = np.concatenate([pc, px[::2, w:, :][:h - h // 2]], axis=0)
+    px[:, :, 3] = 1.0
+    out = bpy.data.images.new("atlas3", ancho, h, alpha=False)
+    out.pixels.foreach_set(px.ravel())
+    ruta = os.path.join(carpeta, "atlas3.png")
+    out.filepath_raw = ruta
+    out.file_format = "PNG"
+    out.save()
+    with open(ruta, "rb") as f:
+        datos = f.read()
+    print("MAN ATLAS de %d x %d px (%d KB): textura nueva | base arriba, prenda fundida abajo" % (ancho, h, len(datos) // 1024))
+    return datos
+
+
 def main():
     a = sys.argv[sys.argv.index("--") + 1:]
     base, nuevo, salida = Glb(a[0]), Glb(a[1]), a[2]
@@ -209,6 +250,7 @@ def main():
 
     # ---- BOTAS de la base (Pablo, 19/11: «mete las botas de la jugadora base»; van a ser siempre las mismas)
     z_bota = None
+    n_cuerpo = len(pos)
     for x in a[3:]:
         if x.startswith("botas="):
             z_bota = float(x[6:]) / 100.0        # metros -> unidades de la malla
@@ -242,6 +284,7 @@ def main():
         # con un material, que es lo que esperan Pj3D y partir_base_zonas.gd). Las U se parten por la mitad.
         datos_img, mime, px_base = atlas(datos_img, mime, *base.imagen(base.json["textures"][base.json["materials"][0]["pbrMetallicRoughness"]["baseColorTexture"]["index"]]["source"]))
         uv = [(u * 0.5, v) for u, v in uv]
+        n_cuerpo = len(pos)
         # Fuera el PANTALÓN: la regla de zonas coge también el bajo del pantalón verde metido en la bota, que sin pantalón quedaba
         # como una corona de picos verdes en la boca de la bota. Un triángulo de bota es de cuero: más rojo que verde.
         alto_px, ancho_px = px_base.shape[0], px_base.shape[1]
@@ -272,6 +315,61 @@ def main():
             idx.extend(de_bota[v] for v in tri)
         print("MAN BOTAS: %d caras y %d vertices de las botas de la base (por debajo de %.2f m); %d caras del cuerpo nuevo quitadas de dentro" % (
             len(tris_bota), len(de_bota), z_bota * 100.0, quitadas))
+    # ---- PRENDA FUNDIDA (Pablo, 19/11: «intégralos como pantalones base»): una prenda ya encajada y pesada sobre este esqueleto
+    # (herramientas/rig/encajar_ropa.py + montar_ropa_glb.gd) pasa a ser parte del cuerpo, con su textura en el atlas.
+    for x in a[3:]:
+        if not x.startswith("funde="):
+            continue
+        extra = Glb(x[6:])
+        pe = extra.json["meshes"][0]["primitives"][0]
+        pos_e = extra.leer(pe["attributes"]["POSITION"])
+        nor_e = extra.leer(pe["attributes"]["NORMAL"]) if "NORMAL" in pe["attributes"] else None
+        uv_e = extra.leer(pe["attributes"]["TEXCOORD_0"])
+        art_e = extra.leer(pe["attributes"]["JOINTS_0"])
+        pes_e = extra.leer(pe["attributes"]["WEIGHTS_0"])
+        idx_e = [t[0] for t in extra.leer(pe["indices"])]
+        nombres_b = [base.json["nodes"][j].get("name", "") for j in base.json["skins"][0]["joints"]]
+        nombres_e = [extra.json["nodes"][j].get("name", "") for j in extra.json["skins"][0]["joints"]]
+        a_base = [nombres_b.index(n) if n in nombres_b else 0 for n in nombres_e]
+        mat_e = extra.json["materials"][pe.get("material", 0)]
+        img_e, mime_e = extra.imagen(extra.json["textures"][mat_e["pbrMetallicRoughness"]["baseColorTexture"]["index"]]["source"])
+        if z_bota is not None:
+            datos_img = apilar(datos_img, img_e, mime_e)
+            uv = [(u, v) if i < n_cuerpo else (u, min(1.0, max(0.0, v)) * 0.5) for i, (u, v) in enumerate(uv)]
+
+            def uv_fundida(u, v):
+                return (0.5 + min(1.0, max(0.0, u)) * 0.5, 0.5 + min(1.0, max(0.0, v)) * 0.5)
+        else:
+            datos_img, mime, _px = atlas(datos_img, mime, img_e, mime_e)
+            uv = [(u * 0.5, v) for u, v in uv]
+
+            def uv_fundida(u, v):
+                return (0.5 + min(1.0, max(0.0, u)) * 0.5, v)
+        # Lo que queda DEBAJO de la prenda se quita del cuerpo: al rodar, la ropa interior asomaba por la tela. Solo cadera y piernas
+        # (las manos cuelgan a esa altura), y dejando 5 cm de cuerpo bajo la cintura de la prenda.
+        ys_e = [p[1] for p in pos_e]
+        y_a, y_b = min(ys_e), max(ys_e) - 0.0005
+        dom_n = [nombres_b[art[v][max(range(4), key=lambda k: pes[v][k])]] for v in range(n_cuerpo)]
+
+        def debajo(tri):
+            return all(v < n_cuerpo and y_a < pos[v][1] < y_b and ("Hips" in dom_n[v] or "Leg" in dom_n[v]) for v in tri)
+        antes_t = len(idx) // 3
+        idx = [i for t in range(0, len(idx), 3) if not debajo(idx[t:t + 3]) for i in idx[t:t + 3]]
+        print("MAN FUNDIDA: %d caras del cuerpo quitadas de debajo de la prenda" % (antes_t - len(idx) // 3))
+        n0 = len(pos)
+        for v in range(len(pos_e)):
+            pos.append(pos_e[v])
+            uv.append(uv_fundida(*uv_e[v]))
+            pares = sorted(((a_base[int(j)], w) for j, w in zip(art_e[v], pes_e[v]) if w > 0.0), key=lambda q: -q[1])[:4]
+            tot = sum(w for _j, w in pares) or 1.0
+            pares += [(0, 0.0)] * (4 - len(pares))
+            art.append(tuple(j for j, _w in pares))
+            pes.append(tuple(w / tot for _j, w in pares))
+            if nor is not None:
+                nor.append(nor_e[v] if nor_e else (0.0, 1.0, 0.0))
+        idx.extend(n0 + i for i in idx_e)
+        print("MAN FUNDIDA %s: %d vertices y %d caras pasan a ser parte del cuerpo" % (
+            x[6:].replace("\\", "/").split("/")[-1], len(pos_e), len(idx_e) // 3))
     uv_n, nor_n, idx_n = uv, nor, idx
 
     # ---- escribir
