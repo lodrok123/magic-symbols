@@ -202,6 +202,27 @@
 ; puzle q13_desborde_apaga cuando=q13_desborda.alcanzado hace=q13_brasero.apagar
 ; puzle q13_boton_moja cuando=q13_boton.pulsado hace=q13_tinaja.mojar
 ; puzle q13_placa_enciende cuando=q13_placa.pulsado hace=q13_brasero.encender
+; --- Q14 RELOJ DE AGUA (20/11, sala (1,3), x 9..15, y 25..31): una cuenca llena (10..12, 26..29, 12 casillas, a 0,9) con un DESAGÜE: una compuerta cerrada en (11,30) y el sumidero (11,31). En cuanto se enciende el PRIMERO de los tres braseros
+; ---   (15,26) (14,29) (13,31) se abre la compuerta y la cuenca se vacía sola: el nivel (detector q14_nivel en (10,29), 0,35) es el cronómetro visible. La puerta (9,31) abre cuando los tres arden Y el nivel aún está en 0,35 o más
+; ---   (se mira al encender el último). Si el agua baja de 0,35 antes de encender el tercero, ya no abre (la compuerta no se vuelve a cerrar: la sala se recarga con R). Los braseros no se apagan solos.
+; ---   Vias: boton ! (10,31) enciende los tres a la vez · placa @ (15,31) solo abre el desagüe (arranca el reloj).
+; pieza q14_reloj cuenca 10 26 celdas=10,26..12,29 nivel=0.9
+; pieza q14_compuerta compuerta 11 30 vertical=no
+; pieza q14_sumidero cuenca 11 31 fijo=0.02
+; pieza q14_nivel nivel 10 29 objetivo=0.35
+; pieza q14_b1 brasero 15 26
+; pieza q14_b2 brasero 14 29
+; pieza q14_b3 brasero 13 31
+; pieza q14_cont contador 13 27 de=15,26+14,29+13,31
+; pieza q14_puerta puerta 9 31
+; pieza q14_boton pulsador 10 31 modo=magia rearme=2
+; pieza q14_placa pulsador 15 31 modo=presencia
+; puzle q14_arranca_b1 cuando=q14_b1.encendido hace=q14_compuerta.abrir
+; puzle q14_arranca_b2 cuando=q14_b2.encendido hace=q14_compuerta.abrir
+; puzle q14_arranca_b3 cuando=q14_b3.encendido hace=q14_compuerta.abrir
+; puzle q14_abre cuando=q14_cont.todos si=q14_nivel.alcanzado hace=q14_puerta.abrir
+; puzle q14_boton_enciende cuando=q14_boton.pulsado hace=q14_b1.encender y=q14_b2.encender y=q14_b3.encender
+; puzle q14_placa_desagua cuando=q14_placa.pulsado hace=q14_compuerta.abrir
 #################################
 #.......#......Z#.-.....#...-...#
 #.cc.cc.#.!.Lu..#.-.....#...-...#
@@ -228,10 +249,10 @@
 #.......#.......#.......#.......#
 ####.#######.#######.#######.####
 #.......#.......#.......##Lu.!@##
-#.cc....#.......#.......##-..cc##
-#.cc-u..#.......#.......##c...c##
-#.......#.......#.......##c...c##
-#..T....#.......#.......##c...c##
-#.......#.......#.......##ccccc##
-#Z!...@.#.......#.......#########
+#.cc....#.ccc..T#.......##-..cc##
+#.cc-u..#.ccc...#.......##c...c##
+#.......#.ccc...#.......##c...c##
+#..T....#.ccc.T.#.......##c...c##
+#.......#..c....#.......##ccccc##
+#Z!...@.#Z!c.T.@#.......#########
 #################################

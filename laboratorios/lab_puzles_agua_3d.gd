@@ -100,6 +100,9 @@ const NUEVOS: Array = [
 	{"nombre": "Q13 caldera", "entrada": Vector2i(4, 25), "cartel": Vector2i(6, 29),
 		"texto": "Q13 · LA CALDERA\nLlena la cuenca (agua a la tinaja) y enciende el brasero de debajo (fuego): la puerta abre con las dos cosas a la vez.\nSi el agua desborda (0,8), APAGA el brasero y la puerta se cierra: dosifica o enciende después.\nBotón: moja la tinaja · placa: enciende el brasero.",
 		"ids": {"nivel": "q13_nivel", "desborda": "q13_desborda", "brasero": "q13_brasero", "tinaja": "q13_tinaja", "cont": "q13_cont", "puerta": "q13_puerta", "boton": "q13_boton", "placa": "q13_placa"}},
+	{"nombre": "Q14 reloj de agua", "entrada": Vector2i(12, 25), "cartel": Vector2i(13, 28),
+		"texto": "Q14 · RELOJ DE AGUA\nEn cuanto enciendes el primer brasero se abre el desagüe y la cuenca se vacía sola: el nivel es el cronómetro.\nEnciende los tres (fuego) antes de que baje de 0,35 y la puerta abre; si no, recarga con R.\nBotón: enciende los tres a la vez · placa: solo abre el desagüe.",
+		"ids": {"reloj": "q14_nivel", "compuerta": "q14_compuerta", "b1": "q14_b1", "b2": "q14_b2", "b3": "q14_b3", "cont": "q14_cont", "puerta": "q14_puerta", "boton": "q14_boton", "placa": "q14_placa"}},
 ]
 ## Papeles que toda sala tiene en su diccionario aunque no los use (null): el HUD y el escenario los leen sin mirar si existen.
 const PAPELES_SIEMPRE: Array = ["detector", "compuerta", "puerta"]
@@ -358,6 +361,9 @@ func _estado_nuevo(q: Dictionary) -> String:
 		var nv: Variant = q.get(papel)
 		if nv != null and is_instance_valid(nv):
 			s += "  %s %.2f" % [papel, (nv as NivelAgua3D).profundidad]
+	var kc: Variant = q.get("compuerta")
+	if kc != null and is_instance_valid(kc):
+		s += "  compuerta %s" % ("ABIERTA" if bool((kc as Object).get("abierta")) else "cerrada")
 	for papel in ["brasero", "b1", "b2", "b3"]:
 		var br: Variant = q.get(papel)
 		if br != null and is_instance_valid(br):
