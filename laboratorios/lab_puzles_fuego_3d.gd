@@ -69,6 +69,7 @@ const TRAMPAS: Array = [
 ## PUZLES NUEVOS (18/11/2026): tres salas más, aparte de las anteriores para no tocar `_puzles` ni `_trampas` (que cuentan las pruebas). Teclas 9, 0 y «-» (a la izquierda de la 1 en el teclado español: la tecla de al lado del 0).
 ##   F10 (2,1) LLEVA LA PÓLVORA: un muro agrietado tapa un nicho con un cofre; el barril pequeño de (22,10) (la otra punta de la sala) se coge, se enciende con fuego, se lleva y se lanza o se deja junto al muro. Botón `!` enciende el barril donde está; placa `@` rompe el muro.
 ## SEGUNDA TANDA (20/11/2026): el mapa pasa a 33 × 33 con una fila de salas más ((0,3)…(3,3), con hueco en x = 4, 12, 20, 28 de la fila 24). Teclado numérico 1…4 o Alt+1…4 (la fila de números ya está llena; `indice_nuevo_por_tecla`).
+##   F15 (2,3) BRASEROS EN ORDEN CON MURAL: cuatro braseros que se encienden en un orden (uno equivocado los apaga todos); el orden está en una losa del suelo tapada de barro que el agua limpia.
 ##   F14 (1,3) CHOQUE TÉRMICO: un nicho con cofre tapado por una roca térmica (10,27): el fuego la pone al rojo 8 s y el agua mientras está caliente la parte; los golpes y las explosiones no la rompen.
 ##   F13 (0,3) DRAGÓN QUE ENCIENDE + BARRERA: una cabeza de dragón en el muro (6,24) escupe cada 7 s por la columna x=6; prende una fila de setos (2..6, 26) hasta un barril (1,26) que, al reventar, sella el cofre (1,27). Agua a la cabeza, un seto mojado o una barrera de agua (2 s) delante de la boca.
 const NUEVOS: Array = [
@@ -87,6 +88,9 @@ const NUEVOS: Array = [
 	{"nombre": "F14 choque térmico", "entrada": Vector2i(12, 25), "cartel": Vector2i(12, 29),
 		"texto": "F14 · CHOQUE TÉRMICO\nLa roca que tapa el nicho (arriba a la izquierda) no se rompe a golpes ni con explosiones.\nFuego: la pone al rojo 8 s. Agua MIENTRAS sigue al rojo: la parte (con vapor). Fría, el agua no le hace nada.\nBotón: la calienta · placa: la parte.",
 		"ids": {"muro": "f14_muro", "cofre": "f14_cofre", "boton": "f14_boton", "placa": "f14_placa"}},
+	{"nombre": "F15 braseros en orden", "entrada": Vector2i(20, 25), "cartel": Vector2i(20, 30),
+		"texto": "F15 · BRASEROS EN ORDEN\nEnciende los cuatro braseros en el orden correcto: uno equivocado los apaga todos.\nEl orden está en la losa del centro, tapada de barro: moja el suelo con una LÍNEA de agua (agua + ᛁ) y se ve.\nBotón: limpia el mural · placa: los enciende en orden.",
+		"ids": {"orden": "f15_orden", "mural": "f15_mural", "b1": "f15_b1", "b2": "f15_b2", "b3": "f15_b3", "b4": "f15_b4", "puerta": "f15_puerta", "boton": "f15_boton", "placa": "f15_placa"}},
 ]
 ## Papeles que toda sala tiene en su diccionario aunque no los use (null): el HUD y el escenario los leen sin mirar si existen.
 const PAPELES_SIEMPRE: Array = ["detector", "compuerta", "puerta", "contador"]
@@ -439,6 +443,14 @@ func _estado_nuevo(q: Dictionary) -> String:
 			var r: Respiradero3D = rp
 			s += "  %s %s" % [papel.to_upper(), "ATASCADO" if not r.activo else ("AVISA" if r.en_aviso else "exhala en %.0f s" % (r.cada - r._t))]
 	s += "  nubes %d" % NubeVeneno3D.vivas.size() if q.has("r1") else ""
+	var sq: Variant = q.get("orden")
+	if sq != null and is_instance_valid(sq):
+		var sb: SecuenciaBraseros3D = sq
+		s += "  orden %d/%d%s (fallos %d)" % [sb.paso, sb.braseros.size(), " HECHA" if sb.hecha else "", sb.fallos]
+		s += "  braseros " + " ".join(PackedStringArray([_llama(q["b1"]), _llama(q["b2"]), _llama(q["b3"]), _llama(q["b4"])]))
+	var mu: Variant = q.get("mural")
+	if mu != null and is_instance_valid(mu):
+		s += "  mural %s" % ("LIMPIO" if bool((mu as Object).get("limpio_ya")) else "tapado")
 	if q.has("s1") and q.has("barril_grande"):
 		var setos: String = ""
 		for id in ["s1", "s2", "s3", "s4", "s5"]:

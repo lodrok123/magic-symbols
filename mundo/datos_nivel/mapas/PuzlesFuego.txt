@@ -175,6 +175,21 @@
 ; pieza f14_placa pulsador 11 30 modo=presencia
 ; puzle f14_boton_calienta cuando=f14_boton.pulsado hace=f14_muro.calentar
 ; puzle f14_placa_rompe cuando=f14_placa.pulsado hace=f14_muro.romper
+; --- F15 BRASEROS EN ORDEN CON MURAL (20/11, sala (2,3), x 17..23, y 25..31): cuatro braseros en las esquinas ((22,26) (18,30) (22,30) (18,26)) que hay que encender EN ORDEN; encender otro los apaga TODOS (también el nuevo) y se empieza de nuevo.
+; ---   La pista del orden es un MURAL: una losa en el suelo del centro (20,28) tapada de BARRO, que solo se ve tras mojarla con agua (flecha de agua a la losa desde 2 casillas): deja ver un plano de la sala con un punto y un número por brasero
+; ---   (1, 2, 3, 4). Con los cuatro encendidos en orden se abre la puerta (20,31). Vias: boton ! (17,28) limpia el mural sin agua · placa @ (23,28) enciende los cuatro en orden (y abre).
+; pieza f15_b1 brasero 22 26
+; pieza f15_b2 brasero 18 30
+; pieza f15_b3 brasero 22 30
+; pieza f15_b4 brasero 18 26
+; pieza f15_orden secuencia 20 27 de=22,26+18,30+22,30+18,26
+; pieza f15_mural mural 20 28 de=22,26+18,30+22,30+18,26
+; pieza f15_puerta puerta 20 31
+; pieza f15_boton pulsador 17 28 modo=magia
+; pieza f15_placa pulsador 23 28 modo=presencia
+; puzle f15_abre cuando=f15_orden.completa hace=f15_puerta.abrir
+; puzle f15_boton_limpia cuando=f15_boton.pulsado hace=f15_mural.limpiar
+; puzle f15_placa_enciende cuando=f15_placa.pulsado hace=f15_b1.encender y=f15_b2.encender y=f15_b3.encender y=f15_b4.encender
 ; ---------------------------------------------------------------------------------------------------------------------------------
 #################################
 #.......#...Z...#.-.....#......Z#
@@ -202,10 +217,10 @@
 #.......#.......#...@...#..#@#..#
 ####.#######.#######.#######.####
 #.......#..#....#.......#.......#
-#.zzzzz.#..#....#.......#.......#
+#.zzzzz.#..#....#.T...T.#.......#
 #.......##......#.......#.......#
+#.......#.......#!.....@#.......#
 #.......#.......#.......#.......#
-#.......#.......#.......#.......#
-#..!.@..#..@.!..#.......#.......#
-#.......#.......#.......#.......#
+#..!.@..#..@.!..#.T...T.#.......#
+#.......#.......#...Z...#.......#
 #################################

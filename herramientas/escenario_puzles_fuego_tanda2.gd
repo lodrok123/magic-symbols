@@ -18,6 +18,7 @@ func _escenario() -> void:
 	_ok("0 el mapa y las piezas de la segunda tanda se montan sin avisos", (lab.get("_avisos") as Array).is_empty(), str(lab.get("_avisos")))
 	await _f13()
 	await _f14()
+	await _f15()
 
 
 # ---------------------------------------------------------------------------------------------------------------------
@@ -275,3 +276,87 @@ func _f14() -> void:
 		_ok("F14.21 la placa @ (11,30) la parte por su regla y aparece el cofre", placa.veces == 1 and muro.roto_ya and not Terreno3D.bloqueada(Vector2i(10, 27)))
 		await avanzar_s(1.2)
 		_ok("F14.22 … el cofre del nicho está a la vista", not bool(cofre.get("es_oculto")))
+
+# ---------------------------------------------------------------------------------------------------------------------
+#  F15 · Braseros en orden con mural
+# ---------------------------------------------------------------------------------------------------------------------
+
+## Casillas de los braseros en el orden de la secuencia y desde dónde se les dispara (a 2 casillas, en línea recta y sin nada de por medio).
+const F15_BRASEROS: Array = [Vector2i(22, 26), Vector2i(18, 30), Vector2i(22, 30), Vector2i(18, 26)]
+const F15_DESDE: Array = [Vector2i(22, 28), Vector2i(18, 28), Vector2i(22, 28), Vector2i(18, 28)]
+
+
+func _encendidos_f15(q: Dictionary) -> int:
+	var n: int = 0
+	for k in ["b1", "b2", "b3", "b4"]:
+		if _arde(q[k]):
+			n += 1
+	return n
+
+
+## Enciende el brasero `i` (0..3 en el ORDEN de la secuencia) con una flecha de fuego (modo natural) o con la regla/llamada directa (botones).
+func _encender_f15(q: Dictionary, i: int) -> bool:
+	if modo == "natural":
+		return lanzar_a_celda("fuego", ["flecha"], F15_BRASEROS[i] as Vector2i, F15_DESDE[i] as Vector2i)
+	(q["b%d" % (i + 1)] as Reactivo3D).encender_llama()
+	return true
+
+
+func _f15() -> void:
+	await _recargar()
+	var q: Dictionary = _sala("F15")
+	_ok("F15.0 la sala existe en el lab", not q.is_empty())
+	if q.is_empty():
+		return
+	var orden: SecuenciaBraseros3D = q["orden"]
+	var mural: MuralPuzle3D = q["mural"]
+	var puerta: Variant = q["puerta"]
+	var boton: Pulsador3D = q["boton"]
+	var placa: Pulsador3D = q["placa"]
+	_tecla_sala(KEY_KP_3)
+	_ok("F15.1 la tecla 3 del teclado numérico lleva a la sala (20,25)", celda_jugador() == Vector2i(20, 25), str(celda_jugador()))
+	colocar_jugador(Vector2i(20, 12))
+	_tecla_sala(KEY_3, true)
+	_ok("F15.2 Alt+3 también (y no a F3)", celda_jugador() == Vector2i(20, 25), str(celda_jugador()))
+	_ok("F15.3 estado inicial: 4 braseros apagados, secuencia en 0/%d, mural TAPADO de barro y puerta cerrada" % orden.braseros.size(),
+		orden.braseros.size() == 4 and _encendidos_f15(q) == 0 and orden.paso == 0 and not orden.hecha and not mural.limpio_ya and (mural.get("_barro") as MeshInstance3D).visible and not _abierta(puerta))
+	# 1 · A ciegas: un brasero que no toca los apaga todos (también el nuevo).
+	_ok("F15.4 fuego al SEGUNDO brasero (18,30) primero sale", _encender_f15(q, 1))
+	await avanzar_s(1.5)
+	_ok("F15.5 equivocarse (encender el 2.º primero) los APAGA TODOS: fallos %d, encendidos %d, paso %d" % [orden.fallos, _encendidos_f15(q), orden.paso], orden.fallos == 1 and _encendidos_f15(q) == 0 and orden.paso == 0)
+	_ok("F15.6 fuego al PRIMERO (22,26) sale", _encender_f15(q, 0))
+	await avanzar_s(1.5)
+	_ok("F15.7 el primero acierta: arde y la secuencia va 1/4", _arde(q["b1"]) and orden.paso == 1 and orden.aciertos == 1 and orden.fallos == 1)
+	_ok("F15.8 fuego al TERCERO (22,30) (toca el segundo) sale", _encender_f15(q, 2))
+	await avanzar_s(1.5)
+	_ok("F15.9 el tercero antes que el segundo: se apagan TODOS, también el primero que ya ardía (fallos %d)" % orden.fallos, orden.fallos == 2 and _encendidos_f15(q) == 0 and orden.paso == 0 and not _abierta(puerta))
+	# 2 · El mural: el agua lo limpia y deja ver el orden.
+	if modo == "natural":
+		lanzar_a_celda("fuego", ["linea_x"], Vector2i(20, 28), Vector2i(20, 26))
+		await avanzar_s(1.5)
+		_ok("F15.9b una LÍNEA de fuego sobre la losa no la limpia (sigue tapada)", not mural.limpio_ya and (mural.get("_barro") as MeshInstance3D).visible)
+		_ok("F15.10 agua + LÍNEA (el haz, que moja el suelo por donde pasa) desde (20,26) hacia la losa (20,28) sale", lanzar_a_celda("agua", ["linea_x"], Vector2i(20, 28), Vector2i(20, 26)))
+	else:
+		boton.pulsar()
+	await avanzar_s(2.5)
+	_ok("F15.11 mojada su casilla (%s), el mural se LIMPIA: limpio_ya = %s, pista a la vista = %s" % [str(Terreno3D.estados.tiene(Vector2i(20, 28), "mojada")), str(mural.limpio_ya), str(mural.pista_a_la_vista())], mural.limpio_ya and mural.pista_a_la_vista())
+	var grabado: Node3D = mural.get("_grabado") as Node3D
+	var p1: Node3D = grabado.get_node_or_null("Punto1") as Node3D
+	var p2: Node3D = grabado.get_node_or_null("Punto2") as Node3D
+	var p3: Node3D = grabado.get_node_or_null("Punto3") as Node3D
+	var p4: Node3D = grabado.get_node_or_null("Punto4") as Node3D
+	_ok("F15.12 el grabado es el plano de la sala con los números en el orden de la secuencia: 1 arriba a la derecha, 2 abajo a la izquierda, 3 abajo a la derecha, 4 arriba a la izquierda",
+		p1 != null and p2 != null and p3 != null and p4 != null and p1.position.x > 0.0 and p1.position.z < 0.0 and p2.position.x < 0.0 and p2.position.z > 0.0 and p3.position.x > 0.0 and p3.position.z > 0.0 and p4.position.x < 0.0 and p4.position.z < 0.0
+		and (grabado.get_node("Numero1") as Label3D).text == "1" and (grabado.get_node("Numero4") as Label3D).text == "4")
+	# 3 · En orden, con la pista.
+	if modo == "natural":
+		for i in range(4):
+			_encender_f15(q, i)
+			await avanzar_s(1.5)
+			_ok("F15.13.%d el brasero %d en su sitio: acierta (paso %d de 4)" % [i + 1, i + 1, orden.paso], orden.paso == i + 1 and _arde(q["b%d" % (i + 1)]))
+	else:
+		colocar_jugador(Vector2i(23, 28))
+		await avanzar_s(1.0)
+		_ok("F15.13 la placa @ (23,28) enciende los cuatro EN ORDEN por su regla", placa.veces == 1 and orden.paso == 4)
+	await avanzar_s(0.5)
+	_ok("F15.14 con los cuatro en orden la secuencia queda HECHA (fallos %d), los cuatro siguen ardiendo y la puerta se abre" % orden.fallos, orden.hecha and _encendidos_f15(q) == 4 and _abierta(puerta) and orden.fallos == 2)

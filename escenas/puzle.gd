@@ -129,6 +129,11 @@ extends Node
 ##              se acuerda de que cayó (la pone al caer; si ya está puesta nace caída). Señal `cae`; condición `caida`|`en_pie`. No bloquea su casilla (adorno que se rodea)
 ##   estatuas   celdas=<lista>  secuencia=<e1,e2,…>  flag=<nombre>                  EstatuasPulso3D (fase 3, secreto de C1): una estatua de piedra por casilla de `celdas`; piden pulsos de ESOS elementos, EN ESE
 ##              ORDEN (las dos listas, igual de largas: `secuencia=fuego,hielo,fuego`); un fallo las apaga todas; al acabar ponen `flag`. Cada una lleva a sus pies el color del elemento que pide
+##   secuencia  de=<casillas EN ORDEN>  flag=<nombre>                                   SecuenciaBraseros3D (20/11, F15 del lab de fuego): braseros que hay que encender EN ESE ORDEN (el primero de `de`, luego el segundo…). Encender otro (o uno que aún no toca) los APAGA TODOS (también el nuevo)
+##              y se empieza de nuevo; al encender el último en su sitio pone `flag` y emite `completa`. Hermana de `estatuas` (que pide pulsos de elementos). Vale cualquier forma de encender (hechizo, contagio, regla `encender`: las acciones de una
+##              regla encienden en el orden escrito). x,y es solo el sitio del nodo. Señales `completa` | `falla` | `acierta`; condiciones `completa` | `pendiente`
+##   mural      de=<casillas EN ORDEN>  flag=<nombre>                                   MuralPuzle3D (20/11, F15): una losa en el SUELO de x,y tapada de BARRO. Una casilla mojada (el suelo que moja una LÍNEA de agua, o un charco) o la acción `limpiar` quita el barro y deja ver el plano de la sala
+##              con un punto y un número por casilla de `de` (1 = el primero): la pista del orden de una `secuencia`. Se queda limpia (y con `flag`, se acuerda). No bloquea. Señal `limpio`; condiciones `limpio` | `tapado`; acción `limpiar`
 ##   prisma     dir=n|e|s|o (n)                                                      PrismaPulso3D (fase 2): MODIFICADOR. Reemite el pulso que le llega por la casilla que mira (`dir`), con su
 ##              elemento, su dueño y el alcance que le quedaba; se gira 90° (horario) con un golpe de hechizo o con E. Bloquea su casilla
 ##   pared_hueca  flag=<nombre>  mira=n|e|s|o                                       ParedHuecaPulso3D (fase 2): REACTIVO. Suena hueca (eco) con cualquier pulso y SE ABRE solo con uno del
@@ -194,6 +199,7 @@ extends Node
 ##   seto       consumido
 ##   vigia      todos_derrotados             cerrojo  cerrado | abierto            cofre   aparecido | abierto
 ##   muro       roto                         lava     enfriada | apagada        seta     recogida
+##   secuencia  completa | falla | acierta     mural    limpio
 ##   cristal    late                         receptor activado | apagado   prisma gira | emite   pared_hueca abierta | eco
 ##   jarron, caja  roto                      salida   usada             columna cae    estatuas completa | falla | acierta
 ## CONDICIONES (`si=<id>.<cond>`: la regla solo actúa si en ese momento se cumple):
@@ -201,6 +207,7 @@ extends Node
 ##   barril  explotado | encendido | entero    pulsador  activo | libre
 ##   brasero apagado | encendido   contador  todos | no_todos   cuerda  rota | entera   seto  ardiendo
 ##   vigia  todos | quedan     cerrojo  cerrado | abierto     cofre  oculto | cerrado | abierto     muro  roto | entero     lava  activa | apagada     seta  recogida | en_suelo
+##   secuencia  completa | pendiente    mural  limpio | tapado
 ##   receptor  activo | libre     pared_hueca  abierta | cerrada     jarron, caja  roto | entero     columna  caida | en_pie     estatuas  completa | pendiente
 ##
 ## CONDICIONES COMPUESTAS (C2, 21/10). `si=` es una EXPRESIÓN de términos:
@@ -243,6 +250,7 @@ extends Node
 ##   emisor              pulso(alcance) (la fuente suelta un Pulso3D de rayo por el agua y las vetas; alcance en casillas, 12 por defecto)
 ##   trampa_dragon, trampa_flechas   apagar(s) (s segundos; sin argumento, hasta `encender`) | encender         (condiciones: activa | apagada)
 ##   respiradero         apagar(s) (quita también la llama) | encender         (condiciones: activo | apagado | ardiendo)
+##   mural               limpiar (como si se mojara su casilla)                     muro  romper | calentar (20/11: solo la roca `termica=si`; la pone al rojo como un hechizo de fuego)
 ##   jarron, caja        romper (como un golpe)                salida   usar (la dispara, como si la jugadora la pisara)      columna  romper (la tumba)
 ##   zona       poner(<estado>[,<segundos>]) | quitar(<estado>)     (F4, 29/10: los estados DINÁMICOS del mundo de `estados_mundo.tsv`, p. ej. `hace=zona.poner(tormenta,60)` o `zona.poner(vendaval)`; sin segundos, los de la tabla
 ##              o hasta `zona.quitar`. «zona» es palabra reservada como «flag»; el veneno no se pone así: es de las nubes (`nube_veneno`))
@@ -293,7 +301,7 @@ const SENAL_DEFECTO: Dictionary = {
 	"jarron": "roto", "caja": "roto", "salida": "usada",
 	"columna": "cae", "estatuas": "completa", "estalagmita": "cae", "geoda": "explota", "bloque": "movido", "roca_empujable": "movido",
 	"guardian": "levanta", "puente": "tendido", "trampa_dragon": "escupe", "trampa_flechas": "dispara",
-	"colmena": "cae_panal", "nube_veneno": "disipada", "respiradero": "exhala", "balsa": "atraca", "nido": "suelta", "musgo": "recogida", "helecho_cueva": "recogida", "seta_palida": "recogida",
+	"colmena": "cae_panal", "nube_veneno": "disipada", "respiradero": "exhala", "balsa": "atraca", "secuencia": "completa", "mural": "limpio", "nido": "suelta", "musgo": "recogida", "helecho_cueva": "recogida", "seta_palida": "recogida",
 	"flor": "recogida", "raiz": "recogida", "lavanda": "recogida", "bayas": "recogida", "helecho": "recogida", "flor_silvestre": "recogida",
 	"bancal": "germino", "mamoa": "tapada",
 }
@@ -345,6 +353,8 @@ const SENALES: Dictionary = {
 	"nube_veneno": {"disipada": ["disipada", 0, null]},
 	"respiradero": {"exhala": ["exhala", 0, null], "apagado": ["apagado", 0, null], "prende": ["prende", 0, null], "se_apaga_llama": ["se_apaga_llama", 0, null]},
 	"balsa": {"atraca": ["atraca", 0, null], "flota": ["a_flote", 1, true], "se_hunde": ["a_flote", 1, false]},
+	"secuencia": {"completa": ["completa", 0, null], "falla": ["falla", 0, null], "acierta": ["acierta", 2, null]},
+	"mural": {"limpio": ["limpio", 0, null]},
 	"nido": {"suelta": ["suelta", 0, null]},
 	"bancal": {"germino": ["germino", 0, null]},
 	"musgo": {"recogida": ["recogido", 1, null]},
@@ -391,6 +401,8 @@ const CONDICIONES: Dictionary = {
 	"colmena": {"colgada": ["colgada", true], "vacia": ["colgada", false]},
 	"respiradero": {"activo": ["activo", true], "apagado": ["activo", false], "ardiendo": ["ardiendo", true]},
 	"balsa": {"atracada": ["atracada", true], "en_ruta": ["atracada", false], "a_flote": ["flota", true], "hundida": ["flota", false]},
+	"secuencia": {"completa": ["hecha", true], "pendiente": ["hecha", false]},
+	"mural": {"limpio": ["limpio_ya", true], "tapado": ["limpio_ya", false]},
 	"musgo": {"recogida": ["recogido_ya", true], "en_suelo": ["recogido_ya", false]},
 	"helecho_cueva": {"recogida": ["recogido_ya", true], "en_suelo": ["recogido_ya", false]},
 	"seta_palida": {"recogida": ["recogido_ya", true], "en_suelo": ["recogido_ya", false]},
@@ -437,6 +449,7 @@ const ACCIONES: Dictionary = {
 	"trampa_dragon": {"apagar": 1, "encender": 0},
 	"trampa_flechas": {"apagar": 1, "encender": 0},
 	"respiradero": {"apagar": 1, "encender": 0},
+	"mural": {"limpiar": 0},
 }
 ## Otros nombres de un tipo de pieza (se normalizan al leer la línea: la pieza queda con el tipo de la derecha, así que condiciones, acciones y señales son las suyas). 18/11: `seta_veneno` = `respiradero`.
 const ALIAS_TIPO: Dictionary = {"seta_veneno": "respiradero"}
@@ -478,6 +491,8 @@ const CLAVES: Dictionary = {
 	"nube_veneno": {"vida": "f", "radio": "f"},
 	"respiradero": {"cada": "f", "vida": "f", "radio": "f", "crece": "f", "dir": "s:n|e|s|o", "desfase": "f", "agua": "b", "quema": "f", "arde": "f"},
 	"balsa": {"ruta": "celdas", "cofre": "id", "calado": "f", "vel": "f"},
+	"secuencia": {"de": "celdas", "flag": "flag"},
+	"mural": {"de": "celdas", "flag": "flag"},
 	"nido": {},
 	"arbol": {"modelo": "s:arbol_redondo|arbol_redondo_2|pino|pino_2"},
 	"cristal": {"cada": "f", "alcance": "f"},
@@ -2499,6 +2514,31 @@ func _crear(pz: Pieza) -> void:
 			es.preparar(pz.p["celdas"], pz.p["secuencia"], String(pz.p.get("flag", "")), mundo as Node)
 			cont.add_child(es)
 			pz.nodo = es
+		"secuencia":
+			# 20/11 (F15): los braseros que hay que encender EN ORDEN (`de=` = sus casillas, en ese orden). Un fallo los apaga todos; al acabar pone la flag y emite `completa` (objetos/secuencia_braseros_3d.gd).
+			if not pz.p.has("de"):
+				_avisar_pieza(pz, "la secuencia necesita «de=<casillas de los braseros, en el orden en que se encienden>»")
+				return
+			var lista_sq: Array = []
+			for c_sq in (pz.p["de"] as Array):
+				var o_sq: Node = _encendible_en(c_sq as Vector2i)
+				if o_sq == null or String(o_sq.get("tipo")) != "brasero":
+					_avisar_pieza(pz, "no hay un brasero en %s (la secuencia pide braseros: letra «T»)" % (c_sq as Vector2i))
+					return
+				lista_sq.append(o_sq)
+			var sq := SecuenciaBraseros3D.new()
+			sq.name = pz.id
+			sq.preparar(lista_sq, pz.p["de"], String(pz.p.get("flag", "")))
+			sq.position = Terreno3D.centro_de(pz.celda, Terreno3D.y_pies(pz.celda))
+			cont.add_child(sq)
+			pz.nodo = sq
+		"mural":
+			# 20/11 (F15): una losa en el suelo tapada de barro; el agua (casilla mojada) la limpia y deja ver el plano numerado de `de=` (objetos/mural_puzle_3d.gd).
+			var mur := MuralPuzle3D.new()
+			mur.name = pz.id
+			mur.preparar(pz.celda, pz.p.get("de", []), String(pz.p.get("flag", "")))
+			cont.add_child(mur)
+			pz.nodo = mur
 		"receptor":
 			var rc := ReceptorPulso3D.new()
 			rc.name = pz.id
@@ -3478,6 +3518,9 @@ func _ejecutar(a: Dictionary) -> void:
 		"calentar":
 			if nd != null:
 				nd.call("calentar")
+		"limpiar":
+			if nd != null:
+				nd.call("limpiar")
 		"usar":
 			if nd != null:
 				nd.call("usar")
