@@ -190,6 +190,16 @@ func _sin_pulsos_en_vuelo() -> void:
 		espera += await avanzar_s(0.05)
 
 
+## La ceremonia del cofre legendario espera sin límite a que el jugador confirme (`esperando_input`): se confirma como lo haría él (`continuar()`).
+## Devuelve true cuando la secuencia ha terminado.
+func _confirmar_secuencia(seq: SecuenciaCofreLegendario3D) -> bool:
+	if seq == null:
+		return false
+	if seq.esperando_input:
+		seq.continuar()
+	return seq.hecha
+
+
 func _esperar(cond: Callable, max_s: float) -> float:
 	var t: float = 0.0
 	while not bool(cond.call()) and t < max_s:
@@ -585,7 +595,7 @@ func _c6() -> void:
 	tesoro.abierto.connect(func() -> void: motas_al_abrir[0] = _motas_nuevas(tesoro.get_parent(), ids0))
 	await _pulsar_e()
 	_ok("7 C6: con E arranca la secuencia del cofre legendario", tesoro.secuencia != null and tesoro.secuencia.activa)
-	await _esperar(func() -> bool: return tesoro.secuencia.hecha, 12.0)
+	await _esperar(func() -> bool: return _confirmar_secuencia(tesoro.secuencia), 25.0)
 	_ok("7 C6: el cofre da ᚱ «pulso»: flag %s y el glifo queda en el libro" % FLAG_GLIFO, Flags.i().tiene(FLAG_GLIFO) and Repertoire.sigil_active("raido") and tesoro.es_abierto)
 	_ok("7 C6: al abrirse suben MOTAS DORADAS de su color (%d emisores nuevos) y la columna de luz se apaga" % int(motas_al_abrir[0]), int(motas_al_abrir[0]) >= 1 and not VfxCalidad3D.encendida(col_dorada) and tesoro.columna == null)
 	await avanzar_s(1.5)
@@ -673,7 +683,8 @@ func _vuelta_c1() -> void:
 	var ids1: Array = _ids_motas(epico.get_parent())
 	epico.abierto.connect(func() -> void: motas_epico[0] = _motas_nuevas(epico.get_parent(), ids1))
 	await _pulsar_e()
-	await _esperar(func() -> bool: return epico.es_abierto, 6.0)
+	# El épico también lleva ceremonia (presentación hasta confirmar): se confirma como lo haría el jugador y se espera a que acabe y le devuelva el control.
+	await _esperar(func() -> bool: return _confirmar_secuencia(epico.secuencia), 25.0)
 	_ok("8 C1: con E se abre el cofre épico: da el NÚCLEO DE ECO (épico) y pone la flag cueva.c1.epico", epico.es_abierto and Estado.i().cuenta("nucleo_eco") == 1 and Flags.i().tiene(FLAG_EPICO) and Objetos.calidad("nucleo_eco") == "epico", "núcleos %d" % Estado.i().cuenta("nucleo_eco"))
 	await avanzar_s(VfxCalidad3D.T_APAGAR + 0.2)
 	_ok("8 C1: al abrirse suben motas moradas (%d emisores nuevos) y la columna de luz se apaga" % int(motas_epico[0]), int(motas_epico[0]) >= 1 and not VfxCalidad3D.encendida(col_morada) and epico.columna == null)
