@@ -35,6 +35,7 @@ func _escenario() -> void:
 	_runa_agua = Puzle3D.runa(["agua", "humedo"])
 	_ok("1 el mapa monta las piezas de trampas sin avisos", (lab.get("_avisos") as Array).is_empty(), str(lab.get("_avisos")))
 	_gramatica()
+	_callar_otras_salas()
 	_cableado()
 	await _ciclo()
 	await _alcance_chorro()
@@ -175,6 +176,29 @@ func _gramatica() -> void:
 	otro.queue_free()
 
 
+## 20/11: el lab de fuego tiene ahora salas que funcionan solas todo el rato (F11 tótems, F12 setas de veneno, F13 y F16 dragones): sus flechas, bolas y NUBES (que cuelgan del decorado) entraban en los
+## recuentos de hijos de 7.3 y 8.1 y los hacían fallar o no según el instante. Esta prueba es de las salas F7-F9: las demás trampas y respiraderos se apagan al empezar (sin tocar F7, F8 ni F9).
+const PROPIAS: Array = ["t_drg_a", "t_drg_b", "t_fl_a", "t_fl_fuego"]
+
+
+func _callar_otras_salas() -> void:
+	var calladas: int = 0
+	var propias: Array = []
+	for id in PROPIAS:
+		propias.append(_pz.nodo(id))
+	var pila: Array = [maqueta]
+	while not pila.is_empty():
+		var n: Node = pila.pop_back()
+		pila.append_array(n.get_children())
+		if (n is TrampaPared3D and not propias.has(n)) or n is Respiradero3D:
+			n.call("apagar", 0.0)
+			calladas += 1
+	for v in NubeVeneno3D.vivas.duplicate():
+		if is_instance_valid(v):
+			(v as NubeVeneno3D).retirar()
+	_ok("1.0 se apagan las trampas y respiraderos de las demás salas (%d)" % calladas, calladas >= 1)
+
+
 func _cableado() -> void:
 	var a: TrampaDragon3D = _pz.nodo("t_drg_a") as TrampaDragon3D
 	var b: TrampaDragon3D = _pz.nodo("t_drg_b") as TrampaDragon3D
@@ -186,6 +210,9 @@ func _cableado() -> void:
 	# Desde el muro norte (14,16) la de F9 está a ≤ 6 casillas de donde las pruebas 6 ponen a la jugadora (sala de al lado, (16..21,19)): se queda APAGADA hasta su turno (7.12), para que no queme antes sus setos.
 	if f9 != null:
 		f9.apagar(0.0)
+	# 20/11: desde la casilla de inicio S (12,12) la de F9 tiene que estar DORMIDA (`cerca=4`; con 6 disparaba sola a los 3 s y el resultado dependía de cuánto tardase la carga).
+	_jugadora_lista(Vector2i(12, 12))
+	_ok("1.8b F9 duerme con la jugadora en la casilla de inicio S (12,12)", f9 != null and f9.cerca == 4.0 and Vector2(Vector2i(12, 12) - f9.celda_delante()).length() > f9.cerca, "cerca %s" % (str(f9.cerca) if f9 != null else "-"))
 	_ok("1.8 la trampa está en la cara del muro y a ras del suelo de la casilla de delante", a != null and absf(a.position.z - 9.0 * Terreno3D.casilla) < 0.01 and absf(a.position.y - Terreno3D.y_pies(Vector2i(26, 9))) < 0.01, "pos %s" % a.position)
 	# Orientaciones: el +Z local mira hacia fuera del muro en las cuatro.
 	var bien: bool = true
@@ -755,8 +782,8 @@ func _lab_f9() -> void:
 	f.encender()
 	await avanzar_s(0.5)
 	_ok("7.12 F9: los setos y el barril están enteros antes de empezar", s1 != null and s2 != null and ba != null and not bool(s1.get("is_lit")) and not bool(s2.get("is_lit")) and not ba.explotado)
-	_ok("7.12b F9: dormida (`cerca=6`) mientras la jugadora está lejos: no ha disparado ni una vez desde que arrancó la escena", f.dormida() and f.disparos == 0, "disparos %d" % f.disparos)
-	_jugadora_lista(Vector2i(12, 17))                          # entra en la sala (a 2 casillas de la de delante de la trampa, `cerca=6`; el barril, a 10 u: fuera de su radio)
+	_ok("7.12b F9: dormida (`cerca=4`) mientras la jugadora está lejos: no ha disparado ni una vez desde que arrancó la escena", f.dormida() and f.disparos == 0, "disparos %d" % f.disparos)
+	_jugadora_lista(Vector2i(12, 17))                          # entra en la sala (a 2 casillas de la de delante de la trampa, `cerca=4`; el barril, a 10 u: fuera de su radio)
 	f._t = f.cada_s - 0.05                                     # el primer disparo sale ya
 	var t0: float = reloj.t
 	var t_s1: float = -1.0
