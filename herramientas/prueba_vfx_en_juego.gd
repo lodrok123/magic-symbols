@@ -251,14 +251,16 @@ func _un_hechizo(el: String, nombre: String, glifos: Dictionary, figura: int, vi
 	var sx: float = float(t.get("semieje_x"))
 	var sy: float = float(t.get("semieje_y"))
 	var sz: float = float(t.get("semieje_z"))
+	# 17/11 (508): lo plantado en el suelo se DIBUJA FuegoToy.ALTO_DIBUJO veces más alto que su lógica (solo dibujo); lo que vuela y el haz, no
+	var alto_dib: float = 1.0 if (viaja or figura == 4) else FuegoToy.ALTO_DIBUJO
 	var medidas_ok: bool
 	if figura == 4:
 		medidas_ok = sx > 0.5 and sx * 2.0 <= h.alcance_haz * CASILLA + 0.01 and _cerca(sz, Hechizo.HAZ_ANCHO * CASILLA * 0.5 * HazGas.escala_de(h), 0.01)      # 12/11: el radio × k (tamaño de los haces)
 	elif figura == 1:
-		medidas_ok = _cerca(maxf(sx, sz), maxf(s.x, s.z), 0.01) and _cerca(sy, s.y, 0.01)
+		medidas_ok = _cerca(maxf(sx, sz), maxf(s.x, s.z), 0.01) and _cerca(sy, s.y * alto_dib, 0.01)
 	else:
-		medidas_ok = _cerca(sx, s.x, 0.01) and _cerca(sy, s.y, 0.01) and _cerca(sz, s.z, 0.01)
-	_ok("1 %s: semiejes (%.2f, %.2f, %.2f) ≈ Hechizo × casilla (%.2f, %.2f, %.2f)" % [etq, sx, sy, sz, s.x, s.y, s.z], medidas_ok)
+		medidas_ok = _cerca(sx, s.x, 0.01) and _cerca(sy, s.y * alto_dib, 0.01) and _cerca(sz, s.z, 0.01)
+	_ok("1 %s: semiejes (%.2f, %.2f, %.2f) ≈ Hechizo × casilla (%.2f, %.2f, %.2f)%s" % [etq, sx, sy, sz, s.x, s.y * alto_dib, s.z, " (alto × ALTO_DIBUJO)" if alto_dib != 1.0 else ""], medidas_ok)
 	# las mallas miden lo que los semiejes (fuego: las mismas mallas que comprueba prueba_vfx_toy; agua: la esfera, la cortina o el chorro)
 	var nombres: Dictionary = {"fuego": {0: "Llama", 1: "Banda", 2: "Exterior", 3: "Cascara", 4: "Chorro"}, "agua": {0: "Esfera", 1: "", 2: "Cortina", 3: "", 4: "Chorro"}, "hielo": {0: "", 1: "", 2: "", 3: "", 4: ""}, "rayo": {0: "", 1: "", 2: "", 3: "", 4: ""}, "magma": {0: "", 1: "", 2: "", 3: "", 4: ""}, "viento": {0: "", 1: "", 2: "", 3: "", 4: ""}, "tierra": {0: "", 1: "", 2: "", 3: "", 4: ""}}      # hielo y rayo no son mallas con nombre propio: cristales y trazos en MultiMesh
 	var nm: String = String((nombres[el] as Dictionary)[figura])
@@ -717,7 +719,8 @@ func _tierra_unica() -> void:
 				cz += Terreno3D.centro_de(c as Vector2i, 0.0).z / float(celdas.size())
 			_ok("7 procedural: el toy se asienta en el suelo real (y %.3f = %.3f) y en el centro de sus casillas (%.2f, %.2f)" % [t.global_position.y if t != null else -1.0, y_suelo, cx, cz],
 				t != null and _cerca(t.global_position.y, y_suelo, 0.01) and _cerca(t.global_position.x, cx, 0.05) and _cerca(t.global_position.z, cz, 0.05))
-			await create_timer(0.7).timeout
+			# el muro de tierra tiene inicio lento (d4d55889): en la primera mitad de T_NACER_MURO solo hay grieta y ninguna roca ha salido; se espera a que salgan
+			await create_timer(TierraToy.T_NACER_MURO + 0.2).timeout
 			var ys: Array = t.call("alturas_actuales") as Array if t != null else []
 			_ok("7 procedural: las rocas han subido (%d rocas, y máx %.2f ≥ 0)" % [ys.size(), float(ys.max()) if not ys.is_empty() else -9.0], not ys.is_empty() and float(ys.max()) >= -0.01)
 			# el Lanzador deshace la tierra (el tope o la caducidad): el toy se hunde en ese momento, no al acabar su vida
