@@ -258,7 +258,7 @@ func _g6() -> bool:
 		return false
 	await _pulsar_e()
 	_ok("6 G6: con E arranca la secuencia del cofre legendario", tesoro.secuencia != null and tesoro.secuencia.activa)
-	await _esperar(func() -> bool: return tesoro.secuencia != null and tesoro.secuencia.hecha, 14.0)
+	await _esperar(func() -> bool: return _confirmar_secuencia(tesoro.secuencia), 25.0)
 	_ok("6 G6: EL GLIFO: el cofre da ᛜ «barrera» y queda en el libro", Repertoire.sigil_active("barrera") and tesoro.es_abierto and Flags.i().tiene("gruta.g6.glifo"))
 	await avanzar_s(1.5)
 	# El primer uso: el atajo.

@@ -141,6 +141,16 @@ func _curar() -> void:
 	jugador.set("vida", VIDA_MAX)
 
 
+## La ceremonia del cofre legendario espera sin límite a que el jugador confirme (`esperando_input`): se confirma como lo haría él (`continuar()`).
+## Devuelve true cuando la secuencia ha terminado.
+func _confirmar_secuencia(seq: SecuenciaCofreLegendario3D) -> bool:
+	if seq == null:
+		return false
+	if seq.esperando_input:
+		seq.continuar()
+	return seq.hecha
+
+
 func _esperar(cond: Callable, max_s: float) -> float:
 	var t: float = 0.0
 	while not bool(cond.call()) and t < max_s:
@@ -457,7 +467,7 @@ func _c6() -> bool:
 		return false
 	await _pulsar_e()
 	_ok("6 C6: con E arranca la secuencia del cofre legendario", tesoro.secuencia != null and tesoro.secuencia.activa)
-	await _esperar(func() -> bool: return tesoro.secuencia != null and tesoro.secuencia.hecha, 14.0)
+	await _esperar(func() -> bool: return _confirmar_secuencia(tesoro.secuencia), 25.0)
 	_ok("6 C6: EL GLIFO: el cofre da ᚱ «pulso» (flag %s) y queda en el libro" % FLAG_GLIFO, Flags.i().tiene(FLAG_GLIFO) and Repertoire.sigil_active("raido") and tesoro.es_abierto)
 	await avanzar_s(1.5)
 	# Primer uso: la pared hueca de la salida.
