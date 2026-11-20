@@ -71,12 +71,12 @@
 ; pieza jarron_c1a jarron 5 13 botin=oro
 ; pieza jarron_c1b jarron 8 14 botin=pocion
 ;
-; --- C1 · El secreto de las estatuas (OPCIONAL, para volver con el glifo): pared hueca bajo la sala; dentro, tres estatuas piden fuego, hielo, fuego ---
+; --- C1 · El secreto de las estatuas (OPCIONAL, para volver con el glifo): pared hueca bajo la sala; dentro, tres estatuas piden fuego, agua, tierra ---
 ; pieza hueca_c1 pared_hueca 7 19 flag=cuevap.c1.nicho mira=n
 ; pieza pad_c1a veta 5 22
 ; pieza pad_c1b veta 7 22
 ; pieza pad_c1c veta 9 22
-; pieza estatuas_c1 estatuas 5 21 celdas=5,21+7,21+9,21 secuencia=fuego,hielo,fuego flag=cuevap.c1.estatuas
+; pieza estatuas_c1 estatuas 5 21 celdas=5,21+7,21+9,21 secuencia=fuego,agua,tierra flag=cuevap.c1.estatuas
 ; pieza cofre_epico cofre 8 21 modelo=epico aparece_si=flag.cuevap.c1.estatuas abierto=cuevap.c1.epico da=nucleo_eco:1+frasco_vacio:1
 ;
 ; ======================================================================================================================================================

@@ -5,7 +5,7 @@ extends "res://herramientas/escenario_base.gd"
 ## fuente) y el del jugador (ᚱ) corren solos. La única ayuda del arnés: la vida del jugador se repone en la pelea de C4 (los goblins pegan de verdad y esto no prueba el combate).
 ##
 ## Con `kit = "pruebas"` (el de PruebaCueva y el del Bosque 01 v01) se entra con TODOS los elementos y los glifos del libro salvo ᚱ: no hace falta dar nada. Lo obligatorio pide fuego (C1, C4), tierra
-## (C2) y agua (C3, enfriar la lava con la flecha de agua REAL, 24/10); el hielo también lo piden las estatuas del secreto, que es opcional.
+## (C2) y agua (C3, enfriar la lava con la flecha de agua REAL, 24/10); el secreto de las estatuas pide fuego, agua y tierra (sin hielo).
 ##
 ## 1 · Montaje: la Cueva (27 × 25) sin avisos; los reactivos de la fase 3 y la cascada de C2 están montados.
 ## 2 · C1: el cristal late, las setas ENCENDIDAS por la veta maduran y se cogen como seta resonante; un hechizo de fuego sobre el cristal manda un pulso de FUEGO que enciende el brasero del fondo
@@ -16,7 +16,7 @@ extends "res://herramientas/escenario_base.gd"
 ## 5 · C4: la sala se cierra, el pulso de un cristal ATURDE al goblin que pisa la veta, se derrota a los dos goblins, aparece el cofre de la llave y se abre; esquirla y mineral.
 ## 6 · C5: se rodea la charca a pie; la fuente suelta su pulso; la puerta se abre con la llave.
 ## 7 · C6: el pulso llega al receptor por el prisma, el cofre legendario (con su columna de luz dorada) se abre y da ᚱ; con ᚱ se abre la pared hueca de la salida.
-## 8 · Vuelta a C1: la pared hueca del nicho se abre con ᚱ; las tres estatuas (un fallo las reinicia; fuego, hielo, fuego las completa) hacen aparecer el cofre ÉPICO (columna de luz morada) y da el
+## 8 · Vuelta a C1: la pared hueca del nicho se abre con ᚱ; las tres estatuas (un fallo las reinicia; fuego, agua, tierra las completa) hacen aparecer el cofre ÉPICO (columna de luz morada) y da el
 ##     núcleo de eco.
 ## 9 · La salida (3..5,18) lleva al Bosque 01 v01 (`boca_cueva`).
 ## 10 · El color: la luz de la Cueva es azul (sol y ambiente), los braseros alumbran más que el reposo, los cofres épico y legendario echan su columna y suben motas de su color al abrirse.
@@ -638,29 +638,29 @@ func _vuelta_c1() -> void:
 	# Dentro del nicho: a la losa de la primera estatua.
 	if not await _ruta("8 C1", [Vector2i(7, 20), Vector2i(6, 21), [Vector2i(5, 22), TOL_EXACTA]]):
 		return
-	# Primero un fallo: hielo sobre la estatua que pide fuego.
+	# Primero un fallo: agua sobre la estatua que pide fuego.
 	var falla: Array = [0]
 	est.falla.connect(func() -> void: falla[0] += 1)
-	_ok("8 C1: ᚱ + HIELO desde la losa de la 1.ª estatua (pide fuego) sale", await _apuntar("hielo", ["raido", "flecha"], Vector2i(5, 21)))
+	_ok("8 C1: ᚱ + AGUA desde la losa de la 1.ª estatua (pide fuego) sale", await _apuntar("agua", ["raido", "flecha"], Vector2i(5, 21)))
 	await avanzar_s(0.8)
 	_ok("8 C1: es un FALLO: la secuencia se reinicia (paso 0) y las estatuas se apagan", falla[0] == 1 and est.fallos == 1 and est.paso == 0 and not est.estatua(0).encendida)
 	await _sin_pulsos_en_vuelo()
-	# La secuencia buena: fuego, hielo, fuego.
+	# La secuencia buena: fuego, agua, tierra.
 	_ok("8 C1: ᚱ + fuego sobre la 1.ª estatua sale", await _apuntar("fuego", ["raido"], Vector2i(5, 21)))
 	await avanzar_s(0.8)
 	_ok("8 C1: la 1.ª estatua se enciende (fuego)", est.paso == 1 and est.estatua(0).encendida and est.aciertos == 1)
 	await _sin_pulsos_en_vuelo()
 	if not await _ruta("8 C1", [Vector2i(6, 22), [Vector2i(7, 22), TOL_EXACTA]]):
 		return
-	_ok("8 C1: ᚱ + hielo sobre la 2.ª estatua sale", await _apuntar("hielo", ["raido", "flecha"], Vector2i(7, 21)))
+	_ok("8 C1: ᚱ + agua sobre la 2.ª estatua sale", await _apuntar("agua", ["raido", "flecha"], Vector2i(7, 21)))
 	await avanzar_s(0.8)
-	_ok("8 C1: la 2.ª estatua se enciende (hielo)", est.paso == 2 and est.estatua(1).encendida and est.estatua(0).encendida)
+	_ok("8 C1: la 2.ª estatua se enciende (agua)", est.paso == 2 and est.estatua(1).encendida and est.estatua(0).encendida)
 	await _sin_pulsos_en_vuelo()
 	if not await _ruta("8 C1", [Vector2i(8, 22), [Vector2i(9, 22), TOL_EXACTA]]):
 		return
-	_ok("8 C1: ᚱ + fuego sobre la 3.ª estatua sale", await _apuntar("fuego", ["raido"], Vector2i(9, 21)))
+	_ok("8 C1: ᚱ + tierra sobre la 3.ª estatua sale", await _apuntar("tierra", ["raido", "flecha"], Vector2i(9, 21)))
 	await avanzar_s(0.8)
-	_ok("8 C1: la secuencia fuego, hielo, fuego está completa: flag cueva.c1.estatuas, las tres encendidas", est.hecha and Flags.i().tiene(FLAG_ESTATUAS) and est.estatua(2).encendida and est.estatua(1).encendida and est.estatua(0).encendida)
+	_ok("8 C1: la secuencia fuego, agua, tierra está completa: flag cueva.c1.estatuas, las tres encendidas", est.hecha and Flags.i().tiene(FLAG_ESTATUAS) and est.estatua(2).encendida and est.estatua(1).encendida and est.estatua(0).encendida)
 	await _esperar(func() -> bool: return epico.es_cerrado, 3.0)
 	_ok("8 C1: APARECE el cofre ÉPICO (8,21) y echa su columna de luz MORADA", epico.es_cerrado and not epico.es_oculto and epico.columna != null and VfxCalidad3D.encendida(epico.columna) and epico.calidad == "epico")
 	var color_col: Color = Objetos.CALIDADES["epico"]["color"]

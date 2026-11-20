@@ -2,7 +2,7 @@ class_name EstatuasPulso3D
 extends Node3D
 
 ## LAS ESTATUAS DEL SECRETO DE C1 (24/10, fase 3 del Pulso resonante; PLAN_PULSO_RESONANTE §5 «El secreto (épico)» y docs/MATERIALES_CUEVA.md). Tres estatuas de piedra (modelo
-## `estatua_piedra`) que piden una SECUENCIA de pulsos de elemento (en la Cueva: fuego, hielo, fuego) y, al cumplirla, ponen la flag `flag=` (`cueva.c1.estatuas`), que hace aparecer el cofre
+## `estatua_piedra`) que piden una SECUENCIA de pulsos de elemento (en la Cueva: fuego, agua, tierra) y, al cumplirla, ponen la flag `flag=` (`cueva.c1.estatuas`), que hace aparecer el cofre
 ## ÉPICO. Solo se puede hacer con el glifo ᚱ (el pulso del jugador lleva el elemento de la receta): por eso es la razón para volver a C1 tras el cofre legendario.
 ##
 ## CÓMO SE JUEGA. Cada estatua es un receptor del pulso (grupo `Pulso3D.GRUPO_PULSABLE`, `celda`, `on_pulso`). Las estatuas se encienden EN ORDEN, de la primera a la última de `celdas`:
