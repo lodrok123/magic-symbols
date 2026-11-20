@@ -124,7 +124,7 @@ extends Node
 ##              el 2.º la tira hacia `cae`: aturde 3 s y daña 25 a los Combate3D de la casilla donde cae (a la jugadora no) y queda `estalagmita_rota`, un escombro bajo que NO bloquea. Con `flag`
 ##              se acuerda de que cayó (la pone al caer; si ya está puesta nace caída). Señal `cae`; condición `caida`|`en_pie`. No bloquea su casilla (adorno que se rodea)
 ##   estatuas   celdas=<lista>  secuencia=<e1,e2,…>  flag=<nombre>                  EstatuasPulso3D (fase 3, secreto de C1): una estatua de piedra por casilla de `celdas`; piden pulsos de ESOS elementos, EN ESE
-##              ORDEN (las dos listas, igual de largas: `secuencia=fuego,hielo,fuego`); un fallo las apaga todas; al acabar ponen `flag`. Cada una lleva a sus pies el color del elemento que pide
+##              ORDEN (las dos listas, igual de largas: `secuencia=fuego,agua,tierra`); un fallo las apaga todas; al acabar ponen `flag`. Cada una lleva a sus pies el color del elemento que pide
 ##   prisma     dir=n|e|s|o (n)                                                      PrismaPulso3D (fase 2): MODIFICADOR. Reemite el pulso que le llega por la casilla que mira (`dir`), con su
 ##              elemento, su dueño y el alcance que le quedaba; se gira 90° (horario) con un golpe de hechizo o con E. Bloquea su casilla
 ##   pared_hueca  flag=<nombre>  mira=n|e|s|o                                       ParedHuecaPulso3D (fase 2): REACTIVO. Suena hueca (eco) con cualquier pulso y SE ABRE solo con uno del
