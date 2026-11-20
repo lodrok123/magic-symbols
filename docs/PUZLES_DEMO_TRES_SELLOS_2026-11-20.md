@@ -231,8 +231,8 @@ Cada elemento tiene sus biomas:
 | 1 | Bosque 01 | fuego | |
 | 2 | Bosque 02 | fuego | Salida **opcional** a la Cueva: da un glifo opcional (ᚱ, el cofre C6 de `Cueva.txt`). |
 | 3 | Monte Sumicio | fuego → **agua** | El encargo de Marimanta da el agua (ya hecho, `encargo_marimanta.gd`). |
-| 4 | Bosque 01 → **Ruinas** | fuego, agua | Segunda salida de Bosque 01. Las Ruinas se juegan con **agua**. |
-| 5 | Monte Sumicio | → **tierra** | Al volver de las Ruinas. |
+| 4 | Bosque 01 → **Ruinas** | fuego, agua → **tierra** | Segunda salida de Bosque 01. Las Ruinas se juegan con **agua** y su cofre final da la **tierra** (Pablo, 20/11). |
+| 5 | Monte Sumicio | los tres | Se vuelve de paso; ya no da sello. |
 | 6 | Bosque 02 → **Cuevas** | los tres | Segunda salida de Bosque 02. |
 | 7 | Cuevas → **Pantano** → **Pantano 01** | los tres | Final de la demo. |
 
@@ -241,8 +241,8 @@ Cada elemento tiene sus biomas:
   al volver: el camino de Bosque 01 a las Ruinas y el de Bosque 02 a las Cuevas. Así el agua abre caminos nuevos en un mapa conocido.
 - **La Cueva opcional se juega con fuego.** No tiene tierra todavía. Lo que en `Cueva.txt` pide agua o tierra (el nicho de C2, la lava
   de C3, las estatuas) se queda como **secreto para la vuelta**, que es natural porque en el paso 6 se vuelve a pasar por Bosque 02.
-- **Las Ruinas se juegan sin tierra.** La tierra de la tabla en Ruinas solo puede ser una **cámara para volver**: se ve cerrada en la
-  primera visita y se abre con tierra entre los pasos 5 y 6. Si no se quiere que la vuelta sea obligatoria, es opcional y lleva premio.
+- **Las Ruinas se juegan con agua y terminan dando la tierra.** Así la tierra de la tabla en Ruinas sale sola: se gana en el cofre
+  final y **la salida de las Ruinas ya pide tierra**. Se estrena el sello en el mismo sitio donde se consigue, sin volver atrás.
 - **Cueva y Cuevas son dos sitios.** La opcional (paso 2) es `Cueva.txt`; las Cuevas del paso 6 son las de tierra y llevan a Pantano.
 - El Pantano sigue siendo el único bioma con los tres sellos desde el principio, y es el final.
 
@@ -310,7 +310,7 @@ caer **en sentido contrario a la llegada del pulso**: si cae hacia la sima, hace
 de cada lado, y solo una la tumba bien. La otra la tira hacia la pared y deja el paso cerrado hasta reiniciar.
 *Necesita:* una regla nueva. Hoy la columna cae hacia un lado fijo (`cae=e` en `Cueva.txt`); C8 pide `cae=contra_pulso` (coste B).
 
-### 5.3 Ruinas · agua, y una cámara de tierra para volver (bioma nuevo)
+### 5.3 Ruinas · agua, y la tierra como premio final (bioma nuevo)
 
 Es un bioma nuevo, así que necesita mapa, escena y arte. Su tema propone **piedra labrada y agua canalizada**: acueductos, cisternas,
 suelos rotos y túmulos. Encaja con los puzles de cauces, que aquí se leen como obra humana.
@@ -339,18 +339,24 @@ como en R2) para que los braseros asomen, y encenderlos con fuego antes de que l
 ya se sabía, el fuego, con lo nuevo.
 *Verificar:* que un brasero bajo el agua no se puede encender, y que se enciende cuando el agua baja de `UMBRAL_AGUA`.
 
-**Cámara del túmulo (tierra, se vuelve entre los pasos 5 y 6):** en la primera visita se ve su puerta, un muro agrietado o una losa que
-no cede, y se vuelve con tierra. Es **opcional** y lleva un premio grande; si se quiere que sea obligatoria, la tierra se gana en Sumicio
-y la ruta pasa otra vez por las Ruinas antes de las Cuevas.
+**El túmulo y la tierra.** Al fondo de las Ruinas, tras R2–R4 y Q16, un túmulo guarda el cofre legendario con el **sello de tierra**.
+Al cogerlo, el camino por el que se vino queda cortado (se hunde un tramo del suelo, o el agua de la cisterna lo cubre), y la única
+salida pide la tierra recién ganada. La salida es un tutorial corto, de menos a más:
 
 | Id | Puzle | Verbo | Elementos | Coste | Estado |
 |---|---|---|---|---|---|
+| **R5** | **El primer escalón** | levantar para subir | tierra | A | nuevo |
 | T1a | Desvío en seco (§3) | cerrar un brazo antes de soltar el agua | tierra, luego agua | A | **hecho en el lab** |
-| T5 | Las bocas de la mamoa (§3) | tapar a la vez | tierra | B | nuevo (decisión §7) |
-| **R1** | **La cisterna dormida** | vaciar para bajar | tierra + agua | A/B | nuevo, es el premio de la cámara |
+| **R1** | **La cisterna dormida** | vaciar para bajar | tierra + agua | A/B | nuevo, es la salida |
+| T5 | Las bocas de la mamoa (§3) | tapar a la vez | tierra | B | opcional, sala lateral (decisión §7) |
 
-T1a enseña la presa en seco y R1 la usa a lo grande. T1b pasa al Pantano. El foso T3 pasa a las Cuevas, que es donde se aprende la
-tierra.
+**R5 · El primer escalón.** Junto al cofre, un muro de una casilla de alto. Un bloque de tierra delante hace de escalón. Sin enemigos ni
+tiempo: solo ver que la tierra levanta suelo. Enseña lo mismo que T2 a pequeña escala; T2 lo amplía en las Cuevas.
+
+**Orden de la salida:** R5 enseña a levantar; T1a, a hacer la presa en seco; R1 lo junta con el agua y con contrarreloj. Después de
+R1 se sale al Bosque 01 con los tres sellos.
+
+T1b pasa al Pantano. El foso T3 pasa a las Cuevas.
 
 **R1 · La cisterna dormida.** Una cisterna llena tapa una escalera con un cofre al fondo. La alimenta un canal desde un manantial, y
 tiene un desagüe con una `compuerta` que abre un `pulsador modo=agua`.
@@ -417,14 +423,15 @@ En el orden de la ruta, que es también el orden en que hacen falta:
 3. **Bosque, coste A:** F13, F14, Q13 y Q14 en el laboratorio de fuego y agua. Q13 y Q14 son las puertas de la segunda pasada.
 4. **Ruinas, agua, coste A:** R2, R3 y R4 en el laboratorio de agua. Después Q16 (coste B).
 5. **Laboratorio de tierra nuevo** (`LabPuzlesTierra3D`, con el patrón de los laboratorios de fuego y agua): T2, T3, T4 y C7, coste A.
-   Sirve para las Cuevas y la cámara del túmulo.
+   Sirve para las Cuevas y la salida de las Ruinas.
 6. **Pantano, coste A:** T1b (ya hecho), X1, P1 y Q15.
 7. **Reacción «la tierra tapa»** (coste B) para X3 y T5. Después P2, R1 y C8.
 8. **Coste C:** T6, si se aprueba.
 9. **Mapas:** Ruinas (mapa, escena y arte; antes hace falta decidir su arte, §7), las Cuevas del paso 6 y Pantano 01. Las salidas
    nuevas: Bosque 01 → Ruinas y Bosque 02 → Cuevas, con su puerta de agua.
 10. **Progresión:** hoy el kit `demo` da los tres sellos de entrada (`Lanzador3D.PROGRESIONES`). La ruta pide fuego al empezar,
-    agua en Sumicio (ya existe, `global.sello.agua`) y tierra en Sumicio a la vuelta de las Ruinas (falta el encargo que la da).
+    agua en Sumicio (ya existe, `global.sello.agua`) y tierra en el cofre final de las Ruinas. Los cofres hoy dan glifos (`glifo=`) pero
+    no sellos: falta un `sello=tierra` en el cofre que apunte `global.sello.tierra`, como hace `EncargoMarimanta.dar_sello_agua()`.
 
 Cada puzle se monta primero como sala del laboratorio, con botón `!` y placa `@`, y después se pasa al catálogo del generador de mapas
 y al nivel.
@@ -432,11 +439,10 @@ y al nivel.
 ## 7. Decisiones para Pablo
 
 1. **Lectura de la tabla de biomas:** ¿tema principal, o cada bioma solo con sus elementos? Cambia lo que se hace con §5.5.
-2. **Cámara del túmulo en las Ruinas:** ¿opcional, con premio, u obligatoria (la ruta vuelve a las Ruinas antes de las Cuevas)?
-3. **Las Cuevas del paso 6:** ¿mapa nuevo, o la Cueva Resonante?
-4. **La tierra en Sumicio:** ¿quién la da y a cambio de qué? ¿Un segundo encargo de Marimanta?
-5. **Ruinas:** ¿qué arte? Por ejemplo piedra labrada con musgo, acueducto, cisterna y túmulo, o el kit de otro bioma reutilizado.
-6. ¿La flecha de tierra empuja bloques (T6)?
-7. ¿Qué sale de la mamoa (T5): veneno, enemigos o nada?
-8. ¿Un tope de 2 puzles de braseros por nivel?
-9. ¿Gruta Permanencia y Sala de Empuje entran en la demo? Si entran, con los arreglos de §4.
+2. **Las Cuevas del paso 6:** ¿mapa nuevo, o la Cueva Resonante?
+3. **Vuelta a Sumicio (paso 5):** ¿sigue siendo obligatoria, ya sin sello? Si no, de las Ruinas se puede ir directo a Bosque 02.
+4. **Ruinas:** ¿qué arte? Por ejemplo piedra labrada con musgo, acueducto, cisterna y túmulo, o el kit de otro bioma reutilizado.
+5. ¿La flecha de tierra empuja bloques (T6)?
+6. ¿Qué sale de la mamoa (T5): veneno, enemigos o nada?
+7. ¿Un tope de 2 puzles de braseros por nivel?
+8. ¿Gruta Permanencia y Sala de Empuje entran en la demo? Si entran, con los arreglos de §4.
