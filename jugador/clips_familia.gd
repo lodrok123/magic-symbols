@@ -162,19 +162,6 @@ const FUENTES: Dictionary = {
 		{"ruta": "res://arte/modelos/chibi_elf.glb", "referencia": "Idle", "clips": {}},
 		FUENTE_MIXAMO_SURGIR,
 	],
-	# Pedro Chosco (20/11): anciano elfo sabio de Meshy riggeado con el esqueleto de elfo_base (tools/autorig_pedro_chosco.py), sin bastón. Van primero, y ganan a los de chibi_elf:
-	#   Idle / Walking  <- Old_Man_Idle / Old_Man_Walk de Mixamo (de pie con las manos en la barriga; andar lento de anciano). Se llaman «Idle» y «Walking» A PROPÓSITO (los nombres de chibi_elf):
-	#                      con «idle» en minúscula convivirían los dos y `Pj3D._buscar_clip` (que compara en minúsculas) cogería el primero de la lista, no el nuestro. Old_Man_Walk avanza (está en
-	#                      AVANZAN de prueba_mixamo_clips.gd): se centra para que ande en el sitio, como los demás andares.
-	#   hablar          <- el «hablar» de elfo_base (el mismo esqueleto), con su «idle» como referencia de pies.
-	#   ofrecer         <- el «Ofrecer» de la jugadora: adelanta la mano derecha con la palma abierta (con la suela plantada, como en FUENTE_CLIPS_JUGADORA).
-	# El resto de roles (hit, death...) los pone chibi_elf, igual que en elfo_base.
-	"pedro_chosco_rig": [
-		{"ruta": RUTA_CLIPS_MIXAMO, "referencia": "Idle", "centrar": ["Old_Man_Walk"], "clips": {"Idle": "Old_Man_Idle", "Walking": "Old_Man_Walk"}},
-		{"ruta": "res://arte/modelos/elfo_base.glb", "referencia": "idle", "clips": {"hablar": "hablar"}},
-		{"ruta": RUTA_CLIPS_JUGADORA, "referencia": "Saludo", "clips": {"ofrecer": "Ofrecer"}, "plantar": ["Ofrecer"]},
-		{"ruta": "res://arte/modelos/chibi_elf.glb", "referencia": "Idle", "clips": {}},
-	],
 	"santa_compana_cruz": [
 		FUENTE_SANTA_CRUZ,
 		{"ruta": "res://arte/modelos/chibi_elf.glb", "referencia": "Idle", "clips": {}},

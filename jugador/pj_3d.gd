@@ -127,6 +127,10 @@ const CLIPS_DE: Dictionary = {
 	"marimanta": {"walk": "elderly_shaky_walk_inplace", "talk": "talk_with_left_hand_on_hip"},
 	# Chamán goblin (28/10): los clips de Marimanta (ver ClipsFamilia.FUENTES["goblin_chaman_rig"]). Con el bastón apoyado en el suelo el andar de anciana (apoya el peso en el palo) es el que mejor le queda.
 	"goblin_chaman": {"talk": "talk_with_left_hand_on_hip"},       # 29/10: el walk NO es el de anciana (0,2 u por ciclo, no sirve para moverse): se resuelve al «Walking» normal de Marimanta (mismo esqueleto, sin retarget)
+	# 20/11 Pedro Chosco: rig y clips de Pablo (Meshy + Mixamo); el clip sin nombre es el de extender la mano (ofrecer).
+	"pedro_chosco": {"idle": "Idle_9", "walk": "Walking", "talk": "Talk_Passionately", "ofrecer": "_01a1a757_c763_7136_9350_6746fedb1697", "run": "Running", "cast": "mage_soell_cast"},
+	# 20/11 Moura viajera: rig y clips de Pablo (Meshy + Mixamo); los pendientes sueltos quitados y la falda pesada a la cadera por detrás editando el GLB, ver diario.
+	"moura_viajera": {"idle": "Idle", "walk": "Walking_Woman", "talk": "Talk_with_Left_Hand_Raised", "run": "Running"},
 }
 
 ## Roles a los que se quita el desplazamiento de la cadera al cargar (el Juego mueve al personaje): id -> [roles]. elfo_base: su walk (Tripo) avanza la cadera
@@ -247,8 +251,6 @@ const MODELO_DE: Dictionary = {
 	# GLB y lo único que cambia es la pieza de Equipo3D.EQUIPO: la cruz de campanillas o la palmatoria con la vela.
 	"santa_compana_cruz": "santa_compana_rig",
 	"santa_compana_vela": "santa_compana_rig",
-	# Pedro Chosco (20/11): el anciano elfo sabio de Meshy riggeado con el esqueleto de elfo_base (tools/autorig_pedro_chosco.py).
-	"pedro_chosco": "pedro_chosco_rig",
 	# Sin entrada aquí el id carga el GLB de su mismo nombre.
 }
 
