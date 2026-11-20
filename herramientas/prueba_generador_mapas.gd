@@ -13,6 +13,7 @@ extends SceneTree
 
 const Generador = preload("res://herramientas/generador_mapas/generador_mazmorra.gd")
 const Exportador = preload("res://herramientas/generador_mapas/exportador_mapa.gd")
+const CamaraSalas = preload("res://presentacion/camara_salas.gd")
 const Catalogo = preload("res://herramientas/generador_mapas/catalogo_puzles.gd")
 const SEMILLAS: int = 40
 const VARIANTES: Array = [
@@ -50,9 +51,59 @@ func _initialize() -> void:
 	_anadir_enemigos_y_cofres()
 	_cofres_que_aparecen()
 	_salidas_a_mano()
+	_camara_por_sala()
 	print("%d comprobaciones en %d ms" % [_hechas, Time.get_ticks_msec() - t0])
 	print("FALLOS: %d" % _fallos)
 	quit(1 if _fallos > 0 else 0)
+
+
+## 15 · Cámara por sala (20/11): una línea `; camara` por sala (caja de su suelo, sin muros dentro del borde), que CamaraSalas
+## vuelve a leer igual; la escena la enciende; en «cueva» no hay salas; las salas pequeñas avisan.
+func _camara_por_sala() -> void:
+	var antes: int = _fallos
+	var n_salas: int = 0
+	var n_avisos: int = 0
+	for alg in ["salas", "pagina", "cueva"]:
+		for s in range(1, 13):
+			var m: Dictionary = Generador.new().generar({"algoritmo": alg, "semilla": s})
+			var quien: String = "%s semilla %d" % [alg, s]
+			var cam: Array = m["salas_camara"]
+			var filas: PackedStringArray = m["filas"]
+			if alg == "cueva":
+				_ok(cam.is_empty(), "la cueva no tiene salas de cámara: " + quien)
+			else:
+				_ok(cam.size() == int(m["stats"]["salas"]), "una sala de cámara por sala: " + quien, "%d de %d" % [cam.size(), int(m["stats"]["salas"])])
+			for r in cam:
+				var rc: Rect2i = r
+				n_salas += 1
+				_ok(Rect2i(0, 0, int(m["ancho"]), int(m["alto"])).encloses(rc), "la sala de cámara cabe en el mapa: " + quien, str(rc))
+				# Cada lado de la caja toca suelo (la caja no es más grande que el suelo de la sala).
+				var lados: Array = [false, false, false, false]
+				for y in range(rc.position.y, rc.end.y):
+					for x in range(rc.position.x, rc.end.x):
+						if filas[y][x] != "#":
+							lados[0] = lados[0] or x == rc.position.x
+							lados[1] = lados[1] or x == rc.end.x - 1
+							lados[2] = lados[2] or y == rc.position.y
+							lados[3] = lados[3] or y == rc.end.y - 1
+				_ok(not lados.has(false), "la caja de la sala de cámara se ajusta a su suelo: " + quien, str(rc))
+				if CamaraSalas.zoom_que_cabe_en(rc.size, 2.3) < 4.0:
+					n_avisos += 1
+					var avisada: bool = false
+					for a in m["avisos"]:
+						avisada = avisada or String(a).begins_with("Sala de %d×%d en %d,%d" % [rc.size.x, rc.size.y, rc.position.x, rc.position.y])
+					_ok(avisada, "la sala pequeña sale en los avisos: " + quien, str(rc))
+			var txt: String = Exportador.texto_mapa(m)
+			var leidas: Array[Rect2i] = CamaraSalas.leer(txt)
+			_ok(leidas.size() == cam.size(), "el mapa exportado lleva sus líneas ; camara: " + quien, "%d de %d" % [leidas.size(), cam.size()])
+			for i in range(mini(leidas.size(), cam.size())):
+				_ok(leidas[i] == cam[i], "la línea ; camara se lee igual: " + quien, "%s / %s" % [leidas[i], cam[i]])
+			_ok(Exportador.texto_escena(m).contains("camara_por_sala = true"), "la escena enciende la cámara por sala: " + quien)
+	var sin: Dictionary = Generador.new().generar({"algoritmo": "salas", "semilla": 3, "camara_sala": false})
+	_ok((sin["salas_camara"] as Array).is_empty() and not Exportador.texto_escena(sin).contains("camara_por_sala"), "sin la casilla no hay cámara por sala")
+	# El zoom que cabe sin cámara: 16:9 a 30°, una sala de 5×4 casillas de 2,3 → min(11,5/1,78; 10,9·0,5)·0,98.
+	_ok(absf(CamaraSalas.zoom_que_cabe_en(Vector2i(5, 4), 2.3) - 5.35) < 0.02, "zoom que cabe en 5×4", str(CamaraSalas.zoom_que_cabe_en(Vector2i(5, 4), 2.3)))
+	_resumen("cámara por sala: %d salas en 36 mapas, %d obligan a acercar por debajo de 4" % [n_salas, n_avisos], antes)
 
 
 func _ok(bien: bool, texto: String, info: String = "") -> void:

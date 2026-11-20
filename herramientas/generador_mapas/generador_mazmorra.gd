@@ -84,6 +84,8 @@ static func parametros_defecto() -> Dictionary:
 		# terreno: `terreno` pinta tierra en los pasillos y losas en la sala del tesoro (para que haya juntas entre suelos distintos);
 		# `acabado` = el acabado de serie de la maqueta (orillas y juntas); con false la escena se exporta con él apagado.
 		"terreno": true, "acabado": true,
+		# `camara_sala`: la cámara se frena en el borde de cada sala y se acerca poco a poco en las pequeñas (CamaraSalas).
+		"camara_sala": true,
 	}
 
 
@@ -2261,6 +2263,38 @@ func _sitio_bloqueo(s: Dictionary, evitar_sur: bool) -> Vector2i:
 	return Vector2i(-1, -1)
 
 
+## 20/11 · Las salas de cámara (CamaraSalas): la caja del suelo de cada sala viva, pistas incluidas (el estampado de un puzle
+## ya agranda su `rect`). Con el algoritmo «cueva» no hay: sus «claros» no son salas cerradas y la cámara se confina solo al mapa.
+## Avisa de las salas que obligan a acercar mucho la cámara (en 16:9, por debajo de ZOOM_AVISO).
+const ZOOM_AVISO: float = 4.0
+const CamaraSalas = preload("res://presentacion/camara_salas.gd")
+const LADO_CASILLA: float = 2.3      ## S de la maqueta
+
+func _salas_camara() -> Array:
+	var r: Array = []
+	if String(p.get("algoritmo", "salas")) == "cueva" or not bool(p.get("camara_sala", true)):
+		return r
+	for s in _vivas():
+		var caja: Rect2i = Rect2i()
+		var hay: bool = false
+		var rs: Rect2i = (s["rect"] as Rect2i).intersection(Rect2i(0, 0, w, h))
+		for i in range(rs.size.x * rs.size.y):
+			var c: Vector2i = rs.position + Vector2i(i % rs.size.x, i / rs.size.x)
+			if _tipo(c) == MURO:
+				continue      # el agua y lo que se cruza también es de la sala
+			caja = caja.expand(c) if hay else Rect2i(c, Vector2i.ZERO)
+			hay = true
+		if not hay:
+			continue
+		caja.size += Vector2i.ONE
+		r.append(caja)
+		var z: float = CamaraSalas.zoom_que_cabe_en(caja.size, LADO_CASILLA)
+		if z < ZOOM_AVISO:
+			var cuanto: String = "hasta %.1f (de serie 6)" % z if z >= CamaraSalas.ZOOM_MINIMO_SALA else "al máximo (%.1f) y aun así no cabe: se verá algo de fuera" % CamaraSalas.ZOOM_MINIMO_SALA
+			avisos.append("Sala de %d×%d en %d,%d: la cámara tendrá que acercarse %s. Agrándala o júntala con otra." % [caja.size.x, caja.size.y, caja.position.x, caja.position.y, cuanto])
+	return r
+
+
 func _resultado() -> Dictionary:
 	var filas: PackedStringArray = PackedStringArray()
 	for y in range(h):
@@ -2280,7 +2314,9 @@ func _resultado() -> Dictionary:
 			"jarron":
 				n_jarrones += 1
 	var pisable: int = w * h - g.count(MURO)
+	var cam: Array = _salas_camara()
 	return {
+		"salas_camara": cam,
 		"parametros": p.duplicate(), "ancho": w, "alto": h, "filas": filas, "inicio": inicio,
 		"salas": _vivas(), "puertas": puertas, "objetos": objetos, "lineas": lineas, "avisos": avisos,
 		"arqueros": bool(p.get("_arqueros", false)), "retoques": _retoques,
