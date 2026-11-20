@@ -131,6 +131,9 @@ const CLIPS_DE: Dictionary = {
 	"pedro_chosco": {"idle": "Idle_9", "walk": "Walking", "talk": "Talk_Passionately", "ofrecer": "_01a1a757_c763_7136_9350_6746fedb1697", "run": "Running", "cast": "mage_soell_cast"},
 	# 20/11 Moura viajera: rig y clips de Pablo (Meshy + Mixamo); los pendientes sueltos quitados y la falda pesada a la cadera por detrás editando el GLB, ver diario.
 	"moura_viajera": {"idle": "Idle", "walk": "Walking_Woman", "talk": "Talk_with_Left_Hand_Raised", "run": "Running"},
+	# 20/11 Inquisidor: rig y clips de Pablo (Meshy + Mixamo); la capa roja pesada a la cadera editando el GLB (tools/glb_pesos_a_cadera.py --preset inquisidor_capa).
+	# Faltan reposo (idle), hablar y la parada de escudo; por ahora solo andar, correr y el combo de ataque (el salto Basic_Jump está en el GLB pero SINONIMOS no tiene rol de salto).
+	"inquisidor": {"walk": "Walking", "run": "Running", "attack": "Double_Combo_Attack"},
 }
 
 ## Roles a los que se quita el desplazamiento de la cadera al cargar (el Juego mueve al personaje): id -> [roles]. elfo_base: su walk (Tripo) avanza la cadera
@@ -179,7 +182,7 @@ const ALTO_BRUTO: Vector2 = Vector2(0.5, 4.0)
 static var validar_al_cargar: bool = true
 static var _validados: Dictionary = {}
 
-## Proporciones por personaje: [cabeza, piernas, torso] (ver proporcion_chibi.gd). 1 = como viene.
+## Proporciones por personaje: [cabeza, piernas, torso] y, opcionales, 4.º hombros y 5.º pecho (ver proporcion_chibi.gd). 1 = como viene.
 ## chibi_test es la elfa ANTIGUA (cabeza muy grande y piernas cortas): así se parece a bookseller_chibi.
 ## La elfa nueva (chibi_elf desde el 5 de octubre, hecha a partir de la librera) ya viene bien: sin corrección.
 const PROPORCIONES: Dictionary = {
@@ -189,6 +192,8 @@ const PROPORCIONES: Dictionary = {
 	# veces los hombros (bookseller_chibi 2,32, alchemist_elf 2,12; chibi_elf 2,90 con sus trenzas). Con la capucha, que va entera al hueso Head y encoge con ella, 2,70 alturas (antes 2,29).
 	# El personaje sigue midiendo 1,0 (set_alto): el cuerpo crece ~6 %. Se mira y se cambia en laboratorios/LabJugadora3D.tscn (-/+).
 	"jugadora_base": [0.80, 1.0, 1.0],
+	# 20/11 (Pablo: «más corpulento de hombros»): elegido de la comparativa docs/capturas/inquisidor/corpulencia_*.png. Pecho 1,15 (Spine2) + hombros 1,4 (clavícula); la cabeza se compensa y no crece. Sin tocar cabeza, piernas ni torso.
+	"inquisidor": [1.0, 1.0, 1.0, 1.4, 1.15],
 }
 
 ## Postura por personaje: [cabeza, cuello, columna, brazos, rodillas, pies, pelvis] en grados (ver ProporcionChibi). Los clips de Meshy
@@ -537,7 +542,7 @@ func _crear_proporcion() -> void:
 	sk.add_child(proporcion)
 	proporcion.preparar()
 	var p: Array = PROPORCIONES.get(id, [1.0, 1.0, 1.0])
-	set_proporcion(float(p[0]), float(p[1]), float(p[2]))
+	set_proporcion(float(p[0]), float(p[1]), float(p[2]), float(p[3]) if p.size() > 3 else 1.0, float(p[4]) if p.size() > 4 else 1.0)
 	var q: Array = POSTURAS.get(id, [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0])
 	set_postura(float(q[0]), float(q[1]), float(q[2]), float(q[3]), float(q[4]), float(q[5]), float(q[6]))
 
@@ -577,13 +582,18 @@ static func _cerrar_falange(sk: Skeleton3D, nombre: String, grados: float) -> in
 
 
 ## Cambia las proporciones en vivo; la altura (set_alto) se recalcula con ellas.
-func set_proporcion(cabeza: float, piernas: float, torso: float) -> void:
+## `hombros` y `pecho` < 0 dejan el valor que ya tenía (los llamadores antiguos no lo pasan).
+func set_proporcion(cabeza: float, piernas: float, torso: float, hombros: float = -1.0, pecho: float = -1.0) -> void:
 	if proporcion == null:
 		return
 	var alto_antes: float = alto_modelo() * scale.y
 	proporcion.cabeza = cabeza
 	proporcion.piernas = piernas
 	proporcion.torso = torso
+	if hombros >= 0.0:
+		proporcion.hombros = hombros
+	if pecho >= 0.0:
+		proporcion.pecho = pecho
 	if alto_antes > 0.0:
 		set_alto(alto_antes)
 
@@ -697,6 +707,10 @@ func _preparar_materiales(modelo: Node3D) -> void:
 			var mat: Material = mi.get_active_material(s)
 			if mat is StandardMaterial3D:
 				var copia: StandardMaterial3D = (mat as StandardMaterial3D).duplicate() as StandardMaterial3D
+				# 20/11: el shader de juguete no sabe aplicar una textura de emisión (solo el color plano `emission`): el mapa emisivo de Meshy (ojos que brillan)
+				# pintaría todo el cuerpo de blanco. El brillo de los ojos ya va en el albedo, así que se apaga la emisión.
+				if copia.emission_enabled and copia.emission_texture != null:
+					copia.emission_enabled = false
 				copia.metallic = 0.0
 				copia.roughness = ROUGHNESS_JUGUETE if pbr_juguete_activo else 1.0
 				# Rim (+ silueta encadenada): solo en superficies opacas. Un material con alfa (pelo, hojas) pintaría el rim sobre el recorte.
