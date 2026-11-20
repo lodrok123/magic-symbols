@@ -5,19 +5,19 @@ diagnóstico y reglas del motor) y de la ruta que fijó Pablo el 20/11.
 
 ## La ruta y los sellos
 
-| Paso | Mapa | Sellos | Puzles nuevos |
-|---|---|---|---|
-| 1 | Bosque 01 | fuego | F13 |
-| 2 | Bosque 02 | fuego | F14 |
-| 2b | Cueva *(opcional)* | fuego → **ᚱ** | ninguno: ya está hecha |
-| 3 | Monte Sumicio | → **agua** | ninguno: el encargo de Marimanta ya existe |
-| 4 | Bosque 01, vuelta | fuego, agua | Q13 (puerta a las Ruinas) |
-| 4 | **Ruinas** | fuego, agua → **tierra** | R2, R3, R4, Q16 · cofre de la tierra · R5, T1a, R1 · T5 (opcional) |
-| 5 | Monte Sumicio | los tres | ninguno |
-| 6 | Bosque 02, vuelta | los tres | Q14 (puerta a las Cuevas) |
-| 6 | **Cuevas** | los tres | T2, T4, C7, T3, C8, T6 |
-| 7 | **Pantano** | los tres | Q15, P1, T1b, X1 |
-| 7 | **Pantano 01** | los tres | X3, P2 · la posición final |
+| Paso | Mapa | Sellos | Glifos que se ganan | Puzles nuevos |
+|---|---|---|---|---|
+| 1 | Bosque 01 | fuego | **ᛜ** al principio · **ᛁ** al final | F13 |
+| 2 | Bosque 02 | fuego | **ᛖ Posición** (propuesta) | F14, F15 |
+| 2b | Cueva *(opcional)* | fuego | **ᚱ** | ninguno: ya está hecha |
+| 3 | Monte Sumicio | → **agua** | | ninguno: el encargo de Marimanta ya existe |
+| 4 | Bosque 01, vuelta | fuego, agua | | Q13 (puerta a las Ruinas) |
+| 4 | **Ruinas** | fuego, agua → **tierra** | **ᛉ** a mitad | R2, R3, R4, Q16 · cofre de la tierra · R5, T1a, R1 · T5 (opcional) |
+| 5 | Monte Sumicio | los tres | | ninguno |
+| 6 | Bosque 02, vuelta | los tres | | Q14 (puerta a las Cuevas) |
+| 6 | **Cuevas** | los tres | **ᛏ** antes de T2 · **ᛒ** al final | T2, T4, C7, C8, T6 |
+| 7 | **Pantano** | los tres | | T3, Q15, P1, T1b, X1 |
+| 7 | **Pantano 01** | los tres | | X3, P2 · la posición final |
 
 En total son **24 puzles**: 2 ya hechos en el laboratorio (T1a, T1b), 18 de coste A o A/B y 4 de coste B o C (Q16, C8, T6, P2), más la posición final por definir.
 
@@ -424,6 +424,58 @@ Encajan con estos puzles y dan soluciones nuevas. Los apunto por si se prefiere 
 
 ---
 
+## Reparto de glifos (Pablo, 20/11)
+
+La flecha (ᛇ) se tiene desde el principio. El resto, en el orden en que se ganan:
+
+| Glifo | Qué es | Dónde se gana | Puzles que lo usan |
+|---|---|---|---|
+| **ᛜ Barrera** | Fuego o agua: aro o burbuja alrededor de la jugadora. Tierra: muro o bloque donde se apunta. | **Bosque 01, al principio**, en un cofre legendario (nuevo: hoy Bosque 01 no tiene ninguno). | toda la tierra que construye |
+| **ᛁ Línea** | Estira el hechizo; con un elemento solo, es un rayo o un chorro. | **Bosque 01, al final**, como recompensa del nivel. | T4; mejora F13, Q13, P1 |
+| **ᛖ Posición** *(nuevo, propuesta)* | El hechizo **sale desde más allá de la jugadora**: el punto de lanzamiento se adelanta 1 casilla por glifo. | **Bosque 02**, el santuario (que hoy da ᛜ). | F15 (nuevo); Q15, T3 |
+| **ᚱ Pulso** | Suelta un pulso del elemento al final del hechizo; recorre vetas y tumba columnas. | **Cueva opcional**, el cofre C6 (ya existe). | C8; atajos en R4, F13, X3 |
+| **ᛉ Permanencia** | Lo que sale se queda donde nace, 2 s más por glifo. | **Ruinas, a mitad**, después de R3. Se aprovecha con la tierra del final. | R1, T5; mejora R3 |
+| **ᛏ Altura** | **Eleva el hechizo.** Con tierra y ᛜ, el bloque sube 1, 2 o 3 niveles; con fuego o agua, llega a lo que está alto. | **Cuevas, antes de T2**. | T2; mejora R2, Q15 |
+| **ᛒ Suelo** | El hechizo se planta en la casilla señalada. Tierra: plataforma sobre un vacío o capa que frena; fuego o agua: trampa. | **Cuevas, al final**, como recompensa. | T3, X1 |
+
+Son 8 glifos. El kit `demo` tiene hoy 6: hay que añadir `permanencia` y `posicion`.
+
+**Fuera de la demo, de momento:** Repetición (es para más adelante), Rebote y ᚦ Perforar (saturan las recompensas).
+
+**Cambios en los puzles por este reparto:**
+- **T3 (el foso) pasa al Pantano**, como primer puzle, en una hondonada seca: ᛒ se gana al final de las Cuevas. X1 lo usa después en
+  combate.
+- **ᛁ llega al final de Bosque 01**, así que F13 tiene que salir con flecha en la primera pasada. Q13, a la vuelta, ya cuenta con ᛁ.
+- **Bosque 02 necesita un puzle que enseñe Posición:** F15.
+- *Verificar:* que ᛉ alarga la tierra más allá de sus 25 s. Su tope es 25 s, así que quizá no le añade nada; si es así, en R1 y T5
+  hay que darle a ᛉ otro papel (por ejemplo, que la presa no caduque mientras la jugadora esté dentro de la cisterna).
+
+### ᛖ Posición · el glifo nuevo
+
+- **Qué hace:** el hechizo sale **desde un punto adelantado**, no desde la mano: 1 casilla con un glifo, y más casillas con más glifos.
+  Todo lo demás del hechizo (forma, alcance) se cuenta desde ese punto.
+- **Runa:** propongo **ᛖ ehwaz** («el caballo»: llevar algo más allá). Está libre en la lámina; las otras libres son ᚾ nauthiz (que la
+  BIBLIA discute para el hielo) y ᛞ dagaz (reservada para luz). Falta su PNG y grabar sus muestras de trazo.
+- **En el código:** ya hay un glifo `posicion` («nace en el punto de suelo que señalas»), sin uso en la demo. Propongo reutilizar su id y
+  cambiarle el comportamiento al de Pablo.
+- **Usos:**
+  - lanzar al otro lado de una reja o de una ventana estrecha;
+  - construir tierra una casilla más allá (el borde de una sima, una casilla que no se alcanza andando);
+  - regar o encender algo que tiene delante un obstáculo bajo (el bancal de Q15, en vez de ᛏ).
+- *Verificar:* qué pasa si el punto adelantado cae dentro de una pared. Propuesta: no se puede lanzar (como la tierra sobre el agua).
+
+### F15 · Al otro lado de la reja *(nuevo)*
+**Dónde:** Bosque 02, junto al santuario · **Sellos:** fuego · **Glifo:** ᛖ Posición · **Coste:** A (con el glifo hecho)
+- **Idea:** **lanzar desde otro sitio**.
+- **Sala:** un brasero detrás de una reja, a una casilla. La flecha de fuego choca con la reja.
+- **Solución:** con ᛖ el hechizo sale ya al otro lado de la reja y enciende el brasero, que abre la puerta.
+- **Variante, en el mismo sitio:** dos braseros, uno a 1 casilla tras la reja y otro a 2. Con un ᛖ solo se llega al primero; con dos,
+  a los dos. Enseña que el glifo se puede repetir.
+- **Si falla:** no hay castigo: la flecha se para en la reja.
+- **Piezas:** `brasero`, reja.
+
+---
+
 ## Orden de trabajo
 
 1. **Comprobar la primera pasada:** una partida de Bosque 01, Bosque 02 y la Cueva solo con fuego. Lo que se atasque, se mueve.
@@ -445,7 +497,7 @@ Encajan con estos puzles y dan soluciones nuevas. Los apunto por si se prefiere 
 - La demo acaba en una posición final concreta de Pantano 01, por definir.
 
 **Pendientes:**
-1. ¿Dónde se gana ᛒ (suelo)? Lo piden T3 y X1. Propuesta: un cofre en las Cuevas, antes de T3.
+1. ¿ᛖ Posición se gana en el santuario de Bosque 02? ¿ᛖ ehwaz como runa?
 2. ¿C8 es obligatorio? Pide ᚱ (pulso), que es el glifo opcional de la Cueva.
 
 **Los glifos de la demo** (kit `demo`):
