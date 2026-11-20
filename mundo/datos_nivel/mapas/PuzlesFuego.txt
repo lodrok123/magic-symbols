@@ -1,4 +1,4 @@
-; Laboratorio de PUZLES DE FUEGO (Fase 14.6, 16/10, Juego). 33 x 25: doce salas de 7 x 7 (4 x 3) separadas por muros, con un hueco entre
+; Laboratorio de PUZLES DE FUEGO (Fase 14.6, 16/10, Juego). 33 x 33 desde el 20/11 (antes 33 x 25: la fila de abajo, (0,3)..(3,3), se añadió con F13-F16): dieciséis salas de 7 x 7 (4 x 4) separadas por muros, con un hueco entre
 ; salas vecinas (el mismo esqueleto que PuzlesAgua). El jugador S nace en la sala del centro. Lo lee PruebaTest2 (nivel = "PuzlesFuego"); las
 ; piezas y los puzles de cada sala son las lineas `; pieza` y `; puzle` de mas abajo (las lee escenas/puzle.gd; el lab solo pone HUD, teclas,
 ; carteles y la MECHA de F4). NO se hornea: es un laboratorio. Permiso de Pablo para crear este archivo (16/10).
@@ -149,6 +149,23 @@
 ; pieza f12_placa pulsador 28 23 modo=presencia
 ; pieza f12_boton pulsador 30 17 modo=magia
 ; puzle f12_boton_atasca cuando=f12_boton.pulsado hace=f12_r1.apagar(10) y=f12_r2.apagar(10)
+; --- F13 DRAGON QUE ENCIENDE + BARRERA (20/11, sala (0,3), x 1..7, y 25..31; la fila de salas que se añadió debajo, con hueco en (4,24) (12,24) (20,24) (28,24); se entra por (4,24) a (4,25)): una cabeza de dragon metida en el muro (6,24) escupe hacia el sur un
+; ---   chorro de fuego (1,0 s de fuego, 6,0 s de descanso; alcance 3: cubre (6,25) (6,26) (6,27); duerme si la jugadora esta a mas de 8 casillas). El chorro prende el primer seto de una FILA de cinco (2..6, 26) y el fuego corre hacia el oeste hasta el BARRIL (1,26),
+; ---   que revienta y SELLA el cofre (1,27) pegado a el (abre_si = el barril NO ha explotado: el derrumbe lo entierra). A la primera cabezada del dragon (a los 6 s de entrar) le siguen ~10 s de fuego por la fila: no se llega al cofre andando (12 casillas por el rincon de
+; ---   la derecha, x=7, y la fila de abajo, y=28). Vias: AGUA a la cabeza del dragon (la apaga 8 s) · mojar un seto (cortafuegos: la fila se corta y el barril no arde) · una BARRERA de agua delante de la boca (el chorro se para en ella mientras vive). Botón ! (3,30) apaga el dragon 8 s ·
+; ---   placa @ (5,30) prende el primer seto a mano (el barril arde sin el dragon).
+; pieza f13_dragon trampa_dragon 6 24 mira=s ciclo=1.0,6.0 desfase=0 alcance=3 cerca=8
+; pieza f13_s1 seto 6 26 mojable=si
+; pieza f13_s2 seto 5 26 mojable=si
+; pieza f13_s3 seto 4 26 mojable=si
+; pieza f13_s4 seto 3 26 mojable=si
+; pieza f13_s5 seto 2 26 mojable=si
+; pieza f13_barril barril 1 26
+; pieza f13_cofre cofre 1 27 abre_si=!f13_barril.explotado da=oro:30
+; pieza f13_boton pulsador 3 30 modo=magia
+; pieza f13_placa pulsador 5 30 modo=presencia
+; puzle f13_boton_apaga cuando=f13_boton.pulsado hace=f13_dragon.apagar(8)
+; puzle f13_placa_prende cuando=f13_placa.pulsado hace=f13_s1.encender
 ; ---------------------------------------------------------------------------------------------------------------------------------
 #################################
 #.......#...Z...#.-.....#......Z#
@@ -174,4 +191,12 @@
 #.......#.......#.......#..#.#..#
 #.......#.......#.......#..#.#..#
 #.......#.......#...@...#..#@#..#
+####.#######.#######.#######.####
+#.......#.......#.......#.......#
+#.zzzzz.#.......#.......#.......#
+#.......#.......#.......#.......#
+#.......#.......#.......#.......#
+#.......#.......#.......#.......#
+#..!.@..#.......#.......#.......#
+#.......#.......#.......#.......#
 #################################

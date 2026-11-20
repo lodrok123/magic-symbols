@@ -23,7 +23,7 @@ extends Node
 ##   F5 (0,0) DERRITE EL BLOQUE: cuenca A llena (2–3,2–3), compuerta de HIELO (4,3), cuenca B (5–6,2–3) y una antorcha (6,5). El fuego derrite el hielo,
 ##            el agua llega a B y a 0,2 el charco APAGA la antorcha. La puerta (1,6) se abre con la antorcha encendida Y el hielo derretido: el orden
 ##            importa. `!` derrite el hielo, `@` enciende la antorcha.
-## Teclas: 1–5 llevan al jugador a la entrada de esa sala (F1, F2, F3, F4, F5) · 6–8 a las trampas de pared (F7–F9) · 9, 0 y «-» a los puzles nuevos (F10, F11, F12; ver NUEVOS) · R recarga la escena · (las de la maqueta siguen valiendo).
+## Teclas: 1–5 llevan al jugador a la entrada de esa sala (F1, F2, F3, F4, F5) · 6–8 a las trampas de pared (F7–F9) · 9, 0 y «-» a los puzles nuevos (F10, F11, F12; ver NUEVOS) · teclado numérico 1…4 o Alt+1…4 a F13…F16 · R recarga la escena · (las de la maqueta siguen valiendo).
 ## F6–F10 (caldera, fogata con combustible, luz en cueva, viento y escudo) son de la segunda tanda: las salas (2,1) (3,1) (0,2)–(3,2) están libres.
 
 const NIVEL_MAPA: String = "PuzlesFuego"
@@ -68,6 +68,8 @@ const TRAMPAS: Array = [
 ]
 ## PUZLES NUEVOS (18/11/2026): tres salas más, aparte de las anteriores para no tocar `_puzles` ni `_trampas` (que cuentan las pruebas). Teclas 9, 0 y «-» (a la izquierda de la 1 en el teclado español: la tecla de al lado del 0).
 ##   F10 (2,1) LLEVA LA PÓLVORA: un muro agrietado tapa un nicho con un cofre; el barril pequeño de (22,10) (la otra punta de la sala) se coge, se enciende con fuego, se lleva y se lanza o se deja junto al muro. Botón `!` enciende el barril donde está; placa `@` rompe el muro.
+## SEGUNDA TANDA (20/11/2026): el mapa pasa a 33 × 33 con una fila de salas más ((0,3)…(3,3), con hueco en x = 4, 12, 20, 28 de la fila 24). Teclado numérico 1…4 o Alt+1…4 (la fila de números ya está llena; `indice_nuevo_por_tecla`).
+##   F13 (0,3) DRAGÓN QUE ENCIENDE + BARRERA: una cabeza de dragón en el muro (6,24) escupe cada 7 s por la columna x=6; prende una fila de setos (2..6, 26) hasta un barril (1,26) que, al reventar, sella el cofre (1,27). Agua a la cabeza, un seto mojado o una barrera de agua (2 s) delante de la boca.
 const NUEVOS: Array = [
 	{"nombre": "F10 pólvora", "entrada": Vector2i(19, 13), "cartel": Vector2i(21, 10),
 		"texto": "F10 · LLEVA LA PÓLVORA\nCoge el barril pequeño del fondo (E), enciéndelo con fuego y LLÉVALO junto al muro agrietado del rincón:\nlánzalo contra él o déjalo en la casilla de al lado (la mecha dura 2,4 s). Donde nace no llega; el grande es un señuelo.\nBotón: enciende el pequeño donde está · placa: rompe el muro.",
@@ -78,6 +80,9 @@ const NUEVOS: Array = [
 	{"nombre": "F12 setas de veneno", "entrada": Vector2i(28, 17), "cartel": Vector2i(30, 19),
 		"texto": "F12 · SETAS DE VENENO\nDos setas del pasillo se hinchan y exhalan una nube verde cada 10 s (9 s de vida): nace de la seta, se extiende\ncon ondas y el pasillo siempre está lleno. El fuego prende el gas (a la seta o a su nube): arde 6 s y no sale veneno;\ncruza hasta la placa del fondo. Agua a una seta: la atasca 8 s (y apaga su llama) · botón: atasca las dos 10 s.",
 		"ids": {"r1": "f12_r1", "r2": "f12_r2", "placa": "f12_placa", "boton": "f12_boton"}},
+	{"nombre": "F13 dragón y barrera", "entrada": Vector2i(4, 25), "cartel": Vector2i(4, 28),
+		"texto": "F13 · EL DRAGÓN QUE ENCIENDE\nLa cabeza del muro (arriba a la derecha) escupe fuego a los 6 s de entrar y cada 7 s: prende la fila de setos y el fuego corre hasta el barril,\nque al reventar entierra el cofre. Vías: agua a la cabeza (la apaga 8 s) · mojar un seto (cortafuegos) · BARRERA de agua delante de la boca.\nBotón: apaga el dragón 8 s · placa: prende el primer seto a mano.",
+		"ids": {"dragon": "f13_dragon", "s1": "f13_s1", "s2": "f13_s2", "s3": "f13_s3", "s4": "f13_s4", "s5": "f13_s5", "barril_grande": "f13_barril", "cofre": "f13_cofre", "boton": "f13_boton", "placa": "f13_placa"}},
 ]
 ## Papeles que toda sala tiene en su diccionario aunque no los use (null): el HUD y el escenario los leen sin mirar si existen.
 const PAPELES_SIEMPRE: Array = ["detector", "compuerta", "puerta", "contador"]
@@ -254,7 +259,7 @@ func _unhandled_input(ev: InputEvent) -> void:
 		get_tree().reload_current_scene()
 		return
 	var teclas: Dictionary = {KEY_1: 0, KEY_2: 1, KEY_3: 2, KEY_4: 3, KEY_5: 4}
-	if teclas.has(k.keycode):
+	if teclas.has(k.keycode) and not k.alt_pressed:         # Alt+1… son de los puzles nuevos de la segunda tanda (más abajo)
 		var n: int = int(teclas[k.keycode])
 		if n < _puzles.size():
 			colocar_jugador(_puzles[n]["entrada"] as Vector2i)
@@ -268,6 +273,25 @@ func _unhandled_input(ev: InputEvent) -> void:
 		var nn: int = int(teclas_n[k.keycode])
 		if nn < _nuevos.size():
 			colocar_jugador(_nuevos[nn]["entrada"] as Vector2i)
+	var ne: int = indice_nuevo_por_tecla(k)
+	if ne >= 0 and ne < _nuevos.size():
+		colocar_jugador(_nuevos[ne]["entrada"] as Vector2i)
+
+
+## Las salas de la segunda tanda de puzles nuevos (F13…F16, 20/11) no tienen tecla propia en la fila de números (ya está llena): van en el teclado numérico (1…4) o con Alt + 1…4 (el portátil no lo tiene).
+## Devuelve el índice en `_nuevos` (F13 es la cuarta) o -1 si la tecla no es de esas.
+func indice_nuevo_por_tecla(k: InputEventKey) -> int:
+	var cifra: int = -1
+	match k.keycode:
+		KEY_KP_1: cifra = 1
+		KEY_KP_2: cifra = 2
+		KEY_KP_3: cifra = 3
+		KEY_KP_4: cifra = 4
+		KEY_1: cifra = 1 if k.alt_pressed else -1
+		KEY_2: cifra = 2 if k.alt_pressed else -1
+		KEY_3: cifra = 3 if k.alt_pressed else -1
+		KEY_4: cifra = 4 if k.alt_pressed else -1
+	return -1 if cifra < 0 else 2 + cifra
 
 
 ## Teletransporte del jugador a una casilla (lo mismo que escenario_base.colocar_jugador).
@@ -378,7 +402,7 @@ func _refrescar_hud() -> void:
 			var bt: Barril3D = q["barril"]
 			lt += "  barril %s" % ("EXPLOTADO" if bt.explotado else ("encendido" if bt.encendido else "entero"))
 		t += lt + "\n"
-	t += "PUZLES NUEVOS · 9, 0, - ir a la sala\n"
+	t += "PUZLES NUEVOS · 9, 0, - (F10, F11, F12) · teclado numérico 1…4 o Alt+1…4 (F13…F16) ir a la sala\n"
 	for q in _nuevos:
 		t += "  %-18s%s\n" % [String(q["nombre"]), _estado_nuevo(q)]
 	for a in _avisos:
@@ -399,7 +423,7 @@ func _estado_nuevo(q: Dictionary) -> String:
 	if barril != null and is_instance_valid(barril):
 		var b: Barril3D = barril
 		s += "  barril pequeño %s" % ("EXPLOTADO" if b.explotado else ("encendido %.1f s" % (b.mecha_restante() * b.t_mecha) if b.encendido else "entero"))
-	for papel in ["t1", "t2", "t3"]:
+	for papel in ["t1", "t2", "t3", "dragon"]:
 		var tr: Variant = q.get(papel)
 		if tr != null and is_instance_valid(tr):
 			s += "  %s %s" % [papel.to_upper(), _estado_trampa(tr)]
@@ -409,6 +433,15 @@ func _estado_nuevo(q: Dictionary) -> String:
 			var r: Respiradero3D = rp
 			s += "  %s %s" % [papel.to_upper(), "ATASCADO" if not r.activo else ("AVISA" if r.en_aviso else "exhala en %.0f s" % (r.cada - r._t))]
 	s += "  nubes %d" % NubeVeneno3D.vivas.size() if q.has("r1") else ""
+	if q.has("s1") and q.has("barril_grande"):
+		var setos: String = ""
+		for id in ["s1", "s2", "s3", "s4", "s5"]:
+			var sp: Variant = q.get(id)
+			setos += "%s " % ("·" if sp == null or not is_instance_valid(sp) else ("ARDE" if bool(sp.get("is_lit")) else ("mojado" if bool(sp.call("esta_mojado")) else "seco")))
+		s += "  setos " + setos
+		var bg: Variant = q.get("barril_grande")
+		if bg != null and is_instance_valid(bg):
+			s += " barril %s" % ("EXPLOTADO" if (bg as Barril3D).explotado else ("encendido" if (bg as Barril3D).encendido else "entero"))
 	var pl: Variant = q.get("placa")
 	if pl != null and is_instance_valid(pl):
 		s += "  placa %s" % ("PISADA" if bool((pl as Object).get("activo")) else "libre")
