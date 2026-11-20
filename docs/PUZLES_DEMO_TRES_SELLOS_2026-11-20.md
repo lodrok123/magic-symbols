@@ -101,11 +101,17 @@ Cada puzle tiene un verbo distinto o una combinación nueva. **T** = tierra, **Q
 
 ### Tierra
 
-**T1 · La presa** — *cortar un flujo* · tierra + ᛜ · **A** (verificar en el juego) · sustituye a Q3 y Q4
-Un arroyo de canal inunda un vado que no se puede cruzar. La jugadora levanta un bloque de tierra en el cauce, aguas arriba, y la
-tierra hace de presa (`lanzador_3d.gd:2879`). El vado baja y se cruza durante los 25 s que dura el bloque.
-*Variante de dos brazos (Q4):* tapar el brazo que se pierde para que el caudal llegue al molino.
-*Comprobar:* que la simulación vacía el vado lo bastante rápido para que dé tiempo a cruzar.
+**T1 · La presa en seco** — *preparar el cauce antes de soltar el agua* · tierra + ᛜ, luego cualquier hechizo · **A/B** · sustituye a Q3 y Q4
+La tierra hace de presa (`lanzador_3d.gd:2879`), pero **no se puede levantar sobre el agua** (`puede_construir_en`: «es agua»). Por eso
+la presa se prepara **en seco**, antes de soltar el agua. Esa es la regla que enseña el puzle.
+- **T1a · Desvío (sustituye a Q4):** un manantial cerrado por una compuerta que abre y cierra un botón. Detrás hay una bifurcación
+  seca: un brazo va al molino y el otro se pierde por un desagüe. Se tapa con tierra el brazo que se pierde y se abre el grifo: el
+  caudal llega al molino y se abre la puerta. Si se suelta el agua sin tapar antes, se cierra el grifo, el brazo se vacía y se
+  vuelve a intentar.
+- **T1b · Retener (sustituye a Q3):** una cuenca con un desagüe seco que la vacía. Se tapa con tierra la boca del desagüe y después
+  se riega la tinaja: la cuenca llega al nivel y la puerta se abre mientras la presa aguante (25 s).
+*Comprobar:* que un cauce vacío admite la tierra. Si no la admite, hace falta permitirla en casillas de cauce por debajo de un umbral
+de profundidad (coste B).
 
 **T2 · La cornisa** — *construir para subir* · tierra + altura · **A**
 Un cofre en un rellano a 2 niveles, sin escalera. Hay que levantar un escalón de 1 y otro de 2 al lado, en el orden correcto. Si se
@@ -200,7 +206,7 @@ una puerta.
 |---|---|---|
 | Gruta Permanencia G4–G6 | Para cruzar el agua hace falta hielo. | Sacar la gruta de la demo **o** cambiar los cruces por T3 (foso con ᛒ) y T1 (presa). |
 | Sala de Empuje E4 | Viento o hielo. | T6 (pedrada que empuja) **o** sacar E4. |
-| Cueva y Cueva Resonante: estatuas | La secuencia pide hielo. | Cambiar la secuencia a fuego, agua, fuego. Es solo mapa. |
+| Cueva y Cueva Resonante: estatuas | La secuencia pide hielo. | Cambiar la secuencia a **fuego, agua, tierra**: un sello por estatua. Es solo mapa. |
 | Gruta Batida `abre_atajo`, Permanencia G2 y G6 | La barrera ya no nace en el punto. | Jugar para comprobarlo. Si están rotos, cambiar la marca tras la reja por un brasero alcanzable con flecha. |
 | Laboratorio Q3 y Q4 | Hielo. | Montar las variantes con presa de tierra (T1). |
 | Pantano (12,14) | «Lo tapa el hielo o la tierra», y la tierra no cuaja. | Quitar la frase y dejar como ruta la enredadera quemada, o usar T3 si se convierte en hondonada seca. |
