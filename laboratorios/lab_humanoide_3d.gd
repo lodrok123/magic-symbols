@@ -30,7 +30,7 @@ extends Node3D
 const PERSONAJES: Dictionary = {
 	"chibi_elf": 1.0, "elfo_base": 1.0, "alchemist_elf": 0.95, "bookseller_chibi": 0.95, "goblin_warrior_chibi": 0.85, "goblin_archer_chibi": 0.85, "goblin_base": 0.85, "marimanta": 0.8,"goblin_asesino": 0.85, "jugadora_base": 1.0,
 	"ranger_human": 1.1, "grandmaster": 1.0, "woodland_wanderer": 1.0, "woodland_wanderer_v1": 1.0, "woodland_wanderer_orig": 1.0,
-	"tendera_sumicio": 1.06, "anciano_sumicio": 1.06,
+	"tendera_sumicio": 1.06, "dona_comba": 1.06, "anciano_sumicio": 1.06,
 	"wanderer_sumicio": 1.06, "mira_sumicio": 1.16,
 	"iria_sumicio": 1.06,
 	"mosscap_sumicio": 0.97,
@@ -275,7 +275,7 @@ func _elegir_personaje(id: String, juego: int = -1) -> void:
 	var inicial: String = "walking" if _ap.has_animation("walking") else ("Walking" if _ap.has_animation("Walking") else String(_ap.get_animation_list()[0]))
 	if _juego and _pj.clip_de("idle") != "":
 		inicial = _pj.clip_de("idle")        # lo primero que se mira de la jugadora es su postura quieta
-	elif id in ["tendera_sumicio", "anciano_sumicio", "mosscap_sumicio"]:
+	elif id in ["tendera_sumicio", "dona_comba", "anciano_sumicio", "mosscap_sumicio"]:
 		inicial = "idle"
 	elif id == "forest_witch_sumicio":
 		inicial = "idle_mixamo"
