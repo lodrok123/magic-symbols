@@ -98,6 +98,23 @@ const NUEVOS: Array = [
 		"texto": "Q12 · FOSO CON COFRE FLOTANTE\nEl cofre está en una balsa, en el fondo del foso, lejos de la pasarela, y sellado.\nLlena el foso (agua a la tinaja, o botón/placa): la balsa flota y deriva hasta la pasarela (14 s).\nCuando atraca, el cofre se abre con E desde la pasarela.",
 		"ids": {"balsa": "q12_balsa", "cofre": "q12_cofre", "tinaja": "q12_tinaja", "boton": "q12_boton", "placa": "q12_placa"}},
 ]
+## T1 · LA PRESA EN SECO (20/11/2026, rama demo/puzles-tres-sellos; docs/PUZLES_DEMO_TRES_SELLOS_2026-11-20.md): dos salas más, en `PRESAS` para no tocar `_puzles` ni `_nuevos`. Teclas «[» y «]».
+##   T1a (0,3) DESVÍO EN SECO (sustituye a Q4 sin hielo): el grifo (compuerta (4,27)) abre un manantial; bifurcación seca (4,28): brazo este al nivel (6,28), brazo oeste al desagüe (1,28). Tierra en (3,28) ANTES de abrir el grifo.
+##   T1b (1,3) RETENER (sustituye a Q3 sin hielo): tinaja → cuenca (12,28) con boca seca (12,29) al desagüe (12,30). Tierra en la boca ANTES de regar la tinaja.
+const PRESAS: Array = [
+	{"nombre": "T1a desvio en seco", "entrada": Vector2i(4, 25), "cartel": Vector2i(4, 29),
+		"texto": "T1a · DESVÍO EN SECO
+La tierra no se levanta sobre el agua: prepara la presa con los cauces SECOS.
+Tierra + ᛜ en la primera casilla del brazo del desagüe (oeste de la bifurcación) y DESPUÉS abre el grifo (botón rojo o placa).
+El agua va al brazo este, sube el nivel y se abre la puerta. Si te equivocas, cierra el grifo, espera a que se vacíe y reintenta.",
+		"ids": {"compuerta": "t1a_compuerta", "nivel": "t1a_nivel", "puerta": "t1a_puerta", "boton": "t1a_boton", "placa": "t1a_placa"}},
+	{"nombre": "T1b retener", "entrada": Vector2i(12, 25), "cartel": Vector2i(12, 29),
+		"texto": "T1b · RETENER
+La cuenca se vacía por una boca de desagüe seca.
+Tierra + ᛜ en la boca (la casilla de abajo de la cuenca) ANTES de regar; luego agua a la tinaja (botón o placa también).
+Cuando el nivel llega, se abre la puerta; la presa dura 25 s.",
+		"ids": {"tinaja": "t1b_tinaja", "nivel": "t1b_nivel", "puerta": "t1b_puerta", "boton": "t1b_boton", "placa": "t1b_placa"}},
+]
 ## Papeles que toda sala tiene en su diccionario aunque no los use (null): el HUD y el escenario los leen sin mirar si existen.
 const PAPELES_SIEMPRE: Array = ["detector", "compuerta", "puerta"]
 
@@ -106,6 +123,7 @@ var _jug: Jugador3D = null
 var _puzle_nodo: Puzle3D = null              ## quien monta las piezas y las reglas desde el .txt
 var _puzles: Array = []                      ## [{nombre, entrada, detector, compuerta, puerta, …}] una por sala
 var _nuevos: Array = []                      ## [{nombre, entrada, puerta, …}] las salas de los puzles nuevos (NUEVOS)
+var _presas: Array = []                      ## [{nombre, entrada, nivel, puerta, …}] las salas de la presa en seco (PRESAS)
 var _hud: Label = null
 var _t_hud: float = 0.0
 var _avisos: Array = []
@@ -182,6 +200,18 @@ func _montar_salas() -> void:
 			qn[papel] = nd_n
 		_nuevos.append(qn)
 		_cartel(sala_n["cartel"] as Vector2i, String(sala_n["texto"]))
+	for s in PRESAS:
+		var sala_p: Dictionary = s
+		var qp: Dictionary = {"nombre": sala_p["nombre"], "entrada": sala_p["entrada"]}
+		var ids_p: Dictionary = sala_p["ids"]
+		for papel in ids_p:
+			var nd_p: Node = _puzle_nodo.nodo(String(ids_p[papel]))
+			if nd_p == null:
+				_avisos.append("%s: no hay pieza «%s» (papel «%s») en %s.txt" % [sala_p["nombre"], ids_p[papel], papel, NIVEL_MAPA])
+				push_warning("LabPuzlesAgua3D: " + String(_avisos.back()))
+			qp[papel] = nd_p
+		_presas.append(qp)
+		_cartel(sala_p["cartel"] as Vector2i, String(sala_p["texto"]))
 
 
 ## Un cartel flotante en la casilla `c` con las instrucciones de la sala (16/10, Pablo: «no entiendo el puzle»).
@@ -239,6 +269,11 @@ func _unhandled_input(ev: InputEvent) -> void:
 		var nn: int = int(teclas_n[k.keycode])
 		if nn < _nuevos.size():
 			colocar_jugador(_nuevos[nn]["entrada"] as Vector2i)
+	var teclas_p: Dictionary = {KEY_BRACKETLEFT: 0, KEY_BRACKETRIGHT: 1}      # la presa en seco: T1a, T1b
+	if teclas_p.has(k.keycode):
+		var np: int = int(teclas_p[k.keycode])
+		if np < _presas.size():
+			colocar_jugador(_presas[np]["entrada"] as Vector2i)
 
 
 ## Teletransporte del jugador a una casilla (lo mismo que escenario_base.colocar_jugador).
@@ -254,6 +289,14 @@ func colocar_jugador(c: Vector2i) -> void:
 ## Una sala de los puzles nuevos por su nombre corto («Q11», «Q12»); {} si no existe.
 func nuevo(nombre: String) -> Dictionary:
 	for q in _nuevos:
+		if String(q["nombre"]).split(" ")[0] == nombre:
+			return q
+	return {}
+
+
+## Una sala de la presa en seco por su nombre corto («T1a», «T1b»); {} si no existe.
+func presa(nombre: String) -> Dictionary:
+	for q in _presas:
 		if String(q["nombre"]).split(" ")[0] == nombre:
 			return q
 	return {}
@@ -311,6 +354,11 @@ func _refrescar_hud() -> void:
 	t += "PUZLES NUEVOS · - y = ir a la sala\n"
 	for q in _nuevos:
 		t += "  %-18s%s\n" % [String(q["nombre"]), _estado_nuevo(q)]
+	t += "LA PRESA EN SECO · [ y ] ir a la sala
+"
+	for q in _presas:
+		t += "  %-18s%s
+" % [String(q["nombre"]), _estado_presa(q)]
 	for a in _avisos:
 		t += "  AVISO " + String(a) + "\n"
 	_hud.text = t
@@ -334,4 +382,20 @@ func _estado_nuevo(q: Dictionary) -> String:
 	var cf: Variant = q.get("cofre")
 	if cf != null and is_instance_valid(cf):
 		s += "  cofre %s" % ("abierto" if bool((cf as Object).get("es_abierto")) else ("sellado" if not bool((cf as Object).call("sellado_cumplido")) else "listo (E)"))
+	return s
+
+
+## La línea de HUD de una sala de la presa en seco: nivel, compuerta y puerta.
+func _estado_presa(q: Dictionary) -> String:
+	var s: String = ""
+	var det: Variant = q.get("nivel")
+	if det != null and is_instance_valid(det):
+		var nv: NivelAgua3D = det
+		s += " nivel %.2f ≥ %.2f" % [nv.profundidad, nv.objetivo]
+	var k: Variant = q.get("compuerta")
+	if k != null and is_instance_valid(k):
+		s += "  grifo %s" % ("ABIERTO" if bool((k as Object).get("abierta")) else "cerrado")
+	var p: Variant = q.get("puerta")
+	if p != null and is_instance_valid(p):
+		s += "  puerta %s" % ("ABIERTA" if bool((p as Object).get("abierta")) else "cerrada")
 	return s
