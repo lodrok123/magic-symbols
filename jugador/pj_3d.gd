@@ -247,6 +247,8 @@ const MODELO_DE: Dictionary = {
 	# GLB y lo único que cambia es la pieza de Equipo3D.EQUIPO: la cruz de campanillas o la palmatoria con la vela.
 	"santa_compana_cruz": "santa_compana_rig",
 	"santa_compana_vela": "santa_compana_rig",
+	# Pedro Chosco (20/11): el anciano elfo sabio de Meshy riggeado con el esqueleto de elfo_base (tools/autorig_pedro_chosco.py).
+	"pedro_chosco": "pedro_chosco_rig",
 	# Sin entrada aquí el id carga el GLB de su mismo nombre.
 }
 

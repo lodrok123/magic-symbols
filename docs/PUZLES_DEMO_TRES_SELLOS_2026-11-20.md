@@ -214,37 +214,158 @@ una puerta.
 
 ---
 
-## 5. Reparto propuesto por escenario
+## 5. Reparto por bioma (Pablo, 20/11)
 
-Al empezar la jugadora solo tiene fuego y flecha (DIARIO 537). La idea es que cada escenario **enseñe un sello** y **mezcle** los
-anteriores.
+Cada elemento tiene sus biomas:
 
-| Escenario | Enseña | Ya tiene | Añadir | Retirar o limitar |
+| | Bosque | Cueva | Ruinas *(nuevo)* | Pantano |
 |---|---|---|---|---|
-| **Bosque** (01 y 02) | fuego, luego agua | mucho fuego, molino, balanza | **F13** mecha de hierba, **F14** cortina de vapor, **Q14** barril que no debe estallar | Como mucho 2 puzles de braseros por nivel. Hoy Bosque 01 tiene 3 de fuego encendido seguidos. |
-| **Cueva** | tierra y pulso ᚱ | muro, veta, lava, prisma | **T1** presa (en el río de C3), **T2** cornisa, **T4** galería de tiro | La secuencia de las estatuas, sin hielo. |
-| **Pantano** | ᛒ suelo y combinaciones | nada | **T3** foso, **Q15** bancal, **X1** trampas en el vado, **X3** setas tapadas, **T5** mamoa | — |
+| **Fuego** | ✔ | | | ✔ |
+| **Agua** | ✔ | | ✔ | ✔ |
+| **Tierra** | | ✔ | ✔ | ✔ |
 
-Con esto, el Pantano queda con 5 puzles que solo existen allí y que usan los tres sellos y ᛒ. Encaja como último escenario.
+**Orden de visita que propongo.** Cada bioma usa solo lo que ya se ha aprendido antes:
+1. **Bosque** · fuego, y después agua.
+2. **Cueva** · tierra sola, para aprenderla sin mezclar.
+3. **Ruinas** · tierra + agua.
+4. **Pantano** · los tres, y ᛒ suelo. Es el final.
+
+El único bioma con los tres sellos es el Pantano, y por eso encaja como cierre.
+
+**Supuesto de lectura.** Leo la tabla como el **tema** de los puzles de cada bioma: sus puzles **giran** en torno a esos elementos.
+Un elemento que ya se tiene puede aparecer como apoyo, por ejemplo una antorcha en la Cueva. Si la lectura es estricta, la Cueva y las
+Ruinas pierden los puzles que ya tienen de fuego y agua (ver §5.5).
+
+### 5.1 Bosque · fuego y agua
+
+Ya tiene mucho: braseros, relé, setos, cuerda, molino, tinaja, puente, balanza. Le falta **variedad de verbo**, no cantidad.
+
+| Id | Puzle | Verbo | Elementos | Coste | Estado |
+|---|---|---|---|---|---|
+| F13 | Mecha de hierba (§3) | guiar el fuego | fuego + agua | A | nuevo |
+| F14 | Cortina de vapor (§3) | esconderse | fuego sobre suelo mojado | A | nuevo |
+| Q13 | Brasas en el sendero (§3) | apagar a ritmo | agua | A | nuevo |
+| Q14 | El barril que no debe estallar (§3) | apagar antes de usar | agua, luego fuego | A | nuevo |
+
+**Retirar:** tope de 2 puzles de braseros por nivel. Bosque 01 tiene tres seguidos. El escondite de Bosque 02 (muro agrietado) ya
+se abre con la explosión de un barril, sin tierra.
+
+### 5.2 Cueva · tierra
+
+Ya tiene: muro agrietado (paso obligatorio), veta con hueco para el bloque, columna que tumba el pulso y pared hueca (ᚱ).
+Faltan los verbos **construir**, **protegerse** y **pesar**.
+
+| Id | Puzle | Verbo | Elementos | Coste | Estado |
+|---|---|---|---|---|---|
+| T2 | La cornisa (§3) | subir construyendo | tierra + altura | A | nuevo |
+| T4 | Galería de tiro (§3) | protegerse | tierra + ᛁ | A | nuevo |
+| T6 | Pedrada que empuja (§3) | empujar a distancia | flecha de tierra | C | nuevo (decisión §7) |
+| **C7** | **Balanza de la mina** | pesar con lo que hay | tierra + ᛜ, empuje | A/B | nuevo |
+| **C8** | **Derrumbe dirigido** | elegir de dónde sale el pulso | tierra + ᚱ | B | nuevo |
+
+**C7 · Balanza de la mina.** Una reja se abre con dos placas de peso: A pide 3 y B pide 1. Las placas suman `peso_valor`:
+- roca pequeña 1 y mediana 2;
+- bloque de piedra 3;
+- bloque de tierra 1 (`pulsador_3d.gd:241`).
+
+En la sala hay una roca mediana y una pequeña, y ningún bloque de 3. Solución: la mediana y la pequeña a la placa A, que suma 3, y
+para la B un bloque de tierra **mientras dure**, 25 s. La reja se cierra en cuanto la tierra caduca, así que hay que preparar A primero
+y levantar la tierra en B al final, ya junto a la reja.
+*Verificar:* que la tierra se levanta sobre la casilla de una placa y que dos rocas suman en la misma casilla. Si una casilla solo
+admite una roca, se reparte en tres placas.
+
+**C8 · Derrumbe dirigido.** Una columna junto a una sima. El pulso de tierra (ᚱ) la tumba (`columna`, como en C2 y C3), y debería
+caer **en sentido contrario a la llegada del pulso**: si cae hacia la sima, hace de puente. Hay dos vetas que llegan a la columna, una
+de cada lado, y solo una la tumba bien. La otra la tira hacia la pared y deja el paso cerrado hasta reiniciar.
+*Necesita:* comprobar si la columna ya cae según de dónde llega el pulso. Si no, la regla es pequeña (coste B).
+
+### 5.3 Ruinas · tierra y agua (bioma nuevo)
+
+Es un bioma nuevo, así que necesita mapa, escena y arte. Su tema propone **piedra labrada y agua canalizada**: acueductos, cisternas,
+suelos rotos y túmulos. Encaja con los puzles de cauces, que aquí se leen como obra humana.
+
+| Id | Puzle | Verbo | Elementos | Coste | Estado |
+|---|---|---|---|---|---|
+| T1a | Desvío en seco (§3) | cerrar un brazo antes de soltar el agua | tierra, luego agua | A | **hecho en el lab** |
+| T1b | Retener (§3) | sellar la cisterna | tierra, luego agua | A | **hecho en el lab** |
+| T3 | El foso (§3) | cruzar un vacío a ritmo | tierra + ᛒ | A | nuevo |
+| T5 | Las bocas de la mamoa (§3) | tapar a la vez | tierra | B | nuevo (decisión §7) |
+| Q16 | Subir la balsa (§3) | el agua como ascensor | agua | B | nuevo |
+| **R1** | **La cisterna dormida** | vaciar para bajar | tierra + agua | A/B | nuevo |
+
+T1 deja la Cueva y pasa a las Ruinas, porque la Cueva ya no lleva agua. El foso T3 deja el Pantano y pasa aquí: el suelo roto de las
+ruinas es un vacío natural, y en el Pantano la tierra no cuaja sobre el agua.
+
+**R1 · La cisterna dormida.** Una cisterna llena tapa una escalera con un cofre al fondo. La alimenta un canal desde un manantial, y
+tiene un desagüe con una `compuerta` que abre un `pulsador modo=agua`.
+1. Si solo se riega el pulsador, la cisterna baja, pero el manantial la vuelve a llenar antes de bajar la escalera.
+2. Hay que cortar antes el aporte. El canal tiene un tramo seco, un salto del acueducto, donde la tierra sí se levanta: se tapa en seco,
+   **como enseñó T1**, y después se riega el pulsador.
+3. La cisterna se vacía, se baja, se coge el cofre y se sube antes de que la presa caduque a los 25 s.
+
+Es T1 aplicado en una sala grande, con un cofre como premio y una salida a contrarreloj.
+*Verificar:* los tiempos de vaciado con la simulación.
+
+### 5.4 Pantano · fuego, agua y tierra (y ᛒ suelo)
+
+Ahora no tiene ningún puzle. Es el bioma de las **combinaciones** y de **ᛒ**. Recordatorio: la tierra no cuaja sobre el agua, así que en
+el Pantano trabaja en las islas y orillas secas.
+
+| Id | Puzle | Verbo | Elementos | Coste | Estado |
+|---|---|---|---|---|---|
+| X1 | Trampas en el vado (§3) | preparar el combate | fuego o agua + ᛒ, tierra + ᛒ | A | nuevo |
+| X3 | Setas tapadas (§3) | repartir tres elementos | tierra, fuego, agua | B | nuevo |
+| Q15 | El bancal (§3) | hacer crecer | agua | A/B | nuevo |
+| **P1** | **Juncos secos** | guiar el fuego y proteger | fuego + agua | A | nuevo |
+| **P2** | **Balsa entre juncos** | llevar flotando | agua, tierra | B | nuevo |
+
+**P1 · Juncos secos.** Una enredadera cierra el paso al otro lado de un brazo de agua, sin alcance directo. Un cinturón de juncos secos
+(setos) rodea el brazo y llega hasta ella, pero también pasa junto al bancal de Q15, ya germinado.
+Hay que prenderlos para que el fuego llegue a la enredadera, y **antes** mojar los dos juncos que tocan el bancal, para que no se
+queme lo que se ha cultivado.
+Es F13 con una consecuencia: lo que se quema se pierde.
+
+**P2 · Balsa entre juncos.** La `balsa` de Q12, en un canal del Pantano que sale a una orilla con un cofre.
+- Para que flote hasta la orilla, el canal tiene que tener nivel: hay que regar la tinaja (agua).
+- Un junco seco atraviesa el canal y la frena: hay que quemarlo (fuego).
+- Al llegar, la orilla está una casilla más alta: un escalón de tierra en la orilla seca permite subir.
+Usa los tres sellos en el orden en que se aprendieron.
+*Verificar:* que la balsa se mueve con la corriente o con la jugadora encima.
+
+### 5.5 Puzles que ya existen fuera de su bioma
+
+Con la lectura estricta (cada bioma solo con sus elementos) chocan estos:
+
+| Dónde | Puzle | Elemento | Con la lectura de tema | Con la lectura estricta |
+|---|---|---|---|---|
+| Cueva | Braseros de C1 norte, reja de la Cueva Resonante | fuego | Se quedan como apoyo. | Cambiar por veta y receptor de tierra. |
+| Cueva | Río de lava de C3 y reja por el basalto | agua | Se quedan: es la única agua de la Cueva. | El cristal y la geoda ya lo resuelven sin agua; quitar la vía del agua. |
+| Cueva | Estatuas (fuego, agua, tierra) | los tres | Valen: se vuelve con todo. | Secuencia solo de tierra, lo que no tiene sentido: mejor quitar las estatuas. |
+| Bosque 02 | Escondite (muro agrietado) | tierra o explosión | Vale con el barril. | Igual: dejar solo el barril. |
+| Bosque 02 | Placa K (bloque) | empuje | Vale. | Vale: no pide tierra. |
 
 ---
 
-## 6. Orden de trabajo propuesto
+## 6. Orden de trabajo
 
-1. **Coste A, que además desbloquea:** T1 en el laboratorio (sustituye a Q3 y Q4) y la secuencia de las estatuas sin hielo.
-   Comprobar la barrera en Gruta Batida y Gruta Permanencia.
-2. **El Pantano con coste A:** T3, X1 y Q15.
-3. **Variedad en el Bosque y la Cueva:** F13, F14, Q14, T2 y T4.
-4. **Coste B:** X3 y T5 (la reacción «la tierra tapa» sirve para los dos), X2 y Q16.
-5. **Coste C, si Pablo lo aprueba:** T6. X4 se queda en reserva.
+1. **Hecho:** T1a y T1b en el laboratorio y las estatuas sin hielo.
+2. **Laboratorio de tierra nuevo** (`LabPuzlesTierra3D`, con el patrón de los laboratorios de fuego y agua): T2, T3, T4 y C7, todos de coste A.
+   Es el sello con menos puzles, y el laboratorio sirve para Cueva y Ruinas.
+3. **Bosque, coste A:** F13, F14, Q13 y Q14 en el laboratorio de fuego y agua.
+4. **Pantano, coste A:** X1, P1 y Q15.
+5. **Reacción «la tierra tapa»** (coste B) para X3 y T5. Después P2, Q16, R1 y C8.
+6. **Coste C:** T6, si se aprueba.
+7. **Ruinas:** mapa, escena y arte del bioma, con T1a, T1b, T3, T5, Q16 y R1. Antes hace falta decidir su arte (§7).
 
-Cada puzle se monta primero como sala del laboratorio, con botón `!` y placa `@` para separar «falla el puzle» de «falla el hechizo»,
-como en F y Q. Después se lleva al catálogo del generador (`herramientas/generador_mapas/catalogo/`) y al nivel.
+Cada puzle se monta primero como sala del laboratorio, con botón `!` y placa `@`, y después se pasa al catálogo del generador de mapas
+y al nivel.
 
 ## 7. Decisiones para Pablo
 
-1. ¿La flecha de tierra empuja bloques (T6)? Recupera el «empujar a distancia» y arregla E4.
-2. ¿Gruta Permanencia y Sala de Empuje entran en la demo? Si entran, con los arreglos de la sección 4.
-3. ¿Qué sale de la mamoa (T5): veneno, enemigos o nada?
-4. ¿Un tope de 2 puzles de braseros por nivel?
-5. ¿El Pantano como escenario del ᛒ y de las combinaciones, con los 5 puzles de la sección 5?
+1. **Lectura de la tabla de biomas:** ¿tema principal, o cada bioma solo con sus elementos? Cambia lo que se hace con §5.5.
+2. **Orden de visita:** ¿Bosque → Cueva → Ruinas → Pantano?
+3. **Ruinas:** ¿qué arte? Por ejemplo piedra labrada con musgo, acueducto, cisterna y túmulo, o el kit de otro bioma reutilizado.
+4. ¿La flecha de tierra empuja bloques (T6)?
+5. ¿Qué sale de la mamoa (T5): veneno, enemigos o nada?
+6. ¿Un tope de 2 puzles de braseros por nivel?
+7. ¿Gruta Permanencia y Sala de Empuje entran en la demo? Si entran, con los arreglos de §4.

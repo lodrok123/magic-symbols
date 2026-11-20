@@ -38,7 +38,9 @@ const PERSONAJES: Dictionary = {
 	"grumbletwig_sumicio": 0.91, "forest_witch_sumicio": 0.89,
 	# Santa Compaña (9/11): las dos variantes comparten GLB (Pj3D.MODELO_DE) y solo cambian la pieza que portan y el andar, así
 	# que entran las DOS para poder compararlas aquí. Con «como el juego» marcado salen con su cruz o su vela y su propio walk.
-	"santa_compana_cruz": 0.85, "santa_compana_vela": 0.85, "fantasma_elfo_rig": 0.9}
+	"santa_compana_cruz": 0.85, "santa_compana_vela": 0.85, "fantasma_elfo_rig": 0.9,
+	# Pedro Chosco (20/11): anciano elfo sabio, con los clips de ClipsFamilia (idle y andar de anciano, hablar, ofrecer la mano).
+	"pedro_chosco": 1.0}
 const COLOR_PIERNAS: Color = Color(0.35, 1.0, 0.45)
 const COLOR_BRAZOS: Color = Color(0.35, 0.65, 1.0)
 const COLOR_RESTO: Color = Color(0.95, 0.95, 0.95)
