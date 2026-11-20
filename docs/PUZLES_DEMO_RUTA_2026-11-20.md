@@ -19,7 +19,7 @@ diagnóstico y reglas del motor) y de la ruta que fijó Pablo el 20/11.
 | 7 | **Pantano** | los tres | | T3, Q15, P1, T1b, X1 |
 | 7 | **Pantano 01** | los tres | | X3, P2 · la posición final |
 
-En total son **24 puzles**: 2 ya hechos en el laboratorio (T1a, T1b), 18 de coste A o A/B y 4 de coste B o C (Q16, C8, T6, P2), más la posición final por definir.
+En total son **25 puzles**: 2 ya hechos en el laboratorio (T1a, T1b), 19 de coste A o A/B y 4 de coste B o C (Q16, C8, T6, P2), más la posición final por definir.
 
 **Reglas del motor que mandan en los diseños:**
 - La tierra no se levanta sobre agua (desde 0.25 u de profundidad). Las presas se preparan **en seco**.
@@ -425,6 +425,9 @@ Encajan con estos puzles y dan soluciones nuevas. Los apunto por si se prefiere 
 ---
 
 ## Reparto de glifos (Pablo, 20/11)
+
+> **Provisional.** No se implementa todavía. El reparto definitivo saldrá del playtest y se irá fijando a medida que se monten
+> los puzles que lo necesiten. Lo de abajo es la propuesta de partida.
 
 La flecha (ᛇ) se tiene desde el principio. El resto, en el orden en que se ganan:
 
