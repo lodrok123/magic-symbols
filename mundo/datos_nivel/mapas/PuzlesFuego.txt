@@ -166,6 +166,15 @@
 ; pieza f13_placa pulsador 5 30 modo=presencia
 ; puzle f13_boton_apaga cuando=f13_boton.pulsado hace=f13_dragon.apagar(8)
 ; puzle f13_placa_prende cuando=f13_placa.pulsado hace=f13_s1.encender
+; --- F14 CHOQUE TERMICO (20/11, sala (1,3), x 9..15, y 25..31): un nicho de 2 x 2 (9..10, 25..26) con un cofre (9,25) tapado por una ROCA TERMICA en (10,27) (muros en (11,25) (11,26) (9,27)). La roca no se rompe con golpes de tierra ni con explosiones: el FUEGO la pone al rojo
+; ---   8 s (emision rojo-naranja y una luz calida, nunca amarillo; otro fuego renueva el calor) y el AGUA mientras sigue caliente la parte (vapor, y aparece el cofre). Fria, el agua no le hace nada; pasados los 8 s se enfria sola y hay que calentarla otra vez.
+; ---   Se juega desde (10,28), una casilla al sur de la roca. Vias: boton ! (13,30) calienta la roca (falta el agua) · placa @ (11,30) la parte directamente.
+; pieza f14_muro muro 10 27 termica=si
+; pieza f14_cofre cofre 9 25 aparece_si=f14_muro.roto da=oro:30
+; pieza f14_boton pulsador 13 30 modo=magia
+; pieza f14_placa pulsador 11 30 modo=presencia
+; puzle f14_boton_calienta cuando=f14_boton.pulsado hace=f14_muro.calentar
+; puzle f14_placa_rompe cuando=f14_placa.pulsado hace=f14_muro.romper
 ; ---------------------------------------------------------------------------------------------------------------------------------
 #################################
 #.......#...Z...#.-.....#......Z#
@@ -192,11 +201,11 @@
 #.......#.......#.......#..#.#..#
 #.......#.......#...@...#..#@#..#
 ####.#######.#######.#######.####
+#.......#..#....#.......#.......#
+#.zzzzz.#..#....#.......#.......#
+#.......##......#.......#.......#
 #.......#.......#.......#.......#
-#.zzzzz.#.......#.......#.......#
 #.......#.......#.......#.......#
-#.......#.......#.......#.......#
-#.......#.......#.......#.......#
-#..!.@..#.......#.......#.......#
+#..!.@..#..@.!..#.......#.......#
 #.......#.......#.......#.......#
 #################################

@@ -17,6 +17,7 @@ func _escenario() -> void:
 	await _recargar()
 	_ok("0 el mapa y las piezas de la segunda tanda se montan sin avisos", (lab.get("_avisos") as Array).is_empty(), str(lab.get("_avisos")))
 	await _f13()
+	await _f14()
 
 
 # ---------------------------------------------------------------------------------------------------------------------
@@ -195,3 +196,82 @@ func _f13() -> void:
 	_ok("F13.32 el chorro de los 6 s (dragón: %d haces) se para en la barrera: no prende el seto (ardió alguno: %s)" % [dragon.ticks, str((rd["quemados"] as Dictionary).keys())], (rd["quemados"] as Dictionary).is_empty() and dragon.ticks >= 1 and not barril.explotado)
 	var re: Dictionary = await _f13_vigilar(q, 9.0)
 	_ok("F13.33 pero es solo UN chorro: la barrera se va a los 2 s y el siguiente (a los 13 s) sí prende el primer seto (a los %.1f s de ahí)" % float(re["t_s1"]), float(re["t_s1"]) > 0.0)
+
+# ---------------------------------------------------------------------------------------------------------------------
+#  F14 · Choque térmico
+# ---------------------------------------------------------------------------------------------------------------------
+
+## El valor del uniforme `calor` que se está pintando (la capa de grietas del modelo o el shader de la caja).
+func _calor_pintado(m: MuroAgrietado3D) -> float:
+	var mat: ShaderMaterial = m.get("_capa") as ShaderMaterial
+	if mat == null:
+		mat = m.get("_mat") as ShaderMaterial
+	return float(mat.get_shader_parameter("calor")) if mat != null else -1.0
+
+
+func _f14() -> void:
+	await _recargar()
+	var q: Dictionary = _sala("F14")
+	_ok("F14.0 la sala existe en el lab", not q.is_empty())
+	if q.is_empty():
+		return
+	var muro: MuroAgrietado3D = q["muro"]
+	var cofre: Variant = q["cofre"]
+	var boton: Pulsador3D = q["boton"]
+	var placa: Pulsador3D = q["placa"]
+	var cuenta: Dictionary = {"calienta": 0, "se_enfria": 0}
+	muro.calienta.connect(func() -> void: cuenta["calienta"] = int(cuenta["calienta"]) + 1)
+	muro.se_enfria.connect(func() -> void: cuenta["se_enfria"] = int(cuenta["se_enfria"]) + 1)
+	_tecla_sala(KEY_KP_2)
+	_ok("F14.1 la tecla 2 del teclado numérico lleva a la sala (12,25)", celda_jugador() == Vector2i(12, 25), str(celda_jugador()))
+	colocar_jugador(Vector2i(20, 12))
+	_tecla_sala(KEY_2, true)
+	_ok("F14.2 Alt+2 también (y no a F2)", celda_jugador() == Vector2i(12, 25), str(celda_jugador()))
+	_ok("F14.3 estado inicial: una roca TÉRMICA en (10,27), fría e intacta, que tapa el nicho: el cofre (9,25) sigue oculto y la casilla bloqueada",
+		muro.termica and muro.celda == Vector2i(10, 27) and not muro.caliente and not muro.roto_ya and muro.calor_dura >= 5.0 and bool(cofre.get("es_oculto")) and Terreno3D.bloqueada(Vector2i(10, 27)) and _calor_pintado(muro) == 0.0)
+	_ok("F14.4 el color del calor es rojo-naranja, nunca amarillo: (%.2f, %.2f, %.2f)" % [MuroAgrietado3D.COLOR_CALOR.r, MuroAgrietado3D.COLOR_CALOR.g, MuroAgrietado3D.COLOR_CALOR.b],
+		MuroAgrietado3D.COLOR_CALOR.r >= 0.9 and MuroAgrietado3D.COLOR_CALOR.g <= 0.45 and MuroAgrietado3D.COLOR_CALOR.b <= 0.15)
+	if modo == "natural":
+		# 1 · Fría, el agua no le hace nada.
+		_ok("F14.5 agua + flecha a la roca (10,27) desde (10,28) sale", lanzar_a_celda("agua", ["flecha"], Vector2i(10, 27), Vector2i(10, 28)))
+		await avanzar_s(1.2)
+		_ok("F14.6 el agua en FRÍO no le hace nada: ni se parte ni se calienta", not muro.roto_ya and not muro.caliente and bool(cofre.get("es_oculto")))
+		# 2 · Los golpes de tierra y las explosiones no la rompen.
+		for i in range(3):
+			lanzar_a_celda("tierra", ["flecha"], Vector2i(10, 27), Vector2i(10, 28))
+			await avanzar_s(1.2)
+		muro.recibir_explosion(muro.global_position)
+		await avanzar_s(0.5)
+		_ok("F14.7 tres golpes de tierra y una explosión (barril) no la rompen (golpes recibidos: %d de %d)" % [muro.recibidos, muro.golpes], not muro.roto_ya and muro.recibidos == 0 and not muro.is_in_group("explosionable"))
+		# 3 · El fuego la pone al rojo.
+		_ok("F14.8 fuego + flecha a la roca sale", lanzar_a_celda("fuego", ["flecha"], Vector2i(10, 27), Vector2i(10, 28)))
+		await avanzar_s(0.8)
+		_ok("F14.9 el fuego la pone AL ROJO (calor %.1f s, pintado %.2f, luz %.2f) pero no la parte" % [muro.calor_s, _calor_pintado(muro), (muro.get("_luz_calor") as OmniLight3D).light_energy],
+			muro.caliente and muro.calor_s > muro.calor_dura - 1.5 and _calor_pintado(muro) > 0.9 and not muro.roto_ya and int(cuenta["calienta"]) == 1 and (muro.get("_luz_calor") as OmniLight3D).light_energy > 0.5)
+		# 4 · Se enfría sola: pasados los segundos de calor, el agua ya no hace nada.
+		await avanzar_s(muro.calor_dura + 0.5)
+		_ok("F14.10 pasados %.0f s se ha enfriado sola (se_enfria x%d, pintado %.2f)" % [muro.calor_dura, int(cuenta["se_enfria"]), _calor_pintado(muro)], not muro.caliente and int(cuenta["se_enfria"]) == 1 and _calor_pintado(muro) < 0.05)
+		lanzar_a_celda("agua", ["flecha"], Vector2i(10, 27), Vector2i(10, 28))
+		await avanzar_s(1.2)
+		_ok("F14.11 agua cuando ya se enfrió: nada (la ventana pasó)", not muro.roto_ya and bool(cofre.get("es_oculto")))
+		# 5 · El fuego otra vez renueva el calor; con ella al rojo, el agua la parte.
+		lanzar_a_celda("fuego", ["flecha"], Vector2i(10, 27), Vector2i(10, 28))
+		await avanzar_s(4.0)
+		var restante: float = muro.calor_s
+		lanzar_a_celda("fuego", ["flecha"], Vector2i(10, 27), Vector2i(10, 28))
+		await avanzar_s(0.6)
+		_ok("F14.12 otro fuego a los 4 s RENUEVA el calor (de %.1f s a %.1f s)" % [restante, muro.calor_s], muro.calor_s > restante + 2.0 and muro.calentamientos >= 3)
+		_ok("F14.13 agua + flecha a la roca al rojo sale", lanzar_a_celda("agua", ["flecha"], Vector2i(10, 27), Vector2i(10, 28)))
+		await avanzar_s(0.6)
+		_ok("F14.14 el CHOQUE TÉRMICO la parte (roto = %s) y libera su casilla" % str(muro.roto_ya), muro.roto_ya and not Terreno3D.bloqueada(Vector2i(10, 27)))
+		await avanzar_s(1.2)
+		_ok("F14.15 aparece el cofre del nicho (oculto %s, cerrado %s)" % [str(bool(cofre.get("es_oculto"))), str(bool(cofre.get("es_cerrado")))], not bool(cofre.get("es_oculto")) and bool(cofre.get("es_cerrado")))
+	else:
+		boton.pulsar()
+		await avanzar_s(0.8)
+		_ok("F14.20 el botón ! (13,30) calienta la roca (al rojo %s, calor %.1f s) sin partirla" % [str(muro.caliente), muro.calor_s], boton.veces == 1 and muro.caliente and not muro.roto_ya and bool(cofre.get("es_oculto")))
+		colocar_jugador(Vector2i(11, 30))
+		await avanzar_s(0.8)
+		_ok("F14.21 la placa @ (11,30) la parte por su regla y aparece el cofre", placa.veces == 1 and muro.roto_ya and not Terreno3D.bloqueada(Vector2i(10, 27)))
+		await avanzar_s(1.2)
+		_ok("F14.22 … el cofre del nicho está a la vista", not bool(cofre.get("es_oculto")))

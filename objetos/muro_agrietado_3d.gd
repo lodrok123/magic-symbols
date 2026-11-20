@@ -18,9 +18,14 @@ extends Area3D
 ## `columna_agrietada`, y en vez de la tierra la rompen los PULSOS (grupo `Pulso3D.GRUPO_PULSABLE`, `on_pulso`): cada pulso que la toca la agrieta más y al `golpes`-ésimo CAE, tumbándose
 ## hacia `cae` (n|e|s|o), levanta polvo, libera su casilla (abre un paso: la que tapa un nicho) y se deshace. Los hechizos no le hacen nada (la tierra tampoco).
 ##
+## ROCA TÉRMICA (F14, 20/11, `; pieza <id> muro <x> <y> termica=si [calor=<s>]`): el mismo bloque pero que los golpes de tierra y las explosiones NO rompen. El fuego la pone al rojo `calor` s (8 por defecto; emisión rojo-naranja, nunca amarillo, y una luz cálida)
+## y el agua (o el frío) mientras sigue caliente la parte de golpe, con vapor: choque térmico. Fría, el agua no le hace nada. Señales `calienta`, `se_enfria`, `roto`; condiciones `caliente`|`fria`; acción `calentar`.
+##
 ## Se coloca desde un mapa con `; pieza <id> muro <x> <y> [golpes=<n>]` o `; pieza <id> columna <x> <y> [golpes=<n>] [cae=n|e|s|o]` (escenas/puzle.gd) o con `preparar` desde código.
 
 signal roto
+signal calienta                         ## la roca TÉRMICA se pone al rojo (un hechizo de fuego)
+signal se_enfria                        ## … y se le pasa el calor sin que el agua la haya partido
 
 const ALTO: float = 1.6
 const GRIETAS_INICIO: float = 0.3       ## las que tiene sin tocar
@@ -32,7 +37,12 @@ const DIRS_CAIDA: Dictionary = {"n": Vector3(0.0, 0.0, -1.0), "e": Vector3(1.0, 
 const ESPERA_DESHACER: float = 0.6      ## s que la columna caída se queda en el suelo antes de deshacerse
 const ALTO_COLUMNA: float = 2.5         ## u: lo que mide la columna en pie (Pieza3D.MEDIDA["columna_agrietada"]); base del estirado de la columna-puente
 const SOLAPE_ORILLA: float = 0.35       ## u que la columna-puente se apoya sobre la orilla de enfrente
-const HUNDIR_PUENTE: float = 0.1        ## u que se hunde la columna-puente tendida: poco, o el fuste (más fino que la base) queda por debajo de la superficie de la lava y solo asoma la base
+## ROCA TÉRMICA (F14, 20/11). Colores del calor: rojo y naranja, NUNCA amarillo (decisión de Pablo para el fuego).
+const CALOR_DEFECTO: float = 8.0        ## s al rojo tras el fuego (el agua tiene ese margen; con más calor hace falta menos prisa)
+const T_CALENTAR: float = 0.35          ## s que tarda en ponerse al rojo del todo
+const FUNDIDO_CALOR_S: float = 2.0      ## s finales en que el rojo se apaga poco a poco
+const COLOR_CALOR: Color = Color(1.0, 0.3, 0.06)
+const HUNDIR_PUENTE: float = 0.1       ## u que se hunde la columna-puente tendida: poco, o el fuste (más fino que la base) queda por debajo de la superficie de la lava y solo asoma la base
 
 const CODIGO: String = """
 shader_type spatial;
@@ -43,6 +53,7 @@ uniform vec4 brillo_grieta : source_color = vec4(1.0, 0.72, 0.4, 1.0);
 uniform float grietas : hint_range(0.0, 1.0) = 0.3;
 uniform float disolver : hint_range(0.0, 1.0) = 0.0;
 uniform float alto = 1.6;
+uniform float calor : hint_range(0.0, 1.0) = 0.0;
 varying vec3 po;
 
 float h31(vec3 p) {
@@ -109,11 +120,13 @@ void fragment() {
 	float g2 = (1.0 - smoothstep(0.0, 0.05, vf.z)) * step(vf.x, max(grietas - 0.5, 0.0) * 1.5);
 	float grieta = max(g1, g2 * 0.8);
 	c = mix(c, fondo_grieta, grieta);
+	c = mix(c, vec3(0.45, 0.07, 0.03), calor * 0.55);       // al rojo: la piedra se oscurece hacia rojo vivo (nunca amarillo)
 	ALBEDO = c;
 	ROUGHNESS = 0.95;
 	SPECULAR = 0.2;
 	// Dentro de la grieta, un fulgor terroso muy leve (la pista de que se rompe), y el borde de lo que se deshace.
 	vec3 em = brillo_grieta.rgb * grieta * 0.35 * grietas;
+	em += mix(vec3(0.85, 0.12, 0.03), vec3(1.0, 0.34, 0.05), grieta) * calor * (0.8 + 0.8 * grieta);
 	if (disolver > 0.0) {
 		em += brillo_grieta.rgb * (1.0 - smoothstep(0.0, 0.2, resto)) * 2.0;
 	}
@@ -125,6 +138,7 @@ void fragment() {
 const CODIGO_CAPA: String = """
 shader_type spatial;
 render_mode blend_mix, depth_draw_never, cull_back;
+uniform float calor : hint_range(0.0, 1.0) = 0.0;
 uniform float grietas : hint_range(0.0, 1.0) = 0.3;
 uniform vec4 fondo_grieta : source_color = vec4(0.10, 0.08, 0.07, 1.0);
 uniform vec4 brillo_grieta : source_color = vec4(1.0, 0.72, 0.4, 1.0);
@@ -174,9 +188,10 @@ void fragment() {
 	vec3 vf = voronoi(po / 0.2 + vec3(11.0, 5.0, 2.0));
 	float g2 = (1.0 - smoothstep(0.0, 0.05, vf.z)) * step(vf.x, max(grietas - 0.5, 0.0) * 1.5);
 	float grieta = max(g1, g2 * 0.8);
-	ALBEDO = fondo_grieta.rgb;
-	EMISSION = brillo_grieta.rgb * grieta * 0.35 * grietas;
-	ALPHA = grieta * 0.9;
+	float pulso_calor = 0.88 + 0.12 * sin(TIME * 3.0 + po.y * 4.0);
+	ALBEDO = mix(fondo_grieta.rgb, vec3(0.5, 0.06, 0.02), calor);
+	EMISSION = brillo_grieta.rgb * grieta * 0.35 * grietas + mix(vec3(0.85, 0.12, 0.03), vec3(1.0, 0.34, 0.05), grieta) * calor * pulso_calor * (0.8 + 0.8 * grieta);
+	ALPHA = max(grieta * 0.9, calor * 0.55);
 }
 """
 
@@ -199,6 +214,13 @@ var puente: Lava3D = null               ## columna-PUENTE (C3): la lava sobre la
 var largo_puente: float = 0.0           ## columna-PUENTE: casillas que alcanza al caer (se estira mientras se tumba para llegar a la otra orilla)
 var flag: String = ""                   ## columna: se acuerda de que cayó (la pone al caer; con ella ya puesta nace caída y, si es puente, ya tendida)
 var cubiertas: Array[Vector2i] = []     ## columna-PUENTE: las casillas de lava que cubrió (las pruebas)
+var termica: bool = false               ## ROCA TÉRMICA (F14, 20/11): los golpes y las explosiones no la rompen; el fuego la pone al rojo `calor_dura` s y el agua mientras sigue caliente la parte
+var calor_dura: float = CALOR_DEFECTO   ## termica: s que se queda al rojo tras un hechizo de fuego (el siguiente fuego los renueva)
+var calor_s: float = 0.0                ## termica: s que le quedan al rojo
+var caliente: bool = false              ## termica: al rojo ahora (`calor_s` > 0); las reglas lo leen (`si=<id>.caliente`)
+var calor_visual: float = 0.0           ## termica: 0 fría … 1 al rojo (lo que se pinta; sube en `T_CALENTAR` s y baja en los últimos `FUNDIDO_CALOR_S`)
+var calentamientos: int = 0             ## termica: veces que el fuego la ha calentado (las pruebas)
+var _luz_calor: OmniLight3D = null
 
 
 ## `mundo` = la maqueta (da el modelo con su escala de `Pieza3D.MEDIDA_ANCHO`); sin ella se carga `arte/piezas/muro_agrietado.tscn`.
@@ -208,6 +230,83 @@ func preparar(p_celda: Vector2i, p_golpes: int = 2, mundo: Node = null) -> void:
 	golpes = maxi(p_golpes, 1)
 	position = Terreno3D.centro_de(celda, Terreno3D.y_pies(celda))
 	Terreno3D.bloquear_celda(celda)
+
+
+## ROCA TÉRMICA (F14, 20/11): los golpes de tierra y las explosiones no la rompen. Un hechizo de FUEGO la pone al rojo `p_calor` s (rojo y naranja: emisión en el modelo y una luz cálida) y un hechizo de AGUA (o de frío) MIENTRAS sigue
+## caliente la parte de golpe (`romper`: vapor, polvo, se deshace por celdas y libera su casilla). Fría, el agua no le hace nada; el fuego otra vez renueva el calor; pasado el tiempo se enfría sola (`se_enfria`). Se llama antes de añadirlo al árbol.
+func como_termica(p_calor: float = CALOR_DEFECTO) -> void:
+	termica = true
+	calor_dura = maxf(p_calor, 0.5)
+
+
+## Qué le hace este hechizo a la roca térmica: «calienta» (calor), «parte» (humedad o frío con la roca al rojo), «» (nada: agua en frío, tierra, viento…). Lo dicho por `Materia`, sin mirar nombres de elemento.
+func _reaccion_termica(rune_data: RuneData, hechizo: Hechizo = null) -> String:
+	if rune_data == null or roto_ya:
+		return ""
+	var m: Dictionary = Materia.de(hechizo if hechizo != null else rune_data)
+	if Materia.calienta(m):
+		return "calienta"
+	if (Materia.moja(m) or Materia.enfria(m)) and caliente:
+		return "parte"
+	return ""
+
+
+func _golpe_termico(rune_data: RuneData, hechizo: Hechizo = null) -> void:
+	match _reaccion_termica(rune_data, hechizo):
+		"calienta":
+			calentar()
+		"parte":
+			romper()
+
+
+## Pone al rojo la roca térmica `calor_dura` s (otra vez, si ya lo estaba). También es la acción `calentar` del mapa.
+func calentar() -> void:
+	if not termica or roto_ya:
+		return
+	var estaba: bool = caliente
+	calor_s = calor_dura
+	caliente = true
+	calentamientos += 1
+	if not estaba:
+		if is_inside_tree():
+			Sfx.play(self, "fuego_carga")
+		calienta.emit()
+
+
+## Cada fotograma de la roca térmica: cuenta el calor y lleva el rojo (`calor_visual`) hacia lo que toca (sube en T_CALENTAR s; en los últimos FUNDIDO_CALOR_S s baja poco a poco).
+func _process(delta: float) -> void:
+	if not termica or roto_ya:
+		return
+	if caliente:
+		calor_s = maxf(calor_s - delta, 0.0)
+		if calor_s <= 0.0:
+			caliente = false
+			se_enfria.emit()
+	var objetivo: float = clampf(calor_s / FUNDIDO_CALOR_S, 0.0, 1.0) if caliente else 0.0
+	var paso: float = delta / T_CALENTAR if objetivo > calor_visual else delta / FUNDIDO_CALOR_S
+	calor_visual = move_toward(calor_visual, objetivo, paso)
+	_poner_calor_visual(calor_visual)
+
+
+func _poner_calor_visual(v: float) -> void:
+	if _capa != null:
+		_capa.set_shader_parameter("calor", v)
+	if _mat != null:
+		_mat.set_shader_parameter("calor", v)
+	if _luz_calor != null:
+		_luz_calor.light_energy = 1.4 * v
+
+
+## Una luz cálida (rojo-naranja) junto a la roca, apagada hasta que se calienta.
+func _poner_luz_calor() -> void:
+	_luz_calor = OmniLight3D.new()
+	_luz_calor.name = "LuzCalor"
+	_luz_calor.light_color = COLOR_CALOR
+	_luz_calor.light_energy = 0.0
+	_luz_calor.omni_range = Terreno3D.casilla * 2.2
+	_luz_calor.shadow_enabled = false
+	_luz_calor.position = Vector3(0.0, ALTO * 0.55, Terreno3D.casilla * 0.6)
+	add_child(_luz_calor)
 
 
 ## Lo convierte en una COLUMNA que rompen los pulsos (ver arriba). Se llama antes de añadirlo al árbol.
@@ -233,10 +332,13 @@ func _ready() -> void:
 	if por_pulso:
 		add_to_group(Pulso3D.GRUPO_PULSABLE)
 		add_to_group("explosionable")        # 26/10: la geoda explosiva (GeodaPulso3D) también la tumba
-	else:
-		add_to_group("explosionable")
+	elif not termica:
+		add_to_group("explosionable")             # la roca térmica NO: ni una explosión la rompe (solo el choque de calor y frío)
 	if por_pulso and flag != "" and Flags.i().tiene(flag):
 		_nacer_caida.call_deferred()
+	set_process(termica)                        # solo la roca térmica necesita _process (cuenta su calor)
+	if termica:
+		_poner_luz_calor()
 	var ancho: float = Terreno3D.casilla * 0.96
 	var forma := CollisionShape3D.new()
 	var caja := BoxShape3D.new()
@@ -307,12 +409,15 @@ func _poner_disolver(v: float) -> void:
 
 ## 28/10 · A2 (previsión): qué le haría este hechizo AHORA, sin tocarlo: «rompe» (el golpe que falta), «agrieta» (otro golpe de tierra, pero aún no cae) o «» (no le toca). `on_spell_hit` aplica esto.
 func reaccion_a(rune_data: RuneData, hechizo: Hechizo = null) -> String:
-	if por_pulso or rune_data == null or roto_ya or not Materia.golpea(Materia.de(hechizo if hechizo != null else rune_data)):
+	if termica or por_pulso or rune_data == null or roto_ya or not Materia.golpea(Materia.de(hechizo if hechizo != null else rune_data)):
 		return ""
 	return "rompe" if recibidos + 1 >= golpes else "agrieta"
 
 
 func on_spell_hit(rune_data: RuneData, _direccion: Vector3 = Vector3.ZERO, hechizo: Hechizo = null) -> void:
+	if termica:
+		_golpe_termico(rune_data, hechizo)
+		return
 	if reaccion_a(rune_data, hechizo) == "":
 		return
 	recibidos += 1
@@ -323,6 +428,8 @@ func on_spell_hit(rune_data: RuneData, _direccion: Vector3 = Vector3.ZERO, hechi
 
 
 func spell_reacts(rune_data: RuneData, _direccion: Vector3 = Vector3.ZERO, hechizo: Hechizo = null) -> bool:
+	if termica:
+		return rune_data != null and not roto_ya and _reaccion_termica(rune_data, hechizo) != ""
 	return not por_pulso and rune_data != null and not roto_ya and Materia.golpea(Materia.de(hechizo if hechizo != null else rune_data))
 
 
@@ -350,6 +457,8 @@ func nivel_altura() -> int:
 
 ## Barril3D: una explosión al alcance lo rompe de una vez.
 func recibir_explosion(_punto: Vector3) -> void:
+	if termica:
+		return                                  # la roca térmica no se rompe con golpes ni explosiones: solo con el choque de calor y frío
 	romper()
 
 
@@ -369,6 +478,8 @@ func romper() -> void:
 	Sfx.play(self, "derrumbe")
 	if get_parent() is Node3D:
 		VfxPuzle3D.polvo(get_parent() as Node3D, global_position + Vector3(0.0, 0.1, 0.0), 1.1)
+		if termica:
+			VfxPuzle3D.vapor(get_parent() as Node3D, global_position + Vector3(0.0, 0.8, 0.0), 1.8)      # el choque térmico: la piedra caliente suelta vapor al partirse
 	_poner_grietas(1.0)
 	if _cuerpo != null and _capa != null:
 		for g in _cuerpo.find_children("*", "GeometryInstance3D", true, false):

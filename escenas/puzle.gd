@@ -73,6 +73,8 @@ extends Node
 ##              `coge_si` (alga: casilla(x,y).helada · basalto: casilla(x,y).roca). Si la condición se pierde, desaparece; si vuelve, reaparece (salvo si ya se cogió)
 ##   muro       golpes=<n> (2)                                                       MuroAgrietado3D (bloque 2 EoW): bloque de piedra que tapa su casilla;
 ##              lo rompen `golpes` impactos de tierra o una explosión (barril). Se deshace por celdas y libera la casilla
+##              20/11 (F14) `termica=si` `calor=<s>` (8): ROCA TÉRMICA. Los golpes y las explosiones no la rompen: el fuego la pone al rojo `calor` s (emisión rojo-naranja, nunca amarillo; cada fuego renueva el calor) y el agua mientras sigue
+##              caliente la parte de golpe (vapor). Fría, el agua no le hace nada. Señales `calienta`, `se_enfria` (además de `roto`); condiciones `caliente`|`fria`; acción `calentar` (como un hechizo de fuego). Ej.: `; pieza m muro 10 27 termica=si`
 ##   bloque     material=piedra|hielo (piedra)                                      BloqueEmpujable3D (27/10, docs/EMPUJAR_BLOQUES.md): bloque que la jugadora EMPUJA andando contra él (0,35 s apretando) o que el VIENTO se lleva. Bloquea
 ##              su casilla (jugadora, enemigos, flechas), pesa (pisa las placas) y no se guarda: al recargar vuelve a su casilla. `piedra`: una casilla por empujón (0,45 s); sobre el HUECO de una
 ##              veta (`enlaces=`) lo TIENDE y el pulso cruza. `hielo`: un empujón y resbala hasta que la siguiente casilla no esté libre (pared, otro bloque, una barrera de tierra, un enemigo).
@@ -316,7 +318,7 @@ const SENALES: Dictionary = {
 	"vigia": {"todos_derrotados": ["todos_derrotados", 0, null]},
 	"cerrojo": {"cerrado": ["cambio", 1, true], "abierto": ["cambio", 1, false]},
 	"cofre": {"aparecido": ["aparecido", 0, null], "abierto": ["abierto", 0, null]},
-	"muro": {"roto": ["roto", 0, null]},
+	"muro": {"roto": ["roto", 0, null], "calienta": ["calienta", 0, null], "se_enfria": ["se_enfria", 0, null]},
 	"lava": {"enfriada": ["enfriada", 1, null], "apagada": ["apagada", 0, null]},
 	"seta": {"recogida": ["recogido", 1, null]},
 	"alga": {"recogida": ["recogido", 1, null]},
@@ -367,7 +369,7 @@ const CONDICIONES: Dictionary = {
 	"vigia": {"todos": ["completo", true], "quedan": ["completo", false]},
 	"cerrojo": {"cerrado": ["cerrado", true], "abierto": ["cerrado", false]},
 	"cofre": {"oculto": ["es_oculto", true], "cerrado": ["es_cerrado", true], "abierto": ["es_abierto", true]},
-	"muro": {"roto": ["roto_ya", true], "entero": ["roto_ya", false]},
+	"muro": {"roto": ["roto_ya", true], "entero": ["roto_ya", false], "caliente": ["caliente", true], "fria": ["caliente", false]},
 	"lava": {"activa": ["is_lit", true], "apagada": ["is_lit", false]},
 	"seta": {"recogida": ["recogido_ya", true], "en_suelo": ["recogido_ya", false]},
 	"alga": {"recogida": ["recogido_ya", true], "en_suelo": ["recogido_ya", false]},
@@ -411,7 +413,7 @@ const ACCIONES: Dictionary = {
 	"cuerda": {"quemar": 0},
 	"cerrojo": {"abrir": 0, "cerrar": 0},
 	"cofre": {"abrir": 0, "aparecer": 0},
-	"muro": {"romper": 0},
+	"muro": {"romper": 0, "calentar": 0},
 	"lava": {"enfriar": 0},
 	"seta": {"recoger": 0},
 	"alga": {"recoger": 0},
@@ -461,7 +463,7 @@ const CLAVES: Dictionary = {
 	"vigia": {"de": "celdas", "flag": "flag", "puesto": "b", "debil": "s:fuego|agua|tierra|viento|rayo|hielo", "resiste": "s:fuego|agua|tierra|viento|rayo|hielo"},
 	"cerrojo": {"celdas": "celdas", "sala": "celdas", "hasta": "flag"},
 	"cofre": {"aparece_si": "expr", "abierto": "flag", "modelo": "s:legendario|epico", "abre_si": "expr", "glifo": "glifo", "da": "da", "gasta": "b"},
-	"muro": {"golpes": "f"},
+	"muro": {"golpes": "f", "termica": "b", "calor": "f"},
 	"lava": {"celdas": "celdas", "vuelve": "f"},
 	"seta": {"variante": "s:roja|azul|marron", "rebrota": "f", "madura": "b"},
 	"alga": {"coge_si": "expr", "rebrota": "f"},
@@ -2132,6 +2134,8 @@ func _crear(pz: Pieza) -> void:
 			var mu := MuroAgrietado3D.new()
 			mu.name = pz.id
 			mu.preparar(pz.celda, int(pz.p.get("golpes", 2)), mundo as Node)
+			if bool(pz.p.get("termica", false)):
+				mu.como_termica(float(pz.p.get("calor", MuroAgrietado3D.CALOR_DEFECTO)))      # F14: roca térmica (fuego la pone al rojo, el agua en caliente la parte)
 			cont.add_child(mu)
 			pz.nodo = mu
 		"bloque":
@@ -3471,6 +3475,9 @@ func _ejecutar(a: Dictionary) -> void:
 		"romper":
 			if nd != null:
 				nd.call("romper")
+		"calentar":
+			if nd != null:
+				nd.call("calentar")
 		"usar":
 			if nd != null:
 				nd.call("usar")

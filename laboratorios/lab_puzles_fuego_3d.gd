@@ -69,6 +69,7 @@ const TRAMPAS: Array = [
 ## PUZLES NUEVOS (18/11/2026): tres salas más, aparte de las anteriores para no tocar `_puzles` ni `_trampas` (que cuentan las pruebas). Teclas 9, 0 y «-» (a la izquierda de la 1 en el teclado español: la tecla de al lado del 0).
 ##   F10 (2,1) LLEVA LA PÓLVORA: un muro agrietado tapa un nicho con un cofre; el barril pequeño de (22,10) (la otra punta de la sala) se coge, se enciende con fuego, se lleva y se lanza o se deja junto al muro. Botón `!` enciende el barril donde está; placa `@` rompe el muro.
 ## SEGUNDA TANDA (20/11/2026): el mapa pasa a 33 × 33 con una fila de salas más ((0,3)…(3,3), con hueco en x = 4, 12, 20, 28 de la fila 24). Teclado numérico 1…4 o Alt+1…4 (la fila de números ya está llena; `indice_nuevo_por_tecla`).
+##   F14 (1,3) CHOQUE TÉRMICO: un nicho con cofre tapado por una roca térmica (10,27): el fuego la pone al rojo 8 s y el agua mientras está caliente la parte; los golpes y las explosiones no la rompen.
 ##   F13 (0,3) DRAGÓN QUE ENCIENDE + BARRERA: una cabeza de dragón en el muro (6,24) escupe cada 7 s por la columna x=6; prende una fila de setos (2..6, 26) hasta un barril (1,26) que, al reventar, sella el cofre (1,27). Agua a la cabeza, un seto mojado o una barrera de agua (2 s) delante de la boca.
 const NUEVOS: Array = [
 	{"nombre": "F10 pólvora", "entrada": Vector2i(19, 13), "cartel": Vector2i(21, 10),
@@ -83,6 +84,9 @@ const NUEVOS: Array = [
 	{"nombre": "F13 dragón y barrera", "entrada": Vector2i(4, 25), "cartel": Vector2i(4, 28),
 		"texto": "F13 · EL DRAGÓN QUE ENCIENDE\nLa cabeza del muro (arriba a la derecha) escupe fuego a los 6 s de entrar y cada 7 s: prende la fila de setos y el fuego corre hasta el barril,\nque al reventar entierra el cofre. Vías: agua a la cabeza (la apaga 8 s) · mojar un seto (cortafuegos) · BARRERA de agua delante de la boca.\nBotón: apaga el dragón 8 s · placa: prende el primer seto a mano.",
 		"ids": {"dragon": "f13_dragon", "s1": "f13_s1", "s2": "f13_s2", "s3": "f13_s3", "s4": "f13_s4", "s5": "f13_s5", "barril_grande": "f13_barril", "cofre": "f13_cofre", "boton": "f13_boton", "placa": "f13_placa"}},
+	{"nombre": "F14 choque térmico", "entrada": Vector2i(12, 25), "cartel": Vector2i(12, 29),
+		"texto": "F14 · CHOQUE TÉRMICO\nLa roca que tapa el nicho (arriba a la izquierda) no se rompe a golpes ni con explosiones.\nFuego: la pone al rojo 8 s. Agua MIENTRAS sigue al rojo: la parte (con vapor). Fría, el agua no le hace nada.\nBotón: la calienta · placa: la parte.",
+		"ids": {"muro": "f14_muro", "cofre": "f14_cofre", "boton": "f14_boton", "placa": "f14_placa"}},
 ]
 ## Papeles que toda sala tiene en su diccionario aunque no los use (null): el HUD y el escenario los leen sin mirar si existen.
 const PAPELES_SIEMPRE: Array = ["detector", "compuerta", "puerta", "contador"]
@@ -416,6 +420,8 @@ func _estado_nuevo(q: Dictionary) -> String:
 	var muro: Variant = q.get("muro")
 	if muro != null and is_instance_valid(muro):
 		s += "  muro %s" % ("ROTO" if bool((muro as Object).get("roto_ya")) else "entero")
+		if bool((muro as Object).get("termica")) and not bool((muro as Object).get("roto_ya")):
+			s += " (%s)" % (("AL ROJO %.1f s" % float((muro as Object).get("calor_s"))) if bool((muro as Object).get("caliente")) else "fría")
 	var cofre: Variant = q.get("cofre")
 	if cofre != null and is_instance_valid(cofre):
 		s += "  cofre %s" % ("abierto" if bool((cofre as Object).get("es_abierto")) else ("cerrado" if bool((cofre as Object).get("es_cerrado")) else "oculto"))
