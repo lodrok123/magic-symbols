@@ -32,6 +32,7 @@
 ; giro 27 25 180
 ; giro 26 25 90
 ; giro 26 26 90
+; giro 5 27 180
 ; ---------------------------------------------------------------------------------------------------------------------------------
 ; Piezas y puzles de cada sala (Fase 12.3: los lee escenas/puzle.gd; la gramatica esta en su cabecera). El laboratorio solo pone HUD,
 ; teclas y carteles. Las tinajas del lab vierten 0.5 u3/s durante 20 u3 (Pablo, 15/10); el arroyo de Q3 echa 1.5 u3/s.
@@ -181,6 +182,26 @@
 ; puzle q12_vierte cuando=q12_tinaja.agua_llega hace=q12_tinaja.abrir_cauce(0.5,20)
 ; puzle q12_moja_boton cuando=q12_boton.pulsado hace=q12_tinaja.mojar
 ; puzle q12_moja_placa cuando=q12_placa.pulsado hace=q12_tinaja.mojar
+; --- Q13 LA CALDERA (20/11, sala (0,3), x 1..7, y 25..31): la cuenca (2..3, 26..27, 4 casillas, como la de Q8) se llena por la tinaja (5,27) y debajo hay un brasero (3,29). La puerta (1,31) abre con LAS DOS COSAS a la vez: la cuenca
+; ---   a 0,45 o mas (detector q13_nivel en (2,26)) Y el brasero encendido. El agua que desborda lo apaga: el detector q13_desborda (0,8 en (3,27)) corta la llama en cuanto el nivel lo alcanza (una vez, como el charco de F5), y la tinaja vierte
+; ---   hasta ~0,9: hay que dosificar (la tinaja no se vuelve a mojar mientras sube) o ENCENDER DESPUES del desborde. Si la llama se apaga la puerta se cierra. Vias: boton ! (2,31) moja la tinaja · placa @ (6,31) enciende el brasero.
+; pieza q13_cuenca cuenca 2 26 celdas=2,26..3,27
+; pieza q13_nivel nivel 2 26 objetivo=0.45
+; pieza q13_desborda nivel 3 27 objetivo=0.8
+; pieza q13_tinaja tinaja 5 27 canal=4,27
+; pieza q13_brasero brasero 3 29
+; pieza q13_cont contador 5 29 de=3,29
+; pieza q13_puerta puerta 1 31
+; pieza q13_boton pulsador 2 31 modo=magia
+; pieza q13_placa pulsador 6 31 modo=presencia
+; puzle q13_vierte cuando=q13_tinaja.agua_llega hace=q13_tinaja.abrir_cauce(0.5,20)
+; puzle q13_abre_nivel cuando=q13_nivel.alcanzado si=q13_cont.todos hace=q13_puerta.abrir
+; puzle q13_abre_llama cuando=q13_cont.todos si=q13_nivel.alcanzado hace=q13_puerta.abrir
+; puzle q13_cierra_nivel cuando=q13_nivel.perdido hace=q13_puerta.cerrar
+; puzle q13_cierra_llama cuando=q13_cont.no_todos hace=q13_puerta.cerrar
+; puzle q13_desborde_apaga cuando=q13_desborda.alcanzado hace=q13_brasero.apagar
+; puzle q13_boton_moja cuando=q13_boton.pulsado hace=q13_tinaja.mojar
+; puzle q13_placa_enciende cuando=q13_placa.pulsado hace=q13_brasero.encender
 #################################
 #.......#......Z#.-.....#...-...#
 #.cc.cc.#.!.Lu..#.-.....#...-...#
@@ -207,10 +228,10 @@
 #.......#.......#.......#.......#
 ####.#######.#######.#######.####
 #.......#.......#.......##Lu.!@##
-#.......#.......#.......##-..cc##
+#.cc....#.......#.......##-..cc##
+#.cc-u..#.......#.......##c...c##
 #.......#.......#.......##c...c##
-#.......#.......#.......##c...c##
-#.......#.......#.......##c...c##
+#..T....#.......#.......##c...c##
 #.......#.......#.......##ccccc##
-#.......#.......#.......#########
+#Z!...@.#.......#.......#########
 #################################

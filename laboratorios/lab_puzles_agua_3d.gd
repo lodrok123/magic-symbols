@@ -97,6 +97,9 @@ const NUEVOS: Array = [
 	{"nombre": "Q12 foso y balsa", "entrada": Vector2i(28, 25), "cartel": Vector2i(28, 28),
 		"texto": "Q12 · FOSO CON COFRE FLOTANTE\nEl cofre está en una balsa, en el fondo del foso, lejos de la pasarela, y sellado.\nLlena el foso (agua a la tinaja, o botón/placa): la balsa flota y deriva hasta la pasarela (14 s).\nCuando atraca, el cofre se abre con E desde la pasarela.",
 		"ids": {"balsa": "q12_balsa", "cofre": "q12_cofre", "tinaja": "q12_tinaja", "boton": "q12_boton", "placa": "q12_placa"}},
+	{"nombre": "Q13 caldera", "entrada": Vector2i(4, 25), "cartel": Vector2i(6, 29),
+		"texto": "Q13 · LA CALDERA\nLlena la cuenca (agua a la tinaja) y enciende el brasero de debajo (fuego): la puerta abre con las dos cosas a la vez.\nSi el agua desborda (0,8), APAGA el brasero y la puerta se cierra: dosifica o enciende después.\nBotón: moja la tinaja · placa: enciende el brasero.",
+		"ids": {"nivel": "q13_nivel", "desborda": "q13_desborda", "brasero": "q13_brasero", "tinaja": "q13_tinaja", "cont": "q13_cont", "puerta": "q13_puerta", "boton": "q13_boton", "placa": "q13_placa"}},
 ]
 ## Papeles que toda sala tiene en su diccionario aunque no los use (null): el HUD y el escenario los leen sin mirar si existen.
 const PAPELES_SIEMPRE: Array = ["detector", "compuerta", "puerta"]
@@ -230,7 +233,7 @@ func _unhandled_input(ev: InputEvent) -> void:
 		return
 	# El orden de _puzles es Q1…Q6, Q7, Q8, Q9, Q10; la tecla 0 es Q10.
 	var teclas: Dictionary = {KEY_1: 0, KEY_2: 1, KEY_3: 2, KEY_4: 3, KEY_5: 4, KEY_6: 5, KEY_7: 6, KEY_8: 7, KEY_9: 8, KEY_0: 9}
-	if teclas.has(k.keycode):
+	if teclas.has(k.keycode) and not k.alt_pressed:         # Alt+1… son de los puzles nuevos (más abajo)
 		var n: int = int(teclas[k.keycode])
 		if n < _puzles.size():
 			colocar_jugador(_puzles[n]["entrada"] as Vector2i)
@@ -239,6 +242,23 @@ func _unhandled_input(ev: InputEvent) -> void:
 		var nn: int = int(teclas_n[k.keycode])
 		if nn < _nuevos.size():
 			colocar_jugador(_nuevos[nn]["entrada"] as Vector2i)
+	var ne: int = indice_nuevo_por_tecla(k)
+	if ne >= 0 and ne < _nuevos.size():
+		colocar_jugador(_nuevos[ne]["entrada"] as Vector2i)
+
+
+## Las salas de la segunda tanda de puzles nuevos (Q13, Q14, Q15, 20/11) no tienen tecla propia en la fila de números (ya está llena): van en el teclado numérico (1, 2, 3) o con Alt + 1, 2, 3
+## (el portátil no lo tiene). Devuelve el índice en `_nuevos` (la sala Q13 es la tercera) o -1 si la tecla no es de esas.
+func indice_nuevo_por_tecla(k: InputEventKey) -> int:
+	var cifra: int = -1
+	match k.keycode:
+		KEY_KP_1: cifra = 1
+		KEY_KP_2: cifra = 2
+		KEY_KP_3: cifra = 3
+		KEY_1: cifra = 1 if k.alt_pressed else -1
+		KEY_2: cifra = 2 if k.alt_pressed else -1
+		KEY_3: cifra = 3 if k.alt_pressed else -1
+	return -1 if cifra < 0 else 1 + cifra
 
 
 ## Teletransporte del jugador a una casilla (lo mismo que escenario_base.colocar_jugador).
@@ -308,7 +328,7 @@ func _refrescar_hud() -> void:
 		if p != null:
 			linea += "  puerta %s" % ("ABIERTA" if p.abierta else "cerrada")
 		t += linea + "\n"
-	t += "PUZLES NUEVOS · - y = ir a la sala\n"
+	t += "PUZLES NUEVOS · - y = (Q11, Q12) · teclado numérico 1, 2, 3 o Alt+1, 2, 3 (Q13, Q14, Q15) ir a la sala\n"
 	for q in _nuevos:
 		t += "  %-18s%s\n" % [String(q["nombre"]), _estado_nuevo(q)]
 	for a in _avisos:
@@ -334,4 +354,12 @@ func _estado_nuevo(q: Dictionary) -> String:
 	var cf: Variant = q.get("cofre")
 	if cf != null and is_instance_valid(cf):
 		s += "  cofre %s" % ("abierto" if bool((cf as Object).get("es_abierto")) else ("sellado" if not bool((cf as Object).call("sellado_cumplido")) else "listo (E)"))
+	for papel in ["nivel", "desborda", "reloj"]:
+		var nv: Variant = q.get(papel)
+		if nv != null and is_instance_valid(nv):
+			s += "  %s %.2f" % [papel, (nv as NivelAgua3D).profundidad]
+	for papel in ["brasero", "b1", "b2", "b3"]:
+		var br: Variant = q.get(papel)
+		if br != null and is_instance_valid(br):
+			s += "  %s %s" % [papel, "ARDE" if bool((br as Object).get("is_lit")) else "apagado"]
 	return s
