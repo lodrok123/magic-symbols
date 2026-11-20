@@ -6,7 +6,7 @@
 ;   % pulsador de agua (solo el agua) Z puerta de premio (se abre al resolver). Las piezas de agua van sobre casillas c o canal y se
 ;   colocan por coordenadas: si se mueve una c de sitio hay que cambiar la linea `; pieza` tambien (Puzle3D avisa al arrancar si una pieza cae mal).
 ; Salas (columna, fila): Q2 trasvase (0,0) · Q1 cuenca con tinaja (1,0) · Q3 presa de hielo (2,0) · Q9 molino (3,0) · Q4 desvio del rio (0,1) ·
-;   inicio (1,1) · Q5 vaciar el pasillo (2,1) · Q10 roca y barril (3,1) · Q8 nivel justo (0,2) · Q6 riego (1,2) · Q7 rayo por el agua (2,2) · (3,2) libre.
+;   inicio (1,1) · Q5 vaciar el pasillo (2,1) · Q10 roca y barril (3,1) · Q8 nivel justo (0,2) · Q6 riego (1,2) · Q7 rayo por el agua (2,2) · Q11 (3,2) · fila de abajo (18/11 y 20/11, 33 x 33): Q13 caldera (0,3) · Q14 reloj de agua (1,3) · Q15 lava con peso (2,3) · Q12 foso (3,3).
 ; Letras de la maqueta que tambien usan: e fuente electrica (EmisorRayo3D lo monta el lab) · i totem de rayo. Q7: dos pozos c con agua fija
 ;   a los lados y, en medio, una casilla de suelo con el NEXO (NexoRayo3D): mojarlo restaura la conexion electrica.
 ; Giros: las tinajas con 180 vierten hacia el OESTE (Reactivo3D.INCLINA_HACIA con ese giro); el codo L con 90 abre al este y al sur;

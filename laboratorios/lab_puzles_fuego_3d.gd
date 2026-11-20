@@ -69,6 +69,7 @@ const TRAMPAS: Array = [
 ## PUZLES NUEVOS (18/11/2026): tres salas más, aparte de las anteriores para no tocar `_puzles` ni `_trampas` (que cuentan las pruebas). Teclas 9, 0 y «-» (a la izquierda de la 1 en el teclado español: la tecla de al lado del 0).
 ##   F10 (2,1) LLEVA LA PÓLVORA: un muro agrietado tapa un nicho con un cofre; el barril pequeño de (22,10) (la otra punta de la sala) se coge, se enciende con fuego, se lleva y se lanza o se deja junto al muro. Botón `!` enciende el barril donde está; placa `@` rompe el muro.
 ## SEGUNDA TANDA (20/11/2026): el mapa pasa a 33 × 33 con una fila de salas más ((0,3)…(3,3), con hueco en x = 4, 12, 20, 28 de la fila 24). Teclado numérico 1…4 o Alt+1…4 (la fila de números ya está llena; `indice_nuevo_por_tecla`).
+##   F16 (3,3) BRASERO BAJO LA GOTERA: una cabeza que escupe AGUA cada 7 s por la columna del brasero (26,27) y lo apaga; la puerta (29,27) abre mientras arde. Encender en la pausa y cruzar a tiempo, quemar la cuerda (válvula) o tapar la boca con tierra.
 ##   F15 (2,3) BRASEROS EN ORDEN CON MURAL: cuatro braseros que se encienden en un orden (uno equivocado los apaga todos); el orden está en una losa del suelo tapada de barro que el agua limpia.
 ##   F14 (1,3) CHOQUE TÉRMICO: un nicho con cofre tapado por una roca térmica (10,27): el fuego la pone al rojo 8 s y el agua mientras está caliente la parte; los golpes y las explosiones no la rompen.
 ##   F13 (0,3) DRAGÓN QUE ENCIENDE + BARRERA: una cabeza de dragón en el muro (6,24) escupe cada 7 s por la columna x=6; prende una fila de setos (2..6, 26) hasta un barril (1,26) que, al reventar, sella el cofre (1,27). Agua a la cabeza, un seto mojado o una barrera de agua (2 s) delante de la boca.
@@ -91,6 +92,9 @@ const NUEVOS: Array = [
 	{"nombre": "F15 braseros en orden", "entrada": Vector2i(20, 25), "cartel": Vector2i(20, 30),
 		"texto": "F15 · BRASEROS EN ORDEN\nEnciende los cuatro braseros en el orden correcto: uno equivocado los apaga todos.\nEl orden está en la losa del centro, tapada de barro: moja el suelo con una LÍNEA de agua (agua + ᛁ) y se ve.\nBotón: limpia el mural · placa: los enciende en orden.",
 		"ids": {"orden": "f15_orden", "mural": "f15_mural", "b1": "f15_b1", "b2": "f15_b2", "b3": "f15_b3", "b4": "f15_b4", "puerta": "f15_puerta", "boton": "f15_boton", "placa": "f15_placa"}},
+	{"nombre": "F16 gotera", "entrada": Vector2i(28, 25), "cartel": Vector2i(27, 28),
+		"texto": "F16 · BRASERO BAJO LA GOTERA\nUna cabeza escupe un chorro de agua cada 7 s y apaga el brasero. La puerta abre mientras arde.\nEnciéndelo en la pausa (fuego, desde 2 casillas, fuera de la columna) y cruza antes del siguiente chorro (~4 s).\nO corta el agua: quema la cuerda (válvula), o tapa la boca con una barrera de tierra. Botón: apaga la gotera 8 s · placa: enciende el brasero.",
+		"ids": {"gotera": "f16_gotera", "brasero": "f16_brasero", "cont": "f16_cont", "puerta": "f16_puerta", "cofre": "f16_cofre", "cuerda": "f16_cuerda", "boton": "f16_boton", "placa": "f16_placa"}},
 ]
 ## Papeles que toda sala tiene en su diccionario aunque no los use (null): el HUD y el escenario los leen sin mirar si existen.
 const PAPELES_SIEMPRE: Array = ["detector", "compuerta", "puerta", "contador"]
@@ -443,6 +447,18 @@ func _estado_nuevo(q: Dictionary) -> String:
 			var r: Respiradero3D = rp
 			s += "  %s %s" % [papel.to_upper(), "ATASCADO" if not r.activo else ("AVISA" if r.en_aviso else "exhala en %.0f s" % (r.cada - r._t))]
 	s += "  nubes %d" % NubeVeneno3D.vivas.size() if q.has("r1") else ""
+	var gt: Variant = q.get("gotera")
+	if gt != null and is_instance_valid(gt):
+		s += "  gotera %s" % _estado_trampa(gt)
+		var brg: Variant = q.get("brasero")
+		if brg != null and is_instance_valid(brg):
+			s += "  brasero %s" % _llama(brg)
+		var cuer: Variant = q.get("cuerda")
+		if cuer != null and is_instance_valid(cuer):
+			s += "  cuerda %s" % ["entera", "ARDIENDO", "ROTA"][int((cuer as Cuerda3D).estado)]
+		var pg: Variant = q.get("puerta")
+		if pg != null and is_instance_valid(pg):
+			s += "  puerta %s" % ("ABIERTA" if bool((pg as Object).get("abierta")) else "cerrada")
 	var sq: Variant = q.get("orden")
 	if sq != null and is_instance_valid(sq):
 		var sb: SecuenciaBraseros3D = sq

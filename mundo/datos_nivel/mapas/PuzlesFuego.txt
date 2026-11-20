@@ -190,6 +190,22 @@
 ; puzle f15_abre cuando=f15_orden.completa hace=f15_puerta.abrir
 ; puzle f15_boton_limpia cuando=f15_boton.pulsado hace=f15_mural.limpiar
 ; puzle f15_placa_enciende cuando=f15_placa.pulsado hace=f15_b1.encender y=f15_b2.encender y=f15_b3.encender y=f15_b4.encender
+; --- F16 BRASERO BAJO LA GOTERA (20/11, sala (3,3), x 25..31, y 25..31; se entra por (28,24) a (28,25)): una cabeza de dragon que escupe AGUA (elemento=agua: una gotera, no hiere) en el muro (26,24) lanza cada 7 s (1,5 s de chorro, 5,5 s de descanso) un chorro por la columna x=26 (alcance 4)
+; ---   que APAGA el brasero (26,27). La puerta (29,27), en el tabique x=29, abre mientras el brasero arde (contador) y se cierra si se apaga; detras hay un rincon (x 30..31) con un cofre (31,27). Hay que encender el brasero en la PAUSA (fuego desde (28,27), a 2 casillas, fuera de la columna)
+; ---   y cruzar la puerta antes del siguiente chorro (~4 s). O CORTAR EL AGUA: quemar la cuerda (27,26) (la valvula del chorro: la gotera se apaga para siempre) o TAPAR la boca con una barrera de tierra delante. Botón ! (27,30) apaga la gotera 8 s · placa @ (28,30) enciende el brasero.
+; pieza f16_gotera trampa_dragon 26 24 mira=s ciclo=1.5,5.5 desfase=0 alcance=4 elemento=agua agua=no
+; pieza f16_brasero brasero 26 27
+; pieza f16_cont contador 27 29 de=26,27
+; pieza f16_puerta puerta 29 27
+; pieza f16_cofre cofre 31 27 da=oro:30
+; pieza f16_cuerda cuerda 27 26
+; pieza f16_boton pulsador 27 30 modo=magia
+; pieza f16_placa pulsador 28 30 modo=presencia
+; puzle f16_abre cuando=f16_cont.todos hace=f16_puerta.abrir
+; puzle f16_cierra cuando=f16_cont.no_todos hace=f16_puerta.cerrar
+; puzle f16_cuerda_corta cuando=f16_cuerda.rota hace=f16_gotera.apagar
+; puzle f16_boton_apaga cuando=f16_boton.pulsado hace=f16_gotera.apagar(8)
+; puzle f16_placa_enciende cuando=f16_placa.pulsado hace=f16_brasero.encender
 ; ---------------------------------------------------------------------------------------------------------------------------------
 #################################
 #.......#...Z...#.-.....#......Z#
@@ -216,11 +232,11 @@
 #.......#.......#.......#..#.#..#
 #.......#.......#...@...#..#@#..#
 ####.#######.#######.#######.####
-#.......#..#....#.......#.......#
-#.zzzzz.#..#....#.T...T.#.......#
-#.......##......#.......#.......#
-#.......#.......#!.....@#.......#
-#.......#.......#.......#.......#
-#..!.@..#..@.!..#.T...T.#.......#
-#.......#.......#...Z...#.......#
+#.......#..#....#.......#....#..#
+#.zzzzz.#..#....#.T...T.#....#..#
+#.......##......#.......#.T..Z..#
+#.......#.......#!.....@#....#..#
+#.......#.......#.......#....#..#
+#..!.@..#..@.!..#.T...T.#..!@#..#
+#.......#.......#...Z...#....#..#
 #################################

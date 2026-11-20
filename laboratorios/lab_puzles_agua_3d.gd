@@ -90,6 +90,10 @@ const SALAS: Array = [
 ]
 ## PUZLES NUEVOS (18/11/2026): salas aparte de las diez de arriba para no tocar `_puzles` (que cuentan las pruebas). Teclas «-» y «=» (a la derecha del 0).
 ##   Q11 (3,2) DOS RIEGOS A LA VEZ: dos pulsadores de agua (26,19) y (28,19) con rearme 0,35 s; la puerta (28,22) abre solo si los dos están activos a la vez (una línea de agua los moja a los dos). Botón `!` de control, placa `@` abre.
+## SEGUNDA TANDA (20/11/2026): tres salas más en la fila de abajo, sin tecla propia en la fila de números (ya llena): teclado numérico 1, 2, 3 o Alt+1, 2, 3 (`indice_nuevo_por_tecla`).
+##   Q13 (0,3) LA CALDERA: cuenca de 4 casillas + tinaja y un brasero debajo; la puerta abre con la cuenca a 0,45 o más Y el brasero encendido; el agua que llega a 0,8 (desborde) lo apaga una vez. Botón `!` moja la tinaja, placa `@` enciende el brasero.
+##   Q14 (1,3) RELOJ DE AGUA: cuenca de 12 casillas a 0,9 con un desagüe (compuerta + sumidero) que abre el primer brasero encendido; la puerta abre con los tres encendidos mientras el nivel sigue en 0,35 o más (~14 s). Botón `!` los enciende, placa `@` abre el desagüe.
+##   Q15 (2,3) LAVA CON PESO: dos casillas de lava (vuelve=22) entre la entrada y una placa de peso; agua desde al lado las enfría, se empuja la roca pequeña por encima hasta la placa; si la lava vuelve con la roca encima, se hunde y reaparece. Botón `!` enfría, placa `@` abre.
 const NUEVOS: Array = [
 	{"nombre": "Q11 dos riegos", "entrada": Vector2i(25, 19), "cartel": Vector2i(28, 17),
 		"texto": "Q11 · DOS RIEGOS A LA VEZ\nLos dos botones azules solo se quedan pulsados 0,35 s: hay que mojarlos casi a la vez.\nUna LÍNEA de agua (dos glifos ᛁ) desde el oeste de la fila los moja a los dos; dos flechas sueltas no llegan.\nEl rojo es de control (no abre nada) · la placa amarilla abre.",

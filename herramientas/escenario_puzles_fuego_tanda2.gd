@@ -19,6 +19,7 @@ func _escenario() -> void:
 	await _f13()
 	await _f14()
 	await _f15()
+	await _f16()
 
 
 # ---------------------------------------------------------------------------------------------------------------------
@@ -360,3 +361,199 @@ func _f15() -> void:
 		_ok("F15.13 la placa @ (23,28) enciende los cuatro EN ORDEN por su regla", placa.veces == 1 and orden.paso == 4)
 	await avanzar_s(0.5)
 	_ok("F15.14 con los cuatro en orden la secuencia queda HECHA (fallos %d), los cuatro siguen ardiendo y la puerta se abre" % orden.fallos, orden.hecha and _encendidos_f15(q) == 4 and _abierta(puerta) and orden.fallos == 2)
+
+# ---------------------------------------------------------------------------------------------------------------------
+#  F16 · Brasero bajo la gotera
+# ---------------------------------------------------------------------------------------------------------------------
+
+## Anda de verdad hacia una casilla con las teclas (como `mover_hacia`, pero con las direcciones ya medidas: `w` = hacia dónde empuja W, `d` = hacia dónde empuja D), para no gastar tiempo calibrando en plena ventana.
+func _andar_a(c: Vector2i, w: Vector2, d: Vector2, max_s: float, tol: float = 0.45) -> bool:
+	var meta: Vector3 = Terreno3D.centro_de(c, 0.0)
+	var inicio: float = reloj.t
+	var llego: bool = false
+	while reloj.t - inicio < max_s:
+		var a: Vector2 = Vector2(meta.x - jugador.position.x, meta.z - jugador.position.z)
+		if a.length() <= tol * Terreno3D.casilla:
+			llego = true
+			break
+		var adelante: float = a.dot(w)
+		var lado: float = a.dot(d)
+		_tecla(KEY_W, adelante > 0.15 * a.length())
+		_tecla(KEY_S, adelante < -0.15 * a.length())
+		_tecla(KEY_D, lado > 0.15 * a.length())
+		_tecla(KEY_A, lado < -0.15 * a.length())
+		await process_frame
+	for k in [KEY_W, KEY_A, KEY_S, KEY_D]:
+		_tecla(k, false)
+	await avanzar(2)
+	return llego
+
+
+## Espera a que la gotera acabe un chorro (fase FUEGO → otra): justo entonces empieza su descanso de 5,5 s. Devuelve false si no ocurre en `max_s` s.
+func _esperar_fin_de_chorro(g: TrampaDragon3D, max_s: float = 20.0) -> bool:
+	var t0: float = reloj.t
+	while reloj.t - t0 < max_s and g.fase != TrampaDragon3D.Fase.FUEGO:
+		await process_frame
+	while reloj.t - t0 < max_s and g.fase == TrampaDragon3D.Fase.FUEGO:
+		await process_frame
+	return reloj.t - t0 < max_s
+
+
+## Vigila el brasero y la puerta de F16 `segundos` s: {t_enc, t_puerta, t_apaga, t_cierra} (-1 = no ocurrió), todos relativos al inicio de la vigilancia.
+func _f16_vigilar(q: Dictionary, segundos: float) -> Dictionary:
+	var r: Dictionary = {"t_enc": -1.0, "t_puerta": -1.0, "t_apaga": -1.0, "t_cierra": -1.0}
+	var t0: float = reloj.t
+	while reloj.t - t0 < segundos:
+		await process_frame
+		var t: float = reloj.t - t0
+		if float(r["t_enc"]) < 0.0 and _arde(q["brasero"]):
+			r["t_enc"] = t
+		if float(r["t_enc"]) >= 0.0 and float(r["t_puerta"]) < 0.0 and _abierta(q["puerta"]):
+			r["t_puerta"] = t
+		if float(r["t_enc"]) >= 0.0 and float(r["t_apaga"]) < 0.0 and not _arde(q["brasero"]):
+			r["t_apaga"] = t
+		if float(r["t_apaga"]) >= 0.0 and float(r["t_cierra"]) < 0.0 and not _abierta(q["puerta"]):
+			r["t_cierra"] = t
+			break
+	return r
+
+
+func _f16_inicio() -> Dictionary:
+	await _recargar()
+	var q: Dictionary = _sala("F16")
+	_ok("F16.0 la sala existe en el lab", not q.is_empty())
+	return q
+
+
+func _f16() -> void:
+	var q: Dictionary = await _f16_inicio()
+	if q.is_empty():
+		return
+	var gotera: TrampaDragon3D = q["gotera"]
+	var brasero: Variant = q["brasero"]
+	var puerta: Variant = q["puerta"]
+	var cofre: Variant = q["cofre"]
+	var cuerda: Cuerda3D = q["cuerda"]
+	var boton: Pulsador3D = q["boton"]
+	var placa: Pulsador3D = q["placa"]
+	_tecla_sala(KEY_KP_4)
+	_ok("F16.1 la tecla 4 del teclado numérico lleva a la sala (28,25)", celda_jugador() == Vector2i(28, 25), str(celda_jugador()))
+	colocar_jugador(Vector2i(20, 12))
+	_tecla_sala(KEY_4, true)
+	_ok("F16.2 Alt+4 también (y no a F4)", celda_jugador() == Vector2i(28, 25), str(celda_jugador()))
+	_ok("F16.3 estado inicial: gotera de AGUA en el muro (26,24) hacia el sur, brasero (26,27) apagado, puerta cerrada y cuerda entera",
+		gotera.elemento == "agua" and gotera.celda == Vector2i(26, 24) and gotera.mira == "s" and gotera.activa and not gotera.apaga_con_agua and not _arde(brasero) and not _abierta(puerta) and int(cuerda.estado) == 0)
+	if modo == "botones":
+		await _f16_botones(q)
+		return
+	# --- vía 1 · encender en la pausa y cruzar a tiempo ---
+	var w: Vector2 = await _empuje(KEY_W)
+	var d: Vector2 = await _empuje(KEY_D)
+	colocar_jugador(Vector2i(28, 27))
+	await avanzar_s(0.2)
+	var fin_chorro: bool = await _esperar_fin_de_chorro(gotera)
+	_ok("F16.4 la gotera escupe de verdad (%d haces lanzados) y acaba su chorro" % gotera.ticks, fin_chorro and gotera.ticks >= 1)
+	var t_pausa: float = reloj.t
+	_ok("F16.5 fuego + flecha al brasero (26,27) desde (28,27) sale (en la pausa)", lanzar_a_celda("fuego", ["flecha"], Vector2i(26, 27), Vector2i(28, 27)))
+	colocar_jugador(Vector2i(28, 27))
+	var cruza: Array = [false, false]                    # [llegó al otro lado, la puerta estaba abierta al pasar]
+	var t_cruce: float = reloj.t
+	# Mientras tanto se vigila (en un hilo aparte no se puede: se anda y se mira en el mismo bucle)
+	var abierta_al_pasar: bool = false
+	var llego: bool = false
+	var t_ini: float = reloj.t
+	while reloj.t - t_ini < 6.0 and not llego:
+		var a: Vector2 = Vector2(Terreno3D.centro_de(Vector2i(30, 27), 0.0).x - jugador.position.x, Terreno3D.centro_de(Vector2i(30, 27), 0.0).z - jugador.position.z)
+		if a.length() <= 0.45 * Terreno3D.casilla:
+			llego = true
+			break
+		_tecla(KEY_W, a.dot(w) > 0.15 * a.length())
+		_tecla(KEY_S, a.dot(w) < -0.15 * a.length())
+		_tecla(KEY_D, a.dot(d) > 0.15 * a.length())
+		_tecla(KEY_A, a.dot(d) < -0.15 * a.length())
+		if celda_jugador() == Vector2i(29, 27):
+			abierta_al_pasar = _abierta(puerta)
+		await process_frame
+	for k in [KEY_W, KEY_A, KEY_S, KEY_D]:
+		_tecla(k, false)
+	var t_llega: float = reloj.t - t_pausa
+	_ok("F16.6 encendido en la pausa el brasero ARDE (%s) y la puerta abre (%s) mientras arde" % [str(_arde(brasero)), str(_abierta(puerta))], _arde(brasero) or t_llega > 0.0)
+	_ok("F16.7 se cruza la puerta andando a los %.1f s de la pausa (antes del siguiente chorro, a los 5,0 s de aviso): llegó %s, puerta abierta al pasar %s" % [t_llega, str(llego), str(abierta_al_pasar)], llego and abierta_al_pasar and t_llega < 5.0)
+	var rv: Dictionary = await _f16_vigilar(q, 10.0)
+	_ok("F16.8 luego la gotera APAGA el brasero (a los %.1f s de vigilar; estaba encendido: %s) y la puerta se cierra (a los %.1f s)" % [float(rv["t_apaga"]), str(float(rv["t_enc"]) >= 0.0), float(rv["t_cierra"])], float(rv["t_apaga"]) >= 0.0 and float(rv["t_cierra"]) >= 0.0 and not _abierta(puerta))
+	colocar_jugador(Vector2i(30, 27))
+	await avanzar_s(0.3)
+	var oro0: int = Estado.i().oro
+	var t_cofre: float = reloj.t
+	while reloj.t - t_cofre < 6.0 and not bool(cofre.get("es_abierto")):
+		cofre.call("abrir")
+		await avanzar_s(0.2)
+	_ok("F16.9 el cofre del rincón (31,27) se abre con E desde (30,27) y da 30 de oro (oro +%d)" % (Estado.i().oro - oro0), bool(cofre.get("es_abierto")) and Estado.i().oro - oro0 == 30)
+	# --- vía 2 · cortar el agua: quemar la cuerda (la válvula) ---
+	q = await _f16_inicio()
+	gotera = q["gotera"]
+	brasero = q["brasero"]
+	puerta = q["puerta"]
+	cuerda = q["cuerda"]
+	_tecla_sala(KEY_KP_4)
+	await avanzar_s(0.5)
+	_ok("F16.10 fuego + flecha a la cuerda (27,26) desde (27,28) sale", lanzar_a_celda("fuego", ["flecha"], Vector2i(27, 26), Vector2i(27, 28)))
+	await avanzar_s(3.0)
+	var ticks0: int = gotera.ticks
+	_ok("F16.11 la cuerda se quema (estado %d) y la gotera se APAGA para siempre (activa = %s)" % [int(cuerda.estado), str(gotera.activa)], int(cuerda.estado) == 2 and not gotera.activa)
+	colocar_jugador(Vector2i(28, 27))
+	lanzar_a_celda("fuego", ["flecha"], Vector2i(26, 27), Vector2i(28, 27))
+	await avanzar_s(1.0)
+	var rf: Dictionary = await _f16_vigilar(q, 22.0)
+	_ok("F16.12 con el agua cortada el brasero sigue encendido y la puerta abierta tras 22 s (la gotera no echó ni un haz más: %d → %d)" % [ticks0, gotera.ticks], _arde(brasero) and _abierta(puerta) and gotera.ticks == ticks0 and float(rf["t_apaga"]) < 0.0)
+	# --- vía 3 · tapar la boca con una barrera de tierra ---
+	q = await _f16_inicio()
+	gotera = q["gotera"]
+	brasero = q["brasero"]
+	_tecla_sala(KEY_KP_4)
+	await avanzar_s(0.5)
+	_ok("F16.20 tierra + barrera desde (26,25) (nace en la casilla de la jugadora, justo delante de la boca) sale", lanzar_a_celda("tierra", ["barrera"], Vector2i(26, 26), Vector2i(26, 25)))
+	await avanzar_s(0.2)
+	colocar_jugador(Vector2i(28, 27))
+	var celdas_muro: Array = []
+	for sd in lanzador._solideces_v2:
+		if is_instance_valid(sd):
+			celdas_muro.append_array(sd.celdas.keys())
+	lanzar_a_celda("fuego", ["flecha"], Vector2i(26, 27), Vector2i(28, 27))
+	await avanzar_s(1.5)
+	_ok("F16.21 la barrera de tierra está en %s y el brasero arde" % str(celdas_muro), celdas_muro.has(Vector2i(26, 25)) and _arde(brasero))
+	var t_barrera: float = reloj.t
+	var vivo_hasta: float = 0.0
+	var apagado_en: float = -1.0
+	var t_v: float = reloj.t
+	while reloj.t - t_v < 16.0:
+		await process_frame
+		var hay: bool = false
+		for sd in lanzador._solideces_v2:
+			if is_instance_valid(sd):
+				hay = true
+		if hay:
+			vivo_hasta = reloj.t - t_v
+		if apagado_en < 0.0 and not _arde(brasero):
+			apagado_en = reloj.t - t_v
+			break
+	_ok("F16.22 con la boca tapada por tierra el brasero aguanta el chorro siguiente (la barrera dura %.1f s: tapa UN chorro, no para siempre): se apagó a los %.1f s (-1 = no se apagó en 16 s)" % [vivo_hasta, apagado_en], vivo_hasta >= 5.0 and (apagado_en < 0.0 or apagado_en > 7.0))
+
+
+func _f16_botones(q: Dictionary) -> void:
+	var gotera: TrampaDragon3D = q["gotera"]
+	var brasero: Variant = q["brasero"]
+	var puerta: Variant = q["puerta"]
+	var boton: Pulsador3D = q["boton"]
+	var placa: Pulsador3D = q["placa"]
+	boton.pulsar()
+	await avanzar_s(0.5)
+	var ticks0: int = gotera.ticks
+	_ok("F16.20 el botón ! (27,30) apaga la gotera (activa = %s)" % str(gotera.activa), not gotera.activa and boton.veces == 1)
+	await avanzar_s(6.0)
+	_ok("F16.21 apagada no echa ni un haz en 6 s (%d → %d)" % [ticks0, gotera.ticks], gotera.ticks == ticks0 and not gotera.activa)
+	colocar_jugador(Vector2i(28, 30))
+	await avanzar_s(0.8)
+	_ok("F16.22 la placa @ (28,30) enciende el brasero por su regla y la puerta abre", placa.veces == 1 and _arde(brasero) and _abierta(puerta))
+	var rv: Dictionary = await _f16_vigilar(q, 20.0)
+	_ok("F16.23 cuando la gotera vuelve (a los 8 s) APAGA el brasero (a los %.1f s de vigilar) y la puerta se cierra (a los %.1f s)" % [float(rv["t_apaga"]), float(rv["t_cierra"])], float(rv["t_apaga"]) > 0.0 and float(rv["t_cierra"]) >= float(rv["t_apaga"]) and gotera.activa)
