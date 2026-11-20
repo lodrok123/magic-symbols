@@ -15,18 +15,18 @@ diagnóstico y reglas del motor) y de la ruta que fijó Pablo el 20/11.
 | 4 | **Ruinas** | fuego, agua → **tierra** | R2, R3, R4, Q16 · cofre de la tierra · R5, T1a, R1 · T5 (opcional) |
 | 5 | Monte Sumicio | los tres | ninguno |
 | 6 | Bosque 02, vuelta | los tres | Q14 (puerta a las Cuevas) |
-| 6 | **Cuevas** | los tres | T2, T4, C7, T3, C8 · T6 (opcional) |
+| 6 | **Cuevas** | los tres | T2, T4, C7, T3, C8, T6 |
 | 7 | **Pantano** | los tres | Q15, P1, T1b, X1 |
-| 7 | **Pantano 01** | los tres | X3, P2, P3 (final) |
+| 7 | **Pantano 01** | los tres | X3, P2 · la posición final |
 
-En total son **25 puzles**: 2 ya hechos en el laboratorio (T1a, T1b), 16 de coste A o A/B y 7 de coste B o C.
+En total son **24 puzles**: 2 ya hechos en el laboratorio (T1a, T1b), 18 de coste A o A/B y 4 de coste B o C (Q16, C8, T6, P2), más la posición final por definir.
 
 **Reglas del motor que mandan en los diseños:**
 - La tierra no se levanta sobre agua (desde 0.25 u de profundidad). Las presas se preparan **en seco**.
 - Un bloque de tierra dura 25 s, pesa 1 en las placas y hace de presa.
 - ᛒ tierra: sobre el vacío es una plataforma de 8 s; sobre el suelo, una capa que frena; sobre el agua, nada.
 - ᛒ fuego o agua: una trampa que salta al pisarla un enemigo.
-- Ningún hechizo de la demo empuja bloques (salvo T6, si se aprueba).
+- La flecha de tierra empuja bloques y rompe paredes destruibles (Pablo, 20/11; ver T6). Ningún otro hechizo de la demo empuja.
 - Tope de dos puzles de braseros por nivel.
 
 **Cómo leer cada ficha:** *Idea* es el verbo nuevo. *Sala* es lo que ve la jugadora al entrar. *Solución* es lo que tiene que hacer.
@@ -185,15 +185,19 @@ El cofre del fondo da la tierra y **la salida ya la pide**.
 - **Enseña:** combinar dos sellos y medir el tiempo.
 - **Verificar:** los tiempos de vaciado y llenado con la simulación.
 
-### T5 · Las bocas de la mamoa · *opcional*
-**Dónde:** Ruinas, sala lateral de la salida · **Sellos:** tierra · **Coste:** B
-- **Idea:** **tapar a la vez**.
-- **Sala:** una mamoa con tres bocas que sueltan algo dañino. En la cima, un cofre.
-- **Solución:** la tierra tapa una boca durante 25 s. Hay que taparlas las tres a la vez: un bloque de piedra empujado a mano para una
-  y tierra para las otras dos, de la más lejana a la más cercana.
-- **Si falla:** la primera boca se destapa antes de tapar la tercera; se empieza de nuevo.
-- **Piezas:** `mamoa`, bloque de piedra.
-- **Necesita:** la reacción «la tierra tapa» (coste B) y decidir qué sale de la mamoa.
+### T5 · Las mámoas · *opcional*
+**Dónde:** Ruinas, sala lateral de la salida · **Sellos:** tierra · **Coste:** A
+- **Qué es una mámoa** (ya existe, `objetos/mamoa_3d.gd`): una tumba antigua, con forma de brocal de pozo, de la que vuelve un
+  **mouro espectro** (`enemigos/mouro_espectro_3d.gd`). Mientras está abierta, el mouro se rehace de ella cada vez que lo derriban,
+  hasta 3 veces, echando humo por el brocal. Si se tapa (bloque de piedra, tierra construida, plataforma o muro de tierra), deja de
+  volver. Si se tapa **con el mouro dentro**, esperando a volver, se sella con él y suelta reliquias.
+- **Idea:** **tapar en el momento justo**.
+- **Sala:** un cementerio de las ruinas con tres mámoas y un mouro en cada una.
+- **Solución:** se derriba un mouro y, mientras su mámoa echa humo, se levanta tierra encima: queda sellado y suelta sus reliquias. Con
+  tres a la vez no da tiempo, así que hay que separarlos o usar el bloque de piedra para uno.
+- **Si falla:** si se tapa tarde, el mouro ya ha vuelto. Se le vuelve a derribar; al tercer rebrote la mámoa se agrieta y ya no da reliquias.
+- **Piezas:** `mamoa`, mouro espectro, bloque de piedra. No hace falta nada nuevo.
+- **Verificar:** qué pasa cuando la tierra caduca a los 25 s sobre una mámoa ya sellada.
 
 ---
 
@@ -259,12 +263,16 @@ Aquí se aprende la tierra a fondo: construir, protegerse y pesar. Luego viene �
 - **Necesita:** `cae=contra_pulso` (hoy la columna cae a un lado fijo, `cae=e`).
 - **Nota:** ᚱ es el glifo opcional de la Cueva. Si no se tiene, C8 tiene que tener otra salida o ser opcional.
 
-### T6 · Pedrada que empuja · *opcional, si se aprueba*
+### T6 · La pedrada · *aprobado (Pablo, 20/11)*
 **Dónde:** Cuevas · **Sellos:** flecha de tierra · **Coste:** C
-- **Idea:** **empujar desde lejos**.
-- **Sala:** un bloque al otro lado de un canal, y una placa en esa orilla.
-- **Solución:** la flecha de tierra mueve el bloque una casilla, hasta la placa.
-- **Necesita:** la mecánica nueva.
+- **Regla nueva:** la flecha de tierra **empuja bloques** una casilla y **rompe paredes destruibles**.
+- **Idea:** **actuar desde lejos** sobre lo que no se alcanza.
+- **Sala:** un canal de agua sin puente. Al otro lado hay un bloque de piedra, una placa y una pared agrietada que tapa un nicho.
+- **Solución:** con la flecha de tierra se empuja el bloque hasta la placa, que abre la reja de la salida. La pared agrietada se rompe
+  con otra flecha y deja ver un cofre (opcional).
+- **Si falla:** si el bloque se empuja contra una esquina, se reinicia con un botón (como en la Sala de Empuje).
+- **Necesita:** la mecánica nueva en el lanzador. También arregla E4 de la Sala de Empuje.
+- **Verificar:** si la tierra ya rompe los muros agrietados (hoy se abren con tierra o con explosión); si es así, solo falta el empuje.
 
 ---
 
@@ -316,7 +324,7 @@ La tierra trabaja en las islas y orillas secas. Aquí se combinan los sellos y s
 - **Sala:** tres setas de veneno sueltan gas cada pocos segundos. No da tiempo a quemarlas todas.
 - **Solución:** una se quema, otra se atasca con agua y la tercera se sella con un bloque de tierra encima.
 - **Piezas:** las setas de F12 (`respiradero`).
-- **Necesita:** la reacción «la tierra tapa», la misma de T5.
+- **Necesita:** que la tierra tape la seta. Se copia la detección de la mámoa (`Mamoa3D._hechizo_encima`), así que es poca cosa (A/B).
 
 ### P2 · Balsa entre juncos
 **Dónde:** Pantano 01, el canal · **Sellos:** agua, fuego, tierra · **Coste:** B
@@ -326,17 +334,11 @@ La tierra trabaja en las islas y orillas secas. Aquí se combinan los sellos y s
   orilla está una casilla más alta y un escalón de tierra en la orilla seca permite subir (tierra).
 - **Verificar:** que la balsa se mueve con la corriente o con la jugadora encima.
 
-### P3 · El faro del pantano · *cierre de la demo*
-**Dónde:** Pantano 01, la isla del faro · **Sellos:** los tres · **Coste:** B
-- **Idea:** **el último fuego**: encender el faro cierra la demo.
-- **Sala:** un faro de piedra en una isla seca, en medio del agua. Su linterna está apagada y su escalera, derrumbada.
-- **Solución:**
-  1. Se llega a la isla en la balsa (lo de P2, ahora sin ayuda).
-  2. Se sube con escalones de tierra y altura (lo de T2) por la escalera rota.
-  3. Arriba hay un brasero bajo una cubierta de musgo empapado: hay que secarlo antes con fuego, y después prender la linterna.
-- **Al encenderse:** la luz barre el pantano, la niebla se retira y se ve el camino de vuelta. Fin de la demo.
-- **Piezas:** `balsa`, `brasero`, musgo (`setos` húmedos).
-- **Necesita:** una pieza «faro» con su luz (arte), y que el brasero se seque con fuego.
+### La posición final · *por definir*
+**Dónde:** Pantano 01 · **Sellos:** los tres
+- La demo termina al llegar a **una posición final concreta** de Pantano 01 (Pablo, 20/11). El sitio, lo que se ve allí y el puzle
+  que la precede se definen más adelante.
+- **Necesita:** una pieza de meta (por ejemplo `fin_demo`) que, al pisarla, cierre la demo.
 
 ---
 
@@ -347,15 +349,30 @@ La tierra trabaja en las islas y orillas secas. Aquí se combinan los sellos y s
 3. **El cofre con sello:** `sello=tierra`.
 4. **Laboratorio de tierra nuevo** (`LabPuzlesTierra3D`): R5, T2, T4, C7 y T3. Todos de coste A.
 5. **Pantano, coste A:** Q15, P1, X1 (T1b ya está).
-6. **Coste B:** la reacción «la tierra tapa» (T5, X3), la balsa que sigue el nivel (Q16), la columna que cae contra el pulso (C8), P2,
-   R1 y P3.
-7. **Mapas:** Ruinas, las Cuevas del paso 6 y Pantano 01, con las salidas nuevas y la progresión de sellos.
+6. **Coste A/B:** T5 (la mámoa ya funciona), X3 (la tierra tapa la seta), R1.
+7. **Coste B y C:** la balsa que sigue el nivel (Q16), la columna que cae contra el pulso (C8), P2, y la flecha de tierra que empuja y
+   rompe (T6).
+8. **Mapas:** Ruinas, las Cuevas del paso 6 y Pantano 01, con las salidas nuevas, la progresión de sellos y la posición final. Las
+   Cuevas son un **mapa nuevo**, hecho con el generador de mapas y pulido a mano (Pablo, 20/11).
 
 ## Decisiones
 
+**Tomadas (Pablo, 20/11):**
+- Las Cuevas del paso 6 son un mapa nuevo: generador de mapas y pulido a mano.
+- La flecha de tierra empuja bloques y rompe paredes destruibles (T6).
+- La demo acaba en una posición final concreta de Pantano 01, por definir.
+
+**Pendientes:**
 1. ¿Dónde se gana ᛒ (suelo)? Lo piden T3 y X1. Propuesta: un cofre en las Cuevas, antes de T3.
-2. ¿C8 es obligatorio? Pide ᚱ, que es opcional en la Cueva.
-3. ¿Las Cuevas del paso 6 son un mapa nuevo o la Cueva Resonante?
-4. ¿Qué sale de la mamoa (T5)?
-5. ¿T6 (la flecha de tierra empuja)?
-6. ¿El final es un faro (P3) u otra cosa?
+2. ¿C8 es obligatorio? Pide ᚱ (pulso), que es el glifo opcional de la Cueva.
+
+**Los glifos de la demo** (kit `demo`):
+
+| Símbolo | Nombre | Id en el código | Qué hace |
+|---|---|---|---|
+| (flecha) | Flecha | `flecha` | El hechizo viaja en línea recta. |
+| ᛁ | Línea | `linea` | Estira el hechizo; sola con un elemento, es un rayo. |
+| ᛜ | Barrera | `barrera` | El hechizo rodea a la jugadora y bloquea proyectiles. Con tierra, muro. |
+| ᛏ | Altura | `altura` | Eleva el hechizo: 1 = 1 nivel, 3 = 2, 6 = 3. |
+| ᚱ | Pulso | `raido` | Suelta un pulso del elemento al final del proyectil o a intervalos. Tumba columnas por las vetas. |
+| ᛒ | Suelo | `suelo` | El hechizo se planta en la casilla señalada. Tierra: plataforma sobre el vacío o capa que frena; fuego o agua: trampa. |
