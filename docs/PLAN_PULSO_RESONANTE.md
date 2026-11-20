@@ -97,7 +97,7 @@ marcadas como *principal* son paso obligado; las *opcionales* dan materiales.
 | **C6 · Santuario** | puerta con llave, cofre grande, atajo | entra el pulso de C5. Dos o tres **prismas orientables** (se giran con viento o golpeándolos) lo llevan al **receptor rúnico** que hay ante el **cofre legendario**. El cofre se abre (§8). El **atajo** de vuelta a C1 pasa a ser una **pared hueca** que solo responde al pulso propio: primer uso del glifo | modificador + receptor | principal (final) |
 
 **El secreto (épico).** Detrás de una **pared hueca** de C1 hay tres **estatuas**. Piden una secuencia de pulsos de elemento (por
-ejemplo fuego, hielo, fuego) y dan el cofre **épico**. Solo se puede hacer con el glifo, así que es la razón para volver al salir por
+ejemplo fuego, agua, tierra) y dan el cofre **épico**. Solo se puede hacer con el glifo, así que es la razón para volver al salir por
 el atajo, que deja justo en C1. Las estatuas sirven también de lección: el glifo mezcla con las runas.
 
 Con eso salen **siete tipos nuevos de pieza**: cristal latente, veta, bloque de enlace, prisma, receptor, estatua y pared hueca. A eso

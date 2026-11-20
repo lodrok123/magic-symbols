@@ -8,12 +8,16 @@ extends SkeletonModifier3D
 ##   cabeza  escala de la cabeza (y de todo lo que cuelga de ella: pelo, orejas)
 ##   piernas alarga muslo y espinilla (la cadera sube lo mismo para que los pies sigan en el suelo)
 ##   torso   alarga la columna (de la cadera al cuello)
+##   hombros ensancha los hombros alargando la clavícula (separa los brazos del cuello); la ropa del hombro se estira con ella
+##   pecho   agranda el tronco de arriba (pecho, hombros y brazos) escalando Spine2; la cabeza se compensa para que no crezca
 ##
 ## Se crea desde Pj3D (Pj3D.PROPORCIONES) y se puede ajustar en vivo (catálogo: teclas 3-8).
 
 @export var cabeza: float = 1.0
 @export var piernas: float = 1.0
 @export var torso: float = 1.0
+@export var hombros: float = 1.0
+@export var pecho: float = 1.0
 
 ## POSTURA, en grados, sumada a lo que trae cada clip (0 = como viene). Positivo = echa hacia atrás; si en un
 ## modelo va al revés (depende del eje local del hueso), basta con poner el valor negativo. Sirve para corregir
@@ -37,11 +41,13 @@ var _rodillas: PackedInt32Array = PackedInt32Array()   ## LeftLeg / RightLeg (cu
 var _tobillos: PackedInt32Array = PackedInt32Array()   ## LeftFoot / RightFoot (cuelgan de la espinilla)
 var _columna: PackedInt32Array = PackedInt32Array()    ## Spine1, Spine2, Neck
 var _cuello: int = -1
+var _spine2: int = -1                                   ## Spine2 (tronco de arriba: lo escala `pecho`)
 var _pecho: int = -1                                    ## Spine1
 var _brazos: PackedInt32Array = PackedInt32Array()     ## LeftArm / RightArm (hombro)
 var _muslos: PackedInt32Array = PackedInt32Array()     ## LeftUpLeg / RightUpLeg
 var _largo_pierna: float = 0.0                          ## de la cadera al tobillo, en espacio del esqueleto
 var _largo_torso: float = 0.0
+var _largo_pecho: float = 0.0                           ## de Spine2 a la cabeza (vertical, en reposo): lo que sube la cabeza por unidad de `pecho` - 1
 
 
 func _ready() -> void:
@@ -71,6 +77,7 @@ func preparar() -> void:
 			_columna.append(b)
 	_cuello = _hueso(sk, "Neck")
 	_pecho = _hueso(sk, "Spine1")
+	_spine2 = _hueso(sk, "Spine2")
 	_brazos.clear()
 	for lado in ["Left", "Right"]:
 		var h: int = _hueso(sk, lado + "Arm")
@@ -93,6 +100,9 @@ func preparar() -> void:
 	var col: int = _hueso(sk, "Spine")
 	if cuello >= 0 and col >= 0:
 		_largo_torso = absf(sk.get_bone_global_rest(cuello).origin.y - sk.get_bone_global_rest(col).origin.y)
+	_largo_pecho = 0.0
+	if _spine2 >= 0 and _cabeza >= 0:
+		_largo_pecho = absf(sk.get_bone_global_rest(_cabeza).origin.y - sk.get_bone_global_rest(_spine2).origin.y)
 
 
 func _hueso(sk: Skeleton3D, fin: String) -> int:
@@ -105,7 +115,7 @@ func _hueso(sk: Skeleton3D, fin: String) -> int:
 
 ## Cuánto cambia la altura del personaje (en espacio del esqueleto) con estas proporciones.
 func cambio_de_altura(alto_cabeza: float) -> float:
-	return _largo_pierna * (piernas - 1.0) + _largo_torso * (torso - 1.0) + alto_cabeza * (cabeza - 1.0)
+	return _largo_pierna * (piernas - 1.0) + _largo_torso * (torso - 1.0) + alto_cabeza * (cabeza - 1.0) + _largo_pecho * (pecho - 1.0)
 
 
 func _process_modification() -> void:
@@ -119,8 +129,16 @@ func _process_modification() -> void:
 		sk.set_bone_pose_position(b, sk.get_bone_rest(b).origin * piernas)
 	for b in _columna:
 		sk.set_bone_pose_position(b, sk.get_bone_rest(b).origin * torso)
+	# Hombros: el brazo cuelga de la clavícula (hueso Shoulder); su posición local es el largo de la clavícula. También desde el reposo: no se acumula.
+	if not is_equal_approx(hombros, 1.0):
+		for b in _brazos:
+			sk.set_bone_pose_position(b, sk.get_bone_rest(b).origin * hombros)
+	# Pecho: escala uniforme de Spine2 (arrastra cuello, hombros y brazos). La cabeza hereda esa escala, así que se divide para que conserve su tamaño.
+	var k_pecho: float = maxf(pecho, 0.05)
+	if _spine2 >= 0:
+		sk.set_bone_pose_scale(_spine2, Vector3.ONE * k_pecho)
 	if _cabeza >= 0:
-		sk.set_bone_pose_scale(_cabeza, Vector3.ONE * cabeza)
+		sk.set_bone_pose_scale(_cabeza, Vector3.ONE * (cabeza / k_pecho if _spine2 >= 0 else cabeza))
 	# Postura: un giro extra sobre la rotación que el clip ha puesto este fotograma. No se acumula porque
 	# los clips de Meshy/Mixamo escriben todos los huesos en cada fotograma.
 	_girar(sk, _cabeza, Vector3.RIGHT, cabeza_atras)

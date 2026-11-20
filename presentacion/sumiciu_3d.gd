@@ -5,7 +5,8 @@ const MAESTRE := preload("res://arte/modelos/marimanta.glb")
 const ADULTO := preload("res://arte/modelos/goblin_warrior_chibi.glb")
 const APRENDIZ := preload("res://arte/modelos/goblin_archer_chibi.glb")
 const CACO := preload("res://arte/modelos/goblin_base.glb")
-const TENDERA := preload("res://arte/modelos/tendera_sumicio.glb")
+# 20/11: Doña Comba, diseño de Pablo para la tendera de Monte Sumicio; misma familia goblin y mismos clips.
+const TENDERA := preload("res://arte/modelos/dona_comba.glb")
 const ANCIANO := preload("res://arte/modelos/anciano_sumicio.glb")
 const RECOLECTOR := preload("res://arte/modelos/wanderer_sumicio.glb")
 const MIRA := preload("res://arte/modelos/mira_sumicio.glb")
@@ -91,7 +92,7 @@ func _montar_modelo() -> void:
 		maestre.free()
 	var fuentes := [ADULTO, APRENDIZ, CACO, MAESTRE, TENDERA, ANCIANO, RECOLECTOR, MIRA, IRIA, MOSSCAP, GRUBWICK, GRUMBLETWIG, FOREST_WITCH]
 	var reposos := [&"Idle002", &"Idle002", &"idle", &"Idle_02", &"idle", &"idle", &"recolectar", &"escribir", &"amasar", &"idle", &"tejer", &"idle", &"idle_mixamo"]
-	var alturas := [1.7, 1.7, 0.978089, 1.7, 0.952148, 0.950684, 0.952148, 0.95166, 0.95166, 0.95166, 0.951172, 0.952148, 0.950684]
+	var alturas := [1.7, 1.7, 0.978089, 1.7, 0.950196, 0.950684, 0.952148, 0.95166, 0.95166, 0.95166, 0.951172, 0.952148, 0.950684]
 	_modelo = fuentes[oficio].instantiate()
 	_modelo.name = "Modelo"
 	_modelo.scale = Vector3.ONE * estatura / alturas[oficio]

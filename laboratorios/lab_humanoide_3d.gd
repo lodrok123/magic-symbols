@@ -30,15 +30,22 @@ extends Node3D
 const PERSONAJES: Dictionary = {
 	"chibi_elf": 1.0, "elfo_base": 1.0, "alchemist_elf": 0.95, "bookseller_chibi": 0.95, "goblin_warrior_chibi": 0.85, "goblin_archer_chibi": 0.85, "goblin_base": 0.85, "marimanta": 0.8,"goblin_asesino": 0.85, "jugadora_base": 1.0,
 	"ranger_human": 1.1, "grandmaster": 1.0, "woodland_wanderer": 1.0, "woodland_wanderer_v1": 1.0, "woodland_wanderer_orig": 1.0,
-	"tendera_sumicio": 1.06, "anciano_sumicio": 1.06,
+	"tendera_sumicio": 1.06, "dona_comba": 1.06, "anciano_sumicio": 1.06,
 	"wanderer_sumicio": 1.06, "mira_sumicio": 1.16,
 	"iria_sumicio": 1.06,
+	"benvito": 0.85,                         # 20/11: Benvito Brisaboa, guardabosques goblin; altura de la familia goblin
 	"mosscap_sumicio": 0.97,
 	"grubwick_sumicio": 1.1,
 	"grumbletwig_sumicio": 0.91, "forest_witch_sumicio": 0.89,
 	# Santa Compaña (9/11): las dos variantes comparten GLB (Pj3D.MODELO_DE) y solo cambian la pieza que portan y el andar, así
 	# que entran las DOS para poder compararlas aquí. Con «como el juego» marcado salen con su cruz o su vela y su propio walk.
-	"santa_compana_cruz": 0.85, "santa_compana_vela": 0.85, "fantasma_elfo_rig": 0.9}
+	"santa_compana_cruz": 0.85, "santa_compana_vela": 0.85, "fantasma_elfo_rig": 0.9,
+	# Pedro Chosco (20/11): anciano elfo sabio, rig y clips de Pablo (Meshy + Mixamo) en su propio GLB; el clip sin nombre es el de ofrecer la mano.
+	"pedro_chosco": 1.0,
+	# Moura viajera (20/11): rig y clips de Pablo (Meshy + Mixamo) en su propio GLB.
+	"moura_viajera": 1.0,
+	# Inquisidor (20/11): rig y clips de Pablo (Meshy + Mixamo) en su propio GLB (Walking, Running, Basic_Jump, Double_Combo_Attack).
+	"inquisidor": 1.0}
 const COLOR_PIERNAS: Color = Color(0.35, 1.0, 0.45)
 const COLOR_BRAZOS: Color = Color(0.35, 0.65, 1.0)
 const COLOR_RESTO: Color = Color(0.95, 0.95, 0.95)
@@ -275,10 +282,14 @@ func _elegir_personaje(id: String, juego: int = -1) -> void:
 	var inicial: String = "walking" if _ap.has_animation("walking") else ("Walking" if _ap.has_animation("Walking") else String(_ap.get_animation_list()[0]))
 	if _juego and _pj.clip_de("idle") != "":
 		inicial = _pj.clip_de("idle")        # lo primero que se mira de la jugadora es su postura quieta
-	elif id in ["tendera_sumicio", "anciano_sumicio", "mosscap_sumicio"]:
+	elif id in ["tendera_sumicio", "dona_comba", "anciano_sumicio", "mosscap_sumicio", "benvito"]:
 		inicial = "idle"
 	elif id == "forest_witch_sumicio":
 		inicial = "idle_mixamo"
+	elif id == "moura_viajera":
+		inicial = "Idle"
+	elif id == "pedro_chosco":
+		inicial = "Idle_9"                   # 20/11: sus clips son los del GLB (Mixamo), sin «idle» ni «walking» con esos nombres
 	_elegir_clip(inicial)
 
 

@@ -65,14 +65,14 @@
 ; pieza veta_c1 veta 5 15 celdas=5,15..2,15+2,14..2,13
 ; 26/10 (Pablo: «una demostración anterior»): la GEODA EXPLOSIVA de C1. El final de la veta (2,13) la toca: el primer latido del cristal con la jugadora a 3 casillas o menos (`cerca=3`, para que se vea) la carga y EXPLOTA, rompiendo el jarrón de al lado (jarron_c1a, 1,12). Es la lección de C3: un pulso en una geoda es una explosión que tumba lo que tiene cerca.
 ; pieza geoda_c1 geoda 1 13 flag=cueva.c1.geoda escala=1.2 cerca=3
-; --- C1 · El secreto de las estatuas (fase 3, PLAN_PULSO_RESONANTE §5): bajo la pared sur, una PARED HUECA que solo abre el pulso del jugador (ᚱ). Dentro, tres estatuas piden fuego, hielo, fuego ---
+; --- C1 · El secreto de las estatuas (fase 3, PLAN_PULSO_RESONANTE §5): bajo la pared sur, una PARED HUECA que solo abre el pulso del jugador (ᚱ). Dentro, tres estatuas piden fuego, agua, tierra ---
 ; (con el pulso del escenario la pared solo hace eco; el nicho está bajo C1 para que se llegue tras el atajo de C6, que sale justo en C1)
 ; pieza hueca_c1 pared_hueca 7 19 flag=cueva.c1.nicho mira=n
 ; Tres losas de veta a los pies de las estatuas: se ve dónde ponerse. Cada pulso, desde su losa, solo toca a SU estatua (están a dos casillas una de otra).
 ; pieza pad_c1a veta 5 22
 ; pieza pad_c1b veta 7 22
 ; pieza pad_c1c veta 9 22
-; pieza estatuas_c1 estatuas 5 21 celdas=5,21+7,21+9,21 secuencia=fuego,hielo,fuego flag=cueva.c1.estatuas
+; pieza estatuas_c1 estatuas 5 21 celdas=5,21+7,21+9,21 secuencia=fuego,agua,tierra flag=cueva.c1.estatuas
 ; El cofre ÉPICO aparece al cumplir la secuencia y da el núcleo de eco (docs/MATERIALES_CUEVA.md): echa una columna de luz morada mientras está cerrado.
 ; pieza cofre_epico cofre 8 21 modelo=epico aparece_si=flag.cueva.c1.estatuas abierto=cueva.c1.epico da=nucleo_eco:1
 ; --- C2 · Las grietas ---
