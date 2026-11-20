@@ -103,7 +103,9 @@ const NUEVOS: Array = [
 	{"nombre": "Q14 reloj de agua", "entrada": Vector2i(12, 25), "cartel": Vector2i(13, 28),
 		"texto": "Q14 · RELOJ DE AGUA\nEn cuanto enciendes el primer brasero se abre el desagüe y la cuenca se vacía sola: el nivel es el cronómetro.\nEnciende los tres (fuego) antes de que baje de 0,35 y la puerta abre; si no, recarga con R.\nBotón: enciende los tres a la vez · placa: solo abre el desagüe.",
 		"ids": {"reloj": "q14_nivel", "compuerta": "q14_compuerta", "b1": "q14_b1", "b2": "q14_b2", "b3": "q14_b3", "cont": "q14_cont", "puerta": "q14_puerta", "boton": "q14_boton", "placa": "q14_placa"}},
-]
+	{"nombre": "Q15 lava con peso", "entrada": Vector2i(20, 25), "cartel": Vector2i(19, 30),
+		"texto": "Q15 · LAVA CON PESO\nEl rincón de la placa de peso solo se alcanza por la lava. Agua a la lava (desde la casilla de al lado) la enfría en roca: 22 s.\nRodea la roca y EMPÚJALA al este por encima hasta la placa (~10 s). Si la lava vuelve con la roca encima, se hunde y reaparece.\nBotón: enfría la lava · placa: abre la puerta.",
+		"ids": {"lava": "q15_lava", "roca": "q15_roca", "peso": "q15_peso", "puerta": "q15_puerta", "boton": "q15_boton", "placa": "q15_placa"}},]
 ## Papeles que toda sala tiene en su diccionario aunque no los use (null): el HUD y el escenario los leen sin mirar si existen.
 const PAPELES_SIEMPRE: Array = ["detector", "compuerta", "puerta"]
 
@@ -361,6 +363,15 @@ func _estado_nuevo(q: Dictionary) -> String:
 		var nv: Variant = q.get(papel)
 		if nv != null and is_instance_valid(nv):
 			s += "  %s %.2f" % [papel, (nv as NivelAgua3D).profundidad]
+	var lv: Variant = q.get("lava")
+	if lv != null and is_instance_valid(lv):
+		s += "  lava %s" % ("ACTIVA" if bool((lv as Object).get("is_lit")) else "apagada")
+	var rq: Variant = q.get("roca")
+	if rq != null and is_instance_valid(rq):
+		s += "  roca en %s%s" % [str((rq as BloqueEmpujable3D).celda), " HUNDIDA" if (rq as BloqueEmpujable3D).hundido_en_lava else ""]
+	var pe: Variant = q.get("peso")
+	if pe != null and is_instance_valid(pe):
+		s += "  placa de peso %s" % ("PISADA" if bool((pe as Object).get("activo")) else "libre")
 	var kc: Variant = q.get("compuerta")
 	if kc != null and is_instance_valid(kc):
 		s += "  compuerta %s" % ("ABIERTA" if bool((kc as Object).get("abierta")) else "cerrada")

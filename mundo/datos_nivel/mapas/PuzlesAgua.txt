@@ -223,6 +223,20 @@
 ; puzle q14_abre cuando=q14_cont.todos si=q14_nivel.alcanzado hace=q14_puerta.abrir
 ; puzle q14_boton_enciende cuando=q14_boton.pulsado hace=q14_b1.encender y=q14_b2.encender y=q14_b3.encender
 ; puzle q14_placa_desagua cuando=q14_placa.pulsado hace=q14_compuerta.abrir
+; --- Q15 LAVA CON PESO (20/11, sala (2,3), x 17..23, y 25..31): un rio de lava de 2 casillas (21,28) (22,28) en un paso de la pared (dos columnas de muro, x=21 y 22) separa la mitad de la entrada (x 17..20) de un rincon (x=23) que solo se alcanza por la lava;
+; ---   en él, una placa de PESO (23,28, peso 1). La roca pequeña (19,28) pesa 1: hay que ENFRIAR la lava con agua (una flecha de agua desde (20,28) enfría las dos casillas: el centro y su vecina), rodear la roca, EMPUJARLA al este por la roca
+; ---   enfriada hasta la placa (4 casillas, ~10 s) y que descanse sobre ella: la placa abre la puerta (20,31) mientras pesa. La roca vuelve a ser lava a los 22 s de enfriarse (vuelve=22): si la lava vuelve con la roca encima, la roca SE HUNDE
+; ---   (Lava3D._fundir → BloqueEmpujable3D.hundirse_en_lava), se disuelve en vapor y reaparece en su casilla del mapa (19,28) al cabo de 1,2 s (si está libre). Vias: boton ! (17,26) enfria la lava sin agua · placa @ (17,30) abre la puerta.
+; pieza q15_lava lava 21 28 celdas=21,28..22,28 vuelve=22
+; pieza q15_roca roca_empujable 19 28 tam=pequena
+; pieza q15_peso pulsador 23 28 modo=presencia peso=1
+; pieza q15_puerta puerta 20 31
+; pieza q15_boton pulsador 17 26 modo=magia
+; pieza q15_placa pulsador 17 30 modo=presencia
+; puzle q15_abre cuando=q15_peso.pulsado hace=q15_puerta.abrir
+; puzle q15_cierra cuando=q15_peso.soltado hace=q15_puerta.cerrar
+; puzle q15_boton_enfria cuando=q15_boton.pulsado hace=q15_lava.enfriar
+; puzle q15_placa_abre cuando=q15_placa.pulsado hace=q15_puerta.abrir
 #################################
 #.......#......Z#.-.....#...-...#
 #.cc.cc.#.!.Lu..#.-.....#...-...#
@@ -248,11 +262,11 @@
 #Z....@.#...Z...#.!Z..@.#.!.Z.@.#
 #.......#.......#.......#.......#
 ####.#######.#######.#######.####
-#.......#.......#.......##Lu.!@##
-#.cc....#.ccc..T#.......##-..cc##
-#.cc-u..#.ccc...#.......##c...c##
-#.......#.ccc...#.......##c...c##
-#..T....#.ccc.T.#.......##c...c##
-#.......#..c....#.......##ccccc##
-#Z!...@.#Z!c.T.@#.......#########
+#.......#.......#....##.##Lu.!@##
+#.cc....#.ccc..T#!...##.##-..cc##
+#.cc-u..#.ccc...#....##.##c...c##
+#.......#.ccc...#......@##c...c##
+#..T....#.ccc.T.#....##.##c...c##
+#.......#..c....#@...##.##ccccc##
+#Z!...@.#Z!c.T.@#...Z##.#########
 #################################

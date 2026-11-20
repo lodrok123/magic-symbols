@@ -64,6 +64,8 @@ extends Node
 ##   lava       celdas=<lista> (la propia x,y)  vuelve=<s> (0)                       Lava3D (bloque 3 EoW): charco de lava que no se pisa y prende lo de al
 ##              lado; agua o hielo lo ENFRÍAN en roca (la casilla y sus 4 vecinas). `vuelve` > 0: la roca vuelve a ser lava a los `vuelve` s. El agua cuenta aunque sea la
 ##              flecha de agua REAL (la que se para en el borde de la lava y deja agua en la orilla de la simulación): `Lava3D.CADA_AGUA`
+##              20/11: si la lava VUELVE con un `bloque`/`roca_empujable` encima, el bloque se HUNDE (desaparece entre vapor) y reaparece en su casilla del mapa a los 1,2 s (BloqueEmpujable3D.hundirse_en_lava). Un bloque que ya está sobre una placa fuera de la lava no se hunde. Ej. (Q15 de PuzlesAgua):
+##              `; pieza lv lava 21 28 celdas=21,28..22,28 vuelve=22` · `; pieza r roca_empujable 19 28 tam=pequena` · `; pieza pe pulsador 23 28 modo=presencia peso=1`. Acción `enfriar` (como una flecha de agua en la casilla x,y de la pieza)
 ##   seta       variante=roja|azul|marron (la que toque por casilla)  rebrota=<s> (0)  madura=si (no)   Recolectable3D (la Cueva): setas que se cogen con E y dan
 ##              un ingrediente; un elemento lanzado antes las transforma (Objetos.PLANTAS). Sin variante se intercalan por casilla.
 ##              `madura=si` (24/10): un PULSO que la toca la hace brillar y la MADURA a `seta_resonante` (si aún no la había transformado un elemento)

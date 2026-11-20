@@ -13,7 +13,8 @@ extends Area3D
 ##     y emiten `enfriada(celda)`; cuando ya no queda lava, `apagada`. Se entera de cualquier forma de hechizo: escucha el impacto del mundo
 ##     (`Mundo3D.impacto`, lo que cae en el suelo) y además es un Area3D de reactivos (`on_spell_hit`, lo que la golpea en vuelo). 24/10: y también el AGUA de la simulación
 ##     que le llega (la flecha de agua real se para en el borde de la lava y deja el agua en la orilla): ver CADA_AGUA.
-##   · `vuelve` > 0: la roca vuelve a ser lava a los `vuelve` s (un puzle contrarreloj). 0 = se queda roca.
+##   · `vuelve` > 0: la roca vuelve a ser lava a los `vuelve` s (un puzle contrarreloj). 0 = se queda roca. 20/11: si al volver hay un BLOQUE EMPUJABLE encima (una roca o un bloque de piedra), el bloque se HUNDE en la lava
+##     (`BloqueEmpujable3D.hundirse_en_lava`: vapor, desaparece) y reaparece en su casilla del mapa a los `T_HUNDIDO` s (si está libre). A la jugadora no le hace nada (la lava no hiere: solo bloquea y prende lo de al lado).
 ##   · F1 (29/10, PLAN_BASE_DATOS §3.2): la roca RECUERDA con qué se enfrió (`via_de_roca`): el AGUA deja basalto (lo de siempre) y el HIELO deja OBSIDIANA. Quien coge el mineral
 ##     (`Recolectable3D` con planta `basalto`) pregunta por aquí y da `obsidiana` si la roca nació del frío.
 ##
@@ -403,6 +404,11 @@ func _enfriar(c: Vector2i, via: String = VIA_AGUA) -> void:
 
 
 func _fundir(c: Vector2i) -> void:
+	# 20/11 (Q15 «Lava con peso»): si la roca vuelve a ser lava con un BLOQUE encima (una roca empujable, un bloque de piedra), el bloque SE HUNDE: suelta sus casillas, desaparece entre vapor y reaparece
+	# en su casilla del mapa (`BloqueEmpujable3D.hundirse_en_lava`). Va ANTES de bloquear la casilla: el bloque libera la suya y la lava la vuelve a bloquear justo después. Un bloque ya sobre la placa (fuera de la lava) no se toca.
+	var encima: BloqueEmpujable3D = BloqueEmpujable3D.en(c)
+	if encima != null:
+		encima.hundirse_en_lava()
 	_roca.erase(c)
 	_roca_con.erase(c)
 	Terreno3D.conductores.erase(c)          # vuelve a ser lava: deja de conducir

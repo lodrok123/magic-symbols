@@ -21,6 +21,7 @@ func _escenario() -> void:
 	_ok("0 el mapa y las piezas de la segunda tanda se montan sin avisos", (lab.get("_avisos") as Array).is_empty(), str(lab.get("_avisos")))
 	await _q13()
 	await _q14()
+	await _q15()
 
 
 # ---------------------------------------------------------------------------------------------------------------------
@@ -214,3 +215,93 @@ func _q14() -> void:
 	var h_fin: float = _lleno(reloj_nivel)
 	_ok("Q14.13 encendidos los tres a los %.1f s de la recarga, con la cuenca aún en %.2f (≥ 0,35): la puerta abre" % [reloj.t - t0, h_fin],
 		_arde(bs[0]) and _arde(bs[1]) and _arde(bs[2]) and h_fin >= 0.35 and _abierta(puerta),"cont %d/%d completo=%s alcanzado=%s" % [(q["cont"] as ContadorReactivos3D).encendidos, (q["cont"] as ContadorReactivos3D).minimo, str((q["cont"] as ContadorReactivos3D).completo), str((reloj_nivel as NivelAgua3D).alcanzado)])
+
+# ---------------------------------------------------------------------------------------------------------------------
+#  Q15 · Lava con peso
+# ---------------------------------------------------------------------------------------------------------------------
+
+const ESTE: Vector2i = Vector2i(1, 0)
+
+
+## Empuja la roca como lo haría la jugadora apretando contra ella (`empujar` y `sostener` cada fotograma) hasta `destino`. Devuelve true si llegó y se paró; para si se hunde.
+func _empujar_hasta(roca: BloqueEmpujable3D, dir: Vector2i, destino: Vector2i, max_s: float) -> bool:
+	var t0: float = reloj.t
+	while reloj.t - t0 < max_s and not roca.hundido_en_lava and not (roca.celda == destino and not roca.moviendo):
+		if not roca.moviendo and roca.celda != destino:
+			roca.empujar(dir)
+		roca.sostener(dir)
+		await process_frame
+	return roca.celda == destino and not roca.moviendo and not roca.hundido_en_lava
+
+
+## Enfría la lava (flecha de agua desde la casilla de al lado, o el botón `!`) y espera a que las dos casillas sean roca. Devuelve el instante (reloj) en que lo son, o -1.
+func _enfriar_q15(q: Dictionary) -> float:
+	var lava: Lava3D = q["lava"]
+	if modo == "natural":
+		_ok("Q15.x agua + flecha a la lava (21,28) desde (20,28) sale", lanzar_a_celda("agua", ["flecha"], Vector2i(21, 28), Vector2i(20, 28)))
+	else:
+		(q["boton"] as Pulsador3D).pulsar()
+	var t0: float = reloj.t
+	while reloj.t - t0 < 6.0 and not (lava.es_roca(Vector2i(21, 28)) and lava.es_roca(Vector2i(22, 28))):
+		await process_frame
+	return reloj.t if (lava.es_roca(Vector2i(21, 28)) and lava.es_roca(Vector2i(22, 28))) else -1.0
+
+
+func _q15() -> void:
+	var q: Dictionary = _sala("Q15")
+	_ok("Q15.0 la sala existe en el lab", not q.is_empty())
+	if q.is_empty():
+		return
+	var lava: Lava3D = q["lava"]
+	var roca: BloqueEmpujable3D = q["roca"]
+	var peso: Pulsador3D = q["peso"]
+	var puerta: Variant = q["puerta"]
+	var boton: Pulsador3D = q["boton"]
+	var placa: Pulsador3D = q["placa"]
+	_tecla_sala(KEY_KP_3)
+	_ok("Q15.1 la tecla 3 del teclado numérico lleva a la sala (20,25)", celda_jugador() == Vector2i(20, 25), str(celda_jugador()))
+	_tecla_sala(KEY_1, true)
+	_tecla_sala(KEY_3, true)
+	_ok("Q15.2 Alt+3 también", celda_jugador() == Vector2i(20, 25), str(celda_jugador()))
+	_ok("Q15.3 estado inicial: lava en (21,28) y (22,28) (bloquean), roca pequeña de peso %d en (19,28), placa de peso (%d) libre y puerta cerrada" % [roca.peso_valor, peso.peso_min],
+		lava.es_lava(Vector2i(21, 28)) and lava.es_lava(Vector2i(22, 28)) and Terreno3D.bloqueada(Vector2i(21, 28)) and roca.celda == Vector2i(19, 28) and roca.material == "roca"
+		and roca.peso_valor >= peso.peso_min and not peso.activo and not _abierta(puerta) and lava.vuelve > 10.0)
+	lanzador.tinta = null
+	_ok("Q15.4 con la lava encendida la roca no puede entrar en (21,28) (desde (20,28))", not bool(roca.call("_casilla_libre", Vector2i(21, 28), Vector2i(20, 28))))
+	if modo == "botones":
+		colocar_jugador(Vector2i(17, 30))
+		await avanzar_s(0.6)
+		_ok("Q15.5 la placa @ (17,30) abre la puerta por su regla", placa.veces == 1 and _abierta(puerta))
+		colocar_jugador(Vector2i(20, 25))
+		await avanzar_s(0.3)
+	# Fase A (solo con hechizos): se enfría la lava, se tarda demasiado en empujar y la lava VUELVE con la roca encima: se hunde y reaparece.
+	if modo == "natural":
+		var t_a: float = await _enfriar_q15(q)
+		_ok("Q15.6 la flecha de agua enfría las DOS casillas de lava y ya se pueden pisar (bloqueo de (21,28): %s)" % str(Terreno3D.bloqueada(Vector2i(21, 28))), t_a > 0.0 and not Terreno3D.bloqueada(Vector2i(21, 28)) and not lava.is_lit)
+		_ok("Q15.7 enfriada, la roca sí puede entrar en (21,28)", bool(roca.call("_casilla_libre", Vector2i(21, 28), Vector2i(20, 28))))
+		await avanzar_s(15.0)                                          # tarda demasiado: la roca saldrá a empujarse con la lava a punto de volver (a los 22 s)
+		colocar_jugador(Vector2i(18, 28))
+		var se_hundio: Array = [false]
+		roca.se_hundio_en_lava.connect(func() -> void: se_hundio[0] = true)
+		var llego_a: bool = await _empujar_hasta(roca, ESTE, Vector2i(23, 28), 30.0)
+		_ok("Q15.8 empujada tarde, la roca no llega a la placa: la lava vuelve (a ~22 s) con ella encima y se HUNDE", not llego_a and bool(se_hundio[0]) and roca.hundimientos == 1, "celda %s hundido_en_lava=%s" % [str(roca.celda), str(roca.hundido_en_lava)])
+		_ok("Q15.9 hundida: la roca no pesa (fuera de los grupos), la lava vuelve a ser lava y bloquea (21,28) y (22,28), y la placa sigue libre",
+			not roca.is_in_group("peso") and not roca.is_in_group("empujable") and lava.es_lava(Vector2i(21, 28)) and lava.es_lava(Vector2i(22, 28)) and Terreno3D.bloqueada(Vector2i(21, 28)) and Terreno3D.bloqueada(Vector2i(22, 28)) and not peso.activo and not _abierta(puerta))
+		await avanzar_s(roca.T_HUNDIDO + 1.5)
+		_ok("Q15.10 a los %.1f s REAPARECE en su casilla del mapa (19,28): visible, empujable y bloqueando su casilla" % roca.T_HUNDIDO,
+			not roca.hundido_en_lava and roca.celda == Vector2i(19, 28) and roca.visible and roca.is_in_group("empujable") and Terreno3D.bloqueada(Vector2i(19, 28)) and BloqueEmpujable3D.en(Vector2i(19, 28)) == roca)
+	# Fase B: la vía buena. Se enfría, se rodea la roca (6 s) y se empuja sin parar hasta la placa de peso.
+	var t_cool: float = await _enfriar_q15(q)
+	_ok("Q15.11 se enfría la lava (otra vez)", t_cool > 0.0 and lava.es_roca(Vector2i(21, 28)) and lava.es_roca(Vector2i(22, 28)))
+	await avanzar_s(6.0)                                                # rodear la roca por el norte hasta (18,28)
+	colocar_jugador(Vector2i(18, 28))
+	var regla: Variant = _puzle3d().puzle("q15_abre")
+	var veces0: int = int(regla["veces"]) if regla != null else -1
+	var llego: bool = await _empujar_hasta(roca, ESTE, Vector2i(23, 28), 30.0)
+	var t_llega: float = reloj.t - t_cool
+	_ok("Q15.12 empujada por la roca enfriada (3 casillas de lava incluidas) llega a la placa (23,28) a los %.1f s de enfriar (la lava vuelve a los %.0f s)" % [t_llega, lava.vuelve], llego and t_llega < lava.vuelve - 3.0)
+	await avanzar_s(0.8)
+	_ok("Q15.13 la roca pesa en la placa (%d ≥ %d): se pisa, su regla salta y la puerta abre" % [roca.peso_valor, peso.peso_min], peso.activo and int(_puzle3d().puzle("q15_abre")["veces"]) == veces0 + 1 and _abierta(puerta))
+	await avanzar_s(maxf(lava.vuelve - t_llega, 0.0) + 3.0)
+	_ok("Q15.14 pasado el tiempo la lava vuelve (%s y %s) pero la roca ya está fuera de ella: no se hunde, sigue en la placa y la puerta abierta" % [str(lava.es_lava(Vector2i(21, 28))), str(lava.es_lava(Vector2i(22, 28)))],
+		lava.es_lava(Vector2i(21, 28)) and lava.es_lava(Vector2i(22, 28)) and not roca.hundido_en_lava and roca.celda == Vector2i(23, 28) and peso.activo and _abierta(puerta))
