@@ -33,6 +33,7 @@ const PERSONAJES: Dictionary = {
 	"tendera_sumicio": 1.06, "dona_comba": 1.06, "anciano_sumicio": 1.06,
 	"wanderer_sumicio": 1.06, "mira_sumicio": 1.16,
 	"iria_sumicio": 1.06,
+	"benvito": 0.85,                         # 20/11: Benvito Brisaboa, guardabosques goblin; altura de la familia goblin
 	"mosscap_sumicio": 0.97,
 	"grubwick_sumicio": 1.1,
 	"grumbletwig_sumicio": 0.91, "forest_witch_sumicio": 0.89,
@@ -279,7 +280,7 @@ func _elegir_personaje(id: String, juego: int = -1) -> void:
 	var inicial: String = "walking" if _ap.has_animation("walking") else ("Walking" if _ap.has_animation("Walking") else String(_ap.get_animation_list()[0]))
 	if _juego and _pj.clip_de("idle") != "":
 		inicial = _pj.clip_de("idle")        # lo primero que se mira de la jugadora es su postura quieta
-	elif id in ["tendera_sumicio", "dona_comba", "anciano_sumicio", "mosscap_sumicio"]:
+	elif id in ["tendera_sumicio", "dona_comba", "anciano_sumicio", "mosscap_sumicio", "benvito"]:
 		inicial = "idle"
 	elif id == "forest_witch_sumicio":
 		inicial = "idle_mixamo"
