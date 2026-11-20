@@ -43,7 +43,9 @@ const PERSONAJES: Dictionary = {
 	# Pedro Chosco (20/11): anciano elfo sabio, rig y clips de Pablo (Meshy + Mixamo) en su propio GLB; el clip sin nombre es el de ofrecer la mano.
 	"pedro_chosco": 1.0,
 	# Moura viajera (20/11): rig y clips de Pablo (Meshy + Mixamo) en su propio GLB.
-	"moura_viajera": 1.0}
+	"moura_viajera": 1.0,
+	# Inquisidor (20/11): rig y clips de Pablo (Meshy + Mixamo) en su propio GLB (Walking, Running, Basic_Jump, Double_Combo_Attack).
+	"inquisidor": 1.0}
 const COLOR_PIERNAS: Color = Color(0.35, 1.0, 0.45)
 const COLOR_BRAZOS: Color = Color(0.35, 0.65, 1.0)
 const COLOR_RESTO: Color = Color(0.95, 0.95, 0.95)
