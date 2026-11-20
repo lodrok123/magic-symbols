@@ -342,6 +342,88 @@ La tierra trabaja en las islas y orillas secas. Aquí se combinan los sellos y s
 
 ---
 
+## Glifos por puzle (replanteo, 20/11)
+
+Pablo: «primero busquemos usos y después metemos el glifo». Aquí, para cada puzle, los glifos con los que se puede resolver. Si hay
+varias soluciones, mejor. Al final, qué pide cada glifo y cuándo conviene darlo.
+
+**Cómo se comporta cada glifo con cada sello** (lo que dice el código hoy; lo marcado *verificar* no lo he probado):
+
+| Glifo | Fuego | Agua | Tierra |
+|---|---|---|---|
+| sin glifo | bola en la mano, enciende lo que toca | salpica lo que toca | — (*verificar* si construye delante) |
+| Flecha | enciende a distancia (brasero, seto, barril) | riega a distancia (pulsador, tinaja, bancal), apaga una mecha | golpe y empuje; **no construye**. Con T6: empuja bloques y rompe paredes |
+| ᛁ Línea | rayo: quema una franja recta | chorro: apaga o moja una franja | con ᛜ, muro más ancho (3 casillas con 3 ᛁ) |
+| ᛜ Barrera | aro alrededor de la jugadora: prende lo que la rodea | burbuja que para el primer golpe | **muro o bloque donde se apunta**: es la forma de construir |
+| ᛏ Altura | el hechizo sube: llega a lo que está alto | igual | con ᛜ, bloque más alto (1, 2 o 3 niveles) |
+| ᚱ Pulso | pulso de fuego al final o a intervalos: enciende en un radio, recorre vetas | pulso de agua en un radio (*verificar* que riega pulsadores) | pulso por las vetas: tumba columnas |
+| ᛒ Suelo | trampa que estalla al pisarla un enemigo | trampa | plataforma 8 s sobre el vacío; capa que frena en el suelo; nada sobre el agua |
+
+### Puzle a puzle
+
+| Puzle | Solución principal | Otras soluciones | Glifo que **hace falta** |
+|---|---|---|---|
+| **F13** Quemar primero | ᛁ fuego: quema la franja en línea recta | flecha casilla a casilla; ᚱ fuego al final de una flecha prende la franja de golpe | ninguno (flecha basta); ᛁ lo hace limpio |
+| **F14** Cortina de vapor | flecha de fuego sobre la orilla mojada | ᛁ fuego: una franja de vapor más larga | flecha |
+| **Q13** Brasas | ᛁ agua: apaga un tramo entero | flecha de agua, tramo a tramo (más lento, pide ritmo) | ninguno; ᛁ lo hace fácil |
+| **R2** Los caños | flecha de agua al pulsador bueno | ᛏ si un pulsador está alto | flecha |
+| **R3** Reloj de agua | flecha de agua a la cuba | ᛁ agua: llena más deprisa | flecha |
+| **R4** Lámparas ahogadas | flecha de agua al desagüe y flecha de fuego a cada brasero | ᚱ fuego: enciende los dos braseros de un pulso si están a menos de 4 casillas | flecha; ᚱ como atajo |
+| **Q16** Balsa ascensor | flecha de agua a las dos tinajas | — | flecha |
+| **R5** Primer escalón | tierra + ᛜ delante del muro | — | ᛜ |
+| **T1a** Desvío en seco | tierra + ᛜ en el brazo seco, después agua al pulsador | tierra + ᛜ + ᛁ: un muro que tapa un brazo ancho | ᛜ |
+| **R1** Cisterna dormida | tierra + ᛜ en el salto del acueducto; flecha de agua al pulsador | — | ᛜ |
+| **T5** Las mámoas | flecha de fuego o agua al mouro; tierra + ᛜ encima de la mámoa | tierra + ᛒ (plataforma: cuenta como tapa); bloque empujado; flecha de tierra para empujar el bloque (T6) | ᛜ (o ᛒ) |
+| **Q14** El barril | flecha de agua a la mecha; empujar a mano; flecha de fuego | flecha de tierra empuja el barril (T6) | flecha |
+| **T2** La cornisa | tierra + ᛜ (nivel 1) y tierra + ᛜ + ᛏ (nivel 2) | ᛏ×3 en un solo bloque alto + otro bajo | ᛏ |
+| **T4** Galería de tiro | tierra + ᛜ + ᛁ: muro largo en un lado | tierra + ᛜ casilla a casilla; agua a la `trampa_dragon` | ᛁ |
+| **C7** Balanza | tierra + ᛜ sobre la placa B | flecha de tierra para acercar una roca (T6) | ᛜ |
+| **T3** El foso | tierra + ᛒ: plataformas sobre el vacío | tierra + ᛜ al fondo si la sima no es honda (*verificar*) | ᛒ |
+| **C8** Derrumbe | tierra + ᚱ desde la veta buena | flecha de tierra tumba la columna hacia la sima (T6, si rompe columnas) | ᚱ (o T6) |
+| **T6** La pedrada | flecha de tierra al bloque y a la pared | — | flecha (de tierra) |
+| **Q15** El bancal | flecha de agua a los bancales; ᛏ o flecha alta por encima de la reja | ᚱ agua: riega varios a la vez (*verificar*) | flecha (+ ᛏ) |
+| **P1** Juncos secos | ᛁ agua sobre los juncos del bancal; flecha de fuego a la punta | ᛜ fuego en mitad de los juncos; ᚱ fuego | flecha |
+| **T1b** Retener | tierra + ᛜ en la boca del desagüe; flecha de agua a la tinaja | — | ᛜ |
+| **X1** Trampas en el vado | ᛒ fuego o agua (trampas) + tierra + ᛒ (capa que frena) | flecha y ᛁ en combate normal; tierra + ᛜ + ᛁ para estrechar el paso | ᛒ |
+| **X3** Setas tapadas | flecha de fuego, flecha de agua y tierra + ᛜ encima | tierra + ᛒ como tapa; ᚱ fuego quema dos de un pulso | ᛜ |
+| **P2** Balsa entre juncos | flecha de agua a la tinaja; flecha de fuego al junco; tierra + ᛜ en la orilla | ᛁ fuego; flecha de tierra empuja la balsa (T6, *verificar*) | ᛜ |
+
+### Qué pide cada glifo
+
+| Glifo | Lo pide (sin él no sale) | Lo mejora o abre otra solución | Lectura |
+|---|---|---|---|
+| Flecha | casi todos | — | es el glifo base; se tiene desde el principio |
+| ᛜ Barrera | todo lo que construye tierra: R5, T1a, R1, T5, C7, T1b, X3, P2 | P1 | con tierra es **el** glifo de construir; tiene que estar cuando llega la tierra |
+| ᛁ Línea | T4 | F13, Q13, P1, T1a | glifo de franjas; útil en Bosque desde el principio |
+| ᛏ Altura | T2 | R2, Q15 | uso propio solo en T2: o se le buscan más puzles, o se da justo antes de las Cuevas |
+| ᚱ Pulso | C8 | R4, F13, X3, Q15 | encaja como opcional: casi siempre es un **atajo** |
+| ᛒ Suelo | T3, X1 | T5, X3 | dos usos propios, los dos tarde (Cuevas y Pantano) |
+
+### Glifos que ya existen y no están en el kit demo
+
+Encajan con estos puzles y dan soluciones nuevas. Los apunto por si se prefiere cambiar alguno del kit:
+
+| Glifo | Qué hace | Dónde daría juego |
+|---|---|---|
+| ᛉ Permanencia | lo que sale se queda donde nace, +2 s cada uno | R3 (agua que dura en la cuba), R1 (presa que aguanta más), T5 (sellar dos mámoas seguidas) |
+| Repetición | el hechizo sale varias veces (hasta 4) | R4 (los dos braseros a la vez), X3 (dos setas), Q15 (los tres bancales) |
+| Rebote | el proyectil rebota al acabar | R2 o Q15 (regar un pulsador escondido tras una esquina) |
+| Posición | el hechizo nace en el punto señalado | toda la tierra: construir donde se apunta sin ᛜ, lo que dejaría ᛜ solo para muros |
+| ᚦ Perforar | atraviesa enemigos o sólidos | T6 (romper dos paredes en fila), X1 |
+
+### Lo que sale de esto
+
+1. **ᛜ con tierra es imprescindible** desde el cofre de las Ruinas. Si la tierra llega en las Ruinas, ᛜ tiene que estar ya o llegar a la
+   vez. Hoy la jugadora la gana en el santuario de Bosque 02 (`glifo=barrera`), así que encaja.
+2. **ᛏ y ᛒ tienen pocos usos propios** (1 y 2). Hay dos caminos: añadir puzles que los pidan, o darlos justo antes de esos puzles
+   (ᛏ antes de T2, ᛒ antes de T3) para que se aprendan en el sitio.
+3. **ᚱ funciona como glifo opcional**: abre atajos, y solo C8 lo pide. Si C8 tiene la otra solución (T6), ᚱ puede seguir siendo opcional.
+4. **ᛁ merece llegar pronto**: mejora tres puzles del Bosque y de las Ruinas.
+5. Si se quiere menos glifos en la demo, **Posición** podría sustituir a ᛜ como «construir donde apunto». Si se quiere más variedad,
+   **Repetición** y **ᛉ Permanencia** son los que más soluciones nuevas abren.
+
+---
+
 ## Orden de trabajo
 
 1. **Comprobar la primera pasada:** una partida de Bosque 01, Bosque 02 y la Cueva solo con fuego. Lo que se atasque, se mueve.
