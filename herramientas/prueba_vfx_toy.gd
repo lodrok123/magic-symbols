@@ -881,7 +881,7 @@ func _inicio_final_barrera_haz() -> void:
 		_cerca(anh.get_animation("nacer").length, FuegoToy.HAZ_NACER_S if on_h else 0.4, 0.001) and _cerca(anh.get_animation("morir").length, FuegoToy.HAZ_FINAL_S if on_h else 1.0, 0.001) and _cerca(hz.dura_morir, anh.get_animation("morir").length, 0.001))
 	_ok("haz: chorro con fino_ini %.2f, cola %.2f y avance %.2f (%s)" % [float(_p(hz, "Chorro", "fino_ini")), float(_p(hz, "Chorro", "cola")), float(_p(hz, "Chorro", "avance")), "los nuevos" if on_h else "los de antes"],
 		_cerca(float(_p(hz, "Chorro", "fino_ini")), FuegoToy.HAZ_FINO_INI if on_h else 1.0, 0.001) and _cerca(float(_p(hz, "Chorro", "cola")), FuegoToy.HAZ_COLA if on_h else 0.7, 0.001)
-		and _cerca(float(_p(hz, "Chorro", "avance")), FuegoToy.HAZ_AVANCE_FINAL if on_h else 0.6, 0.001) and (hz.find_child("HumoFinal", true, false) != null) == on_h)
+		and _cerca(float(_p(hz, "Chorro", "avance")), FuegoToy.HAZ_AVANCE_FINAL if on_h else 0.6, 0.001) and (hz.find_child("RastroFinal", true, false) != null) == on_h)
 	if on_h:
 		hz.lanzar(-1.0)
 		var s_cr: Array = []
@@ -920,7 +920,7 @@ func _inicio_final_barrera_haz() -> void:
 			s_co.append(hz.corte)
 			var hl2: ShaderMaterial = hz.find_child("Base", true, false).material_override as ShaderMaterial
 			s_hl2.append(float(hl2.get_shader_parameter("vida")))
-			var hf2: Node = hz.find_child("HumoFinal", true, false)
+			var hf2: Node = hz.find_child("RastroFinal", true, false)
 			if hf2 != null:
 				humo_vivo = maxi(humo_vivo, int(hf2.call("vivas")))
 		var mono_co: bool = true
@@ -930,7 +930,7 @@ func _inicio_final_barrera_haz() -> void:
 			mono_co and s_co[s_co.size() - 1] > 0.98 and s_hl2[s_hl2.size() - 1] < 0.05 and humo_vivo > 0 and not is_instance_valid(hz))
 		var hay_humo: bool = false
 		for n in get_nodes_in_group("rescoldo_fuego"):
-			hay_humo = hay_humo or String(n.name) == "HumoFinal"
+			hay_humo = hay_humo or String(n.name) == "RastroFinal"
 		_ok("haz, final: el humo se descuelga al acabar el chorro y se disipa solo", hay_humo)
 		await create_timer(FuegoToy.PILAR_HUMO_VIDA_S + 0.4).timeout
 		_ok("haz, final: y se borra (quedan %d)" % get_nodes_in_group("rescoldo_fuego").size(), get_nodes_in_group("rescoldo_fuego").is_empty())
@@ -941,7 +941,7 @@ func _inicio_final_barrera_haz() -> void:
 		_raiz.add_child(hc)
 		var largo_c: float = float(_p(hc, "Chorro", "largo"))
 		hc.corte = 0.9
-		var hfc: Node = hc.find_child("HumoFinal", true, false)
+		var hfc: Node = hc.find_child("RastroFinal", true, false)
 		var fuera: bool = false
 		for st in hfc.call("estados"):
 			var zl: float = (hc.to_local(st["pos"]) as Vector3).z

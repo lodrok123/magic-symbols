@@ -1271,7 +1271,7 @@ func _haz(c: Node3D, luz: OmniLight3D) -> void:
 		_trocitos(c, _cant(3.0, f, 1, 10), Vector3(r, r, largo * 0.15), Vector3(0, h, -largo * 0.8), 1.0)
 	if HAZ_INICIO_FINAL:
 		var hfz: Node3D = HumoToyFuego.new()
-		hfz.name = "HumoFinal"
+		hfz.name = "RastroFinal"      # no empieza por «Humo»: prueba_haz_fuego_ideas cuenta los hijos «Humo*» (el humo de la punta)
 		c.add_child(hfz)
 		var rh_: float = minf(r, 0.9)
 		hfz.call("montar", clampi(int(round(HAZ_HUMO_POR_M * largo)), 6, 28), {"claro": PILAR_HUMO_CLARO, "sombra": PILAR_HUMO_SOMBRA, "viejo": PILAR_HUMO_VIEJO,
@@ -1414,7 +1414,7 @@ func _haz_inicio_final() -> void:
 		_pilar_humo_n = 0
 		_pilar_rescoldo_suelto = false
 		return
-	var hf: Node3D = _cuerpo.get_node_or_null("HumoFinal") as Node3D
+	var hf: Node3D = _cuerpo.get_node_or_null("RastroFinal") as Node3D
 	if hf == null:
 		return
 	var largo: float = HazChoque.largo_corte(choques, semieje_x * 2.0)
@@ -1576,6 +1576,8 @@ func _soltar_rescoldo() -> void:
 		tw.parallel().tween_property(mg, "shader_parameter/vida", 0.0, PILAR_RESCOLDO_S).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
 		tw.tween_callback(gr.queue_free)
 	var hf: Node3D = _cuerpo.get_node_or_null("HumoFinal") as Node3D
+	if hf == null:
+		hf = _cuerpo.get_node_or_null("RastroFinal") as Node3D       # el del haz
 	if hf != null:
 		hf.reparent(padre, true)
 		hf.add_to_group("rescoldo_fuego")
