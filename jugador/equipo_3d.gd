@@ -335,7 +335,7 @@ const MEDIDA_PIEZA: Dictionary = {"garrote": 0.62, "espada_goblin": 0.58, "daga"
 ## 21/11 (Pablo: «la maza la está sujetando al revés» → «acércala a que la sujete desde la mano»): la porra del goblin guerrero, en el espacio de RightHand (+Y = hacia los dedos).
 ## Antes (0, 0,07, 0,03) y Z 90: al revés y con el mango sobre la muñeca. Ahora al derecho y el mango vendado dentro del puño (captura `porra` de captura_goblin_escudo).
 const GARROTE_POS: Vector3 = Vector3(-0.023, 0.110, -0.020)   ## el centro del puño medido en la MALLA (herramientas/medidas_porra_goblin.gd)
-const GARROTE_GIRO: Vector3 = Vector3(0.0, 0.0, 90.0)       ## 21/11: con el agarre ya en el puño, la cabeza va hacia el lado del pulgar (con −90 quedaba invertida, captura de Pablo)
+const GARROTE_GIRO: Vector3 = Vector3(0.0, 0.0, -90.0)      ## 21/11 (Pablo marcó en rojo dónde espera la maza: hacia ARRIBA desde la mano al atacar). Medido: con −90 la cabeza apunta arriba en el golpe (+90 la ponía abajo)
 ## Dónde se agarra un arma, en fracción de su largo desde abajo.
 const AGARRE: float = 0.14
 
