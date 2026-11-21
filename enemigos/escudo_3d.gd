@@ -75,7 +75,14 @@ const ALTURA_RELATIVA: float = 0.55           ## (SIN esqueleto) a qué fracció
 const HUESO_ESCUDO: String = "LeftForeArm"
 const ESCALA_EN_BRAZO: float = 0.62           ## el disco de la pieza mide 0,55 u (más que el torso del goblin, 0,85 de alto): sobre el brazo se queda en ~0,34 u
 const POS_EN_BRAZO: Vector3 = Vector3(0.0, 0.07, 0.07)
-const GIRO_EN_BRAZO: Vector3 = Vector3(0.0, 0.0, 0.0)    ## grados (X, Y, Z) en el espacio del hueso
+const GIRO_EN_BRAZO: Vector3 = Vector3(0.0, 0.0, 0.0)    ## grados (X, Y, Z) en el espacio del hueso (solo si CARA_AL_FRENTE = false)
+## 21/11 (Pablo, captura «cerca»: de frente el escudo iba de canto y la mano lo atravesaba): la POSICIÓN sigue al antebrazo, pero la CARA del escudo mira hacia delante
+## del goblin (girada GIRO_HACIA_FUERA grados hacia su lado izquierdo, el del brazo) y se separa ADELANTE_EN_BRAZO u del brazo hacia delante, para que puño y dedos queden detrás.
+const CARA_AL_FRENTE: bool = true
+const GIRO_HACIA_FUERA: float = 20.0
+const ADELANTE_EN_BRAZO: float = 0.16         ## con 0,10 aún asomaban los dedos por la cara del escudo en tres cuartos
+const BAJADA_EN_BRAZO: float = 0.07           ## u que baja respecto al antebrazo: con 0 tapaba la cara del goblin de frente
+const INCLINACION_ATRAS: float = 8.0          ## grados que se echa hacia atrás por arriba (no se ve un disco de canto vertical perfecto)
 const PIEZA_EQUIPO_ADORNO: String = "escudo"  ## el id de `Equipo3D.EQUIPO` que se oculta
 ## ESCUDO MOJADO (22/10): una capa translúcida azul oscura con brillo húmedo (`PiezaFuego3D.capa_mojada`) mientras `mojado_t > 0`, que se aclara en los últimos T_SECADO s.
 const ALFA_ESCUDO_MOJADO: float = 0.55
@@ -615,6 +622,16 @@ func _colocar() -> void:
 	if en_brazo:
 		var tb: Transform3D = hueso
 		var b: Basis = tb.basis.orthonormalized()
+		if CARA_AL_FRENTE:
+			var fwd: Vector3 = combate.pj.global_transform.basis.z
+			fwd.y = 0.0
+			if fwd.length() < 0.01:
+				fwd = Vector3(combate.mirada.x, 0.0, combate.mirada.z)
+			fwd = fwd.normalized() if fwd.length() > 0.01 else Vector3(0.0, 0.0, 1.0)
+			var cara: Vector3 = fwd.rotated(Vector3.UP, deg_to_rad(GIRO_HACIA_FUERA))
+			var bas: Basis = Basis.looking_at(-cara, Vector3.UP) * Basis(Vector3.RIGHT, deg_to_rad(-INCLINACION_ATRAS))
+			global_transform = Transform3D(bas * Basis.from_scale(Vector3.ONE * ESCALA_EN_BRAZO), tb.origin + b * POS_EN_BRAZO + fwd * ADELANTE_EN_BRAZO + Vector3(0.0, -BAJADA_EN_BRAZO, 0.0))
+			return
 		var giro := Basis.from_euler(Vector3(deg_to_rad(GIRO_EN_BRAZO.x), deg_to_rad(GIRO_EN_BRAZO.y), deg_to_rad(GIRO_EN_BRAZO.z)))
 		global_transform = Transform3D(b * giro * Basis.from_scale(Vector3.ONE * ESCALA_EN_BRAZO), tb.origin + b * POS_EN_BRAZO)
 		return
