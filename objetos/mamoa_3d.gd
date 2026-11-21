@@ -36,6 +36,14 @@ const COLOR_HUMO: Color = Color(0.62, 0.66, 0.72, 0.55)
 ##   · el AGUA: si su casilla queda MOJADA (un hechizo de agua que da en el suelo, un charco que llega) o HELADA, el pozo se INUNDA y queda tapado para siempre (`inundada`).
 ##     Una flecha que solo pasa por encima no moja el suelo: no cuenta. Se ve el agua dentro del brocal.
 const ESTADOS_INUNDAN: Array = ["mojada", "helada"]
+## EL MOURO SE RECOMPONE (21/11, Pablo: «un hueco parpadeando con brillos azules claros; haz que la tumba palpite y el núcleo también»): mientras hay un mouro deshecho esperando volver
+## (`humo_rebrote`), el brocal late (escala), dentro del agujero brilla un NÚCLEO azul claro que late con él (malla y luz) y suben chispas azules que parpadean. Se apaga al volver o al taparla.
+const COLOR_BRILLO: Color = Color(0.62, 0.86, 1.0)
+const PULSO_HZ: float = 1.6                    ## latidos por segundo (acelera al final: ver PULSO_HZ_FINAL)
+const PULSO_HZ_FINAL: float = 3.2              ## latidos por segundo en el último segundo antes de salir
+const PULSO_ESCALA: float = 0.05               ## cuánto crece el brocal en cada latido (fracción)
+const RADIO_NUCLEO: float = 0.3                ## u del núcleo en reposo
+const ENERGIA_LUZ: float = 1.6
 const COLOR_AGUA_POZO: Color = Color(0.18, 0.42, 0.55, 0.85)
 const FRACCION_ALTO_AGUA: float = 0.8          ## a qué altura del brocal queda la lámina de agua
 const RADIO_AGUA: float = 0.42                 ## fracción de ANCHO_BROCAL que tapa el disco de agua (el hueco del pozo)
@@ -61,6 +69,12 @@ var _alto_brocal: float = 0.6
 var inundada: bool = false                       ## 21/11: el agua la llenó: tapada para siempre
 var por_que_tapada: String = ""                  ## qué la tapó la última vez (pruebas y diario): a_mano · agua · bloque · algo · hechizo
 var _agua: MeshInstance3D = null
+var pulsando: bool = false                       ## 21/11: está latiendo (un mouro se recompone dentro); lo leen las pruebas
+var _t_pulso: float = 0.0
+var _nucleo: MeshInstance3D = null
+var _mat_nucleo: StandardMaterial3D = null
+var _luz: OmniLight3D = null
+var _chispas: CPUParticles3D = null
 
 signal inundada_ahora
 
@@ -295,6 +309,7 @@ func humo_rebrote(segundos: float) -> void:
 	_humo.emitting = true
 	humo_activo = true
 	_t_humo = segundos
+	_empezar_pulso()
 
 
 func cancelar_humo() -> void:
@@ -302,6 +317,103 @@ func cancelar_humo() -> void:
 	_t_humo = 0.0
 	if _humo != null:
 		_humo.emitting = false
+	_parar_pulso()
+
+
+## El latido de la tumba mientras un mouro se recompone (ver EL MOURO SE RECOMPONE).
+func _empezar_pulso() -> void:
+	pulsando = true
+	_t_pulso = 0.0
+	if _nucleo == null:
+		_construir_brillo()
+	_nucleo.visible = true
+	_luz.visible = true
+	_chispas.emitting = true
+
+
+func _parar_pulso() -> void:
+	pulsando = false
+	if _nucleo != null:
+		_nucleo.visible = false
+		_luz.visible = false
+		_chispas.emitting = false
+	if _brocal != null:
+		_brocal.scale = Vector3.ONE
+
+
+## Cada fotograma de dibujo: late el brocal, el núcleo y su luz. En el último segundo late el doble de rápido (va a salir).
+func _process(delta: float) -> void:
+	if not pulsando:
+		return
+	_t_pulso += delta
+	var hz: float = PULSO_HZ_FINAL if (_t_humo > 0.0 and _t_humo <= 1.0) else PULSO_HZ
+	var s: float = 0.5 + 0.5 * sin(TAU * hz * _t_pulso)
+	if _brocal != null:
+		_brocal.scale = Vector3.ONE * (1.0 + PULSO_ESCALA * s)
+	if _nucleo != null:
+		_nucleo.scale = Vector3.ONE * (0.75 + 0.45 * s)
+		_mat_nucleo.emission_energy_multiplier = 1.0 + 3.0 * s
+		_mat_nucleo.albedo_color.a = 0.55 + 0.4 * s
+		_luz.light_energy = ENERGIA_LUZ * (0.4 + 0.6 * s)
+
+
+func _construir_brillo() -> void:
+	_mat_nucleo = StandardMaterial3D.new()
+	_mat_nucleo.albedo_color = Color(COLOR_BRILLO, 0.8)
+	_mat_nucleo.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	_mat_nucleo.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	_mat_nucleo.emission_enabled = true
+	_mat_nucleo.emission = COLOR_BRILLO
+	var esfera := SphereMesh.new()
+	esfera.radius = RADIO_NUCLEO
+	esfera.height = RADIO_NUCLEO * 1.2                     # un poco aplastado: es el fondo del pozo que brilla
+	esfera.material = _mat_nucleo
+	_nucleo = MeshInstance3D.new()
+	_nucleo.name = "Nucleo"
+	_nucleo.mesh = esfera
+	_nucleo.position = Vector3(0.0, _alto_brocal * 0.45, 0.0)
+	_nucleo.visible = false
+	add_child(_nucleo)
+	_luz = OmniLight3D.new()
+	_luz.name = "LuzNucleo"
+	_luz.light_color = COLOR_BRILLO
+	_luz.omni_range = 2.4
+	_luz.light_energy = 0.0
+	_luz.position = Vector3(0.0, _alto_brocal * 0.7, 0.0)
+	_luz.visible = false
+	add_child(_luz)
+	_chispas = CPUParticles3D.new()
+	_chispas.name = "Chispas"
+	_chispas.emitting = false
+	_chispas.amount = 26
+	_chispas.lifetime = 1.1
+	_chispas.emission_shape = CPUParticles3D.EMISSION_SHAPE_SPHERE
+	_chispas.emission_sphere_radius = ANCHO_BROCAL * 0.3
+	_chispas.direction = Vector3.UP
+	_chispas.spread = 30.0
+	_chispas.initial_velocity_min = 0.4
+	_chispas.initial_velocity_max = 1.1
+	_chispas.gravity = Vector3.ZERO
+	_chispas.scale_amount_min = 0.5
+	_chispas.scale_amount_max = 1.2
+	var rampa := Gradient.new()                             # parpadean: se encienden y se apagan dos veces en su vida
+	rampa.offsets = PackedFloat32Array([0.0, 0.2, 0.35, 0.55, 0.75, 1.0])
+	rampa.colors = PackedColorArray([Color(COLOR_BRILLO, 0.0), Color(1, 1, 1, 1.0), Color(COLOR_BRILLO, 0.15), Color(1, 1, 1, 0.9), Color(COLOR_BRILLO, 0.1), Color(COLOR_BRILLO, 0.0)])
+	_chispas.color_ramp = rampa
+	var punto := SphereMesh.new()
+	punto.radius = 0.035
+	punto.height = 0.07
+	var mat := StandardMaterial3D.new()
+	mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	mat.vertex_color_use_as_albedo = true
+	mat.emission_enabled = true
+	mat.emission = COLOR_BRILLO
+	mat.emission_energy_multiplier = 2.0
+	punto.material = mat
+	_chispas.mesh = punto
+	_chispas.position = Vector3(0.0, _alto_brocal * 0.5, 0.0)
+	add_child(_chispas)
 
 
 func _construir_humo() -> void:

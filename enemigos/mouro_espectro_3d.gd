@@ -48,6 +48,14 @@ const T_AVISO_TOQUE: float = 0.7                 ## s entre que sale el aviso y 
 const DANO_TOQUE: float = 12.0
 const T_ENRAIZA: float = 1.0                     ## s que la sujeta (`Jugador3D.enraizar`)
 const DESCANSO_TOQUE: float = 1.2                ## s tras el agarre antes de volver a moverse
+## SALIR DE LA TUMBA (21/11, Pablo: «haz que el enemigo salga de la tumba antes de continuar»): en los últimos DUR_SURGIR_POZO s de la espera el cuerpo SUBE desde dentro del pozo
+## (FRACCION_SUBIDA del tiempo) hasta el brocal, con su reposo en bucle (flota; ya no el Getting_Up desde tumbado), y luego salta fuera a la casilla de salida. Ya de vuelta, se queda
+## T_DESPERTAR s mirándola sin moverse ni atacar antes de seguir.
+const DUR_SURGIR_POZO: float = 2.2
+const FRACCION_SUBIDA: float = 0.6
+const SALTITO_SALIDA: float = 0.25              ## u del arco del salto fuera del brocal
+const T_DESPERTAR: float = 0.8
+const CLIP_SUBIR_POZO: String = "idle"
 ## 21/11 (Pablo: «su debilidad es que resucite infinitamente mientras la tumba no se tape»): 0 = SIN LÍMITE. Con un número > 0 vuelve a ser el diseño antiguo
 ## (al gastar el último rebrote la mámoa se agrieta y el siguiente golpe mortal es definitivo).
 const REBROTES_MAX: int = 0
@@ -86,6 +94,7 @@ var _atacando: bool = false
 var _t_toque: float = 0.0
 var _golpe_hecho: bool = false
 var aura: NubeVeneno3D = null                    ## su nube de veneno (null mientras no la lleva)
+var t_despertar: float = 0.0                     ## > 0 = recién vuelto: la mira quieto antes de seguir
 var _t_aura: float = 0.0                         ## s para que le vuelva el aura tras perderla
 
 
@@ -324,6 +333,7 @@ func _rebrotar() -> void:
 	mamoa.salir_mouro(self)
 	mamoa.cancelar_humo()
 	texto_grande("¡Vuelve!", Color(0.75, 0.85, 1.0), 0.1)
+	t_despertar = T_DESPERTAR
 	PlayLog.event("mouro_rebrota", {"veces": rebrotes_gastados})
 	rebroto.emit(rebrotes_gastados)
 	if REBROTES_MAX > 0 and rebrotes_gastados >= REBROTES_MAX:
@@ -410,11 +420,24 @@ func _subir_surgir(u: float) -> void:
 	if u >= 1.0:
 		pj.position = _pos_salida()
 		return
+	# 21/11 (Pablo: «haz que el enemigo salga de la tumba»): 1) SUBE desde dentro del pozo (el cuerpo entero bajo el suelo) hasta quedar de pie sobre el brocal, frenando al final;
+	# 2) da un SALTITO fuera, a la casilla de salida, y se posa en el suelo.
 	var ini: Vector3 = position
 	var fin: Vector3 = _pos_salida()
-	var w: float = clampf((u - (1.0 - TRAMO_SALIDA)) / TRAMO_SALIDA, 0.0, 1.0)
+	var alto_rim: float = altura_surgir()
+	if u < FRACCION_SUBIDA:
+		var k: float = u / FRACCION_SUBIDA
+		k = 1.0 - pow(1.0 - k, 3.0)                              # sale deprisa y frena arriba
+		pj.position = ini + Vector3(0.0, lerpf(-altura_pozo(), alto_rim, k), 0.0)
+		return
+	var w: float = (u - FRACCION_SUBIDA) / (1.0 - FRACCION_SUBIDA)
 	w = w * w * (3.0 - 2.0 * w)
-	pj.position = ini.lerp(fin, w) + Vector3(0.0, altura_surgir() * (1.0 - pow(u, EXPONENTE_SURGIR)), 0.0)
+	pj.position = ini.lerp(fin, w) + Vector3(0.0, alto_rim * (1.0 - w) + SALTITO_SALIDA * sin(PI * w), 0.0)
+
+
+## u que el cuerpo empieza por DEBAJO del suelo (todo él dentro del pozo).
+func altura_pozo() -> float:
+	return maxf(altura, ALTO)
 
 
 ## Centro y suelo de la casilla de salida.
@@ -450,12 +473,13 @@ func altura_surgir() -> float:
 	return FRACCION_ALTURA_SURGIR * alto
 
 
-## Lo que dura el clip de surgir (s), sin pasarse del tiempo de rebrote; 0 si el modelo no lo trae (entonces aparece de golpe, como antes).
+## Lo que dura la salida del pozo (s), sin pasarse del tiempo de rebrote; 0 sin modelo (entonces aparece de golpe, como antes).
+## 21/11: ya no es lo que dura el clip Getting_Up (que se levantaba desde tumbado ENCIMA del brocal): es DUR_SURGIR_POZO, la subida desde dentro del agujero.
 func dur_surgir() -> float:
 	if _dur_surgir < 0.0:
 		_dur_surgir = 0.0
 		if pj != null and is_instance_valid(pj):
-			_dur_surgir = minf(pj.duracion(ROL_CLIP_SURGIR), T_REBROTE - 0.5)
+			_dur_surgir = minf(DUR_SURGIR_POZO, T_REBROTE - 0.5)
 	return _dur_surgir
 
 
@@ -479,8 +503,8 @@ func _empezar_surgir() -> void:
 	pj.animacion_actual = ""
 	pj.set_velocidad_animacion(1.0)
 	var arbol: ArbolAnimPj = pj.arbol()
-	var clip: String = pj.clip_de(ROL_CLIP_SURGIR)
-	if clip != "" and arbol != null and arbol.pedir(ESTADO_SURGIR, clip, {"bucle": Animation.LOOP_NONE, "vel": 1.0, "mezcla": 0.0, "reiniciar": true}):
+	var clip: String = pj._buscar_clip(CLIP_SUBIR_POZO)         # 21/11: flota hacia arriba de pie (su reposo), no se levanta desde tumbado
+	if clip != "" and arbol != null and arbol.pedir(ESTADO_SURGIR, clip, {"bucle": Animation.LOOP_LINEAR, "vel": 1.0, "mezcla": 0.0, "reiniciar": true}):
 		pj.animacion_actual = ROL_CLIP_SURGIR
 	PlayLog.event("mouro_surge", {"celda": [c.x, c.y]})
 
@@ -501,6 +525,15 @@ func _ia(delta: float) -> void:
 		objetivo = null
 		moviendo = 0
 		_cortar_toque()
+		return
+	if t_despertar > 0.0:
+		# Recién salido de la tumba: la mira, quieto, antes de seguir (21/11).
+		t_despertar -= delta
+		moviendo = 0
+		var dj: Vector3 = jugador.position - position
+		dj.y = 0.0
+		if dj.length() > 0.05:
+			mirada = dj.normalized()
 		return
 	if _atacando:
 		moviendo = 0

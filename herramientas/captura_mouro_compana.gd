@@ -16,8 +16,9 @@ const S: float = 2.3
 const LADO: int = 14
 const FOV: float = 28.0
 ## Instantes (s desde que cae a 0 de vida el mouro) y rótulo de cada foto del surgir.
-const FOTOS_SURGIR: Array = [[1.0, "1 · 1,0 s: vacío y humo"], [1.45, "2 · 1,45 s: sale, tumbado"], [2.0, "3 · 2,0 s: se apoya"],
-	[2.7, "4 · 2,7 s: se incorpora"], [3.4, "5 · 3,4 s: casi de pie"], [4.3, "6 · 4,3 s: ha vuelto"]]
+## 21/11: la salida nueva (sube desde dentro del pozo a partir de 1,8 s, salta fuera hacia los 3,1 s) con la tumba latiendo.
+const FOTOS_SURGIR: Array = [[1.0, "1 · 1,0 s: la tumba late (núcleo y chispas)"], [2.1, "2 · 2,1 s: asoma del pozo"], [2.6, "3 · 2,6 s: sube"],
+	[3.1, "4 · 3,1 s: de pie sobre el brocal"], [3.6, "5 · 3,6 s: salta fuera"], [4.3, "6 · 4,3 s: ha vuelto: la mira antes de seguir"]]
 ## Instantes (s desde que cae el guía; el primero es antes de caer) y rótulo de cada foto del relevo.
 const FOTOS_RELEVO: Array = [[-0.1, "1 · la guía lleva la cruz"], [0.3, "2 · cae: la cruz se queda en el suelo, la fila para"], [0.8, "3 · la siguiente viene a por ella"],
 	[1.8, "4 · se agacha: la mano llega a la cruz"], [2.7, "5 · la cruz se le engancha; se endereza"], [3.9, "6 · sigue la fila"]]
@@ -56,6 +57,12 @@ func _initialize() -> void:
 	_entorno()
 	_montar()
 	await process_frame
+	if OS.get_cmdline_user_args().has("surgir"):
+		# 21/11: solo la toma del mouro saliendo del pozo (… -- surgir)
+		await _surgir()
+		Sensacion3D.ACTIVA = _sensacion
+		quit(0)
+		return
 	if OS.get_cmdline_user_args().has("niebla"):
 		# 21/11: solo la toma nueva (… --script res://herramientas/captura_mouro_compana.gd -- niebla)
 		await _niebla()

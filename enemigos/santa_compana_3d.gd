@@ -30,9 +30,9 @@ signal procesion_rota                             ## se acabó de verdad
 signal repuesta(n: int)                           ## entró una ánima de reposición; n = reposiciones hechas
 
 const VEL_FILA: float = 1.2                       ## u/s
-const SEPARACION_CASILLAS: float = 1.0            ## casillas entre dos ánimas seguidas
+const SEPARACION_CASILLAS: float = 0.6            ## casillas entre dos ánimas seguidas. 21/11 (Pablo: «que estén más pegados»): 1,0 → 0,6
 const N_ANIMAS_DEFECTO: int = 3
-const T_RELEVO: float = 1.0                       ## s desde que cae el guía hasta que la siguiente se agacha a por la cruz (la cruz se le engancha T_ENGANCHE s después)
+const T_RELEVO: float = 0.3                       ## s desde que cae el guía hasta que la siguiente se agacha a por la cruz (la cruz se le engancha T_ENGANCHE s después). 21/11: 1,0 → 0,3 («menos intervalo»)
 const T_REINTENTO: float = 0.5                    ## s hasta volver a intentar el relevo si cortaron la recogida
 const T_LLEGADA_MAX: float = 4.0                  ## s esperando a que la siguiente llegue a la cruz; pasado esto se agacha donde esté
 const CIERRE_RELEVO_VEL: float = 2.4              ## u/s a los que la siguiente cierra el hueco mientras hay una cruz en el suelo (a 1,2 tardaba 1,9 s en llegar)

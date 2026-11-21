@@ -282,15 +282,21 @@ func _mouro_rebrota() -> void:
 	_ok("1 la mámoa echa humo para avisar de dónde vuelve", m.humo_activo)
 	_paso(1.2)
 	_ok("1 SURGIR: a 1,2 s el cuerpo todavía no se ve (solo el humo)", mo.latente and not mo.surgiendo and not mo.pj.visible)
-	_paso(0.2)
-	_ok("1 SURGIR: a 1,4 s ya se ve en la casilla de la mámoa, levantándose (clip Getting_Up de Mixamo, estado `lanzar_surgir`)", mo.surgiendo and mo.pj.visible and _celda(mo) == cm and mo.pj.estado_anim() == "lanzar_surgir" and mo.pj.clip_actual() == "Mixamo_Incorporarse", "estado %s · clip %s · %s" % [mo.pj.estado_anim(), mo.pj.clip_actual(), _celda(mo)])
+	# 21/11 (Pablo: «haz que el enemigo salga de la tumba»): sube DESDE DENTRO del pozo los últimos DUR_SURGIR_POZO s (2,2: empieza a 1,8 s), con su reposo; luego salta fuera.
+	_ok("1 SURGIR: la tumba late mientras se recompone (núcleo y chispas)", m.pulsando)
+	_paso(0.7)
+	_ok("1 SURGIR: a 1,9 s ya se ve, en la casilla de la mámoa, flotando (su reposo, estado `lanzar_surgir`)", mo.surgiendo and mo.pj.visible and _celda(mo) == cm and mo.pj.estado_anim() == "lanzar_surgir" and mo.pj.clip_actual() == "Idle", "estado %s · clip %s · %s" % [mo.pj.estado_anim(), mo.pj.clip_actual(), _celda(mo)])
 	_ok("1 SURGIR: y aún no es un blanco (latente, sin colisión, fuera del grupo de combate)", mo.latente and mo.collision_layer == 0 and not mo.is_in_group("combate3d") and rebrotes.is_empty())
-	_ok("1 SURGIR: el clip entra en el rebrote: dura %.2f s y T_REBROTE son %.1f" % [mo.dur_surgir(), MouroEspectro3D.T_REBROTE], mo.dur_surgir() > 1.0 and mo.dur_surgir() <= MouroEspectro3D.T_REBROTE - 0.5)
-	_ok("1 SURGIR: al empezar el cuerpo está ENCIMA del suelo de la casilla (por encima del brocal: ≥ 0,9 de la altura inicial, %.2f u)" % mo.altura_surgir(), mo.pj.position.y - mo.position.y >= 0.9 * mo.altura_surgir() and mo.altura_surgir() > 0.3, "sube %.3f" % (mo.pj.position.y - mo.position.y))
-	_paso(0.8)
-	_ok("1 SURGIR: a mitad del clip (2,2 s) sigue alto (el gateo se ve; la curva baja al final), sin haber tocado la posición del nodo ni la colisión", mo.pj.position.y - mo.position.y > 0.5 * mo.altura_surgir() and mo.collision_layer == 0 and Vector2(mo.pj.position.x - mo.position.x, mo.pj.position.z - mo.position.z).length() < 0.15, "sube %.3f" % (mo.pj.position.y - mo.position.y))
-	_paso(1.4)
-	_ok("1 SURGIR: a 3,6 s, al incorporarse, ya ha bajado más de la mitad (< 0,5 de la altura)", mo.surgiendo and mo.pj.position.y - mo.position.y < 0.5 * mo.altura_surgir(), "sube %.3f" % (mo.pj.position.y - mo.position.y))
+	_ok("1 SURGIR: la salida del pozo entra en el rebrote: dura %.2f s y T_REBROTE son %.1f" % [mo.dur_surgir(), MouroEspectro3D.T_REBROTE], is_equal_approx(mo.dur_surgir(), MouroEspectro3D.DUR_SURGIR_POZO) and mo.dur_surgir() <= MouroEspectro3D.T_REBROTE - 0.5)
+	var y_ini: float = mo.pj.position.y - mo.position.y
+	_ok("1 SURGIR: al empezar el cuerpo está DENTRO del pozo (bajo el suelo)", y_ini < -0.3 * mo.altura_pozo(), "sube %.3f" % y_ini)
+	_paso(0.6)
+	var y_mitad: float = mo.pj.position.y - mo.position.y
+	_ok("1 SURGIR: a 2,5 s está subiendo, en vertical sobre el pozo (sin tocar el nodo ni la colisión)", y_mitad > y_ini + 0.2 and mo.collision_layer == 0 and Vector2(mo.pj.position.x - mo.position.x, mo.pj.position.z - mo.position.z).length() < 0.05, "sube %.3f" % y_mitad)
+	_paso(0.55)
+	_ok("1 SURGIR: a 3,05 s ya asoma entero, de pie sobre el brocal", mo.pj.position.y - mo.position.y > 0.8 * mo.altura_surgir(), "sube %.3f" % (mo.pj.position.y - mo.position.y))
+	_paso(0.55)
+	_ok("1 SURGIR: a 3,6 s salta fuera: ya se ha separado del centro de la mámoa", mo.surgiendo and Vector2(mo.pj.position.x - mo.position.x, mo.pj.position.z - mo.position.z).length() > 0.5, "%.2f u" % Vector2(mo.pj.position.x - mo.position.x, mo.pj.position.z - mo.position.z).length())
 	_paso(0.2)
 	_ok("1 a los 3,8 s sigue latente", mo.latente and rebrotes.is_empty())
 	_paso(0.4)
@@ -504,27 +510,31 @@ func _compana_relevo() -> void:
 	var guia: AnimaCompana3D = viva[0]
 	_ok("5 el primero es el guía y lleva la cruz; los otros la palmatoria", guia.es_guia and _piezas(guia) == ["cruz_santa"] and _piezas(viva[1]) == ["vela_santa"] and _piezas(viva[2]) == ["vela_santa"] and not (viva[1] as AnimaCompana3D).es_guia, str(_piezas(guia)))
 	var separacion: float = (viva[0] as Node3D).position.distance_to((viva[1] as Node3D).position)
-	_ok("5 van a una casilla una de otra", absf(separacion - S) < 0.05, "%.2f u" % separacion)
+	_ok("5 van a SEPARACION_CASILLAS (0,6, 21/11: «más pegados») una de otra", absf(separacion - sc.separacion()) < 0.05 and SantaCompana3D.SEPARACION_CASILLAS < 1.0, "%.2f u" % separacion)
 	var siguiente: AnimaCompana3D = viva[1]
 	var pos_guia: Vector3 = guia.position
 	_mata(guia)
 	_ok("5 cae el guía: la cruz NO pasa en el acto, se queda en el suelo donde cayó y la fila se para", pasos.is_empty() and not siguiente.es_guia and guia.muerto and sc.cruz_suelo != null and sc.fila_parada(), str(sc.cruz_suelo))
 	_ok("5 la cruz del suelo está junto a donde cayó (a ≤ 0,3 u) y no es la de su mano (esa se esconde)", sc.cruz_suelo != null and sc.cruz_suelo.position.distance_to(pos_guia) <= 0.3 and _piezas_visibles(guia).is_empty(), "%.2f u" % sc.cruz_suelo.position.distance_to(pos_guia))
-	_paso(0.9)
-	_ok("5 a los 0,9 s todavía no se ha agachado ni ha pasado la cruz (viene andando a ella)", pasos.is_empty() and not siguiente.es_guia and not siguiente.recogiendo)
-	_paso(0.3)
-	_ok("5 RECOGER: a 1,2 s llega a la cruz y se agacha con CollectObject (estado `lanzar_recoger`)", siguiente.recogiendo and siguiente.pj.estado_anim() == "lanzar_recoger" and siguiente.pj.clip_actual() == "CollectObject", "estado %s · clip %s" % [siguiente.pj.estado_anim(), siguiente.pj.clip_actual()])
+	# 21/11 (Pablo: «menos intervalo»): T_RELEVO 0,3 s y la fila más pegada: a ~0,9 s ya se agacha; el enganche ~0,9 s después (RECOGER_VEL 2,6).
+	_paso(0.2)
+	_ok("5 a los 0,2 s todavía no se ha agachado ni ha pasado la cruz (viene andando a ella)", pasos.is_empty() and not siguiente.es_guia and not siguiente.recogiendo)
+	var t_agacha: float = 0.2
+	while not siguiente.recogiendo and t_agacha < 3.0:
+		_paso(0.05)
+		t_agacha += 0.05
+	_ok("5 RECOGER: llega a la cruz y se agacha con CollectObject (estado `lanzar_recoger`) en ≤ 1,2 s (21/11: antes ~1,2 s; ahora más pegados)", siguiente.recogiendo and t_agacha <= 1.2 and siguiente.pj.estado_anim() == "lanzar_recoger" and siguiente.pj.clip_actual() == "CollectObject", "a %.2f s · estado %s · clip %s" % [t_agacha, siguiente.pj.estado_anim(), siguiente.pj.clip_actual()])
 	_ok("5 RECOGER: y todavía no tiene la cruz (la mano no ha llegado abajo)", pasos.is_empty() and not siguiente.es_guia and _piezas(siguiente) == ["vela_santa"] and sc.cruz_suelo != null)
-	_paso(AnimaCompana3D.T_ENGANCHE - 0.4)
+	_paso(AnimaCompana3D.T_ENGANCHE - 0.15)
 	_ok("5 RECOGER: justo antes del enganche sigue sin ella", pasos.is_empty() and not siguiente.es_guia and sc.cruz_suelo != null)
-	_paso(0.7)
+	_paso(0.3)
 	await process_frame
 	await process_frame
 	_ok("5 RECOGER: a los T_ENGANCHE s la cruz se le engancha (señal con su número) y la del suelo desaparece", pasos == [siguiente.numero] and siguiente.es_guia and sc.vivas()[0] == siguiente and sc.cruz_suelo == null, str(pasos))
 	_ok("5 y se le cambia la pieza: ahora lleva la cruz y ya no la vela", _piezas(siguiente) == ["cruz_santa"], str(_piezas(siguiente)))
 	_ok("5 se está agachando aún: la fila sigue parada hasta que se endereza", siguiente.recogiendo and sc.fila_parada())
 	_paso(AnimaCompana3D.T_RECOGER)
-	_ok("5 se endereza y la fila vuelve a andar (en marcha si no estuviera `quieto`)", not siguiente.recogiendo and not sc.fila_parada() and sc.recogidas == 1 and siguiente.cruces_recogidas == 1)
+	_ok("5 se endereza y la fila vuelve a andar (o se para un momento porque el nuevo guía invoca la niebla)", not siguiente.recogiendo and (not sc.fila_parada() or siguiente.alzando) and sc.recogidas == 1 and siguiente.cruces_recogidas == 1)
 	_ok("5 la otra sigue con su vela y sin ser guía", _piezas(viva[2]) == ["vela_santa"] and not (viva[2] as AnimaCompana3D).es_guia)
 	await _limpiar()
 	# Si la matan a medio agacharse, la cruz sigue en el suelo y la recoge la siguiente.
@@ -629,7 +639,7 @@ func _compana_niebla() -> void:
 	# Detrás de una pared sigue quitando: la niebla la atraviesa (la distancia es en horizontal, sin mirar muros).
 	var c_g: Vector2i = Terreno3D.celda_de(g.global_position)
 	Terreno3D.bloquear_celda(c_g + Vector2i(0, 1))
-	_jug.position = _pos(c_g + Vector2i(0, 2))
+	_jug.position = g.global_position + Vector3(0.0, 0.0, 3.6)       # al otro lado de esa casilla, dentro del radio (4,6 u)
 	var v2: float = _jug.vida
 	_paso(2.1)
 	_ok("14 la niebla atraviesa los muros", _jug.vida < v2, "%.2f" % (v2 - _jug.vida))
@@ -718,7 +728,7 @@ func _compana_toque_y_maldicion() -> void:
 	(v2[2] as Combate3D).receive_damage(1.0)
 	_paso(0.3)
 	_ok("10 la atacan: solo el guía se gira y marca la maldición (aviso en el suelo)", guia.malditos == 1 and guia.maldiciendo and (v2[1] as AnimaCompana3D).malditos == 0 and (v2[2] as AnimaCompana3D).malditos == 0 and guia.avisos_dados == 1, "malditos %d" % guia.malditos)
-	_ok("10 sin salirse de la fila: sigue a una casilla del siguiente", absf(guia.position.distance_to((v2[1] as Node3D).position) - S) < 0.05)
+	_ok("10 sin salirse de la fila: sigue a su separación del siguiente", absf(guia.position.distance_to((v2[1] as Node3D).position) - SantaCompana3D.SEPARACION_CASILLAS * S) < 0.05)
 	_ok("10 y todavía no ha caído", _jug.danos.is_empty())
 	_paso(1.0)
 	_ok("10 a 1 s del aviso cae: 8 de daño y ralentizada", _jug.danos == [8.0] and _jug.estados == [["hielo", 2.0]], "daño %s · estados %s" % [_jug.danos, _jug.estados])
