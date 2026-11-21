@@ -824,6 +824,15 @@ static func hielo_impacto_de(choques: Array, largo: float) -> Dictionary:
 		return {"tope": -1.0, "impacto": -1.0, "radio": 0.0}
 	var corte: float = HazChoque.largo_corte(choques, largo)
 	if corte < largo - 0.0001:
+		# 21/11: si lo que corta el haz es un ENEMIGO (choque con `corte`, ver HechizoVivo.HAZ_CORTA_EN_ENEMIGO) y no un muro, la corona crece a su pie en vez de contra un tope
+		var d_corte: float = INF
+		var es_enemigo: bool = false
+		for ch in choques:
+			if ch is Dictionary and (ch as Dictionary).has("d") and String((ch as Dictionary).get("tipo", "muro")) == "muro" and float((ch as Dictionary)["d"]) < d_corte:
+				d_corte = float((ch as Dictionary)["d"])
+				es_enemigo = bool((ch as Dictionary).get("corte", false))
+		if es_enemigo:
+			return {"tope": -1.0, "impacto": maxf(minf(d_corte, largo), 0.1), "radio": HIELO_RADIO_IMPACTO}
 		return {"tope": corte, "impacto": -1.0, "radio": 0.0}
 	var primero: float = -1.0
 	for ch in choques:
@@ -863,7 +872,7 @@ static func _choques_locales(choques: Array, desde: Vector3, al: Vector3) -> Arr
 		var d: float = (p - desde).dot(fwd)
 		if d < 0.1 or d > largo + 0.3:
 			continue
-		res.append({"d": d, "x": (p - desde).dot(der), "n": Vector3(n.dot(der), n.y, -n.dot(fwd)), "tipo": String((ch as Dictionary).get("tipo", "muro"))})
+		res.append({"d": d, "x": (p - desde).dot(der), "n": Vector3(n.dot(der), n.y, -n.dot(fwd)), "tipo": String((ch as Dictionary).get("tipo", "muro")), "corte": bool((ch as Dictionary).get("corte", false))})
 	return res
 
 
