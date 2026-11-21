@@ -1628,7 +1628,23 @@ func _aplicar_anadidos(nv: String) -> void:
 				if tipo == "arquero":
 					p["_arqueros"] = true
 			else:
-				lineas.append("; pieza %s %s %d %d%s" % [eid, String(def_e["pieza"]), puesto.x, puesto.y, String(def_e.get("extra", ""))])
+				var extra_e: String = String(def_e.get("extra", ""))
+				if tipo == "mouro":
+					# 21/11 (Pablo: el mouro «puede ponerse como generable»; resucita mientras su tumba no se tape): sin mámoa sería un enemigo normal, así que
+					# se le pone su MÁMOA en una casilla libre a dos pasos (no pegada: que dé tiempo a verla) y se enlaza.
+					var cm: Vector2i = Vector2i(-1, -1)
+					for d in [Vector2i(2, 0), Vector2i(-2, 0), Vector2i(0, 2), Vector2i(0, -2), Vector2i(1, 1), Vector2i(-1, 1), Vector2i(1, -1), Vector2i(-1, -1), Vector2i(1, 0), Vector2i(-1, 0), Vector2i(0, 1), Vector2i(0, -1)]:
+						if _libre(puesto + d) and not _cerca_de_puerta(puesto + d):
+							cm = puesto + d
+							break
+					if cm.x >= 0:
+						var mid: String = "mamoa_m%d" % n_enem
+						_ocupar(cm)
+						lineas.append("; pieza %s mamoa %d %d" % [mid, cm.x, cm.y])
+						extra_e += " mamoa=" + mid
+					else:
+						avisos.append("El mouro de (%d, %d) no tiene sitio para su mámoa al lado: sale sin tumba (muere a la primera). Muévelo a un sitio con más suelo." % [puesto.x, puesto.y])
+				lineas.append("; pieza %s %s %d %d%s" % [eid, String(def_e["pieza"]), puesto.x, puesto.y, extra_e])
 		objetos[objetos.size() - 1]["anadido"] = anadidos_hechos.size()       # para que la herramienta sepa cuál de la lista es
 		_indice_hecho[_indice_hecho.size() - 1] = anadidos_hechos.size()
 		anadidos_hechos.append(hecho)

@@ -31,6 +31,14 @@ const INTERVALO_REVISION: float = 0.25           ## s entre dos miradas a la cas
 const ANCHO_BROCAL: float = 1.7                  ## u: lo que ocupa el brocal en planta (la casilla mide 2,3)
 const ANCHO_LOSA: float = 1.95                   ## u: la losa lo cubre y sobra un poco
 const COLOR_HUMO: Color = Color(0.62, 0.66, 0.72, 0.55)
+## 21/11 (Pablo: «el núcleo sería tapar la tumba con ALGO»; «llenándola levemente con agua»): además del bloque y de los hechizos de tierra/hielo, la tapa
+##   · CUALQUIER COSA SÓLIDA en su casilla (lo que la bloquea en `Terreno3D`: una roca o un bloque empujados, un barril, una caja o un jarrón…) o un cogible soltado encima;
+##   · el AGUA: si su casilla queda MOJADA (un hechizo de agua que da en el suelo, un charco que llega) o HELADA, el pozo se INUNDA y queda tapado para siempre (`inundada`).
+##     Una flecha que solo pasa por encima no moja el suelo: no cuenta. Se ve el agua dentro del brocal.
+const ESTADOS_INUNDAN: Array = ["mojada", "helada"]
+const COLOR_AGUA_POZO: Color = Color(0.18, 0.42, 0.55, 0.85)
+const FRACCION_ALTO_AGUA: float = 0.8          ## a qué altura del brocal queda la lámina de agua
+const RADIO_AGUA: float = 0.42                 ## fracción de ANCHO_BROCAL que tapa el disco de agua (el hueco del pozo)
 const COLOR_GRIETA: Color = Color(0.05, 0.04, 0.05)
 
 var celda: Vector2i = Vector2i.ZERO
@@ -50,6 +58,11 @@ var _humo: CPUParticles3D = null
 var _t_humo: float = 0.0
 var _t: float = 0.0
 var _alto_brocal: float = 0.6
+var inundada: bool = false                       ## 21/11: el agua la llenó: tapada para siempre
+var por_que_tapada: String = ""                  ## qué la tapó la última vez (pruebas y diario): a_mano · agua · bloque · algo · hechizo
+var _agua: MeshInstance3D = null
+
+signal inundada_ahora
 
 
 ## Crea una mámoa en la casilla `c`. `p_mundo` = el mundo (donde cae el botín); `p_padre` = de qué nodo se cuelga (el decorado del mapa; sin él, del mundo). `p_agrietada` = nace ya agrietada;
@@ -104,7 +117,69 @@ func alto_brocal() -> float:
 
 ## Mira la casilla AHORA y cambia de estado si hace falta (emite `tapada` / `destapada`).
 func revisar() -> void:
-	_poner(_a_mano or _bloque_encima() or _hechizo_encima())
+	if not inundada and _agua_en_casilla():
+		inundar()
+	por_que_tapada = "a_mano" if _a_mano else ("agua" if inundada else ("bloque" if _bloque_encima() else ("algo" if _algo_encima() else ("hechizo" if _hechizo_encima() else ""))))
+	_poner(por_que_tapada != "")
+
+
+## El pozo se llena de agua: tapado para siempre (se ve la lámina de agua dentro del brocal).
+func inundar() -> void:
+	if inundada:
+		return
+	inundada = true
+	if _agua == null:
+		_construir_agua()
+	_agua.visible = true
+	inundada_ahora.emit()
+	PlayLog.event("mamoa_inundada", {"celda": [celda.x, celda.y]})
+
+
+## ¿Está mojada (o helada) su casilla? Es el estado del SUELO: solo lo pone el agua que llega al suelo.
+func _agua_en_casilla() -> bool:
+	var e: EstadosSuelo3D = Terreno3D.estados
+	if e == null:
+		return false
+	for est in ESTADOS_INUNDAN:
+		if e.tiene(celda, String(est)):
+			return true
+	return false
+
+
+## ¿Hay algo sólido en su casilla? Lo que la bloquea para `Terreno3D` (rocas y bloques empujados, barriles, cajas, jarrones…) o un cogible suelto encima.
+func _algo_encima() -> bool:
+	if Terreno3D.bloqueada(celda):
+		return true
+	if not is_inside_tree():
+		return false
+	var en_brazos: Array = []                                    # lo que alguien lleva encima no tapa (aunque pase por encima)
+	for c in get_tree().get_nodes_in_group(PistaProximidad.GRUPO):
+		if c is CargarObjeto3D and (c as CargarObjeto3D).objeto != null:
+			en_brazos.append((c as CargarObjeto3D).objeto)
+	for n in get_tree().get_nodes_in_group("cogible"):
+		if n is Node3D and is_instance_valid(n) and (n as Node3D).is_inside_tree() and not en_brazos.has(n) \
+				and Terreno3D.celda_de((n as Node3D).global_position) == celda:
+			return true
+	return false
+
+
+func _construir_agua() -> void:
+	_agua = MeshInstance3D.new()
+	_agua.name = "AguaPozo"
+	var disco := CylinderMesh.new()
+	disco.top_radius = ANCHO_BROCAL * RADIO_AGUA
+	disco.bottom_radius = ANCHO_BROCAL * RADIO_AGUA
+	disco.height = 0.03
+	var mat := StandardMaterial3D.new()
+	mat.albedo_color = COLOR_AGUA_POZO
+	mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	mat.roughness = 0.08
+	mat.metallic_specular = 0.9
+	disco.material = mat
+	_agua.mesh = disco
+	_agua.position = Vector3(0.0, _alto_brocal * FRACCION_ALTO_AGUA, 0.0)
+	_agua.visible = false
+	add_child(_agua)
 
 
 func tapar_a_mano() -> void:
@@ -122,7 +197,7 @@ func _poner(cubierta: bool) -> void:
 		return
 	abierta = not cubierta
 	if _losa != null:
-		_losa.visible = cubierta
+		_losa.visible = cubierta and (por_que_tapada == "a_mano")      # 21/11: la losa es la tapa «de puzle»; con agua se ve el agua y con algo encima, ese algo
 	if cubierta:
 		cancelar_humo()
 		tapada.emit()

@@ -62,6 +62,7 @@ func _initialize() -> void:
 	await _mouro_gasta_rebrotes()
 	await _mouro_agarra()
 	await _mamoa_se_tapa()
+	await _mouro_21_11()
 	await _compana_relevo()
 	await _compana_ventana()
 	await _compana_reposicion()
@@ -177,6 +178,72 @@ func _limpiar() -> void:
 	_jug.vida = 1000.0
 	await process_frame
 	await process_frame
+
+
+## 21/11 (Pablo): la mámoa se tapa con AGUA (su casilla mojada o helada: se inunda para siempre) o con CUALQUIER COSA sólida encima; y el mouro lleva un AURA DE VENENO.
+func _mouro_21_11() -> void:
+	if Terreno3D.estados == null:
+		Terreno3D.estados = EstadosSuelo3D.new()
+	var e: EstadosSuelo3D = Terreno3D.estados
+	# --- Agua ---
+	var ca := Vector2i(3, 3)
+	var ma: Mamoa3D = _mamoa(ca)
+	ma.revisar()
+	_ok("12 la mámoa nace abierta y seca", ma.abierta and not ma.inundada)
+	e.poner(ca, "mojada", true)
+	ma.revisar()
+	_ok("12 su casilla MOJADA la inunda: tapada por el agua", not ma.abierta and ma.inundada and ma.por_que_tapada == "agua", ma.por_que_tapada)
+	_ok("12 se ve el agua dentro del brocal (y no la losa)", ma._agua != null and ma._agua.visible and (ma._losa == null or not ma._losa.visible))
+	e.poner(ca, "mojada", false)
+	ma.revisar()
+	_ok("12 aunque el suelo se seque sigue inundada y tapada", not ma.abierta and ma.inundada)
+	var ch := Vector2i(5, 3)
+	var mh: Mamoa3D = _mamoa(ch)
+	e.poner(ch, "helada", true)
+	mh.revisar()
+	_ok("12 HELADA también la tapa", not mh.abierta and mh.inundada)
+	e.poner(ch, "helada", false)
+	# --- Cualquier cosa encima ---
+	var cb := Vector2i(7, 3)
+	var mb: Mamoa3D = _mamoa(cb)
+	mb.revisar()
+	Terreno3D.bloquear_celda(cb)
+	mb.revisar()
+	_ok("12 algo sólido en su casilla (lo que la bloquea) la tapa", not mb.abierta and mb.por_que_tapada == "algo", mb.por_que_tapada)
+	Terreno3D.liberar_celda(cb)
+	mb.revisar()
+	_ok("12 al quitarlo se destapa (no es agua: no queda inundada)", mb.abierta and not mb.inundada)
+	var caja := Node3D.new()                              # un cogible (jarrón, caja…) soltado encima
+	caja.add_to_group("cogible")
+	_mundo.add_child(caja)
+	caja.global_position = _pos(cb)
+	mb.revisar()
+	_ok("12 un cogible soltado encima también la tapa", not mb.abierta and mb.por_que_tapada == "algo", mb.por_que_tapada)
+	caja.queue_free()
+	await process_frame
+	mb.revisar()
+	_ok("12 y al llevárselo se destapa", mb.abierta)
+	# --- Un mouro que vuelve de una mámoa inundada: no vuelve ---
+	var mo: MouroEspectro3D = _mouro(Vector2i(3, 6), ma)
+	_mata(mo)
+	_ok("12 con la mámoa inundada muere de verdad a la primera", mo.muerto and not mo.latente)
+	await _limpiar()
+	# --- Aura de veneno ---
+	var cm := Vector2i(10, 6)
+	var m: Mamoa3D = _mamoa(cm)
+	var mv: MouroEspectro3D = _mouro(Vector2i(4, 6), m)
+	_paso(0.1)
+	_ok("13 lleva su aura de veneno (permanente, del radio pedido)", mv.aura != null and is_instance_valid(mv.aura) and mv.aura.permanente and is_equal_approx(mv.aura.radio, MouroEspectro3D.RADIO_AURA_CASILLAS))
+	mv.position = _pos(Vector2i(6, 6))
+	_paso(0.1)
+	_ok("13 el aura le sigue", mv.aura != null and Vector2(mv.aura.global_position.x - mv.global_position.x, mv.aura.global_position.z - mv.global_position.z).length() < 0.05)
+	_ok("13 él es inmune a su veneno", mv.inmune_a("veneno"))
+	_mata(mv)
+	_paso(0.1)
+	_ok("13 deshecho (latente) no lleva aura", mv.latente and (mv.aura == null or not is_instance_valid(mv.aura)))
+	_paso(MouroEspectro3D.T_REBROTE + 0.3)
+	_ok("13 al volver de la tumba vuelve con su aura", not mv.latente and mv.aura != null and is_instance_valid(mv.aura))
+	await _limpiar()
 
 
 func _mata(e: Combate3D) -> void:
@@ -315,17 +382,21 @@ func _mouro_gasta_rebrotes() -> void:
 	var agrietadas: Array = [0]
 	mo.rebroto.connect(func(v: int) -> void: rebrotes.append(v))
 	m.agrietada.connect(func() -> void: agrietadas[0] += 1)
-	for i in range(MouroEspectro3D.REBROTES_MAX):
+	# 21/11 (Pablo: «resucita infinitamente mientras la tumba no se tape»): REBROTES_MAX = 0 = sin límite. Seis muertes seguidas, seis vueltas, y la mámoa nunca se agrieta.
+	_ok("4 sin límite de rebrotes (REBROTES_MAX = 0)", MouroEspectro3D.REBROTES_MAX == 0)
+	var n_muertes: int = 6
+	for i in range(n_muertes):
 		_mata(mo)
 		_ok("4 muerte %d: se deshace" % (i + 1), mo.latente and not mo.muerto)
 		_paso(MouroEspectro3D.T_REBROTE + 0.2)
 		_ok("4 vuelve (rebroto %d) con la vida llena" % (i + 1), not mo.latente and is_equal_approx(mo.health, mo.vida_max) and rebrotes.size() == i + 1, str(rebrotes))
-	_ok("4 los rebrotes salen numerados 1, 2, 3", rebrotes == [1, 2, 3], str(rebrotes))
-	_ok("4 gastado el último, la mámoa se agrieta (una vez) aunque siga abierta", m.esta_agrietada and m.abierta and agrietadas[0] == 1)
+	_ok("4 los rebrotes salen numerados 1..6", rebrotes == [1, 2, 3, 4, 5, 6], str(rebrotes))
+	_ok("4 la mámoa NO se agrieta nunca", not m.esta_agrietada and m.abierta and agrietadas[0] == 0)
 	_mata(mo)
-	_ok("4 el siguiente golpe mortal es DEFINITIVO", mo.muerto and not mo.latente and _tiene_oro(mo.botin_soltado) == 12)
-	_paso(5.0)
-	_ok("4 y no vuelve", mo.muerto and not mo.latente)
+	_ok("4 la séptima muerte tampoco es definitiva", mo.latente and not mo.muerto)
+	m.tapar_a_mano()
+	_paso(MouroEspectro3D.T_SELLADO + 0.3)
+	_ok("4 solo tapando la tumba muere de verdad", mo.muerto and not mo.latente)
 	await _limpiar()
 	# Una mámoa que NACE agrietada: el primer golpe mortal ya es definitivo.
 	var m2: Mamoa3D = Mamoa3D.crear(_mundo, Vector2i(10, 6), true)

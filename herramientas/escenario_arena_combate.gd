@@ -58,6 +58,42 @@ func _escenario() -> void:
 	Repertoire.max_sigils_per_page = maxi(Repertoire.max_sigils_per_page, 8)
 	await avanzar(10)
 	await _escudo()
+	await _mouro()
+
+
+## MOURO (6,7) y su MÁMOA (4,4). Vuelve siempre; una flecha de agua que pasa POR ENCIMA del pozo no lo tapa; el suelo mojado en su casilla lo inunda y entonces muere de verdad.
+## Su aura envenena a la jugadora si se le acerca.
+func _mouro() -> void:
+	var mo: MouroEspectro3D = _z.nodo("mouro_arena") as MouroEspectro3D
+	var m: Mamoa3D = _z.nodo("tumba_arena") as Mamoa3D
+	_ok("2 el mouro sale enlazado a su mámoa", mo != null and m != null and mo.mamoa == m)
+	if mo == null or m == null:
+		return
+	mo.quieto = true
+	await avanzar(5)
+	_ok("2 lleva su aura de veneno", mo.aura != null and is_instance_valid(mo.aura))
+	var j: Jugador3D = jugador as Jugador3D
+	colocar_jugador(Terreno3D.celda_de(mo.global_position))            # dentro de su aura (radio 1 casilla)
+	j.vida = 1000.0
+	var v0: float = j.vida
+	await avanzar_s(2.0)
+	_ok("2 cerca de él la jugadora se envenena", j.vida < v0, "vida %.1f → %.1f" % [v0, j.vida])
+	colocar_jugador(Vector2i(2, 2))
+	j.vida = 1000.0
+	for i in range(4):
+		mo.receive_damage(100000.0)
+		await avanzar_s(MouroEspectro3D.T_REBROTE + 0.4)
+	_ok("2 cuatro muertes, cuatro vueltas (sin límite)", not mo.muerto and not mo.latente and mo.rebrotes_gastados == 4, "rebrotes %d" % mo.rebrotes_gastados)
+	# Una flecha de agua que cruza por encima del pozo (de oeste a este por la fila 4) no moja su casilla.
+	await _disparar(Vector2i(2, 4), "agua", Vector3(1, 0, 0), 1.2)
+	_ok("2 la flecha de agua que pasa por encima NO tapa la tumba", m.abierta and not m.inundada)
+	# Un charco: el suelo de su casilla mojado (lo que deja el agua al caer al suelo).
+	Terreno3D.estados.aplicar(m.celda, "agua")
+	await avanzar_s(0.5)
+	_ok("2 con su casilla mojada el pozo se inunda (tapado)", not m.abierta and m.inundada)
+	mo.receive_damage(100000.0)
+	await avanzar_s(1.0)
+	_ok("2 ahora el mouro muere de verdad", mo.muerto)
 
 
 ## GOBLIN CON ESCUDO (escudo_a en 13,4). Ella dispara desde el oeste (8,4) hacia el este: el goblin mira al oeste, el disparo le llega de frente.

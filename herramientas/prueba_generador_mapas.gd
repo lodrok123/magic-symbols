@@ -486,6 +486,11 @@ func _anadir_enemigos_y_cofres() -> void:
 						premios_comunes[String(a["da"])] = true
 					else:
 						_ok((def["premios"] as Dictionary).has(String(a["premio"])), "el épico y el legendario llevan el premio pedido: " + quien, str(a))
+				elif String(a["tipo"]) == "mouro":
+					# 21/11: el mouro generado lleva su mámoa al lado, enlazada (sin ella sería un enemigo normal).
+					var con_tumba: bool = lineas.contains(" mouro %d %d mamoa=mamoa_m" % [c2.x, c2.y]) and lineas.contains(" mamoa ")
+					var avisado: bool = avisos.contains("El mouro de (%d, %d) no tiene sitio para su mámoa" % [c2.x, c2.y])
+					_ok(con_tumba or avisado, "el mouro sale con su mámoa enlazada (o se avisa de que no cabe): " + quien)
 			ajustados += avisos.count("era el sitio válido más cercano")
 			# Lo mismo dos veces da lo mismo (el sorteo de los comunes no cambia de una vez a otra) y vuelve del .txt.
 			var otra: Dictionary = Generador.new().generar(par, {}, {}, {}, {}, anad)

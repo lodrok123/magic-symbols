@@ -103,10 +103,11 @@ extends Node
 ##   chaman     quieto=si (no)                                                      Chaman3D (E2, 28/10): el chamán goblin. Escuda primero (traza un rombo en el suelo con el bastón, lo clava y una onda verde da un escudo de
 ##              naturaleza a los goblins cercanos; el fuego lo quema) y luego se mantiene lejos tirando bolas de veneno. Si le pegan trazando, la runa se rompe. Es un Combate3D: el vigía lo cuenta
 ##   mamoa      agrietada=si (no)  tapada=si (no)                                   Mamoa3D (E4): el brocal de pozo del que vuelve el mouro. Se TAPA con un bloque empujable encima, la tierra o el hielo de un hechizo vivo, o la
-##              acción `tapar` (la destapa `destapar`); tapada se ve la losa. `agrietada=si` nace en su estado final (el mouro ya no vuelve). Sellada con un mouro dentro suelta las reliquias.
+##              acción `tapar` (la destapa `destapar`); tapada se ve la losa. 21/11: también la tapa CUALQUIER cosa sólida en su casilla (roca, caja, jarrón soltado…) y el AGUA: con su
+##              casilla mojada o helada el pozo se inunda y queda tapado para siempre. `agrietada=si` nace en su estado final (el mouro ya no vuelve). Sellada con un mouro dentro suelta las reliquias.
 ##              Señales `tapada`, `destapada`, `agrietada`. No bloquea su casilla (el bloque tiene que poder llegar)
 ##   mouro      mamoa=<id de la pieza mámoa> (sin ella, un enemigo normal)  quieto=si (no)   MouroEspectro3D (E4): el espectro de elfo. Se desliza hacia ella y la agarra (12 y raíces 1 s, con aviso);
-##              al caer con la mámoa abierta se deshace y vuelve de ella a los 4 s con la vida llena (hasta 3 veces; la tercera agrieta la mámoa); con la mámoa tapada muere de verdad. Es un Combate3D: el vigía lo cuenta
+##              al caer con la mámoa abierta se deshace y vuelve de ella a los 4 s con la vida llena, SIN LÍMITE (21/11); con la mámoa tapada muere de verdad. Lleva un aura de veneno. Es un Combate3D: el vigía lo cuenta
 ##   compana    animas=<n> (3)  camino=<casillas> (el de por defecto: 4 casillas al este, al sur...)   SantaCompana3D (E5): la procesión de n ánimas en fila por el camino (el x,y de la pieza es su salida; el
 ##              camino se recorre de ida y vuelta). No persiguen: si se les cruza, 10 y ralentiza; si las atacan, el guía (el que lleva la cruz) maldice. Al caer el guía la cruz pasa a la siguiente; si caen
 ##              todas en 2,5 s se acaba; si no, se reponen (hasta 3). Cada ánima es un Combate3D: la casilla de la pieza es la de partida para el vigía
