@@ -70,6 +70,7 @@ func _correr() -> void:
 	await _tierra_sube()
 	await _tierra_haz()
 	await _tierra_cupula_y_aviso()
+	await _tierra_inicio_final()
 	await _lab()
 	print("máximo visto: %d luces, %d GPUParticles3D, %d partículas (MultiMesh), %d materiales aditivos" % [_max_luces, _max_gpu, _max_part, _aditivos])
 	_ok("presupuesto: 0 luces, 0 GPUParticles3D, ≤ %d partículas, 0 aditivos" % MAX_PARTICULAS, _max_luces == 0 and _max_gpu == 0 and _max_part <= MAX_PARTICULAS and _aditivos == 0)
@@ -426,7 +427,11 @@ func _tierra_haz() -> void:
 	var z_escalon: float = (float((puas[0]["pos"] as Vector3).z) + float((puas.back()["pos"] as Vector3).z)) * 0.5
 	e.anclar_linea_al_suelo(func(p: Vector3) -> float: return 1.0 if p.z < z_escalon else 0.0)
 	_ok("las bases se anclan por separado a ambos niveles del terreno", is_zero_approx((puas[0]["pos"] as Vector3).y) and is_equal_approx((puas.back()["pos"] as Vector3).y, 1.0))
-	_ok("la línea de tierra no dibuja la grieta corrida", float(e.estado_grietas()["avance"]) < 0.0)
+	# 21/11: con HAZ_INICIO_FINAL la línea de tierra SÍ lleva grieta (corre por delante de las púas); apagado, no la dibuja como antes
+	if TierraToy.haz_nuevo_global():
+		_ok("la línea de tierra dibuja la grieta que corre por delante (HAZ_INICIO_FINAL)", float(e.estado_grietas()["avance"]) >= 0.0)
+	else:
+		_ok("la línea de tierra no dibuja la grieta corrida", float(e.estado_grietas()["avance"]) < 0.0)
 	# A medio nacer: las primeras fuera y las últimas bajo su propio suelo.
 	e.sube = 0.45
 	e._avanzar_bloques(0.0)
@@ -462,7 +467,7 @@ func _tierra_haz() -> void:
 	m.definir(TierraToy.Figura.HAZ, 1.5, 0.5, 0.15, false)
 	await process_frame
 	m.lanzar(-1.0)
-	await _esperar(0.2)
+	await _esperar(0.2 + (TierraToy.HAZ_GRIETA_S if TierraToy.haz_nuevo_global() else 0.0))     # 21/11: con el inicio nuevo, la grieta corre sola esos segundos antes de la primera púa
 	var fuera_02: int = 0
 	var ys3: Array = m.alturas_actuales()
 	for j in ys3.size():
@@ -510,9 +515,10 @@ func _tierra_cupula_y_aviso() -> void:
 		bajo = bajo and float(ys[j]) + (b3["pos"] as Vector3).y <= -0.5 * float(b3["h"])
 	_ok("con sube = 0,1 también las losas del techo están bajo tierra (suben desde el suelo)", bajo)
 	e.lanzar(-1.0)
-	await _esperar(0.3)
+	var t_cierra: float = TierraToy.T_NACER_BARRERA if TierraToy.barrera_nueva() else TierraToy.T_NACER       # 21/11: la barrera nueva nace más despacio (grieta en anillo y ola de rocas)
+	await _esperar(t_cierra * 0.55)
 	var br0: Dictionary = e.estado_brillo()
-	await _esperar(0.45)
+	await _esperar(t_cierra * 0.45 + 0.2)
 	var br1: Dictionary = e.estado_brillo()
 	await _esperar(0.5)
 	var br2: Dictionary = e.estado_brillo()
@@ -537,6 +543,229 @@ func _tierra_cupula_y_aviso() -> void:
 	_ok("al soltar el aviso se retira (oculto)", not is_instance_valid(aviso) or not aviso.visible)
 	c.queue_free()
 	await _esperar(0.8)
+
+
+# ------------------------------------------------------------------ 4d. tierra: inicio y final de la bola, la barrera y la línea (21/11) ------------------------------------------------------------------
+
+## Las rocas de `e` (corona de la barrera: las que no son techo ni pie) con su desplazamiento vertical relativo a su alto: -1 = bajo tierra, 0 = en su sitio.
+func _rel_y(e: TierraToy, solo: Callable) -> Array:
+	var r: Array = []
+	var ys: Array = e.alturas_actuales()
+	for j in e._bloques.size():
+		var b: Dictionary = e._bloques[j]
+		if solo.call(b):
+			r.append(float(ys[j]) / maxf(float(b["h"]) + maxf((b["pos"] as Vector3).y, 0.0), 0.001))
+	return r
+
+
+func _tierra_inicio_final() -> void:
+	print("== tierra 21/11: inicio y final de BOLA, BARRERA y HAZ (progresan; con el interruptor apagado, como antes)")
+	for apagado in [false, true]:
+		TierraToy.prueba_apagar = apagado
+		var tag: String = "APAGADO" if apagado else "ENCENDIDO"
+		# ---------- BOLA
+		var bo: TierraToy = _nueva("tierra") as TierraToy
+		await process_frame
+		bo.definir(TierraToy.Figura.BOLA, 0.4, 0.4, 0.4, false)
+		await process_frame
+		bo.lanzar(-1.0)
+		await _esperar(0.2)
+		var ib: Dictionary = bo.estado_inicio_bola()
+		var esc_i: float = (bo.get_node("Cuerpo") as Node3D).scale.y
+		await _esperar(TierraToy.T_NACER_BOLA_INI)
+		var ib2: Dictionary = bo.estado_inicio_bola()
+		var esc_f: float = (bo.get_node("Cuerpo") as Node3D).scale.y
+		if not apagado:
+			_ok("[%s] bola, INICIO: terrones acuden a la roca (%d emitidos, %d vivos a los 0,2 s), la roca crece (%.2f → %.2f) y al acabar el inicio termina" % [tag, int(ib["emitidos"]), int(ib["vivas"]), esc_i, esc_f],
+				float(ib["t"]) > 0.0 and int(ib["emitidos"]) >= 4 and int(ib["vivas"]) >= 1 and esc_i < 0.9 and esc_f > 0.99 and float(ib2["t"]) < 0.0)
+		else:
+			_ok("[%s] bola: sin inicio nuevo (0 terrones emitidos, sin «Compacta»)" % tag, float(ib["t"]) < 0.0 and int(ib["emitidos"]) == 0 and bo.find_child("Compacta", true, false) == null)
+		var padre_b: Node = bo.get_parent()
+		bo.impactar_en(bo.global_position, Vector3.UP)
+		await process_frame
+		var fb: Dictionary = bo.estado_final_bola()
+		var terr_b: Node = padre_b.find_child("Terrones", true, false)
+		var vivos_b: int = int(terr_b.call("vivas")) if terr_b != null else 0
+		if not apagado:
+			_ok("[%s] bola, FINAL al impactar: se parte en %d cascotes grandes (≥ %d) y siguen vivos (%d terrones)" % [tag, int(fb["cascotes"]), TierraToy.BOLA_FIN_CASCOTES - 2, vivos_b], int(fb["cascotes"]) >= TierraToy.BOLA_FIN_CASCOTES - 2 and vivos_b >= int(fb["cascotes"]))
+		else:
+			_ok("[%s] bola: al impactar sin cascotes grandes (%d)" % [tag, int(fb["cascotes"])], int(fb["cascotes"]) == 0)
+		await _esperar(2.4)
+		var bm: TierraToy = _nueva("tierra") as TierraToy
+		await process_frame
+		bm.definir(TierraToy.Figura.BOLA, 0.4, 0.4, 0.4, false)
+		await process_frame
+		await _esperar(0.2)
+		bm.morir()
+		await process_frame
+		var fm: Dictionary = bm.estado_final_bola()
+		if not apagado:
+			_ok("[%s] bola, FINAL al morir en el aire: se parte en %d cascotes grandes" % [tag, int(fm["cascotes"])], int(fm["cascotes"]) >= TierraToy.BOLA_FIN_CASCOTES - 2)
+		else:
+			_ok("[%s] bola: al morir sin cascotes grandes (%d)" % [tag, int(fm["cascotes"])], int(fm["cascotes"]) == 0)
+		await _esperar(2.4)
+		# ---------- BARRERA
+		var ba: TierraToy = _nueva("tierra") as TierraToy
+		await process_frame
+		ba.definir(TierraToy.Figura.BARRERA, 1.5, 1.5, 1.5, false)
+		await process_frame
+		var corona: Callable = func(b: Dictionary) -> bool: return not bool(b.get("techo", false))
+		var techo_f: Callable = func(b: Dictionary) -> bool: return bool(b.get("techo", false))
+		var ret_max: float = 0.0
+		for b in ba._bloques:
+			if not bool((b as Dictionary).get("techo", false)):
+				ret_max = maxf(ret_max, float((b as Dictionary)["retraso"]))
+		if not apagado:
+			ba.sube = 0.1
+			ba._avanzar_bloques(0.0)
+			var g1: Dictionary = ba.estado_grietas_barrera()
+			var fuera0: int = 0
+			for v in _rel_y(ba, corona):
+				fuera0 += 1 if float(v) > -0.9 else 0
+			var en_marcha: bool = (g1["avances"] as Array).size() == TierraToy.BARRERA_GRIETAS and float((g1["avances"] as Array)[0]) > 0.0 and float((g1["avances"] as Array).back()) <= 0.0 and float(g1["vida"]) > 0.5
+			_ok("[%s] barrera, INICIO: a sube 0,1 la grieta en anillo corre (tramo 1: %.2f, último: %.2f) y ninguna roca ha salido (%d)" % [tag, float((g1["avances"] as Array)[0]), float((g1["avances"] as Array).back()), fuera0], en_marcha and fuera0 == 0)
+			ba.sube = 0.3
+			ba._avanzar_bloques(0.0)
+			var rel: Array = _rel_y(ba, corona)
+			_ok("[%s] barrera, INICIO: las rocas brotan EN OLA (a sube 0,3 la primera sale %.2f y la última sigue bajo tierra %.2f)" % [tag, float(rel[0]), float(rel.back())], float(rel[0]) > -0.3 and float(rel.back()) <= -0.99)
+			var ms: Dictionary = ba.estado_marca_pilar()
+			_ok("[%s] barrera: la marca de tierra partida se abre bajo la figura (lado %.2f m, vida %.2f)" % [tag, float(ms["lado"]), float(ms["vida"])], float(ms["lado"]) > 1.0 and float(ms["vida"]) > 0.5)
+			ba.sube = 1.0
+			ba._avanzar_bloques(0.0)
+			var todas_b: bool = true
+			for v2 in ba.alturas_actuales():
+				todas_b = todas_b and absf(float(v2)) < 0.02
+			var gf: Dictionary = ba.estado_grietas_barrera()
+			var anillo_ok: bool = true
+			for a in gf["avances"]:
+				anillo_ok = anillo_ok and float(a) >= 0.999
+			_ok("[%s] barrera: acabado el inicio todas las rocas y las losas en su sitio y el anillo entero" % tag, todas_b and anillo_ok)
+			ba.hunde = 0.3
+			ba._avanzar_bloques(0.0)
+			var r_t: Array = _rel_y(ba, techo_f)
+			var r_c: Array = _rel_y(ba, corona)
+			_ok("[%s] barrera, FINAL: a hunde 0,3 el techo ya cae (%.2f), las primeras rocas bajan (%.2f) y las últimas aún no (%.2f)" % [tag, float(r_t[0]), float(r_c[0]), float(r_c.back())], float(r_t[0]) < -0.05 and float(r_c[0]) < -0.03 and float(r_c.back()) > -0.01)
+			ba.hunde = 1.0
+			ba._avanzar_bloques(0.0)
+			var todas_h: bool = true
+			for v3 in _rel_y(ba, func(_b: Dictionary) -> bool: return true):
+				todas_h = todas_h and float(v3) < -0.99
+			var gh: Dictionary = ba.estado_grietas_barrera()
+			var mh: Dictionary = ba.estado_marca_pilar()
+			_ok("[%s] barrera, FINAL: a hunde 1 todo bajo tierra y la grieta (vida %.2f) y la marca (%.2f) se borran" % [tag, float(gh["vida"]), float(mh["vida"])], todas_h and float(gh["vida"]) < 0.05 and float(mh["vida"]) < 0.05)
+			ba.queue_free()
+			await _esperar(2.4)                                                          # con hunde = 1 forzado, su polvo se suelta al padre 2 s: se espera para no sumarlo al de la siguiente
+			var bt: TierraToy = _nueva("tierra") as TierraToy
+			await process_frame
+			bt.definir(TierraToy.Figura.BARRERA, 1.5, 1.5, 1.5, false)
+			await process_frame
+			bt.lanzar(-1.0)
+			await _esperar(TierraToy.T_NACER_BARRERA * 0.3)
+			var pv: Node = bt.find_child("Polvo", true, false)
+			var tb: Node = bt.find_child("Terrones", true, false)
+			_ok("[%s] barrera: nacer de verdad, a los %.2f s hay polvo (%d) y cascotes (%d) de las rocas que ya han salido" % [tag, TierraToy.T_NACER_BARRERA * 0.3, int(pv.call("vivas")), int(tb.call("vivas"))], int(pv.call("vivas")) >= 3 and int(tb.call("vivas")) >= 1)
+			await _esperar(TierraToy.T_NACER_BARRERA * 0.8)
+			bt.morir()
+			await _esperar(TierraToy.T_MORIR_BARRERA * 0.4)
+			var pv2: Node = bt.find_child("Polvo", true, false)
+			var tb2: Node = bt.find_child("Terrones", true, false)
+			_ok("[%s] barrera: morir de verdad, al 40 %% hay polvo (%d) y cascotes (%d) de lo que se desmorona" % [tag, int(pv2.call("vivas")), int(tb2.call("vivas"))], int(pv2.call("vivas")) >= 3 and int(tb2.call("vivas")) >= 2)
+			await _esperar(TierraToy.T_MORIR_BARRERA * 0.8)
+			_ok("[%s] barrera: …y la figura se libera sola" % tag, not is_instance_valid(bt))
+		else:
+			var sin_anillo: bool = (ba.estado_grietas_barrera()["avances"] as Array).is_empty() and float(ba.estado_marca_pilar()["lado"]) < 0.0 and ret_max <= 0.201
+			var dura: float = ba.get_node("Anim").get_animation("nacer").length
+			_ok("[%s] barrera: como antes (sin anillo ni marca, retrasos ≤ 0,2, nacer %.2f s = T_NACER)" % [tag, dura], sin_anillo and absf(dura - TierraToy.T_NACER) < 0.001)
+			ba.queue_free()
+			await process_frame
+		await _esperar(2.4)
+		# ---------- HAZ
+		var hz: TierraToy = _nueva("tierra") as TierraToy
+		await process_frame
+		hz.definir(TierraToy.Figura.HAZ, 1.5, 0.5, 0.15, false)
+		await process_frame
+		var puas_f: Callable = func(b: Dictionary) -> bool: return String(b["malla"]).begins_with("pua_")
+		var t_n: float = hz._t_nacer_haz()
+		if not apagado:
+			hz.sube = (TierraToy.HAZ_GRIETA_S * 0.6) / t_n
+			hz._avanzar_bloques(0.0)
+			var gz: Dictionary = hz.estado_grietas()
+			var fuera_h: int = 0
+			for v4 in _rel_y(hz, puas_f):
+				fuera_h += 1 if float(v4) > -0.99 else 0
+			_ok("[%s] haz, INICIO: en los primeros %.2f s solo corre la grieta (avance %.2f, vida %.2f) y no ha salido ninguna púa (%d)" % [tag, TierraToy.HAZ_GRIETA_S * 0.6, float(gz["avance"]), float(gz["vida"]), fuera_h], float(gz["avance"]) > 0.1 and float(gz["avance"]) < 1.0 and float(gz["vida"]) > 0.5 and fuera_h == 0)
+			hz.sube = 0.45
+			hz._avanzar_bloques(0.0)
+			var gz2: Dictionary = hz.estado_grietas()
+			var ult: int = -1
+			for j in hz._bloques.size():
+				if puas_f.call(hz._bloques[j]):
+					ult = j
+			var puas_idx: Array = []
+			for j2 in hz._bloques.size():
+				if puas_f.call(hz._bloques[j2]):
+					puas_idx.append(j2)
+			var ysz: Array = hz.alturas_actuales()
+			var gz_ult_dentro: bool = float(ysz[ult]) <= -0.9 * float((hz._bloques[ult] as Dictionary)["h"])
+			_ok("[%s] haz: la grieta va POR DELANTE de las púas (avance %.2f a sube 0,45; la última púa aún bajo tierra: %s)" % [tag, float(gz2["avance"]), str(gz_ult_dentro)], float(gz2["avance"]) > 0.6 and gz_ult_dentro)
+			hz.sube = 1.0
+			hz._avanzar_bloques(0.0)
+			_ok("[%s] haz: acabado el inicio la grieta llega a la punta (%.2f)" % [tag, float(hz.estado_grietas()["avance"])], float(hz.estado_grietas()["avance"]) >= 0.999)
+			hz.hunde = 0.4
+			hz._avanzar_bloques(0.0)
+			var rp: Array = _rel_y(hz, puas_f)
+			var gz3: Dictionary = hz.estado_grietas()
+			_ok("[%s] haz, FINAL: a hunde 0,4 la primera púa ya baja (%.2f), la última no (%.2f) y la grieta sigue (vida %.2f)" % [tag, float(rp[0]), float(rp.back()), float(gz3["vida"])], float(rp[0]) < -0.1 and float(rp.back()) > -0.01 and float(gz3["vida"]) > 0.9)
+			hz.hunde = 1.0
+			hz._avanzar_bloques(0.0)
+			var rp2: Array = _rel_y(hz, puas_f)
+			var hund: bool = true
+			for v5 in rp2:
+				hund = hund and float(v5) < -0.99
+			_ok("[%s] haz, FINAL: a hunde 1 todas bajo tierra y la grieta se borra (vida %.2f)" % [tag, float(hz.estado_grietas()["vida"])], hund and float(hz.estado_grietas()["vida"]) < 0.05)
+			hz.queue_free()
+			await process_frame
+			var hr: TierraToy = _nueva("tierra") as TierraToy
+			await process_frame
+			hr.definir(TierraToy.Figura.HAZ, 1.5, 0.5, 0.15, false)
+			await process_frame
+			hr.lanzar(-1.0)
+			await _esperar(0.15)
+			var pvh: Node = hr.find_child("Polvo", true, false)
+			var fuera_r: int = 0
+			for v6 in _rel_y(hr, puas_f):
+				fuera_r += 1 if float(v6) > -0.99 else 0
+			_ok("[%s] haz: nacer de verdad, a los 0,15 s hay polvo en el frente de la grieta (%d) y aún ninguna púa (%d)" % [tag, int(pvh.call("vivas")), fuera_r], int(pvh.call("vivas")) >= 2 and fuera_r == 0)
+			await _esperar(t_n)
+			hr.morir()
+			await _esperar(TierraToy.HAZ_T_MORIR * 0.5)
+			var tzh: Node = hr.find_child("Terrones", true, false)
+			_ok("[%s] haz: morir de verdad, a mitad se resquebrajan las púas: cascotes vivos (%d)" % [tag, int(tzh.call("vivas")) if tzh != null else -1], tzh != null and int(tzh.call("vivas")) >= 2)
+			await _esperar(TierraToy.HAZ_T_MORIR * 0.7)
+			_ok("[%s] haz: …y se libera sola" % tag, not is_instance_valid(hr))
+			# haz_tope (19/11): la línea y su grieta no pasan de lo que toca (se espera a que se libere el polvo del haz anterior: el presupuesto cuenta lo que hay vivo a la vez)
+			await _esperar(2.4)
+			var ht: TierraToy = TierraToy.new()
+			ht.haz_tope = 1.0
+			_raiz.add_child(ht)
+			await process_frame
+			ht.definir(TierraToy.Figura.HAZ, 1.5, 0.5, 0.15, false)
+			await process_frame
+			var z_min: float = 0.0
+			for b5 in ht._bloques:
+				if String((b5 as Dictionary)["malla"]).begins_with("pua_"):                      # las lajas se abren a los lados de su púa
+					z_min = minf(z_min, ((b5 as Dictionary)["pos"] as Vector3).z)
+			var gm: MeshInstance3D = ht.find_child("Grietas", true, false) as MeshInstance3D
+			var largo_g: float = (gm.mesh as PlaneMesh).size.y if gm != null else -1.0
+			_ok("[%s] haz con haz_tope 1,0: las púas no pasan de 1,0 m (z mín %.2f) y la grieta mide %.2f m (≤ 1,05)" % [tag, z_min, largo_g], z_min >= -1.0 - 0.001 and gm != null and largo_g <= 1.05)
+			ht.queue_free()
+		else:
+			var gh0: Dictionary = hz.estado_grietas()
+			var t_viejo: float = 0.05 + TierraToy.PASO_PUA_S * float(hz._haz_n) + TierraToy.SUBE_PUA_S + 0.05
+			_ok("[%s] haz: como antes (sin grieta %.1f, nacer %.3f s = fórmula antigua %.3f)" % [tag, float(gh0["avance"]), t_n, t_viejo], float(gh0["avance"]) < 0.0 and absf(t_n - t_viejo) < 0.0001)
+			hz.queue_free()
+		await _esperar(2.4)
+	TierraToy.prueba_apagar = false
 
 
 # ------------------------------------------------------------------ 5. carga ------------------------------------------------------------------
