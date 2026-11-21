@@ -68,6 +68,7 @@ func _initialize() -> void:
 	await _compana_reposicion()
 	await _compana_surge_repuesta()
 	await _compana_toque_y_maldicion()
+	await _compana_niebla()
 	_piezas_de_mapa()
 	Sensacion3D.ACTIVA = sensacion_antes
 	print("FALLOS: %d" % _fallos)
@@ -576,7 +577,9 @@ func _compana_reposicion() -> void:
 	var rotas: Array = [0]
 	sc.repuesta.connect(func(n: int) -> void: repuestas.append(n))
 	sc.procesion_rota.connect(func() -> void: rotas[0] += 1)
-	for i in range(SantaCompana3D.REPOSICIONES_MAX):
+	# 21/11: REPOSICIONES_MAX = 0 = sin límite. Seis bajas una a una: seis reposiciones y la procesión sigue.
+	_ok("7 sin límite de reposiciones (REPOSICIONES_MAX = 0)", SantaCompana3D.REPOSICIONES_MAX == 0)
+	for i in range(6):
 		_mata(sc.vivas()[0])
 		_paso(SantaCompana3D.T_REPONER - 0.5)
 		_ok("7 reposición %d: a los 5,5 s aún no ha entrado" % (i + 1), repuestas.size() == i and sc.vivas().size() == 2, str(repuestas))
@@ -584,12 +587,76 @@ func _compana_reposicion() -> void:
 		await process_frame
 		_ok("7 reposición %d: entra una ánima nueva por el extremo (señal repuesta(%d))" % [i + 1, i + 1], repuestas.size() == i + 1 and repuestas[i] == i + 1 and sc.vivas().size() == 3 and rotas[0] == 0, str(repuestas))
 		_ok("7 reposición %d: siempre hay guía con la cruz" % (i + 1), (sc.vivas()[0] as AnimaCompana3D).es_guia and _piezas(sc.vivas()[0]) == ["cruz_santa"], str(_piezas(sc.vivas()[0])))
-	_ok("7 tres reposiciones hechas: 1, 2, 3", repuestas == [1, 2, 3] and sc.reposiciones == 3)
+	_ok("7 seis reposiciones hechas: 1..6, y no se ha acabado", repuestas == [1, 2, 3, 4, 5, 6] and sc.reposiciones == 6 and not sc.rota)
 	for k in range(3):
 		_mata(sc.vivas()[0])
 		_paso(3.0)
-	_ok("7 agotadas las reposiciones, las bajas ya no se reponen y la procesión se acaba", sc.rota and rotas[0] == 1 and sc.motivo_fin == "agotada" and sc.reposiciones == 3, "%s · %s" % [sc.motivo_fin, rotas[0]])
+	_ok("7 matando una a una (3 s entre bajas) NUNCA se acaba", not sc.rota and rotas[0] == 0, "%s · %s" % [sc.motivo_fin, rotas[0]])
+	_paso(SantaCompana3D.T_REPONER + 0.5)
+	var vivas: Array = sc.vivas()
+	for a in vivas:
+		_mata(a)
+	_ok("7 todas juntas (dentro de la ventana): se acaba", sc.rota and rotas[0] == 1 and sc.motivo_fin == "ventana", "%s · %d vivas" % [sc.motivo_fin, vivas.size()])
 	_ok("7 y suelta su botín", _tiene_oro(sc.botin_soltado) == 20)
+	await _limpiar()
+
+
+## 21/11 (Pablo): la NIEBLA de la cruz (1/s, +1 cada 5 s seguidos dentro; atraviesa muros), matar al guía la apaga un ciclo de resucitar, y un muro PARA a la procesión.
+func _compana_niebla() -> void:
+	var sc: SantaCompana3D = _procesion([Vector2i(2, 3), Vector2i(11, 3)])
+	var g: AnimaCompana3D = sc.guia()
+	_ok("14 hay guía y la niebla está activa", g != null and sc.niebla_activa())
+	_paso(0.1)
+	_ok("14 al nacer la niebla el guía alza la cruz (y la fila espera)", g.alzadas >= 1 and (g.alzando or sc.fila_parada()))
+	# Ella dentro, al lado del guía.
+	_jug.position = g.global_position + Vector3(0.0, 0.0, 3.5)          # dentro de la niebla (radio 4,6 u) y fuera del toque de las ánimas
+	_jug.vida = 1000.0
+	var v0: float = _jug.vida
+	_paso(1.05)
+	_ok("14 al primer segundo dentro le quita 1", is_equal_approx(v0 - _jug.vida, 1.0), "%.2f" % (v0 - _jug.vida))
+	_paso(4.0)
+	_ok("14 a los 5 s lleva 5 (1 por segundo)", is_equal_approx(v0 - _jug.vida, 5.0), "%.2f" % (v0 - _jug.vida))
+	_paso(5.0)
+	_ok("14 de 5 a 10 s, 2 por segundo (15 en total)", is_equal_approx(v0 - _jug.vida, 15.0), "%.2f" % (v0 - _jug.vida))
+	# Fuera de la niebla deja de quitar y se olvida la subida.
+	_jug.position = g.global_position + Vector3(sc.radio_niebla() + 2.0, 0.0, 0.0)
+	var v1: float = _jug.vida
+	_paso(2.0)
+	_ok("14 fuera no quita nada", is_equal_approx(_jug.vida, v1))
+	_jug.position = g.global_position + Vector3(0.0, 0.0, 3.5)          # dentro de la niebla (radio 4,6 u) y fuera del toque de las ánimas
+	_paso(1.05)
+	_ok("14 al volver empieza otra vez en 1", is_equal_approx(v1 - _jug.vida, 1.0), "%.2f" % (v1 - _jug.vida))
+	# Detrás de una pared sigue quitando: la niebla la atraviesa (la distancia es en horizontal, sin mirar muros).
+	var c_g: Vector2i = Terreno3D.celda_de(g.global_position)
+	Terreno3D.bloquear_celda(c_g + Vector2i(0, 1))
+	_jug.position = _pos(c_g + Vector2i(0, 2))
+	var v2: float = _jug.vida
+	_paso(2.1)
+	_ok("14 la niebla atraviesa los muros", _jug.vida < v2, "%.2f" % (v2 - _jug.vida))
+	Terreno3D.liberar_celda(c_g + Vector2i(0, 1))
+	# Matar al guía: sin niebla hasta que otra tenga la cruz y pase un ciclo de resucitar.
+	_jug.position = _pos(Vector2i(12, 12))
+	var ciclo: float = sc.ciclo_resucitar()
+	_mata(g)
+	_ok("14 al caer el guía la niebla se apaga", not sc.niebla_activa())
+	_paso(ciclo - 0.2)
+	_ok("14 todavía sin niebla antes de un ciclo de resucitar (%.1f s)" % ciclo, not sc.niebla_activa())
+	_paso(6.0)
+	var g2: AnimaCompana3D = sc.guia()
+	_ok("14 luego vuelve con otro guía (que alza la cruz)", sc.niebla_activa() and g2 != null and g2 != g and g2.alzadas >= 1)
+	await _limpiar()
+	# Un muro en el camino PARA a la procesión.
+	var sm: SantaCompana3D = _procesion([Vector2i(2, 5), Vector2i(11, 5)])
+	sm.quieto = false
+	_paso(2.0)                                               # que acabe de alzar la cruz y ande
+	var cab: Vector2i = Terreno3D.celda_de(sm.punto_en(sm.s_cabeza)["pos"] as Vector3)
+	Terreno3D.bloquear_celda(cab + Vector2i(1, 0))
+	var s0: float = sm.s_cabeza
+	_paso(3.0)
+	_ok("14 con la casilla de delante cerrada la fila espera (no la atraviesa)", sm.bloqueada_por_muro and sm.s_cabeza - s0 < sm.separacion(), "avanzó %.2f u" % (sm.s_cabeza - s0))
+	Terreno3D.liberar_celda(cab + Vector2i(1, 0))
+	_paso(1.0)
+	_ok("14 quitado el muro sigue andando", not sm.bloqueada_por_muro and sm.s_cabeza > s0 + 0.5)
 	await _limpiar()
 
 

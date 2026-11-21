@@ -110,7 +110,8 @@ extends Node
 ##              al caer con la mámoa abierta se deshace y vuelve de ella a los 4 s con la vida llena, SIN LÍMITE (21/11); con la mámoa tapada muere de verdad. Lleva un aura de veneno. Es un Combate3D: el vigía lo cuenta
 ##   compana    animas=<n> (3)  camino=<casillas> (el de por defecto: 4 casillas al este, al sur...)   SantaCompana3D (E5): la procesión de n ánimas en fila por el camino (el x,y de la pieza es su salida; el
 ##              camino se recorre de ida y vuelta). No persiguen: si se les cruza, 10 y ralentiza; si las atacan, el guía (el que lleva la cruz) maldice. Al caer el guía la cruz pasa a la siguiente; si caen
-##              todas en 2,5 s se acaba; si no, se reponen (hasta 3). Cada ánima es un Combate3D: la casilla de la pieza es la de partida para el vigía
+##              todas en 2,5 s se acaba; si no, se reponen SIN LÍMITE (21/11). La cruz lleva una niebla que roba vida (1/s, +1 cada 5 s dentro; atraviesa muros); un muro de hechizo para
+##              la fila. Cada ánima es un Combate3D: la casilla de la pieza es la de partida para el vigía
 ##   (puerta)   modelo=reja                                                       28/10: una REJA de barrotes que deja ver lo de detrás, sin rótulo (para y se abre igual que la losa)
 ##   veta       celdas=<lista> (la propia x,y)  enlaces=<lista>  aturde=<s> (0)  mineral=si (no)   VetaPulso3D: CONDUCTOR del pulso. Una losa por casilla con las vetas de `arte/suelo_meshy/veta_mineral.png`
 ##              (máscara × color del pulso por emisión, casilla a casilla) y un hilo guía entre casillas vecinas. No bloquea; la rejilla de vetas la conoce solo el pulso.

@@ -41,7 +41,25 @@ const SALIDAS_ATRAS: int = 4                      ## casillas más hacia atrás 
 const CRUZ_ADELANTE: float = 0.22                 ## u por delante de la casilla del guía donde queda la cruz (bajo las manos de quien llega agachándose)
 const T_VENTANA: float = 2.5                      ## s: si caen todas dentro de esto, se acaba
 const T_REPONER: float = 6.0                      ## s desde la baja hasta que entra la ánima nueva
-const REPOSICIONES_MAX: int = 3
+## 21/11 (Pablo: «si no matas a toda la procesión junta no mueren»): 0 = SIN LÍMITE. Ya no hay salida «agotada»: solo se acaba si caen todas dentro de T_VENTANA s.
+## Con un número > 0 vuelve el diseño antiguo (agotadas las reposiciones, cada baja ya no se repone).
+const REPOSICIONES_MAX: int = 0
+## LA NIEBLA DE LA CRUZ (21/11, Pablo: «fíjate en la leyenda; que la cruz cree una niebla que te absorba vida. Aquí los muros no valen»). Alrededor de quien lleva la cruz hay una niebla
+## baja que roba vida a la jugadora: DANO_NIEBLA_S por segundo, y cada T_NIEBLA_SUBE s seguidos dentro, DANO_NIEBLA_SUBE más (1, 2, 3… por segundo). Si sale más de T_NIEBLA_OLVIDA s, vuelve a 1.
+## Se mide en horizontal desde el guía, SIN mirar paredes ni muros: la niebla los atraviesa. No la para la armadura (es la vida misma lo que se lleva).
+const RADIO_NIEBLA_CASILLAS: float = 2.0
+const DANO_NIEBLA_S: float = 1.0
+const DANO_NIEBLA_SUBE: float = 1.0
+const T_NIEBLA_SUBE: float = 5.0
+const T_NIEBLA_OLVIDA: float = 1.0
+const T_TICK_NIEBLA: float = 1.0                  ## s entre dos tragos de vida
+const T_SIN_NIEBLA_DEFECTO: float = 2.7           ## s sin niebla al caer el guía si el modelo no trae el clip de surgir (lo que dura Getting_Up)
+const COLOR_NIEBLA: Color = Color(0.86, 0.9, 0.95, 0.14)
+const ALTO_NIEBLA: float = 0.15                   ## u sobre el suelo del centro de la niebla
+## MATAR AL DE LA CRUZ (21/11, Pablo: «solo retrasa momentáneamente al enemigo; se genera otra cruz momentos después: calcula un ciclo entero de animación de resucitar»): al caer el guía
+## la niebla se apaga y no vuelve hasta que otra ánima tenga la cruz en la mano Y haya pasado lo que dura el clip de resucitar (surgir) de una ánima.
+## LOS MUROS (21/11, «la niebla atraviesa, la procesión no»): si la casilla que la cabeza va a pisar está cerrada (bloqueada o con un muro/bloque de hechizo), la fila espera.
+const MIRA_ADELANTE_CASILLAS: float = 0.5
 const T_PROVOCADA: float = 4.0                    ## s que la procesión sigue «atacada» tras recibir un golpe (el guía maldice mientras)
 const CIERRE_VEL: float = 1.2                     ## u/s a los que las de atrás cierran el hueco de una baja
 const ENTRADA_ATRAS_CASILLAS: float = 3.0         ## casillas por detrás del hueco desde las que entra la ánima nueva
@@ -78,6 +96,14 @@ var _vertices: Array[Vector3] = []                ## el bucle de ida y vuelta, e
 var _acum: Array[float] = []                      ## largo acumulado hasta cada vértice (la última entrada es el largo del bucle)
 var _casa: Vector3 = Vector3.ZERO
 var _ultima_baja: Vector3 = Vector3.ZERO
+var drenado: float = 0.0                          ## vida que la niebla le ha quitado a la jugadora (pruebas)
+var bloqueada_por_muro: bool = false              ## la fila espera porque la casilla de delante está cerrada (pruebas)
+var _t_sin_niebla: float = 0.0                    ## > 0 = el guía acaba de caer: sin niebla todavía
+var _t_en_niebla: float = 0.0                     ## s seguidos de la jugadora dentro
+var _t_fuera: float = 0.0
+var _t_tick: float = T_TICK_NIEBLA
+var _niebla_estaba: bool = false
+var _niebla: CPUParticles3D = null
 
 
 ## Crea la procesión en el camino `p_camino` (casillas; vacío = el de por defecto desde `p_inicio`) con `p_animas` ánimas y la cuelga de `p_mundo`. Devuelve null si falta el modelo.
@@ -197,6 +223,7 @@ func avanzar(delta: float) -> void:
 	_avanzar_fila(delta)
 	_avanzar_relevo(delta)
 	_avanzar_reposiciones(delta)
+	_avanzar_niebla(delta)
 
 
 ## ¿La fila anda ahora? No mientras hay una cruz en el suelo o alguien se agacha a por ella.
@@ -204,9 +231,133 @@ func en_marcha() -> bool:
 	return not quieto and not fila_parada() and velocidad_fila() > 0.01 and largo_bucle() > 0.01
 
 
-## Hay una cruz caída que recoger (o alguien en ello): la fila no avanza.
+## Hay una cruz caída que recoger (o alguien en ello), o el guía alza la cruz: la fila no avanza.
 func fila_parada() -> bool:
-	return cruz_suelo != null or _relevo_listo or _recogiendo != null or _t_relevo >= 0.0
+	var g: AnimaCompana3D = guia()
+	return cruz_suelo != null or _relevo_listo or _recogiendo != null or _t_relevo >= 0.0 or (g != null and g.alzando)
+
+
+## =====================================================================================================
+##  La niebla de la cruz y los muros
+## =====================================================================================================
+
+## La ánima viva que lleva la cruz (null si ahora no la lleva nadie).
+func guia() -> AnimaCompana3D:
+	for a in animas:
+		var an: AnimaCompana3D = a
+		if is_instance_valid(an) and not an.muerto and not an.latente and an.es_guia:
+			return an
+	return null
+
+
+## ¿Hay niebla ahora? Con guía con la cruz en la mano, sin relevo pendiente y pasada la espera de tras su caída.
+func niebla_activa() -> bool:
+	return not rota and guia() != null and _t_sin_niebla <= 0.0 and cruz_suelo == null and _recogiendo == null and _t_relevo < 0.0 and not _relevo_listo
+
+
+## u del radio de la niebla.
+func radio_niebla() -> float:
+	return RADIO_NIEBLA_CASILLAS * Terreno3D.casilla
+
+
+## Lo que tarda una ánima en resucitar entera (el clip de surgir); sin clip, T_SIN_NIEBLA_DEFECTO.
+func ciclo_resucitar() -> float:
+	for a in animas:
+		if is_instance_valid(a) and (a as AnimaCompana3D).dur_surgir() > 0.0:
+			return (a as AnimaCompana3D).dur_surgir()
+	return T_SIN_NIEBLA_DEFECTO
+
+
+func _jugadora() -> Jugador3D:
+	if jugador != null and is_instance_valid(jugador):
+		return jugador
+	if is_inside_tree():
+		var l: Node = get_tree().get_first_node_in_group("spellcaster")
+		if l != null and l.get("jugador") is Jugador3D:
+			jugador = l.get("jugador") as Jugador3D
+	return jugador
+
+
+func _lanzador() -> Lanzador3D:
+	if lanz != null and is_instance_valid(lanz):
+		return lanz
+	if is_inside_tree():
+		lanz = get_tree().get_first_node_in_group("spellcaster") as Lanzador3D
+	return lanz
+
+
+func _avanzar_niebla(delta: float) -> void:
+	_t_sin_niebla = maxf(0.0, _t_sin_niebla - delta)
+	var g: AnimaCompana3D = guia()
+	if g != null:
+		g.avanzar_alzar(delta)
+	var activa: bool = niebla_activa()
+	if activa and not _niebla_estaba and g != null:
+		g.alzar_cruz()                                      # la niebla nace (o vuelve): el guía alza la cruz
+	_niebla_estaba = activa
+	_dibujar_niebla(g, activa)
+	var j: Jugador3D = _jugadora()
+	var dentro: bool = false
+	if activa and j != null and is_instance_valid(j) and not j.muerto:
+		var d := Vector2(j.position.x - g.global_position.x, j.position.z - g.global_position.z)
+		dentro = d.length() <= radio_niebla()                 # en horizontal y sin mirar muros: la niebla los atraviesa
+	if not dentro:
+		_t_fuera += delta
+		if _t_fuera >= T_NIEBLA_OLVIDA:
+			_t_en_niebla = 0.0
+			_t_tick = T_TICK_NIEBLA
+		return
+	_t_fuera = 0.0
+	_t_en_niebla += delta
+	_t_tick -= delta
+	if _t_tick > 0.0:
+		return
+	_t_tick += T_TICK_NIEBLA
+	var dps: float = DANO_NIEBLA_S + DANO_NIEBLA_SUBE * floorf(maxf(_t_en_niebla - 0.001, 0.0) / T_NIEBLA_SUBE)
+	var trago: float = dps * T_TICK_NIEBLA
+	# La niebla no mira la armadura: se le suma la defensa para que lo que quite `dano_ambiental` (que sí la resta) sea exactamente `trago`.
+	drenado += j.dano_ambiental(trago + j.defensa_total(), "niebla")
+	PlayLog.event("compana_niebla", {"dps": dps, "t": snappedf(_t_en_niebla, 0.1)})
+
+
+## La niebla baja alrededor del guía (partículas blancas que se arrastran por el suelo). Se crea la primera vez que hace falta.
+func _dibujar_niebla(g: AnimaCompana3D, activa: bool) -> void:
+	if _niebla == null:
+		if not activa or not is_inside_tree():
+			return
+		_niebla = CPUParticles3D.new()
+		_niebla.name = "NieblaCruz"
+		_niebla.amount = 36
+		_niebla.lifetime = 3.0
+		_niebla.preprocess = 2.0
+		_niebla.emission_shape = CPUParticles3D.EMISSION_SHAPE_BOX
+		_niebla.emission_box_extents = Vector3(radio_niebla() * 0.75, 0.03, radio_niebla() * 0.75)
+		_niebla.direction = Vector3.UP
+		_niebla.spread = 80.0
+		_niebla.initial_velocity_min = 0.02
+		_niebla.initial_velocity_max = 0.08
+		_niebla.gravity = Vector3.ZERO                       # se arrastra por el suelo, no sube
+		_niebla.scale_amount_min = 1.0
+		_niebla.scale_amount_max = 1.7
+		var esfera := SphereMesh.new()
+		esfera.radius = 0.4
+		esfera.height = 0.12                                  # bolas aplastadas: manchas bajas de bruma
+		var mat := StandardMaterial3D.new()
+		mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+		mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+		mat.albedo_color = COLOR_NIEBLA
+		esfera.material = mat
+		_niebla.mesh = esfera
+		var donde: Node = mundo if mundo != null and is_instance_valid(mundo) else self
+		donde.add_child(_niebla)
+	_niebla.emitting = activa
+	if g != null and is_instance_valid(g):
+		_niebla.global_position = g.global_position + Vector3(0.0, ALTO_NIEBLA, 0.0)
+
+
+## ¿Está cerrada la casilla `c` para la procesión? Bloqueada en el terreno o con un volumen sólido de un hechizo (muro, bloque de tierra, columna).
+func casilla_cerrada(c: Vector2i) -> bool:
+	return Terreno3D.bloqueada(c) or Mamoa3D.hechizo_solido_en(_lanzador(), c)
 
 
 ## Las ánimas se mueven (andan con el clip): la fila va, o alguna cierra el hueco de una baja.
@@ -228,8 +379,14 @@ func velocidad_fila() -> float:
 
 
 func _avanzar_fila(delta: float) -> void:
+	bloqueada_por_muro = false
 	if en_marcha():
-		s_cabeza += velocidad_fila() * delta
+		var delante: Dictionary = punto_en(s_cabeza + MIRA_ADELANTE_CASILLAS * Terreno3D.casilla)
+		var c_delante: Vector2i = Terreno3D.celda_de(delante["pos"] as Vector3)
+		var c_cabeza: Vector2i = Terreno3D.celda_de((punto_en(s_cabeza)["pos"]) as Vector3)
+		bloqueada_por_muro = c_delante != c_cabeza and casilla_cerrada(c_delante)
+		if not bloqueada_por_muro:
+			s_cabeza += velocidad_fila() * delta
 	var i: int = 0
 	var vel_cierre: float = CIERRE_RELEVO_VEL if cruz_suelo != null else CIERRE_VEL
 	_cerrando = false
@@ -292,7 +449,8 @@ func al_morir(a: AnimaCompana3D) -> void:
 		_recogiendo = null
 		_relevo_listo = false
 		_t_relevo = T_RELEVO
-	if _programadas < REPOSICIONES_MAX:
+		_t_sin_niebla = ciclo_resucitar()                 # 21/11: la niebla se apaga un ciclo entero de resucitar (y hasta que otra tenga la cruz)
+	if REPOSICIONES_MAX <= 0 or _programadas < REPOSICIONES_MAX:
 		_programadas += 1
 		var nueva: AnimaCompana3D = _nueva_anima(false)
 		if nueva != null:
@@ -394,6 +552,9 @@ func _quitar_cruz_suelo() -> void:
 
 func _exit_tree() -> void:
 	_quitar_cruz_suelo()
+	if _niebla != null and is_instance_valid(_niebla):
+		_niebla.queue_free()
+	_niebla = null
 
 
 func _hay_guia() -> bool:

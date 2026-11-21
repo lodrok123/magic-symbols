@@ -221,8 +221,12 @@ func _lanzador() -> Lanzador3D:
 
 ## ¿Hay encima un volumen sólido o pisable de un hechizo vivo (tierra o hielo)? Se lee de las listas del lanzador: las entradas se quitan solas cuando el hechizo se acaba, y con ellas se destapa.
 func _hechizo_encima() -> bool:
-	var lz: Lanzador3D = _lanzador()
-	if lz == null:
+	return hechizo_solido_en(_lanzador(), celda)
+
+
+## 21/11: ¿hay en la casilla `celda` un volumen sólido o pisable de un hechizo vivo de `lz`? Lo usa también la Santa Compaña (un muro de hechizo le corta el paso).
+static func hechizo_solido_en(lz: Lanzador3D, celda: Vector2i) -> bool:
+	if lz == null or not is_instance_valid(lz):
 		return false
 	for b in lz._bloques:                                    # tierra construida: {celda, niveles, ...}
 		if b is Dictionary and (b as Dictionary).get("celda", Vector2i(-9999, -9999)) == celda and int((b as Dictionary).get("niveles", 1)) > 0:

@@ -60,6 +60,22 @@ const T_ENGANCHE: float = 1.4                    ## s desde que empieza: la mano
 const T_RECOGER: float = (RECOGER_HASTA - RECOGER_DESDE) / RECOGER_VEL   ## s que dura entera la recogida
 const ROL_CLIP_SURGIR: String = "cast_surgir"    ## Getting_Up de Mixamo (ver `Pj3D.SINONIMOS`)
 const ESTADO_SURGIR: String = "lanzar_surgir"
+## INVOCAR LA NIEBLA (21/11): cuando nace (o vuelve) la niebla, el guía alza la MANO LIBRE (la izquierda) hacia el cielo y mira arriba, con la cruz plantada en la derecha, y la fila se
+## para un momento. No hay clip así en Mixamo ni en Meshy: se hace por código sobre su Idle (`preparar_alzar_cruz`), como la mano quemada del goblin: sube rápido, se sostiene y baja.
+## Se probó alzar la CRUZ misma (brazo derecho + `agarrar_baston`): la cruz agarrada se queda horizontal a lo largo del antebrazo y no se pudo poner vertical girando la muñeca
+## (capturas del 21/11). Alzar la cruz de verdad queda como clip pendiente (inventario en docs/SANTA_COMPANA_CLIPS_2026-11-21.md).
+const ANIM_ALZAR_CRUZ: String = "InvocarNiebla"
+const ESTADO_ALZAR: String = "lanzar_alzar_cruz"
+const T_ALZAR: float = 1.4
+const ALZAR_SUBE: float = 0.25                   ## fracción del clip en llegar arriba
+const ALZAR_BAJA: float = 0.75                   ## fracción desde la que baja
+## Hueso -> [eje local, grados arriba]. El brazo izquierdo en alto (mismos ejes que el brazo del escudo del goblin: Z del brazo sube, X del antebrazo dobla), el torso y la cabeza hacia atrás.
+const ALZAR_HUESOS: Dictionary = {
+	"mixamorig_LeftArm": [Vector3(0.0, 0.0, 1.0), 75.0],
+	"mixamorig_LeftForeArm": [Vector3(1.0, 0.0, 0.0), -25.0],
+	"mixamorig_Spine1": [Vector3(1.0, 0.0, 0.0), -8.0],
+	"mixamorig_Head": [Vector3(1.0, 0.0, 0.0), -16.0],
+}
 const HUNDIDA_SURGIR: float = 0.9                ## u bajo el suelo a las que empieza al surgir (algo más que su alto, ALTO = 0,85)
 const TRAMO_SUBIDA: float = 0.5                  ## fracción del clip en la que sube hasta quedar a ras (smoothstep); el resto es incorporarse ya a ras
 const GRACIA_VIGIA: float = 0.5                  ## s latente que sigue en los grupos de combate para que el vigía la vea (escanea cada 0,1 s)
@@ -79,6 +95,9 @@ var surgiendo: bool = false                      ## latente pero con el cuerpo y
 var _t_surgir: float = 0.0
 var _t_gracia: float = 0.0                       ## s que le quedan en los grupos de combate estando latente
 var recogiendo: bool = false                     ## se está agachando a recoger la cruz del suelo
+var alzando: bool = false                        ## 21/11: alza la cruz (nace la niebla)
+var alzadas: int = 0                             ## veces que la ha alzado (pruebas)
+var _t_alzar: float = 0.0
 var cruces_recogidas: int = 0                    ## cruces que ha llegado a enganchar (pruebas)
 var _t_recoger: float = 0.0
 var _enganchada: bool = false                    ## la cruz ya está en su mano (pasado T_ENGANCHE)
@@ -465,7 +484,101 @@ func _cortar_maldicion() -> void:
 			_quitar_aviso()
 
 
+## 21/11: el guía alza la cruz (clip por código). Devuelve false si no es el guía o está ocupada.
+func alzar_cruz() -> bool:
+	if not es_guia or muerto or latente or recogiendo or alzando:
+		return false
+	_cortar_maldicion()
+	alzando = true
+	alzadas += 1
+	_t_alzar = 0.0
+	moviendo = 0
+	if pj != null and is_instance_valid(pj) and preparar_alzar_cruz(pj):
+		var arbol: ArbolAnimPj = pj.arbol()
+		if arbol != null and arbol.pedir(ESTADO_ALZAR, ANIM_ALZAR_CRUZ, {"bucle": Animation.LOOP_NONE, "vel": 1.0, "mezcla": 0.15}):
+			pj.animacion_actual = ESTADO_ALZAR
+			pj.set_velocidad_animacion(1.0, false)
+	PlayLog.event("anima_alza_cruz", {"numero": numero})
+	return true
+
+
+## Lo avanza la procesión (como la fila): acaba a los T_ALZAR s.
+func avanzar_alzar(delta: float) -> void:
+	if not alzando:
+		return
+	_t_alzar += delta
+	if _t_alzar >= T_ALZAR or muerto:
+		alzando = false
+		if pj != null and is_instance_valid(pj):
+			pj.animacion_actual = ""
+
+
+## Construye (una vez por modelo) el clip ANIM_ALZAR_CRUZ sobre el Idle. Devuelve si el modelo lo tiene.
+static func preparar_alzar_cruz(p: Pj3D) -> bool:
+	if p == null or p._ap == null:
+		return false
+	if p._ap.has_animation(ANIM_ALZAR_CRUZ):
+		return true
+	var idle_n: String = p._buscar_clip("idle")
+	var sk: Skeleton3D = p._esqueleto()
+	if idle_n == "" or sk == null:
+		return false
+	var idle: Animation = p._ap.get_animation(idle_n)
+	var prefijo: String = String(p._ap.get_node(p._ap.root_node).get_path_to(sk)) + ":"
+	var dest := Animation.new()
+	dest.length = T_ALZAR
+	dest.loop_mode = Animation.LOOP_NONE
+	var n: int = maxi(int(ceil(T_ALZAR * 30.0)), 2)
+	# Los huesos que se alzan y que el Idle no anima: se les crea pista desde su pose de reposo (si no, el clip no los movería).
+	var con_pista: Dictionary = {}
+	for i in range(idle.get_track_count()):
+		if idle.track_get_type(i) == Animation.TYPE_ROTATION_3D:
+			con_pista[String(idle.track_get_path(i)).get_slice(":", 1)] = true
+	for nom in ALZAR_HUESOS:
+		var b: int = sk.find_bone(String(nom))
+		if b < 0 or con_pista.has(String(nom)):
+			continue
+		var d0: int = dest.add_track(Animation.TYPE_ROTATION_3D)
+		dest.track_set_path(d0, NodePath(prefijo + String(nom)))
+		var q0: Quaternion = sk.get_bone_rest(b).basis.get_rotation_quaternion()
+		var h0: Array = ALZAR_HUESOS[nom]
+		for f in range(n + 1):
+			var u0: float = float(f) / float(n)
+			var e0: float = smoothstep(0.0, ALZAR_SUBE, u0) * (1.0 - smoothstep(ALZAR_BAJA, 1.0, u0))
+			dest.rotation_track_insert_key(d0, T_ALZAR * u0, q0 * Quaternion((h0[0] as Vector3).normalized(), deg_to_rad(float(h0[1]) * e0)))
+	for i in range(idle.get_track_count()):
+		var tipo: int = idle.track_get_type(i)
+		if tipo != Animation.TYPE_ROTATION_3D and tipo != Animation.TYPE_POSITION_3D:
+			continue
+		var nom: String = String(idle.track_get_path(i)).get_slice(":", 1)
+		if sk.find_bone(nom) < 0:
+			continue
+		var d: int = dest.add_track(tipo)
+		dest.track_set_path(d, NodePath(prefijo + nom))
+		for f in range(n + 1):
+			var u: float = float(f) / float(n)
+			var t: float = T_ALZAR * u
+			var ts: float = fposmod(t, maxf(idle.length, 0.001))
+			if tipo == Animation.TYPE_ROTATION_3D:
+				var q: Quaternion = idle.rotation_track_interpolate(i, ts)
+				if ALZAR_HUESOS.has(nom):
+					var e: float = smoothstep(0.0, ALZAR_SUBE, u) * (1.0 - smoothstep(ALZAR_BAJA, 1.0, u))
+					var h: Array = ALZAR_HUESOS[nom]
+					q = q * Quaternion((h[0] as Vector3).normalized(), deg_to_rad(float(h[1]) * e))
+				dest.rotation_track_insert_key(d, t, q)
+			else:
+				dest.position_track_insert_key(d, t, idle.position_track_interpolate(i, ts))
+	var lib: AnimationLibrary = p._ap.get_animation_library("")
+	if lib == null:
+		lib = AnimationLibrary.new()
+		p._ap.add_animation_library("", lib)
+	lib.add_animation(ANIM_ALZAR_CRUZ, dest)
+	return true
+
+
 func _animar() -> void:
+	if alzando and _fase_empuje == FASE_NINGUNA:
+		return                                                  # el clip de alzar la cruz ya está puesto
 	if recogiendo and _fase_empuje == FASE_NINGUNA:
 		return                                                  # el clip de recoger ya está puesto
 	if maldiciendo and _fase_empuje == FASE_NINGUNA:

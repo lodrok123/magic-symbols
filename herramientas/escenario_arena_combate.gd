@@ -59,6 +59,35 @@ func _escenario() -> void:
 	await avanzar(10)
 	await _escudo()
 	await _mouro()
+	await _compana()
+
+
+## SANTA COMPAÑA (17,3 → 23,3 → 23,10 → 17,10). Su niebla roba vida cerca del guía; matar solo al guía la retrasa; matar a una no la acaba.
+func _compana() -> void:
+	var sc: SantaCompana3D = _z.nodo("compana_arena") as SantaCompana3D
+	_ok("3 la procesión está montada, con su guía y su niebla", sc != null and sc.guia() != null)
+	if sc == null:
+		return
+	await avanzar_s(2.0)
+	_ok("3 la niebla está activa", sc.niebla_activa())
+	var j: Jugador3D = jugador as Jugador3D
+	var g: AnimaCompana3D = sc.guia()
+	sc.quieto = true
+	var cg: Vector2i = Terreno3D.celda_de(g.global_position)
+	colocar_jugador(cg + Vector2i(1, 1))                                 # en diagonal: 3,25 u del guía, dentro de la niebla (4,6 u) y fuera del toque (2,3 u)
+	j.vida = 1000.0
+	await avanzar_s(3.1)
+	_ok("3 dentro de la niebla le roba ~1 por segundo", j.vida <= 998.0 and j.vida >= 996.0, "vida %.1f" % j.vida)
+	colocar_jugador(Vector2i(2, 2))
+	g.receive_damage(100000.0)
+	await avanzar_s(0.2)
+	_ok("3 matar al guía apaga la niebla", not sc.niebla_activa())
+	await avanzar_s(8.0)
+	_ok("3 al rato vuelve con otro guía", sc.niebla_activa() and sc.guia() != null and sc.guia() != g)
+	var una: AnimaCompana3D = sc.vivas().back()
+	una.receive_damage(100000.0)
+	await avanzar_s(1.0)
+	_ok("3 matar a una sola no la acaba", not sc.rota)
 
 
 ## MOURO (6,7) y su MÁMOA (4,4). Vuelve siempre; una flecha de agua que pasa POR ENCIMA del pozo no lo tapa; el suelo mojado en su casilla lo inunda y entonces muere de verdad.
