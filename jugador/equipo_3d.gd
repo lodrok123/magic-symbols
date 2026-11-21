@@ -155,7 +155,7 @@ const EQUIPO: Dictionary = {
 	],
 	# Espadachín: el mismo goblin (Pj3D.MODELO_DE) con la espada de armas_goblin.glb en vez de la porra.
 	"goblin_espadachin": [
-		["espada_goblin", "RightHand", Vector3(0.0, 0.07, 0.03), Vector3(0.0, 0.0, 90.0)],
+		["espada_goblin", "RightHand", GARROTE_POS, GARROTE_GIRO],     # 21/11 (Pablo: «corrige también la espada»): el mismo agarre en el puño y el mismo giro que la porra (mismo goblin y mismo convenio de pieza)
 		["escudo", "LeftForeArm", Vector3(0.0, 0.12, -0.07), Vector3(90.0, 0.0, 0.0)],
 	],
 	# La elfa: el grimorio colgado a la espalda, a la altura de la cadera y centrado (con la pluma metida en el
