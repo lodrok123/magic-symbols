@@ -258,6 +258,17 @@ const COLOR_LLAMARADA: Color = Color(1.0, 0.45, 0.15)   ## rótulo «¡Llamarada
 const ENRAIZADO_S: float = 1.5                  ## s que lo sujetan las raíces; ×2 si estaba mojado (la tierra mojada agarra más)
 const MAGMA_LENTO_S: float = 2.0                ## s de `lento` que deja el magma (los mismos que la tierra)
 const COLOR_ENRAIZADO: Color = Color(0.45, 0.7, 0.25)   ## rótulo «¡Enraizado!»: el verde de la naturaleza
+## 21/11 · TRIÁNGULO DE LA DEMO (docs/DEBILIDADES_ELEMENTOS_2026-11-21.md §0 y §5.1). Fallo que evita: con solo fuego, agua y tierra casi todas las reacciones con premio (roto, rayo y hielo
+## sobre mojado, llamarada) quedaban fuera, porque piden hielo, rayo o viento; lo que más rendía era repetir el elemento que más pega. Ahora cada pareja de los tres sellos da algo:
+##   COSTRA   fuego sobre un enemigo RALENTIZADO (tierra encima): la tierra se cuece y queda una costra `COSTRA_S` s. Tierra o golpe F sobre la costra = ROTO (el mismo ×`Dano.X_ROTO` del congelado).
+##   SOFOCADO tierra sobre quien ARDE: lo apaga (aviso «apagado_agua», que ya premia tinta y corta las llamas) y lo aturde `SOFOCADO_ATURDE_S` s. El agua apaga y ciega; la tierra apaga y aturde.
+##   EMPAPADO tierra sobre un MOJADO: el `lento` dura ×`LENTO_MOJADO_MULT` (el agua amplifica a la tierra; no es barro: no hay estado ni elemento nuevo, solo un multiplicador).
+##   VAPOR    fuego sobre un MOJADO: además de secarlo, deja una nube de vapor (`EstadosSuelo3D.VAPOR`, 4 s) en su casilla; `_ve` ya corta la vista dentro del vapor.
+const COSTRA_S: float = 3.0                     ## s que dura la costra (ventana para rematarla con tierra o el golpe F)
+const SOFOCADO_ATURDE_S: float = 0.5            ## s de aturdido al sofocarlo con tierra
+const LENTO_MOJADO_MULT: float = 2.0            ## × al `lento` de la tierra si estaba mojado
+const COLOR_COSTRA: Color = Color(0.75, 0.42, 0.22)     ## rótulo «¡Costra!»: barro cocido, rojizo (nunca amarillo)
+const COLOR_SOFOCADO: Color = Color(0.72, 0.58, 0.4)    ## rótulo «¡Sofocado!»: el ocre de la tierra
 ## 18/11 (ᛒ suelo, diseño de Pablo): la escarcha de ᛒ hace PATINAR a los enemigos pequeños y medianos, no a los grandes. Criterio de tamaño (no existía): la `masa` (goblin 1, chamán 0,9, limo 0,6 y
 ## 1,2 el grande, gato 0,5; elemental 3,3 y gólem 6). Patina quien pesa `MASA_MAX_PATINA` o menos. Patinar = perder el control `T_PATINA` s: desliza en la dirección en que iba, frenando poco a poco
 ## (`V_PATINA` u/s al empezar), sin andar ni atacar; después tiene `T_PATINA_INMUNE` s de agarre antes de poder volver a patinar (una capa de escarcha no lo deja deslizando sin fin).
@@ -349,6 +360,7 @@ var investiga: float = 0.0
 var cebo_pos: Vector3 = Vector3.ZERO
 var cebo_t: float = 0.0
 var enraizado: float = 0.0              ## R3 (6/11): s que le quedan sujeto por raíces (naturaleza): `vel_mult` 0 y `push` no lo mueve; el ataque no se le quita
+var costra: float = 0.0                 ## 21/11 (triángulo de la demo): s que le quedan con costra de tierra cocida; tierra o golpe F encima = ROTO (ver COSTRA_S)
 var stun_timer: float = 0.0
 var interrupcion: float = 0.0
 
@@ -673,10 +685,12 @@ func recibir_golpe_cuerpo(dir: Vector3, dano: float, fuerza: float, factor_escud
 	_carga = 0.0
 	interrupcion = maxf(interrupcion, INTERRUPCION_GOLPE)
 	# B1 (6/11): el golpe F sobre un congelado lo ROMPE (daño ×X_ROTO, se acaba el hielo y el empujón de abajo lo tira). Con el escudo de frente no: el escudo para el golpe y el hielo aguanta.
-	var roto: bool = congelado > 0.0 and not parado
+	# 21/11 (triángulo de la demo): la costra de tierra cocida también se rompe con el golpe F.
+	var roto: bool = (congelado > 0.0 or costra > 0.0) and not parado
 	if roto:
 		r["roto"] = true
 		congelado = 0.0
+		costra = 0.0
 		dano *= Dano.X_ROTO
 		_aviso_roto()
 	if empujable_golpe:
@@ -977,7 +991,8 @@ func decidir_golpe(hechizo: Hechizo) -> Dictionary:
 		"vapor": false, "arco": false, "avisos": [], "aturde": hechizo.aturde > 0.0 and not elemental, "veneno": hechizo.veneno > 0.0 and not elemental,
 		"espalda": bool(corteza["espalda"]), "regado": false,
 		"roto": false, "llamarada": null, "cegado": 0.0, "alcance_arco": ARCO_ALCANCE,
-		"enraizado": enraizado, "raices_quemadas": false}
+		"enraizado": enraizado, "raices_quemadas": false,
+		"costra": costra, "sofocado": false, "lento_mojado": false}
 	# 30/10 (H6): la reacción sale de las PROPIEDADES del hechizo (`Materia`), no de su nombre; el nombre solo queda para la tabla de debilidades (`multiplicador`).
 	# Los seis elementos no se solapan (calienta / enfría / riega / conduce / sopla / golpea), así que el orden de las ramas no cambia nada.
 	var m: Dictionary = Materia.de(hechizo)
@@ -988,6 +1003,9 @@ func decidir_golpe(hechizo: Hechizo) -> Dictionary:
 		return r
 	# B1 (6/11): congelado + tierra, viento o rayo = ROTO (daño ×X_ROTO, se acaba el hielo). Un congelado mojado también: el remate manda sobre el ×1,5 del mojado (no se apilan).
 	var roto: bool = congelado > 0.0 and (conduce or Materia.sopla(m) or Materia.golpea(m))
+	# 21/11 (triángulo de la demo): la COSTRA (fuego sobre ralentizado) también se rompe, pero solo con tierra (el golpe F, en `recibir_golpe_cuerpo`).
+	if costra > 0.0 and Materia.golpea(m):
+		roto = true
 	var naturaleza: bool = el == "naturaleza"
 	var derrite: bool = false          # R3: magma sobre congelado
 	if naturaleza:
@@ -1003,6 +1021,8 @@ func decidir_golpe(hechizo: Hechizo) -> Dictionary:
 		if enraizado > 0.0:
 			r["enraizado"] = 0.0                    # R3: el calor quema las raíces y lo libera
 			r["raices_quemadas"] = true
+		if el != "magma" and lento > 0.0 and costra <= 0.0:
+			r["costra"] = COSTRA_S                  # 21/11: la tierra que lo frena se cuece (el magma no: ya trae su propio `lento` y se cocería a sí mismo)
 		if el == "magma":
 			r["lento"] = MAGMA_LENTO_S              # R3: la lava pesa y pega: además de arder, lo frena como la tierra
 			if congelado > 0.0:
@@ -1041,11 +1061,20 @@ func decidir_golpe(hechizo: Hechizo) -> Dictionary:
 				r["quemando"] = maxf(quemando, LLAMARADA_QUEMA_MIN)
 	elif Materia.golpea(m):
 		r["lento"] = hechizo.ralentiza
+		if mojado > 0.0 and hechizo.ralentiza > 0.0:
+			r["lento"] = hechizo.ralentiza * LENTO_MOJADO_MULT      # 21/11 EMPAPADO: el agua amplifica a la tierra
+			r["lento_mojado"] = true
+		if quemando > 0.0:
+			r["quemando"] = 0.0                     # 21/11 SOFOCADO: la tierra apaga (el aviso «apagado_agua» sale abajo, como con el agua) y aturde
+			r["sofocado"] = true
+			if not elemental:
+				r["aturde"] = true
 		if roto:
 			x = Dano.X_ROTO
 	if roto:
 		r["roto"] = true
 		r["congelado"] = 0.0
+		r["costra"] = 0.0
 	var avisos: Array = r["avisos"]
 	if conduce:
 		avisos.append(Mundo3D.R_ELECTROCUTADO)                # cada descarga que le llega es una reacción (no hay estado que dure)
@@ -1057,7 +1086,7 @@ func decidir_golpe(hechizo: Hechizo) -> Dictionary:
 	if float(r["quemando"]) > 0.0 and not ardia:
 		avisos.append(Mundo3D.R_PRENDIDO)
 	elif ardia and float(r["quemando"]) <= 0.0:
-		avisos.append(Mundo3D.R_APAGADO_AGUA)                 # solo el agua y el hielo (quemando = 0) lo apagan; el viento no
+		avisos.append(Mundo3D.R_APAGADO_AGUA)                 # el agua, el hielo y (21/11) la tierra que lo sofoca lo apagan; el viento no
 		if float(r["cegado"]) > 0.0:
 			avisos.append(Mundo3D.R_CEGADO)
 	var estaba_mojado: bool = mojado > 0.0
@@ -1118,6 +1147,13 @@ func golpe(hechizo: Hechizo, direccion: Vector3) -> void:
 	mojado = float(dec["mojado"])
 	quemando = float(dec["quemando"])
 	congelado = float(dec["congelado"])
+	if float(dec["costra"]) > 0.0 and costra <= 0.0:
+		texto_grande("¡Costra!", COLOR_COSTRA)
+	costra = float(dec["costra"])
+	if bool(dec["sofocado"]):
+		texto_grande("¡Sofocado!", COLOR_SOFOCADO)
+	if bool(dec["lento_mojado"]):
+		texto("Empapado: muy lento", Color(0.55, 0.7, 0.85), 0.55)
 	if float(dec["cegado"]) > 0.0:
 		cegado = maxf(cegado, float(dec["cegado"]))
 		texto("Ciego", Color(0.8, 0.85, 0.9), 0.55)
@@ -1133,6 +1169,8 @@ func golpe(hechizo: Hechizo, direccion: Vector3) -> void:
 		_carga = 0.0
 	if bool(dec["vapor"]):
 		texto_grande("¡Vapor!", Color(0.85, 0.9, 1.0))
+		if Terreno3D.estados != null and is_inside_tree():
+			Terreno3D.estados.mantener(Terreno3D.celda_de(position), EstadosSuelo3D.VAPOR)      # 21/11: la nube que deja en su casilla corta la vista (`_ve`)
 	if bool(dec["roto"]):
 		texto_grande("¡Roto!", COLOR_ROTO)
 	var vecino_llama: Variant = dec.get("llamarada", null)
@@ -1172,7 +1210,7 @@ func golpe(hechizo: Hechizo, direccion: Vector3) -> void:
 	elif bool(dec["roto"]) and d.length() > 0.01 and el != "viento":
 		push(d, ROTO_EMPUJE, true)                # B1: cae aunque el golpe no empuje (el viento ya empujó por `Lanzador3D._golpear`)
 	if bool(dec["aturde"]):
-		_aturdir(hechizo.aturde)
+		_aturdir(maxf(hechizo.aturde, SOFOCADO_ATURDE_S if bool(dec["sofocado"]) else 0.0))
 	if dano > 0.0:
 		_num_golpe = true
 		_num_elemento = el
@@ -1520,6 +1558,7 @@ func _efectos(delta: float) -> void:
 	cegado = maxf(0.0, cegado - delta)
 	investiga = maxf(0.0, investiga - delta)
 	enraizado = maxf(0.0, enraizado - delta)
+	costra = maxf(0.0, costra - delta)
 	if quemando > 0.0:
 		quemando -= delta
 		if quemando <= 0.0:

@@ -308,6 +308,7 @@ func _rebrotar() -> void:
 	lento = 0.0
 	cegado = 0.0
 	enraizado = 0.0
+	costra = 0.0
 	stun_timer = 0.0
 	interrupcion = 0.0
 	_vida_mostrada = 1.0
