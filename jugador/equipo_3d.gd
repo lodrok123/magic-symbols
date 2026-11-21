@@ -149,7 +149,8 @@ const EQUIPO: Dictionary = {
 		["daga_goblin", "LeftHand", DAGA_POS_IZQUIERDA, DAGA_GIRO_IZQUIERDA, Vector3(-DAGA_ESCALA, DAGA_ESCALA, DAGA_ESCALA)],
 	],
 	"goblin_warrior_chibi": [
-		["garrote", "RightHand", Vector3(0.0, 0.07, 0.03), Vector3(0.0, 0.0, 90.0)],
+		# 21/11 (Pablo: «la maza la está sujetando al revés»): Z 90 → −90, la cabeza de la porra pasa al otro lado del puño.
+		["garrote", "RightHand", Vector3(0.0, 0.07, 0.03), Vector3(0.0, 0.0, -90.0)],
 		["escudo", "LeftForeArm", Vector3(0.0, 0.12, -0.07), Vector3(90.0, 0.0, 0.0)],
 	],
 	# Espadachín: el mismo goblin (Pj3D.MODELO_DE) con la espada de armas_goblin.glb en vez de la porra.
@@ -192,7 +193,7 @@ const EQUIPO: Dictionary = {
 		["carcaj", "Spine2", Vector3(0.0, -0.06, -0.27), Vector3(0.0, 0.0, 25.0)],   # −0,27: por fuera de la capa (a −0,20 la capa lo tapaba casi entero)
 	],
 	"goblin_warrior": [
-		["garrote", "RightHand", Vector3(0.0, 0.07, 0.03), Vector3(0.0, 0.0, 90.0)],
+		["garrote", "RightHand", Vector3(0.0, 0.07, 0.03), Vector3(0.0, 0.0, -90.0)],     # 21/11: como el chibi, porra al derecho
 		["escudo", "LeftForeArm", Vector3(0.0, 0.12, -0.07), Vector3(90.0, 0.0, 0.0)],
 	],
 	# Santa Compaña (9/11): la cruz de campanillas en la mano DERECHA y la palmatoria con la vela en la IZQUIERDA. Las dos salen de
