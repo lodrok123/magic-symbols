@@ -469,6 +469,9 @@ var _jefe_perdida: ColorRect = null
 var _golpe_pendiente: bool = false   ## hay un ataque cuerpo a cuerpo cuyo golpe aún no ha salido (se puede cancelar)
 var _en_rango: bool = false          ## histéresis: ya está en rango de golpe
 var _ataque_id: int = 0        ## cambia al cancelar el ataque: los golpes/flechas pendientes se descartan
+var _linea: AvisoAtaque3D = null        ## 21/11: la LÍNEA DE MIRA de la flecha que tensa (arquero, chamán): del arco al sitio donde se parará. Ver AvisoAtaque3D.linea
+var _apunte_es_fijo: bool = false       ## la línea ya se fijó: la flecha sale HACIA `_apunte_fijado` (lo que se ve es lo que pega), no hacia donde esté la jugadora al soltar
+var _apunte_fijado: Vector3 = Vector3.ZERO
 var _aviso: AvisoAtaque3D = null        ## C3: el aviso en el suelo del ataque en curso (null si no hay o si ya lo soltó: la flecha en vuelo lleva el suyo)
 var avisos_dados: int = 0               ## C3: cuántos avisos ha sacado (para las pruebas)
 var _materiales: Array = []
@@ -2164,6 +2167,7 @@ func _avisar_ataque(efecto: Callable, t_golpe: float) -> void:
 		var t_vuelo: float = maxf(position.distance_to(jugador.position) / VEL_FLECHA, 0.1)
 		_aviso = AvisoAtaque3D.circulo(mundo, jugador.position, RADIO_IMPACTO_FLECHA, t_golpe + t_vuelo, self)
 		_aviso.seguir(jugador)
+		_poner_linea_de_mira(t_golpe, AvisoAtaque3D.COLOR)
 	elif efecto == _golpe_elemental:
 		var k: float = _k_ref()
 		_aviso = AvisoAtaque3D.rectangulo(mundo, position, mirada, ELEM_ALCANCE_GOLPE * k, ELEM_ANCHO_GOLPE * k, t_golpe, self, 0.3)
@@ -2189,6 +2193,47 @@ func _quitar_aviso() -> void:
 	if _aviso != null and is_instance_valid(_aviso):
 		_aviso.cancelar()
 	_aviso = null
+	_quitar_linea()
+
+
+## 21/11 (Pablo: «quiero que las flechas sean visibles»): la LÍNEA DE MIRA de la flecha que se tensa (`AvisoAtaque3D.linea`): del arco hasta donde se parará, tenue y siguiendo el apuntado (con adelanto en el
+## arquero de puesto) hasta los últimos AvisoAtaque3D.T_FIJADO s, y entonces FIJADA: la flecha sale hacia ese punto (`_al_fijar_apunte`), así que quien se aparta a tiempo se libra. `t_suelta` s hasta soltar.
+func _poner_linea_de_mira(t_suelta: float, color: Color, halo: float = AvisoAtaque3D.LINEA_HALO_DEFECTO) -> void:
+	_quitar_linea()
+	_apunte_es_fijo = false
+	_apunte_fijado = _apunte_vivo()
+	_linea = AvisoAtaque3D.linea(mundo, _origen_flecha(), _apunte_fijado, t_suelta, self, lanz, color, halo)
+	if _linea != null:
+		_linea.apuntar(_origen_flecha, _apunte_vivo)
+		_linea.fijado.connect(_al_fijar_apunte)
+
+
+func _quitar_linea() -> void:
+	if _linea != null and is_instance_valid(_linea):
+		_linea.apagar()
+	_linea = null
+
+
+func _origen_flecha() -> Vector3:
+	return position + Vector3(0.0, altura * 0.65, 0.0)
+
+
+## Adonde apuntaría la flecha ahora mismo: donde ESTÁ la jugadora (con adelanto el arquero de puesto). Si ya no hay jugadora, lo último que se apuntó.
+func _apunte_vivo() -> Vector3:
+	if jugador == null or not is_instance_valid(jugador):
+		return _apunte_fijado
+	var destino: Vector3 = jugador.position + Vector3(0.0, 0.8, 0.0)
+	return _con_adelanto(_origen_flecha(), destino) if fijo else destino
+
+
+## La línea se fijó: desde ahora la flecha va a ese punto y el círculo del destino se queda allí (cae donde la suelte, cuando llegue).
+func _al_fijar_apunte(punto: Vector3) -> void:
+	_apunte_es_fijo = true
+	_apunte_fijado = punto
+	if _aviso != null and is_instance_valid(_aviso) and jugador != null and is_instance_valid(jugador):
+		var t_vuelo: float = maxf(_origen_flecha().distance_to(punto) / VEL_FLECHA, 0.1)
+		var resta: float = _linea.queda() if _linea != null and is_instance_valid(_linea) else 0.0
+		_aviso.fijar(Vector3(punto.x, jugador.position.y, punto.z), resta + t_vuelo)
 
 
 ## Golpe, parálisis, hielo o muerte: la animación se corta y el golpe/flecha pendiente ya no sale.
@@ -2202,8 +2247,12 @@ func _cancelar_ataque() -> void:
 		_golpe_pendiente = false
 
 
-## La flecha sale hacia donde ESTÁ el jugador ahora y tarda en llegar: si se ha movido, falla.
+## La flecha sale hacia donde ESTÁ el jugador (o, si la línea de mira ya se fijó, hacia donde la línea apuntaba: lo que se ve es lo que pega) y tarda en llegar: si se ha movido, falla.
 func _soltar_flecha() -> void:
+	var apunte_fijo: bool = _apunte_es_fijo
+	var apunte: Vector3 = _apunte_fijado
+	_apunte_es_fijo = false
+	_quitar_linea()                                             # la flecha sale: la línea se apaga detrás
 	if not puestos_disparo.is_empty():
 		_volver_a_cubierto = true
 		_espera_cubierto = 1.4
@@ -2213,10 +2262,8 @@ func _soltar_flecha() -> void:
 	if fijo and not _ve(ARQUERO_FIJO_ALCANCE):
 		_quitar_aviso()
 		return
-	var origen: Vector3 = position + Vector3(0.0, altura * 0.65, 0.0)
-	var destino: Vector3 = jugador.position + Vector3(0.0, 0.8, 0.0)
-	if fijo:
-		destino = _con_adelanto(origen, destino)
+	var origen: Vector3 = _origen_flecha()
+	var destino: Vector3 = apunte if apunte_fijo else _apunte_vivo()
 	var bloqueada: bool = not Terreno3D.linea_libre(position, jugador.position)
 	var t_vuelo: float = maxf(origen.distance_to(destino) / VEL_FLECHA, 0.1)
 	if _aviso != null and is_instance_valid(_aviso):
@@ -2304,6 +2351,7 @@ func _crear_flecha() -> Node3D:
 	var raiz := Node3D.new()
 	raiz.name = "FlechaGoblin"
 	raiz.set_meta("flecha_goblin", true)
+	raiz.add_child(EstelaFlecha3D.crear(LARGO_FLECHA * 0.5))     # 21/11: la estela clara detrás (Pablo: «quiero que las flechas sean visibles»)
 	var pieza: Node3D = Equipo3D.pieza("flecha")
 	if pieza == null:
 		var mi := MeshInstance3D.new()
