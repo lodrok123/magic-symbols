@@ -1740,6 +1740,12 @@ func _ia(delta: float) -> void:
 		_carga = 0.0
 		moviendo = 0
 		return
+	if escudo != null and is_instance_valid(escudo) and escudo.ocupa_al_goblin():
+		# 21/11: el escudo le arde en el brazo (Escudo3D, el bucle del brazo ardiendo): ni anda ni ataca hasta que se consume o se lo apagan. El empuje de arriba sí sigue.
+		_cancelar_ataque()
+		_carga = 0.0
+		moviendo = 0
+		return
 	if stun_timer > 0.0:
 		stun_timer -= delta
 		_cancelar_ataque()

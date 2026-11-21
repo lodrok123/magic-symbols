@@ -44,8 +44,35 @@ func _initialize() -> void:
 	await _mano()
 	await _burbujas()
 	_botin()
+	await _clips_21_11()
 	print("FALLOS: %d" % _fallos)
 	quit(1 if _fallos > 0 else 0)
+
+
+## 21/11 (Pablo): con el modelo real, el clip del BRAZO ARDIENDO (hecho por código, en bucle) mientras arde y el clip de BLOQUEO (SwordParryBackward001) cuando lo que llega no es fuego.
+func _clips_21_11() -> void:
+	var g := _goblin(3, 3)
+	var e: Escudo3D = Escudo3D.equipar(g)
+	await _pasos(g, 0.2)
+	var ap: AnimationPlayer = g.pj._ap
+	var a: Animation = ap.get_animation(Escudo3D.ANIM_BRAZO_ARDIENDO) if ap != null and ap.has_animation(Escudo3D.ANIM_BRAZO_ARDIENDO) else null
+	_ok("10.1 el guerrero trae el clip del brazo ardiendo, en bucle y de un ciclo", a != null and a.loop_mode == Animation.LOOP_LINEAR and is_equal_approx(a.length, Escudo3D.CICLO_BRAZO_ARDIENDO))
+	var hay_parry: bool = false
+	if ap != null:
+		for n in ap.get_animation_list():
+			hay_parry = hay_parry or String(n).to_lower().contains(Escudo3D.CLIP_BLOQUEO)
+	_ok("10.2 y su clip de bloqueo (parry) está en el GLB", hay_parry)
+	g.on_spell_hit(_rune("earth"), Vector3(0, 0, -1), _h("earth"))
+	await _pasos(g, 0.1)
+	_ok("10.3 tierra de frente: hace el bloqueo, sin daño", g.pj.animacion_actual == Escudo3D.ESTADO_BLOQUEO and g.health == g.vida_max, g.pj.animacion_actual)
+	await _pasos(g, 1.2)
+	g.on_spell_hit(_rune("fire"), Vector3(0, 0, -1), _h("fire"))
+	await _pasos(g, 0.3)
+	_ok("10.4 fuego de frente: se pone a sacudir el brazo (el bucle pedido)", e.esta_ardiendo() and g.pj.animacion_actual == Escudo3D.ESTADO_BRAZO_ARDIENDO, g.pj.animacion_actual)
+	await _pasos(g, Escudo3D.CICLO_BRAZO_ARDIENDO * 1.5)
+	_ok("10.5 pasado más de un ciclo sigue en el bucle (no vuelve al reposo)", e.esta_ardiendo() and g.pj.animacion_actual == Escudo3D.ESTADO_BRAZO_ARDIENDO, g.pj.animacion_actual)
+	await _pasos(g, Escudo3D.T_CONSUMO)
+	_ok("10.6 consumido: deja el bucle", e.estado == "quemado" and g.pj.animacion_actual != Escudo3D.ESTADO_BRAZO_ARDIENDO, "%s · %s" % [e.estado, g.pj.animacion_actual])
 
 
 ## F1 (29/10, PLAN_BASE_DATOS): el escudo que ARDE hasta quemarse marca `escudo_quemado` en su goblin y, al morir, además de su tabla suelta los jirones (`goblin_escudo`); uno roto a golpes no.

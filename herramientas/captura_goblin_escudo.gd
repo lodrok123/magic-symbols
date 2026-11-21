@@ -79,7 +79,70 @@ func _correr() -> void:
 				await _t_burbujas()
 			"clip":
 				await _t_clip()
+			"ardiendo":
+				await _t_ardiendo()
+			"bloqueo":
+				await _t_bloqueo()
+			"carbon":
+				await _t_carbon()
 	quit()
+
+
+## 21/11: el escudo de cerca, entero y carbonizándose (0, 50 y 100 % de la quema), sin el bucle del brazo (para ver solo la capa).
+func _t_carbon() -> void:
+	await _goblin(true, false)
+	var e: Escudo3D = _g.escudo
+	var imgs: Array = []
+	for k in [0.0, 0.5, 1.0]:
+		e._actualizar_carbon(k)
+		await _frames(2)
+		var p: Vector3 = e.global_position - _g.global_position
+		_cam(p + Vector3(0.0, 0.1, 0.9), p, 0.6)
+		await _frames(1)
+		imgs.append(await _foto("carbon_%d" % (imgs.size() + 1)))
+		var mallas: Array = e._entero.find_children("*", "MeshInstance3D", true, false) if e._entero != null else []
+		var con_capa: int = 0
+		for m in mallas:
+			if (m as MeshInstance3D).material_overlay != null:
+				con_capa += 1
+		print("carbon k=", k, " mallas ", mallas.size(), " con capa ", con_capa, " visible ", e._entero.is_visible_in_tree() if e._entero != null else false)
+	_hoja(imgs, "carbon", 3)
+
+
+## 21/11: el BRAZO ARDIENDO (el bucle mientras el escudo arde, con el escudo carbonizándose) de frente y de tres cuartos, a lo largo de un ciclo y al final de la quema.
+func _t_ardiendo() -> void:
+	await _goblin(true, true)
+	_g.escudo.prender()
+	var imgs: Array = []
+	var t: float = 0.0
+	for seg in [0.2, 0.6, 1.0, 1.4, 2.4, 3.8]:
+		await _frames(maxi(int((seg - t) / DT), 0))
+		t = seg
+		_cam(Vector3(0.0, 1.0, 2.0), Vector3(0.0, 0.5, 0.0), 1.1)
+		await _frames(1)
+		imgs.append(await _foto("ardiendo_frente_%d" % (imgs.size() + 1)))
+		_cam(Vector3(1.4, 1.0, 1.4), Vector3(0.0, 0.5, 0.0), 1.1)
+		await _frames(1)
+		imgs.append(await _foto("ardiendo_tres_cuartos_%d" % (imgs.size() + 1)))
+		print("ardiendo t=", seg, " anim ", _modelo.animacion_actual, " carbon ", snappedf(_g.escudo.carbonizado(), 0.01))
+	_hoja(imgs, "ardiendo", 4)
+
+
+## 21/11: el BLOQUEO (tierra de frente: retroceso leve y el parry del guerrero).
+func _t_bloqueo() -> void:
+	await _goblin(true, true)
+	var imgs: Array = []
+	var tierra: Hechizo = Hechizo.construir(load("res://nucleo/earth_rune.tres"), {})
+	_g.on_spell_hit(load("res://nucleo/earth_rune.tres"), Vector3(0, 0, -1), tierra)
+	var t: float = 0.0
+	for seg in [0.05, 0.2, 0.35, 0.5, 0.7, 0.9]:
+		await _frames(maxi(int((seg - t) / DT), 0))
+		t = seg
+		_cam(Vector3(1.4, 1.0, 1.4), Vector3(0.0, 0.5, 0.0), 1.1)
+		await _frames(1)
+		imgs.append(await _foto("bloqueo_%d" % (imgs.size() + 1)))
+		print("bloqueo t=", seg, " anim ", _modelo.animacion_actual)
+	_hoja(imgs, "bloqueo", 3)
 
 
 func _plano(color: Color) -> MeshInstance3D:

@@ -1,0 +1,35 @@
+##########################
+#........................#
+#.S......................#
+#........................#
+#........................#
+#........................#
+#........................#
+#........................#
+#........................#
+#........................#
+#........................#
+#........................#
+#........................#
+##########################
+; ======================================================================================================================================================
+;  ARENA DE COMBATE (21/11/2026). Pablo: «crea una pequeña arena de batalla reutilizable para no crear muchos laboratorios diferentes». Una sala abierta
+;  donde se prueban a mano los enemigos; para probar otro, se añade (o se cambia) su línea `; pieza` aquí abajo. Kit `pruebas` (todos los elementos).
+;    · OESTE: el MOURO y su MÁMOA. Vuelve SIEMPRE mientras la mámoa esté abierta. Se tapa con CUALQUIER cosa encima (el bloque, la roca, una caja
+;      que se suelta encima, un muro o la tierra de un hechizo) o mojando el agujero (un hechizo de agua que dé en el suelo, o suelo mojado en su casilla).
+;    · CENTRO: dos GOBLINS CON ESCUDO. De frente el escudo para todo; el fuego lo prende y, mientras arde, el goblin se quema el brazo y no ataca.
+;    · ESTE: la SANTA COMPAÑA haciendo su recorrido. La cruz lleva la niebla que roba vida (atraviesa los muros).
+; ======================================================================================================================================================
+; # pared · . suelo · S inicio
+;
+; zona 1,1..24,12 bosque mezcla=0.8 rotulo=Arena_de_combate
+;
+; pieza tumba_arena mamoa 4 4
+; pieza mouro_arena mouro 6 7 mamoa=tumba_arena
+; pieza bloque_arena bloque 7 3 material=piedra
+; pieza roca_arena roca_empujable 2 8 tam=mediana variante=musgo
+; pieza caja_arena caja 8 10
+; pieza jarron_arena jarron 3 11 botin=oro
+; pieza escudo_a goblin_escudo 13 4
+; pieza escudo_b goblin_escudo 13 9
+; pieza compana_arena compana 17 3 animas=3 camino=17,3+23,3+23,10+17,10

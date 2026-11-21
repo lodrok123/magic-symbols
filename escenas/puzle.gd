@@ -98,6 +98,8 @@ extends Node
 ##   golem      quieto=si (no)                                                      Golem3D (E3, 28/10): el gólem de piedra. De pie nada le hace daño; persigue lento y golpea con aviso (30 y empuje); tras el
 ##              golpe queda de rodillas con el núcleo a la vista (×1,5 de daño). El viento sobre una casilla helada lo hace resbalar (tumbado = núcleo a la vista; al agua honda o la
 ##              lava, muere). `quieto=si`: no persigue ni ataca (un blanco para probar el hielo). Es un Combate3D: el vigía lo cuenta. No bloquea su casilla
+##   goblin_escudo  quieto=si (no)                                                  21/11 (arena de combate): un goblin guerrero con ESCUDO (Escudo3D). De frente para todo; el fuego lo prende y,
+##              mientras arde, se quema el brazo y no ataca; consumido, pelea sin escudo. Es un Combate3D: el vigía lo cuenta. No bloquea su casilla
 ##   chaman     quieto=si (no)                                                      Chaman3D (E2, 28/10): el chamán goblin. Escuda primero (traza un rombo en el suelo con el bastón, lo clava y una onda verde da un escudo de
 ##              naturaleza a los goblins cercanos; el fuego lo quema) y luego se mantiene lejos tirando bolas de veneno. Si le pegan trazando, la runa se rompe. Es un Combate3D: el vigía lo cuenta
 ##   mamoa      agrietada=si (no)  tapada=si (no)                                   Mamoa3D (E4): el brocal de pozo del que vuelve el mouro. Se TAPA con un bloque empujable encima, la tierra o el hielo de un hechizo vivo, o la
@@ -495,6 +497,7 @@ const CLAVES: Dictionary = {
 	"puente": {"celdas": "celdas"},
 	"limo": {"elemento": "s:fuego|agua|hielo|rayo|tierra|viento", "grande": "b"},
 	"golem": {"quieto": "b"},
+	"goblin_escudo": {"quieto": "b"},
 	"chaman": {"quieto": "b"},
 	"mamoa": {"agrietada": "b", "tapada": "b"},
 	"mouro": {"mamoa": "id", "quieto": "b"},
@@ -2401,6 +2404,16 @@ func _crear(pz: Pieza) -> void:
 			var li: Limo3D = Limo3D.crear(mundo as Node3D, Terreno3D.centro_de(cel_l, Terreno3D.y_pies(cel_l)), String(pz.p.get("elemento", "")), bool(pz.p.get("grande", false)))
 			li.name = pz.id
 			pz.nodo = li
+		"goblin_escudo":
+			# 21/11: guerrero + Escudo3D, colgado del MUNDO como el gólem (Puzle3D crea sus piezas después de que el Jugador3D equipe los goblins de letra).
+			var cel_e: Vector2i = pz.celda
+			var ge: Combate3D = Escudo3D.invocar_goblin_escudo(mundo as Node3D, Terreno3D.centro_de(cel_e, Terreno3D.y_pies(cel_e)))
+			if ge == null:
+				_avisar_pieza(pz, "el goblin con escudo no tiene modelo (goblin_warrior_chibi.glb)")
+				return
+			ge.quieto = bool(pz.p.get("quieto", false))
+			ge.name = pz.id
+			pz.nodo = ge
 		"golem":
 			# E3 (28/10): como el limo, el gólem se cuelga del MUNDO (su modelo Pj3D es hermano suyo). Si falta el modelo, avisa y no sale.
 			var cel_g: Vector2i = pz.celda
