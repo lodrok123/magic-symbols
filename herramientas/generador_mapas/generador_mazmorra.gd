@@ -78,6 +78,8 @@ static func parametros_defecto() -> Dictionary:
 		# contenido
 		"enemigos": 1.0, "arqueros": 30, "jarrones": 1.0, "braseros": 1.0, "charcas": 20,
 		"tesoro": true, "llave": true, "salas_cerradas": 40,
+		# 22/11 (Pablo: «sala campamento»): cuántas salas grandes se vuelven CAMPAMENTO GOBLIN (ver `_poner_campamentos`). 0 = ninguno (como antes).
+		"campamentos": 0,
 		"puzles": 0, "barreras": 2, "b_braseros": true, "b_placa": true, "b_puente": true,
 		# nivel
 		"nombre": "MazmorraGen", "estilo": "cueva", "luz": "cueva", "salida_a": "", "rotulo": true,
@@ -1232,6 +1234,188 @@ func _rect_txt(r: Rect2i) -> String:
 	return "%d,%d..%d,%d" % [r.position.x, r.position.y, r.end.x - 1, r.end.y - 1]
 
 
+# =====================================================================================================================
+#  Campamentos goblin (22/11, Pablo: «sala campamento»)
+# =====================================================================================================================
+
+## LA SALA CAMPAMENTO. Una sala grande (al menos CAMP_LADO_MIN), sin papel y no pegada al inicio, se vuelve un campamento goblin con las mismas
+## piezas que el de Bosque 02 (letras del plano que monta `presentacion/prueba_test2.gd`):
+##   · EMPALIZADA `x` en el anillo de dentro de la sala, con una PUERTA GOBLIN `y` (arde: se quema para entrar) delante de cada entrada;
+##   · dentro: la FOGATA `T` en el centro, una TORRE `o` (arde) en un rincón del fondo, TIENDAS `t` contra el fondo y un ESTANDARTE `V` junto a la entrada;
+##   · su gente: guardias `W` / `A` según el tamaño y el parámetro `enemigos`, y un CHAMÁN si es grande;
+##   · un VIGÍA que cuenta a todos y un COFRE ÉPICO que aparece al limpiarlo, y una ZONA con la luz de fuego y el botín de campamento.
+## No se cierra con cerrojo (Pablo, 5/11: en zona abierta no hay cerrojo que encierre): la barrera es la puerta que arde. Si la empalizada deja el mapa
+## partido o sin solución, se deshace y se prueba la siguiente sala. Las puertas goblin no cuentan como bloqueo: el fuego siempre está en el kit.
+const CAMP_LADO_MIN: Vector2i = Vector2i(7, 6)    ## casillas de la sala (con la empalizada dentro quedan 5 × 4 de patio)
+const CAMP_CASILLAS_POR_GUARDIA: float = 12.0     ## con `enemigos` = 1: un guardia por cada tantas casillas de patio (2 como poco, 5 como mucho)
+const CAMP_PATIO_CHAMAN: int = 30                 ## casillas de patio a partir de las que hay chamán
+const CAMP_DIST_MIN: float = 0.3                  ## fracción de la distancia máxima al inicio por debajo de la que no se pone (no a la entrada)
+
+func _poner_campamentos(vivas: Array, dmax: int, nv: String) -> void:
+	var quiero: int = clampi(int(p.get("campamentos", 0)), 0, 4)
+	if quiero <= 0:
+		return
+	var orden: Array = vivas.filter(func(s: Dictionary) -> bool:
+		var r: Rect2i = s["rect"]
+		return String(s["rol"]) == "" and r.size.x >= CAMP_LADO_MIN.x and r.size.y >= CAMP_LADO_MIN.y and float(s["dist"]) >= CAMP_DIST_MIN * dmax)
+	orden.sort_custom(func(a: Dictionary, b: Dictionary) -> bool:
+		var aa: int = (a["rect"] as Rect2i).get_area()
+		var ab: int = (b["rect"] as Rect2i).get_area()
+		return aa > ab or (aa == ab and int(a["id"]) < int(b["id"])))
+	var hechos: int = 0
+	for s in orden:
+		if hechos >= quiero:
+			break
+		if _campamento_en(s, hechos + 1, nv):
+			hechos += 1
+	if hechos < quiero:
+		avisos.append("Solo caben %d campamentos de los %d pedidos (hacen falta salas de %d × %d o más, lejos del inicio y sin otro papel)." % [hechos, quiero, CAMP_LADO_MIN.x, CAMP_LADO_MIN.y])
+
+
+## Monta el campamento `n` en la sala `s`. Devuelve false (y lo deja todo como estaba) si no cabe sin partir el mapa.
+func _campamento_en(s: Dictionary, n: int, nv: String) -> bool:
+	var r: Rect2i = s["rect"]
+	var guardado: Array = [letras.duplicate(), _ocupada.duplicate(), _bloqueos.duplicate(), objetos.duplicate(true), lineas.duplicate(), g.duplicate()]
+	var anillo: Dictionary = {}
+	for c in _celdas_sala(s):
+		if c.x == r.position.x or c.x == r.end.x - 1 or c.y == r.position.y or c.y == r.end.y - 1:
+			anillo[c] = true
+	# Las puertas goblin: delante de cada entrada (la casilla del anillo pegada a la puerta, o la puerta misma si cae en el anillo).
+	var puertas_g: Dictionary = {}
+	for pu in _puertas_de(int(s["id"])):
+		var dc: Vector2i = pu["c"]
+		var cg: Vector2i = Vector2i(-1, -1)
+		if anillo.has(dc):
+			cg = dc
+		else:
+			for d in DIRS:
+				if anillo.has(dc + d):
+					cg = dc + d
+					break
+		if cg.x >= 0 and not _ocupada.has(cg):
+			puertas_g[cg] = true
+	if puertas_g.is_empty():
+		return false
+	# Empalizada: el resto del anillo que esté libre (lo ya puesto, como un activador o una pieza de puzle, se queda: hueco en la cerca).
+	# Para el generador es PARED (MURO con la letra `x` encima): así ni parte el mapa sin que se note ni impide poner tiendas o la torre pegadas a ella
+	# (lo que bloquea como un cofre necesita una casilla libre al lado; una pared, no).
+	for c in anillo:
+		if puertas_g.has(c) or _ocupada.has(c) or _tipo(c) != SUELO:
+			continue
+		letras[c] = "x"
+		_poner(c, MURO)
+	for c in puertas_g:
+		letras[c] = "y"
+		_ocupar(c)
+		_objeto(c, "puerta_goblin", "camp%d_puerta" % n)
+	if (_componentes(true, _bloqueos)[1] as Array).size() > 1 or not _resoluble():
+		_deshacer_campamento(guardado)
+		return false
+	var patio: Rect2i = r.grow(-1)
+	var centro: Vector2 = Vector2(patio.position) + Vector2(patio.size - Vector2i.ONE) * 0.5
+	# Fogata en el centro (la casilla bloqueable más cercana).
+	var por_centro: Array = _celdas_sala(s).filter(func(c: Vector2i) -> bool: return patio.has_point(c))
+	por_centro.sort_custom(func(a: Vector2i, b: Vector2i) -> bool: return Vector2(a).distance_squared_to(centro) < Vector2(b).distance_squared_to(centro))
+	for c in por_centro:
+		if _puede_bloquear(c):
+			letras[c] = "T"
+			_ocupar(c, true)
+			_objeto(c, "brasero", "camp%d_fogata" % n)
+			break
+	# Torre en un rincón del fondo (los de arriba primero: la cámara mira al norte y se ve entera).
+	for c in [patio.position, Vector2i(patio.end.x - 1, patio.position.y), Vector2i(patio.position.x, patio.end.y - 1), patio.end - Vector2i.ONE]:
+		if _puede_bloquear(c):
+			letras[c] = "o"
+			_ocupar(c, true)
+			_objeto(c, "torre_goblin", "camp%d_torre" % n)
+			break
+	# Tiendas contra el fondo del patio, una sí y otra no.
+	var quiero_t: int = clampi(patio.size.x / 3, 1, 3)
+	for x in range(patio.position.x + 1, patio.end.x - 1, 2):
+		if quiero_t <= 0:
+			break
+		var c: Vector2i = Vector2i(x, patio.position.y)
+		if _puede_bloquear(c):
+			letras[c] = "t"
+			_ocupar(c, true)
+			_objeto(c, "tienda_goblin", "camp%d_tienda" % n)
+			quiero_t -= 1
+	# Estandarte junto a la primera entrada, por dentro y a un lado (sin tapar el paso).
+	var cg0: Vector2i = puertas_g.keys()[0]
+	var dentro: Vector2i = cg0
+	for d in DIRS:
+		if patio.has_point(cg0 + d):
+			dentro = cg0 + d
+			break
+	if dentro != cg0:
+		var lado: Vector2i = Vector2i(dentro.y - cg0.y, dentro.x - cg0.x)       # perpendicular a la entrada
+		for c in [dentro + lado, dentro - lado]:
+			if patio.has_point(c) and _puede_bloquear(c):
+				letras[c] = "V"
+				_ocupar(c, true)
+				_objeto(c, "estandarte_goblin", "camp%d_estandarte" % n)
+				break
+	# Su gente: guardias (y chamán si es grande), lejos de las puertas goblin para que no se peguen a la cerca.
+	var fuerza: float = clampf(float(p["enemigos"]), 0.0, 4.0)
+	var libres: Array = _celdas_sala(s).filter(func(c: Vector2i) -> bool:
+		if not patio.has_point(c) or _ocupada.has(c):
+			return false
+		for cg in puertas_g:
+			if absi((cg as Vector2i).x - c.x) + absi((cg as Vector2i).y - c.y) <= 1:
+				return false
+		return true)
+	_barajar(libres)
+	var n_g: int = 0
+	if fuerza > 0.0:
+		n_g = clampi(int(round(libres.size() / CAMP_CASILLAS_POR_GUARDIA * fuerza)), 2, 5)
+	var k: int = 0
+	while k < mini(n_g, libres.size()):
+		var c: Vector2i = libres[k]
+		var arquero: bool = _pct(float(p["arqueros"]))
+		letras[c] = "A" if arquero else "W"
+		if arquero:
+			p["_arqueros"] = true
+		_ocupar(c)
+		_objeto(c, "arquero" if arquero else "guerrero")
+		k += 1
+	s["enemigos"] = n_g
+	if fuerza > 0.0 and patio.get_area() >= CAMP_PATIO_CHAMAN and k < libres.size():
+		var cc: Vector2i = libres[k]
+		_ocupar(cc)
+		_objeto(cc, "chaman", "camp%d_chaman" % n)
+		lineas.append("; pieza camp%d_chaman chaman %d %d" % [n, cc.x, cc.y])
+		s["enemigos"] = int(s["enemigos"]) + 1
+	# Vigía y cofre épico que aparece al limpiarlo; zona con la luz de fuego y el botín de campamento.
+	var flag: String = "%s.campamento_%d.limpio" % [nv, n]
+	var cv: Vector2i = patio.position
+	lineas.append("; pieza camp%d_vigia vigia %d %d de=%s flag=%s" % [n, cv.x, cv.y, _rect_txt(r), flag])
+	s["vigia"] = true
+	var premios: Array = (COFRES["epico"]["premios"] as Dictionary).keys()
+	var premio: String = String(premios[_azar(0, premios.size() - 1)])
+	var cc2: Vector2i = _sitio_bloqueo(s, true)
+	if cc2.x >= 0:
+		_ocupar(cc2, true)
+		_objeto(cc2, "cofre_epico", "camp%d_cofre" % n)
+		lineas.append("; pieza camp%d_cofre cofre %d %d modelo=epico aparece_si=flag.%s abierto=%s.campamento_%d.cofre da=%s" % [n, cc2.x, cc2.y, flag, nv, n, premio])
+	else:
+		avisos.append("El campamento %d no tiene sitio para su cofre." % n)
+	lineas.append("; zona %s fuego mezcla=1 id=campamento_%d titulo=El_campamento_goblin botin=campamento" % [_rect_txt(r), n])
+	for l in ["x", "y", "o", "t", "V"]:
+		if not _letras_extra.contains(l):
+			_letras_extra += l
+	s["rol"] = "campamento"
+	return true
+
+
+func _deshacer_campamento(guardado: Array) -> void:
+	letras = guardado[0]
+	_ocupada = guardado[1]
+	_bloqueos = guardado[2]
+	objetos = guardado[3]
+	lineas = guardado[4]
+	g = guardado[5]
+
+
 func _poblar() -> void:
 	var vivas: Array = _vivas()
 	if vivas.is_empty():
@@ -1394,10 +1578,12 @@ func _poblar() -> void:
 				_intentar_barrera(paso, _barreras.size() + 1, vivas, cueva)
 			if _barreras.size() < quiero_barreras:
 				avisos.append("Solo caben %d barreras de las %d pedidas (hacen falta pasos obligados y salas libres para sus activadores)." % [_barreras.size(), quiero_barreras])
+	# 4d · Campamentos goblin (22/11): antes de las charcas y los enemigos, porque ponen su empalizada, su gente y su cofre.
+	_poner_campamentos(vivas, dmax, nv)
 	# 5 · Charcas dentro de las salas grandes (dejando libre el anillo de las paredes: no cortan el paso).
 	for s in vivas:
 		var r: Rect2i = s["rect"]
-		if String(s["rol"]) == "inicio" or String(s["rol"]) == "puzle" or r.size.x < 5 or r.size.y < 5 or String(p["algoritmo"]) == "cueva":
+		if String(s["rol"]) == "inicio" or String(s["rol"]) == "puzle" or String(s["rol"]) == "campamento" or r.size.x < 5 or r.size.y < 5 or String(p["algoritmo"]) == "cueva":
 			continue
 		if not _pct(float(p["charcas"])):
 			continue
@@ -1437,8 +1623,8 @@ func _poblar() -> void:
 	var hay_arquero: bool = false
 	for s in vivas:
 		var rol: String = String(s["rol"])
-		if rol == "inicio" or rol == "salida" or rol == "puzle" or (rol == "tesoro" and not puerta_llave.is_empty()):
-			continue                               # donde se llega de otro nivel no espera nadie
+		if rol == "inicio" or rol == "salida" or rol == "puzle" or rol == "campamento" or (rol == "tesoro" and not puerta_llave.is_empty()):
+			continue                               # donde se llega de otro nivel no espera nadie (el campamento ya trae su gente)
 		var celdas: Array = _celdas_sala(s).filter(func(c: Vector2i) -> bool: return not _ocupada.has(c) and not _cerca_de_puerta(c) and absi(c.x - inicio.x) + absi(c.y - inicio.y) >= 5)
 		var n: int = clampi(int(round(celdas.size() / CASILLAS_POR_ENEMIGO * fuerza * (0.6 + 0.8 * int(s["dist"]) / float(dmax)))), 0, 5)
 		if rol == "llave" and fuerza > 0.0:
@@ -1454,8 +1640,8 @@ func _poblar() -> void:
 			s["enemigos"] = int(s["enemigos"]) + 1
 	# 8 · Vigías y cerrojos: la sala de la llave siempre lleva vigía (el cofre aparece al limpiarla); otras se cierran hasta vencer.
 	for s in vivas:
-		if int(s["enemigos"]) == 0:
-			continue
+		if int(s["enemigos"]) == 0 or String(s["rol"]) == "campamento":
+			continue                               # el campamento pone su propio vigía y no se cierra (Pablo, 5/11: en zona abierta no hay cerrojo)
 		var rol: String = String(s["rol"])
 		var r: Rect2i = s["rect"]
 		var celdas_puerta: Array = []
@@ -1499,7 +1685,7 @@ func _poblar() -> void:
 	var n_jar: float = clampf(float(p["jarrones"]), 0.0, 6.0)
 	for s in vivas:
 		var r: Rect2i = s["rect"]
-		if r.size.x < 3 or r.size.y < 3 or String(s["rol"]) == "puzle":
+		if r.size.x < 3 or r.size.y < 3 or String(s["rol"]) == "puzle" or String(s["rol"]) == "campamento":
 			continue
 		var quiero_b: int = int(n_bras) + (1 if _pct(fmod(n_bras, 1.0) * 100.0) else 0)
 		var rincones: Array = [r.position, Vector2i(r.end.x - 1, r.position.y), Vector2i(r.position.x, r.end.y - 1), r.end - Vector2i.ONE]

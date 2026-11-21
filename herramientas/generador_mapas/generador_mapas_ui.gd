@@ -37,6 +37,9 @@ const ICONOS: Dictionary = {
 	"mouro": ["m", Color(0.35, 0.6, 0.75), 0, "mouro"], "elemental": ["G", Color(0.15, 0.45, 0.2), 0, "elemental del bosque (jefe)"],
 	"cofre_comun": ["c", Color(0.6, 0.42, 0.22), 1, "cofre común"], "cofre_epico": ["é", Color(0.55, 0.3, 0.8), 1, "cofre épico"],
 	"cofre_legendario": ["!", Color(0.95, 0.7, 0.1), 1, "cofre legendario"],
+	# 22/11: el campamento goblin (la empalizada `x` se ve como letra del plano).
+	"puerta_goblin": ["y", Color(0.75, 0.35, 0.1), 1, "puerta goblin (arde)"], "torre_goblin": ["o", Color(0.55, 0.3, 0.15), 1, "torre goblin (arde)"],
+	"tienda_goblin": ["t", Color(0.5, 0.42, 0.3), 1, "tienda goblin"], "estandarte_goblin": ["V", Color(0.7, 0.2, 0.15), 1, "estandarte goblin"],
 }
 const TIPOS_ENEMIGO: Array[String] = ["guerrero", "arquero", "limo", "golem", "chaman", "mouro", "elemental"]
 const TIPOS_COFRE: Array[String] = ["cofre_tesoro", "cofre_llave", "cofre_comun", "cofre_epico", "cofre_legendario"]
@@ -90,6 +93,7 @@ const CAMPOS: Array = [
 	{"k": "b_puente", "r": "Barrera: puentes", "t": "bool", "a": "Marcado: la mitad de las barreras son puentes plegados bajo el agua (en las cuevas, todas). Desmarcado: solo puertas."},
 	{"k": "tesoro", "r": "Sala del tesoro", "t": "bool", "a": "La sala más lejana lleva un cofre (60 de oro y una poción)."},
 	{"k": "llave", "r": "Tesoro con llave", "t": "bool", "a": "La sala del tesoro se cierra con una puerta de llave; la llave está en el cofre de otra sala lejana, que aparece al limpiarla."},
+	{"k": "campamentos", "r": "Campamentos goblin", "t": "int", "min": 0, "max": 4, "a": "Salas grandes (7 × 6 o más) lejos del inicio que se vuelven campamento goblin: empalizada con puertas que arden,\nfogata, torre, tiendas, estandarte, guardias (y chamán si es grande), vigía y un cofre épico que aparece al limpiarlo."},
 	{"k": "charcas", "r": "Salas con charca (%)", "t": "int", "min": 0, "max": 100, "paso": 5, "a": "Salas de 5 × 5 o más con una charca de agua honda en medio."},
 	{"k": "braseros", "r": "Braseros por sala", "t": "float", "min": 0.0, "max": 4.0, "paso": 0.5, "a": "En los rincones. Nacen apagados: se encienden con fuego."},
 	{"k": "jarrones", "r": "Jarrones por sala", "t": "float", "min": 0.0, "max": 6.0, "paso": 0.5, "a": "Contra la pared del fondo. Dan oro (o poción, 1 de cada 5)."},

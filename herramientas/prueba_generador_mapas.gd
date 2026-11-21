@@ -52,9 +52,58 @@ func _initialize() -> void:
 	_cofres_que_aparecen()
 	_salidas_a_mano()
 	_camara_por_sala()
+	_campamentos()
 	print("%d comprobaciones en %d ms" % [_hechas, Time.get_ticks_msec() - t0])
 	print("FALLOS: %d" % _fallos)
 	quit(1 if _fallos > 0 else 0)
+
+
+## 16 · Campamentos goblin (22/11, Pablo: «sala campamento»). Con `campamentos` = 1 y 2 en «salas» y «pagina» (la «cueva» no tiene salas de 7 × 6):
+## el mapa sigue siendo válido y de una pieza (la empalizada cuenta como pared); cada campamento tiene empalizada SOLO en el borde de su sala, al menos una
+## puerta goblin en ese borde, gente dentro (lo mira el vigía), un cofre épico que aparece con la flag de su vigía, la zona de fuego, y NINGÚN cerrojo.
+func _campamentos() -> void:
+	var antes: int = _fallos
+	var puestos: int = 0
+	for alg in ["salas", "pagina"]:
+		for semilla in range(1, 16):
+			for n_camp in [1, 2]:
+				var m: Dictionary = _revisar({"algoritmo": alg, "semilla": semilla, "campamentos": n_camp})
+				var quien: String = "%s semilla %d campamentos %d" % [alg, semilla, n_camp]
+				var filas: PackedStringArray = m["filas"]
+				var txt: String = "\n".join(m["lineas"])
+				for linea in m["lineas"]:
+					var t: PackedStringArray = String(linea).substr(1).strip_edges().split(" ", false)
+					if t.size() < 5 or t[2] != "vigia" or not t[1].begins_with("camp"):
+						continue
+					puestos += 1
+					var num: String = t[1].trim_prefix("camp").trim_suffix("_vigia")
+					var de: String = ""
+					var flag: String = ""
+					for k in t:
+						if k.begins_with("de="):
+							de = k.substr(3)
+						if k.begins_with("flag="):
+							flag = k.substr(5)
+					var rr: PackedStringArray = de.replace("..", ",").split(",")
+					var r := Rect2i(rr[0].to_int(), rr[1].to_int(), rr[2].to_int() - rr[0].to_int() + 1, rr[3].to_int() - rr[1].to_int() + 1)
+					var x_fuera: int = 0
+					var y_borde: int = 0
+					for y in range(r.position.y, r.end.y):
+						for x in range(r.position.x, r.end.x):
+							var borde: bool = x == r.position.x or x == r.end.x - 1 or y == r.position.y or y == r.end.y - 1
+							if filas[y][x] == "x" and not borde:
+								x_fuera += 1
+							if filas[y][x] == "y" and borde:
+								y_borde += 1
+					_ok(x_fuera == 0, "la empalizada del campamento %s va solo por el borde de su sala: %s" % [num, quien])
+					_ok(y_borde >= 1, "el campamento %s tiene al menos una puerta goblin en su borde: %s" % [num, quien], str(y_borde))
+					_ok(txt.contains("camp%s_cofre cofre" % num) and txt.contains("modelo=epico aparece_si=flag.%s" % flag), "el cofre épico del campamento %s aparece al limpiarlo: %s" % [num, quien])
+					_ok(txt.contains("; zona %s fuego" % de) and txt.contains("id=campamento_%s" % num), "el campamento %s lleva su zona de fuego: %s" % [num, quien])
+					_ok(not txt.contains("sala=%s hasta" % de), "el campamento %s no se cierra con cerrojo: %s" % [num, quien])
+	_ok(puestos >= 20, "salen campamentos en muchos mapas (2 algoritmos × 15 semillas × 1-2 pedidos)", "%d campamentos" % puestos)
+	var sin: Dictionary = Generador.new().generar({"algoritmo": "salas", "semilla": 3})
+	_ok(not "\n".join(sin["lineas"]).contains("campamento"), "con campamentos = 0 (de serie) el mapa no cambia: no hay ninguno")
+	_resumen("16 · campamentos goblin", antes)
 
 
 ## 15 · Cámara por sala (20/11): una línea `; camara` por sala (caja de su suelo, sin muros dentro del borde), que CamaraSalas
@@ -136,7 +185,7 @@ func _revisar(par: Dictionary, retoques: Dictionary = {}, puzles: Dictionary = {
 	var cofre_llave: Vector2i = Vector2i(-1, -1)
 	for o in m["objetos"]:
 		match String(o["tipo"]):
-			"cofre_tesoro", "cofre_llave", "jarron", "brasero", "cofre_comun", "cofre_epico", "cofre_legendario":
+			"cofre_tesoro", "cofre_llave", "jarron", "brasero", "cofre_comun", "cofre_epico", "cofre_legendario", "torre_goblin", "tienda_goblin", "estandarte_goblin":
 				bloquea[o["c"]] = true                # el bloque no: se empuja, y su pista (lo que hay detrás de él) se pisa al empujarlo
 			_:
 				pass
@@ -149,7 +198,7 @@ func _revisar(par: Dictionary, retoques: Dictionary = {}, puzles: Dictionary = {
 	var tierra: int = 0
 	for y in range(h):
 		for x in range(w):
-			if filas[y][x] != "#" and (filas[y][x] != "~" or puentes.has(Vector2i(x, y))) and not bloquea.has(Vector2i(x, y)):
+			if filas[y][x] != "#" and filas[y][x] != "x" and (filas[y][x] != "~" or puentes.has(Vector2i(x, y))) and not bloquea.has(Vector2i(x, y)):
 				tierra += 1
 	var filas_puente: PackedStringArray = filas.duplicate()
 	for c in puentes:
@@ -237,7 +286,7 @@ func _relleno(filas: PackedStringArray, desde: Vector2i, bloquea: Dictionary, so
 			if v.y < 0 or v.y >= filas.size() or v.x < 0 or v.x >= filas[v.y].length() or visto.has(v) or bloquea.has(v):
 				continue
 			var ch: String = filas[v.y][v.x]
-			if ch == "#" or (solo_tierra and ch == "~"):
+			if ch == "#" or ch == "x" or (solo_tierra and ch == "~"):          # 22/11: la empalizada del campamento es pared
 				continue
 			visto[v] = true
 			cola.append(v)
