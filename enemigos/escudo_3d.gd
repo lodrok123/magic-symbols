@@ -112,6 +112,7 @@ var _capa_mojada: StandardMaterial3D = null    ## la capa de «mojado» sobre la
 var _mats_quemado: Array[ShaderMaterial] = []  ## V6: materiales comunes de la malla quemada (su uniform `disolver` hace la desintegración)
 var disolver: float = 0.0                      ## V6: 0..1, cuánto lleva deshecho (lo lee la prueba; 0 si no se usa el disolver)
 var empujes_bloqueo: int = 0                   ## 21/11: cuántas veces un hechizo que no era fuego lo empujó (pruebas)
+var giros_cubrirse: int = 0                    ## 21/11: cuántas veces se giró a cubrirse tras un golpe por la espalda o el costado (pruebas)
 var _defensa_previa: float = 0.0               ## la defensa del goblin antes del escudo: se la devuelve al consumirse («que pelee pero sin la ventaja»)
 var _capa_carbon: StandardMaterial3D = null    ## la capa de carbonizado mientras arde (null = sin quemar)
 var _choque: Area3D = null                     ## la caja de choque del escudo (ver COMO UN MURO)
@@ -311,6 +312,27 @@ func _poner_bucle_ardiendo(si: bool) -> void:
 		combate._t_anim = 0.0
 
 
+## 21/11 (Pablo: «que se gire a cubrirse»): un golpe que le entró por la espalda o el costado (viajaba en `direccion`) lo hace GIRARSE de golpe hacia de donde vino, con el escudo
+## por delante y el clip de bloqueo, y a partir de ahí va a por ella: el siguiente disparo desde el mismo sitio ya lo para. Solo con el escudo activo (entero o ardiendo) y sin estar
+## quemándose el brazo (entonces no se cubre: sacude el brazo). Devuelve si se giró.
+func cubrirse(direccion: Vector3) -> bool:
+	if combate == null or not is_instance_valid(combate) or combate.muerto or not esta_activo() or ocupa_al_goblin():
+		return false
+	var d := Vector3(-direccion.x, 0.0, -direccion.z)
+	if d.length() < 0.01 or es_de_frente(direccion):
+		return false
+	combate.mirada = d.normalized()
+	if combate.pj != null and is_instance_valid(combate.pj):
+		combate.pj.mirar(combate.mirada, 1.0)                 # el giro es inmediato: se cubre ya, no a la velocidad de andar
+	if combate.jugador != null and is_instance_valid(combate.jugador):
+		combate.objetivo = combate.jugador
+	giros_cubrirse += 1
+	combate.texto("¡Se cubre!", Color(0.8, 0.75, 0.55), 0.28)
+	_animar_bloqueo()
+	PlayLog.event("escudo_se_cubre", {})
+	return true
+
+
 ## 21/11: lo que no es fuego y para de frente lo empuja un poco hacia atrás, sin daño, con el clip de bloqueo.
 func _empujar_bloqueo() -> void:
 	if combate == null or not is_instance_valid(combate) or combate.muerto:
@@ -319,8 +341,13 @@ func _empujar_bloqueo() -> void:
 	var atras := Vector3(-combate.mirada.x, 0.0, -combate.mirada.z)
 	if atras.length() > 0.01 and combate.enraizado <= 0.0:
 		combate._empuje += atras.normalized() * EMPUJE_BLOQUEO
-	if esta_ardiendo():
-		return                                          # ardiendo manda el clip del brazo
+	_animar_bloqueo()
+
+
+## El clip de bloqueo (parry) del goblin; sin él, el «hit». No mientras arde (manda el clip del brazo).
+func _animar_bloqueo() -> void:
+	if esta_ardiendo() or combate == null or not is_instance_valid(combate):
+		return
 	var pj: Pj3D = combate.pj
 	if pj == null or not is_instance_valid(pj) or pj._ap == null:
 		return

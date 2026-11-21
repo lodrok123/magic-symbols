@@ -654,6 +654,8 @@ func on_spell_hit(rune_data: RuneData, direccion: Vector3 = Vector3.ZERO, hechiz
 	if escudo != null and is_instance_valid(escudo) and escudo.para(direccion, h):
 		return
 	golpe(h, direccion)
+	if escudo != null and is_instance_valid(escudo) and not muerto:
+		escudo.cubrirse(direccion)  # 21/11 (Pablo: «que se gire a cubrirse»): le dieron por la espalda o el costado: se gira y pone el escudo de cara al golpe
 	if objetivo == null and jugador != null and not muerto and _ve(RADIO_SOLTAR):
 		objetivo = jugador          # un golpe te hace mirar a quien viene
 
@@ -680,6 +682,8 @@ func recibir_golpe_cuerpo(dir: Vector3, dano: float, fuerza: float, factor_escud
 		escudo.bloqueos += 1
 		escudo.bloqueado.emit(global_position + Vector3(0.0, altura * 0.5, 0.0))
 		texto("Bloqueado", Color(0.75, 0.8, 0.9), 0.28)
+	elif escudo != null and is_instance_valid(escudo):
+		escudo.cubrirse(d)          # 21/11: un golpe F por la espalda también lo hace girarse a cubrirse
 	# Se interrumpe aunque no llegue a volar: el golpe le corta el ataque y la carga (como un hechizo con daño).
 	_cancelar_ataque()
 	_carga = 0.0

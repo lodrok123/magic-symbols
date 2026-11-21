@@ -118,6 +118,20 @@ func _brazo_ardiendo() -> void:
 	_pasos(e, Escudo3D.T_CONSUMO + 0.1)
 	_ok("8 consumido: quemado, ya no ocupa, la caja de choque deja de parar", e.estado == "quemado" and not e.ocupa_al_goblin() and ch != null and ch.collision_layer == 0, e.estado)
 	_ok("8 sin escudo pelea sin la ventaja: vuelve a su defensa de antes", g.defensa == def0, "%s → %s" % [def0, g.defensa])
+	# 21/11 (Pablo: «que se gire a cubrirse»): un disparo por la espalda le entra, pero se gira de golpe hacia él y el siguiente desde ahí ya lo para.
+	var k := _goblin(9, 8)
+	var ek: Escudo3D = Escudo3D.equipar(k)
+	k.mirada = Vector3(0, 0, 1)                           # mira al sur
+	var vk: float = k.health
+	_tiro(k, "earth", Vector3(0, 0, 1))                    # viaja hacia el sur: le llega por la espalda
+	_ok("9 por la espalda le entra (pierde vida)", k.health < vk)
+	_ok("9 y se GIRA a cubrirse: ahora mira hacia de donde vino (norte)", ek.giros_cubrirse == 1 and k.mirada.dot(Vector3(0, 0, -1)) > 0.99, str(k.mirada))
+	var vk2: float = k.health
+	_tiro(k, "fire", Vector3(0, 0, 1))
+	_ok("9 el siguiente desde el mismo sitio lo para el escudo (y el fuego lo prende)", k.health == vk2 and ek.estado == "ardiendo")
+	var giros: int = ek.giros_cubrirse
+	_tiro(k, "earth", Vector3(1, 0, 0))                    # de costado mientras arde
+	_ok("9 quemándose el brazo NO se gira (sacude el brazo)", ek.giros_cubrirse == giros)
 
 
 func _h(archivo: String) -> Hechizo:
@@ -204,6 +218,7 @@ func _cono() -> void:
 	_tiro(g, "earth", Vector3(0, -1, 0))
 	_ok("3 cenital (sin componente horizontal) pasa", g.health < v0 and _n("bloqueado", e) == 0)
 	# El cono: a 50° de la mirada bloquea, a 70° pasa (el límite es ANGULO_CONO_FRONTAL / 2 = 60°)
+	g.mirada = Vector3(0, 0, 1)                           # 21/11: los disparos de antes que le entraron lo hicieron girarse a cubrirse; se vuelve a poner mirando al sur
 	v0 = g.health
 	var a50: float = deg_to_rad(50.0)
 	_tiro(g, "earth", -Vector3(sin(a50), 0, cos(a50)))
@@ -219,6 +234,8 @@ func _cono() -> void:
 	_ok("3 si el goblin mira a +X, el disparo que viaja a −X ahora es de frente", g.health == v0)
 	_tiro(g, "earth", Vector3(0, 0, -1))
 	_ok("3 y el que antes era de frente ahora es de lado y pasa", g.health < v0)
+	_ok("3 (21/11) y tras ese golpe de lado se gira a cubrirse hacia él", g.mirada.dot(Vector3(0, 0, 1)) > 0.99, str(g.mirada))
+	g.mirada = Vector3(1, 0, 0)
 	_pasos(e, 0.1)
 	_ok("3 el escudo se recoloca hacia la nueva mirada", e.position.x > 0.2 and absf(e.position.z) < 0.01, str(e.position))
 
