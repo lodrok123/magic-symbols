@@ -59,6 +59,7 @@ func _correr() -> void:
 	await _pulido()
 	await _volumen()
 	await _ronda_pablo()
+	await _inicio_final_barrera_haz()
 	print("FALLOS: %d" % _fallos)
 	quit(0 if _fallos == 0 else 1)
 
@@ -673,7 +674,7 @@ func _ronda_pablo() -> void:
 		cod_ba.contains("pow(1.0 - clamp(cosv") and cod_ba.contains("uniform float velo") and cod_ba.contains("float triplanar(") and cod_ba.contains("VERTEX += NORMAL * fuera"))
 	_ok("barrera: aro en el suelo en el radio de corte de la cúpula con el suelo (%.2f del quad)" % float(aro.material_override.get_shader_parameter("radio_aro")), absf(float(aro.material_override.get_shader_parameter("radio_aro")) * (aro.mesh as QuadMesh).size.x * 0.5 - 1.5 * sqrt(1.0 - 0.16)) < 0.01)
 	var n_geo_b: int = bar.find_children("*", "GeometryInstance3D", true, false).size()
-	_ok("barrera: %d nodos de geometría (antes 4; ≤ el doble)" % n_geo_b, n_geo_b <= 8)
+	_ok("barrera: %d nodos de geometría (antes 4; ≤ el doble, y con el inicio y final 3 más: grietas, anillo de aviso y humo)" % n_geo_b, n_geo_b <= (11 if FuegoToy.BARRERA_INICIO_FINAL else 8))
 	var cm: AABB = cas.mesh.get_aabb()
 	_ok("barrera: la malla de la cáscara sigue siendo el elipsoide 3 × 3 × 3 (AABB %s)" % str(cm.size), _cerca(cm.size.x, 3.0, 0.05) and _cerca(cm.size.y, 3.0, 0.05))
 	bar.queue_free()
@@ -711,7 +712,7 @@ func _ronda_pablo() -> void:
 		_cerca(FuegoToyMallas.ancho_haz(0.0, FuegoToy.HAZ_R_ORIGEN, w_fin), w0, 0.001) and float(_param(hz, "Chorro", "r_origen")) == FuegoToy.HAZ_R_ORIGEN and _cerca(float(_param(hz, "Chorro", "r_fin")), w_fin, 0.01))
 	var cod_h: String = FileAccess.get_file_as_string(DIR + "haz_toy.gdshader")
 	_ok("haz: el shader gira la tira alrededor del eje del haz (billboard de eje), redondea la punta y deshace el final (sin corte recto)", cod_h.contains("cross(eje, a_cam)") and cod_h.contains("sqrt(clamp(1.0 - smoothstep(0.8, 1.05, p)") and cod_h.contains("1.0 - smoothstep(0.96, 1.04, p)"))
-	_ok("haz: el origen no tiene borde recto (cola suelta al cortarse acaba en punta) y se rompe en islas", cod_h.contains("smoothstep(corte * 0.7 - 0.02") and cod_h.contains("f -= corte * 2.4"))
+	_ok("haz: el origen no tiene borde recto (cola suelta al cortarse acaba en punta) y se rompe en islas", cod_h.contains("smoothstep(corte * cola - 0.02") and cod_h.contains("uniform float cola : hint_range(0.0, 1.0) = 0.7") and cod_h.contains("f -= corte * 2.4"))
 	var n_geo_h: int = hz.find_children("*", "GeometryInstance3D", true, false).size()
 	_ok("haz: %d nodos de geometría (antes 5; ≤ el doble)" % n_geo_h, n_geo_h <= 10)
 	var luces: int = 0
@@ -772,3 +773,182 @@ func _ronda_pablo() -> void:
 	pval.queue_free()
 	await process_frame
 
+
+# ---------------------------------------------------------------- 21/11: inicio y final de la BARRERA y del HAZ ----------------------------------------------------------------
+
+## Lee un parámetro de shader de un nodo por nombre (null si no existe).
+func _p(e: Node, nodo: String, nombre: String) -> Variant:
+	return _param(e, nodo, nombre)
+
+
+func _inicio_final_barrera_haz() -> void:
+	print("== FuegoToy: inicio y final de la barrera y del haz (BARRERA_INICIO_FINAL = %s, HAZ_INICIO_FINAL = %s)" % [str(FuegoToy.BARRERA_INICIO_FINAL), str(FuegoToy.HAZ_INICIO_FINAL)])
+	var F = FuegoToy.Figura
+	var cod_b: String = FileAccess.get_file_as_string(DIR + "fuego_barrera.gdshaderinc")
+	var cod_a: String = FileAccess.get_file_as_string(DIR + "aro_barrera.gdshader")
+	_ok("shaders de la barrera: brote 1, suelta 0, apaga 0 y recorrido 1 de serie (sin tocar, se dibuja entera como siempre)", cod_b.contains("uniform float brote : hint_range(0.0, 1.0) = 1.0;") and cod_b.contains("uniform float suelta : hint_range(0.0, 1.0) = 0.0;")
+		and cod_b.contains("uniform float apaga : hint_range(0.0, 1.0) = 0.0;") and cod_a.contains("uniform float recorrido : hint_range(0.0, 1.0) = 1.0;") and cod_a.contains("uniform float enfria : hint_range(0.0, 1.0) = 0.0;"))
+	var cod_h: String = FileAccess.get_file_as_string(DIR + "haz_toy.gdshader")
+	_ok("shader del haz: fino_ini 1, cola 0,7 y avance 0,6 de serie (el haz de antes)", cod_h.contains("uniform float fino_ini : hint_range(0.0, 1.0) = 1.0;") and cod_h.contains("uniform float cola : hint_range(0.0, 1.0) = 0.7;") and cod_h.contains("uniform float avance : hint_range(0.0, 1.0) = 0.6;"))
+
+	# ---- BARRERA
+	var on_b: bool = FuegoToy.BARRERA_INICIO_FINAL
+	var bar: FuegoToy = _ft(F.BARRERA, 1.5, 1.5, 1.5)
+	var anb: AnimationPlayer = bar.get_node("Anim") as AnimationPlayer
+	var t_nacer: float = FuegoToy.BARRERA_AVISO_S + FuegoToy.BARRERA_BROTE_S
+	_ok("barrera: «nacer» dura %.2f s y «morir» %.2f s (%s)" % [anb.get_animation("nacer").length, anb.get_animation("morir").length, "aviso + brote y el final nuevos" if on_b else "los de antes"],
+		_cerca(anb.get_animation("nacer").length, t_nacer if on_b else 0.5, 0.001) and _cerca(anb.get_animation("morir").length, FuegoToy.BARRERA_FINAL_S if on_b else 0.6, 0.001) and _cerca(bar.dura_morir, anb.get_animation("morir").length, 0.001))
+	_ok("barrera: %s" % ("lleva anillo de aviso, grietas, humo del final y aro" if on_b else "sin anillo de aviso, grietas ni humo del final (como antes)"),
+		(bar.find_child("Aviso", true, false) != null) == on_b and (bar.find_child("Grietas", true, false) != null) == on_b and (bar.find_child("HumoFinal", true, false) != null) == on_b and bar.find_child("Aro", true, false) != null)
+	if on_b:
+		var gp_ok: bool = true
+		bar.lanzar(-1.0)
+		var s_rec: Array = []
+		var s_brote: Array = []
+		var chis_antes: bool = false       # chispas emitiendo cuando aún no hay llama (brote < 0,3): no debe pasar
+		var t0: int = Time.get_ticks_msec()
+		while Time.get_ticks_msec() - t0 < int((t_nacer + 0.35) * 1000.0):
+			await process_frame
+			var rec: float = float(_p(bar, "Aro", "recorrido"))
+			var br: float = float(_p(bar, "Cascara", "brote"))
+			s_rec.append(rec)
+			s_brote.append(br)
+			var ch: GPUParticles3D = bar.find_child("Chispas", true, false) as GPUParticles3D
+			if ch != null and ch.emitting and br < 0.3:
+				chis_antes = true
+		var mono_rec: bool = true
+		var mono_br: bool = true
+		for i in range(1, s_rec.size()):
+			mono_rec = mono_rec and s_rec[i] >= s_rec[i - 1] - 0.0001
+			mono_br = mono_br and s_brote[i] >= s_brote[i - 1] - 0.0001
+		var primer_brote: int = -1
+		for i in s_brote.size():
+			if s_brote[i] > 0.01:
+				primer_brote = i
+				break
+		var aro_antes: float = s_rec[maxi(primer_brote - 1, 0)] if primer_brote >= 0 else 0.0
+		_ok("barrera, inicio: el aro recorre el perímetro (%.2f → %.2f) y las llamas suben en ola (brote %.2f → %.2f), las dos subiendo sin bajar" % [s_rec[0], s_rec[s_rec.size() - 1], s_brote[0], s_brote[s_brote.size() - 1]],
+			mono_rec and mono_br and s_rec[0] < 0.5 and s_rec[s_rec.size() - 1] > 0.99 and s_brote[0] < 0.01 and s_brote[s_brote.size() - 1] > 0.99)
+		_ok("barrera, inicio: primero el aviso (cuando empieza el brote el aro ya iba por %.2f) y las chispas no salen mientras no hay llama" % aro_antes, aro_antes > 0.9 and not chis_antes)
+		var av: ShaderMaterial = (bar.find_child("Aviso", true, false) as MeshInstance3D).material_override as ShaderMaterial
+		_ok("barrera, activa: aviso apagado (vida %.2f), cúpula entera (brote %.2f, suelta %.2f), grietas encendidas (calor %.2f)" % [float(av.get_shader_parameter("vida")), float(_p(bar, "Cascara", "brote")), float(_p(bar, "Cascara", "suelta")), float(_p(bar, "Grietas", "calor"))],
+			float(av.get_shader_parameter("vida")) < 0.01 and float(_p(bar, "Cascara", "brote")) > 0.99 and float(_p(bar, "Cascara", "suelta")) < 0.01 and float(_p(bar, "Grietas", "calor")) > 0.3)
+		bar.morir()
+		var s_su: Array = []
+		var s_ap: Array = []
+		var hubo_humo: bool = false
+		var chis_tarde: bool = false
+		var visto_rescoldo: bool = false
+		var br_final: float = 1.0
+		t0 = Time.get_ticks_msec()
+		while is_instance_valid(bar) and Time.get_ticks_msec() - t0 < 2500:
+			await process_frame
+			if not is_instance_valid(bar):
+				break
+			s_su.append(float(_p(bar, "Cascara", "suelta")))
+			s_ap.append(float(_p(bar, "Cascara", "apaga")))
+			br_final = float(_p(bar, "Cascara", "brote"))
+			var hf: Node = bar.find_child("HumoFinal", true, false)
+			if hf != null and int(hf.call("vivas")) > 0:
+				hubo_humo = true
+			var ch2: GPUParticles3D = bar.find_child("Chispas", true, false) as GPUParticles3D
+			if ch2 != null and ch2.emitting and s_su[s_su.size() - 1] > 0.6:
+				chis_tarde = true
+		var mono_su: bool = true
+		for i in range(1, s_su.size()):
+			mono_su = mono_su and s_su[i] >= s_su[i - 1] - 0.0001
+		var ult: float = s_su[s_su.size() - 1] if not s_su.is_empty() else 0.0
+		_ok("barrera, final: las llamas bajan por tramos (suelta %.2f → %.2f, sin subir), el fuego se oscurece (apaga hasta %.2f) y suelta humo; el nodo se libera" % [s_su[0] if not s_su.is_empty() else -1.0, ult, s_ap[s_ap.size() - 1] if not s_ap.is_empty() else -1.0],
+			not s_su.is_empty() and mono_su and s_su[0] < 0.5 and ult > 0.9 and s_ap[s_ap.size() - 1] > 0.9 and hubo_humo and not is_instance_valid(bar))
+		_ok("barrera, final: las chispas se paran cuando ya se ha ido más de la mitad de la llama", not chis_tarde)
+		var resc: Array = get_nodes_in_group("rescoldo_fuego")
+		var nombres: Array = []
+		for n in resc:
+			nombres.append(String(n.name))
+		_ok("barrera, final: el rescoldo (aro, grietas y humo) se queda en el suelo al liberarse el efecto (%s)" % ", ".join(nombres), nombres.has("Aro") and nombres.has("Grietas") and nombres.has("HumoFinal"))
+		await create_timer(FuegoToy.PILAR_RESCOLDO_S + FuegoToy.PILAR_HUMO_VIDA_S + 0.4).timeout
+		_ok("barrera, final: y el rescoldo se apaga y se borra solo (quedan %d)" % get_nodes_in_group("rescoldo_fuego").size(), get_nodes_in_group("rescoldo_fuego").is_empty())
+	else:
+		bar.aparicion = 0.5
+		_ok("barrera con BARRERA_INICIO_FINAL = false: el cuerpo se encoge con `aparicion` como antes (escala y %.2f)" % bar.get_node("Cuerpo").scale.y, bar.get_node("Cuerpo").scale.y < 0.9 and _p(bar, "Cascara", "brote") == null)
+		bar.queue_free()
+
+	# ---- HAZ
+	var on_h: bool = FuegoToy.HAZ_INICIO_FINAL
+	var hz: FuegoToy = _ft(F.HAZ, 1.5, 0.5, 0.15)
+	var anh: AnimationPlayer = hz.get_node("Anim") as AnimationPlayer
+	_ok("haz: «nacer» dura %.2f s y «morir» %.2f s (%s)" % [anh.get_animation("nacer").length, anh.get_animation("morir").length, "los nuevos" if on_h else "los de antes"],
+		_cerca(anh.get_animation("nacer").length, FuegoToy.HAZ_NACER_S if on_h else 0.4, 0.001) and _cerca(anh.get_animation("morir").length, FuegoToy.HAZ_FINAL_S if on_h else 1.0, 0.001) and _cerca(hz.dura_morir, anh.get_animation("morir").length, 0.001))
+	_ok("haz: chorro con fino_ini %.2f, cola %.2f y avance %.2f (%s)" % [float(_p(hz, "Chorro", "fino_ini")), float(_p(hz, "Chorro", "cola")), float(_p(hz, "Chorro", "avance")), "los nuevos" if on_h else "los de antes"],
+		_cerca(float(_p(hz, "Chorro", "fino_ini")), FuegoToy.HAZ_FINO_INI if on_h else 1.0, 0.001) and _cerca(float(_p(hz, "Chorro", "cola")), FuegoToy.HAZ_COLA if on_h else 0.7, 0.001)
+		and _cerca(float(_p(hz, "Chorro", "avance")), FuegoToy.HAZ_AVANCE_FINAL if on_h else 0.6, 0.001) and (hz.find_child("HumoFinal", true, false) != null) == on_h)
+	if on_h:
+		hz.lanzar(-1.0)
+		var s_cr: Array = []
+		var s_halo: Array = []
+		var chis_pronto: bool = false         # chispas emitiendo mientras el chorro aún no ha llegado (crece < 0,8)
+		var t1: int = Time.get_ticks_msec()
+		while Time.get_ticks_msec() - t1 < int((FuegoToy.HAZ_NACER_S + 0.3) * 1000.0):
+			await process_frame
+			s_cr.append(hz.crece)
+			var hl: ShaderMaterial = hz.find_child("Base", true, false).material_override as ShaderMaterial
+			s_halo.append(float(hl.get_shader_parameter("vida")))
+			var chz: GPUParticles3D = hz.find_child("Chispas", true, false) as GPUParticles3D
+			if chz != null and chz.emitting and hz.crece < 0.8:
+				chis_pronto = true
+		var i0: int = 0                        # el primer fotograma aún lleva el valor de antes de lanzar: se cuenta desde el mínimo (el origen)
+		for i in s_cr.size():
+			if s_cr[i] < s_cr[i0]:
+				i0 = i
+		var mono_cr: bool = true
+		var mono_hl: bool = true
+		for i in range(i0 + 1, s_cr.size()):
+			mono_cr = mono_cr and s_cr[i] >= s_cr[i - 1] - 0.0001
+			mono_hl = mono_hl and s_halo[i] >= s_halo[i - 1] - 0.0001
+		_ok("haz, inicio: el chorro sale de la mano y avanza hasta su largo (crece %.2f → %.2f, sin bajar) y la mano se enciende con él (brillo %.2f → %.2f)" % [s_cr[i0], s_cr[s_cr.size() - 1], s_halo[i0], s_halo[s_halo.size() - 1]],
+			mono_cr and mono_hl and s_cr[i0] < 0.3 and s_cr[s_cr.size() - 1] > 0.99 and s_halo[i0] < 0.5 and s_halo[s_halo.size() - 1] > 0.99)
+		_ok("haz, inicio: sale fino y engorda (el shader pone fino_ini %.2f al salir)" % float(_p(hz, "Chorro", "fino_ini")), not chis_pronto and float(_p(hz, "Chorro", "fino_ini")) < 0.6)
+		hz.morir()
+		var s_co: Array = []
+		var s_hl2: Array = []
+		var humo_vivo: int = 0
+		var t2: int = Time.get_ticks_msec()
+		while is_instance_valid(hz) and Time.get_ticks_msec() - t2 < 2500:
+			await process_frame
+			if not is_instance_valid(hz):
+				break
+			s_co.append(hz.corte)
+			var hl2: ShaderMaterial = hz.find_child("Base", true, false).material_override as ShaderMaterial
+			s_hl2.append(float(hl2.get_shader_parameter("vida")))
+			var hf2: Node = hz.find_child("HumoFinal", true, false)
+			if hf2 != null:
+				humo_vivo = maxi(humo_vivo, int(hf2.call("vivas")))
+		var mono_co: bool = true
+		for i in range(1, s_co.size()):
+			mono_co = mono_co and s_co[i] >= s_co[i - 1] - 0.0001
+		_ok("haz, final: el corte sube de %.2f a %.2f (sin bajar), la mano se apaga (brillo %.2f), la cola suelta humo (hasta %d bocanadas) y el nodo se libera" % [s_co[0], s_co[s_co.size() - 1], s_hl2[s_hl2.size() - 1], humo_vivo],
+			mono_co and s_co[s_co.size() - 1] > 0.98 and s_hl2[s_hl2.size() - 1] < 0.05 and humo_vivo > 0 and not is_instance_valid(hz))
+		var hay_humo: bool = false
+		for n in get_nodes_in_group("rescoldo_fuego"):
+			hay_humo = hay_humo or String(n.name) == "HumoFinal"
+		_ok("haz, final: el humo se descuelga al acabar el chorro y se disipa solo", hay_humo)
+		await create_timer(FuegoToy.PILAR_HUMO_VIDA_S + 0.4).timeout
+		_ok("haz, final: y se borra (quedan %d)" % get_nodes_in_group("rescoldo_fuego").size(), get_nodes_in_group("rescoldo_fuego").is_empty())
+		# el largo cortado por un muro se respeta: el chorro mide lo que llega hasta el tope y el humo sale dentro de ese largo
+		var hc: FuegoToy = FuegoToy.new()
+		hc.choques = [{"d": 1.0, "x": 0.0, "n": Vector3(0, 0, 1)}]
+		hc.definir(F.HAZ, 1.5, 0.5, 0.15)
+		_raiz.add_child(hc)
+		var largo_c: float = float(_p(hc, "Chorro", "largo"))
+		hc.corte = 0.9
+		var hfc: Node = hc.find_child("HumoFinal", true, false)
+		var fuera: bool = false
+		for st in hfc.call("estados"):
+			var zl: float = (hc.to_local(st["pos"]) as Vector3).z
+			if zl > 0.05 or zl < -largo_c - 0.05:
+				fuera = true
+		_ok("haz cortado por un muro: largo %.2f m (< 3) y el humo del final sale dentro de ese largo" % largo_c, largo_c < 2.0 and not fuera and int(hfc.call("vivas")) > 0)
+		hc.queue_free()
+	else:
+		hz.queue_free()
+		_ok("haz con HAZ_INICIO_FINAL = false: sin humo del final ni brillo que siga al chorro (como antes)", true)

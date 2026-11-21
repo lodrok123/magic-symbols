@@ -57,6 +57,10 @@ uniform float nucleo_claro : hint_range(0.0, 1.0) = 0.0;   // cuánto se aclara 
 uniform vec3 color_claro : source_color = vec3(1.0, 0.55, 0.30);
 uniform float remolino : hint_range(0.0, 1.0) = 0.5;   // distorsión tipo curl de las lenguas (en vez de un desplazamiento uniforme)
 uniform float abre_exp = 1.15;                         // >1: estrecho cerca de la mano y se abre sobre todo al final
+// 21/11 (inicio y final del haz, FuegoToy): los valores de serie son los de antes
+uniform float fino_ini : hint_range(0.0, 1.0) = 1.0;   // anchura del chorro cuando acaba de salir (× la entera): sale fino y engorda según avanza
+uniform float cola : hint_range(0.0, 1.0) = 0.7;       // dónde acaba la cola que se despega de la mano al cortarse (1 = se consume hasta la punta)
+uniform float avance : hint_range(0.0, 1.0) = 0.6;     // cuánto avanza (en largos) el chorro cortado
 group_uniforms;
 
 varying float v_p;       // 0 en el origen, 1 en la punta (en la forma que se mueve con el corte)
@@ -67,7 +71,7 @@ varying float v_w;       // semianchura real (m)
 void vertex() {
 	float lat = UV.x * 2.0 - 1.0;
 	float s = UV.y * 1.8;                              // posición a lo largo, en largos del haz (HAZ_LARGO_MALLA)
-	float desp = corte * 0.6;                          // el chorro cortado avanza
+	float desp = corte * avance;                          // el chorro cortado avanza
 	float sc = s - desp;
 	float g = max(crece, 0.03);
 	float p = sc / g;
@@ -82,7 +86,8 @@ void vertex() {
 	float w = base * bm * grosor * ancho;
 	w *= 1.0 + 0.3 * humo * smoothstep(0.5, 0.95, p);                            // la punta se ensancha (la bocanada de humo)
 	w *= sqrt(clamp(1.0 - smoothstep(0.8, 1.05, p), 0.0, 1.0));                 // punta redondeada
-	w *= mix(1.0, smoothstep(corte * 0.7 - 0.02, corte * 0.7 + 0.22, sc), step(0.001, corte));   // cola suelta: acaba en punta redondeada, no en corte recto
+	w *= mix(fino_ini, 1.0, smoothstep(0.0, 1.0, crece));
+	w *= mix(1.0, smoothstep(corte * cola - 0.02, corte * cola + 0.22, sc), step(0.001, corte));   // cola suelta: acaba en punta redondeada, no en corte recto
 	w = mix(w, r_origen * 0.3, step(p, 0.0));
 	vec3 c_w = (MODEL_MATRIX * vec4(0.0, 0.0, VERTEX.z, 1.0)).xyz;
 	vec3 eje = normalize((MODEL_MATRIX * vec4(0.0, 0.0, -1.0, 0.0)).xyz);
