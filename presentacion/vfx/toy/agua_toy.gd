@@ -76,6 +76,8 @@ const CASILLA_REF: float = 2.3          ## m: lo que mide una casilla del juego 
 const BOLA_INICIO_FINAL: bool = true
 const MURO_INICIO_FINAL: bool = true
 const PILAR_INICIO_FINAL: bool = true
+## 21/11 (Pablo: «dale al pilar de agua un aspecto uniforme, ahora tiene un cilindro interior»): el tubo NÚCLEO (más fino y más claro, dentro de la cortina) no se dibuja. A true, el de antes.
+const PILAR_NUCLEO: bool = false
 const BARRERA_INICIO_FINAL: bool = true
 const HAZ_INICIO_FINAL: bool = true
 const T_BOLA_NACER_IF: float = 0.6        ## s del nacer de la bola (antes 0,3)
@@ -997,6 +999,7 @@ func _pilar(c: Node3D) -> void:
 	pn["opacidad"] = 0.6
 	var nuc: MeshInstance3D = _mi_agua(c, "Nucleo", malla, AguaMallas.material(AguaMallas.SH_PILAR, pn, 1))
 	nuc.custom_aabb = caja
+	nuc.visible = PILAR_NUCLEO          # 21/11: sin él la columna se ve uniforme (sigue en _pil_tubos para no mover índices)
 	var pf: Dictionary = p.duplicate()
 	pf["falda"] = 1.0
 	pf["ritmo"] = 0.6
