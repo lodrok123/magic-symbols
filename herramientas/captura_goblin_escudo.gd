@@ -87,7 +87,28 @@ func _correr() -> void:
 				await _t_carbon()
 			"cerca":
 				await _t_cerca()
+			"porra":
+				await _t_mano_porra()
 	quit()
+
+
+## 21/11 (Pablo: «acércala a que la sujete desde la mano»): la mano DERECHA y la porra muy de cerca, desde cuatro lados, en reposo y a mitad del ataque.
+func _t_mano_porra() -> void:
+	await _goblin(true, false)
+	var imgs: Array = []
+	for fase in ["reposo", "ataque"]:
+		if fase == "ataque":
+			_modelo.jugar("attack", true)
+			await _frames(int(0.35 / DT))
+			_modelo.set_velocidad_animacion(0.0)
+		var hm: Array = _modelo.hueso_mundo("mixamorig_RightHand")
+		var p: Vector3 = ((hm[1] as Transform3D).origin if hm.size() == 2 else Vector3(0, 0.5, 0)) - _g.global_position
+		for dirv in [Vector3(0.0, 0.1, 1.0), Vector3(-1.0, 0.1, 0.0), Vector3(0.0, 0.1, -1.0), Vector3(0.7, 0.6, 0.7)]:
+			_cam(p + (dirv as Vector3).normalized() * 0.8, p, 0.35)
+			await _frames(2)
+			imgs.append(await _foto("mano_%s_%d" % [fase, imgs.size() + 1]))
+	_modelo.set_velocidad_animacion(1.0)
+	_hoja(imgs, "mano_porra", 4)
 
 
 ## 21/11 (Pablo: «una captura de cerca de cómo sujeta el goblin el escudo y la espada»): el torso y las dos manos, en reposo y a mitad del ataque, de frente, tres cuartos (los dos lados) y de lado.
