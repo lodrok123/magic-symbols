@@ -269,6 +269,31 @@ const SOFOCADO_ATURDE_S: float = 0.5            ## s de aturdido al sofocarlo co
 const LENTO_MOJADO_MULT: float = 2.0            ## × al `lento` de la tierra si estaba mojado
 const COLOR_COSTRA: Color = Color(0.75, 0.42, 0.22)     ## rótulo «¡Costra!»: barro cocido, rojizo (nunca amarillo)
 const COLOR_SOFOCADO: Color = Color(0.72, 0.58, 0.4)    ## rótulo «¡Sofocado!»: el ocre de la tierra
+
+## 21/11 · IA QUE LEE EL MUNDO (Pablo: «cuando haya fuentes de fuego que huyan, que rodeen el agua y los obstáculos en general»). Antes: el agua, los muros del mapa y los escalones ya se rodeaban
+## con la ruta por casillas (D2, `Caminos3D`), pero el fuego no existía para la IA (atravesaba un muro de fuego o un seto en llamas como si nada), las barreras de la jugadora solo las rodeaba
+## el modo táctico de una sala de prueba (`combate_tactico`) y un barril o un arbusto en la recta lo dejaba rozando contra él.
+##   HUIR      fuego PELIGROSO (zona viva de un hechizo de fuego o magma, o un objeto ARDIENDO: seto, tronco, barril) a menos de RADIO_MIEDO_FUEGO u → corre en sentido contrario al menos HUIDA_MIN_S s,
+##             sin atacar. Un brasero o una fogata encendidos, o el suelo quemado, son FUENTES: no asustan (los goblins viven junto a sus fogatas), pero no los pisa.
+##   RODEAR    las casillas con fuego (peligro o fuente) y las barreras vivas de la jugadora (`Lanzador3D.muros_tacticos`, si RODEA_MUROS) entran como obstáculos en la ruta y no las pisa con sus piernas
+##             (empujado, sí: el empuje manda). Tras una barrera no pega a través: la rodea.
+##   ATASCO    si al perseguir o volver apenas avanza durante ATASCO_S s (un barril, un arbusto en la recta), sigue la ruta por casillas ATASCO_RUTA_S s aunque la recta parezca libre.
+## No temen al fuego: el elemental (es una criatura de fuego y savia y pesa demasiado), quien es inmune al calor (gólem, limo de fuego) ni el arquero de puesto (no se mueve).
+static var MIEDO_FUEGO: bool = true             ## interruptor del miedo al fuego (huir y rodear el fuego)
+static var RODEA_MUROS: bool = true             ## interruptor: false = solo el modo táctico rodea las barreras de la jugadora (lo de antes)
+static var RODEA_SUELO_QUEMADO: bool = true     ## interruptor: false = el suelo quemado (8 s tras el fuego) no cuenta como fuego; si un pasillo entero queda quemado, no lo cruzan hasta que caduque
+const RADIO_MIEDO_FUEGO: float = 1.9            ## u del centro de una casilla con fuego peligroso por debajo de las que huye. La casilla mide 2,3 u: el borde del fuego está a 1,15, y el centro de la
+												## vecina a 2,3, así que rodear por la casilla de al lado NO asusta (si fuera > 2,3, huiría y volvería a perseguir sin parar); huye si el fuego le cae encima o pegado
+const HUIDA_MIN_S: float = 0.6                  ## s mínimos de huida una vez empezada (no tiembla en el borde del radio)
+const VEL_HUIDA_MULT: float = 1.15              ## × la velocidad de correr mientras huye
+const ATASCO_S: float = 0.35                    ## s avanzando menos de ATASCO_AVANCE de lo que debería para darse por atascado
+const ATASCO_AVANCE: float = 0.3                ## fracción del paso pedido por debajo de la cual cuenta como atasco
+const ATASCO_RUTA_S: float = 1.5                ## s que sigue la ruta por casillas tras atascarse
+const FUEGO_FUENTE: int = 1                     ## valor de casilla en `celdas_de_fuego`: brasero, fogata, suelo quemado (rodear, no huir)
+const FUEGO_PELIGRO: int = 2                    ## zona de hechizo de fuego o magma, objeto ardiendo (huir y rodear)
+const ZONAS_QUE_ARDEN: PackedStringArray = ["fuego", "magma"]
+static var _fuego_frame: int = -1
+static var _fuego_cache: Dictionary = {}
 ## 18/11 (ᛒ suelo, diseño de Pablo): la escarcha de ᛒ hace PATINAR a los enemigos pequeños y medianos, no a los grandes. Criterio de tamaño (no existía): la `masa` (goblin 1, chamán 0,9, limo 0,6 y
 ## 1,2 el grande, gato 0,5; elemental 3,3 y gólem 6). Patina quien pesa `MASA_MAX_PATINA` o menos. Patinar = perder el control `T_PATINA` s: desliza en la dirección en que iba, frenando poco a poco
 ## (`V_PATINA` u/s al empezar), sin andar ni atacar; después tiene `T_PATINA_INMUNE` s de agarre antes de poder volver a patinar (una capa de escarcha no lo deja deslizando sin fin).
@@ -360,6 +385,10 @@ var investiga: float = 0.0
 var cebo_pos: Vector3 = Vector3.ZERO
 var cebo_t: float = 0.0
 var enraizado: float = 0.0              ## R3 (6/11): s que le quedan sujeto por raíces (naturaleza): `vel_mult` 0 y `push` no lo mueve; el ataque no se le quita
+var _huida: float = 0.0                 ## 21/11: s que le quedan huyendo del fuego (HUIDA_MIN_S al empezar)
+var _dir_huida: Vector3 = Vector3.ZERO
+var _t_atasco: float = 0.0              ## 21/11: s seguidos avanzando casi nada
+var _forzar_ruta: float = 0.0           ## 21/11: s que le quedan siguiendo la ruta por casillas tras atascarse
 var costra: float = 0.0                 ## 21/11 (triángulo de la demo): s que le quedan con costra de tierra cocida; tierra o golpe F encima = ROTO (ver COSTRA_S)
 var stun_timer: float = 0.0
 var interrupcion: float = 0.0
@@ -1835,6 +1864,9 @@ func _ia(delta: float) -> void:
 	if cebo_t > 0.0:
 		_ia_cebo(delta, vel)                       # 11/11: el cebo de miel manda sobre todo lo demás mientras dure
 		return
+	_forzar_ruta = maxf(0.0, _forzar_ruta - delta)
+	if _huir_del_fuego(delta, vel):
+		return                                     # 21/11: el miedo al fuego manda sobre perseguir y patrullar (no sobre el cebo)
 	var ve: bool = _ve(RADIO_DETECCION if objetivo == null else RADIO_SOLTAR)
 	if ve:
 		if objetivo == null:
@@ -1885,7 +1917,7 @@ func _ia(delta: float) -> void:
 				_en_rango = false
 			if _marcha != null and _marcha.retirada > 0.0:
 				_en_rango = false                  # la hiena se retira tras morder: no espera pegada al jugador
-			if estado == "persigue" and _en_rango and not (combate_tactico and lanz != null and lanz.muro_entre(position, meta)):
+			if estado == "persigue" and _en_rango and not (_rodea_muros() and lanz.muro_entre(position, meta)):
 				moviendo = 0
 				_atacar(delta)
 			elif d.length() > 0.3:
@@ -1893,6 +1925,8 @@ func _ia(delta: float) -> void:
 				moviendo = 2 if vel > 0.8 and not elemental else 1       # el elemental anda siempre (enfurecido, 0,91 pasaría el umbral y pondría el clip de correr, que no tiene)
 				_v_avance = v_base("run") * vel
 				var dir_p: Vector3 = _dir_hacia(meta, delta)
+				if dir_p == Vector3.ZERO:
+					moviendo = 0                       # 21/11: esperando a que el fuego deje paso
 				var atras: bool = false
 				_modo_marcha = ""
 				if _marcha != null and estado == "persigue":
@@ -1906,7 +1940,9 @@ func _ia(delta: float) -> void:
 				var paso_p: Vector3 = dir_p * _v_avance * delta
 				if _marcha != null:
 					paso_p = _marcha.paso_suave(paso_p, delta, atras)
+				var antes_p: Vector3 = position
 				_mover_paso(paso_p, false, true)
+				_medir_atasco(antes_p, paso_p, delta)
 			else:
 				moviendo = 0
 		"vuelve":
@@ -1924,8 +1960,14 @@ func _ia(delta: float) -> void:
 				var paso_v: Vector3 = _dir_hacia(casa, delta) * _v_avance * delta
 				if _marcha != null:
 					paso_v = _marcha.paso_suave(paso_v, delta)
+				var antes_v: Vector3 = position
 				if not _mover_paso(paso_v, false, true):
-					estado = "patrulla"
+					if _forzar_ruta <= 0.0:
+						_forzar_ruta = ATASCO_RUTA_S      # 21/11: antes de rendirse y patrullar donde esté, lo intenta por la ruta
+					else:
+						estado = "patrulla"
+				else:
+					_medir_atasco(antes_v, paso_v, delta)
 		_:
 			_patrullar(delta, vel)
 
@@ -2011,8 +2053,8 @@ func _dir_patrulla(delta: float) -> Vector3:
 		_ruta.clear()
 		return recto
 	var punto := Vector3(casa.x + _direccion * DISTANCIA_PATRULLA, position.y, position.z)
-	var muros: Dictionary = lanz.muros_tacticos() if combate_tactico and lanz != null else {}
-	var muro_en_medio: bool = not muros.is_empty() and lanz.muro_entre(position, punto)
+	var muros: Dictionary = _obstaculos_ruta(punto)
+	var muro_en_medio: bool = not muros.is_empty() and _celdas_entre(position, punto, muros)
 	if not muro_en_medio and Terreno3D.linea_libre(position, punto) and Caminos3D.recta_andable(position, punto):
 		_ruta.clear()
 		return recto
@@ -2484,12 +2526,176 @@ func _dir_hacia(meta: Vector3, delta: float) -> Vector3:
 	if recto.length() < 0.0001:
 		return Vector3.ZERO
 	recto = recto.normalized()
-	var muros: Dictionary = lanz.muros_tacticos() if combate_tactico and lanz != null else {}
-	var muro_en_medio: bool = not muros.is_empty() and lanz.muro_entre(position, meta)
-	if elemental or (not muro_en_medio and Terreno3D.linea_libre(position, meta) and Caminos3D.recta_andable(position, meta)):
+	if elemental:
 		_ruta.clear()
 		return recto
-	return _seguir_ruta(meta, recto, muros, delta)
+	var muros: Dictionary = _obstaculos_ruta(meta)          # 21/11: barreras de la jugadora (RODEA_MUROS) y casillas con fuego (si lo teme)
+	var muro_en_medio: bool = not muros.is_empty() and _celdas_entre(position, meta, muros)
+	if _forzar_ruta <= 0.0 and not muro_en_medio and Terreno3D.linea_libre(position, meta) and Caminos3D.recta_andable(position, meta):
+		_ruta.clear()
+		return recto
+	var d: Vector3 = _seguir_ruta(meta, recto, muros, delta)
+	if _ruta.is_empty() and muro_en_medio and _celdas_entre(position, meta, _fuego_aqui()):
+		return Vector3.ZERO                  # 21/11: el fuego tapa el único paso: espera a que se apague (si no, andaría hacia él, huiría y volvería sin parar)
+	return d
+
+
+## 21/11 · ¿Rodea las barreras vivas de la jugadora? El modo táctico siempre; el resto si RODEA_MUROS (el elemental no: las embiste).
+func _rodea_muros() -> bool:
+	return lanz != null and is_instance_valid(lanz) and (combate_tactico or (RODEA_MUROS and not elemental))
+
+
+## 21/11 · ¿Le da miedo el fuego? (ver MIEDO_FUEGO)
+func teme_fuego() -> bool:
+	return MIEDO_FUEGO and not elemental and not muerto and not fijo and not inmune_a("calor") and not inmune_a("fuego")
+
+
+## 21/11 · Casillas con fuego del mundo, Vector2i -> FUEGO_PELIGRO / FUEGO_FUENTE. Se calcula una vez por fotograma de física para todos los enemigos (`olvidar_fuego` lo fuerza).
+##   peligro: zonas vivas de fuego o magma del lanzador (`_zonas_v2`) y objetos ARDIENDO (`Reactivo3D`: seto, tronco, barril…)
+##   fuente:  braseros y fogatas encendidos (arden pero no se propagan) y el suelo QUEMADA. La lava no hace falta: ya bloquea sus casillas.
+static func celdas_de_fuego(arbol: SceneTree, l: Lanzador3D) -> Dictionary:
+	var f: int = Engine.get_physics_frames()
+	if f == _fuego_frame:
+		return _fuego_cache
+	_fuego_frame = f
+	var r: Dictionary = {}
+	if Terreno3D.estados != null and RODEA_SUELO_QUEMADO:
+		for c in Terreno3D.estados.celdas(EstadosSuelo3D.QUEMADA):
+			r[c] = FUEGO_FUENTE
+	if arbol != null:
+		for n in arbol.get_nodes_in_group(Reactivo3D.GRUPO_REACTIVO):
+			if not is_instance_valid(n) or not (n is Reactivo3D) or not (n as Node).is_inside_tree():
+				continue
+			var o: Reactivo3D = n
+			if o.estado == Reactivo3D.EstadoObj.ARDIENDO:
+				r[Terreno3D.celda_de(o.global_position)] = FUEGO_PELIGRO
+			elif o.esta_ardiendo():
+				var c2: Vector2i = Terreno3D.celda_de(o.global_position)
+				if int(r.get(c2, 0)) < FUEGO_FUENTE:
+					r[c2] = FUEGO_FUENTE
+	if l != null and is_instance_valid(l):
+		for z in l._zonas_v2:
+			if is_instance_valid(z) and not (z as Node).is_queued_for_deletion() and ZONAS_QUE_ARDEN.has(String(z.elemento)) and float(z.vida) > 0.0:
+				for c3 in (z.celdas as Dictionary):
+					r[c3] = FUEGO_PELIGRO
+	_fuego_cache = r
+	return r
+
+
+## 21/11 · Que la próxima consulta de `celdas_de_fuego` vuelva a mirar el mundo (las pruebas encienden algo y preguntan en el mismo fotograma).
+static func olvidar_fuego() -> void:
+	_fuego_frame = -1
+
+
+func _fuego_aqui() -> Dictionary:
+	if not teme_fuego() or not is_inside_tree():
+		return {}
+	return celdas_de_fuego(get_tree(), lanz)
+
+
+## 21/11 · Obstáculos para la ruta hacia `meta`: barreras de la jugadora (si las rodea) + casillas con fuego (si lo teme). Nunca su casilla ni la de la meta (si no, no habría ruta).
+func _obstaculos_ruta(meta: Vector3) -> Dictionary:
+	var muros: Dictionary = lanz.muros_tacticos() if _rodea_muros() else {}
+	var fuego: Dictionary = _fuego_aqui()
+	if fuego.is_empty():
+		return muros
+	var r: Dictionary = muros.duplicate()
+	r.merge(fuego)
+	r.erase(Terreno3D.celda_de(position))
+	r.erase(Terreno3D.celda_de(meta))
+	return r
+
+
+## 21/11 · ¿Cruza el CUERPO que va en recta de `a` a `b` alguna de `celdas` (sin contar la de salida)? Como `Lanzador3D.muro_entre`, pero más fino (cada 0,1 casilla) y con el ancho del cuerpo
+## (la recta y dos paralelas a ±radio): con muestras cada 0,25 casilla y sin ancho, una recta que rozaba la esquina de una casilla con fuego pasaba por libre, el goblin iba derecho, chocaba con el
+## borde y se asustaba.
+func _celdas_entre(a: Vector3, b: Vector3, celdas: Dictionary) -> bool:
+	if celdas.is_empty():
+		return false
+	var d := Vector3(b.x - a.x, 0.0, b.z - a.z)
+	var largo: float = d.length()
+	if largo < 0.0001:
+		return false
+	var lado: Vector3 = Vector3(-d.z, 0.0, d.x) / largo * _radio_cuerpo()
+	var pasos: int = maxi(1, ceili(largo / (Terreno3D.casilla * 0.1)))
+	var inicio: Vector2i = Terreno3D.celda_de(a)
+	for i in range(1, pasos + 1):
+		var p: Vector3 = a.lerp(b, float(i) / pasos)
+		for q: Vector3 in [p, p + lado, p - lado]:
+			var c: Vector2i = Terreno3D.celda_de(q)
+			if c != inicio and celdas.has(c):
+				return true
+	return false
+
+
+## 21/11 · Hacia dónde huir del fuego PELIGROSO a menos de RADIO_MIEDO_FUEGO: la suma de los «lejos de» cada casilla, pesados por lo cerca que está. ZERO = nada que temer.
+func direccion_huida() -> Vector3:
+	var fuego: Dictionary = _fuego_aqui()
+	if fuego.is_empty():
+		return Vector3.ZERO
+	var r := Vector3.ZERO
+	for c in fuego:
+		if int(fuego[c]) < FUEGO_PELIGRO:
+			continue
+		var d: Vector3 = position - Terreno3D.centro_de(c)
+		d.y = 0.0
+		var l: float = d.length()
+		if l > RADIO_MIEDO_FUEGO:
+			continue
+		if l < 0.05:
+			d = -mirada if mirada.length() > 0.01 else Vector3(1, 0, 0)        # en el centro mismo del fuego: hacia atrás
+			l = 0.05
+		r += d / l * ((RADIO_MIEDO_FUEGO - l) / RADIO_MIEDO_FUEGO + 0.05)
+	r.y = 0.0
+	return r.normalized() if r.length() > 0.001 else Vector3.ZERO
+
+
+## 21/11 · HUIR DEL FUEGO. true = este fotograma huye (y `_ia` no hace nada más). Sin atacar, corriendo en sentido contrario; si choca, prueba de lado.
+func _huir_del_fuego(delta: float, vel: float) -> bool:
+	if not teme_fuego():
+		_huida = 0.0
+		return false
+	var lejos: Vector3 = direccion_huida()
+	if lejos != Vector3.ZERO:
+		if _huida <= 0.0:
+			texto("¡Fuego!", COLOR_LLAMARADA, 0.4)
+			PlayLog.event("enemigo_huye_fuego", {"nombre": nombre})
+		_huida = HUIDA_MIN_S
+		_dir_huida = lejos
+	elif _huida > 0.0:
+		_huida -= delta
+	if _huida <= 0.0:
+		return false
+	_cancelar_ataque()
+	_carga = 0.0
+	_en_rango = false
+	_modo_marcha = ""
+	moviendo = 2
+	_v_avance = v_base("run") * vel * VEL_HUIDA_MULT
+	mirada = _dir_huida
+	var paso: Vector3 = _dir_huida * _v_avance * delta
+	if not _mover_paso(paso):
+		var lado := Vector3(-_dir_huida.z, 0.0, _dir_huida.x)
+		if not _mover_paso(lado * paso.length()):
+			_mover_paso(-lado * paso.length())
+	return true
+
+
+## 21/11 · ATASCO: si el paso real es mucho menor que el pedido durante ATASCO_S s, sigue la ruta por casillas ATASCO_RUTA_S s (un barril o un arbusto en la recta).
+func _medir_atasco(antes: Vector3, paso: Vector3, delta: float) -> void:
+	var pedido: float = Vector2(paso.x, paso.z).length()
+	if pedido < 0.0001:
+		_t_atasco = 0.0
+		return
+	var hecho: float = Vector2(position.x - antes.x, position.z - antes.z).length()
+	if hecho < pedido * ATASCO_AVANCE:
+		_t_atasco += delta
+		if _t_atasco >= ATASCO_S and _forzar_ruta <= 0.0:
+			_forzar_ruta = ATASCO_RUTA_S
+			_t_ruta = 0.0                        # que la ruta se calcule ya
+			_t_atasco = 0.0
+	else:
+		_t_atasco = 0.0
 
 
 ## La mitad de `_dir_hacia` que sigue (y recalcula cuando toca) la ruta por casillas hasta `meta`, sin mirar si la recta está libre: ya lo decidió quien llama (13/11, tarea 19: la patrulla
@@ -2562,7 +2768,10 @@ func _puede_estar(p: Vector3, empujado: bool = false, por_ruta: bool = false) ->
 ## 28/10 · A2: `_puede_estar` mirando desde una posición cualquiera `desde` (la del cuerpo, o la simulada de `prever_empuje`): una sola regla para el paso real y la previsión.
 func _puede_estar_desde(desde: Vector3, p: Vector3, empujado: bool = false, por_ruta: bool = false) -> bool:
 	var c: Vector2i = Terreno3D.celda_de(p)
-	if combate_tactico and lanz != null and c != Terreno3D.celda_de(desde) and lanz.muros_tacticos().has(c):
+	if _rodea_muros() and c != Terreno3D.celda_de(desde) and lanz.muros_tacticos().has(c):
+		return false
+	# 21/11: con sus piernas no entra en una casilla con fuego si lo teme (empujado, sí). Salir de una, siempre.
+	if not empujado and c != Terreno3D.celda_de(desde) and _fuego_aqui().has(c):
 		return false
 	# A3: un cuerpo EMPUJADO entra en el agua honda no helada (no hay suelo que lo frene: por eso se hunde en `_ajustar_al_suelo`). Con sus piernas, nunca:
 	# por eso esta salida va antes de las comprobaciones de suelo y solo existe con `empujado`. Misma regla de agua que el jugador usa para nadar (`_es_agua_honda`).
