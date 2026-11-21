@@ -85,7 +85,27 @@ func _correr() -> void:
 				await _t_bloqueo()
 			"carbon":
 				await _t_carbon()
+			"cerca":
+				await _t_cerca()
 	quit()
+
+
+## 21/11 (Pablo: «una captura de cerca de cómo sujeta el goblin el escudo y la espada»): el torso y las dos manos, en reposo y a mitad del ataque, de frente, tres cuartos (los dos lados) y de lado.
+func _t_cerca() -> void:
+	await _goblin(true, false)
+	var imgs: Array = []
+	var vistas: Array = [["frente", Vector3(0.0, 0.55, 1.3)], ["tres_cuartos_izq", Vector3(-1.0, 0.6, 0.9)], ["tres_cuartos_der", Vector3(1.0, 0.6, 0.9)], ["lado", Vector3(1.3, 0.55, 0.0)]]
+	for fase in ["reposo", "ataque"]:
+		if fase == "ataque":
+			_modelo.jugar("attack", true)
+			await _frames(int(0.35 / DT))
+			_modelo.set_velocidad_animacion(0.0)              # congela el golpe a mitad
+		for v in vistas:
+			_cam(v[1] as Vector3, Vector3(0.0, 0.5, 0.0), 0.75)
+			await _frames(2)
+			imgs.append(await _foto("cerca_%s_%s" % [fase, v[0]]))
+	_modelo.set_velocidad_animacion(1.0)
+	_hoja(imgs, "cerca", 4)
 
 
 ## 21/11: el escudo de cerca, entero y carbonizándose (0, 50 y 100 % de la quema), sin el bucle del brazo (para ver solo la capa).
