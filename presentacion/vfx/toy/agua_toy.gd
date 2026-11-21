@@ -66,6 +66,41 @@ const T_OLA_MORIR: float = 1.9
 const T_PILAR_NACER: float = 0.6
 const T_PILAR_MORIR: float = 1.6          ## (antes 1,2: la columna aterriza a corte 0,5 y la lámina radial se abre en la otra mitad)
 const CASILLA_REF: float = 2.3          ## m: lo que mide una casilla del juego (Terreno3D.casilla); el alcance de las láminas del suelo se da en casillas
+## 21/11 INICIO Y FINAL de las cinco formas (cada una con su interruptor; a false, la forma de antes: aparece y desaparece como hasta ahora). Todo cuelga de dos números que anima el AnimationPlayer
+## («nacer» lleva `inicio_t` de 0 a 1 y «morir» lleva `final_t` de 0 a 1); con los valores por defecto (1 y 0) el estado activo es EXACTAMENTE el de antes, y `inicio_final` del nodo los apaga todos.
+##   BOLA: nace de gotitas que convergen y se condensan en la esfera; al morir se hincha un poco, REVIENTA en salpicadura (ImpactoAguaToy FIN) y deja un charquito (GOLPE bajo ella).
+##   MURO: antes de subir hay una LÍNEA DE ESPUMA en el suelo que se abre del centro a los extremos y burbujea; después sube la ola. La rotura hacia delante (16/11) es el final; al acabar queda la espuma, que se RETIRA.
+##   PILAR: el charco burbujea; sale un chorro FINO que sube y engorda; al caer deja el charco (más protagonista), que se ENCOGE y se va.
+##   BARRERA: un anillo de espuma se abre en el suelo y la membrana SUBE desde el borde; al expirar CAE como una cortina y salpica en el borde.
+##   HAZ: el chorro sale de la mano con un chorrito de gotas y avanza hasta su largo; al cortarse gotea de la mano y la cola cae en gotas.
+const BOLA_INICIO_FINAL: bool = true
+const MURO_INICIO_FINAL: bool = true
+const PILAR_INICIO_FINAL: bool = true
+const BARRERA_INICIO_FINAL: bool = true
+const HAZ_INICIO_FINAL: bool = true
+const T_BOLA_NACER_IF: float = 0.6        ## s del nacer de la bola (antes 0,3)
+const T_BOLA_MORIR_IF: float = 0.55       ## s del morir de la bola (antes 0,5): se hincha hasta la mitad y revienta
+const BOLA_REVIENTA_EN: float = 0.5       ## fracción del morir a la que revienta
+const BOLA_HINCHA: float = 0.18           ## cuánto se hincha antes de reventar (× su tamaño)
+const BOLA_CHARCO: float = 0.8            ## radio del charquito que deja (× el de la bola)
+const T_HAZ_NACER_IF: float = 0.5         ## s que tarda el chorro en llegar a su largo (antes 0,4)
+const T_HAZ_MORIR_IF: float = 1.15        ## s del morir del haz (antes 1,0); el corte sigue durando 1,0 y el resto la cola cae
+const HAZ_MANO_GOTAS: float = 38.0        ## gotas por segundo que salen/gotean de la mano al empezar y al cortarse
+const T_OLA_NACER_IF: float = 1.15        ## s del nacer del muro (antes 0,75): línea de espuma y luego sube
+const T_OLA_MORIR_IF: float = 2.5         ## s del morir del muro (antes 1,9): la rotura dura lo mismo y después la espuma se retira
+const OLA_LINEA_FRAC: float = 0.3         ## fracción del nacer en la que la línea de espuma llega a los extremos (la ola aún no sube)
+const OLA_COLA_DESDE: float = 0.76        ## fracción del morir a partir de la cual la espuma se retira
+const T_PILAR_NACER_IF: float = 1.0       ## s del nacer del géiser (antes 0,6): burbujeo y chorro fino que engorda
+const T_PILAR_MORIR_IF: float = 2.1       ## s del morir del géiser (antes 1,6): la columna cae igual y el charco se encoge al final
+const PILAR_FINO_INI: float = 0.22        ## grosor del chorro al brotar (× el final)
+const PILAR_BURBUJEO_FRAC: float = 0.25   ## fracción del nacer que es solo burbujeo
+const PILAR_COLA_DESDE: float = 0.76      ## fracción del morir a partir de la cual el charco se encoge
+const PILAR_CHARCO_ENCOGE: float = 0.5    ## tamaño final del charco (× el que tiene al terminar de caer)
+const T_BARRERA_NACER_IF: float = 0.9     ## s que tarda la membrana en formarse
+const T_BARRERA_MORIR_IF: float = 1.0     ## s que tarda en caer
+const GOTAS_RESERVA_BARRERA: int = 48     ## huecos de la reserva de gotas de la barrera (salpicadura del borde)
+const N_ESPUMA_BARRERA: int = 14          ## franjas del anillo de espuma del borde de la barrera
+const BARRERA_SUBE_DESDE: float = 0.2     ## fracción del nacer a partir de la cual la membrana empieza a subir (antes, solo el anillo del suelo)
 
 @export_group("Figura y ejes (m)")
 @export var figura: Figura = Figura.BOLA: set = _set_figura
@@ -76,6 +111,11 @@ const CASILLA_REF: float = 2.3          ## m: lo que mide una casilla del juego 
 ## HAZ: `crece` (0 → 1: el chorro sale del origen; lo anima «nacer») y `corte` (0 → 1: se suelta del origen, avanza y se rompe en gotas que caen; lo anima «morir»).
 @export_range(0.0, 1.0, 0.01) var crece: float = 1.0: set = _set_crece
 @export_range(0.0, 1.0, 0.01) var corte: float = 0.0: set = _set_corte
+## 21/11 inicio y final: `inicio_final` los apaga todos (false = como antes); `inicio_t` (0 → 1) lo anima «nacer» y `final_t` (0 → 1) lo anima «morir». En reposo valen 1 y 0 (estado activo de siempre).
+@export_group("Inicio y final")
+@export var inicio_final: bool = true
+@export_range(0.0, 1.0, 0.01) var inicio_t: float = 1.0
+@export_range(0.0, 1.0, 0.01) var final_t: float = 0.0
 @export_group("Carga del hechizo")
 @export_range(0.03, 0.6, 0.01) var carga_tam_inicial: float = 0.12
 @export_range(0.3, 3.0, 0.05) var carga_curva: float = 0.8
@@ -158,6 +198,19 @@ var _ola_acc: float = 0.0
 var _ola_acc2: float = 0.0
 var _ola_charco_u: float = 0.0
 var _ola_franjas_datos: Array = []           ## (pruebas) [{pos, largo, alfa}]
+var _ola_acc3: float = 0.0
+var _pil_acc4: float = 0.0
+var _pil_tubos: Array = []                   ## PILAR: los tres tubos (cortina, núcleo, falda) para afinarlos al brotar
+var _pil_charco_lado: float = 1.0            ## PILAR: lado del quad del charco en reposo
+var _bola_fase: int = 0                      ## BOLA: 0 nada, 1 naciendo (gotitas que convergen), 2 muriendo (se hincha y revienta)
+var _bola_reventada: bool = false
+var _bola_impactada: bool = false
+var _acc_mano: float = 0.0
+var _bar_mi: MeshInstance3D = null           ## BARRERA: el elipsoide provisional
+var _bar_fra: MultiMeshInstance3D = null     ## BARRERA: anillo de espuma del borde
+var _bar_acc: float = 0.0
+var _bar_acc2: float = 0.0
+var _bar_espuma_datos: Array = []            ## (pruebas) [{pos, largo, alfa}]
 
 
 func _ready() -> void:
@@ -176,8 +229,35 @@ func _set_figura(v: Figura) -> void:
 
 
 func _set_crece(v: float) -> void:
-	crece = v
-	_param_mats("crece", v)
+	crece = maxf(v, 0.0)                      # (21/11: la animación cúbica de «nacer» con tramos quietos puede asomar por debajo de 0)
+	_param_mats("crece", crece)
+
+
+## ¿Tiene esta figura inicio y final (interruptor de la figura y `inicio_final` del nodo)?
+func inicio_final_activo() -> bool:
+	if not inicio_final:
+		return false
+	match figura:
+		Figura.BOLA:
+			return BOLA_INICIO_FINAL
+		Figura.MURO:
+			return MURO_INICIO_FINAL
+		Figura.PILAR:
+			return PILAR_INICIO_FINAL
+		Figura.BARRERA:
+			return BARRERA_INICIO_FINAL
+		Figura.HAZ:
+			return HAZ_INICIO_FINAL
+	return false
+
+
+## Cuánto lleva de inicio (1 = ya está del todo, también sin inicio_final) y de final (0 = aún no empieza).
+func _ini() -> float:
+	return inicio_t if inicio_final_activo() else 1.0
+
+
+func _fin() -> float:
+	return final_t if inicio_final_activo() else 0.0
 
 
 func _set_corte(v: float) -> void:
@@ -462,7 +542,62 @@ func explotar_area(pos: Vector3, radio: float = -1.0) -> Node3D:
 	return imp
 
 
+## BOLA con inicio y final: «nacer» hace converger gotitas que se condensan en la esfera; «morir» la hincha, la revienta en salpicadura y deja un charquito. Con choque (impactar_en) manda el impacto de siempre.
+func lanzar(v: float = -1.0) -> void:
+	super.lanzar(v)
+	_bola_fase = 0
+	_bola_reventada = false
+	if figura == Figura.BOLA and inicio_final_activo() and _est == EstadoCarga.NINGUNA and not proyectil and _cuerpo != null:
+		_bola_fase = 1
+		_c_r = maxf(semieje_x, semieje_z)
+		_montar_carga()
+		aparicion = 0.0                           # el setter pone la esfera pequeña y las gotitas lejos; la animación sigue desde ahí
+
+
+func morir() -> void:
+	if figura == Figura.BOLA and inicio_final_activo() and not _bola_impactada and _est == EstadoCarga.NINGUNA and not proyectil and not _muriendo and _cuerpo != null:
+		_bola_fase = 2
+		_quitar_visual_carga(0.1)
+	super.morir()
+
+
+## Con el inicio y el final de la bola, `aparicion` (que anima «nacer» / «morir») no aplasta la esfera: la hace crecer de gotitas o la hincha hasta reventar.
+func _set_aparicion(v: float) -> void:
+	super(v)
+	if figura != Figura.BOLA or _bola_fase == 0 or not _listo or _cuerpo == null:
+		return
+	if _bola_fase == 1:
+		var e: float = lerpf(0.2, 1.0, smoothstep(0.25, 1.0, v))
+		_cuerpo.scale = Vector3.ONE * e
+		_param_mats("vida", smoothstep(0.08, 0.55, v))
+		if _c_visual != null and is_instance_valid(_c_visual):
+			_c_visual.call("poner", e, v)
+		if v >= 0.999:
+			_bola_fase = 0
+			_cuerpo.scale = Vector3.ONE
+			_quitar_visual_carga(0.25)
+	else:
+		var u: float = 1.0 - v
+		if u < BOLA_REVIENTA_EN:
+			_cuerpo.scale = Vector3.ONE * (1.0 + BOLA_HINCHA * smoothstep(0.0, BOLA_REVIENTA_EN, u))
+			_param_mats("vida", 1.0)
+		else:
+			_cuerpo.visible = false
+			if not _bola_reventada:
+				_bola_reventada = true
+				_reventar_bola()
+
+
+## La bola revienta: sus gotas caen (FIN, en el aire) y bajo ella se abre un charquito (GOLPE en el suelo).
+func _reventar_bola() -> void:
+	var r: float = maxf(semieje_x, semieje_z)
+	_crear_impacto(ImpactoAguaToy.Variante.FIN, Vector3.UP, -1.0, global_position)
+	_crear_impacto(ImpactoAguaToy.Variante.GOLPE, Vector3.UP, r * BOLA_CHARCO, global_position - Vector3(0.0, altura_suelo, 0.0))
+	_soltar_gotas()
+
+
 func impactar_en(pos: Vector3, normal: Vector3 = Vector3.UP, escala: float = -1.0) -> Node3D:
+	_bola_impactada = true
 	var imp: Node3D
 	if area_al_impactar:
 		imp = explotar_area(pos, escala)
@@ -591,6 +726,9 @@ func _construir() -> void:
 	_ola_t = 0.0
 	_ola_avance = 0.0
 	_pil_cr_ant = 0.0
+	_pil_tubos = []
+	_bar_mi = null
+	_bar_fra = null
 	tam_referencia = Vector3(semieje_x, semieje_y, semieje_z) * 2.0
 	_avance_cabeza = 0.0
 	if figura == Figura.BOLA:
@@ -780,10 +918,22 @@ func _emitir_haz(delta: float) -> void:
 	var largo: float = _haz_largo
 	var r: float = _haz_r
 	var vive: float = smoothstep(0.1, 0.9, cr) * (1.0 - smoothstep(0.85, 1.0, co)) * clampf(chispas, 0.0, 1.0)
-	if vive <= 0.001:
-		return
 	var tr: Transform3D = global_transform
 	var bas: Basis = tr.basis
+	# 21/11 inicio y final: al salir, un chorrito de gotas sale de la mano hacia delante; al cortarse, la mano GOTEA (el chorro ya está suelto y la cola cae en gotas, más abajo)
+	if inicio_final_activo():
+		var sale: float = smoothstep(0.02, 0.12, cr) * (1.0 - smoothstep(0.3, 0.8, cr)) * (1.0 - smoothstep(0.0, 0.1, co))
+		var gotea: float = smoothstep(0.0, 0.1, co) * (1.0 - smoothstep(0.35, 0.7, co))
+		_acc_mano += HAZ_MANO_GOTAS * (sale + gotea) * clampf(chispas, 0.0, 1.0) * delta
+		while _acc_mano >= 1.0:
+			_acc_mano -= 1.0
+			var mano: Vector3 = tr * Vector3(randf_range(-0.5, 0.5) * r, _haz_alt + randf_range(-0.3, 0.3) * r, -randf_range(0.0, 0.25))
+			if sale > gotea:
+				g.call("emitir", mano, bas * Vector3(randf_range(-0.6, 0.6), randf_range(0.3, 1.4), -randf_range(1.2, 3.0)), randf_range(0.35, 0.6), randf_range(0.04, 0.09), 0, 0.9, randf(), 1.0)
+			else:
+				g.call("emitir", mano, bas * Vector3(randf_range(-0.2, 0.2), randf_range(-0.2, 0.3), -randf_range(0.0, 0.4)), randf_range(0.4, 0.7), randf_range(0.05, 0.1), 0, 0.9, randf(), 1.0)
+	if vive <= 0.001:
+		return
 	# 1) a lo largo: gotitas que se despegan del chorro y caen
 	_acc_haz += 24.0 * vive * delta
 	while _acc_haz >= 1.0:
@@ -855,6 +1005,7 @@ func _pilar(c: Node3D) -> void:
 	_pil_falda = _mi_agua(c, "Falda", malla, AguaMallas.material(AguaMallas.SH_PILAR, pf, 0))
 	_pil_falda.custom_aabb = caja
 	_pil_mats = [cortina.material_override, nuc.material_override, _pil_falda.material_override]
+	_pil_tubos = [cortina, nuc, _pil_falda]
 	# charco / anillos de ondas en el suelo
 	var q: QuadMesh = QuadMesh.new()
 	q.size = Vector2.ONE
@@ -867,6 +1018,7 @@ func _pilar(c: Node3D) -> void:
 	# en VIDA es un disco mojado discreto pegado a la base (16/11: con anillos de 2,4× el radio tapaba el pilar bajo y ancho): el disco ocupa ≈ 0,78 de la mitad del quad con u = 0,45
 	var lado: float = 2.0 * (rad * 1.6 + 0.15) / 0.78
 	_pil_charco.scale = Vector3(lado, 1.0, lado)
+	_pil_charco_lado = lado
 	_pil_charco.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	c.add_child(_pil_charco)
 	# lámina radial del colapso: crece hasta radio·2 + 0,35·alto (tope 4,5 m) y es IGUAL en todas las direcciones
@@ -927,9 +1079,29 @@ func _avanzar_pilar(delta: float) -> void:
 	# charco: anillos que salen de la base al nacer; al morir se ensancha y se va
 	# (16/11) los anillos grandes solo son una onda breve al brotar (el grosor se va a 0 al asentarse); al morir el disco se queda hasta el final y se va tarde, y la ONDA que se abre en redondo es la lámina
 	_pil_charco_u = 0.45 * smoothstep(0.0, 0.9, grow) if co <= 0.0 else 0.45 + 0.55 * smoothstep(0.6, 1.0, co)
+	# 21/11 inicio y final: burbujeo (el charco ya está antes de que brote el chorro) y, al caer, el charco GANA protagonismo (se queda, algo más ancho) y al terminar se ENCOGE y se va
+	var con: bool = inicio_final_activo()
+	var ini: float = inicio_t if con else 1.0
+	var fin: float = final_t if con else 0.0
+	var retiene: float = smoothstep(0.0, 0.05, fin)             # 0 con los valores de reposo: nada cambia
+	var cola: float = smoothstep(PILAR_COLA_DESDE, 1.0, fin)
+	var charco_vida: float = 1.0
+	var charco_esc: float = 1.0
+	if con:
+		_pil_charco_u = maxf(_pil_charco_u, 0.32 * smoothstep(0.0, 0.18, ini) * (1.0 - smoothstep(0.4, 0.8, ini)))
+		_pil_charco_u = lerpf(_pil_charco_u, 0.45 + 0.3 * smoothstep(0.55, 1.0, co), retiene)      # tope bajo el 0,78 de «se_va»: sigue visible hasta que se encoge
+		charco_esc = lerpf(1.0, 1.0 + 0.25 * smoothstep(0.5, 1.0, co), retiene) * lerpf(1.0, PILAR_CHARCO_ENCOGE, cola)
+		charco_vida = 1.0 - smoothstep(0.4, 1.0, cola)
+	_pil_charco.scale = Vector3(_pil_charco_lado * charco_esc, 1.0, _pil_charco_lado * charco_esc)
 	var mch: ShaderMaterial = _pil_charco.material_override as ShaderMaterial
 	mch.set_shader_parameter("u", _pil_charco_u)
+	mch.set_shader_parameter("vida", charco_vida)
 	mch.set_shader_parameter("grosor", maxf(0.075 * (1.0 - smoothstep(0.35, 0.75, _pil_t_vivo)), 0.001))
+	# el chorro brota FINO y engorda (los tres tubos se afinan hacia el eje)
+	if con and _pil_tubos.size() == 3:
+		var fino: float = lerpf(PILAR_FINO_INI, 1.0, smoothstep(0.2, 0.85, ini))
+		for tb in _pil_tubos:
+			(tb as Node3D).scale = Vector3(fino, 1.0, fino)
 	# lámina radial del colapso: la columna llega al suelo hacia corte 0,5-0,7; la lámina sale entonces, se abre por igual, frena, se adelgaza, deja un anillo y se va
 	var lam: float = smoothstep(0.45, 1.0, co)
 	var mlm: ShaderMaterial = _pil_lamina.material_override as ShaderMaterial
@@ -946,11 +1118,16 @@ func _avanzar_pilar(delta: float) -> void:
 	for i in N_ESPUMA_BASE:
 		var f: float = float(i) / float(N_ESPUMA_BASE)
 		var ang: float = TAU * f + 0.25 * sin(float(i) * 2.9) + tt * 0.08
-		var rr: float = rad * (1.12 if i % 2 == 0 else 1.5) + 0.16 + 0.25 * co * (0.6 + 0.4 * f)
+		var rr: float = (rad * (1.12 if i % 2 == 0 else 1.5) + 0.16 + 0.25 * co * (0.6 + 0.4 * f)) * lerpf(1.0, PILAR_CHARCO_ENCOGE, cola)
 		var pos: Vector3 = Vector3(cos(ang) * rr, 0.03 + 0.02 * float(i % 2) + 0.06 * co * (1.0 - co), sin(ang) * rr)
 		var largo: float = clampf(TAU * rr / float(N_ESPUMA_BASE) * (1.9 if i % 2 == 0 else 1.5), 0.3, 2.0) * (0.5 + 0.5 * grow) * (1.0 + 0.5 * co)
 		var ancho: float = (0.16 + 0.07 * fposmod(f * 7.3, 1.0)) * (0.7 + rm * 0.8) * (0.4 + 0.6 * grow)
 		var al: float = 0.9 * smoothstep(0.0, 0.25, cr) * (1.0 - smoothstep(0.35, 0.95, co))
+		if con:
+			# la espuma del borde ya está durante el burbujeo, no se va con la caída (se queda al borde del charco) y se retira con él al final
+			var al_ini: float = 0.8 * smoothstep(0.0, 0.2, ini) * (1.0 - smoothstep(0.35, 0.6, ini))
+			al = maxf(al, al_ini)
+			al = lerpf(al, 0.9 * (1.0 - smoothstep(0.35, 0.95, co) * 0.6) * (1.0 - cola), retiene)
 		AguaMallas.franja_poner(mf, i, pos, largo, ancho, al, 0.5 + 0.5 * fposmod(f * 3.7, 1.0), -ang - PI * 0.5, f * 9.0)
 		_pil_esp_datos[i] = {"pos": pos, "tam": largo, "alfa": al}
 	for k in N_ESPUMA_CRESTA:
@@ -981,6 +1158,19 @@ func _emitir_pilar(delta: float) -> void:
 	var bas: Basis = tr.basis
 	var top: float = pilar_cresta()
 	var vive: float = clampf(chispas, 0.0, 1.0)
+	# 0) burbujeo del inicio: burbujas y gotitas que brotan del charco antes de que salga el chorro
+	if inicio_final_activo():
+		var burb: float = smoothstep(0.0, 0.1, inicio_t) * (1.0 - smoothstep(0.3, 0.55, inicio_t))
+		_pil_acc4 += 22.0 * burb * vive * delta
+		while _pil_acc4 >= 1.0:
+			_pil_acc4 -= 1.0
+			var angb: float = randf() * TAU
+			var rb: float = randf_range(0.1, 1.1)
+			var locb: Vector3 = Vector3(cos(angb) * rx * rb, 0.06, sin(angb) * rz * rb)
+			if randf() < 0.6:
+				g.call("emitir", tr * locb, bas * Vector3(randf_range(-0.1, 0.1), randf_range(0.25, 0.6), randf_range(-0.1, 0.1)), randf_range(0.5, 0.8), randf_range(0.05, 0.1), 1, 0.9, randf(), 1.0)
+			else:
+				g.call("emitir", tr * locb, bas * Vector3(cos(angb) * 0.5, randf_range(1.2, 2.2), sin(angb) * 0.5), randf_range(0.4, 0.6), randf_range(0.04, 0.08), 0, 0.9, randf(), 1.0)
 	# 1) desde la cresta: suben y caen alrededor (al brotar, muchas; luego alguna)
 	_pil_acc += (34.0 * dcr + 14.0 * smoothstep(0.7, 1.0, cr) * (1.0 - smoothstep(0.0, 0.3, co))) * vive * delta
 	while _pil_acc >= 1.0:
@@ -1117,6 +1307,12 @@ func _avanzar_ola(delta: float) -> void:
 	var alto: float = semieje_y
 	var tt: float = Time.get_ticks_msec() * 0.001 * velocidad
 	var mf: MultiMesh = _ola_fra.multimesh
+	var con: bool = inicio_final_activo()
+	var ini: float = inicio_t if con else 1.0
+	var fin: float = final_t if con else 0.0
+	var linea: float = smoothstep(0.0, OLA_LINEA_FRAC, ini)       # cuánto de la línea de espuma está abierta (0 centro … 1 extremos)
+	var retiene: float = smoothstep(0.0, 0.05, fin)               # 0 con los valores de reposo
+	var cola: float = smoothstep(OLA_COLA_DESDE, 1.0, fin)
 	_ola_franjas_datos.resize(N_FRANJAS_OLA)
 	for i in N_FRANJAS_OLA:
 		var f: float = float(i) / float(N_FRANJAS_OLA - 1)
@@ -1125,10 +1321,23 @@ func _avanzar_ola(delta: float) -> void:
 		var z: float = -_ola_avance - (b * 0.9 + 0.25 * alto * smoothstep(0.0, 1.0, cr)) - 0.12
 		var z_frente: float = 0.1 - _ola_lam_dim.y * (1.0 - pow(1.0 - smoothstep(0.38, 0.95, co), 3.0)) * (1.0 - 0.28 * pow(x / a, 2.0)) - 0.03
 		z = lerpf(z, z_frente, smoothstep(0.38, 0.55, co))              # al romper, la espuma va en el frente de la lámina que corre por el suelo
+		if con:
+			z = lerpf(z, 0.1 - 0.12, 0.75 * cola * retiene)             # FINAL: la espuma que queda se retira hacia el pie
 		var pos: Vector3 = Vector3(x, 0.03 + 0.015 * float(i % 2), z + 0.06 * sin(tt * 1.3 + float(i)))
 		var largo: float = clampf(2.0 * a / float(N_FRANJAS_OLA) * (1.7 if i % 2 == 0 else 1.3), 0.4, 2.2) * (0.4 + 0.6 * smoothstep(0.0, 1.0, cr)) * (1.0 + 0.4 * co)
 		var ancho: float = (0.2 + 0.1 * fposmod(f * 7.1, 1.0)) * (0.7 + 0.5 * alto / 1.5) * (0.4 + 0.6 * smoothstep(0.0, 1.0, cr)) * (1.0 + 0.8 * co)
-		var al: float = 0.9 * lerpf(OLA_PIE_DE_PIE, 1.0, smoothstep(0.05, 0.35, co)) * smoothstep(0.05, 0.5, cr) * (1.0 - smoothstep(0.85, 1.0, co)) * (0.5 + 0.5 * env)
+		var fade_co: float = 1.0 - smoothstep(0.85, 1.0, co)
+		if con:
+			fade_co = lerpf(fade_co, 1.0, retiene)                       # al romper la espuma se queda en el frente (en reposo, retiene = 0 y nada cambia)
+		var al: float = 0.9 * lerpf(OLA_PIE_DE_PIE, 1.0, smoothstep(0.05, 0.35, co)) * smoothstep(0.05, 0.5, cr) * fade_co * (0.5 + 0.5 * env)
+		if con:
+			# INICIO: línea de espuma que se abre del centro a los extremos antes de que suba la ola (burbujea)
+			var rev: float = clampf((linea * 1.25 - absf(x) / a) / 0.25, 0.0, 1.0)
+			var al_ini: float = 0.85 * rev * smoothstep(0.0, 0.08, ini) * (1.0 - smoothstep(0.3, 0.5, ini)) * (0.5 + 0.5 * env) * (1.0 + 0.15 * sin(tt * 9.0 + float(i) * 1.7))
+			al = maxf(al, al_ini)
+			# FINAL: la espuma que queda se RETIRA hacia el pie y se va
+			largo *= 1.0 - 0.4 * cola
+			al *= 1.0 - cola
 		AguaMallas.franja_poner(mf, i, pos, largo, ancho, al, 0.5 + 0.5 * fposmod(f * 3.7, 1.0), 0.1 * sin(float(i) * 1.9), f * 9.0)
 		_ola_franjas_datos[i] = {"pos": pos, "largo": largo, "alfa": al}
 
@@ -1146,6 +1355,19 @@ func _emitir_ola(delta: float) -> void:
 	var tr: Transform3D = global_transform
 	var bas: Basis = tr.basis
 	var altura: float = ola_altura()
+	# INICIO: la línea de espuma burbujea y salta algún chorrito antes de que suba la ola
+	if inicio_final_activo():
+		var abierta: float = smoothstep(0.0, OLA_LINEA_FRAC, inicio_t)
+		var burb: float = smoothstep(0.0, 0.08, inicio_t) * (1.0 - smoothstep(0.35, 0.6, inicio_t))
+		_ola_acc3 += 26.0 * burb * (a / 3.45) * vive * delta
+		while _ola_acc3 >= 1.0:
+			_ola_acc3 -= 1.0
+			var xb: float = randf_range(-1.0, 1.0) * a * 0.9 * abierta
+			var locb: Vector3 = Vector3(xb, 0.05, -(b * 0.9 + 0.12) + randf_range(-0.1, 0.1))
+			if randf() < 0.65:
+				g.call("emitir", tr * locb, bas * Vector3(randf_range(-0.1, 0.1), randf_range(0.25, 0.6), randf_range(-0.1, 0.1)), randf_range(0.5, 0.8), randf_range(0.05, 0.1), 1, 0.9, randf(), 1.0)
+			else:
+				g.call("emitir", tr * locb, bas * Vector3(randf_range(-0.2, 0.2), randf_range(1.0, 1.8), -randf_range(0.1, 0.5)), randf_range(0.4, 0.6), randf_range(0.04, 0.08), 0, 0.9, randf(), 1.0)
 	if altura < 0.05:
 		return
 	# 1) de la cresta: saltan hacia delante y arriba y caen
@@ -1166,6 +1388,86 @@ func _emitir_ola(delta: float) -> void:
 		var loc2: Vector3 = Vector3(x2, 0.1, -alto * randf_range(0.7, 1.0))              # donde aterriza la cresta: ≈ 0,8-1×alto por delante del pie
 		var vel2: Vector3 = bas * Vector3(randf_range(-0.6, 0.6), randf_range(1.2, 3.0), -randf_range(0.8, 2.6))
 		g.call("emitir", tr * loc2, vel2, randf_range(0.45, 0.8), randf_range(0.06, 0.12), 0, 0.9, randf_range(0.4, 1.0), 1.0)
+
+# ------------------------------------------------------------------ BARRERA: inicio y final (21/11) ------------------------------------------------------------------
+
+## Radio (m) del borde de la barrera donde corta el suelo (el elipsoide provisional está centrado en el nodo y el suelo queda `altura_suelo` por debajo).
+func barrera_radio_suelo() -> Vector2:
+	var corte_y: float = clampf(altura_suelo / maxf(semieje_y, 0.05), 0.0, 0.95)
+	var k: float = sqrt(1.0 - corte_y * corte_y)
+	return Vector2(semieje_x * k, semieje_z * k)
+
+
+## Fracción de la membrana que está levantada (0 = pegada al suelo, 1 = entera) con el inicio y el final actuales: sube desde el borde y cae con gravedad (final_t²).
+func barrera_alto() -> float:
+	var sube: float = smoothstep(BARRERA_SUBE_DESDE, 1.0, _ini())
+	var f: float = _fin()
+	return sube * (1.0 - f * f)
+
+
+func _avanzar_barrera(_delta: float) -> void:
+	if figura != Figura.BARRERA or _bar_mi == null or not is_instance_valid(_bar_mi) or not _listo:
+		return
+	var con: bool = inicio_final_activo()
+	var ini: float = _ini()
+	var fin: float = _fin()
+	var h: float = barrera_alto()
+	var f2: float = fin * fin
+	var g0: float = -altura_suelo
+	var ancha: float = lerpf(0.35, 1.0, smoothstep(0.0, 0.7, ini)) * (1.0 + 0.12 * f2)       # al formarse se abre desde el borde; al caer se ensancha un poco como una cortina que se tira
+	var sy: float = maxf(semieje_y * h, 0.02)
+	_bar_mi.scale = Vector3(semieje_x * ancha, sy, semieje_z * ancha)
+	_bar_mi.position = Vector3(0.0, lerpf(g0, 0.0, h), 0.0)
+	var vis: float = 1.0 - smoothstep(0.85, 1.0, fin)
+	var mat: ShaderMaterial = _bar_mi.material_override as ShaderMaterial
+	if mat != null and con:
+		mat.set_shader_parameter("vida", vis)
+		if mat.next_pass is ShaderMaterial:
+			(mat.next_pass as ShaderMaterial).set_shader_parameter("vida", vis)
+	# anillo de espuma del borde: al formarse se abre y se apaga cuando la membrana ya está; al caer vuelve y salpica
+	var al_ini: float = smoothstep(0.0, 0.18, ini) * (1.0 - smoothstep(0.55, 0.95, ini))
+	var al_fin: float = smoothstep(0.25, 0.5, fin) * (1.0 - smoothstep(0.82, 1.0, fin))
+	var al: float = (maxf(al_ini, al_fin) * 0.9) if con else 0.0
+	var rs: Vector2 = barrera_radio_suelo()
+	var mf: MultiMesh = _bar_fra.multimesh
+	_bar_espuma_datos.resize(N_ESPUMA_BARRERA)
+	var tt: float = Time.get_ticks_msec() * 0.001 * velocidad
+	for i in N_ESPUMA_BARRERA:
+		var fr: float = float(i) / float(N_ESPUMA_BARRERA)
+		var ang: float = TAU * fr + 0.2 * sin(float(i) * 2.9) + tt * 0.1
+		var abre: float = ancha * (1.0 + 0.1 * f2) + 0.05
+		var pos: Vector3 = Vector3(cos(ang) * rs.x * abre, g0 + 0.03 + 0.02 * float(i % 2), sin(ang) * rs.y * abre)
+		var largo: float = clampf(TAU * (rs.x + rs.y) * 0.5 * abre / float(N_ESPUMA_BARRERA) * 1.6, 0.3, 2.0)
+		var anch: float = 0.2 + 0.07 * fposmod(fr * 7.3, 1.0)
+		var a_i: float = al * (0.75 + 0.25 * sin(tt * 6.0 + float(i) * 1.3))
+		AguaMallas.franja_poner(mf, i, pos, largo, anch, a_i, 0.5 + 0.5 * fposmod(fr * 3.7, 1.0), -ang - PI * 0.5, fr * 9.0)
+		_bar_espuma_datos[i] = {"pos": pos, "largo": largo, "alfa": a_i}
+
+
+## Gotas de la barrera: al formarse, unas pocas saltan del borde; al caer, la cortina SALPICA en el borde hacia fuera y hacia arriba.
+func _emitir_barrera(delta: float) -> void:
+	var g: Node3D = _gotas
+	g.set("suelo_y", global_position.y - altura_suelo - 0.02)
+	if not inicio_final_activo():
+		return
+	var ini: float = inicio_t
+	var fin: float = final_t
+	var vive: float = clampf(chispas, 0.0, 1.0)
+	var tr: Transform3D = global_transform
+	var bas: Basis = tr.basis
+	var rs: Vector2 = barrera_radio_suelo()
+	var sale: float = smoothstep(0.0, 0.1, ini) * (1.0 - smoothstep(0.4, 0.8, ini))
+	var cae: float = smoothstep(0.2, 0.4, fin) * (1.0 - smoothstep(0.8, 1.0, fin))
+	_bar_acc += (14.0 * sale + 46.0 * cae) * vive * delta
+	while _bar_acc >= 1.0:
+		_bar_acc -= 1.0
+		var ang: float = randf() * TAU
+		var d: Vector3 = Vector3(cos(ang), 0.0, sin(ang))
+		var loc: Vector3 = Vector3(d.x * rs.x, -altura_suelo + 0.06, d.z * rs.y)
+		var fuera: float = randf_range(0.6, 1.8) if cae > sale else randf_range(0.1, 0.5)
+		var sube: float = randf_range(1.6, 3.2) if cae > sale else randf_range(0.8, 1.6)
+		g.call("emitir", tr * loc, bas * (d * fuera + Vector3(0, sube, 0)), randf_range(0.45, 0.8), randf_range(0.05, 0.1), 0, 0.9, randf_range(0.4, 1.0), 1.0)
+
 
 ## FIGURAS AÚN SIN HACER (fases 4-5): un elipsoide de agua con el tamaño de los semiejes, para ver el tamaño y la posición. NO es el aspecto final.
 func _marcador_provisional(c: Node3D) -> void:
@@ -1190,6 +1492,11 @@ func _marcador_provisional(c: Node3D) -> void:
 		_:
 			mi.scale = Vector3(semieje_x, semieje_y, semieje_z)
 	c.add_child(mi)
+	if figura == Figura.BARRERA:
+		_bar_mi = mi
+		_bar_fra = AguaMallas.franjas_mm("Franjas", N_ESPUMA_BARRERA)         # anillo de espuma del borde (solo se ve al formarse y al caer)
+		c.add_child(_bar_fra)
+		_bar_espuma_datos.clear()
 
 
 func _anim_si_hace_falta() -> void:
@@ -1209,38 +1516,84 @@ func _anim_si_hace_falta() -> void:
 	var es_pilar: bool = figura == Figura.PILAR
 	var es_ola: bool = figura == Figura.MURO
 	var es_haz: bool = figura == Figura.HAZ or es_pilar or es_ola         # el haz y el pilar no se encogen: animan `crece` (nacer) y `corte` (morir)
+	var con: bool = inicio_final_activo()
+	var corte_dura: float = 0.0                # con inicio y final: lo que dura el movimiento de `corte` (el resto del morir es la cola: espuma que se retira, charco que se encoge, gotas)
 	if figura == Figura.HAZ:
 		morir_s = 1.0
+		if con:
+			nacer = T_HAZ_NACER_IF
+			morir_s = T_HAZ_MORIR_IF
+			corte_dura = 1.0
 	elif es_pilar:
 		nacer = T_PILAR_NACER
 		morir_s = T_PILAR_MORIR
+		if con:
+			nacer = T_PILAR_NACER_IF
+			morir_s = T_PILAR_MORIR_IF
+			corte_dura = T_PILAR_MORIR
 	elif es_ola:
 		nacer = T_OLA_NACER
 		morir_s = T_OLA_MORIR
+		if con:
+			nacer = T_OLA_NACER_IF
+			morir_s = T_OLA_MORIR_IF
+			corte_dura = T_OLA_MORIR
+	elif con and figura == Figura.BOLA:
+		nacer = T_BOLA_NACER_IF
+		morir_s = T_BOLA_MORIR_IF
+	elif con and figura == Figura.BARRERA:
+		nacer = T_BARRERA_NACER_IF
+		morir_s = T_BARRERA_MORIR_IF
 	var lib: AnimationLibrary = AnimationLibrary.new()
 	for nom in ["nacer", "vivir", "morir"]:
 		var an: Animation = Animation.new()
 		var pista: int = an.add_track(Animation.TYPE_VALUE)
 		# el haz no se encoge: «nacer» lo hace SALIR del origen (crece 0 → 1) y «morir» lo SUELTA (corte 0 → 1); el resto anima `aparicion`
-		an.track_set_path(pista, NodePath(".:crece" if (es_haz and nom == "nacer") else (".:corte" if es_haz else ".:aparicion")))
+		# (la barrera con inicio y final no usa `aparicion`: la forman y la tiran inicio_t y final_t)
+		var campo: String = ".:crece" if (es_haz and nom == "nacer") else (".:corte" if es_haz else ".:aparicion")
+		var barrera_if: bool = con and figura == Figura.BARRERA
+		if barrera_if and nom != "vivir":
+			campo = ".:inicio_t" if nom == "nacer" else ".:final_t"
+		an.track_set_path(pista, NodePath(campo))
 		match nom:
 			"nacer":
 				an.length = nacer
 				an.track_insert_key(pista, 0.0, 0.0)
 				if es_pilar:
-					an.track_insert_key(pista, nacer * 0.16, 0.55)       # brota rápido...
-					an.track_insert_key(pista, nacer * 0.45, 1.16)       # ...con un pico de altura que se asienta
+					if con:
+						var b: float = PILAR_BURBUJEO_FRAC
+						an.track_insert_key(pista, nacer * b, 0.0)                              # solo burbujea
+						an.track_insert_key(pista, nacer * (b + 0.14), 0.55)                    # brota rápido...
+						an.track_insert_key(pista, nacer * (b + 0.36), 1.16)                    # ...con un pico de altura que se asienta
+					else:
+						an.track_insert_key(pista, nacer * 0.16, 0.55)       # brota rápido...
+						an.track_insert_key(pista, nacer * 0.45, 1.16)       # ...con un pico de altura que se asienta
+				elif es_ola and con:
+					an.track_insert_key(pista, nacer * OLA_LINEA_FRAC, 0.0)                    # primero solo la línea de espuma
+					an.track_insert_key(pista, nacer * 0.68, 0.55)
 				an.track_insert_key(pista, nacer, 1.0)
-				an.track_set_interpolation_type(pista, Animation.INTERPOLATION_CUBIC)
+				an.track_set_interpolation_type(pista, Animation.INTERPOLATION_LINEAR if barrera_if else Animation.INTERPOLATION_CUBIC)
 			"vivir":
 				an.length = 1.0
 				an.loop_mode = Animation.LOOP_LINEAR
 				an.track_insert_key(pista, 0.0, 0.0 if es_haz else 1.0)
 			"morir":
 				an.length = morir_s
-				an.track_insert_key(pista, 0.0, 0.0 if es_haz else 1.0)
-				an.track_insert_key(pista, morir_s, 1.0 if es_haz else 0.0)
-				an.track_set_interpolation_type(pista, Animation.INTERPOLATION_CUBIC)
+				an.track_insert_key(pista, 0.0, 0.0 if (es_haz or barrera_if) else 1.0)
+				if corte_dura > 0.0:
+					an.track_insert_key(pista, corte_dura, 1.0)
+					an.track_insert_key(pista, morir_s, 1.0)
+					an.track_set_interpolation_type(pista, Animation.INTERPOLATION_LINEAR)
+				else:
+					an.track_insert_key(pista, morir_s, 1.0 if (es_haz or barrera_if) else 0.0)
+					an.track_set_interpolation_type(pista, Animation.INTERPOLATION_LINEAR if barrera_if else Animation.INTERPOLATION_CUBIC)
+		if con and nom != "vivir" and not barrera_if:
+			# segunda pista: el avance del inicio o del final, lineal de 0 a 1
+			var p2: int = an.add_track(Animation.TYPE_VALUE)
+			an.track_set_path(p2, NodePath(".:inicio_t" if nom == "nacer" else ".:final_t"))
+			an.track_insert_key(p2, 0.0, 0.0)
+			an.track_insert_key(p2, an.length, 1.0)
+			an.track_set_interpolation_type(p2, Animation.INTERPOLATION_LINEAR)
 		lib.add_animation(nom, an)
 	if ap.has_animation_library(""):
 		ap.remove_animation_library("")
@@ -1280,6 +1633,8 @@ func _montar_gotas() -> void:
 			cap = GOTAS_RESERVA_PILAR
 		Figura.MURO:
 			cap = GOTAS_RESERVA_OLA
+		Figura.BARRERA:
+			cap = GOTAS_RESERVA_BARRERA
 	if _gotas != null and is_instance_valid(_gotas) and int(_gotas.call("capacidad")) == cap:
 		return
 	if _gotas != null and is_instance_valid(_gotas):
@@ -1301,6 +1656,7 @@ func _process(delta: float) -> void:
 	_avanzar_haz(delta)
 	_avanzar_pilar(delta)
 	_avanzar_ola(delta)
+	_avanzar_barrera(delta)
 	_emitir_gotas(delta)
 
 
@@ -1334,6 +1690,9 @@ func _emitir_gotas(delta: float) -> void:
 		return
 	if figura == Figura.MURO:
 		_emitir_ola(delta)
+		return
+	if figura == Figura.BARRERA:
+		_emitir_barrera(delta)
 		return
 	if figura != Figura.BOLA:
 		return

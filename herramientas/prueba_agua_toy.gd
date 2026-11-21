@@ -59,6 +59,7 @@ func _correr() -> void:
 	await _lenguas()
 	await _ola()
 	await _area()
+	await _inicio_final()
 	await _lab()
 	print("máximo visto en todo el ciclo: %d luces, %d GPUParticles3D, %d partículas (MultiMesh), %d materiales aditivos" % [_max_luces, _max_gpu, _max_part, _aditivos])
 	_ok("presupuesto: 0 luces, 0 GPUParticles3D, ≤ %d partículas, 0 aditivos" % MAX_PARTICULAS, _max_luces == 0 and _max_gpu == 0 and _max_part <= MAX_PARTICULAS and _aditivos == 0)
@@ -165,7 +166,7 @@ func _bola() -> void:
 	e.definir(AguaToy.Figura.BARRERA, 1.5, 1.5, 1.5, false)
 	await process_frame
 	_ok("BARRERA: marcador provisional (no revienta; es la fase 5)", e.find_child("Marcador", true, false) != null)
-	_ok("BARRERA: sin reserva de gotas", e.find_child("Gotas", true, false) == null)
+	_ok("BARRERA: reserva de gotas solo con inicio y final (la salpicadura del borde; 21/11)", (e.find_child("Gotas", true, false) != null) == AguaToy.BARRERA_INICIO_FINAL)
 	e.queue_free()
 	await process_frame
 
@@ -616,7 +617,8 @@ func _pilar() -> void:
 	var y_max: float = 0.0
 	var dib_max: int = 0
 	var t0: int = Time.get_ticks_msec()
-	while float(Time.get_ticks_msec() - t0) < 1000.0:
+	var t_burbujeo: float = AguaToy.T_PILAR_NACER_IF * AguaToy.PILAR_BURBUJEO_FRAC if AguaToy.PILAR_INICIO_FINAL else 0.0       # 21/11: antes de brotar el charco burbujea; los 0,2 s se cuentan desde que brota
+	while float(Time.get_ticks_msec() - t0) < 1000.0 + t_burbujeo * 1000.0:
 		await process_frame
 		_medir()
 		dib_max = maxi(dib_max, _dibujos(e))
@@ -625,7 +627,7 @@ func _pilar() -> void:
 		if c > pico:
 			pico = c
 			t_pico = t_s
-		if cres_a_0_2 < 0.0 and t_s > 0.2:
+		if cres_a_0_2 < 0.0 and t_s > 0.2 + t_burbujeo:
 			cres_a_0_2 = c
 		for g in gotas.call("estados"):
 			var gd: Dictionary = g
@@ -912,16 +914,18 @@ func _ola() -> void:
 	var sube_vy: Dictionary = {}
 	var sube_cae: int = 0
 	var t0: int = Time.get_ticks_msec()
-	while float(Time.get_ticks_msec() - t0) < 1100.0:
+	var t_linea: float = AguaToy.T_OLA_NACER_IF * AguaToy.OLA_LINEA_FRAC if AguaToy.MURO_INICIO_FINAL else 0.0                  # 21/11: antes de subir hay una línea de espuma; los 0,3 s se cuentan desde que sube
+	var t_nacer_ola: float = AguaToy.T_OLA_NACER_IF if AguaToy.MURO_INICIO_FINAL else AguaToy.T_OLA_NACER
+	while float(Time.get_ticks_msec() - t0) < 1100.0 + (t_nacer_ola - AguaToy.T_OLA_NACER) * 1000.0:
 		await process_frame
 		_medir()
 		dib_max = maxi(dib_max, _dibujos(e))
 		var t_s: float = float(Time.get_ticks_msec() - t0) / 1000.0
 		var h: float = e.ola_altura()
-		if h < prev - 0.001 and t_s < 0.75:
+		if h < prev - 0.001 and t_s < t_nacer_ola:
 			sube_siempre = false
 		prev = h
-		if h_03 < 0.0 and t_s > 0.3:
+		if h_03 < 0.0 and t_s > 0.3 + t_linea:
 			h_03 = h
 		for g in gotas.call("estados"):
 			var gd: Dictionary = g
@@ -1151,6 +1155,259 @@ func _area() -> void:
 
 func SpriteToy_mat(mi: MeshInstance3D) -> ShaderMaterial:
 	return mi.material_override as ShaderMaterial
+
+
+# ------------------------------------------------------------------ 6b. inicio y final de las cinco formas (21/11) ------------------------------------------------------------------
+
+func _nueva_if(fig: int, x: float, y: float, z: float, con: bool = true) -> AguaToy:
+	var e: AguaToy = AguaToy.new()
+	e.inicio_final = con
+	_raiz.add_child(e)
+	e.definir(fig, x, y, z, false)
+	return e
+
+
+func _n_impactos() -> int:
+	var n: int = 0
+	for h in _raiz.get_children():
+		if h is ImpactoAguaToy:
+			n += 1
+	return n
+
+
+func _limpiar_ifs() -> void:
+	for h in _raiz.get_children():
+		if h is ImpactoAguaToy or h is AguaToy:
+			h.queue_free()
+
+
+func _alfa_max(datos: Array, desde: int = 0, hasta: int = -1) -> float:
+	var m: float = 0.0
+	var fin: int = datos.size() if hasta < 0 else mini(hasta, datos.size())
+	for i in range(desde, fin):
+		m = maxf(m, float((datos[i] as Dictionary)["alfa"]))
+	return m
+
+
+func _inicio_final() -> void:
+	print("== inicio y final de las cinco formas")
+	# ---- BOLA: nace de gotitas que se condensan; al morir se hincha, revienta y deja un charquito
+	var b: AguaToy = _nueva_if(AguaToy.Figura.BOLA, 0.4, 0.4, 0.4)
+	await process_frame
+	b.lanzar(-1.0)
+	await _esperar(0.15)
+	var esc_a: float = _escala(b)
+	var carga_a: bool = b.get_node_or_null("Carga") != null and (b.get_node("Carga").get_child_count() > 0)
+	await _esperar(0.2)
+	var esc_b: float = _escala(b)
+	await _esperar(0.7)
+	var esc_c: float = _escala(b)
+	_ok("BOLA inicio: nace pequeña (%.2f), crece (%.2f) y llega a su tamaño (%.2f) con gotitas que convergen (%s)" % [esc_a, esc_b, esc_c, str(carga_a)],
+		esc_a < 0.8 and esc_b > esc_a and absf(esc_c - 1.0) < 0.02 and carga_a)
+	b.morir()
+	var esc_max: float = 0.0
+	var t0: int = Time.get_ticks_msec()
+	while float(Time.get_ticks_msec() - t0) < 380.0:
+		await process_frame
+		esc_max = maxf(esc_max, _escala(b))
+	await _esperar(0.4)
+	var imp_b: int = _n_impactos()
+	_ok("BOLA final: se hincha (%.2f) y revienta en salpicadura + charquito (%d impactos)" % [esc_max, imp_b], esc_max > 1.08 and imp_b >= 2)
+	_limpiar_ifs()
+	await process_frame
+	var bo: AguaToy = _nueva_if(AguaToy.Figura.BOLA, 0.4, 0.4, 0.4, false)
+	await process_frame
+	bo.lanzar(-1.0)
+	await _esperar(0.1)
+	var sin_carga: bool = bo.get_node_or_null("Carga") == null
+	var an_b: float = bo.get_node("Anim").get_animation("nacer").length
+	await _esperar(0.5)
+	bo.morir()
+	await _esperar(0.7)
+	_ok("BOLA con inicio_final = false: como antes (sin gotitas de carga: %s, nacer %.2f s, sin charquito: %d impactos)" % [str(sin_carga), an_b, _n_impactos()],
+		sin_carga and absf(an_b - 0.3) < 0.001 and _n_impactos() == 0)
+	_limpiar_ifs()
+	await process_frame
+	# ---- MURO: línea de espuma que se abre del centro a los extremos, luego sube; la espuma se retira al final
+	var m: AguaToy = _nueva_if(AguaToy.Figura.MURO, 3.45, 1.5, 0.3)
+	await process_frame
+	m.crece = 0.0
+	m.inicio_t = 0.1
+	await _esperar(0.1)
+	var d1: Array = m._ola_franjas_datos
+	var n_c: int = 0
+	var n_e: int = 0
+	for i in d1.size():
+		var al: float = float((d1[i] as Dictionary)["alfa"])
+		var xx: float = absf(((d1[i] as Dictionary)["pos"] as Vector3).x)
+		if al > 0.05:
+			if xx < 1.2:
+				n_c += 1
+			elif xx > 2.6:
+				n_e += 1
+	m.inicio_t = 0.3
+	await _esperar(0.1)
+	var alfa_03: float = _alfa_max(m._ola_franjas_datos)
+	var n_cob: int = 0
+	for i in m._ola_franjas_datos.size():
+		if float((m._ola_franjas_datos[i] as Dictionary)["alfa"]) > 0.05:
+			n_cob += 1
+	_ok("MURO inicio: la línea de espuma abre del centro (%d franjas centrales, %d en los extremos) a todo el ancho (%d de %d, alfa %.2f) con la ola aún en el suelo (%.2f m)" % [n_c, n_e, n_cob, AguaToy.N_FRANJAS_OLA, alfa_03, m.ola_altura()],
+		n_c >= 1 and n_e == 0 and n_cob >= AguaToy.N_FRANJAS_OLA - 1 and m.ola_altura() < 0.05)
+	m.inicio_t = 1.0
+	m.crece = 1.0
+	await _esperar(0.1)
+	var alfa_reposo: float = _alfa_max(m._ola_franjas_datos)
+	var mo: AguaToy = _nueva_if(AguaToy.Figura.MURO, 3.45, 1.5, 0.3, false)
+	await process_frame
+	mo.crece = 1.0
+	await _esperar(0.1)
+	var alfa_reposo_off: float = _alfa_max(mo._ola_franjas_datos)
+	_ok("MURO activo igual que sin inicio_final (espuma %.3f = %.3f)" % [alfa_reposo, alfa_reposo_off], absf(alfa_reposo - alfa_reposo_off) < 0.001)
+	m.corte = 1.0
+	m.final_t = 0.5
+	await _esperar(0.1)
+	var al_roto: float = _alfa_max(m._ola_franjas_datos)
+	var z_roto: float = ((m._ola_franjas_datos[0] as Dictionary)["pos"] as Vector3).z
+	m.final_t = 0.92
+	await _esperar(0.1)
+	var z_ret: float = ((m._ola_franjas_datos[0] as Dictionary)["pos"] as Vector3).z
+	var al_ret: float = _alfa_max(m._ola_franjas_datos)
+	m.final_t = 1.0
+	await _esperar(0.1)
+	var al_fin: float = _alfa_max(m._ola_franjas_datos)
+	mo.corte = 1.0
+	await _esperar(0.1)
+	var al_off_roto: float = _alfa_max(mo._ola_franjas_datos)
+	_ok("MURO final: tras la rotura queda espuma (%.2f), se RETIRA hacia el pie (z %.2f → %.2f, alfa %.2f) y desaparece (%.2f); sin inicio_final no queda nada (%.2f)" % [al_roto, z_roto, z_ret, al_ret, al_fin, al_off_roto],
+		al_roto > 0.3 and z_ret > z_roto + 0.3 and al_ret < al_roto and al_fin < 0.01 and al_off_roto < 0.01)
+	var an_m: Animation = m.get_node("Anim").get_animation("nacer")
+	var an_mm: Animation = m.get_node("Anim").get_animation("morir")
+	var an_mo: Animation = mo.get_node("Anim").get_animation("nacer")
+	_ok("MURO tiempos: nacer %.2f s y morir %.2f s (sin inicio_final %.2f y %.2f); dura_morir = %.2f" % [an_m.length, an_mm.length, an_mo.length, mo.get_node("Anim").get_animation("morir").length, m.dura_morir],
+		absf(an_m.length - AguaToy.T_OLA_NACER_IF) < 0.001 and absf(an_mm.length - AguaToy.T_OLA_MORIR_IF) < 0.001 and absf(an_mo.length - AguaToy.T_OLA_NACER) < 0.001 and absf(m.dura_morir - AguaToy.T_OLA_MORIR_IF) < 0.001)
+	_limpiar_ifs()
+	await process_frame
+	# ---- PILAR: charco que burbujea, chorro fino que engorda; al caer el charco manda y se encoge
+	var p: AguaToy = _nueva_if(AguaToy.Figura.PILAR, 0.5, 4.0, 0.5)
+	await process_frame
+	p.crece = 0.0
+	p.inicio_t = 0.2
+	await _esperar(0.3)
+	var fino_0: float = ((p._pil_tubos[0] as Node3D).scale.x)
+	var u_burb: float = float((p._pil_charco.material_override as ShaderMaterial).get_shader_parameter("u"))
+	var esp_ini: float = _alfa_max(p._pil_esp_datos, 0, AguaToy.N_ESPUMA_BASE)
+	var vivas_burb: int = (p.find_child("Gotas", true, false) as Node).call("vivas")
+	p.crece = 1.0
+	p.inicio_t = 1.0
+	await _esperar(0.1)
+	var fino_1: float = ((p._pil_tubos[0] as Node3D).scale.x)
+	_ok("PILAR inicio: burbujea (charco u %.2f, espuma %.2f, %d burbujas/gotas) y el chorro sale fino (%.2f) y engorda hasta 1 (%.2f)" % [u_burb, esp_ini, vivas_burb, fino_0, fino_1],
+		u_burb > 0.2 and esp_ini > 0.3 and vivas_burb > 0 and absf(fino_0 - AguaToy.PILAR_FINO_INI) < 0.02 and absf(fino_1 - 1.0) < 0.001)
+	var lado_reposo: float = p._pil_charco.scale.x
+	p.corte = 1.0
+	p.final_t = 0.7
+	await _esperar(0.1)
+	var lado_caido: float = p._pil_charco.scale.x
+	var vida_caido: float = float((p._pil_charco.material_override as ShaderMaterial).get_shader_parameter("vida"))
+	p.final_t = 0.95
+	await _esperar(0.1)
+	var lado_enc: float = p._pil_charco.scale.x
+	var vida_enc: float = float((p._pil_charco.material_override as ShaderMaterial).get_shader_parameter("vida"))
+	p.final_t = 1.0
+	await _esperar(0.1)
+	var vida_fin: float = float((p._pil_charco.material_override as ShaderMaterial).get_shader_parameter("vida"))
+	_ok("PILAR final: el charco crece al caer (%.2f → %.2f, vida %.2f), se ENCOGE (%.2f, vida %.2f) y se va (vida %.2f)" % [lado_reposo, lado_caido, vida_caido, lado_enc, vida_enc, vida_fin],
+		lado_caido > lado_reposo * 1.05 and vida_caido > 0.99 and lado_enc < lado_caido * 0.85 and vida_enc < vida_caido and vida_fin < 0.01)
+	var po: AguaToy = _nueva_if(AguaToy.Figura.PILAR, 0.5, 4.0, 0.5, false)
+	await process_frame
+	po.crece = 1.0
+	po.inicio_t = 0.1
+	po.corte = 1.0
+	po.final_t = 1.0
+	await _esperar(0.1)
+	var vida_off: float = float((po._pil_charco.material_override as ShaderMaterial).get_shader_parameter("vida"))
+	_ok("PILAR con inicio_final = false: tubos a grosor 1 (%.2f), charco como antes (lado %.2f, vida %.2f), nacer %.2f s" % [(po._pil_tubos[0] as Node3D).scale.x, po._pil_charco.scale.x, vida_off, po.get_node("Anim").get_animation("nacer").length],
+		(po._pil_tubos[0] as Node3D).scale.x == 1.0 and absf(po._pil_charco.scale.x - po._pil_charco_lado) < 0.001 and vida_off > 0.99 and absf(po.get_node("Anim").get_animation("nacer").length - AguaToy.T_PILAR_NACER) < 0.001)
+	_limpiar_ifs()
+	await process_frame
+	# ---- BARRERA: anillo de espuma, la membrana sube desde el borde; al expirar cae como cortina y salpica
+	var ba: AguaToy = _nueva_if(AguaToy.Figura.BARRERA, 1.5, 1.5, 1.5)
+	await process_frame
+	ba.inicio_t = 0.1
+	await _esperar(0.1)
+	var h_01: float = ba.barrera_alto()
+	var anillo: float = _alfa_max(ba._bar_espuma_datos)
+	ba.inicio_t = 0.6
+	await _esperar(0.1)
+	var h_06: float = ba.barrera_alto()
+	var y_06: float = ba._bar_mi.scale.y
+	ba.inicio_t = 1.0
+	await _esperar(0.1)
+	var h_1: float = ba.barrera_alto()
+	var anillo_act: float = _alfa_max(ba._bar_espuma_datos)
+	var esc_act: Vector3 = ba._bar_mi.scale
+	_ok("BARRERA inicio: anillo de espuma (%.2f) con la membrana en el suelo (%.2f), sube a media altura (%.2f, escala y %.2f) y activa queda igual que antes (altura %.2f, escala %s, sin anillo %.2f)" % [anillo, h_01, h_06, y_06, h_1, str(esc_act), anillo_act],
+		anillo > 0.4 and h_01 < 0.05 and h_06 > 0.1 and h_06 < 0.9 and h_1 == 1.0 and esc_act.is_equal_approx(Vector3(1.5, 1.5, 1.5)) and ba._bar_mi.position.is_zero_approx() and anillo_act < 0.01)
+	ba.final_t = 0.5
+	await _esperar(0.3)
+	var h_f5: float = ba.barrera_alto()
+	var sal: int = (ba.find_child("Gotas", true, false) as Node).call("vivas")
+	var anillo_f: float = _alfa_max(ba._bar_espuma_datos)
+	ba.final_t = 1.0
+	await _esperar(0.1)
+	var h_f1: float = ba.barrera_alto()
+	var vida_f: float = float(((ba._bar_mi.material_override as ShaderMaterial)).get_shader_parameter("vida"))
+	_ok("BARRERA final: cae como cortina (altura %.2f a mitad, %.2f al final, vida %.2f), con anillo de espuma (%.2f) y salpicadura (%d gotas)" % [h_f5, h_f1, vida_f, anillo_f, sal],
+		h_f5 < 0.85 and h_f5 > 0.05 and h_f1 < 0.01 and vida_f < 0.05 and anillo_f > 0.3 and sal > 0)
+	var bo2: AguaToy = _nueva_if(AguaToy.Figura.BARRERA, 1.5, 1.5, 1.5, false)
+	await process_frame
+	bo2.inicio_t = 0.1
+	bo2.final_t = 1.0
+	await _esperar(0.1)
+	_ok("BARRERA con inicio_final = false: el elipsoide de siempre (escala %s, sin anillo %.2f, nacer %.2f s)" % [str(bo2._bar_mi.scale), _alfa_max(bo2._bar_espuma_datos), bo2.get_node("Anim").get_animation("nacer").length],
+		bo2._bar_mi.scale.is_equal_approx(Vector3(1.5, 1.5, 1.5)) and _alfa_max(bo2._bar_espuma_datos) < 0.01 and absf(bo2.get_node("Anim").get_animation("nacer").length - 0.4) < 0.001)
+	_limpiar_ifs()
+	await process_frame
+	# ---- HAZ: sale de la mano con gotas y avanza; al cortarse gotea de la mano
+	var hz: AguaToy = _nueva_if(AguaToy.Figura.HAZ, 1.5, 0.5, 0.15)
+	await process_frame
+	hz.crece = 0.07
+	hz.corte = 0.0
+	var gz: Node = hz.find_child("Gotas", true, false)
+	var vivas_max: int = 0
+	t0 = Time.get_ticks_msec()
+	while float(Time.get_ticks_msec() - t0) < 250.0:
+		await process_frame
+		vivas_max = maxi(vivas_max, int(gz.call("vivas")))
+	var an_h: Animation = hz.get_node("Anim").get_animation("nacer")
+	var an_hm: Animation = hz.get_node("Anim").get_animation("morir")
+	var punta_a: float = hz._haz_z_punta()
+	hz.crece = 0.5
+	await process_frame
+	var punta_b: float = hz._haz_z_punta()
+	hz.crece = 1.0
+	hz.corte = 0.12
+	var gotea_max: int = 0
+	t0 = Time.get_ticks_msec()
+	while float(Time.get_ticks_msec() - t0) < 250.0:
+		await process_frame
+		gotea_max = maxi(gotea_max, int(gz.call("vivas")))
+	_ok("HAZ inicio: salen gotas de la mano al empezar (%d) y la punta avanza (%.2f → %.2f); nacer %.2f s; final: gotea al cortarse (%d), morir %.2f s" % [vivas_max, punta_a, punta_b, an_h.length, gotea_max, an_hm.length],
+		vivas_max > 0 and punta_b < punta_a - 0.5 and absf(an_h.length - AguaToy.T_HAZ_NACER_IF) < 0.001 and gotea_max > 0 and absf(an_hm.length - AguaToy.T_HAZ_MORIR_IF) < 0.001)
+	var hzo: AguaToy = _nueva_if(AguaToy.Figura.HAZ, 1.5, 0.5, 0.15, false)
+	await process_frame
+	hzo.crece = 0.07
+	var gzo: Node = hzo.find_child("Gotas", true, false)
+	var vivas_off: int = 0
+	t0 = Time.get_ticks_msec()
+	while float(Time.get_ticks_msec() - t0) < 250.0:
+		await process_frame
+		vivas_off = maxi(vivas_off, int(gzo.call("vivas")))
+	_ok("HAZ con inicio_final = false: sin gotas de mano (%d), nacer %.2f s y morir %.2f s como antes" % [vivas_off, hzo.get_node("Anim").get_animation("nacer").length, hzo.get_node("Anim").get_animation("morir").length],
+		vivas_off == 0 and absf(hzo.get_node("Anim").get_animation("nacer").length - 0.4) < 0.001 and absf(hzo.get_node("Anim").get_animation("morir").length - 1.0) < 0.001)
+	_limpiar_ifs()
+	await process_frame
 
 
 # ------------------------------------------------------------------ 7. lab ------------------------------------------------------------------
