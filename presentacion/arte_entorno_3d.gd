@@ -37,6 +37,9 @@ const MAX_BROTES: int = 24
 const BROTE_S: float = 1.4               ## lo que tarda en nacer (los 18 fotogramas)
 const BROTE_TAM: float = 1.5             ## u de lado del dibujo de la planta (un fotograma = 128 px)
 
+## 23/11: casillas donde NO sale el brote genérico (las del `bancal modelo=surco`: su nudo de zarcillos hace de brote). Las rellena y vacía el propio bancal.
+static var sin_brote: Dictionary = {}
+
 var _estados: EstadosSuelo3D = null
 var _rocas: Dictionary = {}              ## Vector2i -> Array[Node3D] (en orden de llegada: la primera es la más antigua)
 var _libres: Dictionary = {}             ## ruta -> Array[Node3D]: el pool
@@ -104,7 +107,7 @@ func _al_cambiar(c: Vector2i, estado: String, si: bool) -> void:
 
 
 func _al_material(c: Vector2i, material: String) -> void:
-	if material == "hierba":
+	if material == "hierba" and not sin_brote.has(c):
 		_poner_brote(c)
 
 

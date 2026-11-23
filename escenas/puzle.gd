@@ -23,7 +23,7 @@ extends Node
 ##   pulsador   modo=magia|agua|presencia (magia)  rearme=<s> (0)  modelo=cueva          Pulsador3D: botón, pulsador de agua o placa (modelo=cueva: la placa de piedra de la Cueva)
 ##   compuerta  abierta (no)  abre_con=fuego|agua|hielo|rayo|explosion  cierra_con=…  estrecha (si)  vertical (si)   Compuerta3D
 ##   nivel      objetivo=<u> (0.45)  banda=<u> (0)  invertido (no)                    NivelAgua3D: lee la profundidad de su casilla
-##   molino     umbral=<u/s> (0.3)  vertical (si)                                     Molino3D
+##   molino     umbral=<u/s> (0.3)  vertical (si)  hechizo (si)                       Molino3D: gira a ω ∝ corriente en su plano (tope 3 rad/s), con inercia, y se baja al fondo de su casilla (foso, canal, río). `umbral` = corriente que da `girando`. `hechizo=no`: el golpe de agua solo la empuja un instante y NO cuenta para `girando` (solo lo mueve el agua del cauce)
 ##   barril     tam=normal|pequeno (normal)                                           Barril3D. `tam=pequeno`: barril de 0,55 u que la jugadora coge y lanza (radio 1,6, mecha 2,4 s)
 ##   nexo                                                                            NexoRayo3D (pila que conduce mojada)
 ##   puerta     modelo=llave (losa)                                                  losa que bloquea su casilla hasta abrirse (PuertaPuzle). `modelo=llave`: el marco
@@ -451,7 +451,7 @@ const CLAVES: Dictionary = {
 	"pulsador": {"modo": "s:magia|agua|presencia", "rearme": "f", "modelo": "s:cueva", "peso": "f"},
 	"compuerta": {"abierta": "b", "abre_con": "s:fuego|agua|hielo|rayo|explosion", "cierra_con": "s:fuego|agua|hielo|rayo", "estrecha": "b", "vertical": "b"},
 	"nivel": {"objetivo": "f", "banda": "f", "invertido": "b"},
-	"molino": {"umbral": "f", "vertical": "b"},
+	"molino": {"umbral": "f", "vertical": "b", "hechizo": "b"},
 	"barril": {"tam": "s:normal|pequeno"},
 	"nexo": {},
 	"puerta": {"modelo": "s:llave|reja", "giro": "f", "llave": "flag", "gasta": "b", "abierto": "flag", "flag": "flag"},
@@ -2272,6 +2272,7 @@ func _crear(pz: Pieza) -> void:
 		"molino":
 			var mo := Molino3D.new()
 			mo.name = pz.id
+			mo.hechizo = bool(pz.p.get("hechizo", true))
 			mo.preparar(pz.celda, float(pz.p.get("umbral", 0.3)), bool(pz.p.get("vertical", true)))
 			cont.add_child(mo)
 			pz.nodo = mo

@@ -1,0 +1,28 @@
+; catalogo cofre_balsa
+; titulo El cofre que viene a ti
+; tipo premio
+; pide agua o fuego
+;  Un foso de 3 × 3 (x3..5, y2..4) en el fondo de la sala, medio inundado (0,35 u: no se pisa, pero la balsa aún no flota, que pide 0,5 u). Sobre una balsa, en la esquina
+;  del fondo (5,2), hay un cofre a más de 2,7 u de cualquier casilla pisable: desde la orilla no se alcanza con E. DOS soluciones, el cofre solo depende de la distancia:
+;    A) AGUA: el pulsador de agua de la orilla (2,6) riega, su regla abre el manantial del foso (0,6 u³/s) y el foso sube; con 0,5 u de agua la balsa FLOTA, deriva por
+;       (4,2) (3,2) (3,3) (3,4) y atraca en el muelle (3,4), pegado a la orilla (3,5): el cofre queda a una casilla y se abre con E.
+;    B) FUEGO: el tapón de hielo (5,5) separa el foso del desagüe (5,6, fijo a 0,02 u). Fuego al tapón y el foso se vacía: la balsa queda varada en el fondo (5,2) y se llega
+;       andando por el foso seco (`cauce_hondo`: se baja trepando) hasta la casilla vecina del cofre, a ≤ 2,7 u.
+;  Si se llena a medias y se vacía, nunca queda inalcanzable: o el foso se pisa o el cofre está en el muelle. Letras `c` = cauce; plantilla fija de 9 × 8, abierta por abajo (la orilla se estrecha a x2..6 con dos paredes de grosor a cada lado: una pared suelta de una casilla
+;  quedaría de punta en mitad de la sala).
+#########
+#########
+###ccc###
+###ccc###
+###ccc###
+##...c.##
+##...c.##
+.........
+; pieza foso cuenca 3 2 celdas=3,2..5,4 nivel=0.35
+; pieza manantial manantial 3 2 caudal=0.6 volumen=0 rampa=no inicia=no
+; pieza riego pulsador 2 6 modo=agua rearme=2
+; puzle llena cuando=riego.pulsado hace=manantial.abrir_cauce(0.6,20)
+; pieza tapon compuerta 5 5 abre_con=fuego vertical=no
+; pieza desague cuenca 5 6 fijo=0.02
+; pieza balsa balsa 5 2 ruta=4,2+3,2+3,3+3,4 cofre=cofre calado=0.5 vel=1.5
+; pieza cofre cofre 5 2 abierto=$NIVEL.$ID.cofre da=oro:40

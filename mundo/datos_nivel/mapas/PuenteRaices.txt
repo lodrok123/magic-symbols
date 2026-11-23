@@ -1,0 +1,28 @@
+###############
+###############
+###############
+###############
+#####.....#####
+#####~~~~~#####
+#####~~~~~#####
+#####.....#####
+#####.....#####
+###.........###
+###....S....###
+###############
+###############
+; ======================================================================================================================
+;  ESCENA DE PRUEBA A MANO (23/11/2026): el PUENTE DE RAÍCES (fase 1, modelos provisionales). La plantilla `puente_raices` del catálogo estampada en una sala. Escena: escenas/PruebaPuenteRaices.tscn.
+;  Cómo se juega: ir al tocón seco (la jugadora nace abajo), lanzarle AGUA (kit de pruebas: los seis elementos) y mirar cómo germina y el puente crece sobre el río; cruzar a pie. Recargar la escena con la flag guardada
+;  (`puenteraices.sala1.germino`) deja el puente ya tendido. Sin la palabra GENERADO: la herramienta de mapas no lo sobrescribe.
+; ======================================================================================================================
+; # pared · . suelo · ~ agua honda (no se pisa) · S inicio
+;
+; zona 1,1..13,11 cueva mezcla=0.8 rotulo=PuenteRaices
+;
+; camara 3,2..11,10
+;
+; pieza inicio entrada 7 10
+; pieza tocon bancal 7 7 flag=puenteraices.sala1.germino modelo=tocon
+; pieza raices puente 7 6 celdas=7,6+7,5 estilo=raices tendido_si=flag.puenteraices.sala1.germino
+; puzle crece cuando=tocon.germino hace=raices.tender

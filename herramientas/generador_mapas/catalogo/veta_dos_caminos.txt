@@ -1,0 +1,26 @@
+; catalogo veta_dos_caminos
+; titulo La veta de los dos caminos
+; tipo salida
+; activa receptor.activado
+; pide tierra y fuego
+;  Un cristal dormido (2,5) que solo late al golpearlo, un receptor de fuego (8,5) y entre los dos una veta con DOS trayectos hasta el receptor:
+;    · el CORTO (3,5 .. 7,5, dos tramos) tiene un hueco en (5,5): solo conduce con un bloque de tierra encima;
+;    · el LARGO sube por x=2, cruza por arriba (y=1) y baja por x=8; no tiene huecos, pero el PRISMA de su esquina (2,1) nace mirando a la pared (n) y se traga el pulso.
+;  Soluciones (siempre un golpe de FUEGO al cristal, que da al pulso su elemento; un golpe de tierra no activa el receptor, que pide fuego):
+;    A) TIERRA en (5,5) (el bloque de enlace tiende el hueco) y golpe de fuego al cristal antes de que el bloque caduque.
+;    B) girar el prisma a `e` (un golpe de hechizo o E) y golpe de fuego al cristal: el pulso corre por arriba y baja hasta el receptor, sin tierra.
+;  Con el prisma de partida y sin tierra no se resuelve nada. Regla del prisma (docs/CUEVA_RESONANTE.md): la casilla a la que mira un prisma apagado no puede tocar veta ni
+;  receptor: el prisma (2,1) mira al norte, a la pared (2,0). El cristal tiene `cada=0` (dormido) y alcance 16 para llegar por el ramal largo (14 casillas hasta el receptor).
+;  Plantilla fija de 11 × 7, abierta por abajo. Las paredes laterales son de dos casillas de grosor: una pared suelta de una casilla quedaría de punta en mitad de la sala.
+###########
+##.......##
+##.......##
+##.......##
+##.......##
+##.......##
+...........
+; pieza cristal cristal 2 5 cada=0 alcance=16
+; pieza corta veta 3 5 celdas=3,5..4,5+6,5..7,5 enlaces=5,5
+; pieza larga veta 2 4 celdas=2,2..2,4+3,1..8,1+8,2..8,4
+; pieza prisma prisma 2 1 dir=n
+; pieza receptor receptor 8 5 elemento=fuego flag=$NIVEL.$ID.hecho

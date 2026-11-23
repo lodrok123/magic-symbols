@@ -1,0 +1,30 @@
+###############
+###############
+###############
+###############
+#####.....#####
+#####~~~~~#####
+#####~~~~~#####
+#####~~~~~#####
+#####.....#####
+#####.....#####
+###.........###
+###....S....###
+###############
+###############
+; ======================================================================================================================
+;  ESCENA DE PRUEBA A MANO (23/11/2026): el PUENTE DE ZARCILLOS (fase 1, modelos provisionales). Escena: escenas/PruebaPuenteZarcillos.tscn.
+;  Cómo se juega: ir a la piedra con surco (la jugadora nace abajo), lanzarle AGUA a su casilla (kit de pruebas: los seis elementos) y mirar: el agua sube en el hueco, el hilo baja al nudo, el nudo se abre y el
+;  puente se teje sobre el río (arranque en abanico + 2 tramos de enrejado) hasta agarrarse a las rocas de la otra orilla; cruzar a pie. Recargar la escena con la flag guardada (`puentezarcillos.sala1.germino`)
+;  deja todo ya en su estado final. Sin la palabra GENERADO: la herramienta de mapas no lo sobrescribe.
+; ======================================================================================================================
+; # pared · . suelo · ~ agua honda (no se pisa) · S inicio
+;
+; zona 1,1..13,12 cueva mezcla=0.8 rotulo=PuenteZarcillos
+;
+; camara 3,2..11,11
+;
+; pieza inicio entrada 7 11
+; pieza hueco bancal 7 8 flag=puentezarcillos.sala1.germino modelo=surco dir=n
+; pieza trama puente 7 7 celdas=7,7+7,6+7,5 estilo=zarcillos dir=n tendido_si=flag.puentezarcillos.sala1.germino
+; puzle crece cuando=hueco.germino hace=trama.tender

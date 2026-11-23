@@ -1124,6 +1124,13 @@ static func pisable(c: Vector2i, nivel: int, sube: bool, max_nivel: int, nada: b
 			return nada                              # agua: solo nadando
 	elif bloqueada(c) and not ignora_bloqueo:
 		return false
+	elif l == "c" and es_agua(c):
+		# 23/11 (decisión de Pablo: «desactivar el nadar, trivializa puzles»): un CAUCE «c» lleno por la simulación (≥ UMBRAL_AGUA) es agua como la «~»:
+		# solo se entra nadando. Antes esta rama miraba solo la letra, y la jugadora cruzaba nadando un foso inundado (medido: cauce a 0,4 u, 6,5 s a x0,4)
+		# sin resolver el puzle. Se limita a la letra «c» A PROPÓSITO: un charco de un hechizo de agua sobre suelo normal no deja de ser suelo, o la
+		# jugadora quedaría atrapada por su propio hechizo. El canal de ruinas (`-`, `L`) no entra aquí: se vadea (ver `se_nada`).
+		# Quien ya está dentro (`nadando`) llega con `nada=true` y puede salir (jugador_3d `_puede_estar`).
+		return nada
 	# 6.22a: la hierba crecida YA NO es sólida: se atraviesa (antes bloqueaba el paso).
 	var n: int = altura_en(c)
 	if n > max_nivel:
