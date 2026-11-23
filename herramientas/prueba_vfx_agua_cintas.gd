@@ -96,7 +96,13 @@ func _agua() -> void:
 	_ok("agua: el proyectil tiene seguidor", seg != null)
 	if seg == null:
 		return
-	_ok("agua: sale en arco (v.y %.2f > 0, gravedad %.2f)" % [v.v.y, v.h.gravedad], v.v.y > 0.0 and v.h.gravedad > 0.0)
+	# 23/11: desde el 22/11 (Pablo) NINGÚN hechizo cae: el agua vuela recta como el fuego. Las comprobaciones del ARCO solo se hacen si vuelve a haber gravedad;
+	# sin ella se comprueba que sale recta, y lo que sigue valiendo es lo demás (las cintas miran a la estela en todo el vuelo).
+	var con_arco: bool = v.h.gravedad > 0.0
+	if con_arco:
+		_ok("agua: sale en arco (v.y %.2f > 0, gravedad %.2f)" % [v.v.y, v.h.gravedad], v.v.y > 0.0)
+	else:
+		_ok("agua: sale recta, sin gravedad (decisión del 22/11; v.y %.2f)" % v.v.y, absf(v.v.y) < 1e-4)
 	seg._process(VfxElemento3D.PROYECTIL_CRECE_S + 0.1)
 	var conos: Array = _conos(seg)
 	_ok("agua: 3 cintas (conos)", conos.size() == 3, "(%d)" % conos.size())
@@ -137,7 +143,10 @@ func _agua() -> void:
 		v.paso(DT)
 		seg._process(DT)
 		cuadros += 1
-	_ok("agua: durante %d cuadros la dirección de vuelo cambió (y de %.2f a %.2f)" % [cuadros, v_y_max, v_y_min], v_y_max - v_y_min > 0.5)
+	if con_arco:
+		_ok("agua: durante %d cuadros la dirección de vuelo cambió (y de %.2f a %.2f)" % [cuadros, v_y_max, v_y_min], v_y_max - v_y_min > 0.5)
+	else:
+		_ok("agua: durante %d cuadros vuela recta (y de %.2f a %.2f)" % [cuadros, v_y_max, v_y_min], v_y_max - v_y_min < 0.01)
 	_ok("agua: cada cinta apunta a ≤ %.0f° de la estela en todo el vuelo (peor %.1f°)" % [MAX_DESVIO_GRADOS, peor], peor <= MAX_DESVIO_GRADOS)
 	# parado: las cintas se apagan y dejan de girar
 	for i in range(10):
@@ -168,7 +177,10 @@ func _agua() -> void:
 		v2.paso(DT)
 		seg2._process(DT)
 		n2 += 1
-	_ok("CONTROL agua sin giro (estado de antes del arreglo): las cintas se desvían %.1f° (> 45°)" % peor2, peor2 > 45.0)
+	if con_arco:
+		_ok("CONTROL agua sin giro (estado de antes del arreglo): las cintas se desvían %.1f° (> 45°)" % peor2, peor2 > 45.0)
+	else:
+		print("AVISO CONTROL agua sin giro: sin arco no hay giro que comprobar (las cintas se desvían %.1f°)" % peor2)
 	v2.queue_free()
 	await process_frame
 

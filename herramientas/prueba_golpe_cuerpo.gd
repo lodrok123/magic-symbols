@@ -232,9 +232,10 @@ func _escenario() -> void:
 	await avanzar_s(0.5)
 	var antes_cd: int = _golpes.size()
 	_ok("2 el primer golpe sale", antes_cd == 1)
-	await avanzar_s(0.1)
+	# 23/11: desde el buffer del golpe F (2.2 de PLAN_GAMEFEEL, 22/11), pulsar en los ÚLTIMOS 0,15 s del cooldown se guarda y sale al acabar (a propósito).
+	# Por eso «dentro del cooldown» se pulsa ahora a ~0,5-0,6 s, fuera de esa ventana; antes se pulsaba a ~0,7 s y ya cuenta como pulsación guardada.
 	var t_dentro: float = reloj.t - t0
-	await _pulsar()                                              # ~0,6-0,7 s tras el primero (dentro de los 0,8 s)
+	await _pulsar()                                              # ~0,5-0,6 s tras el primero (dentro de los 0,8 s y antes de la ventana del buffer)
 	await avanzar_s(0.4)
 	_ok("2 F dentro del cooldown (a los %.2f s) no golpea" % t_dentro, _golpes.size() == 1 and not jugador.golpeando() and t_dentro < GolpeCuerpo.CD, "%d golpes" % _golpes.size())
 	await avanzar_s(0.5)

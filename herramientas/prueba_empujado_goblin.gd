@@ -180,11 +180,13 @@ func _clips(id: String) -> void:
 func _vuelo(id: String) -> void:
 	# Con la jugadora al lado (3 u): si no estuviera volando, un goblin que ve al jugador ataca.
 	var g := _nuevo(id, _suelo(3, 6), false)
-	_jugador.position = g.position + Vector3(0.9, 0.0, 0.0)
-	var pie: Vector3 = _cadera(g)
+	# 23/11: la altura «de pie» se mide con la jugadora LEJOS. Con el golpe seco (A5, 22/11) el guerrero llega a la pose de carga (agachado) en 0,25 s, así que a 0,9 u
+	# ya estaba agachado a los 3 fotogramas y la referencia salía baja (0,58 en vez de 0,67). Después se la acerca y se le empuja, como antes.
+	_jugador.position = g.position + Vector3(20.0, 0.0, 0.0)
 	for _i in range(3):
 		_paso(g)
-	pie = _cadera(g)
+	var pie: Vector3 = _cadera(g)
+	_jugador.position = g.position + Vector3(0.9, 0.0, 0.0)
 	g.push(Vector3(-1, 0, 0), 1500.0, true)
 	_ok("%s · el empujón fuerte lo lanza" % id, g.fase_empuje() == Combate3D.FASE_VOLANDO)
 	var max_y: float = 0.0

@@ -2652,6 +2652,11 @@ func _cancelar_ataque() -> void:
 	if _squash_sostenido:
 		_squash_sostenido = false                  # C25: le cortaron la pose de carga: se desencoge
 		_cancelar_squash()
+	# 23/11 (regresión de A5): el golpe seco deja el clip a velocidad 0 (pose de carga congelada) o muy rápida (el tramo del golpe). Si lo cortan ahí (empujón, golpe…),
+	# el clip siguiente (empujado, hit) salía congelado o acelerado. Se devuelve el clip a su paso, salvo que lo pare a propósito el hielo o un hitstop.
+	if _ataque > 0.0 and _ataque_vel != 1.0 and congelado <= 0.0 and _hitstop <= 0.0 and pj != null and is_instance_valid(pj):
+		pj.set_velocidad_animacion(1.0)
+	_ataque_vel = 1.0
 	_vel_tras_golpe = 0.0
 	if _ataque > 0.0:
 		_ataque = 0.0

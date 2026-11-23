@@ -257,7 +257,11 @@ func _caso_golpe_guerrero() -> void:
 		_limpiar()
 		return
 	var esperado: float = dur * Combate3D.MOMENTO_GOLPE_GUERRERO / R
-	_ok("5 el aviso dura %.2f s = clip %.2f · %.2f / 0,8 (antes %.2f s)" % [a.t_impacto, dur, Combate3D.MOMENTO_GOLPE_GUERRERO, dur * Combate3D.MOMENTO_GOLPE_GUERRERO],
+	# 23/11: con el GOLPE SECO (A5, Pablo 22/11) el guerrero ya no reparte la espera por el clip: sostiene la pose de carga hasta PREPARAR_GOLPE y golpea en
+	# GOLPE_SECO_EJECUTA s. El aviso dura eso (no depende del ritmo). El golpe sigue cayendo en el mismo fotograma del clip (lo mira la comprobación de abajo).
+	if Combate3D.GOLPE_SECO:
+		esperado = Combate3D.PREPARAR_GOLPE + Combate3D.GOLPE_SECO_EJECUTA
+	_ok("5 el aviso dura %.2f s (esperado %.2f; sin golpe seco sería clip %.2f · %.2f / 0,8)" % [a.t_impacto, esperado, dur, Combate3D.MOMENTO_GOLPE_GUERRERO],
 		_cerca(a.t_impacto, esperado, 0.02))
 	var v0: float = j.vida
 	var pos_clip: float = -1.0

@@ -197,7 +197,9 @@ func _visual() -> void:
 				_ok("ice: la esquirla mide %.3f u (r_u × %.1f = %.3f; el cometa de antes medía %.3f)" % [caja, VfxHielo.ESQUIRLA_LARGO_K, largo_e, antes * Hechizo.ESCALA_PROYECTIL], absf(caja - largo_e) < 0.06)
 			elif antes > 0.0:
 				var lineal: float = antes * Hechizo.ESCALA_PROYECTIL * Sigils.RADIO_BASE_V2 / BASE_DE_ANTES_CAJA        # lo que mediría si todo el dibujo escalara con el radio
-				if el in ["earth", "wind"]:
+				# 23/11: el agua entra en el grupo de margen. Su «antes» se midió con el agua saliendo en ARCO (cintas giradas +42° hacia arriba, caja más alta);
+				# desde el 22/11 ningún hechizo cae y las cintas van rectas detrás, así que la caja es ~17 % menor sin que la bola haya cambiado de tamaño.
+				if el in ["earth", "wind", "water"]:
 					# tierra (terrones al azar) y viento (cintas y hojas que se animan) tienen partes de tamaño fijo y cambian de caja según el fotograma: nunca más pequeña que el 80 % de lo lineal ni mayor que lo de antes ya escalado
 					_ok("%s: el dibujo mide %.3f u (lineal %.3f; de antes escalado %.3f)" % [el, caja, lineal, antes * Hechizo.ESCALA_PROYECTIL], caja >= lineal * 0.8 and caja <= antes * Hechizo.ESCALA_PROYECTIL)
 				else:

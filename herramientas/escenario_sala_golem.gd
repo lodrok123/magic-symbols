@@ -153,6 +153,9 @@ func _escenario() -> void:
 	var vida_b: float = b.health
 	# 6/11 (bloque A1): el rayo ya no vale 55 fijos (con la flecha sola bastaban DOS) sino 12 / 24 / 40 según los glifos ofensivos. Contra el gólem (vida 70, DEF 10, núcleo ×1,5) un rayo ligero hace 8 y uno MEDIO
 	# (3 glifos: flecha, perforar y buscar, lo que cabe en los 3 huecos del libro) 24 × 1,5 − 10 = 26: hacen falta TRES medios dentro de la ventana (78 ≥ 70). Dos solo dejan al gólem en 18 de vida.
+	# 23/11 · PENDIENTE DE PABLO: desde B9a (P9, 22/11) ᛇ flecha y ᚨ buscar ya NO cuentan para el daño. Con los 3 huecos de esta página un proyectil se queda en
+	# daño LIGERO (12 × 1,5 − 10 = 8 contra el gólem) y esta comprobación falla. No se ajusta aquí: es una decisión de equilibrio (defensa del gólem, multiplicador
+	# del núcleo, huecos del libro o qué glifos cuentan), no un error de la prueba.
 	var rayo_medio: Array = ["flecha", "perforar", "buscar"]
 	await _disparar(Vector2i(cb.x - 2, cb.y), "rayo", Vector3(1, 0, 0), 0.0, rayo_medio)
 	await _disparar(Vector2i(cb.x - 2, cb.y), "rayo", Vector3(1, 0, 0), 0.0, rayo_medio)
