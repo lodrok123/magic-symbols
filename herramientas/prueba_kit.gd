@@ -107,10 +107,10 @@ func _bosque() -> void:
 	# Después entró ᛒ suelo (PROGRESIONES["pruebas"] lleva 13): trece glifos.
 	_ok("3 trece glifos (sin tamano, con suelo)", Repertoire.active_sigils().size() == 13 and Repertoire.active_sigils().has("suelo") and not Repertoire.active_sigils().has("tamano"), str(Repertoire.active_sigils()))
 	_ok("3 tres páginas, seis glifos por página", Repertoire.max_pages == 3 and Repertoire.max_sigils_per_page == 6)
-	_ok("3 el libro de «pruebas» es el nuevo (16/10: el antiguo era un placeholder; ya no hay progresión con libro «»)", Repertoire.libro == "bosque")
+	_ok("3 el libro de «pruebas» es el avanzado (12/11: el de los dos círculos de dibujo es el oficial; ya no hay progresión con libro «» ni «bosque»)", Repertoire.libro == "avanzado")
 	for k in Lanzador3D.PROGRESIONES:
 		Lanzador3D.aplicar_progresion(String(k))
-		_ok("3 la progresión «%s» usa el libro nuevo" % k, Repertoire.libro == "bosque", Repertoire.libro)
+		_ok("3 la progresión «%s» usa el libro avanzado" % k, Repertoire.libro == "avanzado", Repertoire.libro)
 	Lanzador3D.aplicar_progresion("pruebas")
 	# Lo que hace Bosque3D (solo desbloquear: agua al coger el sello, barrera al comprarla) no cierra ni cambia nada.
 	var antes_e: PackedStringArray = Repertoire.active_elements()
@@ -140,7 +140,7 @@ func _demo() -> void:
 		coinciden = coinciden and glifos.has(g)
 	_ok("13 demo: glifos exactamente flecha, linea, barrera, altura, raido y suelo", coinciden, str(glifos))
 	_ok("13 demo: tres páginas, seis glifos por página", Repertoire.max_pages == 3 and Repertoire.max_sigils_per_page == 6)
-	_ok("13 demo: libro «bosque»", Repertoire.libro == "bosque", Repertoire.libro)
+	_ok("13 demo: libro «avanzado» (23/11: el oficial en todos los kits)", Repertoire.libro == "avanzado", Repertoire.libro)
 	var m := MundoFalso.new()
 	m.kit = "demo"
 	_ok("13 demo: con `kit = \"demo\"`, progresion_de devuelve «demo»", Lanzador3D.progresion_de(m) == "demo")
@@ -155,7 +155,7 @@ func _demo_inicio() -> void:
 	_ok("14 demo_inicio: progresión «demo_inicio»", clave == "demo_inicio")
 	_ok("14 demo_inicio: solo fuego", Repertoire.active_elements() == PackedStringArray(["fuego"]), str(Repertoire.active_elements()))
 	_ok("14 demo_inicio: flecha y barrera", Repertoire.active_sigils() == PackedStringArray(["flecha", "barrera"]), str(Repertoire.active_sigils()))
-	_ok("14 demo_inicio: dos páginas y dos glifos por página, libro «bosque»", Repertoire.max_pages == 2 and Repertoire.max_sigils_per_page == 2 and Repertoire.libro == "bosque",
+	_ok("14 demo_inicio: dos páginas y dos glifos por página, libro «avanzado»", Repertoire.max_pages == 2 and Repertoire.max_sigils_per_page == 2 and Repertoire.libro == "avanzado",
 		"%d páginas, %d huecos, %s" % [Repertoire.max_pages, Repertoire.max_sigils_per_page, Repertoire.libro])
 	_ok("14 demo_inicio: capacidad del primer libro (4 y 6)", Repertoire.max_elementos == 4 and Repertoire.max_glifos == 6)
 	# El techo de la demo cabe entero sobre el arranque: ningún glifo ni sello del kit «demo» choca con la capacidad.
