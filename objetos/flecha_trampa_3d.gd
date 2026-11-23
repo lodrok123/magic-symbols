@@ -69,9 +69,12 @@ func _physics_process(delta: float) -> void:
 	var paso: float = VEL_U * delta
 	var nuevo: Vector3 = global_position + dir * paso
 	if lanz != null and is_instance_valid(lanz):
-		if lanz.burbuja_contiene(nuevo):
-			lanz.burbuja_recibe("", nuevo, null)
-			_acabar("burbuja")
+		# B2 de PLAN_COMBATE (22/11, C19): la burbuja y las barreras resuelven el contacto con la tabla (`Contacto`), como la flecha del arquero.
+		var acc: String = Contacto.flecha_en(lanz, self, nuevo, global_position, Combate3D.DANO_FLECHA, get_parent())
+		if has_meta("parada"):
+			vivo = false
+			causa_fin = "contacto_" + acc
+			fin.emit(causa_fin)                     # el final (quemarse, caer, rebotar) lo anima `Contacto` y libera el nodo
 			return
 		if not _desviada:
 			var normal: Vector3 = lanz.normal_rebote_flecha(nuevo)
@@ -87,9 +90,6 @@ func _physics_process(delta: float) -> void:
 					get_parent().add_child(soplo, true)
 					soplo.global_position = nuevo
 				return
-		if lanz.solidez_para(nuevo, Combate3D.DANO_FLECHA):
-			_acabar("barrera")
-			return
 	if Lanzador3D.celda_solida(Terreno3D.celda_de(nuevo), 0):
 		_acabar("muro")
 		return

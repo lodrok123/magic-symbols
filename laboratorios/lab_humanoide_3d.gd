@@ -299,7 +299,8 @@ func _elegir_personaje(id: String, juego: int = -1) -> void:
 func _modo_juego_de_serie(id: String) -> bool:
 	# Igual que Pj3D: una variante puede tener fuentes propias con su ID aunque comparta GLB (la Santa Compaña, cuyos dos
 	# portadores andan distinto), así que se mira primero por el id y luego por el modelo.
-	return (ClipsFamilia.tiene_fuente(id) or ClipsFamilia.tiene_fuente(Pj3D.glb_de(id))
+	# 20/11: también donde el juego aplica una proporción propia (Pj3D.PROPORCIONES: el Inquisidor corpulento); a pelo se vería sin ella.
+	return (Pj3D.PROPORCIONES.has(id) or ClipsFamilia.tiene_fuente(id) or ClipsFamilia.tiene_fuente(Pj3D.glb_de(id))
 			or ClipsFamilia.tiene_extras(Pj3D.glb_de(id)))
 
 

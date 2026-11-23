@@ -1,0 +1,34 @@
+{"evento":"inicio_partida","partida":1,"t":0.0,"zona":""}
+{"evento":"medicion_3d_activa","partida":1,"t":0.0,"ventana":300,"zona":""}
+{"evento":"rotulo_zona","flag":"cueva.rotulo.1_11_visto","partida":1,"t":0.4,"texto":"La Cueva","zona":"cueva"}
+{"anterior":"cueva","evento":"zona","luz":"cueva_lava","partida":1,"segundos":1.0,"t":0.96,"zona":"cueva"}
+{"anterior":"fuego","evento":"zona","luz":"cueva_goblin","partida":1,"segundos":0.3,"t":1.21,"zona":"fuego"}
+{"anterior":"atardecer","evento":"zona","luz":"cueva_hielo","partida":1,"segundos":0.2,"t":1.37,"zona":"atardecer"}
+{"anterior":"hielo","evento":"zona","luz":"cueva_ruinas","partida":1,"segundos":0.3,"t":1.64,"zona":"hielo"}
+{"anterior":"ruinas","evento":"zona","luz":"cueva","partida":1,"segundos":0.3,"t":1.98,"zona":"ruinas"}
+{"botin":"oro","evento":"rompible_roto","id":"jarron_c1a","partida":1,"soltado":[{"n":12,"que":"oro"}],"t":8.63,"tipo":"jarron","zona":"cueva","zona_botin":"cueva"}
+{"evento":"inicio_partida","partida":2,"t":0.0,"zona":""}
+{"evento":"medicion_3d_activa","partida":2,"t":0.0,"ventana":300,"zona":""}
+{"anterior":"cueva","evento":"zona","luz":"hielo","partida":2,"segundos":0.4,"t":0.43,"zona":"cueva"}
+{"anterior":"hielo","evento":"zona","luz":"cueva","partida":2,"segundos":0.1,"t":0.57,"zona":"hielo"}
+{"evento":"inicio_partida","partida":3,"t":0.0,"zona":""}
+{"evento":"medicion_3d_activa","partida":3,"t":0.0,"ventana":300,"zona":""}
+{"evento":"rotulo_zona","flag":"cuevaresonante.rotulo.1_11_visto","partida":3,"t":0.37,"texto":"La Cueva Resonante","zona":"cueva"}
+{"anterior":"cueva","evento":"zona","luz":"cueva_lava","partida":3,"segundos":0.9,"t":0.93,"zona":"cueva"}
+{"anterior":"fuego","evento":"zona","luz":"cueva_goblin","partida":3,"segundos":0.2,"t":1.15,"zona":"fuego"}
+{"anterior":"atardecer","evento":"zona","luz":"cueva_hielo","partida":3,"segundos":0.2,"t":1.32,"zona":"atardecer"}
+{"anterior":"hielo","evento":"zona","luz":"cueva_ruinas","partida":3,"segundos":0.3,"t":1.59,"zona":"hielo"}
+{"anterior":"ruinas","evento":"zona","luz":"cueva","partida":3,"segundos":0.3,"t":1.93,"zona":"ruinas"}
+{"evento":"inicio_partida","partida":4,"t":0.0,"zona":""}
+{"evento":"medicion_3d_activa","partida":4,"t":0.0,"ventana":300,"zona":""}
+{"evento":"rotulo_zona","flag":"grutabatida.rotulo.1_11_visto","partida":4,"t":0.27,"texto":"La Gruta Batida","zona":"cueva"}
+{"evento":"rotulo_zona","flag":"grutabatida.rotulo.1_1_visto","partida":4,"t":0.53,"texto":"Las rejas","zona":"cueva"}
+{"anterior":"cueva","evento":"zona","luz":"cueva_goblin","partida":4,"segundos":0.7,"t":0.68,"zona":"cueva"}
+{"evento":"rotulo_zona","flag":"grutabatida.rotulo.9_1_visto","partida":4,"t":0.68,"texto":"La galería","zona":"cueva_goblin"}
+{"anterior":"cueva_goblin","evento":"zona","luz":"cueva_hielo","partida":4,"segundos":0.2,"t":0.9,"zona":"cueva_goblin"}
+{"evento":"rotulo_zona","flag":"grutabatida.rotulo.17_1_visto","partida":4,"t":0.9,"texto":"La charca","zona":"cueva_hielo"}
+{"anterior":"cueva_hielo","evento":"zona","luz":"cueva_goblin","partida":4,"segundos":0.2,"t":1.06,"zona":"cueva_hielo"}
+{"evento":"rotulo_zona","flag":"grutabatida.rotulo.17_11_visto","partida":4,"t":1.06,"texto":"El paso batido","zona":"cueva_goblin"}
+{"anterior":"cueva_goblin","evento":"zona","luz":"cueva_ruinas","partida":4,"segundos":0.2,"t":1.25,"zona":"cueva_goblin"}
+{"evento":"rotulo_zona","flag":"grutabatida.rotulo.9_11_visto","partida":4,"t":1.25,"texto":"El santuario","zona":"cueva_ruinas"}
+{"anterior":"cueva_ruinas","evento":"zona","luz":"cueva","partida":4,"segundos":0.3,"t":1.52,"zona":"cueva_ruinas"}

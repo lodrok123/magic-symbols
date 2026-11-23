@@ -124,7 +124,8 @@ func _escenario() -> void:
 	# --- 1 · más daño (más glifos ofensivos), más empuje ---
 	var g1: Combate3D = _goblin()
 	var h1: Hechizo = _h("earth", {"flecha": 1})
-	var h5: Hechizo = _h("earth", {"flecha": 5})
+	# 22/11 (B9a de PLAN_HECHIZOS): la flecha ya no sube el daño; los 5 ofensivos son ᚦ perforar (cuenta para el daño y no cambia la forma: sigue siendo una flecha).
+	var h5: Hechizo = _h("earth", {"flecha": 1, "perforar": 5})
 	var r1: float = await _recorre(g1, h1)
 	_limpiar()
 	await avanzar(3)

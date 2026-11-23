@@ -236,7 +236,8 @@ func _caso_arquero() -> void:
 	await avanzar(2)
 	_ok("4 arquero: mientras tensa, el aviso sigue a la jugadora", g._golpe_pendiente and Vector2(a.centro.x - j.position.x, a.centro.z - j.position.z).length() < 0.1
 		or not g._golpe_pendiente, "centro %s · ella %s" % [a.centro, j.position])
-	while is_instance_valid(a) and g._golpe_pendiente:
+	# A1 de PLAN_COMBATE (22/11): el aviso sale ya al EMPEZAR a tensar (`_aviso_carga`), antes de que arranque el clip (`_golpe_pendiente`): se espera a las dos fases.
+	while is_instance_valid(a) and (g._golpe_pendiente or g._aviso_carga):
 		await avanzar(1)
 	var fijado: Vector3 = a.centro if is_instance_valid(a) else Vector3.INF
 	_ok("4 arquero: al soltar se queda quieto donde apunta la flecha", fijado != Vector3.INF)

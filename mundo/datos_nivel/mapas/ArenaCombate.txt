@@ -33,3 +33,7 @@
 ; pieza escudo_a goblin_escudo 13 4
 ; pieza escudo_b goblin_escudo 13 9
 ; pieza compana_arena compana 17 3 animas=3 camino=17,3+23,3+23,10+17,10
+;    · SUR (22/11, B1 de PLAN_COMBATE): CORAZAS DE ELEMENTO. El goblin con CORAZA DE BARRO solo cae con TIERRA (2 golpes; el agua la ablanda y basta uno; el fuego la
+;      endurece). El limo de FUEGO lleva COSTRA DE BRASA: la rompe el AGUA (vapor); el fuego la aviva y la tierra rebota.
+; pieza coraza_arena goblin_coraza 10 11 coraza=barro
+; pieza limo_brasa_arena limo 14 12 elemento=fuego coraza=brasa

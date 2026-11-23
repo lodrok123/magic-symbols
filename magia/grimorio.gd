@@ -213,8 +213,48 @@ func volcar_paginas() -> void:
 		var e2: String = _gesture_name_of(p["element2"])
 		if es_avanzado() and e2 != "":
 			d["elemento2"] = e2
+		# H16 (22/11): solo se guarda el nombre que puso la jugadora; el automático se rehace de la receta (una partida vieja, sin la clave, lo recibe igual).
+		if bool(p.get("nombre_propio", false)) and String(p.get("nombre", "")) != "":
+			d["nombre"] = String(p["nombre"])
+			d["nombre_propio"] = true
+		# Libro rojo de prueba (22/11): la anidación EDITABLE (H12, no se lanza aún): el sello y los glifos del hijo y la condición. Una página sin ellos no gana las claves.
+		if p.get("hijo") is Dictionary and (String((p["hijo"] as Dictionary).get("elemento", "")) != "" or ((p["hijo"] as Dictionary).get("glifos", []) as Array).any(func(g): return String(g) != "")):
+			d["hijo"] = (p["hijo"] as Dictionary).duplicate(true)
+			d["condicion"] = String(p.get("condicion", "al_impactar"))
 		lista.append(d)
 	Repertoire.paginas = lista
+
+
+## H16 (22/11): el nombre de la página `indice` (-1 = la activa): el que puso la jugadora o, si no, el automático de su receta (`NombreHechizo`). "" si está vacía.
+func nombre_pagina(indice: int = -1) -> String:
+	var i: int = page if indice < 0 else indice
+	if i < 0 or i >= PAGES or i >= pages.size():
+		return ""
+	var p: Dictionary = pages[i]
+	if bool(p.get("nombre_propio", false)) and String(p.get("nombre", "")) != "":
+		return String(p["nombre"])
+	var r: Dictionary = resumen_pagina(i)
+	return NombreHechizo.automatico(r.get("hechizo") as Hechizo) if not r.is_empty() else ""
+
+
+## H16: la jugadora pone nombre a la página `indice`. Vacío (o solo espacios) vuelve al automático. Se recorta a `NombreHechizo.LARGO_MAX`. Se guarda en el acto.
+func renombrar_pagina(indice: int, texto: String) -> void:
+	if indice < 0 or indice >= PAGES or indice >= pages.size():
+		return
+	var limpio: String = NombreHechizo.limpiar(texto)
+	var p: Dictionary = pages[indice]
+	if limpio == "":
+		p.erase("nombre")
+		p.erase("nombre_propio")
+	else:
+		p["nombre"] = limpio
+		p["nombre_propio"] = true
+	volcar_paginas()
+
+
+## H16: ¿el nombre de la página lo puso la jugadora?
+func nombre_es_propio(indice: int) -> bool:
+	return indice >= 0 and indice < pages.size() and bool((pages[indice] as Dictionary).get("nombre_propio", false))
 
 
 ## Rehace las páginas desde `Repertoire.paginas`: elemento → sello 1, elemento2 → sello 2 (solo en el avanzado) y los glifos, por orden, en los huecos que tenga el libro activo
@@ -237,6 +277,20 @@ func cargar_paginas() -> void:
 		p["element_q"] = 1.0
 		p["element2_q"] = 1.0
 		p["element_viejo"] = 1
+		# H16: el nombre propio guardado; sin él, el automático.
+		if bool(src.get("nombre_propio", false)) and String(src.get("nombre", "")) != "":
+			p["nombre"] = NombreHechizo.limpiar(String(src["nombre"]))
+			p["nombre_propio"] = true
+		else:
+			p.erase("nombre")
+			p.erase("nombre_propio")
+		# Libro rojo de prueba: la anidación editable guardada.
+		if src.get("hijo") is Dictionary:
+			p["hijo"] = (src["hijo"] as Dictionary).duplicate(true)
+			p["condicion"] = String(src.get("condicion", "al_impactar"))
+		else:
+			p.erase("hijo")
+			p.erase("condicion")
 		var n: int = 0
 		for g in (src.get("glifos", []) as Array):
 			if limite > 0 and n >= limite:

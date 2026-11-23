@@ -431,6 +431,15 @@ func dividirse(origen: String = "hechizo") -> bool:
 		h.health = health * FRACCION_VIDA_HIJO
 		h._rotular()
 		hijos.append(h)
+	# C1 / §11.5 de MEJORAS_HECHIZOS_MYSTRALIA (22/11): presupuesto COMÚN. El original no suelta nada al partirse (`_desvanecer`) y reparte su recompensa entre los hijos:
+	# cada uno lleva su parte de la cuota (gota, tirada de vida y materiales) y del oro (entero, sin perder ni ganar monedas). Antes cada hijo soltaba todo entero.
+	var n_h: int = maxi(hijos.size(), 1)
+	var oro_base: int = oro / n_h
+	var oro_resto: int = oro % n_h
+	for i in range(hijos.size()):
+		var hi: Limo3D = hijos[i] as Limo3D
+		hi.cuota_botin = cuota_botin / float(n_h)
+		hi.oro = oro_base + (1 if i < oro_resto else 0)
 	divisiones += 1
 	texto_grande("¡Se divide!", col, 0.25)
 	Sfx3D.play(self, "limo_divide")     # 13/11 (inventario SFX): antes no sonaba
@@ -652,6 +661,9 @@ func _suelo_elemental(delta: float) -> void:
 	_t_suelo = INTERVALO_SUELO
 	if cuerpo != null and cuerpo.en_salto and cuerpo.position.y > position.y + 0.12:
 		return                                               # en el aire no toca nada
+	if _rastro.has(Terreno3D.celda_de(position)):
+		_en_su_elemento = false                              # B3: su propio rastro no lo tiñe ni lo cura (si no, se alimentaría solo): cuenta como estar fuera de su elemento
+		return
 	var el: String = _elemento_del_suelo()
 	var antes: bool = _en_su_elemento
 	_en_su_elemento = el != "" and el == elemento
@@ -665,6 +677,45 @@ func _suelo_elemental(delta: float) -> void:
 				absorber(el, "crece", 0.0, "suelo")
 		"cura":
 			_curar_poco(CURA_SUELO * INTERVALO_SUELO)
+
+
+## B3 de PLAN_COMBATE (22/11, C2 «enemigos que escriben suelo»): al moverse, el limo de AGUA deja el suelo mojado y el de FUEGO, quemado. Una casilla cada RASTRO_INTERVALO s
+## como mucho (y solo al cambiar de casilla); los topes y el desalojo del suelo son los de siempre (`EstadosSuelo3D`). Su propio rastro no lo alimenta (`_suelo_elemental`).
+## La jugadora lo aprovecha (el rayo o la tierra sobre lo mojado) o lo evita (lo quemado).
+static var RASTRO: bool = true
+const RASTRO_INTERVALO: float = 0.5
+const RASTRO_RECUERDA_S: float = 20.0          ## lo que recuerda una casilla como «suya» (lo que dura lo mojado)
+const RASTRO_ELEMENTOS: Array = ["agua", "fuego"]
+var _rastro: Dictionary = {}                   ## Vector2i -> s que le quedan de recordarla
+var _t_rastro: float = 0.0
+var _celda_rastro: Vector2i = Vector2i(-9999, -9999)
+var rastros: int = 0                           ## casillas que ha marcado (para las pruebas)
+
+func _dejar_rastro(delta: float) -> void:
+	for c in _rastro.keys():
+		_rastro[c] = float(_rastro[c]) - delta
+		if float(_rastro[c]) <= 0.0:
+			_rastro.erase(c)
+	_t_rastro = maxf(0.0, _t_rastro - delta)
+	if not RASTRO or not RASTRO_ELEMENTOS.has(elemento) or Terreno3D.estados == null or _t_rastro > 0.0:
+		return
+	if cuerpo != null and cuerpo.en_salto and cuerpo.position.y > position.y + 0.12:
+		return                                               # en el aire no marca
+	var c: Vector2i = Terreno3D.celda_de(position)
+	if c == _celda_rastro or not Terreno3D.en_mapa(c) or Lanzador3D.es_agua(c):
+		return
+	_celda_rastro = c
+	var estado_rastro: String = EstadosSuelo3D.MOJADA if elemento == "agua" else EstadosSuelo3D.QUEMADA
+	if Terreno3D.estados.tiene(c, estado_rastro):
+		return                                               # ya era de su elemento (un charco de verdad): ni la marca ni la cuenta como suya, así sigue alimentándolo
+	_t_rastro = RASTRO_INTERVALO
+	match elemento:
+		"agua":
+			Terreno3D.estados.aplicar(c, "agua")
+		"fuego":
+			Terreno3D.estados.poner(c, EstadosSuelo3D.QUEMADA, true)
+	_rastro[c] = RASTRO_RECUERDA_S
+	rastros += 1
 
 
 ## Sin teñir, lo que arde lo TIÑE de fuego en vez de prenderlo (`_suelo_elemental`); teñido de fuego, no arde.
@@ -696,6 +747,7 @@ func _physics_process(delta: float) -> void:
 		return
 	_suelo_elemental(delta)
 	_ia_limo(delta)
+	_dejar_rastro(delta)
 	_ajustar_al_suelo(delta)
 	if muerto:
 		return

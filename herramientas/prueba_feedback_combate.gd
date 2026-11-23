@@ -143,7 +143,10 @@ func _e3() -> void:
 	_ok("E3.1 un golpe leve tiembla poco (cerca de TEMBLOR_GOLPE_MIN %.2f)" % Sensacion3D.TEMBLOR_GOLPE_MIN, float(pequeno["temblor"]) >= Sensacion3D.TEMBLOR_GOLPE_MIN and float(pequeno["temblor"]) < 0.3, str(pequeno))
 	_ok("E3.2 un golpe del %d %% de la vida llega a TEMBLOR_GOLPE_MAX %.2f" % [int(Sensacion3D.FRACCION_GOLPE_GRANDE * 100.0), Sensacion3D.TEMBLOR_GOLPE_MAX], is_equal_approx(float(grande["temblor"]), Sensacion3D.TEMBLOR_GOLPE_MAX), str(grande))
 	_ok("E3.3 el grande tiembla más que el pequeño", float(grande["temblor"]) > float(pequeno["temblor"]))
-	_ok("E3.4 ninguno de los dos deja la vida baja: hitstop normal %.2f" % Sensacion3D.HITSTOP_DANO, is_equal_approx(float(pequeno["hitstop"]), Sensacion3D.HITSTOP_DANO) and is_equal_approx(float(grande["hitstop"]), Sensacion3D.HITSTOP_DANO) and not bool(grande["vida_baja"]))
+	# 22/11 (G7): el hitstop ya no es igual en los dos: va por tamaño (`HITSTOP_POR_TAMANO`). Antes esta línea exigía HITSTOP_DANO en ambos; cambiada a propósito.
+	_ok("E3.4 ninguno de los dos deja la vida baja: hitstop por tamaño (pequeño %.2f, grande %.2f)" % [float(Sensacion3D.HITSTOP_POR_TAMANO[0]), float(Sensacion3D.HITSTOP_POR_TAMANO[2])],
+		int(pequeno["tamano"]) == 0 and is_equal_approx(float(pequeno["hitstop"]), float(Sensacion3D.HITSTOP_POR_TAMANO[0])) and int(grande["tamano"]) == 2 \
+		and is_equal_approx(float(grande["hitstop"]), float(Sensacion3D.HITSTOP_POR_TAMANO[2])) and not bool(grande["vida_baja"]))
 	jugador.vida = vmax * 0.2                                   # el golpe YA descontó: queda al 20 %
 	jugador._t_hitstop = 0.0
 	Sensacion3D.dano_recibido(jugador, 10.0)

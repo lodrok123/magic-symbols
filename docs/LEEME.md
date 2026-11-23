@@ -33,3 +33,5 @@ Fuera de `docs/`, en la raíz: `ARQUITECTURA.md` (lo que el código hace hoy) y
 **Borradores.** Los documentos creados el 5/10 que no aparecen en la tabla
 de `proyecto/PROPIETARIOS.md` §7 están en su carpeta de tema pero son
 borradores: su dueño los integra en los vivos y los borra.
+
+- [Previsión durante el casteo](PROPUESTA_PREVISION_CASTEO_2026-11-22.md): siluetas funcionales durante la preparación y verificación.

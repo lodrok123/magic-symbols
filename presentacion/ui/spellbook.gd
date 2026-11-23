@@ -986,6 +986,7 @@ func _open() -> void:
 		apuntador.remember_aim()
 
 	is_open = true
+	_contar_libro(true)          # M1 (22/11): cifras del libro en Estadisticas
 	Sfx.play(_oyente(), "libro_abre")
 	visible = true
 	_animar_libro(true)
@@ -1017,9 +1018,22 @@ func cerrar_sin_lanzar() -> void:
 		_close(false)
 
 
+## M1 (22/11, PLAN_HECHIZOS §9): avisa a Estadisticas de que el libro se abre o se cierra. Antes vuelca las páginas del lanzador a `Repertoire.paginas`
+## (normalmente ya lo están: `Grimorio.volcar_paginas` es idempotente), para que las páginas reescritas se cuenten con lo que hay de verdad.
+func _contar_libro(abre: bool) -> void:
+	var sc: Node = _spellcaster()
+	if sc != null and sc.has_method("volcar_paginas"):
+		sc.call("volcar_paginas")
+	if abre:
+		Estadisticas.libro_abierto()
+	else:
+		Estadisticas.libro_cerrado()
+
+
 func _close(lanzar: bool = true) -> void:
 	_cancelar_pasar()
 	is_open = false
+	_contar_libro(false)
 	Sfx.play(_oyente(), "libro_cierra")
 	_animar_libro(false)
 	is_drawing = false

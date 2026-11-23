@@ -5774,3 +5774,297 @@ No hecho: no está en los niveles hechos a mano (no tienen líneas `; camara`); 
 
 
 ## 551 — JUEGO (21/11): **IA que lee el mundo: los enemigos huyen del fuego, lo rodean y rodean las barreras de la jugadora** (Pablo: «cuando haya fuentes de fuego que huyan, que rodeen el agua y los obstáculos en general»). Punto de partida: el agua, los muros del mapa, los fosos y los escalones ya se rodeaban con la ruta por casillas (D2, `Caminos3D`, 21/10); lo que faltaba era el fuego (la IA no lo conocía), las barreras de la jugadora (solo las rodeaba `combate_tactico`, que solo pone una sala de prueba) y salir de un barril o un arbusto en la recta. Todo en `Combate3D`: **HUIR** de fuego PELIGROSO (zona viva de fuego o magma de `Lanzador3D._zonas_v2`, objeto `Reactivo3D` en estado ARDIENDO) a menos de `RADIO_MIEDO_FUEGO` = 1,9 u del centro de su casilla: corre al contrario `HUIDA_MIN_S` = 0,6 s como mínimo a ×`VEL_HUIDA_MULT` = 1,15, sin atacar, rótulo «¡Fuego!» y evento `enemigo_huye_fuego`. El radio es menor que una casilla (2,3) a propósito: rodear por la casilla vecina no asusta (con 3 u huía y volvía en bucle). **FUENTES** (brasero o fogata encendidos, suelo QUEMADA): no asustan (los goblins viven junto a sus fogatas), pero no las pisa. **RODEAR**: las casillas con fuego y las barreras vivas (`muros_tacticos`, si `RODEA_MUROS`) son obstáculos de la ruta y de `_puede_estar` (empujado sí entra); tras una barrera no pega a través. Si el fuego tapa el único paso, **espera** (no anda hacia él). **ATASCO**: avanzar < 30 % de lo pedido durante `ATASCO_S` = 0,35 s fuerza la ruta `ATASCO_RUTA_S` = 1,5 s; al volver a casa, un choque lo intenta por la ruta antes de rendirse. La comprobación «¿hay algo en la recta?» (`_celdas_entre`) muestrea cada 0,1 casilla y con el ancho del cuerpo: cada 0,25 y sin ancho, una recta que rozaba la esquina del fuego pasaba por libre. No temen al fuego: elemental, inmunes al calor (gólem, limo de fuego) y arquero de puesto. Interruptores: `MIEDO_FUEGO`, `RODEA_MUROS`, `RODEA_SUELO_QUEMADO`. Prueba nueva `prueba_ia_fuego_obstaculos` (33/33; el rodeo se prueba en un claro de 5 × 5 que busca sola, porque la fila 33 del Bosque es un pasillo). A 0: contrato_enemigo, goblin_base, empujado_goblin, goblin_asesino, golem_combate, empuje_masa, arquero_equipo, chaman_combate, elemental_v2, chaman_v2, niebla_canouro, feedback_combate, limo_combate, reacciones_entorno_enemigo, bloque_b_enemigo, santa_compana, humo_regla, bloque_enemigos, caminos (en paralelo con otras falló en tiempos; sola, 0), patrulla_ruta, reaccion_enemigos, ritmo_goblin, canouro_v2, escudo_goblin, mouro_compana, rendimiento_rutas, triangulo_demo, catalogo_reacciones. Sin jugar ni mirar en ventana.
+
+
+## 552 — DIRECCIÓN, programado a petición de Pablo (21/11): **Dragón jefe placeholder: presentación de jefe con rótulo y aliento con anticipación que se bloquea con barrera** (Pablo, tras un vídeo de Mages of Mystralia: «una presentación del enemigo, esto aplicaría solo a los jefes» y «cómo hace un ataque de aliento, la anticipación y cómo bloqueo con una barrera; crea de placeholder un dragón y añádele estas ideas»). Análisis en `docs/MAGES_OF_MYSTRALIA_2026-11-21.md` O8 y lista en `docs/PROPUESTAS_SESION_MYSTRALIA_2026-11-21.md` C14 y C15. **Archivos nuevos:** `objetos/dragon_jefe_3d.gd` (`DragonJefe3D`, hereda de `TrampaPared3D`: el chorro es el haz de fuego real, como la trampa dragón), `enemigos/presentacion_jefe.gd` (`PresentacionJefe`: rótulo epíteto + NOMBRE con fundidos y barra de vida de jefe; reutilizable para cualquier jefe), `mundo/datos_nivel/mapas/SalaDragon.txt`, `escenas/PruebaSalaDragon.tscn` (kit `pruebas`), `herramientas/escenario_dragon_jefe.gd` y `herramientas/captura_dragon_jefe.gd`. **Tocado** `escenas/puzle.gd`: pieza `dragon_jefe` (claves mira, alcance, cerca, vida, nombre, epiteto; señales derrotado por defecto, presentado, aliento, aturdido). **Ciclo:** dormido bajo el suelo → a `cerca` casillas sale (SUBIDA_S 1,6), ojos y rótulo (4,6 s), sin atacar → barra → reposo 2,2 → carga 0,9 (cabeza atrás y hacia el lado por el que empezará, boca encendida, sonido `fuego_carga`) → anillos a sus pies 0,8 → aliento 2,6 s que barre 110° con un haz cada 0,2 s → recupera 1,2 (×1,5). Alterna el lado de empezar. Agua mientras carga o sopla: aturdido 3 s (×1,5). **Bloqueo:** `largo_aliento_u` corta el chorro en la primera casilla sólida o barrera viva (`Lanzador3D.solidez_para`, 4 de daño a la barrera por soplo); la burbuja y la invulnerabilidad las respeta `herir_jugadora`. Ajustes en `static var`. **Prueba** `escenario_dragon_jefe`: 0 fallos y 1 aviso (tierra + barrera sola corta el chorro pero el barrido la rodea y la alcanza 1 soplo; con barrera + flecha, 0). La flecha alcanza 2 casillas y tarda 0,87 s en darle. **Visto con ventana** (`docs/capturas/dragon_jefe/juego` y `/abierta`): con la cámara del juego (tamaño 6) el dragón queda cortado por arriba aun a 2 casillas, por eso `cerca=2`; decisión abierta C15 (encuadre de jefes). Dibujo de primitivas, sin rugido propio. **Sin commit.**
+
+
+## 553 — DIRECCIÓN, programado a petición de Pablo (21/11): **Dragón jefe: carril, puntos débiles con exposición del núcleo, temblor de cuerpo grande y silueta blanca** (Pablo: «sí, aplícalo», tras `docs/MAGES_OF_MYSTRALIA_2026-11-21.md` O9). Sigue a la 552. **`objetos/dragon_jefe_3d.gd`:** el cuerpo ya no recibe daño (`golpes_sin_efecto`); tres cristales `PuntoDebil` (Area3D propias, columna desde el suelo porque los proyectiles vuelan a alturas distintas) en las puntas de las alas y el pecho: cualquier hechizo los enciende (se quedan ardiendo; brillan más en RECUPERA y ATURDIDO; solo reciben con `puntos_activos()`, para que tumbado su columna no tape el núcleo); con los tres, fases nuevas CAE (0,8 s, `Vfx3D.temblor(TEMBLOR_CUERPO=0,6)` al tocar el suelo) → EXPUESTO (8 s, `Nucleo` activo en la casilla de delante) → LEVANTA (0,7 s, temblor) y se apagan. `golpe_nucleo`: daño ×`MULT_NUCLEO` 1,5, tirón de cámara (`TIRON_U` 0,06) y silueta blanca: cambia el material de cada pieza por blanco ≥ `SILUETA_FOTOGRAMAS` 2 fotogramas dibujados (con `material_overlay` no se pintaba, y por tiempo de física se apagaba antes de dibujarse con pocos fps; medido con fotos). Señales nuevas `punto_encendido`, `expuesto` (también para las reglas), `se_levanta`. `preparar_jefe` recibe el mundo (para `_fx`). **Mapa** `SalaDragon.txt`: carril de 2 filas al pie del dragón (8,1) con agua honda al sur (un muro pegado tapaba a la jugadora). **`escenas/puzle.gd`:** la pieza pasa el mundo y la señal `expuesto`. **Prueba** `escenario_dragon_jefe`: 0 fallos (flechas de verdad encienden cristales y dan en el núcleo; 300 → 280 por flecha de fuego), 1 aviso medido: tierra + barrera sola sale con 0 manifestaciones en el carril y no protege; con barrera + flecha, sí. Hallazgo: el agua que queda delante apaga las bolas de fuego que pasan (la prueba lanza el agua por un lado). **Visto con ventana** (`docs/capturas/dragon_jefe/juego` y `/abierta`, cámara 10): con la cámara del juego el dragón de pie sigue cortado aunque haya carril; decisión C15 abierta (opción b, tamaño de cámara de sala). **Sin commit.**
+
+
+## 554 — DIRECCIÓN (21/11): **Medido cuánto tarda en salir la barrera** (Pablo: «sí, mídelo», para la regla C18 de tiempo de reacción, `docs/PROPUESTAS_SESION_MYSTRALIA_2026-11-21.md`). Herramienta nueva `herramientas/medir_salida_barrera.gd` (no afirma, imprime tabla): Sala del Gólem con el gólem quieto, lanzamiento inteligente CON la animación de lanzar (`lanzar_pagina_ya(..., con_conjuro = true)`; los escenarios lanzan sin ella y por eso no lo medían), tiempo de juego desde la pulsación hasta que hay una burbuja o una solidez nueva en el `Lanzador3D`. Resultado, dos veces cada uno e idéntico: **fuego y agua 0,53 s** (32 fotogramas a 60 fps), **tierra 0,70 s** (×1,3), igual sola o con flecha; el hechizo nace 0,01–0,02 s antes de que la solidez exista. Con la regla (0,3 s de reacción + salida + 0,2 de margen) el mínimo para bloquear reaccionando es ≈1,0 s (fuego, agua) y ≈1,2 s (tierra): el aliento del dragón (1,7 s) cumple; el arquero goblin (1,35–1,8 s) justo; el golpe del guerrero (0,6 s) y la trampa dragón (0,5 s) son de esquivar. En esta sala tierra + barrera sola sí sale (en el carril del dragón salía con 0 manifestaciones; sin mirar por qué). **Sin commit.**
+
+
+### 22/11/2026 · aviso de contexto COMBATE (dirección)
+- Nuevo `docs/PLAN_COMBATE_2026-11-22.md`: plan por fases (A justicia, B cambiar de página, C tinta, D pared/postura, E oleadas/biomas, F jefes) con archivos, coste, dependencias y prueba. **Sin implementar**: espera la decisión de Pablo (§10, 10 preguntas).
+- Correcciones al catálogo del 22/11 comprobadas en el código: el limo YA escribe suelo al acertar (`limo_3d.gd:853`); el guerrero tarda ~1,2 s en golpear pero solo avisa ~0,6 s; el arquero no avisa ni suena durante los 0,9 s de tensar; `Tinta.ganar_jefe()` sube la barra máxima, no es tinta al matar.
+
+
+### 22/11/2026 · aviso de contexto GAMEFEEL
+- Nuevo `docs/PLAN_GAMEFEEL_2026-11-22.md`. Pablo (22/11): **nada de mando por ahora**; primero builds jugables. La vibración (G5) y el imán de apuntado quedan aparcados. Me pide implementar lo que sale del playtest de Mages of Mystralia.
+- **C22 del elemental:** lo hizo la sesión de COMBATE (su A3, `ELEM_MOMENTO_GOLPE` 0,28 y `_vel_tras_golpe`). No lo he tocado.
+- **C17 (cuerpo grande, O9), hecho:** nueva `Sensacion3D.temblor_cuerpo_grande(en)`, con `TEMBLOR_CUERPO_GRANDE` 0,3, el mismo valor que el mazazo del gólem que Pablo pidió «suave» el 29/10. El gólem tiembla al caer tumbado en el hielo y al levantarse (`enemigos/golem_3d.gd`). Falta el puñetazo del elemental en `combate_3d.gd`; se ha pedido a COMBATE para no editar los dos a la vez.
+- **Pruebas:** nueva `herramientas/escenario_cuerpo_grande.gd` (0 fallos). `prueba_sensacion` 1–4, `escenario_sala_golem` y `prueba_golem_combate` dan 0 fallos. `prueba_sensacion_4` suelta un SCRIPT ERROR que ya estaba (`loop_mode` sobre Nil en `_caso_carga`, l.277; sonido de carga, no relacionado). **Sin ventana. Sin commit.**
+
+### 22/11/2026 · aviso de contexto HECHIZOS Y LIBRO
+- Nuevo `docs/PLAN_HECHIZOS_2026-11-22.md`. Pablo (22/11): el tutorial será **una minimazmorra-cueva nueva**, no la Gruta Batida; ᛁ línea, «posiblemente» en el Bosque 02; la capacidad del primer libro (6 glifos, ya llena con el kit «demo») queda aplazada: «lo más elegante es redistribuir la página derecha».
+- **Hecho (demo de verdad, §2.2b):**
+  - Kit nuevo `"demo_inicio"` en `Lanzador3D.PROGRESIONES`: fuego, ᛇ y ᛜ, 2 páginas, 2 huecos. ᛜ y la segunda página hacen de tutorial hasta que exista la minimazmorra.
+  - Lo llevan `PruebaBosque01_v01`, `PruebaBosque02`, `PruebaCueva`, `PruebaCuevaResonante` y `PruebaMonteSumicio`. El Pantano sigue con «demo» y las salas de prueba y los labs con «pruebas».
+  - **«Nueva partida» ya no da los 6 elementos.**
+  - El `cofre_corazon` del Bosque 02 da ᛁ en vez de ᛜ.
+  - Los cofres aceptan `sello=<elemento>` (`escenas/puzle.gd`, flag `global.sello.<id>`).
+- **Para JUEGO:**
+  - `escenario_cueva_completa` y `prueba_bosque_02_recorrido` fuerzan ahora `aplicar_progresion("pruebas")` tras cargar, porque recorren con el repertorio completo.
+  - `prueba_bosque_02_recorrido` falla en los cofres épicos. El 8.12 (lago electrificado) falla en las dos pasadas. El 9.10 (cofre del campamento) pasa en una y falla en otra: parece cuestión de tiempo de la ceremonia, no del kit. A partir de ahí fallan en cadena (sin llave no hay santuario).
+  - Fallos que no tienen que ver con esto: `prueba_colisiones_mapa` (muros invisibles), `prueba_glifos_dibujables` (muestras de ᚱ y ᛉ; flecha 83 %), `prueba_partida` (la clave `tiendas`).
+  - `prueba_kit` da 0 fallos, con 20 comprobaciones nuevas (bloques 14–18).
+- **Sin ventana. Sin commit.**
+
+
+### 22/11/2026 · aviso de contexto COMBATE: fase A hecha (A1–A3), A4 pendiente de decisión
+- **A1** (`enemigos/combate_3d.gd`, `enemigos/aviso_ataque_3d.gd` `ajustar`): el aviso sale al EMPEZAR la carga previa. Guerrero ~1,33 s (antes ~0,7 visibles), asesino 1,05 s; el arquero avisa y suena (`arco_carga`) al empezar a tensar. Interruptor `Combate3D.AVISAR_CARGA`. Prueba nueva `herramientas/prueba_aviso_carga.gd` (0 fallos); `prueba_ataques_avisados.gd` actualizada (0 fallos).
+- **A2** (`objetos/dragon_jefe_3d.gd`): `AvisoAtaque3D` rectangular rojo que parpadea (`parpadeo`, nuevo) + cuello que se echa atrás exagerado y vuelve de latigazo. Da voltereta perfecta. `escenario_dragon_jefe.gd` 0 fallos.
+- **A3**: `ELEM_MOMENTO_GOLPE` 0,6 → 0,28; clip ×0,6 hasta el golpe y ×1 después (`_vel_tras_golpe`). Aviso 1,42 s. Fotos con ventana: `docs/capturas/anticipacion_enemigos_A3`.
+- **Arreglo previo**: `escenas/puzle.gd` pieza `goblin_escudo` se creaba sin jugador: nunca atacaba. Ahora busca al jugador del lanzador.
+- **A4**: tierra + barrera sola NO cobra por nada: su SolidezV2 nace y protege; sale con 0 manifestaciones porque el bloque no se levanta en la casilla de la jugadora. Falta que se VEA (pregunta 11 del plan). Prueba `herramientas/prueba_cobro_sin_efecto.gd`. No se tocó el cobro (`magia/lanzador_3d.gd` sin cambios).
+- Medido: el arquero tarda 3,5–5,6 s desde el aviso hasta la flecha (el clip de disparo es largo); la tabla C18 lo infravaloraba.
+
+- GAMEFEEL (22/11, añadido): C17 también en el **puñetazo del elemental** (`_golpe_elemental` en `combate_3d.gd`, una línea, puesta cuando COMBATE terminó con el archivo). `escenario_cuerpo_grande` (ahora con el elemental), `prueba_ataques_avisados` y `prueba_elemental_v2`: 0 fallos. Sin ventana, sin commit.
+
+### 22/11/2026 · aviso de contexto COMBATE: A4 resuelto (anillo de tierra)
+- Decisión de Pablo: tierra + barrera sola = «círculo de tierra alrededor, capa fina; así hay una debilidad en los ataques del suelo o explosiones».
+- `magia/hechizo_vivo.gd` (`_vivir` → `_anillo_tierra`): si la barrera de tierra no puede levantar bloque (casilla de la jugadora) pero su SolidezV2 nace, sale un anillo fino de tierra (cilindro abierto, placeholder sin arte) que brota y se hunde con ella; cuenta 1 manifestación, así entra en el tope de 3 barreras. Solo para proyectiles: suelo, cuerpo a cuerpo y explosiones no consultan la solidez.
+- Prueba `herramientas/prueba_cobro_sin_efecto.gd` reescrita: 0 fallos. `escenario_dragon_jefe`, `prueba_dano_tinta`, `prueba_catalogo_reacciones`, `prueba_bloque_b5_c3`: 0 fallos.
+- `escenario_bosque_01_v01` da 5 fallos (3.7, 3.9, 4.6, 6.5, 12.19) también con el anillo desactivado: no los causa este cambio. Sin investigar.
+- Sin ver con ventana todavía: dónde verlo, `escenas/PruebaSalaDragon.tscn`, página con tierra + ᛜ.
+
+
+### 22/11/2026 · aviso de contexto COMBATE: fase B hecha (B1, B2, B3 del limo), sin commit ni ventana
+- **B1** `enemigos/coraza_elemento_3d.gd` (`CorazaElemento3D`, clase nueva: hizo falta `--import` sin ventana): capa sobre todo el cuerpo. Barro (pieza nueva `goblin_coraza`): tierra la agrieta (2 golpes), agua la ablanda (1), fuego la endurece (hasta 3). Brasa (`limo ... coraza=brasa`): agua la rompe, fuego la aviva, tierra rebota. Enganchada en `Combate3D.on_spell_hit` / `prever_golpe` / `escudo_cubre`. Rombo del color del elemento que la rompe. En la ArenaCombate (sur). Prueba `prueba_coraza_elemento.gd`.
+- **B2** `nucleo/contacto.gd` (`Contacto`): tabla C19 + burbuja C10 (rebota / se quema, no revienta). La usan la flecha del arquero (`_vuelo_flecha`), la de la trampa (`flecha_trampa_3d.gd`) y el aliento del dragón (`largo_aliento_u`). Ineficaz: cruza sin gastar, golpe sordo y rótulo la primera vez. `Lanzador3D.solidez_en(p)` nuevo. Prueba `prueba_contacto.gd`.
+- **B3** `enemigos/limo_3d.gd`: el limo de agua deja mojado y el de fuego quemado al moverse (1 casilla / 0,5 s); su rastro no lo alimenta. Prueba `prueba_rastro_limo.gd`. Goblin con antorcha pendiente (arte).
+- Batería: coraza, contacto, rastro, aviso_carga, ataques_avisados, dragon_jefe, arena_combate, escudo_goblin, escudo, limo_combate, sala_limo, limo_visual, catalogo_reacciones, dano_tinta, cobro_sin_efecto, sala_empuje, elemental_v2: 0 fallos. `escenario_bosque_01_v01`: los 5 fallos de antes (3.7, 3.9, 4.6, 6.5, 12.19), ninguno nuevo.
+- Pendiente de B2: previsión, IA que rodea barreras, bola de veneno contra barreras, haz de la trampa dragón y dibujo del haz del dragón que se corta en la barrera de fuego aunque el daño pase.
+- Hallazgo para HECHIZOS: la flecha de tierra solo toca a un enemigo a 1 casilla (a 2, en la arena, no).
+
+### 22/11/2026 · aviso de contexto HECHIZOS Y LIBRO (2)
+- **Pablo aprueba el orden** de `docs/PLAN_HECHIZOS_2026-11-22.md` §0. Integra H13 y H14 (`docs/MEJORAS_HECHIZOS_MYSTRALIA_2026-11-22.md`); primero va lo que entra en la demo.
+- En el documento H14, punto 6, he corregido una afirmación desfasada: **las páginas guardadas SÍ se recargan** en el libro (`Grimorio.cargar_paginas`, `magia/grimorio.gd:222`). El comentario de `repertoire.gd:219-221` está desfasado.
+- **M1 hecho (cifras del libro):** apartado `libro` en `Estadisticas` (`total` y `por_nivel`), que se guarda en `estadisticas.libro`. Para leerlo, `Estadisticas.filas_libro(d)`; la pestaña de la jugadora no lo enseña.
+  - Enganches: `Spellbook._open` y `_close` (nueva `_contar_libro`), y `Lanzador3D.add_gesture`, `_rechazar_libro_en_combate` y `_disparar`.
+  - **Para GAMEFEEL:** dos líneas en `presentacion/sensacion_3d.gd`, en `_musica_paso`: `Estadisticas.empieza_encuentro()` y `acaba_encuentro()` junto a los `PlayLog` de `combate_empieza` y `combate_acaba`. No cambian nada de lo que hace.
+  - `nucleo/datos/partida_ejemplo.json` gana `estadisticas.libro`.
+- **Pruebas:** nueva `herramientas/prueba_cifras_libro.gd` (0 fallos). `prueba_kit`, `prueba_partida_menu` y `prueba_partida_entera` dan 0 fallos. `prueba_partida` da 1, el de la clave `tiendas`, que ya estaba. **Sin ventana. Sin commit.**
+- **Lo siguiente del orden:** B9a (qué glifos suben el daño) espera la respuesta de Pablo a P9. B1 espera la minimazmorra.
+
+### 22/11/2026 · aviso de contexto HECHIZOS Y LIBRO (3) · B9a: qué glifos suben el daño
+- **Decisión de Pablo (P9, «tu propuesta»):** ᛇ flecha, ᚷ crecer (`pulso`), ᛉ permanencia, ᚨ buscar, ᚢ rebote y ᚠ repetición **ya no suben el daño** (`cuenta_dano: false` en `nucleo/sigils.gd`). Siguen contando ᛜ, ᚱ, ᚦ, ⧖ (×2) y ᛒ. ᛃ retorno no estaba en la propuesta y sigue contando. **La tinta no cambia.**
+- **Qué cambia en el juego:** fuego + ᛇ hace 13,2 lleve una flecha o tres. En la demo solo suben el daño ᛜ, ᚱ y ᛒ; lo demás sale de la reacción, la debilidad y la sobrecarga.
+- **Para COMBATE:** cambia cuántos golpes hacen falta con recetas de flecha. Un goblin (50, DEF 2) pide 5 flechas de fuego, haya 1, 2 o 3 ᛇ; antes, 3 ᛇ eran daño medio y bastaban 3.
+- **GOLDEN REGENERADO A PROPÓSITO:**
+  - `herramientas/golden_hechizos.json` (`prueba_hechizo_golden -- --regenerar`). Comparado receta a receta con la copia anterior: **solo cambian `n_glifos_dano` (37 932 recetas), `dano` y `nivel_dano` (25 980)**. Ni tinta, ni forma, ni recarga.
+  - `prueba_dano_tinta` reescrita a propósito: el relleno pasa de flechas a ᚦ y hay un bloque 5c nuevo.
+  - `prueba_glifos_nuevos`: ᚨ ya no cuenta.
+- **Pruebas:** `prueba_dano_tinta`, `prueba_hechizo_golden`, `prueba_hechizo`, `prueba_glifos_nuevos`, `prueba_catalogo_reacciones` y `prueba_interfaz_u5_u8` dan 0 fallos. `prueba_trampas_pared` da 4 fallos en F9 (la trampa de flechas dispara dormida y los setos no están enteros al empezar): por lo que miden no tienen que ver con esto, pero no la pasé antes del cambio. **Sin ventana. Sin commit.**
+
+### 22/11/2026 · aviso de contexto HECHIZOS Y LIBRO (4) · B9b: barrera legible (en parte)
+- **Previsión (`presentacion/prevision_reaccion_3d.gd`):**
+  - Con una página que levanta algo sólido, un rótulo bajo el de la tinta dice qué para («para flechas y agua · no para fuego y piedras»). Sale de `Contacto.accion` (`nucleo/contacto.gd`, de COMBATE): **no se copia la tabla ni se toca el archivo**. Si COMBATE cambia una celda, el rótulo cambia solo.
+  - «se disolverá» parpadea sobre la barrera más antigua si lanzar llena el tope.
+- **`magia/lanzador_3d.gd`:**
+  - nuevas `cuenta_para_tope_barreras(h)` (la regla que ya usaba `_materializar`, ahora en un solo sitio) y `barrera_que_se_ira()` (solo mira, no disuelve);
+  - no toca la `solidez_en` de COMBATE.
+- **Hallazgo para Pablo:** el tope de 3 barreras solo cuenta lo sólido que nace donde se apunta (tierra, hielo). La barrera que rodea a la jugadora (fuego, agua) no cuenta.
+- **Pruebas:** nueva `herramientas/prueba_barrera_legible.gd` (0 fallos). `prueba_contacto`, `prueba_kit` y `prueba_dano_tinta` siguen en 0.
+- **Falta de B9b:** siluetas, que se lea el anillo de tierra, separar enemigos y la ficha del libro. **Sin ventana. Sin commit.**
+
+
+### 22/11/2026 · aviso de contexto COMBATE: C1 tinta al matar + recogible de vida (petición de Pablo)
+- `enemigos/combate_3d.gd`: `_soltar_recogibles` (desde `_soltar_botin`) y `Botin3D.soltar_recogible` (tipo tinta / vida, reutiliza el salto y el imán del oro).
+- Gota de tinta: +6 (+10 grande) +4 si muere por debilidad o tras reacción premiada. Vida: 12 % de vida_max al cogerla, 15 % de probabilidad (25 % con vida < 34 %), no va a la bolsa.
+- Duran 8 s y parpadean al final. No salen de muñecos, ahogados ni `suelta_recogibles = false`. Interruptores `GOTAS_TINTA` y `RECOGIBLES_VIDA`.
+- Prueba `herramientas/escenario_recogibles.gd` 0 fallos; botín, muerte, tinta, arena y coraza 0 fallos. Sin ventana ni commit.
+
+
+### 22/11/2026 · aviso de contexto DIRECCIÓN: guardado con copia anterior (L1 de la lista de mejoras de Pablo)
+- 
+ucleo/partida.gd: guardar ya no borra la partida antes de renombrar el temporal. Valida el temporal, aparta la vieja a 
+anura_<n>.json.anterior, pone la nueva y, si falla, devuelve la vieja a su sitio.
+- leer usa la copia .anterior si la principal falta o no vale (avisa). Valida meta y jugadora (esenciales) y que cada sección presente sea un diccionario. existe cuenta también la copia; orrar quita las dos. Nueva 
+uta_anterior(ranura).
+- Prueba herramientas/prueba_partida.gd, bloque 7 nuevo: 14 comprobaciones bien. Sigue el fallo de antes (bloque 3: la clave 	iendas no está en 
+ucleo/datos/partida_ejemplo.json). prueba_partida_entera, prueba_partida_menu y escenario_estados_mundo: 0 fallos. Sin ventana. Sin commit.
+- Reparto de la lista (L1–L8) en PROPUESTAS_SESION_MYSTRALIA_2026-11-21.md: L2 a GAMEFEEL, L3 y L4 a COMBATE.
+
+- GAMEFEEL (22/11, reparto aprobado por Pablo): **buffer del golpe F (G1, 2.2) hecho** en `jugador/jugador_3d.gd`. Usa la ventana de 0,15 s de la voltereta, y solo se guarda si la recarga del golpe está a ≤ 0,15 s de acabar. **Prioridad:** la voltereta gana; un golpe guardado se descarta al rodar. Nueva `fase_accion()` (preparación, ejecución o recuperación de golpe, lanzar y voltereta), que es la base de la 2.1. **La cancelación con voltereta NO está hecha**: espera las preguntas 1 y 2. Prueba nueva `escenario_buffer_golpe` (0 fallos); `prueba_sensacion`, `prueba_sensacion_2` y `escenario_cuerpo_grande` también dan 0. Durante la prueba, otra sesión dejó `combate_3d.gd` sin compilar un momento (`_actualizar_barra`); al repetir ya compilaba. Sin ventana, sin commit.
+
+### 22/11/2026 · aviso de contexto PUZLES: plan de puzles (L6, L7, P1–P9)
+- Sesión nueva de PUZLES. Plan escrito en `docs/PLAN_PUZLES_2026-11-22.md`. **Nada implementado, sin commit**: espera a Pablo (13 preguntas en §7).
+- Orden: cuenta atrás común `CuentaAtras3D` (L6a) → enganchar los relojes que ya hay (L6b) → X7 con la opción A → reiniciar sala (L7a) → plataforma móvil (P6) → X5, X8, X6.
+- Para COMBATE: L7 añadiría una línea en `Puzle3D.al_reaparecer` (reiniciar la sala de puzle si se muere dentro). X5 y X8 dependen de B2 y del empuje (D1).
+- Para HECHIZOS: B9g y el aviso de «va a desaparecer» pueden usar `CuentaAtras3D` cuando exista, en vez de hacer otro aviso.
+- Hallazgos: el brasero que ya arde no reinicia su relé si le llega fuego (`objetos_3d.gd:1263`); la tierra avisa 3 s y el concepto proponía 0,8 s; ᛉ (X6) no está en el kit de la demo; la plataforma móvil puede reaprovechar `plataformas_tierra`, `caer_de_plataforma` y `llevar` de la balsa.
+
+
+### 22/11/2026 · aviso de contexto COMBATE: G1 morir y reintentar + G2 coordinar encuentros (lista de mejoras aprobada)
+- **G1** (`escenas/puzle.gd`, `enemigos/combate_3d.gd`, `objetos/dragon_jefe_3d.gd`): `Puzle3D` escucha `Jugador3D.reaparecio` (nadie lo hacía). Cada vigía guarda la receta de sus enemigos antes de la pelea; si el encuentro empezó y no está resuelto, al reaparecer los retira (vivos, muertos o hijos) y los recrea sanos en su sitio; el cerrojo no vencido se abre; el dragón vuelve a dormir con la vida llena; se retiran avisos, flechas y bolas de veneno; los enemigos sueltos se curan y dejan de perseguir. Lo resuelto (flags) se queda. No se reponen mouro, Santa Compaña ni gatopedro. Prueba `escenario_reintentar.gd` 0 fallos.
+- **G2** (`enemigos/coordinador_encuentro.gd`, clase nueva: `--import` hecho): como mucho 2 goblins cargando o atacando a la vez; el que no tiene ficha se recoloca (rodea, protege al chamán o el arquero busca línea). No entran elemental, canouros, arqueros de puesto, limo, gólem ni chamán. Prueba `escenario_coordinar.gd` 0 fallos.
+- Regresión: aviso_carga, ataques_avisados, arena, coraza, recogibles, escudo_goblin, cueva_completa, generador, logros, partida_menu, sala_cerrada, muerte: 0 fallos. Comparado con HEAD (bb699239) en una copia limpia: los fallos de `escenario_playtest_eow` y `prueba_bosque_02_recorrido` ya estaban; los NUEVOS de `escenario_cueva_resonante`, `prueba_mapa_abierto` y `escenario_bosque_01_v01` (4.6, 6.5, 12.19) vienen de que el agua no se puede poner en la página en la Cueva (kit): avisado a HECHIZOS.
+- Decisiones por defecto para Pablo: el dragón se vuelve a presentar; los repuestos sueltan botín otra vez (se puede cultivar oro muriendo); lo que quedó en el suelo se queda.
+
+### 22/11/2026 · aviso de contexto HECHIZOS Y LIBRO (5) · escenarios y el kit de arranque
+- **Lo avisó COMBATE, comparando con HEAD bb699239:** `escenario_cueva_resonante`, `prueba_mapa_abierto` (3) y `escenario_bosque_01_v01` (4.6, 6.5 y 12.19) fallaban por mi cambio de kit. Esas escenas llevan `demo_inicio` (sin agua) y los escenarios se escribieron con el kit de pruebas.
+- **Arreglo, en un solo sitio:**
+  - `Lanzador3D.sustituir_kit` (static, **vacío en el juego**);
+  - `escenario_base.cargar` lo pone a `{"demo_inicio": "pruebas"}` y todos los escenarios vuelven a como estaban;
+  - para probar el arranque real, `kit_de_pruebas = false` antes de `cargar`.
+  - Los `aplicar_progresion("pruebas")` que había puesto a mano en `escenario_cueva_completa` y `prueba_bosque_02_recorrido` sobran, pero no estorban.
+- **Resultado:**
+  - `escenario_cueva_resonante`, `escenario_cueva_completa`, `prueba_kit` y `prueba_mapa_abierto`: 0 fallos. En una pasada, `prueba_mapa_abierto` dio un fallo suelto en el 8 («el que no se rompió sigue entero»); en la segunda, 0.
+  - `escenario_bosque_01_v01`: solo 3.7 y 3.9, que ya fallaban en HEAD.
+- **Ojo:** las pruebas que cargan esas escenas **sin** heredar de `escenario_base` montan ahora el arranque real.
+
+- (COMBATE, 22/11) G1: `CerrojoPuzle.reiniciar` da 0,5 s de margen antes de volver a mirar si ella está en la sala. Sin él, la puerta a veces se volvía a cerrar al reaparecer, porque el modelo sigue un fotograma donde murió (1 fallo de cada 3 en `escenario_reintentar`). Tras el arreglo, 4 de 4 sin fallos. Los fallos de kit de la Cueva los arregló HECHIZOS (`sustituir_kit` en `escenario_base`).
+
+
+### 22/11/2026 · aviso de contexto COMBATE: C25 anticipación quieta y golpe seco (guerrero)
+- `enemigos/combate_3d.gd`: el guerrero goblin llega a la pose de carga del clip (fracción 0,14) en 0,25 s, la sostiene congelada y encogida hasta los 0,6 s y golpea en 0,07 s; recuperación a su paso. Círculo 0,67 s (antes 1,36). Interruptor `Combate3D.GOLPE_SECO`. Solo el guerrero (`goblin_warrior*`); asesino, loberno y canouro después de que Pablo lo vea.
+- El 0,14 se midió sobre las pistas del clip con `herramientas/medir_clip_guerrero.gd`. Prueba nueva `herramientas/prueba_golpe_seco.gd` (0 fallos). Fotos antes/después en `docs/capturas/golpe_seco_antes` y `golpe_seco_despues` (`captura_anticipacion_enemigos.gd -- <carpeta> guerrero`, modo nuevo).
+- Ajustadas: `prueba_aviso_carga.gd` (con golpe seco el guerrero no usa `_carga`) y `escenario_coordinar.gd` (umbral de recolocación 0,5 → 0,3 u: los ataques son más cortos). Batería de combate: 0 fallos.
+- Ojo: la ventana de esquiva perfecta (0,6 s) ocupa casi todo el círculo de 0,67 s.
+
+- (COMBATE, 22/11) A5, ventana de esquiva del cuerpo a cuerpo (Pablo: «Sí, a 0,25 s»): `AvisoAtaque3D.ventana` por aviso (por defecto VENTANA_ESQUIVA 0,6) y `VENTANA_CUERPO` 0,25, que pone el golpe seco del guerrero. Lo leen `esquiva_a_tiempo` (su argumento pasa a `p_ventana`, -1 = la de cada aviso), el parpadeo blanco y la flecha del borde de pantalla (`presentacion/sensacion_3d.gd`, una línea). `prueba_golpe_seco.gd`: voltereta a 0,37 s no da tiempo bruja, a 0,17 s sí. 0 fallos.
+
+- GAMEFEEL (22/11): **G7 hecho**, el feedback de la jugadora al recibir un golpe (detalle en `PLAN_GAMEFEEL_2026-11-22.md` §2.11).
+  - Ya no desaparece: parpadeo de brillo y destello blanco y rojo con aplastamiento.
+  - Tres tamaños de golpe (hitstop 0,05 / 0,08 / 0,15, número, viñeta y tambaleo) y viñeta con dirección.
+  - «Bloqueado» con barrera, cúpula o bálsamo, y destello en el daño ambiental.
+  - Invulnerabilidad 0,4 → 0,6 s.
+  - Quejido de voz: el hueco está, pero no hay grabaciones.
+  - Archivos: `jugador/jugador_3d.gd` y `presentacion/sensacion_3d.gd`.
+  - Pruebas: nueva `escenario_feedback_jugadora` (0 fallos). `prueba_feedback_combate` E3.4 y `prueba_sensacion` 6 se cambiaron a propósito (hitstop por tamaño). `prueba_trampas_pared` da 4 fallos en F9 (7.12–7.14), y con INVULNERABLE 0,4 falla igual: no es de G7, causa sin encontrar.
+  - Fotos en `docs/capturas/feedback_jugadora/despues`. Sin jugar, sin commit.
+- GAMEFEEL (22/11, corrección): `prueba_trampas_pared` repetida dos veces: 0 fallos. Los 4 fallos de F9 de antes no se reproducen (tampoco a COMBATE); lo más probable es que esa ejecución cargara scripts a medio editar por otra sesión.
+
+
+### 22/11/2026 · aviso de contexto COMBATE: fórmula de botín §11 (MEJORAS_HECHIZOS_MYSTRALIA), primera implementación
+- `enemigos/combate_3d.gd`: curva continua de vida `prob_vida(h)` con curación pendiente (recogibles de vida a ≤ 8 casillas, grupo `recogible_vida`); con barra llena ni se imanta ni se coge; con hueco entra lo que cabe (el número enseña eso); `cuentas` y eventos de PlayLog (generado, recogido, recuperado, desperdiciado, caducado, racha sin vida); `cuota_botin`.
+- `enemigos/limo_3d.gd`: al dividirse reparte oro (exacto) y cuota entre los hijos (gota, vida y materiales).
+- `nucleo/botin.gd`: `validar` / `validar_filas`; tabla inválida no se tira (vacía + aviso una vez); duplicados = aviso (cuentan aparte). Las 25 tablas de hoy, válidas.
+- Prueba nueva `herramientas/escenario_botin_curva.gd` 0 fallos; recogibles, botín, limos, muerte, tinta, reintento, mapa abierto: 0 fallos. Oro, fórmula de tinta y reintento sin tocar.
+
+
+### 22/11/2026 · CODEX: previsión funcional durante el casteo
+- Encargo de Pablo: leer glifos/formas y programar una preparación visual que muestre función sin texto. Propuesta: docs/PROPUESTA_PREVISION_CASTEO_2026-11-22.md (enlazada en LEEME).
+- Nuevo magia/prevision_casteo_3d.gd: contorno abierto de protección, forma dirigida en mano, haz, colocación/suelo y órbita según propiedades. Sigue el cast point; se retira al cancelar, morir, interrumpir o disparar. Solo dibujo; no cambia costes, tiempos, física ni balance.
+- Lanzador3D: integración puntual y copia filtrada para dibujo, evitando cúpula rellena duplicada sobre Mid. Se mantienen recorrido, casillas y reacciones; apagable con PREVISION_CASTEO_ACTIVA.
+- Pruebas: prueba_prevision_casteo (1536 recetas / 1560 comprobaciones), escenario_prevision_casteo, prueba_apuntado (56), prueba_prevision_hechizo (166), prueba_cast_points: 0 fallos. Apuntado actualiza expectativas de cúpulas locales; el modo anterior también pasa desactivando la función.
+- Ocho capturas renderizadas revisadas (Compatibility). Persisten avisos de recursos al cerrar y avisos previos de material/meta en la simulación: reproducidos con la nueva función apagada.
+- No se han implementado simulación completa de hijos ni nuevas distribuciones/cadencias. Sin commit.
+
+### 22/11/2026 · aviso de contexto HECHIZOS Y LIBRO (6) · previsión durante el casteo (de Codex) adoptada y ajustada
+- **HECHIZOS se queda con `magia/prevision_casteo_3d.gd`.** El enganche de `lanzador_3d.gd` no pisa B9b, M1 ni la `solidez_en` de COMBATE.
+- **Ajustes:**
+  1. el «no vale» pasa de rojo a gris (`COLOR_NO_VALE`), por G4;
+  2. la barrera de tierra apuntada a tu casilla se dibuja como el **anillo fino** de COMBATE (A4), sin la cúpula amarilla rellena de `recorrido_visual`;
+  3. el rótulo «para…» de B9b va **encima** de la silueta, con el color del elemento. Dice «para todos los proyectiles» (antes «para todo»), y con el anillo añade «no para golpes ni explosiones».
+- **Fotos con ventana:** `docs/capturas/prevision_casteo_2026-11-22/antes` y `/despues`.
+- **Pruebas** en 0 fallos: `prueba_prevision_casteo`, `escenario_prevision_casteo`, `prueba_barrera_legible`, `prueba_apuntado`, `prueba_prevision_hechizo`, `prueba_prevision_reaccion` y `prueba_contacto`.
+- **Pendiente:** `prueba_cast_points`, cuando el `Verraco3D` de COMBATE compile.
+- **Para Pablo:** el documento de Codex pide «sin texto explicativo» y el rótulo es texto: decidir.
+- **Sin commit.**
+
+
+### 22/11/2026 · aviso de contexto COMBATE: X2 el Verraco + D1 daño contra pared
+- `enemigos/verraco_3d.gd` (`Verraco3D`, clase nueva: `--import` hecho): jabalí de granito de primitivas, invulnerable; pose quieta 0,6 s con línea en el suelo (ventana 0,25); embiste hasta ella + 2 casillas; se agrieta al chocar con lo sólido (pared, columna, barrera); frena si aparece una barrera durante la pose; patina en suelo mojado (hasta +4 casillas); 3 grietas = núcleo 6 s (×1,5); se reinicia al reaparecer.
+- Pieza `verraco` en `escenas/puzle.gd`; sala `mundo/datos_nivel/mapas/SalaVerraco.txt` + `escenas/PruebaSalaVerraco.tscn`.
+- D1: `Combate3D._chocar_pared` (empuje ≥ 2,5 u/s parado en seco: hasta 15 de daño y 0,5 s aturdido; interruptor `CHOQUE_PARED`).
+- Pruebas: `herramientas/escenario_verraco.gd` 0 fallos; batería de combate 0 fallos. `prueba_empuje_masa` 1 da 1 fallo NUEVO pero es de HECHIZOS B9a (flecha ya no suma daño: los dos hechizos dañan 13,8 y empujan igual), avisado. Fotos `docs/capturas/verraco` (`herramientas/captura_verraco.gd`).
+
+### 22/11/2026 · aviso de contexto HECHIZOS Y LIBRO (7) · H16: nombre de cada hechizo (lo barato)
+- **Nueva clase `NombreHechizo`** (`nucleo/nombre_hechizo.gd`): el nombre automático de una página, forma + elemento + un rasgo, concordado («Flecha de fuego larga», «Escudo de agua», «Orbes de fuego»).
+  - **La caché de clases se ha actualizado con `--headless --import`.** Si al abrir el editor sale «NombreHechizo no declarado», basta con que el editor vuelva a escanear.
+- **Grimorio:**
+  - `nombre_pagina(i)`, `renombrar_pagina(i, texto)` (18 caracteres; vacío = automático) y `nombre_es_propio(i)`.
+  - Solo se guarda el nombre propio (`nombre` y `nombre_propio` en `Repertoire.paginas`); `Repertoire.desde_dic` lo conserva.
+- **HUD (`presentacion/ui/page_hud.gd`):** el nombre de la página activa encima de las pestañas, grande 1,2 s al cambiar y luego pequeño.
+- **Pruebas:**
+  - nueva `herramientas/prueba_nombre_hechizo.gd` (30, 0 fallos);
+  - `prueba_grimorio`, `prueba_libro_guardado`, `prueba_libro_avanzado`, `prueba_partida_entera`, `prueba_trazos_rectos`, `prueba_kit`, `prueba_cifras_libro` y `prueba_interfaz_u1_u4`: 0 fallos;
+  - `prueba_partida`: 1, el de `tiendas`, que ya estaba.
+- **Fotos con ventana:** `docs/capturas/nombre_hechizo_2026-11-22/`, con la nueva `herramientas/captura_nombre_hechizo.gd`.
+- **Falta:** renombrar en el libro (campo de texto), el selector H10, la cabecera del libro y M1. **Sin commit.**
+
+### 22/11/2026 · aviso de contexto HECHIZOS Y LIBRO (8) · sin rótulo «para…» al apuntar
+- **Pablo: «prefiero la silueta»**, para que no se recargue la vista. Al apuntar ya no sale el rótulo «para… · no para…» (`PrevisionReaccion3D.ROTULO_BARRERA_AL_APUNTAR = false`).
+- El nombre de la página va abajo, en el HUD (H16), como en Mystralia. `texto_barrera` se guarda para la ficha del libro (H8).
+- Siguen saliendo la tinta y la recarga (E4) y el «se disolverá» con el tope lleno.
+- `prueba_barrera_legible` y `escenario_prevision_casteo` dan 0 fallos. Las fotos de `docs/capturas/prevision_casteo_2026-11-22/despues` están rehechas. **Sin commit.**
+
+### 22/11/2026 · aviso de contexto HECHIZOS Y LIBRO (9) · sin gravedad en los hechizos
+- **Pablo: «quitar el efecto de la gravedad en hechizos, penaliza demasiado».**
+  - `Hechizo.GRAVEDAD_EN_HECHIZOS = false` (`nucleo/hechizo.gd`): `construir` pone `gravedad` e `impulso_salida` a 0.
+  - Las flechas de tierra y de agua vuelan rectas, como el fuego, y ya no sobrevuelan al enemigo a 1 casilla (el hallazgo de COMBATE en la ArenaCombate).
+  - Los `.tres` conservan sus valores.
+- **Puzles en 0 fallos:** `escenario_cueva_completa` (el C2 contaba con el arco), `escenario_cueva_resonante`, `escenario_gruta_batida`, `escenario_puzles_agua` y `escenario_arena_combate`. También `prueba_coraza_elemento`, `prueba_proyectil_solidez`, `prueba_prevision_hechizo`, `prueba_agua_hechizos` y `prueba_dano_tinta`.
+- **GOLDEN REGENERADO A PROPÓSITO:** solo cambian `gravedad` (6 recetas base) e `impulso_salida` (822).
+- **Pruebas reescritas a propósito:** `prueba_apuntado` 2, `prueba_cast_points` E2b, `prueba_ejecucion_combinaciones` A2, `prueba_hechizo` y `prueba_hechizo_vivo`. Todas en 0.
+- **Sin relación:** `prueba_flecha_agua_revision` da 927 fallos de sus propias gotas de laboratorio.
+- **Sin commit.**
+
+### 22/11/2026 · aviso de contexto HECHIZOS Y LIBRO (10) · libro rojo de PRUEBA
+- **Pablo: «implementa un libro de prueba para probar»** (`docs/PROPUESTA_LIBRO_ROJO_Y_TRANSICIONES_2026-11-22.md`).
+- **Libro separado:** `presentacion/ui/libro_rojo.gd` (clase nueva `LibroRojo`; la caché de clases se ha actualizado con `--import`).
+  - Se abre en **`laboratorios/LabLibroRojo.tscn`** (lo monta `laboratorios/lab_libro_rojo.gd`) con **L**.
+  - El libro de siempre, el «bosque», el «avanzado» y `spellbook.gd` no se tocan.
+  - Escribe en las páginas del lanzador: el mismo reconocedor, el mismo guardado y el mismo `Hechizo`.
+- **Lo que tiene:**
+  - zona única de trazado a la izquierda y conjuro a la derecha, con doble contorno;
+  - elegir hueco → dibujar → la tinta escribe trazo a trazo; el trazo no reconocido se queda;
+  - catálogo en pestaña, con la capacidad a la vista;
+  - nombre (H16) y coste (H9);
+  - combinación de dos sellos con transición de 0,75 s;
+  - anidación solo como maqueta;
+  - orden de glifos «dibujo / huecos» para probar H4.
+- **Pruebas:** nueva `herramientas/prueba_libro_rojo.gd` (31, 0 fallos). `prueba_grimorio`, `prueba_libro_guardado`, `prueba_libro_avanzado`, `prueba_laminas_grimorio`, `prueba_huecos_libro`, `prueba_interfaz_u1_u4`, `prueba_partida_entera`, `prueba_nombre_hechizo` y `prueba_kit`: 0 fallos.
+- **Fotos:** `docs/capturas/libro_rojo_2026-11-22/` (`herramientas/captura_libro_rojo.gd`).
+- **Ojo:** mientras una página tiene dos sellos, el libro rojo pone `Repertoire.libro = "avanzado"`; el lab lo devuelve al salir.
+- **Sin commit.**
+
+### 22/11/2026 · aviso de contexto HECHIZOS Y LIBRO (11) · libro rojo, 2.ª vuelta
+- **Reconocimiento:** el libro rojo mandaba el trazo crudo. Ahora lo rectifica a la escala de su zona, como el libro de siempre con su círculo. Medido con runas sintéticas con temblor: crudo 12/72; rectificado 268/270 de 45 a 220 px.
+- **PlayLog:** cada intento queda apuntado como «libro_rojo_trazo».
+- **Ayuda al dibujo:** chuleta de la familia esperada, guía tenue del símbolo del destino y práctica animada desde el catálogo (sin inscribir).
+- **Anidación editable** (no se lanza): sello y glifos del hijo, condición (al impactar / al acabar / a la vez), 6 glifos en total, mover glifos entre círculos.
+  - `Grimorio.volcar_paginas` / `cargar_paginas` y `Repertoire.desde_dic` guardan `hijo` y `condicion` como `elemento2`; una página sin ellos no gana las claves.
+- **Texto de la izquierda:** cabe siempre.
+- **Pruebas:**
+  - `prueba_libro_rojo` (52, 0 fallos);
+  - libro y guardado en 0;
+  - `prueba_partida`: 1, `tiendas`, ya estaba;
+  - `prueba_glifos_dibujables`: 6, los de las muestras $P, ya estaban; Pablo está grabando las nuevas.
+- **No he tocado `gesture_library.tres`. Sin commit.**
+
+### 22/11/2026 · aviso de contexto HECHIZOS Y LIBRO (12) · lámina del libro rojo
+- **`art/ui/grimorio_rojo.png` importada (`--import`)** y usada de fondo del `LibroRojo`, con sombra suave debajo.
+- **Coordenadas de lámina**, ajustables en `presentacion/ui/libro_rojo.gd`:
+  - `PAGINA_IZQ_LAM` (115, 75, 590 × 730) y `PAGINA_DER_LAM` (800, 75, 590 × 730), medidas sobre el pergamino (x 97–722 y 782–1409, y 53–824);
+  - `PESTANA_IZQ_LAM`, para las páginas 1/2/3;
+  - `CIERRE_DER_LAM`, para el catálogo.
+- Escala con la proporción de la lámina (1,63), sin deformar.
+- `prueba_libro_rojo` en 0 fallos.
+- **Fotos:** antes en `docs/capturas/libro_rojo_2026-11-22/antes_lamina/`, después en la misma carpeta.
+- **No he tocado `gesture_library.tres`. Sin commit.**
+
+### 22/11/2026 · aviso de contexto HECHIZOS Y LIBRO (13) · hoja de catálogo del libro rojo
+- **Pablo: «vamos a probar así».** El catálogo del `LibroRojo` pasa a ser una hoja sobre la página izquierda (inspirada en Mystralia, adaptada):
+  - sellos aparte;
+  - FORMA (no sube el daño) y POTENCIA (sube el daño), en huecos fijos con candado;
+  - CONDICIONES de los dos círculos, bloqueadas;
+  - ficha fija al pie, con trazo animado y «Practicar».
+- En la zona de trazado, solo los últimos 4 símbolos (chuleta mínima).
+- **Textos de la ficha provisionales** (`LibroRojo.FICHAS`), para que los revise Pablo.
+- `prueba_libro_rojo` en 0 fallos. Fotos 08, 15 y 16 en `docs/capturas/libro_rojo_2026-11-22/`. **Sin commit.**
+
+### 22/11/2026 · aviso de contexto HECHIZOS Y LIBRO (14) · notas del personaje y cuaderno de runas (libro rojo)
+- **Boceto de Pablo.**
+- **Notas laterales**, fuera del libro, que siguen al destino (Sellos / Unión / Glifos):
+  - solo lo conocido, con «N por descubrir»;
+  - verbos y trazo con su inicio;
+  - en vivo, apagan lo que ya no puede salir y marcan con ✓ lo que va ganando;
+  - tachan el último intento fallido.
+- **Cuaderno de runas** a doble página: índice, ficha y **recuadro de práctica** que reconoce sin tocar el conjuro.
+- Los hechizos se **bautizan** (H16); las notas usan verbos.
+- `prueba_libro_rojo` en 0 fallos. Fotos 17–21 en `docs/capturas/libro_rojo_2026-11-22/`. **Sin commit.**
+- (COMBATE, 22/11) Pablo probó el Verraco: «el concepto funciona, faltan animaciones y demás, pero me gusta». Pendiente para el Pipeline: modelo y animaciones del Verraco (hoy primitivas).

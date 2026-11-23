@@ -894,8 +894,62 @@ func _vivir(ctx: Dictionary, solidez: float, refleja: bool) -> int:
 		return _materia_seca(ctx)
 	var n: int = int(call(String(MATERIA_V2[String(ctx["estado"])]), ctx))
 	if solidez > 0.0 and not sigue:
-		_solidez(ctx, solidez, refleja)
+		var s: Lanzador3D.SolidezV2 = _solidez(ctx, solidez, refleja)
+		# 22/11 (A4 de PLAN_COMBATE, decisión de Pablo: «círculo de tierra alrededor, capa fina; así hay una debilidad en los ataques del suelo o explosiones»): la barrera de tierra
+		# que nace en la casilla de la jugadora no puede levantar su bloque («estás encima») y no se veía nada, aunque su SolidezV2 sí la protegía. Ahora se ve como un ANILLO fino de
+		# tierra a su alrededor mientras dura la protección, y cuenta como una manifestación (entra en el tope de barreras, C4). Solo para los PROYECTILES (lo único que consulta la
+		# solidez: flechas, chorros); los golpes desde el suelo, el cuerpo a cuerpo y las explosiones la atraviesan.
+		if n == 0 and s != null and (ctx["data"] as RuneData).pisable and String(ctx["estado"]) == "solido":
+			_anillo_tierra(s, ctx)
+			n = 1
 	return n
+
+
+const ANILLO_RADIO_K: float = 0.46           ## radio del anillo, en casillas (rodea a la jugadora dentro de su casilla)
+const ANILLO_ALTO_U: float = 0.75            ## alto de la capa de tierra
+const ANILLO_GROSOR_U: float = 0.07          ## grosor: capa FINA
+const ANILLO_SUBE_S: float = 0.15            ## lo que tarda en brotar del suelo
+const ANILLO_BAJA_S: float = 0.25            ## y en hundirse al acabar
+
+## 22/11 (A4): el anillo de tierra fino de la barrera de tierra en la casilla de la jugadora. Cuelga de la SolidezV2 (se va con ella), brota del suelo y se hunde al final.
+func _anillo_tierra(s: Lanzador3D.SolidezV2, ctx: Dictionary) -> void:
+	var celdas: Array = ctx["celdas"]
+	if celdas.is_empty() or not s.is_inside_tree():
+		return
+	var c: Vector2i = celdas[0]
+	var cas: float = Terreno3D.casilla
+	var r: float = cas * ANILLO_RADIO_K
+	var malla := CylinderMesh.new()
+	malla.top_radius = r
+	malla.bottom_radius = r + ANILLO_GROSOR_U
+	malla.height = ANILLO_ALTO_U
+	malla.cap_top = false
+	malla.cap_bottom = false
+	malla.radial_segments = 24
+	malla.rings = 1
+	var mat := StandardMaterial3D.new()
+	mat.albedo_color = (ctx["data"] as RuneData).color.darkened(0.15)
+	mat.roughness = 1.0
+	mat.cull_mode = BaseMaterial3D.CULL_DISABLED
+	var mi := MeshInstance3D.new()
+	mi.name = "Malla"
+	mi.mesh = malla
+	mi.material_override = mat
+	mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	# El pivote va a ras de suelo y la malla encima: al escalar en Y, el anillo BROTA del suelo (y se hunde en él), no crece desde el medio.
+	var pivote := Node3D.new()
+	pivote.name = "AnilloTierra"
+	s.add_child(pivote)
+	var y: float = Terreno3D.y_pies(c) if Terreno3D.en_mapa(c) else 0.0
+	pivote.global_position = Vector3((float(c.x) + 0.5) * cas, y, (float(c.y) + 0.5) * cas)
+	mi.position = Vector3(0.0, ANILLO_ALTO_U * 0.5, 0.0)
+	pivote.add_child(mi)
+	pivote.scale = Vector3(1.0, 0.05, 1.0)
+	var tw: Tween = pivote.create_tween()
+	tw.tween_property(pivote, "scale:y", 1.0, ANILLO_SUBE_S).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	var espera: float = maxf(s.vida - ANILLO_SUBE_S - ANILLO_BAJA_S, 0.0)
+	tw.tween_interval(espera)
+	tw.tween_property(pivote, "scale:y", 0.05, ANILLO_BAJA_S).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
 
 
 ## Lo que el desplazamiento tocó por el camino (`trazar`: objetos que reaccionan y paran el trazo): un golpe a cada uno, una vez.
