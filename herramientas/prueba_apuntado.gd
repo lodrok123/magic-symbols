@@ -40,6 +40,14 @@ func _caso_fantasmas() -> void:
 		var celdas: Array = []
 		for v in vols:
 			celdas.append_array((v["volumen"] as Dictionary).get("celdas", []))
+		# Nueva preparación: fuego/agua locales se anuncian con contorno, no con el fantasma relleno.
+		# Las colocaciones de tierra/hielo y el modo anterior siguen verificando su ocupación completa.
+		if Lanzador3D.PREVISION_CASTEO_ACTIVA and ["fuego", "agua"].has(el):
+			var cue: Node = lanzador._prevision_casteo
+			_ok("8 barrera de %s: la preparación local usa un contorno abierto" % el, is_instance_valid(cue) and cue.visible and cue.get("tipo") == "proteccion")
+			_ok("8 barrera de %s: no se duplica una cúpula rellena sobre Mid" % el, ap.fantasmas_dibujados.is_empty() and not celdas.is_empty())
+			await _soltar_sin_lanzar()
+			continue
 		var bien: bool = ap.fantasmas_dibujados.size() == celdas.size() and celdas.size() >= 1
 		for k in range(mini(ap.fantasmas_dibujados.size(), celdas.size())):
 			var f: Dictionary = ap.fantasmas_dibujados[k]
@@ -114,8 +122,8 @@ func _caso_arco_y_copias() -> void:
 	var y_max: float = -INF
 	for q in c:
 		y_max = maxf(y_max, q.y - Terreno3D.y_pies(Terreno3D.celda_de(q)))
-	_ok("2 la flecha de tierra sube en arco (%.2f u sobre el suelo)" % y_max, y_max > 1.0)
-	_ok("2 y dibuja su sombra en el suelo", ap._sombras.visible)
+	# 22/11 (Pablo, P14 de PLAN_HECHIZOS: «quitar el efecto de la gravedad en hechizos»): la flecha de tierra vuela RECTA, como la de fuego; antes subía en arco (> 1 u).
+	_ok("2 la flecha de tierra vuela recta, a la altura de la mano (%.2f u sobre el suelo)" % y_max, y_max < 1.0 and not Hechizo.GRAVEDAD_EN_HECHIZOS)
 	await _soltar_sin_lanzar()
 	await _apuntar(Vector2i(12, 34), "hielo", ["flecha", "repeticion", "repeticion"], oeste, 3.0)
 	ap = _ap()

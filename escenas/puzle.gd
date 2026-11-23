@@ -98,16 +98,20 @@ extends Node
 ##   golem      quieto=si (no)                                                      Golem3D (E3, 28/10): el gólem de piedra. De pie nada le hace daño; persigue lento y golpea con aviso (30 y empuje); tras el
 ##              golpe queda de rodillas con el núcleo a la vista (×1,5 de daño). El viento sobre una casilla helada lo hace resbalar (tumbado = núcleo a la vista; al agua honda o la
 ##              lava, muere). `quieto=si`: no persigue ni ataca (un blanco para probar el hielo). Es un Combate3D: el vigía lo cuenta. No bloquea su casilla
+##   goblin_escudo  quieto=si (no)                                                  21/11 (arena de combate): un goblin guerrero con ESCUDO (Escudo3D). De frente para todo; el fuego lo prende y,
+##              mientras arde, se quema el brazo y no ataca; consumido, pelea sin escudo. Es un Combate3D: el vigía lo cuenta. No bloquea su casilla
 ##   chaman     quieto=si (no)                                                      Chaman3D (E2, 28/10): el chamán goblin. Escuda primero (traza un rombo en el suelo con el bastón, lo clava y una onda verde da un escudo de
 ##              naturaleza a los goblins cercanos; el fuego lo quema) y luego se mantiene lejos tirando bolas de veneno. Si le pegan trazando, la runa se rompe. Es un Combate3D: el vigía lo cuenta
 ##   mamoa      agrietada=si (no)  tapada=si (no)                                   Mamoa3D (E4): el brocal de pozo del que vuelve el mouro. Se TAPA con un bloque empujable encima, la tierra o el hielo de un hechizo vivo, o la
-##              acción `tapar` (la destapa `destapar`); tapada se ve la losa. `agrietada=si` nace en su estado final (el mouro ya no vuelve). Sellada con un mouro dentro suelta las reliquias.
+##              acción `tapar` (la destapa `destapar`); tapada se ve la losa. 21/11: también la tapa CUALQUIER cosa sólida en su casilla (roca, caja, jarrón soltado…) y el AGUA: con su
+##              casilla mojada o helada el pozo se inunda y queda tapado para siempre. `agrietada=si` nace en su estado final (el mouro ya no vuelve). Sellada con un mouro dentro suelta las reliquias.
 ##              Señales `tapada`, `destapada`, `agrietada`. No bloquea su casilla (el bloque tiene que poder llegar)
 ##   mouro      mamoa=<id de la pieza mámoa> (sin ella, un enemigo normal)  quieto=si (no)   MouroEspectro3D (E4): el espectro de elfo. Se desliza hacia ella y la agarra (12 y raíces 1 s, con aviso);
-##              al caer con la mámoa abierta se deshace y vuelve de ella a los 4 s con la vida llena (hasta 3 veces; la tercera agrieta la mámoa); con la mámoa tapada muere de verdad. Es un Combate3D: el vigía lo cuenta
+##              al caer con la mámoa abierta se deshace y vuelve de ella a los 4 s con la vida llena, SIN LÍMITE (21/11); con la mámoa tapada muere de verdad. Lleva un aura de veneno. Es un Combate3D: el vigía lo cuenta
 ##   compana    animas=<n> (3)  camino=<casillas> (el de por defecto: 4 casillas al este, al sur...)   SantaCompana3D (E5): la procesión de n ánimas en fila por el camino (el x,y de la pieza es su salida; el
 ##              camino se recorre de ida y vuelta). No persiguen: si se les cruza, 10 y ralentiza; si las atacan, el guía (el que lleva la cruz) maldice. Al caer el guía la cruz pasa a la siguiente; si caen
-##              todas en 2,5 s se acaba; si no, se reponen (hasta 3). Cada ánima es un Combate3D: la casilla de la pieza es la de partida para el vigía
+##              todas en 2,5 s se acaba; si no, se reponen SIN LÍMITE (21/11). La cruz lleva una niebla que roba vida (1/s, +1 cada 5 s dentro; atraviesa muros); un muro de hechizo para
+##              la fila. Cada ánima es un Combate3D: la casilla de la pieza es la de partida para el vigía
 ##   (puerta)   modelo=reja                                                       28/10: una REJA de barrotes que deja ver lo de detrás, sin rótulo (para y se abre igual que la losa)
 ##   veta       celdas=<lista> (la propia x,y)  enlaces=<lista>  aturde=<s> (0)  mineral=si (no)   VetaPulso3D: CONDUCTOR del pulso. Una losa por casilla con las vetas de `arte/suelo_meshy/veta_mineral.png`
 ##              (máscara × color del pulso por emisión, casilla a casilla) y un hilo guía entre casillas vecinas. No bloquea; la rejilla de vetas la conoce solo el pulso.
@@ -131,6 +135,7 @@ extends Node
 ##              JUGADOR (el glifo ᚱ). Bloquea su casilla mientras está cerrada; `flag` se pone al abrirse. `mira`: hacia qué sala mira (grietas y luz) si tiene sala a los dos lados
 ##   (cofre)    abre_si=<expr> (siempre)  glifo=<id del libro>                        `abre_si`: hasta que se cumpla el cofre está sellado (E avisa y no abre). `glifo=raido`: abrirlo da ese
 ##              glifo con la SECUENCIA del cofre legendario (SecuenciaCofreLegendario3D) y lo desbloquea en el libro
+##              sello=<elemento> (22/11, PLAN_HECHIZOS §1.5): abrirlo da ese SELLO (elemento: fuego, agua, tierra…), con la flag `global.sello.<id>` que ya rearma cada nivel (como el agua de Marimanta)
 ##   receptor   elemento=fuego|agua|hielo|rayo|tierra|viento (cualquiera)  flag=<nombre>  rearme=<s> (0)   ReceptorPulso3D: se ACTIVA al llegarle un pulso (de ese elemento, si lo
 ##              pide) y se queda activo; pone `flag` con la forma de siempre (nivel.sala.hecho). `rearme` > 0: se apaga solo. Modelo `receptor_runico`. Bloquea su casilla
 ##   jarron, caja  botin=oro|pocion|nada|zona|<objeto> (oro)  cantidad=<n> (la de la zona)  alto=si (jarron_alto)  pequena=si (caja_pequena)  celdas=<lista>  modelo=caja (en un jarron)   Rompible3D (mapas abiertos, 23/10): un jarrón o una caja
@@ -291,7 +296,7 @@ const SENAL_DEFECTO: Dictionary = {
 	"guardian": "levanta", "puente": "tendido", "trampa_dragon": "escupe", "trampa_flechas": "dispara",
 	"colmena": "cae_panal", "nube_veneno": "disipada", "respiradero": "exhala", "balsa": "atraca", "nido": "suelta", "musgo": "recogida", "helecho_cueva": "recogida", "seta_palida": "recogida",
 	"flor": "recogida", "raiz": "recogida", "lavanda": "recogida", "bayas": "recogida", "helecho": "recogida", "flor_silvestre": "recogida",
-	"bancal": "germino", "mamoa": "tapada",
+	"bancal": "germino", "mamoa": "tapada", "dragon_jefe": "derrotado", "verraco": "derrotado",
 }
 ## Señal de usuario → [señal de Godot, cuántos argumentos trae, filtro]: un filtro `true`/`false` deja pasar solo ese valor del primer argumento.
 const SENALES: Dictionary = {
@@ -337,6 +342,9 @@ const SENALES: Dictionary = {
 	"mamoa": {"tapada": ["tapada", 0, null], "destapada": ["destapada", 0, null], "agrietada": ["agrietada", 0, null]},
 	"trampa_dragon": {"escupe": ["escupe", 0, null], "calla": ["calla", 0, null], "apagada": ["apagada", 0, null]},
 	"trampa_flechas": {"dispara": ["dispara", 0, null], "apagada": ["apagada", 0, null]},
+	"dragon_jefe": {"derrotado": ["derrotado", 0, null], "presentado": ["presentado", 0, null], "aliento": ["aliento_empieza", 0, null], "aturdido": ["aturdido", 0, null], "expuesto": ["expuesto", 0, null]},
+	# X2 de PLAN_COMBATE (22/11): el Verraco (enemigos/verraco_3d.gd).
+	"verraco": {"derrotado": ["derrotado", 0, null], "embiste": ["embiste", 0, null], "choca": ["choca", 1, null], "frena": ["frena", 0, null], "expuesto": ["expuesto", 0, null]},
 	"colmena": {"cae_panal": ["panal_cae", 0, null], "arde": ["arde", 0, null]},
 	"nube_veneno": {"disipada": ["disipada", 0, null]},
 	"respiradero": {"exhala": ["exhala", 0, null], "apagado": ["apagado", 0, null], "prende": ["prende", 0, null], "se_apaga_llama": ["se_apaga_llama", 0, null]},
@@ -458,7 +466,7 @@ const CLAVES: Dictionary = {
 	"cuerda": {"sostiene": "id"},
 	"vigia": {"de": "celdas", "flag": "flag", "puesto": "b", "debil": "s:fuego|agua|tierra|viento|rayo|hielo", "resiste": "s:fuego|agua|tierra|viento|rayo|hielo"},
 	"cerrojo": {"celdas": "celdas", "sala": "celdas", "hasta": "flag"},
-	"cofre": {"aparece_si": "expr", "abierto": "flag", "modelo": "s:legendario|epico", "abre_si": "expr", "glifo": "glifo", "da": "da", "gasta": "b"},
+	"cofre": {"aparece_si": "expr", "abierto": "flag", "modelo": "s:legendario|epico", "abre_si": "expr", "glifo": "glifo", "sello": "sello", "da": "da", "gasta": "b"},
 	"muro": {"golpes": "f"},
 	"lava": {"celdas": "celdas", "vuelve": "f"},
 	"seta": {"variante": "s:roja|azul|marron", "rebrota": "f", "madura": "b"},
@@ -493,14 +501,21 @@ const CLAVES: Dictionary = {
 	"entrada": {"mira": "s:n|e|s|o"},
 	"guardian": {"en": "celdas", "cada": "f", "elemento": "s:fuego|agua|hielo|tierra|rayo|viento", "cerca": "f", "roto": "b"},
 	"puente": {"celdas": "celdas"},
-	"limo": {"elemento": "s:fuego|agua|hielo|rayo|tierra|viento", "grande": "b"},
+	"limo": {"elemento": "s:fuego|agua|hielo|rayo|tierra|viento", "grande": "b", "coraza": "s:barro|brasa"},
 	"golem": {"quieto": "b"},
+	"goblin_escudo": {"quieto": "b"},
+	# B1 de PLAN_COMBATE (22/11): guerrero con coraza de elemento (`CorazaElemento3D`); de serie, de barro (la rompe la tierra).
+	"goblin_coraza": {"quieto": "b", "coraza": "s:barro|brasa"},
 	"chaman": {"quieto": "b"},
 	"mamoa": {"agrietada": "b", "tapada": "b"},
 	"mouro": {"mamoa": "id", "quieto": "b"},
 	"compana": {"animas": "f", "camino": "celdas"},
 	"trampa_dragon": {"mira": "s:n|e|s|o", "ciclo": "par", "desfase": "f", "alcance": "f", "elemento": "s:fuego|agua|hielo|rayo|tierra|viento", "agua": "b", "cerca": "f"},
 	"trampa_flechas": {"mira": "s:n|e|s|o", "cada": "f", "desfase": "f", "alcance": "f", "vel": "f", "elemento": "s:fuego|ninguno|agua|hielo|rayo|tierra|viento", "agua": "b", "cerca": "f", "exenta": "b"},
+	# 21/11 (Pablo): dragón jefe placeholder (objetos/dragon_jefe_3d.gd): presentación con rótulo y aliento que barre, se bloquea con barrera.
+	"dragon_jefe": {"mira": "s:n|e|s|o", "alcance": "f", "cerca": "f", "vida": "f", "nombre": "nombre", "epiteto": "nombre"},
+	# X2 de PLAN_COMBATE (22/11): el Verraco, élite de granito que embiste (enemigos/verraco_3d.gd).
+	"verraco": {"mira": "s:n|e|s|o", "vida": "f"},
 }
 ## C3: pieza del cofre, cuánto de cerca hay que estar para abrirlo con E (la casilla mide 2,3; igual que el Bosque), cada cuánto miran su estado
 ## las piezas lógicas (vigía, cerrojo, cofre) y los avisos de un vigía que no encuentra enemigos.
@@ -834,6 +849,11 @@ class VigiaPuzle extends Node:
 	var _t: float = 0.0
 	var _t_sin: float = 0.0
 	var _avisado: bool = false
+	## G1 de PLAN_COMBATE (22/11, morir y reintentar): la receta de cada enemigo tal como estaba antes de empezar la pelea, y el nodo del que salió (para cambiar `pz.nodo`).
+	var recetas: Array = []
+	var originales: Array = []
+	var empezado: bool = false                   ## algún enemigo suyo ya está herido, muerto o persiguiendo: el encuentro ha empezado
+	var reinicios: int = 0
 
 	func preparar(p_de: Array, p_flag: String) -> void:
 		de = p_de
@@ -864,6 +884,33 @@ class VigiaPuzle extends Node:
 				quitados += 1
 		return quitados
 
+	## G1: la jugadora reapareció. Si el encuentro empezó y no está resuelto, quita a todos sus enemigos (vivos, muertos o nacidos después, como los hijos del limo) y los vuelve
+	## a crear sanos en su casilla de partida desde la receta. Devuelve {viejo → nuevo} para que el puzle cambie sus `pz.nodo`. {} si no tocaba.
+	func reiniciar(p_mundo: Node3D, p_jugador: Jugador3D, p_lanz: Lanzador3D) -> Dictionary:
+		if completo or not empezado or recetas.is_empty():
+			return {}
+		var cambios: Dictionary = {}
+		for e in vistos:
+			if is_instance_valid(e) and not originales.has(e):
+				(e as Combate3D).retirar()
+		var nuevos: Array = []
+		for i in range(recetas.size()):
+			var viejo: Variant = originales[i]
+			if is_instance_valid(viejo):
+				(viejo as Combate3D).retirar()
+			var nuevo: Combate3D = Combate3D.recrear(recetas[i] as Dictionary, p_mundo, p_jugador, p_lanz)
+			if nuevo != null:
+				nuevos.append(nuevo)
+				cambios[viejo] = nuevo
+		vistos.clear()
+		recetas.clear()
+		originales.clear()
+		empezado = false
+		reinicios += 1
+		_t = 0.0                                     # que el siguiente fotograma los vuelva a ver (y a guardar su receta)
+		PlayLog.event("encuentro_reiniciado", {"vigia": String(name), "repuestos": nuevos.size()})
+		return cambios
+
 	func restantes() -> int:
 		var n: int = 0
 		for e in vistos:
@@ -880,6 +927,11 @@ class VigiaPuzle extends Node:
 			return
 		_t = CADA_LOGICA
 		_escanear()
+		if not empezado:
+			for e in vistos:
+				if not is_instance_valid(e) or bool((e as Combate3D).muerto) or (e as Combate3D).health < (e as Combate3D).vida_max - 0.01 or (e as Combate3D).objetivo != null:
+					empezado = true
+					break
 		if vistos.is_empty():
 			# Sin enemigos que casen no se da por limpio (una sala vacía por error abriría todo): se avisa una vez.
 			if not _avisado and _t_sin >= T_VIGIA_SIN_ENEMIGOS:
@@ -900,6 +952,11 @@ class VigiaPuzle extends Node:
 			for n in get_tree().get_nodes_in_group(grupo):
 				if n is Combate3D and not vistos.has(n) and de.has(Terreno3D.celda_de((n as Combate3D).casa)):
 					vistos.append(n)
+					if not empezado and not bool((n as Combate3D).muerto):
+						var rc: Dictionary = (n as Combate3D).receta()      # G1: los que ya estaban antes de la pelea son los que se reponen al reintentar
+						if not rc.is_empty():
+							recetas.append(rc)
+							originales.append(n)
 					if puesto and (n as Combate3D).arquero:
 						(n as Combate3D).fijo = true
 					if debil != "" or resiste != "":
@@ -945,6 +1002,17 @@ class CerrojoPuzle extends Node3D:
 	func abrir() -> void:
 		vencido = true
 		_poner(true)
+
+	## G1 (22/11): la jugadora reapareció fuera. Si la sala no está vencida y estaba cerrada, se abre (y se volverá a cerrar al entrar). Devuelve si la abrió.
+	func reiniciar() -> bool:
+		if vencido or not cerrado:
+			return false
+		cerrado = false                              # sin `_poner`: no es un logro, no debe sonar a «puerta abierta»
+		for pu in _puertas:
+			(pu as PuertaPuzle).poner(true)
+		cambio.emit(false)
+		_t = 0.5                                     # margen: el modelo de la jugadora puede seguir un fotograma donde murió (dentro de la sala) y la puerta se volvía a cerrar
+		return true
 
 	## Cierra a mano (la acción `cerrar`: una sala sin `sala=`, o volver a cerrar). Con la flag `hasta` puesta no cierra.
 	func cerrar() -> void:
@@ -997,6 +1065,7 @@ class CofrePuzle extends Node3D:
 	var botin_dado: Array = []                   ## lo que dio de verdad al abrirse (las pruebas)
 	var glifo: String = ""                       ## glifo= (id del libro): abrirlo da ese glifo con la secuencia del cofre legendario (SecuenciaCofreLegendario3D)
 	var secuencia: SecuenciaCofreLegendario3D = null
+	var sello: String = ""                       ## sello= (22/11): abrirlo da ese elemento (flag `global.sello.<id>`, la misma que rearma `EncargoMarimanta.rearmar_sellos`)
 	var calidad: String = ""                     ## `modelo=epico|legendario` (24/10, PLAN_PULSO_RESONANTE §7): el cofre sin abrir echa una COLUMNA DE LUZ de ese color y al abrirse suelta motas de él (VfxCalidad3D)
 	var columna: Node3D = null                   ## la columna de luz mientras el cofre está cerrado
 	var flag_abierto: String = ""
@@ -1040,6 +1109,8 @@ class CofrePuzle extends Node3D:
 			_poner_estado("abierto")
 			if glifo != "":
 				Repertoire.unlock_sigil(glifo)       # partida cargada: el glifo que dio este cofre ya es tuyo
+			if sello != "":
+				Repertoire.unlock_element(sello)     # y el sello, igual
 		elif expr.is_empty() or bool(puzle.call("cumple_expr", expr)):
 			_poner_estado("cerrado")             # ya se cumplía al montar: sin efecto de aparición
 		Flags.i().flag_cambio.connect(_al_cambiar_flag)
@@ -1213,6 +1284,16 @@ class CofrePuzle extends Node3D:
 				lz.call("avisar", "Cofre abierto: %s%s" % [", ".join(texto) if not texto.is_empty() else "vacío", " (la mochila está llena: lo demás se queda aquí)" if sin_sitio else ""], color)
 		return dado
 
+	## `sello=`: apunta el sello como ganado (vale para los demás niveles) y lo desbloquea ya. Avisa solo si era nuevo.
+	func _dar_sello() -> void:
+		if sello == "":
+			return
+		Flags.i().poner(EncargoMarimanta.SELLO_GANADO + sello)
+		if Repertoire.unlock_element(sello):
+			var lz: Node = get_tree().get_first_node_in_group("spellcaster") if is_inside_tree() else null
+			if lz != null and lz.has_method("avisar"):
+				lz.call("avisar", "Sello de %s conseguido: ya puedes dibujarlo." % sello, Color(1.0, 0.9, 0.6))
+
 	func _al_abrirse() -> void:
 		_abriendo = false
 		es_cerrado = false
@@ -1221,6 +1302,7 @@ class CofrePuzle extends Node3D:
 		if calidad != "" and Objetos.CALIDADES.has(calidad) and get_parent() is Node3D and is_inside_tree():
 			VfxCalidad3D.motas(get_parent() as Node3D, global_position + Vector3(0.0, 1.0, 0.0), Objetos.CALIDADES[calidad]["color"], MOTAS_APERTURA, 1.4, 0.1, 2.0, 0.5)
 		botin_dado = dar_botin()
+		_dar_sello()
 		if flag_abierto != "":
 			Flags.i().poner(flag_abierto)
 		if glifo == "":
@@ -1370,6 +1452,70 @@ func puzle(nombre: String) -> Dictionary:
 
 func reglas() -> Array:
 	return _reglas.duplicate()
+
+
+## =====================================================================================================
+##  G1 de PLAN_COMBATE (22/11): MORIR Y REINTENTAR. Regla de Pablo: lo permanente (cofres, misiones, atajos, puzles resueltos: flags) se queda; la vida y la fase de los enemigos
+##  del encuentro se restauran; los ataques, avisos y efectos de paso se retiran; una recompensa única no se vuelve a dar.
+## =====================================================================================================
+
+static var REINTENTAR: bool = true               ## interruptor
+var _jugador_reintentar: Jugador3D = null
+var reintentos: int = 0                           ## veces que se ha reiniciado (pruebas)
+
+## Se engancha a `Jugador3D.reaparecio` en cuanto hay jugadora (la maqueta la monta antes o después que este nodo, según el nivel).
+func _vigilar_reaparecer() -> void:
+	if _jugador_reintentar != null and is_instance_valid(_jugador_reintentar):
+		return
+	var lz: Node = get_tree().get_first_node_in_group("spellcaster") if is_inside_tree() else null
+	var j: Variant = lz.get("jugador") if lz != null else null
+	if j is Jugador3D:
+		_jugador_reintentar = j as Jugador3D
+		if not _jugador_reintentar.reaparecio.is_connected(al_reaparecer):
+			_jugador_reintentar.reaparecio.connect(al_reaparecer)
+
+
+## Lo que pasa al reaparecer (público: las pruebas lo pueden llamar).
+func al_reaparecer() -> void:
+	if not REINTENTAR or not is_inside_tree():
+		return
+	reintentos += 1
+	CoordinadorEncuentro.reiniciar()                 # G2: nadie conserva su ficha de ataque
+	var lz: Lanzador3D = get_tree().get_first_node_in_group("spellcaster") as Lanzador3D
+	var j: Jugador3D = lz.jugador as Jugador3D if lz != null else null
+	var m3: Node3D = mundo as Node3D
+	# 1) Lo de paso: avisos en el suelo, flechas y bolas de veneno en vuelo.
+	for a in get_tree().get_nodes_in_group(AvisoAtaque3D.GRUPO):
+		(a as AvisoAtaque3D).cancelar()
+	if m3 != null:
+		for n in m3.get_children():
+			if n.has_meta("flecha_goblin") or n is FlechaTrampa3D or n is BolaVeneno3D:
+				n.queue_free()
+	# 2) Los encuentros (vigías) empezados y sin resolver: sus enemigos vuelven como al empezar. Y las puertas de sus salas se abren.
+	var en_encuentro: Array = []
+	for pz in _orden:
+		var p: Pieza = pz as Pieza
+		if p.tipo == "vigia" and p.nodo is VigiaPuzle:
+			var cambios: Dictionary = (p.nodo as VigiaPuzle).reiniciar(m3, j, lz)
+			for viejo in cambios:
+				_cambiar_nodo(viejo, cambios[viejo])
+			en_encuentro.append_array((p.nodo as VigiaPuzle).vistos)
+		elif p.tipo == "cerrojo" and p.nodo is CerrojoPuzle:
+			(p.nodo as CerrojoPuzle).reiniciar()
+		elif (p.tipo == "dragon_jefe" or p.tipo == "verraco") and p.nodo != null and is_instance_valid(p.nodo) and p.nodo.has_method("reiniciar"):
+			p.nodo.call("reiniciar")
+	# 3) Los enemigos sueltos que siguen vivos: dejan de perseguirla y se curan.
+	for n in get_tree().get_nodes_in_group("combate3d"):
+		if n is Combate3D and not en_encuentro.has(n):
+			(n as Combate3D).olvidar_pelea()
+	PlayLog.event("reintentar", {"n": reintentos})
+
+
+## G1: una pieza cuyo nodo era `viejo` pasa a ser `nuevo` (el enemigo repuesto), para que las reglas y las pruebas sigan encontrándolo por su id.
+func _cambiar_nodo(viejo: Variant, nuevo: Node) -> void:
+	for pz in _orden:
+		if (pz as Pieza).nodo == viejo:
+			(pz as Pieza).nodo = nuevo
 
 
 ## El nodo que anda del jugador, como lo busca Pulsador3D en modo presencia: el Lanzador3D (grupos «spellcaster» / «player») sabe su `jugador`, y el
@@ -1563,6 +1709,10 @@ static func _valor(tipo: String, t: String) -> Array:
 	if tipo == "glifo":
 		if not GestureLibrary.SIGILS.has(t):
 			return [false, null, "tiene que ser un glifo del libro (GestureLibrary.SIGILS: flecha, barrera, raido…)"]
+		return [true, t, ""]
+	if tipo == "sello":
+		if not GestureLibrary.ELEMENTS.has(t):
+			return [false, null, "tiene que ser un sello (elemento) del libro (GestureLibrary.ELEMENTS: fuego, agua, tierra…)"]
 		return [true, t, ""]
 	if tipo == "botin":
 		if not Rompible3D.botin_valido(t):
@@ -2239,6 +2389,19 @@ func _crear(pz: Pieza) -> void:
 				tf.como_exenta()                  # tótem: de pie en una casilla de suelo, no metido en un muro
 			cont.add_child(tf)
 			pz.nodo = tf
+		"verraco":
+			var vr := Verraco3D.new()
+			vr.name = pz.id
+			cont.add_child(vr)
+			vr.preparar(pz.celda, String(pz.p.get("mira", "s")), float(pz.p.get("vida", Verraco3D.VIDA)), mundo as Node)
+			pz.nodo = vr
+		"dragon_jefe":
+			var dj := DragonJefe3D.new()
+			dj.name = pz.id
+			dj.preparar_jefe(pz.celda, String(pz.p.get("mira", "s")), clampi(int(pz.p.get("alcance", DragonJefe3D.ALCANCE_DEFECTO)), 3, 8), float(pz.p.get("cerca", DragonJefe3D.CERCA_DEFECTO)),
+				float(pz.p.get("vida", DragonJefe3D.VIDA)), String(pz.p.get("nombre", "")), String(pz.p.get("epiteto", "")), mundo as Node)
+			cont.add_child(dj)
+			pz.nodo = dj
 		"emisor":
 			var em := EmisorRayo3D.new()
 			em.name = pz.id
@@ -2375,6 +2538,7 @@ func _crear(pz: Pieza) -> void:
 			cf.preparar(pz.celda, pz.exprs.get("aparece_si", []), String(pz.p.get("abierto", "")), self, mundo,
 				String(ESCENAS_COFRE_CUEVA.get(String(pz.p.get("modelo", "")), ESCENA_COFRE)), pz.exprs.get("abre_si", []), String(pz.p.get("glifo", "")))
 			cf.da = pz.p.get("da", [])
+			cf.sello = String(pz.p.get("sello", ""))
 			cf.gasta = bool(pz.p.get("gasta", false))
 			if cf.gasta and not pz.p.has("abre_si"):
 				_avisar_pieza(pz, "«gasta=si» solo vale con «abre_si=tener.<objeto>» (no hay nada que gastar)")
@@ -2401,6 +2565,41 @@ func _crear(pz: Pieza) -> void:
 			var li: Limo3D = Limo3D.crear(mundo as Node3D, Terreno3D.centro_de(cel_l, Terreno3D.y_pies(cel_l)), String(pz.p.get("elemento", "")), bool(pz.p.get("grande", false)))
 			li.name = pz.id
 			pz.nodo = li
+			if String(pz.p.get("coraza", "")) != "":
+				CorazaElemento3D.equipar(li, String(pz.p.get("coraza", "")))      # B1 (22/11): limo de fuego con costra de brasa (`coraza=brasa`)
+		"goblin_coraza":
+			# B1 de PLAN_COMBATE (22/11): un guerrero (el modelo del goblin con escudo, sin escudo) con una coraza de elemento sobre todo el cuerpo.
+			var cel_k: Vector2i = pz.celda
+			var lz_k: Lanzador3D = get_tree().get_first_node_in_group("spellcaster") as Lanzador3D if is_inside_tree() else null
+			var jug_k: Jugador3D = lz_k.jugador as Jugador3D if lz_k != null else null
+			var gk: Combate3D = null
+			if (mundo as Node3D).has_method("_personaje"):
+				var mod_k: Pj3D = (mundo as Node3D).call("_personaje", ["goblin_warrior_chibi"], Terreno3D.centro_de(cel_k, Terreno3D.y_pies(cel_k)))
+				if mod_k != null:
+					var lista_k: Variant = (mundo as Node3D).get("_goblins")
+					if lista_k is Array:
+						(lista_k as Array).append(mod_k)
+					gk = Combate3D.equipar(mod_k, mundo as Node3D, jug_k, lz_k)
+			if gk == null:
+				_avisar_pieza(pz, "el goblin con coraza no tiene modelo (goblin_warrior_chibi.glb)")
+				return
+			CorazaElemento3D.equipar(gk, String(pz.p.get("coraza", "barro")))
+			gk.quieto = bool(pz.p.get("quieto", false))
+			gk.name = pz.id
+			pz.nodo = gk
+		"goblin_escudo":
+			# 21/11: guerrero + Escudo3D, colgado del MUNDO como el gólem (Puzle3D crea sus piezas después de que el Jugador3D equipe los goblins de letra).
+			var cel_e: Vector2i = pz.celda
+			# 22/11 (A1 de PLAN_COMBATE): sin jugador ni lanzador el goblin no veía a nadie (`Combate3D._ve` con jugador null) y nunca atacaba. Se buscan como el gólem (`Golem3D._buscar_jugador`).
+			var lz_e: Lanzador3D = get_tree().get_first_node_in_group("spellcaster") as Lanzador3D if is_inside_tree() else null
+			var jug_e: Jugador3D = lz_e.jugador as Jugador3D if lz_e != null else null
+			var ge: Combate3D = Escudo3D.invocar_goblin_escudo(mundo as Node3D, Terreno3D.centro_de(cel_e, Terreno3D.y_pies(cel_e)), jug_e, lz_e)
+			if ge == null:
+				_avisar_pieza(pz, "el goblin con escudo no tiene modelo (goblin_warrior_chibi.glb)")
+				return
+			ge.quieto = bool(pz.p.get("quieto", false))
+			ge.name = pz.id
+			pz.nodo = ge
 		"golem":
 			# E3 (28/10): como el limo, el gólem se cuelga del MUNDO (su modelo Pj3D es hermano suyo). Si falta el modelo, avisa y no sale.
 			var cel_g: Vector2i = pz.celda
@@ -3519,6 +3718,7 @@ func _ejecutar(a: Dictionary) -> void:
 
 
 func _process(delta: float) -> void:
+	_vigilar_reaparecer()
 	# Hielos puestos por una regla: caducan como los del hechizo (con el reloj de este nodo: va con la simulación y con las pruebas sin ventana).
 	for c in _hielos.keys():
 		_hielos[c] = float(_hielos[c]) - delta

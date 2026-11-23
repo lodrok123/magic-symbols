@@ -18,6 +18,8 @@ extends SkeletonModifier3D
 @export var torso: float = 1.0
 @export var hombros: float = 1.0
 @export var pecho: float = 1.0
+## cadera: ensancha la pelvis y separa los muslos escalando Hips; el torso y las piernas conservan su tamaño y la altura no cambia (los huesos hijos se contraescalan).
+@export var cadera: float = 1.0
 
 ## POSTURA, en grados, sumada a lo que trae cada clip (0 = como viene). Positivo = echa hacia atrás; si en un
 ## modelo va al revés (depende del eje local del hueso), basta con poner el valor negativo. Sirve para corregir
@@ -43,6 +45,8 @@ var _columna: PackedInt32Array = PackedInt32Array()    ## Spine1, Spine2, Neck
 var _cuello: int = -1
 var _spine2: int = -1                                   ## Spine2 (tronco de arriba: lo escala `pecho`)
 var _pecho: int = -1                                    ## Spine1
+var _columna_base: int = -1                             ## Spine (el primer hueso de la columna, hijo de Hips)
+var _cadera_aplicada: bool = false                      ## para volver a 1,0 al apagar `cadera` en vivo
 var _brazos: PackedInt32Array = PackedInt32Array()     ## LeftArm / RightArm (hombro)
 var _muslos: PackedInt32Array = PackedInt32Array()     ## LeftUpLeg / RightUpLeg
 var _largo_pierna: float = 0.0                          ## de la cadera al tobillo, en espacio del esqueleto
@@ -77,6 +81,7 @@ func preparar() -> void:
 			_columna.append(b)
 	_cuello = _hueso(sk, "Neck")
 	_pecho = _hueso(sk, "Spine1")
+	_columna_base = _hueso(sk, "Spine")
 	_spine2 = _hueso(sk, "Spine2")
 	_brazos.clear()
 	for lado in ["Left", "Right"]:
@@ -139,6 +144,19 @@ func _process_modification() -> void:
 		sk.set_bone_pose_scale(_spine2, Vector3.ONE * k_pecho)
 	if _cabeza >= 0:
 		sk.set_bone_pose_scale(_cabeza, Vector3.ONE * (cabeza / k_pecho if _spine2 >= 0 else cabeza))
+	# Cadera: escala uniforme de Hips (la pelvis y los muslos se ensanchan). Columna base y muslos se contraescalan (1/k, exacto con cualquier giro porque es uniforme) y su posición
+	# local se rehace desde el reposo: x tal cual (el muslo se separa k veces), y/z entre k (el padre ya los multiplica por k), así que la altura no cambia. También desde el reposo.
+	if not is_equal_approx(cadera, 1.0) or _cadera_aplicada:
+		var k_cad: float = maxf(cadera, 0.05)
+		sk.set_bone_pose_scale(_caderas, Vector3.ONE * k_cad)
+		var hijos: PackedInt32Array = _muslos.duplicate()
+		if _columna_base >= 0:
+			hijos.append(_columna_base)
+		for b in hijos:
+			var o: Vector3 = sk.get_bone_rest(b).origin
+			sk.set_bone_pose_position(b, Vector3(o.x, o.y / k_cad, o.z / k_cad))
+			sk.set_bone_pose_scale(b, Vector3.ONE / k_cad)
+		_cadera_aplicada = not is_equal_approx(cadera, 1.0)
 	# Postura: un giro extra sobre la rotación que el clip ha puesto este fotograma. No se acumula porque
 	# los clips de Meshy/Mixamo escriben todos los huesos en cada fotograma.
 	_girar(sk, _cabeza, Vector3.RIGHT, cabeza_atras)

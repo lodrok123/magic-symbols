@@ -48,6 +48,28 @@ var _sobre_f: float = 0.0
 var _sobre_lista: bool = false
 
 
+## H16 (22/11, sesión HECHIZOS): el NOMBRE de la página activa («Flecha de fuego», o el que puso la jugadora), encima de las pestañas. Al cambiar de página sale en grande
+## `T_NOMBRE_GRANDE` s y se reduce; no se enseñan los tres a la vez (llenarían la pantalla en combate). Lo lee de `Grimorio.nombre_pagina`.
+const T_NOMBRE_GRANDE: float = 1.2
+const T_NOMBRE_ENCOGE: float = 0.25
+const TAM_NOMBRE_GRANDE: int = 22
+const TAM_NOMBRE: int = 14
+const ALTO_NOMBRE: float = 30.0                   ## px por encima del centro de las pestañas
+var _nombre_pagina_vista: int = -1
+var _nombre_texto_visto: String = ""
+var _nombre_desde_ms: int = 0
+var ultimo_nombre: String = ""                    ## lo último que pintó (para las pruebas)
+var ultimo_tam_nombre: int = 0
+
+
+## El tamaño del nombre `t` segundos después de cambiar de página: grande, y luego se reduce en `T_NOMBRE_ENCOGE` s.
+static func tam_nombre(t: float) -> int:
+	if t <= T_NOMBRE_GRANDE:
+		return TAM_NOMBRE_GRANDE
+	var k: float = clampf((t - T_NOMBRE_GRANDE) / T_NOMBRE_ENCOGE, 0.0, 1.0)
+	return int(round(lerpf(float(TAM_NOMBRE_GRANDE), float(TAM_NOMBRE), k)))
+
+
 func sobrecarga(indice: int, fraccion: float = 0.0, lista: bool = false) -> void:
 	_sobre_i = indice
 	_sobre_f = clampf(fraccion, 0.0, 1.0)
@@ -137,6 +159,9 @@ func _draw() -> void:
 				draw_arc(centro, radio * (1.2 + 0.8 * (1.0 - k)), 0.0, TAU, 32, Color(1.0, 0.97, 0.85, k), 3.0, true)
 		_texto(centro + Vector2(0.0, 28.0), Controles.texto_teclas("pagina_%d" % (i + 1)), TemaInterfaz.TINTA_PERGAMINO, 42.0)
 
+	# H16: el nombre de la página activa, encima de las pestañas.
+	_dibujar_nombre(caster, Vector2(size.x * 0.5, y - ALTO_NOMBRE))
+
 	# La voltereta.
 	var jugador = get_tree().get_first_node_in_group("player")
 	if jugador != null and jugador.has_method("roll_cooldown_fraction"):
@@ -147,6 +172,28 @@ func _draw() -> void:
 		if listo > 0.0:
 			draw_arc(c, RADIO * 0.35, -PI * 0.5, -PI * 0.5 + TAU * listo, 24, VELO, RADIO * 0.7, true)
 		_texto(c + Vector2(0.0, 22.0 + RADIO * 0.5), Controles.texto_teclas("voltereta"), TINTA)
+
+
+func _dibujar_nombre(caster: Node, pos: Vector2) -> void:
+	var nombre: String = String(caster.call("nombre_pagina", int(caster.get("page")))) if caster.has_method("nombre_pagina") else ""
+	var pagina: int = int(caster.get("page"))
+	if pagina != _nombre_pagina_vista or nombre != _nombre_texto_visto:
+		# Cambió de página (o de receta, o la renombró): vuelve a salir en grande.
+		_nombre_pagina_vista = pagina
+		_nombre_texto_visto = nombre
+		_nombre_desde_ms = Time.get_ticks_msec()
+	ultimo_nombre = nombre
+	if nombre == "":
+		ultimo_tam_nombre = 0
+		return
+	var tam: int = tam_nombre(float(Time.get_ticks_msec() - _nombre_desde_ms) / 1000.0)
+	ultimo_tam_nombre = tam
+	# Con contorno oscuro: se lee sobre la hierba, la nieve o el agua.
+	var fuente: Font = TemaInterfaz.fuente()
+	var ancho: float = fuente.get_string_size(nombre, HORIZONTAL_ALIGNMENT_LEFT, -1, tam).x
+	var p: Vector2 = pos - Vector2(ancho * 0.5, 0.0)
+	draw_string_outline(fuente, p, nombre, HORIZONTAL_ALIGNMENT_LEFT, -1, tam, 4, Color(0.13, 0.09, 0.06, 0.85))
+	draw_string(fuente, p, nombre, HORIZONTAL_ALIGNMENT_LEFT, -1, tam, TINTA)
 
 
 func _texto(pos: Vector2, texto: String, color: Color, ancho_max: float = -1.0) -> void:

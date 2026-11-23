@@ -37,6 +37,7 @@ func _initialize() -> void:
 	_agua_y_rotura()
 	_contacto()
 	_papeles()
+	_brazo_ardiendo()
 	print("FALLOS: %d" % _fallos)
 	quit(1 if _fallos > 0 else 0)
 
@@ -84,6 +85,53 @@ func _goblin(cx: int, cz: int) -> Combate3D:
 	g.health = 100000.0
 	g.vida_max = 100000.0
 	return g
+
+
+## 21/11 (Pablo): caja de choque «como un muro», el goblin ocupado mientras le arde el brazo, el escudo que se carboniza y la defensa que pierde al consumirse.
+func _brazo_ardiendo() -> void:
+	_emitidas.clear()
+	var g := _goblin(9, 4)
+	var def0: float = g.defensa
+	var e: Escudo3D = Escudo3D.equipar(g)
+	var ch: Area3D = e.get_node_or_null("ChoqueEscudo") as Area3D
+	_ok("8 el escudo trae su caja de choque en la capa de los reactivos", ch != null and (ch.collision_layer & Lanzador3D.CAPA_REACTIVO) != 0 and ch.monitorable)
+	_ok("8 con forma (una caja con grosor mínimo)", ch != null and ch.get_child_count() > 0 and ((ch.get_child(0) as CollisionShape3D).shape as BoxShape3D).size.z > 0.0)
+	if ch != null:
+		ch.call("on_spell_hit", _r("earth"), Vector3(0, 0, -1), _h("earth"))
+	_ok("8 lo que choca con la caja lo recibe el escudo (cuenta bloqueo)", e.bloqueos == 1, str(e.bloqueos))
+	_ok("8 con escudo el goblin lleva la defensa del escudo", g.defensa == maxf(def0, Dano.DEF_ESCUDO), str(g.defensa))
+	_ok("8 sin prender: no ocupa al goblin ni está chamuscado", not e.ocupa_al_goblin() and e.carbonizado() == 0.0)
+	_tiro(g, "fire", Vector3(0, 0, -1))
+	_ok("8 el fuego de frente lo prende y el goblin queda OCUPADO (se quema el brazo)", e.estado == "ardiendo" and e.ocupa_al_goblin())
+	g.quieto = false
+	g.objetivo = _jugador
+	g._ia(DT)
+	_ok("8 ocupado: ni anda ni carga un ataque", g.moviendo == 0 and g._carga == 0.0)
+	g.quieto = true
+	_pasos(e, Escudo3D.T_CONSUMO * 0.5)
+	var c_mitad: float = e.carbonizado()
+	_ok("8 a media quema se ve chamuscado a medias", c_mitad > 0.3 and c_mitad < 0.7, "%.2f" % c_mitad)
+	_tiro(g, "water", Vector3(0, 0, -1))
+	_ok("8 el agua lo apaga: vuelve a pelear, pero lo chamuscado se queda", e.estado == "entero" and not e.ocupa_al_goblin() and e.carbonizado() >= c_mitad - 0.01)
+	_pasos(e, Escudo3D.T_MOJADO + 0.5)                    # que se seque para que vuelva a prender
+	_tiro(g, "fire", Vector3(0, 0, -1))
+	_pasos(e, Escudo3D.T_CONSUMO + 0.1)
+	_ok("8 consumido: quemado, ya no ocupa, la caja de choque deja de parar", e.estado == "quemado" and not e.ocupa_al_goblin() and ch != null and ch.collision_layer == 0, e.estado)
+	_ok("8 sin escudo pelea sin la ventaja: vuelve a su defensa de antes", g.defensa == def0, "%s → %s" % [def0, g.defensa])
+	# 21/11 (Pablo: «que se gire a cubrirse»): un disparo por la espalda le entra, pero se gira de golpe hacia él y el siguiente desde ahí ya lo para.
+	var k := _goblin(9, 8)
+	var ek: Escudo3D = Escudo3D.equipar(k)
+	k.mirada = Vector3(0, 0, 1)                           # mira al sur
+	var vk: float = k.health
+	_tiro(k, "earth", Vector3(0, 0, 1))                    # viaja hacia el sur: le llega por la espalda
+	_ok("9 por la espalda le entra (pierde vida)", k.health < vk)
+	_ok("9 y se GIRA a cubrirse: ahora mira hacia de donde vino (norte)", ek.giros_cubrirse == 1 and k.mirada.dot(Vector3(0, 0, -1)) > 0.99, str(k.mirada))
+	var vk2: float = k.health
+	_tiro(k, "fire", Vector3(0, 0, 1))
+	_ok("9 el siguiente desde el mismo sitio lo para el escudo (y el fuego lo prende)", k.health == vk2 and ek.estado == "ardiendo")
+	var giros: int = ek.giros_cubrirse
+	_tiro(k, "earth", Vector3(1, 0, 0))                    # de costado mientras arde
+	_ok("9 quemándose el brazo NO se gira (sacude el brazo)", ek.giros_cubrirse == giros)
 
 
 func _h(archivo: String) -> Hechizo:
@@ -144,11 +192,13 @@ func _cono() -> void:
 	var v0: float = g.health
 	_tiro(g, "earth", Vector3(0, 0, -1))
 	_ok("2 de frente: la vida del goblin no se mueve", g.health == v0, str(v0 - g.health))
-	_ok("2 el escudo lo recibe: pierde vida y cuenta 1 bloqueo", e.vida < e.vida_max and e.bloqueos == 1, str(e.vida))
+	_ok("2 el escudo lo recibe: cuenta 1 bloqueo y NO se desgasta (21/11: solo el fuego le hace algo)", e.vida == e.vida_max and e.bloqueos == 1 and e.empujes_bloqueo == 1, str(e.vida))
 	_ok("2 se emite «bloqueado» una vez con el nodo del escudo", _n("bloqueado", e) == 1 and _n("bloqueado", g) == 0, str(_emitidas))
 	var p: Vector3 = _emitidas[0][1] if not _emitidas.is_empty() else Vector3.INF
 	_ok("2 y el punto del aviso está en el escudo, no lejos del goblin", p.distance_to(g.global_position) < 1.5, str(p))
-	_ok("2 sin estado raro en el goblin (ni lento ni empujado)", g.lento <= 0.0 and g._empuje.length() < 0.01)
+	var atras := Vector3(-g.mirada.x, 0.0, -g.mirada.z).normalized()
+	_ok("2 21/11: un retroceso LEVE hacia atrás (sin volar ni tumbarse) y ni lento", g.lento <= 0.0 and g._fase_empuje == Combate3D.FASE_NINGUNA \
+		and g._empuje.length() > 0.5 and g._empuje.length() <= Escudo3D.EMPUJE_BLOQUEO + 0.01 and g._empuje.normalized().dot(atras) > 0.9, str(g._empuje))
 	_tiro(g, "water", Vector3(0, 0, -1))
 	_ok("2 el agua de frente tampoco moja al goblin", g.mojado <= 0.0 and _n("bloqueado", e) == 2)
 
@@ -168,6 +218,7 @@ func _cono() -> void:
 	_tiro(g, "earth", Vector3(0, -1, 0))
 	_ok("3 cenital (sin componente horizontal) pasa", g.health < v0 and _n("bloqueado", e) == 0)
 	# El cono: a 50° de la mirada bloquea, a 70° pasa (el límite es ANGULO_CONO_FRONTAL / 2 = 60°)
+	g.mirada = Vector3(0, 0, 1)                           # 21/11: los disparos de antes que le entraron lo hicieron girarse a cubrirse; se vuelve a poner mirando al sur
 	v0 = g.health
 	var a50: float = deg_to_rad(50.0)
 	_tiro(g, "earth", -Vector3(sin(a50), 0, cos(a50)))
@@ -183,6 +234,8 @@ func _cono() -> void:
 	_ok("3 si el goblin mira a +X, el disparo que viaja a −X ahora es de frente", g.health == v0)
 	_tiro(g, "earth", Vector3(0, 0, -1))
 	_ok("3 y el que antes era de frente ahora es de lado y pasa", g.health < v0)
+	_ok("3 (21/11) y tras ese golpe de lado se gira a cubrirse hacia él", g.mirada.dot(Vector3(0, 0, 1)) > 0.99, str(g.mirada))
+	g.mirada = Vector3(1, 0, 0)
 	_pasos(e, 0.1)
 	_ok("3 el escudo se recoloca hacia la nueva mirada", e.position.x > 0.2 and absf(e.position.z) < 0.01, str(e.position))
 
@@ -283,11 +336,12 @@ func _agua_y_rotura() -> void:
 	var h := _goblin(6, 6)
 	var f: Escudo3D = Escudo3D.equipar(h)
 	var v0: float = h.health
-	var n: int = 0
-	while f.estado == "entero" and n < 500:
+	for n in range(20):
 		_tiro(h, "earth", Vector3(0, 0, -1))
-		n += 1
-	_ok("5 a golpes de tierra el escudo se rompe: «roto», «consumido» una vez, y el goblin no perdió nada", f.estado == "roto" and _n("consumido", f) == 1 and h.health == v0, "%d golpes · %s" % [n, f.estado])
+	_ok("5 21/11: veinte golpes de tierra de frente NO lo rompen ni hieren al goblin (solo lo empujan)", f.estado == "entero" and _n("consumido", f) == 0 and h.health == v0 \
+		and f.empujes_bloqueo == 20, "%s · empujes %d" % [f.estado, f.empujes_bloqueo])
+	f._desgastar(1000.0)                                  # el camino «roto» sigue existiendo para quien lo pida a mano
+	_ok("5 desgastado a mano se rompe: «roto», «consumido» una vez", f.estado == "roto" and _n("consumido", f) == 1, f.estado)
 	_ok("5 roto desaparece (ni la malla entera ni la quemada)", not f._entero.visible and not f._quemado.visible)
 	_tiro(h, "earth", Vector3(0, 0, -1))
 	_ok("5 y roto deja pasar", h.health < v0)

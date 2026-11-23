@@ -31,6 +31,7 @@ func _initialize() -> void:
 	_migracion()
 	_archivo_roto()
 	_existe_y_borrar()
+	_copia_anterior()
 	_limpiar()
 	_restaurar()
 	print("FALLOS: %d" % _fallos)
@@ -251,3 +252,47 @@ func _existe_y_borrar() -> void:
 	_ok("6 la ruta usa el número de ranura", Partida.ruta(5).ends_with("ranura_5.json") and Partida.RUTA % 1 == "user://partidas/ranura_1.json")
 	_ok("6 borrar quita el archivo y devuelve true", Partida.borrar(5) and not Partida.existe(5))
 	_ok("6 borrar lo que no existe devuelve false", not Partida.borrar(5))
+
+
+## 22/11 (punto 7 de la lista de mejoras): guardar aparta la partida anterior a `.anterior` en vez de borrarla; `leer` la usa si la principal se rompe
+## o falta; `borrar` quita las dos; un archivo sin secciones esenciales o con una sección que no es diccionario no se acepta.
+func _escribir(p: String, txt: String) -> void:
+	var fa := FileAccess.open(p, FileAccess.WRITE)
+	fa.store_string(txt)
+	fa.close()
+
+
+func _copia_anterior() -> void:
+	_vaciar_singletons()
+	Partida.borrar(7)
+	Estado.i().oro = 11
+	_ok("7 primer guardado: sin copia anterior", Partida.guardar(7, {}) and not FileAccess.file_exists(Partida.ruta_anterior(7)))
+	Estado.i().oro = 22
+	_ok("7 segundo guardado: la partida de antes queda como copia anterior", Partida.guardar(7, {}) and FileAccess.file_exists(Partida.ruta_anterior(7)))
+	Estado.i().oro = 0
+	_ok("7 la principal es la nueva (oro 22)", not Partida.cargar(7).is_empty() and Estado.i().oro == 22, "oro %d" % Estado.i().oro)
+	_ok("7 no queda el temporal", not FileAccess.file_exists(Partida.ruta(7) + ".tmp"))
+	# Principal rota: se lee la anterior (oro 11).
+	_escribir(Partida.ruta(7), "{esto no es json")
+	Estado.i().oro = 0
+	var d: Dictionary = Partida.cargar(7)
+	_ok("7 principal rota: cargar usa la copia anterior", not d.is_empty() and Estado.i().oro == 11, "oro %d" % Estado.i().oro)
+	# Principal borrada (corte entre los dos renombrados): la ranura sigue existiendo y se carga la anterior.
+	DirAccess.remove_absolute(ProjectSettings.globalize_path(Partida.ruta(7)))
+	Estado.i().oro = 0
+	_ok("7 solo con la copia anterior, existe es true", Partida.existe(7))
+	_ok("7 solo con la copia anterior, cargar la usa", not Partida.cargar(7).is_empty() and Estado.i().oro == 11)
+	# Guardar sobre una ranura que solo tiene la copia anterior: queda una principal buena.
+	Estado.i().oro = 33
+	_ok("7 guardar sin principal funciona", Partida.guardar(7, {}) and FileAccess.file_exists(Partida.ruta(7)))
+	Estado.i().oro = 0
+	_ok("7 y se carga la nueva (oro 33)", not Partida.cargar(7).is_empty() and Estado.i().oro == 33)
+	_ok("7 borrar quita la principal y la copia", Partida.borrar(7) and not Partida.existe(7) and not FileAccess.file_exists(Partida.ruta_anterior(7)))
+	# Validación de secciones (sin copia anterior, para que no la rescate).
+	_escribir(Partida.ruta(7), JSON.stringify({"version": Partida.VERSION, "meta": {}}))
+	_ok("7 sin la sección «jugadora» no es una partida", Partida.leer(7).is_empty())
+	_escribir(Partida.ruta(7), JSON.stringify({"version": Partida.VERSION, "meta": {}, "jugadora": {}, "flags": [1, 2]}))
+	_ok("7 una sección que no es diccionario no vale", Partida.leer(7).is_empty())
+	_escribir(Partida.ruta(7), JSON.stringify({"version": Partida.VERSION, "meta": {}, "jugadora": {}}))
+	_ok("7 con lo esencial y sin lo demás sí vale (archivo viejo)", not Partida.leer(7).is_empty())
+	Partida.borrar(7)

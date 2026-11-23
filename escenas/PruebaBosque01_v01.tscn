@@ -16,7 +16,7 @@ fuego_nuevo = true
 nivel = "Bosque_01_v01"
 agua_fisica = true
 arqueros = true
-kit = "pruebas"
+kit = "demo_inicio"
 zona_luz = "bosque"
 ribera_ruido = SubResource("FastNoiseLite_ribera")
 

@@ -1,0 +1,9 @@
+[gd_scene format=3]
+
+[ext_resource type="PackedScene" path="res://escenas/PruebaCuevaAgua.tscn" id="1"]
+[ext_resource type="Script" path="res://laboratorios/lab_camara_cuevas_3d.gd" id="2"]
+
+[node name="LabCamaraCuevaAgua3D" instance=ExtResource("1")]
+script = ExtResource("2")
+usar_escena = false
+indice_cueva = 1

@@ -13,6 +13,7 @@ extends SceneTree
 
 const Generador = preload("res://herramientas/generador_mapas/generador_mazmorra.gd")
 const Exportador = preload("res://herramientas/generador_mapas/exportador_mapa.gd")
+const CamaraSalas = preload("res://presentacion/camara_salas.gd")
 const Catalogo = preload("res://herramientas/generador_mapas/catalogo_puzles.gd")
 const SEMILLAS: int = 40
 const VARIANTES: Array = [
@@ -50,9 +51,108 @@ func _initialize() -> void:
 	_anadir_enemigos_y_cofres()
 	_cofres_que_aparecen()
 	_salidas_a_mano()
+	_camara_por_sala()
+	_campamentos()
 	print("%d comprobaciones en %d ms" % [_hechas, Time.get_ticks_msec() - t0])
 	print("FALLOS: %d" % _fallos)
 	quit(1 if _fallos > 0 else 0)
+
+
+## 16 · Campamentos goblin (22/11, Pablo: «sala campamento»). Con `campamentos` = 1 y 2 en «salas» y «pagina» (la «cueva» no tiene salas de 7 × 6):
+## el mapa sigue siendo válido y de una pieza (la empalizada cuenta como pared); cada campamento tiene empalizada SOLO en el borde de su sala, al menos una
+## puerta goblin en ese borde, gente dentro (lo mira el vigía), un cofre épico que aparece con la flag de su vigía, la zona de fuego, y NINGÚN cerrojo.
+func _campamentos() -> void:
+	var antes: int = _fallos
+	var puestos: int = 0
+	for alg in ["salas", "pagina"]:
+		for semilla in range(1, 16):
+			for n_camp in [1, 2]:
+				var m: Dictionary = _revisar({"algoritmo": alg, "semilla": semilla, "campamentos": n_camp})
+				var quien: String = "%s semilla %d campamentos %d" % [alg, semilla, n_camp]
+				var filas: PackedStringArray = m["filas"]
+				var txt: String = "\n".join(m["lineas"])
+				for linea in m["lineas"]:
+					var t: PackedStringArray = String(linea).substr(1).strip_edges().split(" ", false)
+					if t.size() < 5 or t[2] != "vigia" or not t[1].begins_with("camp"):
+						continue
+					puestos += 1
+					var num: String = t[1].trim_prefix("camp").trim_suffix("_vigia")
+					var de: String = ""
+					var flag: String = ""
+					for k in t:
+						if k.begins_with("de="):
+							de = k.substr(3)
+						if k.begins_with("flag="):
+							flag = k.substr(5)
+					var rr: PackedStringArray = de.replace("..", ",").split(",")
+					var r := Rect2i(rr[0].to_int(), rr[1].to_int(), rr[2].to_int() - rr[0].to_int() + 1, rr[3].to_int() - rr[1].to_int() + 1)
+					var x_fuera: int = 0
+					var y_borde: int = 0
+					for y in range(r.position.y, r.end.y):
+						for x in range(r.position.x, r.end.x):
+							var borde: bool = x == r.position.x or x == r.end.x - 1 or y == r.position.y or y == r.end.y - 1
+							if filas[y][x] == "x" and not borde:
+								x_fuera += 1
+							if filas[y][x] == "y" and borde:
+								y_borde += 1
+					_ok(x_fuera == 0, "la empalizada del campamento %s va solo por el borde de su sala: %s" % [num, quien])
+					_ok(y_borde >= 1, "el campamento %s tiene al menos una puerta goblin en su borde: %s" % [num, quien], str(y_borde))
+					_ok(txt.contains("camp%s_cofre cofre" % num) and txt.contains("modelo=epico aparece_si=flag.%s" % flag), "el cofre épico del campamento %s aparece al limpiarlo: %s" % [num, quien])
+					_ok(txt.contains("; zona %s fuego" % de) and txt.contains("id=campamento_%s" % num), "el campamento %s lleva su zona de fuego: %s" % [num, quien])
+					_ok(not txt.contains("sala=%s hasta" % de), "el campamento %s no se cierra con cerrojo: %s" % [num, quien])
+	_ok(puestos >= 20, "salen campamentos en muchos mapas (2 algoritmos × 15 semillas × 1-2 pedidos)", "%d campamentos" % puestos)
+	var sin: Dictionary = Generador.new().generar({"algoritmo": "salas", "semilla": 3})
+	_ok(not "\n".join(sin["lineas"]).contains("campamento"), "con campamentos = 0 (de serie) el mapa no cambia: no hay ninguno")
+	_resumen("16 · campamentos goblin", antes)
+
+
+## 15 · Cámara por sala (20/11): una línea `; camara` por sala (caja de su suelo, sin muros dentro del borde), que CamaraSalas
+## vuelve a leer igual; la escena la enciende; en «cueva» no hay salas; las salas pequeñas avisan.
+func _camara_por_sala() -> void:
+	var antes: int = _fallos
+	var n_salas: int = 0
+	var n_avisos: int = 0
+	for alg in ["salas", "pagina", "cueva"]:
+		for s in range(1, 13):
+			var m: Dictionary = Generador.new().generar({"algoritmo": alg, "semilla": s})
+			var quien: String = "%s semilla %d" % [alg, s]
+			var cam: Array = m["salas_camara"]
+			var filas: PackedStringArray = m["filas"]
+			if alg == "cueva":
+				_ok(cam.is_empty(), "la cueva no tiene salas de cámara: " + quien)
+			else:
+				_ok(cam.size() == int(m["stats"]["salas"]), "una sala de cámara por sala: " + quien, "%d de %d" % [cam.size(), int(m["stats"]["salas"])])
+			for r in cam:
+				var rc: Rect2i = r
+				n_salas += 1
+				_ok(Rect2i(0, 0, int(m["ancho"]), int(m["alto"])).encloses(rc), "la sala de cámara cabe en el mapa: " + quien, str(rc))
+				# Cada lado de la caja toca suelo (la caja no es más grande que el suelo de la sala).
+				var lados: Array = [false, false, false, false]
+				for y in range(rc.position.y, rc.end.y):
+					for x in range(rc.position.x, rc.end.x):
+						if filas[y][x] != "#":
+							lados[0] = lados[0] or x == rc.position.x
+							lados[1] = lados[1] or x == rc.end.x - 1
+							lados[2] = lados[2] or y == rc.position.y
+							lados[3] = lados[3] or y == rc.end.y - 1
+				_ok(not lados.has(false), "la caja de la sala de cámara se ajusta a su suelo: " + quien, str(rc))
+				if CamaraSalas.zoom_que_cabe_en(rc.size, 2.3) < 4.0:
+					n_avisos += 1
+					var avisada: bool = false
+					for a in m["avisos"]:
+						avisada = avisada or String(a).begins_with("Sala de %d×%d en %d,%d" % [rc.size.x, rc.size.y, rc.position.x, rc.position.y])
+					_ok(avisada, "la sala pequeña sale en los avisos: " + quien, str(rc))
+			var txt: String = Exportador.texto_mapa(m)
+			var leidas: Array[Rect2i] = CamaraSalas.leer(txt)
+			_ok(leidas.size() == cam.size(), "el mapa exportado lleva sus líneas ; camara: " + quien, "%d de %d" % [leidas.size(), cam.size()])
+			for i in range(mini(leidas.size(), cam.size())):
+				_ok(leidas[i] == cam[i], "la línea ; camara se lee igual: " + quien, "%s / %s" % [leidas[i], cam[i]])
+			_ok(Exportador.texto_escena(m).contains("camara_por_sala = true"), "la escena enciende la cámara por sala: " + quien)
+	var sin: Dictionary = Generador.new().generar({"algoritmo": "salas", "semilla": 3, "camara_sala": false})
+	_ok((sin["salas_camara"] as Array).is_empty() and not Exportador.texto_escena(sin).contains("camara_por_sala"), "sin la casilla no hay cámara por sala")
+	# El zoom que cabe sin cámara: 16:9 a 30°, una sala de 5×4 casillas de 2,3 → min(11,5/1,78; 10,9·0,5)·0,98.
+	_ok(absf(CamaraSalas.zoom_que_cabe_en(Vector2i(5, 4), 2.3) - 5.35) < 0.02, "zoom que cabe en 5×4", str(CamaraSalas.zoom_que_cabe_en(Vector2i(5, 4), 2.3)))
+	_resumen("cámara por sala: %d salas en 36 mapas, %d obligan a acercar por debajo de 4" % [n_salas, n_avisos], antes)
 
 
 func _ok(bien: bool, texto: String, info: String = "") -> void:
@@ -85,7 +185,7 @@ func _revisar(par: Dictionary, retoques: Dictionary = {}, puzles: Dictionary = {
 	var cofre_llave: Vector2i = Vector2i(-1, -1)
 	for o in m["objetos"]:
 		match String(o["tipo"]):
-			"cofre_tesoro", "cofre_llave", "jarron", "brasero", "cofre_comun", "cofre_epico", "cofre_legendario":
+			"cofre_tesoro", "cofre_llave", "jarron", "brasero", "cofre_comun", "cofre_epico", "cofre_legendario", "torre_goblin", "tienda_goblin", "estandarte_goblin":
 				bloquea[o["c"]] = true                # el bloque no: se empuja, y su pista (lo que hay detrás de él) se pisa al empujarlo
 			_:
 				pass
@@ -98,7 +198,7 @@ func _revisar(par: Dictionary, retoques: Dictionary = {}, puzles: Dictionary = {
 	var tierra: int = 0
 	for y in range(h):
 		for x in range(w):
-			if filas[y][x] != "#" and (filas[y][x] != "~" or puentes.has(Vector2i(x, y))) and not bloquea.has(Vector2i(x, y)):
+			if filas[y][x] != "#" and filas[y][x] != "x" and (filas[y][x] != "~" or puentes.has(Vector2i(x, y))) and not bloquea.has(Vector2i(x, y)):
 				tierra += 1
 	var filas_puente: PackedStringArray = filas.duplicate()
 	for c in puentes:
@@ -186,7 +286,7 @@ func _relleno(filas: PackedStringArray, desde: Vector2i, bloquea: Dictionary, so
 			if v.y < 0 or v.y >= filas.size() or v.x < 0 or v.x >= filas[v.y].length() or visto.has(v) or bloquea.has(v):
 				continue
 			var ch: String = filas[v.y][v.x]
-			if ch == "#" or (solo_tierra and ch == "~"):
+			if ch == "#" or ch == "x" or (solo_tierra and ch == "~"):          # 22/11: la empalizada del campamento es pared
 				continue
 			visto[v] = true
 			cola.append(v)
@@ -435,6 +535,11 @@ func _anadir_enemigos_y_cofres() -> void:
 						premios_comunes[String(a["da"])] = true
 					else:
 						_ok((def["premios"] as Dictionary).has(String(a["premio"])), "el épico y el legendario llevan el premio pedido: " + quien, str(a))
+				elif String(a["tipo"]) == "mouro":
+					# 21/11: el mouro generado lleva su mámoa al lado, enlazada (sin ella sería un enemigo normal).
+					var con_tumba: bool = lineas.contains(" mouro %d %d mamoa=mamoa_m" % [c2.x, c2.y]) and lineas.contains(" mamoa ")
+					var avisado: bool = avisos.contains("El mouro de (%d, %d) no tiene sitio para su mámoa" % [c2.x, c2.y])
+					_ok(con_tumba or avisado, "el mouro sale con su mámoa enlazada (o se avisa de que no cabe): " + quien)
 			ajustados += avisos.count("era el sitio válido más cercano")
 			# Lo mismo dos veces da lo mismo (el sorteo de los comunes no cambia de una vez a otra) y vuelve del .txt.
 			var otra: Dictionary = Generador.new().generar(par, {}, {}, {}, {}, anad)

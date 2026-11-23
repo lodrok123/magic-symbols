@@ -82,6 +82,9 @@ static var INTERRUPCION_GOLPE: float = 0.6     ## s sin atacar tras un golpe con
 static var INTERRUPCION_DANO: float = 0.3      ## s que da cualquier otro daño (quemadura, arco del rayo): con 0,6 una quemadura no le dejaría atacar nunca
 ## C3 (28/10): los ataques marcan antes en el suelo la zona que van a golpear (`AvisoAtaque3D`). `static var` para poder apagarlo desde un laboratorio.
 static var AVISAR_ATAQUES: bool = true
+## A1 de PLAN_COMBATE_2026-11-22 (C22, Pablo 22/11): el aviso sale al EMPEZAR la carga previa (`PREPARAR_GOLPE` del guerrero y el asesino, `PREPARAR_FLECHA` del arquero),
+## no al arrancar el clip. Antes el guerrero esperaba 0,6 s quieto sin marca y luego avisaba ~0,6 s; el arquero tensaba 0,9 s sin aviso ni sonido. El elemental no entra (su aviso es A3).
+static var AVISAR_CARGA: bool = true
 ## B2 (tercera tanda, 2/11): ICONOS DE ESTADO junto a la barra de vida: hasta 4 (quemado, congelado, envenenado, mojado, aturdido/electrificado) con una barra de tiempo restante debajo. SOLO LEEN
 ## `quemando`, `congelado`, `envenenado`, `mojado` y `stun_timer`; no cambian ningún estado. Son información, no sensación: se ven igual con `Sensacion3D.ACTIVA = false`. El elemental no los muestra.
 static var ICONOS_ESTADO_SIEMPRE: bool = true  ## true = se ven mientras haya un estado activo; false = solo mientras se ve la barra de vida
@@ -142,6 +145,14 @@ const T_ANIM_ATAQUE: float = 0.8              ## solo si el modelo no tiene clip
 const VEL_ANIM_GUERRERO: float = 1.0
 const VEL_ANIM_ARQUERO: float = 1.25
 const MOMENTO_GOLPE_GUERRERO: float = 0.19    ## fracción del clip LeftSlash en que cae el golpe (~0,6 s de 3,2)
+## C25 de PLAN_COMBATE (22/11, Pablo: «busquemos de inicio este output lag», Mystralia O23): ANTICIPACIÓN QUIETA Y GOLPE SECO en el guerrero.
+## La espera de PREPARAR_GOLPE deja de ser estar de pie: llega a la pose de carga del clip en GOLPE_SECO_LLEGA s, la SOSTIENE congelada y encogida (ANTICIPA_ESCALA mantenido)
+## hasta acabar la espera, y entonces va de la carga al contacto en GOLPE_SECO_EJECUTA s (≤ 0,1). Después, la recuperación a velocidad normal. El círculo dura justo eso.
+## Medido sobre las pistas del clip (herramientas/medir_clip_guerrero.gd): el brazo del arma casi se para en el 0,14 (cambia de sentido: el arma atrás) y va más deprisa en el 0,19–0,20.
+static var GOLPE_SECO: bool = true
+const MOMENTO_CARGA_GUERRERO: float = 0.14
+const GOLPE_SECO_LLEGA: float = 0.25
+const GOLPE_SECO_EJECUTA: float = 0.07
 const VIDA_MAXIMA: float = 50.0               ## 29/10 (DANO_Y_TINTA): 100 → 50, el daño bajó a ~la mitad
 const ORO_BOTIN: int = 10
 const ALTO_BARRA_EXTRA: float = 0.28
@@ -153,7 +164,12 @@ const ELEM_VEL: float = 0.7                    ## × la velocidad de un goblin
 const ELEM_DANO_GOLPE: float = 45.0
 const ELEM_ALTO_REF: float = 1.7              ## altura para la que se midieron rango, golpe, cápsula y brotes; todo escala con altura/esto
 const ELEM_RANGO: float = 2.0                  ## distancia (centro a centro) a la que empieza a pegar
-const ELEM_MOMENTO_GOLPE: float = 0.6          ## fracción del clip `attack` en que el puño toca el suelo (SIN medir: 0,55–0,65)
+## A3 de PLAN_COMBATE (22/11, C22): fracción del clip `attack` en que el puño toca el suelo. Era 0,6 a ojo y el golpe se VEÍA ~1 s antes de hacer daño; medido en las fotos
+## de `captura_anticipacion_enemigos.gd` (21/11): contacto hacia 0,28 del clip (~0,85 s de ~3,05 s).
+const ELEM_MOMENTO_GOLPE: float = 0.28
+## A3: hasta el golpe el clip va a ELEM_VEL_ANIM_GOLPE (anticipación más larga: ~1,4 s de aviso, lo que pide C18); después del golpe sigue a ELEM_VEL_ANIM_TRAS (si no, el ataque duraría ~5 s).
+const ELEM_VEL_ANIM_GOLPE: float = 0.6
+const ELEM_VEL_ANIM_TRAS: float = 1.0
 const ELEM_ALCANCE_GOLPE: float = 2.8          ## el área del puñetazo: hasta tanto por delante...
 const ELEM_ANCHO_GOLPE: float = 1.3            ## ...y tanto a cada lado (no es un punto)
 const ELEM_DESCANSO: float = 1.2
@@ -258,6 +274,42 @@ const COLOR_LLAMARADA: Color = Color(1.0, 0.45, 0.15)   ## rótulo «¡Llamarada
 const ENRAIZADO_S: float = 1.5                  ## s que lo sujetan las raíces; ×2 si estaba mojado (la tierra mojada agarra más)
 const MAGMA_LENTO_S: float = 2.0                ## s de `lento` que deja el magma (los mismos que la tierra)
 const COLOR_ENRAIZADO: Color = Color(0.45, 0.7, 0.25)   ## rótulo «¡Enraizado!»: el verde de la naturaleza
+## 21/11 · TRIÁNGULO DE LA DEMO (docs/DEBILIDADES_ELEMENTOS_2026-11-21.md §0 y §5.1). Fallo que evita: con solo fuego, agua y tierra casi todas las reacciones con premio (roto, rayo y hielo
+## sobre mojado, llamarada) quedaban fuera, porque piden hielo, rayo o viento; lo que más rendía era repetir el elemento que más pega. Ahora cada pareja de los tres sellos da algo:
+##   COSTRA   fuego sobre un enemigo RALENTIZADO (tierra encima): la tierra se cuece y queda una costra `COSTRA_S` s. Tierra o golpe F sobre la costra = ROTO (el mismo ×`Dano.X_ROTO` del congelado).
+##   SOFOCADO tierra sobre quien ARDE: lo apaga (aviso «apagado_agua», que ya premia tinta y corta las llamas) y lo aturde `SOFOCADO_ATURDE_S` s. El agua apaga y ciega; la tierra apaga y aturde.
+##   EMPAPADO tierra sobre un MOJADO: el `lento` dura ×`LENTO_MOJADO_MULT` (el agua amplifica a la tierra; no es barro: no hay estado ni elemento nuevo, solo un multiplicador).
+##   VAPOR    fuego sobre un MOJADO: además de secarlo, deja una nube de vapor (`EstadosSuelo3D.VAPOR`, 4 s) en su casilla; `_ve` ya corta la vista dentro del vapor.
+const COSTRA_S: float = 3.0                     ## s que dura la costra (ventana para rematarla con tierra o el golpe F)
+const SOFOCADO_ATURDE_S: float = 0.5            ## s de aturdido al sofocarlo con tierra
+const LENTO_MOJADO_MULT: float = 2.0            ## × al `lento` de la tierra si estaba mojado
+const COLOR_COSTRA: Color = Color(0.75, 0.42, 0.22)     ## rótulo «¡Costra!»: barro cocido, rojizo (nunca amarillo)
+const COLOR_SOFOCADO: Color = Color(0.72, 0.58, 0.4)    ## rótulo «¡Sofocado!»: el ocre de la tierra
+
+## 21/11 · IA QUE LEE EL MUNDO (Pablo: «cuando haya fuentes de fuego que huyan, que rodeen el agua y los obstáculos en general»). Antes: el agua, los muros del mapa y los escalones ya se rodeaban
+## con la ruta por casillas (D2, `Caminos3D`), pero el fuego no existía para la IA (atravesaba un muro de fuego o un seto en llamas como si nada), las barreras de la jugadora solo las rodeaba
+## el modo táctico de una sala de prueba (`combate_tactico`) y un barril o un arbusto en la recta lo dejaba rozando contra él.
+##   HUIR      fuego PELIGROSO (zona viva de un hechizo de fuego o magma, o un objeto ARDIENDO: seto, tronco, barril) a menos de RADIO_MIEDO_FUEGO u → corre en sentido contrario al menos HUIDA_MIN_S s,
+##             sin atacar. Un brasero o una fogata encendidos, o el suelo quemado, son FUENTES: no asustan (los goblins viven junto a sus fogatas), pero no los pisa.
+##   RODEAR    las casillas con fuego (peligro o fuente) y las barreras vivas de la jugadora (`Lanzador3D.muros_tacticos`, si RODEA_MUROS) entran como obstáculos en la ruta y no las pisa con sus piernas
+##             (empujado, sí: el empuje manda). Tras una barrera no pega a través: la rodea.
+##   ATASCO    si al perseguir o volver apenas avanza durante ATASCO_S s (un barril, un arbusto en la recta), sigue la ruta por casillas ATASCO_RUTA_S s aunque la recta parezca libre.
+## No temen al fuego: el elemental (es una criatura de fuego y savia y pesa demasiado), quien es inmune al calor (gólem, limo de fuego) ni el arquero de puesto (no se mueve).
+static var MIEDO_FUEGO: bool = true             ## interruptor del miedo al fuego (huir y rodear el fuego)
+static var RODEA_MUROS: bool = true             ## interruptor: false = solo el modo táctico rodea las barreras de la jugadora (lo de antes)
+static var RODEA_SUELO_QUEMADO: bool = true     ## interruptor: false = el suelo quemado (8 s tras el fuego) no cuenta como fuego; si un pasillo entero queda quemado, no lo cruzan hasta que caduque
+const RADIO_MIEDO_FUEGO: float = 1.9            ## u del centro de una casilla con fuego peligroso por debajo de las que huye. La casilla mide 2,3 u: el borde del fuego está a 1,15, y el centro de la
+												## vecina a 2,3, así que rodear por la casilla de al lado NO asusta (si fuera > 2,3, huiría y volvería a perseguir sin parar); huye si el fuego le cae encima o pegado
+const HUIDA_MIN_S: float = 0.6                  ## s mínimos de huida una vez empezada (no tiembla en el borde del radio)
+const VEL_HUIDA_MULT: float = 1.15              ## × la velocidad de correr mientras huye
+const ATASCO_S: float = 0.35                    ## s avanzando menos de ATASCO_AVANCE de lo que debería para darse por atascado
+const ATASCO_AVANCE: float = 0.3                ## fracción del paso pedido por debajo de la cual cuenta como atasco
+const ATASCO_RUTA_S: float = 1.5                ## s que sigue la ruta por casillas tras atascarse
+const FUEGO_FUENTE: int = 1                     ## valor de casilla en `celdas_de_fuego`: brasero, fogata, suelo quemado (rodear, no huir)
+const FUEGO_PELIGRO: int = 2                    ## zona de hechizo de fuego o magma, objeto ardiendo (huir y rodear)
+const ZONAS_QUE_ARDEN: PackedStringArray = ["fuego", "magma"]
+static var _fuego_frame: int = -1
+static var _fuego_cache: Dictionary = {}
 ## 18/11 (ᛒ suelo, diseño de Pablo): la escarcha de ᛒ hace PATINAR a los enemigos pequeños y medianos, no a los grandes. Criterio de tamaño (no existía): la `masa` (goblin 1, chamán 0,9, limo 0,6 y
 ## 1,2 el grande, gato 0,5; elemental 3,3 y gólem 6). Patina quien pesa `MASA_MAX_PATINA` o menos. Patinar = perder el control `T_PATINA` s: desliza en la dirección en que iba, frenando poco a poco
 ## (`V_PATINA` u/s al empezar), sin andar ni atacar; después tiene `T_PATINA_INMUNE` s de agarre antes de poder volver a patinar (una capa de escarcha no lo deja deslizando sin fin).
@@ -291,6 +343,7 @@ var pj: Pj3D = null
 ## 28/10 (E2): el escudo de NATURALEZA que le pone el chamán (EscudoNaturaleza3D): absorbe daño por todos lados y el fuego lo quema de un golpe. null = sin él.
 var escudo_natural: EscudoNaturaleza3D = null
 var escudo: Escudo3D = null             ## A5: componente opcional (`Escudo3D.equipar(combate)`); null = sin escudo, como todos los goblins de los niveles
+var coraza: CorazaElemento3D = null     ## B1 de PLAN_COMBATE (22/11): capa de elemento sobre todo el cuerpo (`CorazaElemento3D.equipar(combate, "barro"|"brasa")`); null = sin coraza
 var mundo: Node3D = null
 var jugador: Jugador3D = null
 var lanz: Lanzador3D = null
@@ -349,6 +402,11 @@ var investiga: float = 0.0
 var cebo_pos: Vector3 = Vector3.ZERO
 var cebo_t: float = 0.0
 var enraizado: float = 0.0              ## R3 (6/11): s que le quedan sujeto por raíces (naturaleza): `vel_mult` 0 y `push` no lo mueve; el ataque no se le quita
+var _huida: float = 0.0                 ## 21/11: s que le quedan huyendo del fuego (HUIDA_MIN_S al empezar)
+var _dir_huida: Vector3 = Vector3.ZERO
+var _t_atasco: float = 0.0              ## 21/11: s seguidos avanzando casi nada
+var _forzar_ruta: float = 0.0           ## 21/11: s que le quedan siguiendo la ruta por casillas tras atascarse
+var costra: float = 0.0                 ## 21/11 (triángulo de la demo): s que le quedan con costra de tierra cocida; tierra o golpe F encima = ROTO (ver COSTRA_S)
 var stun_timer: float = 0.0
 var interrupcion: float = 0.0
 
@@ -470,6 +528,8 @@ var _golpe_pendiente: bool = false   ## hay un ataque cuerpo a cuerpo cuyo golpe
 var _en_rango: bool = false          ## histéresis: ya está en rango de golpe
 var _ataque_id: int = 0        ## cambia al cancelar el ataque: los golpes/flechas pendientes se descartan
 var _aviso: AvisoAtaque3D = null        ## C3: el aviso en el suelo del ataque en curso (null si no hay o si ya lo soltó: la flecha en vuelo lleva el suyo)
+var _vel_tras_golpe: float = 0.0        ## A3 (22/11): > 0 = al llegar el golpe, el resto del clip de ataque pasa a esta velocidad (el elemental anticipa despacio y recoge a ritmo normal)
+var _aviso_carga: bool = false         ## A1 (22/11): `_aviso` salió durante la carga previa y aún no ha empezado el clip (si la carga se corta, se cancela)
 var avisos_dados: int = 0               ## C3: cuántos avisos ha sacado (para las pruebas)
 var _materiales: Array = []
 var _bases: Array = []
@@ -482,6 +542,192 @@ var _iconos_estado: Array = []                  ## B2: MAX_ICONOS_ESTADO huecos 
 var _estado_visto_max: Dictionary = {}          ## B2: el mayor tiempo visto de cada estado (la barra de tiempo es restante / eso)
 const ANCHO_BARRA: float = 0.8
 const ALTO_BARRA: float = 0.09
+
+
+## G1 de PLAN_COMBATE (22/11, morir y reintentar): la RECETA de este enemigo tal como está al empezar el encuentro (lo justo para volver a crearlo igual con `recrear`).
+## {} si es un tipo que no se sabe recrear (mouro, Santa Compaña, gatopedro): esos no se reponen.
+func receta() -> Dictionary:
+	if pj == null or not is_instance_valid(pj):
+		return {}
+	var r: Dictionary = {"id": pj.id, "casa": casa, "nombre_nodo": String(name), "nombre": nombre, "debil": debil, "resiste": resiste, "fijo": fijo, "quieto": quieto,
+		"premia_tinta": premia_tinta, "suelta_recogibles": suelta_recogibles, "puestos_disparo": puestos_disparo.duplicate(), "puesto_cubierto": puesto_cubierto,
+		"escudo": escudo != null and is_instance_valid(escudo), "coraza": coraza.material if coraza != null and is_instance_valid(coraza) else ""}
+	var guion: Script = get_script()
+	if self is Limo3D:
+		r["clase"] = "limo"
+		r["elemento"] = (self as Limo3D).elemento
+		r["grande"] = (self as Limo3D).grande
+		r["pequeno"] = (self as Limo3D).pequeno
+	elif self is Golem3D:
+		r["clase"] = "golem"
+	elif self is Chaman3D:
+		r["clase"] = "chaman"
+	elif elemental:
+		r["clase"] = "elemental"
+	elif guion == Combate3D:
+		r["clase"] = "asesino" if pj.id.begins_with("goblin_asesino") else "combate"
+	else:
+		return {}
+	return r
+
+
+## G1: vuelve a crear un enemigo desde su `receta` (en su casilla de partida, sano y sin estados), colgado de `p_mundo`. null si no se pudo.
+static func recrear(r: Dictionary, p_mundo: Node3D, p_jugador: Jugador3D, p_lanz: Lanzador3D) -> Combate3D:
+	if r.is_empty() or p_mundo == null:
+		return null
+	var pos: Vector3 = r["casa"]
+	var c: Combate3D = null
+	match String(r.get("clase", "")):
+		"limo":
+			c = Limo3D.crear(p_mundo, pos, String(r["elemento"]), bool(r["grande"]), bool(r["pequeno"]))
+		"golem":
+			c = Golem3D.invocar_golem(p_mundo, pos, p_jugador, p_lanz)
+		"chaman":
+			c = Chaman3D.invocar_chaman(p_mundo, pos, p_jugador, p_lanz)
+		"elemental":
+			c = invocar_elemental(p_mundo, p_jugador, p_lanz, pos)
+		"asesino":
+			c = invocar_asesino(p_mundo, p_jugador, p_lanz, pos)
+		"combate":
+			if not p_mundo.has_method("_personaje"):
+				return null
+			var modelo: Pj3D = p_mundo.call("_personaje", [String(r["id"])], pos)
+			if modelo == null:
+				return null
+			var lista: Variant = p_mundo.get("_goblins")
+			if lista is Array:
+				(lista as Array).append(modelo)
+			c = equipar(modelo, p_mundo, p_jugador, p_lanz)
+	if c == null:
+		return null
+	c.name = String(r["nombre_nodo"])
+	c.nombre = String(r["nombre"])
+	c.casa = pos
+	if String(r["debil"]) != c.debil or String(r["resiste"]) != c.resiste:
+		c.fijar_debilidad(String(r["debil"]), String(r["resiste"]))
+	c.fijo = bool(r["fijo"])
+	c.quieto = bool(r["quieto"])
+	c.premia_tinta = bool(r["premia_tinta"])
+	c.suelta_recogibles = bool(r["suelta_recogibles"])
+	c.puestos_disparo.assign(r["puestos_disparo"] as Array)
+	c.puesto_cubierto = r["puesto_cubierto"]
+	if bool(r["escudo"]):
+		Escudo3D.equipar(c)
+	if String(r["coraza"]) != "":
+		CorazaElemento3D.equipar(c, String(r["coraza"]))
+	PlayLog.event("enemigo_repuesto", {"nombre": c.nombre, "clase": String(r["clase"])})
+	return c
+
+
+## D1 de PLAN_COMBATE (22/11, C11; va con el Verraco, X2): DAÑO CONTRA PARED. Un enemigo empujado que se para EN SECO contra algo sólido (pared, columna, bloque de tierra)
+## con el empuje a ≥ V_CHOQUE_PARED u/s recibe DANO_PARED_MAX × (v / V_PARED_REF) (con tope) y queda aturdido T_PARED_ATURDE s. Golpe sordo, polvo y rótulo. El agua honda no
+## cuenta (ahí se hunde). Un rozamiento (resbala a lo largo del muro) tampoco: solo el choque de frente, cuando el paso no avanza nada.
+static var CHOQUE_PARED: bool = true
+const V_CHOQUE_PARED: float = 2.5
+const V_PARED_REF: float = 7.0
+const DANO_PARED_MAX: float = 15.0
+const T_PARED_ATURDE: float = 0.5
+var choques_pared: int = 0                     ## pruebas
+
+func _chocar_pared() -> void:
+	var v: float = _empuje.length()
+	var dano: float = DANO_PARED_MAX * clampf(v / V_PARED_REF, 0.0, 1.0)
+	choques_pared += 1
+	_empuje = Vector3.ZERO
+	stun_timer = maxf(stun_timer, T_PARED_ATURDE)
+	_cancelar_ataque()
+	texto("¡Contra la pared!", Color(0.8, 0.75, 0.6), 0.28)
+	Sensacion3D.golpe_sordo(self)
+	if Sensacion3D.ACTIVA and mundo != null:
+		Sensacion3D.polvo(mundo, _pos_mundo(), Sensacion3D.POLVO_CAIDA)
+	PlayLog.event("choque_pared", {"nombre": nombre, "v": snappedf(v, 0.1), "dano": snappedf(dano, 0.1)})
+	if dano > 0.0 and not muerto:
+		receive_damage(dano)
+
+
+## G2 de PLAN_COMBATE (22/11): ¿entra en el reparto de fichas de ataque (`CoordinadorEncuentro`)? Los goblins de cuerpo a cuerpo y los arqueros que se mueven; no el elemental,
+## ni los canouros (sus propios turnos), ni los arqueros de puesto, ni las clases con IA propia (limo, gólem, chamán).
+func _coordinable() -> bool:
+	return not elemental and _cv2 == null and not fijo and get_script() == Combate3D and jugador != null and is_instance_valid(jugador)
+
+
+var recolocaciones: int = 0                    ## G2: fotogramas que pasó recolocándose por no tener ficha (pruebas)
+const RECOLOCA_ANGULO: float = 35.0            ## grados que adelanta su sitio alrededor de ella en cada momento (así la va rodeando)
+const RECOLOCA_VEL: float = 0.55               ## × su velocidad de correr
+const RADIO_PROTEGE_CHAMAN: float = 7.0        ## u: con un chamán vivo a esta distancia, se pone entre ella y él
+
+## G2: sin ficha de ataque, NO se queda quieto. Con un chamán cerca se pone entre la jugadora y él (lo protege); si no, la rodea por su lado, al borde de su alcance (así no
+## sale del rango y entra en cuanto le toque) o, si es arquero (`arquero_`), se mueve de lado a la misma distancia buscando otra línea.
+func _recolocar(delta: float, arquero_: bool = false) -> void:
+	_carga = 0.0
+	var j: Vector3 = jugador.position
+	var desde: Vector3 = position - j
+	desde.y = 0.0
+	if desde.length() < 0.05:
+		desde = Vector3(1.0, 0.0, 0.0)
+	var meta: Vector3
+	var ch: Node3D = null if arquero_ else _chaman_cerca()
+	if ch != null:
+		var hacia_j: Vector3 = j - ch.position
+		hacia_j.y = 0.0
+		meta = ch.position + (hacia_j.normalized() if hacia_j.length() > 0.05 else desde.normalized()) * 1.3
+	else:
+		var lado: float = 1.0 if get_instance_id() % 2 == 0 else -1.0
+		var r: float = desde.length() if arquero_ else _rango_ataque() * 1.1
+		meta = j + desde.normalized().rotated(Vector3.UP, deg_to_rad(RECOLOCA_ANGULO) * lado) * r
+	var hacia: Vector3 = meta - position
+	hacia.y = 0.0
+	var a_ella: Vector3 = j - position
+	a_ella.y = 0.0
+	if a_ella.length() > 0.05:
+		mirada = a_ella.normalized()                # se mueve sin dejar de mirarla
+	if hacia.length() < 0.15:
+		moviendo = 0
+		return
+	recolocaciones += 1
+	moviendo = 1
+	_v_avance = v_base("run") * RECOLOCA_VEL * vel_mult()
+	_mover_paso(hacia.normalized() * minf(_v_avance * delta, hacia.length()), false, true)
+
+
+func _chaman_cerca() -> Node3D:
+	if not is_inside_tree():
+		return null
+	for n in get_tree().get_nodes_in_group("combate3d"):
+		if n is Chaman3D and not (n as Combate3D).muerto and (n as Node3D).position.distance_to(position) <= RADIO_PROTEGE_CHAMAN:
+			return n as Node3D
+	return null
+
+
+## G1: quita este enemigo de la escena del todo (vivo, muerto o a medio morir), con su modelo y su cuerpo. Lo usa el reinicio del encuentro.
+func retirar() -> void:
+	CoordinadorEncuentro.soltar(self)
+	_quitar_aviso()
+	muerto = true
+	remove_from_group("combate3d")
+	remove_from_group("goblins")
+	if mundo != null:
+		var lista: Variant = mundo.get("_goblins")
+		if lista is Array:
+			(lista as Array).erase(pj)
+	var cuerpo_v: Variant = get("cuerpo")
+	if cuerpo_v is Node and is_instance_valid(cuerpo_v):
+		(cuerpo_v as Node).queue_free()
+	if pj != null and is_instance_valid(pj):
+		pj.queue_free()
+	queue_free()
+
+
+## G1: la jugadora reapareció y este enemigo (suelto, fuera de un encuentro) seguía vivo: deja de perseguirla, recupera la vida y vuelve a su sitio.
+func olvidar_pelea() -> void:
+	if muerto:
+		return
+	_cancelar_ataque()
+	_quitar_aviso()
+	_carga = 0.0
+	health = vida_max
+	objetivo = null
+	estado = "vuelve"                             # (la barra sigue a `health` sola en cada fotograma)
 
 
 ## Crea el combate de `modelo` y lo cuelga del mundo.
@@ -641,7 +887,14 @@ func on_spell_hit(rune_data: RuneData, direccion: Vector3 = Vector3.ZERO, hechiz
 	# A5: único punto de consulta del escudo. Si está y el disparo viene de frente, lo recibe él y el goblin no se entera (por la espalda o el lado, pasa).
 	if escudo != null and is_instance_valid(escudo) and escudo.para(direccion, h):
 		return
+	# B1 (22/11): la coraza de elemento cubre por todos los lados; si está entera, el golpe es suyo (lo rompe, la cambia o rebota).
+	if coraza != null and is_instance_valid(coraza) and coraza.para(direccion, h):
+		if objetivo == null and jugador != null and not muerto and _ve(RADIO_SOLTAR):
+			objetivo = jugador
+		return
 	golpe(h, direccion)
+	if escudo != null and is_instance_valid(escudo) and not muerto:
+		escudo.cubrirse(direccion)  # 21/11 (Pablo: «que se gire a cubrirse»): le dieron por la espalda o el costado: se gira y pone el escudo de cara al golpe
 	if objetivo == null and jugador != null and not muerto and _ve(RADIO_SOLTAR):
 		objetivo = jugador          # un golpe te hace mirar a quien viene
 
@@ -649,6 +902,8 @@ func on_spell_hit(rune_data: RuneData, direccion: Vector3 = Vector3.ZERO, hechiz
 ## ¿Le cubre el escudo de lo que viaja en `direccion`, sin que el escudo lo «reciba»? Consulta pura (no cuenta bloqueo ni prende nada). La usa el daño por pulsos de
 ## una zona (`HechizoVivo.pulso_plasma`), que no pasa por `on_spell_hit`: lo que deja el impacto que el escudo paró (el campo de llamas) tampoco le llega al goblin.
 func escudo_cubre(direccion: Vector3) -> bool:
+	if coraza != null and is_instance_valid(coraza) and coraza.activa():
+		return true                               # B1: la coraza entera cubre de todo lo que deja el impacto, venga de donde venga
 	return escudo != null and is_instance_valid(escudo) and escudo.esta_activo() and escudo.es_de_frente(direccion)
 
 
@@ -668,15 +923,19 @@ func recibir_golpe_cuerpo(dir: Vector3, dano: float, fuerza: float, factor_escud
 		escudo.bloqueos += 1
 		escudo.bloqueado.emit(global_position + Vector3(0.0, altura * 0.5, 0.0))
 		texto("Bloqueado", Color(0.75, 0.8, 0.9), 0.28)
+	elif escudo != null and is_instance_valid(escudo):
+		escudo.cubrirse(d)          # 21/11: un golpe F por la espalda también lo hace girarse a cubrirse
 	# Se interrumpe aunque no llegue a volar: el golpe le corta el ataque y la carga (como un hechizo con daño).
 	_cancelar_ataque()
 	_carga = 0.0
 	interrupcion = maxf(interrupcion, INTERRUPCION_GOLPE)
 	# B1 (6/11): el golpe F sobre un congelado lo ROMPE (daño ×X_ROTO, se acaba el hielo y el empujón de abajo lo tira). Con el escudo de frente no: el escudo para el golpe y el hielo aguanta.
-	var roto: bool = congelado > 0.0 and not parado
+	# 21/11 (triángulo de la demo): la costra de tierra cocida también se rompe con el golpe F.
+	var roto: bool = (congelado > 0.0 or costra > 0.0) and not parado
 	if roto:
 		r["roto"] = true
 		congelado = 0.0
+		costra = 0.0
 		dano *= Dano.X_ROTO
 		_aviso_roto()
 	if empujable_golpe:
@@ -813,6 +1072,9 @@ func prever_golpe(hechizo: Hechizo, dir: Vector3, empuje_previo: Dictionary = {}
 	if escudo != null and is_instance_valid(escudo) and escudo.cubre(dir, hechizo):
 		r["cubierto"] = true
 		r["escudo"] = escudo.reaccion_a(hechizo)
+	elif coraza != null and is_instance_valid(coraza) and coraza.cubre(dir, hechizo):
+		r["cubierto"] = true                      # B1: la previsión enseña lo que le hará a la coraza, no al enemigo
+		r["coraza"] = coraza.reaccion_a(hechizo)
 	else:
 		_dir_decision = dir                           # ELEMENTAL V2: la corteza delantera necesita saber de dónde viene el golpe
 		var dec: Dictionary = decidir_golpe(hechizo)
@@ -977,7 +1239,8 @@ func decidir_golpe(hechizo: Hechizo) -> Dictionary:
 		"vapor": false, "arco": false, "avisos": [], "aturde": hechizo.aturde > 0.0 and not elemental, "veneno": hechizo.veneno > 0.0 and not elemental,
 		"espalda": bool(corteza["espalda"]), "regado": false,
 		"roto": false, "llamarada": null, "cegado": 0.0, "alcance_arco": ARCO_ALCANCE,
-		"enraizado": enraizado, "raices_quemadas": false}
+		"enraizado": enraizado, "raices_quemadas": false,
+		"costra": costra, "sofocado": false, "lento_mojado": false}
 	# 30/10 (H6): la reacción sale de las PROPIEDADES del hechizo (`Materia`), no de su nombre; el nombre solo queda para la tabla de debilidades (`multiplicador`).
 	# Los seis elementos no se solapan (calienta / enfría / riega / conduce / sopla / golpea), así que el orden de las ramas no cambia nada.
 	var m: Dictionary = Materia.de(hechizo)
@@ -988,6 +1251,9 @@ func decidir_golpe(hechizo: Hechizo) -> Dictionary:
 		return r
 	# B1 (6/11): congelado + tierra, viento o rayo = ROTO (daño ×X_ROTO, se acaba el hielo). Un congelado mojado también: el remate manda sobre el ×1,5 del mojado (no se apilan).
 	var roto: bool = congelado > 0.0 and (conduce or Materia.sopla(m) or Materia.golpea(m))
+	# 21/11 (triángulo de la demo): la COSTRA (fuego sobre ralentizado) también se rompe, pero solo con tierra (el golpe F, en `recibir_golpe_cuerpo`).
+	if costra > 0.0 and Materia.golpea(m):
+		roto = true
 	var naturaleza: bool = el == "naturaleza"
 	var derrite: bool = false          # R3: magma sobre congelado
 	if naturaleza:
@@ -1003,6 +1269,8 @@ func decidir_golpe(hechizo: Hechizo) -> Dictionary:
 		if enraizado > 0.0:
 			r["enraizado"] = 0.0                    # R3: el calor quema las raíces y lo libera
 			r["raices_quemadas"] = true
+		if el != "magma" and lento > 0.0 and costra <= 0.0:
+			r["costra"] = COSTRA_S                  # 21/11: la tierra que lo frena se cuece (el magma no: ya trae su propio `lento` y se cocería a sí mismo)
 		if el == "magma":
 			r["lento"] = MAGMA_LENTO_S              # R3: la lava pesa y pega: además de arder, lo frena como la tierra
 			if congelado > 0.0:
@@ -1041,11 +1309,20 @@ func decidir_golpe(hechizo: Hechizo) -> Dictionary:
 				r["quemando"] = maxf(quemando, LLAMARADA_QUEMA_MIN)
 	elif Materia.golpea(m):
 		r["lento"] = hechizo.ralentiza
+		if mojado > 0.0 and hechizo.ralentiza > 0.0:
+			r["lento"] = hechizo.ralentiza * LENTO_MOJADO_MULT      # 21/11 EMPAPADO: el agua amplifica a la tierra
+			r["lento_mojado"] = true
+		if quemando > 0.0:
+			r["quemando"] = 0.0                     # 21/11 SOFOCADO: la tierra apaga (el aviso «apagado_agua» sale abajo, como con el agua) y aturde
+			r["sofocado"] = true
+			if not elemental:
+				r["aturde"] = true
 		if roto:
 			x = Dano.X_ROTO
 	if roto:
 		r["roto"] = true
 		r["congelado"] = 0.0
+		r["costra"] = 0.0
 	var avisos: Array = r["avisos"]
 	if conduce:
 		avisos.append(Mundo3D.R_ELECTROCUTADO)                # cada descarga que le llega es una reacción (no hay estado que dure)
@@ -1057,7 +1334,7 @@ func decidir_golpe(hechizo: Hechizo) -> Dictionary:
 	if float(r["quemando"]) > 0.0 and not ardia:
 		avisos.append(Mundo3D.R_PRENDIDO)
 	elif ardia and float(r["quemando"]) <= 0.0:
-		avisos.append(Mundo3D.R_APAGADO_AGUA)                 # solo el agua y el hielo (quemando = 0) lo apagan; el viento no
+		avisos.append(Mundo3D.R_APAGADO_AGUA)                 # el agua, el hielo y (21/11) la tierra que lo sofoca lo apagan; el viento no
 		if float(r["cegado"]) > 0.0:
 			avisos.append(Mundo3D.R_CEGADO)
 	var estaba_mojado: bool = mojado > 0.0
@@ -1118,6 +1395,13 @@ func golpe(hechizo: Hechizo, direccion: Vector3) -> void:
 	mojado = float(dec["mojado"])
 	quemando = float(dec["quemando"])
 	congelado = float(dec["congelado"])
+	if float(dec["costra"]) > 0.0 and costra <= 0.0:
+		texto_grande("¡Costra!", COLOR_COSTRA)
+	costra = float(dec["costra"])
+	if bool(dec["sofocado"]):
+		texto_grande("¡Sofocado!", COLOR_SOFOCADO)
+	if bool(dec["lento_mojado"]):
+		texto("Empapado: muy lento", Color(0.55, 0.7, 0.85), 0.55)
 	if float(dec["cegado"]) > 0.0:
 		cegado = maxf(cegado, float(dec["cegado"]))
 		texto("Ciego", Color(0.8, 0.85, 0.9), 0.55)
@@ -1133,6 +1417,8 @@ func golpe(hechizo: Hechizo, direccion: Vector3) -> void:
 		_carga = 0.0
 	if bool(dec["vapor"]):
 		texto_grande("¡Vapor!", Color(0.85, 0.9, 1.0))
+		if Terreno3D.estados != null and is_inside_tree():
+			Terreno3D.estados.mantener(Terreno3D.celda_de(position), EstadosSuelo3D.VAPOR)      # 21/11: la nube que deja en su casilla corta la vista (`_ve`)
 	if bool(dec["roto"]):
 		texto_grande("¡Roto!", COLOR_ROTO)
 	var vecino_llama: Variant = dec.get("llamarada", null)
@@ -1172,7 +1458,7 @@ func golpe(hechizo: Hechizo, direccion: Vector3) -> void:
 	elif bool(dec["roto"]) and d.length() > 0.01 and el != "viento":
 		push(d, ROTO_EMPUJE, true)                # B1: cae aunque el golpe no empuje (el viento ya empujó por `Lanzador3D._golpear`)
 	if bool(dec["aturde"]):
-		_aturdir(hechizo.aturde)
+		_aturdir(maxf(hechizo.aturde, SOFOCADO_ATURDE_S if bool(dec["sofocado"]) else 0.0))
 	if dano > 0.0:
 		_num_golpe = true
 		_num_elemento = el
@@ -1384,6 +1670,10 @@ func _physics_process(delta: float) -> void:
 	if _cv2 != null:
 		_cv2.tick(delta)                            # 6/11: los relojes de la niebla del canouro
 	_ia(delta)
+	if _aviso_carga and _carga <= 0.0:
+		_quitar_aviso()                             # A1: la carga se cortó sin atacar (se alejó, le pegaron, lo perdió de vista): el aviso no avisa de nada
+	if _carga <= 0.0 and not _golpe_pendiente and CoordinadorEncuentro.tiene(self):
+		CoordinadorEncuentro.soltar(self)           # G2: ya no carga ni tiene un golpe en camino: la ficha pasa a otro
 	if _marcha != null:
 		_actualizar_marcha(delta)
 	_ajustar_al_suelo(delta)
@@ -1520,6 +1810,7 @@ func _efectos(delta: float) -> void:
 	cegado = maxf(0.0, cegado - delta)
 	investiga = maxf(0.0, investiga - delta)
 	enraizado = maxf(0.0, enraizado - delta)
+	costra = maxf(0.0, costra - delta)
 	if quemando > 0.0:
 		quemando -= delta
 		if quemando <= 0.0:
@@ -1716,7 +2007,9 @@ var _ruta_muros: Dictionary = {}
 func _ia(delta: float) -> void:
 	# Retroceso por golpes (decae solo)
 	if _empuje.length() > 0.1:
-		_mover_paso(_empuje * delta, true)          # empujado: SÍ puede acabar en el agua honda (y hundirse); andando por su cuenta, no
+		var se_movio: bool = _mover_paso(_empuje * delta, true)          # empujado: SÍ puede acabar en el agua honda (y hundirse); andando por su cuenta, no
+		if not se_movio and _empuje.length() >= V_CHOQUE_PARED and CHOQUE_PARED:
+			_chocar_pared()                          # D1 (22/11): se para en seco contra lo sólido
 		_empuje = _empuje.lerp(Vector3.ZERO, clampf(DECAIMIENTO_EMPUJE * delta, 0.0, 1.0))
 	if patina > 0.0 and not muerto:
 		# ᛒ suelo: patina. Sin tracción: desliza hacia donde iba, cada vez más despacio; ni anda ni ataca ni carga mientras tanto. Como el empuje, va antes de los demás estados (un quieto también resbala).
@@ -1736,6 +2029,12 @@ func _ia(delta: float) -> void:
 		interrupcion = 0.0
 	if _fase_empuje != FASE_NINGUNA:
 		# Volando o levantándose: ni anda, ni ataca, ni carga (el empuje horizontal de arriba sí sigue).
+		_cancelar_ataque()
+		_carga = 0.0
+		moviendo = 0
+		return
+	if escudo != null and is_instance_valid(escudo) and escudo.ocupa_al_goblin():
+		# 21/11: el escudo le arde en el brazo (Escudo3D, el bucle del brazo ardiendo): ni anda ni ataca hasta que se consume o se lo apagan. El empuje de arriba sí sigue.
 		_cancelar_ataque()
 		_carga = 0.0
 		moviendo = 0
@@ -1786,6 +2085,9 @@ func _ia(delta: float) -> void:
 	if cebo_t > 0.0:
 		_ia_cebo(delta, vel)                       # 11/11: el cebo de miel manda sobre todo lo demás mientras dure
 		return
+	_forzar_ruta = maxf(0.0, _forzar_ruta - delta)
+	if _huir_del_fuego(delta, vel):
+		return                                     # 21/11: el miedo al fuego manda sobre perseguir y patrullar (no sobre el cebo)
 	var ve: bool = _ve(RADIO_DETECCION if objetivo == null else RADIO_SOLTAR)
 	if ve:
 		if objetivo == null:
@@ -1836,7 +2138,7 @@ func _ia(delta: float) -> void:
 				_en_rango = false
 			if _marcha != null and _marcha.retirada > 0.0:
 				_en_rango = false                  # la hiena se retira tras morder: no espera pegada al jugador
-			if estado == "persigue" and _en_rango and not (combate_tactico and lanz != null and lanz.muro_entre(position, meta)):
+			if estado == "persigue" and _en_rango and not (_rodea_muros() and lanz.muro_entre(position, meta)):
 				moviendo = 0
 				_atacar(delta)
 			elif d.length() > 0.3:
@@ -1844,6 +2146,8 @@ func _ia(delta: float) -> void:
 				moviendo = 2 if vel > 0.8 and not elemental else 1       # el elemental anda siempre (enfurecido, 0,91 pasaría el umbral y pondría el clip de correr, que no tiene)
 				_v_avance = v_base("run") * vel
 				var dir_p: Vector3 = _dir_hacia(meta, delta)
+				if dir_p == Vector3.ZERO:
+					moviendo = 0                       # 21/11: esperando a que el fuego deje paso
 				var atras: bool = false
 				_modo_marcha = ""
 				if _marcha != null and estado == "persigue":
@@ -1857,7 +2161,9 @@ func _ia(delta: float) -> void:
 				var paso_p: Vector3 = dir_p * _v_avance * delta
 				if _marcha != null:
 					paso_p = _marcha.paso_suave(paso_p, delta, atras)
+				var antes_p: Vector3 = position
 				_mover_paso(paso_p, false, true)
+				_medir_atasco(antes_p, paso_p, delta)
 			else:
 				moviendo = 0
 		"vuelve":
@@ -1875,8 +2181,14 @@ func _ia(delta: float) -> void:
 				var paso_v: Vector3 = _dir_hacia(casa, delta) * _v_avance * delta
 				if _marcha != null:
 					paso_v = _marcha.paso_suave(paso_v, delta)
+				var antes_v: Vector3 = position
 				if not _mover_paso(paso_v, false, true):
-					estado = "patrulla"
+					if _forzar_ruta <= 0.0:
+						_forzar_ruta = ATASCO_RUTA_S      # 21/11: antes de rendirse y patrullar donde esté, lo intenta por la ruta
+					else:
+						estado = "patrulla"
+				else:
+					_medir_atasco(antes_v, paso_v, delta)
 		_:
 			_patrullar(delta, vel)
 
@@ -1962,8 +2274,8 @@ func _dir_patrulla(delta: float) -> Vector3:
 		_ruta.clear()
 		return recto
 	var punto := Vector3(casa.x + _direccion * DISTANCIA_PATRULLA, position.y, position.z)
-	var muros: Dictionary = lanz.muros_tacticos() if combate_tactico and lanz != null else {}
-	var muro_en_medio: bool = not muros.is_empty() and lanz.muro_entre(position, punto)
+	var muros: Dictionary = _obstaculos_ruta(punto)
+	var muro_en_medio: bool = not muros.is_empty() and _celdas_entre(position, punto, muros)
 	if not muro_en_medio and Terreno3D.linea_libre(position, punto) and Caminos3D.recta_andable(position, punto):
 		_ruta.clear()
 		return recto
@@ -1988,16 +2300,31 @@ func _atacar(delta: float) -> void:
 	if _descanso > 0.0:
 		_carga = 0.0
 		return
+	var empieza: bool = _carga <= 0.0
+	if empieza and _coordinable() and not CoordinadorEncuentro.puede(self):
+		_recolocar(delta)                           # G2 (22/11): ya hay bastantes atacando: no se queda quieto, busca otro ángulo o protege al chamán
+		return
+	if empieza and _usa_golpe_seco():
+		_descanso = DESCANSO_GOLPE
+		_iniciar_golpe_seco()                       # C25 (22/11): pose de carga sostenida y golpe seco (toda la espera va dentro del «ataque»)
+		return
 	_carga += delta
+	if empieza and not elemental:
+		var cortes_c: Array = pj.momentos_corte("attack") if pj != null else []
+		if cortes_c.size() >= 2:
+			_avisar_carga(PREPARAR_GOLPE, VEL_ANIM_GUERRERO, float(cortes_c[0]), _conectar_corte)
+		else:
+			_avisar_carga(PREPARAR_GOLPE, VEL_ANIM_GUERRERO, MOMENTO_GOLPE_GUERRERO, _conectar)
 	if _carga >= PREPARAR_GOLPE:
 		_carga = 0.0
 		if elemental:
 			_descanso = ELEM_DESCANSO * (ELEM_FURIA_DESCANSO if enfurecido() else 1.0)
-			_iniciar_ataque(1.0, ELEM_MOMENTO_GOLPE, _golpe_elemental)
+			_iniciar_ataque(ELEM_VEL_ANIM_GOLPE, ELEM_MOMENTO_GOLPE, _golpe_elemental)
+			_vel_tras_golpe = ELEM_VEL_ANIM_TRAS
 			return
 		_descanso = DESCANSO_GOLPE
 		# Modelo con varios cortes en su ataque (goblin asesino: dos cortes cruzados, Pj3D.momentos_corte): un golpe por corte, cada uno con el daño del golpe del guerrero.
-		# La invulnerabilidad del jugador tras un golpe (Jugador3D.INVULNERABLE, 0,7 s) hace que el segundo corte solo cuente si el primero falló: ~el mismo daño por ataque.
+		# La invulnerabilidad del jugador tras un golpe (Jugador3D.INVULNERABLE; 0,6 s desde el 22/11, G7 de gamefeel) hace que el segundo corte solo cuente si el primero falló: ~el mismo daño por ataque.
 		var cortes: Array = pj.momentos_corte("attack") if pj != null else []
 		if cortes.size() >= 2:
 			_iniciar_ataque(VEL_ANIM_GUERRERO, float(cortes[0]), _conectar_corte)
@@ -2033,11 +2360,16 @@ func _ia_arquero(delta: float, vel: float) -> void:
 		if _descanso > 0.0:
 			_carga = 0.0
 			return
+		if _carga <= 0.0 and _coordinable() and not CoordinadorEncuentro.puede(self):
+			_recolocar(delta, true)                 # G2 (22/11): sin ficha, se mueve de lado buscando otra línea
+			return
+		if _carga <= 0.0:
+			Sfx3D.play(self, "arco_carga")     # 13/11 (elección de Pablo). A1 (22/11): suena al EMPEZAR a tensar, con el aviso, no 0,9 s después
+			_avisar_carga(PREPARAR_FLECHA, VEL_ANIM_ARQUERO, pj.momento_golpe("attack"), _soltar_flecha)
 		_carga += delta
 		if _carga >= PREPARAR_FLECHA:
 			_carga = 0.0
 			_descanso = DESCANSO_FLECHA
-			Sfx3D.play(self, "arco_carga")     # 13/11 (elección de Pablo)
 			_iniciar_ataque(VEL_ANIM_ARQUERO, pj.momento_golpe("attack"), _soltar_flecha)
 
 
@@ -2099,11 +2431,13 @@ func _ia_arquero_fijo(delta: float) -> void:
 	if _descanso > 0.0:
 		_carga = 0.0
 		return
+	if _carga <= 0.0:
+		Sfx3D.play(self, "arco_carga")     # 13/11 (elección de Pablo). A1 (22/11): al empezar a tensar
+		_avisar_carga(PREPARAR_FLECHA, VEL_ANIM_ARQUERO * ARQUERO_FIJO_RAFAGA, pj.momento_golpe("attack"), _soltar_flecha)
 	_carga += delta
 	if _carga >= PREPARAR_FLECHA:
 		_carga = 0.0
 		_descanso = DESCANSO_FLECHA
-		Sfx3D.play(self, "arco_carga")     # 13/11 (elección de Pablo)
 		_iniciar_ataque(VEL_ANIM_ARQUERO * ARQUERO_FIJO_RAFAGA, pj.momento_golpe("attack"), _soltar_flecha)
 
 
@@ -2126,6 +2460,7 @@ func _iniciar_ataque(vel_anim: float, momento: float, efecto: Callable) -> void:
 	# La flecha no lo necesita: a lo que tarda en soltarla se suma el vuelo.
 	# 28/10: el clip se reproduce a vel_anim × ritmo (Pj3D.ritmo): lo que tarda de verdad es dur / (vel_anim · ritmo). `_ataque_vel` guarda solo vel_anim: el ritmo lo pone Pj3D.
 	var r: float = ritmo()
+	_vel_tras_golpe = 0.0                 # A3: quien la quiera la pone después de llamar
 	if AVISAR_ATAQUES and efecto != _soltar_flecha and dur / (vel_anim * r) * momento < AvisoAtaque3D.T_MIN:
 		vel_anim = dur * momento / (AvisoAtaque3D.T_MIN * r)
 	var total: float = dur / (vel_anim * r)
@@ -2142,9 +2477,95 @@ func _iniciar_ataque(vel_anim: float, momento: float, efecto: Callable) -> void:
 	PlayLog.event("goblin_ataca", {"duracion": snappedf(total, 0.01), "efecto_en": snappedf(total * momento, 0.01)})
 
 
+## C25: ¿este ataque va con anticipación quieta y golpe seco? Hoy, solo el guerrero goblin (un corte, clip `attack` con LeftSlash); el asesino, el loberno y el canouro, después de que Pablo lo vea.
+func _usa_golpe_seco() -> bool:
+	if not GOLPE_SECO or elemental or arquero or _cv2 != null or _marcha != null or pj == null or not is_instance_valid(pj) or get_script() != Combate3D:
+		return false
+	if pj.duracion("attack") <= 0.0 or pj.momentos_corte("attack").size() >= 2:
+		return false
+	return pj.id.begins_with("goblin_warrior")
+
+
+## C25: el ataque del guerrero en tres tramos sobre el mismo clip, con un solo aviso que dura justo la anticipación:
+##   1) LLEGA a la pose de carga (fracción MOMENTO_CARGA_GUERRERO) en GOLPE_SECO_LLEGA s y se encoge;
+##   2) la SOSTIENE quieto (clip congelado, encogido) hasta cumplir PREPARAR_GOLPE;
+##   3) EJECUTA: de la carga al contacto (MOMENTO_GOLPE_GUERRERO) en GOLPE_SECO_EJECUTA s, golpea, y recupera a velocidad normal.
+var golpes_secos: int = 0                    ## pruebas
+
+func _iniciar_golpe_seco() -> void:
+	var dur: float = pj.duracion("attack")
+	var r: float = maxf(ritmo(), 0.01)
+	var t_llega: float = minf(GOLPE_SECO_LLEGA, PREPARAR_GOLPE * 0.5)
+	var v_llega: float = dur * MOMENTO_CARGA_GUERRERO / (t_llega * r)
+	var v_golpe: float = dur * (MOMENTO_GOLPE_GUERRERO - MOMENTO_CARGA_GUERRERO) / (GOLPE_SECO_EJECUTA * r)
+	var t_contacto: float = PREPARAR_GOLPE + GOLPE_SECO_EJECUTA
+	var t_recupera: float = dur * (1.0 - MOMENTO_GOLPE_GUERRERO) / r
+	_vel_tras_golpe = 0.0
+	_ataque = t_contacto + t_recupera
+	_t_anim = _ataque
+	_ataque_vel = v_llega
+	if _marcha != null:
+		_marcha.al_atacar()
+	anim_orden = "attack"
+	_ataque_id += 1
+	var id: int = _ataque_id
+	_golpe_pendiente = true
+	golpes_secos += 1
+	var arbol: SceneTree = get_tree()
+	arbol.create_timer(t_llega, false).timeout.connect(_tramo_golpe_seco.bind(id, 0.0))                # 2) congelado en la carga
+	arbol.create_timer(PREPARAR_GOLPE, false).timeout.connect(_tramo_golpe_seco.bind(id, v_golpe))    # 3) el golpe seco
+	arbol.create_timer(t_contacto, false).timeout.connect(_contacto_golpe_seco.bind(id))
+	_avisar_ataque(_conectar, t_contacto)
+	if _aviso != null and is_instance_valid(_aviso):
+		_aviso.ventana = AvisoAtaque3D.VENTANA_CUERPO   # A5 (Pablo, 22/11): esquiva perfecta en los últimos 0,25 s (el blanco empieza ahí)
+	_sostener_anticipacion(t_contacto)
+	PlayLog.event("goblin_ataca", {"duracion": snappedf(_ataque, 0.01), "efecto_en": snappedf(t_contacto, 0.01), "golpe_seco": true})
+
+
+func _tramo_golpe_seco(id: int, vel: float) -> void:
+	if id != _ataque_id or muerto:
+		return
+	_ataque_vel = vel
+	if _hitstop <= 0.0 and congelado <= 0.0 and pj != null and is_instance_valid(pj):
+		pj.set_velocidad_animacion(vel)
+
+
+func _contacto_golpe_seco(id: int) -> void:
+	if id != _ataque_id or muerto:
+		return
+	_tramo_golpe_seco(id, 1.0)                 # la recuperación, a su paso (se ve: es la ventana para pegarle)
+	_squash_sostenido = false
+	_cancelar_squash()
+	_efecto_ataque(id, _conectar)
+
+
+## C25: el encogimiento de la anticipación SOSTENIDO (no un pulso): baja en 0,12 s, se queda así hasta el golpe y vuelve de golpe.
+func _sostener_anticipacion(t: float) -> void:
+	if not Sensacion3D.ACTIVA or elemental or pj == null or not is_instance_valid(pj):
+		return
+	_cancelar_squash()
+	_squash_sostenido = true
+	_tw_squash = create_tween()
+	_tw_squash.tween_method(_poner_squash, Vector3.ONE, ANTICIPA_ESCALA, 0.12).set_ease(Tween.EASE_OUT)
+	_tw_squash.tween_interval(maxf(t - 0.12, 0.0))
+	_tw_squash.tween_method(_poner_squash, ANTICIPA_ESCALA, Vector3.ONE, 0.06)      # por si nadie lo suelta antes
+
+
+var _squash_sostenido: bool = false
+
+
 func _efecto_ataque(id: int, efecto: Callable) -> void:
 	if id == _ataque_id:
 		_golpe_pendiente = false
+		if _vel_tras_golpe > 0.0 and _ataque > 0.0 and _ataque_vel > 0.0:
+			# A3: lo que queda del clip, a la velocidad de después del golpe (el tiempo que falta se reparte en proporción).
+			var k: float = _ataque_vel / _vel_tras_golpe
+			_ataque *= k
+			_t_anim *= k
+			_ataque_vel = _vel_tras_golpe
+			if _hitstop <= 0.0 and congelado <= 0.0 and pj != null and is_instance_valid(pj):
+				pj.set_velocidad_animacion(_ataque_vel)
+		_vel_tras_golpe = 0.0
 		efecto.call()
 		_aviso = null                     # el aviso acaba solo en su instante (o lo fijó la flecha y vuela con ella): cancelar el ataque ya no lo toca
 
@@ -2155,6 +2576,16 @@ func _efecto_ataque(id: int, efecto: Callable) -> void:
 ##   · arquero (`_soltar_flecha`): un círculo de RADIO_IMPACTO_FLECHA que sigue a la jugadora mientras tensa y se queda donde suelta (`_soltar_flecha` lo fija con el vuelo).
 ## El asesino da dos cortes: el aviso marca el primero (el segundo solo cuenta si el primero falla).
 func _avisar_ataque(efecto: Callable, t_golpe: float) -> void:
+	# A1 (22/11): si el aviso ya salió en la carga previa, no se rehace: se le ajusta el tiempo al instante real del golpe (el ritmo pudo cambiar) y el cuerpo vuelve a encogerse.
+	if _aviso_carga:
+		_aviso_carga = false
+		if _aviso != null and is_instance_valid(_aviso) and not _aviso.cancelado:
+			var t_real: float = t_golpe
+			if efecto == _soltar_flecha and jugador != null and is_instance_valid(jugador):
+				t_real += maxf(position.distance_to(jugador.position) / VEL_FLECHA, 0.1)
+			_aviso.ajustar(t_real)
+			_anticipar()
+			return
 	_quitar_aviso()
 	if not AVISAR_ATAQUES or mundo == null or not is_inside_tree():
 		return
@@ -2189,12 +2620,39 @@ func _quitar_aviso() -> void:
 	if _aviso != null and is_instance_valid(_aviso):
 		_aviso.cancelar()
 	_aviso = null
+	_aviso_carga = false
+
+
+## A1 (22/11): saca el aviso al EMPEZAR la carga previa, con la duración de toda la espera (`t_espera`) más lo que tardará el clip en golpear (o soltar la flecha).
+## La zona es la misma que la del golpe (`_avisar_ataque`); cuando arranca el clip se le ajusta el tiempo. Si la carga se corta, `_physics_process` lo cancela.
+func _avisar_carga(t_espera: float, vel_anim: float, momento: float, efecto: Callable) -> void:
+	if not AVISAR_CARGA or not AVISAR_ATAQUES:
+		return
+	_avisar_ataque(efecto, t_espera + _t_hasta_golpe(vel_anim, momento, efecto))
+	_aviso_carga = _aviso != null
+
+
+## Lo que tardará `_iniciar_ataque(vel_anim, momento, efecto)` en llegar al golpe, con sus mismas cuentas (clip, ritmo y el mínimo de AvisoAtaque3D.T_MIN).
+func _t_hasta_golpe(vel_anim: float, momento: float, efecto: Callable) -> float:
+	var dur: float = pj.duracion("attack") if pj != null else 0.0
+	if dur <= 0.0:
+		dur = T_ANIM_ATAQUE
+		vel_anim = 1.0
+		momento = 0.3
+	var r: float = maxf(ritmo(), 0.01)
+	if AVISAR_ATAQUES and efecto != _soltar_flecha and dur / (vel_anim * r) * momento < AvisoAtaque3D.T_MIN:
+		vel_anim = dur * momento / (AvisoAtaque3D.T_MIN * r)
+	return dur / (vel_anim * r) * momento
 
 
 ## Golpe, parálisis, hielo o muerte: la animación se corta y el golpe/flecha pendiente ya no sale.
 func _cancelar_ataque() -> void:
 	if _golpe_pendiente:
 		_quitar_aviso()
+	if _squash_sostenido:
+		_squash_sostenido = false                  # C25: le cortaron la pose de carga: se desencoge
+		_cancelar_squash()
+	_vel_tras_golpe = 0.0
 	if _ataque > 0.0:
 		_ataque = 0.0
 		_t_anim = 0.0
@@ -2248,15 +2706,14 @@ func _vuelo_flecha(k: float, flecha: Node3D, origen: Vector3, destino: Vector3) 
 	var p: Vector3 = origen.lerp(destino, k)
 	var anterior: Vector3 = flecha.position
 	flecha.position = p
-	if lanz != null and lanz.burbuja_contiene(p):
-		flecha.set_meta("parada", true)            # `_flecha_llega` (si el tween llega a llamarla en este mismo paso) no hace daño
-		lanz.burbuja_recibe("", p, self)
-		flecha.queue_free()
-	elif lanz != null and _desviar_flecha(flecha, anterior, destino - origen, p):
+	# B2 de PLAN_COMBATE (22/11, C19): la burbuja y las barreras ya no paran igual todas las flechas: decide la tabla de contacto (`Contacto`). La flecha se quema en el fuego,
+	# cae mojada en el agua, se clava en la tierra, rebota en la burbuja (C10)… o la cruza (la flecha ardiendo pasa por el fuego). El muro de viento con cara sigue desviándola.
+	if lanz != null and not lanz.burbuja_contiene(p) and _desviar_flecha(flecha, anterior, destino - origen, p):
 		return
-	elif lanz != null and lanz.solidez_para(p, DANO_FLECHA):
-		flecha.set_meta("parada", true)            # R3: un volumen con solidez (propiedad de la receta V2) para la flecha y aguanta el golpe
-		flecha.queue_free()
+	var acc: String = Contacto.flecha_en(lanz, flecha, p, anterior, DANO_FLECHA, mundo) if lanz != null else ""
+	if flecha.has_meta("parada"):
+		PlayLog.event("flecha_contacto", {"accion": acc})
+		return
 	else:
 		# A2: la flecha es inflamable. Cruzar una llama (fogata, brasero, algo ardiendo) la deja ardiendo; ardiendo, prende lo inflamable que toca.
 		if not flecha.has_meta("ardiendo") and _flecha_toca_fuego(p):
@@ -2435,12 +2892,176 @@ func _dir_hacia(meta: Vector3, delta: float) -> Vector3:
 	if recto.length() < 0.0001:
 		return Vector3.ZERO
 	recto = recto.normalized()
-	var muros: Dictionary = lanz.muros_tacticos() if combate_tactico and lanz != null else {}
-	var muro_en_medio: bool = not muros.is_empty() and lanz.muro_entre(position, meta)
-	if elemental or (not muro_en_medio and Terreno3D.linea_libre(position, meta) and Caminos3D.recta_andable(position, meta)):
+	if elemental:
 		_ruta.clear()
 		return recto
-	return _seguir_ruta(meta, recto, muros, delta)
+	var muros: Dictionary = _obstaculos_ruta(meta)          # 21/11: barreras de la jugadora (RODEA_MUROS) y casillas con fuego (si lo teme)
+	var muro_en_medio: bool = not muros.is_empty() and _celdas_entre(position, meta, muros)
+	if _forzar_ruta <= 0.0 and not muro_en_medio and Terreno3D.linea_libre(position, meta) and Caminos3D.recta_andable(position, meta):
+		_ruta.clear()
+		return recto
+	var d: Vector3 = _seguir_ruta(meta, recto, muros, delta)
+	if _ruta.is_empty() and muro_en_medio and _celdas_entre(position, meta, _fuego_aqui()):
+		return Vector3.ZERO                  # 21/11: el fuego tapa el único paso: espera a que se apague (si no, andaría hacia él, huiría y volvería sin parar)
+	return d
+
+
+## 21/11 · ¿Rodea las barreras vivas de la jugadora? El modo táctico siempre; el resto si RODEA_MUROS (el elemental no: las embiste).
+func _rodea_muros() -> bool:
+	return lanz != null and is_instance_valid(lanz) and (combate_tactico or (RODEA_MUROS and not elemental))
+
+
+## 21/11 · ¿Le da miedo el fuego? (ver MIEDO_FUEGO)
+func teme_fuego() -> bool:
+	return MIEDO_FUEGO and not elemental and not muerto and not fijo and not inmune_a("calor") and not inmune_a("fuego")
+
+
+## 21/11 · Casillas con fuego del mundo, Vector2i -> FUEGO_PELIGRO / FUEGO_FUENTE. Se calcula una vez por fotograma de física para todos los enemigos (`olvidar_fuego` lo fuerza).
+##   peligro: zonas vivas de fuego o magma del lanzador (`_zonas_v2`) y objetos ARDIENDO (`Reactivo3D`: seto, tronco, barril…)
+##   fuente:  braseros y fogatas encendidos (arden pero no se propagan) y el suelo QUEMADA. La lava no hace falta: ya bloquea sus casillas.
+static func celdas_de_fuego(arbol: SceneTree, l: Lanzador3D) -> Dictionary:
+	var f: int = Engine.get_physics_frames()
+	if f == _fuego_frame:
+		return _fuego_cache
+	_fuego_frame = f
+	var r: Dictionary = {}
+	if Terreno3D.estados != null and RODEA_SUELO_QUEMADO:
+		for c in Terreno3D.estados.celdas(EstadosSuelo3D.QUEMADA):
+			r[c] = FUEGO_FUENTE
+	if arbol != null:
+		for n in arbol.get_nodes_in_group(Reactivo3D.GRUPO_REACTIVO):
+			if not is_instance_valid(n) or not (n is Reactivo3D) or not (n as Node).is_inside_tree():
+				continue
+			var o: Reactivo3D = n
+			if o.estado == Reactivo3D.EstadoObj.ARDIENDO:
+				r[Terreno3D.celda_de(o.global_position)] = FUEGO_PELIGRO
+			elif o.esta_ardiendo():
+				var c2: Vector2i = Terreno3D.celda_de(o.global_position)
+				if int(r.get(c2, 0)) < FUEGO_FUENTE:
+					r[c2] = FUEGO_FUENTE
+	if l != null and is_instance_valid(l):
+		for z in l._zonas_v2:
+			if is_instance_valid(z) and not (z as Node).is_queued_for_deletion() and ZONAS_QUE_ARDEN.has(String(z.elemento)) and float(z.vida) > 0.0:
+				for c3 in (z.celdas as Dictionary):
+					r[c3] = FUEGO_PELIGRO
+	_fuego_cache = r
+	return r
+
+
+## 21/11 · Que la próxima consulta de `celdas_de_fuego` vuelva a mirar el mundo (las pruebas encienden algo y preguntan en el mismo fotograma).
+static func olvidar_fuego() -> void:
+	_fuego_frame = -1
+
+
+func _fuego_aqui() -> Dictionary:
+	if not teme_fuego() or not is_inside_tree():
+		return {}
+	return celdas_de_fuego(get_tree(), lanz)
+
+
+## 21/11 · Obstáculos para la ruta hacia `meta`: barreras de la jugadora (si las rodea) + casillas con fuego (si lo teme). Nunca su casilla ni la de la meta (si no, no habría ruta).
+func _obstaculos_ruta(meta: Vector3) -> Dictionary:
+	var muros: Dictionary = lanz.muros_tacticos() if _rodea_muros() else {}
+	var fuego: Dictionary = _fuego_aqui()
+	if fuego.is_empty():
+		return muros
+	var r: Dictionary = muros.duplicate()
+	r.merge(fuego)
+	r.erase(Terreno3D.celda_de(position))
+	r.erase(Terreno3D.celda_de(meta))
+	return r
+
+
+## 21/11 · ¿Cruza el CUERPO que va en recta de `a` a `b` alguna de `celdas` (sin contar la de salida)? Como `Lanzador3D.muro_entre`, pero más fino (cada 0,1 casilla) y con el ancho del cuerpo
+## (la recta y dos paralelas a ±radio): con muestras cada 0,25 casilla y sin ancho, una recta que rozaba la esquina de una casilla con fuego pasaba por libre, el goblin iba derecho, chocaba con el
+## borde y se asustaba.
+func _celdas_entre(a: Vector3, b: Vector3, celdas: Dictionary) -> bool:
+	if celdas.is_empty():
+		return false
+	var d := Vector3(b.x - a.x, 0.0, b.z - a.z)
+	var largo: float = d.length()
+	if largo < 0.0001:
+		return false
+	var lado: Vector3 = Vector3(-d.z, 0.0, d.x) / largo * _radio_cuerpo()
+	var pasos: int = maxi(1, ceili(largo / (Terreno3D.casilla * 0.1)))
+	var inicio: Vector2i = Terreno3D.celda_de(a)
+	for i in range(1, pasos + 1):
+		var p: Vector3 = a.lerp(b, float(i) / pasos)
+		for q: Vector3 in [p, p + lado, p - lado]:
+			var c: Vector2i = Terreno3D.celda_de(q)
+			if c != inicio and celdas.has(c):
+				return true
+	return false
+
+
+## 21/11 · Hacia dónde huir del fuego PELIGROSO a menos de RADIO_MIEDO_FUEGO: la suma de los «lejos de» cada casilla, pesados por lo cerca que está. ZERO = nada que temer.
+func direccion_huida() -> Vector3:
+	var fuego: Dictionary = _fuego_aqui()
+	if fuego.is_empty():
+		return Vector3.ZERO
+	var r := Vector3.ZERO
+	for c in fuego:
+		if int(fuego[c]) < FUEGO_PELIGRO:
+			continue
+		var d: Vector3 = position - Terreno3D.centro_de(c)
+		d.y = 0.0
+		var l: float = d.length()
+		if l > RADIO_MIEDO_FUEGO:
+			continue
+		if l < 0.05:
+			d = -mirada if mirada.length() > 0.01 else Vector3(1, 0, 0)        # en el centro mismo del fuego: hacia atrás
+			l = 0.05
+		r += d / l * ((RADIO_MIEDO_FUEGO - l) / RADIO_MIEDO_FUEGO + 0.05)
+	r.y = 0.0
+	return r.normalized() if r.length() > 0.001 else Vector3.ZERO
+
+
+## 21/11 · HUIR DEL FUEGO. true = este fotograma huye (y `_ia` no hace nada más). Sin atacar, corriendo en sentido contrario; si choca, prueba de lado.
+func _huir_del_fuego(delta: float, vel: float) -> bool:
+	if not teme_fuego():
+		_huida = 0.0
+		return false
+	var lejos: Vector3 = direccion_huida()
+	if lejos != Vector3.ZERO:
+		if _huida <= 0.0:
+			texto("¡Fuego!", COLOR_LLAMARADA, 0.4)
+			PlayLog.event("enemigo_huye_fuego", {"nombre": nombre})
+		_huida = HUIDA_MIN_S
+		_dir_huida = lejos
+	elif _huida > 0.0:
+		_huida -= delta
+	if _huida <= 0.0:
+		return false
+	_cancelar_ataque()
+	_carga = 0.0
+	_en_rango = false
+	_modo_marcha = ""
+	moviendo = 2
+	_v_avance = v_base("run") * vel * VEL_HUIDA_MULT
+	mirada = _dir_huida
+	var paso: Vector3 = _dir_huida * _v_avance * delta
+	if not _mover_paso(paso):
+		var lado := Vector3(-_dir_huida.z, 0.0, _dir_huida.x)
+		if not _mover_paso(lado * paso.length()):
+			_mover_paso(-lado * paso.length())
+	return true
+
+
+## 21/11 · ATASCO: si el paso real es mucho menor que el pedido durante ATASCO_S s, sigue la ruta por casillas ATASCO_RUTA_S s (un barril o un arbusto en la recta).
+func _medir_atasco(antes: Vector3, paso: Vector3, delta: float) -> void:
+	var pedido: float = Vector2(paso.x, paso.z).length()
+	if pedido < 0.0001:
+		_t_atasco = 0.0
+		return
+	var hecho: float = Vector2(position.x - antes.x, position.z - antes.z).length()
+	if hecho < pedido * ATASCO_AVANCE:
+		_t_atasco += delta
+		if _t_atasco >= ATASCO_S and _forzar_ruta <= 0.0:
+			_forzar_ruta = ATASCO_RUTA_S
+			_t_ruta = 0.0                        # que la ruta se calcule ya
+			_t_atasco = 0.0
+	else:
+		_t_atasco = 0.0
 
 
 ## La mitad de `_dir_hacia` que sigue (y recalcula cuando toca) la ruta por casillas hasta `meta`, sin mirar si la recta está libre: ya lo decidió quien llama (13/11, tarea 19: la patrulla
@@ -2513,7 +3134,10 @@ func _puede_estar(p: Vector3, empujado: bool = false, por_ruta: bool = false) ->
 ## 28/10 · A2: `_puede_estar` mirando desde una posición cualquiera `desde` (la del cuerpo, o la simulada de `prever_empuje`): una sola regla para el paso real y la previsión.
 func _puede_estar_desde(desde: Vector3, p: Vector3, empujado: bool = false, por_ruta: bool = false) -> bool:
 	var c: Vector2i = Terreno3D.celda_de(p)
-	if combate_tactico and lanz != null and c != Terreno3D.celda_de(desde) and lanz.muros_tacticos().has(c):
+	if _rodea_muros() and c != Terreno3D.celda_de(desde) and lanz.muros_tacticos().has(c):
+		return false
+	# 21/11: con sus piernas no entra en una casilla con fuego si lo teme (empujado, sí). Salir de una, siempre.
+	if not empujado and c != Terreno3D.celda_de(desde) and _fuego_aqui().has(c):
 		return false
 	# A3: un cuerpo EMPUJADO entra en el agua honda no helada (no hay suelo que lo frene: por eso se hunde en `_ajustar_al_suelo`). Con sus piernas, nunca:
 	# por eso esta salida va antes de las comprobaciones de suelo y solo existe con `empujado`. Misma regla de agua que el jugador usa para nadar (`_es_agua_honda`).
@@ -3195,6 +3819,7 @@ func _golpe_elemental() -> void:
 	if muerto or jugador == null or not is_instance_valid(jugador):
 		return
 	Sfx3D.play(self, "impacto_suelo")     # 13/11 (elección de Pablo)
+	Sensacion3D.temblor_cuerpo_grande(self)     # 22/11 (C17, Mystralia O9): el cuerpo grande golpea el suelo
 	_descanso = maxf(_descanso, _ataque + 0.65)
 	var f: Vector3 = Vector3(mirada.x, 0.0, mirada.z)
 	f = f.normalized() if f.length() > 0.01 else Vector3(0, 0, 1)
@@ -3706,10 +4331,104 @@ func _soltar_botin() -> void:
 		if String(d["que"]) == Botin.ORO:
 			if oro <= 0:
 				continue
-			d["n"] = oro
+			d["n"] = oro                                   # (con cuota < 1 el `oro` ya viene repartido por quien lo dividió)
+		elif cuota_botin < 1.0 and randf() >= cuota_botin:
+			continue                                       # §11.5: un trozo de un limo dividido saca los materiales con su parte de probabilidad (el total esperado, el del original)
 		final.append(d)
 	botin_soltado = final
 	Botin.soltar(mundo, position, final, jugador)
+	_soltar_recogibles()
+
+
+## C1 de PLAN_COMBATE (22/11, cifras de Pablo: «de momento está bien así»): al morir suelta una GOTA DE TINTA que se recoge al pasar (imán corto, como el oro): +TINTA_MATAR,
+## +TINTA_MATAR_GRANDE si es grande (masa ≥ MASA_GRANDE: elemental, gólem…) y +TINTA_MATAR_EXTRA más si murió por su debilidad o tras una reacción premiada.
+## Y a veces (RECOGIBLE_VIDA_PROB; algo más con la vida baja, nunca seguro ni con más valor) un RECOGIBLE DE VIDA que cura al cogerlo (no va a la bolsa: la poción sigue siendo objeto).
+## Ninguno de los dos: muñecos y dianas (`premia_tinta` false o grupo «muneco»), enemigos con `suelta_recogibles` false (se apaga por encuentro) ni ahogados (no pasan por aquí).
+## Duran RECOGIBLE_DURA s en el suelo y parpadean al final: hay que moverse a por ellos (C5).
+static var GOTAS_TINTA: bool = true
+static var RECOGIBLES_VIDA: bool = true
+const TINTA_MATAR: float = 6.0
+const TINTA_MATAR_GRANDE: float = 10.0
+const TINTA_MATAR_EXTRA: float = 4.0
+const MASA_GRANDE: float = 2.0
+## §11.4 de MEJORAS_HECHIZOS_MYSTRALIA (Pablo, 22/11): CURVA CONTINUA de probabilidad del recogible de vida (antes un salto 15 % / 25 % al bajar del 34 %, y 15 % aun con la vida llena):
+##   h = limitar((vida + curación pendiente) / vida_max)
+##   p = VIDA_P1 · limitar((1 − h) / VIDA_H1) + VIDA_P2 · limitar((VIDA_H2 − h) / VIDA_H3)      → 100 %: 0 · 80 %: 15 % · 50 %: 15 % · 40 %: 18,3 % · ≤ 20 %: 25 %
+## La curación pendiente = los recogibles de vida que siguen en el suelo a ≤ VIDA_PENDIENTE_CASILLAS de ella (cuentan una vez y salen al cogerse o caducar).
+const VIDA_P1: float = 0.15
+const VIDA_H1: float = 0.20
+const VIDA_P2: float = 0.10
+const VIDA_H2: float = 0.50
+const VIDA_H3: float = 0.30
+const VIDA_PENDIENTE_CASILLAS: float = 8.0
+const RECOGIBLE_VIDA_FRACCION: float = 0.12      ## lo que cura: un 12 % de la vida máxima (12 de 100), lo mismo con vida baja o no
+const RECOGIBLE_DURA: float = 8.0
+static var tirada_recogible_forzada: float = -1.0   ## pruebas: >= 0 sustituye al azar de la vida
+static var racha_sin_vida: int = 0               ## §11.6: muertes seguidas con tirada de vida que no la soltaron (se registra; no hay compensación aprobada)
+## §11.5: contabilidad de los recogibles (por partida; las pruebas la leen): generado, recogido, recuperado de verdad y desperdiciado, por tipo.
+static var cuentas: Dictionary = {}
+var suelta_recogibles: bool = true
+var cuota_botin: float = 1.0                     ## §11.5: la parte de la recompensa del original que lleva este enemigo (1 = entera; los trozos de un limo dividido, su parte)
+
+
+## §11.4: la probabilidad de soltar vida con la vida (más la curación pendiente) en la fracción `h` (0..1) de la máxima.
+static func prob_vida(h: float) -> float:
+	h = clampf(h, 0.0, 1.0)
+	return VIDA_P1 * clampf((1.0 - h) / VIDA_H1, 0.0, 1.0) + VIDA_P2 * clampf((VIDA_H2 - h) / VIDA_H3, 0.0, 1.0)
+
+
+## §11.4: la vida que curarían los recogibles de vida que siguen en el suelo a ≤ VIDA_PENDIENTE_CASILLAS de `jug`.
+static func curacion_pendiente(arbol: SceneTree, jug: Node3D) -> float:
+	if arbol == null or jug == null:
+		return 0.0
+	var r: float = VIDA_PENDIENTE_CASILLAS * Terreno3D.casilla
+	var suma: float = 0.0
+	for b in arbol.get_nodes_in_group(Botin3D.GRUPO_VIDA):
+		if is_instance_valid(b) and (b as Botin3D)._vivo and (b as Node3D).global_position.distance_to(jug.global_position) <= r:
+			suma += (b as Botin3D).valor
+	return suma
+
+
+## §11.5: apunta en `cuentas` (y en PlayLog) un movimiento de recogibles.
+static func contar(tipo: String, campo: String, cantidad: float) -> void:
+	if not cuentas.has(tipo):
+		cuentas[tipo] = {"generado": 0.0, "recogido": 0.0, "recuperado": 0.0, "desperdiciado": 0.0, "caducado": 0.0}
+	(cuentas[tipo] as Dictionary)[campo] = float((cuentas[tipo] as Dictionary)[campo]) + cantidad
+
+
+func _soltar_recogibles() -> void:
+	if not suelta_recogibles or not premia_tinta or is_in_group("muneco") or mundo == null or not (mundo is Node3D):
+		return
+	var jug: Jugador3D = jugador if jugador != null and is_instance_valid(jugador) else Botin.jugador_de(mundo)
+	if GOTAS_TINTA:
+		var t: float = TINTA_MATAR_GRANDE if (masa >= MASA_GRANDE or elemental) else TINTA_MATAR
+		var por_debil: bool = debil != "" and _elemento_letal() == debil
+		var por_reaccion: bool = false
+		for m in get_meta_list():
+			if String(m).begins_with("tinta_reaccion_"):
+				por_reaccion = true
+				break
+		if por_debil or por_reaccion:
+			t += TINTA_MATAR_EXTRA
+		t *= cuota_botin                                    # §11.5: un trozo de limo dividido, su parte
+		Botin3D.soltar_recogible(mundo as Node3D, jug, Botin3D.TIPO_TINTA, t, position)
+		contar(Botin3D.TIPO_TINTA, "generado", t)
+		PlayLog.event("gota_tinta", {"tinta": snappedf(t, 0.01), "debil": por_debil, "reaccion": por_reaccion, "cuota": snappedf(cuota_botin, 0.01)})
+	if RECOGIBLES_VIDA and jug != null:
+		var vmax: float = maxf(Estado.i().vida_max, 1.0)
+		var pendiente: float = curacion_pendiente(get_tree(), jug) if is_inside_tree() else 0.0
+		var h: float = clampf((jug.vida + pendiente) / vmax, 0.0, 1.0)
+		var prob: float = prob_vida(h) * cuota_botin
+		var tirada: float = tirada_recogible_forzada if tirada_recogible_forzada >= 0.0 else randf()
+		if tirada < prob:
+			var cura: float = vmax * RECOGIBLE_VIDA_FRACCION
+			Botin3D.soltar_recogible(mundo as Node3D, jug, Botin3D.TIPO_VIDA, cura, position)
+			contar(Botin3D.TIPO_VIDA, "generado", cura)
+			PlayLog.event("recogible_vida", {"vida": cura, "h": snappedf(h, 0.01), "pendiente": pendiente, "p": snappedf(prob, 0.001), "racha_antes": racha_sin_vida})
+			racha_sin_vida = 0
+		elif prob > 0.0:
+			racha_sin_vida += 1
+			PlayLog.event("sin_vida", {"h": snappedf(h, 0.01), "p": snappedf(prob, 0.001), "racha": racha_sin_vida})
 
 
 ## Pone el clip «Drowning» si el modelo lo trae Y el árbol de animación lo admite (el grafo reducido de los enemigos hoy no: ver el encargo del informe). Si no, la pose de
@@ -3783,6 +4502,16 @@ class Botin3D extends MeshInstance3D:
 	var jugador: Jugador3D = null
 	var cantidad: int = 10
 	var imantada: bool = false
+	## C1 (22/11): el mismo recogible sirve para el oro, la GOTA DE TINTA y el de VIDA. Los dos nuevos curan al cogerlos y desaparecen a los RECOGIBLE_DURA s, parpadeando antes.
+	const TIPO_ORO: String = "oro"
+	const TIPO_TINTA: String = "tinta"
+	const TIPO_VIDA: String = "vida"
+	const COLOR_VIDA: Color = Color(0.95, 0.32, 0.38)      ## rosa-rojo de corazón: no es ninguno de los elementos (fuego naranja, agua azul, tierra marrón)
+	const T_PARPADEO: float = 2.0                          ## s finales en que parpadea
+	const GRUPO_VIDA: String = "recogible_vida"           ## §11.4: los de vida vivos (la curación pendiente los suma)
+	var tipo: String = TIPO_ORO
+	var valor: float = 0.0                                 ## tinta o vida que da (el oro usa `cantidad`)
+	var dura: float = -1.0                                 ## s que le quedan en el suelo (< 0 = para siempre, el oro)
 	var _t: float = 0.0
 	var _base_y: float = 0.0
 	var _vivo: bool = true
@@ -3821,6 +4550,35 @@ class Botin3D extends MeshInstance3D:
 		p_mundo.add_child(b)
 		return b
 
+	## C1 (22/11): una GOTA DE TINTA (`TIPO_TINTA`, color del pigmento activo) o un recogible de VIDA (`TIPO_VIDA`, rosa-rojo), que dan `p_valor` al cogerlos.
+	static func soltar_recogible(p_mundo: Node3D, p_jugador: Jugador3D, p_tipo: String, p_valor: float, pos: Vector3) -> Botin3D:
+		var b: Botin3D = soltar(p_mundo, p_jugador, 0, pos)
+		b.tipo = p_tipo
+		b.valor = p_valor
+		b.dura = Combate3D.RECOGIBLE_DURA
+		b.name = "GotaTinta" if p_tipo == TIPO_TINTA else "RecogibleVida"
+		if p_tipo == TIPO_VIDA:
+			b.add_to_group(GRUPO_VIDA)
+		var col: Color = COLOR_VIDA
+		if p_tipo == TIPO_TINTA:
+			var lz: Node = p_mundo.get_tree().get_first_node_in_group("spellcaster") if p_mundo.is_inside_tree() else null
+			var t: Variant = lz.get("tinta") if lz != null else null
+			col = (t as Tinta).color() if t is Tinta else Color(0.25, 0.4, 0.95)
+		var forma := SphereMesh.new()                       # gota: más alta que ancha; la vida, redonda
+		forma.radius = 0.15
+		forma.height = 0.42 if p_tipo == TIPO_TINTA else 0.3
+		forma.radial_segments = 12
+		forma.rings = 6
+		var m := StandardMaterial3D.new()
+		m.albedo_color = col
+		m.roughness = 0.25
+		m.emission_enabled = true
+		m.emission = col
+		m.emission_energy_multiplier = 0.9
+		forma.material = m
+		b.mesh = forma
+		return b
+
 	## ¿Está todavía saltando hacia su sitio? (las pruebas lo leen)
 	func saltando() -> bool:
 		return _t_salto >= 0.0
@@ -3828,6 +4586,15 @@ class Botin3D extends MeshInstance3D:
 	func _process(delta: float) -> void:
 		if not _vivo:
 			return
+		if dura >= 0.0 and _t_salto < 0.0 and not imantada:
+			dura -= delta
+			visible = dura > T_PARPADEO or fmod(dura, 0.25) > 0.1     # parpadea al final: hay que ir a por él
+			if dura <= 0.0:
+				_vivo = false
+				Combate3D.contar(tipo, "caducado", valor)
+				PlayLog.event("recogible_perdido", {"tipo": tipo, "valor": snappedf(valor, 0.01)})
+				queue_free()
+				return
 		_t += delta
 		rotate_y(delta * (2.0 if not imantada else 9.0))
 		if _t_salto >= 0.0:
@@ -3842,6 +4609,12 @@ class Botin3D extends MeshInstance3D:
 				_t = 0.0
 			return
 		if jugador == null or not is_instance_valid(jugador) or jugador.muerto:
+			position.y = _base_y + sin(_t * 3.0) * 0.06
+			return
+		if tipo != TIPO_ORO and cabe() <= 0.01:
+			# §11.5 (22/11): con la barra llena ni se imanta ni se coge: se queda en el suelo (y caduca a su hora) para cuando haga falta.
+			imantada = false
+			_vel = 0.0
 			position.y = _base_y + sin(_t * 3.0) * 0.06
 			return
 		var hacia: Vector3 = jugador.position + Vector3(0.0, 0.8, 0.0) - position
@@ -3864,8 +4637,43 @@ class Botin3D extends MeshInstance3D:
 			return false
 		return Vector2(jugador.position.x - position.x, jugador.position.z - position.z).length() < RADIO_IMAN and absf(jugador.position.y - _base_y) < 1.4
 
+	## §11.5: cuánto de este recogible cabe ahora en su barra (la tinta o la vida que le falta a ella); el oro, todo.
+	func cabe() -> float:
+		if tipo == TIPO_TINTA:
+			var t: Tinta = _tinta()
+			return maxf(0.0, t.maxima - t.actual) if t != null else 0.0
+		if tipo == TIPO_VIDA:
+			return maxf(0.0, Estado.i().vida_max - jugador.vida) if jugador != null and is_instance_valid(jugador) else 0.0
+		return INF
+
+	func _tinta() -> Tinta:
+		var lz: Node = get_tree().get_first_node_in_group("spellcaster") if is_inside_tree() else null
+		var t: Variant = lz.get("tinta") if lz != null else null
+		return t as Tinta if t is Tinta else null
+
 	func _coger() -> void:
 		_vivo = false
+		visible = true
+		if tipo == TIPO_TINTA or tipo == TIPO_VIDA:
+			# §11.5: entra lo que cabe; el número enseña ESO (antes «+12 vida» aunque curase 3), y lo que sobra se apunta como desperdiciado.
+			var entra: float = minf(valor, cabe())
+			if tipo == TIPO_TINTA:
+				var t: Tinta = _tinta()
+				if t != null:
+					t.recuperar(entra)
+				Combate3D.flotante(get_parent(), position + Vector3(0, 0.5, 0), "+%d tinta" % int(round(entra)), (mesh.material as StandardMaterial3D).albedo_color)
+				Sfx.play(self, "tinta_sube")
+			else:
+				if jugador != null and is_instance_valid(jugador):
+					jugador.curar(entra)
+				Combate3D.flotante(get_parent(), position + Vector3(0, 0.5, 0), "+%d vida" % int(round(entra)), COLOR_VIDA)
+				Sfx.play(self, "pocion_fin")
+			Combate3D.contar(tipo, "recogido", valor)
+			Combate3D.contar(tipo, "recuperado", entra)
+			Combate3D.contar(tipo, "desperdiciado", valor - entra)
+			PlayLog.event("coge_" + tipo, {"valor": snappedf(valor, 0.01), "recuperado": snappedf(entra, 0.01), "desperdiciado": snappedf(valor - entra, 0.01)})
+			queue_free()
+			return
 		Estado.i().dar_oro(cantidad)
 		Combate3D.flotante(get_parent(), position + Vector3(0, 0.5, 0), "+%d oro" % cantidad, Color(1, 0.9, 0.4))
 		if Sensacion3D.ACTIVA:

@@ -252,7 +252,9 @@ func _caso_dano_recibido() -> void:
 	var capa: CanvasLayer = j.get_meta("vineta_dano") if j.has_meta("vineta_dano") else null
 	var fuerza: float = float(((capa.get_node("R") as ColorRect).material as ShaderMaterial).get_shader_parameter("fuerza")) if capa != null else 0.0
 	_ok("6 viñeta roja encendida (%.2f)" % fuerza, capa != null and fuerza > 0.2)
-	_ok("6 hitstop corto de la jugadora", j._t_hitstop > 0.0 and j._t_hitstop <= Sensacion3D.HITSTOP_DANO + 0.001)
+	# 22/11 (G7): el hitstop va por tamaño; 15 de 100 es un golpe medio (`HITSTOP_POR_TAMANO[1]`). Antes exigía ≤ HITSTOP_DANO; cambiada a propósito.
+	var hs_esperado: float = float(Sensacion3D.HITSTOP_POR_TAMANO[Sensacion3D.tamano_golpe(15.0)])
+	_ok("6 hitstop corto de la jugadora (%.2f s, el de su tamaño)" % j._t_hitstop, j._t_hitstop > 0.0 and j._t_hitstop <= hs_esperado + 0.001)
 	await avanzar_s(0.5)
 	fuerza = float(((capa.get_node("R") as ColorRect).material as ShaderMaterial).get_shader_parameter("fuerza")) if capa != null else 1.0
 	_ok("6 y se apaga sola (%.2f)" % fuerza, fuerza < 0.01)

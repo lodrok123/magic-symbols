@@ -43,6 +43,9 @@ var jugador: Node3D = null       ## Jugador3D
 var reloj: Reloj = null
 var _fallos: int = 0
 var _avisos: int = 0
+## 22/11 (PLAN_HECHIZOS §2.2b): las escenas de la ruta de la demo llevan ya `kit = "demo_inicio"` (fuego, ᛇ y ᛜ), y los escenarios se escribieron con el kit de pruebas
+## (los 6 elementos). `cargar` sustituye ese kit por «pruebas», como estaban antes. Un escenario que quiera el arranque REAL de la demo pone esto a false antes de `cargar`.
+var kit_de_pruebas: bool = true
 
 
 func _initialize() -> void:
@@ -84,6 +87,7 @@ func cargar(ruta: String = RUTA_BOSQUE, usar_escena: bool = false, fotogramas_ma
 		reloj = Reloj.new()
 		reloj.name = "Reloj"
 		root.add_child(reloj)
+	Lanzador3D.sustituir_kit = {"demo_inicio": "pruebas"} if kit_de_pruebas else {}
 	var paquete: PackedScene = load(ruta) as PackedScene
 	_ok("0 la escena %s carga" % ruta.get_file(), paquete != null)
 	if paquete == null:

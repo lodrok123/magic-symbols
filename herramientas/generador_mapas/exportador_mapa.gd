@@ -134,6 +134,13 @@ static func texto_mapa(m: Dictionary) -> String:
 	if bool(p["rotulo"]):
 		l.append("; zona 1,1..%d,%d %s mezcla=0.8 rotulo=%s" % [int(m["ancho"]) - 2, int(m["alto"]) - 2, String(p["luz"]), nombre])
 		l.append(";")
+	# 20/11: las salas de cámara (CamaraSalas): la cámara se frena en su borde y se acerca en las pequeñas.
+	var cam: Array = m.get("salas_camara", [])
+	for r in cam:
+		var rc: Rect2i = r
+		l.append("; camara %d,%d..%d,%d" % [rc.position.x, rc.position.y, rc.end.x - 1, rc.end.y - 1])
+	if not cam.is_empty():
+		l.append(";")
 	l.append_array(m["lineas"])
 	return "\n".join(l) + "\n"
 
@@ -165,6 +172,9 @@ static func texto_escena(m: Dictionary) -> String:
 		# El acabado del terreno (orillas y juntas) es de serie en la maqueta desde el 17/11; sin la casilla, se apaga en esta escena.
 		l.append("orilla_integrada = false")
 		l.append("juntas_entremezcladas = false")
+	if bool(p.get("camara_sala", true)):
+		# 20/11: cámara confinada a la sala; en los mapas sin líneas `; camara` (algoritmo cueva), solo al mapa.
+		l.append("camara_por_sala = true")
 	l.append("%s = true" % MARCA_ESCENA)
 	if cueva:
 		l.append("")

@@ -193,7 +193,7 @@ const PROPORCIONES: Dictionary = {
 	# El personaje sigue midiendo 1,0 (set_alto): el cuerpo crece ~6 %. Se mira y se cambia en laboratorios/LabJugadora3D.tscn (-/+).
 	"jugadora_base": [0.80, 1.0, 1.0],
 	# 20/11 (Pablo: «más corpulento de hombros»): elegido de la comparativa docs/capturas/inquisidor/corpulencia_*.png. Pecho 1,15 (Spine2) + hombros 1,4 (clavícula); la cabeza se compensa y no crece. Sin tocar cabeza, piernas ni torso.
-	"inquisidor": [1.0, 1.0, 1.0, 1.4, 1.15],
+	"inquisidor": [1.0, 1.0, 1.0, 1.4, 1.15, 1.15],   # 6.º = cadera (20/11, Pablo: «muy delgado, proporciones más anchas»)
 }
 
 ## Postura por personaje: [cabeza, cuello, columna, brazos, rodillas, pies, pelvis] en grados (ver ProporcionChibi). Los clips de Meshy
@@ -542,7 +542,7 @@ func _crear_proporcion() -> void:
 	sk.add_child(proporcion)
 	proporcion.preparar()
 	var p: Array = PROPORCIONES.get(id, [1.0, 1.0, 1.0])
-	set_proporcion(float(p[0]), float(p[1]), float(p[2]), float(p[3]) if p.size() > 3 else 1.0, float(p[4]) if p.size() > 4 else 1.0)
+	set_proporcion(float(p[0]), float(p[1]), float(p[2]), float(p[3]) if p.size() > 3 else 1.0, float(p[4]) if p.size() > 4 else 1.0, float(p[5]) if p.size() > 5 else 1.0)
 	var q: Array = POSTURAS.get(id, [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0])
 	set_postura(float(q[0]), float(q[1]), float(q[2]), float(q[3]), float(q[4]), float(q[5]), float(q[6]))
 
@@ -583,7 +583,7 @@ static func _cerrar_falange(sk: Skeleton3D, nombre: String, grados: float) -> in
 
 ## Cambia las proporciones en vivo; la altura (set_alto) se recalcula con ellas.
 ## `hombros` y `pecho` < 0 dejan el valor que ya tenía (los llamadores antiguos no lo pasan).
-func set_proporcion(cabeza: float, piernas: float, torso: float, hombros: float = -1.0, pecho: float = -1.0) -> void:
+func set_proporcion(cabeza: float, piernas: float, torso: float, hombros: float = -1.0, pecho: float = -1.0, cadera: float = -1.0) -> void:
 	if proporcion == null:
 		return
 	var alto_antes: float = alto_modelo() * scale.y
@@ -594,6 +594,8 @@ func set_proporcion(cabeza: float, piernas: float, torso: float, hombros: float 
 		proporcion.hombros = hombros
 	if pecho >= 0.0:
 		proporcion.pecho = pecho
+	if cadera >= 0.0:
+		proporcion.cadera = cadera
 	if alto_antes > 0.0:
 		set_alto(alto_antes)
 

@@ -162,6 +162,9 @@ func _igual_que_hoy(c: Dictionary, rune: RuneData, calidad: float, et: String) -
 	# los campos que el elemento toca (ESPEC §2) valen lo que dice su .tres (sin glifos que los muevan: ninguno toca estos)
 	var del_elemento: bool = true
 	for campo in CAMPOS_DEL_ELEMENTO:
+		if campo == "gravedad" and not Hechizo.GRAVEDAD_EN_HECHIZOS:
+			del_elemento = del_elemento and h.gravedad == 0.0          # 22/11 (Pablo, P14): ningún hechizo cae, diga lo que diga el .tres
+			continue
 		del_elemento = del_elemento and _casi(float(h.get(campo)), _valor_del_tres(rune, campo))
 	_ok(del_elemento, "%s: gravedad, densidad, temperatura, humedad o conductividad no valen lo que dice el .tres" % et)
 	_ok(h.ignorados.is_empty(), "%s: ignorados" % et)
@@ -375,7 +378,8 @@ func _espec_e1(runes: Dictionary) -> void:
 	for e in esperado:
 		var he: Hechizo = Hechizo.construir(runes[e], {})
 		var t: Array = esperado[e]
-		_ok(_casi(he.gravedad, t[0]) and _casi(he.densidad, t[1]) and _casi(he.temperatura, t[2]) and _casi(he.humedad, t[3]) and _casi(he.conductividad, t[4]), "%s: gravedad, densidad, temperatura, humedad y conductividad de §2" % e)
+		var g_esperada: float = float(t[0]) if Hechizo.GRAVEDAD_EN_HECHIZOS else 0.0          # 22/11 (Pablo, P14): ningún hechizo cae
+		_ok(_casi(he.gravedad, g_esperada) and _casi(he.densidad, t[1]) and _casi(he.temperatura, t[2]) and _casi(he.humedad, t[3]) and _casi(he.conductividad, t[4]), "%s: gravedad, densidad, temperatura, humedad y conductividad de §2" % e)
 	# copiar() no copia los derivados de solo lectura (no tienen setter) y deja el original intacto
 	var cp: Hechizo = h.copiar()
 	_ok(_casi(cp.volumen, h.volumen) and cp.permanencia == h.permanencia and cp.elevacion == h.elevacion, "copiar(): mismos campos y derivados")

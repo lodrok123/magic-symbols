@@ -80,10 +80,91 @@ const ESCALA_TINTA: float = 0.8                          ## tamaño del rótulo 
 const COLOR_TINTA: Color = Color(0.85, 0.92, 1.0)        ## con tinta suficiente
 const COLOR_TINTA_FALTA: Color = Color(1.0, 0.3, 0.25)   ## sin tinta suficiente (el mismo rojo que la barra de tinta baja del HUD)
 
+## B9b (22/11, docs/PLAN_HECHIZOS_2026-11-22.md §11; H14 §3): con una página que levanta algo SÓLIDO (`solidez` > 0), un segundo rótulo bajo el de la tinta dice qué
+## para y qué no. Sale de la tabla de contacto de COMBATE (`Contacto.accion`, nucleo/contacto.gd): aquí no se copia ninguna fila. Y si lanzarla disuelve la barrera más antigua
+## (tope `Lanzador3D.MAX_BARRERAS_VIVAS`), esa barrera parpadea con «se disolverá» mientras se apunta.
+const PROYECTILES_RESUMEN: Array = [["flecha", "flechas"], ["fuego", "fuego"], ["agua", "agua"], ["piedra", "piedras"]]   ## lo que se nombra en el rótulo (flecha ardiendo y veneno, solo en la tabla)
+const ALTO_BARRERA: float = 0.2                          ## u sobre el origen del rótulo «para…» (por debajo del de la tinta, que va a ALTO_TINTA)
+const COLOR_BARRERA: Color = Color(0.85, 0.95, 0.85)
+## 22/11 (Pablo): «prefiero la silueta», para no recargar la vista al apuntar. El rótulo «para…» NO sale al apuntar; la silueta de PrevisionCasteo3D ya dice la forma, y el
+## nombre de la página va abajo en el HUD (H16, como Mystralia). `texto_barrera` se queda para la ficha del libro (H8). Con true vuelve a salir encima de la silueta.
+static var ROTULO_BARRERA_AL_APUNTAR: bool = false
+const SOBRE_CIMA: float = 0.25                           ## u por encima de la cima de la silueta de protección
+const ACLARA_TINTE: float = 0.55                         ## cuánto se aclara el color del elemento para el rótulo (legible sobre la hierba)
+const TEXTO_SE_IRA: String = "se disolverá"
+const COLOR_SE_IRA: Color = Color(1.0, 0.75, 0.35)
+const ALTO_SE_IRA: float = 1.4
+const PARPADEO_SE_IRA: float = 6.0                        ## rad/s del parpadeo
+
 ## Lo pintado en el último `mostrar`, para las pruebas: [{que, reaccion, texto, celda, nodo}].
 var pintado: Array[Dictionary] = []
 var lanzador: Lanzador3D = null                          ## de quién se lee la página preparada; null = el primero del grupo «player» (el lanzador se añade ahí)
 var rotulo_tinta: Label3D = null
+var rotulo_barrera: Label3D = null                       ## B9b: «para flechas y piedras · no para fuego»
+var rotulo_se_ira: Label3D = null                        ## B9b: sobre la barrera que se disolverá
+
+
+## B9b: qué para una barrera (o un sólido) de `elemento`, según la tabla de contacto. «para todo» si lo para todo; «no para nada» si no para nada.
+static func texto_barrera(elemento: String) -> String:
+	var si: PackedStringArray = PackedStringArray()
+	var no: PackedStringArray = PackedStringArray()
+	for par in PROYECTILES_RESUMEN:
+		if Contacto.protege(Contacto.accion(elemento, String(par[0]))):
+			si.append(String(par[1]))
+		else:
+			no.append(String(par[1]))
+	# La tabla de contacto habla SOLO de proyectiles: «para todo» prometía de más (22/11).
+	if no.is_empty():
+		return "para todos los proyectiles"
+	if si.is_empty():
+		return "no para ningún proyectil"
+	return "para %s · no para %s" % [_lista(si), _lista(no)]
+
+
+## 22/11: el anillo fino de tierra (A4 de COMBATE) solo para proyectiles; los golpes desde el suelo, el cuerpo a cuerpo y las explosiones lo atraviesan. Se dice.
+const TEXTO_ANILLO: String = " · no para golpes ni explosiones"
+
+
+static func _lista(l: PackedStringArray) -> String:
+	if l.size() <= 1:
+		return "".join(l)
+	return "%s y %s" % [", ".join(l.slice(0, l.size() - 1)), l[l.size() - 1]]
+
+
+## B9b: pone (o esconde, con texto vacío) el rótulo «para…» en `origen`. Con `cima` (22/11, ajuste 2 de la previsión de casteo), se pega ENCIMA de la silueta de
+## `PrevisionCasteo3D` (cúpula, anillo de tierra o bloque) en vez de bajo el rótulo de la tinta, que lo dejaba sobre la jugadora; y con `tinte`, del color del elemento.
+func mostrar_barrera(origen: Vector3, texto: String, cima: Vector3 = Vector3.INF, tinte: Color = COLOR_BARRERA) -> void:
+	if texto == "":
+		if rotulo_barrera != null:
+			rotulo_barrera.visible = false
+		return
+	if rotulo_barrera == null:
+		rotulo_barrera = _crear("rotulo") as Label3D
+		rotulo_barrera.name = "RotuloBarrera"
+		add_child(rotulo_barrera)
+	rotulo_barrera.text = texto
+	rotulo_barrera.modulate = tinte
+	rotulo_barrera.pixel_size = 0.0056 * ESCALA_TINTA
+	rotulo_barrera.global_position = (cima + Vector3(0.0, SOBRE_CIMA, 0.0)) if cima != Vector3.INF else origen + Vector3(0.0, ALTO_BARRERA, 0.0)
+	rotulo_barrera.visible = true
+
+
+## B9b: pone (o esconde, con `pos` = Vector3.INF) el «se disolverá» parpadeante sobre la barrera que se irá.
+func mostrar_se_ira(pos: Vector3) -> void:
+	if pos == Vector3.INF:
+		if rotulo_se_ira != null:
+			rotulo_se_ira.visible = false
+		return
+	if rotulo_se_ira == null:
+		rotulo_se_ira = _crear("rotulo") as Label3D
+		rotulo_se_ira.name = "RotuloSeIra"
+		add_child(rotulo_se_ira)
+	rotulo_se_ira.text = TEXTO_SE_IRA
+	var a: float = 0.55 + 0.45 * sin(float(Time.get_ticks_msec()) / 1000.0 * PARPADEO_SE_IRA)
+	rotulo_se_ira.modulate = Color(COLOR_SE_IRA.r, COLOR_SE_IRA.g, COLOR_SE_IRA.b, a)
+	rotulo_se_ira.pixel_size = 0.0056 * ESCALA_TINTA
+	rotulo_se_ira.global_position = pos + Vector3(0.0, ALTO_SE_IRA, 0.0)
+	rotulo_se_ira.visible = true
 
 
 ## El texto del rótulo: coste de tinta (redondeado hacia arriba, como el aviso «Tinta insuficiente») y recarga en segundos con coma.
@@ -109,11 +190,21 @@ func _process(_delta: float) -> void:
 	if l == null or not is_instance_valid(l) or not l.modo_lanzar or l._preparado.is_empty() or not (l._preparado.get("hechizo") is Hechizo):
 		if rotulo_tinta != null:
 			rotulo_tinta.visible = false
+		mostrar_barrera(Vector3.ZERO, "")
+		mostrar_se_ira(Vector3.INF)
 		return
 	var h: Hechizo = l._preparado["hechizo"]
 	var coste: float = Lanzador3D.tinta_prevista(h, l._preparado.get("rune") as RuneData, l.tinta)
 	var origen: Vector3 = l._origen_fijo if l._fijado else l._origen_vivo
 	mostrar_tinta(origen, coste, h.recarga, Lanzador3D.aviso_tinta(h, l._preparado.get("rune") as RuneData, l.tinta) != "")
+	# B9b: qué para lo que se va a levantar, y qué barrera se disolverá al lanzarlo.
+	var cima: Vector3 = PrevisionCasteo3D.cima_silueta(h, origen, l.jugador.global_position) if l.jugador != null and Lanzador3D.PREVISION_CASTEO_ACTIVA else Vector3.INF
+	var txt: String = texto_barrera(h.elemento) if h.solidez > 0.0 and ROTULO_BARRERA_AL_APUNTAR else ""
+	if txt != "" and l.jugador != null and PrevisionCasteo3D.es_anillo_tierra(h, origen, l.jugador.global_position):
+		txt += TEXTO_ANILLO
+	mostrar_barrera(origen, txt, cima, h.color.lightened(ACLARA_TINTE) if cima != Vector3.INF else COLOR_BARRERA)
+	var vieja: Dictionary = l.barrera_que_se_ira() if Lanzador3D.cuenta_para_tope_barreras(h) else {}
+	mostrar_se_ira(vieja.get("pos", Vector3.INF) as Vector3)
 
 var _rotulos: Array[Label3D] = []
 var _anillos: Array[MeshInstance3D] = []

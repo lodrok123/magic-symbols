@@ -19,7 +19,7 @@ const COLOR_BASE: Color = Color(0.5, 0.52, 0.46)
 const ESTADOS: Array = [
 	["quemando", "QUEMANDO", Color(1.0, 0.4, 0.12)], ["mojado", "MOJADO", Color(0.25, 0.5, 1.0)], ["congelado", "CONGELADO", Color(0.6, 0.92, 1.0)],
 	["aturdido", "ATURDIDO (rayo)", Color(1.0, 0.92, 0.35)], ["envenenado", "ENVENENADO", Color(0.45, 0.85, 0.3)], ["enraizado", "ENRAIZADO", Color(0.35, 0.6, 0.25)],
-	["lento", "LENTO", Color(0.6, 0.45, 0.3)]]
+	["lento", "LENTO", Color(0.6, 0.45, 0.3)], ["costra", "COSTRA (tierra o golpe F = roto)", Color(0.75, 0.42, 0.22)]]
 
 ## los relojes (s que quedan); con los mismos nombres que Combate3D donde los hay (CongeladoToy lee `congelado` y `muerto`)
 var quemando: float = 0.0
@@ -29,6 +29,7 @@ var aturdido: float = 0.0
 var envenenado: float = 0.0
 var enraizado: float = 0.0
 var lento: float = 0.0
+var costra: float = 0.0                  ## 21/11: triángulo de la demo (fuego sobre lento)
 var muerto: bool = false
 
 var ultimo: Dictionary = {}              ## del último golpe: {elemento, dano, mult, avisos, vapor, arco, roto}
@@ -80,18 +81,22 @@ func aplicar(elemento: String) -> Dictionary:
 	_cerebro.quemando = quemando
 	_cerebro.congelado = congelado
 	_cerebro.enraizado = enraizado
+	_cerebro.lento = lento
+	_cerebro.costra = costra
 	var d: Dictionary = _cerebro.decidir_golpe(h)
 	mojado = float(d["mojado"])
 	quemando = float(d["quemando"])
 	congelado = float(d["congelado"])
 	enraizado = float(d["enraizado"])
+	costra = float(d["costra"])
 	if float(d["lento"]) >= 0.0:
 		lento = float(d["lento"])
 	if bool(d["aturde"]):
-		aturdido = maxf(aturdido, h.aturde)
+		aturdido = maxf(aturdido, maxf(h.aturde, Combate3D.SOFOCADO_ATURDE_S if bool(d["sofocado"]) else 0.0))
 	if bool(d["veneno"]):
 		envenenado = maxf(envenenado, h.veneno)
-	ultimo = {"elemento": elemento, "dano": float(d["dano"]), "mult": float(d["mult"]), "avisos": (d["avisos"] as Array).duplicate(), "vapor": bool(d["vapor"]), "arco": bool(d["arco"]), "roto": bool(d["roto"])}
+	ultimo = {"elemento": elemento, "dano": float(d["dano"]), "mult": float(d["mult"]), "avisos": (d["avisos"] as Array).duplicate(), "vapor": bool(d["vapor"]), "arco": bool(d["arco"]), "roto": bool(d["roto"]),
+		"sofocado": bool(d["sofocado"]), "empapado": bool(d["lento_mojado"])}
 	_efectos_de_estado()
 	_pintar()
 	return d
@@ -164,7 +169,7 @@ func texto() -> String:
 		s += " · ".join(partes)
 	if not ultimo.is_empty():
 		var extra: PackedStringArray = PackedStringArray()
-		for k in ["vapor", "arco", "roto"]:
+		for k in ["vapor", "arco", "roto", "sofocado", "empapado"]:
 			if bool(ultimo[k]):
 				extra.append(k)
 		s += "\n   último golpe: %s → daño %.1f (×%.2f) · reacciones: %s%s" % [String(ultimo["elemento"]).to_upper(), float(ultimo["dano"]), float(ultimo["mult"]),

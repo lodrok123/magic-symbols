@@ -149,12 +149,13 @@ const EQUIPO: Dictionary = {
 		["daga_goblin", "LeftHand", DAGA_POS_IZQUIERDA, DAGA_GIRO_IZQUIERDA, Vector3(-DAGA_ESCALA, DAGA_ESCALA, DAGA_ESCALA)],
 	],
 	"goblin_warrior_chibi": [
-		["garrote", "RightHand", Vector3(0.0, 0.07, 0.03), Vector3(0.0, 0.0, 90.0)],
+		# 21/11 (Pablo: «la maza la está sujetando al revés»): Z 90 → −90, la cabeza de la porra pasa al otro lado del puño.
+		["garrote", "RightHand", GARROTE_POS, GARROTE_GIRO],
 		["escudo", "LeftForeArm", Vector3(0.0, 0.12, -0.07), Vector3(90.0, 0.0, 0.0)],
 	],
 	# Espadachín: el mismo goblin (Pj3D.MODELO_DE) con la espada de armas_goblin.glb en vez de la porra.
 	"goblin_espadachin": [
-		["espada_goblin", "RightHand", Vector3(0.0, 0.07, 0.03), Vector3(0.0, 0.0, 90.0)],
+		["espada_goblin", "RightHand", GARROTE_POS, GARROTE_GIRO],     # 21/11 (Pablo: «corrige también la espada»): el mismo agarre en el puño y el mismo giro que la porra (mismo goblin y mismo convenio de pieza)
 		["escudo", "LeftForeArm", Vector3(0.0, 0.12, -0.07), Vector3(90.0, 0.0, 0.0)],
 	],
 	# La elfa: el grimorio colgado a la espalda, a la altura de la cadera y centrado (con la pluma metida en el
@@ -192,7 +193,7 @@ const EQUIPO: Dictionary = {
 		["carcaj", "Spine2", Vector3(0.0, -0.06, -0.27), Vector3(0.0, 0.0, 25.0)],   # −0,27: por fuera de la capa (a −0,20 la capa lo tapaba casi entero)
 	],
 	"goblin_warrior": [
-		["garrote", "RightHand", Vector3(0.0, 0.07, 0.03), Vector3(0.0, 0.0, 90.0)],
+		["garrote", "RightHand", GARROTE_POS, GARROTE_GIRO],     # 21/11: como el chibi
 		["escudo", "LeftForeArm", Vector3(0.0, 0.12, -0.07), Vector3(90.0, 0.0, 0.0)],
 	],
 	# Santa Compaña (9/11): la cruz de campanillas en la mano DERECHA y la palmatoria con la vela en la IZQUIERDA. Las dos salen de
@@ -331,6 +332,10 @@ const BIBLIOTECAS_EQUIPO: Array = ["res://arte/equipo/armas_goblin.glb", "res://
 ## Medida de cada pieza de biblioteca, en unidades del goblin (mide 1,7): largo de las armas, diámetro del escudo.
 ## `pocion` (6.12c, de meshy/magia.glb): 0,38 de alto = la mitad de la que se ve en el suelo respecto al goblin; Pj3D.equipar la reescala al personaje.
 const MEDIDA_PIEZA: Dictionary = {"garrote": 0.62, "espada_goblin": 0.58, "daga": 0.5, "escudo": 0.5, "pocion": 0.38}
+## 21/11 (Pablo: «la maza la está sujetando al revés» → «acércala a que la sujete desde la mano»): la porra del goblin guerrero, en el espacio de RightHand (+Y = hacia los dedos).
+## Antes (0, 0,07, 0,03) y Z 90: al revés y con el mango sobre la muñeca. Ahora al derecho y el mango vendado dentro del puño (captura `porra` de captura_goblin_escudo).
+const GARROTE_POS: Vector3 = Vector3(-0.023, 0.110, -0.020)   ## el centro del puño medido en la MALLA (herramientas/medidas_porra_goblin.gd)
+const GARROTE_GIRO: Vector3 = Vector3(0.0, 0.0, -90.0)      ## 21/11 (Pablo marcó en rojo dónde espera la maza: hacia ARRIBA desde la mano al atacar). Medido: con −90 la cabeza apunta arriba en el golpe (+90 la ponía abajo)
 ## Dónde se agarra un arma, en fracción de su largo desde abajo.
 const AGARRE: float = 0.14
 

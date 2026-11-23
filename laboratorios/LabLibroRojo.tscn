@@ -1,0 +1,15 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://presentacion/prueba_test2.gd" id="1_poc"]
+[ext_resource type="Script" path="res://laboratorios/lab_libro_rojo.gd" id="2_rojo"]
+
+[node name="LabLibroRojo" type="Node3D"]
+script = ExtResource("1_poc")
+fuego_nuevo = true
+nivel = "Bosque"
+reglas = "bosque"
+agua_fisica = true
+kit = "pruebas"
+
+[node name="LibroRojoLab" type="Node" parent="."]
+script = ExtResource("2_rojo")

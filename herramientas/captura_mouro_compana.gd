@@ -16,8 +16,9 @@ const S: float = 2.3
 const LADO: int = 14
 const FOV: float = 28.0
 ## Instantes (s desde que cae a 0 de vida el mouro) y rótulo de cada foto del surgir.
-const FOTOS_SURGIR: Array = [[1.0, "1 · 1,0 s: vacío y humo"], [1.45, "2 · 1,45 s: sale, tumbado"], [2.0, "3 · 2,0 s: se apoya"],
-	[2.7, "4 · 2,7 s: se incorpora"], [3.4, "5 · 3,4 s: casi de pie"], [4.3, "6 · 4,3 s: ha vuelto"]]
+## 21/11: la salida nueva (sube desde dentro del pozo a partir de 1,8 s, salta fuera hacia los 3,1 s) con la tumba latiendo.
+const FOTOS_SURGIR: Array = [[1.0, "1 · 1,0 s: la tumba late (núcleo y chispas)"], [2.1, "2 · 2,1 s: asoma del pozo"], [2.6, "3 · 2,6 s: sube"],
+	[3.1, "4 · 3,1 s: de pie sobre el brocal"], [3.6, "5 · 3,6 s: salta fuera"], [4.3, "6 · 4,3 s: ha vuelto: la mira antes de seguir"]]
 ## Instantes (s desde que cae el guía; el primero es antes de caer) y rótulo de cada foto del relevo.
 const FOTOS_RELEVO: Array = [[-0.1, "1 · la guía lleva la cruz"], [0.3, "2 · cae: la cruz se queda en el suelo, la fila para"], [0.8, "3 · la siguiente viene a por ella"],
 	[1.8, "4 · se agacha: la mano llega a la cruz"], [2.7, "5 · la cruz se le engancha; se endereza"], [3.9, "6 · sigue la fila"]]
@@ -56,6 +57,18 @@ func _initialize() -> void:
 	_entorno()
 	_montar()
 	await process_frame
+	if OS.get_cmdline_user_args().has("surgir"):
+		# 21/11: solo la toma del mouro saliendo del pozo (… -- surgir)
+		await _surgir()
+		Sensacion3D.ACTIVA = _sensacion
+		quit(0)
+		return
+	if OS.get_cmdline_user_args().has("niebla"):
+		# 21/11: solo la toma nueva (… --script res://herramientas/captura_mouro_compana.gd -- niebla)
+		await _niebla()
+		Sensacion3D.ACTIVA = _sensacion
+		quit(0)
+		return
 	var tira_s: Image = await _surgir()
 	await _limpiar()
 	var tira_r: Image = await _relevo()
@@ -248,6 +261,31 @@ func _relevo() -> Image:
 		tiras.append(img)
 	print("relevo: recogidas ", _proc.recogidas, " · cruz_suelo ", _proc.cruz_suelo)
 	return _tira(tiras, Rect2i(0, 0, 1280, 720), 3, "relevo_tira")
+
+
+## 21/11: la NIEBLA DE LA CRUZ nace y el guía ALZA LA CRUZ (clip por código). niebla_1..6.png + niebla_tira.png.
+func _niebla() -> Image:
+	_t = 0.0
+	_mouro = null
+	_proc = SantaCompana3D.crear(_mundo, [Vector2i(2, 4), Vector2i(12, 4)], 3, Vector2i(2, 4), _jug)
+	_proc.set_physics_process(false)
+	for a in _proc.animas:
+		(a as Node).set_physics_process(false)
+	_jug.position = _pos(Vector2i(2, 12))
+	await process_frame
+	var guia: AnimaCompana3D = _proc.guia()
+	var tiras: Array[Image] = []
+	for t_foto in [0.1, 0.35, 0.6, 0.9, 1.25, 2.2]:
+		while _t < t_foto - 0.0001:
+			for _k in range(2):
+				_tick()
+			_t += 2.0 * DT
+			await process_frame
+		var foco: Vector3 = guia.global_position + Vector3(0.0, 0.5, 0.0)
+		print("niebla t=%.2f alzando=%s estado=%s clip=%s tiene_clip=%s" % [_t, guia.alzando, guia.pj.estado_anim(), guia.pj.clip_actual(), guia.pj._ap.has_animation(AnimaCompana3D.ANIM_ALZAR_CRUZ) if guia.pj._ap != null else false])
+		var img: Image = await _foto("niebla_%d" % (tiras.size() + 1), "%.2f s · alza la cruz: %s · niebla: %s" % [_t, guia.alzando, _proc.niebla_activa()], foco, Vector3(0.6, 0.35, 1.0), 5.0)
+		tiras.append(img)
+	return _tira(tiras, Rect2i(0, 0, 1280, 720), 3, "niebla_tira")
 
 
 # ---------------------------------------------------------------------------------------------------------------------

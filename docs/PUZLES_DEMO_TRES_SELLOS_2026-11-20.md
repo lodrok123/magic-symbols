@@ -124,6 +124,8 @@ Una sima de 3 casillas. Cada plataforma de tierra ᛒ dura 8 s, así que no se p
 una plataforma, se sube a ella, se lanza la siguiente desde ahí.
 Es el primer puzle que **enseña ᛒ**.
 *Pantano:* aquí el vacío tiene que ser una hondonada seca, porque la tierra no cuaja sobre agua.
+*Sensación (21/11, visto en Mystralia, ver `MAGES_OF_MYSTRALIA_2026-11-21.md` O5):* semilla visible que anuncia dónde nace la
+plataforma, nacimiento de golpe con una onda de polvo de ~0,6 s, plataformas que encajan entre sí y ritmo de unos 1,6 s por paso.
 
 **T4 · Galería de tiro** — *protegerse construyendo* · tierra + ᛁ · **A**
 Un pasillo con dos `trampa_flechas` en paredes opuestas y desfasadas. Un muro de tierra en línea tapa solo un lado. La jugadora tiene
@@ -178,6 +180,69 @@ Es sigilo con elementos, un verbo que no tiene ningún puzle.
 
 ### Combinados
 
+**X8 · Tres braseros y las plataformas** — *llegar a un ángulo de tiro que solo da la plataforma móvil, aguantando un chorro que empuja* · fuego + barrera · **B** · *añadido el 21/11 (Pablo, visto en Mages of Mystralia, O15)*
+Una sala con un foso en medio y una puerta que pide **tres braseros encendidos**. Dos se encienden desde el suelo (uno de frente y otro en
+diagonal); el **tercero solo queda a tiro desde una plataforma móvil** que cruza el foso. Por encima del recorrido de la plataforma pasa un
+**chorro que empuja**: sin protegerse, tira a la jugadora de la plataforma; con la **barrera puesta** lo aguanta. Se resuelve combinando
+moverse, protegerse y disparar en el momento en que la plataforma da el ángulo.
+*Necesita:*
+- La **plataforma móvil** (P6), la misma de X5 y X6.
+- Un **chorro que empuje** en vez de dañar. El viento está fuera de la demo: o una trampa de **agua a presión** que empuja, o la losa de viento del escenario de C21.
+- Que la barrera **aguante el empuje** del chorro (hoy la barrera para proyectiles y golpes; el empuje habría que comprobarlo).
+- Contador de braseros: ya existe (`contador`, como los tres braseros de Bosque 01).
+*Ojo:* si caer al foso cuesta mucho, se vuelve frustrante. Que caer devuelva al borde con poco daño.
+
+**X9 · Plataformas en raíl sobre el cañón** — *activar el receptor de cada parada para cruzar en cadena, apuntando desde algo que se mueve* · agua (noria); también fuego (brasero) o tierra (contrapeso) · **B** · *añadido el 22/11 (Pablo, visto en Mages of Mystralia, O19; PROPUESTAS «P10 · X9»)*
+Un cañón con pilares y foso. Entre cada dos pilares, un **raíl** visible con una plataforma en un extremo y, junto a su parada, una **noria**. Se sube a la plataforma, se riega la noria con una flecha o un haz de agua y la plataforma recorre su raíl entero (~3–4 s) hasta el pilar siguiente, donde empieza otro raíl, a menudo en otra dirección. Varios tramos. En un pilar hay dos raíles: uno sigue y el otro lleva a un cofre o a un callejón.
+*Necesita:*
+- La **plataforma móvil** (P6), la misma de X5, X6 y X8, con un modo que hace un viaje entero cuando se le manda `avanzar`, y el raíl dibujado a lo largo de su ruta.
+- La regla «receptor → plataforma.avanzar», como la de «botón apaga trampa» (`cuando=noria_1.girando hace=pl_1.avanzar`).
+*Qué existe ya:* la noria es el `molino` (gira con agua, condición `girando`); el `receptor` de elemento; el brasero; las placas de peso; caer de una plataforma al foso ya devuelve al borde sin daño.
+*Verificar:* que se puede apuntar a la noria desde una plataforma en marcha. Con la cámara fija, raíles de 4–6 casillas para que cada tramo se vea entero.
+*Más adelante:* una trampa dragón que barre un tramo y se tapa con la barrera (regla C18) o se esquiva cambiando de plataforma.
+Plan: `PLAN_PUZLES_2026-11-22.md` (5b).
+
+**X10 · Reflejar el rayo de luz** — *hacer de espejo y apuntar girando* · agua (protección) · **B/C** · *añadido el 22/11 (Pablo, visto en Mages of Mystralia, O24; PROPUESTAS «P11 · X10»)*
+Un haz de luz baja del techo a un pedestal. La jugadora se pone en él con su **protección de agua** y la luz sale reflejada como un rayo horizontal **hacia donde mira**. Girando, lo lleva a un `receptor`.
+- **Fácil:** el receptor está a la vista.
+- **Media:** el receptor está tras una esquina; el rayo va al `prisma`, que se gira con E, y de ahí al receptor.
+- **Difícil:** dos receptores; el primero abre una puerta durante N s (`rearme`, con la cuenta atrás común del temporizador P8) y hay que llevar el rayo al segundo antes de que se cierre.
+*Qué existe ya:* el receptor, el prisma, el cristal como base del emisor, y el cálculo del rayo que se corta en lo sólido (el chorro de la trampa dragón), que se dibuja como el haz ᛁ.
+*Necesita:* la luz cenital con su pedestal; que la protección de agua refleje y se mantenga mientras se gira; que el receptor y el prisma reciban la luz. **El pulso no vale tal cual:** no viaja por el aire, solo por lo que conduce.
+*Verificar:* qué protección se mantiene (barrera o burbuja, C10). La cámara fija tiene que ver a la vez el pedestal y el receptor.
+*Variante para después:* el escudo de hielo, como en Mystralia.
+Plan: `PLAN_PUZLES_2026-11-22.md` (3b).
+
+**X11 · La luz mueve la vagoneta** — *seguir con el reflejo algo que se mueve* · agua (protección) · **B** (sobre X9 y X10) · *añadido el 22/11 (Pablo, visto en Mages of Mystralia, O25; PROPUESTAS «P12 · X11»)*
+Una vagoneta con un cristal **avanza por su vía mientras le da la luz** y se para cuando no. La luz le llega por una cadena: fuente → `prisma`, que se gira con E → reflejo de la jugadora (X10) → vagoneta. La jugadora tiene que ir siguiéndola mientras avanza; si la vía pasa tras un muro, se mueve para no perder la línea. Al final de la vía, la vagoneta hace de puente, de contrapeso o de llave.
+*Necesita:*
+- La **plataforma móvil** (P6) con un modo `va=luz`: avanza en el sentido de la vía mientras su receptor recibe luz.
+- Un **receptor que viaja** encima de la plataforma.
+- El **rayo de X10**, recalculado a menudo, porque el blanco se mueve.
+*Variantes para después (D1):* la misma vagoneta movida por un chorro de agua o por un brasero encima.
+Plan: `PLAN_PUZLES_2026-11-22.md` (5c).
+
+**X12 · Alinear los prismas y poner tú el último reflejo** — *preparar y después ejecutar* · agua (protección) · **A/B** (casi solo mapa, sobre la base de X10) · *añadido el 22/11 (Pablo, visto en Mages of Mystralia, O26; PROPUESTAS «P13 · X12»)*
+Una fuente de luz y un `prisma` en el centro de la sala. **Primero** se gira el prisma con E, y se queda donde se deja. **Después**, la jugadora cierra la cadena con su reflejo (X10), que solo dura mientras lo mantiene: fuente → reflejo → prisma → receptor, y el receptor abre la puerta. La sala obliga al orden: desde el sitio del reflejo no se llega al prisma.
+*Versión difícil:* dos prismas en cadena.
+*Qué existe ya:* el prisma (gira 90° y se queda), el receptor y la regla que abre la puerta.
+*Necesita:* solo la base de la luz: luz cenital, reflejo de la protección de agua, y prisma y receptor que acepten la luz.
+*Diseño:* sobre la cuadrícula, con fuente, prismas y receptor alineados en filas y columnas.
+*Recompensa:* el cofre mágico o una mejora del libro.
+Es la tercera variante del rayo de luz, con X10 (reflejar y apuntar) y X11 (la luz mueve la vagoneta).
+Plan: `PLAN_PUZLES_2026-11-22.md` (3d y §5.1).
+
+**X7 · El brasero tras el chorro** — *disparar a través de un peligro para apagarlo un momento* · fuego · **A (casi solo mapa)** · *añadido el 21/11 (Pablo, visto en Mages of Mystralia, O13)*
+Una `trampa_dragon` corta un pasillo con su chorro sin descanso (`ciclo=` largo de fuego). Al otro lado, o a un costado tras el chorro, hay un
+**brasero**. Hay que dispararle **a través del chorro**; al encenderse, la trampa se apaga unos segundos y se cruza corriendo.
+*Qué existe ya:* las trampas se apagan con una regla (`hace=<trampa>.apagar(s)`, como el botón de `PuzlesFuego.txt:108`); solo cambia el
+disparador: `cuando=<brasero>.encendido hace=<trampa>.apagar(2.5)`.
+*Ajustes:*
+- **Tiempo corto** (~2,5 s, como Mystralia) y el brasero **se apaga solo** (`dura=` del brasero) para poder repetir.
+- **Qué cruza el chorro** (tabla de contacto, C19): la bola de fuego cruza un chorro de fuego sin problema; una flecha de **agua** se apagaría en él (caso ineficaz que enseña a elegir). Con un chorro de **agua**, al revés: el fuego no pasa.
+*Verificar:* que la bola de fuego atraviesa el haz de la trampa sin apagarse ni transformarse (cruces de `HechizoVivo._cruzar_zonas`).
+*Confirmado por Pablo (21/11):* en Mystralia el brasero es el disparador y el chorro vuelve con un temporizador. Concepto general en `docs/CONCEPTO_TEMPORIZADOR_2026-11-21.md`.
+
 **X1 · Trampas en el vado** — *preparar el combate* · fuego o agua + ᛒ y tierra + ᛒ · **A**
 Una patrulla de goblins cruza un paso estrecho antes de llegar a un cofre. Se plantan trampas ᛒ de fuego o agua en su camino, y una
 capa de tierra ᛒ los frena encima de ellas. El cofre se abre al vaciar el paso (con `vigia`).
@@ -197,6 +262,28 @@ mientras dura. Hay tres setas y no da tiempo a quemarlas todas: hay que repartir
 Una cuenca con una caldera debajo. Se llena con agua y se calienta con fuego. El vapor levanta una tapa o mueve una veleta que abre
 una puerta.
 *Coste alto:* necesita el estado «agua caliente». Lo dejo para después de la demo, como reserva.
+
+**X5 · Plataforma bajo el dragón** — *protegerse de un chorro mientras te llevan* · barrera ᛝ (tierra o agua) · **B** · *añadido el 21/11 (Pablo, visto en Mages of Mystralia)*
+Una plataforma se mueve sola a lo largo de un muro con una o varias **trampas dragón** (`TrampaDragon3D`). Los chorros cruzan el
+recorrido y no hay hueco para esperar a que se apaguen. La jugadora se sube y se protege con una **barrera alrededor de ella** (ᛝ
+sola ya forma el corro que la rodea), que para el haz porque el haz se corta en lo sólido. Variante: ritmo de la trampa con hueco
+justo, para quien prefiera cronometrar en vez de protegerse (dos soluciones).
+*Verificar / necesita:*
+- **No hay plataforma móvil** en el juego: es una pieza nueva.
+- Que la barrera **viaje con la plataforma** (hoy lo que se levanta se queda en su casilla del mundo).
+- El daño a la jugadora **ya respeta lo sólido**: `jugadora_en_chorro()` usa `largo_chorro_u()`, que corta el chorro en la primera casilla sólida (`trampa_dragon_3d.gd:340-358`). Una barrera entre la boca y la jugadora la protege. Falta comprobar que las casillas del corro cuentan como sólidas para `Lanzador3D.celda_solida`.
+- Qué elemento de barrera aguanta el fuego (tierra seguro; agua apagaría el chorro, que también vale).
+
+**X6 · La mecha suspendida** — *dejar un hechizo en el camino de algo que se mueve* · fuego + ᛉ (sin ᛇ) · **B** · *añadido el 21/11 (Pablo, visto en Mages of Mystralia)*
+Una balsa con un brasero apagado flota junto a un muelle. Una placa de presión en el muelle la manda lejos mientras alguien la pisa, y
+la balsa vuelve al soltarla. La jugadora tiene que estar en la placa para algo (por ejemplo, que la puerta solo se abre si el brasero
+llega encendido mientras la placa está libre, o que la placa sujeta una compuerta). Solución: desde la placa, dejar una **bola de
+fuego quieta con permanencia** en el sitio por donde pasará el brasero, bajarse y ver cómo se enciende al pasar.
+*Verificar / necesita:*
+- La misma **plataforma móvil** que X5 (aquí, balsa sobre agua con recorrido fijo y botón que la mueve).
+- Que un brasero que **pasa a través** de una zona de fuego viva se encienda (hoy los objetos prenden por contacto con lo que arde, `emite_fuego_por_contacto`; falta comprobarlo con una zona de hechizo y con un objeto en movimiento).
+- Que la bola de fuego con ᛉ sin flecha **se quede en el aire** a la altura del brasero y no caiga al agua (el agua la apagaría).
+- **Por qué no vale encenderlo directamente** (Pablo, 21/11 — ver también X7, que es el caso contrario: allí SÍ se dispara a través del peligro): se bloquea físicamente el disparo directo con **un muro en medio**. Desde la placa no hay línea libre hasta el brasero (ni flecha de fuego ni haz), así que la única forma es dejar la bola suspendida en el sitio por donde pasará. El muro hace la regla visible sin explicarla.
 
 ---
 

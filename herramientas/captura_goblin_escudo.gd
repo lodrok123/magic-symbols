@@ -16,6 +16,7 @@ var _suelo: MeshInstance3D = null
 var _fondo: MeshInstance3D = null
 var _camara: Camera3D = null
 var _modelo: Pj3D = null
+var _id: String = ID                    ## el modelo de las tomas (21/11: la toma «espadachin» pone goblin_espadachin, el mismo goblin con espada)
 var _g: Combate3D = null
 
 
@@ -79,7 +80,117 @@ func _correr() -> void:
 				await _t_burbujas()
 			"clip":
 				await _t_clip()
+			"ardiendo":
+				await _t_ardiendo()
+			"bloqueo":
+				await _t_bloqueo()
+			"carbon":
+				await _t_carbon()
+			"cerca":
+				await _t_cerca()
+			"porra":
+				await _t_mano_porra()
+			"espadachin":
+				# 21/11: las mismas tomas de cerca con el espadachín (hojas cerca_espadachin y mano_espadachin)
+				_id = "goblin_espadachin"
+				await _t_cerca("cerca_espadachin")
+				await _t_mano_porra("mano_espadachin")
+				_id = ID
 	quit()
+
+
+## 21/11 (Pablo: «acércala a que la sujete desde la mano»): la mano DERECHA y la porra muy de cerca, desde cuatro lados, en reposo y a mitad del ataque.
+func _t_mano_porra(hoja: String = "mano_porra") -> void:
+	await _goblin(true, false)
+	var imgs: Array = []
+	for fase in ["reposo", "ataque"]:
+		if fase == "ataque":
+			_modelo.jugar("attack", true)
+			await _frames(int(0.35 / DT))
+			_modelo.set_velocidad_animacion(0.0)
+		var hm: Array = _modelo.hueso_mundo("mixamorig_RightHand")
+		var p: Vector3 = ((hm[1] as Transform3D).origin if hm.size() == 2 else Vector3(0, 0.5, 0)) - _g.global_position
+		for dirv in [Vector3(0.0, 0.1, 1.0), Vector3(-1.0, 0.1, 0.0), Vector3(0.0, 0.1, -1.0), Vector3(0.7, 0.6, 0.7)]:
+			_cam(p + (dirv as Vector3).normalized() * 0.8, p, 0.35)
+			await _frames(2)
+			imgs.append(await _foto("%s_%s_%d" % [hoja, fase, imgs.size() + 1]))
+	_modelo.set_velocidad_animacion(1.0)
+	_hoja(imgs, hoja, 4)
+
+
+## 21/11 (Pablo: «una captura de cerca de cómo sujeta el goblin el escudo y la espada»): el torso y las dos manos, en reposo y a mitad del ataque, de frente, tres cuartos (los dos lados) y de lado.
+func _t_cerca(hoja: String = "cerca") -> void:
+	await _goblin(true, false)
+	var imgs: Array = []
+	var vistas: Array = [["frente", Vector3(0.0, 0.55, 1.3)], ["tres_cuartos_izq", Vector3(-1.0, 0.6, 0.9)], ["tres_cuartos_der", Vector3(1.0, 0.6, 0.9)], ["lado", Vector3(1.3, 0.55, 0.0)]]
+	for fase in ["reposo", "ataque"]:
+		if fase == "ataque":
+			_modelo.jugar("attack", true)
+			await _frames(int(0.35 / DT))
+			_modelo.set_velocidad_animacion(0.0)              # congela el golpe a mitad
+		for v in vistas:
+			_cam(v[1] as Vector3, Vector3(0.0, 0.5, 0.0), 0.75)
+			await _frames(2)
+			imgs.append(await _foto("%s_%s_%s" % [hoja, fase, v[0]]))
+	_modelo.set_velocidad_animacion(1.0)
+	_hoja(imgs, hoja, 4)
+
+
+## 21/11: el escudo de cerca, entero y carbonizándose (0, 50 y 100 % de la quema), sin el bucle del brazo (para ver solo la capa).
+func _t_carbon() -> void:
+	await _goblin(true, false)
+	var e: Escudo3D = _g.escudo
+	var imgs: Array = []
+	for k in [0.0, 0.5, 1.0]:
+		e._actualizar_carbon(k)
+		await _frames(2)
+		var p: Vector3 = e.global_position - _g.global_position
+		_cam(p + Vector3(0.0, 0.1, 0.9), p, 0.6)
+		await _frames(1)
+		imgs.append(await _foto("carbon_%d" % (imgs.size() + 1)))
+		var mallas: Array = e._entero.find_children("*", "MeshInstance3D", true, false) if e._entero != null else []
+		var con_capa: int = 0
+		for m in mallas:
+			if (m as MeshInstance3D).material_overlay != null:
+				con_capa += 1
+		print("carbon k=", k, " mallas ", mallas.size(), " con capa ", con_capa, " visible ", e._entero.is_visible_in_tree() if e._entero != null else false)
+	_hoja(imgs, "carbon", 3)
+
+
+## 21/11: el BRAZO ARDIENDO (el bucle mientras el escudo arde, con el escudo carbonizándose) de frente y de tres cuartos, a lo largo de un ciclo y al final de la quema.
+func _t_ardiendo() -> void:
+	await _goblin(true, true)
+	_g.escudo.prender()
+	var imgs: Array = []
+	var t: float = 0.0
+	for seg in [0.2, 0.6, 1.0, 1.4, 2.4, 3.8]:
+		await _frames(maxi(int((seg - t) / DT), 0))
+		t = seg
+		_cam(Vector3(0.0, 1.0, 2.0), Vector3(0.0, 0.5, 0.0), 1.1)
+		await _frames(1)
+		imgs.append(await _foto("ardiendo_frente_%d" % (imgs.size() + 1)))
+		_cam(Vector3(1.4, 1.0, 1.4), Vector3(0.0, 0.5, 0.0), 1.1)
+		await _frames(1)
+		imgs.append(await _foto("ardiendo_tres_cuartos_%d" % (imgs.size() + 1)))
+		print("ardiendo t=", seg, " anim ", _modelo.animacion_actual, " carbon ", snappedf(_g.escudo.carbonizado(), 0.01))
+	_hoja(imgs, "ardiendo", 4)
+
+
+## 21/11: el BLOQUEO (tierra de frente: retroceso leve y el parry del guerrero).
+func _t_bloqueo() -> void:
+	await _goblin(true, true)
+	var imgs: Array = []
+	var tierra: Hechizo = Hechizo.construir(load("res://nucleo/earth_rune.tres"), {})
+	_g.on_spell_hit(load("res://nucleo/earth_rune.tres"), Vector3(0, 0, -1), tierra)
+	var t: float = 0.0
+	for seg in [0.05, 0.2, 0.35, 0.5, 0.7, 0.9]:
+		await _frames(maxi(int((seg - t) / DT), 0))
+		t = seg
+		_cam(Vector3(1.4, 1.0, 1.4), Vector3(0.0, 0.5, 0.0), 1.1)
+		await _frames(1)
+		imgs.append(await _foto("bloqueo_%d" % (imgs.size() + 1)))
+		print("bloqueo t=", seg, " anim ", _modelo.animacion_actual)
+	_hoja(imgs, "bloqueo", 3)
 
 
 func _plano(color: Color) -> MeshInstance3D:
@@ -103,7 +214,7 @@ func _goblin(con_escudo: bool = true, fisica: bool = true) -> void:
 		_modelo.queue_free()
 	_modelo = Pj3D.new()
 	_mundo.add_child(_modelo)
-	_modelo.cargar(ID)
+	_modelo.cargar(_id)
 	_modelo.grafo = ArbolAnimPj.GRAFO_REDUCIDO
 	_modelo.set_alto(0.85)
 	_modelo.position = CENTRO

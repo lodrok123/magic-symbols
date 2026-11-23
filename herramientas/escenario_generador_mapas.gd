@@ -13,6 +13,7 @@ extends "res://herramientas/escenario_base.gd"
 
 const Generador = preload("res://herramientas/generador_mapas/generador_mazmorra.gd")
 const Exportador = preload("res://herramientas/generador_mapas/exportador_mapa.gd")
+const CamaraSalas = preload("res://presentacion/camara_salas.gd")
 
 var _nombre: String = ""
 
@@ -97,10 +98,127 @@ func _escenario() -> void:
 	_ok("5 el suelo del plano es suelo en el juego", mal_suelo == 0, "%d casillas de suelo salen sólidas (de %d miradas)" % [mal_suelo, miradas])
 	_ok("5 las paredes del plano bloquean en el juego", mal_pared == 0, "%d casillas de pared no bloquean" % mal_pared)
 	_ok("5 el agua del plano es agua en el juego", _agua_bien(filas), "")
+	await _camara_por_sala(m)
 	maqueta.queue_free()
 	await avanzar(5)
 	_borrar()
 	_ok("0 no queda ningún archivo de la prueba en el repo", Exportador.estado_destino(_nombre)["mapa"] == "" and Exportador.estado_destino(_nombre)["escena"] == "")
+
+
+## 7 · Cámara por sala (20/11): la maqueta lee las salas de cámara; en la sala más pequeña el encuadre no se sale de ella y el zoom
+## baja al que cabe; al pasar de la sala más grande a la más pequeña (sin teletransporte de cámara) el zoom baja POCO A POCO, sin
+## saltos, y la jugadora se ve entera en todos los fotogramas.
+func _camara_por_sala(m: Dictionary) -> void:
+	var cam_salas: Array = m["salas_camara"]
+	get_root().size = Vector2i(1280, 720)      # sin ventana el visor es cuadrado; el juego va en 16:9
+	await avanzar(2)
+	_ok("7 la escena enciende la cámara por sala", bool(maqueta.get("camara_por_sala")))
+	_ok("7 la maqueta lee las salas de cámara del mapa", (maqueta.get("_salas_camara") as Array).size() == cam_salas.size(), "%d de %d" % [(maqueta.get("_salas_camara") as Array).size(), cam_salas.size()])
+	var camara: Camera3D = maqueta.get("_camara") as Camera3D
+	var pedido: float = float(maqueta.get("_tam_camara"))
+	if cam_salas.is_empty():
+		await avanzar(10)
+		_ok("7 sin salas (cueva) el zoom es el pedido", absf(camara.size - pedido) < 0.01, "%.2f / %.2f" % [camara.size, pedido])
+		return
+	var chica: int = 0
+	var grande: int = 0
+	for i in range(cam_salas.size()):
+		var a: int = (cam_salas[i] as Rect2i).get_area()
+		if a < (cam_salas[chica] as Rect2i).get_area():
+			chica = i
+		if a > (cam_salas[grande] as Rect2i).get_area():
+			grande = i
+	var celda_chica: Vector2i = _suelo_cerca(m, cam_salas[chica])
+	var celda_grande: Vector2i = _suelo_cerca(m, cam_salas[grande])
+	# La más grande, de golpe (teletransporte).
+	maqueta.call("ir_a", celda_grande)
+	colocar_jugador(celda_grande)
+	await avanzar_s(2.5)
+	var z_grande: float = camara.size
+	# A la pequeña sin teletransporte de cámara: el zoom tiene que bajar poco a poco.
+	colocar_jugador(celda_chica)
+	var cambios: Array = []
+	var fuera: int = 0
+	var anterior: float = camara.size
+	var t0: float = reloj.t
+	while reloj.t - t0 < 4.0:
+		await process_frame
+		cambios.append(camara.size - anterior)
+		anterior = camara.size
+		if not _jugadora_en_pantalla(camara):
+			fuera += 1
+	var objetivo: float = minf(pedido, maxf(CamaraSalas.ZOOM_MINIMO_SALA, float(CamaraSalas.zoom_que_cabe(camara_tam(camara, pedido), _rect_mundo(cam_salas[chica])))))
+	camara.size = anterior
+	var max_salto: float = 0.0
+	for d in cambios:
+		max_salto = maxf(max_salto, absf(float(d)))
+	print("      cámara: sala grande %s zoom %.2f · sala pequeña %s zoom %.2f (objetivo %.2f) · máximo cambio por fotograma %.3f" % [cam_salas[grande], z_grande, cam_salas[chica], camara.size, objetivo, max_salto])
+	_ok("7 en la sala pequeña el zoom llega al que cabe", absf(camara.size - objetivo) < 0.05, "%.2f / %.2f" % [camara.size, objetivo])
+	if absf(z_grande - objetivo) > 0.3:
+		_ok("7 el zoom cambia poco a poco (ningún fotograma cambia más de 0,15)", max_salto < 0.15, "%.3f" % max_salto)
+		_ok("7 y tarda: a los 5 fotogramas aún no ha llegado", cambios.size() > 5 and absf(z_grande + _suma(cambios, 5) - objetivo) > 0.1)
+	else:
+		_aviso("7 las dos salas piden casi el mismo zoom: no se mide lo gradual", "%.2f / %.2f" % [z_grande, objetivo])
+	_ok("7 la jugadora se ve entera en todos los fotogramas", fuera == 0, "%d fotogramas con parte fuera" % fuera)
+	# El encuadre no se sale de la sala (con su margen) una vez asentado.
+	var alto_suelo: float = float(maqueta.get_script().get_script_constant_map()["ALTO"])
+	var vista: Rect2 = CamaraSalas.huella(camara, alto_suelo)
+	var centro: Variant = Plane(Vector3.UP, alto_suelo).intersects_ray(camara.project_ray_origin(camara.get_viewport().get_visible_rect().size * 0.5), camara.project_ray_normal(camara.get_viewport().get_visible_rect().size * 0.5))
+	var limite: Rect2 = CamaraSalas.rect_sala(cam_salas[chica], 2.3, Rect2(Vector2.ZERO, Vector2(int(m["ancho"]), int(m["alto"])) * 2.3).grow(-0.15))
+	var en_suelo: Rect2 = Rect2(vista.position + Vector2((centro as Vector3).x, (centro as Vector3).z), vista.size)
+	# Por eje: donde la sala cabe, el encuadre queda dentro; donde no (sala más pequeña que el zoom mínimo), centrado en ella.
+	var bien: bool = true
+	for eje in [0, 1]:
+		var l0: float = limite.position[eje]
+		var l1: float = limite.end[eje]
+		var v0: float = en_suelo.position[eje]
+		var v1: float = en_suelo.end[eje]
+		if l1 - l0 >= v1 - v0 - 0.05:
+			bien = bien and v0 >= l0 - 0.3 and v1 <= l1 + 0.3
+		else:
+			bien = bien and v0 <= l0 + 0.3 and v1 >= l1 - 0.3      # se ve la sala entera en ese eje
+	_ok("7 el encuadre no enseña lo que hay fuera de la sala (o se centra en ella si no cabe)", bien, "%s en %s" % [en_suelo, limite])
+
+
+func camara_tam(camara: Camera3D, tam: float) -> Camera3D:
+	camara.size = tam
+	return camara
+
+
+func _rect_mundo(r: Rect2i) -> Rect2:
+	return CamaraSalas.rect_sala(r, 2.3, Rect2(-Vector2.ONE * 1.0e4, Vector2.ONE * 2.0e4))
+
+
+func _suma(a: Array, n: int) -> float:
+	var s: float = 0.0
+	for i in range(mini(n, a.size())):
+		s += float(a[i])
+	return s
+
+
+## Una casilla de suelo de la sala, lo más cerca de su centro.
+func _suelo_cerca(m: Dictionary, r: Rect2i) -> Vector2i:
+	var filas: PackedStringArray = m["filas"]
+	var centro: Vector2 = Vector2(r.position) + Vector2(r.size) * 0.5
+	var mejor: Vector2i = r.position
+	var d_mejor: float = INF
+	for y in range(r.position.y, r.end.y):
+		for x in range(r.position.x, r.end.x):
+			if ".gR".contains(filas[y][x]) and Vector2(x + 0.5, y + 0.5).distance_to(centro) < d_mejor:
+				d_mejor = Vector2(x + 0.5, y + 0.5).distance_to(centro)
+				mejor = Vector2i(x, y)
+	return mejor
+
+
+func _jugadora_en_pantalla(camara: Camera3D) -> bool:
+	var pj: Node3D = maqueta.get("_jugador") as Node3D
+	var tam: Vector2 = camara.get_viewport().get_visible_rect().size
+	var alto: float = float(pj.call("alto_modelo")) * pj.scale.y
+	for p in [pj.position, pj.position + Vector3(0.0, alto, 0.0)]:
+		var s: Vector2 = camara.unproject_position(p)
+		if s.x < 0.0 or s.y < 0.0 or s.x > tam.x or s.y > tam.y:
+			return false
+	return true
 
 
 func _agua_bien(filas: PackedStringArray) -> bool:

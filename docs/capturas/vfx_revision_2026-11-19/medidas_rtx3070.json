@@ -1,0 +1,72 @@
+[
+	{
+		"draw_calls": 2.0,
+		"frame_ms": 2.15855,
+		"gpu_ms": 0.30403333256642,
+		"mejoras": false,
+		"receta": "Barrera agua grande"
+	},
+	{
+		"draw_calls": 2.0,
+		"frame_ms": 0.675266666666667,
+		"gpu_ms": 0.0741666677097479,
+		"mejoras": true,
+		"receta": "Barrera agua grande"
+	},
+	{
+		"draw_calls": 7.0,
+		"frame_ms": 0.809616666666667,
+		"gpu_ms": 0.212216666340828,
+		"mejoras": false,
+		"receta": "Muro agua largo"
+	},
+	{
+		"draw_calls": 7.0,
+		"frame_ms": 0.811516666666666,
+		"gpu_ms": 0.214116666962703,
+		"mejoras": true,
+		"receta": "Muro agua largo"
+	},
+	{
+		"draw_calls": 8.0,
+		"frame_ms": 0.737933333333333,
+		"gpu_ms": 0.127650002638499,
+		"mejoras": false,
+		"receta": "Géiser bajo y ancho"
+	},
+	{
+		"draw_calls": 7.0,
+		"frame_ms": 0.756016666666667,
+		"gpu_ms": 0.111850001290441,
+		"mejoras": true,
+		"receta": "Géiser bajo y ancho"
+	},
+	{
+		"draw_calls": 13.0,
+		"frame_ms": 0.9327,
+		"gpu_ms": 0.161549999316533,
+		"mejoras": false,
+		"receta": "Muro magma"
+	},
+	{
+		"draw_calls": 51.0,
+		"frame_ms": 1.03945,
+		"gpu_ms": 0.115216667453448,
+		"mejoras": true,
+		"receta": "Muro magma"
+	},
+	{
+		"draw_calls": 7.0,
+		"frame_ms": 2.254,
+		"gpu_ms": 0.071016665858527,
+		"mejoras": false,
+		"receta": "Viento bajo y ancho"
+	},
+	{
+		"draw_calls": 7.0,
+		"frame_ms": 1.38538333333333,
+		"gpu_ms": 0.0633166673903664,
+		"mejoras": true,
+		"receta": "Viento bajo y ancho"
+	}
+]

@@ -1,0 +1,26 @@
+#################
+#...............#
+#...............#
+#...............#
+#.......#.......#
+#...............#
+#...............#
+#.S.............#
+#################
+; ======================================================================================================================================================
+;  LA SALA DEL VERRACO (22/11/2026). Banco de pruebas del VERRACO (enemigos/verraco_3d.gd; X2 de docs/PLAN_COMBATE_2026-11-22.md, concepto en
+;  docs/ENEMIGOS_MITOLOGIA_2026-11-22.md §2). Kit `pruebas` (agua y tierra incluidas). Placeholder de primitivas: un jabalí de granito.
+;  Lo que se prueba a mano:
+;    · Es GRANITO: los hechizos al cuerpo no le hacen nada («Granito», golpe sordo).
+;    · Cuando te ve en línea libre, se pone en POSE (pezuña y cabeza baja, quieto 0,6 s, una línea roja en el suelo) y EMBISTE en línea recta.
+;    · Si choca contra algo SÓLIDO (las paredes, la COLUMNA del centro (8,4) o una barrera de tierra) SE AGRIETA y se queda aturdido 2 s. Con 3 grietas SE PARTE y
+;      enseña el NÚCLEO naranja 6 s: ahí sí le hacen daño los hechizos (×1,5). Si no, se recompone.
+;    · Tres formas: (1) barrera de tierra en su camino cuando YA ha arrancado (si la ve mientras se prepara, FRENA); (2) ponte delante de la columna y rueda en el
+;      último momento (la línea parpadea en blanco: voltereta perfecta); (3) moja el suelo de su carril (agua) para que PATINE y se estrelle más lejos.
+;    · Si te pilla, te hiere y te aparta. Si mueres, vuelve como al empezar.
+; ======================================================================================================================================================
+; # pared (y la columna del centro) · . suelo · S inicio
+;
+; zona 1,1..15,7 cueva mezcla=0.8
+;
+; pieza verraco verraco 14 2 mira=o vida=90

@@ -70,6 +70,12 @@ var centro: Vector3 = Vector3.ZERO           ## círculo: su centro; rectángulo
 var t_impacto: float = 0.0                   ## s de juego desde que salió hasta el golpe
 var t: float = 0.0
 var cancelado: bool = false
+## A5 de PLAN_COMBATE (22/11, Pablo: «Sí, a 0,25 s»): la ventana de esquiva perfecta de ESTE aviso. Los ataques lentos (gólem, elemental, aliento, flechas) se quedan en
+## VENTANA_ESQUIVA (0,6); el golpe seco del cuerpo a cuerpo usa VENTANA_CUERPO (0,25), que su aviso ya es corto (0,67 s) y con 0,6 parpadeaba en blanco casi entero.
+const VENTANA_CUERPO: float = 0.25
+var ventana: float = VENTANA_ESQUIVA
+var parpadeo: float = 0.0                   ## A2 de PLAN_COMBATE (22/11, Pablo: «rectángulo parpadeante rojo» para el dragón): > 0 = la zona parpadea tantas veces por segundo; 0 = como siempre
+const ALFA_PARPADEO_BAJO: float = 0.4        ## alfa de la zona en la mitad apagada del parpadeo
 var esquivado: bool = false                  ## ya dio su premio de esquiva (una vez por aviso)
 var _sigue: Node3D = null
 var _malla: MeshInstance3D = null
@@ -103,14 +109,15 @@ static func rectangulo(en: Node, origen: Vector3, p_dir: Vector3, p_largo: float
 
 
 ## ¿Hay algún aviso vivo que cubre `p` y al que le quedan `ventana` s o menos para el golpe? Si lo hay, lo marca como esquivado (da premio una vez) y lo devuelve; si no, null.
-static func esquiva_a_tiempo(arbol: SceneTree, p: Vector3, ventana: float = VENTANA_ESQUIVA) -> AvisoAtaque3D:
+## `p_ventana` < 0 (el defecto) = la de cada aviso (`ventana`, A5); si se da, manda sobre todas.
+static func esquiva_a_tiempo(arbol: SceneTree, p: Vector3, p_ventana: float = -1.0) -> AvisoAtaque3D:
 	if arbol == null:
 		return null
 	for n in arbol.get_nodes_in_group(GRUPO):
 		var a: AvisoAtaque3D = n as AvisoAtaque3D
 		if a == null or not is_instance_valid(a) or a.cancelado or a.esquivado or a.t >= a.t_impacto:
 			continue
-		if a.queda() <= ventana and a.contiene(p):
+		if a.queda() <= (p_ventana if p_ventana >= 0.0 else a.ventana) and a.contiene(p):
 			a.esquivado = true
 			return a
 	return null
@@ -190,6 +197,12 @@ func fijar(p: Vector3, t_restante: float = -1.0) -> void:
 	_colocar()
 
 
+## A1 de PLAN_COMBATE (22/11): el golpe llegará dentro de `t_restante` s (puede alargar o acortar; el relleno sigue desde donde iba). Lo usa el aviso que sale en la carga previa
+## cuando arranca el clip y ya se sabe el instante exacto.
+func ajustar(t_restante: float) -> void:
+	t_impacto = t + maxf(t_restante, 0.01)
+
+
 ## s de juego que faltan para el golpe (0 = ya).
 func queda() -> float:
 	return maxf(0.0, t_impacto - t)
@@ -239,11 +252,16 @@ func _process(delta: float) -> void:
 		_colocar()
 	var k: float = clampf(t / t_impacto, 0.0, 1.0)
 	_mat.set_shader_parameter("progreso", k)
-	var en_ventana: bool = queda() <= VENTANA_ESQUIVA
+	var en_ventana: bool = queda() <= ventana
 	var borde: Color = COLOR
 	if en_ventana:
 		borde = COLOR.lerp(COLOR_VENTANA, 0.6 + 0.4 * sin(t * 40.0))
 	_mat.set_shader_parameter("color_borde", borde)
+	if parpadeo > 0.0:
+		var encendido: bool = fmod(t * parpadeo, 1.0) < 0.5
+		var c: Color = COLOR
+		c.a = 1.0 if encendido else ALFA_PARPADEO_BAJO
+		_mat.set_shader_parameter("color", c)
 	if t >= t_impacto:
 		remove_from_group(GRUPO)
 		var f: float = clampf((t - t_impacto) / T_DESTELLO, 0.0, 1.0)

@@ -41,6 +41,11 @@ const CARPETA_DEFECTO: String = "user://partidas/"
 const RUTA_FLAGS_V1: String = "user://flags.json"
 const RUTA_MISIONES_V1: String = "user://misiones.json"
 const SUFIJO_BAK: String = ".v1.bak"
+const SUFIJO_ANTERIOR: String = ".anterior"       ## 22/11: la copia de la partida anterior de cada ranura (`ruta_anterior`)
+## 22/11: las secciones sin las que un archivo no es una partida (`leer` lo rechaza). Las demás pueden faltar (un archivo viejo) y se cargan por defecto,
+## pero si están tienen que ser diccionarios (`SECCIONES_DIC`).
+const SECCIONES_ESENCIALES: Array = ["meta", "jugadora"]
+const SECCIONES_DIC: Array = ["meta", "jugadora", "tinta", "bolsa", "tiendas", "mejoras", "grimorio", "estados", "flags", "mundo", "misiones", "estadisticas"]
 
 static var ranura_actual: int = 1
 static var continuar: bool = false
@@ -75,14 +80,26 @@ static func ruta(ranura: int) -> String:
 	return carpeta.path_join("ranura_%d.json" % ranura)
 
 
+## 22/11 (lista de mejoras de Pablo, punto 7): la copia ANTERIOR de la ranura. `guardar` aparta ahí la partida que había antes de poner la nueva,
+## y `leer` la usa si la principal falta o está rota. Así un fallo a mitad de guardado nunca deja la ranura sin ninguna partida buena.
+static func ruta_anterior(ranura: int) -> String:
+	return ruta(ranura) + SUFIJO_ANTERIOR
+
+
+## ¿Hay partida en la ranura? También vale solo la copia anterior: un corte entre los dos renombrados de `guardar` deja únicamente esa.
 static func existe(ranura: int) -> bool:
-	return FileAccess.file_exists(ruta(ranura))
+	return FileAccess.file_exists(ruta(ranura)) or FileAccess.file_exists(ruta_anterior(ranura))
 
 
+## Borra la ranura entera: la partida y su copia anterior (si no, la copia «resucitaría» la ranura borrada).
 static func borrar(ranura: int) -> bool:
 	if not existe(ranura):
 		return false
-	return DirAccess.remove_absolute(ProjectSettings.globalize_path(ruta(ranura))) == OK
+	var ok: bool = true
+	for p in [ruta(ranura), ruta_anterior(ranura)]:
+		if FileAccess.file_exists(p):
+			ok = DirAccess.remove_absolute(ProjectSettings.globalize_path(p)) == OK and ok
+	return ok
 
 
 ## Los segundos jugados hasta ahora (los del archivo cargado más lo que va desde entonces).
@@ -92,6 +109,9 @@ static func segundos_jugados() -> float:
 
 ## Reúne todo y escribe la ranura. Devuelve true si quedó escrita. Se escribe a un archivo temporal y se renombra: un corte a medias no deja la
 ## ranura rota.
+## 22/11 (punto 7 de la lista de mejoras): antes se BORRABA la partida vieja y luego se renombraba el temporal; si el renombrado fallaba, la ranura
+## se quedaba vacía. Ahora: (1) se comprueba que el temporal se lee como partida; (2) la vieja se aparta a `.anterior` (no se borra); (3) el temporal
+## pasa a ser la principal; (4) si eso falla, la vieja vuelve a su sitio. La copia `.anterior` se queda: es la que `leer` usa si la principal se rompe.
 static func guardar(ranura: int = -1, extra: Dictionary = {}) -> bool:
 	var r: int = ranura if ranura >= 0 else ranura_actual
 	var dic: Dictionary = reunir(r, extra)
@@ -106,11 +126,26 @@ static func guardar(ranura: int = -1, extra: Dictionary = {}) -> bool:
 		return false
 	fa.store_string(JSON.stringify(dic, "  "))
 	fa.close()
+	var tmp_abs: String = ProjectSettings.globalize_path(tmp)
+	if _validar(_leer_archivo(tmp), tmp).is_empty():
+		push_warning("Partida.guardar: el temporal %s no se lee bien; la partida anterior se queda como estaba" % tmp)
+		DirAccess.remove_absolute(tmp_abs)
+		return false
 	var destino_abs: String = ProjectSettings.globalize_path(destino)
+	var anterior_abs: String = ProjectSettings.globalize_path(ruta_anterior(r))
+	var apartada: bool = false
 	if FileAccess.file_exists(destino):
-		DirAccess.remove_absolute(destino_abs)
-	if DirAccess.rename_absolute(ProjectSettings.globalize_path(tmp), destino_abs) != OK:
+		if FileAccess.file_exists(ruta_anterior(r)):
+			DirAccess.remove_absolute(anterior_abs)          # la copia de hace dos guardados ya no hace falta: la principal de ahora es buena
+		apartada = DirAccess.rename_absolute(destino_abs, anterior_abs) == OK
+		if not apartada:
+			push_warning("Partida.guardar: no se pudo apartar %s; no se sobrescribe" % destino)
+			DirAccess.remove_absolute(tmp_abs)
+			return false
+	if DirAccess.rename_absolute(tmp_abs, destino_abs) != OK:
 		push_warning("Partida.guardar: no se pudo renombrar %s" % tmp)
+		if apartada:
+			DirAccess.rename_absolute(anterior_abs, destino_abs)   # la partida de antes vuelve a ser la principal
 		return false
 	_segundos_base = float(dic["meta"]["segundos_jugados"])
 	_t0_ms = Time.get_ticks_msec()
@@ -212,25 +247,51 @@ static func cargar(ranura: int = -1) -> Dictionary:
 
 
 ## Lee y valida el archivo SIN repartir nada. `{}` si falta, está roto o es de una versión desconocida (avisa).
+## 22/11: si la principal falta o no vale y la copia `.anterior` sí, devuelve la anterior (avisa): se pierde el último guardado, no la partida.
 static func leer(ranura: int) -> Dictionary:
 	var p: String = ruta(ranura)
-	if not FileAccess.file_exists(p):
-		return {}
+	var d: Dictionary = _validar(_leer_archivo(p), p) if FileAccess.file_exists(p) else {}
+	if not d.is_empty():
+		return d
+	var pa: String = ruta_anterior(ranura)
+	if FileAccess.file_exists(pa):
+		var da: Dictionary = _validar(_leer_archivo(pa), pa)
+		if not da.is_empty():
+			push_warning("Partida.leer: la ranura %d no se pudo leer; se usa la copia anterior (%s)" % [ranura, pa])
+			return da
+	return {}
+
+
+## El contenido de un archivo como JSON (null si no se abre o no es JSON).
+static func _leer_archivo(p: String) -> Variant:
 	var fa := FileAccess.open(p, FileAccess.READ)
 	if fa == null:
 		push_warning("Partida.leer: no se pudo abrir %s" % p)
-		return {}
+		return null
 	var txt: String = fa.get_as_text()
 	fa.close()
 	var json := JSON.new()                          # parse() no escribe errores en consola (parse_string sí): el aviso lo damos nosotros
-	var d: Variant = json.data if json.parse(txt) == OK else null
+	return json.data if json.parse(txt) == OK else null
+
+
+## ¿Es una partida que se puede cargar? Diccionario, versión conocida, con las secciones esenciales y cada sección del tipo correcto. `{}` si no (avisa).
+static func _validar(d: Variant, p: String) -> Dictionary:
 	if not (d is Dictionary):
 		push_warning("Partida.leer: %s no es una partida válida (JSON roto)" % p)
 		return {}
-	if not VERSIONES_LEIBLES.has(int((d as Dictionary).get("version", -1))):
-		push_warning("Partida.leer: %s es de la versión %s y solo se conoce la %d (y la 2)" % [p, str((d as Dictionary).get("version", "?")), VERSION])
+	var dic: Dictionary = d
+	if not VERSIONES_LEIBLES.has(int(dic.get("version", -1))):
+		push_warning("Partida.leer: %s es de la versión %s y solo se conoce la %d (y la 2)" % [p, str(dic.get("version", "?")), VERSION])
 		return {}
-	return d
+	for s in SECCIONES_ESENCIALES:
+		if not dic.has(s):
+			push_warning("Partida.leer: a %s le falta la sección «%s»" % [p, s])
+			return {}
+	for s in SECCIONES_DIC:
+		if dic.has(s) and not (dic[s] is Dictionary):
+			push_warning("Partida.leer: en %s la sección «%s» no es un diccionario" % [p, s])
+			return {}
+	return dic
 
 
 ## Versión 1 → 2: dos archivos sueltos (flags y misiones) pasan a la ranura. Devuelve true si escribió la ranura.

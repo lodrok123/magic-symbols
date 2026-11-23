@@ -44,8 +44,35 @@ func _initialize() -> void:
 	await _mano()
 	await _burbujas()
 	_botin()
+	await _clips_21_11()
 	print("FALLOS: %d" % _fallos)
 	quit(1 if _fallos > 0 else 0)
+
+
+## 21/11 (Pablo): con el modelo real, el clip del BRAZO ARDIENDO (hecho por código, en bucle) mientras arde y el clip de BLOQUEO (SwordParryBackward001) cuando lo que llega no es fuego.
+func _clips_21_11() -> void:
+	var g := _goblin(3, 3)
+	var e: Escudo3D = Escudo3D.equipar(g)
+	await _pasos(g, 0.2)
+	var ap: AnimationPlayer = g.pj._ap
+	var a: Animation = ap.get_animation(Escudo3D.ANIM_BRAZO_ARDIENDO) if ap != null and ap.has_animation(Escudo3D.ANIM_BRAZO_ARDIENDO) else null
+	_ok("10.1 el guerrero trae el clip del brazo ardiendo, en bucle y de un ciclo", a != null and a.loop_mode == Animation.LOOP_LINEAR and is_equal_approx(a.length, Escudo3D.CICLO_BRAZO_ARDIENDO))
+	var hay_parry: bool = false
+	if ap != null:
+		for n in ap.get_animation_list():
+			hay_parry = hay_parry or String(n).to_lower().contains(Escudo3D.CLIP_BLOQUEO)
+	_ok("10.2 y su clip de bloqueo (parry) está en el GLB", hay_parry)
+	g.on_spell_hit(_rune("earth"), Vector3(0, 0, -1), _h("earth"))
+	await _pasos(g, 0.1)
+	_ok("10.3 tierra de frente: hace el bloqueo, sin daño", g.pj.animacion_actual == Escudo3D.ESTADO_BLOQUEO and g.health == g.vida_max, g.pj.animacion_actual)
+	await _pasos(g, 1.2)
+	g.on_spell_hit(_rune("fire"), Vector3(0, 0, -1), _h("fire"))
+	await _pasos(g, 0.3)
+	_ok("10.4 fuego de frente: se pone a sacudir el brazo (el bucle pedido)", e.esta_ardiendo() and g.pj.animacion_actual == Escudo3D.ESTADO_BRAZO_ARDIENDO, g.pj.animacion_actual)
+	await _pasos(g, Escudo3D.CICLO_BRAZO_ARDIENDO * 1.5)
+	_ok("10.5 pasado más de un ciclo sigue en el bucle (no vuelve al reposo)", e.esta_ardiendo() and g.pj.animacion_actual == Escudo3D.ESTADO_BRAZO_ARDIENDO, g.pj.animacion_actual)
+	await _pasos(g, Escudo3D.T_CONSUMO)
+	_ok("10.6 consumido: deja el bucle", e.estado == "quemado" and g.pj.animacion_actual != Escudo3D.ESTADO_BRAZO_ARDIENDO, "%s · %s" % [e.estado, g.pj.animacion_actual])
 
 
 ## F1 (29/10, PLAN_BASE_DATOS): el escudo que ARDE hasta quemarse marca `escudo_quemado` en su goblin y, al morir, además de su tabla suelta los jirones (`goblin_escudo`); uno roto a golpes no.
@@ -133,7 +160,12 @@ func _brazo() -> void:
 	var hueso: Variant = g.pj.hueso_ahora(Escudo3D.HUESO_ESCUDO)
 	_ok("1.2 existe el hueso del antebrazo", hueso != null)
 	var d: float = e.global_position.distance_to((hueso as Transform3D).origin)
-	_ok("1.3 el centro del disco está pegado al antebrazo (< 0,2 u; no flota)", d < 0.2, "d=%.3f" % d)
+	# 21/11: el disco se separa del antebrazo a propósito (ADELANTE_EN_BRAZO 0,16 hacia delante y BAJADA 0,07) para que la mano no lo atraviese: cerca, pero no flotando lejos.
+	_ok("1.3 el centro del disco está junto al antebrazo (< 0,32 u; no flota)", d < 0.32, "d=%.3f" % d)
+	var cara: Vector3 = e.global_transform.basis.z.normalized()
+	var fwd_g: Vector3 = g.pj.global_transform.basis.z
+	fwd_g.y = 0.0
+	_ok("1.3b la cara del escudo mira hacia delante del goblin (no va de canto)", cara.dot(fwd_g.normalized()) > 0.8, "dot=%.2f" % cara.dot(fwd_g.normalized()))
 	var adorno: int = g.pj.poner_equipo_visible("escudo", false)
 	_ok("1.4 el escudo de adorno del brazo existe y se oculta (no se ve doble)", adorno == 1)
 	var antes: Vector3 = e.global_position
@@ -143,7 +175,7 @@ func _brazo() -> void:
 		await process_frame
 	_ok("1.5 al cambiar de clip el escudo sigue a la mano (se mueve)", e.global_position.distance_to(antes) > 0.02, "mov=%.3f" % e.global_position.distance_to(antes))
 	var d2: float = e.global_position.distance_to((g.pj.hueso_ahora(Escudo3D.HUESO_ESCUDO) as Transform3D).origin)
-	_ok("1.6 y sigue pegado al hueso", d2 < 0.2, "d=%.3f" % d2)
+	_ok("1.6 y sigue junto al hueso", d2 < 0.32, "d=%.3f" % d2)
 	var sin_esq := Combate3D.equipar(_sin_modelo(), _mundo, _jugador, null)
 	var e2: Escudo3D = Escudo3D.equipar(sin_esq)
 	_ok("1.7 sin esqueleto vuelve a ir delante del cuerpo", not e2.en_brazo)

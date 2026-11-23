@@ -213,6 +213,8 @@ func _escenario() -> void:
 	await cargar(RUTA, true)
 	if maqueta == null or jugador == null:
 		return
+	# 22/11: PruebaCueva lleva ya el kit de arranque de la demo («demo_inicio», PLAN_HECHIZOS §2.2b). Este escenario recorre la Cueva con el repertorio de pruebas, como antes.
+	Lanzador3D.aplicar_progresion("pruebas")
 	await avanzar(10)
 	_z = maqueta.get_node_or_null("Puzles") as Puzle3D
 	_ok("1 Puzle3D monta la Cueva (27 × 25) sin avisos", _z != null and _z.avisos.is_empty(), str(_z.avisos) if _z != null else "sin Puzle3D")

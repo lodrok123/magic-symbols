@@ -547,6 +547,7 @@ func _parar_resbalon() -> void:
 	_nucleo_avisado = false
 	exposiciones += 1
 	_poner_clip("resbalar", true)
+	Sensacion3D.temblor_cuerpo_grande(self)      # 22/11 (C17, Mystralia O9): el cuerpo grande cae
 	PlayLog.event("golem_tumbado", {"celdas": _res_celdas})
 	resbalo.emit(_res_celdas)
 	expuesto.emit(true)
@@ -556,6 +557,7 @@ func _levantarse() -> void:
 	g_estado = "levantando"
 	_t_estado = 0.0
 	_poner_clip("levantarse", true)
+	Sensacion3D.temblor_cuerpo_grande(self)      # 22/11 (C17): y se levanta
 
 
 ## Cae a la lava: muere abrasado (ver la cabecera). Como ahogarse, pero con otras reacciones.
