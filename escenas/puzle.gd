@@ -92,6 +92,14 @@ extends Node
 ##              ni bloquea (el sitio de la barrera de la jugadora). Señal `levanta`; acción `levantar`. Bloquea su casilla
 ##   puente     celdas=<lista> (la propia x,y)                                       PuenteReactivo3D (28/10): losas rúnicas plegadas bajo el agua de `celdas`; con la acción `tender` (o la `cuerda`
 ##              que lo sostiene, al quemarse) suben una a una y cada casilla se vuelve un puente que se pisa. Señal `tendido`; condición `tendido`|`plegado`
+##              23/11: `estilo=losas|raices|zarcillos` (losas). `raices` = PuenteRaices3D (PUENTE DE RAÍCES, fase 1 con modelos provisionales): cada casilla es un tramo de raíces trenzadas que crece sobre el
+##              agua DESDE LA PRIMERA de `celdas` (la pegada al tocón; el orden de la lista importa: «a,b..c,d» va siempre de menor a mayor, para el otro sentido usa «+»: `celdas=5,6+5,5+5,4`) hacia fuera, con el mismo escalonado que las losas y un frente verde que revela el tramo a lo largo del puente; al asentarse el tramo
+##              la casilla es andable (misma ruta que las losas) y, al acabar el último, brotan hojas. `dir=n|e|s|o` fija el sentido con UNA sola casilla (con varias sale de `celdas`).
+##              `tendido_si=<expresión de si=>`: si se cumple AL MONTAR (p. ej. `flag.<la flag del bancal>`, que sobrevive a recargar) el puente nace ya tendido, sin animación y con las casillas andables
+##              (no emite `tendido`: nadie lo oye al montar). Vale con los tres estilos. Una expresión mala descarta la pieza (como `aparece_si`)
+##              23/11 `estilo=zarcillos` (PUENTE DE ZARCILLOS, el concepto elegido; mismo PuenteRaices3D con `zarcillos=true`, modelos provisionales por código): el primer tramo es el ARRANQUE en abanico (estrecho junto al
+##              nudo, del ancho del puente al otro extremo), los siguientes son TEJIDO de enrejado plano, y en la casilla que sigue al último tramo (en su sentido) se monta el ANCLAJE: dos rocas con anillos verdes que se cierran
+##              al acabar el último tramo (solo decorado, no bloquea; si esa casilla es pared, agua o está fuera del mapa no se monta y avisa). `completo` sale al cerrarse los anillos. Pensado para `bancal modelo=surco`.
 ##   limo       elemento=fuego|agua|hielo|rayo|tierra|viento (sin teñir)  grande=si (no)   Limo3D (E1, 28/10): el limo elemental. Persigue a brincos y salta encima (15; 30 de grande),
 ##              se tiñe del primer elemento que le llega (hechizo o casilla), con su elemento otra vez crece y, grande, su elemento lo cura. Es un Combate3D: el vigía lo cuenta
 ##              (su casilla de partida es la de la pieza). No bloquea su casilla
@@ -167,8 +175,14 @@ extends Node
 ##              ella y la casilla que bloquea también); para que no se abra desde el fondo del foso vacío, el cofre lleva `abre_si=<id de la balsa>.atracada`. Ej. (Q12 de PuzlesAgua):
 ##              `; pieza b balsa 26 30 ruta=27,30+28,30 cofre=cf` · `; pieza cf cofre 26 30 abre_si=b.atracada`. Señales `atraca`, `flota`, `se_hunde`; condiciones `atracada`|`en_ruta`, `a_flote`|`hundida`. Sin acciones.
 ##   nido       (sin claves)                                                        Nido3D (F1): el viento suelta una `pluma`, como mucho cada 45 s. Señal `suelta`
-##   bancal     flag=<nivel.sala.hecho> (obligatoria)                                Tierra o arena. Agua → Naturaleza germina la casilla y guarda la flag.
+##   bancal     flag=<nivel.sala.hecho> (obligatoria)                                Tierra o arena. Agua (o agua → naturaleza) germina la casilla y guarda la flag. 23/11: basta el agua, decisión de la demo.
 ##              Señal `germino`; condiciones `germinado` y `pendiente`. La flag restaura la hierba al volver al mapa.
+##              23/11: `modelo=tocon` (opcional): pone un TOCÓN en la casilla (provisional `tronco_seco` mientras está pendiente; al germinar cambia a `tronco_musgoso` con un pop de escala y esporas; ya germinado
+##              al cargar, sale directamente el musgoso). El tocón NO bloquea la casilla (se le quita el cuerpo de colisión): una casilla bloqueada no recibe el agua (ReaccionesSuelo3D) y el bancal no germinaría.
+##              Pensado para enlazar con un `puente estilo=raices`: `; puzle crece cuando=<bancal>.germino hace=<puente>.tender` + `tendido_si=flag.<flag del bancal>` en el puente
+##              23/11: `modelo=surco` + `dir=n|e|s|o` (s): el bancal del PUENTE DE ZARCILLOS: una piedra con hueco (~¾ de la casilla, lado −dir; sin colisión) y un nudo de zarcillos dormido (verde oliva) en el borde +dir.
+##              Al germinar: el agua sube en el hueco, un hilo baja por el surco, el nudo se abre (verde lima, pop, se desenrolla, esporas). La flag/`germinado` se ponen al instante, pero la SEÑAL `germino` sale cuando
+##              el nudo empieza a abrirse (~0,9 s después): así `cuando=<bancal>.germino hace=<puente>.tender` arranca el puente con el nudo ya despierto. `dir` ha de coincidir con el sentido del puente.
 ##   arbol      modelo=arbol_redondo|arbol_redondo_2|pino|pino_2 (arbol_redondo)    Reactivo3D `arbol` (F1): bloquea su casilla; un golpe cuerpo a cuerpo (F) lo sacude y suelta la tabla `tronco_golpe`, cada 30 s
 ##   musgo, helecho_cueva, seta_palida   coge_si=<expresión>  rebrota=<s> (0)        Recolectable3D (F1): como `alga`, con la pieza de la columna `modelo` de su objeto (o una esfera si no la hay)
 ##   cofre (da=)  da=<objeto>:<n>[+<objeto>:<n>…] (`oro` es oro)  o  da=tabla:<id> (una tirada de `botin_tablas.tsv`; se mezcla con «+»). `abre_si=tener.<objeto>`: la condición `tener.<objeto>` vale mientras
@@ -480,7 +494,7 @@ const CLAVES: Dictionary = {
 	"flor": {"coge_si": "expr", "rebrota": "f"}, "raiz": {"coge_si": "expr", "rebrota": "f"}, "lavanda": {"coge_si": "expr", "rebrota": "f"},
 	"bayas": {"coge_si": "expr", "rebrota": "f"}, "helecho": {"coge_si": "expr", "rebrota": "f"}, "flor_silvestre": {"coge_si": "expr", "rebrota": "f"},
 	"colmena": {},
-	"bancal": {"flag": "flag"},
+	"bancal": {"flag": "flag", "modelo": "s:tocon|surco", "dir": "s:n|e|s|o"},
 	"nube_veneno": {"vida": "f", "radio": "f"},
 	"respiradero": {"cada": "f", "vida": "f", "radio": "f", "crece": "f", "dir": "s:n|e|s|o", "desfase": "f", "agua": "b", "quema": "f", "arde": "f"},
 	"balsa": {"ruta": "celdas", "cofre": "id", "calado": "f", "vel": "f"},
@@ -502,7 +516,7 @@ const CLAVES: Dictionary = {
 	"salida": {"a": "destino", "escena": "nombre", "entrada": "nombre", "modelo": "nombre", "celdas": "celdas", "modo": "s:pisar|usar", "marca": "b"},
 	"entrada": {"mira": "s:n|e|s|o"},
 	"guardian": {"en": "celdas", "cada": "f", "elemento": "s:fuego|agua|hielo|tierra|rayo|viento", "cerca": "f", "roto": "b"},
-	"puente": {"celdas": "celdas"},
+	"puente": {"celdas": "celdas", "estilo": "s:losas|raices|zarcillos", "tendido_si": "expr", "dir": "s:n|e|s|o"},
 	"limo": {"elemento": "s:fuego|agua|hielo|rayo|tierra|viento", "grande": "b", "coraza": "s:barro|brasa"},
 	"golem": {"quieto": "b"},
 	"goblin_escudo": {"quieto": "b"},
@@ -577,26 +591,789 @@ class Pieza extends RefCounted:
 
 
 ## Registra la germinación del suelo de una casilla y la recuerda entre visitas.
-class BancalPuzle extends Node:
+## 23/11: con `modelo=tocon` (`con_tocon`) lleva un tocón encima: `tronco_seco` mientras está pendiente y `tronco_musgoso` al germinar (cambio de malla con un pop de escala y esporas).
+## El tocón NO bloquea la casilla (ver `_montar_tocon`): el agua tiene que poder llegar a ella.
+## 23/11 (PUENTE DE ZARCILLOS): con `modelo=surco` (`con_surco`) la casilla lleva una PIEDRA CON HUECO (ocupa ~¾ de la casilla, del lado −`dir`) y, en el borde de +`dir`, un NUDO de zarcillos dormido.
+## `dir` = hacia dónde sale el puente (n|e|s|o, por defecto s): el mismo que el del puente. Piedra y nudo son provisionales (ver las constantes `MODELO_*`). Ninguna lleva colisión (el agua tiene que mojar la casilla).
+## SECUENCIA al germinar (el agua la pone el motor, no el modelo): el agua SUBE en el hueco (T_AGUA) → un HILO de agua baja por el surco hasta el nudo (T_HILO) → el NUDO SE ABRE: pasa del verde oliva apagado al
+## verde lima con un pop de escala, se desenrolla girando (cada espira con su giro y su escala) y suelta esporas. La flag y `germinado` se ponen AL INSTANTE (sobreviven a recargar); la SEÑAL `germino`, en cambio,
+## se emite cuando el nudo EMPIEZA a abrirse (T_AGUA + T_HILO ≈ 0,9 s después): así la regla `cuando=<bancal>.germino hace=<puente>.tender` arranca el puente justo cuando el nudo está despierto, sin
+## que el puente tenga que esperar nada. (Con `modelo=tocon` o sin modelo, `germino` sigue saliendo al instante.) Ya germinado al cargar: agua en el hueco, hilo y nudo abierto, sin animación.
+class BancalPuzle extends Node3D:
 	signal germino
+
+	const ESCENA_TOCON_SECO: String = "res://arte/piezas/tronco_seco.tscn"
+	const ESCENA_TOCON_VIVO: String = "res://arte/piezas/tronco_musgoso.tscn"
+	const POP_INICIO: float = 0.78             ## escala con la que aparece el musgoso (de ahí sube a 1 con rebote)
+	const POP_DURA: float = 0.4
+	## --- modelo=surco: MODELOS. Cambiar solo la ruta (si el .glb existe se usa solo; si no, el provisional). Origen en el centro de la base, Y arriba, el surco/nudo mirando a +X (se gira hacia `dir`). ---
+	## TODO modelo Meshy: arte/meshy/piezas/piedra_surco.glb
+	const MODELO_PIEDRA_SURCO: String = "res://arte/meshy/piezas/piedra_surco.glb"
+	## TODO modelo Meshy: arte/meshy/piezas/nudo_zarcillos_dormido.glb
+	const MODELO_NUDO_DORMIDO: String = "res://arte/meshy/piezas/nudo_zarcillos_dormido.glb"
+	## TODO modelo Meshy: arte/meshy/piezas/nudo_zarcillos_vivo.glb   (misma geometría que el dormido: el cambio es de malla/textura)
+	const MODELO_NUDO_VIVO: String = "res://arte/meshy/piezas/nudo_zarcillos_vivo.glb"
+	const PIEDRA_PROVISIONAL: String = "pila_piedra"       ## id de `PiezaPuzle3D.malla_modelo` (la pila del cuenco); sin ella, un cilindro
+	const PIEDRA_ESCALA: float = 1.5           ## la pila mide 1,1 → 1,65 u: ~¾ de la casilla (2,3)
+	const PIEDRA_DESPLAZA: float = -0.42       ## u del centro de la casilla hacia `dir` (negativo = hacia atrás)
+	const NUDO_DESPLAZA: float = 0.85          ## u del centro hacia `dir` a la que está el nudo (junto al borde de la casilla que da al agua); lateralmente va a PuenteRaices3D.NUDO_LATERAL del eje, del lado de la cámara
+	## Hueco de la piedra PROVISIONAL (medidas de `pila_piedra` × PIEDRA_ESCALA, las del cuenco de Reactivo3D). Con el modelo de Meshy hay que ajustar estas tres al hueco real.
+	const HUECO_Y: float = 0.27 * PIEDRA_ESCALA           ## nivel del agua: ~0,15 u por debajo del labio (0,37 × escala), a la vista un trozo de pared seca
+	const HUECO_FONDO_Y: float = 0.17 * PIEDRA_ESCALA
+	## TODO piedra Meshy: centro del hueco respecto al origen de la piedra (x, z en unidades de mundo, ejes del mundo: la pila provisional no se gira con `dir`). MEDIDO A OJO en captura: la malla de la pila es irregular
+	## y su caja no da el centro del hueco (los salientes laterales la sesgan); con el .glb de Meshy medirlo de su hueco y ajustar aquí junto a HUECO_Y, HUECO_FONDO_Y y HUECO_RADIO.
+	const HUECO_CENTRO: Vector2 = Vector2(0.07, -0.07)
+	const HUECO_RADIO: float = 0.36 * PIEDRA_ESCALA       ## semieje del contorno del agua (u): la boca del hueco a su nivel
+	## TODO piedra Meshy (hueco en forma de ocho redondeado): el contorno es UNA elipse con lóbulos (HUECO_FORMA = proporción de sus semiejes x/z respecto a HUECO_RADIO; HUECO_LOBULOS = amplitud de los
+	## lóbulos de 5 y de 9 picos; 0 = círculo liso). Con el ocho de Meshy: o se aproxima con una elipse (HUECO_FORMA ≈ (1.5, 0.8), lóbulos a 0), o hay que tocar `CODIGO_AGUA_HUECO` y `CODIGO_FONDO_HUECO`
+	## (`borde`) para dar dos centros/radios. Fondo del hueco: color de la piedra mojada clara y escala respecto a la boca (el hueco se estrecha hacia abajo).
+	const HUECO_FORMA: Vector2 = Vector2(1.0, 1.15)
+	const HUECO_LOBULOS: Vector2 = Vector2(0.035, 0.02)
+	const HUECO_FONDO_ESCALA: float = 0.78
+	const HUECO_FONDO_DESPLAZA: Vector2 = Vector2(0.0, -0.1)      ## el fondo, más profundo, se vería corrido hacia la cámara y asomaría fuera del contorno del agua: se compensa hacia atrás (cámara al norte desde el sur)
+	## Agua del hueco: LIMPIA, casi transparente, estilizada (como el filtro del río, `agua_render_3d.gd`): orilla casi invisible que pasa con un degradado largo a un tinte turquesa claro y poco denso hacia el centro,
+	## sin bandas; deja ver el FONDO (`CODIGO_FONDO_HUECO`, un disco de piedra mojada con guijarros pintados y cáusticas tenues). Las ondas solo se notan en el brillo; al llenarse, un anillo suave que se expande (`pulso`
+	## 0 → 1). El tinte no usa la profundidad real (no hay lectura de pantalla): crece con el radio (más hondo hacia el centro).
+	const CODIGO_AGUA_HUECO: String = """
+shader_type spatial;
+render_mode unshaded, cull_disabled, depth_draw_never;
+uniform vec3 tinte : source_color = vec3(0.24, 0.62, 0.64);
+uniform vec3 brillo : source_color = vec3(0.88, 0.97, 0.96);
+uniform vec2 salida = vec2(0.0, 1.0);          // hacia dónde sale el surco: una ondulación muy tenue dentro de la superficie
+uniform vec2 forma = vec2(1.0, 1.0);
+uniform vec2 lob = vec2(0.035, 0.02);
+uniform float pulso = 2.0;
+uniform float radio = 0.54;
+varying vec2 pxz;
+void vertex() {
+	pxz = VERTEX.xz;
+}
+void fragment() {
+	vec2 p = pxz / radio / forma;
+	float r = length(p);
+	float a = atan(p.y, p.x);
+	float b = 0.9 + lob.x * sin(a * 5.0 + 1.0) + lob.y * sin(a * 9.0 + 2.0);
+	if (r > b) { discard; }
+	float d = pow(1.0 - smoothstep(0.0, b, r), 1.4);               // 1 en el centro (hondo), 0 en la orilla
+	float alpha = 0.09 + 0.09 * d;                                 // mínimo de tinte: lo que se ve por la orilla siempre se lee «bajo el agua»
+	vec3 c = tinte;
+	float w = sin(p.x * 7.0 + TIME * 0.7) * sin(p.y * 6.0 - TIME * 0.6) * 0.5 + 0.5;
+	float blob = smoothstep(0.28, 0.0, length(p - vec2(-0.28, -0.25))) * (0.65 + 0.35 * w);
+	c = mix(c, brillo, blob * 0.5);
+	alpha += blob * 0.2;
+	float rr = r - pulso * b;
+	float anillo = exp(-rr * rr * 50.0) * step(pulso, 1.2);
+	c = mix(c, brillo, anillo * 0.5);
+	alpha += anillo * 0.12;
+	float rz = fract(TIME * 0.45);
+	float dz = length(p - salida * 0.78) - rz * 0.5;
+	alpha += exp(-dz * dz * 120.0) * (1.0 - rz) * 0.05;
+	ALBEDO = c;
+	ALPHA = clamp(alpha, 0.0, 0.75) * (1.0 - smoothstep(b - 0.05, b, r));
+}
+"""
+	## RAICES (el nudo y el puente "beben" de la pila): el fondo del hueco es un lecho de raices finas entrelazadas (venas de un Voronoi, dos escalas) del mismo verde que el puente, sobre un fondo oscuro; de el suben unas
+	## pocas raices de CONEXION (tubos finos de `ZarcilloMalla`) por la pared hasta la boca del surco y siguen junto al hilo de agua hasta el nudo. DORMIDAS (oliva apagado, #7A8450) hasta regar; al llenarse el agua una
+	## onda de SAVIA (uniform `savia` 0 -> 1, T_HILO s) las despierta desde el fondo hacia el nudo (primero el fondo, luego los tubos) y al llegar se abre el nudo. Constantes: RAICES_DENSIDAD, N_RAICES_CONEXION, RAIZ_RADIO,
+	## RAIZ_SUBIDA (que fraccion del radio del hueco sube por la pared). El contorno se desvanece hacia el oscuro de la pila (sin borde) y el disco es menor que el agua.
+	const CODIGO_FONDO_HUECO: String = """
+shader_type spatial;
+render_mode unshaded, cull_disabled;
+uniform vec3 dormido : source_color = vec3(0.478, 0.518, 0.314);
+uniform vec3 vivo : source_color = vec3(0.494, 0.62, 0.271);
+uniform vec2 salida = vec2(0.0, 1.0);
+uniform float radio = 0.46;
+uniform float densidad = 5.5;
+uniform float savia = 0.0;
+varying vec2 pxz;
+vec2 h2(vec2 i) {
+	return fract(sin(vec2(dot(i, vec2(127.1, 311.7)), dot(i, vec2(269.5, 183.3)))) * 43758.5453);
+}
+float venas(vec2 x) {
+	vec2 w = x + 0.9 * vec2(sin(x.y * 1.7 + 1.3), cos(x.x * 1.9 + 0.4));
+	w += 0.5 * vec2(sin(w.y * 3.1 + TIME * 0.1), cos(w.x * 2.7));
+	return abs(sin(w.x * 2.0 + sin(w.y * 1.3) * 1.4)) * 0.55;
+}
+void vertex() {
+	pxz = VERTEX.xz;
+}
+void fragment() {
+	vec2 p = pxz / radio;
+	float r = length(p);
+	float v = 0.5 * max(1.0 - smoothstep(0.0, 0.09, venas(p * densidad * 0.55)), (1.0 - smoothstep(0.0, 0.07, venas(p * densidad * 0.9 + 7.0))) * 0.7);
+	float t = 0.5 + 0.5 * dot(p, normalize(salida));
+	float frente = savia * 1.25;
+	float vivo_k = 1.0 - smoothstep(frente - 0.12, frente, t);
+	float banda = exp(-pow((t - frente + 0.06) * 9.0, 2.0)) * step(0.001, savia) * step(savia, 0.999);
+	float tono = 0.93 + 0.14 * (sin(p.x * 17.0 + p.y * 11.0) * 0.5 + 0.5);
+	vec3 raiz = mix(dormido, vivo, vivo_k) * tono * 0.55;
+	vec3 c = mix(vec3(0.025, 0.05, 0.045), raiz, v) + vec3(0.25, 0.35, 0.1) * banda * v;
+	c = mix(c, vec3(0.03, 0.07, 0.09), smoothstep(0.5, 0.95, r));
+	ALBEDO = c;
+	ALPHA = 1.0 - smoothstep(0.45, 0.98, r);
+}
+"""
+	## Raices de conexion: tubos con el UV.x a lo largo (0 en el fondo, 1 en el nudo); despiertan donde `savia` ha pasado.
+	const CODIGO_RAIZ_CONEXION: String = """
+shader_type spatial;
+render_mode cull_disabled;
+uniform vec3 dormido : source_color = vec3(0.478, 0.518, 0.314);
+uniform vec3 vivo : source_color = vec3(0.494, 0.62, 0.271);
+uniform float savia = 0.0;
+uniform bool invertir = false;
+uniform vec3 sumergida = vec3(0.75, 1.05, 0.7);
+uniform float rim = 0.4;
+uniform float nivel = 1.0;
+varying float yy;
+void vertex() {
+	yy = VERTEX.y;
+}
+void fragment() {
+	float f = invertir ? 1.0 - UV.x : UV.x;
+	float k = 1.0 - smoothstep(savia - 0.08, savia, f);
+	float banda = exp(-pow((f - savia + 0.04) * 12.0, 2.0)) * step(0.001, savia) * step(savia, 0.999);
+	float sub = 1.0 - smoothstep(nivel - 0.03, nivel + 0.01, yy);          // la parte bajo la superficie del agua
+	vec3 col = mix(dormido, vivo, k) * COLOR.rgb;
+	col = mix(col, col * sumergida, sub);
+	float franja = smoothstep(nivel - 0.14, nivel - 0.03, yy) * (1.0 - smoothstep(nivel - 0.03, nivel + 0.01, yy));
+	col *= 1.0 - 0.3 * franja;                     // transicion suave justo bajo la superficie (no un corte)
+	ALBEDO = col + vec3(0.2, 0.3, 0.08) * banda;
+	SPECULAR = 0.1;
+	RIM = rim;
+	RIM_TINT = 0.3;
+	EMISSION += col * 0.22 * rim * (1.0 - sub);      // minima autoiluminacion por encima del agua (se lee contra la pared oscura), nada fuerte
+	EMISSION += vec3(0.1, 0.18, 0.04) * banda * 2.0;
+	ROUGHNESS = 0.9;
+}
+"""
+	## TODO piedra Meshy: compensacion de color de lo SUMERGIDO. El agua (sin luz propia, translucida) blanquea lo que hay debajo (lo que lo lavaba era el tinte turquesa claro del agua sobre raices mas oscuras, no
+	## la luz ni el vertex color: sin agua las raices se ven verde puente). Multiplicador RGB que se aplica a las raices por debajo del nivel del agua: menos rojo y azul, algo mas de verde = mas saturacion y menos valor.
+	const RAIZ_SUMERGIDA_TINTE: Vector3 = Vector3(0.75, 1.05, 0.7)
+	const RAICES_DENSIDAD: float = 5.5          ## densidad de las venas finas pintadas del fondo (relleno entre los tubos)
+	## TODO piedra Meshy: el trazado de las raices del fondo y de la conexion sale de HUECO_* y de estas. Pared del hueco (radio a ras del fondo y arriba, y altura del labio), numero de raices del fondo (N_RAICES_FONDO),
+	## ramas por raiz (RAMAS_POR_RAIZ) y su grosor (RAIZ_FONDO_RADIO). Con la piedra Meshy remedirlas del modelo.
+	const HUECO_PARED_ABAJO: float = 0.30 * PIEDRA_ESCALA
+	const HUECO_PARED_ARRIBA: float = 0.40 * PIEDRA_ESCALA
+	const HUECO_LABIO_Y: float = 0.37 * PIEDRA_ESCALA
+	const N_RAICES_FONDO: int = 6
+	const RAMAS_POR_RAIZ: int = 1
+	const RAIZ_FONDO_RADIO: float = 0.045
+	## TODO piedra Meshy (raices de conexion = 1 PRINCIPAL + 2 SECUNDARIAS): la principal nace en la marana del fondo (mismo punto de arranque que las raices del fondo), sube pegada a la pared interior, apoya en el labio y baja
+	## por fuera hasta la base del nudo; las secundarias, mas finas, se separan de ella a distinta altura y se enroscan alrededor (helice). Remedir con el modelo: HUECO_PARED_*, HUECO_EXTERIOR_*, HUECO_LABIO_Y.
+	const RAIZ_PRINCIPAL_RADIO: Vector2 = Vector2(0.05, 0.04)        ## grosor al empezar y al acabar (u)
+	const RAIZ_SECUNDARIA_RADIO: Vector2 = Vector2(0.03, 0.018)
+	const RAIZ_HELICE_RADIO: float = 0.08                            ## radio de la helice de las secundarias alrededor de la principal
+	const RAIZ_HELICE_VUELTAS: Vector2 = Vector2(1.5, 1.0)            ## vueltas de cada secundaria
+	const RAIZ_SECUNDARIA_DESDE: Vector2 = Vector2(0.2, 0.35)         ## a que fraccion del recorrido de la principal se separa cada una (una bajo el agua, otra cerca del labio)
+	const RAIZ_SUBIDA: float = 0.15                                   ## fraccion de la altura (fondo -> labio) a la que la principal llega a la pared
+	const RAIZ_SEPARACION: float = 0.075                               ## separacion lateral (u) de cada secundaria respecto a la principal al cruzar el labio (puntos distintos: sin garra); se juntan de nuevo en el nudo
+	const RAIZ_REPTA_Y: float = 0.03                                  ## altura del eje de la raiz sobre el suelo en el tramo exterior (la hierba no la tapa)
+	const RAIZ_REPTA_ONDA: float = 0.07                               ## serpenteo lateral de ese tramo (u)
+	const RAIZ_BORDE_LUZ: float = 0.4                                 ## borde de luz suave (rim) y autoiluminacion minima de lo que va por encima del agua: se lee contra la pared oscura
+	const LABIO_APLASTADO: float = 0.3                                ## cuanto se hunde en el labio (fraccion de su grosor): se lee el contacto
+	const HUECO_EXTERIOR_ARRIBA: float = 0.52 * PIEDRA_ESCALA         ## radio de la pared EXTERIOR junto al labio y a ras del suelo
+	const HUECO_EXTERIOR_ABAJO: float = 0.57 * PIEDRA_ESCALA
+	static var _sombreado_agua: Shader = null
+	static var _sombreado_fondo: Shader = null
+	static var _sombreado_raiz: Shader = null
+	const BOCA_DESPLAZA: float = -0.2          ## dónde rebosa el surco: u hacia `dir` desde el centro de la casilla, a BOCA_LATERAL hacia el lado del nudo, y a BOCA_Y de altura
+	const BOCA_LATERAL: float = 0.5
+	const BOCA_Y: float = 0.52
+	const T_AGUA: float = 0.4                  ## el agua sube en el hueco
+	const T_HILO: float = 0.5                  ## el hilo baja por el surco hasta el nudo
+	const T_NUDO: float = 0.9                  ## el nudo se desenrolla
+	const COLOR_NUDO_DORMIDO: Color = Color("7A8450")      ## verde oliva apagado, mate: NO paja (lo seco arde)
+	const COLOR_NUDO_VIVO: Color = PuenteRaices3D.COLOR_ZARCILLO         ## el único verde de todo lo vivo del puente (#8FB548)
+	const ARTE_ENTORNO = preload("res://presentacion/arte_entorno_3d.gd")     ## su `sin_brote`: con surco no sale la plantita genérica (el nudo es el brote)
+	const N_ESPIRAS: int = 4
+	const NUDO_ESCALA: float = 1.25            ## el nudo provisional mide ~0,7 de ancho: a 1,25 no se esconde tras el borde de la piedra desde la cámara
 
 	var celda: Vector2i
 	var flag: String
 	var germinado: bool = false
+	var con_tocon: bool = false                ## `modelo=tocon`: lo pone quien monta la pieza, ANTES de añadirla al árbol
+	var con_surco: bool = false                ## `modelo=surco`: idem
+	var dir_txt: String = "s"                  ## `dir=` (solo con surco): n|e|s|o
+	var fx: Vfx3D = null                       ## para las esporas del brote (opcional)
+	var _seco: Node3D = null
+	var _vivo: Node3D = null
+	# --- surco ---
+	var _piedra: Node3D = null
+	var _agua_hueco: MeshInstance3D = null
+	var _mat_agua: ShaderMaterial = null
+	var _fondo_hueco: MeshInstance3D = null
+	var _mat_fondo: ShaderMaterial = null
+	var _raices_fondo: MeshInstance3D = null    ## los tubos que serpentean por el fondo del hueco
+	var _mat_raiz_fondo: ShaderMaterial = null
+	var _mats_raiz: Array = []                 ## ShaderMaterial de cada raiz de conexion
+	var _raices_conexion: Array = []           ## MeshInstance3D de las raices que suben del fondo al nudo
+	var _savia_v: float = 0.0                  ## 0 dormidas ... 1 despiertas
+	var _hilo: Node3D = null                   ## pivote del hilo de agua (se alarga con su `scale.z`)
+	var _nudo: Node3D = null
+	var _espiras: Array = []                   ## MeshInstance3D del nudo provisional
+	var _mat_nudo: StandardMaterial3D = null
+	var _nudo_glb_dormido: Node3D = null
+	var _nudo_glb_vivo: Node3D = null
+	var nudo_abierto: bool = false
+	var t_nudo_abierto: int = -1               ## ms (Time.get_ticks_msec) en que se abrió el nudo: las pruebas lo comparan con el arranque del puente
+
+	func _exit_tree() -> void:
+		if con_surco:
+			ARTE_ENTORNO.sin_brote.erase(celda)
 
 	func _ready() -> void:
 		germinado = Flags.i().tiene(flag)
+		if con_tocon:
+			_montar_tocon()
+		elif con_surco:
+			ARTE_ENTORNO.sin_brote[celda] = true
+			_montar_surco()
 		if germinado:
 			Terreno3D.estados.poner_material(celda, "hierba")
 		else:
 			Terreno3D.estados.germino.connect(_al_germinar)
+			Terreno3D.estados.cambio.connect(_al_cambiar)
+
+	## El tocón: la pieza se coloca en el centro de la casilla (el bancal es un Node3D en el origen del contenedor) y se carga el modelo que toque; al cargar ya germinado
+	## solo se crea el musgoso. Se le QUITA el `cuerpo` (StaticBody3D de la escena provisional, capa de bloqueo): una casilla bloqueada no recibe hechizos de suelo y el bancal nunca germinaría.
+	func _montar_tocon() -> void:
+		var y: float = Terreno3D.y_pies(celda) if Terreno3D.hay_mundo() else 0.0
+		position = Terreno3D.centro_de(celda, y)
+		if germinado:
+			_vivo = _cargar_tocon(ESCENA_TOCON_VIVO)
+		else:
+			_seco = _cargar_tocon(ESCENA_TOCON_SECO)
+
+	func _cargar_tocon(ruta: String) -> Node3D:
+		if not ResourceLoader.exists(ruta):
+			return null
+		var n: Node3D = (load(ruta) as PackedScene).instantiate() as Node3D
+		if n == null:
+			return null
+		for cuerpo in n.find_children("*", "CollisionObject3D", true, false):
+			(cuerpo as Node).get_parent().remove_child(cuerpo as Node)
+			(cuerpo as Node).free()
+		add_child(n)
+		return n
+
+	## 23/11 (decisión de la demo): basta el agua. Mojar la casilla la vuelve hierba (la maqueta pinta con `material_cambiado`).
+	func _al_cambiar(c: Vector2i, estado: String, si: bool) -> void:
+		if c != celda or germinado or not si or estado != EstadosSuelo3D.MOJADA:
+			return
+		Terreno3D.estados.poner_material(celda, "hierba")
+		_cerrar()
 
 	func _al_germinar(c: Vector2i) -> void:
-		if c != celda:
+		if c != celda or germinado:
 			return
-		Terreno3D.estados.germino.disconnect(_al_germinar)
+		_cerrar()
+
+	## Cierre común (agua sola o agua → naturaleza): una sola vez, desconecta ambas señales, flag y aviso.
+	func _cerrar() -> void:
+		var e: EstadosSuelo3D = Terreno3D.estados
+		if e.germino.is_connected(_al_germinar):
+			e.germino.disconnect(_al_germinar)
+		if e.cambio.is_connected(_al_cambiar):
+			e.cambio.disconnect(_al_cambiar)
 		germinado = true
 		Flags.i().poner(flag)
+		if con_surco:
+			_germinar_surco()          # `germino` sale cuando el nudo empieza a abrirse
+			return
+		if con_tocon:
+			_brotar_tocon()
+		germino.emit()
+
+	## Cambia la malla seca por la musgosa con un pop de escala (y unas esporas si hay Vfx3D).
+	func _brotar_tocon() -> void:
+		if _seco != null:
+			_seco.visible = false
+		if _vivo == null:
+			_vivo = _cargar_tocon(ESCENA_TOCON_VIVO)
+		if _vivo == null:
+			return
+		if is_inside_tree():
+			_vivo.scale = Vector3.ONE * POP_INICIO
+			var tw: Tween = create_tween()
+			tw.tween_property(_vivo, "scale", Vector3.ONE, POP_DURA).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+			if fx != null and is_instance_valid(fx):
+				var efectos: Array = [fx.esporas(global_position + Vector3(0.0, 0.6, 0.0)),
+					fx.destellos(global_position + Vector3(0.0, 0.9, 0.0), Vfx3D.COLOR.get("naturaleza", Color(0.45, 0.8, 0.3)))]
+				var vfx: Vfx3D = fx
+				get_tree().create_timer(1.2).timeout.connect(func() -> void:        # esporas y destellos se quedan emitiendo: los suelta quien los pide
+					for ef in efectos:
+						if is_instance_valid(vfx) and is_instance_valid(ef):
+							vfx.apagar(ef as Node3D))
+
+	# ------------------------------------------------------------------ modelo=surco ------------------------------------------------------------------
+
+	## Hacia dónde mira el surco (eje del mundo).
+	func dir_v() -> Vector3:
+		match dir_txt:
+			"n": return Vector3(0.0, 0.0, -1.0)
+			"e": return Vector3(1.0, 0.0, 0.0)
+			"o": return Vector3(-1.0, 0.0, 0.0)
+		return Vector3(0.0, 0.0, 1.0)
+
+	func _material_agua() -> ShaderMaterial:
+		if _sombreado_agua == null:
+			_sombreado_agua = Shader.new()
+			_sombreado_agua.code = CODIGO_AGUA_HUECO
+		var m := ShaderMaterial.new()
+		m.shader = _sombreado_agua
+		m.set_shader_parameter("radio", HUECO_RADIO)
+		m.set_shader_parameter("forma", HUECO_FORMA)
+		m.set_shader_parameter("lob", HUECO_LOBULOS)
+		m.render_priority = 1            # por encima del fondo
+		return m
+
+	func _material_raiz() -> ShaderMaterial:
+		if _sombreado_raiz == null:
+			_sombreado_raiz = Shader.new()
+			_sombreado_raiz.code = CODIGO_RAIZ_CONEXION
+		var m := ShaderMaterial.new()
+		m.shader = _sombreado_raiz
+		m.set_shader_parameter("dormido", COLOR_NUDO_DORMIDO)
+		m.set_shader_parameter("vivo", COLOR_NUDO_VIVO)
+		m.set_shader_parameter("savia", 0.0)
+		m.set_shader_parameter("sumergida", RAIZ_SUMERGIDA_TINTE)
+		m.set_shader_parameter("nivel", _piedra.position.y + HUECO_Y)
+		m.set_shader_parameter("rim", RAIZ_BORDE_LUZ)
+		return m
+
+	## Savia 0 -> 1: el fondo despierta en la primera mitad y las raices de conexion en la segunda.
+	func _savia(v: float) -> void:
+		_savia_v = v
+		_mat_fondo.set_shader_parameter("savia", clampf(v * 2.0, 0.0, 1.0))
+		if _mat_raiz_fondo != null:
+			_mat_raiz_fondo.set_shader_parameter("savia", clampf(v * 2.0, 0.0, 1.0))
+		for m in _mats_raiz:
+			(m as ShaderMaterial).set_shader_parameter("savia", clampf(v * 2.0 - 1.0, 0.0, 1.0))
+
+	func _material_fondo() -> ShaderMaterial:
+		if _sombreado_fondo == null:
+			_sombreado_fondo = Shader.new()
+			_sombreado_fondo.code = CODIGO_FONDO_HUECO
+		var m := ShaderMaterial.new()
+		m.shader = _sombreado_fondo
+		m.set_shader_parameter("radio", HUECO_RADIO * HUECO_FONDO_ESCALA)
+		m.set_shader_parameter("dormido", COLOR_NUDO_DORMIDO)
+		m.set_shader_parameter("vivo", COLOR_NUDO_VIVO)
+		m.set_shader_parameter("densidad", RAICES_DENSIDAD)
+		m.set_shader_parameter("savia", 0.0)
+		return m
+
+	## Un .glb de Meshy ya instanciado y sin colisiones (null si no existe el archivo).
+	func _cargar_glb(ruta: String) -> Node3D:
+		if not ResourceLoader.exists(ruta):
+			return null
+		var ps: PackedScene = load(ruta) as PackedScene
+		var n: Node3D = ps.instantiate() as Node3D if ps != null else null
+		if n == null:
+			return null
+		for cuerpo in n.find_children("*", "CollisionObject3D", true, false):
+			(cuerpo as Node).get_parent().remove_child(cuerpo as Node)
+			(cuerpo as Node).free()
+		return n
+
+	## Monta todo en su estado inicial (agua, hilo y nudo dormido) o, si ya está germinado, en el final. Los modelos de Meshy, si existen, sustituyen a los provisionales.
+	func _montar_surco() -> void:
+		var y: float = Terreno3D.y_pies(celda) if Terreno3D.hay_mundo() else 0.0
+		position = Terreno3D.centro_de(celda, y)
+		var d: Vector3 = dir_v()
+		var giro: float = atan2(-d.z, d.x)         # el eje +x del modelo mira hacia `d`
+		# La piedra (sin colisión).
+		_piedra = Node3D.new()
+		_piedra.name = "piedra_surco"
+		_piedra.position = d * PIEDRA_DESPLAZA
+		add_child(_piedra)
+		var glb: Node3D = _cargar_glb(MODELO_PIEDRA_SURCO)
+		if glb != null:
+			glb.rotation.y = giro
+			_piedra.add_child(glb)
+		else:
+			var mi := MeshInstance3D.new()
+			var malla: Mesh = PiezaPuzle3D.malla_modelo(PIEDRA_PROVISIONAL)
+			if malla != null:
+				mi.mesh = malla
+				mi.scale = Vector3.ONE * PIEDRA_ESCALA
+			else:
+				var cil := CylinderMesh.new()
+				cil.top_radius = 0.5 * PIEDRA_ESCALA
+				cil.bottom_radius = 0.55 * PIEDRA_ESCALA
+				cil.height = 0.37 * PIEDRA_ESCALA
+				var piedra_mat := StandardMaterial3D.new()
+				piedra_mat.albedo_color = Color(0.58, 0.56, 0.52)
+				piedra_mat.roughness = 0.95
+				cil.material = piedra_mat
+				mi.mesh = cil
+				mi.position.y = cil.height * 0.5
+			_piedra.add_child(mi)
+		# El agua del hueco: shader propio (CODIGO_AGUA_HUECO) sobre un disco un poco más pequeño que la boca. Oculto hasta regar. (La pared mojada se insinúa con el degradado a turquesa oscuro del propio shader; un cilindro aparte sobresalía de la pila.)
+		var disco := CylinderMesh.new()
+		disco.top_radius = HUECO_RADIO * maxf(HUECO_FORMA.x, HUECO_FORMA.y) * 1.05       # el disco ha de contener el contorno (elipse con lóbulos)
+		disco.bottom_radius = disco.top_radius
+		disco.height = 0.01
+		disco.radial_segments = 32
+		disco.rings = 1
+		_agua_hueco = MeshInstance3D.new()
+		_agua_hueco.name = "agua_hueco"
+		_agua_hueco.mesh = disco
+		_mat_agua = _material_agua()
+		_agua_hueco.material_override = _mat_agua
+		_agua_hueco.position = _piedra.position + Vector3(HUECO_CENTRO.x, HUECO_Y, HUECO_CENTRO.y)
+		_agua_hueco.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		_agua_hueco.visible = false
+		add_child(_agua_hueco)
+		var disco_f := CylinderMesh.new()
+		disco_f.top_radius = HUECO_RADIO * HUECO_FONDO_ESCALA
+		disco_f.bottom_radius = disco_f.top_radius
+		disco_f.height = 0.005
+		disco_f.radial_segments = 96
+		disco_f.rings = 1
+		_mat_fondo = _material_fondo()
+		_fondo_hueco = MeshInstance3D.new()
+		_fondo_hueco.name = "fondo_hueco"
+		_fondo_hueco.mesh = disco_f
+		_fondo_hueco.material_override = _mat_fondo
+		_fondo_hueco.position = _piedra.position + Vector3(HUECO_CENTRO.x + HUECO_FONDO_DESPLAZA.x, HUECO_FONDO_Y, HUECO_CENTRO.y + HUECO_FONDO_DESPLAZA.y)
+		_fondo_hueco.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		add_child(_fondo_hueco)
+		# El hilo de agua: del reborde del surco al nudo. Pivote en la boca, mirando al nudo; su `scale.z` lo alarga.
+		var lat: Vector3 = Vector3(-d.z, 0.0, d.x) * PuenteRaices3D.lado_nudo(d)        # hacia el lado del nudo (el de la cámara)
+		var boca: Vector3 = d * BOCA_DESPLAZA + lat * BOCA_LATERAL + Vector3(0.0, BOCA_Y, 0.0)
+		var hacia: Vector3 = boca - _agua_hueco.position
+		_mat_agua.set_shader_parameter("salida", Vector2(hacia.x, hacia.z).normalized())
+		var fin: Vector3 = d * NUDO_DESPLAZA + lat * PuenteRaices3D.NUDO_LATERAL + Vector3(0.0, 0.28, 0.0)
+		_mat_fondo.set_shader_parameter("salida", Vector2(hacia.x, hacia.z).normalized())
+		_montar_raices_fondo(boca)
+		_montar_raices_conexion(boca, fin)
+		_hilo = Node3D.new()
+		_hilo.name = "hilo_agua"
+		add_child(_hilo)
+		_hilo.look_at_from_position(boca, fin, Vector3.UP)
+		var largo: float = boca.distance_to(fin)
+		var cilh := CylinderMesh.new()
+		cilh.top_radius = 0.075
+		cilh.bottom_radius = 0.065
+		cilh.height = largo
+		cilh.radial_segments = 8
+		cilh.rings = 1
+		cilh.material = Reactivo3D.material_caudal(false, 3.5, 3.0, true)       # opaco: el mismo agua que el cuenco, que se ve
+		var hm := MeshInstance3D.new()
+		hm.mesh = cilh
+		hm.rotation.x = PI * 0.5
+		hm.position = Vector3(0.0, 0.0, -largo * 0.5)
+		hm.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		_hilo.add_child(hm)
+		_hilo.visible = false
+		# El nudo (en el borde de +dir).
+		_nudo = Node3D.new()
+		_nudo.name = "nudo"
+		_nudo.position = d * NUDO_DESPLAZA + lat * PuenteRaices3D.NUDO_LATERAL
+		_nudo.rotation.y = giro
+		_nudo.scale = Vector3.ONE * NUDO_ESCALA
+		add_child(_nudo)
+		_nudo_glb_dormido = _cargar_glb(MODELO_NUDO_DORMIDO)
+		_nudo_glb_vivo = _cargar_glb(MODELO_NUDO_VIVO)
+		if _nudo_glb_dormido != null and _nudo_glb_vivo != null:
+			_nudo.add_child(_nudo_glb_dormido)
+			_nudo.add_child(_nudo_glb_vivo)
+			_nudo_glb_vivo.visible = false
+		else:
+			if _nudo_glb_dormido != null:
+				_nudo_glb_dormido.free()
+			if _nudo_glb_vivo != null:
+				_nudo_glb_vivo.free()
+			_nudo_glb_dormido = null
+			_nudo_glb_vivo = null
+			_montar_nudo_provisional()
+		if germinado:
+			_poner_estado_final_surco()
+
+	## Nudo provisional: una espiral de zarcillo (2,5 vueltas, de fuera a dentro) partida en N_ESPIRAS arcos, más una cola que apunta a +x (hacia el puente). Un material compartido que cambia de color al abrirse.
+	func _montar_nudo_provisional() -> void:
+		_mat_nudo = StandardMaterial3D.new()
+		_mat_nudo.albedo_color = COLOR_NUDO_DORMIDO
+		_mat_nudo.roughness = 0.95
+		_mat_nudo.cull_mode = BaseMaterial3D.CULL_DISABLED
+		_mat_nudo.vertex_color_use_as_albedo = true            # tono por espira y falso oscurecimiento de ZarcilloMalla
+		_mat_nudo.emission_enabled = true                      # solo el destello del despertar; en reposo, sin emisión
+		_mat_nudo.emission = COLOR_NUDO_VIVO
+		_mat_nudo.emission_energy_multiplier = 0.0
+		var pasos_por: int = 14
+		var total: int = N_ESPIRAS * pasos_por
+		var vueltas: float = 2.5
+		for k in range(N_ESPIRAS):
+			var pts: PackedVector3Array = PackedVector3Array()
+			if k == 0:
+				pts.append(Vector3(0.66, 0.075, 0.0))        # la cola: sale hacia +x y entra en la espiral por fuera
+				pts.append(Vector3(0.5, 0.075, 0.0))
+			for s in range(pasos_por + 1):
+				var f: float = float(k * pasos_por + s) / float(total)
+				var a: float = f * vueltas * TAU
+				var r: float = 0.34 * (1.0 - 0.72 * f)
+				pts.append(Vector3(cos(a) * r, 0.085 + 0.15 * f, -sin(a) * r))
+			var zm := ZarcilloMalla.new()
+			zm.tubo(pts, 0.075 - 0.01 * float(k), 0.075 - 0.01 * float(k + 1), 7, k == 0 or k == N_ESPIRAS - 1)
+			var mi := MeshInstance3D.new()
+			mi.name = "espira_%d" % k
+			mi.mesh = zm.malla()
+			mi.material_override = _mat_nudo
+			_nudo.add_child(mi)
+			_espiras.append(mi)
+
+	func color_nudo() -> Color:
+		return _mat_nudo.albedo_color if _mat_nudo != null else Color(0, 0, 0, 0)
+
+	## RAICES DEL FONDO: N_RAICES_FONDO tubos curvos (ZarcilloMalla, grosor decreciente a la punta) que serpentean desde la zona de la boca del surco hacia el resto del hueco y se ramifican (RAMAS_POR_RAIZ), con alguna
+	## punta enroscada. Un solo mesh y un material (CODIGO_RAIZ_CONEXION con `invertir`: la savia va de las puntas hacia la boca). Todo relativo al centro/radio/forma del fondo (HUECO_*).
+	func _montar_raices_fondo(boca: Vector3) -> void:
+		var f: Vector3 = _fondo_hueco.position
+		var h: Vector3 = Vector3(boca.x - f.x, 0.0, boca.z - f.z).normalized()
+		var radio: float = HUECO_RADIO * HUECO_FONDO_ESCALA * 0.8
+		var escala: Vector3 = Vector3(HUECO_FORMA.x, 1.0, HUECO_FORMA.y)
+		var zm := ZarcilloMalla.new()
+		var y: float = f.y + 0.02
+		var inicio: Vector3 = f + h * radio * 0.7 * escala
+		inicio.y = y
+		var base_ang: float = atan2(-h.z, -h.x)           # hacia el lado opuesto a la boca
+		for k in range(N_RAICES_FONDO):
+			var a: float = base_ang + (float(k) - float(N_RAICES_FONDO - 1) * 0.5) * (PI * 1.5 / float(maxi(1, N_RAICES_FONDO - 1)))
+			var dir: Vector3 = Vector3(cos(a), 0.0, sin(a))
+			var largo: float = radio * (1.15 + 0.35 * sin(float(k) * 2.1))
+			var pts := PackedVector3Array()
+			var pasos: int = 12
+			for i in range(pasos + 1):
+				var t: float = float(i) / float(pasos)
+				var q: Vector3 = inicio + dir * largo * t
+				q += Vector3(-dir.z, 0.0, dir.x) * sin(t * 6.0 + float(k)) * 0.07 * (0.3 + t)      # serpentea
+				var rel: Vector3 = (q - f) / escala
+				rel.y = 0.0
+				if rel.length() > radio:                                                      # no salirse del fondo
+					q = f + rel.normalized() * radio * escala
+				q.y = y + 0.012 * t
+				pts.append(q)
+			zm.tubo(pts, RAIZ_FONDO_RADIO, RAIZ_FONDO_RADIO * 0.28, 5, true)
+			for r in range(RAMAS_POR_RAIZ):
+				var ti: int = 5 + r * 3
+				var lado: float = 1.0 if (k + r) % 2 == 0 else -1.0
+				var da: float = a + lado * 0.7
+				var d2: Vector3 = Vector3(cos(da), 0.0, sin(da))
+				var pr := PackedVector3Array()
+				for i in range(8):
+					var t2: float = float(i) / 7.0
+					var q2: Vector3 = (pts[ti] as Vector3) + d2 * largo * 0.4 * t2 + Vector3(-d2.z, 0.0, d2.x) * sin(t2 * 5.0) * 0.04
+					var rel2: Vector3 = (q2 - f) / escala
+					rel2.y = 0.0
+					if rel2.length() > radio:
+						q2 = f + rel2.normalized() * radio * escala
+					q2.y = y + 0.012
+					pr.append(q2)
+				zm.tubo(pr, RAIZ_FONDO_RADIO * 0.55, RAIZ_FONDO_RADIO * 0.18, 5, true)
+			if k % 2 == 0:                                                                     # algunas puntas, enroscadas
+				var punta: Vector3 = pts[pasos]
+				var sale: Vector3 = (punta - (pts[pasos - 1] as Vector3)).normalized()
+				zm.rizo(punta, sale, Vector3.UP, 0.05, 1.3, RAIZ_FONDO_RADIO * 0.2, 4)
+		_raices_fondo = MeshInstance3D.new()
+		_raices_fondo.name = "raices_fondo"
+		_raices_fondo.mesh = zm.malla()
+		_mat_raiz_fondo = _material_raiz()
+		_mat_raiz_fondo.set_shader_parameter("invertir", true)
+		_raices_fondo.material_override = _mat_raiz_fondo
+		_raices_fondo.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		add_child(_raices_fondo)
+
+	## RAICES DE CONEXION (1 principal + 2 secundarias): ver las constantes RAIZ_*. La principal arranca del mismo punto que las raices del fondo (sin costura), se pega a la pared interior (radio de la pared menos su grosor
+	## y 0,015 de holgura, con un leve serpenteo), se APOYA en el labio (hundida LABIO_APLASTADO en el borde) y baja por fuera pegada a la pared exterior hasta meterse en la base del nudo. Las secundarias salen de ella a
+	## distinta altura y se enroscan a su alrededor (helice) hasta el mismo final: ninguna punta queda a la vista. Sin colision. El UV.x de cada tubo es su recorrido (la savia lo sigue).
+	func _montar_raices_conexion(boca: Vector3, fin: Vector3) -> void:
+		var c: Vector3 = _agua_hueco.position
+		var base_y: float = _piedra.position.y
+		var y0: float = base_y + HUECO_FONDO_Y
+		var yl: float = base_y + HUECO_LABIO_Y
+		var h: Vector3 = Vector3(boca.x - c.x, 0.0, boca.z - c.z).normalized()
+		var escala: Vector3 = Vector3(HUECO_FORMA.x, 1.0, HUECO_FORMA.y)
+		var r0: float = RAIZ_PRINCIPAL_RADIO.x
+		var inicio: Vector3 = _fondo_hueco.position + h * (HUECO_RADIO * HUECO_FONDO_ESCALA * 0.8) * 0.7 * escala      # = el de las raices del fondo
+		inicio.y = _fondo_hueco.position.y + 0.02
+		var lado: Vector3 = Vector3(-h.z, 0.0, h.x)
+		var claves: Array = [inicio + h * 0.05]
+		# pared interior: sube desde el fondo hasta cerca del labio, pegada a ella, serpenteando un poco
+		var pasos: int = 6
+		for i in range(pasos + 1):
+			var t: float = float(i) / float(pasos)
+			var yy: float = lerpf(y0 + (yl - y0) * RAIZ_SUBIDA, yl - 0.1, t)
+			var tp: float = clampf((yy - y0) / (yl - y0), 0.0, 1.0)
+			var rp: float = lerpf(HUECO_PARED_ABAJO, HUECO_PARED_ARRIBA, tp) - lerpf(RAIZ_PRINCIPAL_RADIO.x, RAIZ_PRINCIPAL_RADIO.y, 0.4) - 0.015
+			var q: Vector3 = c + (h * rp + lado * sin(t * 7.0) * 0.035 * (1.0 - t)) * escala
+			q.y = yy
+			claves.append(q)
+		# el labio: ABRAZANDO la piedra (arco bajo y asimetrico: entra casi recta y se tumba hacia fuera con una curva mas larga)
+		var rr: float = RAIZ_PRINCIPAL_RADIO.y
+		var rl: float = HUECO_PARED_ARRIBA + 0.04
+		var entra: Vector3 = c + h * (HUECO_PARED_ARRIBA - rr * 0.5) * escala
+		entra.y = yl - 0.02
+		claves.append(entra)
+		var sobre: Vector3 = c + h * (rl + 0.035) * escala
+		sobre.y = yl + rr * (1.0 - LABIO_APLASTADO) + 0.005
+		claves.append(sobre)
+		var tumba: Vector3 = c + h * (rl + 0.16) * escala
+		tumba.y = yl - 0.035
+		claves.append(tumba)
+		# por fuera: en diagonal por la pared exterior hasta el suelo
+		var ext2: Vector3 = c + (h * (HUECO_EXTERIOR_ARRIBA + 0.04) + lado * 0.03) * escala
+		ext2.y = yl - 0.26
+		claves.append(ext2)
+		var ext3: Vector3 = c + (h * (HUECO_EXTERIOR_ABAJO + 0.05)) * escala
+		ext3.y = base_y + RAIZ_REPTA_Y + 0.02
+		claves.append(ext3)
+		# repta por el suelo con una curva suave hasta la base del nudo
+		var base_nudo: Vector3 = fin + Vector3(0.0, -0.17, 0.0)
+		var dir_suelo: Vector3 = Vector3(base_nudo.x - ext3.x, 0.0, base_nudo.z - ext3.z)
+		var lado_s: Vector3 = Vector3(-dir_suelo.z, 0.0, dir_suelo.x).normalized()
+		for i in range(1, 4):
+			var tt: float = float(i) / 4.0
+			var q2: Vector3 = ext3.lerp(base_nudo, tt) + lado_s * sin(tt * 5.5) * RAIZ_REPTA_ONDA
+			q2.y = base_y + RAIZ_REPTA_Y
+			claves.append(q2)
+		claves.append(base_nudo)
+		# polilinea densa (Catmull-Rom)
+		var guia: Array = [(claves[0] as Vector3) + ((claves[0] as Vector3) - (claves[1] as Vector3)).normalized() * 0.05] + claves + [base_nudo + (base_nudo - (claves[claves.size() - 2] as Vector3)).normalized() * 0.1]
+		var pp := PackedVector3Array()
+		for i in range(1, guia.size() - 2):
+			for j in range(5):
+				pp.append(PuenteRaices3D._catmull(guia[i - 1], guia[i], guia[i + 1], guia[i + 2], float(j) / 5.0))
+		pp.append(base_nudo)
+		_conexion_tubo("raiz_principal", pp, RAIZ_PRINCIPAL_RADIO.x, RAIZ_PRINCIPAL_RADIO.y)
+		# donde cruza el labio (el punto mas alto)
+		var n: int = pp.size()
+		var i_lip: int = 0
+		for i in range(n):
+			if pp[i].y > pp[i_lip].y and (pp[i] - c).length() < rl + 0.5:
+				i_lip = i
+		# secundarias: helice suelta alrededor de la principal ANTES del labio, cruzan el borde a ambos lados de ella (RAIZ_SEPARACION) y vuelven a juntarse con ella en el nudo
+		for k in range(2):
+			var u0: float = RAIZ_SECUNDARIA_DESDE[k]
+			var vueltas: float = RAIZ_HELICE_VUELTAS[k]
+			var fase: float = 1.3 + float(k) * 2.4
+			var signo: float = -1.0 if k == 0 else 1.0
+			var ps := PackedVector3Array()
+			for i in range(int(u0 * float(n - 1)), n):
+				var w: float = (float(i) / float(n - 1) - u0) / (1.0 - u0)
+				var tg: Vector3 = (pp[mini(i + 1, n - 1)] - pp[maxi(i - 1, 0)]).normalized()
+				var nn: Vector3 = tg.cross(Vector3.UP)
+				if nn.length() < 0.2:
+					nn = tg.cross(Vector3.RIGHT)
+				nn = nn.normalized()
+				var bb: Vector3 = tg.cross(nn).normalized()
+				var ro: float = RAIZ_HELICE_RADIO * smoothstep(0.0, 0.15, w) * (1.0 - smoothstep(float(i_lip) - 6.0, float(i_lip) - 1.0, float(i)))
+				var ph: float = fase + vueltas * TAU * w
+				var off: Vector3 = (nn * cos(ph) + bb * sin(ph)) * ro
+				var lat: Vector3 = Vector3.UP.cross(tg)
+				if lat.length() < 0.3:
+					lat = lado
+				lat = lat.normalized()
+				var u_ext: float = clampf(float(i - i_lip) / float(maxi(1, n - 1 - i_lip)), 0.0, 1.0)
+				var sep: float = RAIZ_SEPARACION * signo * smoothstep(float(i_lip) - 7.0, float(i_lip) - 2.0, float(i)) * (1.0 - smoothstep(0.7, 1.0, u_ext))
+				ps.append(pp[i] + off + lat * sep)
+			_conexion_tubo("raiz_secundaria_%d" % k, ps, RAIZ_SECUNDARIA_RADIO.x, RAIZ_SECUNDARIA_RADIO.y)
+
+	func _conexion_tubo(nombre: String, pts: PackedVector3Array, r0: float, r1: float) -> void:
+		var zm := ZarcilloMalla.new()
+		zm.tubo(pts, r0, r1, 6, true)
+		var mi := MeshInstance3D.new()
+		mi.name = nombre
+		mi.mesh = zm.malla()
+		var mat: ShaderMaterial = _material_raiz()
+		mi.material_override = mat
+		mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		add_child(mi)
+		_raices_conexion.append(mi)
+		_mats_raiz.append(mat)
+
+	## Estado final sin animación (cargado ya germinado, o sin árbol): agua llena, hilo entero, nudo abierto.
+	func _poner_estado_final_surco() -> void:
+		if _agua_hueco == null:
+			return
+		_agua_hueco.visible = true
+		_agua_hueco.position.y = _piedra.position.y + HUECO_Y
+		_agua_hueco.scale = Vector3.ONE
+		_mat_agua.set_shader_parameter("pulso", 2.0)
+		_savia(1.0)
+		_hilo.visible = true
+		_hilo.scale = Vector3.ONE
+		_abrir_nudo_ya()
+
+	func _abrir_nudo_ya() -> void:
+		nudo_abierto = true
+		if _mat_nudo != null:
+			_mat_nudo.albedo_color = COLOR_NUDO_VIVO
+			_mat_nudo.roughness = 0.85
+			_mat_nudo.emission_energy_multiplier = 0.0
+		if _nudo_glb_vivo != null:
+			_nudo_glb_dormido.visible = false
+			_nudo_glb_vivo.visible = true
+
+	## La secuencia: agua sube → hilo → nudo se abre (y entonces `germino`).
+	func _germinar_surco() -> void:
+		if _agua_hueco == null or not is_inside_tree():
+			if _agua_hueco != null:
+				_poner_estado_final_surco()
+			t_nudo_abierto = Time.get_ticks_msec()
+			germino.emit()
+			return
+		var base_y: float = _piedra.position.y + HUECO_Y
+		_agua_hueco.visible = true
+		_agua_hueco.position.y = _piedra.position.y + HUECO_FONDO_Y
+		_agua_hueco.scale = Vector3(0.35, 1.0, 0.35)
+		_mat_agua.set_shader_parameter("pulso", 2.0)
+		if fx != null and is_instance_valid(fx):
+			fx.salpicadura(global_position + Vector3(_agua_hueco.position.x, base_y, _agua_hueco.position.z), 0.7)
+		_hilo.scale = Vector3(1.0, 1.0, 0.001)
+		var tw: Tween = create_tween()
+		tw.tween_property(_agua_hueco, "position:y", base_y, T_AGUA).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
+		tw.parallel().tween_property(_agua_hueco, "scale", Vector3.ONE, T_AGUA).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
+		tw.tween_callback(func() -> void:
+			_hilo.visible = true)
+		tw.tween_property(_hilo, "scale:z", 1.0, T_HILO).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN)
+		tw.parallel().tween_method(func(v: float) -> void: _mat_agua.set_shader_parameter("pulso", v), 0.0, 1.1, T_HILO)
+		tw.parallel().tween_method(_savia, 0.0, 1.0, T_HILO)       # la savia recorre fondo -> raices -> nudo mientras baja el hilo
+		tw.tween_callback(_despertar_nudo)
+
+	## El nudo se abre: color lima, pop con rebote, las espiras se desenrollan girando, esporas. Aquí sale `germino`.
+	func _despertar_nudo() -> void:
+		nudo_abierto = true
+		t_nudo_abierto = Time.get_ticks_msec()
+		_nudo.scale = Vector3.ONE * NUDO_ESCALA * 0.8
+		var tw: Tween = create_tween()
+		tw.tween_property(_nudo, "scale", Vector3.ONE * NUDO_ESCALA, 0.45).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+		if _mat_nudo != null:
+			tw.parallel().tween_property(_mat_nudo, "albedo_color", COLOR_NUDO_VIVO, 0.3)
+			tw.parallel().tween_property(_mat_nudo, "roughness", 0.85, 0.3)
+			tw.parallel().tween_property(_mat_nudo, "emission_energy_multiplier", 0.0, 0.6).from(0.7)
+			for k in range(_espiras.size()):
+				var e: MeshInstance3D = _espiras[k]
+				e.rotation.y = -0.55 * float(k + 1)            # cada arco parte desfasado y se asienta: el nudo «se desenrolla»
+				e.scale = Vector3(0.72, 1.0, 0.72)
+				var te: Tween = create_tween()
+				te.tween_interval(0.07 * float(k))
+				te.tween_property(e, "rotation:y", 0.0, T_NUDO).set_trans(Tween.TRANS_ELASTIC).set_ease(Tween.EASE_OUT)
+				te.parallel().tween_property(e, "scale", Vector3.ONE, T_NUDO * 0.7).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+		else:
+			_nudo_glb_dormido.visible = false
+			_nudo_glb_vivo.visible = true
+			var giro_final: float = _nudo.rotation.y
+			_nudo.rotation.y = giro_final - 1.0
+			tw.parallel().tween_property(_nudo, "rotation:y", giro_final, T_NUDO).set_trans(Tween.TRANS_ELASTIC).set_ease(Tween.EASE_OUT)
+		if fx != null and is_instance_valid(fx):
+			var centro: Vector3 = _nudo.global_position + Vector3(0.0, 0.3, 0.0)
+			var efectos: Array = [fx.esporas(centro), fx.destellos(centro + Vector3(0.0, 0.2, 0.0), Vfx3D.COLOR.get("naturaleza", Color(0.45, 0.8, 0.3)))]
+			var vfx: Vfx3D = fx
+			get_tree().create_timer(1.2).timeout.connect(func() -> void:
+				for ef in efectos:
+					if is_instance_valid(vfx) and is_instance_valid(ef):
+						vfx.apagar(ef as Node3D))
 		germino.emit()
 
 
@@ -2246,6 +3023,12 @@ func _crear(pz: Pieza) -> void:
 			bancal.name = pz.id
 			bancal.celda = pz.celda
 			bancal.flag = String(pz.p["flag"])
+			bancal.con_tocon = String(pz.p.get("modelo", "")) == "tocon"
+			bancal.con_surco = String(pz.p.get("modelo", "")) == "surco"
+			bancal.dir_txt = String(pz.p.get("dir", "s"))
+			if bancal.con_tocon or bancal.con_surco:
+				var fx_b: Variant = (mundo as Object).get("_fx") if mundo is Object else null
+				bancal.fx = fx_b as Vfx3D
 			cont.add_child(bancal)
 			pz.nodo = bancal
 		"pulsador":
@@ -2672,15 +3455,35 @@ func _crear(pz: Pieza) -> void:
 			var centros_p: Array = []
 			for c in celdas_p:
 				centros_p.append(Terreno3D.centro_de(c as Vector2i, Terreno3D.alto_agua))
-			var pr := PuenteReactivo3D.new()
-			pr.name = pz.id
-			cont.add_child(pr)
 			var fx_p: Variant = (mundo as Object).get("_fx") if mundo is Object else null
-			pr.preparar(celdas_p, centros_p, Terreno3D.alto_agua + 0.12, Terreno3D.alto_agua, fx_p as Vfx3D, Vfx3D.COLOR.get("fuego", Color(1.0, 0.6, 0.2)))
-			pr.losa_lista.connect(func(c: Vector2i) -> void:
+			var al_lista: Callable = func(c: Vector2i) -> void:
 				Terreno3D.poner_letra(c, "b")
-				Terreno3D.liberar_celda(c))
-			pz.nodo = pr
+				Terreno3D.liberar_celda(c)
+			if String(pz.p.get("estilo", "losas")) in ["raices", "zarcillos"]:
+				# 23/11: el puente de raíces / de zarcillos (misma interfaz que las losas). Crece desde la primera casilla de `celdas`.
+				var pq := PuenteRaices3D.new()
+				pq.name = pz.id
+				pq.zarcillos = String(pz.p.get("estilo", "")) == "zarcillos"
+				cont.add_child(pq)
+				pq.preparar(celdas_p, centros_p, Terreno3D.alto_agua + 0.12, Terreno3D.alto_agua, fx_p as Vfx3D, Vfx3D.COLOR.get("naturaleza", Color(0.45, 0.8, 0.3)), String(pz.p.get("dir", "")))
+				pq.losa_lista.connect(al_lista)
+				if pq.zarcillos:
+					# El ANCLAJE va en la casilla que sigue al último tramo (en su sentido). Solo decorado, y solo si es suelo andable: con pared (o agua, o fuera del mapa) no se pone y se avisa.
+					var dd: Vector3 = pq.direccion_final()
+					var c_fin: Vector2i = (celdas_p.back() as Vector2i) + Vector2i(int(roundf(dd.x)), int(roundf(dd.z)))
+					var letra_fin: String = Terreno3D.letra_de(c_fin)
+					if letra_fin in ["#", "~", ""] or Terreno3D.bloqueada(c_fin):
+						_avisar_pieza(pz, "zarcillos: la casilla de llegada %s no es suelo libre («%s»): el puente queda sin anclaje" % [str(c_fin), letra_fin])
+					else:
+						pq.montar_anclaje(Terreno3D.centro_de(c_fin, Terreno3D.y_pies(c_fin)))
+				pz.nodo = pq
+			else:
+				var pr := PuenteReactivo3D.new()
+				pr.name = pz.id
+				cont.add_child(pr)
+				pr.preparar(celdas_p, centros_p, Terreno3D.alto_agua + 0.12, Terreno3D.alto_agua, fx_p as Vfx3D, Vfx3D.COLOR.get("fuego", Color(1.0, 0.6, 0.2)))
+				pr.losa_lista.connect(al_lista)
+				pz.nodo = pr
 		"veta":
 			var ve := VetaPulso3D.new()
 			ve.name = pz.id
@@ -2876,6 +3679,10 @@ func _enlazar(pz: Pieza) -> void:
 	match pz.tipo:
 		"cofre":
 			(pz.nodo as CofrePuzle).arrancar()      # ya están todas las piezas: aparece_si puede mirarlas
+		"puente":
+			# 23/11: `tendido_si` (p. ej. la flag del bancal) cumplida al montar: el puente nace ya tendido, sin animación. Va aquí porque la expresión puede mirar otras piezas.
+			if pz.exprs.has("tendido_si") and cumple_expr(pz.exprs["tendido_si"]):
+				pz.nodo.call("tender_ya")
 		"brasero":
 			if not (pz.p.has("rele") or pz.p.has("dura") or pz.p.has("espera")):
 				return
