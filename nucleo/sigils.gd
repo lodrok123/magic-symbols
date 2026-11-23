@@ -372,6 +372,8 @@ static var HAZ_ACTIVO: bool = true
 ##   salta   (opcional) los k primeros glifos no cuentan: n = max(n − k, 0), y con n = 0 el modificador no se aplica («persiste +1 por cada glifo SUCESIVO»: salta 1)
 ##   desde   valor de partida si ningún otro glifo ha tocado ya ese campo (opcional; p. ej. la solidez parte de 1 con el primer glifo y vale 0 sin ninguno)
 ## `cuenta_dano` (H3, opcional, por defecto true): ¿suma este glifo al recuento OFENSIVO que fija el daño (`Hechizo.n_glifos_dano`)? Los de geometría (ᛁ linea_x, ᛁ linea_z, ᛏ altura) no: cuestan tinta pero no dan daño (PLAN_SISTEMA_HECHIZOS §4.1).
+##   22/11 (B9a de docs/PLAN_HECHIZOS_2026-11-22.md, P9 decidida por Pablo; H14 §10): tampoco los de FORMA o TRANSPORTE: ᛇ flecha, ᚷ crecer (`pulso`), ᛉ permanencia, ᚨ buscar, ᚢ rebote y ᚠ repetición
+##   (su beneficio es el alcance, el tamaño, la duración o las copias, y siguen costando tinta). Siguen contando los de POTENCIA: ᛜ barrera, ᚱ pulso (`raido`), ᚦ perforar, ⧖ carga (×2) y ᛒ suelo. ᛃ retorno no se decidió: sigue contando.
 ## `tinta` (H4, opcional): {por_glifo, tope} = lo que suma este glifo a la tinta BASE (`Dano.desglose_tinta`: min(por_glifo × n, tope)); sin la clave, 0. 6/11 (bloque A3): valores de partida APLICADOS (Pablo los afinará): flecha 2 · barrera 4 · repetición 3 · rebote 2 · pulso (crecer) 2 · permanencia 3 · raido 4 · ejes, altura, perforar, retorno, buscar y retardo 0.
 ##   Los topes escritos (3-4 glifos de cada uno) son los de la propuesta de DANO_Y_TINTA §2 y no se han tocado.
 ## Más `repertorio` (nombre en el libro) y `cooldown` (recarga de la página). **Un glifo nuevo es solo datos aquí.**
@@ -381,7 +383,7 @@ const GLIFOS: Dictionary = {
 	"linea_z": {"cuenta_dano": false, "repertorio": "linea", "cooldown": 2.0, "tinta": {"por_glifo": 0.0, "tope": 0.0}, "momento": "inicio", "paso": 1, "modificadores": [{"campo": "semiejes.z", "op": "suma_primero", "valor": PASO_FONDO_V2, "luego": PASO_LUEGO_V2, "tope": TOPE_EJE_HORIZONTAL_V2}]},
 	"altura": {"cuenta_dano": false, "repertorio": "altura", "cooldown": 2.0, "tinta": {"por_glifo": 0.0, "tope": 0.0}, "momento": "inicio", "paso": 1, "modificadores": [{"campo": "semiejes.y", "op": "suma_decreciente", "valor": PASO_ALTURA_V2, "factor": FACTOR_DECRECIENTE_ALTURA_V2, "tope": TOPE_EJE_ALTURA_V2}]},
 	# La flecha (18/10, diseño de Pablo): el 1.er glifo la pone en marcha (velocidad 4 u/s) y da 2 casillas de alcance; cada glifo SUCESIVO suma 1 casilla (solo alcance, la velocidad no cambia).
-	"flecha": {"repertorio": "flecha", "cooldown": 1.0, "tinta": {"por_glifo": 2.0, "tope": 8.0}, "momento": "continuo", "paso": 3, "modificadores": [
+	"flecha": {"cuenta_dano": false, "repertorio": "flecha", "cooldown": 1.0, "tinta": {"por_glifo": 2.0, "tope": 8.0}, "momento": "continuo", "paso": 3, "modificadores": [
 		{"campo": "velocidad", "op": "fija", "valor": "@velocidad_flecha"},
 		{"campo": "distancia_max", "op": "suma", "valor": 1.0, "tope": 6.0, "desde": 1.0},
 			{"campo": "impulso_salida", "op": "suma", "valor": IMPULSO_POR_FLECHA_V2, "salta": 1}]},
@@ -390,14 +392,14 @@ const GLIFOS: Dictionary = {
 	"barrera": {"repertorio": "barrera", "cooldown": 3.0, "tinta": {"por_glifo": 4.0, "tope": 12.0}, "momento": "continuo", "paso": 4, "modificadores": [
 		{"campo": "solidez", "op": "multiplica", "valor": 1.5, "tope": 3.0, "desde": 1.0},
 		{"campo": "permanencia", "op": "suma", "valor": 1.0, "salta": 1}]},
-	"repeticion": {"repertorio": "repeticion", "cooldown": 1.5, "tinta": {"por_glifo": 3.0, "tope": 9.0}, "momento": "inicio", "paso": 2, "modificadores": [{"campo": "copias", "op": "suma", "valor": 1.0, "tope": 4.0, "desde": 1.0}]},
-	"rebote": {"repertorio": "rebote", "cooldown": 1.5, "tinta": {"por_glifo": 2.0, "tope": 6.0}, "momento": "final", "paso": 3, "modificadores": [{"campo": "rebotes", "op": "suma", "valor": 1.0, "tope": 3.0}]},
+	"repeticion": {"cuenta_dano": false, "repertorio": "repeticion", "cooldown": 1.5, "tinta": {"por_glifo": 3.0, "tope": 9.0}, "momento": "inicio", "paso": 2, "modificadores": [{"campo": "copias", "op": "suma", "valor": 1.0, "tope": 4.0, "desde": 1.0}]},
+	"rebote": {"cuenta_dano": false, "repertorio": "rebote", "cooldown": 1.5, "tinta": {"por_glifo": 2.0, "tope": 6.0}, "momento": "final", "paso": 3, "modificadores": [{"campo": "rebotes", "op": "suma", "valor": 1.0, "tope": 3.0}]},
 	# ᚷ «crecer» (hasta el 23/10 se llamaba «pulso»; el id, el parámetro `crece` y el efecto no cambian: ver NOMBRE_VISIBLE). Crece mientras vive.
 	# 30/10 (playtest de Pablo, «más glifos, mayor tope geométrico y mayor tasa»): además de `crece` +0,5 m/s, cada ᚷ MULTIPLICA los tres semiejes por CRECER_TOPE_V2 (el volumen nace pequeño y crece hasta ese tamaño mayor).
-	"pulso": {"repertorio": "pulso", "cooldown": 2.5, "tinta": {"por_glifo": 2.0, "tope": 6.0}, "momento": "continuo", "paso": 3, "modificadores": [{"campo": "crece", "op": "suma", "valor": CRECER_TASA_V2, "tope": CRECER_TASA_TOPE_V2},
+	"pulso": {"cuenta_dano": false, "repertorio": "pulso", "cooldown": 2.5, "tinta": {"por_glifo": 2.0, "tope": 6.0}, "momento": "continuo", "paso": 3, "modificadores": [{"campo": "crece", "op": "suma", "valor": CRECER_TASA_V2, "tope": CRECER_TASA_TOPE_V2},
 		{"campo": "semiejes.x", "op": "multiplica", "valor": CRECER_TOPE_V2}, {"campo": "semiejes.y", "op": "multiplica", "valor": CRECER_TOPE_V2}, {"campo": "semiejes.z", "op": "multiplica", "valor": CRECER_TOPE_V2}]},
 	# ᛉ Permanencia (19/10, ESPEC_HECHIZO §3): lo que hace que un hechizo SE QUEDE (defensas, piezas de puzle). +2 s por glifo; `Hechizo._limitar` recorta persiste + permanencia a 25 s.
-	"permanencia": {"repertorio": "permanencia", "cooldown": 1.5, "tinta": {"por_glifo": 3.0, "tope": 9.0}, "momento": "final", "paso": 3, "modificadores": [{"campo": "permanencia", "op": "suma", "valor": 2.0, "tope": 25.0}]},
+	"permanencia": {"cuenta_dano": false, "repertorio": "permanencia", "cooldown": 1.5, "tinta": {"por_glifo": 3.0, "tope": 9.0}, "momento": "final", "paso": 3, "modificadores": [{"campo": "permanencia", "op": "suma", "valor": 2.0, "tope": 25.0}]},
 	# ᚱ «pulso» (23/10, Pulso resonante fase 2; PLAN_PULSO_RESONANTE §2 y §10 bis): el volumen suelta un `Pulso3D` de `resuena` casillas con el elemento de la receta.
 	# Cuándo: al FINAL si el hechizo viaja (flecha + pulso = pulso donde choca, sin caso especial); CONTINUO si el volumen se queda (barrera, sólido, permanencia); al INICIO en el resto.
 	"raido": {"repertorio": "raido", "cooldown": 2.0, "tinta": {"por_glifo": 4.0, "tope": 12.0}, "momento": "inicio", "paso": 5, "accion": "emitir_pulso",
@@ -410,7 +412,7 @@ const GLIFOS: Dictionary = {
 	# ᛃ retorno (30/10: sin flecha no hace nada; pregunta abierta a Pablo en PENDIENTES): al acabar la ida el proyectil vuelve y golpea de nuevo. Es un booleano: un segundo ᛃ no hace nada más (y sí cuenta para daño, tinta y recarga).
 	"retorno": {"repertorio": "retorno", "cooldown": 2.0, "tinta": {"por_glifo": 0.0, "tope": 0.0}, "momento": "final", "paso": 3, "modificadores": [{"campo": "retorna", "op": "fija", "valor": true}]},
 	# ᚨ buscar: el proyectil se imanta al enemigo vivo más cercano de su cono. 30/10 (playtest de Pablo, «más aplicaciones, más imán»): +1 de `busca` por glifo (tope 3); el cono se abre con `busca` (`HechizoVivo._buscar`).
-	"buscar": {"repertorio": "buscar", "cooldown": 1.5, "tinta": {"por_glifo": 0.0, "tope": 0.0}, "momento": "continuo", "paso": 3, "modificadores": [{"campo": "busca", "op": "suma", "valor": 1.0, "tope": 3.0}]},
+	"buscar": {"cuenta_dano": false, "repertorio": "buscar", "cooldown": 1.5, "tinta": {"por_glifo": 0.0, "tope": 0.0}, "momento": "continuo", "paso": 3, "modificadores": [{"campo": "busca", "op": "suma", "valor": 1.0, "tope": 3.0}]},
 	# ⧖ retardo, que el jugador ve como «carga» (30/10, playtest de Pablo: «cambiarlo por carga que aumente todos sus parámetros a cambio de un delay»): lo que sale tarda `retardo` s en salir (+1 s por glifo, tope 3)
 	# y a cambio sale más grande (semiejes ×1,2 por glifo) y con más daño (`potencia` ×1,25 por glifo = la G de `Combate3D.decidir_golpe`). El volumen quieto nace tarde y el proyectil espera quieto en la mano.
 	# El alcance (`distancia_max` ×1,2) NO se multiplica: un campo tocado cuenta como «propiedad usada» (`viaja`) y una carga sin flecha encarecería y quitaría el haz; anotado en el diario.

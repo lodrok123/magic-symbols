@@ -37,6 +37,8 @@ func _escenario() -> void:
 	await cargar(RUTA, true)
 	if maqueta == null or jugador == null:
 		return
+	# 22/11: PruebaBosque02 lleva ya el kit de arranque de la demo («demo_inicio», PLAN_HECHIZOS §2.2b). Esta prueba recorre el nivel con el repertorio de pruebas, como antes.
+	Lanzador3D.aplicar_progresion("pruebas")
 	await avanzar(10)
 	reglas = maqueta.get_node_or_null("Reglas")
 	z = maqueta.get_node_or_null("Puzles") as Puzle3D
@@ -731,7 +733,7 @@ func _santuario() -> void:
 	await abrir_cofre("cofre_corazon", "10.8")
 	await avanzar_s(1.0)
 	_ok("10.9 FIN DE LA DEMO: `bosque02.santuario.cofre` puesta, `_terminado` y el logro `nivel_completado` emitido UNA vez", _flag("bosque02.santuario.cofre") and not fin_antes and bool(reglas.get("_terminado")) and int(Logros3D.total.get("nivel_completado", 0)) == antes + 1, "logros %d → %d" % [antes, int(Logros3D.total.get("nivel_completado", 0))])
-	_ok("10.10 el rótulo dice «Fin de la demo» y el glifo ᛜ del cofre legendario está en el libro", String((reglas.get("_aviso") as Label).text).begins_with("Fin de la demo") and Repertoire.sigil_active("barrera"), String((reglas.get("_aviso") as Label).text))
+	_ok("10.10 el rótulo dice «Fin de la demo» y el glifo ᛁ del cofre legendario está en el libro (22/11: antes ᛜ)", String((reglas.get("_aviso") as Label).text).begins_with("Fin de la demo") and Repertoire.sigil_active("linea") and Flags.i().tiene(Puzle3D.FLAG_GLIFO_GANADO + "linea"), String((reglas.get("_aviso") as Label).text))
 
 
 # ---------------------------------------------------------------------------------------------------------------------

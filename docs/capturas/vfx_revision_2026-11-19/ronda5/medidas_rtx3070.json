@@ -1,0 +1,30 @@
+[
+	{
+		"draw_calls": 7.0,
+		"frame_ms": 1.69715,
+		"gpu_ms": 0.190600000073512,
+		"mejoras": false,
+		"receta": "Muro agua largo"
+	},
+	{
+		"draw_calls": 2.0,
+		"frame_ms": 1.22681666666667,
+		"gpu_ms": 0.0466166663914919,
+		"mejoras": true,
+		"receta": "Muro agua largo"
+	},
+	{
+		"draw_calls": 7.0,
+		"frame_ms": 1.56141666666667,
+		"gpu_ms": 0.154366667071978,
+		"mejoras": false,
+		"receta": "Muro agua alto"
+	},
+	{
+		"draw_calls": 2.0,
+		"frame_ms": 1.32448333333333,
+		"gpu_ms": 0.0435833336785436,
+		"mejoras": true,
+		"receta": "Muro agua alto"
+	}
+]

@@ -75,6 +75,23 @@ def main():
                     if st[k] != st[(k + 1) % 3]:
                         vec[st[k]].add(st[(k + 1) % 3])
                         vec[st[(k + 1) % 3]].add(st[k])
+            # BORDES: un vértice del borde abierto de la prenda solo se alisa con sus vecinos DE BORDE (a lo largo del canto). Con todos
+            # sus vecinos el canto se retiraba hacia dentro: al alisar el cuello de la capucha y la capa verdes se abrió una rendija
+            # entre las dos (19/11). Así el canto pierde los dientes sin encoger la tela.
+            uso_ar = {}
+            for t in range(0, len(idx), 3):
+                st = [sold[v] for v in idx[t:t + 3]]
+                for k in range(3):
+                    a0, b0 = st[k], st[(k + 1) % 3]
+                    if a0 != b0:
+                        uso_ar[(min(a0, b0), max(a0, b0))] = uso_ar.get((min(a0, b0), max(a0, b0)), 0) + 1
+            vec_borde = {}
+            for (a0, b0), n_usos in uso_ar.items():
+                if n_usos == 1:
+                    vec_borde.setdefault(a0, set()).add(b0)
+                    vec_borde.setdefault(b0, set()).add(a0)
+            for s, vs in vec_borde.items():
+                vec[s] = vs
             peso = []
             for p in ps:
                 xm, ym, zm = p[0] * unidad, -p[2] * unidad, p[1] * unidad

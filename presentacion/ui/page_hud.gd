@@ -48,6 +48,28 @@ var _sobre_f: float = 0.0
 var _sobre_lista: bool = false
 
 
+## H16 (22/11, sesión HECHIZOS): el NOMBRE de la página activa («Flecha de fuego», o el que puso la jugadora), encima de las pestañas. Al cambiar de página sale en grande
+## `T_NOMBRE_GRANDE` s y se reduce; no se enseñan los tres a la vez (llenarían la pantalla en combate). Lo lee de `Grimorio.nombre_pagina`.
+const T_NOMBRE_GRANDE: float = 1.2
+const T_NOMBRE_ENCOGE: float = 0.25
+const TAM_NOMBRE_GRANDE: int = 22
+const TAM_NOMBRE: int = 14
+const ALTO_NOMBRE: float = 30.0                   ## px por encima del centro de las pestañas
+var _nombre_pagina_vista: int = -1
+var _nombre_texto_visto: String = ""
+var _nombre_desde_ms: int = 0
+var ultimo_nombre: String = ""                    ## lo último que pintó (para las pruebas)
+var ultimo_tam_nombre: int = 0
+
+
+## El tamaño del nombre `t` segundos después de cambiar de página: grande, y luego se reduce en `T_NOMBRE_ENCOGE` s.
+static func tam_nombre(t: float) -> int:
+	if t <= T_NOMBRE_GRANDE:
+		return TAM_NOMBRE_GRANDE
+	var k: float = clampf((t - T_NOMBRE_GRANDE) / T_NOMBRE_ENCOGE, 0.0, 1.0)
+	return int(round(lerpf(float(TAM_NOMBRE_GRANDE), float(TAM_NOMBRE), k)))
+
+
 func sobrecarga(indice: int, fraccion: float = 0.0, lista: bool = false) -> void:
 	_sobre_i = indice
 	_sobre_f = clampf(fraccion, 0.0, 1.0)
@@ -137,6 +159,10 @@ func _draw() -> void:
 				draw_arc(centro, radio * (1.2 + 0.8 * (1.0 - k)), 0.0, TAU, 32, Color(1.0, 0.97, 0.85, k), 3.0, true)
 		_texto(centro + Vector2(0.0, 28.0), Controles.texto_teclas("pagina_%d" % (i + 1)), TemaInterfaz.TINTA_PERGAMINO, 42.0)
 
+	# H16: el nombre de la página activa, encima de las pestañas.
+	_dibujar_nombre(caster, Vector2(size.x * 0.5, y - ALTO_NOMBRE))
+	_dibujar_pista(Vector2(size.x * 0.5, y - ALTO_PISTA))
+
 	# La voltereta.
 	var jugador = get_tree().get_first_node_in_group("player")
 	if jugador != null and jugador.has_method("roll_cooldown_fraction"):
@@ -148,6 +174,63 @@ func _draw() -> void:
 			draw_arc(c, RADIO * 0.35, -PI * 0.5, -PI * 0.5 + TAU * listo, 24, VELO, RADIO * 0.7, true)
 		_texto(c + Vector2(0.0, 22.0 + RADIO * 0.5), Controles.texto_teclas("voltereta"), TINTA)
 
+
+func _dibujar_nombre(caster: Node, pos: Vector2) -> void:
+	var nombre: String = String(caster.call("nombre_pagina", int(caster.get("page")))) if caster.has_method("nombre_pagina") else ""
+	var pagina: int = int(caster.get("page"))
+	if pagina != _nombre_pagina_vista or nombre != _nombre_texto_visto:
+		# Cambió de página (o de receta, o la renombró): vuelve a salir en grande.
+		_nombre_pagina_vista = pagina
+		_nombre_texto_visto = nombre
+		_nombre_desde_ms = Time.get_ticks_msec()
+	ultimo_nombre = nombre
+	if nombre == "":
+		ultimo_tam_nombre = 0
+		return
+	var tam: int = tam_nombre(float(Time.get_ticks_msec() - _nombre_desde_ms) / 1000.0)
+	ultimo_tam_nombre = tam
+	# Con contorno oscuro: se lee sobre la hierba, la nieve o el agua.
+	var fuente: Font = TemaInterfaz.fuente()
+	var ancho: float = fuente.get_string_size(nombre, HORIZONTAL_ALIGNMENT_LEFT, -1, tam).x
+	var p: Vector2 = pos - Vector2(ancho * 0.5, 0.0)
+	draw_string_outline(fuente, p, nombre, HORIZONTAL_ALIGNMENT_LEFT, -1, tam, 4, Color(0.13, 0.09, 0.06, 0.85))
+	draw_string(fuente, p, nombre, HORIZONTAL_ALIGNMENT_LEFT, -1, tam, TINTA)
+
+
+
+## H6 (23/11): la PISTA de uso inmediato (`PistaGlifo`), una píldora encima del nombre de la página: «[runa] Pulsa 2». Solo existe mientras haya una pista sin cumplir.
+const TAM_PISTA: int = 15
+const ALTO_PISTA: float = 64.0                    ## px por encima del centro de las pestañas (el nombre ocupa hasta ALTO_NOMBRE + su tamaño grande)
+var ultima_pista: String = ""                     ## lo último que pintó (para las pruebas)
+
+
+func _dibujar_pista(pos: Vector2) -> void:
+	ultima_pista = ""
+	var pista := get_tree().get_first_node_in_group(PistaGlifo.GRUPO) as PistaGlifo
+	if pista == null or pista.cumplido:
+		return
+	var texto: String = pista.texto_hud()
+	if texto == "":
+		return
+	ultima_pista = texto
+	var fuente: Font = TemaInterfaz.fuente()
+	var ancho_t: float = fuente.get_string_size(texto, HORIZONTAL_ALIGNMENT_LEFT, -1, TAM_PISTA).x
+	var lado_runa: float = 22.0
+	var total: float = lado_runa + 8.0 + ancho_t
+	var latido: float = 0.5 + 0.5 * sin(float(Time.get_ticks_msec()) * 0.004)
+	var col: Color = pista.color()
+	var caja := Rect2(pos + Vector2(-total * 0.5 - 12.0, -TAM_PISTA - 8.0), Vector2(total + 24.0, TAM_PISTA + 16.0))
+	var estilo := StyleBoxFlat.new()
+	estilo.bg_color = Color(0.10, 0.07, 0.05, 0.72)
+	estilo.border_color = Color(col, 0.55 + 0.35 * latido)
+	estilo.set_border_width_all(2)
+	estilo.set_corner_radius_all(12)
+	estilo.draw(get_canvas_item(), caja)
+	var x0: float = pos.x - total * 0.5
+	var tex: Texture2D = pista.textura()
+	if tex != null:
+		draw_texture_rect(tex, Rect2(Vector2(x0, pos.y - lado_runa * 0.5 - 5.0), Vector2.ONE * lado_runa), false, Color(col.lightened(0.35), 1.0))
+	draw_string(fuente, Vector2(x0 + lado_runa + 8.0, pos.y), texto, HORIZONTAL_ALIGNMENT_LEFT, -1, TAM_PISTA, TINTA)
 
 func _texto(pos: Vector2, texto: String, color: Color, ancho_max: float = -1.0) -> void:
 	var fuente: Font = TemaInterfaz.fuente()

@@ -24,6 +24,13 @@ var calidad := "legendario"
 var nivel_libro: int = 0
 var objeto_presentado: String = "oro"
 var modo_prueba := false
+## H6 (23/11): lo que el cofre pide para la PISTA de uso inmediato (claves `reto=` y `reto_en=` del mapa; ver `PistaGlifo`). `reto` = la flag que resuelve la sala (si no, la pista se va al primer
+## lanzamiento con el glifo); `reto_en` = la casilla (Vector2i) donde el suelo enseña el marcador. Vacíos = sin ellos.
+var reto: String = ""
+var reto_en: Variant = null
+var pagina_equipada: int = -1                      ## la página donde `Grimorio.equipar_glifo_nuevo` dejó el glifo (-1 = no cabía o no era nuevo)
+var glifo_nuevo: bool = false
+var pista: PistaGlifo = null
 var efectos_reducidos := false
 var usar_mixamo := false
 ## Contacto calibrable: no reutiliza el instante del clip Meshy para Mixamo.
@@ -66,6 +73,7 @@ var _abanico: MeshInstance3D
 var _onda: MeshInstance3D
 var _estela: Array[MeshInstance3D] = []
 var _nombre: Label3D
+var _lamina: LaminaGlifo
 var _tex: Texture2D
 var _origen := Vector3.ZERO
 var _alto := Vector3.ZERO
@@ -388,8 +396,10 @@ func _confirmar() -> void:
 	_confirmada = true
 	escrito = true
 	if not modo_prueba and not glifo.is_empty():
-		Repertoire.conseguir_sigil(glifo)
+		glifo_nuevo = Repertoire.conseguir_sigil(glifo)
 		Flags.i().poner(Puzle3D.FLAG_GLIFO_GANADO + glifo)
+		if glifo_nuevo:
+			pagina_equipada = _equipar()
 	if not glifo.is_empty():
 		glifo_escrito.emit()
 	recompensa_lista.emit()
@@ -409,6 +419,7 @@ func _finalizar() -> void:
 	_confirmar()
 	if ctrl != null and is_instance_valid(ctrl):
 		ctrl.abrir_ya()
+	_cerrar_lamina()
 	_restaurar()
 	activa = false
 	esperando_input = false
@@ -419,6 +430,7 @@ func _finalizar() -> void:
 		Flags.i().poner(FLAG_VISTA)
 		if is_instance_valid(_lanz):
 			AvisoObjeto.mostrar_texto(_lanz, "Runa inscrita: " + Sigils.nombre_visible(glifo), calidad, "glifo:" + glifo)
+		_mostrar_pista()
 	terminada.emit()
 	if not modo_prueba:
 		get_tree().create_timer(2.6).timeout.connect(queue_free)
@@ -463,6 +475,7 @@ func cancelar() -> void:
 func _exit_tree() -> void:
 	if activa:
 		_confirmar()
+		_cerrar_lamina()
 		_restaurar()
 		activa = false
 
@@ -474,7 +487,7 @@ func _input(ev: InputEvent) -> void:
 		nueva = ev.pressed and not ev.echo and (ev.keycode in [KEY_E, KEY_ENTER, KEY_SPACE] or ev.is_action_pressed("interactuar") or ev.is_action_pressed("ui_accept"))
 	elif ev is InputEventJoypadButton:
 		nueva = ev.pressed and (ev.button_index == JOY_BUTTON_A or ev.is_action_pressed("ui_accept") or ev.is_action_pressed("interactuar"))
-	if esperando_input and nueva and continuar():
+	if esperando_input and nueva and _pulsar_continuar():
 		get_viewport().set_input_as_handled()
 	elif not esperando_input and saltable and ev is InputEventKey and ev.pressed and not ev.echo and ev.keycode == KEY_ESCAPE:
 		if saltar():
@@ -485,6 +498,7 @@ func continuar() -> bool:
 		return false
 	esperando_input = false
 	_continuado = true
+	_cerrar_lamina()
 	_t_continuar = t
 	fase = "libro" if _libro != null else "recompensa"
 	if is_instance_valid(_aviso_continuar):
@@ -494,7 +508,11 @@ func continuar() -> bool:
 func _esperar_confirmacion() -> void:
 	esperando_input = true
 	fase = "presentacion"
-	_nombre.visible = true
+	if not glifo.is_empty():
+		_lamina = LaminaGlifo.mostrar(self, glifo, true, false)      # la ficha de la runa (23/11): trae su propio nombre, así que se oculta el rótulo 3D
+		_nombre.visible = false
+	else:
+		_nombre.visible = true
 	_nombre.global_position = _alto + Vector3.UP * 0.52
 	_mirar_cofre()
 	if _aviso_continuar == null:
@@ -514,7 +532,7 @@ func _esperar_confirmacion() -> void:
 		boton.offset_right = 230
 		boton.offset_top = -72
 		boton.offset_bottom = -24
-		boton.pressed.connect(continuar)
+		boton.pressed.connect(_pulsar_continuar)
 
 func _preparar_travelling() -> void:
 	if _cam == null:
@@ -582,3 +600,40 @@ func _mirar_cofre() -> void:
 	if is_instance_valid(_jugador) and _jugador.has_method("mirar_hacia"):
 		_jugador.call("mirar_hacia", hacia)
 	_pj.mirar(hacia, 1.0)
+
+
+## Una pulsación de «continuar» (E, Espacio, Intro, A o el botón): si la ficha de la runa aún se está escribiendo, la completa de golpe; si no, sigue como siempre.
+func _pulsar_continuar() -> bool:
+	if is_instance_valid(_lamina) and not _lamina.texto_completo():
+		_lamina.completar_texto()
+		return true
+	return continuar()
+
+
+func _cerrar_lamina() -> void:
+	if is_instance_valid(_lamina):
+		_lamina.cerrar()
+	_lamina = null
+
+
+## H6 (23/11): el glifo NUEVO se deja escrito en una página y esa página queda seleccionada (`Grimorio.equipar_glifo_nuevo`; el libro sigue anotándolo en su cola `_por_escribir`).
+## Devuelve la página o -1 (no cabe en ninguna, o no hay libro: no se toca nada).
+func _equipar() -> int:
+	if _lanz == null or not _lanz.has_method("equipar_glifo_nuevo"):
+		return -1
+	return int(_lanz.call("equipar_glifo_nuevo", glifo))
+
+
+## Al cerrarse la ceremonia: si el glifo se equipó, la pista de uso inmediato (HUD + marcador, `PistaGlifo`); si no cupo en ninguna página, el aviso de siempre. No sale en `modo_prueba`.
+func _mostrar_pista() -> void:
+	if modo_prueba or glifo.is_empty() or not glifo_nuevo or not is_instance_valid(_lanz):
+		return
+	if pagina_equipada >= 0:
+		var celda: Variant = reto_en if reto_en is Vector2i else null
+		pista = PistaGlifo.crear(_lanz, glifo, pagina_equipada, reto, celda)
+	else:
+		var lz: Node = _lanz
+		var tecla: String = Controles.texto_teclas("libro")
+		get_tree().create_timer(2.4).timeout.connect(func():
+			if is_instance_valid(lz) and lz.has_method("avisar"):
+				lz.call("avisar", "Escríbelo en el libro (%s)" % tecla, Color(1.0, 0.9, 0.6)))

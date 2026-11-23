@@ -64,6 +64,11 @@ func _initialize() -> void:
 			var pulsacion := InputEventKey.new()
 			pulsacion.keycode = KEY_ENTER
 			pulsacion.pressed = true
+			if s._lamina != null:
+				# 23/11: con la ficha de la runa a medias escribirse, la 1.ª pulsación la completa de golpe y NO continúa.
+				ok(not s._lamina.texto_completo(), "la ficha de la runa se esta escribiendo " + calidad)
+				s._input(pulsacion)
+				ok(s._lamina.texto_completo() and s.esperando_input, "la 1a pulsacion completa el texto de la ficha sin continuar " + calidad)
 			s._input(pulsacion)
 			ok(not s.esperando_input, "pulsacion nueva continua " + calidad)
 			for i in 16:

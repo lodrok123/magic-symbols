@@ -51,7 +51,7 @@ const SIGILS: PackedStringArray = [
 	"levitacion",  # flecha hacia arriba
 	"repeticion",  # dos triángulos: multiplica lo que haya en su sector
 	"amplificar",  # multiplica el daño y sube la intensidad del efecto
-	"rebote",      # NUEVO: una V que toca el suelo y sube
+	"rebote",      # NUEVO: ᛞ dagaz (24/11, Pablo): un palo a cada lado y una X entre ellos (|X|); rebotar es reflejarse
 	"retardo",     # NUEVO: reloj de arena
 	"pulso",       # NUEVO: aros que se abren
 	"atraccion",   # NUEVO: puntas que convergen
@@ -86,7 +86,8 @@ const RECORDABLE: PackedStringArray = [
 ## "libre" no están en ELEMENTS ni SIGILS, así que aunque se graben no compiten en el reconocimiento.
 const BIBLIA: Dictionary = {
 	"repeticion": {"futhark": "ᚠ", "nombre_runa": "fehu", "uso": "sello"},
-	"rebote":     {"futhark": "ᚢ", "nombre_runa": "uruz", "uso": "sello"},
+	# 24/11 (Pablo): rebote pasa a ᛞ dagaz («el día»: la luz que se refleja). Antes figuraba como ᚢ uruz, igual que viento.
+	"rebote":     {"futhark": "ᛞ", "nombre_runa": "dagaz", "uso": "sello"},
 	"perforar":   {"futhark": "ᚦ", "nombre_runa": "thurisaz", "uso": "sello"},      # 30/10 (H5): antes «thurisaz», libre. El id es el del glifo (perforar), la runa sigue siendo thurisaz
 	"buscar":     {"futhark": "ᚨ", "nombre_runa": "ansuz", "uso": "sello"},         # 30/10 (H5): antes «ansuz», libre
 	"retorno":    {"futhark": "ᛃ", "nombre_runa": "jera", "uso": "sello"},          # 30/10 (H5): ᛃ jera era «naturaleza» (asset); Pablo la dedica al retorno. «naturaleza» se deja como estaba (pendiente de decidir)
@@ -108,6 +109,7 @@ const BIBLIA: Dictionary = {
 	"agua":       {"futhark": "ᛚ", "nombre_runa": "laguz", "uso": "elemento"},
 	"barrera":    {"futhark": "ᛜ", "nombre_runa": "ingwaz", "uso": "sello"},
 	"tiempo":     {"futhark": "ᛟ", "nombre_runa": "othala", "uso": "cinematico"},
+	# 24/11: ᛞ dagaz es ahora de REBOTE. Si la luz llega a ser jugable habrá que darle otra runa.
 	"luz":        {"futhark": "ᛞ", "nombre_runa": "dagaz", "uso": "asset"},
 }
 

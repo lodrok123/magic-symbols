@@ -175,7 +175,9 @@ func _escenario() -> void:
 	var tierra: Hechizo = Hechizo.construir(load("res://nucleo/earth_rune.tres") as RuneData, {"flecha": 1})
 	var altura0: float = tierra.altura_salida
 	var desp_t: Vector3 = lanzador._salida_de_mano(tierra, jugador.position)
-	_ok("E2b la flecha de tierra con gravedad no toma la mano: ni altura ni punto", tierra.gravedad > 0.0 and desp_t == Vector3.ZERO and is_equal_approx(tierra.altura_salida, altura0),
+	# 22/11 (Pablo, P14 de PLAN_HECHIZOS): los hechizos ya no caen (`Hechizo.GRAVEDAD_EN_HECHIZOS` = false). La flecha de tierra vuela recta y sale de la MANO como las demás (E2); la Cueva
+	# (enlace y muro de C2) sigue resolviéndose: escenario_cueva_completa en 0 fallos.
+	_ok("E2b sin gravedad, la flecha de tierra sale de la mano como las demás (altura de la mano, no la fija)", tierra.gravedad == 0.0 and not Hechizo.GRAVEDAD_EN_HECHIZOS and not is_equal_approx(tierra.altura_salida, altura0),
 		"gravedad %.2f · desplaza %s · altura %.3f m (antes %.3f)" % [tierra.gravedad, desp_t, tierra.altura_salida, altura0])
 
 	# --- F · sin cast point: como siempre ---

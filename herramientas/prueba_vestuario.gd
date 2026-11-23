@@ -60,14 +60,14 @@ func _probar() -> void:
 	_ok("2 con el objeto en la mochila, se tiene", Atuendos.tiene("atuendo_sumicio"))
 	var puso: bool = Atuendos.poner(pj, "atuendo_sumicio")
 	var puestas: Array = pj.ropa_puesta()
-	_ok("2 ponerse el uniforme quita lo verde y pone capa, capucha y bombachos", puso and Atuendos.puesto(pj) == "atuendo_sumicio" and puestas.size() == 3
-		and puestas.has("capa") and puestas.has("piernas") and not puestas.has("tunica") and not puestas.has("capa_verde"), str(puestas))
+	_ok("2 ponerse el uniforme quita lo verde y pone capa y capucha (19/11: sin bombachos)", puso and Atuendos.puesto(pj) == "atuendo_sumicio" and puestas.size() == 2
+		and puestas.has("capa") and puestas.has("capucha") and not puestas.has("piernas") and not puestas.has("tunica") and not puestas.has("capa_verde"), str(puestas))
 	Estado.i().agregar("atuendo_lobo")
 	puso = Atuendos.poner(pj, "atuendo_lobo")
 	puestas = pj.ropa_puesta()
 	_ok("2 ponerse el del loberno: túnica y mallas, nada del uniforme", puso and Atuendos.puesto(pj) == "atuendo_lobo" and puestas.size() == 2
 		and puestas.has("tunica_lobo") and puestas.has("piernas_lobo") and not puestas.has("capa"), str(puestas))
-	_ok("2 las zonas tapadas con el lobo: chaleco, cinturón, piernas y botas (el pelo, no)", Ropa3D.zonas_apagadas(pj.get("_modelo") as Node3D).has("piernas") and Ropa3D.zonas_apagadas(pj.get("_modelo") as Node3D).has("chaleco")
+	_ok("2 las zonas tapadas con el lobo: piernas y botas (el pelo, no; 19/11: el maniquí no tiene chaleco ni cinturón)", Ropa3D.zonas_apagadas(pj.get("_modelo") as Node3D).has("piernas") and Ropa3D.zonas_apagadas(pj.get("_modelo") as Node3D).has("botas")
 		and not Ropa3D.zonas_apagadas(pj.get("_modelo") as Node3D).has("pelo"), str(Ropa3D.zonas_apagadas(pj.get("_modelo") as Node3D)))
 	puso = Atuendos.poner(pj, "atuendo_verde")
 	_ok("2 y de vuelta al de viaje", puso and Atuendos.puesto(pj) == "atuendo_verde" and pj.ropa_puesta().size() == 3)
@@ -110,7 +110,7 @@ func _probar() -> void:
 	# 5 · la partida guarda lo puesto con cualquier atuendo
 	Atuendos.poner(pj, "atuendo_sumicio")
 	var d: Dictionary = {"ropa_puesta": pj.ropa_puesta()}
-	_ok("5 lo puesto que guarda la partida es el uniforme entero", (d["ropa_puesta"] as Array).size() == 3 and (d["ropa_puesta"] as Array).has("capucha"))
+	_ok("5 lo puesto que guarda la partida es el uniforme entero", (d["ropa_puesta"] as Array).size() == 2 and (d["ropa_puesta"] as Array).has("capucha"))
 	# 12/11 (Pablo: «se ven mallas estiradas, agujeros»): poner una prenda quita la que ocupaba su ranura (al cargar una partida con el loberno, la túnica del
 	# lobo se ponía encima de la de viaje) y el cargado de la partida quita antes todo lo de serie.
 	var pj2 := Pj3D.new()

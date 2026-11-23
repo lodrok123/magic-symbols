@@ -298,6 +298,14 @@ static func desde_dic(d: Dictionary) -> void:
 				var e2: String = String((p as Dictionary).get("elemento2", ""))
 				if e2 != "":
 					pag["elemento2"] = e2          # solo el libro avanzado lo trae: una partida vieja (o del libro de siempre) no gana la clave
+				# H16 (22/11): el nombre que puso la jugadora (sin él, el Grimorio pone el automático).
+				if bool((p as Dictionary).get("nombre_propio", false)) and String((p as Dictionary).get("nombre", "")) != "":
+					pag["nombre"] = String((p as Dictionary)["nombre"])
+					pag["nombre_propio"] = true
+				# Libro rojo de prueba (22/11): la anidación editable (hijo y condición).
+				if (p as Dictionary).get("hijo") is Dictionary:
+					pag["hijo"] = ((p as Dictionary)["hijo"] as Dictionary).duplicate(true)
+					pag["condicion"] = String((p as Dictionary).get("condicion", "al_impactar"))
 				paginas.append(pag)
 	# El libro y lo descubierto. Una partida anterior a la fase 2 no trae estas claves: se queda lo que hubiera (el libro lo fija entonces la progresión del nivel).
 	if d.has("libro"):

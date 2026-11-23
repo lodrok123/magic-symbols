@@ -37,6 +37,9 @@ const ICONOS: Dictionary = {
 	"mouro": ["m", Color(0.35, 0.6, 0.75), 0, "mouro"], "elemental": ["G", Color(0.15, 0.45, 0.2), 0, "elemental del bosque (jefe)"],
 	"cofre_comun": ["c", Color(0.6, 0.42, 0.22), 1, "cofre común"], "cofre_epico": ["é", Color(0.55, 0.3, 0.8), 1, "cofre épico"],
 	"cofre_legendario": ["!", Color(0.95, 0.7, 0.1), 1, "cofre legendario"],
+	# 22/11: el campamento goblin (la empalizada `x` se ve como letra del plano).
+	"puerta_goblin": ["y", Color(0.75, 0.35, 0.1), 1, "puerta goblin (arde)"], "torre_goblin": ["o", Color(0.55, 0.3, 0.15), 1, "torre goblin (arde)"],
+	"tienda_goblin": ["t", Color(0.5, 0.42, 0.3), 1, "tienda goblin"], "estandarte_goblin": ["V", Color(0.7, 0.2, 0.15), 1, "estandarte goblin"],
 }
 const TIPOS_ENEMIGO: Array[String] = ["guerrero", "arquero", "limo", "golem", "chaman", "mouro", "elemental"]
 const TIPOS_COFRE: Array[String] = ["cofre_tesoro", "cofre_llave", "cofre_comun", "cofre_epico", "cofre_legendario"]
@@ -90,6 +93,7 @@ const CAMPOS: Array = [
 	{"k": "b_puente", "r": "Barrera: puentes", "t": "bool", "a": "Marcado: la mitad de las barreras son puentes plegados bajo el agua (en las cuevas, todas). Desmarcado: solo puertas."},
 	{"k": "tesoro", "r": "Sala del tesoro", "t": "bool", "a": "La sala más lejana lleva un cofre (60 de oro y una poción)."},
 	{"k": "llave", "r": "Tesoro con llave", "t": "bool", "a": "La sala del tesoro se cierra con una puerta de llave; la llave está en el cofre de otra sala lejana, que aparece al limpiarla."},
+	{"k": "campamentos", "r": "Campamentos goblin", "t": "int", "min": 0, "max": 4, "a": "Salas grandes (7 × 6 o más) lejos del inicio que se vuelven campamento goblin: empalizada con puertas que arden,\nfogata, torre, tiendas, estandarte, guardias (y chamán si es grande), vigía y un cofre épico que aparece al limpiarlo."},
 	{"k": "charcas", "r": "Salas con charca (%)", "t": "int", "min": 0, "max": 100, "paso": 5, "a": "Salas de 5 × 5 o más con una charca de agua honda en medio."},
 	{"k": "braseros", "r": "Braseros por sala", "t": "float", "min": 0.0, "max": 4.0, "paso": 0.5, "a": "En los rincones. Nacen apagados: se encienden con fuego."},
 	{"k": "jarrones", "r": "Jarrones por sala", "t": "float", "min": 0.0, "max": 6.0, "paso": 0.5, "a": "Contra la pared del fondo. Dan oro (o poción, 1 de cada 5)."},
@@ -100,6 +104,7 @@ const CAMPOS: Array = [
 	{"k": "rotulo", "r": "Rótulo al entrar", "t": "bool", "a": "Una zona que cubre el mapa y enseña el nombre la primera vez."},
 	{"k": "terreno", "r": "Pintar terreno", "t": "bool", "a": "Los pasillos van de tierra pisada y la sala del tesoro, enlosada (en estilo cueva no se enlosa).\nSin esto todo el suelo es igual y no hay juntas entre suelos que enseñar."},
 	{"k": "acabado", "r": "Acabado del terreno", "t": "bool", "a": "Orillas del agua como en Bosque 01 (orilla integrada, ribera curva con cantos) y juntas y bordes como en Monte Sumicio\n(más relieve, hierba entremezclada con la tierra y la piedra). En estilo cueva solo las orillas.\nEs el acabado de serie de todos los niveles del juego; sin la casilla, este nivel se exporta sin él."},
+	{"k": "camara_sala", "r": "Cámara por sala", "t": "bool", "a": "La cámara se frena en el borde de cada sala (no enseña lo que hay detrás de las paredes) y en las salas\npequeñas se acerca poco a poco; al salir a una sala grande vuelve al zoom de antes. En los pasillos solo la frena el borde del mapa.\nCon el algoritmo cueva no hay salas cerradas: se frena solo en el borde del mapa. Las salas que obligan a acercar mucho salen en los avisos."},
 	{"k": "salida_a", "r": "Salidas (Nivel:entrada, …)", "t": "texto", "a": "Vacío = sin salida. Cada salida es Nivel:entrada, con el nombre del nivel tal como está en Niveles.ESCENAS (MonteSumicio, Bosque_02, Cueva…).\nVarias, separadas por comas: Bosque_02:boca_cueva, MonteSumicio:inicio\nLa primera va en la sala de inicio; cada una de las demás, en una sala lejana, con su propia llegada (entrada_2, entrada_3…).\nPara dar NOMBRE a la llegada (por donde se entra aquí viniendo de aquel nivel): Nivel:entrada=llegada.\nEjemplo para un Bosque 02 nuevo: MonteSumicio:desde_fraga=desde_sumicio, Cueva:desde_bosque=boca_cueva"},
 ]
 
@@ -240,6 +245,9 @@ class Vista extends Control:
 				var ct: String = filas[y][x]
 				if ct == "g" or ct == "R":
 					draw_rect(Rect2(origen + Vector2(x, y) * e, Vector2(e, e)), Color(0.55, 0.38, 0.2, 0.22) if ct == "g" else Color(0.42, 0.46, 0.6, 0.28))
+				elif ct == "c":
+					# 23/11: el cauce del juego (letra `c`, plantillas del catálogo): un azul agua más claro que el del `~`, que se lea como «aquí se llena o se vacía».
+					draw_rect(Rect2(origen + Vector2(x, y) * e, Vector2(e, e)), Color(0.45, 0.78, 0.95, 0.75))
 		if not ver_contenido:
 			return
 		# Salas: el papel que hacen (inicio, tesoro, llave, se cierra) y su número.
@@ -873,7 +881,7 @@ func _al_pasar(c: Vector2i) -> void:
 		return
 	var partes: PackedStringArray = PackedStringArray(["(%d, %d)" % [c.x, c.y]])
 	var ch: String = (_mapa["filas"] as PackedStringArray)[c.y][c.x]
-	partes.append({"#": "pared", "~": "agua honda", "g": "tierra pisada", "R": "losas"}.get(ch, "suelo"))
+	partes.append({"#": "pared", "~": "agua honda", "g": "tierra pisada", "R": "losas", "c": "cauce"}.get(ch, "suelo"))
 	for s in _mapa["salas"]:
 		if (s["rect"] as Rect2i).has_point(c):
 			var rol: String = String(s["rol"])

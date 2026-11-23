@@ -66,6 +66,7 @@ func _initialize() -> void:
 	_progresion()
 	_bosque()
 	_demo()
+	_demo_inicio()
 	await _costras()
 	print("FALLOS: %d" % _fallos)
 	quit(1 if _fallos > 0 else 0)
@@ -80,6 +81,12 @@ func _progresion() -> void:
 	m.kit = "pruebas"
 	_ok("1 con kit: el kit manda sobre el nivel", Lanzador3D.progresion_de(m) == "pruebas")
 	_ok("1 PROGRESION_FORZADA vacía (si no, esta prueba no vale)", Lanzador3D.PROGRESION_FORZADA == "")
+	_ok("1 (22/11) sustituir_kit está vacío en el juego", Lanzador3D.sustituir_kit.is_empty())
+	m.kit = "demo_inicio"
+	Lanzador3D.sustituir_kit = {"demo_inicio": "pruebas"}
+	_ok("1 (22/11) con la sustitución de los escenarios, «demo_inicio» se monta como «pruebas»", Lanzador3D.progresion_de(m) == "pruebas")
+	Lanzador3D.sustituir_kit = {}
+	_ok("1 (22/11) y sin ella, como «demo_inicio»", Lanzador3D.progresion_de(m) == "demo_inicio")
 	m.free()
 
 
@@ -100,10 +107,10 @@ func _bosque() -> void:
 	# Después entró ᛒ suelo (PROGRESIONES["pruebas"] lleva 13): trece glifos.
 	_ok("3 trece glifos (sin tamano, con suelo)", Repertoire.active_sigils().size() == 13 and Repertoire.active_sigils().has("suelo") and not Repertoire.active_sigils().has("tamano"), str(Repertoire.active_sigils()))
 	_ok("3 tres páginas, seis glifos por página", Repertoire.max_pages == 3 and Repertoire.max_sigils_per_page == 6)
-	_ok("3 el libro de «pruebas» es el nuevo (16/10: el antiguo era un placeholder; ya no hay progresión con libro «»)", Repertoire.libro == "bosque")
+	_ok("3 el libro de «pruebas» es el avanzado (12/11: el de los dos círculos de dibujo es el oficial; ya no hay progresión con libro «» ni «bosque»)", Repertoire.libro == "avanzado")
 	for k in Lanzador3D.PROGRESIONES:
 		Lanzador3D.aplicar_progresion(String(k))
-		_ok("3 la progresión «%s» usa el libro nuevo" % k, Repertoire.libro == "bosque", Repertoire.libro)
+		_ok("3 la progresión «%s» usa el libro avanzado" % k, Repertoire.libro == "avanzado", Repertoire.libro)
 	Lanzador3D.aplicar_progresion("pruebas")
 	# Lo que hace Bosque3D (solo desbloquear: agua al coger el sello, barrera al comprarla) no cierra ni cambia nada.
 	var antes_e: PackedStringArray = Repertoire.active_elements()
@@ -133,11 +140,63 @@ func _demo() -> void:
 		coinciden = coinciden and glifos.has(g)
 	_ok("13 demo: glifos exactamente flecha, linea, barrera, altura, raido y suelo", coinciden, str(glifos))
 	_ok("13 demo: tres páginas, seis glifos por página", Repertoire.max_pages == 3 and Repertoire.max_sigils_per_page == 6)
-	_ok("13 demo: libro «bosque»", Repertoire.libro == "bosque", Repertoire.libro)
+	_ok("13 demo: libro «avanzado» (23/11: el oficial en todos los kits)", Repertoire.libro == "avanzado", Repertoire.libro)
 	var m := MundoFalso.new()
 	m.kit = "demo"
 	_ok("13 demo: con `kit = \"demo\"`, progresion_de devuelve «demo»", Lanzador3D.progresion_de(m) == "demo")
 	m.free()
+	Lanzador3D.aplicar_progresion("todo")
+
+
+## 22/11 (docs/PLAN_HECHIZOS_2026-11-22.md §2): el ARRANQUE de la demo. Las escenas de la ruta lo llevan, lo ganado (flags global.glifo.* / global.sello.*)
+## vuelve en cada nivel, la hoja de grimorio suma una página encima, y los cofres aceptan `sello=`.
+func _demo_inicio() -> void:
+	var clave: String = Lanzador3D.aplicar_progresion("demo_inicio")
+	_ok("14 demo_inicio: progresión «demo_inicio»", clave == "demo_inicio")
+	_ok("14 demo_inicio: solo fuego", Repertoire.active_elements() == PackedStringArray(["fuego"]), str(Repertoire.active_elements()))
+	_ok("14 demo_inicio: flecha y barrera", Repertoire.active_sigils() == PackedStringArray(["flecha", "barrera"]), str(Repertoire.active_sigils()))
+	_ok("14 demo_inicio: dos páginas y dos glifos por página, libro «avanzado»", Repertoire.max_pages == 2 and Repertoire.max_sigils_per_page == 2 and Repertoire.libro == "avanzado",
+		"%d páginas, %d huecos, %s" % [Repertoire.max_pages, Repertoire.max_sigils_per_page, Repertoire.libro])
+	_ok("14 demo_inicio: capacidad del primer libro (4 y 6)", Repertoire.max_elementos == 4 and Repertoire.max_glifos == 6)
+	# El techo de la demo cabe entero sobre el arranque: ningún glifo ni sello del kit «demo» choca con la capacidad.
+	var techo: Dictionary = Lanzador3D.PROGRESIONES["demo"]
+	var caben: bool = true
+	for g in techo["glifos"]:
+		Repertoire.unlock_sigil(String(g))
+		caben = caben and Repertoire.sigil_active(String(g))
+	for e in techo["sellos"]:
+		Repertoire.unlock_element(String(e))
+		caben = caben and Repertoire.element_active(String(e))
+	_ok("14 todo lo del kit «demo» cabe en el libro de arranque", caben, str(Repertoire.active_sigils()))
+	_ok("14 y un séptimo glifo (ᛉ) NO cabe: P3 aplazada", not Repertoire.unlock_sigil("permanencia"))
+	# Las escenas de la ruta llevan el kit.
+	for n in ["PruebaBosque01_v01", "PruebaBosque02", "PruebaCueva", "PruebaCuevaResonante", "PruebaMonteSumicio"]:
+		var txt: String = FileAccess.get_file_as_string("res://escenas/%s.tscn" % n)
+		_ok("15 %s lleva kit = \"demo_inicio\"" % n, txt.contains("kit = \"demo_inicio\"") and not txt.contains("kit = \"pruebas\""))
+	_ok("15 el Pantano sigue con el techo («demo»)", FileAccess.get_file_as_string("res://escenas/PruebaPantano.tscn").contains("kit = \"demo\""))
+	_ok("15 el cofre del corazón del Bosque 02 da ᛁ línea", FileAccess.get_file_as_string("res://mundo/datos_nivel/mapas/Bosque_02.txt").contains("cofre_corazon cofre 8 30 modelo=legendario glifo=linea"))
+	# Lo ganado en otro nivel vuelve al montar el siguiente (Puzle3D._restaurar_glifos), sobre el arranque.
+	Flags.i().poner(Puzle3D.FLAG_GLIFO_GANADO + "raido")
+	Flags.i().poner(EncargoMarimanta.SELLO_GANADO + "agua")
+	Lanzador3D.aplicar_progresion("demo_inicio")
+	_ok("16 al montar un nivel, el arranque no trae ᚱ ni agua", not Repertoire.sigil_active("raido") and not Repertoire.element_active("agua"))
+	var pz := Puzle3D.new()
+	pz._restaurar_glifos()
+	pz.free()
+	_ok("16 y Puzle3D los devuelve (ᚱ del cofre, agua de Marimanta)", Repertoire.sigil_active("raido") and Repertoire.element_active("agua"))
+	Flags.i().quitar(Puzle3D.FLAG_GLIFO_GANADO + "raido")
+	Flags.i().quitar(EncargoMarimanta.SELLO_GANADO + "agua")
+	# La hoja de grimorio (mejora `paginas`) suma una página encima de las 2 del arranque.
+	var antes: int = int(Estado.i().mejoras.get("paginas", 0))
+	Estado.i().mejoras["paginas"] = 1
+	Mejoras.aplicar_todas(null, false)
+	_ok("17 con una hoja de grimorio: 3 páginas", Repertoire.max_pages == 3, str(Repertoire.max_pages))
+	Estado.i().mejoras["paginas"] = antes
+	Mejoras.aplicar_todas(null, false)
+	_ok("17 sin ella, vuelve a 2", Repertoire.max_pages == 2, str(Repertoire.max_pages))
+	# `sello=` en los cofres: se acepta un elemento y se rechaza lo que no lo es.
+	_ok("18 sello=tierra vale", bool(Puzle3D._valor("sello", "tierra")[0]))
+	_ok("18 sello=barrera no vale (es un glifo)", not bool(Puzle3D._valor("sello", "barrera")[0]))
 	Lanzador3D.aplicar_progresion("todo")
 
 

@@ -308,7 +308,7 @@
 ; pieza puerta_santuario puerta 8 24 modelo=llave llave=bosque02.santuario.llave abierto=bosque02.santuario.puerta
 ; pieza vig_sant vigia 8 28 de=5,25..11,31 flag=bosque02.santuario.limpio
 ; pieza guardian_sant guardian 5 28 en=7,27+9,27 elemento=fuego
-; pieza cofre_corazon cofre 8 30 modelo=legendario glifo=barrera aparece_si=flag.bosque02.santuario.limpio abierto=bosque02.santuario.cofre da=oro:150+pocion_grande:2+hoja_grimorio:1
+; pieza cofre_corazon cofre 8 30 modelo=legendario glifo=linea aparece_si=flag.bosque02.santuario.limpio abierto=bosque02.santuario.cofre da=oro:150+pocion_grande:2+hoja_grimorio:1
 ; --------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 ; 14 · LA BALANZA DEL CLARO (5/11/2026, Pablo: «las rocas medianas y pequeñas deberían ser empujables, pequeños puzles de peso»; docs/ROCAS_EMPUJABLES_2026-11-05.md). Junto a la orilla este, al norte del camino (y=31, que
 ; queda libre): DOS placas de peso en x=22. La de arriba (22,30) pide PESO 2; la de abajo (22,32) pide PESO 1. Pista de arriba (y=30): la roca MEDIANA (19,30) y, delante de ella, una piedrecita (21,30)

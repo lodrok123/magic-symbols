@@ -391,6 +391,10 @@ static var construidos: int = 0
 ## Construye el hechizo de un elemento con unos glifos. `glifos` = nombre V2 -> cuántas veces (los nombres con alias, como «levitacion», se resuelven).
 ## `permitir_cinematico` (20/10): una runa cinemática (la del tiempo; `RuneData.cinematico`) solo se construye si quien llama lo pide con `true`, y solo lo hace una
 ## cinemática o un evento de guion; el libro y los laboratorios no lo pasan nunca. Sin él devuelve null (y avisa), no un hechizo «sin elemento» que pasaría por bueno.
+## 22/11 (Pablo, P14): false = los hechizos no caen (gravedad e impulso de salida a 0, sea cual sea el elemento). true = como antes (tierra 1, agua 0,5, hielo 1, magma 0,6).
+const GRAVEDAD_EN_HECHIZOS: bool = false
+
+
 static func construir(elemento_rune: RuneData, contadores: Dictionary, calidad_trazo: float = 1.0, permitir_cinematico: bool = false, orden: Array = []) -> Hechizo:
 	construidos += 1
 	if elemento_rune != null and elemento_rune.cinematico and not permitir_cinematico:
@@ -410,6 +414,12 @@ static func construir(elemento_rune: RuneData, contadores: Dictionary, calidad_t
 		h.color = elemento_rune.color
 		h.etiquetas = elemento_rune.tags.duplicate()
 		h._aplicar(_modificadores_de_elemento(elemento_rune), "elemento", false)
+		# 22/11 (Pablo: «quitar el efecto de la gravedad en hechizos, penaliza demasiado»; P14 de PLAN_HECHIZOS): ningún hechizo cae. Las flechas de tierra y de agua salían
+		# en arco y sobrevolaban al enemigo cercano (zona muerta a 1 casilla). Con esto vuelan rectas, como el fuego. El laboratorio puede volver a ponerla con `con({"gravedad": …})`.
+		if not GRAVEDAD_EN_HECHIZOS:
+			h.gravedad = 0.0
+			h.impulso_salida = 0.0
+			h.origen["gravedad"] = "sin gravedad (22/11)"
 	# 3. y 4. los glifos
 	var lista: Array = []
 	for nombre in contadores:

@@ -11,6 +11,9 @@
 		"0,42 la cúpula (1,66) y 0,5 el arco de la punta por encima de la capucha (1,74; prueba_ropa_capa admite 1,78 por ese arco).",
 		"sin_casco: la raíz de la punta (x < -0,28, z < 1,45) y la nuca de la capa (y > 0,10, z < 1,24 con rampa) no las saca el casco: la nuca se queda dentro del moño como la verde y el pelo que",
 		"la atraviesa lo apaga la zona `pelo`. quitar_forro: la capa de Meshy es de doble pared; la de dentro no se ve con la cámara a 60° y chocaba con los antebrazos al correr.",
+		"19/11 (maniquí; Pablo: «desplázalo de la roja a la azul, está desplazada la capucha»): destino X de 0,003 a -0,067. La abertura de la cara y el cierre del botón",
+		"no están en el centro de la caja de Meshy (la punta caída la descentra): centrando la caja quedaban 7 cm a la izquierda del personaje. Entrada: el mismo modelo,",
+		"vuelto a bajar (Meshy_AI_Crimson_Hooded_Cloak_1119223835), encajado ya contra el maniquí.",
 		"margen 0,016 como la verde (con 0,03 el empuje subía la cima 4 cm y hundía el bajo). rellenar_pliegue existe en encajar_ropa.py para la primera versión; con esta no hace falta."
 	],
 	"capa": {
@@ -29,7 +32,7 @@
 		],
 		"nivela_borde": {"z": 0.872, "z_hasta": 1.05, "sectores": 48},
 		"quitar_forro": {"z_max": 1.14, "radial": -0.3},
-		"destino": [0.003, 0.0, 0.0],
+		"destino": [-0.067, 0.0, 0.0],
 		"margen": 0.016,
 		"normal_suave": true,
 		"profundidad_max": 0.06,

@@ -133,7 +133,9 @@ func _datos() -> void:
 	for g in NUEVOS:
 		_ok("%s: está en Sigils.GLIFOS, en GestureLibrary.SIGILS/RECORDABLE y en la BIBLIA como «sello»" % g,
 			Sigils.GLIFOS.has(g) and GestureLibrary.SIGILS.has(g) and GestureLibrary.RECORDABLE.has(g) and (g == "retardo" or String(GestureLibrary.BIBLIA[g]["uso"]) == "sello"))
-		_ok("%s: cuenta para el daño por defecto, tinta 0 y repertorio = su id" % g, Sigils.cuenta_dano(g) and float(Sigils.GLIFOS[g]["tinta"]["tope"]) == 0.0 and Sigils.repertorio_de(g) == g)
+		# 22/11 (B9a, PLAN_HECHIZOS): ᚨ buscar es de forma o transporte y ya NO cuenta para el daño; los demás nuevos siguen contando.
+		var cuenta_esperada: bool = g != "buscar"
+		_ok("%s: %s para el daño, tinta 0 y repertorio = su id" % [g, "cuenta" if cuenta_esperada else "NO cuenta (22/11)"], Sigils.cuenta_dano(g) == cuenta_esperada and float(Sigils.GLIFOS[g]["tinta"]["tope"]) == 0.0 and Sigils.repertorio_de(g) == g)
 	_ok("PNG: perforar (thurisaz) y buscar (ansuz) sí; retorno (jera) no, el libro lo pinta con el trazo a mano", Sigils.GLYPHS.has("perforar") and Sigils.GLYPHS.has("buscar") and Sigils.GLYPHS.has("retardo") and not Sigils.GLYPHS.has("retorno"))
 	_ok("thurisaz y ansuz ya no son runas «libres» sueltas de la BIBLIA (son perforar y buscar) y jera es retorno", not GestureLibrary.BIBLIA.has("thurisaz") and not GestureLibrary.BIBLIA.has("ansuz")
 		and GestureLibrary.BIBLIA["retorno"]["nombre_runa"] == "jera" and GestureLibrary.BIBLIA["perforar"]["futhark"] == "ᚦ" and GestureLibrary.BIBLIA["buscar"]["futhark"] == "ᚨ")

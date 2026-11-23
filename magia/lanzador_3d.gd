@@ -100,10 +100,12 @@ const AVISO_CADUCA: float = 3.0             ## segundos finales en que parpadea
 
 
 ## --- El repertorio del Test 3: los seis elementos, nueve sellos (sin `pilar` ni `retardo`) ---
-## LIBRO (16/10, Pablo): el libro antiguo («nivel1» y la lámina de doce casillas) era un placeholder. TODAS las progresiones usan ya `LIBROS["bosque"]`
-## (grimorio_bosque.png): tres huecos de glifo que se abren por orden (abajo → abajo-izq → abajo-der) según `glifos_por_pagina`. Con 2, como hasta ahora,
-## están abiertos los dos primeros y el juego es el mismo; con 6 (los bancos de pruebas) se abren los tres y el resto del presupuesto se apila en ellos.
-## Cuando existan las mejoras que abren huecos, `glifos_por_pagina` de nivel1/bosque pasa a ser lo que haya ganado el jugador (hoy no hay mecanismo).
+## LIBRO (12/11, Pablo: «el libro de los dos círculos abajo como libro oficial en todos los mapas»): TODAS las progresiones usan `LIBROS["avanzado"]`
+## (spellbook.gd): el círculo mágico arriba (dos medallones de sello y una corona de 6 huecos de glifo) y DOS CÍRCULOS DE DIBUJO abajo (sellos a la izquierda,
+## glifos a la derecha). Los huecos de la corona se abren por orden según `glifos_por_pagina` (los demás salen tapados, diario 463); los engarces de glifo fijan el
+## total (diario 458). Dos sellos por página desde el principio: la tabla de parejas (`CombosSellos`) ya vale en el Bosque. Antes (16/10–12/11) era «bosque»
+## (grimorio_bosque.png, tres huecos abajo), que sigue en `LIBROS` para las pruebas que lo piden a mano; `Repertoire.cambiar_libro` y `libro_conseguido` quedan
+## para un libro futuro que dé la aventura.
 ## --- Progresión en 3D: qué tienes en cada nivel (vocabulario del diseño: SELLO = elemento, GLIFO = forma) ---
 ## `Repertoire` ya hace que el libro solo enseñe lo activo; aquí se decide QUÉ está activo, y cuántas páginas (libros) hay y
 ## cuántos glifos caben en una. «todo» es el banco de pruebas de siempre (Test 3). La clave se elige con el nombre del nivel
@@ -114,30 +116,39 @@ const CAPACIDAD_PRIMER_LIBRO: Array = [4, 6]
 const PROGRESIONES: Dictionary = {
 	"todo": {"sellos": ["fuego", "agua", "viento", "tierra", "rayo", "hielo"],
 		"glifos": ["flecha", "barrera", "linea", "altura", "levitacion", "repeticion", "rebote", "pulso", "perforar", "retorno", "buscar", "retardo", "suelo"],
-		"paginas": 3, "glifos_por_pagina": 6, "libro": "bosque"},
+		"paginas": 3, "glifos_por_pagina": 6, "libro": "avanzado"},
 	# Primer nivel (Pablo, 8/10): UN sello y DOS glifos, una sola página, y como mucho dos glifos en ella.
-	"nivel1": {"sellos": ["fuego"], "glifos": ["flecha", "barrera"], "paginas": 1, "glifos_por_pagina": 2, "libro": "bosque", "capacidad": CAPACIDAD_PRIMER_LIBRO},
+	"nivel1": {"sellos": ["fuego"], "glifos": ["flecha", "barrera"], "paginas": 1, "glifos_por_pagina": 2, "libro": "avanzado", "capacidad": CAPACIDAD_PRIMER_LIBRO},
 	# Bosque 1 (Fase 9, 9.9, Pablo 10/10): se empieza con FUEGO + FLECHA y una página (un hueco de sello, dos de glifo). El
 	# sello de AGUA se recoge detrás de la telaraña (Bosque3D, zona `a`) y la BARRERA se compra al guardabosques por 20 de oro.
-	"bosque": {"sellos": ["fuego"], "glifos": ["flecha"], "paginas": 1, "glifos_por_pagina": 2, "libro": "bosque", "capacidad": CAPACIDAD_PRIMER_LIBRO},
+	"bosque": {"sellos": ["fuego"], "glifos": ["flecha"], "paginas": 1, "glifos_por_pagina": 2, "libro": "avanzado", "capacidad": CAPACIDAD_PRIMER_LIBRO},
 	# Kit de pruebas (11.15, Pablo 12/10): el Bosque como laboratorio, con TODO el repertorio desde el principio, hielo incluido.
 	# Se elige con `mundo.kit = "pruebas"`; el Bosque3D no quita ni bloquea nada de esto (solo desbloquea, y es idempotente).
 	"pruebas": {"sellos": ["fuego", "agua", "viento", "tierra", "rayo", "hielo"],
 		"glifos": ["flecha", "barrera", "linea", "altura", "levitacion", "repeticion", "rebote", "pulso", "perforar", "retorno", "buscar", "retardo", "suelo"],
-		"paginas": 3, "glifos_por_pagina": 6, "libro": "bosque"},
+		"paginas": 3, "glifos_por_pagina": 6, "libro": "avanzado"},
 	# 27/10: la Gruta Batida (docs/GRUTA_BATIDA.md), el nivel de la BARRERA: tres elementos (fuego, tierra, hielo) y solo flecha, barrera y línea, para que cada puzle se lea como «¿dónde y de qué levanto la barrera?».
 	# El cofre del final da ᛉ permanencia (la barrera que dura).
 	"barrera": {"sellos": ["fuego", "tierra", "hielo"], "glifos": ["flecha", "barrera", "linea"],
-		"paginas": 3, "glifos_por_pagina": 4, "libro": "bosque", "capacidad": CAPACIDAD_PRIMER_LIBRO},
+		"paginas": 3, "glifos_por_pagina": 4, "libro": "avanzado", "capacidad": CAPACIDAD_PRIMER_LIBRO},
 	# 28/10 (Pablo: «la barrera como concepto, sin más elementos que el fuego»): la Gruta Batida nueva. FUEGO + FLECHA y nada más: los tótems enseñan la barrera
 	# y el cofre del santuario da ᛜ (Puzle3D, `glifo=barrera`). La versión de tres elementos queda en docs/GRUTA_PERMANENCIA.md con el kit «barrera».
-	"gruta": {"sellos": ["fuego"], "glifos": ["flecha"], "paginas": 1, "glifos_por_pagina": 2, "libro": "bosque", "capacidad": CAPACIDAD_PRIMER_LIBRO},
+	"gruta": {"sellos": ["fuego"], "glifos": ["flecha"], "paginas": 1, "glifos_por_pagina": 2, "libro": "avanzado", "capacidad": CAPACIDAD_PRIMER_LIBRO},
 	# 18/11 (Pablo): kit de la demo: solo fuego, agua y tierra (sin viento, hielo, rayo ni reacciones). Es el repertorio COMPLETO de la demo (el techo), no el de arranque:
 	# cuando existan los cofres que dan cada sello y glifo, el arranque será fuego + flecha, como en «bosque».
 	"demo": {"sellos": ["fuego", "agua", "tierra"], "glifos": ["flecha", "linea", "barrera", "altura", "raido", "suelo"],
-		"paginas": 3, "glifos_por_pagina": 6, "libro": "bosque", "capacidad": CAPACIDAD_PRIMER_LIBRO},
+		"paginas": 3, "glifos_por_pagina": 6, "libro": "avanzado", "capacidad": CAPACIDAD_PRIMER_LIBRO},
+	# 22/11 (docs/PLAN_HECHIZOS_2026-11-22.md §2): el ARRANQUE de la demo, el kit de todas las escenas de la ruta (Bosque 01 v01, Bosque 02, Cueva, Cueva Resonante,
+	# Monte Sumicio). Lo demás se gana: cofres `glifo=` / `sello=` (flags global.glifo.* / global.sello.*, que Puzle3D._restaurar_glifos rearma en cada nivel),
+	# el agua de Marimanta y las hojas de grimorio (mejora `paginas`, que suma encima de estas 2). La barrera y la segunda página son las del TUTORIAL
+	# (una minimazmorra-cueva que aún no existe, Pablo 22/11): mientras no exista, este kit las da; cuando exista, salen de aquí y las dan sus cofres.
+	"demo_inicio": {"sellos": ["fuego"], "glifos": ["flecha", "barrera"],
+		"paginas": 2, "glifos_por_pagina": 2, "libro": "avanzado", "capacidad": CAPACIDAD_PRIMER_LIBRO},
 }
 const PROGRESION_FORZADA: String = ""          ## «nivel1», «todo»…: manda sobre el nombre del nivel (para probar)
+## 22/11: SOLO PARA LAS PRUEBAS. {kit de la escena: kit que se usa en su lugar}. `escenario_base.cargar` pone {"demo_inicio": "pruebas"} para que los escenarios escritos con el
+## kit de pruebas sigan como estaban. En el juego está siempre vacío.
+static var sustituir_kit: Dictionary = {}
 const PALETA_RUNAS: bool = true               ## paleta F1 de pruebas (rune_palette.gd), como en Blockout y TestJugabilidad
 ## 8/10 (8.1c): amplificar, retardo, atracción y espejo quedan fuera del 3D (siguen en el 2D). R3 (17/10): `tamano` y `pilar` se retiran
 ## (cada eje tiene su glifo) y `levitacion` (ᛏ) vale SOLO como `altura`.
@@ -188,6 +199,10 @@ var _marca_alcance: MeshInstance3D = null
 var _marca_radio_minimo: MeshInstance3D = null
 var _prev_casillas: Array = []                 ## 8.8: una caja por casilla que ocupará el hechizo (previsualización al apuntar)
 var _prev_color: Color = Color.WHITE
+## Preparación por función: solo dibujo, no cambia el cast point ni la física.
+const PREVISION_CASTEO = preload("res://magia/prevision_casteo_3d.gd")
+static var PREVISION_CASTEO_ACTIVA: bool = true
+var _prevision_casteo: Node = null
 var _apuntado: Apuntado3D = null              ## 28/10: el recorrido real, las retículas y el motivo de «no se puede» del indicador (vive lo que el modo de lanzar)
 var t_mantener: float = 0.0                     ## C1: s reales que lleva pulsada la tecla de la página en el lanzamiento rápido (las pruebas lo leen)
 var barreras_vivas: Array = []                  ## C4: [{linaje, pos, vivo (WeakRef)}], de la más antigua a la más reciente; se limpia de las que ya murieron al lanzar
@@ -228,6 +243,8 @@ var _t_hielo: float = 0.0
 var manifestaciones_vivas: int = 0
 
 signal lanzado(elemento: String, forma: String, manifestaciones: int)
+## H6 (23/11): lo que lleva el hechizo que ACABA de salir (los nombres de sus glifos, como en la página: linea_x, altura…). Lo oye `PistaGlifo` para saber que la jugadora ya usó la runa nueva.
+signal glifos_lanzados(glifos: Array)
 signal modo_cambiado(activo: bool)
 ## Una casilla pasó a ser agua (o dejó de serlo) según la simulación. Para quien dependa de «es agua» y no pregunte cada vez.
 signal agua_cambio(c: Vector2i, es_agua: bool)
@@ -584,7 +601,7 @@ static func progresion_de(p_mundo: Node) -> String:
 	if p_mundo != null:
 		var kit: Variant = p_mundo.get("kit")
 		if kit != null and String(kit) != "":
-			return String(kit)
+			return String(sustituir_kit.get(String(kit), String(kit)))
 		var nivel: Variant = p_mundo.get("nivel")
 		if nivel != null:
 			return String(nivel)
@@ -752,11 +769,14 @@ func add_gesture(strokes: Array, sector: Vector2) -> void:
 	var cambio: bool = sigils_used() != antes_sellos or current_element != antes_elemento
 	if cambio:
 		PlayLog3D.gesto("reconocido", "elemento" if sector == Vector2.ZERO else "glifo")
+		Estadisticas.contar_trazo(true)          # M1 (22/11)
 	elif feedback_until != antes_aviso:
 		if feedback_text.contains("se parece a"):
 			PlayLog3D.gesto("confundido", feedback_text)
+			Estadisticas.contar_trazo(false)
 		elif not feedback_text.begins_with("Hueco ocupado"):
 			PlayLog3D.gesto("rechazado", feedback_text)
+			Estadisticas.contar_trazo(false)
 
 
 ## =====================================================================================================
@@ -798,6 +818,7 @@ func libro_bloqueado_por_combate() -> bool:
 
 
 func _rechazar_libro_en_combate() -> void:
+	Estadisticas.contar_intento_libro_en_combate()      # M1 (22/11): muchos intentos = la jugadora quiere adaptarse a mitad de pelea (DIBUJAR §2)
 	Sfx.play(self, "sello_no")
 	avisar(AVISO_LIBRO_EN_COMBATE)
 
@@ -1457,6 +1478,8 @@ func lanzar_ahora(datos: Dictionary, origen: Vector3, dir: Vector3, con_conjuro:
 		datos = datos.duplicate()
 		datos["carga_en_mano"] = carga
 		tiempos = [tiempos[0], tiempos[1], float(tiempos[2]) + carga]
+	if con_conjuro and conjuro_activo and is_inside_tree():
+		_mostrar_prevision_casteo(_con_cambios(hechizo_de(datos)), origen, dir, true, true)
 	if con_conjuro and conjuro_activo and is_inside_tree() and not _cast_point.is_empty() and conjuro_escala > 0.0:
 		_conjurar_punto(datos, origen, dir)       # el clip manda: el hechizo nace en el `instante` del cast point
 	elif con_conjuro and conjuro_activo and is_inside_tree() and (float(tiempos[0]) + float(tiempos[1]) + float(tiempos[2])) > 0.0:
@@ -1646,6 +1669,8 @@ func _disparar(datos: Dictionary, origen: Vector3, dir: Vector3, retardo: float)
 		PlayLog.event("conjuro", {"pagina": indice + 1, "elemento": datos["elemento_nombre"], "runa": t[0], "voluta": t[1], "forma": t[2],
 			"previsto": snappedf(float(t[0]) + float(t[1]) + float(t[2]), 0.01), "retardo": snappedf(retardo, 0.01), "interrumpido": false})
 	PlayLog3D.manifestaciones(n, forma, elemento)
+	Estadisticas.contar_lanzamiento(indice + 1, String(datos.get("elemento_nombre", elemento)), datos["glifos"] if datos.get("glifos") is Array else [])      # M1 (22/11): por página y por receta
+	glifos_lanzados.emit((datos["glifos"] as Array).duplicate() if datos.get("glifos") is Array else [])
 	lanzado.emit(elemento, forma, n)
 
 
@@ -1840,6 +1865,22 @@ func _pintar_marcadores() -> void:
 ## 28/10 (aspecto del apuntado): un proyectil ya no enseña la caja de su cuerpo bajo la jugadora (no es donde cae), sino su RECORRIDO real y una retícula donde se para
 ## (`Apuntado3D`, con el vuelo en seco de `PrevisionHechizo`); lo que no vuela (barrera, haz) enseña sus casillas como un fantasma de su alto real y una cinta recta.
 ## El anillo de alcance solo sale si el hechizo nace donde apuntas (es lo único a lo que limita). Un sólido que no cabe sale en rojo con su motivo, antes de soltar.
+## Contorno de preparación. Se basa en propiedades finales, incluyendo cambios del lab.
+func posicion_prevision_casteo() -> Vector3:
+	return _pos_cast_point() if conjurando else _pos_mano()
+
+
+func _mostrar_prevision_casteo(h: Hechizo, origen: Vector3, dir: Vector3, valido: bool, en_conjuro: bool = false) -> void:
+	if not PREVISION_CASTEO_ACTIVA or jugador == null or h == null:
+		if is_instance_valid(_prevision_casteo):
+			_prevision_casteo.call("ocultar")
+		return
+	if not is_instance_valid(_prevision_casteo):
+		_prevision_casteo = PREVISION_CASTEO.new()
+		add_child(_prevision_casteo)
+	_prevision_casteo.call("mostrar", h, origen, dir, jugador.global_position, _pos_mano(), valido, self, jugador, en_conjuro)
+
+
 func _pintar_previsualizacion(origen: Vector3, dir: Vector3) -> void:
 	var receta: Receta3D = _preparado.get("receta") as Receta3D
 	if receta == null:
@@ -1864,6 +1905,7 @@ func _pintar_previsualizacion(origen: Vector3, dir: Vector3) -> void:
 		if cs.is_empty():
 			cs = [celda_de(origen)]
 	var no_vale: bool = not valido or motivo != ""
+	_mostrar_prevision_casteo(_con_cambios(hechizo_de(_preparado)), origen, dir, not no_vale)
 	while _prev_casillas.size() < cs.size():
 		var mi := MeshInstance3D.new()
 		var caja := BoxMesh.new()
@@ -1890,7 +1932,8 @@ func _pintar_previsualizacion(origen: Vector3, dir: Vector3) -> void:
 	Apuntado3D.pintar_disco(_marca_origen, Apuntado3D.COLOR_NO if no_vale else _prev_color)
 	_poner_cursor(Apuntado3D.COLOR_NO if no_vale else _prev_color, no_vale)
 	if _apuntado != null and is_instance_valid(_apuntado):
-		_apuntado.mostrar(recorrido, origen, dir, largo_flecha, _prev_color, motivo if motivo != "" else ("" if valido else "Demasiado alto: no se podría pisar"),
+		var recorrido_dibujo: Dictionary = PREVISION_CASTEO.recorrido_visual(hechizo, recorrido, jugador.global_position) if PREVISION_CASTEO_ACTIVA else recorrido
+		_apuntado.mostrar(recorrido_dibujo, origen, dir, largo_flecha, _prev_color, motivo if motivo != "" else ("" if valido else "Demasiado alto: no se podría pisar"),
 			(jugador as Node3D).position if bool(_preparado.get("en_punto", false)) else Vector3.INF)
 	# A3: lo que pasaría al soltar AQUÍ (el mismo origen y la misma dirección que `_soltar` pasa a `lanzar_ahora`). Un hechizo que no se lanzaría no prevé nada.
 	if _vista_reaccion != null and is_instance_valid(_vista_reaccion):
@@ -1924,7 +1967,7 @@ func lanzar_hechizo(hechizo: Hechizo, origen: Vector3, dir: Vector3) -> int:
 			get_tree().create_timer(tarda, false).timeout.connect(_lanzar_copia_rafaga.bind(primera.copiar(), origen, dir))
 		hechizo = primera
 	# C4: tope de barreras vivas. Antes de crear la nueva, las que sobren (la más antigua primero) se disuelven.
-	var es_barrera: bool = hechizo.solidez > 0.0 and hechizo.en_punto and hechizo.profundidad == 0
+	var es_barrera: bool = cuenta_para_tope_barreras(hechizo)
 	if es_barrera:
 		_hacer_sitio_barrera()
 	var vivo: HechizoVivo = HechizoVivo.crear(hechizo, origen, dir, self)
@@ -1949,6 +1992,21 @@ func _barrera_viva(b: Dictionary) -> bool:
 		if is_instance_valid(s) and s.linaje == b["linaje"] and not (s as Node).is_queued_for_deletion():
 			return true
 	return false
+
+
+## C4: ¿este hechizo cuenta para el tope de `MAX_BARRERAS_VIVAS`? (la misma regla que aplica `_materializar`; la usa también la previsión, B9b).
+static func cuenta_para_tope_barreras(h: Hechizo) -> bool:
+	return h != null and h.solidez > 0.0 and h.en_punto and h.profundidad == 0
+
+
+## B9b (22/11, PLAN_HECHIZOS §11): la barrera que se DISOLVERÁ si ahora se lanza otra que cuenta para el tope ({linaje, pos, vivo}), o {} si aún cabe.
+## Solo mira: no limpia la lista ni disuelve nada (eso lo hace `_hacer_sitio_barrera` al lanzar). Es la primera viva, la misma que quitaría `_hacer_sitio_barrera`.
+func barrera_que_se_ira() -> Dictionary:
+	var vivas: Array = []
+	for b in barreras_vivas:
+		if _barrera_viva(b):
+			vivas.append(b)
+	return vivas[0] if vivas.size() >= MAX_BARRERAS_VIVAS else {}
 
 
 ## C4: deja sitio para UNA barrera más: quita de la lista las que ya murieron y disuelve las más antiguas hasta quedar en `MAX_BARRERAS_VIVAS - 1`. Disolver = el camino de muerte de siempre:
@@ -2189,6 +2247,14 @@ func normal_rebote_flecha(p: Vector3) -> Vector3:
 
 
 ## Algo AJENO (la flecha de un goblin) está en `p`: si un volumen con solidez lo contiene, lo para y aguanta `dano`. Devuelve true si lo ha parado.
+## B2 de PLAN_COMBATE (22/11): la barrera viva (SolidezV2) que hay en `p`, o null. Sin golpearla (eso lo decide la tabla de contacto, `Contacto`).
+func solidez_en(p: Vector3) -> SolidezV2:
+	for s in _solideces_v2:
+		if is_instance_valid(s) and not (s as Node).is_queued_for_deletion() and (s as SolidezV2).contiene(p) and not (s as SolidezV2).retraida():
+			return s as SolidezV2
+	return null
+
+
 func solidez_para(p: Vector3, dano: float) -> bool:
 	for s in _solideces_v2:
 		if is_instance_valid(s) and (s as SolidezV2).contiene(p):

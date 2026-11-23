@@ -38,7 +38,8 @@ const GOLDEN: Dictionary = {
 	"golpe hielo sobre ardiendo": "apagado_agua,congelado,empujado",
 	"golpe rayo sobre ardiendo": "electrocutado,empujado,aturdido",
 	"golpe viento sobre ardiendo": "",
-	"golpe tierra sobre ardiendo": "empujado",
+	# 21/11: era «empujado». Cambio buscado (triángulo de la demo, SOFOCADO): la tierra apaga a quien arde y lo aturde (prueba_triangulo_demo).
+	"golpe tierra sobre ardiendo": "apagado_agua,empujado,aturdido",
 	"golpe fuego sobre congelado": "prendido,empujado",
 	"golpe agua sobre congelado": "mojado,empujado",
 	"golpe hielo sobre congelado": "empujado",

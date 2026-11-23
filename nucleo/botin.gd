@@ -38,11 +38,64 @@ static func existe(tabla: String) -> bool:
 	return not BD.tabla(tabla).is_empty()
 
 
+## §11.6 de MEJORAS_HECHIZOS_MYSTRALIA (22/11): VALIDAR LAS TABLAS. Devuelve {"errores": [...], "avisos": [...]}.
+##   Errores (la tabla no se tira: resultado seguro, vacío, y un aviso una vez): peso negativo o no numérico; probabilidad independiente fuera de 0..1; filas ponderadas cuya suma no es
+##   positiva; cantidades negativas.
+##   Avisos (se tira igual): un objeto repetido entre las ponderadas. Tratamiento explícito: cada fila es una opción aparte (sus pesos SUMAN probabilidad y sus cantidades se suman si salen las dos);
+##   no se sobrescriben como en Mystralia.
+static var _validadas: Dictionary = {}       ## tabla -> {errores, avisos} (se valida una vez por tabla)
+
+static func validar(tabla: String) -> Dictionary:
+	return validar_filas(BD.tabla(tabla))
+
+
+## Lo mismo sobre unas filas sueltas (las pruebas).
+static func validar_filas(filas: Array) -> Dictionary:
+	var errores: Array = []
+	var avisos: Array = []
+	var suma: float = 0.0
+	var hay_ponderadas: bool = false
+	var vistos: Dictionary = {}
+	for f in filas:
+		var d: Dictionary = f as Dictionary
+		var que: String = String(d.get("objeto", ""))
+		var peso_txt: String = str(d.get("peso", ""))
+		if not peso_txt.is_valid_float() and not peso_txt.is_valid_int():
+			errores.append("«%s»: peso «%s» no es un número" % [que, peso_txt])
+			continue
+		var peso: float = float(d.get("peso", 0.0))
+		if int(d.get("min", 0)) < 0 or int(d.get("max", 0)) < 0:
+			errores.append("«%s»: cantidad negativa" % que)
+		if String(d.get("independiente", "")) == "si":
+			if peso < 0.0 or peso > 1.0:
+				errores.append("«%s»: probabilidad independiente %.3f fuera de 0..1" % [que, peso])
+		else:
+			hay_ponderadas = true
+			if peso < 0.0:
+				errores.append("«%s»: peso negativo %.3f" % [que, peso])
+			suma += maxf(peso, 0.0)
+			if vistos.has(que) and que != NADA:
+				avisos.append("«%s» aparece varias veces entre las ponderadas: cuentan como opciones aparte (los pesos suman)" % que)
+			vistos[que] = true
+	if hay_ponderadas and suma <= 0.0:
+		errores.append("las filas ponderadas suman %.3f (tiene que ser > 0)" % suma)
+	return {"errores": errores, "avisos": avisos}
+
+
 ## Haz la tirada de `tabla`. `n_tiradas` repite la ponderada (las independientes se tiran una vez). Devuelve [{que, n}], sin `nada` ni cantidades 0; las mismas cosas se suman.
+## §11.6: una tabla inválida (`validar`) no se tira: devuelve [] y avisa una vez.
 static func tirar(tabla: String, n_tiradas: int = 1) -> Array:
 	var filas: Array = BD.tabla(tabla)
 	if filas.is_empty():
 		push_warning("Botin: la tabla «%s» no existe o está vacía" % tabla)
+		return []
+	if not _validadas.has(tabla):
+		_validadas[tabla] = validar(tabla)
+		for a in (_validadas[tabla] as Dictionary)["avisos"]:
+			push_warning("Botin «%s»: %s" % [tabla, a])
+		for e in (_validadas[tabla] as Dictionary)["errores"]:
+			push_warning("Botin «%s» NO VÁLIDA, no se tira: %s" % [tabla, e])
+	if not ((_validadas[tabla] as Dictionary)["errores"] as Array).is_empty():
 		return []
 	var ponderadas: Array = []
 	var independientes: Array = []

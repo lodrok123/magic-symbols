@@ -1,0 +1,44 @@
+[
+	{
+		"draw_calls": 7.0,
+		"frame_ms": 1.02253333333333,
+		"gpu_ms": 0.249416665981213,
+		"mejoras": false,
+		"receta": "Muro agua largo"
+	},
+	{
+		"draw_calls": 7.0,
+		"frame_ms": 1.14056666666667,
+		"gpu_ms": 0.237200000137091,
+		"mejoras": true,
+		"receta": "Muro agua largo"
+	},
+	{
+		"draw_calls": 7.0,
+		"frame_ms": 0.845916666666667,
+		"gpu_ms": 0.167716664820909,
+		"mejoras": false,
+		"receta": "Muro agua alto"
+	},
+	{
+		"draw_calls": 7.0,
+		"frame_ms": 0.867216666666667,
+		"gpu_ms": 0.168316665043434,
+		"mejoras": true,
+		"receta": "Muro agua alto"
+	},
+	{
+		"draw_calls": 5.0,
+		"frame_ms": 2.4871,
+		"gpu_ms": 0.0477499996001522,
+		"mejoras": false,
+		"receta": "Viento alto"
+	},
+	{
+		"draw_calls": 5.0,
+		"frame_ms": 4.51501666666667,
+		"gpu_ms": 0.0600999996686975,
+		"mejoras": true,
+		"receta": "Viento alto"
+	}
+]

@@ -94,6 +94,8 @@
     "oro_ganado": 35,
     "muertes": 1,
     "cofres": 2,
-    "segundos": 5420.0
+    "segundos": 5420.0,
+    "libro": {"aperturas": 6, "seg_abierto": 95.0, "paginas_reescritas": 4, "seg_dibujando": 52.0, "por_pagina": {"1": 9, "2": 4, "3": 1}, "por_receta": {"fuego:flecha": 9, "agua:barrera": 4, "fuego:barrera": 1},
+      "encuentros": 3, "encuentros_varias": 1, "trazos_reconocidos": 21, "trazos_rechazados": 3, "intentos_combate": 2}
   }
 }

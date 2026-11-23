@@ -1,0 +1,32 @@
+#################
+#####.......#####
+#####.......#####
+#...............#
+#.S.............#
+#~~~~~~~~~~~~~~~#
+#~~~~~~~~~~~~~~~#
+#################
+; ======================================================================================================================================================
+;  LA SALA DEL DRAGÓN (21/11/2026). Banco de pruebas del DRAGÓN JEFE placeholder (objetos/dragon_jefe_3d.gd; ideas de Pablo vistas en Mages of Mystralia,
+;  docs/MAGES_OF_MYSTRALIA_2026-11-21.md O8 y O9). Kit `pruebas` (barrera y agua incluidas).
+;  Es un CARRIL (O9): la jugadora se mueve de izquierda a derecha por las filas 3 y 4, al pie del dragón (8,1), siempre a la misma distancia de él. Así la cámara, que la
+;  sigue, lo tiene siempre a la misma altura de pantalla. El hueco (5..11, 1..2) es donde está el dragón y donde apoya la cabeza al caer. Al sur del carril hay AGUA HONDA
+;  (filas 5 y 6) y no un muro: un muro pegado al carril queda entre la cámara y la jugadora y la tapa (sale su silueta). Como el pantano de Mystralia.
+;  Lo que se prueba a mano:
+;    · PRESENTACIÓN: el dragón duerme bajo el suelo. Al acercarse por el carril (3,5 casillas) se levanta, se le encienden los ojos y sale el rótulo
+;      «Guardián del foso / DRAGÓN». La cámara no se mueve. Cuando se va el rótulo, aparece su barra de vida arriba y empieza a atacar.
+;    · ALIENTO: echa la cabeza atrás y la gira hacia el lado por el que va a empezar, se le enciende la boca, se abren anillos a sus pies y BARRE el carril con fuego.
+;      Se bloquea con una BARRERA delante (corta el chorro), con la burbuja, o moviéndose hacia el lado del que viene. Alterna el lado de empezar.
+;    · PUNTOS DÉBILES: el cuerpo no recibe daño. Tres cristales morados (punta de cada ala y pecho) se encienden con cualquier hechizo y se quedan ardiendo; tras cada
+;      aliento brillan más. Con los tres, CAE (tiembla la pantalla), apoya la cabeza y deja el NÚCLEO rosa a tiro 8 s: ahí sí recibe daño (×1,5, silueta blanca y tirón
+;      de cámara). Después se levanta (tiembla otra vez) y los cristales se apagan.
+;    · AGUA mientras carga o sopla: lo aturde 3 s (cabeza caída, ojos que parpadean).
+;  Vencido, aparece el cofre (1,4). Lo comprueba herramientas/escenario_dragon_jefe.gd.
+; ======================================================================================================================================================
+; # pared · . suelo · ~ agua honda · S inicio
+;
+; zona 1,1..15,4 cueva mezcla=0.8
+;
+; pieza dragon dragon_jefe 8 1 mira=s cerca=3.5 vida=300 nombre=Dragon epiteto=Guardian_del_foso
+; pieza cofre_dragon cofre 1 4 aparece_si=flag.saladragon.sala.vencido abierto=saladragon.sala.cofre da=oro:40
+; puzle marca_dragon cuando=dragon.derrotado hace=flag.poner(saladragon.sala.vencido)

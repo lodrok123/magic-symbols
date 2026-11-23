@@ -405,7 +405,9 @@ func _flechas_de_tierra_y_hielo(runes: Dictionary) -> void:
 	var cas: float = Terreno3D.casilla
 	for elemento in ["earth", "ice"]:
 		var rune: RuneData = runes[elemento]
-		_ok("A2 %s: el .tres trae `impulso_salida` (%.2f m/s) y gravedad %.1f" % [elemento, float(Hechizo.construir(rune, {}, 1.0).impulso_salida), Hechizo.construir(rune, {}, 1.0).gravedad], Hechizo.construir(rune, {}, 1.0).impulso_salida > 0.0)
+		# 22/11 (Pablo, P14): sin gravedad en los hechizos, el hechizo construido ya no lleva ni gravedad ni impulso (el .tres los conserva por si se vuelve atrás).
+		_ok("A2 %s: sin gravedad en los hechizos (22/11): gravedad %.1f e impulso %.2f a 0" % [elemento, Hechizo.construir(rune, {}, 1.0).gravedad, float(Hechizo.construir(rune, {}, 1.0).impulso_salida)],
+			Hechizo.construir(rune, {}, 1.0).gravedad == 0.0 and Hechizo.construir(rune, {}, 1.0).impulso_salida == 0.0 and not Hechizo.GRAVEDAD_EN_HECHIZOS)
 		for mano_u in [0.2, 0.4, Hechizo.ALTURA_MANO_U]:
 			_montar()
 			var h: Hechizo = Hechizo.construir(rune, {"flecha": 1}, 1.0)

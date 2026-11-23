@@ -1,0 +1,25 @@
+{
+	"_prendas": ["pantalon"],
+	"_notas": [
+		"PANTALÓN BASE del maniquí (19/11, Pablo: «intégralos como pantalones base»). Entrada: el .glb de Meshy «Olive Capri Leggings» 1119225830 entero",
+		"(normalizado a ±0,5 en alto, de frente hacia -Y; caja X ±0,308, fondo ±0,20). No es una prenda que se pone y se quita: tools/maniqui_a_base.py lo FUNDE en el",
+		"cuerpo (`funde=`), como las botas, y partir_base_zonas.gd lo mete en la zona `piernas` por su color.",
+		"Nudos: [z de Meshy, z en el mundo, [X, Y delante, Y detrás], desplazamiento Y]. -0,5 el bajo, a 0,33 (con 0,40 quedaba a ras de la boca de la bota, que está a 0,38–0,40, y se veía la pierna);",
+		"0,5 la cintura, a 0,95. Escala casi uniforme (alto ×0,55): con X ×0,52 el centro de la pernera de Meshy (0,19 abajo, 0,17 arriba) cae sobre la pierna del",
+		"maniquí (0,10 a la altura de la rodilla, 0,074 a 0,66). El -0,08 en Y lleva el modelo, centrado en 0, sobre las piernas (de -0,16 a 0,0).",
+		"sin_brazos: las manos cuelgan a la altura de la cadera y le daban su peso a la tela."
+	],
+	"pantalon": {
+		"tris": 5000,
+		"parte": "todo",
+		"perfil": [
+			[-0.50, 0.33, [0.52, 0.50, 0.50], -0.08],
+			[0.50, 0.95, [0.55, 0.50, 0.50], -0.08]
+		],
+		"destino": [0.0, 0.0, 0.0],
+		"margen": 0.006,
+		"normal_suave": true,
+		"pasadas_piel": 4,
+		"sin_brazos": true
+	}
+}

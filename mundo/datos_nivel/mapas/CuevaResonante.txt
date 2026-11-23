@@ -185,7 +185,7 @@
 ; La puerta del santuario pide la llave de C4.
 ; pieza puerta_llave puerta 15 13 modelo=llave llave=cuevap.c4.llave gasta=no abierto=cuevap.c6.puerta
 ; El cofre legendario da ᚱ «pulso» con su secuencia; mientras está cerrado echa su columna de luz dorada.
-; pieza tesoro cofre 14 11 modelo=legendario abre_si=flag.cuevap.c6.fuego abierto=cueva.c6.glifo glifo=raido da=engarce_glifo:1
+; pieza tesoro cofre 14 11 modelo=legendario abre_si=flag.cuevap.c6.fuego abierto=cueva.c6.glifo glifo=raido da=engarce_glifo:1 reto=cuevap.c6.salida reto_en=11,16
 ; La salida (el atajo a C1) es una PARED HUECA que solo abre el pulso propio (ᚱ): el primer uso del glifo.
 ; pieza salida pared_hueca 9 16 flag=cuevap.c6.salida
 ; pieza jarron_c6a jarron 17 11 botin=oro

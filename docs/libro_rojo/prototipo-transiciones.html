@@ -1,0 +1,135 @@
+<div id="prototipo-grimorio" aria-label="Prototipo del libro rojo y sus transiciones">
+  <div class="ensayo" aria-label="Controles de prueba">
+    <div class="estructuras" role="group" aria-label="Estructura del conjuro">
+      <button type="button" data-mode="simple" aria-pressed="true">Un sello</button>
+      <button type="button" data-mode="mezcla" aria-pressed="false">Combinar sellos</button>
+      <button type="button" data-mode="anidado" aria-pressed="false">Anidar</button>
+    </div>
+    <label class="capacidad">Glifos <select aria-label="Glifos desbloqueados"><option value="3">3</option><option value="6">6</option></select></label>
+    <button type="button" data-undo disabled>Deshacer</button>
+  </div>
+  <div class="cubierta" aria-label="Libro rojo">
+    <div class="esquina ei" aria-hidden="true"></div><div class="esquina ed" aria-hidden="true"></div>
+    <div class="esquina bi" aria-hidden="true"></div><div class="esquina bd" aria-hidden="true"></div>
+    <section class="hoja trazado" aria-label="Página de trazado">
+      <h2>Trazado</h2>
+      <div class="campo" aria-label="Zona de dibujo libre">
+        <svg viewBox="0 0 500 650" role="img" aria-label="Dibuja un gesto para inscribirlo en el hueco seleccionado">
+          <circle class="guia" cx="250" cy="325" r="205"/>
+          <path class="muestra" d="M275 270 L225 325 L265 378"/>
+          <g class="trazos-libres"></g>
+        </svg>
+      </div>
+      <div class="acciones-trazo"><button type="button" data-inscribe>Inscribir ejemplo</button><button type="button" data-clear>Limpiar trazo</button></div>
+      <div class="destino-texto" aria-live="polite">Sello principal seleccionado</div>
+    </section>
+    <div class="lomo" aria-hidden="true"></div>
+    <section class="hoja conjuro" aria-label="Página del conjuro">
+      <h2>Conjuro</h2>
+      <div class="diagrama" aria-label="Composición mágica interactiva">
+        <svg class="geometria" viewBox="0 0 500 650" role="img" aria-label="Sellos y glifos agrupados por sus dobles contornos exteriores">
+          <g class="circulo-principal"><circle class="contorno"/><circle class="contorno interior"/></g>
+          <g class="circulo-hijo"><circle class="contorno"/><circle class="contorno interior"/></g>
+          <path class="conexion-mezcla"/>
+          <path class="conexion-hijo"/>
+          <path class="pulso"/>
+          <g class="simbolos"></g>
+          <g class="condicion-dibujo"><path class="rombo" d="M0 -21 L21 0 L0 21 L-21 0 Z"/><path class="marca-condicion"/></g>
+        </svg>
+        <div class="destinos"></div>
+      </div>
+      <div class="acciones-hijo" hidden><button type="button" data-condition>Al impactar</button><button type="button" data-transfer hidden>Pasar al hijo</button></div>
+      <div class="lectura" aria-live="polite">Un elemento · una manifestación</div>
+    </section>
+  </div>
+  <div class="estado" aria-live="polite">Selecciona una estructura para ensayar la transformación.</div>
+</div>
+<style>
+#prototipo-grimorio{--cuero:#671d27;--borde:#32141a;--tinta:#50301e;--tinta-roja:#9b3c24;--papel:#f2d49a;--oro:#ad8042;--velocidad:800ms;font-family:Georgia,'Times New Roman',serif;color:var(--tinta)}
+#prototipo-grimorio *{box-sizing:border-box}
+#prototipo-grimorio [hidden]{display:none!important}
+#prototipo-grimorio button,#prototipo-grimorio select{font:14px Georgia,serif;color:#4b2c1c;border:1px solid #a87c49;background:#f5dfb8;padding:9px 12px;border-radius:5px;min-height:38px}
+#prototipo-grimorio button:disabled{opacity:.45}
+#prototipo-grimorio button[aria-pressed=true]{color:#fff0d5;background:#742a30;border-color:#742a30}
+#prototipo-grimorio .ensayo{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:0 0 14px}
+#prototipo-grimorio .estructuras{display:flex;gap:5px;flex-wrap:wrap}
+#prototipo-grimorio .capacidad{display:flex;gap:7px;align-items:center;color:light-dark(#513321,#efd6b3);font-size:14px}
+#prototipo-grimorio .cubierta{position:relative;display:flex;padding:18px 22px 22px;background:repeating-linear-gradient(7deg,#ffffff03 0 2px,transparent 2px 7px),linear-gradient(120deg,#872e36,#46131b 55%,#812a31);border:3px solid #3b171d;border-radius:19px 19px 24px 24px;box-shadow:inset 0 0 0 3px #b37d4a,0 8px 16px #19090930;isolation:isolate}
+#prototipo-grimorio .hoja{width:50%;position:relative;min-width:0;background:radial-gradient(ellipse at 30% 35%,#fff2cc66,transparent 65%),repeating-linear-gradient(115deg,#80501903 0 1px,transparent 1px 4px),linear-gradient(90deg,#deb373,#f0d09a 12%,#f7dfae 55%,#edc88f 90%,#b68448);border:1px solid #b07e41;border-radius:20px 5px 8px 16px;box-shadow:inset 0 0 14px #a76e2944,0 4px 0 #c5985b,0 7px 0 #a77a44;overflow:visible;padding-top:48px;padding-bottom:78px}
+#prototipo-grimorio .conjuro{border-radius:5px 20px 16px 8px;background:radial-gradient(ellipse at 70% 35%,#fff2cc66,transparent 65%),repeating-linear-gradient(115deg,#80501903 0 1px,transparent 1px 4px),linear-gradient(90deg,#b68448,#edc88f 10%,#f7dfae 45%,#f0d09a 88%,#deb373)}
+#prototipo-grimorio h2{position:absolute;top:18px;left:0;right:0;text-align:center;font-weight:400;font-size:22px;letter-spacing:.025em;margin:0}
+#prototipo-grimorio .lomo{width:13px;flex-shrink:0;background:linear-gradient(90deg,#63321c,#c79553 40%,#80522e 65%,#3d2217);border-radius:5px;margin:-8px -3px -9px;z-index:2;box-shadow:0 0 10px #653a2833}
+#prototipo-grimorio .esquina{position:absolute;width:36px;height:36px;background:linear-gradient(135deg,#dbb373,#8f6036 45%,#b38d57);border:2px solid #624424;z-index:3;clip-path:polygon(0 0,100% 0,100% 30%,30% 100%,0 100%)}
+#prototipo-grimorio .esquina:after{content:'';position:absolute;inset:8px 14px 14px 8px;transform:rotate(45deg);background:linear-gradient(140deg,#e68b89,#8b162b 50%,#3e1020);border:1px solid #edb977}
+#prototipo-grimorio .ei{top:0;left:0}#prototipo-grimorio .ed{top:0;right:0;transform:rotate(90deg)}#prototipo-grimorio .bi{bottom:0;left:0;transform:rotate(-90deg)}#prototipo-grimorio .bd{bottom:0;right:0;transform:rotate(180deg)}
+#prototipo-grimorio .campo,#prototipo-grimorio .diagrama{width:100%;aspect-ratio:500/650;position:relative}
+#prototipo-grimorio .campo{touch-action:none}
+#prototipo-grimorio .campo>svg,#prototipo-grimorio .geometria{display:block;width:100%;height:100%;overflow:visible}
+#prototipo-grimorio .guia{fill:none;stroke:#9e7136;stroke-width:1;opacity:.3}
+#prototipo-grimorio .muestra{fill:none;stroke:var(--tinta-roja);stroke-width:3;opacity:.32;stroke-linecap:round}
+#prototipo-grimorio .trazos-libres path{fill:none;stroke:var(--tinta);stroke-width:3;stroke-linecap:round;stroke-linejoin:round}
+#prototipo-grimorio .contorno{fill:none;stroke:var(--tinta);stroke-width:1.8}
+#prototipo-grimorio .contorno.interior{stroke-width:1}
+#prototipo-grimorio .conexion-mezcla,#prototipo-grimorio .conexion-hijo{stroke:var(--tinta);stroke-width:1.7;fill:none}
+#prototipo-grimorio .pulso{fill:none;stroke:#ac4e25;stroke-width:3.5;stroke-linecap:round;opacity:0;pointer-events:none}
+#prototipo-grimorio .sello-contorno,#prototipo-grimorio .glifo-contorno{stroke:var(--tinta);stroke-width:1.4;fill:#f4d7a3}
+#prototipo-grimorio .runa{fill:none;stroke:var(--tinta);stroke-width:3;stroke-linecap:round;stroke-linejoin:round}
+#prototipo-grimorio .sello .runa{stroke:var(--tinta-roja);stroke-width:4}
+#prototipo-grimorio .seleccion{fill:none;stroke:var(--tinta-roja);stroke-width:2;opacity:0}
+#prototipo-grimorio .elegido .seleccion{opacity:1}
+#prototipo-grimorio .rombo{fill:#f4d7a3;stroke:var(--tinta);stroke-width:1.6}
+#prototipo-grimorio .marca-condicion{fill:none;stroke:var(--tinta);stroke-width:1.8;stroke-linecap:round}
+#prototipo-grimorio .destinos{position:absolute;inset:0;pointer-events:none}
+#prototipo-grimorio .destinos button{position:absolute;transform:translate(-50%,-50%);width:44px;height:44px;min-height:44px;background:transparent;border:0;border-radius:50%;padding:0;pointer-events:auto}
+#prototipo-grimorio .destinos button:hover{background:#a8511f17}
+#prototipo-grimorio .destinos button:focus-visible{outline:2px solid #9b3c24;outline-offset:2px}
+#prototipo-grimorio .acciones-trazo,#prototipo-grimorio .acciones-hijo{position:absolute;bottom:33px;left:10px;right:10px;display:flex;gap:6px;justify-content:center;flex-wrap:wrap}
+#prototipo-grimorio .acciones-trazo button,#prototipo-grimorio .acciones-hijo button{font-size:12px;padding:6px 9px;min-height:32px;background:#f4dbadcc}
+#prototipo-grimorio .destino-texto,#prototipo-grimorio .lectura{position:absolute;bottom:10px;left:12px;right:12px;text-align:center;font-size:12px;line-height:1.2}
+#prototipo-grimorio .estado{font-size:14px;color:light-dark(#513321,#efd6b3);min-height:38px;padding-top:15px;line-height:1.4}
+@media(max-width:650px){#prototipo-grimorio .cubierta{display:block;padding:14px 12px 18px}#prototipo-grimorio .hoja{width:100%;padding-top:44px;padding-bottom:88px}#prototipo-grimorio .lomo{height:12px;width:auto;margin:8px -3px}#prototipo-grimorio h2{font-size:21px}#prototipo-grimorio .ensayo{gap:7px}#prototipo-grimorio .ensayo button{padding:8px 9px;font-size:13px}#prototipo-grimorio .acciones-trazo,#prototipo-grimorio .acciones-hijo{bottom:37px}#prototipo-grimorio select{font-size:16px}}
+</style>
+<script>
+(()=>{
+const root=document.getElementById('prototipo-grimorio'),q=s=>root.querySelector(s),qa=s=>[...root.querySelectorAll(s)],ns='http://www.w3.org/2000/svg';
+const reduced=matchMedia('(prefers-reduced-motion: reduce)').matches;
+const runes={fuego:'M12 -24 L-14 2 L11 26',tierra:'M-22 22 L-22 -22 L0 -8 L22 -22 L22 22',viaja:'M0 -19 L0 19 L-13 7 M0 -19 L13 -6',altura:'M0 20 L0 -20 M-13 -7 L0 -20 L13 -7',copias:'M-8 -20 L-8 20 M-8 -3 L12 -19 M-8 12 L12 -4'};
+const defaults=()=>({mode:'simple',capacity:3,condition:'impacto',active:'s0',paths:{s0:runes.fuego,s1:runes.tierra,g0:runes.viaja,g1:runes.altura,g2:'',g3:'',g4:'',g5:''},owners:[0,0,0,0,0,0]});
+let state=defaults(),history=[],busy=false,drawn=[],stroke=null,lastFrame=null;
+const settings={duration:850,guides:true};
+function save(){if(window.openai?.setWidgetState)window.openai.setWidgetState({modelContent:{estructura:state.mode,glifos:state.capacity},privateContent:{version:1,state}}).catch(()=>{})}
+function restore(v){if(v?.privateContent?.version!==1)return;const s=v.privateContent.state;if(!s||!['simple','mezcla','anidado'].includes(s.mode))return;state={...defaults(),...s};if(![3,6].includes(state.capacity))state.capacity=3;state.owners=Array.from({length:6},(_,i)=>state.owners?.[i]===1?1:0);renderStatic();}
+function el(tag,attrs,parent){const n=document.createElementNS(ns,tag);Object.entries(attrs||{}).forEach(([k,v])=>n.setAttribute(k,v));if(parent)parent.append(n);return n}
+const nodes={};for(const id of ['s0','s1','g0','g1','g2','g3','g4','g5']){const seal=id[0]==='s',g=el('g',{class:seal?'sello':'glifo','data-node':id},q('.simbolos'));const circle=el('circle',{class:seal?'sello-contorno':'glifo-contorno'},g),selected=el('circle',{class:'seleccion'},g),path=el('path',{class:'runa'},g);let button=document.createElement('button');button.type='button';button.className='cursor-interaction';button.dataset.target=id;button.addEventListener('click',()=>select(id));q('.destinos').append(button);nodes[id]={g,circle,selected,path,button};}
+const cb=document.createElement('button');cb.type='button';cb.className='cursor-interaction';cb.dataset.target='condition';cb.setAttribute('aria-label','Seleccionar condición');cb.addEventListener('click',()=>select('condition'));q('.destinos').append(cb);
+function snapshot(){history.push(JSON.parse(JSON.stringify(state)));if(history.length>30)history.shift();q('[data-undo]').disabled=false}
+function layout(s){let nest=s.mode==='anidado',p=nest?{x:165,y:190,r:125}:{x:250,y:325,r:205},child={x:335,y:450,r:125};let seals={s0:{x:p.x+(s.mode==='mezcla'?-49:0),y:p.y,r:s.mode==='mezcla'?40:46,a:1},s1:{x:s.mode==='mezcla'?299:child.x,y:s.mode==='mezcla'?325:child.y,r:s.mode==='mezcla'?40:46,a:s.mode==='simple'?0:1}};
+let coords={...seals};const groups=[[],[]];for(let i=0;i<s.capacity;i++)groups[nest?s.owners[i]:0].push(i);groups.forEach((ids,owner)=>{ids.forEach((id,j)=>{let c=owner?child:p,ang;if(!nest){ang=[-90,30,150,-30,90,210][id]}else{ang=ids.length<=3?[-90,30,150][j]:[-90,-18,54,126,198,270][j]}let rad=(nest?87:155),a=ang*Math.PI/180;coords['g'+id]={x:c.x+Math.cos(a)*rad,y:c.y+Math.sin(a)*rad,r:nest?24:27,a:1}})});for(let i=s.capacity;i<6;i++)coords['g'+i]={x:p.x,y:p.y,r:20,a:0};return{p,child,childA:nest?1:0,linkA:nest?1:0,mixA:s.mode==='mezcla'?1:0,coords}}
+function lerp(a,b,t){return a+(b-a)*t}function ease(t){return t*t*(3-2*t)}
+function between(a,b,t){let out={coords:{}};for(const k of ['p','child']){out[k]={};for(const n of ['x','y','r'])out[k][n]=lerp(a[k][n],b[k][n],t)}for(const k of ['childA','linkA','mixA'])out[k]=lerp(a[k],b[k],t);for(const id in nodes){out.coords[id]={};for(const k of ['x','y','r','a'])out.coords[id][k]=lerp(a.coords[id][k],b.coords[id][k],t)}return out}
+function ring(group,c,visible,progress){group.style.opacity=visible;[...group.children].forEach((circle,i)=>{circle.setAttribute('cx',c.x);circle.setAttribute('cy',c.y);circle.setAttribute('r',c.r-i*7);let length=2*Math.PI*(c.r-i*7);circle.style.strokeDasharray=length;circle.style.strokeDashoffset=length*(1-progress)})}
+function drawFrame(f,childProgress=1){lastFrame=f;ring(q('.circulo-principal'),f.p,1,1);ring(q('.circulo-hijo'),f.child,f.childA,childProgress);for(const [id,n]of Object.entries(nodes)){let c=f.coords[id];n.g.setAttribute('transform',`translate(${c.x} ${c.y})`);n.g.style.opacity=c.a;n.circle.setAttribute('r',c.r);n.selected.setAttribute('r',c.r+5);n.path.setAttribute('d',state.paths[id]||'');n.path.setAttribute('transform',id[0]==='s'?'scale(1)':'scale(.65)');n.g.classList.toggle('elegido',state.active===id);n.button.hidden=c.a<.95;n.button.style.left=(c.x/5)+'%';n.button.style.top=(c.y/6.5)+'%';n.button.setAttribute('aria-pressed',String(state.active===id));n.button.setAttribute('aria-label',id==='s0'?'Sello principal':id==='s1'?'Segundo sello':`Glifo ${Number(id.slice(1))+1} del ${state.mode==='anidado'&&state.owners[Number(id.slice(1))]?'hijo':'principal'}`)}q('.conexion-mezcla').setAttribute('d',`M${f.coords.s0.x} ${f.coords.s0.y} L${f.coords.s1.x} ${f.coords.s1.y}`);q('.conexion-mezcla').style.opacity=f.mixA;
+const link=`M${f.p.x+23} ${f.p.y+45} Q205 282 250 320 Q294 360 ${f.child.x-10} ${f.child.y-48}`;q('.conexion-hijo').setAttribute('d',link);q('.conexion-hijo').style.opacity=f.linkA;const cond=q('.condicion-dibujo');cond.setAttribute('transform','translate(250 320)');cond.style.opacity=f.linkA;q('.marca-condicion').setAttribute('d',state.condition==='impacto'?'M-10 0 H10 M0 -10 V10 M-7 -7 L7 7 M7 -7 L-7 7':'M-9 -12 H9 L-9 12 H9 M-9 -12 L9 12');cb.hidden=f.linkA<.95;cb.style.left='50%';cb.style.top=(320/6.5)+'%';q('.rombo').style.stroke=state.active==='condition'?'#a64b26':'';
+}
+function updateUI(){qa('[data-mode]').forEach(b=>{b.setAttribute('aria-pressed',String(b.dataset.mode===state.mode));b.disabled=busy});q('select').value=String(state.capacity);q('select').disabled=busy;q('[data-undo]').disabled=busy||!history.length;q('[data-inscribe]').disabled=busy;q('[data-clear]').disabled=busy;qa('.destinos button').forEach(b=>b.disabled=busy);q('.acciones-hijo').hidden=state.mode!=='anidado';q('[data-condition]').textContent=state.condition==='impacto'?'Al impactar':'Al acabar';q('[data-condition]').disabled=busy;const transfer=q('[data-transfer]');transfer.hidden=state.mode!=='anidado'||!state.active.startsWith('g');transfer.disabled=busy;if(!transfer.hidden)transfer.textContent=state.owners[Number(state.active.slice(1))]?'Pasar al principal':'Pasar al hijo';q('.lectura').textContent=state.mode==='simple'?'Un elemento · una manifestación':state.mode==='mezcla'?'Fuego + Tierra · una manifestación':'Dos manifestaciones · una condición';let desc=state.active==='s0'?'Sello principal':state.active==='s1'?'Segundo sello':state.active==='condition'?'Condición':`Glifo ${Number(state.active.slice(1))+1} · ${state.mode==='anidado'&&state.owners[Number(state.active.slice(1))]?'hijo':'principal'}`;q('.destino-texto').textContent=desc+' seleccionado';const sample=state.active==='s0'?runes.fuego:state.active==='s1'?runes.tierra:state.active==='condition'?'M0 -20 V20 M-20 0 H20':runes.copias;q('.muestra').setAttribute('d',sample);q('.muestra').setAttribute('transform','translate(250 325) scale(2)');q('.muestra').style.opacity=drawn.length?'0':'.25';q('.guia').style.opacity=settings.guides?'.3':'0';}
+function renderStatic(){drawFrame(layout(state));updateUI()}
+function select(id){if(busy)return;if(id!==state.active)clearDrawing();state.active=id;renderStatic();save()}
+function status(s){q('.estado').textContent=s}
+async function animate(from,to,newChild=false){busy=true;updateUI();const duration=reduced?0:settings.duration;await new Promise(resolve=>{let start;function step(now){if(start===undefined)start=now;let raw=duration?Math.min((now-start)/duration,1):1,t=ease(Math.min(raw/.75,1)),f=between(from,to,t);if(newChild){f.childA=raw>.5?1:0;f.linkA=Math.max(0,(raw-.78)/.22)}drawFrame(f,newChild?Math.min(1,Math.max(0,(raw-.5)/.35)):1);if(raw<1)requestAnimationFrame(step);else resolve()}requestAnimationFrame(step)});busy=false;renderStatic();save()}
+function pulse(){if(reduced)return;const p=q('.pulso');const d=state.mode==='anidado'?q('.conexion-hijo').getAttribute('d'):state.mode==='mezcla'?q('.conexion-mezcla').getAttribute('d'):'';if(!d)return;p.setAttribute('d',d);const len=p.getTotalLength();p.style.strokeDasharray='22 '+len;p.animate([{strokeDashoffset:String(22),opacity:1},{strokeDashoffset:String(-len),opacity:0}],{duration:650,easing:'ease-in-out'})}
+async function changeMode(mode){if(busy||mode===state.mode)return;if(state.mode==='anidado'&&mode!=='anidado'&&state.owners.some((o,i)=>i<state.capacity&&o===1&&state.paths['g'+i])){status('Devuelve los glifos escritos del hijo al principal antes de unir sus círculos.');return}const before=layout(state),old=state.mode;snapshot();state.mode=mode;if(mode==='anidado'&&old!=='anidado'){let empties=[];for(let i=0;i<state.capacity;i++)if(!state.paths['g'+i])empties.push(i);for(let i=0;i<state.capacity;i++)state.owners[i]=empties.includes(i)&&i>=2?1:0;}if(mode!=='anidado')state.owners.fill(0);if(mode==='simple'&&(state.active==='s1'||state.active==='condition'))state.active='s0';status(mode==='mezcla'?'El núcleo se abre: los glifos conservan su sitio.':mode==='anidado'?'El sello sale del núcleo y recibe un contorno propio.':'Los trazos regresan al círculo principal.');let after=layout(state);if(old==='simple'&&mode!=='simple')before.coords.s1={x:-30,y:325,r:34,a:0};await animate(before,after,mode==='anidado'&&old!=='anidado');status(mode==='anidado'?'Dos contornos propios. Los glifos escritos siguen en el principal.':mode==='mezcla'?'Dos sellos dentro del mismo contorno: una combinación.':'Un sello, una corona de glifos y una manifestación.');pulse()}
+qa('[data-mode]').forEach(b=>b.addEventListener('click',()=>changeMode(b.dataset.mode)));
+q('select').addEventListener('change',async e=>{if(busy)return;const capacity=Number(e.target.value);if(capacity===3&&[3,4,5].some(i=>state.paths['g'+i])){e.target.value=String(state.capacity);status('Hay trazos en los huecos 4–6. Se conserva la capacidad para no borrarlos.');return}let before=layout(state);snapshot();state.capacity=capacity;if(state.active.startsWith('g')&&Number(state.active.slice(1))>=capacity)state.active='s0';if(state.mode==='anidado'&&capacity===6)for(let i=3;i<6;i++)state.owners[i]=1;await animate(before,layout(state));status(capacity===6?'Se abren tres huecos nuevos. Los tres anteriores conservan su identidad.':'Quedan disponibles los tres huecos iniciales.')});
+q('[data-undo]').addEventListener('click',async()=>{if(busy||!history.length)return;const before=layout(state),old=state.mode;state=history.pop();await animate(before,layout(state),state.mode==='anidado'&&old!=='anidado');status('Se ha restaurado la composición anterior, incluidos sus trazos.')});
+q('[data-condition]').addEventListener('click',()=>{if(busy)return;snapshot();state.condition=state.condition==='impacto'?'acabar':'impacto';state.active='condition';renderStatic();save();pulse();status(state.condition==='impacto'?'El hijo se activa al impactar el principal.':'El hijo se activa al acabar el principal.')});
+q('[data-transfer]').addEventListener('click',async()=>{if(busy||!state.active.startsWith('g'))return;const before=layout(state),i=Number(state.active.slice(1));snapshot();state.owners[i]=state.owners[i]?0:1;await animate(before,layout(state));status('El glifo cruza al otro círculo. El total de huecos no cambia.')});
+function clearDrawing(){drawn=[];stroke=null;q('.trazos-libres').replaceChildren();updateUI()}
+q('[data-clear]').addEventListener('click',clearDrawing);
+function writeExample(){if(busy)return;if(state.active==='condition'){q('[data-condition]').click();return}snapshot();const id=state.active;state.paths[id]=id==='s0'?runes.fuego:id==='s1'?runes.tierra:runes.copias;renderStatic();const n=nodes[id].path;if(!reduced){const len=n.getTotalLength();n.animate([{strokeDasharray:len,strokeDashoffset:len},{strokeDasharray:len,strokeDashoffset:0}],{duration:550,easing:'ease-out'})}save();status('La tinta se inscribe en el hueco seleccionado.');pulse()}
+q('[data-inscribe]').addEventListener('click',writeExample);
+const pad=q('.campo');function xy(e){const r=pad.getBoundingClientRect();return[(e.clientX-r.left)/r.width*500,(e.clientY-r.top)/r.height*650]}
+pad.addEventListener('pointerdown',e=>{if(busy)return;e.preventDefault();pad.setPointerCapture(e.pointerId);stroke={points:[xy(e)],node:el('path',{},q('.trazos-libres'))};q('.muestra').style.opacity=0});pad.addEventListener('pointermove',e=>{if(!stroke)return;stroke.points.push(xy(e));stroke.node.setAttribute('d',stroke.points.map((p,i)=>(i?'L':'M')+p.map(v=>v.toFixed(1)).join(' ')).join(' '))});pad.addEventListener('pointercancel',()=>{stroke=null});pad.addEventListener('pointerup',()=>{if(!stroke)return;const points=stroke.points;stroke=null;if(points.length<3)return;drawn.push(points.filter((p,i)=>i % Math.max(1,Math.ceil(points.length/36))===0 || i===points.length-1));drawn=drawn.slice(-3);if(state.active==='condition'){status('Usa el símbolo de condición para alternar impacto y final.');return}snapshot();const flat=drawn.flat(),xs=flat.map(p=>p[0]),ys=flat.map(p=>p[1]),minx=Math.min(...xs),miny=Math.min(...ys),width=Math.max(...xs)-minx,height=Math.max(...ys)-miny,scale=42/Math.max(width,height,1);state.paths[state.active]=drawn.map(ps=>ps.map((p,i)=>(i?'L':'M')+((p[0]-minx-width/2)*scale).toFixed(1)+' '+((p[1]-miny-height/2)*scale).toFixed(1)).join(' ')).join(' ');renderStatic();if(!reduced){const n=nodes[state.active].path,len=n.getTotalLength();n.animate([{strokeDasharray:len,strokeDashoffset:len},{strokeDasharray:len,strokeDashoffset:0}],{duration:500})}save();status('Trazo copiado al destino. Esta prueba no reconoce ni valida runas.');});
+qa('button,select').forEach(n=>n.classList.add('cursor-interaction'));renderStatic();restore(window.openai?.widgetState);window.addEventListener('openai:set_globals',e=>{if(!busy)restore(e.detail?.globals?.widgetState)});
+if(globalThis.Tweak){const t=new Tweak({container:q('.cubierta'),onChange:()=>{updateUI()}});t.addSlider(settings,'duration',{label:'Duración de la transición',min:400,max:1800,step:100,unit:'ms'});t.addToggle(settings,'guides',{label:'Guía de trazado'})}
+})();
+</script>

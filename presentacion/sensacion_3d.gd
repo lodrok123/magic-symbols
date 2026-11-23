@@ -66,6 +66,23 @@ static var FRACCION_GOLPE_GRANDE: float = 0.4  ## fracción de la vida máxima q
 static var VIDA_BAJA: float = 0.25             ## fracción de la vida máxima por debajo de la cual hay aviso de vida baja (HUD) y el golpe que la deja así pega más fuerte
 static var HITSTOP_DANO_VIDA_BAJA: float = 0.12  ## s que se congela ella si el golpe le deja la vida por debajo de VIDA_BAJA (el momento que hay que sentir)
 static var VINETA_VIDA_BAJA: float = 1.3       ## la viñeta es × esto de opaca en ese golpe
+## G7 (22/11, Pablo: «el feedback de la jugadora es pobre»; fotos en docs/capturas/feedback_jugadora): TRES TAMAÑOS de golpe recibido por la fracción de la vida máxima que quita.
+## Pequeño (< GOLPE_MEDIO): destello en el cuerpo, número normal y sonido. Medio: además hitstop HITSTOP_POR_TAMANO[1] y número más grande. Grande (≥ GOLPE_GRANDE): hitstop largo,
+## número grande que salta, viñeta más larga, temblor máximo y tambaleo (empujón y bloqueo más largos, en `Jugador3D`). El golpe que mata cuenta siempre como grande.
+## Fallo que evita: un golpe de 12 y uno de 45 se veían igual (mismo número, misma pose, hitstop de 0,05 s que no se nota a 30 fps).
+static var GOLPE_MEDIO: float = 0.15
+static var GOLPE_GRANDE: float = 0.30
+static var HITSTOP_POR_TAMANO: Array = [0.05, 0.08, 0.15]   ## s de hitstop: pequeño, medio, grande (el de vida baja, HITSTOP_DANO_VIDA_BAJA, manda si es mayor)
+static var NUMERO_POR_TAMANO: Array = [1.0, 1.3, 1.7]       ## escala del número rojo
+static var T_VINETA_POR_TAMANO: Array = [0.3, 0.32, 0.4]    ## s de la viñeta (antes 0,22 en todos: en el golpe pequeño casi no se veía)
+## Viñeta con dirección: el borde del lado del que viene el golpe se oscurece hasta × (1 + VINETA_DIR) y el contrario baja hasta × (1 − VINETA_DIR).
+static var VINETA_DIR: float = 0.7
+## Quejido de voz por tamaño (nombres del catálogo de `Sfx`). VACÍOS: el proyecto no tiene grabaciones de voz de la jugadora; cuando las haya, poner aquí sus nombres.
+static var VOZ_GOLPE: Array = ["", "", ""]
+## El golpe que una protección (barrera, cúpula o bálsamo) PARA: destello azulado corto en ella, rótulo y un temblor mínimo (el sonido ya lo pone quien lo para).
+static var COLOR_BLOQUEO: Color = Color(0.75, 0.9, 1.0)
+static var TEXTO_BLOQUEO: String = "Bloqueado"
+static var TEMBLOR_BLOQUEO: float = 0.12
 ## E1 (6/11): JUICE ESCALADO POR LA POTENCIA DEL HECHIZO (`Dano.LIGERA/MEDIA/ALTA`, glifos de la receta). Fallo que evita: una chispa de 1 glifo y un haz de 5 se sentían igual.
 ## Indexados por el nivel: ligera 0 (sin hitstop ni temblor), media, alta.
 static var HITSTOP_HECHIZO: Array[float] = [0.0, 0.06, 0.12]    ## s que se congela el mundo al SALIR y al IMPACTAR el hechizo
@@ -101,6 +118,9 @@ static var TEMBLOR_MUERTE: float = 0.22
 ## 29/10 (Pablo, sala del gólem): el mazazo del gólem levanta polvo bajo cada puño y uno mayor en el centro, y la cámara tiembla suave.
 static var POLVO_GOLEM: float = 0.9             ## radio del polvo de cada puño (el del centro, ×1,6)
 static var TEMBLOR_GOLEM: float = 0.3           ## temblor del mazazo (sin Sensacion: 0,35 fijo, como antes)
+## 22/11 (C17, Mystralia O9): el temblor largo es para lo que hace un CUERPO GRANDE (caer, golpear el suelo, levantarse); los golpes pequeños no lo llevan. Mismo valor que el
+## mazazo del gólem (Pablo, 29/10: «suave»). Mystralia llega a ~3 % del alto (≈ 0,9 aquí) y el dragón usa 0,6 (`DragonJefe3D.TEMBLOR_CUERPO`).
+static var TEMBLOR_CUERPO_GRANDE: float = 0.3
 static var RADIO_SALA: float = 16.0            ## u: los enemigos vivos a menos de esto de la jugadora son «de la sala»
 static var CAMARA_LENTA: float = 0.3           ## Engine.time_scale al caer el último…
 static var T_CAMARA_LENTA: float = 0.45        ## …durante estos s reales…
@@ -166,11 +186,15 @@ const CODIGO_VINETA: String = """
 shader_type canvas_item;
 uniform float fuerza = 0.0;
 uniform vec4 color : source_color = vec4(0.85, 0.05, 0.05, 1.0);
+uniform vec2 dir = vec2(0.0);     // G7: hacia dónde está el golpe en la pantalla (UV, y hacia abajo); 0 = sin dirección
+uniform float peso_dir = 0.0;
 void fragment() {
 	vec2 q = UV * 2.0 - 1.0;
 	float r = length(q * vec2(1.0, 0.8));
 	float borde = smoothstep(0.55, 1.25, r);
-	COLOR = vec4(color.rgb, borde * fuerza);
+	float lado = length(dir) > 0.001 && r > 0.001 ? dot(normalize(q), normalize(dir)) : 0.0;
+	borde *= clamp(1.0 + peso_dir * lado, 0.0, 2.0);
+	COLOR = vec4(color.rgb, clamp(borde * fuerza, 0.0, 1.0));
 }
 """
 static var _sh_vineta: Shader = null
@@ -491,8 +515,15 @@ static func no_puedes(lanz: Lanzador3D, indice: int = -1) -> void:
 				Input.set_custom_mouse_cursor(null))
 
 
-## La jugadora recibe `cantidad` de daño: viñeta roja, temblor y un hitstop corto. `j` es el Jugador3D.
-static func dano_recibido(j: Node3D, cantidad: float) -> void:
+## G7: el tamaño de un golpe de `cantidad` a la jugadora: 0 pequeño, 1 medio, 2 grande (por la fracción de la vida máxima). Estática: la usa `Jugador3D` para el número y el tambaleo.
+static func tamano_golpe(cantidad: float) -> int:
+	var f: float = cantidad / maxf(Estado.i().vida_max, 1.0)
+	return 2 if f >= GOLPE_GRANDE else (1 if f >= GOLPE_MEDIO else 0)
+
+
+## La jugadora recibe `cantidad` de daño: viñeta roja (con dirección si se da `desde`), temblor, hitstop y sonido, según el tamaño del golpe (G7). `j` es el Jugador3D.
+## `mata` = es el golpe que la mata (cuenta como grande). El destello del cuerpo, el número y el tambaleo los pone `Jugador3D.recibir_dano`.
+static func dano_recibido(j: Node3D, cantidad: float, desde: Vector3 = Vector3.ZERO, mata: bool = false) -> void:
 	if not ACTIVA or j == null or not j.is_inside_tree():
 		return
 	cuenta["dano"] = int(cuenta["dano"]) + 1
@@ -501,11 +532,16 @@ static func dano_recibido(j: Node3D, cantidad: float) -> void:
 	var vmax: float = maxf(Estado.i().vida_max, 1.0)
 	var k: float = clampf((cantidad / vmax) / maxf(FRACCION_GOLPE_GRANDE, 0.01), 0.0, 1.0)
 	var deja_baja: bool = j.get("vida") != null and float(j.get("vida")) / vmax < VIDA_BAJA
-	var temblor: float = lerpf(TEMBLOR_GOLPE_MIN, TEMBLOR_GOLPE_MAX, k)
-	var hitstop: float = HITSTOP_DANO_VIDA_BAJA if deja_baja else HITSTOP_DANO
+	var tam: int = 2 if mata else tamano_golpe(cantidad)
+	var temblor: float = TEMBLOR_GOLPE_MAX if tam == 2 else lerpf(TEMBLOR_GOLPE_MIN, TEMBLOR_GOLPE_MAX, k)
+	var hitstop: float = float(HITSTOP_POR_TAMANO[tam])
+	if deja_baja:
+		hitstop = maxf(hitstop, HITSTOP_DANO_VIDA_BAJA)
 	var alfa_vineta: float = fuerza * (VINETA_VIDA_BAJA if deja_baja else 1.0)
-	ultimo_golpe = {"cantidad": cantidad, "temblor": temblor, "hitstop": hitstop, "vineta": alfa_vineta, "vida_baja": deja_baja}
-	_vineta(j, alfa_vineta)
+	var dir_pantalla: Vector2 = _dir_en_pantalla(j, desde)
+	ultimo_golpe = {"cantidad": cantidad, "temblor": temblor, "hitstop": hitstop, "vineta": alfa_vineta, "vida_baja": deja_baja, "tamano": tam,
+		"t_vineta": float(T_VINETA_POR_TAMANO[tam]), "dir": dir_pantalla}
+	_vineta(j, alfa_vineta, float(T_VINETA_POR_TAMANO[tam]), dir_pantalla)
 	var mundo: Variant = j.get("mundo")
 	var fx: Variant = (mundo as Object).get("_fx") if mundo is Object else null
 	if fx is Vfx3D and is_instance_valid(fx):
@@ -514,6 +550,40 @@ static func dano_recibido(j: Node3D, cantidad: float) -> void:
 		j.call("hitstop", hitstop)
 	cuenta["dano_son"] = int(cuenta["dano_son"]) + 1
 	Sfx.play(j, "dano_jugadora", clampf(1.1 - cantidad / 80.0, 0.75, 1.1) * randf_range(0.94, 1.06))      # lote 4: más grave cuanto mayor el golpe (y nunca dos iguales)
+	var voz: String = String(VOZ_GOLPE[tam])
+	if voz != "" and Sfx.CATALOGO.has(voz):
+		cuenta["voz"] = int(cuenta.get("voz", 0)) + 1
+		Sfx.play(j, voz)
+
+
+## G7: hacia dónde queda `desde` respecto a la jugadora EN LA PANTALLA (vector normalizado en UV, y hacia abajo). ZERO si no hay `desde` o no hay cámara.
+static func _dir_en_pantalla(j: Node3D, desde: Vector3) -> Vector2:
+	if desde == Vector3.ZERO:
+		return Vector2.ZERO
+	var cam: Camera3D = j.get_viewport().get_camera_3d() if j.is_inside_tree() else null
+	var d: Vector3 = desde - j.global_position
+	d.y = 0.0
+	if cam == null or d.length() < 0.01:
+		return Vector2.ZERO
+	var a: Vector2 = cam.unproject_position(j.global_position)
+	var b: Vector2 = cam.unproject_position(j.global_position + d.normalized())
+	var v: Vector2 = b - a
+	return v.normalized() if v.length() > 0.001 else Vector2.ZERO
+
+
+## G7: un golpe que una protección ha PARADO (barrera, cúpula o bálsamo): destello azulado corto en la jugadora, rótulo «Bloqueado» y un temblor mínimo. Sin hitstop ni viñeta:
+## no le ha dolido. El sonido lo pone quien lo para (`Lanzador3D.absorber_golpe`, `Consumibles.absorber`).
+static func golpe_bloqueado(j: Node3D) -> void:
+	if not ACTIVA or j == null or not j.is_inside_tree():
+		return
+	cuenta["bloqueado"] = int(cuenta.get("bloqueado", 0)) + 1
+	if j.has_method("destello_color"):
+		j.call("destello_color", COLOR_BLOQUEO, 0.18, 1.6)
+	Combate3D.flotante(j.get("mundo") as Node, j.position + Vector3(0, 1.6, 0), TEXTO_BLOQUEO, COLOR_BLOQUEO, 0.7)
+	var mundo: Variant = j.get("mundo")
+	var fx: Variant = (mundo as Object).get("_fx") if mundo is Object else null
+	if fx is Vfx3D and is_instance_valid(fx):
+		(fx as Vfx3D).temblor(TEMBLOR_BLOQUEO)
 
 
 ## E1: el juice de un hechizo según su potencia (`Dano.LIGERA/MEDIA/ALTA`, = `Hechizo.nivel_potencia`). `impacto` false = acaba de SALIR; true = acaba de GOLPEAR algo.
@@ -589,7 +659,8 @@ static func reaparece(j: Node3D) -> CanvasLayer:
 
 
 ## La viñeta roja: un CanvasLayer que se crea una vez por jugadora y se reutiliza.
-static func _vineta(j: Node3D, fuerza: float) -> void:
+## G7: `dura` (< 0 = T_VINETA) y `dir` (dirección del golpe en la pantalla, ZERO = sin dirección: el borde igual por todos lados).
+static func _vineta(j: Node3D, fuerza: float, dura: float = -1.0, dir: Vector2 = Vector2.ZERO) -> void:
 	var capa: CanvasLayer = j.get_meta("vineta_dano") if j.has_meta("vineta_dano") else null
 	if capa == null or not is_instance_valid(capa):
 		if _sh_vineta == null:
@@ -615,9 +686,11 @@ static func _vineta(j: Node3D, fuerza: float) -> void:
 		if viejo is Tween and (viejo as Tween).is_valid():
 			(viejo as Tween).kill()
 	mat.set_shader_parameter("fuerza", ALFA_VINETA * fuerza)
+	mat.set_shader_parameter("dir", dir)
+	mat.set_shader_parameter("peso_dir", VINETA_DIR if dir != Vector2.ZERO else 0.0)
 	var tw: Tween = capa.create_tween()
 	capa.set_meta("tw", tw)
-	tw.tween_method(func(v: float) -> void: mat.set_shader_parameter("fuerza", v), ALFA_VINETA * fuerza, 0.0, T_VINETA).set_ease(Tween.EASE_IN)
+	tw.tween_method(func(v: float) -> void: mat.set_shader_parameter("fuerza", v), ALFA_VINETA * fuerza, 0.0, T_VINETA if dura < 0.0 else dura).set_ease(Tween.EASE_IN)
 
 
 ## =====================================================================================================
@@ -676,6 +749,20 @@ static func mazazo(en: Node3D, centro: Vector3, dir: Vector3) -> bool:
 	var fx: Variant = (mundo as Object).get("_fx") if mundo is Object else null
 	if fx is Vfx3D and is_instance_valid(fx):
 		(fx as Vfx3D).temblor(TEMBLOR_GOLEM)
+	return true
+
+
+## C17 (22/11): temblor largo (`Vfx3D.temblor`, ~0,36 s) cuando el cuerpo grande `en` cae, golpea el suelo o se levanta. `en` tiene que llevar `mundo` (con `_fx`), como los enemigos.
+## Devuelve false si está apagado o no hay VFX.
+static func temblor_cuerpo_grande(en: Node3D, intensidad: float = -1.0) -> bool:
+	if not ACTIVA or en == null or not en.is_inside_tree():
+		return false
+	var mundo: Variant = en.get("mundo")
+	var fx: Variant = (mundo as Object).get("_fx") if mundo is Object else null
+	if not (fx is Vfx3D) or not is_instance_valid(fx):
+		return false
+	cuenta["cuerpo_grande"] = int(cuenta.get("cuerpo_grande", 0)) + 1
+	(fx as Vfx3D).temblor(TEMBLOR_CUERPO_GRANDE if intensidad < 0.0 else intensidad)
 	return true
 
 
@@ -915,6 +1002,7 @@ class DirectorSensacion extends Node:
 				en_combate = true
 				Sensacion3D.cuenta["combate"] = int(Sensacion3D.cuenta["combate"]) + 1
 				PlayLog.event("combate_empieza", {"enemigos": ahora.size()})
+				Estadisticas.empieza_encuentro()          # M1 (22/11, sesión HECHIZOS): un encuentro para las cifras del libro
 		elif en_combate:
 			_t_sin += dr
 			var todos_caidos: bool = _vistos.all(func(e): return not is_instance_valid(e) or (e as Combate3D).muerto)
@@ -924,6 +1012,7 @@ class DirectorSensacion extends Node:
 					Sensacion3D.cuenta["sala_limpia"] = int(Sensacion3D.cuenta["sala_limpia"]) + 1
 					Sfx.play(jugadora, "sala_limpia")
 				PlayLog.event("combate_acaba", {"limpia": todos_caidos})
+				Estadisticas.acaba_encuentro()
 				_vistos.clear()
 		var meta: float = 1.0 if en_combate else 0.0
 		var t: float = Sensacion3D.T_SUBE_MUSICA if en_combate else Sensacion3D.T_BAJA_MUSICA
@@ -964,7 +1053,7 @@ class DirectorSensacion extends Node:
 				continue
 			var p: Vector2 = punta
 			var dir: Vector2 = (p - tam * 0.5).normalized()
-			var en_ventana: bool = a.queda() <= AvisoAtaque3D.VENTANA_ESQUIVA
+			var en_ventana: bool = a.queda() <= a.ventana          # A5 (22/11): la ventana de cada aviso (0,25 en el golpe seco del cuerpo a cuerpo)
 			var f: float = Sensacion3D.TAM_FLECHA * (1.5 if en_ventana else 1.0 + 0.5 * clampf(a.t / maxf(a.t_impacto, 0.01), 0.0, 1.0))
 			var col: Color = AvisoAtaque3D.COLOR
 			if en_ventana:

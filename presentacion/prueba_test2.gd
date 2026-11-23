@@ -912,6 +912,22 @@ const ESCALA_VFX_NUEVO: float = 0.6
 ## juntas y los bordes de Monte Sumicio (ver `_aplicar_juntas_entremezcladas`). Poner a false en la escena de un nivel para dejarlo como estaba.
 @export var orilla_integrada: bool = true
 @export var juntas_entremezcladas: bool = true
+## 20/11: cámara confinada a la sala (CamaraSalas): se frena en el borde de la sala de las líneas `; camara` del mapa (en los
+## pasillos, en el del mapa) y en las salas que no caben en el encuadre se acerca poco a poco. Apagado de serie; lo encienden
+## las escenas del generador de mapas.
+@export var camara_por_sala: bool = false
+const CamaraSalas = preload("res://presentacion/camara_salas.gd")
+var _salas_camara: Array[Rect2i] = []
+var _sala_camara: int = -1
+var _limites_mapa_cam := Rect2()
+var _limites_vista_cam := Rect2()
+var _zoom_vista: float = -1.0          ## el zoom que se ve (el pedido, `_tam_camara`, o menos en una sala pequeña)
+var _zoom_destino_sala: float = -1.0   ## el que toca en la última sala pisada (en los pasillos se conserva: no bombea entre salas)
+var _camara_sala_lista: bool = false
+var _vel_zoom: Array = [0.0]           ## velocidad del zoom automático (amortiguado)
+var _dt_camara: float = 0.0            ## el delta del fotograma (para suavizar)
+var _camara_salto: bool = true         ## colocar sin suavizar la próxima vez (al montar o teletransportar)
+var _t_cruce_sala: float = 0.0
 ## 21/10 (V3 de PLAN_EOW_VISUAL): el LABIO redondeado de la arista de arriba de los bordes (orillas del agua, escalones de `Terreno3D.alturas`, borde del
 ## mapa y huecos del mapa): una tira de `BORDE_LABIO_ANCHO` u por encima del bloque (ver BordePiedras3D). Desmarcar = las aristas vivas de antes.
 @export var bisel_suelo: bool = true
@@ -1406,6 +1422,7 @@ func _ready() -> void:
 		Realce3D.montar(lz, self)
 	# Bloque 3 EoW (23/10): luz y cámara por área, de las líneas «; zona» del mapa del nivel (Zonas3D). Sin esas líneas no cambia nada.
 	Zonas3D.montar(self)
+	_montar_camara_salas()
 	# Tercera tanda (2/11): los puntos de objetivo de las misiones son de ESTE mundo (el nivel los pone al iniciarse, después de esta línea); el ciclo de día y noche solo en los mapas
 	# exteriores (Bosque*, nunca cueva ni salas: después de Zonas3D, que le da la luz de la zona que MULTIPLICA); y el ambiente sonoro por zona en todos.
 	Misiones.i().limpiar_puntos()
@@ -6345,6 +6362,7 @@ func ir_a(c: Vector2i) -> void:
 		return
 	_jugador.position = _centro_celda(c, ALTO)
 	_foco = _centro(_jugador)
+	_camara_salto = true      # teletransporte: la cámara por sala se coloca sin suavizar
 	if _hierba != null and not hierba_completa:
 		_hierba.set_radio(clampi(ceili(_tam_camara * 0.95 / _hierba.lado_bloque) + 1, 2, 7))
 		_hierba.actualizar(_jugador.position, true)
@@ -6358,9 +6376,95 @@ func _colocar_camara() -> void:
 	var e: float = deg_to_rad(90.0 - _incl)
 	var dir: Vector3 = (-Vector3(0.0, sin(e), cos(e))).rotated(Vector3.UP, deg_to_rad(_giro_cam))
 	_camara.transform = Transform3D(Basis.looking_at(dir, Vector3.UP), _foco - dir * 40.0)
+	if camara_por_sala and _camara_sala_lista and _jugador != null:
+		_confinar_camara_sala()
+		_camara.transform = Transform3D(Basis.looking_at(dir, Vector3.UP), _foco - dir * 40.0)
+
+
+## 20/11: lee las salas de cámara del mapa (líneas `; camara`) y coloca la cámara de golpe la primera vez.
+func _montar_camara_salas() -> void:
+	if not camara_por_sala or _camara == null:
+		return
+	_limites_mapa_cam = Rect2(Vector2.ZERO, Vector2(_ancho, _alto) * S).grow(-0.15)
+	_limites_vista_cam = _limites_mapa_cam
+	var ruta: String = HorneadorNivel.ruta_mapa(nivel)
+	if ruta != "" and FileAccess.file_exists(ruta):
+		_salas_camara = CamaraSalas.leer(FileAccess.get_file_as_string(ruta))
+	_camara_sala_lista = true
+	_camara_salto = true
+	_colocar_camara()
+
+
+## La sala de cámara donde está la jugadora (-1 = pasillo). Si se solapan, manda la última.
+func sala_camara_actual() -> int:
+	return _sala_camara
+
+
+## El zoom que se ve ahora (el pedido o menos, en una sala pequeña).
+func zoom_vista() -> float:
+	return _zoom_vista if _zoom_vista > 0.0 else _tam_camara
+
+
+func _confinar_camara_sala() -> void:
+	var dt: float = _dt_camara
+	var inmediato: bool = _camara_salto or dt <= 0.0
+	_camara_salto = false
+	# 1 · Sala: el límite pasa de una a otra (y al del mapa en los pasillos) suavemente.
+	var celda: Vector2i = Terreno3D.celda_de(_jugador.position)
+	var antes: int = _sala_camara
+	_sala_camara = -1
+	for i in range(_salas_camara.size() - 1, -1, -1):
+		if _salas_camara[i].has_point(celda):
+			_sala_camara = i
+			break
+	if antes != _sala_camara and not inmediato:
+		_t_cruce_sala = 0.9
+	_t_cruce_sala = maxf(_t_cruce_sala - dt, 0.0)
+	var destino: Rect2 = CamaraSalas.rect_sala(_salas_camara[_sala_camara], S, _limites_mapa_cam) if _sala_camara >= 0 else _limites_mapa_cam
+	var mezcla: float = 1.0 if inmediato else 1.0 - exp(-CamaraSalas.RAPIDEZ_LIMITE * dt)
+	_limites_vista_cam = Rect2(_limites_vista_cam.position.lerp(destino.position, mezcla), _limites_vista_cam.size.lerp(destino.size, mezcla))
+	# 2 · Zoom: el pedido, o el que cabe en la sala; se cambia poco a poco. En los pasillos se conserva el de la última sala.
+	if _sala_camara >= 0 or _zoom_destino_sala < 0.0 or inmediato:
+		_camara.size = _tam_camara
+		_zoom_destino_sala = clampf(CamaraSalas.zoom_que_cabe(_camara, destino), CamaraSalas.ZOOM_MINIMO_SALA, _tam_camara)
+	var zoom_obj: float = minf(_zoom_destino_sala, _tam_camara)
+	if _zoom_vista <= 0.0 or inmediato:
+		_zoom_vista = zoom_obj
+		_vel_zoom[0] = 0.0
+	else:
+		_zoom_vista = CamaraSalas.paso_zoom(_zoom_vista, zoom_obj, _vel_zoom, dt)
+	_camara.size = _zoom_vista
+	# 3 · Foco: dentro del límite; mientras cambia de sala se acerca a velocidad limitada (sin tirón).
+	var vista: Rect2 = CamaraSalas.huella_desde_foco(_camara, _foco, ALTO)
+	var limitado: Vector3 = CamaraSalas.limitar(_foco, _limites_vista_cam, vista)
+	if not inmediato and _t_cruce_sala > 0.0:
+		var suave: Vector3 = _foco.lerp(limitado, 1.0 - exp(-9.0 * dt))
+		_foco = _foco.move_toward(suave, CamaraSalas.VELOCIDAD_FOCO * dt)
+	else:
+		_foco = limitado
+	# La jugadora siempre entera en pantalla (la cabeza cruza el umbral antes que los pies), y nunca fuera del mapa.
+	_foco = _mantener_jugadora_visible(_foco, vista)
+	_foco = CamaraSalas.limitar(_foco, _limites_mapa_cam, vista)
+
+
+func _mantener_jugadora_visible(foco: Vector3, vista: Rect2) -> Vector3:
+	var pies: Vector3 = _jugador.position
+	var altura: float = _jugador.alto_modelo() * _jugador.scale.y
+	var dir: Vector3 = -_camara.global_basis.z
+	var suelo_pies: Vector3 = pies + dir * ((pies.y - ALTO) / -dir.y)
+	var cabeza: Vector3 = pies + Vector3(0.0, altura, 0.0)
+	var suelo_cabeza: Vector3 = cabeza + dir * ((cabeza.y - ALTO) / -dir.y)
+	var menor: Vector2 = Vector2(suelo_pies.x, suelo_pies.z).min(Vector2(suelo_cabeza.x, suelo_cabeza.z)) - Vector2(0.35, 0.2)
+	var mayor: Vector2 = Vector2(suelo_pies.x, suelo_pies.z).max(Vector2(suelo_cabeza.x, suelo_cabeza.z)) + Vector2(0.35, 0.2)
+	var desde: Vector2 = mayor - vista.end
+	var hasta: Vector2 = menor - vista.position
+	foco.x = clampf(foco.x, desde.x, hasta.x) if desde.x <= hasta.x else foco.x
+	foco.z = clampf(foco.z, desde.y, hasta.y) if desde.y <= hasta.y else foco.z
+	return foco
 
 
 func _process(delta: float) -> void:
+	_dt_camara = delta
 	_actualizar_pozos(delta)
 	_vigilar_alturas(delta)
 	if _jugador != null:

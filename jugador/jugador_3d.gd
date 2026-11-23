@@ -36,7 +36,24 @@ static var nado_permitido: bool = false
 const TASA_TREPAR: float = 3.5              ## u/s al salir trepando de un foso (cauce hondo / cuenca): 0,94 u en ~0,27 s
 const HUNDIDO: float = 0.35               ## 6.8: los pies quedan a ALTO_AGUA - 0,35 (flota en la superficie)
 ## 6/11 (bloque A4, valor de partida para que Pablo lo afine): 0,7 → 0,4 s de invulnerabilidad tras recibir un golpe. Con 0,7 s un enemigo que pegaba dos veces seguidas casi nunca llegaba a hacer el segundo golpe y el combate cuerpo a cuerpo no tenía riesgo.
-const INVULNERABLE: float = 0.4
+## 22/11 (G7, Pablo aprobó la revisión del feedback): 0,4 → 0,6 s. Con el coordinador de combate (G2) pueden pegarle dos a la vez, y ahora la invulnerabilidad se VE (parpadeo de
+## brillo, ya no desaparece). No más de 0,8: `TrampaDragon3D.TICK_S` (0,8) tiene que seguir siendo mayor para que cada haz entre.
+const INVULNERABLE: float = 0.6
+## G7: el golpe recibido en el cuerpo, como el de los enemigos: blanco DESTELLO_BLANCO_S, luego rojo que se apaga en DESTELLO_ROJO_S; aplastamiento SQUASH_GOLPE que vuelve en SQUASH_GOLPE_S.
+## Mientras dure la invulnerabilidad, el cuerpo parpadea con un brillo (COLOR_INVULNERABLE) en vez de apagarse (antes `pj.visible` y en las fotos desaparecía justo al recibir).
+static var DESTELLO_BLANCO_S: float = 0.05
+static var DESTELLO_ROJO_S: float = 0.2
+static var COLOR_GOLPE: Color = Color(1.0, 0.18, 0.12)
+static var ENERGIA_GOLPE: float = 2.5
+static var COLOR_INVULNERABLE: Color = Color(1.0, 0.95, 0.9)
+static var ENERGIA_INVULNERABLE: float = 0.9
+static var HZ_PARPADEO: float = 7.0                  ## encendidos por segundo (antes 7 apagados por segundo)
+static var SQUASH_GOLPE: Vector3 = Vector3(1.2, 0.82, 1.2)
+static var SQUASH_GOLPE_S: float = 0.18
+## G7: tambaleo del golpe GRANDE (`Sensacion3D.tamano_golpe` = 2): empujón y bloqueo más largos que el golpe normal (4,5 y T_GOLPE).
+static var EMPUJE_GOLPE: float = 4.5
+static var EMPUJE_GOLPE_GRANDE: float = 7.0
+static var T_GOLPE_GRANDE: float = 0.5
 const TICK_VENENO: float = 0.5               ## s entre dos pulsos del veneno (envenenar)
 ## 6/11 (Pablo, chamán v2): VENENO QUE SE ACUMULA. Cada golpe del chamán (`envenenar_pila`) añade una pila; cada pila hace PILA_VENENO_DPS por segundo y dura PILA_VENENO_S s (temporizador propio).
 const PILA_VENENO_MAX: int = 3
@@ -201,6 +218,7 @@ var _director: Node = null                 ## Sensacion3D.DirectorSensacion (lot
 var _t_hitstop: float = 0.0
 var _roll_guardado: float = 0.0
 var _roll_guardado_mov: Vector3 = Vector3.ZERO
+var _pegar_guardado: float = 0.0              ## 22/11 (G1): s reales que le quedan al golpe F pulsado cuando aún no podía golpear (0 = nada guardado)
 var _vel_hielo: Vector3 = Vector3.ZERO       ## velocidad real sobre el hielo (u/s); fuera del hielo es la del teclado
 ## 29/10 (gamefeel lote 4): la velocidad de andar REAL (u/s) con el arranque y la frenada de `Sensacion3D.velocidad_suelo` (fuera del hielo; en el hielo, `_vel_hielo`).
 ## `corriendo` es lo que la cámara lee para adelantarse más.
@@ -646,8 +664,10 @@ func recibir_dano(cantidad: float, desde: Vector3 = Vector3.ZERO) -> void:
 	cantidad = Dano.tras_defensa(cantidad, defensa_total())   # F3: la misma fórmula que los enemigos, D_final = máx(0,2·D, D − DEF)
 	if lanz != null and lanz.absorber_golpe(cantidad, desde):
 		golpe_absorbido_por_barrera = true
+		Sensacion3D.golpe_bloqueado(self)        # G7: que se lea como un golpe parado, no como nada
 		return                                   # la barrera cúpula lo ha parado (6.3)
 	if hud_eow != null and hud_eow.consumibles.absorber(cantidad):
+		Sensacion3D.golpe_bloqueado(self)        # G7
 		return                                   # 24/10: el Bálsamo protector se come el golpe (y se acaba)
 	if _t_beber > 0.0:
 		_cancelar_beber()                       # 6.7: si te golpean mientras bebes, no curas
@@ -656,24 +676,27 @@ func recibir_dano(cantidad: float, desde: Vector3 = Vector3.ZERO) -> void:
 	_t_gesto = 0.0                              # un golpe corta el gesto (la animación de golpe lo sustituye)
 	_t_pegar = 0.0                              # y el golpe cuerpo a cuerpo que estuviera dándose (si no había salido, no sale)
 	vida = maxf(0.0, vida - cantidad)
+	var mata: bool = vida <= 0.0
+	var tam: int = 2 if mata else Sensacion3D.tamano_golpe(cantidad)     # G7: pequeño, medio o grande
 	_t_inv = INVULNERABLE
 	_t_sin_combate = 0.0
-	_t_golpe = T_GOLPE
-	Combate3D.flotante(mundo, position + Vector3(0, 1.6, 0), str(int(round(cantidad))), Color(1, 0.4, 0.35))
+	_t_golpe = T_GOLPE_GRANDE if tam == 2 else T_GOLPE                    # G7: el grande tambalea más rato
+	Combate3D.flotante(mundo, position + Vector3(0, 1.6, 0), str(int(round(cantidad))), Color(1, 0.4, 0.35), float(Sensacion3D.NUMERO_POR_TAMANO[tam]))
 	var d: Vector3 = position - desde
 	d.y = 0.0
 	if desde != Vector3.ZERO and d.length() > 0.01:
-		push(d.normalized(), 4.5)
-	PlayLog.event("dano_jugador", {"cantidad": cantidad, "vida": vida})
+		push(d.normalized(), EMPUJE_GOLPE_GRANDE if tam == 2 else EMPUJE_GOLPE)
+	destello_golpe()                                  # G7: blanco, rojo y luego el parpadeo de la invulnerabilidad, sin desaparecer
+	PlayLog.event("dano_jugador", {"cantidad": cantidad, "vida": vida, "tamano": tam})
 	dano_recibido.emit(cantidad)                      # A3: lo cuenta `Estadisticas` (daño que de verdad entró, tras defensa, barrera y bálsamo)
 	vida_cambiada.emit(vida, Estado.i().vida_max)
-	if vida <= 0.0:
-		Sensacion3D.dano_recibido(self, cantidad)     # gamefeel U2: la viñeta y el golpe también en el golpe que mata, antes del fundido de la pantalla de muerte
+	if mata:
+		Sensacion3D.dano_recibido(self, cantidad, desde, true)     # gamefeel U2: la viñeta y el golpe también en el golpe que mata (G7: como grande), antes del fundido
 		_morir()
 	else:
 		pj.animacion_actual = ""
 		pj.jugar("hit")
-		Sensacion3D.dano_recibido(self, cantidad)     # gamefeel: viñeta roja, temblor y un hitstop corto
+		Sensacion3D.dano_recibido(self, cantidad, desde)     # gamefeel: viñeta roja (G7: con dirección), temblor, hitstop y sonido según el tamaño
 
 
 ## 6/11 (bloque B7): daño que no es un golpe (llama propia, suelo electrificado, quemada). Devuelve lo que de verdad quitó (0 si la invulnerabilidad lo paró, está muerta o no le quedaba vida que
@@ -695,6 +718,7 @@ func dano_ambiental(cantidad: float, elemento: String = "") -> float:
 	vida_cambiada.emit(vida, Estado.i().vida_max)
 	if Sensacion3D.ACTIVA and is_inside_tree():
 		Sensacion3D._vineta(self, VINETA_AMBIENTAL)
+		destello_color(COLOR_AMBIENTAL.get(elemento, COLOR_GOLPE), 0.15, ENERGIA_GOLPE * 0.6)     # G7: un tic de quemadura también se ve en el cuerpo (sin hitstop ni empujón)
 	if vida <= 0.0:
 		_morir()
 	return quitado
@@ -1271,7 +1295,17 @@ func _gestionar_acciones(libre: bool, mov: Vector3) -> void:
 	# C1 (28/10): F = golpe cuerpo a cuerpo. Se dispara al PULSAR; no gasta tinta. En suelo y sin nadar, rodar, beber, lanzar, apuntar, hacer un gesto ni empujar un bloque; con su reutilización.
 	var tecla_golpe: bool = libre and not lleva_carga() and Input.is_action_pressed("golpe")
 	if tecla_golpe and not _pegar_previa:
-		_iniciar_golpe_cuerpo()                  # (comprueba `puede_golpear_cuerpo`)
+		# 22/11 (G1, buffer del golpe F): si no puede golpear ahora, se guarda Lanzador3D.BUFFER_PULSACION s reales, como la voltereta. PRIORIDAD: con una voltereta
+		# guardada, el golpe espera (y se descarta si ella sale: `_iniciar_voltereta` lo borra).
+		if _roll_guardado > 0.0 or not _iniciar_golpe_cuerpo():          # (`_iniciar_golpe_cuerpo` comprueba `puede_golpear_cuerpo`)
+			if golpe_guardable():
+				_pegar_guardado = Lanzador3D.BUFFER_PULSACION
+	elif _pegar_guardado > 0.0:
+		_pegar_guardado = maxf(0.0, _pegar_guardado - get_process_delta_time() / maxf(Engine.time_scale, 0.05))
+		if libre and _roll_guardado <= 0.0 and puede_golpear_cuerpo():
+			_pegar_guardado = 0.0
+			PlayLog.event("pulsacion_guardada", {"accion": "golpe"})
+			_iniciar_golpe_cuerpo()
 	_pegar_previa = tecla_golpe
 	# F11: invoca un elemental de bosque 6 u por delante (banco de pruebas; los niveles lo traerán con su marcador).
 	# Mayús+F11: invoca un Gatopedro (el lince que huye) en el mismo sitio. Alt+F11: un goblin asesino.
@@ -1313,6 +1347,7 @@ func _giro_camara() -> float:
 
 
 func _iniciar_voltereta(mov: Vector3) -> void:
+	_pegar_guardado = 0.0                          # 22/11 (G1): la voltereta tiene prioridad; un golpe F guardado no sale al acabar de rodar
 	_roll_dir = mov if mov != Vector3.ZERO else _mirada
 	_roll_dir = Vector3(_roll_dir.x, 0.0, _roll_dir.z).normalized()
 	var dur: float = clampf(pj.duracion("roll"), 0.35, 1.0) if pj.duracion("roll") > 0.0 else 0.6
@@ -1460,8 +1495,67 @@ func _fin_destello_color() -> void:
 			m.emission = e[2]
 			m.emission_energy_multiplier = float(e[3])
 	_emision_destello_beber.clear()
+	_parpadeo_activo = false
 	if pj != null:
 		pj.sincronizar_juguete()
+
+
+## G7 (22/11): el golpe en el cuerpo y la invulnerabilidad, en un solo tween sobre la emisión de sus materiales (la misma maquinaria que `destello_color`, que guarda y devuelve
+## la emisión de antes). Con `golpe`: blanco DESTELLO_BLANCO_S, rojo que se apaga en DESTELLO_ROJO_S y aplastamiento; después, hasta que acaba `_t_inv`, parpadeo de brillo
+## a HZ_PARPADEO. Sin `golpe` (al reaparecer, `_sincronizar` lo arranca): solo el parpadeo. Nunca la oculta.
+var _parpadeo_activo: bool = false
+var _squash_golpe: Vector3 = Vector3.ONE
+var _tw_squash_golpe: Tween = null
+func destello_golpe(golpe: bool = true) -> void:
+	if not Sensacion3D.ACTIVA or pj == null or not is_inside_tree():
+		return
+	_fin_destello_color()
+	for m in pj._materiales:
+		if is_instance_valid(m):
+			_emision_destello_beber.append([m, m.emission_enabled, m.emission, m.emission_energy_multiplier])
+			m.emission_enabled = true
+	_parpadeo_activo = true
+	var t0: float = 0.0 if golpe else DESTELLO_BLANCO_S + DESTELLO_ROJO_S
+	var total: float = maxf(_t_inv, t0 + 0.01) if golpe else t0 + maxf(_t_inv, 0.01)
+	_paso_destello_golpe(t0)
+	_tw_destello_beber = create_tween()
+	_tw_destello_beber.tween_method(_paso_destello_golpe, t0, total, total - t0)
+	_tw_destello_beber.tween_callback(_fin_destello_color)
+	if golpe:
+		_poner_squash_golpe(SQUASH_GOLPE)
+		if _tw_squash_golpe != null and _tw_squash_golpe.is_valid():
+			_tw_squash_golpe.kill()
+		_tw_squash_golpe = create_tween()
+		_tw_squash_golpe.tween_method(_poner_squash_golpe, SQUASH_GOLPE, Vector3.ONE, SQUASH_GOLPE_S).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+
+
+## Lo que se ve a los `t` s del golpe: blanco, rojo que se apaga y luego el parpadeo (apagado si ya ha muerto o rueda).
+func _paso_destello_golpe(t: float) -> void:
+	var color: Color = COLOR_INVULNERABLE
+	var energia: float = 0.0
+	if t < DESTELLO_BLANCO_S:
+		color = Color.WHITE
+		energia = ENERGIA_GOLPE
+	elif t < DESTELLO_BLANCO_S + DESTELLO_ROJO_S:
+		color = COLOR_GOLPE
+		energia = ENERGIA_GOLPE * (1.0 - (t - DESTELLO_BLANCO_S) / maxf(DESTELLO_ROJO_S, 0.001))
+	elif not muerto and _t_roll <= 0.0 and not TiempoBruja.activa():
+		energia = ENERGIA_INVULNERABLE if int(t * HZ_PARPADEO * 2.0) % 2 == 0 else 0.0
+	for e in _emision_destello_beber:
+		if is_instance_valid(e[0]):
+			var m: StandardMaterial3D = e[0]
+			m.emission = color
+			m.emission_energy_multiplier = energia
+	pj.sincronizar_juguete()
+
+
+## Aplastamiento del golpe recibido, compuesto con la escala que ya tuviera el modelo (como `Combate3D._poner_squash`).
+func _poner_squash_golpe(f: Vector3) -> void:
+	if pj == null:
+		return
+	var s: Vector3 = pj.scale
+	pj.scale = Vector3(s.x / _squash_golpe.x * f.x, s.y / _squash_golpe.y * f.y, s.z / _squash_golpe.z * f.z)
+	_squash_golpe = f
 
 
 ## Un GESTO (24/10): el clip del rol (`agacharse`, `ofrecer`, `saludo`...: Pj3D.SINONIMOS) suena UNA vez a la velocidad `vel` y te deja quieto lo que dura; después vuelve idle.
@@ -1697,10 +1791,13 @@ func _animar(mov: Vector3, correr: bool) -> void:
 func _sincronizar() -> void:
 	pj.position = position
 	_ultima = position
-	if _t_inv > 0.0 and not muerto and _t_roll <= 0.0 and not TiempoBruja.activa():
-		pj.visible = int(_t_inv * 14.0) % 2 == 0       # parpadea mientras es invulnerable (en el tiempo bruja no: taparía las copias y parecería daño)
-	else:
-		pj.visible = true
+	# G7 (22/11): ya NO se oculta al ser invulnerable (en las fotos desaparecía justo al recibir el golpe). El parpadeo es de brillo (`destello_golpe`); si la invulnerabilidad
+	# llega sin golpe (al reaparecer), se arranca aquí solo el parpadeo. En la voltereta y en el tiempo bruja, no (taparía las copias y parecería daño). El umbral de 0,15 s
+	# evita un parpadeo suelto con el resto de invulnerabilidad que deja la voltereta al acabar.
+	pj.visible = true
+	if _t_inv > 0.15 and not muerto and _t_roll <= 0.0 and not TiempoBruja.activa() and not _parpadeo_activo \
+			and not (_tw_destello_beber != null and _tw_destello_beber.is_valid()):
+		destello_golpe(false)
 
 
 ## =====================================================================================================
@@ -1757,6 +1854,38 @@ func puede_golpear_cuerpo() -> bool:
 	return not muerto and not nadando and en_suelo and not animacion_externa and _t_pegar <= 0.0 and _pegar_cd <= 0.0 and _t_roll <= 0.0 and _t_beber <= 0.0 \
 		and _t_gesto <= 0.0 and _t_golpe <= 0.0 and not _lanzando and not apuntando_rapido and not empujando and not _acoplada \
 		and not (lanz != null and lanz.modo_lanzar) and mundo != null and mundo.get("_velo") == null
+
+
+## 22/11 (G1): ¿se guarda un golpe F que no puede salir ahora? Solo si lo que falta es breve: viva, en suelo, sin nadar ni carga, y con la recarga del golpe a menos de
+## BUFFER_PULSACION de acabar. Así aporrear F durante un golpe (recarga 0,8 s > duración 0,45 s) no encadena golpes sin querer. Lo que lo impide (rodar, lanzar, encajar un golpe,
+## un gesto) no se mira aquí: si dura más que el buffer, la pulsación caduca sola.
+func golpe_guardable() -> bool:
+	return not muerto and not nadando and en_suelo and not lleva_carga() and _pegar_cd <= Lanzador3D.BUFFER_PULSACION
+
+
+## 22/11 (G1): EN QUÉ FASE va la acción en curso, para saber qué se puede cancelar (prepara la 2.1 de PLAN_GAMEFEEL_2026-11-22; la cancelación no está hecha).
+## Devuelve {"accion": "golpe" | "lanzar" | "voltereta" | "apuntar" | "", "fase": "preparacion" | "ejecucion" | "recuperacion" | ""}:
+##   · golpe F: preparación hasta el impacto; ejecución el impacto y T_EJECUCION_GOLPE s después; recuperación el resto de GolpeCuerpo.DUR.
+##   · lanzar: preparación mientras `Lanzador3D.conjurando` (runa, voluta y forma en la mano: el hechizo aún no ha salido); recuperación el resto del clip, con el hechizo ya fuera.
+##   · voltereta: toda ella es ejecución (no tiene preparación ni recuperación propias).
+##   · apuntar: modo de apuntar (libro o mantener 1/2/3), fase «preparacion»: aún no se ha comprometido nada.
+## El orden de las comprobaciones es la prioridad cuando coinciden (un golpe F no puede empezar lanzando, pero el conjuro sí sigue tras soltar).
+const T_EJECUCION_GOLPE: float = 0.05
+func fase_accion() -> Dictionary:
+	if _t_roll > 0.0:
+		return {"accion": "voltereta", "fase": "ejecucion"}
+	if _t_pegar > 0.0:
+		if not _pegar_hecho:
+			return {"accion": "golpe", "fase": "preparacion"}
+		var desde_impacto: float = (GolpeCuerpo.DUR - _pegar_retardo) - _t_pegar
+		return {"accion": "golpe", "fase": "ejecucion" if desde_impacto <= T_EJECUCION_GOLPE else "recuperacion"}
+	if lanz != null and lanz.conjurando:
+		return {"accion": "lanzar", "fase": "preparacion"}
+	if _lanzando:
+		return {"accion": "lanzar", "fase": "recuperacion"}
+	if apuntando_rapido or (lanz != null and lanz.modo_lanzar):
+		return {"accion": "apuntar", "fase": "preparacion"}
+	return {"accion": "", "fase": ""}
 
 
 ## ¿Está dando un golpe cuerpo a cuerpo ahora mismo?

@@ -225,7 +225,9 @@ func _movimiento() -> void:
 	for con_impulso in [true, false]:
 		_montar()
 		var pies_a: Vector3 = Lanzador3D.centro_de(SALIDA, Terreno3D.y_pies(SALIDA))
-		var cambios_a: Dictionary = {"velocidad": 4.0, "distancia_max": 3.0}
+		# 22/11 (Pablo, P14): el juego ya no da gravedad a los hechizos; aquí se pone a mano (la del agua, 0,5, y su impulso, 1,6) para seguir probando que el MECANISMO
+		# del arco funciona si se vuelve a encender (`Hechizo.GRAVEDAD_EN_HECHIZOS`) o lo usa el laboratorio.
+		var cambios_a: Dictionary = {"velocidad": 4.0, "distancia_max": 3.0, "gravedad": 0.5, "impulso_salida": 1.6}
 		if not con_impulso:
 			cambios_a["impulso_salida"] = 0.0
 		var arco: HechizoVivo = HechizoVivo.crear(_hz("water", cambios_a), pies_a, Vector3.RIGHT, _l, null, {}, true)

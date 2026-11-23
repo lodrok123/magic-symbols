@@ -1,0 +1,1233 @@
+<!doctype html>
+<html lang="es">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>El cuaderno del grimorio</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Caveat:wght@400..700&family=Alegreya+Sans:ital,wght@0,400;0,500;0,700;1,400&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: mesa oscura bajo una lámpara; el libro es el héroe y debajo va la ficha técnica en columna de lectura. Un solo tema oscuro a propósito (como la UI del juego). */
+:root {
+  --mesa: #1b1d25;
+  --mesa-2: #242733;
+  --mesa-3: #2e3240;
+  --texto: #ece4d4;
+  --tenue: #a8a091;
+  --linea-ui: #3b3f4f;
+  --pergamino: #f0dfbf;
+  --pergamino-2: #e2c99e;
+  --linea-pag: #8a5a3a;
+  --cuero: #74402a;
+  --cuero-2: #4e2a1b;
+  --lomo: #4f7a4a;
+  --lomo-2: #34553a;
+  --oro: #d9a955;
+  --oro-2: #9c6b2c;
+  --hoja: #6f9a5c;
+  --flor: #f1b38f;
+  --acento: #9fcf7e;
+  --magia: #b9e57d;
+  --f-mano: "Caveat", "Segoe Print", "Comic Sans MS", cursive;
+  --f-texto: "Alegreya Sans", "Segoe UI", system-ui, sans-serif;
+  --f-dato: "JetBrains Mono", ui-monospace, Consolas, monospace;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html { background: var(--mesa); }
+body {
+  background: radial-gradient(ellipse 90% 60% at 50% 18%, #2a2c37 0%, var(--mesa) 70%) no-repeat, var(--mesa);
+  color: var(--texto);
+  font-family: var(--f-texto);
+  font-size: 17px;
+  line-height: 1.55;
+}
+main {
+  max-width: 1080px;
+  margin: 0 auto;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 40px 80px;
+  display: flex;
+  flex-direction: column;
+  gap: 64px;
+}
+h1, h2, h3 { text-wrap: balance; margin: 0; }
+p { margin: 0; }
+.eyebrow {
+  font-family: var(--f-dato);
+  font-size: 12px;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  color: var(--acento);
+}
+header { display: flex; flex-direction: column; gap: 12px; max-width: 760px; }
+header h1 {
+  font-family: var(--f-mano);
+  font-weight: 700;
+  font-size: clamp(44px, 7vw, 76px);
+  line-height: 1;
+  color: var(--pergamino);
+}
+.lead { color: var(--tenue); font-size: 18px; max-width: 65ch; }
+.aviso { font-size: 14px; color: var(--tenue); font-style: italic; }
+
+section { display: flex; flex-direction: column; gap: 20px; }
+section > h2 {
+  font-family: var(--f-mano);
+  font-weight: 700;
+  font-size: clamp(32px, 4.4vw, 44px);
+  line-height: 1.05;
+  color: var(--pergamino);
+}
+section > p, .texto { max-width: 68ch; }
+.texto { display: flex; flex-direction: column; gap: 12px; }
+code, .dato { font-family: var(--f-dato); font-size: .86em; color: #d8cfbd; }
+
+/* ---------- Escenario y libro ---------- */
+.escenario {
+  container-type: inline-size;
+  width: 100%;
+  max-width: 980px;
+  margin: 0 auto;
+  perspective: 2400px;
+  padding-block: 2% 9%;
+  position: relative;
+}
+.libro {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 1470 / 1070;
+  transform-style: preserve-3d;
+  transition: transform .8s cubic-bezier(.4, .1, .25, 1);
+}
+.libro.cerrado { transform: translateX(-25%); }
+.sombra-mesa {
+  position: absolute;
+  left: 2%; right: 2%; bottom: -5%;
+  height: 9%;
+  background: radial-gradient(ellipse at center, rgba(0,0,0,.55), transparent 70%);
+  transition: left .8s ease, right .8s ease;
+}
+.libro.cerrado .sombra-mesa { left: 51%; right: 1%; }
+
+.cuero {
+  background:
+    url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='220' height='220'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 .22 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>"),
+    radial-gradient(ellipse at 40% 35%, var(--cuero) 0%, var(--cuero-2) 95%);
+  border-radius: 1.4cqw;
+  box-shadow: inset 0 0 0 .25cqw rgba(0,0,0,.25), inset 0 0 2.5cqw rgba(0,0,0,.35);
+}
+.tablero, .tapa {
+  position: absolute;
+  top: 0; left: 50%;
+  width: 50%; height: 100%;
+}
+.tablero { transform: translateZ(0); }
+.tapa {
+  transform-style: preserve-3d;
+  transform-origin: left center;
+  transform: translateZ(1px) rotateY(-180deg);
+  transition: transform .78s cubic-bezier(.3, .05, .2, 1.08);
+}
+.libro.cerrado .tapa { transform: translateZ(1px) rotateY(0deg); }
+.tapa > .cara-tapa {
+  position: absolute; inset: 0;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+}
+.tapa > .dentro { transform: rotateY(180deg); }
+
+.lomo-medio {
+  position: absolute;
+  top: -1.2%; bottom: -1.2%;
+  width: 5%;
+  background: linear-gradient(90deg, var(--lomo-2), var(--lomo) 50%, var(--lomo-2));
+  border-radius: .6cqw;
+  box-shadow: inset 0 0 0 .15cqw rgba(0,0,0,.25);
+}
+.lomo-medio::before {
+  content: ""; position: absolute; inset: 1.4% 30%;
+  border-left: .15cqw dashed rgba(240,223,191,.45);
+  border-right: .15cqw dashed rgba(240,223,191,.45);
+}
+.tablero .lomo-medio { left: -2.5%; }
+.dentro .lomo-medio { right: -2.5%; }
+
+.esquina-oro {
+  position: absolute;
+  width: 12%;
+  aspect-ratio: 1;
+  background: linear-gradient(135deg, #f4cf80 0%, var(--oro) 40%, var(--oro-2) 100%);
+  clip-path: polygon(0 0, 100% 0, 100% 34%, 34% 100%, 0 100%);
+  filter: drop-shadow(0 .2cqw .2cqw rgba(0,0,0,.4));
+}
+.esquina-oro::after {
+  content: ""; position: absolute; inset: 22% 50% 50% 22%;
+  background: rgba(110,60,20,.55);
+  clip-path: polygon(50% 0, 100% 50%, 50% 100%, 0 50%);
+}
+.e-ti { top: -1%; left: -1%; }
+.e-td { top: -1%; right: -1%; transform: scaleX(-1); }
+.e-bi { bottom: -1%; left: -1%; transform: scaleY(-1); }
+.e-bd { bottom: -1%; right: -1%; transform: scale(-1, -1); }
+
+/* Tapa exterior */
+.frente .emblema {
+  position: absolute; left: 50%; top: 50%;
+  width: 34%; aspect-ratio: 1;
+  transform: translate(-50%, -50%);
+  color: var(--oro);
+}
+.frente .emblema svg { width: 100%; height: 100%; filter: drop-shadow(0 .25cqw 0 rgba(0,0,0,.35)); }
+.broche {
+  position: absolute; right: -6%; top: 44%;
+  width: 18%; height: 12%;
+  transform-origin: 20% 50%;
+  transition: transform .22s ease-out;
+}
+.broche .correa {
+  position: absolute; inset: 18% 0 18% 0;
+  background: linear-gradient(180deg, #8a4e32, #5d321f);
+  border-radius: .8cqw;
+  box-shadow: inset 0 0 0 .15cqw rgba(0,0,0,.3);
+}
+.broche .rombo {
+  position: absolute; right: 22%; top: 50%;
+  width: 46%; aspect-ratio: 1;
+  transform: translate(0, -50%);
+  background: linear-gradient(135deg, #f6d68e, var(--oro) 45%, var(--oro-2));
+  clip-path: polygon(50% 0, 100% 50%, 50% 100%, 0 50%);
+}
+.broche.suelto { transform: rotate(-24deg) translateX(8%); }
+
+/* Páginas */
+.pagina {
+  position: absolute;
+  top: 4.5%; height: 91%;
+  width: 95%;
+  background:
+    url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='260' height='260'><filter id='p'><feTurbulence type='fractalNoise' baseFrequency='.55' numOctaves='4' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 .45  0 0 0 0 .3  0 0 0 0 .15  0 0 0 .13 0'/></filter><rect width='100%' height='100%' filter='url(%23p)'/></svg>"),
+    radial-gradient(ellipse 85% 80% at 50% 50%, var(--pergamino) 55%, var(--pergamino-2) 100%);
+  overflow: hidden;
+}
+.pagina.der { left: 0; border-radius: 0 .9cqw .9cqw 0; }
+.pagina.izq { right: 0; border-radius: .9cqw 0 0 .9cqw; }
+.pagina.der::before, .pagina.izq::before {
+  content: ""; position: absolute; top: 0; bottom: 0; width: 9%;
+  pointer-events: none;
+}
+.pagina.der::before { left: 0; background: linear-gradient(90deg, rgba(90,55,25,.38), transparent); }
+.pagina.izq::before { right: 0; background: linear-gradient(270deg, rgba(90,55,25,.38), transparent); }
+.cenefa {
+  position: absolute; inset: 4.5%;
+  border: .16cqw solid rgba(120,75,45,.55);
+  box-shadow: inset 0 0 0 .35cqw transparent, inset 0 0 0 .5cqw rgba(120,75,45,.25);
+  border-radius: .4cqw;
+  pointer-events: none;
+}
+.ramita { position: absolute; width: 17%; aspect-ratio: 1; }
+.ramita.r-ti { top: -2.2%; left: -2.6%; }
+.ramita.r-td { top: -2.2%; right: -2.6%; transform: scaleX(-1); }
+.ramita.r-bi { bottom: -2.2%; left: -2.6%; transform: scaleY(-1); }
+.ramita.r-bd { bottom: -2.2%; right: -2.6%; transform: scale(-1, -1); }
+.contenido {
+  position: absolute;
+  top: 11%; bottom: 9%;
+  display: flex; flex-direction: column; gap: .55em;
+  font-family: var(--f-mano);
+  font-size: 2.55cqw;
+  line-height: 1.2;
+  color: #3a2616;
+}
+.pagina.der .contenido { left: 13%; right: 11%; }
+.pagina.izq .contenido { left: 11%; right: 13%; }
+.sombreado {
+  position: absolute; inset: 0;
+  pointer-events: none;
+  opacity: 0;
+}
+.pagina.der .sombreado { background: linear-gradient(90deg, rgba(40,20,5,.0), rgba(40,20,5,.45)); }
+.pagina.izq .sombreado { background: linear-gradient(270deg, rgba(40,20,5,.0), rgba(40,20,5,.45)); }
+
+.hoja {
+  position: absolute;
+  top: 0; left: 50%;
+  width: 50%; height: 100%;
+  transform-style: preserve-3d;
+  transform-origin: left center;
+  transform: translateZ(3px) rotateY(0deg);
+  pointer-events: none;
+}
+.hoja .cara-hoja {
+  position: absolute; inset: 0;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+}
+.hoja .reverso { transform: rotateY(180deg); }
+.hoja .pagina { box-shadow: 0 0 1.2cqw rgba(0,0,0,.25); }
+
+.cinta {
+  position: absolute;
+  left: 49%; top: 97%;
+  width: 3.6%; height: 17%;
+  transform-origin: 50% 0;
+  transform: translateZ(.5px);
+  animation: balanceo 5s ease-in-out infinite;
+}
+.cinta::before {
+  content: ""; position: absolute; inset: 0;
+  background: linear-gradient(90deg, var(--lomo-2), var(--lomo) 45%, var(--lomo-2));
+  clip-path: polygon(0 0, 100% 0, 100% 100%, 50% 86%, 0 100%);
+}
+.cinta svg { position: absolute; left: 12%; top: 40%; width: 76%; color: var(--oro); }
+.cinta.sacude { animation: sacudida .7s ease-out, balanceo 5s ease-in-out .7s infinite; }
+@keyframes balanceo { 0%, 100% { transform: translateZ(.5px) rotate(1.2deg); } 50% { transform: translateZ(.5px) rotate(-1.2deg); } }
+@keyframes sacudida { 0% { transform: translateZ(.5px) rotate(0); } 25% { transform: translateZ(.5px) rotate(7deg); } 55% { transform: translateZ(.5px) rotate(-4deg); } 80% { transform: translateZ(.5px) rotate(2deg); } 100% { transform: translateZ(.5px) rotate(1.2deg); } }
+
+/* ---------- Texto escrito ---------- */
+.escrito { color: var(--tinta); margin: 0; }
+.escrito .w { white-space: nowrap; }
+.escrito .c { display: inline-block; white-space: pre; }
+.escrito.preparado[data-modo="trazo"] .c:not(.v) { clip-path: inset(-35% 100% -35% 0); }
+.escrito.preparado[data-modo="revelar"] .c:not(.v) { opacity: 0; }
+.escrito[data-modo="trazo"] .c.v { animation: trazo var(--td, 140ms) linear both, secado 1.8s ease-out both; }
+.escrito[data-modo="revelar"] .c.v { animation: despertar 1.5s ease-out both; }
+@keyframes trazo {
+  from { clip-path: inset(-35% 100% -35% 0); }
+  to { clip-path: inset(-35% -20% -35% -20%); }
+}
+@keyframes secado {
+  from { color: var(--fresca); text-shadow: 0 0 .04em var(--fresca); }
+  to { color: var(--tinta); text-shadow: none; }
+}
+@keyframes despertar {
+  0% { opacity: 0; filter: blur(.12em); color: var(--magia); text-shadow: 0 0 .35em var(--magia); }
+  45% { opacity: 1; filter: blur(0); color: var(--magia); text-shadow: 0 0 .25em var(--magia); }
+  100% { opacity: 1; color: var(--tinta); text-shadow: none; }
+}
+.tachon { position: relative; }
+.tachon::after {
+  content: ""; position: absolute;
+  left: -6%; right: -6%; top: 52%;
+  height: .085em; border-radius: .05em;
+  background: var(--tinta);
+  transform: rotate(-3deg) scaleX(1);
+  transform-origin: left center;
+  transition: transform .32s ease-out;
+}
+.escrito.preparado .tachon:not(.tachado)::after { transform: rotate(-3deg) scaleX(0); }
+.escrito [data-trazo] { overflow: visible; }
+.escrito [data-trazo] path {
+  fill: none; stroke: var(--tinta);
+  stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round;
+  stroke-dasharray: 1;
+}
+.escrito.preparado [data-trazo] path { stroke-dashoffset: 1; }
+.escrito:not(.preparado) [data-trazo] path { stroke-dashoffset: 0 !important; }
+
+.a-leonardo { --tinta: #4b2d1b; --fresca: #1c0f07; font-weight: 500; }
+.a-mid { --tinta: #27497f; --fresca: #0b2156; font-weight: 450; }
+.a-marimanta { --tinta: #2d5b39; --fresca: #0d381b; font-weight: 640; }
+.a-benvito { --tinta: #55514c; --fresca: #3b3834; font-weight: 420; }
+.a-aprendiz { --tinta: #5d3c27; --fresca: #2a160a; font-weight: 420; }
+.a-leonardo.viejo { --tinta: #6a4a33; }
+
+.titulo-pag { font-weight: 700; font-size: 1.45em; line-height: 1; }
+.firma { align-self: flex-end; }
+.pequeno { font-size: .78em; }
+.lista { display: flex; flex-direction: column; gap: .2em; }
+.lista .item { display: flex; align-items: baseline; gap: .35em; }
+.caja { width: .82em; height: .82em; flex: none; transform: translateY(.1em); }
+.boceto { width: 100%; max-width: 15em; height: auto; align-self: center; margin-top: .2em; }
+.sello-dib { width: 7.5em; height: auto; align-self: center; margin-top: .4em; }
+
+/* Pluma */
+#pluma {
+  position: fixed; left: 0; top: 0;
+  width: 34px; height: 64px;
+  pointer-events: none;
+  z-index: 50;
+  opacity: 0;
+  transition: transform 60ms linear, opacity .25s ease;
+  filter: drop-shadow(3px 5px 3px rgba(0,0,0,.35));
+}
+#pluma.activa { opacity: 1; }
+
+/* ---------- Controles ---------- */
+.controles {
+  display: flex; flex-wrap: wrap; align-items: center; justify-content: center;
+  gap: 10px 12px;
+}
+button, .boton {
+  font-family: var(--f-texto);
+  font-size: 15px; font-weight: 500;
+  color: var(--texto);
+  background: var(--mesa-3);
+  border: 1px solid var(--linea-ui);
+  border-radius: 999px;
+  padding: 8px 16px;
+  cursor: pointer;
+  transition: background .15s, border-color .15s;
+}
+button:hover:not(:disabled) { background: #3a3f50; border-color: #555b70; }
+button:focus-visible, input:focus-visible { outline: 2px solid var(--acento); outline-offset: 2px; }
+button:disabled { opacity: .4; cursor: default; }
+button.principal { background: #3d5a37; border-color: #557b4c; }
+button.principal:hover:not(:disabled) { background: #4a6b43; }
+.contador { font-family: var(--f-dato); font-size: 13px; color: var(--tenue); min-width: 9ch; text-align: center; }
+.ajustes {
+  display: flex; flex-wrap: wrap; justify-content: center; align-items: center;
+  gap: 10px 24px;
+  font-size: 14px; color: var(--tenue);
+}
+.ajustes label { display: flex; align-items: center; gap: 8px; cursor: pointer; }
+input[type="range"] { accent-color: var(--acento); width: 140px; }
+input[type="checkbox"] { accent-color: var(--acento); width: 16px; height: 16px; }
+.transcripcion {
+  max-width: 720px; margin: 0 auto; width: 100%;
+  background: var(--mesa-2);
+  border: 1px solid var(--linea-ui);
+  border-radius: 10px;
+  padding: 16px 20px;
+  display: grid; grid-template-columns: 1fr 1fr; gap: 20px;
+}
+.transcripcion > div { min-width: 0; display: flex; flex-direction: column; gap: 8px; }
+.transcripcion .quien { font-family: var(--f-dato); font-size: 11px; letter-spacing: .1em; text-transform: uppercase; color: var(--acento); }
+.transcripcion p { font-size: 15px; }
+.transcripcion svg { display: none; }
+.transcripcion .escrito { color: var(--texto); font-weight: 400; font-size: 15px; }
+.transcripcion .titulo-pag { font-weight: 700; font-size: 16px; }
+.transcripcion .lista { gap: 4px; }
+.transcripcion .tachon::after { display: none; }
+.transcripcion .tachon { text-decoration: line-through; }
+@media (max-width: 620px) { .transcripcion { grid-template-columns: 1fr; } }
+
+/* ---------- Modos ---------- */
+.modos { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
+.modo {
+  background: var(--mesa-2);
+  border: 1px solid var(--linea-ui);
+  border-radius: 12px;
+  padding: 18px;
+  display: flex; flex-direction: column; gap: 10px;
+}
+.modo h3 { font-family: var(--f-mano); font-size: 30px; font-weight: 700; line-height: 1; color: var(--pergamino); }
+.modo .cuando { font-size: 14px; color: var(--tenue); }
+.modo .etiqueta { align-self: flex-start; }
+.etiqueta {
+  font-family: var(--f-dato); font-size: 11px; letter-spacing: .08em; text-transform: uppercase;
+  padding: 3px 8px; border-radius: 4px;
+  background: #33394a; color: #cfd6e6;
+}
+.etiqueta.ya { background: #3d3529; color: #ead9b8; }
+.etiqueta.trazo { background: #263a5c; color: #c7d8f5; }
+.etiqueta.revelar { background: #34492a; color: #d4efb6; }
+@media (max-width: 760px) { .modos { grid-template-columns: 1fr; } }
+
+/* ---------- Notas sueltas ---------- */
+.notas { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 28px; align-items: start; }
+.nota-celda { display: flex; flex-direction: column; align-items: center; gap: 14px; min-width: 0; }
+.nota {
+  position: relative;
+  width: 100%; max-width: 320px;
+  padding: 34px 28px 30px;
+  font-family: var(--f-mano);
+  font-size: 25px; line-height: 1.18;
+  background:
+    url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='260' height='260'><filter id='p'><feTurbulence type='fractalNoise' baseFrequency='.6' numOctaves='4' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 .45  0 0 0 0 .3  0 0 0 0 .15  0 0 0 .14 0'/></filter><rect width='100%' height='100%' filter='url(%23p)'/></svg>"),
+    radial-gradient(ellipse at 50% 45%, #f4e6c9 50%, #e0c89e 100%);
+  box-shadow: 0 14px 26px rgba(0,0,0,.45), 0 2px 4px rgba(0,0,0,.3);
+  display: flex; flex-direction: column; gap: .35em;
+}
+.nota.carta { transform: rotate(-1.5deg); border-radius: 3px; padding-bottom: 70px; }
+.nota.clavada {
+  transform: rotate(2deg);
+  background:
+    url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='260' height='260'><filter id='p'><feTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='3' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 .4  0 0 0 0 .32  0 0 0 0 .2  0 0 0 .2 0'/></filter><rect width='100%' height='100%' filter='url(%23p)'/></svg>"),
+    linear-gradient(170deg, #e8dcc1, #cdbb97);
+  clip-path: polygon(0 3%, 8% 0, 22% 2%, 40% 0, 61% 2.5%, 80% 0, 100% 2%, 99% 30%, 100% 62%, 98% 100%, 78% 97%, 55% 100%, 33% 97.5%, 12% 100%, 0 97%, 1% 60%);
+}
+.nota.clavada::before {
+  content: ""; position: absolute; left: 50%; top: 12px;
+  width: 14px; height: 14px; margin-left: -7px; border-radius: 50%;
+  background: radial-gradient(circle at 35% 35%, #a9a9a9, #4a4a4a 70%);
+  box-shadow: 0 2px 2px rgba(0,0,0,.45);
+}
+.nota.trozo {
+  transform: rotate(-3deg);
+  max-width: 260px;
+  font-size: 22px;
+  background:
+    linear-gradient(90deg, transparent 49.6%, rgba(120,90,50,.18) 50%, transparent 50.4%),
+    linear-gradient(0deg, transparent 49.6%, rgba(120,90,50,.15) 50%, transparent 50.4%),
+    radial-gradient(ellipse at 50% 45%, #efe2c6 50%, #d9c299 100%);
+}
+.lacre {
+  position: absolute; right: 26px; bottom: 16px;
+  width: 52px; height: 52px; border-radius: 50%;
+  background: radial-gradient(circle at 38% 34%, #6aa35a, #2f5a2c 62%, #213f1f);
+  box-shadow: 0 2px 3px rgba(0,0,0,.4), inset 0 0 0 4px rgba(0,0,0,.12);
+  display: grid; place-items: center;
+  color: rgba(220,240,200,.55);
+}
+.lacre svg { width: 26px; }
+.nota-celda .pie { font-size: 14px; color: var(--tenue); text-align: center; max-width: 300px; }
+
+/* ---------- Tablas ---------- */
+.tabla-wrap { overflow-x: auto; border: 1px solid var(--linea-ui); border-radius: 10px; background: var(--mesa-2); }
+table { border-collapse: collapse; width: 100%; font-size: 14.5px; font-variant-numeric: tabular-nums; }
+th, td { text-align: left; padding: 10px 14px; border-bottom: 1px solid var(--linea-ui); vertical-align: top; }
+tr:last-child td { border-bottom: 0; }
+th { font-family: var(--f-dato); font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--tenue); font-weight: 500; white-space: nowrap; }
+td.muestra { font-family: var(--f-mano); font-size: 24px; line-height: 1.1; white-space: nowrap; background: var(--pergamino); }
+.chip { display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; }
+.chip i { width: 14px; height: 14px; border-radius: 3px; display: inline-block; border: 1px solid rgba(255,255,255,.15); }
+
+/* ---------- Línea de tiempo ---------- */
+.lineas { display: flex; flex-direction: column; gap: 14px; }
+.linea-t { display: grid; grid-template-columns: 150px minmax(0, 1fr) auto; gap: 14px; align-items: center; }
+.linea-t .nombre { font-weight: 700; }
+.pista { position: relative; height: 34px; background: var(--mesa-2); border: 1px solid var(--linea-ui); border-radius: 6px; overflow: hidden; }
+.tramo {
+  position: absolute; top: 3px; bottom: 3px;
+  border-radius: 4px;
+  font-size: 12px; line-height: 26px; padding: 0 6px;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  color: #10120e;
+}
+.t-oro { background: #d9a955; }
+.t-cuero { background: #c98b62; }
+.t-verde { background: #9fcf7e; }
+.t-azul { background: #8fb1e6; }
+.regla { display: grid; grid-template-columns: 150px minmax(0, 1fr) auto; gap: 14px; font-family: var(--f-dato); font-size: 11px; color: var(--tenue); }
+.regla .marcas { position: relative; height: 14px; }
+.regla .marcas span { position: absolute; transform: translateX(-50%); }
+.regla .marcas span:first-child { transform: none; }
+.regla .marcas span:last-child { transform: translateX(-100%); }
+.regla .hueco { visibility: hidden; }
+@media (max-width: 640px) {
+  .linea-t, .regla { grid-template-columns: minmax(0, 1fr) auto; }
+  .linea-t .nombre { grid-column: 1 / -1; }
+  .regla > :first-child { display: none; }
+}
+
+/* ---------- Prompts ---------- */
+.prompts { display: flex; flex-direction: column; gap: 16px; }
+.prompt { background: var(--mesa-2); border: 1px solid var(--linea-ui); border-radius: 10px; overflow: hidden; }
+.prompt-cab { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 10px 14px; border-bottom: 1px solid var(--linea-ui); }
+.prompt-cab strong { font-size: 15px; }
+.prompt-cab button { font-size: 13px; padding: 5px 12px; }
+.prompt pre {
+  margin: 0; padding: 14px 16px;
+  font-family: var(--f-dato); font-size: 13px; line-height: 1.6;
+  white-space: pre-wrap; word-break: break-word;
+  color: #d9d2c3;
+}
+ul.puntos { margin: 0; padding-left: 1.2em; display: flex; flex-direction: column; gap: 10px; max-width: 72ch; }
+ul.puntos li::marker { color: var(--acento); }
+
+@media (prefers-reduced-motion: reduce) {
+  .libro, .tapa, .broche, .sombra-mesa { transition: none; }
+  .cinta, .cinta.sacude { animation: none; }
+}
+</style>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <symbol id="ramita" viewBox="0 0 60 60">
+      <path d="M6 54 C10 34 20 18 54 7" fill="none" stroke="#7a4f2e" stroke-width="1.6" stroke-linecap="round"/>
+      <path d="M6 54 C22 50 34 48 52 46" fill="none" stroke="#7a4f2e" stroke-width="1.4" stroke-linecap="round"/>
+      <ellipse cx="18" cy="30" rx="7" ry="3.4" transform="rotate(-50 18 30)" fill="#6f9a5c" stroke="#3e5a33" stroke-width=".8"/>
+      <ellipse cx="33" cy="17" rx="7" ry="3.4" transform="rotate(-25 33 17)" fill="#7ea866" stroke="#3e5a33" stroke-width=".8"/>
+      <ellipse cx="28" cy="51" rx="7" ry="3.4" transform="rotate(10 28 51)" fill="#6f9a5c" stroke="#3e5a33" stroke-width=".8"/>
+      <ellipse cx="44" cy="44" rx="6" ry="3" transform="rotate(-20 44 44)" fill="#7ea866" stroke="#3e5a33" stroke-width=".8"/>
+      <circle cx="11" cy="47" r="5.4" fill="#f1b38f" stroke="#b9714c" stroke-width=".8"/>
+      <circle cx="11" cy="47" r="2" fill="#fbe3c4"/>
+      <circle cx="47" cy="10" r="3.4" fill="#f1b38f" stroke="#b9714c" stroke-width=".7"/>
+      <circle cx="40" cy="27" r="2.2" fill="#f1b38f"/>
+      <circle cx="51" cy="40" r="2" fill="#f1b38f"/>
+    </symbol>
+    <symbol id="hojita" viewBox="0 0 24 24">
+      <path d="M12 22 C12 14 12 9 12 3 M12 3 C5 7 4 15 12 22 C20 15 19 7 12 3 Z M12 11 L7.5 8.5 M12 15 L16.5 12" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+    </symbol>
+  </defs>
+</svg>
+
+<main>
+  <header>
+    <span class="eyebrow">Concepto · notas e historia</span>
+    <h1>El cuaderno del grimorio</h1>
+    <p class="lead">Las últimas páginas del grimorio sirven de cuaderno. Ahí están las notas viejas de Leonardo, y ahí escribe Mid lo que le pasa. Todo con Caveat, y el texto se dibuja en la página en lugar de aparecer de golpe.</p>
+    <p class="aviso">Los textos son de ejemplo para probar el concepto. No son canon.</p>
+  </header>
+
+  <!-- ===================== LIBRO ===================== -->
+  <section aria-label="Libro de prueba">
+    <div class="escenario" id="escenario">
+      <div class="libro" id="libro">
+        <div class="sombra-mesa"></div>
+
+        <div class="tablero cuero" id="tableroDer">
+          <div class="lomo-medio"></div>
+          <div class="pagina der" id="pagDer">
+            <div class="cenefa"><svg class="ramita r-ti"><use href="#ramita"/></svg><svg class="ramita r-td"><use href="#ramita"/></svg><svg class="ramita r-bi"><use href="#ramita"/></svg><svg class="ramita r-bd"><use href="#ramita"/></svg></div>
+            <div class="contenido"></div>
+            <div class="sombreado"></div>
+          </div>
+          <div class="esquina-oro e-td"></div>
+          <div class="esquina-oro e-bd"></div>
+        </div>
+
+        <div class="tapa" id="tapa">
+          <div class="cara-tapa frente cuero">
+            <div class="esquina-oro e-ti"></div><div class="esquina-oro e-td"></div>
+            <div class="esquina-oro e-bi"></div><div class="esquina-oro e-bd"></div>
+            <div class="emblema">
+              <svg viewBox="0 0 100 100" aria-hidden="true">
+                <circle cx="50" cy="50" r="44" fill="none" stroke="currentColor" stroke-width="3"/>
+                <circle cx="50" cy="40" r="22" fill="none" stroke="currentColor" stroke-width="2.4"/>
+                <use href="#hojita" x="36" y="26" width="28" height="28"/>
+                <circle cx="50" cy="80" r="3" fill="currentColor"/>
+              </svg>
+            </div>
+            <div class="broche" id="broche"><div class="correa"></div><div class="rombo"></div></div>
+          </div>
+          <div class="cara-tapa dentro cuero">
+            <div class="lomo-medio"></div>
+            <div class="pagina izq" id="pagIzq">
+              <div class="cenefa"><svg class="ramita r-ti"><use href="#ramita"/></svg><svg class="ramita r-td"><use href="#ramita"/></svg><svg class="ramita r-bi"><use href="#ramita"/></svg><svg class="ramita r-bd"><use href="#ramita"/></svg></div>
+              <div class="contenido"></div>
+              <div class="sombreado"></div>
+            </div>
+            <div class="esquina-oro e-ti"></div>
+            <div class="esquina-oro e-bi"></div>
+          </div>
+        </div>
+
+        <div class="hoja" id="hoja" hidden>
+          <div class="cara-hoja anverso">
+            <div class="pagina der">
+              <div class="cenefa"><svg class="ramita r-ti"><use href="#ramita"/></svg><svg class="ramita r-td"><use href="#ramita"/></svg><svg class="ramita r-bi"><use href="#ramita"/></svg><svg class="ramita r-bd"><use href="#ramita"/></svg></div>
+              <div class="contenido"></div>
+              <div class="sombreado"></div>
+            </div>
+          </div>
+          <div class="cara-hoja reverso">
+            <div class="pagina izq">
+              <div class="cenefa"><svg class="ramita r-ti"><use href="#ramita"/></svg><svg class="ramita r-td"><use href="#ramita"/></svg><svg class="ramita r-bi"><use href="#ramita"/></svg><svg class="ramita r-bd"><use href="#ramita"/></svg></div>
+              <div class="contenido"></div>
+              <div class="sombreado"></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="cinta" id="cinta"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#hojita"/></svg></div>
+      </div>
+    </div>
+
+    <div class="controles">
+      <button id="bAnt" type="button">◀ Anterior</button>
+      <span class="contador" id="contador">Pliego 1 de 3</span>
+      <button id="bSig" type="button">Siguiente ▶</button>
+      <button id="bEscribir" type="button" class="principal">Escribir otra vez</button>
+      <button id="bTapa" type="button">Cerrar libro</button>
+    </div>
+    <div class="ajustes">
+      <label for="velocidad">Velocidad de escritura <input id="velocidad" type="range" min="0.4" max="3" step="0.1" value="1"> <span class="dato" id="velTxt">×1,0</span></label>
+      <label for="verTrans"><input id="verTrans" type="checkbox"> Mostrar transcripción</label>
+    </div>
+    <div class="transcripcion" id="transcripcion" hidden>
+      <div><span class="quien">Página izquierda</span><div id="trIzq"></div></div>
+      <div><span class="quien">Página derecha</span><div id="trDer"></div></div>
+    </div>
+  </section>
+
+  <!-- ===================== MODOS ===================== -->
+  <section>
+    <h2>Tres maneras de que aparezca el texto</h2>
+    <p>No todo el texto se escribe delante del jugador. Si una nota ya existía en el mundo, verla escribirse no tiene sentido. La animación se guarda para lo que pasa en ese momento.</p>
+    <div class="modos">
+      <div class="modo">
+        <span class="etiqueta ya">ya escrita</span>
+        <h3>Nota encontrada</h3>
+        <p>Cartas, avisos, papeles en una celda. Aparecen enteros con el gesto de desdoblar el papel. Cada autor tiene su mano y su tinta.</p>
+        <p class="cuando">Se usa con: Marimanta, Benvito, aprendices, carteles. También con las páginas viejas de Leonardo.</p>
+      </div>
+      <div class="modo">
+        <span class="etiqueta trazo">trazo</span>
+        <h3>Mid escribe</h3>
+        <p>Una entrada nueva en el cuaderno. La pluma recorre cada letra de izquierda a derecha, la tinta sale brillante y se seca. Tacha cuando cambia de idea.</p>
+        <p class="cuando">Se usa con: el diario de Mid, los encargos, las listas que se van tachando. Es el pliego 2 del libro.</p>
+      </div>
+      <div class="modo">
+        <span class="etiqueta revelar">despertar</span>
+        <h3>La tinta despierta</h3>
+        <p>Notas ocultas de Leonardo que salen cuando Mid aprende algo. La tinta sube del papel con un brillo verde y se asienta en sepia. No hay pluma.</p>
+        <p class="cuando">Se usa con: pistas de puzles que se desbloquean (sello nuevo, glifo nuevo, zona nueva). Es la página izquierda del pliego 2.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================== NOTAS SUELTAS ===================== -->
+  <section>
+    <h2>Notas sueltas</h2>
+    <p>En el juego aparecen ya escritas. El botón de cada una reproduce su escritura para ver el ritmo de esa mano.</p>
+    <div class="notas">
+      <div class="nota-celda">
+        <div class="nota carta">
+          <p class="escrito a-marimanta" data-autor="marimanta" data-modo="trazo">Mid:</p>
+          <p class="escrito a-marimanta" data-autor="marimanta" data-modo="trazo">Preséntate en mi despacho al amanecer. Trae el grimorio.</p>
+          <p class="escrito a-marimanta" data-autor="marimanta" data-modo="trazo">Y no subas por la escalera de la biblioteca, que cruje.</p>
+          <p class="escrito a-marimanta firma" data-autor="marimanta" data-modo="trazo">— M.</p>
+          <div class="lacre"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="#hojita"/></svg></div>
+        </div>
+        <button type="button" class="bNota">Ver cómo se escribe</button>
+        <p class="pie">Marimanta. Papel de carta y lacre verde de la Torre. Letra gruesa y recta.</p>
+      </div>
+      <div class="nota-celda">
+        <div class="nota clavada">
+          <p class="escrito a-benvito" data-autor="benvito" data-modo="trazo" style="font-weight:600">PUESTO DEL GUARDABOSQUES</p>
+          <p class="escrito a-benvito" data-autor="benvito" data-modo="trazo">Vuelvo enseguida.</p>
+          <p class="escrito a-benvito" data-autor="benvito" data-modo="trazo">Si es urgente, gritad.<br>Si es muy urgente, gritad más fuerte.</p>
+          <p class="escrito a-benvito firma" data-autor="benvito" data-modo="trazo">Benvito</p>
+        </div>
+        <button type="button" class="bNota">Ver cómo se escribe</button>
+        <p class="pie">Benvito. Papel basto clavado en la puerta, escrito a carbón. Sin brillo de tinta.</p>
+      </div>
+      <div class="nota-celda">
+        <div class="nota trozo">
+          <p class="escrito a-aprendiz" data-autor="aprendiz" data-modo="trazo">Para el que duerma aquí después de mí:</p>
+          <p class="escrito a-aprendiz" data-autor="aprendiz" data-modo="trazo">la ventana no cierra. <span class="tachon">Ponle</span> Mete un calcetín.</p>
+        </div>
+        <button type="button" class="bNota">Ver cómo se escribe</button>
+        <p class="pie">Aprendiz sin nombre. Trozo doblado en una celda de la Torre. Letra pequeña, con prisa.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================== MANOS ===================== -->
+  <section>
+    <h2>Una mano por personaje</h2>
+    <p>Todas usan Caveat. Cambian el peso, la tinta, el giro del papel y la velocidad. El jugador reconoce quién escribió una nota antes de leerla.</p>
+    <div class="tabla-wrap">
+      <table>
+        <thead><tr><th>Mano</th><th>Muestra</th><th>Peso</th><th>Tinta seca</th><th>Tinta fresca</th><th>ms por letra</th><th>Modo normal</th></tr></thead>
+        <tbody>
+          <tr><td>Mid</td><td class="muestra a-mid" style="color:var(--tinta)">Trabajo de campo</td><td>450</td><td><span class="chip"><i style="background:#27497f"></i><span class="dato">#27497F</span></span></td><td><span class="chip"><i style="background:#0b2156"></i><span class="dato">#0B2156</span></span></td><td>38</td><td><span class="etiqueta trazo">trazo</span></td></tr>
+          <tr><td>Leonardo</td><td class="muestra a-leonardo" style="color:var(--tinta)">Las mámoas se tapan</td><td>500</td><td><span class="chip"><i style="background:#4b2d1b"></i><span class="dato">#4B2D1B</span></span></td><td><span class="chip"><i style="background:#b9e57d"></i><span class="dato">#B9E57D</span></span> brillo al despertar</td><td>55</td><td><span class="etiqueta revelar">despertar</span> <span class="etiqueta ya">ya escrita</span></td></tr>
+          <tr><td>Marimanta</td><td class="muestra a-marimanta" style="color:var(--tinta)">Trae el grimorio</td><td>640</td><td><span class="chip"><i style="background:#2d5b39"></i><span class="dato">#2D5B39</span></span></td><td><span class="chip"><i style="background:#0d381b"></i><span class="dato">#0D381B</span></span></td><td>45</td><td><span class="etiqueta ya">ya escrita</span></td></tr>
+          <tr><td>Benvito</td><td class="muestra a-benvito" style="color:var(--tinta)">Vuelvo enseguida</td><td>420</td><td><span class="chip"><i style="background:#55514c"></i><span class="dato">#55514C</span></span></td><td>carbón, sin brillo</td><td>30</td><td><span class="etiqueta ya">ya escrita</span></td></tr>
+          <tr><td>Aprendices</td><td class="muestra a-aprendiz" style="color:var(--tinta)">Mete un calcetín</td><td>420</td><td><span class="chip"><i style="background:#5d3c27"></i><span class="dato">#5D3C27</span></span></td><td><span class="chip"><i style="background:#2a160a"></i><span class="dato">#2A160A</span></span></td><td>40</td><td><span class="etiqueta ya">ya escrita</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="aviso">Pausas comunes: espacio ×1,5 · coma ×4 · punto ×8 · cambio de línea ×10 (sobre los ms por letra). La tinta tarda 1,8 s en secarse.</p>
+  </section>
+
+  <!-- ===================== LIBRO EN PIEZAS ===================== -->
+  <section>
+    <h2>El libro como modelo 2D</h2>
+    <div class="texto">
+      <p>El libro se genera por piezas sueltas y se monta en Godot. Así una sola hoja sirve para todas las páginas y el giro lo hace el motor. No hace falta dibujar fotogramas: un generador de imágenes no mantiene la misma hoja de un fotograma a otro.</p>
+      <p>Las medidas siguen la escala de <code>grimorio_bosque.png</code> (1470 × 1070), para que el libro de notas y el de hechizos casen.</p>
+    </div>
+    <div class="tabla-wrap">
+      <table>
+        <thead><tr><th>Pieza</th><th>Archivo</th><th>Medida (px)</th><th>Qué hace en la animación</th></tr></thead>
+        <tbody>
+          <tr><td>Tapa exterior</td><td><code>libro_tapa.png</code></td><td>735 × 1070</td><td>Gira 180° sobre el lomo al abrir y cerrar. Lleva esquinas, emblema y correa.</td></tr>
+          <tr><td>Tableros abiertos</td><td><code>libro_tableros.png</code></td><td>1470 × 1070</td><td>Fondo fijo del libro abierto: cuero sin páginas.</td></tr>
+          <tr><td>Hoja con cenefa</td><td><code>libro_hoja.png</code></td><td>700 × 975</td><td>Todas las páginas. El reverso es la misma imagen espejada.</td></tr>
+          <tr><td>Hoja lisa</td><td><code>libro_hoja_lisa.png</code></td><td>700 × 975</td><td>Páginas arrancadas y notas sueltas dentro del libro.</td></tr>
+          <tr><td>Cantos de páginas</td><td><code>libro_cantos.png</code></td><td>24 × 975</td><td>Se repite en horizontal. El bloque izquierdo engorda según las páginas escritas, el derecho adelgaza.</td></tr>
+          <tr><td>Lomo</td><td><code>libro_lomo.png</code></td><td>70 × 1100</td><td>Cuero verde con costuras. Asoma arriba y abajo.</td></tr>
+          <tr><td>Cinta</td><td><code>libro_cinta.png</code></td><td>70 × 360</td><td>Skeleton2D de 3 huesos. Se balancea siempre y da una sacudida al abrir y al pasar página.</td></tr>
+          <tr><td>Broche</td><td><code>libro_broche_cerrado.png</code>, <code>_abierto.png</code></td><td>140 × 180</td><td>Se suelta antes de abrir la tapa: gira 24° y cambia de sprite.</td></tr>
+          <tr><td>Esquina dorada</td><td><code>libro_esquina.png</code></td><td>140 × 140</td><td>Una sola imagen, girada en las cuatro esquinas.</td></tr>
+          <tr><td>Sombra</td><td><code>libro_sombra.png</code></td><td>1500 × 160</td><td>Se encoge a la mitad con el libro cerrado.</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- ===================== ANIMACIONES ===================== -->
+  <section>
+    <h2>Animaciones</h2>
+    <p>Los tiempos son los mismos que usa el libro de arriba. El botón de cada fila lo reproduce.</p>
+    <div class="lineas" id="lineas">
+      <div class="regla"><span></span><div class="marcas"><span style="left:0">0</span><span style="left:29.4%">500 ms</span><span style="left:58.8%">1000 ms</span><span style="left:100%">1700 ms</span></div><span class="hueco"><button type="button" tabindex="-1">Ver</button></span></div>
+      <div class="linea-t">
+        <span class="nombre">Abrir</span>
+        <div class="pista">
+          <span class="tramo t-oro" style="left:0;width:12.9%">broche</span>
+          <span class="tramo t-cuero" style="left:12.9%;width:45.9%">tapa gira 180°, rebote al final</span>
+          <span class="tramo t-verde" style="left:58.8%;width:41.2%">cinta se sacude</span>
+        </div>
+        <button type="button" data-demo="abrir">Ver</button>
+      </div>
+      <div class="linea-t">
+        <span class="nombre">Pasar página</span>
+        <div class="pista">
+          <span class="tramo t-cuero" style="left:0;width:41.2%">hoja gira, sombra la sigue</span>
+          <span class="tramo t-verde" style="left:41.2%;width:41.2%">cinta se sacude</span>
+        </div>
+        <button type="button" data-demo="pasar">Ver</button>
+      </div>
+      <div class="linea-t">
+        <span class="nombre">Escribir entrada</span>
+        <div class="pista">
+          <span class="tramo t-azul" style="left:0;width:100%">pluma con 60 ms de retraso · 38 ms por letra · secado 1,8 s · sigue hasta acabar el texto</span>
+        </div>
+        <button type="button" data-demo="escribir">Ver</button>
+      </div>
+      <div class="linea-t">
+        <span class="nombre">Cerrar</span>
+        <div class="pista">
+          <span class="tramo t-cuero" style="left:0;width:47.1%">tapa vuelve</span>
+          <span class="tramo t-oro" style="left:47.1%;width:8.8%">broche</span>
+        </div>
+        <button type="button" data-demo="cerrar">Ver</button>
+      </div>
+    </div>
+    <p class="aviso">El giro de la hoja en Godot: un shader en la hoja con dos texturas (anverso y reverso) y un valor de progreso de 0 a 1. Empezar con el giro plano con perspectiva, como aquí. Si se ve rígido, añadir curvatura de cilindro en el mismo shader.</p>
+  </section>
+
+  <!-- ===================== PROMPTS ===================== -->
+  <section>
+    <h2>Prompts para generar las piezas</h2>
+    <div class="texto">
+      <p>Con <code>grimorio_bosque.png</code> como imagen de referencia. Pide siempre las páginas en blanco: el texto lo pone el juego con Caveat. Si el generador inventa letras, luego no salen bien con inpainting.</p>
+      <p>El fondo liso sirve para cortar las piezas con el recortador de láminas.</p>
+    </div>
+    <div class="prompts">
+      <div class="prompt">
+        <div class="prompt-cab"><strong>1 · Lámina de piezas</strong><button type="button" class="bCopiar">Copiar</button></div>
+        <pre>Use the reference image as the exact style: hand-painted storybook game UI, brown leather grimoire, green leather spine, polished gold corner pieces, cream parchment with a leafy vine border and small peach blossoms. Make a game asset sheet with these pieces separated and evenly spaced on a flat solid #1E1F26 background, every piece seen straight from the front, flat, no perspective, no cast shadows, no text and no symbols on the pages:
+- the closed front cover: brown leather, four gold corners, a small embossed gold leaf emblem inside a circle in the center, a leather strap with a gold diamond clasp on the right edge
+- one blank parchment page with the vine border
+- the same blank page without any border
+- a green leather spine strip with light stitches
+- a green ribbon bookmark with a small gold leaf charm, hanging straight down
+- the gold clasp twice, closed and open</pre>
+      </div>
+      <div class="prompt">
+        <div class="prompt-cab"><strong>2 · Tableros del libro abierto</strong><button type="button" class="bCopiar">Copiar</button></div>
+        <pre>Same style as the reference image. The open grimoire seen exactly from above with all of its pages removed: only the two inner brown leather boards, the green leather spine in the middle and the four gold corners. Empty, flat, symmetrical, no pages, no paper, no text. Solid #1E1F26 background.</pre>
+      </div>
+      <div class="prompt">
+        <div class="prompt-cab"><strong>3 · Papeles para notas sueltas</strong><button type="button" class="bCopiar">Copiar</button></div>
+        <pre>Same hand-painted storybook style as the reference image. Three loose paper notes, flat, front view, evenly spaced on a solid #1E1F26 background, completely blank with no writing:
+- a cream letter sheet with a green wax seal pressed with a leaf near the bottom right corner
+- a torn piece of rough grey-brown paper with an iron nail at the top center
+- a small scrap that was folded in four and unfolded, with soft creases</pre>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================== GODOT ===================== -->
+  <section>
+    <h2>Cómo llevarlo al juego</h2>
+    <ul class="puntos">
+      <li><strong>Fuente.</strong> <code>Caveat-VariableFont_wght.ttf</code> (licencia OFL) en <code>presentacion/ui/fuentes/</code>, con MSDF activado en la importación. Un <code>FontVariation</code> por mano para fijar el peso. De paso resuelve lo que dice ARTE §11: el libro todavía usa la fuente de serie de Godot.</li>
+      <li><strong>Las notas son datos.</strong> Una fila por nota: <code>id</code>, <code>mano</code>, <code>modo</code> (ya, trazo, despertar), <code>papel</code>, <code>texto</code> y la flag que la desbloquea. Por ejemplo: <code>leonardo_mamoas · leonardo · despertar · hoja · «Las mámoas no se cavan…» · global.sello.tierra</code>.</li>
+      <li><strong>Un control propio para el texto.</strong> Maqueta con <code>TextParagraph</code> y dibuja cada letra con su alfa y su color. Así se sabe dónde está cada letra para llevar ahí la punta de <code>ManoPluma2D</code> (<code>PUNTA_PX</code>, ya con sus 60 ms de retraso) y para soltar las gotas de <code>TintaPluma2D</code> al acabar.</li>
+      <li><strong>El barrido dentro de cada letra</strong> se hace con un shader que recibe el rectángulo de la letra activa. Si cuesta, basta con que cada letra aparezca en 120 ms con un leve descenso: a la escala del juego se lee igual.</li>
+      <li><strong>El texto gira con la hoja.</strong> Cada página se dibuja en un <code>SubViewport</code> y su textura va al shader de la hoja. La página que gira lleva su texto pegado.</li>
+      <li><strong>Transcripción.</strong> Un botón en la vista de nota que muestra el mismo texto en una fuente limpia. Ayuda a leer manos difíciles y a la accesibilidad.</li>
+    </ul>
+  </section>
+</main>
+
+<svg id="pluma" viewBox="0 0 34 64" aria-hidden="true">
+  <path d="M3 62 L9 46" stroke="#3b2a1c" stroke-width="2.2" stroke-linecap="round"/>
+  <path d="M8 48 C6 30 14 10 32 1 C30 18 24 36 11 49 Z" fill="#f3efe6" stroke="#8c8172" stroke-width="1"/>
+  <path d="M10 47 C15 32 22 18 31 3" fill="none" stroke="#a49a8a" stroke-width="1"/>
+  <path d="M14 38 L19 33 M17 31 L22 26 M20 24 L25 19" stroke="#c8bfae" stroke-width=".9" stroke-linecap="round"/>
+  <circle cx="3" cy="62" r="1.3" fill="#0b2156"/>
+</svg>
+
+<!-- ===================== PLIEGOS ===================== -->
+<template id="t-0-izq">
+  <h3 class="escrito a-leonardo titulo-pag" data-autor="leonardo" data-modo="ya">Grimorio de Leonardo</h3>
+  <p class="escrito a-leonardo" data-autor="leonardo" data-modo="ya">Guardabosques de la Fraga.</p>
+  <p class="escrito a-leonardo" data-autor="leonardo" data-modo="ya">Si encuentras este libro, súbelo a la Torre Verde. Marimanta sabrá qué hacer con él.</p>
+  <p class="escrito a-leonardo" data-autor="leonardo" data-modo="ya">Y con quien lo lleve.</p>
+  <div class="escrito a-leonardo" data-autor="leonardo" data-modo="ya" style="display:flex;justify-content:center">
+    <svg class="sello-dib" viewBox="0 0 100 100" data-trazo>
+      <path pathLength="1" d="M50 6 A44 44 0 1 1 49.9 6"/>
+      <path pathLength="1" d="M50 18 A22 22 0 1 1 49.9 18"/>
+      <path pathLength="1" d="M50 56 C50 46 50 40 50 30 M50 30 C42 35 41 46 50 56 C59 46 58 35 50 30"/>
+    </svg>
+  </div>
+</template>
+<template id="t-0-der">
+  <p class="escrito a-mid" data-autor="mid" data-modo="trazo">Lo he subido.</p>
+  <p class="escrito a-mid" data-autor="mid" data-modo="trazo">Marimanta lo ha leído entero sin decir nada. Después me ha dado un uniforme.</p>
+  <p class="escrito a-mid" data-autor="mid" data-modo="trazo">Creo que eso es un sí.</p>
+  <p class="escrito a-mid firma" data-autor="mid" data-modo="trazo">Mid</p>
+</template>
+
+<template id="t-1-izq">
+  <p class="escrito a-leonardo" data-autor="leonardo" data-modo="revelar">Las mámoas no se cavan. Se tapan.</p>
+  <p class="escrito a-leonardo" data-autor="leonardo" data-modo="revelar">Derriba al mouro y, mientras humee, echa tierra encima.</p>
+  <div class="escrito a-leonardo" data-autor="leonardo" data-modo="revelar" style="display:flex">
+    <svg class="boceto" viewBox="0 0 200 92" data-trazo>
+      <path pathLength="1" d="M6 80 L194 80"/>
+      <path pathLength="1" d="M34 80 C46 46 82 34 100 34 C120 34 154 46 166 80"/>
+      <path pathLength="1" d="M84 36 C84 30 116 30 116 36"/>
+      <path pathLength="1" d="M60 62 C66 58 74 60 72 66 C68 70 60 68 60 62 Z"/>
+      <path pathLength="1" d="M126 58 C134 54 140 60 136 66 C130 70 124 64 126 58 Z"/>
+      <path pathLength="1" d="M100 28 C92 22 108 16 100 10 C93 4 104 0 100 -4"/>
+      <path pathLength="1" d="M180 20 L180 44 M172 36 L180 46 L188 36"/>
+    </svg>
+  </div>
+  <p class="escrito a-mid pequeno" data-autor="mid" data-modo="trazo">Esta página ayer estaba en blanco. ¿Ha sido el sello de tierra?</p>
+</template>
+<template id="t-1-der">
+  <h3 class="escrito a-mid titulo-pag" data-autor="mid" data-modo="trazo">Trabajo de campo</h3>
+  <div class="lista">
+    <div class="item escrito a-mid" data-autor="mid" data-modo="trazo"><svg class="caja" viewBox="0 0 20 20" data-trazo><path pathLength="1" d="M3 4 L17 3 L16 17 L4 16 Z"/><path pathLength="1" d="M5 10 L9 15 L19 0"/></svg> El hito de la salida norte</div>
+    <div class="item escrito a-mid" data-autor="mid" data-modo="trazo"><svg class="caja" viewBox="0 0 20 20" data-trazo><path pathLength="1" d="M3 4 L17 3 L16 17 L4 16 Z"/><path pathLength="1" d="M5 10 L9 15 L19 0"/></svg> Un helecho</div>
+    <div class="item escrito a-mid" data-autor="mid" data-modo="trazo"><svg class="caja" viewBox="0 0 20 20" data-trazo><path pathLength="1" d="M3 4 L17 3 L16 17 L4 16 Z"/></svg> Un nido</div>
+  </div>
+  <p class="escrito a-mid" data-autor="mid" data-modo="trazo">El nido está muy alto. <span class="tachon">Mañana.</span> Pasado mañana.</p>
+</template>
+
+<template id="t-2-izq">
+  <p class="escrito a-leonardo viejo" data-autor="leonardo" data-modo="ya">La noche de la Fada no salió nadie de la aldea. Yo sí.</p>
+  <p class="escrito a-leonardo viejo" data-autor="leonardo" data-modo="ya">Lo que vi junto a la <span class="tachon">mámoa</span> no lo escribo aquí.</p>
+</template>
+<template id="t-2-der">
+  <p class="escrito a-mid" data-autor="mid" data-modo="trazo">¿Qué vio Leonardo?</p>
+  <p class="escrito a-mid" data-autor="mid" data-modo="trazo">Cada vez que le pregunto a Marimanta, cambia de tema. Hoy me ha mandado a por helechos.</p>
+  <p class="escrito a-mid" data-autor="mid" data-modo="trazo">Otra vez.</p>
+</template>
+
+<script>
+(function () {
+  const VEL = { mid: 38, leonardo: 55, marimanta: 45, benvito: 30, aprendiz: 40 };
+  const N_PLIEGOS = 3;
+  const reducir = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  let factor = 1;
+  let TOK = 0;
+
+  const $ = (s, r = document) => r.querySelector(s);
+  const libro = $('#libro'), tapa = $('#tapa'), broche = $('#broche'), cinta = $('#cinta');
+  const hoja = $('#hoja');
+  const pagIzq = $('#pagIzq .contenido'), pagDer = $('#pagDer .contenido');
+  const pluma = $('#pluma');
+  const espera = ms => new Promise(r => setTimeout(r, ms));
+
+  /* ---------- Motor de escritura ---------- */
+  function preparar(root) {
+    if (root.dataset.src === undefined) root.dataset.src = root.innerHTML;
+    else root.innerHTML = root.dataset.src;
+    root.classList.remove('preparado');
+    const pasos = [];
+    (function rec(nodo) {
+      for (const n of [...nodo.childNodes]) {
+        if (n.nodeType === 3) {
+          const frag = document.createDocumentFragment();
+          for (const parte of n.textContent.split(/(\s+)/)) {
+            if (!parte) continue;
+            if (/^\s+$/.test(parte)) { frag.appendChild(document.createTextNode(' ')); pasos.push({ t: 'pausa', k: 1.5 }); continue; }
+            const w = document.createElement('span'); w.className = 'w';
+            for (const ch of parte) {
+              const c = document.createElement('span'); c.className = 'c'; c.textContent = ch;
+              w.appendChild(c);
+              pasos.push({ t: 'c', el: c, ch });
+            }
+            frag.appendChild(w);
+          }
+          n.replaceWith(frag);
+        } else if (n.nodeType === 1) {
+          if (n.tagName === 'BR') { pasos.push({ t: 'pausa', k: 10 }); continue; }
+          if (n.hasAttribute('data-trazo')) { pasos.push({ t: 'svg', el: n }); continue; }
+          rec(n);
+          if (n.classList.contains('tachon')) pasos.push({ t: 'tachar', el: n });
+        }
+      }
+    })(root);
+    pasos.push({ t: 'pausa', k: 10 });
+    return pasos;
+  }
+
+  function terminar(root) {
+    root.classList.remove('preparado');
+    root.querySelectorAll('.c.v').forEach(c => { c.classList.remove('v'); c.style.animationDelay = ''; });
+    root.querySelectorAll('.tachon').forEach(t => t.classList.add('tachado'));
+    root.querySelectorAll('[data-trazo] path').forEach(p => p.style.strokeDashoffset = '');
+  }
+
+  function cancelar() {
+    TOK++;
+    document.querySelectorAll('.escrito.preparado').forEach(terminar);
+    pluma.classList.remove('activa');
+  }
+
+  function moverPluma(x, y) {
+    pluma.style.transform = `translate(${x - 3}px, ${y - 62}px)`;
+  }
+
+  function plumaEnLetra(el) {
+    const r = el.getBoundingClientRect();
+    moverPluma(r.right - r.width * 0.15, r.bottom - r.height * 0.28);
+  }
+
+  function dibujarSvg(svg, vel, tok, conPluma) {
+    const paths = [...svg.querySelectorAll('path')];
+    const vb = svg.viewBox.baseVal;
+    return paths.reduce((prom, p) => prom.then(() => new Promise(res => {
+      if (tok !== TOK) return res();
+      const L = p.getTotalLength();
+      const dur = Math.min(1400, Math.max(260, L * vel * 0.16)) / factor;
+      const t0 = performance.now();
+      function paso(now) {
+        if (tok !== TOK) return res();
+        const t = Math.min(1, (now - t0) / dur);
+        p.style.strokeDashoffset = String(1 - t);
+        if (conPluma) {
+          const pt = p.getPointAtLength(L * t);
+          const r = svg.getBoundingClientRect();
+          moverPluma(r.left + (pt.x - vb.x) / vb.width * r.width, r.top + (pt.y - vb.y) / vb.height * r.height);
+        }
+        t < 1 ? requestAnimationFrame(paso) : res();
+      }
+      requestAnimationFrame(paso);
+    })), Promise.resolve());
+  }
+
+  async function escribir(root, tok) {
+    const modo = root.dataset.modo;
+    const vel = VEL[root.dataset.autor] || 40;
+    if (modo === 'ya' || reducir) { terminar(root); return; }
+    const pasos = root._pasos || preparar(root);
+    root._pasos = null;
+    root.classList.add('preparado');
+
+    if (modo === 'revelar') {
+      const letras = pasos.filter(p => p.t === 'c');
+      const paso = vel * 0.32 / factor;
+      letras.forEach((p, i) => {
+        p.el.style.animationDelay = Math.round(i * paso + Math.random() * 380 / factor) + 'ms';
+        p.el.classList.add('v');
+      });
+      const dibujos = pasos.filter(p => p.t === 'svg').map(p => dibujarSvg(p.el, vel, tok, false));
+      await Promise.all([espera(letras.length * paso + 380 / factor + 900), ...dibujos]);
+      if (tok !== TOK) return;
+      root.classList.remove('preparado');
+      return;
+    }
+
+    pluma.classList.add('activa');
+    for (const p of pasos) {
+      if (tok !== TOK) return;
+      const v = vel / factor;
+      if (p.t === 'c') {
+        p.el.style.setProperty('--td', Math.round(v * 1.5) + 'ms');
+        p.el.classList.add('v');
+        plumaEnLetra(p.el);
+        let k = 1;
+        if (/[,;:]/.test(p.ch)) k = 4;
+        else if (/[.!?…]/.test(p.ch)) k = 8;
+        await espera(v * k);
+      } else if (p.t === 'pausa') {
+        await espera(v * p.k);
+      } else if (p.t === 'tachar') {
+        const r = p.el.getBoundingClientRect();
+        moverPluma(r.right, r.top + r.height * 0.55);
+        p.el.classList.add('tachado');
+        await espera(380);
+      } else if (p.t === 'svg') {
+        await dibujarSvg(p.el, vel, tok, true);
+        await espera(v * 4);
+      }
+    }
+    if (tok !== TOK) return;
+    root.classList.remove('preparado');
+  }
+
+  async function escribirVarios(roots) {
+    cancelar();
+    const tok = TOK;
+    if (document.fonts && document.fonts.ready) await document.fonts.ready;
+    roots.forEach(r => {
+      if (r.dataset.modo !== 'ya' && !reducir) { r._pasos = preparar(r); r.classList.add('preparado'); }
+      else { preparar(r); terminar(r); }
+    });
+    for (const r of roots) {
+      if (tok !== TOK) return;
+      await escribir(r, tok);
+    }
+    if (tok === TOK) pluma.classList.remove('activa');
+  }
+
+  /* ---------- Libro ---------- */
+  let actual = 0;
+  const visitados = new Set([0]);
+  let ocupado = false;
+  const tpl = (i, lado) => document.getElementById(`t-${i}-${lado}`).innerHTML;
+  const escritosDe = (...conts) => conts.flatMap(c => [...c.querySelectorAll('.escrito')]);
+
+  function pila() {
+    const izq = 3 + actual * 3, der = 3 + (N_PLIEGOS - 1 - actual) * 3;
+    const capa = (n, s) => Array.from({ length: n }, (_, i) =>
+      `${s * (i + 1) * 0.22}cqw 0 0 ${i % 2 ? '#d6c09a' : '#efe0c2'}`).join(',');
+    $('#pagIzq').style.boxShadow = capa(izq, -1);
+    $('#pagDer').style.boxShadow = capa(der, 1);
+  }
+
+  function actualizarUI() {
+    $('#contador').textContent = `Pliego ${actual + 1} de ${N_PLIEGOS}`;
+    const cerrado = libro.classList.contains('cerrado');
+    $('#bAnt').disabled = ocupado || cerrado || actual === 0;
+    $('#bSig').disabled = ocupado || cerrado || actual === N_PLIEGOS - 1;
+    $('#bEscribir').disabled = ocupado || cerrado;
+    $('#bTapa').disabled = ocupado;
+    $('#bTapa').textContent = cerrado ? 'Abrir libro' : 'Cerrar libro';
+    $('#trIzq').innerHTML = tpl(actual, 'izq');
+    $('#trDer').innerHTML = tpl(actual, 'der');
+    pila();
+  }
+
+  function sacudirCinta() {
+    if (reducir) return;
+    cinta.classList.remove('sacude'); void cinta.offsetWidth; cinta.classList.add('sacude');
+  }
+
+  function animar(el, frames, ms, easing) {
+    if (reducir) return Promise.resolve();
+    return el.animate(frames, { duration: ms, easing: easing || 'cubic-bezier(.45,.05,.3,1)', fill: 'none' }).finished.catch(() => {});
+  }
+
+  async function pasar(dir) {
+    const j = actual + dir;
+    if (ocupado || j < 0 || j >= N_PLIEGOS || libro.classList.contains('cerrado')) return;
+    cancelar();
+    ocupado = true; actualizarUI();
+    const nuevo = !visitados.has(j);
+    const anv = $('.anverso .contenido', hoja), rev = $('.reverso .contenido', hoja);
+    const sAnv = $('.anverso .sombreado', hoja), sRev = $('.reverso .sombreado', hoja);
+
+    if (dir > 0) {
+      anv.innerHTML = tpl(actual, 'der');
+      rev.innerHTML = nuevo ? '' : tpl(j, 'izq');
+      pagDer.innerHTML = tpl(j, 'der');
+      if (nuevo) escritosDe(pagDer).forEach(r => { if (r.dataset.modo !== 'ya') { preparar(r); r.classList.add('preparado'); } });
+      hoja.hidden = false;
+      await Promise.all([
+        animar(hoja, [{ transform: 'translateZ(3px) rotateY(0deg)' }, { transform: 'translateZ(3px) rotateY(-180deg)' }], 700),
+        animar(sAnv, [{ opacity: 0 }, { opacity: .9, offset: .48 }, { opacity: .9 }], 700),
+        animar(sRev, [{ opacity: .9 }, { opacity: .9, offset: .52 }, { opacity: 0 }], 700),
+        animar($('#pagDer .sombreado'), [{ opacity: 0 }, { opacity: .5, offset: .3 }, { opacity: 0 }], 700)
+      ]);
+      pagIzq.innerHTML = tpl(j, 'izq');
+      if (nuevo) escritosDe(pagIzq).forEach(r => { if (r.dataset.modo !== 'ya') { preparar(r); r.classList.add('preparado'); } });
+    } else {
+      rev.innerHTML = tpl(actual, 'izq');
+      anv.innerHTML = tpl(j, 'der');
+      pagIzq.innerHTML = tpl(j, 'izq');
+      hoja.hidden = false;
+      await Promise.all([
+        animar(hoja, [{ transform: 'translateZ(3px) rotateY(-180deg)' }, { transform: 'translateZ(3px) rotateY(0deg)' }], 700),
+        animar(sRev, [{ opacity: 0 }, { opacity: .9, offset: .48 }, { opacity: .9 }], 700),
+        animar(sAnv, [{ opacity: .9 }, { opacity: .9, offset: .52 }, { opacity: 0 }], 700),
+        animar($('#pagIzq .sombreado'), [{ opacity: 0 }, { opacity: .5, offset: .3 }, { opacity: 0 }], 700)
+      ]);
+      pagDer.innerHTML = tpl(j, 'der');
+    }
+    hoja.hidden = true;
+    sacudirCinta();
+    actual = j;
+    ocupado = false;
+    actualizarUI();
+    if (nuevo) {
+      visitados.add(j);
+      escribirVarios(escritosDe(pagIzq, pagDer));
+    } else {
+      escritosDe(pagIzq, pagDer).forEach(r => { preparar(r); terminar(r); });
+    }
+  }
+
+  async function abrir() {
+    if (ocupado || !libro.classList.contains('cerrado')) return;
+    ocupado = true; actualizarUI();
+    broche.classList.add('suelto');
+    await espera(reducir ? 0 : 220);
+    libro.classList.remove('cerrado');
+    await espera(reducir ? 0 : 780);
+    sacudirCinta();
+    ocupado = false; actualizarUI();
+  }
+
+  async function cerrar() {
+    if (ocupado || libro.classList.contains('cerrado')) return;
+    cancelar();
+    ocupado = true; actualizarUI();
+    libro.classList.add('cerrado');
+    await espera(reducir ? 0 : 800);
+    broche.classList.remove('suelto');
+    await espera(reducir ? 0 : 150);
+    ocupado = false; actualizarUI();
+  }
+
+  function escribirPliego() {
+    if (ocupado || libro.classList.contains('cerrado')) return;
+    escribirVarios(escritosDe(pagIzq, pagDer));
+  }
+
+  /* ---------- Arranque ---------- */
+  pagIzq.innerHTML = tpl(0, 'izq');
+  pagDer.innerHTML = tpl(0, 'der');
+  actualizarUI();
+
+  $('#bAnt').addEventListener('click', () => pasar(-1));
+  $('#bSig').addEventListener('click', () => pasar(1));
+  $('#bEscribir').addEventListener('click', escribirPliego);
+  $('#bTapa').addEventListener('click', () => libro.classList.contains('cerrado') ? abrir() : cerrar());
+  $('#velocidad').addEventListener('input', e => {
+    factor = parseFloat(e.target.value);
+    $('#velTxt').textContent = '×' + factor.toFixed(1).replace('.', ',');
+  });
+  $('#verTrans').addEventListener('change', e => { $('#transcripcion').hidden = !e.target.checked; });
+
+  document.querySelectorAll('.bNota').forEach(b => b.addEventListener('click', () => {
+    const nota = b.parentElement.querySelector('.nota');
+    escribirVarios([...nota.querySelectorAll('.escrito')]);
+  }));
+
+  const irAlLibro = () => $('#escenario').scrollIntoView({ behavior: reducir ? 'auto' : 'smooth', block: 'center' });
+  document.querySelectorAll('[data-demo]').forEach(b => b.addEventListener('click', async () => {
+    irAlLibro();
+    await espera(reducir ? 0 : 450);
+    const d = b.dataset.demo;
+    if (d === 'abrir') {
+      if (!libro.classList.contains('cerrado')) { await cerrar(); await espera(250); }
+      abrir();
+    } else if (d === 'cerrar') {
+      if (libro.classList.contains('cerrado')) { await abrir(); await espera(250); }
+      cerrar();
+    } else if (d === 'pasar') {
+      if (libro.classList.contains('cerrado')) { await abrir(); await espera(200); }
+      pasar(actual < N_PLIEGOS - 1 ? 1 : -1);
+    } else if (d === 'escribir') {
+      if (libro.classList.contains('cerrado')) { await abrir(); await espera(200); }
+      escribirPliego();
+    }
+  }));
+
+  document.querySelectorAll('.bCopiar').forEach(b => b.addEventListener('click', () => {
+    const pre = b.closest('.prompt').querySelector('pre');
+    const ok = () => { b.textContent = 'Copiado'; setTimeout(() => b.textContent = 'Copiar', 1500); };
+    const fallback = () => {
+      const sel = window.getSelection(), rango = document.createRange();
+      rango.selectNodeContents(pre); sel.removeAllRanges(); sel.addRange(rango);
+      b.textContent = 'Seleccionado: Ctrl+C';
+      setTimeout(() => b.textContent = 'Copiar', 2500);
+    };
+    try { navigator.clipboard.writeText(pre.textContent).then(ok, fallback); } catch (e) { fallback(); }
+  }));
+})();
+</script>

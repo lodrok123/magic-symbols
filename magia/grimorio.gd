@@ -213,8 +213,48 @@ func volcar_paginas() -> void:
 		var e2: String = _gesture_name_of(p["element2"])
 		if es_avanzado() and e2 != "":
 			d["elemento2"] = e2
+		# H16 (22/11): solo se guarda el nombre que puso la jugadora; el automático se rehace de la receta (una partida vieja, sin la clave, lo recibe igual).
+		if bool(p.get("nombre_propio", false)) and String(p.get("nombre", "")) != "":
+			d["nombre"] = String(p["nombre"])
+			d["nombre_propio"] = true
+		# Libro rojo de prueba (22/11): la anidación EDITABLE (H12, no se lanza aún): el sello y los glifos del hijo y la condición. Una página sin ellos no gana las claves.
+		if p.get("hijo") is Dictionary and (String((p["hijo"] as Dictionary).get("elemento", "")) != "" or ((p["hijo"] as Dictionary).get("glifos", []) as Array).any(func(g): return String(g) != "")):
+			d["hijo"] = (p["hijo"] as Dictionary).duplicate(true)
+			d["condicion"] = String(p.get("condicion", "al_impactar"))
 		lista.append(d)
 	Repertoire.paginas = lista
+
+
+## H16 (22/11): el nombre de la página `indice` (-1 = la activa): el que puso la jugadora o, si no, el automático de su receta (`NombreHechizo`). "" si está vacía.
+func nombre_pagina(indice: int = -1) -> String:
+	var i: int = page if indice < 0 else indice
+	if i < 0 or i >= PAGES or i >= pages.size():
+		return ""
+	var p: Dictionary = pages[i]
+	if bool(p.get("nombre_propio", false)) and String(p.get("nombre", "")) != "":
+		return String(p["nombre"])
+	var r: Dictionary = resumen_pagina(i)
+	return NombreHechizo.automatico(r.get("hechizo") as Hechizo) if not r.is_empty() else ""
+
+
+## H16: la jugadora pone nombre a la página `indice`. Vacío (o solo espacios) vuelve al automático. Se recorta a `NombreHechizo.LARGO_MAX`. Se guarda en el acto.
+func renombrar_pagina(indice: int, texto: String) -> void:
+	if indice < 0 or indice >= PAGES or indice >= pages.size():
+		return
+	var limpio: String = NombreHechizo.limpiar(texto)
+	var p: Dictionary = pages[indice]
+	if limpio == "":
+		p.erase("nombre")
+		p.erase("nombre_propio")
+	else:
+		p["nombre"] = limpio
+		p["nombre_propio"] = true
+	volcar_paginas()
+
+
+## H16: ¿el nombre de la página lo puso la jugadora?
+func nombre_es_propio(indice: int) -> bool:
+	return indice >= 0 and indice < pages.size() and bool((pages[indice] as Dictionary).get("nombre_propio", false))
 
 
 ## Rehace las páginas desde `Repertoire.paginas`: elemento → sello 1, elemento2 → sello 2 (solo en el avanzado) y los glifos, por orden, en los huecos que tenga el libro activo
@@ -237,6 +277,20 @@ func cargar_paginas() -> void:
 		p["element_q"] = 1.0
 		p["element2_q"] = 1.0
 		p["element_viejo"] = 1
+		# H16: el nombre propio guardado; sin él, el automático.
+		if bool(src.get("nombre_propio", false)) and String(src.get("nombre", "")) != "":
+			p["nombre"] = NombreHechizo.limpiar(String(src["nombre"]))
+			p["nombre_propio"] = true
+		else:
+			p.erase("nombre")
+			p.erase("nombre_propio")
+		# Libro rojo de prueba: la anidación editable guardada.
+		if src.get("hijo") is Dictionary:
+			p["hijo"] = (src["hijo"] as Dictionary).duplicate(true)
+			p["condicion"] = String(src.get("condicion", "al_impactar"))
+		else:
+			p.erase("hijo")
+			p.erase("condicion")
 		var n: int = 0
 		for g in (src.get("glifos", []) as Array):
 			if limite > 0 and n >= limite:
@@ -957,6 +1011,97 @@ func quitar_glifo_hueco(i: int) -> bool:
 			_actualizar_resumen(page)
 			return true
 	return false
+
+
+## H6 (23/11, «como Zelda»): el glifo que se ACABA de conseguir se deja escrito en una página, listo para usar, y esa página queda seleccionada. Devuelve el índice de la página o -1.
+## Primero busca una página SIN glifos (vacía o solo con sello) y le escribe sello + este glifo solo (el sello de la página, o el de la activa, o el primero que se tenga). Si no hay, elige la ACTIVA si tiene sello y un hueco libre; si no, la primera página (entre las que tienes) con sello y hueco libre. Va por `add_sigil`, el mismo camino que el trazo del libro,
+## así que respeta el presupuesto de glifos por página (`Repertoire.max_sigils_per_page`), los huecos del libro activo, el nombre automático (H16) y el guardado (`volcar_paginas`).
+## Si no cabe en ninguna NO toca nada (ni siquiera la página seleccionada): quien lo llama avisa «Escríbelo en el libro». No toca `Repertoire._por_escribir`: el libro sigue anotando el glifo.
+func equipar_glifo_nuevo(id: String) -> int:
+	var nombre: String = "linea_x" if id == "linea" else id          # `linea` es el id del repertorio; en las páginas va como su orientación
+	if not Repertoire.sigil_active(Sigils.repertorio_de(nombre)):
+		return -1
+	var disponibles: int = mini(PAGES, mini(pages.size(), Repertoire.pages_available(PAGES)))
+	var orden: Array = []
+	if page >= 0 and page < disponibles:
+		orden.append(page)
+	for k in range(disponibles):
+		if k != page:
+			orden.append(k)
+	# a) Una página SIN glifos (vacía o solo con sello) estrena su propio botón con la receta más simple: sello + este glifo solo (como Zelda pone el objeto nuevo en un botón libre).
+	var sello_prestado: Runes.Type = Runes.Type.NONE
+	if page >= 0 and page < pages.size():
+		sello_prestado = pages[page]["element"]
+	if sello_prestado == Runes.Type.NONE:
+		for e in Repertoire.active_elements():
+			if GESTURE_TO_RUNE.has(String(e)):
+				sello_prestado = GESTURE_TO_RUNE[String(e)]
+				break
+	for k in range(disponibles):
+		var pk: Dictionary = pages[k]
+		var con_glifos: bool = false
+		for c in (pk["components"] as Array):
+			if not (c["sigils"] as Array).is_empty():
+				con_glifos = true
+		if con_glifos or (pk["element"] == Runes.Type.NONE and sello_prestado == Runes.Type.NONE):
+			continue
+		var antes_a: int = page
+		select_page(k)
+		if page != k:
+			continue
+		var puso_sello: bool = false
+		if pk["element"] == Runes.Type.NONE:
+			_poner_sello(sello_prestado, 1.0)
+			puso_sello = true
+		var hueco_a: Variant = _hueco_para_glifo_nuevo(k)
+		if hueco_a != null:
+			add_sigil(hueco_a as Vector2, nombre, 1.0)
+			if sigils_used() > 0:
+				return k
+		if puso_sello:
+			pk["element"] = Runes.Type.NONE
+			(pk["undo"] as Array).clear()
+			_actualizar_resumen(k)
+		select_page(antes_a)
+	for k in orden:
+		var hueco: Variant = _hueco_para_glifo_nuevo(int(k))
+		if hueco == null:
+			continue
+		var antes: int = page
+		select_page(int(k))
+		if page != int(k):
+			continue
+		var usados: int = sigils_used()
+		add_sigil(hueco as Vector2, nombre, 1.0)
+		if sigils_used() > usados:
+			return int(k)
+		select_page(antes)                    # no entró (un filtro que no se vio desde fuera): se deja como estaba y se prueba la siguiente
+	return -1
+
+
+## El sector libre donde `equipar_glifo_nuevo` pone un glifo en la página `i` (los mismos huecos, y en el mismo orden, que `cargar_paginas`), o null si no tiene sello o no cabe.
+func _hueco_para_glifo_nuevo(i: int) -> Variant:
+	var p: Dictionary = pages[i]
+	if p["element"] == Runes.Type.NONE or pagina_anulada(i):
+		return null
+	var usados: int = 0
+	for c in (p["components"] as Array):
+		usados += (c["sigils"] as Array).size()
+	var limite: int = Repertoire.max_sigils_per_page
+	if limite > 0 and usados >= limite:
+		return null
+	if not (Repertoire.aim_with_mouse or es_avanzado()):
+		return Vector2.RIGHT                  # sin ratón todos los glifos van al mismo sector (como `place_sigil`)
+	var n_huecos: int = huecos_abiertos() if es_avanzado() else (ORDEN_HUECOS_LIBRO.get(Repertoire.libro, [0, 1, 2, 3, 4, 5, 6, 7]) as Array).size()
+	for n in range(n_huecos):
+		var s: Vector2 = _sector_de_orden(n)
+		var libre: bool = true
+		for c in (p["components"] as Array):
+			if (c["direction"] as Vector2).is_equal_approx(s) and not (c["sigils"] as Array).is_empty():
+				libre = false
+		if libre:
+			return s
+	return null
 
 
 ## Volumen (dB) del «pagina» al deshacer y del «barrido» al vaciar la página (tarea U1).

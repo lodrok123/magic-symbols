@@ -11,13 +11,18 @@ extends RefCounted
 ##   ; activa <pieza>.<señal>        solo `salida`: la señal que cuenta como «resuelto»
 ##   ; barrera si                    solo `salida`: el generador puede elegirla él solo como activador de una barrera (puerta o puente).
 ##                                   Sin esto la plantilla solo se pone a mano o con «Puzles del catálogo».
-##   ; estira x                      la plantilla es una franja: cada fila se repite hasta el ancho de la sala (una letra por fila)
+##   ; estira x                      la plantilla es una franja: cada fila se repite hasta el ancho de la sala. Una letra por fila: se repite entera.
+##                                   23/11: con varias letras («ccc»), las n-1 primeras son la CABEZA fija (pegada a la izquierda) y la ÚLTIMA se repite hasta
+##                                   el ancho de la sala (se ignoran los espacios del final). Una sala más estrecha que la fila más larga no sirve.
+##   ; ancho_min <n>                 solo con `estira x`: ancho mínimo de la sala (para que los comodines `$XC` y `$X1` no choquen con la cabeza)
 ##   ; cueva pieza …                 una línea que solo se escribe si el estilo del mapa es «cueva» (el brasero con el modelo de la Cueva)
-##   <filas del plano>               # pared · . suelo · ~ agua · espacio = no tocar · cualquier otra letra = suelo con esa letra del juego
-##   ; pieza … / ; puzle …           como en un mapa. Los ids son locales (al colocar se les pone delante `cat<n>_`).
+##   <filas del plano>               # pared · . suelo · ~ agua · c cauce del juego (suelo ocupado, SIN icono «?» por casilla; la vista lo pinta azul) ·
+##                                   espacio = no tocar · cualquier otra letra = suelo con esa letra del juego (y un icono «?» en la vista)
+##   ; pieza … / ; puzle …           como en un mapa. Los ids son locales (al colocar se les pone delante `cat<n>_`). Las casillas de la plantilla (x y de la pieza y las listas de
+##                                   `celdas`, `de`, `sala`, `en`, `camino`, `canal`, `bloque`, `ruta` y `enlaces`) se trasladan a donde cae la plantilla.
 ##
 ## Comodines en las líneas: `$NIVEL` (el nivel en minúsculas), `$ID` (`cat<n>`, para flags: `$NIVEL.$ID.hecho`), `$X1` y `$Y1`
-## (última columna y fila de la plantilla ya estirada) y `$MODELO` (`modelo=cueva` si el estilo del mapa es «cueva»; si no, nada). Añadir un puzle = añadir un archivo; no hay que tocar código.
+## (última columna y fila de la plantilla ya estirada), `$XC` (la columna central de la plantilla ya estirada, `(ancho-1)/2` entero; 23/11) y `$MODELO` (`modelo=cueva` si el estilo del mapa es «cueva»; si no, nada). Añadir un puzle = añadir un archivo; no hay que tocar código.
 
 const CARPETA: String = "res://herramientas/generador_mapas/catalogo/"
 const TIPOS: Array[String] = ["premio", "paso", "salida"]
@@ -48,7 +53,7 @@ static func _leer() -> Dictionary:
 
 
 static func leer_texto(texto: String, id_defecto: String = "") -> Dictionary:
-	var e: Dictionary = {"id": id_defecto, "titulo": id_defecto, "tipo": "premio", "pide": "", "activa": "", "estira": "", "barrera": false, "filas": [], "lineas": [], "lineas_cueva": [], "ancho": 0, "alto": 0}
+	var e: Dictionary = {"id": id_defecto, "titulo": id_defecto, "tipo": "premio", "pide": "", "activa": "", "estira": "", "ancho_min": 0, "barrera": false, "filas": [], "lineas": [], "lineas_cueva": [], "ancho": 0, "alto": 0}
 	for linea in texto.split("\n"):
 		var l: String = String(linea).replace("\r", "")
 		if l.strip_edges() == "":
@@ -72,6 +77,8 @@ static func leer_texto(texto: String, id_defecto: String = "") -> Dictionary:
 					e["activa"] = resto
 				"estira":
 					e["estira"] = resto
+				"ancho_min":
+					e["ancho_min"] = resto.to_int()
 				"barrera":
 					e["barrera"] = resto == "si"
 				"cueva":

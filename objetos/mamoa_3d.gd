@@ -31,6 +31,22 @@ const INTERVALO_REVISION: float = 0.25           ## s entre dos miradas a la cas
 const ANCHO_BROCAL: float = 1.7                  ## u: lo que ocupa el brocal en planta (la casilla mide 2,3)
 const ANCHO_LOSA: float = 1.95                   ## u: la losa lo cubre y sobra un poco
 const COLOR_HUMO: Color = Color(0.62, 0.66, 0.72, 0.55)
+## 21/11 (Pablo: «el núcleo sería tapar la tumba con ALGO»; «llenándola levemente con agua»): además del bloque y de los hechizos de tierra/hielo, la tapa
+##   · CUALQUIER COSA SÓLIDA en su casilla (lo que la bloquea en `Terreno3D`: una roca o un bloque empujados, un barril, una caja o un jarrón…) o un cogible soltado encima;
+##   · el AGUA: si su casilla queda MOJADA (un hechizo de agua que da en el suelo, un charco que llega) o HELADA, el pozo se INUNDA y queda tapado para siempre (`inundada`).
+##     Una flecha que solo pasa por encima no moja el suelo: no cuenta. Se ve el agua dentro del brocal.
+const ESTADOS_INUNDAN: Array = ["mojada", "helada"]
+## EL MOURO SE RECOMPONE (21/11, Pablo: «un hueco parpadeando con brillos azules claros; haz que la tumba palpite y el núcleo también»): mientras hay un mouro deshecho esperando volver
+## (`humo_rebrote`), el brocal late (escala), dentro del agujero brilla un NÚCLEO azul claro que late con él (malla y luz) y suben chispas azules que parpadean. Se apaga al volver o al taparla.
+const COLOR_BRILLO: Color = Color(0.62, 0.86, 1.0)
+const PULSO_HZ: float = 1.6                    ## latidos por segundo (acelera al final: ver PULSO_HZ_FINAL)
+const PULSO_HZ_FINAL: float = 3.2              ## latidos por segundo en el último segundo antes de salir
+const PULSO_ESCALA: float = 0.05               ## cuánto crece el brocal en cada latido (fracción)
+const RADIO_NUCLEO: float = 0.3                ## u del núcleo en reposo
+const ENERGIA_LUZ: float = 1.6
+const COLOR_AGUA_POZO: Color = Color(0.18, 0.42, 0.55, 0.85)
+const FRACCION_ALTO_AGUA: float = 0.8          ## a qué altura del brocal queda la lámina de agua
+const RADIO_AGUA: float = 0.42                 ## fracción de ANCHO_BROCAL que tapa el disco de agua (el hueco del pozo)
 const COLOR_GRIETA: Color = Color(0.05, 0.04, 0.05)
 
 var celda: Vector2i = Vector2i.ZERO
@@ -50,6 +66,17 @@ var _humo: CPUParticles3D = null
 var _t_humo: float = 0.0
 var _t: float = 0.0
 var _alto_brocal: float = 0.6
+var inundada: bool = false                       ## 21/11: el agua la llenó: tapada para siempre
+var por_que_tapada: String = ""                  ## qué la tapó la última vez (pruebas y diario): a_mano · agua · bloque · algo · hechizo
+var _agua: MeshInstance3D = null
+var pulsando: bool = false                       ## 21/11: está latiendo (un mouro se recompone dentro); lo leen las pruebas
+var _t_pulso: float = 0.0
+var _nucleo: MeshInstance3D = null
+var _mat_nucleo: StandardMaterial3D = null
+var _luz: OmniLight3D = null
+var _chispas: CPUParticles3D = null
+
+signal inundada_ahora
 
 
 ## Crea una mámoa en la casilla `c`. `p_mundo` = el mundo (donde cae el botín); `p_padre` = de qué nodo se cuelga (el decorado del mapa; sin él, del mundo). `p_agrietada` = nace ya agrietada;
@@ -104,7 +131,69 @@ func alto_brocal() -> float:
 
 ## Mira la casilla AHORA y cambia de estado si hace falta (emite `tapada` / `destapada`).
 func revisar() -> void:
-	_poner(_a_mano or _bloque_encima() or _hechizo_encima())
+	if not inundada and _agua_en_casilla():
+		inundar()
+	por_que_tapada = "a_mano" if _a_mano else ("agua" if inundada else ("bloque" if _bloque_encima() else ("algo" if _algo_encima() else ("hechizo" if _hechizo_encima() else ""))))
+	_poner(por_que_tapada != "")
+
+
+## El pozo se llena de agua: tapado para siempre (se ve la lámina de agua dentro del brocal).
+func inundar() -> void:
+	if inundada:
+		return
+	inundada = true
+	if _agua == null:
+		_construir_agua()
+	_agua.visible = true
+	inundada_ahora.emit()
+	PlayLog.event("mamoa_inundada", {"celda": [celda.x, celda.y]})
+
+
+## ¿Está mojada (o helada) su casilla? Es el estado del SUELO: solo lo pone el agua que llega al suelo.
+func _agua_en_casilla() -> bool:
+	var e: EstadosSuelo3D = Terreno3D.estados
+	if e == null:
+		return false
+	for est in ESTADOS_INUNDAN:
+		if e.tiene(celda, String(est)):
+			return true
+	return false
+
+
+## ¿Hay algo sólido en su casilla? Lo que la bloquea para `Terreno3D` (rocas y bloques empujados, barriles, cajas, jarrones…) o un cogible suelto encima.
+func _algo_encima() -> bool:
+	if Terreno3D.bloqueada(celda):
+		return true
+	if not is_inside_tree():
+		return false
+	var en_brazos: Array = []                                    # lo que alguien lleva encima no tapa (aunque pase por encima)
+	for c in get_tree().get_nodes_in_group(PistaProximidad.GRUPO):
+		if c is CargarObjeto3D and (c as CargarObjeto3D).objeto != null:
+			en_brazos.append((c as CargarObjeto3D).objeto)
+	for n in get_tree().get_nodes_in_group("cogible"):
+		if n is Node3D and is_instance_valid(n) and (n as Node3D).is_inside_tree() and not en_brazos.has(n) \
+				and Terreno3D.celda_de((n as Node3D).global_position) == celda:
+			return true
+	return false
+
+
+func _construir_agua() -> void:
+	_agua = MeshInstance3D.new()
+	_agua.name = "AguaPozo"
+	var disco := CylinderMesh.new()
+	disco.top_radius = ANCHO_BROCAL * RADIO_AGUA
+	disco.bottom_radius = ANCHO_BROCAL * RADIO_AGUA
+	disco.height = 0.03
+	var mat := StandardMaterial3D.new()
+	mat.albedo_color = COLOR_AGUA_POZO
+	mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	mat.roughness = 0.08
+	mat.metallic_specular = 0.9
+	disco.material = mat
+	_agua.mesh = disco
+	_agua.position = Vector3(0.0, _alto_brocal * FRACCION_ALTO_AGUA, 0.0)
+	_agua.visible = false
+	add_child(_agua)
 
 
 func tapar_a_mano() -> void:
@@ -122,7 +211,7 @@ func _poner(cubierta: bool) -> void:
 		return
 	abierta = not cubierta
 	if _losa != null:
-		_losa.visible = cubierta
+		_losa.visible = cubierta and (por_que_tapada == "a_mano")      # 21/11: la losa es la tapa «de puzle»; con agua se ve el agua y con algo encima, ese algo
 	if cubierta:
 		cancelar_humo()
 		tapada.emit()
@@ -146,8 +235,12 @@ func _lanzador() -> Lanzador3D:
 
 ## ¿Hay encima un volumen sólido o pisable de un hechizo vivo (tierra o hielo)? Se lee de las listas del lanzador: las entradas se quitan solas cuando el hechizo se acaba, y con ellas se destapa.
 func _hechizo_encima() -> bool:
-	var lz: Lanzador3D = _lanzador()
-	if lz == null:
+	return hechizo_solido_en(_lanzador(), celda)
+
+
+## 21/11: ¿hay en la casilla `celda` un volumen sólido o pisable de un hechizo vivo de `lz`? Lo usa también la Santa Compaña (un muro de hechizo le corta el paso).
+static func hechizo_solido_en(lz: Lanzador3D, celda: Vector2i) -> bool:
+	if lz == null or not is_instance_valid(lz):
 		return false
 	for b in lz._bloques:                                    # tierra construida: {celda, niveles, ...}
 		if b is Dictionary and (b as Dictionary).get("celda", Vector2i(-9999, -9999)) == celda and int((b as Dictionary).get("niveles", 1)) > 0:
@@ -216,6 +309,7 @@ func humo_rebrote(segundos: float) -> void:
 	_humo.emitting = true
 	humo_activo = true
 	_t_humo = segundos
+	_empezar_pulso()
 
 
 func cancelar_humo() -> void:
@@ -223,6 +317,103 @@ func cancelar_humo() -> void:
 	_t_humo = 0.0
 	if _humo != null:
 		_humo.emitting = false
+	_parar_pulso()
+
+
+## El latido de la tumba mientras un mouro se recompone (ver EL MOURO SE RECOMPONE).
+func _empezar_pulso() -> void:
+	pulsando = true
+	_t_pulso = 0.0
+	if _nucleo == null:
+		_construir_brillo()
+	_nucleo.visible = true
+	_luz.visible = true
+	_chispas.emitting = true
+
+
+func _parar_pulso() -> void:
+	pulsando = false
+	if _nucleo != null:
+		_nucleo.visible = false
+		_luz.visible = false
+		_chispas.emitting = false
+	if _brocal != null:
+		_brocal.scale = Vector3.ONE
+
+
+## Cada fotograma de dibujo: late el brocal, el núcleo y su luz. En el último segundo late el doble de rápido (va a salir).
+func _process(delta: float) -> void:
+	if not pulsando:
+		return
+	_t_pulso += delta
+	var hz: float = PULSO_HZ_FINAL if (_t_humo > 0.0 and _t_humo <= 1.0) else PULSO_HZ
+	var s: float = 0.5 + 0.5 * sin(TAU * hz * _t_pulso)
+	if _brocal != null:
+		_brocal.scale = Vector3.ONE * (1.0 + PULSO_ESCALA * s)
+	if _nucleo != null:
+		_nucleo.scale = Vector3.ONE * (0.75 + 0.45 * s)
+		_mat_nucleo.emission_energy_multiplier = 1.0 + 3.0 * s
+		_mat_nucleo.albedo_color.a = 0.55 + 0.4 * s
+		_luz.light_energy = ENERGIA_LUZ * (0.4 + 0.6 * s)
+
+
+func _construir_brillo() -> void:
+	_mat_nucleo = StandardMaterial3D.new()
+	_mat_nucleo.albedo_color = Color(COLOR_BRILLO, 0.8)
+	_mat_nucleo.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	_mat_nucleo.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	_mat_nucleo.emission_enabled = true
+	_mat_nucleo.emission = COLOR_BRILLO
+	var esfera := SphereMesh.new()
+	esfera.radius = RADIO_NUCLEO
+	esfera.height = RADIO_NUCLEO * 1.2                     # un poco aplastado: es el fondo del pozo que brilla
+	esfera.material = _mat_nucleo
+	_nucleo = MeshInstance3D.new()
+	_nucleo.name = "Nucleo"
+	_nucleo.mesh = esfera
+	_nucleo.position = Vector3(0.0, _alto_brocal * 0.45, 0.0)
+	_nucleo.visible = false
+	add_child(_nucleo)
+	_luz = OmniLight3D.new()
+	_luz.name = "LuzNucleo"
+	_luz.light_color = COLOR_BRILLO
+	_luz.omni_range = 2.4
+	_luz.light_energy = 0.0
+	_luz.position = Vector3(0.0, _alto_brocal * 0.7, 0.0)
+	_luz.visible = false
+	add_child(_luz)
+	_chispas = CPUParticles3D.new()
+	_chispas.name = "Chispas"
+	_chispas.emitting = false
+	_chispas.amount = 26
+	_chispas.lifetime = 1.1
+	_chispas.emission_shape = CPUParticles3D.EMISSION_SHAPE_SPHERE
+	_chispas.emission_sphere_radius = ANCHO_BROCAL * 0.3
+	_chispas.direction = Vector3.UP
+	_chispas.spread = 30.0
+	_chispas.initial_velocity_min = 0.4
+	_chispas.initial_velocity_max = 1.1
+	_chispas.gravity = Vector3.ZERO
+	_chispas.scale_amount_min = 0.5
+	_chispas.scale_amount_max = 1.2
+	var rampa := Gradient.new()                             # parpadean: se encienden y se apagan dos veces en su vida
+	rampa.offsets = PackedFloat32Array([0.0, 0.2, 0.35, 0.55, 0.75, 1.0])
+	rampa.colors = PackedColorArray([Color(COLOR_BRILLO, 0.0), Color(1, 1, 1, 1.0), Color(COLOR_BRILLO, 0.15), Color(1, 1, 1, 0.9), Color(COLOR_BRILLO, 0.1), Color(COLOR_BRILLO, 0.0)])
+	_chispas.color_ramp = rampa
+	var punto := SphereMesh.new()
+	punto.radius = 0.035
+	punto.height = 0.07
+	var mat := StandardMaterial3D.new()
+	mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	mat.vertex_color_use_as_albedo = true
+	mat.emission_enabled = true
+	mat.emission = COLOR_BRILLO
+	mat.emission_energy_multiplier = 2.0
+	punto.material = mat
+	_chispas.mesh = punto
+	_chispas.position = Vector3(0.0, _alto_brocal * 0.5, 0.0)
+	add_child(_chispas)
 
 
 func _construir_humo() -> void:
