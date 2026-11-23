@@ -161,6 +161,7 @@ func _draw() -> void:
 
 	# H16: el nombre de la página activa, encima de las pestañas.
 	_dibujar_nombre(caster, Vector2(size.x * 0.5, y - ALTO_NOMBRE))
+	_dibujar_pista(Vector2(size.x * 0.5, y - ALTO_PISTA))
 
 	# La voltereta.
 	var jugador = get_tree().get_first_node_in_group("player")
@@ -195,6 +196,41 @@ func _dibujar_nombre(caster: Node, pos: Vector2) -> void:
 	draw_string_outline(fuente, p, nombre, HORIZONTAL_ALIGNMENT_LEFT, -1, tam, 4, Color(0.13, 0.09, 0.06, 0.85))
 	draw_string(fuente, p, nombre, HORIZONTAL_ALIGNMENT_LEFT, -1, tam, TINTA)
 
+
+
+## H6 (23/11): la PISTA de uso inmediato (`PistaGlifo`), una píldora encima del nombre de la página: «[runa] Pulsa 2». Solo existe mientras haya una pista sin cumplir.
+const TAM_PISTA: int = 15
+const ALTO_PISTA: float = 64.0                    ## px por encima del centro de las pestañas (el nombre ocupa hasta ALTO_NOMBRE + su tamaño grande)
+var ultima_pista: String = ""                     ## lo último que pintó (para las pruebas)
+
+
+func _dibujar_pista(pos: Vector2) -> void:
+	ultima_pista = ""
+	var pista := get_tree().get_first_node_in_group(PistaGlifo.GRUPO) as PistaGlifo
+	if pista == null or pista.cumplido:
+		return
+	var texto: String = pista.texto_hud()
+	if texto == "":
+		return
+	ultima_pista = texto
+	var fuente: Font = TemaInterfaz.fuente()
+	var ancho_t: float = fuente.get_string_size(texto, HORIZONTAL_ALIGNMENT_LEFT, -1, TAM_PISTA).x
+	var lado_runa: float = 22.0
+	var total: float = lado_runa + 8.0 + ancho_t
+	var latido: float = 0.5 + 0.5 * sin(float(Time.get_ticks_msec()) * 0.004)
+	var col: Color = pista.color()
+	var caja := Rect2(pos + Vector2(-total * 0.5 - 12.0, -TAM_PISTA - 8.0), Vector2(total + 24.0, TAM_PISTA + 16.0))
+	var estilo := StyleBoxFlat.new()
+	estilo.bg_color = Color(0.10, 0.07, 0.05, 0.72)
+	estilo.border_color = Color(col, 0.55 + 0.35 * latido)
+	estilo.set_border_width_all(2)
+	estilo.set_corner_radius_all(12)
+	estilo.draw(get_canvas_item(), caja)
+	var x0: float = pos.x - total * 0.5
+	var tex: Texture2D = pista.textura()
+	if tex != null:
+		draw_texture_rect(tex, Rect2(Vector2(x0, pos.y - lado_runa * 0.5 - 5.0), Vector2.ONE * lado_runa), false, Color(col.lightened(0.35), 1.0))
+	draw_string(fuente, Vector2(x0 + lado_runa + 8.0, pos.y), texto, HORIZONTAL_ALIGNMENT_LEFT, -1, TAM_PISTA, TINTA)
 
 func _texto(pos: Vector2, texto: String, color: Color, ancho_max: float = -1.0) -> void:
 	var fuente: Font = TemaInterfaz.fuente()

@@ -136,6 +136,8 @@ extends Node
 ##   (cofre)    abre_si=<expr> (siempre)  glifo=<id del libro>                        `abre_si`: hasta que se cumpla el cofre está sellado (E avisa y no abre). `glifo=raido`: abrirlo da ese
 ##              glifo con la SECUENCIA del cofre legendario (SecuenciaCofreLegendario3D) y lo desbloquea en el libro
 ##              sello=<elemento> (22/11, PLAN_HECHIZOS §1.5): abrirlo da ese SELLO (elemento: fuego, agua, tierra…), con la flag `global.sello.<id>` que ya rearma cada nivel (como el agua de Marimanta)
+##              reto=<flag> reto_en=<x,z> (23/11, PLAN_HECHIZOS §4.5 H6, con `glifo=`): el glifo nuevo se equipa en una página y `PistaGlifo` enseña «Pulsa 2 · …» en el HUD. `reto` = la flag que lo resuelve (la pista se va al ponerse; sin ella, al primer lanzamiento con el glifo);
+##              `reto_en` = la casilla (UNA) con un aro suave y la runa en el suelo: desde dónde usarlo, sin decir cómo. No se guarda: recargar la quita
 ##   receptor   elemento=fuego|agua|hielo|rayo|tierra|viento (cualquiera)  flag=<nombre>  rearme=<s> (0)   ReceptorPulso3D: se ACTIVA al llegarle un pulso (de ese elemento, si lo
 ##              pide) y se queda activo; pone `flag` con la forma de siempre (nivel.sala.hecho). `rearme` > 0: se apaga solo. Modelo `receptor_runico`. Bloquea su casilla
 ##   jarron, caja  botin=oro|pocion|nada|zona|<objeto> (oro)  cantidad=<n> (la de la zona)  alto=si (jarron_alto)  pequena=si (caja_pequena)  celdas=<lista>  modelo=caja (en un jarron)   Rompible3D (mapas abiertos, 23/10): un jarrón o una caja
@@ -466,7 +468,7 @@ const CLAVES: Dictionary = {
 	"cuerda": {"sostiene": "id"},
 	"vigia": {"de": "celdas", "flag": "flag", "puesto": "b", "debil": "s:fuego|agua|tierra|viento|rayo|hielo", "resiste": "s:fuego|agua|tierra|viento|rayo|hielo"},
 	"cerrojo": {"celdas": "celdas", "sala": "celdas", "hasta": "flag"},
-	"cofre": {"aparece_si": "expr", "abierto": "flag", "modelo": "s:legendario|epico", "abre_si": "expr", "glifo": "glifo", "sello": "sello", "da": "da", "gasta": "b"},
+	"cofre": {"aparece_si": "expr", "abierto": "flag", "modelo": "s:legendario|epico", "abre_si": "expr", "glifo": "glifo", "sello": "sello", "da": "da", "gasta": "b", "reto": "flag", "reto_en": "celdas"},
 	"muro": {"golpes": "f"},
 	"lava": {"celdas": "celdas", "vuelve": "f"},
 	"seta": {"variante": "s:roja|azul|marron", "rebrota": "f", "madura": "b"},
@@ -1066,6 +1068,8 @@ class CofrePuzle extends Node3D:
 	var glifo: String = ""                       ## glifo= (id del libro): abrirlo da ese glifo con la secuencia del cofre legendario (SecuenciaCofreLegendario3D)
 	var secuencia: SecuenciaCofreLegendario3D = null
 	var sello: String = ""                       ## sello= (22/11): abrirlo da ese elemento (flag `global.sello.<id>`, la misma que rearma `EncargoMarimanta.rearmar_sellos`)
+	var reto: String = ""                        ## reto= (23/11, H6): la flag que resuelve la sala con el glifo que da este cofre; la pista de uso (`PistaGlifo`) se va al ponerse. Sin ella, al primer lanzamiento con el glifo
+	var reto_en: Variant = null                  ## reto_en=x,z (23/11, H6): la casilla donde el suelo enseña el marcador suave de la runa (desde dónde usarla)
 	var calidad: String = ""                     ## `modelo=epico|legendario` (24/10, PLAN_PULSO_RESONANTE §7): el cofre sin abrir echa una COLUMNA DE LUZ de ese color y al abrirse suelta motas de él (VfxCalidad3D)
 	var columna: Node3D = null                   ## la columna de luz mientras el cofre está cerrado
 	var flag_abierto: String = ""
@@ -1199,6 +1203,8 @@ class CofrePuzle extends Node3D:
 			if not _contenido_preparado.is_empty():
 				secuencia.objeto_presentado = str(_contenido_preparado[0].get("que", "oro"))
 			secuencia.calidad = calidad if calidad != "" else "legendario"
+			secuencia.reto = reto
+			secuencia.reto_en = reto_en
 			secuencia.recompensa_lista.connect(_al_abrirse, CONNECT_ONE_SHOT)
 			add_child(secuencia)
 			if not secuencia.iniciar(self, ctrl, mundo, glifo):
@@ -1293,6 +1299,7 @@ class CofrePuzle extends Node3D:
 			var lz: Node = get_tree().get_first_node_in_group("spellcaster") if is_inside_tree() else null
 			if lz != null and lz.has_method("avisar"):
 				lz.call("avisar", "Sello de %s conseguido: ya puedes dibujarlo." % sello, Color(1.0, 0.9, 0.6))
+			LaminaGlifo.mostrar(self, sello, true, true)          # 23/11: la ficha del sello nuevo (pausa y se cierra con E/clic)
 
 	func _al_abrirse() -> void:
 		_abriendo = false
@@ -2540,6 +2547,11 @@ func _crear(pz: Pieza) -> void:
 			cf.da = pz.p.get("da", [])
 			cf.sello = String(pz.p.get("sello", ""))
 			cf.gasta = bool(pz.p.get("gasta", false))
+			cf.reto = String(pz.p.get("reto", ""))
+			if pz.p.has("reto_en") and (pz.p["reto_en"] as Array).size() > 0:
+				cf.reto_en = (pz.p["reto_en"] as Array)[0]
+				if (pz.p["reto_en"] as Array).size() > 1:
+					_avisar_pieza(pz, "reto_en=: solo vale UNA casilla (se usa la primera)")
 			if cf.gasta and not pz.p.has("abre_si"):
 				_avisar_pieza(pz, "«gasta=si» solo vale con «abre_si=tener.<objeto>» (no hay nada que gastar)")
 			pz.nodo = cf

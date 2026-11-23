@@ -122,7 +122,7 @@
 ; pieza puerta_g6 puerta 12 12 modelo=llave
 ; puzle marca_g6 cuando=fuegos_g6.todos hace=flag.poner(gruta.g6.fuegos)
 ; puzle abre_g6 cuando=flag.gruta.g6.fuegos hace=puerta_g6.abrir
-; pieza tesoro cofre 12 11 modelo=legendario abierto=gruta.g6.glifo glifo=barrera
+; pieza tesoro cofre 12 11 modelo=legendario abierto=gruta.g6.glifo glifo=barrera reto=gruta.g6.atajo reto_en=9,13
 ; El atajo: el brasero de la esquina, su reja, el tótem roto con su marca, y la puerta a G1.
 ; pieza br_atajo brasero 9 11 luz=2.4 modelo=cueva
 ; pieza reja_atajo puerta 9 12 modelo=reja

@@ -241,6 +241,8 @@ var _t_hielo: float = 0.0
 var manifestaciones_vivas: int = 0
 
 signal lanzado(elemento: String, forma: String, manifestaciones: int)
+## H6 (23/11): lo que lleva el hechizo que ACABA de salir (los nombres de sus glifos, como en la página: linea_x, altura…). Lo oye `PistaGlifo` para saber que la jugadora ya usó la runa nueva.
+signal glifos_lanzados(glifos: Array)
 signal modo_cambiado(activo: bool)
 ## Una casilla pasó a ser agua (o dejó de serlo) según la simulación. Para quien dependa de «es agua» y no pregunte cada vez.
 signal agua_cambio(c: Vector2i, es_agua: bool)
@@ -1666,6 +1668,7 @@ func _disparar(datos: Dictionary, origen: Vector3, dir: Vector3, retardo: float)
 			"previsto": snappedf(float(t[0]) + float(t[1]) + float(t[2]), 0.01), "retardo": snappedf(retardo, 0.01), "interrumpido": false})
 	PlayLog3D.manifestaciones(n, forma, elemento)
 	Estadisticas.contar_lanzamiento(indice + 1, String(datos.get("elemento_nombre", elemento)), datos["glifos"] if datos.get("glifos") is Array else [])      # M1 (22/11): por página y por receta
+	glifos_lanzados.emit((datos["glifos"] as Array).duplicate() if datos.get("glifos") is Array else [])
 	lanzado.emit(elemento, forma, n)
 
 

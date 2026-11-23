@@ -202,7 +202,7 @@ func _escenario() -> void:
 	_ok("10b FORMA (9) y POTENCIA (5) son glifos del juego", LibroRojo.FAMILIA_FORMA.size() == 9 and LibroRojo.FAMILIA_POTENCIA.size() == 5 and en_tabla)
 	_ok("10b FORMA son los que no suben el daño (B9a) y POTENCIA los que sí (salvo ᛃ, sin decidir)",
 		LibroRojo.FAMILIA_POTENCIA.all(func(g): return Sigils.cuenta_dano(String(g))) and ["flecha", "pulso", "permanencia", "rebote", "buscar", "repeticion"].all(func(g): return not Sigils.cuenta_dano(String(g))))
-	_ok("10b cada símbolo de las familias tiene su ficha", (LibroRojo.FAMILIA_SELLOS + todos).all(func(g): return LibroRojo.FICHAS.has(String(g))))
+	_ok("10b cada símbolo de las familias tiene su ficha", (LibroRojo.FAMILIA_SELLOS + todos).all(func(g): return FichasGlifo.FICHAS.has(String(g))))
 	_ok("10b lo que no se tiene sale bloqueado (ᛉ permanencia no está en el kit de pruebas)", not LibroRojo.conocido("permanencia") and LibroRojo.conocido("flecha"))
 	var antes_cat: String = str(_ficha()["components"])
 	_lr._pulsar("catalogo")
@@ -273,7 +273,7 @@ func _escenario() -> void:
 	_lr._pulsar("anidacion")
 	_lr.elegir_destino("hueco:0")
 	_ok("12 solo apunta lo que se conoce, y cuenta lo que falta", not _lr.ids_de_tab("glifos").has("permanencia") and _lr.ids_de_tab("glifos").has("flecha") and _lr.por_descubrir("glifos") >= 1, "faltan %d" % _lr.por_descubrir("glifos"))
-	_ok("12 cada runa de las notas tiene su verbo", (_lr.ids_de_tab("sellos") + _lr.ids_de_tab("glifos")).all(func(g): return LibroRojo.VERBOS.has(String(g))))
+	_ok("12 cada runa de las notas tiene su verbo", (_lr.ids_de_tab("sellos") + _lr.ids_de_tab("glifos")).all(func(g): return FichasGlifo.FICHAS.has(String(g))))
 	# En vivo: medio rombo (los dos primeros tramos de ◇) deja viva la barrera y apaga lo que ya no puede salir.
 	var rombo: Array = _trazos("barrera")
 	var medio := PackedVector2Array()

@@ -701,7 +701,10 @@ func _abrir_cofre_agua() -> void:
 	if not _cofre_agua.abrir():
 		return
 	Flags.i().poner(EncargoMarimanta.COFRE_AGUA)
+	var agua_nueva: bool = not Repertoire.element_active("agua")
 	EncargoMarimanta.dar_sello_agua()
+	if agua_nueva:
+		LaminaGlifo.mostrar(self, "agua", true, true)          # 23/11: la ficha del sello nuevo (pausa y se cierra con E/clic)
 	PlayLog.event("cofre_abierto", {"cofre": EncargoMarimanta.COFRE_AGUA, "objeto": "sello_agua", "calidad": "legendario"})
 	_dialogo.text = "Has conseguido la runa de agua."
 	Partida.autoguardar(get_tree(), "monte_sumicio_runa_agua")
