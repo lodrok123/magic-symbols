@@ -1,0 +1,11 @@
+; catalogo riega_pulsador
+; titulo Riega la placa
+; tipo salida
+; pide agua
+; activa placa.pulsado
+; barrera si
+;  El pulsador de agua del Bosque 02 (el del puente roto y el del molino). Una placa que solo baja con agua: un hechizo de agua encima
+;  y emite la señal. Enlaza la señal a una puerta o un puente. Va en el grupo «placa» de los activadores de barrera.
+...
+...
+; pieza placa pulsador 1 0 modo=agua $MODELO

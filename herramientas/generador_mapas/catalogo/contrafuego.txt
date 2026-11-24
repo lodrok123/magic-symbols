@@ -1,0 +1,20 @@
+; catalogo contrafuego
+; titulo Contrafuego: setos y barril
+; tipo premio
+; pide fuego
+;  La cámara B del Bosque 01 (F4, «contrafuego»). Cuatro setos secos (z) en fila y un barril al final. Fuego al primer seto: el fuego
+;  corre por la fila, prende el barril y su explosión abre la puerta de la trastienda, donde aparece el cofre. Se dispara desde lejos:
+;  la explosión también hace daño a la jugadora.
+;  La trastienda va hacia ARRIBA, con paredes de dos casillas de grueso, como las pistas. Debajo de los setos queda una fila libre: desde
+;  ahí (o desde la izquierda) se le dispara al primero.
+#######
+###.###
+###.###
+.......
+zzzz...
+.......
+; pieza barril barril 4 4
+; pieza puerta puerta 3 2
+; puzle marca cuando=barril.explota hace=flag.poner($NIVEL.$ID.hecho)
+; puzle abre cuando=flag.$NIVEL.$ID.hecho hace=puerta.abrir
+; pieza cofre cofre 3 1 aparece_si=flag.$NIVEL.$ID.hecho abierto=$NIVEL.$ID.cofre da=oro:60+seta_asada:2

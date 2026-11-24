@@ -1,0 +1,24 @@
+; catalogo puente_cuerda
+; titulo Puente plegado: agua o fuego
+; tipo paso
+; pide agua o fuego
+; estira x
+;  El puente roto del Bosque 02 (plaza oeste) y la charca de la Gruta Batida (G4). Una franja de agua honda de lado a lado de la sala y
+;  un puente plegado que la cruza. Se tiende de dos maneras: agua sobre la placa de la orilla (pulsador de agua) o fuego a la cuerda
+;  que lo sostiene. Una vez tendido se queda tendido (flag). La placa va en una orilla y la cuerda en la otra (en la misma fila, la
+;  cuerda paraba la flecha de agua antes de llegar a la placa): desde cualquier orilla hay una forma de tenderlo.
+;  La placa va a dos filas del agua y una de la pared de arriba: pegada a la orilla, la flecha de agua que iba hacia ella se paraba
+;  antes (el labio y los cantos de la orilla). La cuerda, en la otra orilla. El puente, en el extremo derecho de la franja.
+.
+.
+.
+~
+~
+.
+.
+; pieza puente puente $X1 3 celdas=$X1,3+$X1,4
+; pieza placa pulsador 1 1 modo=agua $MODELO
+; pieza cuerda cuerda 1 5 sostiene=puente
+; puzle tiende cuando=placa.pulsado hace=puente.tender
+; puzle marca cuando=puente.tendido hace=flag.poner($NIVEL.$ID.puente)
+; puzle vuelve cuando=flag.$NIVEL.$ID.puente hace=puente.tender

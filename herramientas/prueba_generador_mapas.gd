@@ -931,6 +931,9 @@ func _catalogo() -> void:
 					break
 		_ok(puestos >= 8, "«%s» se puede poner en al menos 8 de 16 mapas" % cid, "%d" % puestos)
 	# Salas pequeñas (2-3 casillas): la plantilla de 5 × 3 no cabe y el suelo se ajusta.
+	# 24/11: con más plantillas de activador de barrera, el mapa de base cambia y alguna sala ya es lo bastante grande: puesto sin excavar
+	# también vale. Lo que se pide es que se ponga casi siempre y que, en la mayoría, haya hecho falta excavar.
+	var puestos2: int = 0
 	var excavados: int = 0
 	for s in range(1, 13):
 		var par2: Dictionary = {"algoritmo": "pagina", "semilla": s, "lado_min": 2, "lado_max": 3, "pasillos": 0, "n_salas": 6}
@@ -940,12 +943,13 @@ func _catalogo() -> void:
 				continue
 			var m2: Dictionary = _revisar(par2, {}, {int(sala["id"]): "braseros_premio"})
 			if (m2["puzles"] as Dictionary).has(int(sala["id"])):
-				excavados += 1
-				_ok("\n".join(m2["filas"]).count("#") < "\n".join(base2["filas"]).count("#"), "poner el puzle en una sala pequeña excava roca: semilla %d" % s)
+				puestos2 += 1
+				excavados += 1 if "\n".join(m2["filas"]).count("#") < "\n".join(base2["filas"]).count("#") else 0
 				break
 			else:
 				_ok("\n".join(m2["avisos"]).contains("braseros_premio"), "si no cabe ni excavando, lo dice: semilla %d" % s, "\n".join(m2["avisos"]))
-	_ok(excavados >= 8, "el autoajuste del suelo funciona en casi todas las semillas", "%d de 12" % excavados)
+	_ok(puestos2 >= 8, "el puzle se pone en salas pequeñas en casi todas las semillas", "%d de 12" % puestos2)
+	_ok(excavados >= 6, "en la mayoría hace falta excavar roca (autoajuste del suelo)", "%d de 12" % excavados)
 	var no: Dictionary = _revisar({"algoritmo": "salas", "semilla": 2}, {}, {999: "rio_lava", 1: "no_existe"})
 	_ok((no["avisos"] as PackedStringArray).size() >= 2 and (no["puzles"] as Dictionary).is_empty(), "una sala o un puzle que no existen avisan y no rompen", "\n".join(no["avisos"]))
 	_resumen("10 catálogo de puzles: %d plantillas, a mano, con autoajuste del suelo" % cat.size(), antes)

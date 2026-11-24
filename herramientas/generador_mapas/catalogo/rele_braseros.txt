@@ -1,0 +1,16 @@
+; catalogo rele_braseros
+; titulo Relé de braseros
+; tipo salida
+; pide fuego
+; activa luces.todos
+; barrera si
+;  La cámara C del Bosque 01 (F2, «relé de braseros»). Cuatro braseros en fila: encender el primero enciende el siguiente 1,5 s
+;  después, y así hasta el último; cada uno se apaga a los 6 s. La señal sale cuando el PRIMERO y el ÚLTIMO arden a la vez, así que
+;  hay que encender el primero y esperar (o volver a prenderlo a tiempo). Enlaza la señal a una puerta o un puente.
+T.T.T.T
+.......
+; pieza a brasero 0 0 rele=b $MODELO
+; pieza b brasero 2 0 rele=c $MODELO
+; pieza c brasero 4 0 rele=d $MODELO
+; pieza d brasero 6 0 dura=6 $MODELO
+; pieza luces contador 3 1 de=0,0+6,0

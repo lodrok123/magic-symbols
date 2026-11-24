@@ -36,7 +36,20 @@ func _escenario() -> void:
 	if args.has("precipicio"):
 		# 24/11: `-- <algoritmo> precipicio`: todas las barreras son precipicios (sin activadores).
 		par.merge({"b_braseros": false, "b_placa": false, "b_puente": false, "b_precipicio": true, "barreras": 3}, true)
-	var m: Dictionary = Generador.new().generar(par)
+	# 24/11: `-- <algoritmo> puzle=<id>`: esa plantilla del catálogo, a mano en la primera sala que la admita (para ver que el juego la monta).
+	var a_mano: Dictionary = {}
+	for a in args:
+		if String(a).begins_with("puzle="):
+			var cid: String = String(a).substr(6)
+			var base: Dictionary = Generador.new().generar(par)
+			for sala in base["salas"]:
+				if String(sala["rol"]) != "inicio":
+					var prueba: Dictionary = Generador.new().generar(par, {}, {}, {int(sala["id"]): cid})
+					if (prueba["puzles"] as Dictionary).get(int(sala["id"]), "") == cid:
+						a_mano = {int(sala["id"]): cid}
+						break
+			_ok("0 la plantilla «%s» cabe en alguna sala" % cid, not a_mano.is_empty())
+	var m: Dictionary = Generador.new().generar(par, {}, {}, a_mano)
 	var antes_mapas: int = DirAccess.get_files_at(Exportador.DIR_MAPAS).size()
 	var antes_escenas: int = DirAccess.get_files_at(Exportador.DIR_ESCENAS).size()
 	var res: Dictionary = Exportador.exportar(m)

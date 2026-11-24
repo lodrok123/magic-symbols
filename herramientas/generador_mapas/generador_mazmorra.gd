@@ -1813,7 +1813,8 @@ func _poner_campamentos(vivas: Array, dmax: int, nv: String) -> void:
 		return
 	var orden: Array = vivas.filter(func(s: Dictionary) -> bool:
 		var r: Rect2i = s["rect"]
-		return String(s["rol"]) == "" and r.size.x >= CAMP_LADO_MIN.x and r.size.y >= CAMP_LADO_MIN.y and float(s["dist"]) >= CAMP_DIST_MIN * dmax)
+		# 24/11: ni en una sala con el activador de una barrera (sus braseros o su placa le quitaban sitio al cofre del campamento).
+		return String(s["rol"]) == "" and not s.has("activador") and r.size.x >= CAMP_LADO_MIN.x and r.size.y >= CAMP_LADO_MIN.y and float(s["dist"]) >= CAMP_DIST_MIN * dmax)
 	orden.sort_custom(func(a: Dictionary, b: Dictionary) -> bool:
 		var aa: int = (a["rect"] as Rect2i).get_area()
 		var ab: int = (b["rect"] as Rect2i).get_area()
@@ -3367,7 +3368,7 @@ func _estampar(s: Dictionary, e: Dictionary, filas: Array, tw: int, th: int, sit
 				_:
 					g[c.y * w + c.x] = SUELO
 					letras[c] = ch
-					_ocupar(c, ch == "T")                # un brasero bloquea su casilla
+					_ocupar(c, ch == "T" or ch == "z")   # un brasero bloquea su casilla; un seto seco (contrafuego) también
 					objetos.append({"c": c, "tipo": "brasero" if ch == "T" else "catalogo", "id": inst, "txt": ch})
 					if not _letras_extra.contains(ch) and not "#.~SWAT".contains(ch):
 						_letras_extra += ch
