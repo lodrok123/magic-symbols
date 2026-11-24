@@ -25,7 +25,7 @@ E:\magic-symbols\tools\Godot_v4.7.2-stable_win64.exe --path E:\magic-symbols res
 | 3 | 4 | **Relé de braseros** (`rele_braseros`) | fuego + flecha | aceptado |
 | 4 | 7 | **Contrafuego: setos y barril** (`contrafuego`) | fuego + flecha | aceptado |
 | 5 | 6 | **Voladura: barril contra el muro** (`barril_muro`) | fuego + flecha | aceptado |
-| 6 | 5 | **Cristal dormido y receptor de fuego** (`cristal_receptor`) | fuego + flecha | pendiente |
+| 6 | 5 | **Cristal dormido y receptor de fuego** (`cristal_receptor`) | fuego + flecha | aceptado |
 
 ## PtVagonetas · Vagonetas
 
@@ -111,7 +111,7 @@ E:\magic-symbols\tools\Godot_v4.7.2-stable_win64.exe --path E:\magic-symbols res
 | Dos braseros que abren (`braseros_puerta`) | salida | fuego + flecha | PtFuego · 1 | aceptado |
 | Charca que hay que helar (`charca_helada`) | paso | hielo + flecha | PtHielo · 1 | pendiente |
 | Contrafuego: setos y barril (`contrafuego`) | premio | fuego + flecha | PtFuego · 4 | aceptado |
-| Cristal dormido y receptor de fuego (`cristal_receptor`) | salida | fuego + flecha | PtFuego · 6 | pendiente |
+| Cristal dormido y receptor de fuego (`cristal_receptor`) | salida | fuego + flecha | PtFuego · 6 | aceptado |
 | Escondite tras el muro agrietado (`escondite_muro`) | premio | tierra + flecha | PtAguaTierra · 4 | pendiente |
 | Tres estatuas: fuego, agua, tierra (ᚱ) (`estatuas_sellos`) | premio | fuego + agua + tierra + raido + flecha | PtEmpujePulso · 4 | pendiente |
 | Bloque de hielo en la pista (`hielo_pista`) | salida | tierra + barrera | PtAguaTierra · 5 | pendiente |

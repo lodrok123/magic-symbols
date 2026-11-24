@@ -2,7 +2,7 @@
 ; titulo Cristal dormido y receptor de fuego
 ; tipo salida
 ; necesita fuego+flecha
-; validacion pendiente
+; validacion aceptado
 ; pide fuego
 ; activa receptor.activado
 ; barrera si

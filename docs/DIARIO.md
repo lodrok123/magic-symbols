@@ -6287,3 +6287,9 @@ Pablo, con un vídeo: «3 aceptado, mira 6».
   - Nueva `herramientas/captura_cristal_receptor.gd`: flecha de fuego de verdad en PtFuego. 0 fallos: el receptor se activa, aparece el cofre y está dentro de la sala, en (19, 8). Fotos en `docs/capturas/cristal_receptor/`.
   - `generar_playtest_puzles`: 0 fallos.
 - `cristal_receptor` sigue **pendiente**: lo decide Pablo al volver a jugarlo.
+
+### 24/11/2026 · aviso de contexto PUZLES · cristal_receptor aceptado: PtFuego validado entero
+Pablo: «6 aceptado», tras jugarlo con el cofre dentro de la sala.
+- `cristal_receptor` queda aceptado en la hoja, en su plantilla y en `docs/PLAYTEST_PUZLES.md`. También se marca ahí `rele_braseros`, que faltaba.
+- **PtFuego, completo:** sus 6 puzles aceptados.
+- **Total:** 9 de 25.
