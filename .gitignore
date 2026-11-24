@@ -75,6 +75,14 @@ tools/godot_local.txt
 # Sin ellos el catálogo cae a lo de antes (Sfx.archivos_de). Cómo regenerarlos: audio/LICENCIAS.md.
 audio/sn_*
 
+# Pack «Stylized Lost Cave» de StylArts (Cosmos, 24/11/2026): la licencia de Cosmos prohíbe dejar los assets descargables como archivos
+# sueltos y este repo es público. Viajan solo la tabla, el shader y el LEEME; mallas, texturas, materiales y piezas se regeneran desde
+# el zip con tools/preparar_lostcave.cmd (ver arte/lostcave/LEEME.md).
+arte/lostcave/*
+!arte/lostcave/LEEME.md
+!arte/lostcave/tabla_lostcave.gd
+!arte/lostcave/tabla_lostcave.gd.uid
+
 # Python
 __pycache__/
 *.pyc
