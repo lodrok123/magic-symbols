@@ -202,7 +202,13 @@ class Vista extends Control:
 	func ajustar() -> void:
 		if _tam.x <= 0 or size.x < 20.0 or size.y < 20.0:
 			return
-		escala = clampf(floorf(minf((size.x - 24.0) / _tam.x, (size.y - 96.0) / _tam.y)), 3.0, 48.0)
+		# 24/11: con salidas, sitio alrededor para sus flechas (unas 3 casillas) y sus nombres (fuera del mapa).
+		var hay_salidas: bool = false
+		for o in mapa.get("objetos", []):
+			hay_salidas = hay_salidas or String(o["tipo"]) == "salida"
+		var marco_cas: float = 6.0 if hay_salidas else 0.0
+		var marco_px: Vector2 = Vector2(2.0 * 190.0, 2.0 * 46.0) if hay_salidas else Vector2.ZERO
+		escala = clampf(floorf(minf((size.x - 24.0 - marco_px.x) / (_tam.x + marco_cas), (size.y - 96.0 - marco_px.y) / (_tam.y + marco_cas))), 3.0, 48.0)
 		origen = ((size - Vector2(_tam) * escala) * 0.5).floor() + Vector2(0, 30)
 		queue_redraw()
 
@@ -307,6 +313,7 @@ class Vista extends Control:
 				draw_circle(cen, e * 0.34, ic[1])
 			if e >= 9.0:
 				draw_string(fuente, cen + Vector2(-e * 0.5, tam_letra * 0.36), String(o.get("txt", ic[0])), HORIZONTAL_ALIGNMENT_CENTER, e, tam_letra, Color.WHITE)
+		_dibujar_salidas(filas, e, fuente)
 		if e >= 12.0:
 			for s in mapa["salas"]:
 				var r2: Rect2i = s["rect"]
@@ -363,6 +370,110 @@ class Vista extends Control:
 			for o in mapa["objetos"]:
 				if String(o["id"]) == seleccion:
 					draw_arc(origen + (Vector2(o["c"]) + Vector2(0.5, 0.5)) * e, e * 0.62, 0.0, TAU, 32, Color(0.2, 0.9, 1.0), 3.0)
+
+	## 24/11 (Pablo: «que el mapa refleje las salidas: una flecha, una entrada y salida claras, y su nombre»). Cada salida, en el borde del
+	## mapa más cercano: dos flechas juntas, la que SALE (color de salida) y la que ENTRA (color de llegada), y fuera del mapa el nombre del
+	## nivel al que lleva; debajo, en pequeño, a qué punto de allí lleva y por qué llegada se entra aquí. Si la salida está dentro del mapa
+	## (salas, página), una raya discontinua la une con su flecha.
+	func _dibujar_salidas(filas: PackedStringArray, e: float, fuente: Font) -> void:
+		var h_m: int = filas.size()
+		var w_m: int = filas[0].length() if h_m > 0 else 0
+		if w_m == 0:
+			return
+		# El destino de cada salida (`; pieza <id> salida x y a=Nivel:entrada`).
+		var destino: Dictionary = {}
+		for l in mapa["lineas"]:
+			var t: PackedStringArray = String(l).substr(1).strip_edges().split(" ", false)
+			if t.size() >= 5 and t[0] == "pieza" and t[2] == "salida":
+				for tok in t:
+					if tok.begins_with("a="):
+						destino[t[1]] = tok.substr(2)
+		# La llegada de la primera salida es el inicio: se llama como pida «Salidas» (`=nombre`) o `inicio`.
+		var primera: PackedStringArray = String((mapa["parametros"] as Dictionary).get("salida_a", "")).replace(";", ",").split(",", false)
+		var llegada_inicio: String = "inicio"
+		if primera.size() > 0 and primera[0].contains("="):
+			llegada_inicio = primera[0].split("=", true, 1)[1].strip_edges()
+		# Las casillas de cada salida (una salida ancha ocupa varias) y las llegadas.
+		var celdas: Dictionary = {}
+		var llegadas: Array = []
+		for o in mapa["objetos"]:
+			match String(o["tipo"]):
+				"salida":
+					if not celdas.has(String(o["id"])):
+						celdas[String(o["id"])] = []
+					(celdas[String(o["id"])] as Array).append(o["c"])
+				"entrada", "inicio":
+					llegadas.append(o)
+		var c_sale: Color = ICONOS["salida"][1]
+		var c_entra: Color = ICONOS["entrada"][1]
+		var tam: int = int(clampf(e * 0.75, 11.0, 24.0))
+		var tam_peq: int = maxi(9, int(tam * 0.62))
+		for sid in celdas:
+			var cs: Array = celdas[sid]
+			var c: Vector2 = Vector2.ZERO
+			for q in cs:
+				c += Vector2(q) + Vector2(0.5, 0.5)
+			c /= float(cs.size())
+			# El borde más cercano y el punto del borde a la altura de la salida.
+			var dist: Array = [c.x, w_m - c.x, c.y, h_m - c.y]
+			var lado: int = dist.find(dist.min())
+			var fuera: Vector2 = [Vector2.LEFT, Vector2.RIGHT, Vector2.UP, Vector2.DOWN][lado]
+			var en_borde: Vector2 = [Vector2(0.0, c.y), Vector2(w_m, c.y), Vector2(c.x, 0.0), Vector2(c.x, h_m)][lado]
+			var p_sal: Vector2 = origen + c * e
+			var p_borde: Vector2 = origen + en_borde * e
+			if p_sal.distance_to(p_borde) > e * 1.6:
+				draw_dashed_line(p_sal, p_borde, Color(c_sale, 0.85), 2.0, e * 0.35)
+			# Las dos flechas, una junto a otra: sale (hacia fuera) y entra (hacia dentro).
+			var lado_f: Vector2 = fuera.orthogonal() * e * 0.36
+			var largo: float = e * 2.4
+			var a0: Vector2 = p_borde + fuera * e * 0.2
+			var a1: Vector2 = p_borde + fuera * largo
+			_flecha(a0 + lado_f, a1 + lado_f, c_sale, e)
+			_flecha(a1 - lado_f, a0 - lado_f, c_entra, e)
+			# El nombre del nivel y, debajo, los dos puntos.
+			var dest: String = String(destino.get(sid, "?"))
+			var nivel: String = dest.split(":")[0].replace("_", " ")
+			var punto_alli: String = dest.split(":")[1] if dest.contains(":") else "inicio"
+			var llegada: String = ""
+			var mejor: float = INF
+			for o in llegadas:
+				var dd: float = (Vector2(o["c"]) + Vector2(0.5, 0.5)).distance_to(c)
+				if dd < mejor:
+					mejor = dd
+					llegada = llegada_inicio if String(o["tipo"]) == "inicio" else String(o["id"])
+			var sub: String = "sale a «%s» · entra por «%s»" % [punto_alli, llegada]
+			var w_nom: float = fuente.get_string_size(nivel, HORIZONTAL_ALIGNMENT_LEFT, -1, tam).x
+			var w_sub: float = fuente.get_string_size(sub, HORIZONTAL_ALIGNMENT_LEFT, -1, tam_peq).x
+			var caja: Vector2 = Vector2(maxf(w_nom, w_sub) + 14.0, tam + tam_peq + 14.0)
+			var punta: Vector2 = a1 + fuera * e * 0.35
+			var esq: Vector2
+			match lado:
+				0:
+					esq = punta + Vector2(-caja.x, -caja.y * 0.5)
+				1:
+					esq = punta + Vector2(0.0, -caja.y * 0.5)
+				2:
+					esq = punta + Vector2(-caja.x * 0.5, -caja.y)
+				_:
+					esq = punta + Vector2(-caja.x * 0.5, 0.0)
+			draw_rect(Rect2(esq, caja), Color(0.07, 0.08, 0.09, 0.88))
+			draw_rect(Rect2(esq, caja), Color(c_sale, 0.9), false, 1.5)
+			draw_string(fuente, esq + Vector2(7.0, 4.0 + tam), nivel, HORIZONTAL_ALIGNMENT_LEFT, -1, tam, Color.WHITE)
+			draw_string(fuente, esq + Vector2(7.0, 8.0 + tam + tam_peq), sub, HORIZONTAL_ALIGNMENT_LEFT, -1, tam_peq, Color(0.8, 0.85, 0.85))
+
+
+	## Una flecha gruesa de `a` a `b` con borde oscuro (que se lea sobre el bosque y sobre el fondo).
+	func _flecha(a: Vector2, b: Vector2, col: Color, e: float) -> void:
+		var d: Vector2 = (b - a).normalized()
+		var n: Vector2 = d.orthogonal()
+		var cuerpo_fin: Vector2 = b - d * e * 0.55
+		var grosor: float = maxf(2.5, e * 0.18)
+		draw_line(a, cuerpo_fin, C_TINTA, grosor + 3.0)
+		draw_line(a, cuerpo_fin, col, grosor)
+		var cabeza: PackedVector2Array = PackedVector2Array([b, cuerpo_fin + n * e * 0.32, cuerpo_fin - n * e * 0.32])
+		var borde: PackedVector2Array = PackedVector2Array([b + d * 2.0, cuerpo_fin + n * (e * 0.32 + 2.0) - d * 1.5, cuerpo_fin - n * (e * 0.32 + 2.0) - d * 1.5])
+		draw_colored_polygon(borde, C_TINTA)
+		draw_colored_polygon(cabeza, col)
 
 
 # =====================================================================================================================
