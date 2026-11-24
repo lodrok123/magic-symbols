@@ -1740,6 +1740,33 @@ func _poner_salida_lado(s: Dictionary, destino: String, n: int, ref: Vector2i, l
 	return true
 
 
+## 24/11 (Pablo: «que la entrada sea acorde a desde donde haya entrado»): dónde aparece la jugadora al llegar por la salida `sal`: a dos
+## casillas de ella hacia dentro (una de hueco, para no volver a pisarla nada más llegar). Hacia dentro = lo contrario del lado pedido o,
+## sin lado, hacia donde estaba la llegada de antes (`vieja`, el centro de la sala). Si no hay sitio libre cerca, se queda `vieja`.
+func _llegada_junto_a(sal: Vector2i, vieja: Vector2i, s: Dictionary, lado: String) -> Vector2i:
+	var dentro: Vector2 = Vector2(vieja - sal)
+	if LADO_VEC.has(lado):
+		dentro = -Vector2(LADO_VEC[lado])
+	elif absf(dentro.x) >= absf(dentro.y):
+		dentro = Vector2(signf(dentro.x), 0.0)
+	else:
+		dentro = Vector2(0.0, signf(dentro.y))
+	if dentro == Vector2.ZERO:
+		return vieja
+	var meta: Vector2 = Vector2(sal) + dentro * 2.0
+	var mejor: Vector2i = vieja
+	var mejor_d: float = INF
+	for c in _celdas_sala(s):
+		var m: int = absi(c.x - sal.x) + absi(c.y - sal.y)
+		if m < 2 or m > 4 or (_ocupada.has(c) and c != vieja) or _tipo(c) != SUELO:
+			continue
+		var dd: float = Vector2(c).distance_squared_to(meta)
+		if dd < mejor_d:
+			mejor_d = dd
+			mejor = c
+	return mejor
+
+
 const LADO_VEC: Dictionary = {"n": Vector2i(0, -1), "s": Vector2i(0, 1), "e": Vector2i(1, 0), "o": Vector2i(-1, 0)}
 
 ## El lado pedido para la salida `k` en el bosque ("" en los demás algoritmos o sin lado).
@@ -1981,6 +2008,7 @@ func _poblar() -> void:
 	letras[inicio] = "S"
 	_ocupar(inicio)
 	_objeto(inicio, "inicio")
+	var i_linea_inicio: int = lineas.size()
 	lineas.append("; pieza inicio entrada %d %d" % [inicio.x, inicio.y])
 	# Salidas: varias, separadas por comas. La primera va en la sala de inicio; las demás, cada una en una sala lejana (más abajo).
 	# 18/11: `Nivel:entrada=llegada` da NOMBRE a la llegada que acompaña a esa salida (por donde se entra a este nivel viniendo de aquel).
@@ -1992,10 +2020,25 @@ func _poblar() -> void:
 		var trozos_d: PackedStringArray = d.split("=", true, 1)
 		destinos.append(trozos_d[0])
 		llegadas.append(trozos_d[1] if trozos_d.size() > 1 else "")
+	if destinos.size() > 0:
+		if _poner_salida_lado(s_ini, destinos[0], 1, inicio, _lado_b(0)):
+			# 24/11 (Pablo: «que la entrada sea acorde a desde donde haya entrado»): el inicio es por donde se entra viniendo del primer
+			# destino, así que se arrima a su salida (a dos casillas, hacia dentro), en vez de quedarse en el centro de la sala.
+			var nuevo: Vector2i = _llegada_junto_a(objetos.back()["c"], inicio, s_ini, _lado_b(0))
+			if nuevo != inicio:
+				letras.erase(inicio)
+				_ocupada.erase(inicio)
+				inicio = nuevo
+				letras[inicio] = "S"
+				_ocupar(inicio)
+				for o in objetos:
+					if String(o["tipo"]) == "inicio":
+						o["c"] = inicio
+				lineas[i_linea_inicio] = "; pieza inicio entrada %d %d" % [inicio.x, inicio.y]
+		else:
+			avisos.append("No cabe la salida en la sala de inicio (demasiado pequeña).")
 	if llegadas.size() > 0 and llegadas[0] != "" and llegadas[0] != "inicio":
 		lineas.append("; pieza %s entrada %d %d" % [llegadas[0], inicio.x, inicio.y])       # la sala de inicio, también con ese nombre
-	if destinos.size() > 0 and not _poner_salida_lado(s_ini, destinos[0], 1, inicio, _lado_b(0)):
-		avisos.append("No cabe la salida en la sala de inicio (demasiado pequeña).")
 	# El bosque reserva ya los claros de sus salidas (si no, el tesoro o la llave podrían quedarse con uno).
 	if bosque:
 		for k in range(1, destinos.size()):
@@ -2096,6 +2139,12 @@ func _poblar() -> void:
 				if _poner_salida_lado(sala_k, destinos[k], k + 1, llegada, _lado_b(k)):
 					sala_k["rol"] = "salida"
 					con_salida.append(sala_k)
+					# 24/11: la llegada, junto a su salida (por ahí se entra viniendo de ese nivel), no en el centro de la sala.
+					var junto: Vector2i = _llegada_junto_a(objetos.back()["c"], llegada, sala_k, _lado_b(k))
+					if junto != llegada:
+						_ocupada.erase(llegada)
+						llegada = junto
+						_ocupar(llegada)
 					var id_llegada: String = llegadas[k] if llegadas[k] != "" else "entrada_%d" % (k + 1)
 					_objeto(llegada, "entrada", id_llegada)
 					lineas.append("; pieza %s entrada %d %d" % [id_llegada, llegada.x, llegada.y])

@@ -99,6 +99,18 @@ func _bosque() -> void:
 					sal = Vector2i(t[3].to_int(), t[4].to_int())
 			var en_borde: bool = {"s": sal.y == h - 2, "o": sal.x == 1, "n": sal.y == 1, "e": sal.x == w - 2}[lados[k]]
 			_ok(sal.x >= 0 and en_borde, "la salida %d va pegada a su borde (%s): %s" % [k + 1, lados[k], quien], str(sal))
+		# 24/11: cada llegada (y la S, que es la de la primera salida) junto a una salida: se entra por donde se viene.
+		var sal_c: Array = []
+		var lleg_c: Array = []
+		for linea in m["lineas"]:
+			var tl: PackedStringArray = String(linea).substr(1).strip_edges().split(" ", false)
+			if tl.size() >= 5 and tl[0] == "pieza" and (tl[2] == "salida" or tl[2] == "entrada"):
+				(sal_c if tl[2] == "salida" else lleg_c).append(Vector2i(tl[3].to_int(), tl[4].to_int()))
+		for lc in lleg_c:
+			var cerca: int = 999
+			for sc in sal_c:
+				cerca = mini(cerca, absi((lc as Vector2i).x - (sc as Vector2i).x) + absi((lc as Vector2i).y - (sc as Vector2i).y))
+			_ok(cerca >= 2 and cerca <= 4, "la llegada está junto a su salida (2 a 4 casillas): " + quien, "%s a %d" % [str(lc), cerca])
 		# El suelo del bosque.
 		var todo: String = "".join(filas)
 		_ok(todo.contains("g") and todo.contains(",") and todo.contains("v") and todo.contains("~"), "hay camino, hierba corta, hierba alta y río: " + quien)
