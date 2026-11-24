@@ -69,7 +69,7 @@ const DESCRIPCION: Dictionary = {
 	# --- Épicos y glifo ---
 	"nucleo_eco": "Late dentro como un segundo corazón. Material épico que no se vende: lo pide el alquimista para el Frasco hondo II.",
 	"geoda_resonante": "Hueca y cantarina. Material épico: lo pide el alquimista para el Frasco de reserva II.",
-	"savia_elemental": "La deja el elemental del bosque al caer. Material épico: lo pide el alquimista para el Corazón robusto III.",
+	"savia_elemental": "La esencia viva del elemental del bosque, que queda al caer. Material épico.",   # 24/11: antes «Savia del elemental» (se confundía con la savia de Giamonios); su uso está por definir
 	"glifo_resonancia": "Del cofre legendario. Al usarlo escribe el glifo ᚱ «pulso» en el libro: suelta un pulso resonante con el elemento del hechizo.",
 	# --- Consumibles ---
 	"pocion": "Poción menor. Cura 40 de vida al beberla, 1,5 s quieto; un golpe la interrumpe. Equípala y usa Q.",
@@ -101,7 +101,8 @@ const DESCRIPCION: Dictionary = {
 	"cebo_miel": "Lánzalo con G: los lobernos y canouros cercanos van a comérselo durante 8 s. Los goblins no pican.",
 	"fruto_chispa": "Lánzalo con G: electrifica el agua donde cae y activa lo que se activa con rayo. Si estás cerca, también te alcanza.",
 	# --- Piezas de mejora (11/11): no ocupan hueco y suben su mejora solas ---
-	"trozo_corazon": "Un trozo de corazón. Al juntar cuatro, tu vida máxima sube 20 (hasta 200).",
+	"fragmento_savia": "Un fragmento de savia cristalizada de Giamonios. Al reunir tres, la savia vuelve a fluir y tu vida máxima sube 20 (hasta 200).",
+	"fragmento_tintero": "Un trozo del tintero de un escriba, con la veta de tinta aún viva. Al reunir tres, el tintero se recompone y tu tinta máxima sube 20 (hasta 300).",
 	"frasco_vacio": "Un frasco de reserva para la tinta. Al cogerlo tienes un frasco más, lleno (hasta 6).",
 	"engarce_glifo": "Un engarce para el círculo del libro. Fija los huecos de glifo por página: el mayor entre los del libro y 1 más tus engarces (hasta 6).",
 	"hoja_grimorio": "Una hoja para coser al grimorio: una página más (hasta 8).",

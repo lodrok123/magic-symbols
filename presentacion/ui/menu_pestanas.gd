@@ -91,6 +91,8 @@ var _rejilla: Control
 var _huecos: Array = []
 var _detalle: Control
 var _pie_huecos: Label
+var _savia: SaviaMenu                             ## 24/11: la gota de savia partida en tres (fragmentos que llevas y los que faltan), arriba a la derecha de la página de inventario
+var _tintero: TinteroMenu                         ## 24/11: el tintero de escriba partido en tres, junto a la savia
 var _oro: Label
 var _sel: int = -1                                 ## índice de pila elegida (0 = la primera), -1 = ninguna
 var _pilas: Array = []
@@ -172,6 +174,14 @@ func _construir_inventario() -> void:
 	_pie_huecos = BolsaUI._etiqueta(14)
 	_pie_huecos.position = Vector2(2.0, _rejilla.size.y + 12.0)
 	_pag_inv.add_child(_pie_huecos)
+	_savia = SaviaMenu.new()
+	_savia.name = "SaviaMenu"
+	_savia.position = Vector2(CUERPO_TAM.x - _savia.size.x, -136.0)       # 24/11 (Pablo, «de momento en una esquina»): arriba a la derecha, junto al título del inventario
+	_pag_inv.add_child(_savia)
+	_tintero = TinteroMenu.new()                     # 24/11: el tintero de escriba, a la izquierda de la savia
+	_tintero.name = "TinteroMenu"
+	_tintero.position = Vector2(_savia.position.x - _tintero.size.x - 10.0, _savia.position.y)
+	_pag_inv.add_child(_tintero)
 	var moneda := BolsaUI.Moneda.new()
 	moneda.position = Vector2(_rejilla.size.x - 96.0, _rejilla.size.y + 8.0)
 	_pag_inv.add_child(moneda)
@@ -669,6 +679,10 @@ func _refrescar(animar: bool = true) -> void:
 	var e: Estado = Estado.i()
 	_poner_oro(e.oro, animar)
 	_pie_huecos.text = "%d/%d huecos" % [e.huecos_usados(), e.capacidad]
+	if _savia != null:
+		_savia.poner(e.cuenta(SaviaMenu.FRAGMENTO), Mejoras.nivel("vida_max", e), Mejoras.tope("vida_max"), animar)
+	if _tintero != null:
+		_tintero.poner(e.cuenta(TinteroMenu.FRAGMENTO), Mejoras.nivel(TinteroMenu.MEJORA, e), Mejoras.tope(TinteroMenu.MEJORA), animar)
 	var id_elegido: String = String(_pilas[_sel][0]) if _sel >= 0 and _sel < _pilas.size() else ""
 	_pilas = BolsaUI.ordenar(e.items)
 	if _huecos.is_empty():
@@ -1097,6 +1111,215 @@ class Detalle extends Control:
 		BolsaUI._caja(BolsaUI.PERGAMINO_CLARO, BolsaUI.LINEA, 2, 12).draw(get_canvas_item(), Rect2(Vector2.ZERO, size))
 		if _icono != null and _icono.visible:
 			draw_line(Vector2(24.0, _y_linea), Vector2(size.x - 24.0, _y_linea), Color(BolsaUI.LINEA, 0.55), 1.5)
+
+
+## LA SAVIA DE GIAMONIOS EN EL INVENTARIO (24/11, petición de Pablo: «como el corazón por piezas de Zelda»). Una gota partida en sus TRES FRAGMENTOS (I arriba a la
+## izquierda, II arriba a la derecha con la punta, III abajo): los que llevas, en rojo savia; los que faltan, en silueta pálida. Al lado, «Savia 2/3» y «Te falta 1».
+## Con todas las savias reunidas (tope de `vida_max`) la gota está entera con su veta y dice «Vida al máximo». Si llega un fragmento con el menú abierto, la gota hace pop.
+class SaviaMenu extends Control:
+	const FRAGMENTO: String = "fragmento_savia"
+	const POR_SAVIA: int = 3
+	const R_GOTA_PX: float = 25.0
+	const T_POP_S: float = 0.35
+	const SAVIA: Color = Color("a3242e")
+	const HUECO: Color = Color(0.31, 0.23, 0.15, 0.16)           ## silueta del fragmento que falta (tinta muy suave sobre el pergamino)
+	var fragmentos: int = 0
+	var savias: int = 0
+	var tope: int = 5
+	var pop: float = 0.0:                           ## 1 → 0 tras llegar un fragmento con el menú abierto
+		set(v):
+			pop = v
+			queue_redraw()
+	var _tw: Tween = null
+
+	func _init() -> void:
+		size = Vector2(170.0, 62.0)
+		custom_minimum_size = size
+		mouse_filter = Control.MOUSE_FILTER_STOP                      # para el tooltip
+		_tooltip()
+
+	func poner(p_fragmentos: int, p_savias: int, p_tope: int, animar: bool = false) -> void:
+		var f: int = clampi(p_fragmentos, 0, POR_SAVIA)
+		var crece: bool = f > fragmentos or p_savias > savias
+		if f == fragmentos and p_savias == savias and p_tope == tope:
+			return
+		fragmentos = f
+		savias = p_savias
+		tope = maxi(p_tope, 1)
+		_tooltip()
+		queue_redraw()
+		if animar and crece and Sensacion3D.ACTIVA and is_inside_tree():
+			if _tw != null and _tw.is_valid():
+				_tw.kill()
+			pop = 1.0
+			_tw = create_tween().set_ignore_time_scale(true).set_pause_mode(Tween.TWEEN_PAUSE_PROCESS)
+			_tw.tween_property(self, "pop", 0.0, T_POP_S)
+
+	func completa() -> bool:
+		return savias >= tope
+
+	## Cuántos fragmentos faltan para la próxima savia (0 si ya están todas).
+	func faltan() -> int:
+		return 0 if completa() else POR_SAVIA - fragmentos
+
+	func texto() -> String:
+		return "Savia %d/%d" % [POR_SAVIA if completa() else fragmentos, POR_SAVIA]
+
+	func subtexto() -> String:
+		if completa():
+			return "Vida al máximo"
+		var n: int = faltan()
+		return "Te falta %d" % n if n == 1 else "Te faltan %d" % n
+
+	func _tooltip() -> void:
+		tooltip_text = "Fragmentos de savia de Giamonios: reúne tres y tu vida máxima sube 20.\nSavias reunidas: %d de %d." % [savias, tope]
+
+	## Las tres piezas de la gota (polígonos), en el orden en que se llenan: I, II, III.
+	func _piezas(c: Vector2, r: float) -> Array:
+		var pts: PackedVector2Array = Objetos.gota_puntos(c, r)
+		var gota: PackedVector2Array = pts.slice(0, pts.size() - 1)
+		var y_corte: float = c.y + r * 0.18                  # la grieta de abajo, un poco inclinada
+		var x_corte: float = c.x + r * 0.06                  # la de arriba, que separa I de II
+		var g: float = r * 3.0
+		var arriba_izq := PackedVector2Array([Vector2(c.x - g, c.y - g), Vector2(x_corte + r * 0.12, c.y - g), Vector2(x_corte - r * 0.06, y_corte - r * 0.04), Vector2(c.x - g, y_corte + r * 0.1)])
+		var arriba_der := PackedVector2Array([Vector2(x_corte + r * 0.12, c.y - g), Vector2(c.x + g, c.y - g), Vector2(c.x + g, y_corte - r * 0.14), Vector2(x_corte - r * 0.06, y_corte - r * 0.04)])
+		var abajo := PackedVector2Array([Vector2(c.x - g, y_corte + r * 0.1), Vector2(x_corte - r * 0.06, y_corte - r * 0.04), Vector2(c.x + g, y_corte - r * 0.14), Vector2(c.x + g, c.y + g), Vector2(c.x - g, c.y + g)])
+		var res: Array = []
+		for zona in [arriba_izq, arriba_der, abajo]:
+			res.append(Geometry2D.intersect_polygons(gota, zona))
+		return res
+
+	func _draw() -> void:
+		var r: float = R_GOTA_PX * (1.0 + 0.15 * sin(pop * PI))
+		var c := Vector2(R_GOTA_PX + 4.0, size.y * 0.5 + 1.0)
+		var pts: PackedVector2Array = Objetos.gota_puntos(c, r)
+		var gota: PackedVector2Array = pts.slice(0, pts.size() - 1)
+		var llenas: int = POR_SAVIA if completa() else fragmentos
+		var piezas: Array = _piezas(c, r) if not completa() else []
+		if completa():
+			draw_colored_polygon(gota, SAVIA)          # entera: sin grietas
+		for i in range(piezas.size()):
+			var col: Color = SAVIA if i < llenas else HUECO
+			for poli in (piezas[i] as Array):
+				draw_colored_polygon(poli, col)
+				if i < llenas:
+					draw_polyline(poli + PackedVector2Array([poli[0]]), SAVIA.darkened(0.45), 1.2, true)
+				else:
+					draw_polyline(poli + PackedVector2Array([poli[0]]), Color(MenuPestanas.TINTA, 0.45), 1.0, true)
+		draw_polyline(pts, Color(MenuPestanas.TINTA, 0.8), 1.6, true)
+		if completa():
+			Objetos.gota_detalle(self, c, r, true)
+		else:
+			Objetos.gota_brote(self, c, r)
+			if llenas > 0:
+				draw_circle(c + Vector2(-r * 0.32, -r * 0.18), r * 0.11, Color(1, 1, 1, 0.45))
+		if pop > 0.0:
+			draw_colored_polygon(gota, Color(1.0, 0.95, 0.75, 0.5 * pop))
+		var f: Font = TemaInterfaz.fuente()
+		var x: float = c.x + r + 12.0
+		draw_string(f, Vector2(x, 28.0), texto(), HORIZONTAL_ALIGNMENT_LEFT, size.x - x, 17, MenuPestanas.TINTA)
+		draw_string(f, Vector2(x, 47.0), subtexto(), HORIZONTAL_ALIGNMENT_LEFT, size.x - x, 13, MenuPestanas.TINTA_SUAVE)
+
+
+## EL TINTERO DE ESCRIBA EN EL INVENTARIO (24/11, lámina de Pablo «Tres cofres · Tres fragmentos · Una mejora de tinta»). La pareja de `SaviaMenu`: el
+## cuenco partido en sus TRES FRAGMENTOS (tres sectores de 120°): los que llevas, en piedra clara; los que faltan, en silueta pálida; «Tintero 1/3» y
+## «Te faltan 2». Entero, con su veta de tinta azul y un halo: «Tinta al máximo» cuando ya están los cuatro. Si llega un fragmento con el menú abierto, pop.
+class TinteroMenu extends Control:
+	const FRAGMENTO: String = "fragmento_tintero"
+	const MEJORA: String = "tinta_tintero"
+	const POR_TINTERO: int = 3
+	const R_PX: float = 23.0
+	const T_POP_S: float = 0.35
+	const TINTA: Color = Color("2f6fe0")
+	const HUECO: Color = Color(0.31, 0.23, 0.15, 0.16)
+	var fragmentos: int = 0
+	var tinteros: int = 0
+	var tope: int = 4
+	var pop: float = 0.0:
+		set(v):
+			pop = v
+			queue_redraw()
+	var _tw: Tween = null
+
+	func _init() -> void:
+		size = Vector2(170.0, 62.0)
+		custom_minimum_size = size
+		mouse_filter = Control.MOUSE_FILTER_STOP
+		_tooltip()
+
+	func poner(p_fragmentos: int, p_tinteros: int, p_tope: int, animar: bool = false) -> void:
+		var f: int = clampi(p_fragmentos, 0, POR_TINTERO)
+		var crece: bool = f > fragmentos or p_tinteros > tinteros
+		if f == fragmentos and p_tinteros == tinteros and p_tope == tope:
+			return
+		fragmentos = f
+		tinteros = p_tinteros
+		tope = maxi(p_tope, 1)
+		_tooltip()
+		queue_redraw()
+		if animar and crece and Sensacion3D.ACTIVA and is_inside_tree():
+			if _tw != null and _tw.is_valid():
+				_tw.kill()
+			pop = 1.0
+			_tw = create_tween().set_ignore_time_scale(true).set_pause_mode(Tween.TWEEN_PAUSE_PROCESS)
+			_tw.tween_property(self, "pop", 0.0, T_POP_S)
+
+	func completo() -> bool:
+		return tinteros >= tope
+
+	func faltan() -> int:
+		return 0 if completo() else POR_TINTERO - fragmentos
+
+	func texto() -> String:
+		return "Tintero %d/%d" % [POR_TINTERO if completo() else fragmentos, POR_TINTERO]
+
+	func subtexto() -> String:
+		if completo():
+			return "Tinta al máximo"
+		var n: int = faltan()
+		return "Te falta %d" % n if n == 1 else "Te faltan %d" % n
+
+	func _tooltip() -> void:
+		tooltip_text = "Fragmentos del tintero de escriba: reúne tres y tu tinta máxima sube %d.\nTinteros reunidos: %d de %d." % [int(Tinta.por_tintero()), tinteros, tope]
+
+	## Un sector del cuenco (de `a0` a `a1`, en radianes) como polígono.
+	func _sector(c: Vector2, r: float, a0: float, a1: float) -> PackedVector2Array:
+		var pts := PackedVector2Array([c])
+		for k in range(13):
+			var a: float = lerpf(a0, a1, float(k) / 12.0)
+			pts.append(c + Vector2(cos(a), sin(a)) * r)
+		return pts
+
+	func _draw() -> void:
+		var r: float = R_PX * (1.0 + 0.15 * sin(pop * PI))
+		var c := Vector2(R_PX + 6.0, size.y * 0.5 + 1.0)
+		var llenos: int = POR_TINTERO if completo() else fragmentos
+		if completo():
+			draw_circle(c, r * 1.18, Color(TINTA, 0.18))                  # halo del tintero entero
+			Objetos.cuenco(self, c, r, TINTA)
+		else:
+			# I arriba a la izquierda, II arriba a la derecha, III abajo (en el orden en que se llenan).
+			var cortes: Array = [[PI * 5.0 / 6.0, PI * 3.0 / 2.0], [-PI / 2.0, PI / 6.0], [PI / 6.0, PI * 5.0 / 6.0]]
+			for i in range(POR_TINTERO):
+				var poli: PackedVector2Array = _sector(c, r, float(cortes[i][0]), float(cortes[i][1]))
+				var col: Color = Objetos.PIEDRA_TINTERO if i < llenos else HUECO
+				draw_colored_polygon(poli, col)
+				draw_polyline(poli + PackedVector2Array([poli[0]]), Objetos.PIEDRA_TINTERO.darkened(0.45) if i < llenos else Color(MenuPestanas.TINTA, 0.45), 1.2 if i < llenos else 1.0, true)
+			# Cada fragmento que llevas trae su tramo de veta (una rama hacia el centro de su sector); el hueco, sin veta.
+			for i in range(llenos):
+				var am: float = (float(cortes[i][0]) + float(cortes[i][1])) * 0.5
+				var dir: Vector2 = Vector2(cos(am), sin(am))
+				var g: float = maxf(1.5, r * 0.12)
+				draw_line(c + dir * r * 0.12, c + dir * r * 0.62, TINTA, g, true)
+				draw_line(c + dir * r * 0.4, c + dir.rotated(0.5) * r * 0.72, TINTA, g * 0.7, true)
+				draw_line(c + dir * r * 0.4, c + dir.rotated(-0.5) * r * 0.72, TINTA, g * 0.7, true)
+		draw_arc(c, r, 0.0, TAU, 32, Color(MenuPestanas.TINTA, 0.8), 1.6, true)
+		if pop > 0.0:
+			draw_circle(c, r, Color(0.8, 0.9, 1.0, 0.5 * pop))
+		var f: Font = TemaInterfaz.fuente()
+		var x: float = c.x + r + 12.0
+		draw_string(f, Vector2(x, 28.0), texto(), HORIZONTAL_ALIGNMENT_LEFT, size.x - x, 17, MenuPestanas.TINTA)
+		draw_string(f, Vector2(x, 47.0), subtexto(), HORIZONTAL_ALIGNMENT_LEFT, size.x - x, 13, MenuPestanas.TINTA_SUAVE)
 
 
 ## El icono del objeto en grande: placa oscura redondeada, el icono dibujado a tamaño y el marco de su calidad (y el brillo animado de épico y legendario).

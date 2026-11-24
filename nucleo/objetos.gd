@@ -377,6 +377,10 @@ static func dibujar(c: CanvasItem, id: String, p: Vector2, r: float) -> void:
 			var q := PackedVector2Array([p + Vector2(-r * 0.9, r * 0.5), p + Vector2(-r * 0.5, -r * 0.5), p + Vector2(r * 0.3, -r * 0.7), p + Vector2(r * 0.9, r * 0.1), p + Vector2(r * 0.5, r * 0.6)])
 			c.draw_colored_polygon(q, col)
 			c.draw_polyline(PackedVector2Array([q[0], q[1], q[2], q[3], q[4], q[0]]), oscuro, 1.5)
+		"gota":
+			gota(c, p, r, col)
+		"cuenco":
+			cuenco(c, p, r, col)
 		"raiz":
 			c.draw_line(p + Vector2(-r * 0.7, r * 0.5), p + Vector2(0, -r * 0.3), col, r * 0.4)
 			c.draw_line(p + Vector2(0, -r * 0.3), p + Vector2(r * 0.7, -r * 0.7), col, r * 0.3)
@@ -388,3 +392,74 @@ static func dibujar(c: CanvasItem, id: String, p: Vector2, r: float) -> void:
 	# Aro del color de la calidad (los comunes no llevan): el épico se distingue de un vistazo en la bolsa.
 	if calidad(id) != CALIDAD_COMUN:
 		c.draw_arc(p, r * 1.15, 0.0, TAU, 24, color_calidad(id), maxf(1.5, r * 0.14), true)
+
+
+## TINTERO DE ESCRIBA (24/11, lámina de Pablo): un cuenco de piedra clara visto desde arriba, con el hueco más oscuro y una VETA DE TINTA ramificada
+## (un arbolito azul) dentro. Lo usan el fragmento de tintero (forma «cuenco») y el contador del inventario (`MenuPestanas.TinteroMenu`).
+const PIEDRA_TINTERO: Color = Color("e9dcc0")
+static func cuenco(c: CanvasItem, p: Vector2, r: float, col: Color) -> void:
+	c.draw_circle(p, r, PIEDRA_TINTERO.darkened(0.35))
+	c.draw_circle(p, r * 0.9, PIEDRA_TINTERO)
+	c.draw_circle(p + Vector2(0.0, r * 0.05), r * 0.66, PIEDRA_TINTERO.darkened(0.12))     # el hueco
+	cuenco_veta(c, p, r, col)
+
+
+## La veta de tinta del cuenco: tronco desde abajo y dos pares de ramas.
+static func cuenco_veta(c: CanvasItem, p: Vector2, r: float, col: Color) -> void:
+	var g: float = maxf(1.2, r * 0.13)
+	var base: Vector2 = p + Vector2(0.0, r * 0.5)
+	var cruz: Vector2 = p + Vector2(0.0, r * 0.02)
+	c.draw_line(base, cruz, col, g, true)
+	for s in [-1.0, 1.0]:
+		var rama: Vector2 = cruz + Vector2(s * r * 0.38, -r * 0.3)
+		c.draw_line(cruz, rama, col, g * 0.85, true)
+		c.draw_line(rama, rama + Vector2(s * r * 0.12, -r * 0.16), col, g * 0.6, true)
+		c.draw_line(p + Vector2(0.0, r * 0.28), p + Vector2(s * r * 0.3, r * 0.14), col, g * 0.6, true)
+	c.draw_line(cruz, cruz + Vector2(0.0, -r * 0.38), col, g * 0.8, true)
+	if r >= 6.0:
+		c.draw_circle(p + Vector2(-r * 0.42, -r * 0.42), r * 0.1, Color(1, 1, 1, 0.55))     # brillo de la piedra
+
+
+## Gota de savia de Giamonios (24/11): gota con la punta un poco torcida, una veta de raíz dorada apagada y un brote de dos hojas en la punta (para que no se
+## lea como llama ni como corazón). La usan el fragmento de savia (forma «gota») y la marca de los objetos que curan en la bolsa.
+static func gota(c: CanvasItem, p: Vector2, r: float, col: Color) -> void:
+	var pts: PackedVector2Array = gota_puntos(p, r)
+	c.draw_colored_polygon(pts.slice(0, pts.size() - 1), col)       # relleno sin el punto repetido (el contorno sí lo lleva)
+	c.draw_polyline(pts, col.darkened(0.45), maxf(1.0, r * 0.08), true)
+	if r < 6.0:
+		return
+	gota_detalle(c, p, r)
+
+
+## El contorno de la gota (cerrado: el último punto repite el primero). Punta arriba, en p + (0,14r; −0,8r); base en p + (0; r).
+static func gota_puntos(p: Vector2, r: float, n: int = 32) -> PackedVector2Array:
+	var pts := PackedVector2Array()
+	for k in range(n + 1):
+		var t: float = TAU * float(k) / float(n)
+		var x: float = r * 0.95 * sin(t) * sin(t * 0.5) + r * 0.14 * pow(maxf(0.0, cos(t)), 3.0)
+		pts.append(p + Vector2(x, -r * 0.9 * cos(t) + r * 0.1))
+	return pts
+
+
+## La veta dorada, el brillo y el brote de la gota (sin el cuerpo).
+static func gota_detalle(c: CanvasItem, p: Vector2, r: float, con_veta: bool = true) -> void:
+	if not con_veta:
+		gota_brote(c, p, r)
+		return
+	var veta: Color = Color("d9a55b")                # dorado apagado, nunca amarillo de fuego
+	var g: float = maxf(1.0, r * 0.09)
+	c.draw_line(p + Vector2(0.0, r * 0.75), p + Vector2(0.0, r * 0.05), veta, g, true)
+	c.draw_line(p + Vector2(0.0, r * 0.35), p + Vector2(-r * 0.3, r * 0.05), veta, g * 0.8, true)
+	c.draw_line(p + Vector2(0.0, r * 0.2), p + Vector2(r * 0.28, -r * 0.1), veta, g * 0.8, true)
+	c.draw_circle(p + Vector2(-r * 0.3, -r * 0.12), r * 0.14, Color(1, 1, 1, 0.5))   # brillo
+	gota_brote(c, p, r)
+
+
+## Las dos hojitas de la punta.
+static func gota_brote(c: CanvasItem, p: Vector2, r: float) -> void:
+	var punta: Vector2 = p + Vector2(r * 0.14, -r * 0.8)
+	var hoja: Color = Color("6ba64d")
+	for s in [-1.0, 1.0]:
+		var a: Vector2 = punta + Vector2(s * r * 0.36, -r * 0.18)
+		var n: Vector2 = Vector2(0.0, -r * 0.1)
+		c.draw_colored_polygon(PackedVector2Array([punta, (punta + a) * 0.5 + n, a, (punta + a) * 0.5 - n * 0.3]), hoja)

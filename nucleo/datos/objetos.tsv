@@ -54,7 +54,7 @@ pluma_chaman	Pluma de chamán	animal	comun	10	viento,toxico	3	ingrediente	-	toda
 polvo_golem	Polvo de gólem	mineral	comun	10	tierra,proteccion	3	ingrediente	-	todas	piedra	#998C80	polvo_golem	nuevo	Piedra molida que aún pesa	-
 nucleo_eco	Núcleo de eco	mineral	epico	5	resonante,raro	5	ingrediente	-	cueva	cristal	#B86BFF	nucleo_eco	hay	Late dentro como un segundo corazón. Mejora al personaje	Mejora al personaje (vida o tinta)|Material épico: no se vende
 geoda_resonante	Geoda resonante	mineral	epico	5	resonante,tierra,raro	4	ingrediente	-	cueva	cristal	#9E5CF2	geoda_resonante	hay	Hueca y cantarina. Mejora al personaje	-
-savia_elemental	Savia del elemental	planta	epico	5	vital,raro	5	ingrediente	-	bosque	cristal	#7AD96B	savia_elemental	nuevo	La deja el elemental del bosque al caer. Mejora al personaje	-
+savia_elemental	Esencia del elemental	planta	epico	5	vital,raro	5	ingrediente	-	bosque	cristal	#7AD96B	savia_elemental	nuevo	La deja el elemental del bosque al caer. Material épico	-
 glifo_resonancia	Glifo de resonancia	glifo	legendario	1	-	0	glifo	glifo=raido	cueva	cristal	#FFD14D	glifo_resonancia	hay	El cofre legendario de C6: escribe ᚱ en el libro	-
 pocion	Poción de vida	consumible	comun	9	-	0	equipar	cura=40	todas	frasco	#FF594D	pocion	hay	Poción menor: cura 40. Equípala y usa Q	Cura 40 de vida al beberla (1,5 s quieto)|Se interrumpe si te golpean
 pocion_grande	Poción grande	consumible	comun	9	-	0	equipar	cura=80	todas	frasco	#FF3333	pocion_grande	nuevo	Poción normal: cura 80. Tarda lo mismo en beberse	-
@@ -90,7 +90,8 @@ tunica	Túnica sin mangas	ropa	comun	1	-	0	ropa	ranura=medio	todas	cristal	#8C6B
 capa_escarcha	Capa de escarcha	ropa	epico	1	-	0	ropa	ranura=exterior;inmune=frio;defensa=1	todas	cristal	#B3E6FF	ropa_capa	nuevo	La capa bordada con seda helada: el frío no la atraviesa	-
 tunica_salamandra	Túnica de salamandra	ropa	epico	1	-	0	ropa	ranura=medio;inmune=calor;defensa=1	todas	cristal	#FF7A47	ropa_tunica	nuevo	Túnica teñida con resina y jirones: el calor resbala	-
 capucha_musgo	Capucha de musgo	ropa	epico	1	-	0	ropa	ranura=cabeza;inmune=veneno;defensa=1	todas	cristal	#6BA64D	ropa_capucha	nuevo	Capucha forrada de musgo: filtra las esporas	-
-trozo_corazon	Trozo de corazón	mejora	epico	4	-	0	pieza	mejora=vida_max;piezas=4	todas	esfera	#FF5A7A	-	nuevo	Junta cuatro y tu vida máxima sube 20	-
+fragmento_savia	Fragmento de savia	mejora	epico	3	-	0	pieza	mejora=vida_max;piezas=3	todas	gota	#A3242E	-	nuevo	Savia cristalizada de Giamonios. Reúne tres y tu vida máxima sube 20	-
+fragmento_tintero	Fragmento de tintero	mejora	epico	3	-	0	pieza	mejora=tinta_tintero;piezas=3	todas	cuenco	#2F6FE0	-	nuevo	Un trozo del tintero de un escriba. Reúne tres y tu tinta máxima sube 20	-
 frasco_vacio	Frasco de reserva vacío	mejora	epico	1	-	0	pieza	mejora=frascos_tinta;piezas=1	todas	esfera	#7FB8FF	-	nuevo	Un frasco de reserva más para la tinta, lleno (hasta 6)	-
 engarce_glifo	Engarce de glifo	mejora	legendario	1	-	0	pieza	mejora=huecos_glifo;piezas=1	todas	esfera	#E8C547	-	nuevo	Abre un hueco de glifo más en cada página (hasta 6)	-
 hoja_grimorio	Hoja de grimorio	mejora	legendario	1	-	0	pieza	mejora=paginas;piezas=1	todas	esfera	#F2E3B3	-	nuevo	Una página más para el grimorio (hasta 8)	-

@@ -73,7 +73,7 @@ Generada desde `nucleo/datos/objetos.tsv`, `fuentes.tsv` y `botin_tablas.tsv`, y
 | `helecho_cueva` | Helecho de cueva | comun | vital | 1 | **no** | **no** (sin fuente colocada) |
 | `resina` | Resina | comun | calor, tinta | 2 | sí | golpe a árbol (sin confirmar en mapas) |
 | `corteza` | Corteza | comun | proteccion, tierra | 2 | sí | golpe a árbol (sin confirmar en mapas) |
-| `savia_elemental` | Savia del elemental | epico | vital, raro | 5 | sí | enemigo elemental: Bosque_02 (jefe del santuario) |
+| `savia_elemental` | Esencia del elemental (24/11; antes «Savia del elemental», uso por definir) | epico | vital, raro | 5 | sí | enemigo elemental: Bosque_02 (jefe del santuario) |
 
 ### Raiz (4)
 

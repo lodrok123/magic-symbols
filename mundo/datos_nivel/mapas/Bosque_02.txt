@@ -172,7 +172,7 @@
 ; El brasero vuelve a apagarse y admite fuego directo si se quemó la hierba.
 ; pieza brasero_cortafuegos brasero 5 40 dura=6 por_hierba=si
 ; puzle cortafuegos_marca cuando=brasero_cortafuegos.encendido si=casilla(7,44).mojada hace=flag.poner(bosque02.linde.cortafuegos)
-; pieza cofre_cortafuegos cofre 4 40 aparece_si=flag.bosque02.linde.cortafuegos abierto=bosque02.linde.cortafuegos.cofre da=oro:20+trozo_corazon:1
+; pieza cofre_cortafuegos cofre 4 40 modelo=epico aparece_si=flag.bosque02.linde.cortafuegos abierto=bosque02.linde.cortafuegos.cofre da=oro:20+fragmento_savia:1
 ; pieza cajas_linde jarron 6 42 celdas=6,42+8,46 modelo=caja botin=zona
 ; --------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 ; 0 · EL SENDERO DE MONTE SUMICIO (13/11/2026, Pablo: la salida va al norte). La fraga se abre en x=24 y sube por roca hasta el claro del sendero (17..31, 1..8).
@@ -192,7 +192,7 @@
 ; 2 · EL ESCONDITE (norte de la linde): el muro agrietado (8,27) lo rompen dos golpes de tierra o una explosión. Detrás, el cofre común 7 y dos telarañas (hielo = seda).
 ; --------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 ; pieza muro_escondite muro 8 39 golpes=2
-; pieza cofre_escondite cofre 8 34 abierto=bosque02.escondite.cofre da=oro:50+pocion:1+trozo_corazon:1
+; pieza cofre_escondite cofre 8 34 abierto=bosque02.escondite.cofre da=oro:50+pocion:1
 ; pieza jarron_escondite jarron 7 36 botin=zona
 ; --------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 ; 3 · EL ARROYO y la ORILLA ESTE. El tronco-puente (marcador, 13,31) cae con fuego sobre el río. El cofre común 2 aparece al pisar la orilla este (flag bosque02.arroyo.cruzado, la pone el script).
@@ -272,7 +272,7 @@
 ; puzle desvio_rueda cuando=flag.bosque02.estanque.desvio hace=paso_rueda.abrir
 ; puzle desvio_partida_anterior cuando=flag.bosque02.estanque.molino hace=cuerda_molino.quemar
 ; puzle pila_marca cuando=nivel_pila_molino.alcanzado hace=flag.poner(bosque02.estanque.pila)
-; pieza cofre_pila cofre 30 21 aparece_si=flag.bosque02.estanque.pila abierto=bosque02.estanque.pila.cofre da=oro:25+trozo_corazon:1
+; pieza cofre_pila cofre 30 21 modelo=epico aparece_si=flag.bosque02.estanque.pila abierto=bosque02.estanque.pila.cofre da=oro:25+fragmento_savia:1
 ; pieza atajo_molino puerta 23 21 modelo=reja
 ; pieza molino_estanque molino 33 20 umbral=0.3
 ; pieza pulsador_molino pulsador 31 20 modo=agua
@@ -322,7 +322,7 @@
 ; pieza piedra_balanza_b roca_empujable 19 44 tam=pequena variante=musgo
 ; puzle balanza_pesada cuando=placa_pesada.pulsado hace=flag.poner(bosque02.balanza.pesada)
 ; puzle balanza_ligera cuando=placa_ligera.pulsado hace=flag.poner(bosque02.balanza.ligera)
-; pieza cofre_balanza cofre 22 46 aparece_si=flag.bosque02.balanza.pesada+flag.bosque02.balanza.ligera abierto=bosque02.balanza.cofre da=tabla:cofre_pequeno+trozo_corazon:1
+; pieza cofre_balanza cofre 22 46 modelo=epico aparece_si=flag.bosque02.balanza.pesada+flag.bosque02.balanza.ligera abierto=bosque02.balanza.cofre da=tabla:cofre_pequeno+fragmento_savia:1
 ; 15 · PLANTAS DEL BOSQUE (11/11, Juego; docs/REVISION_OBJETOS_SINTESIS.md §4: «lo común se recoge»): se cogen con E y rebrotan a los 90 s. La flor y la raíz se
 ; transforman antes con un elemento (fuego: flor ardiente / raíz carbonizada; agua: flor de rocío / raíz hinchada...), como las setas.
 ; pieza bayas_linde bayas 5 47 rebrota=90

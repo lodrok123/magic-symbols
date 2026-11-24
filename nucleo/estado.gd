@@ -257,6 +257,12 @@ func desde_dic(d: Dictionary) -> void:
 	# 14/11: una partida de cuando la bolsa empezaba con 8 huecos sube a los 12 de ahora.
 	capacidad_base = clampi(maxi(capacidad - int(Mejoras.valor("capacidad", self)), CAPACIDAD_INICIAL), 1, CAPACIDAD_MAX)
 	Mejoras.aplicar_todas(self, false)           # vida máxima, cura, defensa, velocidad, bolsa, frascos y libro salen de las mejoras
+	# 24/11: los trozos de corazón (4 por mejora) pasan a fragmentos de savia (3 por mejora). Si con el cambio ya hay 3, la mejora sube al cargar.
+	for dic in [items, almacen]:
+		if dic.has("trozo_corazon"):
+			dic["fragmento_savia"] = int(dic.get("fragmento_savia", 0)) + int(dic["trozo_corazon"])
+			dic.erase("trozo_corazon")
+	_pieza_al_coger("fragmento_savia")
 	cambiado.emit()
 
 
@@ -314,7 +320,7 @@ func _rueda_al_coger(id: String) -> void:
 
 
 ## --- Piezas de mejora (11/11, docs/REVISION_OBJETOS_SINTESIS.md §6, tabla de Pablo) ---
-## Al coger una pieza (`uso = pieza`), si ya hay las que pide su efecto (`piezas`: 4 trozos de corazón; 1 frasco, engarce u hoja) se gastan y sube su mejora
+## Al coger una pieza (`uso = pieza`), si ya hay las que pide su efecto (`piezas`: 3 fragmentos de savia; 1 frasco, engarce u hoja) se gastan y sube su mejora
 ## (`Mejoras.subir`). Con la mejora en su tope las piezas se quedan en la mochila (no se pierden, pero ya no suben nada). No pasa por el alquimista.
 func _pieza_al_coger(id: String) -> void:
 	if not Objetos.es_pieza(id):
