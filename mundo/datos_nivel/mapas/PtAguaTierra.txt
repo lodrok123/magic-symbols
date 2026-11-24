@@ -52,7 +52,7 @@
 ; # pared · . suelo · ~ agua honda · S inicio · W goblin guerrero · A goblin arquero · T brasero · g tierra pisada (pasillos) · R losas (o basalto bajo la lava) · G elemental del bosque
 ; generador {"acabado":true,"agua":8,"algoritmo":"pagina","alto":46,"ancho":56,"ancho_camino":2,"ancho_pasillo":2,"ancho_precipicio":2,"ancho_rio":2,"apertura":55,"arqueros":0,"b_braseros":true,"b_placa":true,"b_precipicio":true,"b_puente":true,"barreras":0,"braseros":0.0,"bucles":10,"bucles_claros":30,"callejones":100,"camara_sala":true,"campamentos":0,"charcas":0,"claros":6,"densidad_salas":1.0,"enemigos":0.0,"estilo":"cueva","forma":"rectangulo","hierba_alta":15,"jarrones":0.0,"kit":"demo","lado_max":11,"lado_min":7,"lados_salida":"","llave":false,"luz":"cueva","metodo":"fractal","n_salas":9,"nombre":"PtAguaTierra","octavas":4,"paredes":"kit","pasillos":20,"paso_tierra":0,"puertas":50,"puzles":0,"recto":60,"region_min":12,"relleno":56,"reparto":"dispersas","rio":"ns","rotulo":true,"runas":"","sala_jefe":"no","sala_max":4,"sala_min":2,"salas_cerradas":0,"salida_a":"","semilla":1,"silueta":60,"simetria":false,"sinuosidad":50,"solo_aceptados":false,"suavizados":2,"tamano_claro":5,"tamano_sala":10.0,"terreno":true,"tesoro":false}
 ; puzles 1>riega_pulsador 2>rio_lava 3>puente_cuerda 5>balanza_rocas 6>hielo_pista 7>escondite_muro
-; anadidos cofre|comun|oro:45|15,38 cofre|comun|oro:20|6,21
+; anadidos cofre|comun|oro:45|18,39 cofre|comun|oro:20|5,18
 ; apariciones a0<pz1 a1<pz6
 ;
 ; zona 1,1..54,44 cueva mezcla=0.8 rotulo=PtAguaTierra
@@ -86,8 +86,8 @@
 ; pieza cat5_placa pulsador 8 18 modo=presencia modelo=cueva
 ; pieza cat6_muro muro 29 23 golpes=2
 ; pieza cat6_cofre cofre 29 22 abierto=ptaguatierra.cat6.cofre da=tabla:cofre_pequeno
-; pieza cofre_m1 cofre 15 38 abierto=ptaguatierra.cofre_m1.abierto da=oro:45 aparece_si=flag.ptaguatierra.cofre_m1.pz1
-; pieza cofre_m2 cofre 6 21 abierto=ptaguatierra.cofre_m2.abierto da=oro:20 aparece_si=flag.ptaguatierra.cofre_m2.pz6
+; pieza cofre_m1 cofre 18 39 abierto=ptaguatierra.cofre_m1.abierto da=oro:45 aparece_si=flag.ptaguatierra.cofre_m1.pz1
+; pieza cofre_m2 cofre 5 18 abierto=ptaguatierra.cofre_m2.abierto da=oro:20 aparece_si=flag.ptaguatierra.cofre_m2.pz6
 ; puzle apa_cofre_m1_pz1 cuando=cat1_placa.pulsado hace=flag.poner(ptaguatierra.cofre_m1.pz1)
 ; puzle apa_cofre_m2_pz6 cuando=cat5_placa.pulsado hace=flag.poner(ptaguatierra.cofre_m2.pz6)
 ; zona 15,38..21,39 cueva mezcla=0.5 nombre=pt_riega_pulsador rotulo=1._Riega_la_placa

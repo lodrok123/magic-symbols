@@ -22,7 +22,7 @@ E:\magic-symbols\tools\Godot_v4.7.2-stable_win64.exe --path E:\magic-symbols res
 |---|---|---|---|---|
 | 1 | 2 | **Dos braseros que abren** (`braseros_puerta`) | fuego + flecha | aceptado |
 | 2 | 3 | **Tres braseros y un cofre** (`braseros_premio`) | fuego + flecha | aceptado |
-| 3 | 4 | **Relé de braseros** (`rele_braseros`) | fuego + flecha | pendiente |
+| 3 | 4 | **Relé de braseros** (`rele_braseros`) | fuego + flecha | aceptado |
 | 4 | 7 | **Contrafuego: setos y barril** (`contrafuego`) | fuego + flecha | aceptado |
 | 5 | 6 | **Voladura: barril contra el muro** (`barril_muro`) | fuego + flecha | aceptado |
 | 6 | 5 | **Cristal dormido y receptor de fuego** (`cristal_receptor`) | fuego + flecha | pendiente |
@@ -120,7 +120,7 @@ E:\magic-symbols\tools\Godot_v4.7.2-stable_win64.exe --path E:\magic-symbols res
 | Peso de la piedra (cofre) (`piedra_premio`) | premio | empujar | PtEmpujePulso · 2 | pendiente |
 | Prisma: rojo y azul (`prisma_rojo_azul`) | premio | fuego + agua + flecha | PtEmpujePulso · 5 | pendiente |
 | Puente plegado: agua o fuego (`puente_cuerda`) | paso | agua + flecha, o fuego + flecha | PtAguaTierra · 3 | pendiente |
-| Relé de braseros (`rele_braseros`) | salida | fuego + flecha | PtFuego · 3 | pendiente |
+| Relé de braseros (`rele_braseros`) | salida | fuego + flecha | PtFuego · 3 | aceptado |
 | Riega la placa (`riega_pulsador`) | salida | agua + flecha | PtAguaTierra · 1 | pendiente |
 | Río de lava (`rio_lava`) | paso | agua + flecha, o hielo + flecha | PtAguaTierra · 2 | pendiente |
 | Vagoneta y aguja: elige el ramal (mecanismo) (`vagoneta_aguja`) | salida | fuego + flecha, o agua + flecha, o tierra + flecha | PtVagonetas · 4 | aceptado |

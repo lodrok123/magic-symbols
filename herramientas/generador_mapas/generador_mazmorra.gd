@@ -2609,16 +2609,22 @@ func _aplicar_anadidos(nv: String) -> void:
 			avisos.append("Lo añadido a mano en (%d, %d) no se reconoce («%s»): se descarta." % [pedido.x, pedido.y, tipo])
 			continue
 		var candidatos: Array = []
+		# 24/11 `forzar` (solo cofres, lo pide generar_playtest_puzles con `; cofre_salida` de la plantilla): la casilla pedida vale aunque sea
+		# suelo reservado de un puzle con paredes; quien la pide ya ha elegido una que no estorba. Sin letra encima y sin otro objeto.
+		var forzado: bool = es_cofre and bool(ped.get("forzar", false)) and _dentro(pedido) and _tipo(pedido) == SUELO and not letras.has(pedido) \
+			and _objeto_en(pedido, ["cofre", "barril", "catalogo", "brasero"]).is_empty()
 		for dy in range(-6, 7):
 			for dx in range(-6, 7):
 				var c: Vector2i = pedido + Vector2i(dx, dy)
-				if _dentro(c) and _tipo(c) == SUELO and not _ocupada.has(c) and not letras.has(c):
+				if not forzado and _dentro(c) and _tipo(c) == SUELO and not _ocupada.has(c) and not letras.has(c):
 					candidatos.append(c)
 		candidatos.sort_custom(func(a: Vector2i, b: Vector2i) -> bool:
 			var da: int = (a - pedido).length_squared()
 			var db: int = (b - pedido).length_squared()
 			return da < db or (da == db and (a.y < b.y or (a.y == b.y and a.x < b.x))))
-		var puesto: Vector2i = Vector2i(-1, -1)
+		var puesto: Vector2i = pedido if forzado else Vector2i(-1, -1)
+		if forzado:
+			_ocupar(pedido, true)
 		for c in candidatos.slice(0, 40):
 			if not es_cofre:
 				puesto = c                               # un enemigo no bloquea: cualquier suelo libre vale

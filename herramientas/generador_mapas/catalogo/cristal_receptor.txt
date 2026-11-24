@@ -6,6 +6,7 @@
 ; pide fuego
 ; activa receptor.activado
 ; barrera si
+; cofre_salida 5 3
 ;  El circuito del pulso de la Cueva (C2/C6) en pequeño. Un cristal resonante dormido a la izquierda, una veta y un receptor que pide
 ;  FUEGO a la derecha. Una flecha de fuego al cristal: su pulso lleva el fuego por la veta, el receptor se enciende y da la señal.
 ;  Con agua el pulso llega igual, pero azul, y el receptor no se activa (se ve que pide otro color).

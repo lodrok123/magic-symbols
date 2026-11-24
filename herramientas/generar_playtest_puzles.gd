@@ -156,7 +156,11 @@ func _colocar(par: Dictionary, lista: Array) -> Array:
 		if String(Catalogo.todos()[asign[sid]]["tipo"]) == "salida":
 			var r: Rect2i = salas[sid]["rect"]
 			apariciones.append({"cofre": "a%d" % anadidos.size(), "enemigos": ["pz%d" % int(sid)]})
-			anadidos.append({"que": "cofre", "tipo": "comun", "premio": "", "c": Vector2i(r.position.x + 1, r.end.y - 2)})
+			var dentro: Vector2i = _cofre_de_plantilla(m0, salas[sid], String(asign[sid]))
+			if dentro.x >= 0:
+				anadidos.append({"que": "cofre", "tipo": "comun", "premio": "", "c": dentro, "forzar": true})
+			else:
+				anadidos.append({"que": "cofre", "tipo": "comun", "premio": "", "c": _junto_al_activador(m0, salas[sid], String(asign[sid]), r)})
 	var m2: Dictionary = Generador.new().generar(par, {}, {}, asign, {}, anadidos, apariciones)
 	for k in asign:
 		if String((m2["puzles"] as Dictionary).get(k, "")) != String(asign[k]):
@@ -164,6 +168,41 @@ func _colocar(par: Dictionary, lista: Array) -> Array:
 	if (m2["anadidos"] as Array).size() != anadidos.size() or (m2["apariciones"] as Array).size() != apariciones.size() or not (m2["errores"] as Array).is_empty():
 		return []
 	return [asign, m2]
+
+
+## Dónde se pide el cofre común de un puzle «salida»: en la casilla de la pieza que da la señal (el receptor, el tótem…); el generador lo deja en
+## el suelo libre más cercano que no corte el paso. 24/11, playtest del puzle 6 (cristal y receptor): antes iba a la esquina de abajo a la izquierda
+## de la sala, que en las plantillas con muro propio queda FUERA del muro, y no se veía al resolverlo. Sin pieza conocida, la esquina de antes.
+func _junto_al_activador(m: Dictionary, sala: Dictionary, cid: String, r: Rect2i) -> Vector2i:
+	var res: String = String(Catalogo.todos().get(cid, {}).get("resuelto", ""))
+	if sala.has("inst") and res.contains("."):
+		var pieza: String = String(sala["inst"]) + "_" + res.split(".")[0]
+		for o in m["objetos"]:
+			if String(o.get("id", "")) == pieza:
+				return o["c"]
+	return Vector2i(r.position.x + 1, r.end.y - 2)
+
+
+## La casilla `; cofre_salida x y` de la plantilla, ya en el mapa: el origen de la plantilla sale de la pieza que da la señal (su casilla en el
+## mapa menos la suya en la plantilla). (-1, -1) si la plantilla no la tiene o no se encuentra la pieza.
+func _cofre_de_plantilla(m: Dictionary, sala: Dictionary, cid: String) -> Vector2i:
+	var e: Dictionary = Catalogo.todos().get(cid, {})
+	var hueco: Vector2i = e.get("cofre_salida", Vector2i(-1, -1))
+	var res: String = String(e.get("resuelto", ""))
+	if hueco.x < 0 or not sala.has("inst") or not res.contains("."):
+		return Vector2i(-1, -1)
+	var local_id: String = res.split(".")[0]
+	var local: Vector2i = Vector2i(-1, -1)
+	for l in e["lineas"]:
+		var p: PackedStringArray = String(l).split(" ", false)
+		if p.size() >= 5 and p[1] == "pieza" and p[2] == local_id:
+			local = Vector2i(p[4].to_int(), p[5].to_int()) if p.size() >= 6 else Vector2i(-1, -1)
+	var pieza: String = String(sala["inst"]) + "_" + local_id
+	for l in m["lineas"]:
+		var q: PackedStringArray = String(l).split(" ", false)
+		if q.size() >= 6 and q[1] == "pieza" and q[2] == pieza and local.x >= 0:
+			return Vector2i(q[4].to_int(), q[5].to_int()) - local + hueco
+	return Vector2i(-1, -1)
 
 
 func _escribir_doc() -> void:

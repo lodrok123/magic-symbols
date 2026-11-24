@@ -6270,3 +6270,20 @@ Pablo: «sí, en todos».
   - El Bosque 02 se cuelga **solo dentro de la herramienta con ventana**: deja de responder al cargar, sin gastar CPU. Por eso se probó sin ventana y no tiene foto.
   - Abierto como juego normal, con ventana, carga y responde.
   - No parece del tótem, porque sin ventana carga bien, pero no está aislado.
+
+### 24/11/2026 · aviso de contexto PUZLES · playtest PtFuego: relé aceptado; el cofre del cristal salía detrás del muro
+Pablo, con un vídeo: «3 aceptado, mira 6».
+- **Aceptado:** `rele_braseros`, en la hoja y en su plantilla. Llevamos 8 de 25.
+- **Puzle 6 (`cristal_receptor`):**
+  - En el vídeo funciona: la flecha de fuego despierta el cristal, el pulso corre por la veta y el receptor se enciende en rojo. El cristal suelta además una esquirla cada dos golpes, como en la Cueva.
+  - El fallo: no se veía nada al resolverlo. El cofre común que lo premia (generar_playtest_puzles) se ponía en la esquina de abajo a la izquierda de la SALA. En esta plantilla, con paredes propias, esa esquina cae fuera del muro del puzle.
+- **Arreglo:**
+  - **Plantillas:** cabecera nueva `; cofre_salida x y` (catalogo_puzles.gd). Es una casilla de suelo de la plantilla donde va ese cofre. `cristal_receptor` la tiene en 5 3, junto al receptor.
+  - **Generador:** los cofres añadidos aceptan `forzar`, que admite una casilla del suelo reservado de un puzle con paredes si no tiene letra ni objeto.
+  - **Niveles de playtest:** usan `cofre_salida`. Si la plantilla no la tiene, el cofre se pide en la casilla de la pieza que da la señal y el generador lo deja en el suelo libre más cercano.
+  - **Pt\* regenerados:** solo cambian las casillas de los cofres comunes.
+  - **Pendiente:** `forzar` no se guarda en la cabecera `; anadidos`. Si un Pt se reabre en la herramienta, ese cofre vuelve a buscar sitio fuera.
+- **Pruebas:**
+  - Nueva `herramientas/captura_cristal_receptor.gd`: flecha de fuego de verdad en PtFuego. 0 fallos: el receptor se activa, aparece el cofre y está dentro de la sala, en (19, 8). Fotos en `docs/capturas/cristal_receptor/`.
+  - `generar_playtest_puzles`: 0 fallos.
+- `cristal_receptor` sigue **pendiente**: lo decide Pablo al volver a jugarlo.

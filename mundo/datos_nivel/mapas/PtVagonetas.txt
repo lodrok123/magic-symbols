@@ -52,7 +52,7 @@
 ; # pared · . suelo · ~ agua honda · S inicio · W goblin guerrero · A goblin arquero · T brasero · g tierra pisada (pasillos) · R losas (o basalto bajo la lava) · G elemental del bosque
 ; generador {"acabado":true,"agua":8,"algoritmo":"pagina","alto":46,"ancho":56,"ancho_camino":2,"ancho_pasillo":2,"ancho_precipicio":2,"ancho_rio":2,"apertura":55,"arqueros":0,"b_braseros":true,"b_placa":true,"b_precipicio":true,"b_puente":true,"barreras":0,"braseros":0.0,"bucles":10,"bucles_claros":30,"callejones":100,"camara_sala":true,"campamentos":0,"charcas":0,"claros":6,"densidad_salas":1.0,"enemigos":0.0,"estilo":"cueva","forma":"rectangulo","hierba_alta":15,"jarrones":0.0,"kit":"demo","lado_max":11,"lado_min":7,"lados_salida":"","llave":false,"luz":"cueva","metodo":"fractal","n_salas":7,"nombre":"PtVagonetas","octavas":4,"paredes":"kit","pasillos":20,"paso_tierra":0,"puertas":50,"puzles":0,"recto":60,"region_min":12,"relleno":56,"reparto":"dispersas","rio":"ns","rotulo":true,"runas":"","sala_jefe":"no","sala_max":4,"sala_min":2,"salas_cerradas":0,"salida_a":"","semilla":9,"silueta":60,"simetria":false,"sinuosidad":50,"solo_aceptados":false,"suavizados":2,"tamano_claro":5,"tamano_sala":10.0,"terreno":true,"tesoro":false}
 ; puzles 1>vagoneta_pista 3>vagoneta_boton 4>vagoneta_aguja 5>vagoneta_curva
-; anadidos cofre|comun|oro:30|23,34 cofre|comun|oro:20|44,43
+; anadidos cofre|comun|oro:30|26,27 cofre|comun|oro:20|52,36
 ; apariciones a0<pz1 a1<pz4
 ;
 ; zona 1,1..54,44 cueva mezcla=0.8 rotulo=PtVagonetas
@@ -81,8 +81,8 @@
 ; pieza cat4_vag vagoneta 27 20 rieles=24,18..27,18+27,19..27,20
 ; pieza cat4_placa pulsador 24 18 modo=presencia peso=3 modelo=cueva
 ; pieza cat4_cofre cofre 25 20 aparece_si=cat4_placa.activo abierto=ptvagonetas.cat4.cofre da=oro:40
-; pieza cofre_m1 cofre 23 34 abierto=ptvagonetas.cofre_m1.abierto da=oro:30 aparece_si=flag.ptvagonetas.cofre_m1.pz1
-; pieza cofre_m2 cofre 44 43 abierto=ptvagonetas.cofre_m2.abierto da=oro:20 aparece_si=flag.ptvagonetas.cofre_m2.pz4
+; pieza cofre_m1 cofre 26 27 abierto=ptvagonetas.cofre_m1.abierto da=oro:30 aparece_si=flag.ptvagonetas.cofre_m1.pz1
+; pieza cofre_m2 cofre 52 36 abierto=ptvagonetas.cofre_m2.abierto da=oro:20 aparece_si=flag.ptvagonetas.cofre_m2.pz4
 ; puzle apa_cofre_m1_pz1 cuando=cat1_placa.pulsado hace=flag.poner(ptvagonetas.cofre_m1.pz1)
 ; puzle apa_cofre_m2_pz4 cuando=cat3_placa.pulsado hace=flag.poner(ptvagonetas.cofre_m2.pz4)
 ; zona 22,26..31,35 cueva mezcla=0.5 nombre=pt_vagoneta_pista rotulo=1._Vagoneta_a_la_placa_a_mano

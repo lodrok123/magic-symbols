@@ -2,7 +2,7 @@
 ; titulo Relé de braseros
 ; tipo salida
 ; necesita fuego+flecha
-; validacion pendiente
+; validacion aceptado
 ; pide fuego
 ; activa luces.todos
 ; barrera si

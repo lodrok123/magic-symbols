@@ -21,6 +21,9 @@ extends RefCounted
 ##                                   cofre aparece al resolverlo). Sin ella vale la de `activa`; sin ninguna, el puzle no se puede enlazar
 ##   ; barrera si                    solo `salida`: el generador puede elegirla él solo como activador de una barrera (puerta o puente).
 ##                                   Sin esto la plantilla solo se pone a mano o con «Puzles del catálogo».
+##   ; cofre_salida x y              (24/11) solo `salida` con paredes propias: casilla de SUELO de la plantilla (coordenadas locales) donde va el
+##                                   cofre común que lo premia en los niveles de playtest, a la vista al resolverlo. Sin ella, junto a la pieza que
+##                                   da la señal o, si no cabe, fuera de las paredes (el suelo de dentro es del puzle)
 ##   ; estira x                      la plantilla es una franja: cada fila se repite hasta el ancho de la sala (una letra por fila)
 ##   ; cueva pieza …                 una línea que solo se escribe si el estilo del mapa es «cueva» (el brasero con el modelo de la Cueva)
 ##   <filas del plano>               # pared · . suelo · ~ agua · espacio = no tocar · cualquier otra letra = suelo con esa letra del juego
@@ -66,7 +69,7 @@ static func _leer() -> Dictionary:
 
 static func leer_texto(texto: String, id_defecto: String = "") -> Dictionary:
 	var e: Dictionary = {"id": id_defecto, "titulo": id_defecto, "tipo": "premio", "pide": "", "activa": "", "resuelto": "", "estira": "", "barrera": false, "filas": [], "lineas": [], "lineas_cueva": [], "ancho": 0, "alto": 0,
-		"necesita": [], "validacion": "pendiente", "notas": []}
+		"necesita": [], "validacion": "pendiente", "notas": [], "cofre_salida": Vector2i(-1, -1)}
 	for linea in texto.split("\n"):
 		var l: String = String(linea).replace("\r", "")
 		if l.strip_edges() == "":
@@ -96,6 +99,9 @@ static func leer_texto(texto: String, id_defecto: String = "") -> Dictionary:
 					e["activa"] = resto
 				"resuelto":
 					e["resuelto"] = resto
+				"cofre_salida":
+					if p.size() >= 3:
+						e["cofre_salida"] = Vector2i(p[1].to_int(), p[2].to_int())
 				"estira":
 					e["estira"] = resto
 				"barrera":
