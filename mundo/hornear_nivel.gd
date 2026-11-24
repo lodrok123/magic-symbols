@@ -18,7 +18,13 @@ extends RefCounted
 
 const NIVELES: String = "res://mundo/datos_nivel/"
 const PIEZAS: String = "res://arte/piezas/"
+## 24/11: las piezas del pack Stylized Lost Cave (`lost_*`: paredes y adornos de `paredes_cueva = "lostcave"`) viven aparte, fuera de git.
+const PIEZAS_LOSTCAVE: String = "res://arte/lostcave/piezas/"
 const BIBLIOTECA: String = "res://mundo/datos_nivel/suelo_tipos.tres"
+
+
+static func ruta_pieza(id: String) -> String:
+	return (PIEZAS_LOSTCAVE if id.begins_with("lost_") else PIEZAS) + id + ".tscn"
 const S: float = 2.3
 const ALTO: float = 2.3 * 0.45
 ## Casillas del GridMap: nombre del ítem → letra del mapa que reconstruye el cargador.
@@ -357,7 +363,7 @@ static func hornear(datos: Dictionary) -> String:
 				giro_marcador[c] = t.basis.orthonormalized().get_euler().y
 			continue
 		if not cache.has(id):
-			cache[id] = load(PIEZAS + id + ".tscn") as PackedScene if ResourceLoader.exists(PIEZAS + id + ".tscn") else null
+			cache[id] = load(ruta_pieza(id)) as PackedScene if ResourceLoader.exists(ruta_pieza(id)) else null
 		var ps: PackedScene = cache[id]
 		if ps == null:
 			sin_escena[id] = int(sin_escena.get(id, 0)) + 1
@@ -383,10 +389,10 @@ static func hornear(datos: Dictionary) -> String:
 		var dec: Dictionary = dd
 		var dc: Vector2i = dec["c"]
 		var did: String = String(dec["id"])
-		if not ResourceLoader.exists(PIEZAS + did + ".tscn"):
+		if not ResourceLoader.exists(ruta_pieza(did)):
 			push_warning("Hornear: `; decorado %s`: no hay piezas/%s.tscn" % [did, did])
 			continue
-		var dnodo: Node3D = (load(PIEZAS + did + ".tscn") as PackedScene).instantiate() as Node3D
+		var dnodo: Node3D = (load(ruta_pieza(did)) as PackedScene).instantiate() as Node3D
 		dnodo.name = "%s_%d_%d" % [did, dc.x, dc.y]
 		dnodo.transform = Transform3D(Basis(Vector3.UP, float(dec["giro"])), Vector3((float(dc.x) + 0.5) * S, ALTO, (float(dc.y) + 0.5) * S))
 		piezas.add_child(dnodo)

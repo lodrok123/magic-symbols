@@ -121,6 +121,7 @@ const CAMPOS: Array = [
 	{"t": "titulo", "r": "NIVEL"},
 	{"k": "nombre", "r": "Nombre del nivel", "t": "texto", "a": "Letras sin acento, cifras y «_». Será mapas/<Nombre>.txt y escenas/Prueba<Nombre>.tscn."},
 	{"k": "estilo", "r": "Estilo", "t": "opcion", "op": [["cueva", "Cueva (roca)"], ["bosque", "Bosque (árboles)"], ["pantano", "Pantano (barro)"]], "a": "Cómo dibuja la maqueta las paredes y el suelo."},
+	{"k": "paredes", "r": "Paredes (cueva)", "t": "opcion", "op": [["kit", "Kit de cueva"], ["lostcave", "Rocas del pack Lost Cave"]], "a": "Con estilo cueva: de qué se hacen las paredes «#».\nLost Cave = rocas del pack Stylized Lost Cave mirando a cada sala, setas y cristalitos junto a la pared.\nNecesita el pack generado en esta máquina (tools\\preparar_lostcave.cmd); si no está, sale el kit."},
 	{"k": "luz", "r": "Luz", "t": "opcion", "op": [], "a": "La fila de LuzZona3D.ZONAS que ilumina el nivel."},
 	{"k": "rotulo", "r": "Rótulo al entrar", "t": "bool", "a": "Una zona que cubre el mapa y enseña el nombre la primera vez."},
 	{"k": "terreno", "r": "Pintar terreno", "t": "bool", "a": "Los pasillos van de tierra pisada y la sala del tesoro, enlosada (en estilo cueva no se enlosa).\nSin esto todo el suelo es igual y no hay juntas entre suelos que enseñar."},

@@ -170,6 +170,8 @@ static func texto_escena(m: Dictionary) -> String:
 	l.append("fuego_nuevo = true")
 	l.append("nivel = \"%s\"" % nombre)
 	l.append("estilo = \"%s\"" % String(p["estilo"]))
+	if cueva and String(p.get("paredes", "kit")) == "lostcave":
+		l.append("paredes_cueva = \"lostcave\"")      # 24/11: paredes de rocas del pack Stylized Lost Cave (presentacion/paredes_lostcave.gd)
 	l.append("zona_luz = \"%s\"" % String(p["luz"]))
 	l.append("agua_fisica = true")
 	l.append("agua_corre = false")

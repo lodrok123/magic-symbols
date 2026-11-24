@@ -1,227 +1,152 @@
-; NIVEL DE PRUEBA del pack «Stylized Lost Cave» (StylArts / Leartes Cosmos), 24/11/2026. 32 x 24. Lo GENERA tools/mapa_lostcave.py (las paredes de roca salen solas): cambiar allí y volver a lanzar.
+; NIVEL DE PRUEBA del pack «Stylized Lost Cave» (StylArts / Leartes Cosmos), 24/11/2026. 32 x 26. Lo GENERA tools/mapa_lostcave.py (las paredes de roca salen solas): cambiar allí y volver a lanzar.
 ; Escena: escenas/PruebaLostCave.tscn. Las piezas lost_* NO van en git: si faltan, tools\preparar_lostcave.cmd (ver arte/lostcave/LEEME.md).
 ; Recorrido: BOCA (sur: transición del bosque, vegetación) -> arco grande -> CRUCE (sala central, arco de roca, columnas, grieta azul)
 ;   -> oeste MINA (vía, vagonetas, bocamina, faroles) · este CRISTALES (rojos = fuego, azules = agua, hexágonos) · norte SANTUARIO (portal de runas, tótems, símbolos).
-; Letras: «.» suelo de cueva · « » fuera (sin suelo, no se pisa; la oscuridad de alrededor) · S jugadora. Sin «#»: las paredes son piezas del pack.
-; Las piezas sólidas cierran las casillas que tapan; arcos, túneles, losas y escaleras se cruzan (TablaLostCave.COLISION_EXACTA).
-          ...........           
-          ...........           
-          ...........           
- ......   ...........   ....... 
- ......   ...........   ....... 
- ......       ...       ....... 
- ......       ...       ....... 
- ...... ............... ....... 
- ...... ............... ....... 
- .............................. 
- .............................. 
- .............................. 
- ...... ............... ....... 
- ...... ............... ....... 
- ......       ...       ....... 
- ......       ...       ....... 
-              ...               
-           .........            
-           .........            
-           ....S....            
-           .........            
-           .........            
-           .........            
-           .........            
+; Letras: «.» suelo de cueva · «#» pared (la viste la maqueta con rocas del pack: paredes_cueva = "lostcave") · « » fuera (sin suelo: la oscuridad) · S jugadora.
+; Las piezas sólidas cierran las casillas que tapan; arcos y túneles cierran solo las de sus patas (huella_por_forma); losas y escaleras se pisan.
+         #############          
+         #...........#          
+         #...........#          
+######## #...........# #########
+#......# #...........# #.......#
+#......# #...........# #.......#
+#......# #####...##### #.......#
+#......#######...#######.......#
+#......#...............#.......#
+#......#...............#.......#
+#..............................#
+#..............................#
+#..............................#
+#......#...............#.......#
+#......#...............#.......#
+#......#######...#######.......#
+#......#     #...#     #.......#
+########  ####...####  #########
+          #.........#           
+          #.........#           
+          #....S....#           
+          #.........#           
+          #.........#           
+          #.........#           
+          #.........#           
+          ###########           
 ; --- zonas de luz (LuzZona3D) ---
-; zona 11,16..19,23 bosque mezcla=0.8 rotulo=Cueva_Perdida
-; zona 7,5..23,15 cueva mezcla=0.8
-; zona 1,3..6,15 cueva_goblin mezcla=0.8
-; zona 24,3..30,15 cueva_hielo mezcla=0.8
-; zona 10,0..20,4 cueva_ruinas mezcla=0.8
-; rect BOCA 11 17 9 7
-; rect CRUCE 8 7 15 7
-; rect MINA 1 3 6 13
-; rect CRISTALES 24 3 7 13
-; rect SANTUARIO 10 0 11 5
+; zona 11,17..19,24 bosque mezcla=0.8 rotulo=Cueva_Perdida
+; zona 7,6..23,16 cueva mezcla=0.8
+; zona 1,4..6,16 cueva_goblin mezcla=0.8
+; zona 24,4..30,16 cueva_hielo mezcla=0.8
+; zona 10,1..20,5 cueva_ruinas mezcla=0.8
+; rect BOCA 11 18 9 7
+; rect CRUCE 8 8 15 7
+; rect MINA 1 4 6 13
+; rect CRISTALES 24 4 7 13
+; rect SANTUARIO 10 1 11 5
 ; --- piezas del pack (decorado: modelo + giro/escala) ---
-; pieza d_largearch decorado 15 16 modelo=lost_largearch
-; pieza d_greentrees decorado 11 22 modelo=lost_greentrees
-; pieza d_greentrees_2 decorado 19 21 modelo=lost_greentrees giro=40
-; pieza d_deadtree_a decorado 12 18 modelo=lost_deadtree_a
-; pieza d_bush decorado 13 23 modelo=lost_bush
-; pieza d_bush_2 decorado 18 23 modelo=lost_bush giro=70
-; pieza d_fern_a decorado 11 20 modelo=lost_fern_a
-; pieza d_fern_a_2 decorado 17 20 modelo=lost_fern_a giro=120
-; pieza d_fern_a_3 decorado 14 18 modelo=lost_fern_a
-; pieza d_largegroundplant decorado 18 18 modelo=lost_largegroundplant
-; pieza d_roundleaf_cluster decorado 12 21 modelo=lost_roundleaf_cluster
-; pieza d_clover_cluster decorado 16 23 modelo=lost_clover_cluster
-; pieza d_wallgrassclump_a decorado 19 18 modelo=lost_wallgrassclump_a
-; pieza d_flowers_a decorado 13 21 modelo=lost_flowers_a
-; pieza d_violetflowercluster decorado 17 22 modelo=lost_violetflowercluster
-; pieza d_largemushrooms_b decorado 19 19 modelo=lost_largemushrooms_b
-; pieza d_largemushrooms_a decorado 11 18 modelo=lost_largemushrooms_a
-; pieza d_smallmushrooms_a decorado 16 18 modelo=lost_smallmushrooms_a
-; pieza d_root_b decorado 18 17 modelo=lost_root_b
-; pieza d_root_d decorado 12 17 modelo=lost_root_d
-; pieza d_stair_c decorado 15 21 modelo=lost_stair_c
-; pieza d_standinglantern decorado 13 17 modelo=lost_standinglantern
-; pieza d_standinglantern_2 decorado 17 17 modelo=lost_standinglantern giro=180
-; pieza d_stonearray_b decorado 10 7 modelo=lost_stonearray_b
-; pieza d_stonearray_a decorado 20 7 modelo=lost_stonearray_a
-; pieza d_stalagmite_a decorado 9 12 modelo=lost_stalagmite_a
-; pieza d_stalagmite_b decorado 22 13 modelo=lost_stalagmite_b
-; pieza d_stonecolumn_a decorado 12 9 modelo=lost_stonecolumn_a
-; pieza d_stonecolumn_a_2 decorado 18 9 modelo=lost_stonecolumn_a giro=180
-; pieza d_arch decorado 15 11 modelo=lost_arch
-; pieza d_calca_glowingcrack_a decorado 10 8 modelo=lost_calca_glowingcrack_a
-; pieza d_largemushrooms_c decorado 9 10 modelo=lost_largemushrooms_c
-; pieza d_middlemushrooms_a decorado 20 13 modelo=lost_middlemushrooms_a
-; pieza d_smallmushrooms_b decorado 10 13 modelo=lost_smallmushrooms_b
-; pieza d_singlecrystal_blue_a decorado 22 8 modelo=lost_singlecrystal_blue_a
-; pieza d_singlecrystal_red_a decorado 22 12 modelo=lost_singlecrystal_red_a
-; pieza d_lantern decorado 8 8 modelo=lost_lantern
-; pieza d_standinglantern_3 decorado 11 12 modelo=lost_standinglantern
-; pieza d_standinglantern_4 decorado 19 12 modelo=lost_standinglantern giro=180
-; pieza d_smallroot_b decorado 13 7 modelo=lost_smallroot_b
-; pieza d_smallroot_d decorado 17 7 modelo=lost_smallroot_d
-; pieza d_entrance decorado 4 3 modelo=lost_entrance
-; pieza d_straightrail_b decorado 3 5 modelo=lost_straightrail_b giro=90
-; pieza d_straightrail_b_2 decorado 3 7 modelo=lost_straightrail_b giro=90
-; pieza d_straightrail_b_3 decorado 3 9 modelo=lost_straightrail_b giro=90
-; pieza d_straightrail_b_4 decorado 3 11 modelo=lost_straightrail_b giro=90
-; pieza d_straightrail_b_5 decorado 3 13 modelo=lost_straightrail_b giro=90
-; pieza d_roundrail_b decorado 3 15 modelo=lost_roundrail_b giro=90
-; pieza d_trolley_a decorado 3 7 modelo=lost_trolley_a giro=90
-; pieza d_trolley_c decorado 3 12 modelo=lost_trolley_c giro=90
-; pieza d_cart decorado 6 6 modelo=lost_cart
-; pieza d_standinglantern_5 decorado 1 9 modelo=lost_standinglantern
-; pieza d_standinglantern_6 decorado 4 10 modelo=lost_standinglantern
-; pieza d_lantern_2 decorado 2 3 modelo=lost_lantern
-; pieza d_lantern_3 decorado 4 14 modelo=lost_lantern
-; pieza d_standinglantern_7 decorado 1 13 modelo=lost_standinglantern
-; pieza d_barrel_a decorado 6 4 modelo=lost_barrel_a
-; pieza d_barrel_c decorado 6 3 modelo=lost_barrel_c
-; pieza d_bag_a decorado 1 4 modelo=lost_bag_a
-; pieza d_bag_c decorado 1 5 modelo=lost_bag_c
-; pieza d_box_a decorado 1 14 modelo=lost_box_a
-; pieza d_box_c decorado 2 15 modelo=lost_box_c
-; pieza d_brokenbox_c decorado 6 14 modelo=lost_brokenbox_c
-; pieza d_toolbox decorado 1 11 modelo=lost_toolbox
-; pieza d_pickaxe decorado 5 8 modelo=lost_pickaxe
-; pieza d_shovel decorado 5 12 modelo=lost_shovel
-; pieza d_dynamite_b decorado 6 12 modelo=lost_dynamite_b
-; pieza d_blastingmachine decorado 6 13 modelo=lost_blastingmachine
-; pieza d_bomb decorado 5 15 modelo=lost_bomb
-; pieza d_minearch decorado 7 10 modelo=lost_minearch giro=90
-; pieza d_lantern_4 decorado 7 9 modelo=lost_lantern
-; pieza d_smallplatform_a decorado 5 4 modelo=lost_smallplatform_a
-; pieza d_hex_a decorado 25 4 modelo=lost_hex_a
-; pieza d_hex_c decorado 29 4 modelo=lost_hex_c
-; pieza d_hex_d decorado 30 8 modelo=lost_hex_d
-; pieza d_hex_e decorado 25 13 modelo=lost_hex_e
-; pieza d_hex_f decorado 29 14 modelo=lost_hex_f
-; pieza d_crystal_blue_a decorado 26 7 modelo=lost_crystal_blue_a
-; pieza d_crystal_blue_b decorado 28 6 modelo=lost_crystal_blue_b
-; pieza d_crystal_blue_c decorado 30 11 modelo=lost_crystal_blue_c
-; pieza d_crystal_red_a decorado 25 10 modelo=lost_crystal_red_a
-; pieza d_crystal_red_b decorado 28 11 modelo=lost_crystal_red_b
-; pieza d_crystal_red_c decorado 27 14 modelo=lost_crystal_red_c
-; pieza d_singlecrystal_blue_b decorado 27 9 modelo=lost_singlecrystal_blue_b
-; pieza d_singlecrystal_red_b decorado 29 9 modelo=lost_singlecrystal_red_b
-; pieza d_smallcrystals decorado 26 12 modelo=lost_smallcrystals
-; pieza d_glowingplant_a decorado 24 6 modelo=lost_glowingplant_a
-; pieza d_glowingplant_b decorado 30 5 modelo=lost_glowingplant_b
-; pieza d_glowingplant_c decorado 24 14 modelo=lost_glowingplant_c
-; pieza d_stalagmite_a_2 decorado 27 3 modelo=lost_stalagmite_a giro=200
-; pieza d_calca_glowingdots decorado 26 4 modelo=lost_calca_glowingdots
-; pieza d_lantern_5 decorado 23 9 modelo=lost_lantern
-; pieza d_portalblocks decorado 15 0 modelo=lost_portalblocks escala=0.4
-; pieza d_shrinearch decorado 15 5 modelo=lost_shrinearch
-; pieza d_totem_a decorado 11 2 modelo=lost_totem_a
-; pieza d_totemstone_b decorado 19 2 modelo=lost_totemstone_b
-; pieza d_totemrock_b decorado 10 1 modelo=lost_totemrock_b
-; pieza d_totemrock_c decorado 20 1 modelo=lost_totemrock_c
-; pieza d_calca_symbol_a decorado 11 1 modelo=lost_calca_symbol_a
-; pieza d_calca_symbol_c decorado 19 1 modelo=lost_calca_symbol_c
-; pieza d_table decorado 15 2 modelo=lost_table
-; pieza d_standinglantern_8 decorado 12 4 modelo=lost_standinglantern
-; pieza d_standinglantern_9 decorado 18 4 modelo=lost_standinglantern giro=180
-; pieza d_candle_a decorado 13 2 modelo=lost_candle_a
-; pieza d_candle_c decorado 17 2 modelo=lost_candle_c
-; pieza d_candle_d decorado 14 3 modelo=lost_candle_d
-; pieza d_candle_e decorado 16 3 modelo=lost_candle_e
-; pieza d_book_a decorado 13 3 modelo=lost_book_a
-; pieza d_book_c decorado 17 3 modelo=lost_book_c
-; pieza d_largewall_6x9 decorado 12 0 modelo=lost_largewall_6x9 giro=5 escala=0.86 dx=0.0 dz=-0.55
-; pieza d_largewall_6x9_2 decorado 17 0 modelo=lost_largewall_6x9 giro=-1 escala=0.86 dx=0.0 dz=-0.55
-; pieza d_stonearray_b_2 decorado 20 0 modelo=lost_stonearray_b giro=-10 escala=0.86 dx=0.0 dz=-0.55
-; pieza d_largewall_6x9_3 decorado 3 3 modelo=lost_largewall_6x9 giro=-7 escala=0.86 dx=0.0 dz=-0.55
-; pieza d_stalagmite_b_2 decorado 25 3 modelo=lost_stalagmite_b giro=6 escala=1.65 dx=0.0 dz=-0.55
-; pieza d_largewall_6x9_4 decorado 28 3 modelo=lost_largewall_6x9 giro=-11 escala=0.86 dx=0.0 dz=-0.55
-; pieza d_stonearray_b_3 decorado 9 7 modelo=lost_stonearray_b giro=3 escala=0.86 dx=0.0 dz=-0.55
-; pieza d_flatstone_b decorado 12 7 modelo=lost_flatstone_b giro=10 escala=0.61 dx=0.0 dz=-0.55
-; pieza d_stonearray_a_2 decorado 18 7 modelo=lost_stonearray_a giro=4 escala=0.46 dx=0.0 dz=-0.55
-; pieza d_stalagmite_b_3 decorado 22 7 modelo=lost_stalagmite_b giro=10 escala=1.65 dx=0.0 dz=-0.55
-; pieza d_stonearray_b_4 decorado 11 17 modelo=lost_stonearray_b giro=7 escala=0.62 dx=0.0 dz=-0.55
-; pieza d_flatstone_b_2 decorado 19 17 modelo=lost_flatstone_b giro=12 escala=0.61 dx=0.0 dz=-0.55
-; pieza d_flatstone_a decorado 11 4 modelo=lost_flatstone_a giro=184 escala=0.8 dx=0.0 dz=0.55
-; pieza d_stonearray_a_3 decorado 13 4 modelo=lost_stonearray_a giro=184 escala=0.35 dx=0.0 dz=0.55
-; pieza d_flatstone_b_3 decorado 17 4 modelo=lost_flatstone_b giro=186 escala=0.45 dx=0.0 dz=0.55
-; pieza d_flatstone_a_2 decorado 19 4 modelo=lost_flatstone_a giro=192 escala=0.8 dx=0.0 dz=0.55
-; pieza d_flatstone_b_4 decorado 20 4 modelo=lost_flatstone_b giro=168 escala=0.45 dx=0.0 dz=0.55
-; pieza d_flatstone_b_5 decorado 7 11 modelo=lost_flatstone_b giro=190 escala=0.45 dx=0.0 dz=0.55
-; pieza d_flatstone_b_6 decorado 23 11 modelo=lost_flatstone_b giro=187 escala=0.45 dx=0.0 dz=0.55
-; pieza d_stonearray_a_4 decorado 8 13 modelo=lost_stonearray_a giro=179 escala=0.35 dx=0.0 dz=0.55
-; pieza d_flatstone_b_7 decorado 9 13 modelo=lost_flatstone_b giro=180 escala=0.45 dx=0.0 dz=0.55
-; pieza d_flatstone_a_3 decorado 11 13 modelo=lost_flatstone_a giro=185 escala=0.8 dx=0.0 dz=0.55
-; pieza d_flatstone_b_8 decorado 12 13 modelo=lost_flatstone_b giro=183 escala=0.45 dx=0.0 dz=0.55
-; pieza d_stonearray_a_5 decorado 13 13 modelo=lost_stonearray_a giro=186 escala=0.35 dx=0.0 dz=0.55
-; pieza d_flatstone_b_9 decorado 17 13 modelo=lost_flatstone_b giro=190 escala=0.45 dx=0.0 dz=0.55
-; pieza d_flatstone_a_4 decorado 19 13 modelo=lost_flatstone_a giro=185 escala=0.8 dx=0.0 dz=0.55
-; pieza d_stonearray_a_6 decorado 1 15 modelo=lost_stonearray_a giro=180 escala=0.35 dx=0.0 dz=0.55
-; pieza d_stonearray_a_7 decorado 4 15 modelo=lost_stonearray_a giro=168 escala=0.35 dx=0.0 dz=0.55
-; pieza d_flatstone_a_5 decorado 6 15 modelo=lost_flatstone_a giro=186 escala=0.8 dx=0.0 dz=0.55
-; pieza d_flatstone_a_6 decorado 25 15 modelo=lost_flatstone_a giro=170 escala=0.8 dx=0.0 dz=0.55
-; pieza d_stonearray_a_8 decorado 26 15 modelo=lost_stonearray_a giro=186 escala=0.35 dx=0.0 dz=0.55
-; pieza d_flatstone_b_10 decorado 27 15 modelo=lost_flatstone_b giro=172 escala=0.45 dx=0.0 dz=0.55
-; pieza d_stonearray_a_9 decorado 28 15 modelo=lost_stonearray_a giro=180 escala=0.35 dx=0.0 dz=0.55
-; pieza d_flatstone_a_7 decorado 30 15 modelo=lost_flatstone_a giro=189 escala=0.8 dx=0.0 dz=0.55
-; pieza d_flatstone_b_11 decorado 11 23 modelo=lost_flatstone_b giro=179 escala=0.45 dx=0.0 dz=0.55
-; pieza d_stonearray_a_10 decorado 12 23 modelo=lost_stonearray_a giro=173 escala=0.35 dx=0.0 dz=0.55
-; pieza d_flatstone_a_8 decorado 14 23 modelo=lost_flatstone_a giro=170 escala=0.8 dx=0.0 dz=0.55
-; pieza d_stonearray_a_11 decorado 17 23 modelo=lost_stonearray_a giro=169 escala=0.35 dx=0.0 dz=0.55
-; pieza d_flatstone_b_12 decorado 19 23 modelo=lost_flatstone_b giro=187 escala=0.45 dx=0.0 dz=0.55
-; pieza d_stonearray_b_5 decorado 1 3 modelo=lost_stonearray_b giro=102 escala=0.7 dx=-0.55 dz=0.0
-; pieza d_largewall_6x9_5 decorado 1 6 modelo=lost_largewall_6x9 giro=93 escala=0.43 dx=-0.55 dz=0.0
-; pieza d_rockarray_a decorado 1 12 modelo=lost_rockarray_a giro=88 escala=0.55 dx=-0.55 dz=0.0
-; pieza d_stonearray_b_6 decorado 8 7 modelo=lost_stonearray_b giro=80 escala=0.7 dx=-0.55 dz=0.0
-; pieza d_stonearray_b_7 decorado 8 12 modelo=lost_stonearray_b giro=82 escala=0.7 dx=-0.55 dz=0.0
-; pieza d_rockarray_a_2 decorado 10 3 modelo=lost_rockarray_a giro=82 escala=0.55 dx=-0.55 dz=0.0
-; pieza d_stonearray_b_8 decorado 10 4 modelo=lost_stonearray_b giro=97 escala=0.7 dx=-0.55 dz=0.0
-; pieza d_rockarray_a_3 decorado 11 19 modelo=lost_rockarray_a giro=90 escala=0.55 dx=-0.55 dz=0.0
-; pieza d_stonearray_b_9 decorado 11 21 modelo=lost_stonearray_b giro=84 escala=0.7 dx=-0.55 dz=0.0
-; pieza d_stonearray_b_10 decorado 14 5 modelo=lost_stonearray_b giro=98 escala=0.7 dx=-0.55 dz=0.0
-; pieza d_stonearray_b_11 decorado 14 6 modelo=lost_stonearray_b giro=99 escala=0.7 dx=-0.55 dz=0.0
-; pieza d_rockarray_a_4 decorado 14 14 modelo=lost_rockarray_a giro=87 escala=0.55 dx=-0.55 dz=0.0
-; pieza d_rockarray_a_5 decorado 14 15 modelo=lost_rockarray_a giro=93 escala=0.55 dx=-0.55 dz=0.0
-; pieza d_rockarray_a_6 decorado 14 16 modelo=lost_rockarray_a giro=85 escala=0.55 dx=-0.55 dz=0.0
-; pieza d_stonearray_b_12 decorado 24 3 modelo=lost_stonearray_b giro=92 escala=0.7 dx=-0.55 dz=0.0
-; pieza d_stonearray_b_13 decorado 24 4 modelo=lost_stonearray_b giro=82 escala=0.7 dx=-0.55 dz=0.0
-; pieza d_rockarray_a_7 decorado 24 5 modelo=lost_rockarray_a giro=92 escala=0.55 dx=-0.55 dz=0.0
-; pieza d_totemrock_b_2 decorado 24 7 modelo=lost_totemrock_b giro=96 escala=1.01 dx=-0.55 dz=0.0
-; pieza d_stonearray_b_14 decorado 24 8 modelo=lost_stonearray_b giro=86 escala=0.7 dx=-0.55 dz=0.0
-; pieza d_largewall_6x9_6 decorado 24 13 modelo=lost_largewall_6x9 giro=93 escala=0.43 dx=-0.55 dz=0.0
-; pieza d_rockarray_a_8 decorado 24 15 modelo=lost_rockarray_a giro=82 escala=0.55 dx=-0.55 dz=0.0
-; pieza d_largewall_6x9_7 decorado 6 7 modelo=lost_largewall_6x9 giro=270 escala=0.43 dx=0.55 dz=0.0
-; pieza d_stonearray_b_15 decorado 16 5 modelo=lost_stonearray_b giro=282 escala=0.7 dx=0.55 dz=0.0
-; pieza d_totemrock_b_3 decorado 16 6 modelo=lost_totemrock_b giro=269 escala=1.01 dx=0.55 dz=0.0
-; pieza d_stonearray_b_16 decorado 16 14 modelo=lost_stonearray_b giro=277 escala=0.7 dx=0.55 dz=0.0
-; pieza d_stalagmite_a_3 decorado 16 15 modelo=lost_stalagmite_a giro=258 escala=0.96 dx=0.55 dz=0.0
-; pieza d_rockarray_a_9 decorado 16 16 modelo=lost_rockarray_a giro=276 escala=0.55 dx=0.55 dz=0.0
-; pieza d_totemrock_b_4 decorado 19 20 modelo=lost_totemrock_b giro=270 escala=1.01 dx=0.55 dz=0.0
-; pieza d_largewall_6x9_8 decorado 19 22 modelo=lost_largewall_6x9 giro=274 escala=0.43 dx=0.55 dz=0.0
-; pieza d_largewall_6x9_9 decorado 20 2 modelo=lost_largewall_6x9 giro=269 escala=0.43 dx=0.55 dz=0.0
-; pieza d_stonearray_b_17 decorado 30 3 modelo=lost_stonearray_b giro=274 escala=0.7 dx=0.55 dz=0.0
-; pieza d_stonearray_b_18 decorado 30 4 modelo=lost_stonearray_b giro=271 escala=0.7 dx=0.55 dz=0.0
-; pieza d_totemrock_b_5 decorado 30 6 modelo=lost_totemrock_b giro=266 escala=1.01 dx=0.55 dz=0.0
-; pieza d_rockarray_a_10 decorado 30 10 modelo=lost_rockarray_a giro=258 escala=0.55 dx=0.55 dz=0.0
-; pieza d_stonearray_b_19 decorado 30 12 modelo=lost_stonearray_b giro=264 escala=0.7 dx=0.55 dz=0.0
-; pieza d_rockarray_a_11 decorado 30 13 modelo=lost_rockarray_a giro=266 escala=0.55 dx=0.55 dz=0.0
-; pieza d_rockarray_a_12 decorado 30 14 modelo=lost_rockarray_a giro=271 escala=0.55 dx=0.55 dz=0.0
+; pieza d_largearch decorado 15 17 modelo=lost_largearch
+; pieza d_greentrees decorado 11 23 modelo=lost_greentrees
+; pieza d_greentrees_2 decorado 19 22 modelo=lost_greentrees giro=40
+; pieza d_deadtree_a decorado 12 19 modelo=lost_deadtree_a
+; pieza d_bush decorado 13 24 modelo=lost_bush
+; pieza d_bush_2 decorado 18 24 modelo=lost_bush giro=70
+; pieza d_fern_a decorado 11 21 modelo=lost_fern_a
+; pieza d_fern_a_2 decorado 17 21 modelo=lost_fern_a giro=120
+; pieza d_fern_a_3 decorado 14 19 modelo=lost_fern_a
+; pieza d_largegroundplant decorado 18 19 modelo=lost_largegroundplant
+; pieza d_roundleaf_cluster decorado 12 22 modelo=lost_roundleaf_cluster
+; pieza d_clover_cluster decorado 16 24 modelo=lost_clover_cluster
+; pieza d_wallgrassclump_a decorado 19 19 modelo=lost_wallgrassclump_a
+; pieza d_flowers_a decorado 13 22 modelo=lost_flowers_a
+; pieza d_violetflowercluster decorado 17 23 modelo=lost_violetflowercluster
+; pieza d_largemushrooms_b decorado 19 20 modelo=lost_largemushrooms_b
+; pieza d_largemushrooms_a decorado 11 19 modelo=lost_largemushrooms_a
+; pieza d_smallmushrooms_a decorado 16 19 modelo=lost_smallmushrooms_a
+; pieza d_root_b decorado 18 18 modelo=lost_root_b
+; pieza d_root_d decorado 12 18 modelo=lost_root_d
+; pieza d_stair_c decorado 15 22 modelo=lost_stair_c
+; pieza d_standinglantern decorado 13 18 modelo=lost_standinglantern
+; pieza d_standinglantern_2 decorado 17 18 modelo=lost_standinglantern giro=180
+; pieza d_stonearray_b decorado 10 8 modelo=lost_stonearray_b
+; pieza d_stonearray_a decorado 20 8 modelo=lost_stonearray_a
+; pieza d_stalagmite_a decorado 9 13 modelo=lost_stalagmite_a
+; pieza d_stalagmite_b decorado 22 14 modelo=lost_stalagmite_b
+; pieza d_stonecolumn_a decorado 12 10 modelo=lost_stonecolumn_a
+; pieza d_stonecolumn_a_2 decorado 18 10 modelo=lost_stonecolumn_a giro=180
+; pieza d_arch decorado 15 12 modelo=lost_arch
+; pieza d_calca_glowingcrack_a decorado 10 9 modelo=lost_calca_glowingcrack_a
+; pieza d_largemushrooms_c decorado 9 14 modelo=lost_largemushrooms_c
+; pieza d_middlemushrooms_a decorado 20 14 modelo=lost_middlemushrooms_a
+; pieza d_smallmushrooms_b decorado 10 14 modelo=lost_smallmushrooms_b
+; pieza d_singlecrystal_blue_a decorado 22 9 modelo=lost_singlecrystal_blue_a
+; pieza d_singlecrystal_red_a decorado 22 13 modelo=lost_singlecrystal_red_a
+; pieza d_lantern decorado 8 9 modelo=lost_lantern
+; pieza d_standinglantern_3 decorado 11 13 modelo=lost_standinglantern
+; pieza d_standinglantern_4 decorado 19 13 modelo=lost_standinglantern giro=180
+; pieza d_smallroot_b decorado 13 8 modelo=lost_smallroot_b
+; pieza d_smallroot_d decorado 17 8 modelo=lost_smallroot_d
+; pieza d_entrance decorado 4 4 modelo=lost_entrance
+; pieza d_straightrail_b decorado 3 6 modelo=lost_straightrail_b giro=90
+; pieza d_straightrail_b_2 decorado 3 8 modelo=lost_straightrail_b giro=90
+; pieza d_straightrail_b_3 decorado 3 10 modelo=lost_straightrail_b giro=90
+; pieza d_straightrail_b_4 decorado 3 12 modelo=lost_straightrail_b giro=90
+; pieza d_straightrail_b_5 decorado 3 14 modelo=lost_straightrail_b giro=90
+; pieza d_roundrail_b decorado 3 16 modelo=lost_roundrail_b giro=90
+; pieza d_trolley_a decorado 3 8 modelo=lost_trolley_a giro=90
+; pieza d_trolley_c decorado 3 13 modelo=lost_trolley_c giro=90
+; pieza d_cart decorado 6 7 modelo=lost_cart
+; pieza d_standinglantern_5 decorado 1 10 modelo=lost_standinglantern
+; pieza d_standinglantern_6 decorado 4 11 modelo=lost_standinglantern
+; pieza d_lantern_2 decorado 2 4 modelo=lost_lantern
+; pieza d_lantern_3 decorado 4 15 modelo=lost_lantern
+; pieza d_standinglantern_7 decorado 1 14 modelo=lost_standinglantern
+; pieza d_barrel_a decorado 6 5 modelo=lost_barrel_a
+; pieza d_barrel_c decorado 6 4 modelo=lost_barrel_c
+; pieza d_bag_a decorado 1 5 modelo=lost_bag_a
+; pieza d_bag_c decorado 1 6 modelo=lost_bag_c
+; pieza d_box_a decorado 1 15 modelo=lost_box_a
+; pieza d_box_c decorado 2 16 modelo=lost_box_c
+; pieza d_brokenbox_c decorado 6 15 modelo=lost_brokenbox_c
+; pieza d_toolbox decorado 1 12 modelo=lost_toolbox
+; pieza d_pickaxe decorado 5 9 modelo=lost_pickaxe
+; pieza d_shovel decorado 5 13 modelo=lost_shovel
+; pieza d_dynamite_b decorado 6 13 modelo=lost_dynamite_b
+; pieza d_blastingmachine decorado 6 14 modelo=lost_blastingmachine
+; pieza d_bomb decorado 5 16 modelo=lost_bomb
+; pieza d_minearch decorado 7 11 modelo=lost_minearch giro=90 escala=1.8
+; pieza d_smallplatform_a decorado 5 5 modelo=lost_smallplatform_a
+; pieza d_hex_a decorado 25 5 modelo=lost_hex_a
+; pieza d_hex_c decorado 29 5 modelo=lost_hex_c
+; pieza d_hex_d decorado 30 9 modelo=lost_hex_d
+; pieza d_hex_e decorado 25 14 modelo=lost_hex_e
+; pieza d_hex_f decorado 29 15 modelo=lost_hex_f
+; pieza d_crystal_blue_a decorado 26 8 modelo=lost_crystal_blue_a
+; pieza d_crystal_blue_b decorado 28 7 modelo=lost_crystal_blue_b
+; pieza d_crystal_blue_c decorado 30 12 modelo=lost_crystal_blue_c
+; pieza d_crystal_red_a decorado 25 11 modelo=lost_crystal_red_a
+; pieza d_crystal_red_b decorado 28 12 modelo=lost_crystal_red_b
+; pieza d_crystal_red_c decorado 27 15 modelo=lost_crystal_red_c
+; pieza d_singlecrystal_blue_b decorado 27 10 modelo=lost_singlecrystal_blue_b
+; pieza d_singlecrystal_red_b decorado 29 10 modelo=lost_singlecrystal_red_b
+; pieza d_smallcrystals decorado 26 13 modelo=lost_smallcrystals
+; pieza d_glowingplant_a decorado 24 7 modelo=lost_glowingplant_a
+; pieza d_glowingplant_b decorado 30 6 modelo=lost_glowingplant_b
+; pieza d_glowingplant_c decorado 24 15 modelo=lost_glowingplant_c
+; pieza d_stalagmite_a_2 decorado 27 4 modelo=lost_stalagmite_a giro=200
+; pieza d_calca_glowingdots decorado 26 5 modelo=lost_calca_glowingdots
+; pieza d_lantern_4 decorado 23 10 modelo=lost_lantern
+; pieza d_portalblocks decorado 15 1 modelo=lost_portalblocks escala=0.4
+; pieza d_shrinearch decorado 15 6 modelo=lost_shrinearch
+; pieza d_totem_a decorado 11 3 modelo=lost_totem_a
+; pieza d_totemstone_b decorado 19 3 modelo=lost_totemstone_b
+; pieza d_totemrock_b decorado 10 2 modelo=lost_totemrock_b
+; pieza d_totemrock_c decorado 20 2 modelo=lost_totemrock_c
+; pieza d_calca_symbol_a decorado 11 2 modelo=lost_calca_symbol_a
+; pieza d_calca_symbol_c decorado 19 2 modelo=lost_calca_symbol_c
+; pieza d_table decorado 15 3 modelo=lost_table
+; pieza d_standinglantern_8 decorado 12 5 modelo=lost_standinglantern
+; pieza d_standinglantern_9 decorado 18 5 modelo=lost_standinglantern giro=180
+; pieza d_candle_a decorado 13 3 modelo=lost_candle_a
+; pieza d_candle_c decorado 17 3 modelo=lost_candle_c
+; pieza d_candle_d decorado 14 4 modelo=lost_candle_d
+; pieza d_candle_e decorado 16 4 modelo=lost_candle_e
+; pieza d_book_a decorado 13 4 modelo=lost_book_a
+; pieza d_book_c decorado 17 4 modelo=lost_book_c

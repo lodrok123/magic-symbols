@@ -839,6 +839,10 @@ void light() {
 ## La Cueva (23/10): «bosque» (de serie: árboles en las paredes, hierba) o «cueva» (paredes de roca del kit de cueva según sus vecinas, suelo de
 ## roca y basalto, estalagmitas). Ver `_pared_cueva`.
 @export var estilo: String = "bosque"      ## «pantano» (8/11): suelo de BARRO (ver `_textura_barro`); el resto del estilo es el del bosque
+## 24/11 (pack Stylized Lost Cave): con estilo «cueva», «lostcave» viste los `#` con las rocas del pack en vez del kit de Tripo (ver
+## presentacion/paredes_lostcave.gd) y siembra junto a las paredes setas y cristalitos del pack. "" = el kit de siempre. Si el pack no está
+## generado en esta máquina (arte/lostcave, fuera de git) vuelve solo al kit.
+@export var paredes_cueva: String = ""
 ## Bloque 4 EoW: escala del render 3D (1 = nativa). Medido en una Intel UHD 620 (Bosque): 0,75 da ≈ +20 % de FPS; el HUD sigue nítido.
 @export_range(0.5, 1.0, 0.05) var escala_render: float = 1.0
 ## Bloque 4 EoW: la sombra de árboles y pinos la proyecta una copia reducida (`SOMBRA_REDUCIDA`). Desmarcar = la malla entera, como antes.
@@ -4114,6 +4118,56 @@ func _suelo_de_cueva(q: Vector2i) -> bool:
 	return _en_mapa(q) and _letra(q) != "#" and _letra(q) != " "
 
 
+## --- 24/11: paredes y adornos de cueva con el pack Stylized Lost Cave (`paredes_cueva = "lostcave"`) ---
+const PAREDES_LC = preload("res://presentacion/paredes_lostcave.gd")
+## Adornos junto a la pared (los mismos huecos que DECOR_CUEVA): piezas del pack bajas, que no cierran la casilla.
+const DECOR_LC: Array = ["lost_smallmushrooms_a", "lost_smallmushrooms_b", "lost_groundmushrooms_b", "lost_smallcrystals", "lost_smallmushrooms_c",
+	"lost_clover_cluster", "lost_groundmushrooms_a"]
+
+
+func _lostcave() -> bool:
+	return paredes_cueva == "lostcave" and PAREDES_LC.disponible()
+
+
+func _paredes_lostcave(c: Vector2i) -> void:
+	for r in PAREDES_LC.rocas(c, Callable(self, "_suelo_de_cueva"), ALTO):
+		_poner_escena(String(r[0]), c, r[1], true)
+
+
+func _decor_lostcave(c: Vector2i) -> void:
+	var h: int = _hash(c.x, c.y, 5)
+	var id: String = String(DECOR_LC[h % DECOR_LC.size()])
+	var p: Vector3 = _centro_celda(c, ALTO) + Vector3(float(h % 61 - 30) / 100.0, 0.0, float((h >> 6) % 61 - 30) / 100.0) * S * 0.5
+	_poner_escena(id, c, Transform3D(Basis(Vector3.UP, deg_to_rad(float(h % 360))), p), false)
+
+
+## Una pieza con ESCENA propia ya a su medida (las lost_* del pack: arte/lostcave/piezas/<id>.tscn) en la transformación `t`. Se apunta en el
+## registro como las de `_poner` (así sale en el nivel horneado: HorneadorNivel busca las lost_* en su carpeta) y sus materiales pasan por
+## Ocluso3D como el decorado en lotes.
+func _poner_escena(id: String, c: Vector2i, t: Transform3D, bloquea: bool) -> Node3D:
+	_registro.append([id, c, t, bloquea, "marcador" if _en_marcador else "decor"])
+	if _modo_escena or (_modo_nivel and not _en_marcador):
+		return null
+	if bloquea:
+		_bloqueadas[c] = true
+	var ruta: String = PAREDES_LC.RUTA + id + ".tscn"
+	if not ResourceLoader.exists(ruta):
+		return null
+	var n: Node3D = (load(ruta) as PackedScene).instantiate() as Node3D
+	n.transform = t
+	if transparencia_jugador:
+		for h in n.find_children("*", "MeshInstance3D", true, false):
+			var mi: MeshInstance3D = h as MeshInstance3D
+			if mi.mesh == null:
+				continue
+			for s in range(mi.mesh.get_surface_count()):
+				var m: Material = mi.get_active_material(s)
+				if m != null:
+					mi.set_surface_override_material(s, Ocluso3D.convertir(m.duplicate() as Material))
+	_props.add_child(n)
+	return n
+
+
 func _junto_a_pared(c: Vector2i) -> bool:
 	for d in [Vector2i(0, 1), Vector2i(1, 0), Vector2i(0, -1), Vector2i(-1, 0)]:
 		if _en_mapa(c + d) and _letra(c + d) == "#":
@@ -4139,7 +4193,9 @@ func _colocar_letras() -> void:
 				"#":
 					if not (_modo_escena or _modo_nivel) or x == 0 or y == 0 or x == _mapa[y].length() - 1 or y == _lado - 1:
 						_bloqueadas[c] = true      # en modo escena el borde sigue cerrado; el resto lo deciden las piezas del .tscn
-					if estilo == "cueva":
+					if estilo == "cueva" and _lostcave():
+						_paredes_lostcave(c)
+					elif estilo == "cueva":
 						_pared_cueva(c)
 					elif estilo == "pantano":
 						_muro_pantano(c, h)
@@ -4326,7 +4382,10 @@ func _colocar_letras() -> void:
 				".":
 					if estilo == "cueva":
 						if h % 11 == 0 and _junto_a_pared(c):        # cueva: estalagmitas y rocas pegadas a la pared, no en medio del paso
-							_poner(String(DECOR_CUEVA[_hash(x, y, 5) % DECOR_CUEVA.size()]), c, ALTO, false)
+							if _lostcave():
+								_decor_lostcave(c)
+							else:
+								_poner(String(DECOR_CUEVA[_hash(x, y, 5) % DECOR_CUEVA.size()]), c, ALTO, false)
 					elif h % 9 == 0 and _tipo_suelo(c) == 0 and nivel != "pruebas":      # el banco de pruebas va limpio
 						_poner(String(decor[_hash(x, y, 5) % decor.size()]), c, ALTO, false)
 

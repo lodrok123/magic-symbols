@@ -15,6 +15,8 @@ const DIR: String = "res://arte/lostcave/capturas/nivel"
 ## Casillas que tienen que quedar cerradas (pieza sólida) y casillas que se tienen que poder pisar (arco, losas, paso libre).
 const CERRADAS: Array = ["d_stonecolumn_a", "d_trolley_a", "d_crystal_blue_a", "d_totem_a", "d_stalagmite_a", "d_cart"]
 const LIBRES: Array = ["d_arch", "d_largearch", "d_shrinearch", "d_stair_c", "d_minearch", "d_clover_cluster"]
+## Arcos: casilla de una pata respecto al centro (la otra, la opuesta). El arco del cruce y el del santuario miran al sur (patas en X); el de la mina va girado.
+const PATAS: Dictionary = {"d_arch": Vector2i(1, 0), "d_shrinearch": Vector2i(1, 0), "d_minearch": Vector2i(0, 1)}
 
 var _dir: String = ""
 var _piezas: Dictionary = {}       ## id de pieza -> Vector2i (casilla)
@@ -47,6 +49,20 @@ func _escenario() -> void:
 	for id in LIBRES:
 		if _piezas.has(id):
 			_ok("3 se pisa: %s" % id, not Terreno3D.bloqueada(_piezas[id]))
+	# 24/11: las PATAS de los arcos cierran su casilla (antes se atravesaban); el centro, de arriba, sigue libre.
+	for id in PATAS:
+		if _piezas.has(id):
+			var c0: Vector2i = _piezas[id]
+			var lado: Vector2i = PATAS[id]
+			_ok("3 las patas cierran su casilla: %s" % id, Terreno3D.bloqueada(c0 + lado) and Terreno3D.bloqueada(c0 - lado),
+				"%s %s / %s %s" % [str(c0 + lado), str(Terreno3D.bloqueada(c0 + lado)), str(c0 - lado), str(Terreno3D.bloqueada(c0 - lado))])
+	# 24/11: las paredes del pack (paredes_cueva = "lostcave") salen de los «#» (una roca por cada lado de muro que da a suelo).
+	var rocas: int = 0
+	for n in maqueta.find_children("*", "Node3D", true, false):
+		var id_n: String = String((n as Node).get_meta("id", ""))
+		if id_n.begins_with("lost_") and not _es_pieza_mapa(n):
+			rocas += 1
+	_ok("5 hay paredes del pack", rocas > 50, "%d rocas" % rocas)
 	# Recorrido: desde la casilla de inicio, andando por casillas no bloqueadas, se llega al centro de cada sala.
 	var inicio: Vector2i = Terreno3D.celda_de(jugador.global_position)
 	var vistas: Dictionary = {inicio: true}
@@ -115,6 +131,16 @@ func _arriba(cam: Camera3D, r: Rect2i, ancho_px: int, nombre: String) -> void:
 	cam.current = true
 	await avanzar(25)
 	_guardar(nombre)
+
+
+## ¿Es una de las piezas que pone el mapa (`; pieza d_...`) y no una roca de pared de la maqueta?
+func _es_pieza_mapa(n: Node) -> bool:
+	var p: Node = n
+	while p != null:
+		if _piezas.has(String(p.name)):
+			return true
+		p = p.get_parent()
+	return false
 
 
 func _poner_jugadora(c: Vector2i) -> void:

@@ -50,6 +50,23 @@ Si solo cambias escalas, giros, colisión o emisión en la tabla, basta con el �
 - Las que brillan (faroles, velas, cristales, hexágonos y plantas brillantes) llevan su propia luz (`TablaLostCave.LUCES`): en la cueva del juego
   es lo que alumbra.
 
+## Paredes de cueva y generador de mapas
+
+- Con estilo «cueva» y `paredes_cueva = "lostcave"` en la escena (PruebaTest2), la maqueta viste cada `#` que toca suelo con rocas del pack, en
+  lugar del kit de Tripo (`presentacion/paredes_lostcave.gd`):
+  - Hay una roca por cada lado de muro que da a suelo, mirando a la sala y escalada por su fondo real, así que no quedan huecos.
+  - La pared norte es alta, salvo que tenga otra sala detrás. A los lados van roquedales; al sur, losas bajas.
+  - Junto a las paredes se siembran setas y cristalitos del pack.
+  - Si el pack no está generado en esta máquina, vuelve solo al kit.
+- En el **generador de mapas** está la opción «Paredes (cueva)»: «Kit de cueva» o «Rocas del pack Lost Cave». El exportador escribe
+  `paredes_cueva` en la escena.
+- El horneado (F9 o «Hornear») encuentra las `lost_*` en `arte/lostcave/piezas/`.
+- Prueba de punta a punta: `godot --path . --script res://herramientas/captura_lostcave_generado.gd [-- dejar]`. Genera una cueva y una
+  mazmorra con estas paredes, las exporta, las carga, cuenta las rocas y comprueba que no hay avisos. Al acabar borra lo exportado, salvo con
+  `dejar`.
+- Los **arcos y túneles** (`CON_PATAS` en la tabla) llevan, además de su malla exacta, una forma convexa por pata y la marca
+  `huella_por_forma`. Así `Puzle3D` cierra las casillas de las patas y deja libre el paso de debajo.
+
 ## Decisiones (24/11/2026)
 
 - **Texturas pintadas del pack**, no colores planos de la paleta como en Provencal. Lo pidió Pablo («texturas a 1K»).

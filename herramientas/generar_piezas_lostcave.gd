@@ -468,6 +468,11 @@ func _generar(nombre: String) -> String:
 			var exacta := ConcavePolygonShape3D.new()
 			exacta.set_faces(caras)
 			formas.append(exacta)
+			if T.con_patas(nombre):
+				var patas: Array = _patas(caras)
+				formas.append_array(patas)
+				raiz.set_meta("huella_por_forma", true)
+				raiz.set_meta("patas", patas.size())
 		elif casco != null:
 			formas = _trozos_convexos(casco.mesh, t * _xf(casco, esc))
 		if formas.is_empty() and malla is ArrayMesh:
@@ -537,14 +542,55 @@ func _trozos_convexos(casco: Mesh, t: Transform3D) -> Array:
 		for k in soldado:
 			var r: int = buscar.call(int(soldado[k]))
 			if not grupos.has(r):
-				grupos[r] = PackedVector3Array()
-			(grupos[r] as PackedVector3Array).append(t * v[int(soldado[k])])
+				grupos[r] = []
+			(grupos[r] as Array).append(t * v[int(soldado[k])])
 		for r in grupos:
-			var puntos: PackedVector3Array = grupos[r]
+			var puntos := PackedVector3Array(grupos[r] as Array)
 			if puntos.size() >= 4:
 				var forma := ConvexPolygonShape3D.new()
 				forma.points = puntos
 				formas.append(forma)
+	return formas
+
+
+## Las PATAS de una pieza con hueco: los vértices de sus caras por debajo de ALTO_PATA, agrupados en una rejilla XZ de CELDA_PATA por contacto
+## (8 vecinas); cada grupo de al menos PATA_MIN celdas es un ConvexPolygonShape3D (sus puntos y los mismos a ALTO_PATA, para que tenga cuerpo).
+func _patas(caras: PackedVector3Array) -> Array:
+	var celdas: Dictionary = {}          # Vector2i -> Array de puntos (Array y no PackedVector3Array: el Packed del diccionario se copia al añadir y se quedaba vacío)
+	for v in caras:
+		if v.y > T.ALTO_PATA:
+			continue
+		var k := Vector2i(floori(v.x / T.CELDA_PATA), floori(v.z / T.CELDA_PATA))
+		if not celdas.has(k):
+			celdas[k] = []
+		(celdas[k] as Array).append(v)
+	var vistas: Dictionary = {}
+	var formas: Array = []
+	for k0 in celdas:
+		if vistas.has(k0):
+			continue
+		var grupo: Array = [k0]
+		vistas[k0] = true
+		var i: int = 0
+		while i < grupo.size():
+			var k: Vector2i = grupo[i]
+			i += 1
+			for dx in [-1, 0, 1]:
+				for dz in [-1, 0, 1]:
+					var q := Vector2i(k.x + dx, k.y + dz)
+					if celdas.has(q) and not vistas.has(q):
+						vistas[q] = true
+						grupo.append(q)
+		if grupo.size() < T.PATA_MIN:
+			continue
+		var puntos := PackedVector3Array()
+		for k in grupo:
+			for v in (celdas[k] as Array):
+				puntos.append(Vector3(v.x, 0.0, v.z))
+				puntos.append(Vector3(v.x, T.ALTO_PATA, v.z))
+		var forma := ConvexPolygonShape3D.new()
+		forma.points = puntos
+		formas.append(forma)
 	return formas
 
 

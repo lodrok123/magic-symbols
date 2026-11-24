@@ -62,6 +62,13 @@ const ALTO_MIN_SOLIDO: float = 0.45
 ## y las columnas se atravesaban en el nivel de prueba.)
 const COLISION_EXACTA: Array = ["Arch", "LargeArch", "ShrineArch", "MineArch", "Entrance", "Tunnel", "PortalBlocks", "Platform_a", "SmallPlatform",
 	"Stair", "FlatStone", "FlatPlatform"]
+## De esas, las que tienen PATAS (24/11): además de la malla exacta llevan una forma convexa por pata (lo que la malla tiene por debajo de
+## ALTO_PATA, agrupado por contacto) y la marca `huella_por_forma`, así `Puzle._bloquear_huella` cierra las casillas de las patas y deja libre el
+## paso de debajo. Antes las patas se atravesaban andando.
+const CON_PATAS: Array = ["Arch", "LargeArch", "ShrineArch", "MineArch", "Entrance", "Tunnel", "PortalBlocks"]
+const ALTO_PATA: float = 0.9             ## u: lo que está por debajo de esto es «pata»
+const CELDA_PATA: float = 0.35           ## u: rejilla con la que se agrupan los trozos de pata (más grande = se unen patas cercanas)
+const PATA_MIN: int = 3                  ## celdas mínimas para que un trozo cuente como pata (quita piedrecitas sueltas)
 
 ## MATERIALES: cómo se traduce cada shader de Unity (Shader Graph de HDRP) a Godot.
 ##   pbr   color + normal + ORM (+ emisión) (+ recorte por opacidad, a doble cara)   -> StandardMaterial3D
@@ -145,6 +152,14 @@ static func luz_de(pieza: String) -> Array:
 		if corto.begins_with(String(pre)):
 			return LUCES[pre]
 	return []
+
+
+static func con_patas(pieza: String) -> bool:
+	var corto: String = pieza.trim_prefix("SM_")
+	for pre in CON_PATAS:
+		if corto.begins_with(String(pre)):
+			return true
+	return false
 
 
 static func colision_exacta(pieza: String) -> bool:

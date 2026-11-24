@@ -9,6 +9,7 @@ script = ExtResource("1_poc")
 fuego_nuevo = true
 nivel = "LostCave"
 estilo = "cueva"
+paredes_cueva = "lostcave"
 zona_luz = "cueva"
 agua_fisica = true
 agua_corre = false

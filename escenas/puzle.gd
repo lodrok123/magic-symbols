@@ -3009,17 +3009,30 @@ func _colocar_pieza_arte(id: String, cont: Node, nombre: String, pos: Vector3, g
 ## Las casillas que toca la colision de la pieza (la caja XZ de sus cascos convexos, con >= 0,3 u de solape en cada eje) quedan bloqueadas para quien camina: la solidez de los mapas de letras es por casillas
 ## (FuenteCasillas), no por la colision fisica, que solo ven los hechizos.
 func _bloquear_huella(n: Node3D) -> void:
+	# 24/11: una pieza con `huella_por_forma` (los arcos del pack Lost Cave: una forma convexa por PATA) bloquea forma a forma; con la caja de
+	# todas juntas se cerraba también el paso de debajo del arco.
+	var por_forma: bool = bool(n.get_meta("huella_por_forma", false))
 	var ini := Vector2(INF, INF)
 	var fin := Vector2(-INF, -INF)
 	for h in n.find_children("*", "CollisionShape3D", true, false):
 		var cs: CollisionShape3D = h as CollisionShape3D
 		if cs.shape is ConvexPolygonShape3D:
+			if por_forma:
+				ini = Vector2(INF, INF)
+				fin = Vector2(-INF, -INF)
 			for p in (cs.shape as ConvexPolygonShape3D).points:
 				var w: Vector3 = cs.global_transform * p
 				ini = Vector2(minf(ini.x, w.x), minf(ini.y, w.z))
 				fin = Vector2(maxf(fin.x, w.x), maxf(fin.y, w.z))
-	if ini.x == INF:
+			if por_forma:
+				_bloquear_caja(n, ini, fin)
+	if por_forma or ini.x == INF:
 		return
+	_bloquear_caja(n, ini, fin)
+
+
+## Cierra las casillas que la caja XZ [ini, fin] (m) solapa al menos 0,3 m en cada eje.
+func _bloquear_caja(n: Node3D, ini: Vector2, fin: Vector2) -> void:
 	var a: Vector2i = Terreno3D.celda_de(Vector3(ini.x, 0.0, ini.y))
 	var b: Vector2i = Terreno3D.celda_de(Vector3(fin.x, 0.0, fin.y))
 	var cas: float = Terreno3D.casilla
