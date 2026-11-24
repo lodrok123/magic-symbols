@@ -108,7 +108,6 @@ func _montar_piezas() -> void:
 			add_child(pieza)
 			pieza.position = Vector3(x + caja.size.x * 0.5, 0.0, z)
 			if cat == "calca":
-				pieza.position.y = 1.2
 				_pared(pieza.position)
 			_convertir(pieza)
 			_rotulo(pieza, caja)
@@ -142,7 +141,7 @@ func _rotulo(pieza: Node3D, caja: AABB) -> void:
 	r.billboard = BaseMaterial3D.BILLBOARD_ENABLED
 	r.no_depth_test = true
 	r.outline_size = 8
-	r.position = pieza.position + Vector3(0, caja.size.y + 0.4 + (1.2 if pieza.get_meta("categoria", "") == "calca" else 0.0), 0)
+	r.position = pieza.position + Vector3(0, caja.size.y + 0.4 + (T.CALCA_ALTO if pieza.get_meta("categoria", "") == "calca" else 0.0), 0)
 	add_child(r)
 	_rotulos.append(r)
 

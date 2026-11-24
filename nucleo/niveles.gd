@@ -27,6 +27,7 @@ const ESCENAS: Dictionary = {
 	"Provencal": "res://escenas/PruebaProvencal.tscn",            # 7/11: mapa de muestreo del pack Fantasy Provencal (generado por herramientas/generar_mapa_provencal.gd)
 	"Pantano": "res://escenas/PruebaPantano.tscn",                # 8/11: mapa de muestra del bioma Pantano (luz «pantano», barro, bruma sobre el agua, huecos de las piezas nuevas)
 	"Bosque_02": "res://escenas/PruebaBosque02.tscn",             # 3/11: «El corazón del Bosque», 40 × 40 (docs/PLAN_BOSQUE_02.md)
+	"LostCave": "res://escenas/PruebaLostCave.tscn",              # 24/11: nivel de prueba del pack Stylized Lost Cave (piezas lost_*, fuera de git: arte/lostcave/LEEME.md)
 }
 const NIVEL_INICIAL: String = "Bosque_02"   ## donde entra «Nueva partida» del menú principal (era Bosque_01_v01 hasta el 3/11; antes, la `run/main_scene`)
 const T_FUNDIDO: float = 0.35

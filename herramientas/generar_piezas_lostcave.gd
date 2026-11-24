@@ -444,11 +444,22 @@ func _generar(nombre: String) -> String:
 	modelo.name = "modelo"
 	raiz.add_child(modelo)
 	modelo.add_child(mi)
+	var luz: Array = T.luz_de(nombre)
+	if not luz.is_empty():
+		var omni := OmniLight3D.new()
+		omni.name = "luz"
+		omni.light_color = luz[0]
+		omni.light_energy = float(luz[1])
+		omni.omni_range = float(luz[2])
+		omni.light_specular = 0.0
+		omni.shadow_enabled = false
+		omni.position = Vector3(0.0, alto * float(luz[3]), 0.0)
+		raiz.add_child(omni)
 
 	var n_formas: int = 0
 	if solido:
 		var formas: Array = []
-		if T.COLISION_EXACTA.has(cat):
+		if T.colision_exacta(nombre):
 			# arcos, túneles, bocamina, escaleras: la envolvente convexa del autor es UNA por malla y taparía el paso; aquí va la malla tal cual
 			var caras: PackedVector3Array = malla.get_faces()
 			var tx: Transform3D = t * xf_malla
@@ -557,6 +568,8 @@ func _calca(m: String) -> bool:
 	dc.name = "calca"
 	dc.size = Vector3(T.CALCA_LADO, T.CALCA_FONDO, T.CALCA_LADO)
 	dc.rotation_degrees = Vector3(90, 0, 0)        # el Decal proyecta por -Y: girado, proyecta por -Z
+	dc.position = Vector3(0, T.CALCA_ALTO, 0)
+	dc.normal_fade = T.CALCA_FUNDIDO_NORMAL
 	dc.texture_albedo = bc
 	var nm: Texture2D = _textura(_tex(m, ["_NormalMap", "_Normal_Map"]))
 	if nm != null:

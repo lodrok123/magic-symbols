@@ -1611,10 +1611,15 @@ static func _aviso_linea(avisos: Array, n: int, linea: String, msg: String) -> v
 
 
 const RUTA_PIEZAS_ARTE: String = "res://arte/piezas/"
+## 24/11: las piezas del pack Stylized Lost Cave (`lost_*`) viven aparte, fuera de git (arte/lostcave/LEEME.md).
+const RUTA_PIEZAS_LOSTCAVE: String = "res://arte/lostcave/piezas/"
 
-## ¿Existe la escena `arte/piezas/<id>.tscn`? (decorado con una pieza que no es de la lista cerrada de CLAVES).
+static func _ruta_pieza_arte(id: String) -> String:
+	return (RUTA_PIEZAS_LOSTCAVE if id.begins_with("lost_") else RUTA_PIEZAS_ARTE) + id + ".tscn"
+
+## ¿Existe la escena `arte/piezas/<id>.tscn` (o `arte/lostcave/piezas/lost_*.tscn`)? (decorado con una pieza que no es de la lista cerrada de CLAVES).
 static func _pieza_arte_existe(id: String) -> bool:
-	return _id_valido(id) and ResourceLoader.exists(RUTA_PIEZAS_ARTE + id + ".tscn")
+	return _id_valido(id) and ResourceLoader.exists(_ruta_pieza_arte(id))
 
 
 static func _id_valido(s: String) -> bool:
@@ -2971,7 +2976,7 @@ func _colocar_pieza(id: String, cont: Node, nombre: String, pos: Vector3, giro: 
 ## 7/11: instancia `arte/piezas/<id>.tscn` tal cual (su escala y su `cuerpo` ya vienen horneados) en `pos`. Si la maqueta tiene el circulo de transparencia (`transparencia_jugador`),
 ## sus materiales pasan por `Ocluso3D.convertir` como los del decorado en lotes (`PruebaTest2._plantilla`); las copias son propias de esta pieza.
 func _colocar_pieza_arte(id: String, cont: Node, nombre: String, pos: Vector3, giro: float, escala: Vector3) -> Node3D:
-	var ps: PackedScene = load(RUTA_PIEZAS_ARTE + id + ".tscn") as PackedScene
+	var ps: PackedScene = load(_ruta_pieza_arte(id)) as PackedScene
 	if ps == null:
 		return null
 	var n: Node3D = ps.instantiate() as Node3D

@@ -54,9 +54,14 @@ const MAT_INFLAMABLE: Array = ["M_SupportBeams", "M_WoodSupport", "M_Boxes", "M_
 ## Colisión: se usan los «ConvexHulls» del autor (varias piezas convexas por malla: un arco deja pasar por debajo). Las piezas más bajas
 ## que esto (raíles, matas) no llevan cuerpo y se pisan, como ColisionPieza.ALTO_MIN_SOLIDO.
 const ALTO_MIN_SOLIDO: float = 0.45
-## Categorías cuya colisión es la malla exacta (ConcavePolygonShape3D, solo vale en cuerpos estáticos): la envolvente del autor es una sola
-## pieza convexa por malla y en un arco o un túnel taparía el hueco por donde se pasa.
-const COLISION_EXACTA: Array = ["estructura"]
+## Piezas (principio del nombre sin «SM_») cuya colisión es la malla exacta (ConcavePolygonShape3D, solo en cuerpos estáticos): las que tienen un
+## HUECO por el que se pasa (la envolvente del autor es una sola pieza convexa y lo taparía) y los suelos que se PISAN (losas, escaleras, plataformas).
+## Ojo: en los mapas de letras se camina por casillas y `Puzle._bloquear_huella` solo bloquea con envolventes convexas, así que estas piezas NO
+## cierran casillas: arcos y túneles se cruzan y sus patas hay que apoyarlas en casillas que ya estén cerradas. El resto (columnas, estalagmitas,
+## tótems, paredes, cristales, atrezo...) lleva la envolvente del autor y bloquea sus casillas. (24/11: antes era toda la categoría «estructura»
+## y las columnas se atravesaban en el nivel de prueba.)
+const COLISION_EXACTA: Array = ["Arch", "LargeArch", "ShrineArch", "MineArch", "Entrance", "Tunnel", "PortalBlocks", "Platform_a", "SmallPlatform",
+	"Stair", "FlatStone", "FlatPlatform"]
 
 ## MATERIALES: cómo se traduce cada shader de Unity (Shader Graph de HDRP) a Godot.
 ##   pbr   color + normal + ORM (+ emisión) (+ recorte por opacidad, a doble cara)   -> StandardMaterial3D
@@ -71,6 +76,21 @@ const MAT_ALIAS: Dictionary = {}
 const USAR_BRILLO_UNITY: bool = true
 ## Emisión: multiplicador sobre la fuerza de Unity (cristales 4, faroles 3,9, setas 1). Bajar si deslumbra con el glow del juego.
 const EMISION_ESCALA: float = 0.6
+## LUZ PROPIA (24/11): las piezas que brillan llevan una OmniLight3D, porque en la cueva del juego (casi a oscuras, LuzZona3D «cueva») la emisión
+## del material no alumbra nada alrededor. Por principio del nombre (sin «SM_»): [color, energía, alcance en u, altura como fracción del alto de la pieza].
+## Sin sombra y sin brillo especular (como las luces de los braseros). Fuego en rojos y naranjas, nunca amarillo; cristales con el color de su elemento.
+const LUCES: Dictionary = {
+	"StandingLantern": [Color(1.0, 0.58, 0.28), 2.4, 7.5, 0.8],
+	"Lantern": [Color(1.0, 0.58, 0.28), 1.5, 4.5, 0.6],
+	"Candle_": [Color(1.0, 0.50, 0.22), 0.9, 2.6, 1.0],
+	"Crystal_Blue": [Color(0.35, 0.80, 1.0), 1.8, 5.5, 0.6],
+	"Crysral_Red": [Color(1.0, 0.36, 0.14), 1.8, 5.0, 0.6],
+	"SingleCrystal_Blue": [Color(0.35, 0.80, 1.0), 0.9, 3.0, 0.6],
+	"SingleCrystal_Red": [Color(1.0, 0.36, 0.14), 0.9, 3.0, 0.6],
+	"SmallCrystals": [Color(0.40, 0.55, 1.0), 0.7, 2.5, 0.8],
+	"Hex_": [Color(0.40, 0.70, 1.0), 1.0, 5.0, 0.9],
+	"GlowingPlant": [Color(0.45, 0.85, 1.0), 0.7, 2.8, 0.9],
+}
 ## Llama de las velas: color (rojos y naranjas, nunca amarillo: gusto de Pablo y FuegoToy) y energía.
 const LLAMA_COLOR: Color = Color(1.0, 0.42, 0.12)
 const LLAMA_ENERGIA: float = 2.0
@@ -85,7 +105,10 @@ const ROCA_BRILLO: float = 0.8           ## multiplica la losa: con 1 la roca sa
 
 ## CALCAS: tamaño del cuadrado proyectado (u) y profundidad de proyección. El Decal mira a -Z: se apoya en una pared que tenga detrás.
 const CALCA_LADO: float = 1.6
-const CALCA_FONDO: float = 0.6
+const CALCA_FONDO: float = 3.0           ## alcance de la proyección hacia atrás (u): la calca se pone en la casilla de delante de la roca y llega a ella
+const CALCA_FUNDIDO_NORMAL: float = 0.6  ## no pinta lo que mira de lado a la proyección (el suelo): 0 = lo pinta todo
+## Altura del centro de la calca sobre la base de la pieza (u): así, puesta en el suelo como `decorado`, queda en la pared a la altura de la jugadora.
+const CALCA_ALTO: float = 1.2
 
 ## MARCA del autor pintada en dos texturas: se tapa copiando encima un trozo vecino de la misma textura.
 ## [x0, y0, x1, y1] en fracciones de la imagen (0-1) y el desplazamiento [dx, dy] del trozo que se copia encima.
@@ -113,6 +136,23 @@ static func categoria_de(pieza: String) -> String:
 			if corto.begins_with(String(pre)):
 				return String(cat)
 	return "vegetacion"
+
+
+## [color, energía, alcance, fracción de alto] de la luz propia de la pieza, o [] si no lleva.
+static func luz_de(pieza: String) -> Array:
+	var corto: String = pieza.trim_prefix("SM_")
+	for pre in LUCES:
+		if corto.begins_with(String(pre)):
+			return LUCES[pre]
+	return []
+
+
+static func colision_exacta(pieza: String) -> bool:
+	var corto: String = pieza.trim_prefix("SM_")
+	for pre in COLISION_EXACTA:
+		if corto.begins_with(String(pre)):
+			return true
+	return false
 
 
 static func material_unity(superficie: String) -> String:
