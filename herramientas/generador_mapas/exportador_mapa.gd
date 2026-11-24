@@ -86,6 +86,9 @@ static func texto_mapa(m: Dictionary) -> String:
 		if not (m.get("precipicio", []) as Array).is_empty():
 			var f0: Vector2i = (m["precipicio"] as Array)[0]
 			l.append("; PASO DE TIERRA: precipicio de %d casillas (letra espacio, sin suelo) desde (%d, %d), %d de hondo en el camino: se cruza con el puente de tierra (barrera + líneas) lanzado desde el borde." % [(m["precipicio"] as Array).size(), f0.x, f0.y, int(p.get("ancho_precipicio", 2))])
+	for bp in m.get("barreras_precipicio", []):
+		var pc: Vector2i = bp["pos"]
+		l.append("; PRECIPICIO «%s» en (%d, %d): %d casillas sin suelo (letra espacio), %d de hondo. Barrera sin activador: se cruza con el puente de tierra (barrera + líneas) lanzado desde el borde." % [String(bp["id"]), pc.x, pc.y, (bp["celdas"] as Array).size(), int(bp["hondo"])])
 	var limpio: Dictionary = {}
 	for k in p:
 		if not String(k).begins_with("_"):

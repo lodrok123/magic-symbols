@@ -87,7 +87,7 @@ static func parametros_defecto() -> Dictionary:
 		"tesoro": true, "llave": true, "salas_cerradas": 40,
 		# 22/11 (Pablo: «sala campamento»): cuántas salas grandes se vuelven CAMPAMENTO GOBLIN (ver `_poner_campamentos`). 0 = ninguno (como antes).
 		"campamentos": 0,
-		"puzles": 0, "barreras": 2, "b_braseros": true, "b_placa": true, "b_puente": true,
+		"puzles": 0, "barreras": 2, "b_braseros": true, "b_placa": true, "b_puente": true, "b_precipicio": true,
 		# nivel
 		"nombre": "MazmorraGen", "estilo": "cueva", "luz": "cueva", "salida_a": "", "rotulo": true,
 		# terreno: `terreno` pinta tierra en los pasillos y losas en la sala del tesoro (para que haya juntas entre suelos distintos);
@@ -176,6 +176,7 @@ var _b_salas: Array = []                ## por cada destino de `salida_a`, el id
 var _b_lados: Array = []                ## por cada destino, el lado del borde donde va su salida: "n" | "s" | "e" | "o" | ""
 var _suelo_bosque: Dictionary = {}      ## casilla → letra de suelo del bosque (g camino, . claro, , hierba, v hierba alta, R vado)
 var precipicio: Array = []              ## las casillas de VACÍO del paso de tierra (letra « »: sin suelo; se cruzan con el puente de tierra tendido desde el borde). Para el resto del generador son suelo ocupado
+var barreras_precipicio: Array = []     ## 24/11: las barreras que son precipicio {id, celdas, hondo, pos} (sus casillas también están en `precipicio`)
 
 
 func generar(parametros: Dictionary = {}, retoques: Dictionary = {}, enlaces_mano: Dictionary = {}, puzles_mano: Dictionary = {}, movidos: Dictionary = {},
@@ -216,6 +217,7 @@ func generar(parametros: Dictionary = {}, retoques: Dictionary = {}, enlaces_man
 	_b_lados = []
 	_suelo_bosque = {}
 	precipicio = []
+	barreras_precipicio = []
 	_tierra_puntos = []
 	match String(p["algoritmo"]):
 		"cueva":
@@ -2105,15 +2107,16 @@ func _poblar() -> void:
 	# 4c · Barreras: pasos obligados que se cierran con una puerta o un puente y se abren con un activador puesto ANTES de la barrera.
 	var quiero_barreras: int = clampi(int(p["barreras"]), 0, 8)
 	if quiero_barreras > 0:
-		if not bool(p["b_braseros"]) and not bool(p["b_placa"]):
-			avisos.append("Hay barreras pedidas pero ningún activador permitido (braseros o placa): no se pone ninguna.")
+		# 24/11: el PRECIPICIO es una barrera más (`b_precipicio`) que no necesita activador: la abre el puente de tierra de la jugadora.
+		if not bool(p["b_braseros"]) and not bool(p["b_placa"]) and not bool(p.get("b_precipicio", false)):
+			avisos.append("Hay barreras pedidas pero ningún activador permitido (braseros o placa) ni precipicios: no se pone ninguna.")
 		else:
 			for paso in _pasos_candidatos():
-				if _barreras.size() >= quiero_barreras:
+				if _barreras.size() + barreras_precipicio.size() >= quiero_barreras:
 					break
-				_intentar_barrera(paso, _barreras.size() + 1, vivas, cueva)
-			if _barreras.size() < quiero_barreras:
-				avisos.append("Solo caben %d barreras de las %d pedidas (hacen falta pasos obligados y salas libres para sus activadores)." % [_barreras.size(), quiero_barreras])
+				_intentar_barrera(paso, _barreras.size() + barreras_precipicio.size() + 1, vivas, cueva)
+			if _barreras.size() + barreras_precipicio.size() < quiero_barreras:
+				avisos.append("Solo caben %d barreras de las %d pedidas (hacen falta pasos obligados y salas libres para sus activadores)." % [_barreras.size() + barreras_precipicio.size(), quiero_barreras])
 	# 4d · Campamentos goblin (22/11): antes de las charcas y los enemigos, porque ponen su empalizada, su gente y su cofre.
 	_poner_campamentos(vivas, dmax, nv)
 	# 5 · Charcas dentro de las salas grandes (dejando libre el anillo de las paredes: no cortan el paso).
@@ -2819,6 +2822,71 @@ func _pasos_candidatos() -> Array:
 	return res
 
 
+## 24/11 (Pablo: «mételo como un puente más»): la barrera PRECIPICIO. Las casillas del paso pasan a ser vacío (letra « ») y se cruzan con el
+## puente de tierra (barrera + líneas) lanzado desde el suelo de un lado: no hay activador ni reglas, lo abre el hechizo. Se ahonda a lo largo
+## del paso hasta `ancho_precipicio` casillas mientras siga siendo un pasillo (pared a los dos lados), así en una puerta de sala queda de 1 y en
+## un pasillo de cueva o de bosque, del hondo pedido. Tiene que quedar suelo libre delante y detrás (de donde nace el puente y donde llega).
+func _barrera_precipicio(celdas: Array, n: int) -> bool:
+	var c0: Vector2i = celdas[0]
+	var eje: Vector2i = Vector2i.ZERO
+	for e in [Vector2i(1, 0), Vector2i(0, 1)]:
+		var ok: bool = true
+		for c in celdas:
+			ok = ok and _tipo((c as Vector2i) - e) == SUELO and _tipo((c as Vector2i) + e) == SUELO
+		if ok:
+			eje = e
+			break
+	if eje == Vector2i.ZERO:
+		return false
+	var trav: Vector2i = Vector2i(eje.y, eje.x)
+	# Las celdas del tramo, ordenadas a lo ancho: sus dos extremos tienen que dar a pared en cada capa.
+	var ancho: Array = celdas.duplicate()
+	ancho.sort_custom(func(a: Vector2i, b: Vector2i) -> bool: return a.x + a.y < b.x + b.y)
+	var capas: Array = [0]
+	var hondo: int = clampi(int(p.get("ancho_precipicio", 2)), 1, 5)
+	while capas.size() < hondo:
+		var puesta: bool = false
+		for j in [int(capas.max()) + 1, int(capas.min()) - 1]:
+			if _capa_pasillo(ancho, eje * j, trav):
+				capas.append(j)
+				puesta = true
+				break
+		if not puesta:
+			break
+	var jmin: int = int(capas.min())
+	var jmax: int = int(capas.max())
+	var todas: Array = []
+	for j in capas:
+		for c in ancho:
+			todas.append((c as Vector2i) + eje * int(j))
+	for c in todas:
+		if _ocupada.has(c) or (c as Vector2i).distance_squared_to(inicio) < 9:
+			return false
+	for c in ancho:
+		var antes: Vector2i = (c as Vector2i) + eje * (jmin - 1)
+		var despues: Vector2i = (c as Vector2i) + eje * (jmax + 1)
+		if _tipo(antes) != SUELO or _tipo(despues) != SUELO or _ocupada.has(antes) or _ocupada.has(despues):
+			return false
+	var bid: String = "precipicio_%d" % n
+	for c in todas:
+		_ocupar(c)
+		precipicio.append(c)
+		_suelo_bosque.erase(c)
+	barreras_precipicio.append({"id": bid, "celdas": todas, "hondo": capas.size(), "pos": c0})
+	return true
+
+
+## ¿La capa `ancho` + `desplaza` es pasillo? Todo suelo libre y, a los dos lados, pared.
+func _capa_pasillo(ancho: Array, desplaza: Vector2i, trav: Vector2i) -> bool:
+	for c in ancho:
+		var q: Vector2i = (c as Vector2i) + desplaza
+		if _tipo(q) != SUELO or _ocupada.has(q):
+			return false
+	var a: Vector2i = (ancho[0] as Vector2i) + desplaza - trav
+	var b: Vector2i = (ancho.back() as Vector2i) + desplaza + trav
+	return _tipo(a) == MURO and _tipo(b) == MURO
+
+
 ## Con `tapiar` (una sala de varias puertas): primero se tapian las otras puertas, si el resto del mapa sigue unido; así la que queda es paso obligado.
 func _intentar_barrera(paso: Dictionary, n: int, vivas: Array, cueva: bool) -> bool:
 	var g0: PackedByteArray = g.duplicate()
@@ -2866,9 +2934,24 @@ func _intentar_barrera_b(paso: Dictionary, n: int, vivas: Array, cueva: bool) ->
 			n_despues += 1
 	if n_antes < 12 or n_despues < 12:
 		return false
-	var puente: bool = paso["puerta"] == null or (bool(p["b_puente"]) and _pct(50.0))
-	if paso["puerta"] == null and not bool(p["b_puente"]):
+	# El tipo, al azar entre los permitidos: puerta (solo en una puerta de sala), puente plegado y precipicio (24/11).
+	var tipos: Array = []
+	if paso["puerta"] != null and (bool(p["b_braseros"]) or bool(p["b_placa"])):
+		tipos.append("puerta")
+	if bool(p["b_puente"]) and (bool(p["b_braseros"]) or bool(p["b_placa"])):
+		tipos.append("puente")
+	if bool(p.get("b_precipicio", false)):
+		tipos.append("precipicio")
+	if tipos.is_empty():
 		return false
+	var tipo: String = String(tipos[_azar(0, tipos.size() - 1)])
+	if tipo == "precipicio":
+		if not _barrera_precipicio(celdas, n):
+			return false
+		if paso["puerta"] != null:
+			paso["puerta"]["tipo"] = "barrera"         # que ningún cerrojo ni otra barrera vuelva a usar esa puerta
+		return true
+	var puente: bool = tipo == "puente"
 	# El activador: en una sala a la que se llega sin cruzar esta barrera, cuanto más lejos del inicio mejor.
 	var salas_antes: Array = []
 	for s in vivas:
@@ -3088,7 +3171,7 @@ func _resultado() -> Dictionary:
 		"salas": _vivas(), "puertas": puertas, "objetos": objetos, "lineas": lineas, "avisos": avisos,
 		"arqueros": bool(p.get("_arqueros", false)), "retoques": _retoques,
 		"errores": errores, "enlaces": enlaces, "enlaces_mano": _enlaces_mano, "activadores": _activadores.keys(), "barreras": _barreras.size(),
-		"puzles": puzles_puestos, "puzles_mano": _puzles_mano, "cruzables": _puentes.keys(), "letras_extra": _letras_extra, "precipicio": precipicio,
+		"puzles": puzles_puestos, "puzles_mano": _puzles_mano, "cruzables": _puentes.keys(), "letras_extra": _letras_extra, "precipicio": precipicio, "barreras_precipicio": barreras_precipicio,
 		"movidos": movidos_hechos, "movidos_pedidos": _movidos_pedidos, "anadidos": anadidos_hechos, "apariciones": apariciones_hechas,
 		"stats": {"salas": _vivas().size(), "puertas": puertas.size(), "enemigos": n_enem, "cofres": n_cofres, "jarrones": n_jarrones,
 			"suelo": pisable, "agua": g.count(AGUA), "ocupacion": pisable / float(maxi(1, w * h))},

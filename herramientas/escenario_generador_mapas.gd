@@ -30,6 +30,12 @@ func _escenario() -> void:
 		# 24/11: la forma del Bosque 01 de Pablo, con el paso de tierra (precipicio) en la salida 2.
 		par.merge({"ancho": 48, "alto": 42, "salida_a": "CuevaTerrafina:a_bosque=desde_cueva, Precipicio:inicio, Ruinas:inicio, Bosque_02:desde_bosque01",
 			"lados_salida": "s, o, s, e", "paso_tierra": 2, "estilo": "bosque", "luz": "bosque", "salas_cerradas": 0}, true)
+	for a in args:
+		if String(a).begins_with("semilla="):
+			par["semilla"] = String(a).substr(8).to_int()
+	if args.has("precipicio"):
+		# 24/11: `-- <algoritmo> precipicio`: todas las barreras son precipicios (sin activadores).
+		par.merge({"b_braseros": false, "b_placa": false, "b_puente": false, "b_precipicio": true, "barreras": 3}, true)
 	var m: Dictionary = Generador.new().generar(par)
 	var antes_mapas: int = DirAccess.get_files_at(Exportador.DIR_MAPAS).size()
 	var antes_escenas: int = DirAccess.get_files_at(Exportador.DIR_ESCENAS).size()
@@ -105,7 +111,7 @@ func _escenario() -> void:
 	_ok("5 el agua del plano es agua en el juego", _agua_bien(filas), "")
 	# 5b · El precipicio del paso de tierra (bosque): en el juego es vacío y no se pisa.
 	var hueco: Array = m.get("precipicio", [])
-	if alg == "bosque":
+	if alg == "bosque" or args.has("precipicio"):
 		var mal_hueco: int = 0
 		for c in hueco:
 			if not Terreno3D.es_vacio(c) or Terreno3D.pisable(c, 0, true, 1, true):

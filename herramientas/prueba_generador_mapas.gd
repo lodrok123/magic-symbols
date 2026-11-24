@@ -60,6 +60,7 @@ func _initialize() -> void:
 	_camara_por_sala()
 	_campamentos()
 	_bosque()
+	_barrera_precipicio()
 	print("%d comprobaciones en %d ms" % [_hechas, Time.get_ticks_msec() - t0])
 	print("FALLOS: %d" % _fallos)
 	quit(1 if _fallos > 0 else 0)
@@ -142,6 +143,85 @@ func _bosque() -> void:
 		avisa = avisa or String(a).begins_with("El paso de tierra pide la salida número 1")
 	_ok(avisa and (raro["precipicio"] as Array).is_empty(), "el paso de tierra en la salida 1 avisa y no se pone")
 	_resumen("17 bosque abierto: 25 mapas con salidas en su borde, río (%d con vado) y paso de tierra (%d casillas de precipicio)" % [con_vado, muros], antes)
+
+
+## 18 · El PRECIPICIO como barrera (24/11, Pablo: «mételo como un puente más»), en los cuatro algoritmos, pidiendo solo precipicios:
+##   · cada uno sale en el plano como espacio, el mapa es válido y no lleva activador ni reglas (no hay `puzle abre_precipicio_*`);
+##   · corta de verdad (sin cruzarlo, hay suelo al que no se llega) y en alguna línea recta hay `hondo` casillas de vacío entre suelo y suelo
+##     (donde nace el puente y donde llega);
+##   · con los valores de serie (todos los tipos permitidos) también salen precipicios entre las demás barreras.
+func _barrera_precipicio() -> void:
+	var antes: int = _fallos
+	var cuenta: Dictionary = {}
+	for alg in ["salas", "cueva", "pagina", "bosque"]:
+		cuenta[alg] = 0
+		for semilla in range(1, 13):
+			var m: Dictionary = _revisar({"algoritmo": alg, "semilla": semilla, "barreras": 3, "b_braseros": false, "b_placa": false, "b_puente": false, "b_precipicio": true})
+			var quien: String = "%s semilla %d" % [alg, semilla]
+			var filas: PackedStringArray = m["filas"]
+			_ok(not "\n".join(m["lineas"]).contains("abre_precipicio"), "el precipicio no lleva reglas de activador: " + quien)
+			for bp in m["barreras_precipicio"]:
+				cuenta[alg] = int(cuenta[alg]) + 1
+				var hueco: Dictionary = {}
+				for c in bp["celdas"]:
+					hueco[c] = true
+					_ok(filas[(c as Vector2i).y][(c as Vector2i).x] == " ", "el precipicio sale como espacio: " + quien, str(c))
+				# Corta: sin cruzarlo, desde el inicio no se llega a todo el suelo.
+				var otros: Dictionary = {}                 # los demás precipicios se cruzan (este es el que se mira)
+				var todos: Dictionary = {}
+				for c in m["precipicio"]:
+					todos[c] = true
+					if not hueco.has(c):
+						otros[c] = true
+				var sin_cruzar: int = _cuantas_alcanza(filas, m["inicio"], hueco, _cruzables(m), otros)
+				var cruzando: int = _cuantas_alcanza(filas, m["inicio"], {}, _cruzables(m), todos)
+				_ok(sin_cruzar < cruzando, "el precipicio corta el mapa: " + quien, "%d sin cruzar, %d cruzando" % [sin_cruzar, cruzando])
+				# Se tiende: `hondo` de vacío en línea recta entre suelo y suelo.
+				var hondo: int = int(bp["hondo"])
+				var tendible: bool = false
+				for c in hueco:
+					for d in [Vector2i(1, 0), Vector2i(0, 1), Vector2i(-1, 0), Vector2i(0, -1)]:
+						var borde: Vector2i = (c as Vector2i) - d
+						var fin: Vector2i = (c as Vector2i) + d * hondo
+						var ok: bool = not hueco.has(borde) and ".gR,v".contains(filas[borde.y][borde.x]) and ".gR,v".contains(filas[fin.y][fin.x])
+						for k in range(hondo):
+							ok = ok and hueco.has((c as Vector2i) + d * k)
+						tendible = tendible or ok
+				_ok(tendible, "hay %d de vacío en línea recta entre suelo y suelo: %s" % [hondo, quien])
+		_ok(int(cuenta[alg]) > 0, "salen precipicios en «%s»" % alg, str(cuenta[alg]))
+	var de_serie: int = 0
+	for semilla in range(1, 21):
+		de_serie += (Generador.new().generar({"algoritmo": "salas", "semilla": semilla})["barreras_precipicio"] as Array).size()
+	_ok(de_serie > 0, "con los valores de serie también salen precipicios", str(de_serie))
+	_resumen("18 precipicio como barrera: %s (y %d de serie en 20 mapas de salas)" % [str(cuenta), de_serie], antes)
+
+
+## Cuántas casillas se alcanzan andando desde `a`. Pared y agua no se cruzan (salvo las de `puentes`); el vacío solo el de `tendidos`
+## (los precipicios con su puente puesto); `cerradas`, nunca.
+func _cuantas_alcanza(filas: PackedStringArray, a: Vector2i, cerradas: Dictionary, puentes: Dictionary, tendidos: Dictionary) -> int:
+	var visto: Dictionary = {a: true}
+	var cola: Array = [a]
+	var k: int = 0
+	while k < cola.size():
+		var c: Vector2i = cola[k]
+		k += 1
+		for d in [Vector2i(0, -1), Vector2i(1, 0), Vector2i(0, 1), Vector2i(-1, 0)]:
+			var v: Vector2i = c + d
+			if v.x < 0 or v.y < 0 or v.y >= filas.size() or v.x >= filas[v.y].length() or visto.has(v) or cerradas.has(v):
+				continue
+			var ch: String = filas[v.y][v.x]
+			if ch == "#" or (ch == "~" and not puentes.has(v)) or (ch == " " and not tendidos.has(v)):
+				continue
+			visto[v] = true
+			cola.append(v)
+	return visto.size()
+
+
+func _cruzables(m: Dictionary) -> Dictionary:
+	var r: Dictionary = {}
+	for c in m["cruzables"]:
+		r[c] = true
+	return r
 
 
 ## ¿Se llega andando de `a` a `b`? Pared y agua no se cruzan (salvo el agua de `puentes`); `cerradas`, tampoco.
