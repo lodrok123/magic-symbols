@@ -88,7 +88,11 @@ func _escenario() -> void:
 			for x in range(r0.position.x, r0.end.x):
 				if vistas.has(Vector2i(x, y)):
 					llega += 1
-		_ok("4 se llega andando a %s" % sala, llega > 0, "%d casillas alcanzables desde %s" % [llega, str(inicio)])
+		# 24/11 (puzles, LC3): al SANTUARIO solo se llega por el puente de tierra sobre el precipicio (escenario_lostcave_puzles lo cruza).
+		if sala == "SANTUARIO":
+			_ok("4 al SANTUARIO NO se llega andando (precipicio de LC3)", llega == 0, "%d casillas alcanzables desde %s" % [llega, str(inicio)])
+		else:
+			_ok("4 se llega andando a %s" % sala, llega > 0, "%d casillas alcanzables desde %s" % [llega, str(inicio)])
 	_cam = root.get_viewport().get_camera_3d()
 	for cl in root.find_children("*", "CanvasLayer", true, false):       # sin HUD en las capturas
 		(cl as CanvasLayer).visible = false

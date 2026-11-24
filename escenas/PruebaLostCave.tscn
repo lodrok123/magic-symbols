@@ -17,7 +17,7 @@ radio_transparencia = 1.9
 adornos_en_claros = false
 hierba_en_matas = false
 detalle_en_bloques = false
-kit = "pruebas"
+kit = "demo"
 
 [node name="LuzPortatilCueva" type="OmniLight3D" parent="."]
 light_color = Color(1, 0.91, 0.72, 1)

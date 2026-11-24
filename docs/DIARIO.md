@@ -6068,3 +6068,21 @@ ucleo/datos/partida_ejemplo.json). prueba_partida_entera, prueba_partida_menu y 
 - Los hechizos se **bautizan** (H16); las notas usan verbos.
 - `prueba_libro_rojo` en 0 fallos. Fotos 17–21 en `docs/capturas/libro_rojo_2026-11-22/`. **Sin commit.**
 - (COMBATE, 22/11) Pablo probó el Verraco: «el concepto funciona, faltan animaciones y demás, pero me gusta». Pendiente para el Pipeline: modelo y animaciones del Verraco (hoy primitivas).
+
+### 24/11/2026 · aviso de contexto PUZLES · Lost Cave: siete puzles montados
+Pablo: «monta los puzzles para la cueva. Inventaria lo que ya hay; hay nuevos assets (úsalos para puzzles si tienen coherencia)». Documento: `docs/PUZLES_LOSTCAVE_2026-11-24.md` (inventario, propuesta y §4 con lo montado). Se esperó al commit `08779380` de la sesión de assets de la cueva para no pisarla.
+- **En `tools/mapa_lostcave.py`** (genera `LostCave.txt`), solo fuego, agua y tierra:
+  - **LC7 · CRUCE** sala del gólem: cerrojo en las tres bocas y vigía (gólem y dos limos).
+  - **LC5 · CRUCE** la grieta que suena: veta → pared hueca (ᚱ) → nicho con cofre épico.
+  - **LC1 · MINA** la voladura: barril de pólvora sobre la vía, muro de la galería hundida, cofre épico.
+  - **LC2 · MINA** la balanza: placas de peso 2, 1 y 1; roca mediana, pequeña y un bloque de tierra; reja del nicho y cofre épico.
+  - **LC4 · CRISTALES** rojo y azul: cristal dormido, prisma y receptores de fuego y de agua; cofre épico. Los cristales del pack se reordenan: rojos al norte, azules al sur.
+  - **LC3** el puente caído: el pasillo al santuario es un **precipicio** de 2 (Precipicio3D) que se cruza con el puente de tierra. El arco del santuario pasa a (15,5).
+  - **LC6 · SANTUARIO** los tres sellos: estatuas fuego, agua y tierra; cofre legendario delante del portal.
+- **Recompensas:** un fragmento de savia en cada épico de LC1, LC4 y LC5 (= una savia). Legendario: oro y núcleo de eco. **Pablo decide** si da glifo o sello.
+- **`PruebaLostCave.tscn`: kit `pruebas` → `demo`** (sin ᚱ no se hacían LC5 y LC6).
+- **Pruebas:**
+  - `escenario_lostcave_puzles` (nueva) resuelve los siete en el juego con hechizos reales: 0 fallos. Matar a los enemigos de LC7 es por código; el empuje de rocas usa `empujar` (el de teclas ya lo cubre `prueba_rocas_empujables`).
+  - `captura_lostcave_nivel`: el santuario ahora debe **no** alcanzarse andando: 0 fallos.
+  - Corrieron con los cambios sin commit de HECHIZOS en `lanzador_3d.gd`, `hechizo.gd` y `sigils.gd`.
+- Fotos: `docs/capturas/lostcave_puzles/`. Sin jugar con teclado.
