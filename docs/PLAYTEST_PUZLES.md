@@ -39,7 +39,7 @@ E:\magic-symbols\tools\Godot_v4.7.2-stable_win64.exe --path E:\magic-symbols res
 | 1 | 1 | **Vagoneta a la placa (a mano)** (`vagoneta_pista`) | empujar | aceptado |
 | 2 | 5 | **Vagoneta por la curva (a mano)** (`vagoneta_curva`) | empujar | pendiente |
 | 3 | 3 | **Vagoneta lanzada contra el muro (mecanismo)** (`vagoneta_boton`) | fuego + flecha, o agua + flecha, o tierra + flecha | aceptado |
-| 4 | 4 | **Vagoneta y aguja: elige el ramal (mecanismo)** (`vagoneta_aguja`) | fuego + flecha, o agua + flecha, o tierra + flecha | pendiente |
+| 4 | 4 | **Vagoneta y aguja: elige el ramal (mecanismo)** (`vagoneta_aguja`) | fuego + flecha, o agua + flecha, o tierra + flecha | aceptado |
 
 ## PtAguaTierra · Agua y tierra
 
@@ -123,7 +123,7 @@ E:\magic-symbols\tools\Godot_v4.7.2-stable_win64.exe --path E:\magic-symbols res
 | Relé de braseros (`rele_braseros`) | salida | fuego + flecha | PtFuego · 3 | pendiente |
 | Riega la placa (`riega_pulsador`) | salida | agua + flecha | PtAguaTierra · 1 | pendiente |
 | Río de lava (`rio_lava`) | paso | agua + flecha, o hielo + flecha | PtAguaTierra · 2 | pendiente |
-| Vagoneta y aguja: elige el ramal (mecanismo) (`vagoneta_aguja`) | salida | fuego + flecha, o agua + flecha, o tierra + flecha | PtVagonetas · 4 | pendiente |
+| Vagoneta y aguja: elige el ramal (mecanismo) (`vagoneta_aguja`) | salida | fuego + flecha, o agua + flecha, o tierra + flecha | PtVagonetas · 4 | aceptado |
 | Vagoneta lanzada contra el muro (mecanismo) (`vagoneta_boton`) | premio | fuego + flecha, o agua + flecha, o tierra + flecha | PtVagonetas · 3 | aceptado |
 | Vagoneta por la curva (a mano) (`vagoneta_curva`) | premio | empujar | PtVagonetas · 2 | pendiente |
 | Vagoneta a la placa (a mano) (`vagoneta_pista`) | salida | empujar | PtVagonetas · 1 | aceptado |

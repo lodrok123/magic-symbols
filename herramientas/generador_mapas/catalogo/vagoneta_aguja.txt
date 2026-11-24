@@ -2,7 +2,7 @@
 ; titulo Vagoneta y aguja: elige el ramal (mecanismo)
 ; tipo salida
 ; necesita fuego+flecha | agua+flecha | tierra+flecha
-; validacion ajustes
+; validacion aceptado
 ; nota_playtest La vagoneta sale demasiado rápido: a la velocidad del empuje
 ; nota_playtest Cambiar la aguja con E, no con un hechizo a la palanca
 ; nota_playtest Palanca con un asset del pack
