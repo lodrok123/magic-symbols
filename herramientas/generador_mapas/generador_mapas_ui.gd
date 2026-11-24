@@ -41,8 +41,10 @@ const ICONOS: Dictionary = {
 	"puerta_goblin": ["y", Color(0.75, 0.35, 0.1), 1, "puerta goblin (arde)"], "torre_goblin": ["o", Color(0.55, 0.3, 0.15), 1, "torre goblin (arde)"],
 	"tienda_goblin": ["t", Color(0.5, 0.42, 0.3), 1, "tienda goblin"], "estandarte_goblin": ["V", Color(0.7, 0.2, 0.15), 1, "estandarte goblin"],
 	# 24/11: el bosque abierto.
+	# 24/11 (Pablo): el gatopedro (pestaña «Enemigos») y el barril de pólvora (pestaña «Cofres»).
+	"gatopedro": ["p", Color(0.85, 0.55, 0.25), 0, "gatopedro (huye)"], "barril": ["b", Color(0.75, 0.2, 0.1), 1, "barril de pólvora"],
 }
-const TIPOS_ENEMIGO: Array[String] = ["guerrero", "arquero", "limo", "golem", "chaman", "mouro", "elemental"]
+const TIPOS_ENEMIGO: Array[String] = ["guerrero", "arquero", "limo", "golem", "chaman", "mouro", "elemental", "gatopedro"]
 const TIPOS_COFRE: Array[String] = ["cofre_tesoro", "cofre_llave", "cofre_comun", "cofre_epico", "cofre_legendario"]
 ## Cambiar uno de estos cambia la forma del mapa: los retoques pintados a mano dejan de tener sentido y se borran.
 const CLAVES_FORMA: Array[String] = ["algoritmo", "semilla", "ancho", "alto", "sala_min", "sala_max", "reparto", "densidad_salas", "puertas", "recto", "callejones",
@@ -503,6 +505,7 @@ var _en_tipo: String = ""                 ## pestaña «Enemigos»: el tipo eleg
 var _llevar_c: Vector2i = Vector2i(-1, -1)   ## …y el enemigo del mapa elegido para llevarlo a otro sitio
 var _co_calidad: String = ""              ## pestaña «Cofres»: la calidad elegida ("" = ninguna)
 var _co_premio: String = ""               ## …y la recompensa (épico y legendario)
+var _ba_activo: bool = false              ## pestaña «Cofres» (24/11): poniendo barriles de pólvora
 var _movidos: Dictionary = {}             ## elementos movidos a mano: casilla donde lo puso el generador -> casilla donde está
 var _enlaces: Dictionary = {}             ## enlaces cambiados a mano: id de barrera -> id de activador ("" = suelta)
 var _mapa: Dictionary = {}
@@ -1210,6 +1213,7 @@ func _herramienta(h: String) -> void:
 	if h == "":
 		_en_tipo = ""
 		_co_calidad = ""
+		_ba_activo = false
 		_sa_nivel = ""
 		_llevar_c = Vector2i(-1, -1)
 		_vista.resaltada = Vector2i(-1, -1)
@@ -1389,6 +1393,29 @@ func _refrescar_cofres() -> void:
 		fila.add_child(botones)
 		_lista_cofres.add_child(fila)
 	_lista_cofres.add_child(_rotulo_pz("Para cambiar un cofre de sitio: pincel «mover» (abajo) y arrástralo.\nPara que un cofre APAREZCA AL CAER UN ENEMIGO o AL RESOLVER UN PUZLE (o limpiar un campamento): pincel «enlazar» (abajo), clic en el enemigo o en el puzle\n(una pieza suya o el suelo de su sala) y clic en el cofre. Con varias cosas enlazadas, aparece cuando se cumplen todas.", Color(0.75, 0.75, 0.75), 12))
+	# 24/11 (Pablo: «¿cómo añado un barril aquí?»): el barril de pólvora. El fuego lo prende y a los 1,2 s explota: rompe muros agrietados,
+	# columnas, jarrones y cajas a 2,6 u (algo más de una casilla: pegado al muro, NO en diagonal) y hiere a la jugadora (20) si está al lado.
+	_lista_cofres.add_child(_rotulo_pz("\nBARRIL DE PÓLVORA"))
+	var b_bar: Button = _boton(_lista_cofres, "Dejar de poner barriles" if _ba_activo else "Poner barriles", func() -> void:
+		var poner: bool = not _ba_activo
+		_herramienta("")
+		_ba_activo = poner
+		if poner:
+			_herramienta("poner:barril"), "Clic en el mapa: un barril por clic.")
+	b_bar.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_lista_cofres.add_child(_rotulo_pz(("▶ Haz clic donde quieras cada barril. Para romper un muro agrietado, PEGADO a él por un lado (no en diagonal): su explosión llega a algo más de una casilla.")
+		if _ba_activo else "Se prende con fuego y explota al poco: rompe muros agrietados y columnas de al lado y hiere a quien esté pegado. Ocupa su casilla.",
+		Color(0.4, 0.9, 1.0) if _ba_activo else Color(0.75, 0.75, 0.75), 12))
+	for i in range(_anadidos.size()):
+		var a: Dictionary = _anadidos[i]
+		if String(a["que"]) != "objeto":
+			continue
+		var fila_b: HBoxContainer = HBoxContainer.new()
+		var t_b: Label = _rotulo_pz("Barril · %s · (%d, %d)" % [_sala_de(a["c"]), int(a["c"].x), int(a["c"].y)], Color(0.92, 0.92, 0.92), 14)
+		t_b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		fila_b.add_child(t_b)
+		_boton(fila_b, "Quitar", _quitar_anadido.bind(i), "Quita este barril.")
+		_lista_cofres.add_child(fila_b)
 
 
 ## Las llegadas que tiene un nivel del juego: las `; pieza <nombre> entrada` de su mapa y las que crea por código.
@@ -1550,6 +1577,11 @@ func _al_clicar(c: Vector2i) -> void:
 			if _co_calidad != "":
 				_anadidos.append({"que": "cofre", "tipo": _co_calidad, "premio": _co_premio, "c": c})
 				_decir("Cofre %s añadido en (%d, %d). Si ha quedado en otra casilla, lo explica el aviso amarillo de la derecha." % [String(Generador.COFRES[_co_calidad]["titulo"]).to_lower(), c.x, c.y])
+				_sucio = true
+		"poner:barril":
+			if _ba_activo:
+				_anadidos.append({"que": "objeto", "tipo": "barril", "c": c})
+				_decir("Barril añadido en (%d, %d). Si ha quedado en otra casilla, lo explica el aviso amarillo de la derecha." % [c.x, c.y])
 				_sucio = true
 		"poner:salida":
 			if _sa_nivel != "" and _sa_entrada.strip_edges() != "":

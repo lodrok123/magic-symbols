@@ -99,6 +99,10 @@ extends Node
 ##   golem      quieto=si (no)                                                      Golem3D (E3, 28/10): el gólem de piedra. De pie nada le hace daño; persigue lento y golpea con aviso (30 y empuje); tras el
 ##              golpe queda de rodillas con el núcleo a la vista (×1,5 de daño). El viento sobre una casilla helada lo hace resbalar (tumbado = núcleo a la vista; al agua honda o la
 ##              lava, muere). `quieto=si`: no persigue ni ataca (un blanco para probar el hielo). Es un Combate3D: el vigía lo cuenta. No bloquea su casilla
+##   gatopedro  (sin claves)                                                        Gatopedro3D (24/11, antes solo en Terra Fina): el lince cornudo. NO ataca: al verte HUYE a tramos (corre 1,2 s y se para 0,9 s
+##              mirándote: la ventana de tiro) sin alejarse más de 9 u de su casilla; muy cerca o recién golpeado huye sin pausas. Cae con 2 hechizos de fuego medios
+##              (vida 45). Es el blanco del tutorial: obliga a disparar desde las páginas sobre la marcha. Es un Combate3D: el vigía lo cuenta. No bloquea su casilla.
+##              No se repone al reaparecer la jugadora (G1). Pide sitio: una sala abierta de unas 4 casillas de radio alrededor
 ##   goblin_escudo  quieto=si (no)                                                  21/11 (arena de combate): un goblin guerrero con ESCUDO (Escudo3D). De frente para todo; el fuego lo prende y,
 ##              mientras arde, se quema el brazo y no ataca; consumido, pelea sin escudo. Es un Combate3D: el vigía lo cuenta. No bloquea su casilla
 ##   chaman     quieto=si (no)                                                      Chaman3D (E2, 28/10): el chamán goblin. Escuda primero (traza un rombo en el suelo con el bastón, lo clava y una onda verde da un escudo de
@@ -504,6 +508,7 @@ const CLAVES: Dictionary = {
 	"puente": {"celdas": "celdas"},
 	"limo": {"elemento": "s:fuego|agua|hielo|rayo|tierra|viento", "grande": "b", "coraza": "s:barro|brasa"},
 	"golem": {"quieto": "b"},
+	"gatopedro": {},
 	"goblin_escudo": {"quieto": "b"},
 	# B1 de PLAN_COMBATE (22/11): guerrero con coraza de elemento (`CorazaElemento3D`); de serie, de barro (la rompe la tierra).
 	"goblin_coraza": {"quieto": "b", "coraza": "s:barro|brasa"},
@@ -2616,6 +2621,18 @@ func _crear(pz: Pieza) -> void:
 			go.quieto = bool(pz.p.get("quieto", false))
 			go.name = pz.id
 			pz.nodo = go
+		"gatopedro":
+			# 24/11 (Pablo: gatopedros en la cueva): el de Terra Fina, colgado del MUNDO como el gólem. Necesita jugadora y lanzador para verla y huir;
+			# se buscan como el goblin con escudo. Sin el modelo `lince` avisa y no sale.
+			var cel_gp: Vector2i = pz.celda
+			var lz_gp: Lanzador3D = get_tree().get_first_node_in_group("spellcaster") as Lanzador3D if is_inside_tree() else null
+			var jug_gp: Jugador3D = lz_gp.jugador as Jugador3D if lz_gp != null else null
+			var gp: Gatopedro3D = Gatopedro3D.invocar(mundo as Node3D, jug_gp, lz_gp, Terreno3D.centro_de(cel_gp, Terreno3D.y_pies(cel_gp))) if mundo is Node3D and mundo.has_method("_personaje") else null
+			if gp == null:
+				_avisar_pieza(pz, "el gatopedro no se ha podido crear (falta el modelo «lince» o el mundo no monta personajes)")
+				return
+			gp.name = pz.id
+			pz.nodo = gp
 		"chaman":
 			# E2 (28/10): el chamán goblin, colgado del MUNDO como el gólem. Escuda a los goblins que tenga cerca y tira bolas de veneno desde lejos.
 			var cel_c: Vector2i = pz.celda

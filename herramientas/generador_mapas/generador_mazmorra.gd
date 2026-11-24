@@ -122,13 +122,15 @@ var movidos_hechos: Dictionary = {}     ## lo que de verdad se movió: casilla d
 ## Lo que se puede mover a mano. Las puertas, los puentes y los cerrojos no (son la forma del mapa); las piezas de un puzle del catálogo
 ## tampoco: el puzle entero se mueve de sala en la pestaña «Puzles».
 const MOVIBLES: Array[String] = ["guerrero", "arquero", "brasero", "jarron", "cofre_tesoro", "cofre_llave", "salida", "entrada", "inicio",
-	"limo", "golem", "chaman", "mouro", "elemental", "cofre_comun", "cofre_epico", "cofre_legendario"]
+	"limo", "golem", "chaman", "mouro", "elemental", "cofre_comun", "cofre_epico", "cofre_legendario", "gatopedro", "barril"]
 
 ## ENEMIGOS que se pueden añadir a mano (18/11, pestaña «Enemigos»). Son los que el juego sabe montar desde un mapa de letras sin guion
 ## de nivel: los goblins y el elemental van por LETRA; limo, gólem, chamán y mouro, por línea `; pieza` (escenas/puzle.gd).
 ## No están el loberno, el canouro ni el goblin asesino: esos los crea el guion de cada nivel hecho a mano leyendo `; marcador`, y un
 ## mapa generado no lleva guion. Tampoco la Santa Compaña (pide un camino de casillas). `icono` = el tipo con que se dibuja.
-const ORDEN_ENEMIGOS: Array[String] = ["guerrero", "arquero", "limo", "limo_fuego", "limo_agua", "limo_tierra", "limo_grande", "golem", "chaman", "mouro", "elemental"]
+const ORDEN_ENEMIGOS: Array[String] = ["guerrero", "arquero", "limo", "limo_fuego", "limo_agua", "limo_tierra", "limo_grande", "golem", "chaman", "mouro", "gatopedro", "elemental"]
+const GATOPEDRO_SUELO_MIN: int = 30     ## 24/11: casillas de suelo a 4 o menos que pide un gatopedro para huir sin atascarse (el círculo de radio 4 tiene 49)
+var _n_barriles: int = 0
 const ENEMIGOS: Dictionary = {
 	"guerrero": {"titulo": "Goblin guerrero", "letra": "W", "icono": "guerrero"},
 	"arquero": {"titulo": "Goblin arquero", "letra": "A", "icono": "arquero"},
@@ -140,6 +142,8 @@ const ENEMIGOS: Dictionary = {
 	"golem": {"titulo": "Gólem de piedra", "pieza": "golem", "icono": "golem"},
 	"chaman": {"titulo": "Chamán goblin", "pieza": "chaman", "icono": "chaman"},
 	"mouro": {"titulo": "Mouro (espectro)", "pieza": "mouro", "icono": "mouro"},
+	# 24/11 (Pablo): el lince cornudo de Terra Fina. No ataca: huye a tramos y cae con 2 flechas de fuego. Blanco del tutorial (disparar desde las páginas).
+	"gatopedro": {"titulo": "Gatopedro (huye; 2 flechas de fuego)", "pieza": "gatopedro", "icono": "gatopedro"},
 	"elemental": {"titulo": "Elemental del bosque (jefe)", "letra": "G", "icono": "elemental"},
 }
 
@@ -171,7 +175,7 @@ var _indice_hecho: Array = []           ## por cada añadido pedido, su sitio en
 ## generador puso el elemento (aunque después se haya movido). Ver `_aplicar_apariciones`.
 var _apariciones_pedidas: Array = []
 var apariciones_hechas: Array = []
-const TIPOS_ENEMIGO: Array[String] = ["guerrero", "arquero", "limo", "golem", "chaman", "mouro", "elemental"]
+const TIPOS_ENEMIGO: Array[String] = ["guerrero", "arquero", "limo", "golem", "chaman", "mouro", "elemental", "gatopedro"]
 const COFRES_ENLAZABLES: Array[String] = ["cofre_tesoro", "cofre_comun", "cofre_epico", "cofre_legendario"]
 var _ultimo_act: String = ""            ## el activador que dejó la última plantilla `salida` estampada
 var _nv: String = ""                    ## el nombre del nivel en minúsculas (para las flags)
@@ -193,6 +197,7 @@ func generar(parametros: Dictionary = {}, retoques: Dictionary = {}, enlaces_man
 	movidos_hechos = {}
 	_anadidos_pedidos = anadidos.duplicate(true)
 	anadidos_hechos = []
+	_n_barriles = 0
 	puzles_puestos = {}
 	_puzles_mano = puzles_mano.duplicate()
 	_n_cat = 0
@@ -2415,6 +2420,9 @@ func _aplicar_anadidos(nv: String) -> void:
 		if que == "salida":
 			_anadir_salida(ped)
 			continue
+		if que == "objeto":
+			_anadir_objeto(ped)
+			continue
 		if (es_cofre and not COFRES.has(tipo)) or (not es_cofre and not ENEMIGOS.has(tipo)):
 			avisos.append("Lo añadido a mano en (%d, %d) no se reconoce («%s»): se descarta." % [pedido.x, pedido.y, tipo])
 			continue
@@ -2506,9 +2514,59 @@ func _aplicar_anadidos(nv: String) -> void:
 					else:
 						avisos.append("El mouro de (%d, %d) no tiene sitio para su mámoa al lado: sale sin tumba (muere a la primera). Muévelo a un sitio con más suelo." % [puesto.x, puesto.y])
 				lineas.append("; pieza %s %s %d %d%s" % [eid, String(def_e["pieza"]), puesto.x, puesto.y, extra_e])
+			if tipo == "gatopedro":
+				# Su mecánica: huye a tramos sin alejarse más de 9 u (unas 4 casillas) de su casilla. En un rincón estrecho se queda atascado y
+				# deja de ser un blanco que se mueve: se avisa si alrededor hay poco suelo.
+				var suelo_cerca: int = 0
+				for dy in range(-4, 5):
+					for dx in range(-4, 5):
+						if Vector2(dx, dy).length() <= 4.0 and _dentro(puesto + Vector2i(dx, dy)) and _tipo(puesto + Vector2i(dx, dy)) == SUELO:
+							suelo_cerca += 1
+				if suelo_cerca < GATOPEDRO_SUELO_MIN:
+					avisos.append("El gatopedro de (%d, %d) tiene poco sitio para huir (%d casillas de suelo a 4 o menos; pide %d): ponlo en una sala más abierta." % [puesto.x, puesto.y, suelo_cerca, GATOPEDRO_SUELO_MIN])
 		objetos[objetos.size() - 1]["anadido"] = anadidos_hechos.size()       # para que la herramienta sepa cuál de la lista es
 		_indice_hecho[_indice_hecho.size() - 1] = anadidos_hechos.size()
 		anadidos_hechos.append(hecho)
+
+
+## 24/11 (Pablo: «¿cómo añado un barril aquí?»): un OBJETO añadido a mano. Hoy solo el barril de pólvora (`; pieza barril`), que ocupa su casilla.
+## A diferencia de un cofre, no hace falta llegar a tocarlo (se prende de lejos con fuego) y NUNCA cierra para siempre: al explotar deja libre su
+## casilla, y el fuego es el primer sello. Por eso puede ir pegado a un muro agrietado, en la boca de su nicho, aunque así corte el paso al nicho;
+## si corta algún paso, solo se avisa. Se exige suelo libre (no encima de otra pieza ni junto a una puerta). Primero la casilla pedida; si no, la más cercana.
+func _anadir_objeto(ped: Dictionary) -> void:
+	var tipo: String = String(ped.get("tipo", ""))
+	var pedido: Vector2i = ped.get("c", Vector2i(-1, -1))
+	if tipo != "barril":
+		avisos.append("El objeto añadido en (%d, %d) no se reconoce («%s»): se descarta." % [pedido.x, pedido.y, tipo])
+		return
+	var candidatos: Array = []
+	for dy in range(-4, 5):
+		for dx in range(-4, 5):
+			var c: Vector2i = pedido + Vector2i(dx, dy)
+			if _dentro(c) and _libre(c) and not letras.has(c) and not _cerca_de_puerta(c):
+				candidatos.append(c)
+	candidatos.sort_custom(func(a: Vector2i, b: Vector2i) -> bool:
+		var da: int = (a - pedido).length_squared()
+		var db: int = (b - pedido).length_squared()
+		return da < db or (da == db and (a.y < b.y or (a.y == b.y and a.x < b.x))))
+	if candidatos.is_empty():
+		avisos.append("No se ha podido poner el barril cerca de (%d, %d): no hay suelo libre. No se añade." % [pedido.x, pedido.y])
+		return
+	var puesto: Vector2i = candidatos[0]
+	if puesto != pedido:
+		avisos.append("El barril que ponías en (%d, %d) ha quedado en (%d, %d): era el sitio válido más cercano." % [pedido.x, pedido.y, puesto.x, puesto.y])
+	var prueba: Dictionary = _bloqueos.duplicate()
+	prueba[puesto] = true
+	if (_componentes(true, prueba)[1] as Array).size() > (_componentes(true, _bloqueos)[1] as Array).size():
+		avisos.append("El barril de (%d, %d) corta el paso hasta que se haga explotar (con fuego)." % [puesto.x, puesto.y])
+	_n_barriles += 1
+	var bid: String = "barril_m%d" % _n_barriles
+	_ocupar(puesto)                  # ocupada (nada más encima) pero no «bloqueo»: no es un cierre permanente para la validación del mapa
+	_objeto(puesto, "barril", bid)
+	lineas.append("; pieza %s barril %d %d" % [bid, puesto.x, puesto.y])
+	objetos[objetos.size() - 1]["anadido"] = anadidos_hechos.size()
+	_indice_hecho[_indice_hecho.size() - 1] = anadidos_hechos.size()
+	anadidos_hechos.append({"que": "objeto", "tipo": tipo, "c": puesto})
 
 
 ## Una SALIDA añadida a mano (18/11, pestaña «Salidas»): `tipo` = el destino `Nivel:entrada`; `modo` pisar | usar; `ancho` = casillas
@@ -3358,7 +3416,7 @@ func _resultado() -> Dictionary:
 	var n_jarrones: int = 0
 	for o in objetos:
 		match String(o["tipo"]):
-			"guerrero", "arquero", "limo", "golem", "chaman", "mouro", "elemental":
+			"guerrero", "arquero", "limo", "golem", "chaman", "mouro", "elemental", "gatopedro":
 				n_enem += 1
 			"cofre_tesoro", "cofre_llave", "cofre_comun", "cofre_epico", "cofre_legendario":
 				n_cofres += 1

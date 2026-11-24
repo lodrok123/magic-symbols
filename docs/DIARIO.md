@@ -6086,3 +6086,20 @@ Pablo: «monta los puzzles para la cueva. Inventaria lo que ya hay; hay nuevos a
   - `captura_lostcave_nivel`: el santuario ahora debe **no** alcanzarse andando: 0 fallos.
   - Corrieron con los cambios sin commit de HECHIZOS en `lanzador_3d.gd`, `hechizo.gd` y `sigils.gd`.
 - Fotos: `docs/capturas/lostcave_puzles/`. Sin jugar con teclado.
+
+### 24/11/2026 · aviso de contexto PUZLES · generador: barril de pólvora y gatopedro a mano
+Pablo, con el escondite del muro en una cueva generada: «¿cómo añado un barril aquí?» y «para la cueva añade los gatopedros (acuérdate de su mecánica)».
+- **Juego, `escenas/puzle.gd`: pieza nueva `gatopedro`** (sin claves). Es el Gatopedro3D de Terra Fina, que hasta ahora solo ponía su script de nivel:
+  - huye a tramos sin alejarse más de 9 u de su casilla y no ataca;
+  - cae con 2 hechizos de fuego medios;
+  - el vigía lo cuenta;
+  - no se repone al reaparecer (G1).
+- **Generador:**
+  - **pestaña «Enemigos»:** «Gatopedro (huye; 2 flechas de fuego)». Avisa si tiene menos de 30 casillas de suelo a 4 o menos (`GATOPEDRO_SUELO_MIN`): en un rincón se atasca. Se puede enlazar a un cofre como cualquier enemigo.
+  - **pestaña «Cofres», sección «Barril de pólvora»:** «Poner barriles» y clic.
+    - El barril ocupa su casilla pero no cuenta como cierre del mapa: explota y se quita con fuego, el primer sello. Puede ir en la boca del nicho de un muro agrietado; si corta un paso, solo avisa.
+    - Para romper el muro tiene que ir PEGADO a él por un lado: su radio (2,6 u) no llega en diagonal.
+  - Se guarda en `; anadidos` (objeto|barril).
+- **Pruebas:**
+  - `escenario_generador_gatopedro_barril` (nueva), 0 fallos: escondite + barril pegado al muro + gatopedro; aviso en un rincón; en el juego el gatopedro huye, y fuego al barril rompe el muro.
+  - `prueba_generador_mapas`, `escenario_catalogo_puzles`, `prueba_gatopedro` y `escenario_lostcave_puzles`: ver el commit.
