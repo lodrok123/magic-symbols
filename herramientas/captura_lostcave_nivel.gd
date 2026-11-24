@@ -47,9 +47,37 @@ func _escenario() -> void:
 	for id in LIBRES:
 		if _piezas.has(id):
 			_ok("3 se pisa: %s" % id, not Terreno3D.bloqueada(_piezas[id]))
+	# Recorrido: desde la casilla de inicio, andando por casillas no bloqueadas, se llega al centro de cada sala.
+	var inicio: Vector2i = Terreno3D.celda_de(jugador.global_position)
+	var vistas: Dictionary = {inicio: true}
+	var cola: Array = [inicio]
+	while not cola.is_empty():
+		var c: Vector2i = cola.pop_front()
+		for d in [Vector2i(1, 0), Vector2i(-1, 0), Vector2i(0, 1), Vector2i(0, -1)]:
+			var v: Vector2i = c + d
+			if not vistas.has(v) and v.x >= 0 and v.y >= 0 and v.x < 32 and v.y < 30 and not Terreno3D.bloqueada(v):
+				vistas[v] = true
+				cola.append(v)
+	var plano: String = "plano de paso (o = se llega, x = cerrada, . = libre sin llegar):\n"
+	for y in range(0, 24):
+		for x in range(0, 32):
+			var q := Vector2i(x, y)
+			plano += "o" if vistas.has(q) else ("x" if Terreno3D.bloqueada(q) else ".")
+		plano += "\n"
+	print(plano)
+	for sala in _rects.keys():
+		var r0: Rect2i = _rects[sala]
+		var llega: int = 0
+		for y in range(r0.position.y, r0.end.y):
+			for x in range(r0.position.x, r0.end.x):
+				if vistas.has(Vector2i(x, y)):
+					llega += 1
+		_ok("4 se llega andando a %s" % sala, llega > 0, "%d casillas alcanzables desde %s" % [llega, str(inicio)])
 	_cam = root.get_viewport().get_camera_3d()
 	for cl in root.find_children("*", "CanvasLayer", true, false):       # sin HUD en las capturas
 		(cl as CanvasLayer).visible = false
+	await avanzar(30)
+	_guardar("inicio.png")                 # lo primero que se ve al abrir el nivel (24/11: tiene que verse la salida de la boca)
 
 	# --- vista general y una por sala desde arriba (cámara propia ortogonal a plomo; norte arriba) ---
 	var arriba := Camera3D.new()

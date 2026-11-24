@@ -23,10 +23,10 @@
               ...               
            .........            
            .........            
-           .........            
-           .........            
-           .........            
            ....S....            
+           .........            
+           .........            
+           .........            
            .........            
 ; --- zonas de luz (LuzZona3D) ---
 ; zona 11,16..19,23 bosque mezcla=0.8 rotulo=Cueva_Perdida
@@ -60,23 +60,25 @@
 ; pieza d_smallmushrooms_a decorado 16 18 modelo=lost_smallmushrooms_a
 ; pieza d_root_b decorado 18 17 modelo=lost_root_b
 ; pieza d_root_d decorado 12 17 modelo=lost_root_d
-; pieza d_stair_c decorado 15 19 modelo=lost_stair_c
+; pieza d_stair_c decorado 15 21 modelo=lost_stair_c
+; pieza d_standinglantern decorado 13 17 modelo=lost_standinglantern
+; pieza d_standinglantern_2 decorado 17 17 modelo=lost_standinglantern giro=180
 ; pieza d_stonearray_b decorado 10 7 modelo=lost_stonearray_b
 ; pieza d_stonearray_a decorado 20 7 modelo=lost_stonearray_a
 ; pieza d_stalagmite_a decorado 9 12 modelo=lost_stalagmite_a
-; pieza d_stalagmite_b decorado 21 12 modelo=lost_stalagmite_b
+; pieza d_stalagmite_b decorado 22 13 modelo=lost_stalagmite_b
 ; pieza d_stonecolumn_a decorado 12 9 modelo=lost_stonecolumn_a
 ; pieza d_stonecolumn_a_2 decorado 18 9 modelo=lost_stonecolumn_a giro=180
 ; pieza d_arch decorado 15 11 modelo=lost_arch
 ; pieza d_calca_glowingcrack_a decorado 10 8 modelo=lost_calca_glowingcrack_a
 ; pieza d_largemushrooms_c decorado 9 10 modelo=lost_largemushrooms_c
-; pieza d_middlemushrooms_a decorado 21 10 modelo=lost_middlemushrooms_a
+; pieza d_middlemushrooms_a decorado 20 13 modelo=lost_middlemushrooms_a
 ; pieza d_smallmushrooms_b decorado 10 13 modelo=lost_smallmushrooms_b
 ; pieza d_singlecrystal_blue_a decorado 22 8 modelo=lost_singlecrystal_blue_a
 ; pieza d_singlecrystal_red_a decorado 22 12 modelo=lost_singlecrystal_red_a
 ; pieza d_lantern decorado 8 8 modelo=lost_lantern
-; pieza d_standinglantern decorado 11 12 modelo=lost_standinglantern
-; pieza d_standinglantern_2 decorado 19 12 modelo=lost_standinglantern giro=180
+; pieza d_standinglantern_3 decorado 11 12 modelo=lost_standinglantern
+; pieza d_standinglantern_4 decorado 19 12 modelo=lost_standinglantern giro=180
 ; pieza d_smallroot_b decorado 13 7 modelo=lost_smallroot_b
 ; pieza d_smallroot_d decorado 17 7 modelo=lost_smallroot_d
 ; pieza d_entrance decorado 4 3 modelo=lost_entrance
@@ -89,11 +91,11 @@
 ; pieza d_trolley_a decorado 3 7 modelo=lost_trolley_a giro=90
 ; pieza d_trolley_c decorado 3 12 modelo=lost_trolley_c giro=90
 ; pieza d_cart decorado 6 6 modelo=lost_cart
-; pieza d_standinglantern_3 decorado 1 9 modelo=lost_standinglantern
-; pieza d_standinglantern_4 decorado 6 10 modelo=lost_standinglantern
+; pieza d_standinglantern_5 decorado 1 9 modelo=lost_standinglantern
+; pieza d_standinglantern_6 decorado 6 10 modelo=lost_standinglantern
 ; pieza d_lantern_2 decorado 2 3 modelo=lost_lantern
 ; pieza d_lantern_3 decorado 4 14 modelo=lost_lantern
-; pieza d_standinglantern_5 decorado 1 13 modelo=lost_standinglantern
+; pieza d_standinglantern_7 decorado 1 13 modelo=lost_standinglantern
 ; pieza d_barrel_a decorado 6 4 modelo=lost_barrel_a
 ; pieza d_barrel_c decorado 6 3 modelo=lost_barrel_c
 ; pieza d_bag_a decorado 1 4 modelo=lost_bag_a
@@ -108,6 +110,7 @@
 ; pieza d_blastingmachine decorado 6 13 modelo=lost_blastingmachine
 ; pieza d_bomb decorado 5 15 modelo=lost_bomb
 ; pieza d_minearch decorado 7 10 modelo=lost_minearch giro=90
+; pieza d_lantern_4 decorado 7 9 modelo=lost_lantern
 ; pieza d_smallplatform_a decorado 5 4 modelo=lost_smallplatform_a
 ; pieza d_hex_a decorado 25 4 modelo=lost_hex_a
 ; pieza d_hex_c decorado 29 4 modelo=lost_hex_c
@@ -128,6 +131,7 @@
 ; pieza d_glowingplant_c decorado 24 14 modelo=lost_glowingplant_c
 ; pieza d_stalagmite_a_2 decorado 27 3 modelo=lost_stalagmite_a giro=200
 ; pieza d_calca_glowingdots decorado 26 4 modelo=lost_calca_glowingdots
+; pieza d_lantern_5 decorado 23 9 modelo=lost_lantern
 ; pieza d_portalblocks decorado 15 0 modelo=lost_portalblocks escala=0.4
 ; pieza d_shrinearch decorado 15 5 modelo=lost_shrinearch
 ; pieza d_totem_a decorado 11 2 modelo=lost_totem_a
@@ -137,8 +141,8 @@
 ; pieza d_calca_symbol_a decorado 11 1 modelo=lost_calca_symbol_a
 ; pieza d_calca_symbol_c decorado 19 1 modelo=lost_calca_symbol_c
 ; pieza d_table decorado 15 2 modelo=lost_table
-; pieza d_standinglantern_6 decorado 12 4 modelo=lost_standinglantern
-; pieza d_standinglantern_7 decorado 18 4 modelo=lost_standinglantern giro=180
+; pieza d_standinglantern_8 decorado 12 4 modelo=lost_standinglantern
+; pieza d_standinglantern_9 decorado 18 4 modelo=lost_standinglantern giro=180
 ; pieza d_candle_a decorado 13 2 modelo=lost_candle_a
 ; pieza d_candle_c decorado 17 2 modelo=lost_candle_c
 ; pieza d_candle_d decorado 14 3 modelo=lost_candle_d
