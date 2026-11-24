@@ -61,6 +61,12 @@ const JEFES: int = 4                          ## cuántos jefes dan tinta -> +30
 const SECRETOS: int = 8                       ## cuántos secretos dan tinta -> +10 cada uno
 const MEJORA_JEFE: String = "tinta_jefe"      ## ids en Estado.mejoras (nivel = cuántos llevas)
 const MEJORA_SECRETO: String = "tinta_secreto"
+## 24/11 (Pablo, «Tintero de escriba»): LOS SECRETOS SON LOS TINTEROS. Cada tintero se reúne con 3 fragmentos (objeto `fragmento_tintero`, que
+## sale de cofres de secreto y de puzle) y sube su mejora `tinta_tintero` (Mejoras.subir, como la savia sube la vida). Se llevan la parte de los
+## secretos: TINTEROS tinteros se reparten los (TOTAL − INICIAL) × REPARTO_SECRETOS → +20 cada uno. `ganar_secreto` queda por compatibilidad
+## (nada lo llama); si alguien sumara las dos cosas, el techo `MAXIMA_TOTAL` lo corta igual.
+const MEJORA_TINTERO: String = "tinta_tintero"
+const TINTEROS: int = 4
 
 const MAXIMA: float = MAXIMA_INICIAL          ## alias antiguo = la barra de partida (es el techo de `coste_receta`: los costes se miden contra ella)
 const REBAJA_MINIMA: float = 1.0 / 3.0        ## ninguna rebaja baja un coste de este tanto por uno de su coste de partida
@@ -123,11 +129,13 @@ var _espera: float = 0.0
 var _t_pigmento: float = 0.0                  ## s que le quedan al pigmento activo (0 con el base y con los de carga, que no caducan)
 var _vuelo: String = ""                       ## el pigmento de carga ya cobrado que aún vale para el hechizo en construcción ("" = ninguno)
 var _t_vuelo: float = 0.0
+var _tinteros_vistos: int = 0                 ## el nivel de `tinta_tintero` con el que se calculó `maxima` (ver `actualizar`)
 
 
 func _init() -> void:
 	maxima = maxima_calculada()
 	actual = maxima
+	_tinteros_vistos = _est().nivel(MEJORA_TINTERO)
 	frascos = clampi(Estado.i().frascos_tinta, 0, frascos_max())       # los frascos viajan con la partida (otra sala, reaparecer sin descanso)
 
 
@@ -164,11 +172,28 @@ static func por_secreto() -> float:
 	return (MAXIMA_TOTAL - MAXIMA_INICIAL) * REPARTO_SECRETOS / float(SECRETOS)
 
 
+## Lo que sube la barra cada tintero reunido (3 fragmentos): la parte de los secretos entre TINTEROS → +20.
+static func por_tintero() -> float:
+	return (MAXIMA_TOTAL - MAXIMA_INICIAL) * REPARTO_SECRETOS / float(TINTEROS)
+
+
 ## La tinta máxima según lo ganado, con el techo `MAXIMA_TOTAL` (aunque alguien toque los niveles a mano).
 func maxima_calculada() -> float:
 	var e: Estado = _est()
-	var m: float = MAXIMA_INICIAL + float(mini(e.nivel(MEJORA_JEFE), JEFES)) * por_jefe() + float(mini(e.nivel(MEJORA_SECRETO), SECRETOS)) * por_secreto()
+	var m: float = MAXIMA_INICIAL + float(mini(e.nivel(MEJORA_JEFE), JEFES)) * por_jefe() + float(mini(e.nivel(MEJORA_SECRETO), SECRETOS)) * por_secreto() \
+		+ float(mini(e.nivel(MEJORA_TINTERO), TINTEROS)) * por_tintero()
 	return minf(m, MAXIMA_TOTAL)
+
+
+## 24/11: vuelve a calcular el máximo (lo llama `Mejoras.subir` al reunir un tintero). Lo ganado entra también en la barra, como con los jefes.
+func recalcular_maxima() -> void:
+	var antes: float = maxima
+	maxima = maxima_calculada()
+	if is_equal_approx(antes, maxima):
+		return
+	actual = minf(maxima, actual + maxf(0.0, maxima - antes))
+	cambiada.emit()
+	Sfx.play_ui("tinta_sube")
 
 
 ## Un jefe derrotado: +`por_jefe()` al máximo. Devuelve false si ya se llevan todos (no sube más). Lo ganado entra también en la barra
@@ -380,6 +405,11 @@ func rellenar() -> void:
 
 ## Regeneración natural. `en_combate` la frena a un tercio.
 func actualizar(delta: float, en_combate: bool) -> void:
+	# 24/11: un tintero reunido (o cargado con la partida) sube el máximo aunque esta barra no esté registrada en `Partida.tinta` (partida nueva).
+	var n_tintero: int = _est().nivel(MEJORA_TINTERO)
+	if n_tintero != _tinteros_vistos:
+		_tinteros_vistos = n_tintero
+		recalcular_maxima()
 	if _t_vuelo > 0.0:
 		_t_vuelo = maxf(0.0, _t_vuelo - delta)
 		if _t_vuelo <= 0.0:

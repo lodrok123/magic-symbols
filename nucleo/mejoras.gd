@@ -17,6 +17,8 @@ extends RefCounted
 ##   huecos_glifo   Repertoire.max_sigils_per_page: los ENGARCES FIJAN EL TOTAL (decisión de Pablo, 10/11, diario 458): máx(base del libro, 1 + engarces), tope HUECOS_MAX.
 ##                  Con el libro del bosque (base 1) cada engarce abre un hueco; con el avanzado (base 4) solo se notan a partir del cuarto. Ninguno se pierde al cambiar de libro.
 ##   tinta_jefe / tinta_secreto   ya los lleva `Tinta.ganar_jefe/ganar_secreto`; aquí solo `nivel` y `tope` informativos (no se suben con `subir`).
+##   tinta_tintero  (24/11) Tinta.maxima: +Tinta.por_tintero() (20) por nivel, 4 tinteros de 3 fragmentos. Sí se sube con `subir` (lo hace el
+##                  fragmento al reunirse, como la savia) y refresca en el acto la barra de la partida (`Tinta.recalcular_maxima`).
 
 signal cambiada                                   ## (instancia única, para la UI) una mejora ha subido de nivel
 static var _senal: Mejoras = null
@@ -75,6 +77,8 @@ static func subir(id: String, e: Estado = null) -> bool:
 	aplicar_todas(est)
 	if id == "frascos_tinta":
 		_llenar_frasco_nuevo(est)
+	if id == Tinta.MEJORA_TINTERO and Partida.tinta != null and est == Estado.i():
+		Partida.tinta.recalcular_maxima()         # 24/11: un tintero reunido sube la barra que se está usando, en el acto
 	i().cambiada.emit()
 	return true
 

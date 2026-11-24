@@ -90,6 +90,9 @@ static func parametros_defecto() -> Dictionary:
 		"puzles": 0, "barreras": 2, "b_braseros": true, "b_placa": true, "b_puente": true, "b_precipicio": true,
 		# nivel
 		"nombre": "MazmorraGen", "estilo": "cueva", "luz": "cueva", "salida_a": "", "rotulo": true,
+		# 24/11: con estilo cueva, de qué se hacen las paredes: «kit» (el de Tripo, como siempre) o «lostcave» (las rocas del pack Stylized Lost Cave,
+		# presentacion/paredes_lostcave.gd). Solo cambia la escena exportada (`paredes_cueva`), no el plano.
+		"paredes": "kit",
 		# terreno: `terreno` pinta tierra en los pasillos y losas en la sala del tesoro (para que haya juntas entre suelos distintos);
 		# `acabado` = el acabado de serie de la maqueta (orillas y juntas); con false la escena se exporta con él apagado.
 		"terreno": true, "acabado": true,
@@ -152,10 +155,12 @@ const COFRES: Dictionary = {
 	"epico": {"titulo": "Épico", "modelo": "epico", "premios": {
 		"tunica_salamandra:1": "Túnica de salamandra", "capa_escarcha:1": "Capa de escarcha", "capucha_musgo:1": "Capucha de musgo",
 		"nucleo_eco:1": "Núcleo de eco", "fragmento_savia:1+oro:60": "Fragmento de savia y 60 de oro", "frasco_vacio:1+oro:40": "Frasco de reserva y 40 de oro",
-		"engarce_glifo:1": "Engarce de glifo", "hoja_grimorio:1+oro:50": "Hoja de grimorio y 50 de oro"}},
+		"engarce_glifo:1": "Engarce de glifo", "hoja_grimorio:1+oro:50": "Hoja de grimorio y 50 de oro",
+		"fragmento_tintero:1+oro:40": "Fragmento de tintero y 40 de oro"}},       # 24/11: para cofres de secreto y de puzle (la savia, en los de combate)
 	"legendario": {"titulo": "Legendario", "modelo": "legendario", "da": "oro:150+pocion_grande:2", "premios": {
 		"glifo:barrera": "Glifo «barrera»", "glifo:linea": "Glifo «línea»", "glifo:raido": "Glifo «raido» (pulso)",
-		"glifo:permanencia": "Glifo «permanencia»", "fragmento_savia:1": "Sin glifo: un fragmento de savia más"}},
+		"glifo:permanencia": "Glifo «permanencia»", "fragmento_savia:1": "Sin glifo: un fragmento de savia más",
+		"fragmento_tintero:1": "Sin glifo: un fragmento de tintero más"}},
 }
 ## Lo añadido a mano que se pide: [{que: "enemigo" | "cofre", tipo, premio (cofres), c: Vector2i}]. Ver `_aplicar_anadidos`.
 var _anadidos_pedidos: Array = []
@@ -2027,7 +2032,8 @@ func _campamento_en(s: Dictionary, n: int, nv: String) -> bool:
 	var cv: Vector2i = patio.position
 	lineas.append("; pieza camp%d_vigia vigia %d %d de=%s flag=%s" % [n, cv.x, cv.y, _rect_txt(r), flag])
 	s["vigia"] = true
-	var premios: Array = (COFRES["epico"]["premios"] as Dictionary).keys()
+	# El tintero no sale de un campamento: es de cofres de secreto y de puzle (la savia es la de combate). Pablo, 24/11.
+	var premios: Array = (COFRES["epico"]["premios"] as Dictionary).keys().filter(func(k) -> bool: return not String(k).contains("tintero"))
 	var premio: String = String(premios[_azar(0, premios.size() - 1)])
 	var cc2: Vector2i = _sitio_bloqueo({"rect": patio}, true)       # dentro de la cerca (en un claro, la sala es más grande que el campamento)
 	if cc2.x >= 0:
