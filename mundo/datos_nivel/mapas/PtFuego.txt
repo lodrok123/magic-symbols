@@ -68,17 +68,17 @@
 ; camara 24,1..34,11
 ;
 ; pieza inicio entrada 27 39
-; pieza cat1_luces contador 17 34 de=16,33+18,33
+; pieza cat1_luces contador 17 34 de=16,33+18,33 modelo=totem
 ; pieza cat1_luz_a brasero 16 33 luz=2.4 modelo=cueva
 ; pieza cat1_luz_b brasero 18 33 luz=2.4 modelo=cueva
-; pieza cat2_luces contador 17 24 de=15,24+19,24+17,26
+; pieza cat2_luces contador 17 24 de=15,24+19,24+17,26 modelo=totem
 ; pieza cat2_premio cofre 17 25 aparece_si=flag.ptfuego.cat2.hecho abierto=ptfuego.cat2.cofre da=oro:40
 ; puzle cat2_listo cuando=cat2_luces.todos hace=flag.poner(ptfuego.cat2.hecho)
 ; pieza cat3_a brasero 14 16 rele=cat3_b modelo=cueva
 ; pieza cat3_b brasero 16 16 rele=cat3_c modelo=cueva
 ; pieza cat3_c brasero 18 16 rele=cat3_d modelo=cueva
 ; pieza cat3_d brasero 20 16 dura=6 modelo=cueva
-; pieza cat3_luces contador 17 17 de=14,16+20,16
+; pieza cat3_luces contador 17 17 de=14,16+20,16 modelo=totem
 ; pieza cat4_cristal cristal 15 6 cada=0
 ; pieza cat4_veta veta 16 6 celdas=16,6..18,6
 ; pieza cat4_receptor receptor 19 6 elemento=fuego flag=ptfuego.cat4.fuego

@@ -6241,3 +6241,16 @@ Pablo: «1 y 3 aprobados. El 4 no: la vagoneta sale demasiado rápido (redúcelo
 - **Pruebas:**
   - `captura_vagoneta` (0 fallos) mide la velocidad lanzada, comprueba la palanca del pack, que los hechizos no la cambian y que el asa bascula. Fotos `docs/capturas/vagoneta/aguja_ramal_a.png` y `_b.png`.
   - `escenario_catalogo_nuevos`: 0 fallos, con las esperas ampliadas a la vagoneta lenta.
+
+### 24/11/2026 · aviso de contexto PUZLES · playtest PtFuego: 4 aceptados y el contador como tótem que enciende símbolos
+Pablo: «¿hay una manera mejor de enseñar el progreso? Se me ocurre un tótem que vaya encendiendo 3 símbolos. La mecánica de 1, 2, 4 y 5 está probada y funciona».
+- **Aceptados:** `braseros_puerta`, `braseros_premio`, `contrafuego` y `barril_muro`, en la hoja y en sus plantillas. Llevamos 7 de 25.
+- **Contador con `modelo=totem`** (`objetos/contador_reactivos_3d.gd`; clave nueva en `puzle.gd`):
+  - Sustituye el rótulo «ENCENDIDAS n/m» y la placa de gemas por el tótem de piedra del pack Lost Cave (`lost_totem_a`, ×0,6, al fondo de su casilla, sin bloquear).
+  - Lleva un símbolo por reactivo, hasta 5: las pinturas rupestres del pack (espiral, ojo, figura), pintadas con un shader que toma solo su forma.
+  - Se encienden de abajo arriba en naranja de brasa (nunca amarillo), con una luz que crece. Con todos, más brillo y el sonido `sello_ok`.
+  - Sin el pack, la placa de siempre.
+- **Solo donde se pide:** en las plantillas `braseros_premio`, `braseros_puerta` y `rele_braseros` (y, por tanto, en PtFuego, que se ha regenerado). Los niveles hechos a mano (Bosque 01…) siguen con la placa. **Pablo decide** si pasan al tótem.
+- **Pruebas:**
+  - `captura_totem.gd` (nueva, con ventana), 0 fallos: sin rótulo, 3 símbolos, 2 encendidos con 2 braseros, completo con 3. Fotos en `docs/capturas/totem/`.
+  - `escenario_catalogo_puzles`, `escenario_catalogo_nuevos` y `prueba_generador_mapas`: 0 fallos.

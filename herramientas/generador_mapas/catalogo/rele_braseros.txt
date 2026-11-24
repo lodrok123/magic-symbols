@@ -15,4 +15,4 @@ T.T.T.T
 ; pieza b brasero 2 0 rele=c $MODELO
 ; pieza c brasero 4 0 rele=d $MODELO
 ; pieza d brasero 6 0 dura=6 $MODELO
-; pieza luces contador 3 1 de=0,0+6,0
+; pieza luces contador 3 1 de=0,0+6,0 modelo=totem

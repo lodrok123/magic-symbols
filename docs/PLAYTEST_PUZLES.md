@@ -20,11 +20,11 @@ E:\magic-symbols\tools\Godot_v4.7.2-stable_win64.exe --path E:\magic-symbols res
 
 | Orden | Sala | Puzle | Necesita | Estado |
 |---|---|---|---|---|
-| 1 | 2 | **Dos braseros que abren** (`braseros_puerta`) | fuego + flecha | pendiente |
-| 2 | 3 | **Tres braseros y un cofre** (`braseros_premio`) | fuego + flecha | pendiente |
+| 1 | 2 | **Dos braseros que abren** (`braseros_puerta`) | fuego + flecha | aceptado |
+| 2 | 3 | **Tres braseros y un cofre** (`braseros_premio`) | fuego + flecha | aceptado |
 | 3 | 4 | **Relé de braseros** (`rele_braseros`) | fuego + flecha | pendiente |
-| 4 | 7 | **Contrafuego: setos y barril** (`contrafuego`) | fuego + flecha | pendiente |
-| 5 | 6 | **Voladura: barril contra el muro** (`barril_muro`) | fuego + flecha | pendiente |
+| 4 | 7 | **Contrafuego: setos y barril** (`contrafuego`) | fuego + flecha | aceptado |
+| 5 | 6 | **Voladura: barril contra el muro** (`barril_muro`) | fuego + flecha | aceptado |
 | 6 | 5 | **Cristal dormido y receptor de fuego** (`cristal_receptor`) | fuego + flecha | pendiente |
 
 ## PtVagonetas · Vagonetas
@@ -106,11 +106,11 @@ E:\magic-symbols\tools\Godot_v4.7.2-stable_win64.exe --path E:\magic-symbols res
 | Puzle | Tipo | Necesita | Nivel de playtest | Estado |
 |---|---|---|---|---|
 | Balanza: dos rocas y un bloque de tierra (`balanza_rocas`) | premio | tierra + barrera | PtAguaTierra · 6 | pendiente |
-| Voladura: barril contra el muro (`barril_muro`) | premio | fuego + flecha | PtFuego · 5 | pendiente |
-| Tres braseros y un cofre (`braseros_premio`) | premio | fuego + flecha | PtFuego · 2 | pendiente |
-| Dos braseros que abren (`braseros_puerta`) | salida | fuego + flecha | PtFuego · 1 | pendiente |
+| Voladura: barril contra el muro (`barril_muro`) | premio | fuego + flecha | PtFuego · 5 | aceptado |
+| Tres braseros y un cofre (`braseros_premio`) | premio | fuego + flecha | PtFuego · 2 | aceptado |
+| Dos braseros que abren (`braseros_puerta`) | salida | fuego + flecha | PtFuego · 1 | aceptado |
 | Charca que hay que helar (`charca_helada`) | paso | hielo + flecha | PtHielo · 1 | pendiente |
-| Contrafuego: setos y barril (`contrafuego`) | premio | fuego + flecha | PtFuego · 4 | pendiente |
+| Contrafuego: setos y barril (`contrafuego`) | premio | fuego + flecha | PtFuego · 4 | aceptado |
 | Cristal dormido y receptor de fuego (`cristal_receptor`) | salida | fuego + flecha | PtFuego · 6 | pendiente |
 | Escondite tras el muro agrietado (`escondite_muro`) | premio | tierra + flecha | PtAguaTierra · 4 | pendiente |
 | Tres estatuas: fuego, agua, tierra (ᚱ) (`estatuas_sellos`) | premio | fuego + agua + tierra + raido + flecha | PtEmpujePulso · 4 | pendiente |

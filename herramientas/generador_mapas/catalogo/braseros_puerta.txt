@@ -2,7 +2,7 @@
 ; titulo Dos braseros que abren
 ; tipo salida
 ; necesita fuego+flecha
-; validacion pendiente
+; validacion aceptado
 ; pide fuego
 ; activa luces.todos
 ; barrera si
@@ -10,6 +10,6 @@
 ;  Es el activador que antes ponía el generador por código en las barreras.
 T.T
 ...
-; pieza luces contador 1 1 de=0,0+2,0
+; pieza luces contador 1 1 de=0,0+2,0 modelo=totem
 ; cueva pieza luz_a brasero 0 0 luz=2.4 modelo=cueva
 ; cueva pieza luz_b brasero 2 0 luz=2.4 modelo=cueva

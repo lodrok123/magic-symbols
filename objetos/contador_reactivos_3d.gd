@@ -32,6 +32,7 @@ var encendidos: int = 0
 var completo: bool = false
 var _rotulo: Label3D = null
 var _placa: PiezaFuego3D = null             ## la placa con huecos del Pipeline (`contador_placa`); null si no hay modelo o no hay casilla
+var modelo: String = ""                     ## 24/11: "" (la placa y el rótulo de siempre) o "totem" (ver _poner_totem)
 
 
 ## `p_lista`: los nodos a contar. `p_minimo`: 0 = todos. `p_celda`: donde se cuelga el rótulo (x < 0 = sin rótulo, para las pruebas).
@@ -44,6 +45,10 @@ func preparar(p_lista: Array, p_minimo: int = 0, p_celda: Vector2i = Vector2i(-1
 
 
 func _ready() -> void:
+	if celda.x >= 0 and modelo == "totem" and _poner_totem():
+		_leer(false)
+		set_process(true)
+		return
 	if celda.x >= 0:
 		_rotulo = Label3D.new()
 		_rotulo.billboard = BaseMaterial3D.BILLBOARD_ENABLED
@@ -60,6 +65,114 @@ func _ready() -> void:
 			_rotulo.position = Vector3(0.0, ALTO_ROTULO_PLACA, 0.0)
 	_leer(false)
 	set_process(true)
+
+
+# --- TÓTEM (24/11, Pablo en el playtest de PtFuego: «¿hay una manera mejor de enseñar el progreso? Un tótem que vaya encendiendo los símbolos») ----------
+## Con `modelo=totem`: en vez de la placa con gemas y el rótulo «ENCENDIDAS 2/3», el TÓTEM de piedra del pack Lost Cave (`lost_totem_a`) con un SÍMBOLO tallado
+## por cada reactivo que hace falta (hasta TOTEM_MAX; las pinturas rupestres del pack: espiral, ojo, figura). Se encienden de abajo arriba, en naranja de fuego,
+## según arden; con todos, el tótem entero brilla. Va al fondo de su casilla (no la tapa: no bloquea). Sin el pack, la placa de siempre.
+const TOTEM: String = "res://arte/lostcave/piezas/lost_totem_a.tscn"
+const SIMBOLOS: Array[String] = ["res://arte/lostcave/texturas/T_Symbol_c_BC.png", "res://arte/lostcave/texturas/T_Symbol_b_BC.png", "res://arte/lostcave/texturas/T_Symbol_a_BC.png"]
+const TOTEM_ESCALA: float = 0.6
+const TOTEM_FONDO: float = 0.3               ## fracción de casilla que se corre hacia el fondo (norte)
+const TOTEM_MAX: int = 5
+const COLOR_APAGADO: Color = Color(0.11, 0.09, 0.08, 0.85)        ## un trazo tallado en la piedra
+const COLOR_ENCENDIDO: Color = Color(1.0, 0.38, 0.1, 1.0)         ## naranja de brasa (Pablo: rojos y naranjas, nunca amarillo)
+const BRILLO_ENCENDIDO: float = 2.4
+const SHADER_SIMBOLO: String = """
+shader_type spatial;
+render_mode unshaded, cull_disabled, depth_draw_opaque;
+uniform sampler2D mascara : source_color, filter_linear_mipmap;
+uniform vec4 color : source_color = vec4(1.0);
+uniform float brillo = 1.0;
+void fragment() {
+	float a = texture(mascara, UV).a;
+	ALBEDO = color.rgb * brillo;
+	ALPHA = a * color.a;
+}
+"""
+static var _shader: Shader = null
+var _totem: Node3D = null
+var _simbolos: Array = []                    ## ShaderMaterial de cada símbolo, de abajo arriba
+var _luz_totem: OmniLight3D = null
+var _encendidos_vistos: int = -1
+
+
+func _poner_totem() -> bool:
+	if not ResourceLoader.exists(TOTEM):
+		return false
+	var n: Node3D = (load(TOTEM) as PackedScene).instantiate() as Node3D
+	for col in n.find_children("*", "CollisionObject3D", true, false):
+		col.free()                                  # no bloquea: es un marcador
+	var malla: MeshInstance3D = n.find_children("*", "MeshInstance3D", true, false)[0] as MeshInstance3D if not n.find_children("*", "MeshInstance3D", true, false).is_empty() else null
+	if malla == null:
+		n.free()
+		return false
+	n.scale = Vector3.ONE * TOTEM_ESCALA
+	n.position = Vector3(0.0, 0.0, -TOTEM_FONDO * Terreno3D.casilla)
+	add_child(n)
+	_totem = n
+	Ocluso3D.convertir_nodo(n)
+	# La cara de delante (+Z, hacia la cámara) y su alto, en las unidades de la pieza.
+	var caja: AABB = malla.transform * malla.mesh.get_aabb()
+	var cuantos: int = clampi(minimo, 1, TOTEM_MAX)
+	var alto_util: float = caja.size.y * 0.62
+	var lado: float = minf(caja.size.x * 0.42, alto_util / float(cuantos) * 0.85)
+	if _shader == null:
+		_shader = Shader.new()
+		_shader.code = SHADER_SIMBOLO
+	_simbolos.clear()
+	for i in cuantos:
+		var q := MeshInstance3D.new()
+		var qm := QuadMesh.new()
+		qm.size = Vector2(lado, lado)
+		q.mesh = qm
+		var mat := ShaderMaterial.new()
+		mat.shader = _shader
+		mat.set_shader_parameter("mascara", load(SIMBOLOS[i % SIMBOLOS.size()]))
+		mat.set_shader_parameter("color", COLOR_APAGADO)
+		mat.set_shader_parameter("brillo", 1.0)
+		q.material_override = mat
+		q.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		var y: float = caja.position.y + caja.size.y * 0.2 + (alto_util / float(cuantos)) * (float(i) + 0.5)
+		q.position = Vector3(caja.get_center().x, y, caja.end.z + 0.03)
+		n.add_child(q)
+		_simbolos.append(mat)
+	_luz_totem = OmniLight3D.new()
+	_luz_totem.light_color = COLOR_ENCENDIDO
+	_luz_totem.omni_range = 3.0
+	_luz_totem.light_energy = 0.0
+	_luz_totem.position = Vector3(0.0, caja.get_center().y * TOTEM_ESCALA, -TOTEM_FONDO * Terreno3D.casilla + caja.end.z * TOTEM_ESCALA + 0.5)
+	add_child(_luz_totem)
+	return true
+
+
+## Enciende tantos símbolos (de abajo arriba) como reactivos arden; con todos, más brillo y más luz.
+func _pintar_totem() -> void:
+	var de: int = maxi(minimo, 1)
+	var cuantos: int = _simbolos.size()
+	var luces: int = int(floor(float(mini(encendidos, de)) * cuantos / float(de)))
+	for i in cuantos:
+		var mat: ShaderMaterial = _simbolos[i]
+		var on: bool = i < luces
+		var objetivo_color: Color = COLOR_ENCENDIDO if on else COLOR_APAGADO
+		var objetivo_brillo: float = (BRILLO_ENCENDIDO * (1.5 if completo else 1.0)) if on else 1.0
+		if is_inside_tree() and _encendidos_vistos >= 0:
+			var tw: Tween = create_tween().set_parallel(true)
+			tw.tween_property(mat, "shader_parameter/color", objetivo_color, 0.35)
+			tw.tween_property(mat, "shader_parameter/brillo", objetivo_brillo, 0.35)
+		else:
+			mat.set_shader_parameter("color", objetivo_color)
+			mat.set_shader_parameter("brillo", objetivo_brillo)
+	if _luz_totem != null:
+		var e: float = (2.2 if completo else 0.5 * float(luces))
+		if is_inside_tree() and _encendidos_vistos >= 0:
+			create_tween().tween_property(_luz_totem, "light_energy", e, 0.35)
+		else:
+			_luz_totem.light_energy = e
+	if completo and _encendidos_vistos >= 0 and _encendidos_vistos < de and is_inside_tree():
+		Sfx.play(self, "sello_ok")
+	_encendidos_vistos = encendidos
 
 
 func total() -> int:
@@ -95,6 +208,9 @@ func _leer(avisar: bool) -> void:
 
 
 func _pintar() -> void:
+	if _totem != null:
+		_pintar_totem()
+		return
 	if _placa != null:
 		# Una gema por reactivo hasta 4; con más reactivos que huecos, la parte proporcional.
 		var de: int = mini(maxi(minimo, 1), GEMAS_PLACA)

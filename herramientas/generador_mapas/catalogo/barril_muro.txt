@@ -2,7 +2,7 @@
 ; titulo Voladura: barril contra el muro
 ; tipo premio
 ; necesita fuego+flecha
-; validacion pendiente
+; validacion aceptado
 ; pide fuego
 ; resuelto muro.roto
 ;  La voladura de la mina de Lost Cave (LC1). Un nicho tapado por un muro agrietado y, pegado a él (nunca en diagonal: la explosión llega

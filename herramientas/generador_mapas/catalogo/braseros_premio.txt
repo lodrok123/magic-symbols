@@ -2,13 +2,13 @@
 ; titulo Tres braseros y un cofre
 ; tipo premio
 ; necesita fuego+flecha
-; validacion pendiente
+; validacion aceptado
 ; resuelto luces.todos
 ; pide fuego
 ;  Tres braseros apagados en triángulo. Al encender los tres aparece un cofre en el centro. La idea es de la boca de la Cueva (C1).
 T...T
 .....
 ..T..
-; pieza luces contador 2 0 de=0,0+4,0+2,2
+; pieza luces contador 2 0 de=0,0+4,0+2,2 modelo=totem
 ; pieza premio cofre 2 1 aparece_si=flag.$NIVEL.$ID.hecho abierto=$NIVEL.$ID.cofre da=oro:40
 ; puzle listo cuando=luces.todos hace=flag.poner($NIVEL.$ID.hecho)

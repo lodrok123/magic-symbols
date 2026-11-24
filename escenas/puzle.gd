@@ -51,6 +51,7 @@ extends Node
 ##                                                                                   moja y no prende en Reactivo3D.T_MOJADO s (el cortafuegos)
 ##   contador   de=<lista de casillas>  minimo=<n> (todos)                           ContadorReactivos3D: cuenta lo que arde (`is_lit`) en esas casillas (braseros,
 ##                                                                                   fogatas, setos…); rótulo «ENCENDIDAS n/m» sobre su casilla
+##              modelo=totem (24/11): en vez del rótulo y la placa, el TÓTEM de piedra del pack Lost Cave con un símbolo por reactivo, que se enciende en naranja al arder
 ##   cuerda     sostiene=<id>                                                        Cuerda3D: arde 1 s y se rompe; lo que sostiene (una compuerta o un puente) cae
 ##   vigia      de=<lista de casillas> (obligatoria)  flag=<nombre>  puesto=si (no, 27/10: sus arqueros son DE PUESTO, Combate3D.fijo: baten desde donde nacen sin perseguir)
 ##                              VigiaPuzle (C3): vigila a los Combate3D cuya casilla de PARTIDA (`casa`) está en `de`
@@ -478,7 +479,7 @@ const CLAVES: Dictionary = {
 	# 27/10: todo el kit de la Cueva se puede poner de adorno desde el mapa (estalagmitas, pared baja, boca, llave, bloque de enlace, rocas y raíces con musgo)
 	"decorado": {"modelo": "decorado:geoda_resonante|estalagmita_resonante|estalagmita_rota|rocas_salpicadura|helechos_cueva|musgo_colgante|estalagmitas_a|estalagmitas_b|cueva_pared_baja|boca_cueva|llave_pequena|bloque_enlace|roca_musgosa|raices_musgo", "giro": "f", "escala": "f", "dx": "f", "dz": "f"},
 	"seto": {"mojable": "b"},
-	"contador": {"de": "celdas", "minimo": "f"},
+	"contador": {"de": "celdas", "minimo": "f", "modelo": "s:placa|totem"},
 	"cuerda": {"sostiene": "id"},
 	"vigia": {"de": "celdas", "flag": "flag", "puesto": "b", "debil": "s:fuego|agua|tierra|viento|rayo|hielo", "resiste": "s:fuego|agua|tierra|viento|rayo|hielo"},
 	"cerrojo": {"celdas": "celdas", "sala": "celdas", "hasta": "flag"},
@@ -2528,6 +2529,7 @@ func _crear(pz: Pieza) -> void:
 				return
 			var ct := ContadorReactivos3D.new()
 			ct.name = pz.id
+			ct.modelo = String(pz.p.get("modelo", ""))         # 24/11: `modelo=totem` = el tótem del pack que enciende un símbolo por brasero
 			ct.preparar(lista, int(pz.p.get("minimo", 0)), pz.celda)
 			cont.add_child(ct)
 			pz.nodo = ct
