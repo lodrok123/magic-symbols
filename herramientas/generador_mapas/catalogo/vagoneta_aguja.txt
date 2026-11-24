@@ -1,0 +1,25 @@
+; catalogo vagoneta_aguja
+; titulo Vagoneta y aguja: elige el ramal (mecanismo)
+; tipo salida
+; necesita fuego+flecha | agua+flecha | tierra+flecha
+; pide un hechizo a la palanca y otro al botón
+; activa placa.pulsado
+; barrera si
+;  Una vía en Y. La vagoneta espera abajo; un hechizo al botón (abajo a la izquierda) la lanza. En el cruce, la AGUJA la manda por el ramal
+;  que tenga puesto: nace en el de la izquierda, que acaba en un callejón (la vagoneta se queda allí y a los 3 s vuelve a su sitio). Hay que
+;  CAMBIAR la aguja antes (un hechizo a su palanca: la flecha del suelo pasa a señalar la derecha) para que llegue a la placa de la derecha.
+;  También se puede llevar a mano, empujándola, una vez puesta la aguja. La entrada es de dos filas (con una, sus paredes quedan de punta).
+#######
+#.....#
+#.....#
+#.....#
+#.....#
+#.....#
+#.....#
+###.###
+###.###
+; pieza vag vagoneta 3 5 rieles=3,3..3,5+1,3..2,3+1,1..1,2+4,3..5,3+5,1..5,2 sentido=n
+; pieza aguja aguja 3 3 a=o b=e tronco=s
+; pieza placa pulsador 5 1 modo=presencia peso=3 $MODELO
+; pieza boton pulsador 1 6 modo=magia rearme=1
+; puzle lanza cuando=boton.pulsado hace=vag.rodar

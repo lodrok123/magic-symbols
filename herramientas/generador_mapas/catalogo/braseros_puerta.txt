@@ -1,6 +1,7 @@
 ; catalogo braseros_puerta
 ; titulo Dos braseros que abren
 ; tipo salida
+; necesita fuego+flecha
 ; pide fuego
 ; activa luces.todos
 ; barrera si

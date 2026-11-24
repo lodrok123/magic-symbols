@@ -1,0 +1,17 @@
+; catalogo pared_hueca_nicho
+; titulo Pared hueca y nicho (ᚱ)
+; tipo premio
+; necesita fuego+raido | agua+raido | tierra+raido
+; pide ᚱ (pulso)
+; resuelto hueca.abierta
+;  «La grieta que suena» de Lost Cave (LC5). Una veta lleva desde la entrada hasta el pie de una pared hueca; el pulso de la jugadora (ᚱ con
+;  cualquier sello, lanzado sobre la veta) corre por ella, la pared suena hueca y se abre: detrás hay un cofre.
+#####
+##.##
+##.##
+##.##
+##.##
+##.##
+; pieza cofre cofre 2 1 abierto=$NIVEL.$ID.cofre da=oro:30+pocion:1
+; pieza hueca pared_hueca 2 2 flag=$NIVEL.$ID.hueca mira=s
+; pieza veta veta 2 3 celdas=2,3..2,4

@@ -1,6 +1,7 @@
 ; catalogo rele_braseros
 ; titulo Relé de braseros
 ; tipo salida
+; necesita fuego+flecha
 ; pide fuego
 ; activa luces.todos
 ; barrera si

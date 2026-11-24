@@ -98,6 +98,11 @@ static func parametros_defecto() -> Dictionary:
 		"terreno": true, "acabado": true,
 		# `camara_sala`: la cámara se frena en el borde de cada sala y se acerca poco a poco en las pequeñas (CamaraSalas).
 		"camara_sala": true,
+		# 24/11 (Pablo: «filtrar por las runas de la jugadora»): `kit` = el de Lanzador3D.PROGRESIONES que lleva la escena exportada; `runas` = los sellos y
+		# glifos que tiene la jugadora, separados por comas ("" = los del kit). Solo se reparten solos los puzles que se pueden resolver con ellas.
+		"kit": "pruebas", "runas": "",
+		# 24/11 (Pablo: «salas de jefe para los enemigos grandes»): "no" | "auto" (cueva: gólem · bosque: elemental) | "jefe_golem" | "jefe_elemental".
+		"sala_jefe": "no",
 	}
 
 
@@ -1821,6 +1826,174 @@ const CAMP_DIST_MIN: float = 0.3                  ## fracción de la distancia m
 const CAMPAMENTO: String = "campamento"
 const CAMPAMENTO_TITULO: String = "Campamento goblin (sala de enemigos)"
 
+## 24/11: las runas (sellos y glifos) que tiene la jugadora en este mapa: las del parámetro `runas` si las hay; si no, las del `kit`.
+func runas() -> Array:
+	return runas_de(p)
+
+
+static func runas_de(par: Dictionary) -> Array:
+	var txt: String = String(par.get("runas", "")).strip_edges()
+	if txt != "":
+		var r: Array = []
+		for t in txt.split(",", false):
+			if String(t).strip_edges() != "":
+				r.append(String(t).strip_edges())
+		return r
+	var kit: Dictionary = Lanzador3D.PROGRESIONES.get(String(par.get("kit", "pruebas")), {})
+	return (kit.get("sellos", []) as Array) + (kit.get("glifos", []) as Array)
+
+
+# =====================================================================================================================
+#  Salas del jefe (24/11, Pablo: «salas de jefe para los enemigos grandes: al menos el elemental en el bosque y el gólem en la cueva»)
+# =====================================================================================================================
+
+## LA SALA DEL JEFE. La sala grande más lejana del inicio (al menos JEFE_LADO_MIN, sin otro papel) se vuelve la arena de un enemigo grande:
+##   · GÓLEM (cueva): el gólem en el centro y dos limos a los lados; la sala se CIERRA con cerrojo en sus bocas hasta vencerlos (en un mapa de
+##     salas, sus puertas; en una cueva orgánica, las casillas de suelo de su borde, si son JEFE_BOCAS_MAX o menos).
+##   · ELEMENTAL DEL BOSQUE (bosque): el elemental (letra G) en el centro del claro. Sin cerrojo (Pablo, 5/11: en zona abierta no hay cerrojo).
+##   · En los dos, un VIGÍA y un COFRE LEGENDARIO que aparece al vencer al jefe.
+## Se pide en la pestaña Mapa («Sala del jefe») o a mano en una sala, como un puzle más (pestaña «Puzles»).
+const JEFES: Dictionary = {
+	"jefe_golem": {"titulo": "Sala del jefe: gólem (cueva)", "cerrojo": true},
+	"jefe_elemental": {"titulo": "Sala del jefe: elemental del bosque", "cerrojo": false},
+}
+const JEFE_LADO_MIN: Vector2i = Vector2i(6, 6)
+const JEFE_BOCAS_MAX: int = 6
+const JEFE_DA: String = "oro:150+pocion_grande:2+fragmento_savia:1"
+
+
+func _poner_jefes(vivas: Array, dmax: int, nv: String) -> void:
+	var n: int = 0
+	for s in vivas:
+		if not s.has("jefe_mano"):
+			continue
+		s["rol"] = ""
+		n += 1
+		if not _jefe_en(s, String(s["jefe_mano"]), n, nv):
+			avisos.append("La sala del jefe pedida en la sala %d no cabe (hace falta suelo libre en el centro y sitio para el cofre)." % int(s["id"]))
+			puzles_puestos.erase(int(s["id"]))
+			s["rol"] = "puzle"
+			n -= 1
+
+
+## La sala del jefe pedida en la pestaña Mapa («Sala del jefe»): se RESERVA pronto (justo después de los puzles puestos a mano, antes de repartir
+## los automáticos, las barreras y el tesoro), la sala grande más lejana del inicio, para que nada se la quite. Se monta luego en `_poner_jefes`.
+func _reservar_jefe(vivas: Array) -> void:
+	var pedido: String = String(p.get("sala_jefe", "no"))
+	if pedido == "no":
+		return
+	for s in vivas:
+		if s.has("jefe_mano"):
+			return                                       # ya hay una a mano
+	var cid: String = pedido
+	if pedido == "auto":
+		cid = "jefe_elemental" if (String(p["algoritmo"]) == "bosque" or String(p["estilo"]) == "bosque") else "jefe_golem"
+	if not JEFES.has(cid):
+		return
+	var dist: PackedInt32Array = _distancias(inicio)
+	var orden: Array = vivas.filter(func(s: Dictionary) -> bool:
+		var r: Rect2i = s["rect"]
+		return String(s["rol"]) == "" and not s.has("activador") and r.size.x >= JEFE_LADO_MIN.x and r.size.y >= JEFE_LADO_MIN.y)
+	var lejos: Callable = func(s: Dictionary) -> int:
+		var c: Vector2i = _centro_libre(s)
+		return dist[c.y * w + c.x] if c.x >= 0 else -1
+	orden = orden.filter(func(s: Dictionary) -> bool: return int(lejos.call(s)) >= 0)
+	orden.sort_custom(func(a: Dictionary, b: Dictionary) -> bool:
+		var da: int = lejos.call(a)
+		var db: int = lejos.call(b)
+		return da > db or (da == db and (a["rect"] as Rect2i).get_area() > (b["rect"] as Rect2i).get_area()))
+	if orden.is_empty():
+		avisos.append("No cabe la sala del jefe: hace falta una sala de %d × %d o más, sin otro papel." % [JEFE_LADO_MIN.x, JEFE_LADO_MIN.y])
+		return
+	var s0: Dictionary = orden[0]
+	s0["rol"] = "puzle"
+	s0["jefe_mano"] = cid
+	puzles_puestos[int(s0["id"])] = cid
+
+
+## Monta el jefe `cid` número `n` en la sala `s`. false (sin tocar nada) si no hay sitio.
+func _jefe_en(s: Dictionary, cid: String, n: int, nv: String) -> bool:
+	var r: Rect2i = s["rect"]
+	var libres: Array = _celdas_sala(s).filter(func(c: Vector2i) -> bool: return _tipo(c) == SUELO and not _ocupada.has(c) and not letras.has(c))
+	if libres.size() < 12:
+		return false
+	var centro: Vector2 = Vector2(r.position) + Vector2(r.size) * 0.5 - Vector2(0.5, 0.5)
+	libres.sort_custom(func(a: Vector2i, b: Vector2i) -> bool: return Vector2(a).distance_squared_to(centro) < Vector2(b).distance_squared_to(centro))
+	var cj: Vector2i = libres[0]
+	var pre: String = "jefe%d" % n
+	var flag: String = "%s.%s.limpio" % [nv, pre]
+	var guardado: Array = [letras.duplicate(), _ocupada.duplicate(), _bloqueos.duplicate(), objetos.duplicate(true), lineas.duplicate()]
+	# El cofre legendario, que aparece al vencer (bloquea su casilla: lejos del centro).
+	_ocupar(cj)
+	var cc: Vector2i = _sitio_bloqueo(s, true)
+	if cc.x < 0:
+		letras = guardado[0]
+		_ocupada = guardado[1]
+		_bloqueos = guardado[2]
+		objetos = guardado[3]
+		lineas = guardado[4]
+		return false
+	_ocupar(cc, true)
+	_objeto(cc, "cofre_legendario", pre + "_cofre")
+	lineas.append("; pieza %s_cofre cofre %d %d modelo=legendario aparece_si=flag.%s abierto=%s.%s.cofre da=%s" % [pre, cc.x, cc.y, flag, nv, pre, JEFE_DA])
+	# El jefe (y su escolta).
+	if cid == "jefe_elemental":
+		letras[cj] = "G"
+		if not _letras_extra.contains("G"):
+			_letras_extra += "G"
+		_objeto(cj, "elemental", pre)
+	else:
+		lineas.append("; pieza %s_golem golem %d %d" % [pre, cj.x, cj.y])
+		_objeto(cj, "golem", pre)
+		var k: int = 0
+		for d in [Vector2i(-2, 1), Vector2i(2, 1), Vector2i(-2, -1), Vector2i(2, -1), Vector2i(0, 2)]:
+			if k >= 2:
+				break
+			var cl: Vector2i = cj + d
+			if r.has_point(cl) and _libre(cl) and not letras.has(cl):
+				k += 1
+				_ocupar(cl)
+				_objeto(cl, "limo", "%s_limo_%d" % [pre, k])
+				lineas.append("; pieza %s_limo_%d limo %d %d" % [pre, k, cl.x, cl.y])
+	var cv: Vector2i = r.position
+	if _tipo(cv) == MURO:
+		cv = libres[libres.size() - 1]
+	lineas.append("; pieza %s_vigia vigia %d %d de=%s flag=%s" % [pre, cv.x, cv.y, _rect_txt(r), flag])
+	# El cerrojo (solo el gólem): las puertas de la sala o, sin puertas (cueva), las casillas de suelo pegadas a su borde por fuera.
+	if bool(JEFES[cid]["cerrojo"]):
+		var bocas: Array = []
+		for pu in _puertas_de(int(s["id"])):
+			if String(pu["tipo"]) == "paso":
+				bocas.append(pu["c"])
+		if bocas.is_empty():
+			for y in range(r.position.y - 1, r.end.y + 1):
+				for x in range(r.position.x - 1, r.end.x + 1):
+					var c: Vector2i = Vector2i(x, y)
+					if r.has_point(c) or not _dentro(c) or _tipo(c) != SUELO:
+						continue
+					for d in [Vector2i(1, 0), Vector2i(-1, 0), Vector2i(0, 1), Vector2i(0, -1)]:
+						if r.has_point(c + d) and _tipo(c + d) == SUELO:
+							bocas.append(c)
+							break
+		if bocas.is_empty() or bocas.size() > JEFE_BOCAS_MAX:
+			avisos.append("La sala del jefe (sala %d) no se cierra: tiene %d casillas de boca (como mucho %d). Se pelea igual, sin cerrojo." % [int(s["id"]), bocas.size(), JEFE_BOCAS_MAX])
+		else:
+			var txt: PackedStringArray = PackedStringArray()
+			for b in bocas:
+				txt.append("%d,%d" % [int(b.x), int(b.y)])
+				_ocupar(b)
+				_objeto(b, "cerrojo", pre + "_cerrojo")
+			for pu in _puertas_de(int(s["id"])):
+				if bocas.has(pu["c"]):
+					pu["tipo"] = "cerrojo"
+			lineas.append("; pieza %s_cerrojo cerrojo %d %d celdas=%s sala=%s hasta=%s" % [pre, bocas[0].x, bocas[0].y, "+".join(txt), _rect_txt(r), flag])
+			lineas.append("; puzle %s_abre cuando=%s_vigia.todos_derrotados hace=%s_cerrojo.abrir" % [pre, pre, pre])
+	s["rol"] = "jefe"
+	s["vigia"] = true
+	puzles_puestos[int(s["id"])] = cid
+	return true
+
+
 func _poner_campamentos(vivas: Array, dmax: int, nv: String) -> void:
 	# Primero los pedidos a mano: en su sala, aunque sea más pequeña o esté cerca del inicio (lo dice si no cabe).
 	var hechos: int = 0
@@ -2260,10 +2433,12 @@ func _poblar() -> void:
 				avisos.append("Solo caben %d barreras de las %d pedidas (hacen falta pasos obligados y salas libres para sus activadores)." % [_barreras.size() + barreras_precipicio.size(), quiero_barreras])
 	# 4d · Campamentos goblin (22/11): antes de las charcas y los enemigos, porque ponen su empalizada, su gente y su cofre.
 	_poner_campamentos(vivas, dmax, nv)
+	# 4e · Salas del jefe (24/11): gólem en la cueva, elemental en el bosque.
+	_poner_jefes(vivas, dmax, nv)
 	# 5 · Charcas dentro de las salas grandes (dejando libre el anillo de las paredes: no cortan el paso).
 	for s in vivas:
 		var r: Rect2i = s["rect"]
-		if String(s["rol"]) == "inicio" or String(s["rol"]) == "puzle" or String(s["rol"]) == "campamento" or r.size.x < 5 or r.size.y < 5 or String(p["algoritmo"]) == "cueva" or bosque:
+		if String(s["rol"]) == "inicio" or String(s["rol"]) == "puzle" or String(s["rol"]) == "campamento" or String(s["rol"]) == "jefe" or r.size.x < 5 or r.size.y < 5 or String(p["algoritmo"]) == "cueva" or bosque:
 			continue
 		if not _pct(float(p["charcas"])):
 			continue
@@ -2303,7 +2478,7 @@ func _poblar() -> void:
 	var hay_arquero: bool = false
 	for s in vivas:
 		var rol: String = String(s["rol"])
-		if rol == "inicio" or rol == "salida" or rol == "puzle" or rol == "campamento" or (rol == "tesoro" and not puerta_llave.is_empty()):
+		if rol == "inicio" or rol == "salida" or rol == "puzle" or rol == "campamento" or rol == "jefe" or (rol == "tesoro" and not puerta_llave.is_empty()):
 			continue                               # donde se llega de otro nivel no espera nadie (el campamento ya trae su gente)
 		var celdas: Array = _celdas_sala(s).filter(func(c: Vector2i) -> bool: return not _ocupada.has(c) and not _cerca_de_puerta(c) and absi(c.x - inicio.x) + absi(c.y - inicio.y) >= 5)
 		var n: int = clampi(int(round(celdas.size() / CASILLAS_POR_ENEMIGO * fuerza * (0.6 + 0.8 * int(s["dist"]) / float(dmax)))), 0, 5)
@@ -2320,7 +2495,7 @@ func _poblar() -> void:
 			s["enemigos"] = int(s["enemigos"]) + 1
 	# 8 · Vigías y cerrojos: la sala de la llave siempre lleva vigía (el cofre aparece al limpiarla); otras se cierran hasta vencer.
 	for s in vivas:
-		if int(s["enemigos"]) == 0 or String(s["rol"]) == "campamento":
+		if int(s["enemigos"]) == 0 or String(s["rol"]) == "campamento" or String(s["rol"]) == "jefe":
 			continue                               # el campamento pone su propio vigía y no se cierra (Pablo, 5/11: en zona abierta no hay cerrojo)
 		var rol: String = String(s["rol"])
 		var r: Rect2i = s["rect"]
@@ -3232,6 +3407,8 @@ func _intentar_barrera_b(paso: Dictionary, n: int, vivas: Array, cueva: bool) ->
 		var senal: String = String(e["activa"]).split(".")[1]
 		if (senal == "todos" and not bool(p["b_braseros"])) or (senal == "pulsado" and not bool(p["b_placa"])):
 			continue
+		if not Catalogo.se_puede(e, runas()):
+			continue                                     # 24/11: un activador que la jugadora no puede resolver cerraría el mapa para siempre
 		plantillas.append(cid)
 	_barajar(plantillas)
 	var bid: String = ("puente_%d" if puente else "puerta_%d") % n
@@ -3462,15 +3639,27 @@ func _colocar_catalogo(vivas: Array, nv: String) -> void:
 			s["rol"] = "puzle"
 			s["camp_mano"] = true
 			puzles_puestos[int(s["id"])] = CAMPAMENTO
+		elif JEFES.has(cid):
+			# 24/11 (Pablo: «salas de jefe para los enemigos grandes»): como el campamento, la sala queda reservada y el jefe se monta en `_poner_jefes`.
+			s["rol"] = "puzle"
+			s["jefe_mano"] = cid
+			puzles_puestos[int(s["id"])] = cid
 		else:
 			var motivo: String = _poner_puzle(s, cid, nv)
 			if motivo != "":
 				avisos.append("El puzle «%s» no se ha podido poner en la sala %d: %s" % [cid, int(sid), motivo])
+			elif cat.has(cid) and not Catalogo.se_puede(cat[cid], runas()):
+				# Puesto a mano aunque no se pueda resolver con las runas elegidas (la «búsqueda a mano» del panel lo permite): se dice.
+				avisos.append("El puzle «%s» de la sala %d NO se puede resolver con las runas elegidas: pide %s." % [cid, int(sid), Catalogo.necesita_dicho(cat[cid])])
+	_reservar_jefe(vivas)                               # 24/11: la sala del jefe, antes de los automáticos (que se quedaban con las salas grandes)
 	var quiero: int = clampi(int(p["puzles"]), 0, 12)
 	if quiero <= 0 or cat.is_empty():
 		return
-	var ids: Array = cat.keys()
+	var ids: Array = cat.keys().filter(func(cid) -> bool: return Catalogo.se_puede(cat[cid], runas()))     # 24/11: solo las que se resuelven con las runas elegidas
 	ids.sort()
+	if ids.is_empty():
+		avisos.append("Ningún puzle del catálogo se puede resolver con las runas elegidas: no se reparte ninguno.")
+		return
 	_barajar(ids)
 	var libres: Array = vivas.filter(func(s: Dictionary) -> bool: return String(s["rol"]) == "")
 	_barajar(libres)
@@ -3666,7 +3855,7 @@ func _linea_de_catalogo(l: String, e: Dictionary, sitio: Vector2i, inst: String,
 		if kv.size() != 2:
 			continue
 		var valor: String = kv[1]
-		if ["celdas", "de", "sala", "en", "camino", "canal", "bloque"].has(kv[0]) or valor.contains("casilla("):
+		if ["celdas", "de", "sala", "en", "camino", "canal", "bloque", "rieles"].has(kv[0]) or valor.contains("casilla("):
 			var res: String = ""
 			var desde: int = 0
 			for m in pares.search_all(valor):

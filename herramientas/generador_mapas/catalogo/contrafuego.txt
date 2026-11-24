@@ -1,6 +1,7 @@
 ; catalogo contrafuego
 ; titulo Contrafuego: setos y barril
 ; tipo premio
+; necesita fuego+flecha
 ; resuelto barril.explota
 ; pide fuego
 ;  La cámara B del Bosque 01 (F4, «contrafuego»). Cuatro setos secos (z) en fila y un barril al final. Fuego al primer seto: el fuego

@@ -1,0 +1,17 @@
+; catalogo vagoneta_pista
+; titulo Vagoneta a la placa (a mano)
+; tipo salida
+; necesita -
+; pide empujar
+; activa placa.pulsado
+; barrera si
+;  La vagoneta en una vía corta y recta, dentro de una pista de dos casillas de pared (como piedra_pista). Se empuja andando: solo avanza
+;  por su vía. Dos empujones hacia arriba y queda sobre la placa del fondo, que pide peso 3 (la jugadora sola no la baja). Se entra por abajo.
+#####
+##.##
+##.##
+##.##
+##.##
+##.##
+; pieza vag vagoneta 2 3 rieles=2,1..2,3
+; pieza placa pulsador 2 1 modo=presencia peso=3 $MODELO

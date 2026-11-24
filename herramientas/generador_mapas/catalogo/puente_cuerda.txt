@@ -1,6 +1,7 @@
 ; catalogo puente_cuerda
 ; titulo Puente plegado: agua o fuego
 ; tipo paso
+; necesita agua+flecha | fuego+flecha
 ; resuelto puente.tendido
 ; pide agua o fuego
 ; estira x

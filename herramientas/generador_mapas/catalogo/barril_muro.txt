@@ -1,0 +1,18 @@
+; catalogo barril_muro
+; titulo Voladura: barril contra el muro
+; tipo premio
+; necesita fuego+flecha
+; pide fuego
+; resuelto muro.roto
+;  La voladura de la mina de Lost Cave (LC1). Un nicho tapado por un muro agrietado y, pegado a él (nunca en diagonal: la explosión llega
+;  a algo más de una casilla), un barril de pólvora. Una flecha de fuego desde la entrada lo prende, explota y rompe el muro: el cofre
+;  queda a la vista. El barril tapa el único acceso al muro, así que la tierra no llega a golpearlo.
+#####
+##.##
+##.##
+##.##
+##.##
+##.##
+; pieza cofre cofre 2 1 abierto=$NIVEL.$ID.cofre da=oro:30+pocion:1
+; pieza muro muro 2 2 golpes=2
+; pieza barril barril 2 3

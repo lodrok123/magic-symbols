@@ -1,0 +1,25 @@
+; catalogo prisma_rojo_azul
+; titulo Prisma: rojo y azul
+; tipo premio
+; necesita fuego+agua+flecha
+; pide fuego y agua
+; resuelto cofre.aparecido
+;  «Rojo y azul» de Lost Cave (LC4). Un cristal dormido, un prisma que nace mirando al cristal (no reemite nada) y dos receptores: el de
+;  FUEGO arriba y el de AGUA abajo. Se golpea el cristal con fuego y se gira el prisma hacia arriba (E o un hechizo: un cuarto de vuelta
+;  cada vez); luego con agua y el prisma hacia abajo. Con los dos encendidos aparece el cofre épico.
+#######
+#.....#
+#.....#
+#.....#
+#.....#
+#.....#
+###.###
+###.###
+; pieza cristal cristal 2 3 cada=0
+; pieza veta_entra veta 3 3
+; pieza prisma prisma 4 3 dir=o
+; pieza veta_n veta 4 2
+; pieza veta_s veta 4 4
+; pieza rf receptor 4 1 elemento=fuego flag=$NIVEL.$ID.fuego
+; pieza ra receptor 4 5 elemento=agua flag=$NIVEL.$ID.agua
+; pieza cofre cofre 1 1 modelo=epico aparece_si=rf.activo+ra.activo abierto=$NIVEL.$ID.cofre da=oro:40+fragmento_tintero:1

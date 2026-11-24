@@ -1,6 +1,7 @@
 ; catalogo braseros_premio
 ; titulo Tres braseros y un cofre
 ; tipo premio
+; necesita fuego+flecha
 ; resuelto luces.todos
 ; pide fuego
 ;  Tres braseros apagados en triángulo. Al encender los tres aparece un cofre en el centro. La idea es de la boca de la Cueva (C1).

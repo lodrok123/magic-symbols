@@ -72,6 +72,11 @@ extends Node
 ##              `coge_si` (alga: casilla(x,y).helada · basalto: casilla(x,y).roca). Si la condición se pierde, desaparece; si vuelve, reaparece (salvo si ya se cogió)
 ##   muro       golpes=<n> (2)                                                       MuroAgrietado3D (bloque 2 EoW): bloque de piedra que tapa su casilla;
 ##              lo rompen `golpes` impactos de tierra o una explosión (barril). Se deshace por celdas y libera la casilla
+##   vagoneta   rieles=<lista> (obligatoria)  sentido=n|e|s|o                    Vagoneta3D (24/11): una vagoneta que solo pisa su VÍA (`rieles`, la casilla de la pieza incluida; la vía se dibuja sola).
+##              A MANO se empuja como el bloque de piedra (pesa 3 en las placas). Con la acción `rodar` RUEDA sola hacia `sentido`, sigue las curvas y las agujas, y al chocar contra un
+##              MURO agrietado lo rompe. Señales `movido`, `choca`, `reaparece`; condiciones `quieto`|`en_marcha`. Si se queda en medio sin poder moverse, vuelve a su casilla
+##   aguja      a=n|e|s|o  b=n|e|s|o  tronco=n|e|s|o (el opuesto de a)            Aguja3D (24/11): el desvío de una vía en Y. Nace puesta en el ramal `a`; un golpe de hechizo a su palanca o la acción
+##              `cambiar` la pasa al otro (flecha y color). La vagoneta que llega por el tronco sigue el ramal puesto. Señal `cambia`; condiciones `en_a`|`en_b`. No bloquea
 ##   bloque     material=piedra|hielo (piedra)                                      BloqueEmpujable3D (27/10, docs/EMPUJAR_BLOQUES.md): bloque que la jugadora EMPUJA andando contra él (0,35 s apretando) o que el VIENTO se lleva. Bloquea
 ##              su casilla (jugadora, enemigos, flechas), pesa (pisa las placas) y no se guarda: al recargar vuelve a su casilla. `piedra`: una casilla por empujón (0,45 s); sobre el HUECO de una
 ##              veta (`enlaces=`) lo TIENDE y el pulso cruza. `hielo`: un empujón y resbala hasta que la siguiente casilla no esté libre (pared, otro bloque, una barrera de tierra, un enemigo).
@@ -297,7 +302,7 @@ const SENAL_DEFECTO: Dictionary = {
 	"alga": "recogida", "basalto": "recogida",
 	"cristal": "late", "receptor": "activado", "prisma": "gira", "pared_hueca": "abierta",
 	"jarron": "roto", "caja": "roto", "salida": "usada",
-	"columna": "cae", "estatuas": "completa", "estalagmita": "cae", "geoda": "explota", "bloque": "movido", "roca_empujable": "movido",
+	"columna": "cae", "estatuas": "completa", "estalagmita": "cae", "geoda": "explota", "bloque": "movido", "roca_empujable": "movido", "vagoneta": "movido", "aguja": "cambia",
 	"guardian": "levanta", "puente": "tendido", "trampa_dragon": "escupe", "trampa_flechas": "dispara",
 	"colmena": "cae_panal", "nube_veneno": "disipada", "respiradero": "exhala", "balsa": "atraca", "nido": "suelta", "musgo": "recogida", "helecho_cueva": "recogida", "seta_palida": "recogida",
 	"flor": "recogida", "raiz": "recogida", "lavanda": "recogida", "bayas": "recogida", "helecho": "recogida", "flor_silvestre": "recogida",
@@ -341,6 +346,8 @@ const SENALES: Dictionary = {
 	"geoda": {"explota": ["explota", 2, null]},
 	"bloque": {"movido": ["movido", 1, null], "reaparece": ["reaparecio", 0, null]},
 	"roca_empujable": {"movido": ["movido", 1, null], "reaparece": ["reaparecio", 0, null]},
+	"vagoneta": {"movido": ["movido", 1, null], "choca": ["choca", 1, null], "reaparece": ["reaparecio", 0, null]},
+	"aguja": {"cambia": ["cambia", 1, null]},
 	"estatuas": {"completa": ["completa", 0, null], "falla": ["falla", 0, null], "acierta": ["acierta", 2, null]},
 	"guardian": {"levanta": ["levanta", 1, null]},
 	"puente": {"tendido": ["completo", 0, null]},
@@ -392,6 +399,8 @@ const CONDICIONES: Dictionary = {
 	"geoda": {"explotada": ["explotada", true], "intacta": ["explotada", false]},
 	"bloque": {"quieto": ["moviendo", false], "en_marcha": ["moviendo", true]},
 	"roca_empujable": {"quieto": ["moviendo", false], "en_marcha": ["moviendo", true]},
+	"vagoneta": {"quieto": ["moviendo", false], "en_marcha": ["moviendo", true]},
+	"aguja": {"en_a": ["en_b", false], "en_b": ["en_b", true]},
 	"estatuas": {"completa": ["hecha", true], "pendiente": ["hecha", false]},
 	"puente": {"tendido": ["tendido", true], "plegado": ["tendido", false]},
 	"mamoa": {"abierta": ["abierta", true], "tapada": ["abierta", false], "agrietada": ["esta_agrietada", true]},
@@ -434,6 +443,8 @@ const ACCIONES: Dictionary = {
 	"cristal": {"latir": 0},
 	"receptor": {"activar": 0, "apagar": 0},
 	"prisma": {"girar": 0},
+	"vagoneta": {"rodar": 0},
+	"aguja": {"cambiar": 0},
 	"pared_hueca": {"abrir": 0},
 	"emisor": {"pulso": 1},
 	"jarron": {"romper": 0},
@@ -496,6 +507,8 @@ const CLAVES: Dictionary = {
 	"geoda": {"flag": "flag", "escala": "f", "cerca": "f"},
 	"bloque": {"material": "s:piedra|hielo"},
 	"roca_empujable": {"tam": "s:mediana|pequena", "variante": "s:musgo|neutra|magma", "forma": "f"},
+	"vagoneta": {"rieles": "celdas", "sentido": "s:n|e|s|o"},
+	"aguja": {"a": "s:n|e|s|o", "b": "s:n|e|s|o", "tronco": "s:n|e|s|o"},
 	"estatuas": {"celdas": "celdas", "secuencia": "secuencia", "flag": "flag"},
 	"receptor": {"elemento": "s:fuego|agua|hielo|rayo|tierra|viento", "flag": "flag", "rearme": "f"},
 	"prisma": {"dir": "s:n|e|s|o"},
@@ -2327,6 +2340,22 @@ func _crear(pz: Pieza) -> void:
 			rq.preparar(pz.celda, "roca", mundo as Node, String(pz.p.get("tam", "mediana")), String(pz.p.get("variante", "")), int(pz.p.get("forma", -1)))
 			cont.add_child(rq)
 			pz.nodo = rq
+		"vagoneta":
+			# 24/11: la vagoneta en raíles (objetos/vagoneta_3d.gd). Sin `rieles` sería un bloque normal: se avisa.
+			if not pz.p.has("rieles"):
+				_avisar_pieza(pz, "la vagoneta necesita su vía: rieles=<casillas>")
+				return
+			var vg := Vagoneta3D.new()
+			vg.name = pz.id
+			vg.preparar_via(pz.celda, pz.p["rieles"] as Array, String(pz.p.get("sentido", "")), mundo as Node)
+			cont.add_child(vg)
+			pz.nodo = vg
+		"aguja":
+			var ag := Aguja3D.new()
+			ag.name = pz.id
+			ag.preparar(pz.celda, String(pz.p.get("a", "n")), String(pz.p.get("b", "e")), String(pz.p.get("tronco", "")))
+			cont.add_child(ag)
+			pz.nodo = ag
 		"nexo":
 			var nx := NexoRayo3D.new()
 			nx.name = pz.id
@@ -3693,6 +3722,12 @@ func _ejecutar(a: Dictionary) -> void:
 		"girar":
 			if nd != null:
 				nd.call("girar")
+		"rodar":
+			if nd != null:
+				nd.call("rodar")
+		"cambiar":
+			if nd != null:
+				nd.call("cambiar")
 		"activar":
 			if nd != null:
 				nd.call("activar")

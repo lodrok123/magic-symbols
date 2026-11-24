@@ -117,6 +117,8 @@ const CAMPOS: Array = [
 	{"k": "tesoro", "r": "Sala del tesoro", "t": "bool", "a": "La sala más lejana lleva un cofre (60 de oro y una poción)."},
 	{"k": "llave", "r": "Tesoro con llave", "t": "bool", "a": "La sala del tesoro se cierra con una puerta de llave; la llave está en el cofre de otra sala lejana, que aparece al limpiarla."},
 	{"k": "campamentos", "r": "Campamentos goblin", "t": "int", "min": 0, "max": 4, "a": "Salas grandes (7 × 6 o más) lejos del inicio que se vuelven campamento goblin: empalizada con puertas que arden,\nfogata, torre, tiendas, estandarte, guardias (y chamán si es grande), vigía y un cofre épico que aparece al limpiarlo."},
+	{"k": "sala_jefe", "r": "Sala del jefe", "t": "opcion", "op": [["no", "No"], ["auto", "Según el estilo (cueva: gólem · bosque: elemental)"], ["jefe_golem", "Gólem (cueva)"], ["jefe_elemental", "Elemental del bosque"]],
+		"a": "La sala grande (6 × 6 o más) más lejana del inicio se vuelve la arena de un enemigo grande, con vigía y un COFRE LEGENDARIO al vencerlo.\nGólem: con dos limos, y la sala se cierra al entrar (si tiene 6 casillas de boca o menos). Elemental: en el claro, sin cerrojo (zona abierta).\nTambién se pone a mano en una sala concreta: pestaña «Puzles», «Sala del jefe: …»."},
 	{"k": "charcas", "r": "Salas con charca (%)", "t": "int", "min": 0, "max": 100, "paso": 5, "a": "Salas de 5 × 5 o más con una charca de agua honda en medio."},
 	{"k": "braseros", "r": "Braseros por sala", "t": "float", "min": 0.0, "max": 4.0, "paso": 0.5, "a": "En los rincones. Nacen apagados: se encienden con fuego."},
 	{"k": "jarrones", "r": "Jarrones por sala", "t": "float", "min": 0.0, "max": 6.0, "paso": 0.5, "a": "Contra la pared del fondo. Dan oro (o poción, 1 de cada 5)."},
@@ -125,6 +127,9 @@ const CAMPOS: Array = [
 	{"k": "estilo", "r": "Estilo", "t": "opcion", "op": [["cueva", "Cueva (roca)"], ["bosque", "Bosque (árboles)"], ["pantano", "Pantano (barro)"]], "a": "Cómo dibuja la maqueta las paredes y el suelo."},
 	{"k": "paredes", "r": "Paredes (cueva)", "t": "opcion", "op": [["kit", "Kit de cueva"], ["lostcave", "Rocas del pack Lost Cave"]], "a": "Con estilo cueva: de qué se hacen las paredes «#».\nLost Cave = rocas del pack Stylized Lost Cave mirando a cada sala, setas y cristalitos junto a la pared.\nNecesita el pack generado en esta máquina (tools\\preparar_lostcave.cmd); si no está, sale el kit."},
 	{"k": "luz", "r": "Luz", "t": "opcion", "op": [], "a": "La fila de LuzZona3D.ZONAS que ilumina el nivel."},
+	{"k": "kit", "r": "Kit de la jugadora", "t": "opcion", "op": [["pruebas", "Pruebas (todo)"], ["demo", "Demo: fuego, agua, tierra"], ["demo_inicio", "Arranque de la demo: fuego, flecha, barrera"],
+		["bosque", "Bosque: fuego y flecha"], ["nivel1", "Nivel 1: fuego, flecha, barrera"], ["gruta", "Gruta: fuego y flecha"], ["barrera", "Barrera: fuego, tierra, hielo"], ["todo", "Todo"]],
+		"a": "El kit con que empieza la jugadora en la escena exportada (Lanzador3D.PROGRESIONES).\nSus sellos y glifos son las RUNAS con que se filtran los puzles del catálogo: solo se reparten solos los que se pueden resolver.\nEn la pestaña «Puzles» se pueden marcar o desmarcar runas sueltas (lo que la jugadora ya habrá ganado, por ejemplo)."},
 	{"k": "rotulo", "r": "Rótulo al entrar", "t": "bool", "a": "Una zona que cubre el mapa y enseña el nombre la primera vez."},
 	{"k": "terreno", "r": "Pintar terreno", "t": "bool", "a": "Los pasillos van de tierra pisada y la sala del tesoro, enlosada (en estilo cueva no se enlosa).\nSin esto todo el suelo es igual y no hay juntas entre suelos que enseñar."},
 	{"k": "acabado", "r": "Acabado del terreno", "t": "bool", "a": "Orillas del agua como en Bosque 01 (orilla integrada, ribera curva con cantos) y juntas y bordes como en Monte Sumicio\n(más relieve, hierba entremezclada con la tierra y la piedra). En estilo cueva solo las orillas.\nEs el acabado de serie de todos los niveles del juego; sin la casilla, este nivel se exporta sin él."},
@@ -523,6 +528,9 @@ var _confirmar: ConfirmationDialog = null
 var _tras_confirmar: Callable = Callable()
 var _lista_puzles: VBoxContainer = null  ## el contenido de la pestaña «Puzles» (se rehace cada vez que cambia el mapa)
 var _pz_que: String = ""                ## lo elegido en «Añadir»: qué puzle…
+var _pz_busca: String = ""              ## 24/11: el texto del buscador de puzles
+var _pz_todos: bool = false             ## 24/11: la lista de «Añadir» enseña también los que no se pueden resolver con las runas elegidas (búsqueda a mano)
+const SELLOS_TODOS: Array[String] = ["fuego", "agua", "tierra", "viento", "rayo", "hielo"]
 var _pz_sala: int = -1                  ## …y en qué sala
 var _pid_horno: int = 0                ## el proceso que está horneando (0 = ninguno)
 var _nombre_horno: String = ""
@@ -662,6 +670,9 @@ func _montar() -> void:
 		_pincel.set_item_metadata(_pincel.item_count - 1, "cat:" + String(cid))
 	_pincel.add_item("puzle: " + Generador.CAMPAMENTO_TITULO)
 	_pincel.set_item_metadata(_pincel.item_count - 1, "cat:" + Generador.CAMPAMENTO)
+	for jid in Generador.JEFES:
+		_pincel.add_item("puzle: " + String(Generador.JEFES[jid]["titulo"]))
+		_pincel.set_item_metadata(_pincel.item_count - 1, "cat:" + String(jid))
 	_pincel.add_item("quitar puzle de la sala")
 	_pincel.set_item_metadata(_pincel.item_count - 1, "cat:")
 	_pincel.tooltip_text = "Con un pincel elegido, el botón izquierdo pinta sobre la vista. El contenido (enemigos, cofres…) se recoloca solo."
@@ -1692,25 +1703,94 @@ func _refrescar_puzles() -> void:
 		h.queue_free()
 	var cat: Dictionary = Catalogo.todos()
 	var puestos: Dictionary = _mapa["puzles"]
-	_lista_puzles.add_child(_rotulo_pz("AÑADIR UN PUZLE"))
+	# 24/11 (Pablo: «filtrar por las runas de la jugadora»): las runas con que se filtran los puzles. Salen del «Kit de la jugadora» (pestaña Mapa)
+	# y aquí se marcan o desmarcan sueltas; «Las del kit» vuelve a las del kit.
+	var runas: Array = Generador.runas_de(_par)
+	_lista_puzles.add_child(_rotulo_pz("RUNAS DE LA JUGADORA (filtran los puzles)"))
+	var glifos_todos: Array = []
+	for kit in Lanzador3D.PROGRESIONES:
+		for gl in (Lanzador3D.PROGRESIONES[kit] as Dictionary).get("glifos", []):
+			if not glifos_todos.has(String(gl)):
+				glifos_todos.append(String(gl))
+	for grupo in [SELLOS_TODOS, glifos_todos]:
+		var rejilla: GridContainer = GridContainer.new()
+		rejilla.columns = 4
+		for r in grupo:
+			var cb: CheckBox = CheckBox.new()
+			cb.text = String(r)
+			cb.button_pressed = runas.has(String(r))
+			cb.toggled.connect(func(si: bool) -> void: _cambiar_runa(String(r), si))
+			rejilla.add_child(cb)
+		_lista_puzles.add_child(rejilla)
+	var fila_k: HBoxContainer = HBoxContainer.new()
+	var t_k: Label = _rotulo_pz(("Las del kit «%s»." % String(_par.get("kit", "pruebas"))) if String(_par.get("runas", "")) == "" else "Elegidas a mano (no son las del kit).",
+		Color(0.75, 0.75, 0.75), 12)
+	t_k.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	fila_k.add_child(t_k)
+	if String(_par.get("runas", "")) != "":
+		_boton(fila_k, "Las del kit", func() -> void:
+			_par["runas"] = ""
+			_sucio = true, "Vuelve a las runas del kit elegido en la pestaña Mapa.")
+	_lista_puzles.add_child(fila_k)
+	_lista_puzles.add_child(_rotulo_pz("\nAÑADIR UN PUZLE"))
+	# Buscador (24/11): filtra por título, id y lo que pide. «Incluir los que no se resuelven» = la búsqueda a mano para lo que pide runas que aún no hay.
+	var busca: LineEdit = LineEdit.new()
+	busca.placeholder_text = "Buscar (vagoneta, fuego, placa…)"
+	busca.text = _pz_busca
+	busca.clear_button_enabled = true
+	_lista_puzles.add_child(busca)
+	var todos_cb: CheckBox = CheckBox.new()
+	todos_cb.text = "Incluir los que NO se resuelven con estas runas (⚠)"
+	todos_cb.button_pressed = _pz_todos
+	_lista_puzles.add_child(todos_cb)
 	var que: OptionButton = OptionButton.new()
-	que.add_item("(elige un puzle)")
-	que.set_item_metadata(0, "")
-	var ids: Array = cat.keys()
-	ids.sort()
-	for cid in ids:
-		que.add_item(String(cat[cid]["titulo"]))
-		que.set_item_metadata(que.item_count - 1, String(cid))
-		que.set_item_tooltip(que.item_count - 1, "%s · tipo «%s»%s · %d × %d casillas" % [String(cid), String(cat[cid]["tipo"]),
-			(" · pide " + String(cat[cid]["pide"])) if String(cat[cid]["pide"]) != "" else "", int(cat[cid]["ancho"]), int(cat[cid]["alto"])])
-		if String(cid) == _pz_que:
-			que.select(que.item_count - 1)
-	# 24/11: el campamento goblin, como un puzle más (una sala de enemigos temática: empalizada, puerta que arde, guardias, vigía y cofre épico).
-	que.add_item(Generador.CAMPAMENTO_TITULO)
-	que.set_item_metadata(que.item_count - 1, Generador.CAMPAMENTO)
-	que.set_item_tooltip(que.item_count - 1, "Campamento goblin: empalizada con puerta que arde, fogata, torre, tiendas, guardias (y chamán si es grande), vigía y cofre épico al limpiarlo.\nNecesita una sala de %d × %d o más." % [Generador.CAMP_LADO_MIN.x, Generador.CAMP_LADO_MIN.y])
-	if _pz_que == Generador.CAMPAMENTO:
-		que.select(que.item_count - 1)
+	var rellenar: Callable = func() -> void:
+		que.clear()
+		que.add_item("(elige un puzle)")
+		que.set_item_metadata(0, "")
+		var ids: Array = cat.keys()
+		ids.sort()
+		var t: String = _pz_busca.strip_edges().to_lower()
+		var fuera: int = 0
+		for cid in ids:
+			var e: Dictionary = cat[cid]
+			var vale: bool = Catalogo.se_puede(e, runas)
+			if t != "" and not ("%s %s %s %s" % [String(cid), String(e["titulo"]), String(e["pide"]), Catalogo.necesita_dicho(e)]).to_lower().contains(t):
+				continue
+			if not vale and not _pz_todos:
+				fuera += 1
+				continue
+			que.add_item(("" if vale else "⚠ ") + String(e["titulo"]))
+			que.set_item_metadata(que.item_count - 1, String(cid))
+			var nec: String = Catalogo.necesita_dicho(e)
+			que.set_item_tooltip(que.item_count - 1, "%s · tipo «%s» · necesita %s · %d × %d casillas%s" % [String(cid), String(e["tipo"]),
+				nec if nec != "" else "ninguna runa (empujar)", int(e["ancho"]), int(e["alto"]),
+				"" if vale else "\n⚠ NO se puede resolver con las runas elegidas: el generador lo pone, pero avisa."])
+			if String(cid) == _pz_que:
+				que.select(que.item_count - 1)
+		# El campamento goblin y las salas del jefe, como un puzle más (salas de enemigos temáticas).
+		var extra: Array = [[Generador.CAMPAMENTO, Generador.CAMPAMENTO_TITULO, "Campamento goblin: empalizada con puerta que arde, fogata, torre, tiendas, guardias (y chamán si es grande), vigía y cofre épico al limpiarlo.\nNecesita una sala de %d × %d o más." % [Generador.CAMP_LADO_MIN.x, Generador.CAMP_LADO_MIN.y]]]
+		for jid in Generador.JEFES:
+			extra.append([String(jid), String(Generador.JEFES[jid]["titulo"]), "Arena de un enemigo grande con vigía y cofre legendario al vencerlo. Sala de %d × %d o más." % [Generador.JEFE_LADO_MIN.x, Generador.JEFE_LADO_MIN.y]])
+		for x in extra:
+			if t != "" and not String(x[1]).to_lower().contains(t):
+				continue
+			que.add_item(String(x[1]))
+			que.set_item_metadata(que.item_count - 1, String(x[0]))
+			que.set_item_tooltip(que.item_count - 1, String(x[2]))
+			if _pz_que == String(x[0]):
+				que.select(que.item_count - 1)
+		if fuera > 0:
+			que.add_item("(%d más no se resuelven con estas runas: marca «Incluir…»)" % fuera)
+			que.set_item_metadata(que.item_count - 1, "")
+			que.set_item_disabled(que.item_count - 1, true)
+	rellenar.call()
+	busca.text_changed.connect(func(nuevo: String) -> void:
+		_pz_busca = nuevo
+		rellenar.call())
+	todos_cb.toggled.connect(func(si: bool) -> void:
+		_pz_todos = si
+		rellenar.call())
 	que.item_selected.connect(func(i: int) -> void: _pz_que = String(que.get_item_metadata(i)))
 	_lista_puzles.add_child(que)
 	var fila_a: HBoxContainer = HBoxContainer.new()
@@ -1748,7 +1828,10 @@ func _refrescar_puzles() -> void:
 func _fila_puzle(sid: int, cid: String, a_mano: bool, bien: bool) -> Control:
 	var cat: Dictionary = Catalogo.todos()
 	var caja: VBoxContainer = VBoxContainer.new()
-	var titulo: String = String(cat[cid]["titulo"]) if cat.has(cid) else (Generador.CAMPAMENTO_TITULO if cid == Generador.CAMPAMENTO else cid)
+	var titulo: String = String(cat[cid]["titulo"]) if cat.has(cid) else (Generador.CAMPAMENTO_TITULO if cid == Generador.CAMPAMENTO else
+		(String(Generador.JEFES[cid]["titulo"]) if Generador.JEFES.has(cid) else cid))
+	if cat.has(cid) and not Catalogo.se_puede(cat[cid], Generador.runas_de(_par)):
+		titulo = "⚠ " + titulo + " (pide " + Catalogo.necesita_dicho(cat[cid]) + ")"
 	var sala_txt: String = "Sala %d" % sid
 	for s in _mapa["salas"]:
 		if int(s["id"]) == sid:
@@ -1765,6 +1848,19 @@ func _fila_puzle(sid: int, cid: String, a_mano: bool, bien: bool) -> Control:
 		_boton(fila, "Quitar", func() -> void: _pz_quitar(sid), "Quita este puzle de su sala.")
 	caja.add_child(fila)
 	return caja
+
+
+## 24/11: marca o desmarca una runa suelta. Si el resultado es justo el kit, vuelve a «las del kit» (runas = "").
+func _cambiar_runa(r: String, si: bool) -> void:
+	var actuales: Array = Generador.runas_de(_par)
+	if si and not actuales.has(r):
+		actuales.append(r)
+	elif not si:
+		actuales.erase(r)
+	var del_kit: Array = Generador.runas_de({"kit": _par.get("kit", "pruebas"), "runas": ""})
+	var iguales: bool = actuales.size() == del_kit.size() and actuales.all(func(x) -> bool: return del_kit.has(x))
+	_par["runas"] = "" if iguales else ",".join(PackedStringArray(actuales))
+	_sucio = true
 
 
 func _pz_anadir() -> void:

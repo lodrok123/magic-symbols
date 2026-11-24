@@ -1,0 +1,18 @@
+; catalogo estatuas_sellos
+; titulo Tres estatuas: fuego, agua, tierra (ᚱ)
+; tipo premio
+; necesita fuego+agua+tierra+raido+flecha
+; pide los tres sellos y ᚱ
+; resuelto estatuas.completa
+;  El secreto de las estatuas de la Cueva y el santuario de Lost Cave (LC6). Tres estatuas piden pulsos de fuego, agua y tierra, en ese orden
+;  de izquierda a derecha (cada una lleva a sus pies el color del que pide); un fallo las apaga todas. Con las tres aparece el cofre épico.
+;  La tierra lleva flecha (ᚱ + tierra + flecha), como en la Cueva. Van a TRES casillas una de otra: a dos, el charco de la flecha de agua
+;  llevaba su pulso también a la primera (agua sobre la de fuego = fallo).
+#########
+#.......#
+#.......#
+#.......#
+####.####
+####.####
+; pieza estatuas estatuas 1 1 celdas=1,1+4,1+7,1 secuencia=fuego,agua,tierra flag=$NIVEL.$ID.estatuas
+; pieza cofre cofre 4 3 modelo=epico aparece_si=flag.$NIVEL.$ID.estatuas abierto=$NIVEL.$ID.cofre da=oro:50+fragmento_savia:1

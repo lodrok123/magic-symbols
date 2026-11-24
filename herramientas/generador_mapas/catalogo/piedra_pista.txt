@@ -1,6 +1,7 @@
 ; catalogo piedra_pista
 ; titulo Bloque de piedra en la pista
 ; tipo salida
+; necesita -
 ; activa placa.pulsado
 ; barrera si
 ;  El peso de la piedra (Bosque 02, sala 10) con la regla de la Sala del Empuje: el bloque vive en una pista de una casilla cerrada por

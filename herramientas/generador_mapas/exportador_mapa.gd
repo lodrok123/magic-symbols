@@ -177,7 +177,7 @@ static func texto_escena(m: Dictionary) -> String:
 	l.append("agua_corre = false")
 	if bool(m.get("arqueros", false)):
 		l.append("arqueros = true")
-	l.append("kit = \"pruebas\"")
+	l.append("kit = \"%s\"" % String(p.get("kit", "pruebas")))     # 24/11: el kit elegido en el generador (antes, siempre «pruebas»)
 	if not bool(p.get("acabado", true)):
 		# El acabado del terreno (orillas y juntas) es de serie en la maqueta desde el 17/11; sin la casilla, se apaga en esta escena.
 		l.append("orilla_integrada = false")

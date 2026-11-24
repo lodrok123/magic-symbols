@@ -1,0 +1,23 @@
+; catalogo vagoneta_boton
+; titulo Vagoneta lanzada contra el muro (mecanismo)
+; tipo premio
+; necesita fuego+flecha | agua+flecha | tierra+flecha
+; pide un hechizo al botón
+; resuelto muro.roto
+;  Un nicho tapado por un muro agrietado (con un cofre detrás) y, delante, una vía que va recta hacia él. Empujada a mano la vagoneta llega
+;  despacio y no rompe nada; hay que LANZARLA: un hechizo al botón de la derecha la hace rodar sola, choca contra el muro y lo rompe.
+;  El muro aguanta 6 golpes de tierra: la manera buena es la vagoneta.
+#####
+##.##
+##.##
+#...#
+#...#
+#...#
+#...#
+##.##
+##.##
+; pieza cofre cofre 2 1 abierto=$NIVEL.$ID.cofre da=oro:30+pocion:1
+; pieza muro muro 2 2 golpes=6
+; pieza vag vagoneta 2 5 rieles=2,3..2,5 sentido=n
+; pieza boton pulsador 3 3 modo=magia rearme=1
+; puzle lanza cuando=boton.pulsado hace=vag.rodar

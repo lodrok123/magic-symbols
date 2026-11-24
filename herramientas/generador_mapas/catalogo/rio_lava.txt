@@ -1,6 +1,7 @@
 ; catalogo rio_lava
 ; titulo Río de lava
 ; tipo paso
+; necesita agua+flecha | hielo+flecha
 ; pide agua
 ; estira x
 ;  El río de lava de la Cueva (C3), de lado a lado de la sala. El agua o el hielo lo enfrían en roca (la casilla y sus cuatro vecinas) y

@@ -8,6 +8,10 @@ extends RefCounted
 ##                                   resolverlo; su agua cuenta como cruzable) · salida: al resolverlo emite una señal que se puede
 ##                                   enlazar a una puerta o un puente del mapa (pincel «enlazar»)
 ##   ; pide <elementos>              qué necesita la jugadora (solo informativo)
+##   ; necesita <runas>              (24/11) lo que tiene que tener la jugadora para RESOLVERLO, en runas del libro: sellos (fuego, agua, tierra…)
+##                                   y glifos (flecha, linea, barrera, raido…) unidos con «+»; varias maneras, separadas con «|».
+##                                   Ej.: `fuego+flecha | agua+flecha`. Sin esta línea (o `necesita -`), no pide ninguna runa (se resuelve empujando).
+##                                   El generador solo reparte solo las que se pueden resolver con las runas elegidas (kit o casillas).
 ##   ; activa <pieza>.<señal>        solo `salida`: la señal que cuenta como «resuelto»
 ##   ; resuelto <pieza>.<señal>      (24/11) la señal que cuenta como «resuelto» para enlazar un COFRE al puzle (pincel «enlazar»: el
 ##                                   cofre aparece al resolverlo). Sin ella vale la de `activa`; sin ninguna, el puzle no se puede enlazar
@@ -50,7 +54,8 @@ static func _leer() -> Dictionary:
 
 
 static func leer_texto(texto: String, id_defecto: String = "") -> Dictionary:
-	var e: Dictionary = {"id": id_defecto, "titulo": id_defecto, "tipo": "premio", "pide": "", "activa": "", "resuelto": "", "estira": "", "barrera": false, "filas": [], "lineas": [], "lineas_cueva": [], "ancho": 0, "alto": 0}
+	var e: Dictionary = {"id": id_defecto, "titulo": id_defecto, "tipo": "premio", "pide": "", "activa": "", "resuelto": "", "estira": "", "barrera": false, "filas": [], "lineas": [], "lineas_cueva": [], "ancho": 0, "alto": 0,
+		"necesita": []}
 	for linea in texto.split("\n"):
 		var l: String = String(linea).replace("\r", "")
 		if l.strip_edges() == "":
@@ -70,6 +75,8 @@ static func leer_texto(texto: String, id_defecto: String = "") -> Dictionary:
 					e["tipo"] = resto if TIPOS.has(resto) else "premio"
 				"pide":
 					e["pide"] = resto
+				"necesita":
+					e["necesita"] = leer_necesita(resto)
 				"activa":
 					e["activa"] = resto
 				"resuelto":
@@ -95,3 +102,43 @@ static func leer_texto(texto: String, id_defecto: String = "") -> Dictionary:
 	if String(e["resuelto"]) == "" and String(e["activa"]).contains("."):
 		e["resuelto"] = e["activa"]                  # un activador está resuelto cuando da su señal
 	return e
+
+
+## «fuego+flecha | agua+flecha» → [["fuego", "flecha"], ["agua", "flecha"]]. «-» o vacío → [] (no pide nada).
+static func leer_necesita(texto: String) -> Array:
+	var res: Array = []
+	if texto.strip_edges() == "" or texto.strip_edges() == "-":
+		return res
+	for alt in texto.split("|", false):
+		var una: Array = []
+		for r in String(alt).split("+", false):
+			var t: String = String(r).strip_edges()
+			if t != "":
+				una.append(t)
+		if not una.is_empty():
+			res.append(una)
+	return res
+
+
+## ¿Se puede resolver la plantilla `e` con estas runas (sellos y glifos que tiene la jugadora)? Basta una de sus maneras.
+static func se_puede(e: Dictionary, runas: Array) -> bool:
+	var nec: Array = e.get("necesita", [])
+	if nec.is_empty():
+		return true
+	for una in nec:
+		var vale: bool = true
+		for r in una:
+			if not runas.has(String(r)):
+				vale = false
+				break
+		if vale:
+			return true
+	return false
+
+
+## Lo que pide, dicho para leerlo: «fuego + flecha, o agua + flecha». "" si no pide ninguna runa.
+static func necesita_dicho(e: Dictionary) -> String:
+	var partes: PackedStringArray = PackedStringArray()
+	for una in e.get("necesita", []):
+		partes.append(" + ".join(PackedStringArray(una)))
+	return ", o ".join(partes)

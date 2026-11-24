@@ -1,0 +1,19 @@
+; catalogo cristal_receptor
+; titulo Cristal dormido y receptor de fuego
+; tipo salida
+; necesita fuego+flecha
+; pide fuego
+; activa receptor.activado
+; barrera si
+;  El circuito del pulso de la Cueva (C2/C6) en pequeño. Un cristal resonante dormido a la izquierda, una veta y un receptor que pide
+;  FUEGO a la derecha. Una flecha de fuego al cristal: su pulso lleva el fuego por la veta, el receptor se enciende y da la señal.
+;  Con agua el pulso llega igual, pero azul, y el receptor no se activa (se ve que pide otro color).
+#######
+#.....#
+#.....#
+#.....#
+###.###
+###.###
+; pieza cristal cristal 1 1 cada=0
+; pieza veta veta 2 1 celdas=2,1..4,1
+; pieza receptor receptor 5 1 elemento=fuego flag=$NIVEL.$ID.fuego

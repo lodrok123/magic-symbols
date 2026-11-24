@@ -6103,3 +6103,52 @@ Pablo, con el escondite del muro en una cueva generada: «¿cómo añado un barr
 - **Pruebas:**
   - `escenario_generador_gatopedro_barril` (nueva), 0 fallos: escondite + barril pegado al muro + gatopedro; aviso en un rincón; en el juego el gatopedro huye, y fuego al barril rompe el muro.
   - `prueba_generador_mapas`, `escenario_catalogo_puzles`, `prueba_gatopedro` y `escenario_lostcave_puzles`: ver el commit.
+
+### 24/11/2026 · aviso de contexto PUZLES · generador: vagonetas, catálogo de 22, salas del jefe y filtro de runas
+Pablo:
+- «puzzles con la carretilla (moverla siguiendo unos raíles), con mecanismos y a mano»;
+- «el catálogo es escaso»;
+- «salas de jefe: el gólem en la cueva y el elemental en el bosque»;
+- «filtrar por las runas de la jugadora, con búsqueda a mano para lo que no se pueda resolver».
+
+**Juego (piezas nuevas):**
+- **`objetos/vagoneta_3d.gd` (`Vagoneta3D`, pieza `vagoneta rieles=<celdas> sentido=`):** un BloqueEmpujable3D que solo pisa su vía (la dibuja sola) y pesa 3.
+  - A mano se empuja como la piedra.
+  - Con la acción `rodar` rueda sola, sigue curvas y agujas, y al chocar contra un muro agrietado lo rompe (señal `choca`).
+  - Si se queda sin vía delante, a los 3 s vuelve a su sitio; en una curva no.
+- **`objetos/aguja_3d.gd` (`Aguja3D`, pieza `aguja a= b= tronco=`):** el desvío en Y. Un golpe de hechizo a su palanca, o la acción `cambiar`, la pasa al otro ramal (flecha y color).
+- **`escenas/puzle.gd`:** documentación, claves, señales, condiciones y acciones de las dos piezas.
+
+**Catálogo (12 → 22):** todas las plantillas llevan ahora `; necesita <runas>` (alternativas con «|»).
+- **Vagoneta:**
+  - `vagoneta_pista`: a mano; activador de barrera.
+  - `vagoneta_curva`: a mano, con curva; cofre.
+  - `vagoneta_boton`: un botón la lanza contra un muro.
+  - `vagoneta_aguja`: botón y aguja; activador de barrera.
+- **Sacadas de puzles que ya funcionan en el juego:**
+  - `barril_muro` (LC1)
+  - `balanza_rocas` (LC2)
+  - `cristal_receptor` (C2/C6)
+  - `prisma_rojo_azul` (LC4)
+  - `pared_hueca_nicho` (LC5)
+  - `estatuas_sellos` (LC6): las estatuas a 3 casillas, porque a 2 el charco del agua llevaba el pulso a la primera.
+
+**Generador:**
+- **«Sala del jefe» (pestaña Mapa: no / según el estilo / gólem / elemental), o a mano en la pestaña Puzles:**
+  - Se reserva la sala grande (6 × 6 o más) más lejana del inicio, antes de los puzles automáticos.
+  - **Gólem:** con 2 limos y cerrojo (puertas, o bocas de 6 casillas como mucho en cueva).
+  - **Elemental (G):** sin cerrojo.
+  - Los dos llevan vigía y cofre legendario.
+- **«Kit de la jugadora» (pestaña Mapa):** se escribe en la escena exportada. Antes era siempre «pruebas», y ese sigue siendo el valor de serie.
+- **Pestaña Puzles, «Runas de la jugadora»:** casillas de sellos y glifos (salen del kit, se cambian sueltas, botón «Las del kit»).
+  - Solo se reparten solos, y como activadores de barrera, los puzles que se resuelven con ellas.
+  - **Buscador** e **«Incluir los que NO se resuelven (⚠)»**: la búsqueda a mano. Puesto así, el mapa avisa de lo que pide.
+
+**Pruebas:**
+- `escenario_catalogo_nuevos` (nueva) resuelve en el juego las 10 plantillas nuevas, las dos salas del jefe y el filtro: 0 fallos.
+  - Matar a los enemigos del jefe es por código.
+  - La aguja se cambia con `cambiar`, lo mismo que hace el golpe de un hechizo.
+- `prueba_generador_mapas` (70.675 comprobaciones), `escenario_catalogo_puzles`, `escenario_generador_gatopedro_barril`, `escenario_lostcave_puzles` y `escenario_enlace_puzle_cofre`: 0 fallos.
+  - Las plantillas con cuarto cerrado llevan la entrada de dos filas: con una, sus paredes quedaban «de punta».
+- `prueba_rocas_empujables` da 5 fallos en la sección 3 (balanza del Bosque 02). Ya fallaban igual en una copia limpia de `08779380`, de antes de esto: vienen de los cambios de otra sesión en `Bosque_02.txt`. **Aviso a quien lleve el Bosque 02.**
+- Captura: `docs/capturas/generador_puzles_runas.png` (herramienta `captura_generador_puzles.gd`). Sin jugar con teclado.

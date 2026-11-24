@@ -1,0 +1,19 @@
+; catalogo vagoneta_curva
+; titulo Vagoneta por la curva (a mano)
+; tipo premio
+; necesita -
+; pide empujar
+; resuelto placa.pulsado
+;  Una vía en L dentro de un cuarto cerrado. La vagoneta sale de abajo a la derecha: dos empujones hacia arriba hasta la curva; ahí hay que
+;  rodearla y empujarla hacia la izquierda, tres empujones más, hasta la placa de la esquina. Con la placa pisada aparece el cofre.
+;  Enseña que la vagoneta solo va por su vía y que en las curvas se cambia de lado.
+#######
+#.....#
+#.....#
+#.....#
+#.....#
+###.###
+###.###
+; pieza vag vagoneta 4 3 rieles=1,1..4,1+4,2..4,3
+; pieza placa pulsador 1 1 modo=presencia peso=3 $MODELO
+; pieza cofre cofre 2 3 aparece_si=placa.activo abierto=$NIVEL.$ID.cofre da=oro:40
