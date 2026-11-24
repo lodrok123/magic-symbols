@@ -2,6 +2,7 @@
 ; titulo Charca que hay que helar
 ; tipo paso
 ; necesita hielo+flecha
+; validacion pendiente
 ; pide hielo
 ; estira x
 ;  Una franja de agua honda de lado a lado de la sala. No se nada: hay que helarla (hielo) para cruzar andando; el hielo dura 20 s.

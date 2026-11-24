@@ -342,6 +342,14 @@ func _filtro() -> void:
 			malos.append(cid)
 	_ok("5 filtro: con el kit demo_inicio (%s) todos los repartidos se resuelven con él" % ", ".join(PackedStringArray(runas)), malos.is_empty() and not (m["puzles"] as Dictionary).is_empty(),
 		"puestos %s · malos %s" % [str((m["puzles"] as Dictionary).values()), str(malos)])
+	# Mapas oficiales: «Solo puzles aceptados». Con ninguna plantilla aceptada no se reparte ninguna (y lo dice); con una aceptada, solo esa.
+	var oficial: Dictionary = par.duplicate()
+	oficial["solo_aceptados"] = true
+	var aceptadas: Array = cat.keys().filter(func(c) -> bool: return Catalogo.aceptado(cat[c]))
+	var mo: Dictionary = Generador.new().generar(oficial)
+	var no_acept: Array = (mo["puzles"] as Dictionary).values().filter(func(c) -> bool: return cat.has(c) and not Catalogo.aceptado(cat[c]))
+	_ok("5 solo aceptados: no reparte ningún puzle sin aceptar (%d aceptados en el catálogo)" % aceptadas.size(), no_acept.is_empty(), str(no_acept))
+	_ok("5 solo aceptados: sin aceptados, lo avisa", not aceptadas.is_empty() or "\n".join(mo["avisos"]).contains("está aceptado"), "\n".join(mo["avisos"]))
 	var otra: Dictionary = par.duplicate()
 	otra["runas"] = "fuego,agua,tierra,flecha,barrera,raido"
 	_ok("5 filtro: runas a mano (sin kit) también filtran", Generador.runas_de(otra).has("raido") and not Generador.runas_de(otra).has("hielo"))

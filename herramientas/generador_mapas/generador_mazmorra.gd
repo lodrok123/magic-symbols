@@ -101,6 +101,8 @@ static func parametros_defecto() -> Dictionary:
 		# 24/11 (Pablo: «filtrar por las runas de la jugadora»): `kit` = el de Lanzador3D.PROGRESIONES que lleva la escena exportada; `runas` = los sellos y
 		# glifos que tiene la jugadora, separados por comas ("" = los del kit). Solo se reparten solos los puzles que se pueden resolver con ellas.
 		"kit": "pruebas", "runas": "",
+		# 24/11 (Pablo: «una vez aceptados los usaremos en mapas oficiales»): con esto solo se reparten solos los puzles con `; validacion aceptado`.
+		"solo_aceptados": false,
 		# 24/11 (Pablo: «salas de jefe para los enemigos grandes»): "no" | "auto" (cueva: gólem · bosque: elemental) | "jefe_golem" | "jefe_elemental".
 		"sala_jefe": "no",
 	}
@@ -1826,6 +1828,11 @@ const CAMP_DIST_MIN: float = 0.3                  ## fracción de la distancia m
 const CAMPAMENTO: String = "campamento"
 const CAMPAMENTO_TITULO: String = "Campamento goblin (sala de enemigos)"
 
+## 24/11: ¿puede el generador repartir SOLA esta plantilla? Se resuelve con las runas elegidas y, si el mapa pide «solo aceptados», está aceptada en playtest.
+func _vale_plantilla(e: Dictionary) -> bool:
+	return Catalogo.se_puede(e, runas()) and (not bool(p.get("solo_aceptados", false)) or Catalogo.aceptado(e))
+
+
 ## 24/11: las runas (sellos y glifos) que tiene la jugadora en este mapa: las del parámetro `runas` si las hay; si no, las del `kit`.
 func runas() -> Array:
 	return runas_de(p)
@@ -3407,8 +3414,8 @@ func _intentar_barrera_b(paso: Dictionary, n: int, vivas: Array, cueva: bool) ->
 		var senal: String = String(e["activa"]).split(".")[1]
 		if (senal == "todos" and not bool(p["b_braseros"])) or (senal == "pulsado" and not bool(p["b_placa"])):
 			continue
-		if not Catalogo.se_puede(e, runas()):
-			continue                                     # 24/11: un activador que la jugadora no puede resolver cerraría el mapa para siempre
+		if not _vale_plantilla(e):
+			continue                                     # 24/11: un activador que la jugadora no puede resolver cerraría el mapa para siempre (o uno sin aceptar, en un mapa oficial)
 		plantillas.append(cid)
 	_barajar(plantillas)
 	var bid: String = ("puente_%d" if puente else "puerta_%d") % n
@@ -3651,14 +3658,16 @@ func _colocar_catalogo(vivas: Array, nv: String) -> void:
 			elif cat.has(cid) and not Catalogo.se_puede(cat[cid], runas()):
 				# Puesto a mano aunque no se pueda resolver con las runas elegidas (la «búsqueda a mano» del panel lo permite): se dice.
 				avisos.append("El puzle «%s» de la sala %d NO se puede resolver con las runas elegidas: pide %s." % [cid, int(sid), Catalogo.necesita_dicho(cat[cid])])
+			elif cat.has(cid) and bool(p.get("solo_aceptados", false)) and not Catalogo.aceptado(cat[cid]):
+				avisos.append("El puzle «%s» de la sala %d aún no está ACEPTADO en playtest (está «%s»): este mapa pide solo aceptados." % [cid, int(sid), String(cat[cid]["validacion"])])
 	_reservar_jefe(vivas)                               # 24/11: la sala del jefe, antes de los automáticos (que se quedaban con las salas grandes)
 	var quiero: int = clampi(int(p["puzles"]), 0, 12)
 	if quiero <= 0 or cat.is_empty():
 		return
-	var ids: Array = cat.keys().filter(func(cid) -> bool: return Catalogo.se_puede(cat[cid], runas()))     # 24/11: solo las que se resuelven con las runas elegidas
+	var ids: Array = cat.keys().filter(func(cid) -> bool: return _vale_plantilla(cat[cid]))     # 24/11: solo las que se resuelven con las runas elegidas (y aceptadas, si se pide)
 	ids.sort()
 	if ids.is_empty():
-		avisos.append("Ningún puzle del catálogo se puede resolver con las runas elegidas: no se reparte ninguno.")
+		avisos.append("Ningún puzle del catálogo se puede resolver con las runas elegidas%s: no se reparte ninguno." % (" y está aceptado" if bool(p.get("solo_aceptados", false)) else ""))
 		return
 	_barajar(ids)
 	var libres: Array = vivas.filter(func(s: Dictionary) -> bool: return String(s["rol"]) == "")

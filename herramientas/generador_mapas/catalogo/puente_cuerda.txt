@@ -2,6 +2,7 @@
 ; titulo Puente plegado: agua o fuego
 ; tipo paso
 ; necesita agua+flecha | fuego+flecha
+; validacion pendiente
 ; resuelto puente.tendido
 ; pide agua o fuego
 ; estira x

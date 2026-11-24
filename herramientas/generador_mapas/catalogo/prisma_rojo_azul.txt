@@ -2,6 +2,7 @@
 ; titulo Prisma: rojo y azul
 ; tipo premio
 ; necesita fuego+agua+flecha
+; validacion pendiente
 ; pide fuego y agua
 ; resuelto cofre.aparecido
 ;  «Rojo y azul» de Lost Cave (LC4). Un cristal dormido, un prisma que nace mirando al cristal (no reemite nada) y dos receptores: el de

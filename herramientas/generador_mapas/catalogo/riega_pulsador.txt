@@ -2,6 +2,7 @@
 ; titulo Riega la placa
 ; tipo salida
 ; necesita agua+flecha
+; validacion pendiente
 ; pide agua
 ; activa placa.pulsado
 ; barrera si

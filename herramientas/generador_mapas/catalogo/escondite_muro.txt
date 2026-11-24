@@ -2,6 +2,7 @@
 ; titulo Escondite tras el muro agrietado
 ; tipo premio
 ; necesita tierra+flecha
+; validacion pendiente
 ; resuelto muro.roto
 ; pide tierra
 ;  El escondite del Bosque 02 (norte de la linde). Un muro agrietado cierra un hueco en la pared; detrás espera un cofre. Lo rompen dos

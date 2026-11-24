@@ -2,6 +2,7 @@
 ; titulo Pared hueca y nicho (ᚱ)
 ; tipo premio
 ; necesita fuego+raido | agua+raido | tierra+raido
+; validacion pendiente
 ; pide ᚱ (pulso)
 ; resuelto hueca.abierta
 ;  «La grieta que suena» de Lost Cave (LC5). Una veta lleva desde la entrada hasta el pie de una pared hueca; el pulso de la jugadora (ᚱ con

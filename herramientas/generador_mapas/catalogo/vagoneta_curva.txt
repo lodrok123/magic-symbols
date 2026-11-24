@@ -2,6 +2,7 @@
 ; titulo Vagoneta por la curva (a mano)
 ; tipo premio
 ; necesita -
+; validacion pendiente
 ; pide empujar
 ; resuelto placa.pulsado
 ;  Una vía en L dentro de un cuarto cerrado. La vagoneta sale de abajo a la derecha: dos empujones hacia arriba hasta la curva; ahí hay que

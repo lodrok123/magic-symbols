@@ -2,6 +2,7 @@
 ; titulo Vagoneta a la placa (a mano)
 ; tipo salida
 ; necesita -
+; validacion pendiente
 ; pide empujar
 ; activa placa.pulsado
 ; barrera si

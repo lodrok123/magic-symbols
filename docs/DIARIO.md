@@ -6159,3 +6159,21 @@ Pablo: «¿es posible editarlo? quiero cambiar este cofre a épico».
   - El cofre se queda en su casilla y conserva lo que tenga enlazado (enemigos o puzles).
   - Al cambiar de calidad toma la primera recompensa de la nueva; en el común se sortea.
 - Comprobado con la herramienta abierta: un legendario enlazado a un gólem pasa a épico y sigue saliendo con `aparece_si`; luego se cambia la recompensa. La prueba fue temporal y está borrada.
+
+### 24/11/2026 · aviso de contexto PUZLES · niveles de playtest y validación de los puzles del catálogo
+Pablo: «crea semillas con los puzles a validar; conforme los playtestee te digo si hay ajustes o si están aceptados; una vez aceptados ya los usaremos en mapas oficiales».
+- **7 niveles de playtest:** `escenas/PruebaPt*.tscn` y `mapas/Pt*.txt`, hechos por `herramientas/generar_playtest_puzles.gd`.
+  - PtFuego (6), PtVagonetas (4), PtAguaTierra (6) y PtEmpujePulso (5), con el kit demo.
+  - PtJefeCueva (gólem y campamento) y PtJefeBosque (elemental y campamento).
+  - PtHielo (charca helada, kit pruebas: fuera de la demo).
+  - Un puzle por sala, en orden desde el inicio, con rótulo al entrar y zona `pt_<id>` (sale en el diario de partida).
+  - Los de tipo «salida» llevan un cofre común que aparece al resolverlos. Sin enemigos ni nada más.
+  - Inventario y comandos: `docs/PLAYTEST_PUZLES.md`.
+- **Estado de validación:**
+  - `; validacion pendiente|ajustes|aceptado|rechazado` y `; nota_playtest` en cada plantilla (las 22, hoy pendientes).
+  - En el generador, la marca ○ ✎ ✔ ✖ delante de cada puzle y las notas en su ayuda.
+  - Casilla nueva **«Solo puzles aceptados»** (pestaña Mapa) para mapas oficiales: solo reparte los aceptados; uno sin aceptar puesto a mano avisa.
+- **Hoja maestra:** 25 filas `cat_<id>` en la pestaña Puzzles (22 plantillas, 2 salas del jefe y el campamento).
+  - `tools/validacion_puzles.py alta` las pone al día; `sincronizar` lleva decision_pablo y nota_pablo a las plantillas.
+  - Probado de ida y vuelta, y la hoja restaurada. El resto de la hoja no cambia (comparado pestaña a pestaña).
+- **Pruebas:** los 7 niveles cargan sin avisos de Puzle3D. `escenario_catalogo_nuevos` (con «solo aceptados»), `escenario_catalogo_puzles` y `prueba_generador_mapas`: 0 fallos.

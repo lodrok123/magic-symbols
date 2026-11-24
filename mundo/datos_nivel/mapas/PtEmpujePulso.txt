@@ -1,0 +1,95 @@
+########################################################
+########################################################
+########################################################
+########################################################
+########################################################
+########################################################
+########################################################
+########################################################
+########################################################
+###############.....####################################
+###############.....####################################
+###############.....####################################
+###############.....####################################
+###############.....####################################
+#################.######################################
+#################.######################################
+##############.......###################################
+##############.......###################################
+##############.......###################################
+#################g######################################
+#############.........##################################
+#############.........##################################
+#############.........##################################
+#############.........##################################
+#############.........#.#####.##########################
+#############.........#.##.##.##########################
+#############.........#.##.##.##########################
+#################g#####.##.##.##########################
+####.......##.........#.##.##.##########################
+####.......##.........g.##.##.##########################
+####.......##..#####..#.......g....#####################
+#######.#####..##.##..#########....#####################
+#######.#####..##.##..##################################
+####........#..##.##..##################################
+#######g#####..##.##..#.........########################
+####........#..##.##..#.........########################
+####.#####..g.........g.........########################
+####.##.##..#.........#.........########################
+####.##.##..#.........#.........########################
+####.##.##..###########....S....########################
+####.##.##..###########.........########################
+####.##.##..###########.........########################
+####........###########.........########################
+####........###########.........########################
+#######################.........########################
+########################################################
+; ======================================================================================================================
+;  GENERADO por herramientas/generador_mapas. 2026-11-24. Nivel «PtEmpujePulso», 56 × 46, algoritmo «pagina», semilla 4.
+;  8 salas, 7 puertas, 0 enemigos, 1 cofres, 0 jarrones. Escena: escenas/PruebaPtEmpujePulso.tscn. Mientras esta cabecera siga aquí, la herramienta puede volver a escribir
+;  este archivo (guarda copia si lo has retocado). Para adoptarlo como nivel hecho a mano, borra la palabra GENERADO de la línea de arriba.
+; ======================================================================================================================
+; # pared · . suelo · ~ agua honda · S inicio · W goblin guerrero · A goblin arquero · T brasero · g tierra pisada (pasillos) · R losas (o basalto bajo la lava) · G elemental del bosque
+; generador {"acabado":true,"agua":8,"algoritmo":"pagina","alto":46,"ancho":56,"ancho_camino":2,"ancho_pasillo":2,"ancho_precipicio":2,"ancho_rio":2,"apertura":55,"arqueros":0,"b_braseros":true,"b_placa":true,"b_precipicio":true,"b_puente":true,"barreras":0,"braseros":0.0,"bucles":10,"bucles_claros":30,"callejones":100,"camara_sala":true,"campamentos":0,"charcas":0,"claros":6,"densidad_salas":1.0,"enemigos":0.0,"estilo":"cueva","forma":"rectangulo","hierba_alta":15,"jarrones":0.0,"kit":"demo","lado_max":11,"lado_min":7,"lados_salida":"","llave":false,"luz":"cueva","metodo":"fractal","n_salas":8,"nombre":"PtEmpujePulso","octavas":4,"paredes":"kit","pasillos":20,"paso_tierra":0,"puertas":50,"puzles":0,"recto":60,"region_min":12,"relleno":56,"reparto":"dispersas","rio":"ns","rotulo":true,"runas":"","sala_jefe":"no","sala_max":4,"sala_min":2,"salas_cerradas":0,"salida_a":"","semilla":4,"silueta":60,"simetria":false,"sinuosidad":50,"solo_aceptados":false,"suavizados":2,"tamano_claro":5,"tamano_sala":10.0,"terreno":true,"tesoro":false}
+; puzles 1>piedra_pista 3>prisma_rojo_azul 4>pared_hueca_nicho 5>piedra_premio 6>estatuas_sellos
+; anadidos cofre|comun|oro:45|14,37
+; apariciones a0<pz1
+;
+; zona 1,1..54,44 cueva mezcla=0.8 rotulo=PtEmpujePulso
+;
+; camara 23,34..31,44
+; camara 13,28..21,38
+; camara 13,20..21,26
+; camara 14,9..20,18
+; camara 4,35..11,43
+; camara 23,24..29,30
+; camara 4,28..11,33
+; camara 31,30..34,31
+;
+; pieza inicio entrada 27 39
+; pieza cat1_bloque bloque 17 33 material=piedra
+; pieza cat1_placa pulsador 17 31 modo=presencia peso=3 modelo=cueva
+; pieza cat2_cristal cristal 16 11 cada=0
+; pieza cat2_veta_entra veta 17 11
+; pieza cat2_prisma prisma 18 11 dir=o
+; pieza cat2_veta_n veta 18 10
+; pieza cat2_veta_s veta 18 12
+; pieza cat2_rf receptor 18 9 elemento=fuego flag=ptempujepulso.cat2.fuego
+; pieza cat2_ra receptor 18 13 elemento=agua flag=ptempujepulso.cat2.agua
+; pieza cat2_cofre cofre 15 9 modelo=epico aparece_si=cat2_rf.activo+cat2_ra.activo abierto=ptempujepulso.cat2.cofre da=oro:40+fragmento_tintero:1
+; pieza cat3_cofre cofre 7 37 abierto=ptempujepulso.cat3.cofre da=oro:30+pocion:1
+; pieza cat3_hueca pared_hueca 7 38 flag=ptempujepulso.cat3.hueca mira=s
+; pieza cat3_veta veta 7 39 celdas=7,39..7,40
+; pieza cat4_bloque bloque 26 27 material=piedra
+; pieza cat4_placa pulsador 26 25 modo=presencia peso=3 modelo=cueva
+; puzle cat4_marca cuando=cat4_placa.pulsado hace=flag.poner(ptempujepulso.cat4.hecho)
+; pieza cat4_cofre cofre 28 30 modelo=epico aparece_si=flag.ptempujepulso.cat4.hecho abierto=ptempujepulso.cat4.cofre da=tabla:cofre_pequeno
+; pieza cat5_estatuas estatuas 4 28 celdas=4,28+7,28+10,28 secuencia=fuego,agua,tierra flag=ptempujepulso.cat5.estatuas
+; pieza cat5_cofre cofre 7 30 modelo=epico aparece_si=flag.ptempujepulso.cat5.estatuas abierto=ptempujepulso.cat5.cofre da=oro:50+fragmento_savia:1
+; pieza cofre_m1 cofre 14 37 abierto=ptempujepulso.cofre_m1.abierto da=oro:45 aparece_si=flag.ptempujepulso.cofre_m1.pz1
+; puzle apa_cofre_m1_pz1 cuando=cat1_placa.pulsado hace=flag.poner(ptempujepulso.cofre_m1.pz1)
+; zona 13,28..21,38 cueva mezcla=0.5 nombre=pt_piedra_pista rotulo=1._Bloque_de_piedra_en_la_pista
+; zona 23,24..29,30 cueva mezcla=0.5 nombre=pt_piedra_premio rotulo=2._Peso_de_la_piedra_cofre
+; zona 4,35..11,43 cueva mezcla=0.5 nombre=pt_pared_hueca_nicho rotulo=3._Pared_hueca_y_nicho_ᚱ
+; zona 3,27..11,33 cueva mezcla=0.5 nombre=pt_estatuas_sellos rotulo=4._Tres_estatuas_fuego_agua_tierra_ᚱ
+; zona 14,8..20,18 cueva mezcla=0.5 nombre=pt_prisma_rojo_azul rotulo=5._Prisma_rojo_y_azul

@@ -2,6 +2,7 @@
 ; titulo Vagoneta lanzada contra el muro (mecanismo)
 ; tipo premio
 ; necesita fuego+flecha | agua+flecha | tierra+flecha
+; validacion pendiente
 ; pide un hechizo al botón
 ; resuelto muro.roto
 ;  Un nicho tapado por un muro agrietado (con un cofre detrás) y, delante, una vía que va recta hacia él. Empujada a mano la vagoneta llega

@@ -107,6 +107,7 @@ const CAMPOS: Array = [
 	{"k": "arqueros", "r": "Arqueros (%)", "t": "int", "min": 0, "max": 100, "paso": 5, "a": "Parte de los goblins que son arqueros (letra A) en vez de guerreros (W)."},
 	{"k": "salas_cerradas", "r": "Salas que se cierran (%)", "t": "int", "min": 0, "max": 100, "paso": 5, "a": "Salas con enemigos que cierran sus puertas al entrar y se abren al vencer (cerrojo + vigía)."},
 	{"k": "puzles", "r": "Puzles del catálogo", "t": "int", "min": 0, "max": 12, "a": "Cuántos puzles del catálogo se reparten solos en salas libres. Para poner uno concreto en una sala: pincel «puzle: …» y clic en la sala.\nLas plantillas están en herramientas/generador_mapas/catalogo/ (un .txt por puzle)."},
+	{"k": "solo_aceptados", "r": "Solo puzles aceptados", "t": "bool", "a": "Para MAPAS OFICIALES: el generador solo reparte (y usa de activador) los puzles que Pablo ha ACEPTADO en playtest\n(✔ en la pestaña Puzles; `; validacion aceptado` en su .txt). Los demás se pueden poner a mano, pero avisa."},
 	{"k": "barreras", "r": "Barreras con puzle", "t": "int", "min": 0, "max": 8, "a": "Pasos obligados cerrados por una puerta o un puente, que abre un activador colocado antes de la barrera.\nLa flecha amarilla de la vista une cada activador con lo que abre. Con el pincel «enlazar» se cambia a mano."},
 	{"k": "b_braseros", "r": "Activador: braseros", "t": "bool", "a": "Plantillas del catálogo que acaban en un contador de braseros (braseros_puerta): al encenderlos, se abre."},
 	{"k": "b_placa", "r": "Activador: placa + bloque", "t": "bool", "a": "Plantillas del catálogo que acaban en una placa (piedra_pista): un bloque de piedra en una pista cerrada por paredes, que se empuja hasta la placa.\nPara que otra plantilla valga de activador, ponle «; barrera si» en su .txt."},
@@ -1797,11 +1798,13 @@ func _refrescar_puzles() -> void:
 			if not vale and not _pz_todos:
 				fuera += 1
 				continue
-			que.add_item(("" if vale else "⚠ ") + String(e["titulo"]))
+			var val: String = String(e.get("validacion", "pendiente"))
+			que.add_item("%s %s%s" % [String(Catalogo.MARCA_VALIDACION.get(val, "○")), "" if vale else "⚠ ", String(e["titulo"])])
 			que.set_item_metadata(que.item_count - 1, String(cid))
 			var nec: String = Catalogo.necesita_dicho(e)
-			que.set_item_tooltip(que.item_count - 1, "%s · tipo «%s» · necesita %s · %d × %d casillas%s" % [String(cid), String(e["tipo"]),
-				nec if nec != "" else "ninguna runa (empujar)", int(e["ancho"]), int(e["alto"]),
+			que.set_item_tooltip(que.item_count - 1, "%s · tipo «%s» · necesita %s · %d × %d casillas\nPlaytest: %s%s%s" % [String(cid), String(e["tipo"]),
+				nec if nec != "" else "ninguna runa (empujar)", int(e["ancho"]), int(e["alto"]), val,
+				("\n· " + "\n· ".join(PackedStringArray(e.get("notas", [])))) if not (e.get("notas", []) as Array).is_empty() else "",
 				"" if vale else "\n⚠ NO se puede resolver con las runas elegidas: el generador lo pone, pero avisa."])
 			if String(cid) == _pz_que:
 				que.select(que.item_count - 1)
@@ -1869,6 +1872,8 @@ func _fila_puzle(sid: int, cid: String, a_mano: bool, bien: bool) -> Control:
 		(String(Generador.JEFES[cid]["titulo"]) if Generador.JEFES.has(cid) else cid))
 	if cat.has(cid) and not Catalogo.se_puede(cat[cid], Generador.runas_de(_par)):
 		titulo = "⚠ " + titulo + " (pide " + Catalogo.necesita_dicho(cat[cid]) + ")"
+	if cat.has(cid):
+		titulo = String(Catalogo.MARCA_VALIDACION.get(String(cat[cid].get("validacion", "pendiente")), "○")) + " " + titulo
 	var sala_txt: String = "Sala %d" % sid
 	for s in _mapa["salas"]:
 		if int(s["id"]) == sid:

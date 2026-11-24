@@ -2,6 +2,7 @@
 ; titulo Tres estatuas: fuego, agua, tierra (ᚱ)
 ; tipo premio
 ; necesita fuego+agua+tierra+raido+flecha
+; validacion pendiente
 ; pide los tres sellos y ᚱ
 ; resuelto estatuas.completa
 ;  El secreto de las estatuas de la Cueva y el santuario de Lost Cave (LC6). Tres estatuas piden pulsos de fuego, agua y tierra, en ese orden

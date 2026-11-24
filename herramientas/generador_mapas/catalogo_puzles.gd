@@ -12,6 +12,10 @@ extends RefCounted
 ##                                   y glifos (flecha, linea, barrera, raido…) unidos con «+»; varias maneras, separadas con «|».
 ##                                   Ej.: `fuego+flecha | agua+flecha`. Sin esta línea (o `necesita -`), no pide ninguna runa (se resuelve empujando).
 ##                                   El generador solo reparte solo las que se pueden resolver con las runas elegidas (kit o casillas).
+##   ; validacion <estado>           (24/11) cómo va su PLAYTEST: pendiente (sin jugar) · ajustes (jugado, hay que cambiar algo) · aceptado (Pablo lo da
+##                                   por bueno: vale para mapas oficiales) · rechazado. Sin la línea, pendiente. Con «Solo puzles aceptados» (pestaña
+##                                   Mapa) el generador solo reparte los aceptados. Lo decide Pablo (hoja maestra, pestaña Puzzles, filas `cat_<id>`).
+##   ; nota_playtest <texto>         (24/11) lo que dijo Pablo al jugarlo (qué ajustar). Puede haber varias líneas.
 ##   ; activa <pieza>.<señal>        solo `salida`: la señal que cuenta como «resuelto»
 ##   ; resuelto <pieza>.<señal>      (24/11) la señal que cuenta como «resuelto» para enlazar un COFRE al puzle (pincel «enlazar»: el
 ##                                   cofre aparece al resolverlo). Sin ella vale la de `activa`; sin ninguna, el puzle no se puede enlazar
@@ -27,6 +31,13 @@ extends RefCounted
 
 const CARPETA: String = "res://herramientas/generador_mapas/catalogo/"
 const TIPOS: Array[String] = ["premio", "paso", "salida"]
+const VALIDACIONES: Array[String] = ["pendiente", "ajustes", "aceptado", "rechazado"]
+## Cómo se ve cada estado en la herramienta.
+const MARCA_VALIDACION: Dictionary = {"pendiente": "○", "ajustes": "✎", "aceptado": "✔", "rechazado": "✖"}
+
+
+static func aceptado(e: Dictionary) -> bool:
+	return String(e.get("validacion", "pendiente")) == "aceptado"
 
 static var _cache: Dictionary = {}
 
@@ -55,7 +66,7 @@ static func _leer() -> Dictionary:
 
 static func leer_texto(texto: String, id_defecto: String = "") -> Dictionary:
 	var e: Dictionary = {"id": id_defecto, "titulo": id_defecto, "tipo": "premio", "pide": "", "activa": "", "resuelto": "", "estira": "", "barrera": false, "filas": [], "lineas": [], "lineas_cueva": [], "ancho": 0, "alto": 0,
-		"necesita": []}
+		"necesita": [], "validacion": "pendiente", "notas": []}
 	for linea in texto.split("\n"):
 		var l: String = String(linea).replace("\r", "")
 		if l.strip_edges() == "":
@@ -77,6 +88,10 @@ static func leer_texto(texto: String, id_defecto: String = "") -> Dictionary:
 					e["pide"] = resto
 				"necesita":
 					e["necesita"] = leer_necesita(resto)
+				"validacion":
+					e["validacion"] = resto if VALIDACIONES.has(resto) else "pendiente"
+				"nota_playtest":
+					(e["notas"] as Array).append(resto)
 				"activa":
 					e["activa"] = resto
 				"resuelto":

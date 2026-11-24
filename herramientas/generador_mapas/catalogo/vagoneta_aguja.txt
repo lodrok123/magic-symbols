@@ -2,6 +2,7 @@
 ; titulo Vagoneta y aguja: elige el ramal (mecanismo)
 ; tipo salida
 ; necesita fuego+flecha | agua+flecha | tierra+flecha
+; validacion pendiente
 ; pide un hechizo a la palanca y otro al botón
 ; activa placa.pulsado
 ; barrera si

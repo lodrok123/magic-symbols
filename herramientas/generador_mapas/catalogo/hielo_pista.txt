@@ -2,6 +2,7 @@
 ; titulo Bloque de hielo en la pista
 ; tipo salida
 ; necesita tierra+barrera
+; validacion pendiente
 ; pide tierra
 ; activa placa.pulsado
 ;  La sala E2 de la Sala del Empuje. El bloque de hielo resbala por una pista de una casilla cerrada por paredes y se pasa de la placa:

@@ -1,0 +1,61 @@
+##################################################
+####################################v~~,##########
+####################################v~~,##########
+################################,,,#,~~,##########
+############################.....,,,,.~,##########
+###########################.......,,#,..,#########
+###########################.vvv....,,#v~.,########
+#########################...vvvv...,vv.~,#########
+########################,...vvggggg,,#,~.,########
+#########################,....ggggggg,~~,#########
+#########################,....vv.gggggR~......####
+###########################.vvv...,ggRRgg......,##
+############################vv..,,,~~Rgggg.....,##
+######,,,###################....#,,~~,.gggggv...,#
+####v......####################,,~~~,#..gggg....,#
+####.vvv...###################,.~~,,,....ggg...,##
+###...v.....###################,~~,##,...ggg..,,##
+###..v......v##########,#######v~~,##,,vgggg...,##
+##.....gggggv#########,,#######v~~,##,,gggggv.,###
+##.....Ggggggg########,.,,v,,##v~~,#,gggggggvv####
+##,.......ggggggg####,....vv,##,~~,,ggggggg#######
+###,.....vv.ggggggggxxxxxxx..#,~~,ggggg##gg#######
+#####.....,,###gggggxot...x..#,~Rggggg###gg#######
+#######..,,v######ggxggggVxv.ggRRggg,,###gg#######
+#######,,,,#######,.xggTggyggggRRg,,v,,##gg#######
+########,,########,.x.vgggxgggRR,##vv,...ggvv,####
+###################,xxxxxxxggggRRg,vvv..vggvvv####
+###################,.gggg...##ggRRRggvvvggg..#####
+###################,gggg.v..####ggRRggggggg..#####
+##################,gggg,.,#########RRgggSg...,####
+##########,,,#####gggg,############,.~Rggg...v####
+#########v.....v.gggg###############..~~~....#####
+#########vv....vgggg################,..~~....#####
+#########.....ggggg,#################,.~~..,######
+#########....ggggg,,#################,,~.,,#######
+#########....ggg...,#################,~.v#########
+#########....gg....,################,.~,##########
+#########.........##################,~.,##########
+##########.......##################,.~,###########
+##########v...v..##################,~.,###########
+#############.v.##################,.~,############
+##################################,~~v############
+##################################,~~,############
+##################################################
+; ======================================================================================================================
+;  GENERADO por herramientas/generador_mapas. 2026-11-24. Nivel «PtJefeBosque», 50 × 44, algoritmo «bosque», semilla 1.
+;  6 salas, 0 puertas, 1 enemigos, 2 cofres, 0 jarrones. Escena: escenas/PruebaPtJefeBosque.tscn. Mientras esta cabecera siga aquí, la herramienta puede volver a escribir
+;  este archivo (guarda copia si lo has retocado). Para adoptarlo como nivel hecho a mano, borra la palabra GENERADO de la línea de arriba.
+; ======================================================================================================================
+; # pared · . suelo · ~ agua honda · S inicio · W goblin guerrero · A goblin arquero · T brasero · g tierra pisada (pasillos) · R losas (o basalto bajo la lava) · G elemental del bosque
+; bosque: g camino de tierra · . claro · , hierba corta · v hierba alta (arde) · R vado de piedras · ~ río
+; generador {"acabado":true,"agua":8,"algoritmo":"bosque","alto":44,"ancho":50,"ancho_camino":2,"ancho_pasillo":2,"ancho_precipicio":2,"ancho_rio":2,"apertura":55,"arqueros":0,"b_braseros":true,"b_placa":true,"b_precipicio":true,"b_puente":true,"barreras":0,"braseros":0.0,"bucles":10,"bucles_claros":30,"callejones":100,"camara_sala":true,"campamentos":1,"charcas":0,"claros":5,"densidad_salas":1.0,"enemigos":0.0,"estilo":"bosque","forma":"rectangulo","hierba_alta":15,"jarrones":0.0,"kit":"demo","lado_max":11,"lado_min":7,"lados_salida":"","llave":false,"luz":"bosque","metodo":"fractal","n_salas":3,"nombre":"PtJefeBosque","octavas":4,"paredes":"kit","pasillos":20,"paso_tierra":0,"puertas":50,"puzles":0,"recto":60,"region_min":12,"relleno":56,"reparto":"dispersas","rio":"ns","rotulo":true,"runas":"","sala_jefe":"jefe_elemental","sala_max":4,"sala_min":2,"salas_cerradas":0,"salida_a":"","semilla":1,"silueta":60,"simetria":false,"sinuosidad":50,"solo_aceptados":false,"suavizados":2,"tamano_claro":5,"tamano_sala":10.0,"terreno":true,"tesoro":false}
+;
+; zona 1,1..48,42 bosque mezcla=0.8 rotulo=PtJefeBosque
+;
+; pieza inicio entrada 40 29
+; pieza camp1_vigia vigia 21 22 de=20,21..26,26 flag=ptjefebosque.campamento_1.limpio
+; pieza camp1_cofre cofre 23 23 modelo=epico aparece_si=flag.ptjefebosque.campamento_1.limpio abierto=ptjefebosque.campamento_1.cofre da=capucha_musgo:1
+; zona 20,21..26,26 fuego mezcla=1 id=campamento_1 titulo=El_campamento_goblin botin=campamento
+; pieza jefe1_cofre cofre 7 18 modelo=legendario aparece_si=flag.ptjefebosque.jefe1.limpio abierto=ptjefebosque.jefe1.cofre da=oro:150+pocion_grande:2+fragmento_savia:1
+; pieza jefe1_vigia vigia 11 23 de=2,14..12,23 flag=ptjefebosque.jefe1.limpio
