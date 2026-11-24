@@ -1,6 +1,7 @@
 ; catalogo puente_cuerda
 ; titulo Puente plegado: agua o fuego
 ; tipo paso
+; resuelto puente.tendido
 ; pide agua o fuego
 ; estira x
 ;  El puente roto del Bosque 02 (plaza oeste) y la charca de la Gruta Batida (G4). Una franja de agua honda de lado a lado de la sala y

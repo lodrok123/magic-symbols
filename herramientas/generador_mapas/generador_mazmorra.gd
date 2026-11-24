@@ -1807,10 +1807,29 @@ const CAMP_CASILLAS_POR_GUARDIA: float = 12.0     ## con `enemigos` = 1: un guar
 const CAMP_PATIO_CHAMAN: int = 30                 ## casillas de patio a partir de las que hay chamán
 const CAMP_DIST_MIN: float = 0.3                  ## fracción de la distancia máxima al inicio por debajo de la que no se pone (no a la entrada)
 
+## 24/11: el campamento también se pide a mano en una sala, como un puzle más (pestaña «Puzles»). Va aparte de los de «Campamentos goblin».
+const CAMPAMENTO: String = "campamento"
+const CAMPAMENTO_TITULO: String = "Campamento goblin (sala de enemigos)"
+
 func _poner_campamentos(vivas: Array, dmax: int, nv: String) -> void:
+	# Primero los pedidos a mano: en su sala, aunque sea más pequeña o esté cerca del inicio (lo dice si no cabe).
+	var hechos: int = 0
+	for s in vivas:
+		if not bool(s.get("camp_mano", false)):
+			continue
+		var r0: Rect2i = s["rect"]
+		s["rol"] = ""
+		if r0.size.x < CAMP_LADO_MIN.x or r0.size.y < CAMP_LADO_MIN.y or not _campamento_en(s, hechos + 1, nv):
+			avisos.append("El campamento pedido en la sala %d no cabe (hace falta una sala de %d × %d o más que no parta el mapa)." % [int(s["id"]), CAMP_LADO_MIN.x, CAMP_LADO_MIN.y])
+			puzles_puestos.erase(int(s["id"]))
+			s["rol"] = "puzle"
+			continue
+		hechos += 1
+		s["camp_n"] = hechos
 	var quiero: int = clampi(int(p.get("campamentos", 0)), 0, 4)
 	if quiero <= 0:
 		return
+	quiero += hechos
 	var orden: Array = vivas.filter(func(s: Dictionary) -> bool:
 		var r: Rect2i = s["rect"]
 		# 24/11: ni en una sala con el activador de una barrera (sus braseros o su placa le quitaban sitio al cofre del campamento).
@@ -1819,14 +1838,62 @@ func _poner_campamentos(vivas: Array, dmax: int, nv: String) -> void:
 		var aa: int = (a["rect"] as Rect2i).get_area()
 		var ab: int = (b["rect"] as Rect2i).get_area()
 		return aa > ab or (aa == ab and int(a["id"]) < int(b["id"])))
-	var hechos: int = 0
+	var a_mano: int = hechos
 	for s in orden:
 		if hechos >= quiero:
 			break
 		if _campamento_en(s, hechos + 1, nv):
 			hechos += 1
+			s["camp_n"] = hechos
 	if hechos < quiero:
-		avisos.append("Solo caben %d campamentos de los %d pedidos (hacen falta salas de %d × %d o más, lejos del inicio y sin otro papel)." % [hechos, quiero, CAMP_LADO_MIN.x, CAMP_LADO_MIN.y])
+		avisos.append("Solo caben %d campamentos de los %d pedidos (hacen falta salas de %d × %d o más, lejos del inicio y sin otro papel)." % [hechos - a_mano, quiero - a_mano, CAMP_LADO_MIN.x, CAMP_LADO_MIN.y])
+
+
+## Campamento en espacio abierto: [rectángulo de la empalizada, casilla de la puerta goblin], o [] si no cabe. El rectángulo, de CAMP_LADO_MIN,
+## dentro de la sala, todo de suelo libre; de los que caben, el más centrado. La puerta, en el centro del lado más cercano al inicio
+## y con suelo libre delante (fuera de la cerca).
+func _campamento_abierto(s: Dictionary) -> Array:
+	var sr: Rect2i = s["rect"]
+	var centro: Vector2 = Vector2(sr.position) + Vector2(sr.size) * 0.5
+	var mejor: Rect2i = Rect2i()
+	var mejor_d: float = INF
+	for y in range(sr.position.y, sr.end.y - CAMP_LADO_MIN.y + 1):
+		for x in range(sr.position.x, sr.end.x - CAMP_LADO_MIN.x + 1):
+			var rr: Rect2i = Rect2i(x, y, CAMP_LADO_MIN.x, CAMP_LADO_MIN.y)
+			var bien: bool = true
+			for yy in range(rr.position.y, rr.end.y):
+				for xx in range(rr.position.x, rr.end.x):
+					var q: Vector2i = Vector2i(xx, yy)
+					if _tipo(q) != SUELO or _ocupada.has(q):
+						bien = false
+						break
+				if not bien:
+					break
+			var d: float = (Vector2(rr.position) + Vector2(rr.size) * 0.5).distance_squared_to(centro)
+			if bien and d < mejor_d:
+				mejor_d = d
+				mejor = rr
+	if mejor_d == INF:
+		return []
+	# La puerta: el centro de cada lado; se queda la que tiene suelo libre delante y está más cerca del inicio.
+	var lados: Array = [
+		[Vector2i(mejor.position.x + mejor.size.x / 2, mejor.position.y), Vector2i(0, -1)],
+		[Vector2i(mejor.position.x + mejor.size.x / 2, mejor.end.y - 1), Vector2i(0, 1)],
+		[Vector2i(mejor.position.x, mejor.position.y + mejor.size.y / 2), Vector2i(-1, 0)],
+		[Vector2i(mejor.end.x - 1, mejor.position.y + mejor.size.y / 2), Vector2i(1, 0)]]
+	var puerta: Vector2i = Vector2i(-1, -1)
+	var pd: float = INF
+	for l in lados:
+		var fuera: Vector2i = (l[0] as Vector2i) + (l[1] as Vector2i)
+		if _tipo(fuera) != SUELO or _ocupada.has(fuera):
+			continue
+		var dd: float = Vector2(l[0]).distance_squared_to(Vector2(inicio))
+		if dd < pd:
+			pd = dd
+			puerta = l[0]
+	if puerta.x < 0:
+		return []
+	return [mejor, puerta]
 
 
 ## Monta el campamento `n` en la sala `s`. Devuelve false (y lo deja todo como estaba) si no cabe sin partir el mapa.
@@ -1834,11 +1901,24 @@ func _campamento_en(s: Dictionary, n: int, nv: String) -> bool:
 	var r: Rect2i = s["rect"]
 	var guardado: Array = [letras.duplicate(), _ocupada.duplicate(), _bloqueos.duplicate(), objetos.duplicate(true), lineas.duplicate(), g.duplicate()]
 	var anillo: Dictionary = {}
-	for c in _celdas_sala(s):
-		if c.x == r.position.x or c.x == r.end.x - 1 or c.y == r.position.y or c.y == r.end.y - 1:
-			anillo[c] = true
-	# Las puertas goblin: delante de cada entrada (la casilla del anillo pegada a la puerta, o la puerta misma si cae en el anillo).
 	var puertas_g: Dictionary = {}
+	# 24/11 · ESPACIO ABIERTO (bosque, cueva: sin puertas de sala). La empalizada va en un rectángulo de CAMP_LADO_MIN todo de suelo libre
+	# dentro del claro, con UNA puerta goblin en el lado que mira hacia el inicio. Antes no se ponía nunca en estos mapas.
+	if _puertas_de(int(s["id"])).is_empty():
+		var abierto: Array = _campamento_abierto(s)
+		if abierto.is_empty():
+			return false
+		r = abierto[0]
+		for y in range(r.position.y, r.end.y):
+			for x in range(r.position.x, r.end.x):
+				if x == r.position.x or x == r.end.x - 1 or y == r.position.y or y == r.end.y - 1:
+					anillo[Vector2i(x, y)] = true
+		puertas_g[abierto[1]] = true
+	else:
+		for c in _celdas_sala(s):
+			if c.x == r.position.x or c.x == r.end.x - 1 or c.y == r.position.y or c.y == r.end.y - 1:
+				anillo[c] = true
+	# Las puertas goblin: delante de cada entrada (la casilla del anillo pegada a la puerta, o la puerta misma si cae en el anillo).
 	for pu in _puertas_de(int(s["id"])):
 		var dc: Vector2i = pu["c"]
 		var cg: Vector2i = Vector2i(-1, -1)
@@ -1949,7 +2029,7 @@ func _campamento_en(s: Dictionary, n: int, nv: String) -> bool:
 	s["vigia"] = true
 	var premios: Array = (COFRES["epico"]["premios"] as Dictionary).keys()
 	var premio: String = String(premios[_azar(0, premios.size() - 1)])
-	var cc2: Vector2i = _sitio_bloqueo(s, true)
+	var cc2: Vector2i = _sitio_bloqueo({"rect": patio}, true)       # dentro de la cerca (en un claro, la sala es más grande que el campamento)
 	if cc2.x >= 0:
 		_ocupar(cc2, true)
 		_objeto(cc2, "cofre_epico", "camp%d_cofre" % n)
@@ -2612,10 +2692,12 @@ func _objeto_en(c: Vector2i, tipos: Array) -> Dictionary:
 	return {}
 
 
-## Cofres que aparecen cuando caen sus enemigos. Usa lo que el juego ya tiene: un VIGÍA que vigila a los enemigos que nacen en unas
-## casillas y pone una flag cuando han caído todos, y `aparece_si=flag.…` en el cofre (lo mismo que el generador hace con el cofre de la
-## llave). Va al final, con todo movido y añadido. Un extremo que ya no existe se descarta con aviso; el cofre de la llave no se enlaza
-## (ya aparece al limpiar su sala).
+## Cofres que aparecen cuando caen sus enemigos y/o cuando se RESUELVE un puzle (24/11). Usa lo que el juego ya tiene: un VIGÍA que vigila a los
+## enemigos que nacen en unas casillas y pone una flag cuando han caído todos; una regla `; puzle` que pone otra flag cuando el puzle da su
+## señal de «resuelto» (`; resuelto` de la plantilla; en un campamento, la flag de su vigía); y `aparece_si=flag.…+flag.…` en el cofre (todas
+## a la vez). Va al final, con todo movido y añadido. Los extremos son los de siempre (`a<n>`, `x,y`) para los enemigos y `pz<sala>` para
+## el puzle o el campamento de esa sala. Un extremo que ya no existe se descarta con aviso; el cofre de la llave no se enlaza (ya aparece al
+## limpiar su sala).
 func _aplicar_apariciones(nv: String) -> void:
 	var n: int = 0
 	for ap_v in _apariciones_pedidas:
@@ -2623,42 +2705,105 @@ func _aplicar_apariciones(nv: String) -> void:
 		var ec: Array = _extremo(String(ap.get("cofre", "")))
 		var cofre: Dictionary = _objeto_en(ec[0], COFRES_ENLAZABLES) if (ec[0] as Vector2i).x >= 0 else {}
 		if cofre.is_empty():
-			avisos.append("Un cofre que aparecía al caer enemigos ya no está en el mapa: ese enlace se descarta.")
+			avisos.append("Un cofre que aparecía al caer enemigos o al resolver un puzle ya no está en el mapa: ese enlace se descarta.")
 			continue
+		var cc: Vector2i = ec[0]
 		var celdas: Array = []
 		var nombres: Array = []
+		var puzles_ap: Array = []                     # [{nombre, flag_o_senal, celda}]
 		for en in ap.get("enemigos", []):
-			var ee: Array = _extremo(String(en))
+			var e_txt: String = String(en)
+			if e_txt.begins_with("pz"):
+				var pzd: Dictionary = _puzle_de_sala(e_txt.substr(2).to_int(), nv)
+				if pzd.is_empty():
+					avisos.append("El puzle de la sala %s, enlazado al cofre de (%d, %d), ya no está o no tiene señal de resuelto: se quita de ese enlace." % [e_txt.substr(2), cc.x, cc.y])
+					continue
+				pzd["nombre"] = e_txt
+				puzles_ap.append(pzd)
+				nombres.append(e_txt)
+				continue
+			var ee: Array = _extremo(e_txt)
 			if (ee[0] as Vector2i).x >= 0 and not _objeto_en(ee[0], TIPOS_ENEMIGO).is_empty() and not celdas.has(ee[0]):
 				celdas.append(ee[0])
 				nombres.append(ee[1])
 			else:
-				avisos.append("Un enemigo enlazado al cofre de (%d, %d) ya no está en el mapa: se quita de ese enlace." % [(ec[0] as Vector2i).x, (ec[0] as Vector2i).y])
-		if celdas.is_empty():
-			avisos.append("El cofre de (%d, %d) se ha quedado sin enemigos enlazados: vuelve a aparecer desde el principio." % [(ec[0] as Vector2i).x, (ec[0] as Vector2i).y])
+				avisos.append("Un enemigo enlazado al cofre de (%d, %d) ya no está en el mapa: se quita de ese enlace." % [cc.x, cc.y])
+		if celdas.is_empty() and puzles_ap.is_empty():
+			avisos.append("El cofre de (%d, %d) se ha quedado sin nada enlazado: vuelve a aparecer desde el principio." % [cc.x, cc.y])
 			continue
 		# La línea del cofre: se le añade la condición de aparecer.
-		var cc: Vector2i = ec[0]
-		var puesta: bool = false
+		var i_linea: int = -1
 		var cid: String = ""
 		for i in range(lineas.size()):
 			var t: PackedStringArray = lineas[i].substr(1).strip_edges().split(" ", false)
 			if t.size() >= 5 and t[0] == "pieza" and t[2] == "cofre" and t[3].to_int() == cc.x and t[4].to_int() == cc.y and not lineas[i].contains(" aparece_si="):
 				cid = t[1]
-				lineas[i] = lineas[i] + " aparece_si=flag.%s.%s.aparece" % [nv, cid]
-				puesta = true
+				i_linea = i
 				break
-		if not puesta:
+		if i_linea < 0:
 			avisos.append("El cofre de (%d, %d) ya tiene su propia condición para aparecer: no se le añade otra." % [cc.x, cc.y])
 			continue
 		n += 1
-		var txt: PackedStringArray = PackedStringArray()
-		for c in celdas:
-			txt.append("%d,%d" % [int(c.x), int(c.y)])
-		lineas.append("; pieza vigia_ap%d vigia %d %d de=%s flag=%s.%s.aparece" % [n, int(celdas[0].x), int(celdas[0].y), "+".join(txt), nv, cid])
+		var conds: PackedStringArray = PackedStringArray()
+		if not celdas.is_empty():
+			var txt: PackedStringArray = PackedStringArray()
+			for c in celdas:
+				txt.append("%d,%d" % [int(c.x), int(c.y)])
+			lineas.append("; pieza vigia_ap%d vigia %d %d de=%s flag=%s.%s.aparece" % [n, int(celdas[0].x), int(celdas[0].y), "+".join(txt), nv, cid])
+			conds.append("flag.%s.%s.aparece" % [nv, cid])
+			for c in celdas:
+				enlaces.append({"de": c, "a": cc, "de_id": "", "a_id": cid, "fijo": true, "aparece": true})
+		for pzd in puzles_ap:
+			var flag_pz: String = String(pzd["flag"])
+			if String(pzd["senal"]) != "":
+				# Un puzle del catálogo: la regla pone la flag cuando da su señal (y la flag lo recuerda al volver al nivel).
+				flag_pz = "%s.%s.%s" % [nv, cid, String(pzd["nombre"])]
+				lineas.append("; puzle apa_%s_%s cuando=%s hace=flag.poner(%s)" % [cid, String(pzd["nombre"]), String(pzd["senal"]), flag_pz])
+			conds.append("flag." + flag_pz)
+			enlaces.append({"de": pzd["celda"], "a": cc, "de_id": "", "a_id": cid, "fijo": true, "aparece": true, "puzle": true})
+		lineas[i_linea] = lineas[i_linea] + " aparece_si=" + "+".join(conds)
 		apariciones_hechas.append({"cofre": ec[1], "enemigos": nombres, "c": cc, "de": celdas})
-		for c in celdas:
-			enlaces.append({"de": c, "a": cc, "de_id": "", "a_id": cid, "fijo": true, "aparece": true})
+
+
+## El puzle (o el campamento) de la sala `sid`, para enlazarle un cofre: {senal: «<pieza>.<señal>» del puzle ya con su prefijo, o "" si es
+## un campamento; flag: la flag que pone el campamento al limpiarlo; celda: dónde empieza la flecha en la vista}. {} si no hay o no se puede.
+func _puzle_de_sala(sid: int, nv: String) -> Dictionary:
+	for s in _vivas():
+		if int(s["id"]) != sid:
+			continue
+		if String(s["rol"]) == "campamento" and s.has("camp_n"):
+			var n_c: int = int(s["camp_n"])
+			return {"senal": "", "flag": "%s.campamento_%d.limpio" % [nv, n_c], "celda": _centro_libre_o_rect(s)}
+		if not s.has("inst") or not puzles_puestos.has(sid):
+			return {}
+		var e: Dictionary = Catalogo.todos().get(String(puzles_puestos[sid]), {})
+		var res: String = String(e.get("resuelto", ""))
+		if not res.contains("."):
+			return {}
+		var pieza: String = String(s["inst"]) + "_" + res.split(".")[0]
+		var celda: Vector2i = (s["rect"] as Rect2i).get_center()
+		for o in objetos:
+			if String(o["id"]) == pieza:
+				celda = o["c"]
+				break
+		return {"senal": pieza + "." + res.split(".")[1], "flag": "", "celda": celda}
+	return {}
+
+
+func _centro_libre_o_rect(s: Dictionary) -> Vector2i:
+	return (s["rect"] as Rect2i).get_center()
+
+
+## Para el pincel «enlazar» de la herramienta: prefijo de las piezas de cada puzle o campamento enlazable → su sala
+## ({"cat3": 5, "camp1": 7}). Solo los que tienen señal de resuelto.
+func _salas_enlazables() -> Dictionary:
+	var res: Dictionary = {}
+	for s in _vivas():
+		if String(s["rol"]) == "campamento" and s.has("camp_n"):
+			res["camp%d" % int(s["camp_n"])] = int(s["id"])
+		elif s.has("inst") and puzles_puestos.has(int(s["id"])) and String((Catalogo.todos().get(String(puzles_puestos[int(s["id"])]), {}) as Dictionary).get("resuelto", "")).contains("."):
+			res[String(s["inst"])] = int(s["id"])
+	return res
 
 
 # =====================================================================================================================
@@ -3222,7 +3367,7 @@ func _resultado() -> Dictionary:
 		"arqueros": bool(p.get("_arqueros", false)), "retoques": _retoques,
 		"errores": errores, "enlaces": enlaces, "enlaces_mano": _enlaces_mano, "activadores": _activadores.keys(), "barreras": _barreras.size(),
 		"puzles": puzles_puestos, "puzles_mano": _puzles_mano, "cruzables": _puentes.keys(), "letras_extra": _letras_extra, "precipicio": precipicio, "barreras_precipicio": barreras_precipicio,
-		"movidos": movidos_hechos, "movidos_pedidos": _movidos_pedidos, "anadidos": anadidos_hechos, "apariciones": apariciones_hechas,
+		"movidos": movidos_hechos, "movidos_pedidos": _movidos_pedidos, "anadidos": anadidos_hechos, "apariciones": apariciones_hechas, "salas_enlazables": _salas_enlazables(),
 		"stats": {"salas": _vivas().size(), "puertas": puertas.size(), "enemigos": n_enem, "cofres": n_cofres, "jarrones": n_jarrones,
 			"suelo": pisable, "agua": g.count(AGUA), "ocupacion": pisable / float(maxi(1, w * h))},
 	}
@@ -3247,6 +3392,12 @@ func _colocar_catalogo(vivas: Array, nv: String) -> void:
 			avisos.append("El puzle «%s» estaba puesto en la sala %d, que ya no existe." % [cid, int(sid)])
 		elif String(s["rol"]) != "":
 			avisos.append("El puzle «%s» no se pone en la sala %d: es la sala de %s." % [cid, int(sid), String(s["rol"])])
+		elif cid == CAMPAMENTO:
+			# 24/11 (Pablo: «los campamentos como "puzzles", para meter salas de enemigos temáticas»): la sala queda reservada y el
+			# campamento se monta en su paso (4d, `_poner_campamentos`), que pone su empalizada, su gente, su vigía y su cofre.
+			s["rol"] = "puzle"
+			s["camp_mano"] = true
+			puzles_puestos[int(s["id"])] = CAMPAMENTO
 		else:
 			var motivo: String = _poner_puzle(s, cid, nv)
 			if motivo != "":
@@ -3424,6 +3575,7 @@ func _estampar(s: Dictionary, e: Dictionary, filas: Array, tw: int, th: int, sit
 	s["rect"] = r.merge(zona)
 	if not de_barrera:
 		s["rol"] = "puzle"
+		s["inst"] = inst                            # 24/11: para enlazar un cofre a este puzle (`_aplicar_apariciones`, extremo `pz<sala>`)
 		s["catalogo"] = String(e["id"])
 		s["titulo"] = String(e["titulo"])
 		puzles_puestos[int(s["id"])] = String(e["id"])

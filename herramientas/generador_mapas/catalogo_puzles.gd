@@ -9,6 +9,8 @@ extends RefCounted
 ##                                   enlazar a una puerta o un puente del mapa (pincel «enlazar»)
 ##   ; pide <elementos>              qué necesita la jugadora (solo informativo)
 ##   ; activa <pieza>.<señal>        solo `salida`: la señal que cuenta como «resuelto»
+##   ; resuelto <pieza>.<señal>      (24/11) la señal que cuenta como «resuelto» para enlazar un COFRE al puzle (pincel «enlazar»: el
+##                                   cofre aparece al resolverlo). Sin ella vale la de `activa`; sin ninguna, el puzle no se puede enlazar
 ##   ; barrera si                    solo `salida`: el generador puede elegirla él solo como activador de una barrera (puerta o puente).
 ##                                   Sin esto la plantilla solo se pone a mano o con «Puzles del catálogo».
 ##   ; estira x                      la plantilla es una franja: cada fila se repite hasta el ancho de la sala (una letra por fila)
@@ -48,7 +50,7 @@ static func _leer() -> Dictionary:
 
 
 static func leer_texto(texto: String, id_defecto: String = "") -> Dictionary:
-	var e: Dictionary = {"id": id_defecto, "titulo": id_defecto, "tipo": "premio", "pide": "", "activa": "", "estira": "", "barrera": false, "filas": [], "lineas": [], "lineas_cueva": [], "ancho": 0, "alto": 0}
+	var e: Dictionary = {"id": id_defecto, "titulo": id_defecto, "tipo": "premio", "pide": "", "activa": "", "resuelto": "", "estira": "", "barrera": false, "filas": [], "lineas": [], "lineas_cueva": [], "ancho": 0, "alto": 0}
 	for linea in texto.split("\n"):
 		var l: String = String(linea).replace("\r", "")
 		if l.strip_edges() == "":
@@ -70,6 +72,8 @@ static func leer_texto(texto: String, id_defecto: String = "") -> Dictionary:
 					e["pide"] = resto
 				"activa":
 					e["activa"] = resto
+				"resuelto":
+					e["resuelto"] = resto
 				"estira":
 					e["estira"] = resto
 				"barrera":
@@ -88,4 +92,6 @@ static func leer_texto(texto: String, id_defecto: String = "") -> Dictionary:
 		e["filas"][i] = String(e["filas"][i]) + " ".repeat(ancho - String(e["filas"][i]).length())
 	e["ancho"] = ancho
 	e["alto"] = (e["filas"] as Array).size()
+	if String(e["resuelto"]) == "" and String(e["activa"]).contains("."):
+		e["resuelto"] = e["activa"]                  # un activador está resuelto cuando da su señal
 	return e

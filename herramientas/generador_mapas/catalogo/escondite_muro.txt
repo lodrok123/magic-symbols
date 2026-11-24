@@ -1,6 +1,7 @@
 ; catalogo escondite_muro
 ; titulo Escondite tras el muro agrietado
 ; tipo premio
+; resuelto muro.roto
 ; pide tierra
 ;  El escondite del Bosque 02 (norte de la linde). Un muro agrietado cierra un hueco en la pared; detrás espera un cofre. Lo rompen dos
 ;  golpes de tierra o una explosión (un barril cerca vale). Se entra por abajo, de cara a la cámara, y las paredes son de dos casillas

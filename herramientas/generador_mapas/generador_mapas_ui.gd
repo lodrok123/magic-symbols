@@ -649,13 +649,15 @@ func _montar() -> void:
 	lp.text = "   Pincel:"
 	pie.add_child(lp)
 	_pincel = OptionButton.new()
-	for it in [["", "ninguno"], ["#", "# pared"], [".", ". suelo"], ["~", "~ agua"], ["borrar", "goma (quita el retoque)"], ["enlazar", "enlazar (activador → puerta/puente · enemigo → cofre)"],
+	for it in [["", "ninguno"], ["#", "# pared"], [".", ". suelo"], ["~", "~ agua"], ["borrar", "goma (quita el retoque)"], ["enlazar", "enlazar (activador → puerta/puente · enemigo o puzle → cofre)"],
 			["mover", "mover un elemento (arrastrar)"]]:
 		_pincel.add_item(String(it[1]))
 		_pincel.set_item_metadata(_pincel.item_count - 1, String(it[0]))
 	for cid in Catalogo.todos():
 		_pincel.add_item("puzle: " + String(Catalogo.todos()[cid]["titulo"]))
 		_pincel.set_item_metadata(_pincel.item_count - 1, "cat:" + String(cid))
+	_pincel.add_item("puzle: " + Generador.CAMPAMENTO_TITULO)
+	_pincel.set_item_metadata(_pincel.item_count - 1, "cat:" + Generador.CAMPAMENTO)
 	_pincel.add_item("quitar puzle de la sala")
 	_pincel.set_item_metadata(_pincel.item_count - 1, "cat:")
 	_pincel.tooltip_text = "Con un pincel elegido, el botón izquierdo pinta sobre la vista. El contenido (enemigos, cofres…) se recoloca solo."
@@ -981,16 +983,21 @@ func _enlazar_en(c: Vector2i) -> void:
 					hecho = true
 			if not hecho:
 				_apariciones.append({"cofre": cofre, "enemigos": [_enl_enemigo]})
-			_decir("Enlazado: ese cofre aparecerá cuando caigan todos sus enemigos enlazados. Para quitarlo: pestaña «Cofres», «Que aparezca siempre».")
+			_decir("Enlazado: ese cofre aparecerá cuando se cumpla todo lo enlazado (caen sus enemigos y se resuelven sus puzles). Para quitarlo: pestaña «Cofres», «Que aparezca siempre».")
 			_enl_enemigo = ""
 			_vista.resaltada = Vector2i(-1, -1)
 			_sucio = true
 			return
+	var enlazables: Dictionary = _mapa.get("salas_enlazables", {})
 	for o in _mapa["objetos"]:
 		if (o["c"] as Vector2i) != c or String(o["id"]) == "":
 			continue
 		var id: String = String(o["id"])
 		var tipo: String = String(o["tipo"])
+		# 24/11 · Puzle → cofre: una pieza de un puzle (o de un campamento) lo elige; el siguiente clic en un cofre hace que aparezca al resolverlo.
+		var pref_pz: String = id.split("_")[0]
+		if enlazables.has(pref_pz) and not TIPOS_COFRE.has(tipo):
+			_elegir_puzle_para_cofre(int(enlazables[pref_pz]), c)
 		if not (_mapa["activadores"] as Array).has(id) and id.begins_with("cat"):
 			# Una pieza cualquiera del puzle (un brasero, el bloque) vale para elegir el activador de su plantilla.
 			var prefijo: String = id.split("_")[0] + "_"
@@ -1009,6 +1016,28 @@ func _enlazar_en(c: Vector2i) -> void:
 				_vista.seleccion = ""
 				_sucio = true
 		return
+	# Un clic en el suelo de la sala de un puzle o de un campamento (sin pieza debajo) también elige ese puzle para un cofre.
+	for s in _mapa["salas"]:
+		if (s["rect"] as Rect2i).has_point(c) and enlazables.values().has(int(s["id"])):
+			_elegir_puzle_para_cofre(int(s["id"]), c)
+			return
+
+
+## Pincel «enlazar»: deja elegido el puzle (o el campamento) de la sala `sid` para el siguiente clic en un cofre. Usa el mismo camino que
+## enemigo → cofre: el extremo `pz<sala>` va en la misma lista y el cofre aparece cuando se cumple todo lo enlazado.
+func _elegir_puzle_para_cofre(sid: int, c: Vector2i) -> void:
+	_enl_enemigo = "pz%d" % sid
+	_vista.resaltada = c
+	_vista.queue_redraw()
+	var que: String = "el campamento" if String(_mapa["puzles"].get(sid, "")) == "campamento" or _es_campamento(sid) else "el puzle"
+	_decir("Elegido %s de la sala %d: ahora haz clic en el cofre que debe aparecer al resolverlo (o en una puerta/puente si es un activador)." % [que, sid])
+
+
+func _es_campamento(sid: int) -> bool:
+	for s in _mapa["salas"]:
+		if int(s["id"]) == sid:
+			return String(s["rol"]) == "campamento"
+	return false
 
 
 func _al_pasar(c: Vector2i) -> void:
@@ -1339,7 +1368,15 @@ func _refrescar_cofres() -> void:
 			texto += "\n   da: la llave del tesoro (lo pone el generador)"
 		var atado: Array = _enemigos_de_cofre(o)
 		if not atado.is_empty():
-			texto += "\n   aparece al caer %s (flecha verde)" % ("su enemigo" if atado.size() == 1 else "sus %d enemigos" % atado.size())
+			var n_pz: int = atado.filter(func(x) -> bool: return String(x).begins_with("pz")).size()
+			var n_en: int = atado.size() - n_pz
+			var partes_ap: PackedStringArray = PackedStringArray()
+			if n_en > 0:
+				partes_ap.append("al caer %s" % ("su enemigo" if n_en == 1 else "sus %d enemigos" % n_en))
+			for x in atado:
+				if String(x).begins_with("pz"):
+					partes_ap.append("al resolver el puzle de la sala %s" % String(x).substr(2))
+			texto += "\n   aparece %s (flecha verde)" % " y ".join(partes_ap)
 		var t: Label = _rotulo_pz(texto, Color(0.92, 0.92, 0.92), 14)
 		t.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		fila.add_child(t)
@@ -1350,7 +1387,7 @@ func _refrescar_cofres() -> void:
 			_boton(botones, "Que aparezca siempre", _soltar_cofre.bind(_extremo_de(o)), "Quita el enlace con sus enemigos: el cofre está a la vista desde el principio.")
 		fila.add_child(botones)
 		_lista_cofres.add_child(fila)
-	_lista_cofres.add_child(_rotulo_pz("Para cambiar un cofre de sitio: pincel «mover» (abajo) y arrástralo.\nPara que un cofre APAREZCA AL CAER UN ENEMIGO: pincel «enlazar» (abajo), clic en el enemigo y clic en el cofre. Con varios enemigos enlazados, aparece cuando caen todos.", Color(0.75, 0.75, 0.75), 12))
+	_lista_cofres.add_child(_rotulo_pz("Para cambiar un cofre de sitio: pincel «mover» (abajo) y arrástralo.\nPara que un cofre APAREZCA AL CAER UN ENEMIGO o AL RESOLVER UN PUZLE (o limpiar un campamento): pincel «enlazar» (abajo), clic en el enemigo o en el puzle\n(una pieza suya o el suelo de su sala) y clic en el cofre. Con varias cosas enlazadas, aparece cuando se cumplen todas.", Color(0.75, 0.75, 0.75), 12))
 
 
 ## Las llegadas que tiene un nivel del juego: las `; pieza <nombre> entrada` de su mapa y las que crea por código.
@@ -1635,6 +1672,12 @@ func _refrescar_puzles() -> void:
 			(" · pide " + String(cat[cid]["pide"])) if String(cat[cid]["pide"]) != "" else "", int(cat[cid]["ancho"]), int(cat[cid]["alto"])])
 		if String(cid) == _pz_que:
 			que.select(que.item_count - 1)
+	# 24/11: el campamento goblin, como un puzle más (una sala de enemigos temática: empalizada, puerta que arde, guardias, vigía y cofre épico).
+	que.add_item(Generador.CAMPAMENTO_TITULO)
+	que.set_item_metadata(que.item_count - 1, Generador.CAMPAMENTO)
+	que.set_item_tooltip(que.item_count - 1, "Campamento goblin: empalizada con puerta que arde, fogata, torre, tiendas, guardias (y chamán si es grande), vigía y cofre épico al limpiarlo.\nNecesita una sala de %d × %d o más." % [Generador.CAMP_LADO_MIN.x, Generador.CAMP_LADO_MIN.y])
+	if _pz_que == Generador.CAMPAMENTO:
+		que.select(que.item_count - 1)
 	que.item_selected.connect(func(i: int) -> void: _pz_que = String(que.get_item_metadata(i)))
 	_lista_puzles.add_child(que)
 	var fila_a: HBoxContainer = HBoxContainer.new()
@@ -1672,7 +1715,7 @@ func _refrescar_puzles() -> void:
 func _fila_puzle(sid: int, cid: String, a_mano: bool, bien: bool) -> Control:
 	var cat: Dictionary = Catalogo.todos()
 	var caja: VBoxContainer = VBoxContainer.new()
-	var titulo: String = String(cat[cid]["titulo"]) if cat.has(cid) else cid
+	var titulo: String = String(cat[cid]["titulo"]) if cat.has(cid) else (Generador.CAMPAMENTO_TITULO if cid == Generador.CAMPAMENTO else cid)
 	var sala_txt: String = "Sala %d" % sid
 	for s in _mapa["salas"]:
 		if int(s["id"]) == sid:

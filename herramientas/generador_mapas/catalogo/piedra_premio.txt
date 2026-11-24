@@ -1,6 +1,7 @@
 ; catalogo piedra_premio
 ; titulo Peso de la piedra (cofre)
 ; tipo premio
+; resuelto placa.pulsado
 ;  El peso de la piedra del Bosque 02 (sala 10, la placa K de la trastienda) con la pista de la Sala del Empuje: como «Bloque de piedra
 ;  en la pista», pero al bajar la placa aparece un cofre a la salida de la pista en vez de abrir una barrera. Dos empujones hacia
 ;  arriba y la piedra queda sobre la placa (peso 3: la jugadora sola no la baja). Se entra por abajo, de cara a la cámara.
