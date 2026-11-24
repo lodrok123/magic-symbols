@@ -51,7 +51,8 @@ extends Node
 ##                                                                                   moja y no prende en Reactivo3D.T_MOJADO s (el cortafuegos)
 ##   contador   de=<lista de casillas>  minimo=<n> (todos)                           ContadorReactivos3D: cuenta lo que arde (`is_lit`) en esas casillas (braseros,
 ##                                                                                   fogatas, setos…); rótulo «ENCENDIDAS n/m» sobre su casilla
-##              modelo=totem (24/11): en vez del rótulo y la placa, el TÓTEM de piedra del pack Lost Cave con un símbolo por reactivo, que se enciende en naranja al arder
+##              24/11: se ve como el TÓTEM de piedra del pack Lost Cave con un símbolo por reactivo, que se enciende en naranja al arder (sin el pack, o con
+##              `modelo=placa`, la placa con gemas y el rótulo «ENCENDIDAS n/m» de antes)
 ##   cuerda     sostiene=<id>                                                        Cuerda3D: arde 1 s y se rompe; lo que sostiene (una compuerta o un puente) cae
 ##   vigia      de=<lista de casillas> (obligatoria)  flag=<nombre>  puesto=si (no, 27/10: sus arqueros son DE PUESTO, Combate3D.fijo: baten desde donde nacen sin perseguir)
 ##                              VigiaPuzle (C3): vigila a los Combate3D cuya casilla de PARTIDA (`casa`) está en `de`

@@ -6254,3 +6254,19 @@ Pablo: «¿hay una manera mejor de enseñar el progreso? Se me ocurre un tótem 
 - **Pruebas:**
   - `captura_totem.gd` (nueva, con ventana), 0 fallos: sin rótulo, 3 símbolos, 2 encendidos con 2 braseros, completo con 3. Fotos en `docs/capturas/totem/`.
   - `escenario_catalogo_puzles`, `escenario_catalogo_nuevos` y `prueba_generador_mapas`: 0 fallos.
+
+### 24/11/2026 · aviso de contexto PUZLES · el tótem contador en todos los niveles
+Pablo: «sí, en todos».
+- **El tótem es ya el contador por defecto** (`objetos/contador_reactivos_3d.gd`). Sale en todos los contadores con casilla, también en los niveles hechos a mano. La placa con gemas y el rótulo «ENCENDIDAS n/m» quedan para `modelo=placa`, o si falta el pack. La documentación de la clave está en `puzle.gd`.
+- **Los símbolos apagados se ven mejor:**
+  - De día, en el bosque, el trazo fino y oscuro casi desaparecía sobre la piedra.
+  - El shader engrosa el trazo (smoothstep sobre el alfa) y el color apagado pasa a opaco.
+- **Pruebas:**
+  - Nueva `herramientas/captura_totems_niveles.gd`, con argumentos `desde=` y `hasta=`. Sin ventana cuenta los tótems pero no hace fotos.
+  - Cuenta de tótems, todos los contadores con casilla son tótem (0 fallos): Bosque 01 2/2, Bosque 01 v01 2/2, Bosque 02 1/1, Cueva 1/1, Cueva Resonante 1/1, Gruta Batida 2/2 y LabPuzlesFuego3D 3/3.
+  - Fotos en `docs/capturas/totem/niveles/`.
+  - `captura_totem`, `escenario_catalogo_puzles` y `escenario_catalogo_nuevos`: 0 fallos.
+- **Aviso:**
+  - El Bosque 02 se cuelga **solo dentro de la herramienta con ventana**: deja de responder al cargar, sin gastar CPU. Por eso se probó sin ventana y no tiene foto.
+  - Abierto como juego normal, con ventana, carga y responde.
+  - No parece del tótem, porque sin ventana carga bien, pero no está aislado.

@@ -32,7 +32,7 @@ var encendidos: int = 0
 var completo: bool = false
 var _rotulo: Label3D = null
 var _placa: PiezaFuego3D = null             ## la placa con huecos del Pipeline (`contador_placa`); null si no hay modelo o no hay casilla
-var modelo: String = ""                     ## 24/11: "" (la placa y el rótulo de siempre) o "totem" (ver _poner_totem)
+var modelo: String = ""                     ## 24/11: "" o "totem" = el tótem (ver _poner_totem; sin el pack, la placa) · "placa" = la placa con gemas y el rótulo de antes
 
 
 ## `p_lista`: los nodos a contar. `p_minimo`: 0 = todos. `p_celda`: donde se cuelga el rótulo (x < 0 = sin rótulo, para las pruebas).
@@ -45,7 +45,7 @@ func preparar(p_lista: Array, p_minimo: int = 0, p_celda: Vector2i = Vector2i(-1
 
 
 func _ready() -> void:
-	if celda.x >= 0 and modelo == "totem" and _poner_totem():
+	if celda.x >= 0 and modelo != "placa" and _poner_totem():      # 24/11 (Pablo: «sí, en todos»): el tótem por defecto; `modelo=placa`, la placa de antes
 		_leer(false)
 		set_process(true)
 		return
@@ -68,7 +68,7 @@ func _ready() -> void:
 
 
 # --- TÓTEM (24/11, Pablo en el playtest de PtFuego: «¿hay una manera mejor de enseñar el progreso? Un tótem que vaya encendiendo los símbolos») ----------
-## Con `modelo=totem`: en vez de la placa con gemas y el rótulo «ENCENDIDAS 2/3», el TÓTEM de piedra del pack Lost Cave (`lost_totem_a`) con un SÍMBOLO tallado
+## POR DEFECTO (24/11, Pablo: «sí, en todos»; `modelo=placa` vuelve a lo de antes): en vez de la placa con gemas y el rótulo «ENCENDIDAS 2/3», el TÓTEM de piedra del pack Lost Cave (`lost_totem_a`) con un SÍMBOLO tallado
 ## por cada reactivo que hace falta (hasta TOTEM_MAX; las pinturas rupestres del pack: espiral, ojo, figura). Se encienden de abajo arriba, en naranja de fuego,
 ## según arden; con todos, el tótem entero brilla. Va al fondo de su casilla (no la tapa: no bloquea). Sin el pack, la placa de siempre.
 const TOTEM: String = "res://arte/lostcave/piezas/lost_totem_a.tscn"
@@ -76,7 +76,7 @@ const SIMBOLOS: Array[String] = ["res://arte/lostcave/texturas/T_Symbol_c_BC.png
 const TOTEM_ESCALA: float = 0.6
 const TOTEM_FONDO: float = 0.3               ## fracción de casilla que se corre hacia el fondo (norte)
 const TOTEM_MAX: int = 5
-const COLOR_APAGADO: Color = Color(0.11, 0.09, 0.08, 0.85)        ## un trazo tallado en la piedra
+const COLOR_APAGADO: Color = Color(0.05, 0.04, 0.035, 1.0)        ## un trazo tallado en la piedra (opaco: de día, en el bosque, a 0,85 casi no se veía)
 const COLOR_ENCENDIDO: Color = Color(1.0, 0.38, 0.1, 1.0)         ## naranja de brasa (Pablo: rojos y naranjas, nunca amarillo)
 const BRILLO_ENCENDIDO: float = 2.4
 const SHADER_SIMBOLO: String = """
@@ -86,7 +86,8 @@ uniform sampler2D mascara : source_color, filter_linear_mipmap;
 uniform vec4 color : source_color = vec4(1.0);
 uniform float brillo = 1.0;
 void fragment() {
-	float a = texture(mascara, UV).a;
+	float a = smoothstep(0.02, 0.3, texture(mascara, UV).a);   // engrosa el trazo: de lejos, con el mipmap, los trazos finos se perdían
+
 	ALBEDO = color.rgb * brillo;
 	ALPHA = a * color.a;
 }
