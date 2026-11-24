@@ -28,13 +28,14 @@ def ruido_periodico(lo, hi):
 	return r / (np.abs(r).max() + 1e-9)
 
 
+# 24/11, playtest de Pablo: «más metálico». Menos retumbo, metal más fuerte, más agudo y que resuena más, y más roce de rueda contra carril.
 # 1 · retumbo grave
-retumbo = ruido_periodico(40, 220) * 0.35
+retumbo = ruido_periodico(40, 220) * 0.12
 
 # 2 · golpes de rueda: una excitación por vuelta (6 por segundo = 12 en el bucle) que hace sonar parciales de metal
 vueltas = 12
 metal = np.zeros(N)
-parciales = [(612, 1.0, 9.0), (1180, 0.7, 12.0), (1733, 0.45, 15.0), (2650, 0.3, 20.0), (3910, 0.18, 26.0)]
+parciales = [(612, 0.8, 5.0), (1180, 0.9, 6.0), (1733, 0.8, 7.0), (2650, 0.65, 8.0), (3910, 0.5, 10.0), (5240, 0.35, 12.0), (6870, 0.22, 15.0)]
 for k in range(vueltas):
 	t0 = k / vueltas * DUR + rng.uniform(-0.01, 0.01)
 	fuerza = rng.uniform(0.6, 1.0)
@@ -43,17 +44,18 @@ for k in range(vueltas):
 		mask = dt >= 0
 		for fr, a, dec in parciales:
 			metal[mask] += fuerza * a * np.sin(2 * np.pi * fr * rng.uniform(0.985, 1.015) * dt[mask]) * np.exp(-dec * dt[mask])
-metal *= 0.22 / (np.abs(metal).max() + 1e-9)
+metal *= 0.55 / (np.abs(metal).max() + 1e-9)
 
-# 3 · chirrido de pestaña: un tono agudo que oscila suave (periódico en 2 s)
-chirrido = np.sin(2 * np.pi * (2900 * t + 120 / (2 * np.pi * 0.5) * np.sin(2 * np.pi * 0.5 * t))) * (0.5 + 0.5 * np.sin(2 * np.pi * 1.0 * t)) ** 2
-chirrido *= 0.05
+# 3 · chirrido de pestaña: un tono agudo que oscila suave (periódico en 2 s), con su armónico
+fase = 2 * np.pi * (2900 * t + 120 / (2 * np.pi * 0.5) * np.sin(2 * np.pi * 0.5 * t))
+chirrido = (np.sin(fase) + 0.4 * np.sin(2 * fase)) * (0.5 + 0.5 * np.sin(2 * np.pi * 1.0 * t)) ** 2
+chirrido *= 0.09
 
-# 4 · roce: ruido medio-agudo pegado al metal
-roce = ruido_periodico(1500, 6000) * 0.06
+# 4 · roce de hierro contra hierro: ruido agudo pegado al metal
+roce = ruido_periodico(2500, 8000) * 0.12
 
 senal = retumbo + metal + chirrido + roce
-sos = butter(2, 9000, "low", fs=SR, output="sos")
+sos = butter(2, 12000, "low", fs=SR, output="sos")
 senal = sosfiltfilt(sos, np.concatenate([senal, senal, senal]))[N:2 * N]   # filtrado circular: sin costura
 senal = senal / (np.abs(senal).max() + 1e-9) * 0.8
 

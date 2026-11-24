@@ -3,6 +3,7 @@
 [ext_resource type="Script" path="res://presentacion/prueba_test2.gd" id="1_poc"]
 [ext_resource type="Script" path="res://escenas/puzle.gd" id="2_pz"]
 
+[ext_resource type="Script" path="res://escenas/atajos_playtest.gd" id="9_atajos"]
 [node name="PruebaPtJefeBosque" type="Node3D"]
 script = ExtResource("1_poc")
 fuego_nuevo = true
@@ -17,3 +18,6 @@ metadata/generador_mapas = true
 
 [node name="Puzles" type="Node" parent="."]
 script = ExtResource("2_pz")
+
+[node name="AtajosPlaytest" type="Node" parent="."]
+script = ExtResource("9_atajos")

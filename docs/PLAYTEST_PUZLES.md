@@ -4,6 +4,9 @@ Niveles de prueba hechos con el generador (`herramientas/generar_playtest_puzles
 desde el inicio, con un rótulo al entrar («3 · Vagoneta por la curva»); los que no tienen premio propio llevan un cofre común que aparece
 al resolverlos. Sin enemigos ni nada más que los puzles. Se abren con el generador («Abrir mapa generado») o directamente (comandos abajo).
 
+**Para no buscar las salas:** a la derecha de la pantalla sale la lista de salas del nivel (▶ = en la que estás). **Alt + número** (o el número del
+teclado numérico) te lleva a la entrada de esa sala (`escenas/atajos_playtest.gd`). Alt + número también cambia de página del libro: no estorba.
+
 **Cómo se valida:** Pablo los juega y dice, por puzle, *aceptado* o *ajustes* (y qué). Claude lo apunta en su `.txt` (`; validacion`, `; nota_playtest`)
 y en la hoja maestra (pestaña Puzzles, filas `cat_<id>`). En el generador, el estado sale delante de cada puzle (○ pendiente · ✎ ajustes · ✔ aceptado ·
 ✖ rechazado) y la casilla **«Solo puzles aceptados»** (pestaña Mapa) hace que en los mapas oficiales solo se repartan los aceptados.
@@ -33,9 +36,9 @@ E:\magic-symbols\tools\Godot_v4.7.2-stable_win64.exe --path E:\magic-symbols res
 
 | Orden | Sala | Puzle | Necesita | Estado |
 |---|---|---|---|---|
-| 1 | 1 | **Vagoneta a la placa (a mano)** (`vagoneta_pista`) | empujar | pendiente |
+| 1 | 1 | **Vagoneta a la placa (a mano)** (`vagoneta_pista`) | empujar | aceptado |
 | 2 | 5 | **Vagoneta por la curva (a mano)** (`vagoneta_curva`) | empujar | pendiente |
-| 3 | 3 | **Vagoneta lanzada contra el muro (mecanismo)** (`vagoneta_boton`) | fuego + flecha, o agua + flecha, o tierra + flecha | pendiente |
+| 3 | 3 | **Vagoneta lanzada contra el muro (mecanismo)** (`vagoneta_boton`) | fuego + flecha, o agua + flecha, o tierra + flecha | aceptado |
 | 4 | 4 | **Vagoneta y aguja: elige el ramal (mecanismo)** (`vagoneta_aguja`) | fuego + flecha, o agua + flecha, o tierra + flecha | pendiente |
 
 ## PtAguaTierra · Agua y tierra
@@ -121,9 +124,9 @@ E:\magic-symbols\tools\Godot_v4.7.2-stable_win64.exe --path E:\magic-symbols res
 | Riega la placa (`riega_pulsador`) | salida | agua + flecha | PtAguaTierra · 1 | pendiente |
 | Río de lava (`rio_lava`) | paso | agua + flecha, o hielo + flecha | PtAguaTierra · 2 | pendiente |
 | Vagoneta y aguja: elige el ramal (mecanismo) (`vagoneta_aguja`) | salida | fuego + flecha, o agua + flecha, o tierra + flecha | PtVagonetas · 4 | pendiente |
-| Vagoneta lanzada contra el muro (mecanismo) (`vagoneta_boton`) | premio | fuego + flecha, o agua + flecha, o tierra + flecha | PtVagonetas · 3 | pendiente |
+| Vagoneta lanzada contra el muro (mecanismo) (`vagoneta_boton`) | premio | fuego + flecha, o agua + flecha, o tierra + flecha | PtVagonetas · 3 | aceptado |
 | Vagoneta por la curva (a mano) (`vagoneta_curva`) | premio | empujar | PtVagonetas · 2 | pendiente |
-| Vagoneta a la placa (a mano) (`vagoneta_pista`) | salida | empujar | PtVagonetas · 1 | pendiente |
+| Vagoneta a la placa (a mano) (`vagoneta_pista`) | salida | empujar | PtVagonetas · 1 | aceptado |
 | Sala del jefe: gólem (cueva) (`jefe_golem`) | sala de enemigos | — | PtJefeCueva | pendiente |
 | Sala del jefe: elemental del bosque (`jefe_elemental`) | sala de enemigos | — | PtJefeBosque | pendiente |
 | Campamento goblin (sala de enemigos) (`campamento`) | sala de enemigos | — | PtJefeCueva, PtJefeBosque | pendiente |

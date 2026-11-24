@@ -6198,3 +6198,18 @@ Pablo, playtest de PtVagonetas: «la vagoneta no puede ir así: las ruedas deben
   - `captura_vagoneta.gd` (nueva, con ventana), 0 fallos: girada 90° en la vía norte-sur y 0° en el tramo este-oeste tras la curva; 6 piezas que giran (unos 16 rad por casilla); la rodadura suena al empujarla; lanzada rompe el muro. Fotos en `docs/capturas/vagoneta/`.
   - `escenario_catalogo_nuevos`: 0 fallos.
 - **Pendiente de ver:** en las curvas la vía se dibuja como dos tramos que se cruzan, no como una curva. Sin oír en el juego: el sonido es para afinar de oído (dB en `Sfx3D`).
+
+### 24/11/2026 · aviso de contexto PUZLES · playtest PtVagonetas: 2 aceptados, rodadura más metálica y atajos a las salas
+Pablo: «he revisado los puzles 1 y 3 (el resto no los he encontrado). Han funcionado bien. Metería un sonido más metálico a las ruedas de la vagoneta; el resto bien».
+- **Aceptados:** `vagoneta_pista` y `vagoneta_boton`. En la hoja, decision_pablo «Aceptar» y verificado «Pablo (visto)». `validacion_puzles.py sincronizar` los pasa a sus `.txt` (`; validacion aceptado`).
+- **Más metálico:** en `tools/gen_vagoneta_rueda.py`, menos retumbo, parciales de hierro más fuertes, más agudos (hasta 6,9 kHz) y con más resonancia, y más roce y chirrido.
+  - Medido: el centro del espectro pasa de 414 a 1.863 Hz y la energía por encima de 1 kHz, del 11 % al 72 %.
+  - Bucle −9 dB (antes −11) y juntas −10 dB, algo más agudas (antes −13).
+  - Sin oír en el juego.
+- **«No los he encontrado»:** los niveles Pt llevan ahora `escenas/atajos_playtest.gd`, que lo inyecta `generar_playtest_puzles.gd`.
+  - A la derecha, la lista de salas, con ▶ en la que estás.
+  - Alt + número (o el teclado numérico) lleva a la entrada de cada sala.
+  - El Alt se lee del teclado en cada fotograma, porque el evento se lo quedaba antes la acción de página del libro.
+  - Comprobado con las 22 salas de los 5 niveles con puzles, y con pulsaciones de teclado de verdad: Alt+2 y el 4 del teclado numérico.
+  - Captura: `docs/capturas/vagoneta/atajos_sala2.png`.
+- `docs/PLAYTEST_PUZLES.md` regenerado: estados y explicación de los atajos. Los mapas Pt no cambian (mismas semillas).

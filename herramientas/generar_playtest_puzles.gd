@@ -86,14 +86,37 @@ func _grupo(gr: Array) -> void:
 	mapa["lineas"] = lineas
 	var res: Dictionary = Exportador.exportar(mapa)
 	_ok("%s: se exporta" % nombre, bool(res["ok"]), str(res))
+	_poner_atajos(Exportador.ruta_escena(nombre))
 	await cargar(Exportador.ruta_escena(nombre), true)
 	if maqueta != null:
 		var pz: Puzle3D = maqueta.get_node_or_null("Puzles") as Puzle3D
 		_ok("%s: Puzle3D sin avisos" % nombre, pz != null and pz.avisos.is_empty(), str(pz.avisos) if pz != null else "sin Puzle3D")
+		var at: AtajosPlaytest = maqueta.get_node_or_null("AtajosPlaytest") as AtajosPlaytest
+		await avanzar(3)
+		if not lista.is_empty():
+			_ok("%s: atajos a sus %d salas (Alt + número)" % [nombre, lista.size()], at != null and at.salas.size() == lista.size(), str(at.salas.size()) if at != null else "sin atajos")
+			if at != null:
+				for s in at.salas:
+					var fue: bool = at.ir_a(int(s["n"]))
+					await avanzar(2)
+					_ok("%s: Alt+%d lleva a la sala «%s»" % [nombre, int(s["n"]), String(s["titulo"])], fue and (s["rect"] as Rect2i).has_point(celda_jugador()), str(celda_jugador()))
 		maqueta.get_parent().remove_child(maqueta)
 		maqueta.queue_free()
 		maqueta = null
 		await avanzar(5)
+
+
+## Añade a la escena exportada el nodo de los atajos de playtest (escenas/atajos_playtest.gd: lista de salas y Alt + número para ir a cada una).
+func _poner_atajos(ruta: String) -> void:
+	var t: String = FileAccess.get_file_as_string(ruta)
+	if t.contains("atajos_playtest.gd"):
+		return
+	var i: int = t.find("\n[node ")
+	t = t.substr(0, i) + "\n[ext_resource type=\"Script\" path=\"res://escenas/atajos_playtest.gd\" id=\"9_atajos\"]" + t.substr(i)
+	t = t.rstrip("\n") + "\n\n[node name=\"AtajosPlaytest\" type=\"Node\" parent=\".\"]\nscript = ExtResource(\"9_atajos\")\n"
+	var f: FileAccess = FileAccess.open(ruta, FileAccess.WRITE)
+	f.store_string(t)
+	f.close()
 
 
 ## Pone los puzles de `lista` en salas libres, en orden de cercanía al inicio. Devuelve [sala → puzle, mapa final] o [] si no caben todos.
@@ -151,6 +174,9 @@ func _escribir_doc() -> void:
 	t.append("Niveles de prueba hechos con el generador (`herramientas/generar_playtest_puzles.gd`), uno por grupo de puzles. Cada puzle va en su sala, en ORDEN")
 	t.append("desde el inicio, con un rótulo al entrar («3 · Vagoneta por la curva»); los que no tienen premio propio llevan un cofre común que aparece")
 	t.append("al resolverlos. Sin enemigos ni nada más que los puzles. Se abren con el generador («Abrir mapa generado») o directamente (comandos abajo).")
+	t.append("")
+	t.append("**Para no buscar las salas:** a la derecha de la pantalla sale la lista de salas del nivel (▶ = en la que estás). **Alt + número** (o el número del")
+	t.append("teclado numérico) te lleva a la entrada de esa sala (`escenas/atajos_playtest.gd`). Alt + número también cambia de página del libro: no estorba.")
 	t.append("")
 	t.append("**Cómo se valida:** Pablo los juega y dice, por puzle, *aceptado* o *ajustes* (y qué). Claude lo apunta en su `.txt` (`; validacion`, `; nota_playtest`)")
 	t.append("y en la hoja maestra (pestaña Puzzles, filas `cat_<id>`). En el generador, el estado sale delante de cada puzle (○ pendiente · ✎ ajustes · ✔ aceptado ·")

@@ -4,6 +4,7 @@
 [ext_resource type="Script" path="res://escenas/puzle.gd" id="2_pz"]
 [ext_resource type="Script" path="res://presentacion/luz_portatil_cueva.gd" id="3_luz"]
 
+[ext_resource type="Script" path="res://escenas/atajos_playtest.gd" id="9_atajos"]
 [node name="PruebaPtJefeCueva" type="Node3D"]
 script = ExtResource("1_poc")
 fuego_nuevo = true
@@ -26,3 +27,6 @@ script = ExtResource("3_luz")
 
 [node name="Puzles" type="Node" parent="."]
 script = ExtResource("2_pz")
+
+[node name="AtajosPlaytest" type="Node" parent="."]
+script = ExtResource("9_atajos")

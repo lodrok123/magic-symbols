@@ -76,7 +76,7 @@ const CATALOGO: Dictionary = {
 	"arco":         {"f": ["arco.wav"], "db": -10.0, "tono": 0.08},                                        # el arquero suelta la flecha (antes «arco» estaba en Sfx y nadie lo pedía)
 	# 24/11 (Pablo: «sonido metálico al circular»): la VAGONETA (Vagoneta3D). «junta» = el traqueteo de la rueda al pasar cada junta de raíl (una por casilla);
 	# «choque» = el golpe de hierro al chocar rodando; «chirrido» = la rueda que chirría al arrancar y en las curvas. Kenney Impact (CC0) y el chirrido de siempre.
-	"vagoneta_junta":    {"f": ["kenney_riel_0.ogg", "kenney_riel_1.ogg", "kenney_riel_2.ogg"], "db": -13.0, "tono": 0.10, "unidad": 3.0, "alcance": 14.0},
+	"vagoneta_junta":    {"f": ["kenney_riel_0.ogg", "kenney_riel_1.ogg", "kenney_riel_2.ogg"], "db": -10.0, "tono": 0.10, "base": 1.15, "unidad": 3.0, "alcance": 14.0},   # 24/11: más fuerte y algo más agudo (Pablo: «más metálico»)
 	"vagoneta_choque":   {"f": ["kenney_vagoneta_choque_0.ogg", "kenney_vagoneta_choque_1.ogg"], "db": -5.0, "tono": 0.06},
 	"vagoneta_chirrido": {"f": ["rueda_chirria.wav"], "db": -15.0, "tono": 0.12, "unidad": 3.0, "alcance": 14.0},
 }
@@ -95,7 +95,7 @@ const AMBIENTES: Dictionary = {
 	"arrastre": {"f": "rodar.wav", "db": -17.0, "unidad": 2.0, "alcance": 10.0, "alto": 0.2},
 	# 24/11: la rodadura metálica de la vagoneta (tools/gen_vagoneta_rueda.py: retumbo, parciales de metal a cada vuelta de rueda y chirrido de pestaña).
 	# Vagoneta3D le cambia el tono y el volumen con la velocidad.
-	"vagoneta_rueda": {"f": "vagoneta_rueda_loop.wav", "db": -11.0, "unidad": 3.0, "alcance": 14.0, "alto": 0.3},
+	"vagoneta_rueda": {"f": "vagoneta_rueda_loop.wav", "db": -9.0, "unidad": 3.0, "alcance": 14.0, "alto": 0.3},
 }
 
 ## OCLUSIÓN (1/11, tarea O): todo AudioStreamPlayer3D de Sfx3D va al bus «Mundo» (0 dB) si hay línea de vista con el oyente, o al bus «Ocluido»
