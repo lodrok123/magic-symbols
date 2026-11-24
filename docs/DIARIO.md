@@ -6152,3 +6152,10 @@ Pablo:
   - Las plantillas con cuarto cerrado llevan la entrada de dos filas: con una, sus paredes quedaban «de punta».
 - `prueba_rocas_empujables` da 5 fallos en la sección 3 (balanza del Bosque 02). Ya fallaban igual en una copia limpia de `08779380`, de antes de esto: vienen de los cambios de otra sesión en `Bosque_02.txt`. **Aviso a quien lleve el Bosque 02.**
 - Captura: `docs/capturas/generador_puzles_runas.png` (herramienta `captura_generador_puzles.gd`). Sin jugar con teclado.
+
+### 24/11/2026 · aviso de contexto PUZLES · generador: editar un cofre añadido
+Pablo: «¿es posible editarlo? quiero cambiar este cofre a épico».
+- **Pestaña «Cofres», lista «Cofres del mapa»:** cada cofre añadido a mano lleva ahora dos desplegables, calidad y recompensa, además de «Quitar».
+  - El cofre se queda en su casilla y conserva lo que tenga enlazado (enemigos o puzles).
+  - Al cambiar de calidad toma la primera recompensa de la nueva; en el común se sortea.
+- Comprobado con la herramienta abierta: un legendario enlazado a un gólem pasa a épico y sigue saliendo con `aparece_si`; luego se cambia la recompensa. La prueba fue temporal y está borrada.

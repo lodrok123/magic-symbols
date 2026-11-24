@@ -1397,8 +1397,31 @@ func _refrescar_cofres() -> void:
 		t.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		fila.add_child(t)
 		var botones: VBoxContainer = VBoxContainer.new()
-		if o.has("anadido"):
-			_boton(botones, "Quitar", _quitar_anadido.bind(int(o["anadido"])), "Quita este cofre.")
+		if o.has("anadido") and int(o["anadido"]) < _anadidos.size():
+			# 24/11 (Pablo: «¿es posible editarlo? quiero cambiar este cofre a épico»): calidad y recompensa en su sitio, sin perder lo enlazado
+			# (los enlaces nombran el añadido por su número, que no cambia).
+			var ia: int = int(o["anadido"])
+			var cal_e: OptionButton = OptionButton.new()
+			for id in Generador.ORDEN_COFRES:
+				cal_e.add_item(String(Generador.COFRES[id]["titulo"]))
+				cal_e.set_item_metadata(cal_e.item_count - 1, String(id))
+				if String(id) == String(_anadidos[ia]["tipo"]):
+					cal_e.select(cal_e.item_count - 1)
+			cal_e.tooltip_text = "Cambia la calidad de este cofre (se queda en su sitio y con lo que tenga enlazado)."
+			cal_e.item_selected.connect(func(k: int) -> void: _editar_cofre(ia, String(cal_e.get_item_metadata(k)), ""))
+			botones.add_child(cal_e)
+			var prem_e = Generador.COFRES[String(_anadidos[ia]["tipo"])]["premios"]
+			if prem_e is Dictionary:
+				var pr_e: OptionButton = OptionButton.new()
+				for clave in prem_e:
+					pr_e.add_item(String(prem_e[clave]))
+					pr_e.set_item_metadata(pr_e.item_count - 1, String(clave))
+					if String(clave) == String(_anadidos[ia].get("premio", "")):
+						pr_e.select(pr_e.item_count - 1)
+				pr_e.tooltip_text = "Cambia la recompensa de este cofre."
+				pr_e.item_selected.connect(func(k: int) -> void: _editar_cofre(ia, String(_anadidos[ia]["tipo"]), String(pr_e.get_item_metadata(k))))
+				botones.add_child(pr_e)
+			_boton(botones, "Quitar", _quitar_anadido.bind(ia), "Quita este cofre.")
 		if not atado.is_empty():
 			_boton(botones, "Que aparezca siempre", _soltar_cofre.bind(_extremo_de(o)), "Quita el enlace con sus enemigos: el cofre está a la vista desde el principio.")
 		fila.add_child(botones)
@@ -1635,6 +1658,20 @@ func _soltar_cofre(cofre: String) -> void:
 		if String(_apariciones[i]["cofre"]) == cofre:
 			_apariciones.remove_at(i)
 	_decir("Ese cofre vuelve a estar a la vista desde el principio.")
+	_sucio = true
+
+
+## 24/11: cambia la calidad (y la recompensa) del cofre añadido número `i`, en su sitio. `premio` "" = el primero de la nueva calidad (o se sortea, en el común).
+func _editar_cofre(i: int, calidad: String, premio: String) -> void:
+	if i < 0 or i >= _anadidos.size() or String(_anadidos[i]["que"]) != "cofre" or not Generador.COFRES.has(calidad):
+		return
+	var premios = Generador.COFRES[calidad]["premios"]
+	if premio == "" and premios is Dictionary:
+		premio = String(_anadidos[i].get("premio", "")) if (premios as Dictionary).has(String(_anadidos[i].get("premio", ""))) else String((premios as Dictionary).keys()[0])
+	_anadidos[i]["tipo"] = calidad
+	_anadidos[i]["premio"] = premio
+	_decir("Cofre de (%d, %d): %s%s." % [int(_anadidos[i]["c"].x), int(_anadidos[i]["c"].y), String(Generador.COFRES[calidad]["titulo"]).to_lower(),
+		(" · " + String(premios[premio])) if premios is Dictionary and (premios as Dictionary).has(premio) else " · recompensa sorteada"])
 	_sucio = true
 
 
