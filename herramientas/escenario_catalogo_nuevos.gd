@@ -185,7 +185,7 @@ func _vagoneta_boton() -> void:
 	await _empujar(v, Vector2i(0, 1))
 	var bc: Vector2i = _c("boton")
 	_ok("2 botón: flecha de fuego al botón", await _lanzar("fuego", ["flecha"], bc, bc + Vector2i(0, 2)))     # una flecha llega a unas 2 casillas
-	var roto: bool = await _esperar(func() -> bool: return muro.roto_ya, 5.0)
+	var roto: bool = await _esperar(func() -> bool: return muro.roto_ya, 15.0)      # 24/11: rueda a la velocidad del empuje (~2,3 s por casilla)
 	_ok("2 botón: el botón LANZA la vagoneta, rueda sola, choca y rompe el muro", roto and v.choques >= 1, "choques %d, vagoneta en %s" % [v.choques, str(v.celda)])
 
 
@@ -199,7 +199,7 @@ func _vagoneta_aguja() -> void:
 		return
 	var bc: Vector2i = _c("boton")
 	_ok("2 aguja: flecha de fuego al botón (la aguja está en el ramal de la izquierda)", await _lanzar("fuego", ["flecha"], bc, bc + Vector2i(2, 0)))
-	await _esperar(func() -> bool: return v.choques >= 1, 5.0)
+	await _esperar(func() -> bool: return v.choques >= 1, 25.0)
 	_ok("2 aguja [legible]: por el ramal equivocado acaba en el callejón y la placa no se pisa", v.celda.x < _c("aguja").x and not placa.activo, str(v.celda))
 	var vuelve: bool = await _esperar(func() -> bool: return v.celda == v.origen, 6.0)
 	_ok("2 aguja: atascada en el callejón, a los 3 s vuelve a su sitio", vuelve, str(v.celda))
@@ -207,7 +207,7 @@ func _vagoneta_aguja() -> void:
 	_ok("2 aguja: cambiada al ramal de la derecha", ag.en_b)
 	await avanzar_s(1.5)                            # el botón se rearma (rearme=1)
 	_ok("2 aguja: otra flecha al botón", await _lanzar("fuego", ["flecha"], bc, bc + Vector2i(2, 0)))
-	var llega: bool = await _esperar(func() -> bool: return placa.activo, 6.0)
+	var llega: bool = await _esperar(func() -> bool: return placa.activo, 25.0)
 	_ok("2 aguja: con la aguja puesta, la vagoneta sigue el ramal y la curva hasta la placa", llega, "vagoneta en %s, placa en %s" % [str(v.celda), str(_c("placa"))])
 
 

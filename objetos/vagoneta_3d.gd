@@ -6,7 +6,7 @@ extends BloqueEmpujable3D
 ## pisa las casillas de su vía (`rieles`):
 ##   · A MANO: la jugadora la empuja andando como la piedra, una casilla por empujón, siempre por la vía. En una curva, se cambia de lado y se
 ##     sigue empujando en la dirección nueva.
-##   · POR MECANISMO: la acción `rodar` (de una regla: un botón, un brasero, una placa…) la lanza; RUEDA sola (rápida, como el hielo) y sigue
+##   · POR MECANISMO: la acción `rodar` (de una regla: un botón, un brasero, una placa…) la lanza; RUEDA sola, a la velocidad del empuje, y sigue
 ##     la vía en las curvas hasta el final o hasta chocar. Si choca contra un MURO AGRIETADO, lo rompe (señal `choca`).
 ##   · AGUJAS (`Aguja3D`, pieza `aguja`): en un cruce en Y, la aguja decide por qué ramal sigue; rodando la obedece, y a mano solo se puede
 ##     salir de la aguja hacia el ramal elegido (o volver por el tronco).
@@ -142,65 +142,19 @@ static var _cache_partes: Dictionary = {}
 static func _partir_malla(m: Mesh) -> Dictionary:
 	if _cache_partes.has(m.resource_path + str(m.get_instance_id())):
 		return _cache_partes[m.resource_path + str(m.get_instance_id())]
-	var arr: Array = m.surface_get_arrays(0)
-	var v: PackedVector3Array = arr[Mesh.ARRAY_VERTEX]
-	var idx: PackedInt32Array = arr[Mesh.ARRAY_INDEX]
-	# Islas: vértices unidos por posición (las costuras de UV duplican vértices) y por los triángulos que los usan.
-	var padre: Dictionary = {}
-	var clave: Array = []
-	for p in v:
-		var k: Vector3i = Vector3i(roundi(p.x * 2000.0), roundi(p.y * 2000.0), roundi(p.z * 2000.0))
-		clave.append(k)
-		if not padre.has(k):
-			padre[k] = k
-	var raiz: Callable = func(k) -> Variant:
-		while padre[k] != k:
-			padre[k] = padre[padre[k]]
-			k = padre[k]
-		return k
-	for i in range(0, idx.size(), 3):
-		var a = raiz.call(clave[idx[i]])
-		for j in [1, 2]:
-			var b = raiz.call(clave[idx[i + j]])
-			if a != b:
-				padre[b] = a
-	var cajas: Dictionary = {}
-	var tris: Dictionary = {}
-	for i in range(0, idx.size(), 3):
-		var r = raiz.call(clave[idx[i]])
-		var lista_t: PackedInt32Array = tris.get(r, PackedInt32Array())     # un PackedInt32Array se copia al sacarlo: se añade y se vuelve a guardar
-		lista_t.append_array([idx[i], idx[i + 1], idx[i + 2]])
-		tris[r] = lista_t
-		for j in 3:
-			cajas[r] = (cajas[r] as AABB).expand(v[idx[i + j]]) if cajas.has(r) else AABB(v[idx[i + j]], Vector3.ZERO)
 	var caja_idx := PackedInt32Array()
 	var ruedas: Array = []
 	var radio: float = 0.2
-	for r in tris:
-		var c: AABB = cajas[r]
+	for isla in MallaIslas.islas(m):
+		var c: AABB = isla["caja"]
 		var redonda: bool = absf(c.size.x - c.size.y) <= 0.1 * maxf(c.size.x, c.size.y) + 0.005
 		if redonda and c.get_center().y < ALTO_EJE and maxf(c.size.x, c.size.y) <= 0.6:
-			var centro: Vector3 = c.get_center()
-			var va: PackedVector3Array = v.duplicate()
-			for k in va.size():
-				va[k] -= centro
-			var a2: Array = arr.duplicate()
-			a2[Mesh.ARRAY_VERTEX] = va
-			a2[Mesh.ARRAY_INDEX] = tris[r]
-			var mr := ArrayMesh.new()
-			mr.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, a2)
-			mr.surface_set_material(0, m.surface_get_material(0))
-			ruedas.append([mr, centro])
+			ruedas.append([MallaIslas.malla_de(m, isla["idx"], c.get_center()), c.get_center()])
 			if c.size.y > 0.2:
 				radio = c.size.y * 0.5
 		else:
-			caja_idx.append_array(tris[r])
-	var a3: Array = arr.duplicate()
-	a3[Mesh.ARRAY_INDEX] = caja_idx
-	var mc := ArrayMesh.new()
-	mc.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, a3)
-	mc.surface_set_material(0, m.surface_get_material(0))
-	var res: Dictionary = {"caja": mc, "ruedas": ruedas, "radio": radio}
+			caja_idx.append_array(isla["idx"])
+	var res: Dictionary = {"caja": MallaIslas.malla_de(m, caja_idx), "ruedas": ruedas, "radio": radio}
 	_cache_partes[m.resource_path + str(m.get_instance_id())] = res
 	return res
 
@@ -386,8 +340,15 @@ func _libre_mas_alla() -> bool:
 	return _casilla_libre(_destino + d, _destino)
 
 
+## 24/11 (Pablo, playtest de la aguja: «la vagoneta sale demasiado rápido: a la velocidad a la que la empujas»): lanzada va a la MISMA velocidad que
+## empujada (BloqueEmpujable3D.VEL_EMPUJE, con su arranque y su frenada). Siempre «lenta»; rodando, se da por empujada sin parar (`_sostenido`)
+## y encadena casilla tras casilla hasta el final de la vía o hasta chocar.
 func _es_lento() -> bool:
-	return not rodando
+	return true
+
+
+func _sostenido() -> bool:
+	return rodando or super._sostenido()
 
 
 ## La pone a rodar sola por la vía (el MECANISMO). `dir` = "n", "e", "s", "o" o "" (su `sentido`). false si no puede salir.

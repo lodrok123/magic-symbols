@@ -2,13 +2,16 @@
 ; titulo Vagoneta y aguja: elige el ramal (mecanismo)
 ; tipo salida
 ; necesita fuego+flecha | agua+flecha | tierra+flecha
-; validacion pendiente
-; pide cambiar la aguja (E a su lado o un hechizo a la palanca) y un hechizo al botón
+; validacion ajustes
+; nota_playtest La vagoneta sale demasiado rápido: a la velocidad del empuje
+; nota_playtest Cambiar la aguja con E, no con un hechizo a la palanca
+; nota_playtest Palanca con un asset del pack
+; pide cambiar la aguja con E y un hechizo al botón
 ; activa placa.pulsado
 ; barrera si
 ;  Una vía en Y. La vagoneta espera abajo; un hechizo al botón (abajo a la izquierda) la lanza. En el cruce, la AGUJA la manda por el ramal
 ;  que tenga puesto: nace en el de la izquierda, que acaba en un callejón (la vagoneta se queda allí y a los 3 s vuelve a su sitio). Hay que
-;  CAMBIAR la aguja antes (E a su lado, «E · cambiar vía», o un hechizo a su palanca: la flecha del suelo pasa a señalar la derecha) para que llegue a la
+;  CAMBIAR la aguja antes (E a su lado, «E · cambiar vía»: el asa del detonador y la flecha del suelo pasan a señalar la derecha) para que llegue a la
 ;  placa de la derecha.
 ;  También se puede llevar a mano, empujándola, una vez puesta la aguja. La entrada es de dos filas (con una, sus paredes quedan de punta).
 #######

@@ -44,10 +44,7 @@ func _escenario() -> void:
 	colocar_jugador(v1.celda + Vector2i(0, 1))
 	await avanzar(3)
 	v1.empujar(Vector2i(0, -1), true)
-	for k in 10:
-		await avanzar_s(0.1)
-		var rr = v1.get("_rodadura")
-		print("   pista t=%.1f moviendo %s rodadura %s playing %s" % [0.1 * (k + 1), v1.moviendo, str(rr), (rr as AudioStreamPlayer3D).playing if rr != null and is_instance_valid(rr) else false])
+	await avanzar_s(1.0)
 	await _guardar("pista_empujada.png")
 	var sonando: bool = v1.get("_rodadura") != null and is_instance_valid(v1.get("_rodadura")) and (v1.get("_rodadura") as AudioStreamPlayer3D).playing
 	await avanzar_s(2.0)
@@ -83,8 +80,27 @@ func _escenario() -> void:
 		v3.rodar()
 		await avanzar(8)
 		await _guardar("lanzada_en_marcha.png")
-		await avanzar_s(3.0)
-		_ok("lanzada: rompe el muro", v3.choques >= 1)
+		# 24/11 (Pablo: «sale demasiado rápido»): lanzada va a la velocidad del empuje. Se mide la punta de velocidad durante el recorrido.
+		var punta: float = 0.0
+		var t: float = 0.0
+		while t < 10.0 and v3.choques < 1:
+			punta = maxf(punta, v3.vel)
+			t += await avanzar_s(0.1)
+		_ok("lanzada: va a la velocidad del empuje (punta %.2f u/s; empuje %.2f)" % [punta, BloqueEmpujable3D.VEL_EMPUJE], punta <= BloqueEmpujable3D.VEL_EMPUJE + 0.01 and punta > 0.5)
+		_ok("lanzada: rompe el muro", v3.choques >= 1, "%.1f s" % t)
+	# 4 · la aguja: la palanca es el detonador del pack; su asa se inclina hacia el ramal puesto.
+	var ag: Aguja3D = null
+	for n in maqueta.find_children("*", "", true, false):
+		if n is Aguja3D:
+			ag = n
+	if ag != null:
+		_ok("aguja: la palanca es el detonador del pack (con asa)", ag.get("_asa") != null)
+		_ok("aguja: los hechizos ya no la cambian (sin capa de colisión)", ag.collision_layer == 0 and not ag.spell_reacts(null))
+		await _de_cerca_en(ag.global_position, "aguja_ramal_a.png")
+		ag.cambiar()
+		await avanzar_s(0.5)
+		_ok("aguja: cambiada, el asa se inclina al otro lado", ag.en_b and (ag.get("_asa") as Node3D).rotation.z < 0.0, str((ag.get("_asa") as Node3D).rotation.z))
+		await _de_cerca_en(ag.global_position, "aguja_ramal_b.png")
 
 
 ## Se reconocen por su VÍA (los números catN siguen el orden de colocación, no el de las salas): «cat1_vag» = una de vía recta norte-sur (3 casillas, sin muro
@@ -120,6 +136,10 @@ func _por_nombre(lista: Array, nombre: String) -> Vagoneta3D:
 
 ## Toma DE CERCA de una vagoneta: cámara propia a 3 casillas, por delante y por encima, y una luz junto a ella (la cueva es oscura).
 func _de_cerca(v: Vagoneta3D, nombre: String) -> void:
+	await _de_cerca_en(v.global_position, nombre)
+
+
+func _de_cerca_en(p: Vector3, nombre: String) -> void:
 	var cam_juego: Camera3D = root.get_viewport().get_camera_3d()
 	var cam := Camera3D.new()
 	cam.fov = 40.0
@@ -128,7 +148,6 @@ func _de_cerca(v: Vagoneta3D, nombre: String) -> void:
 	luz.omni_range = 9.0
 	luz.light_energy = 2.5
 	maqueta.add_child(luz)
-	var p: Vector3 = v.global_position
 	luz.global_position = p + Vector3(1.5, 3.0, 2.5)
 	cam.global_position = p + Vector3(2.6, 3.4, 4.6)
 	cam.look_at(p + Vector3(0.0, 0.5, 0.0))

@@ -176,7 +176,10 @@ static func bucle(nombre: String) -> AudioStream:
 		var w: AudioStreamWAV = s as AudioStreamWAV
 		w.loop_mode = AudioStreamWAV.LOOP_FORWARD
 		w.loop_begin = 0
-		w.loop_end = w.data.size() / (2 if w.format == AudioStreamWAV.FORMAT_16_BITS else 1) / (2 if w.stereo else 1)
+		# 24/11: el final del bucle, en muestras, sale de la DURACIÓN. Antes salía del tamaño de `data` (bytes / 2 / canales), que solo vale sin comprimir: los .wav
+		# se importan en QOA (compress/mode=2) y daba un final mucho más corto; como cada bucle arranca en un punto al azar, si caía después de ese final no
+		# sonaba (la rodadura de la vagoneta sonaba unas veces sí y otras no).
+		w.loop_end = int(round(w.get_length() * float(w.mix_rate)))
 	else:
 		s.set("loop", true)
 	return s

@@ -6222,3 +6222,22 @@ Pablo, playtest de PtVagonetas, sala 4: «¿cómo cambio la dirección?». Solo 
   - El hechizo a la palanca sigue valiendo.
 - Ayudas de `puzle.gd` y de la plantilla `vagoneta_aguja` al día.
 - Comprobado con la tecla E de verdad en PtVagonetas: de lejos ni aviso ni cambio; al lado sale el aviso, cambia al ramal de la derecha y otra E lo devuelve. `escenario_catalogo_nuevos`: 0 fallos.
+
+### 24/11/2026 · aviso de contexto PUZLES · playtest PtVagonetas, puzle 4 (aguja): vagoneta lenta, aguja solo con E y palanca del pack
+Pablo: «1 y 3 aprobados. El 4 no: la vagoneta sale demasiado rápido (redúcelo a la velocidad a la que empujas la vagoneta) y que hay que echar un hechizo a la palanca no es claro; sería mejor que con E lo cambiaras de estado. Revisa si puedes cambiar la palanca por código por alguno de los nuevos assets».
+- **Hoja:** `cat_vagoneta_aguja` con nota_pablo (los tres ajustes) → `; validacion ajustes` y sus `; nota_playtest`. Queda en ajustes hasta que Pablo lo vuelva a jugar.
+- **Velocidad (`objetos/vagoneta_3d.gd`):** lanzada ya no va como el hielo (9,2 u/s), sino a la del empuje (`VEL_EMPUJE` = 1 u/s, con su arranque y su frenada).
+  - Siempre «lenta»; rodando, `_sostenido` da por hecho que sigue empujada y encadena casillas hasta el final o el choque.
+  - Medido en PtVagonetas: punta 1,00 u/s; la del muro lo rompe en 4,8 s.
+- **Aguja (`objetos/aguja_3d.gd`):**
+  - **Solo con E** (el aviso «E · cambiar vía» ya estaba). Los hechizos ya no le hacen nada: sin capa de colisión, `spell_reacts` = false.
+  - **La palanca es el detonador del pack** (`lost_blastingmachine`, ×2,6): en el pack no hay palanca. Su asa en T (dos islas sueltas de su malla) se separa y bascula ±0,55 rad hacia el ramal puesto, con un pequeño rebote. Va en la esquina del cruce, fuera de los raíles. La flecha de color del suelo se queda.
+  - Sin el pack, la palanca de primitivas de antes.
+- **Nueva `objetos/malla_islas.gd` (`MallaIslas`):** separa las islas de una malla. La usan la vagoneta (ruedas) y la aguja (asa).
+- **Arreglo en `nucleo/sfx_3d.gd` (`bucle`), aviso a PIPELINE/audio:** el final del bucle de un `.wav` salía del tamaño de los datos (bytes / 2 / canales), que solo vale sin comprimir.
+  - Los `.wav` se importan en QOA, así que el final quedaba muy corto. Como cada bucle arranca en un punto al azar, a veces arrancaba después del final y NO SONABA.
+  - Afecta a todos los bucles `.wav` (fuego, arrastre…). Ahora sale de la duración (`get_length() × mix_rate`).
+  - `prueba_oclusion_sfx` y `prueba_sonidos_grabados` 1 y 2: 0 fallos. La rodadura suena en 3 pasadas seguidas de `captura_vagoneta`.
+- **Pruebas:**
+  - `captura_vagoneta` (0 fallos) mide la velocidad lanzada, comprueba la palanca del pack, que los hechizos no la cambian y que el asa bascula. Fotos `docs/capturas/vagoneta/aguja_ramal_a.png` y `_b.png`.
+  - `escenario_catalogo_nuevos`: 0 fallos, con las esperas ampliadas a la vagoneta lenta.

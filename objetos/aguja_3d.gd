@@ -3,9 +3,9 @@ extends Area3D
 
 ## AGUJA DE VÍA (24/11/2026, puzles de vagoneta). En una casilla de vía donde la vía se abre en Y: un TRONCO y dos RAMALES (`a` y `b`).
 ## Una palanca al lado de la vía la cambia de un ramal al otro:
-##   · E a su lado (a ≤ ALCANCE_USAR u, como el prisma; un rótulo «E · cambiar vía» sale sobre la palanca al acercarse), un golpe de cualquier hechizo
-##     a la palanca (`on_spell_hit`), o la acción `cambiar` de una regla (un botón, un brasero…);
-##   · una flecha en el suelo y el color de la palanca dicen qué ramal está puesto.
+##   · E a su lado (a ≤ ALCANCE_USAR u, como el prisma; un rótulo «E · cambiar vía» sale sobre la palanca al acercarse), o la acción `cambiar` de una
+##     regla (un botón, un brasero…). 24/11 (playtest de Pablo): los hechizos ya NO la cambian («no es claro»);
+##   · la palanca es el detonador del pack Lost Cave con su asa inclinada hacia el ramal puesto; una flecha de color en el suelo lo repite.
 ## La vagoneta que llega RODANDO por el tronco sigue por el ramal puesto; llegando por un ramal, sale por el tronco. Empujada a mano, desde la aguja
 ## solo sale por el ramal puesto o por el tronco. No bloquea su casilla.
 ##
@@ -48,18 +48,18 @@ func preparar(p_celda: Vector2i, a: String, b: String, p_tronco: String = "") ->
 
 func _ready() -> void:
 	monitoring = false
-	monitorable = true
+	monitorable = false
 	collision_mask = 0
-	collision_layer = Lanzador3D.CAPA_REACTIVO
-	# La palanca, a un lado de la vía (en la esquina entre el tronco y el ramal b), y su caja de golpe.
+	collision_layer = 0                            # 24/11 (Pablo): solo con E; los hechizos ya no la cambian (no es blanco)
+	# La palanca, a un lado de la vía (en la esquina entre el tronco y el ramal b).
 	var S: float = Terreno3D.casilla
 	var esquina: Vector3 = (Vector3(float(-tronco.x), 0.0, float(-tronco.y)) * -0.38 + Vector3(float(ramal_b.x - ramal_a.x), 0.0, float(ramal_b.y - ramal_a.y)).normalized() * 0.38) * S
-	var forma := CollisionShape3D.new()
-	var caja := BoxShape3D.new()
-	caja.size = Vector3(0.5, ALTO_PALANCA + 0.3, 0.5)
-	forma.shape = caja
-	forma.position = esquina + Vector3(0.0, (ALTO_PALANCA + 0.3) * 0.5, 0.0)
-	add_child(forma)
+	_pos_mando = esquina
+	var esquina_det: Vector3 = esquina * (ESQUINA_DETONADOR / 0.38)
+	if _poner_detonador(esquina_det):
+		_pos_mando = esquina_det
+		_flecha_y_listo()
+		return
 	var base := MeshInstance3D.new()
 	var bm := BoxMesh.new()
 	bm.size = Vector3(0.4, 0.25, 0.4)
@@ -81,6 +81,73 @@ func _ready() -> void:
 	_palanca.mesh = pm
 	_palanca.position = esquina + Vector3(0.0, 0.25 + ALTO_PALANCA * 0.45, 0.0)
 	add_child(_palanca)
+	_flecha_y_listo()
+
+
+## 24/11 (Pablo: «cambia la palanca por alguno de los nuevos assets»): en el pack no hay palanca; la hace el DETONADOR de mina (`lost_blastingmachine`),
+## más grande. Su asa en T (vástago y barra, dos islas sueltas de su malla, por encima de la caja) se separa y BASCULA hacia el ramal puesto.
+## La caja se gira para que su asa se incline a lo largo de los ramales (a un lado el `a`, al otro el `b`). false si el pack no está (vale la de primitivas).
+const DETONADOR: String = "res://arte/lostcave/piezas/lost_blastingmachine.tscn"
+const ESCALA_DETONADOR: float = 2.6
+const ESQUINA_DETONADOR: float = 0.5           ## fracción de casilla desde el centro, hacia el tronco y hacia el ramal b: fuera de los raíles
+const ALTO_ASA: float = 0.3                    ## (unidades de su malla) lo que está por encima es el asa
+const INCLINA_ASA: float = 0.55                ## rad que se inclina el asa hacia el ramal puesto
+var _asa: Node3D = null
+var _pos_mando: Vector3 = Vector3.ZERO
+
+func _poner_detonador(esquina: Vector3) -> bool:
+	if not ResourceLoader.exists(DETONADOR):
+		return false
+	var n: Node3D = (load(DETONADOR) as PackedScene).instantiate() as Node3D
+	var malla: MeshInstance3D = n.get_node_or_null("modelo/malla") as MeshInstance3D
+	if malla == null or malla.mesh == null:
+		n.free()
+		return false
+	var caja_idx := PackedInt32Array()
+	var asa_idx := PackedInt32Array()
+	var pivote: Vector3 = Vector3(INF, INF, INF)
+	for isla in MallaIslas.islas(malla.mesh):
+		var c: AABB = isla["caja"]
+		if c.get_center().y > ALTO_ASA:
+			asa_idx.append_array(isla["idx"])
+			pivote = Vector3(c.get_center().x, minf(pivote.y, c.position.y), 0.0)
+		else:
+			caja_idx.append_array(isla["idx"])
+	if asa_idx.is_empty():
+		n.free()
+		return false
+	var mando := Node3D.new()
+	mando.name = "palanca"
+	mando.position = esquina
+	mando.scale = Vector3.ONE * ESCALA_DETONADOR
+	# Su X local, a lo largo de los ramales (de a hacia b): el asa se inclina a +X con el ramal b y a −X con el a.
+	var eje := Vector2(float(ramal_b.x - ramal_a.x), float(ramal_b.y - ramal_a.y))
+	if eje.length() < 0.01:
+		eje = Vector2(1.0, 0.0)
+	mando.rotation.y = atan2(-eje.y, eje.x)
+	add_child(mando)
+	var base := Node3D.new()
+	base.transform = malla.transform           # la de la pieza: escala 0,68 y centrado
+	mando.add_child(base)
+	var mc := MeshInstance3D.new()
+	mc.mesh = MallaIslas.malla_de(malla.mesh, caja_idx)
+	Vagoneta3D._copiar_materiales(malla, mc)   # el material del pack va en la pieza, no en la malla: sin esto sale blanco
+	base.add_child(mc)
+	_asa = Node3D.new()
+	_asa.name = "asa"
+	_asa.position = pivote
+	base.add_child(_asa)
+	var ma := MeshInstance3D.new()
+	ma.mesh = MallaIslas.malla_de(malla.mesh, asa_idx, pivote)
+	Vagoneta3D._copiar_materiales(malla, ma)
+	_asa.add_child(ma)
+	n.free()
+	Ocluso3D.convertir_nodo(mando)
+	_asa.rotation.z = -INCLINA_ASA if en_b else INCLINA_ASA
+	return true
+
+
+func _flecha_y_listo() -> void:
 	_flecha = MeshInstance3D.new()
 	var fm := PrismMesh.new()
 	fm.size = Vector3(0.5, 0.6, 0.04)
@@ -111,7 +178,7 @@ func _process(delta: float) -> void:
 		_aviso.pixel_size = 0.006
 		_aviso.outline_size = 10
 		_aviso.modulate = Color(1.0, 0.92, 0.6)
-		_aviso.position = (_palanca.position if _palanca != null else Vector3.ZERO) + Vector3(0.0, ALTO_PALANCA * 0.8, 0.0)
+		_aviso.position = _pos_mando + Vector3(0.0, ALTO_PALANCA + 0.7, 0.0)
 		add_child(_aviso)
 	var j: Node3D = Puzle3D.jugador_nodo(get_tree(), null) if is_inside_tree() else null
 	var cerca: bool = false
@@ -158,6 +225,9 @@ func _pintar() -> void:
 		_mat_palanca.emission = col
 	if _palanca != null:
 		_palanca.rotation = Vector3(0.0, 0.0, 0.45 if en_b else -0.45)
+	if _asa != null and is_inside_tree():
+		var tw: Tween = create_tween()
+		tw.tween_property(_asa, "rotation:z", -INCLINA_ASA if en_b else INCLINA_ASA, 0.22).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 	if _flecha != null:
 		# La flecha tumbada en el suelo, de la aguja hacia el ramal puesto.
 		_flecha.position = Vector3(float(d.x), 0.0, float(d.y)) * Terreno3D.casilla * 0.3 + Vector3(0.0, 0.12, 0.0)
@@ -183,14 +253,14 @@ func _unhandled_input(ev: InputEvent) -> void:
 		get_viewport().set_input_as_handled()
 
 
-# --- contrato con los hechizos: cualquier golpe cambia la aguja -------------------------------------------------------
+# --- contrato con los hechizos: ya no le hacen nada (24/11, Pablo: solo con E). Sin capa de colisión, ni siquiera es blanco ---------------
 
 func on_spell_hit(_rune_data: RuneData, _direccion: Vector3 = Vector3.ZERO, _hechizo: Hechizo = null) -> void:
-	cambiar()
+	pass
 
 
 func spell_reacts(_rune_data: RuneData, _direccion: Vector3 = Vector3.ZERO, _hechizo: Hechizo = null) -> bool:
-	return true
+	return false
 
 
 func carried_element() -> RuneData:
