@@ -6213,3 +6213,12 @@ Pablo: «he revisado los puzles 1 y 3 (el resto no los he encontrado). Han funci
   - Comprobado con las 22 salas de los 5 niveles con puzles, y con pulsaciones de teclado de verdad: Alt+2 y el 4 del teclado numérico.
   - Captura: `docs/capturas/vagoneta/atajos_sala2.png`.
 - `docs/PLAYTEST_PUZLES.md` regenerado: estados y explicación de los atajos. Los mapas Pt no cambian (mismas semillas).
+
+### 24/11/2026 · aviso de contexto PUZLES · la aguja de la vagoneta se cambia también con E
+Pablo, playtest de PtVagonetas, sala 4: «¿cómo cambio la dirección?». Solo se cambiaba dándole un hechizo a la palanca, una barra fina difícil de acertar.
+- **`objetos/aguja_3d.gd`:**
+  - **E a su lado** (≤ 2,7 u, como el prisma) cambia la aguja; atiende la acción `interactuar`.
+  - Al acercarse, sale **«E · cambiar vía»** sobre la palanca.
+  - El hechizo a la palanca sigue valiendo.
+- Ayudas de `puzle.gd` y de la plantilla `vagoneta_aguja` al día.
+- Comprobado con la tecla E de verdad en PtVagonetas: de lejos ni aviso ni cambio; al lado sale el aviso, cambia al ramal de la derecha y otra E lo devuelve. `escenario_catalogo_nuevos`: 0 fallos.

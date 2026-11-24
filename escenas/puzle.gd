@@ -75,7 +75,7 @@ extends Node
 ##   vagoneta   rieles=<lista> (obligatoria)  sentido=n|e|s|o                    Vagoneta3D (24/11): una vagoneta que solo pisa su VÍA (`rieles`, la casilla de la pieza incluida; la vía se dibuja sola).
 ##              A MANO se empuja como el bloque de piedra (pesa 3 en las placas). Con la acción `rodar` RUEDA sola hacia `sentido`, sigue las curvas y las agujas, y al chocar contra un
 ##              MURO agrietado lo rompe. Señales `movido`, `choca`, `reaparece`; condiciones `quieto`|`en_marcha`. Si se queda en medio sin poder moverse, vuelve a su casilla
-##   aguja      a=n|e|s|o  b=n|e|s|o  tronco=n|e|s|o (el opuesto de a)            Aguja3D (24/11): el desvío de una vía en Y. Nace puesta en el ramal `a`; un golpe de hechizo a su palanca o la acción
+##   aguja      a=n|e|s|o  b=n|e|s|o  tronco=n|e|s|o (el opuesto de a)            Aguja3D (24/11): el desvío de una vía en Y. Nace puesta en el ramal `a`; E a su lado, un golpe de hechizo a su palanca o la acción
 ##              `cambiar` la pasa al otro (flecha y color). La vagoneta que llega por el tronco sigue el ramal puesto. Señal `cambia`; condiciones `en_a`|`en_b`. No bloquea
 ##   bloque     material=piedra|hielo (piedra)                                      BloqueEmpujable3D (27/10, docs/EMPUJAR_BLOQUES.md): bloque que la jugadora EMPUJA andando contra él (0,35 s apretando) o que el VIENTO se lleva. Bloquea
 ##              su casilla (jugadora, enemigos, flechas), pesa (pisa las placas) y no se guarda: al recargar vuelve a su casilla. `piedra`: una casilla por empujón (0,45 s); sobre el HUECO de una

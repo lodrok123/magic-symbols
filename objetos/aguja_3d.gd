@@ -3,7 +3,8 @@ extends Area3D
 
 ## AGUJA DE VÍA (24/11/2026, puzles de vagoneta). En una casilla de vía donde la vía se abre en Y: un TRONCO y dos RAMALES (`a` y `b`).
 ## Una palanca al lado de la vía la cambia de un ramal al otro:
-##   · un golpe de cualquier hechizo a la palanca (`on_spell_hit`), o la acción `cambiar` de una regla (un botón, un brasero…);
+##   · E a su lado (a ≤ ALCANCE_USAR u, como el prisma; un rótulo «E · cambiar vía» sale sobre la palanca al acercarse), un golpe de cualquier hechizo
+##     a la palanca (`on_spell_hit`), o la acción `cambiar` de una regla (un botón, un brasero…);
 ##   · una flecha en el suelo y el color de la palanca dicen qué ramal está puesto.
 ## La vagoneta que llega RODANDO por el tronco sigue por el ramal puesto; llegando por un ramal, sale por el tronco. Empujada a mano, desde la aguja
 ## solo sale por el ramal puesto o por el tronco. No bloquea su casilla.
@@ -100,6 +101,28 @@ func _exit_tree() -> void:
 
 func _process(delta: float) -> void:
 	_t = maxf(_t - delta, 0.0)
+	# El aviso «E» sobre la palanca, solo con la jugadora al lado.
+	if _aviso == null:
+		_aviso = Label3D.new()
+		_aviso.text = "E · cambiar vía"
+		_aviso.billboard = BaseMaterial3D.BILLBOARD_ENABLED
+		_aviso.no_depth_test = true
+		_aviso.font_size = 40
+		_aviso.pixel_size = 0.006
+		_aviso.outline_size = 10
+		_aviso.modulate = Color(1.0, 0.92, 0.6)
+		_aviso.position = (_palanca.position if _palanca != null else Vector3.ZERO) + Vector3(0.0, ALTO_PALANCA * 0.8, 0.0)
+		add_child(_aviso)
+	var j: Node3D = Puzle3D.jugador_nodo(get_tree(), null) if is_inside_tree() else null
+	var cerca: bool = false
+	if j != null:
+		var d: Vector3 = j.global_position - global_position
+		d.y = 0.0
+		cerca = d.length() <= ALCANCE_USAR
+	_aviso.visible = cerca
+
+
+var _aviso: Label3D = null
 
 
 func ramal() -> Vector2i:
@@ -140,6 +163,24 @@ func _pintar() -> void:
 		_flecha.position = Vector3(float(d.x), 0.0, float(d.y)) * Terreno3D.casilla * 0.3 + Vector3(0.0, 0.12, 0.0)
 		_flecha.rotation = Vector3(-PI * 0.5, atan2(-float(d.x), -float(d.y)), 0.0)
 		(_flecha.mesh as PrismMesh).material.set("albedo_color", Color(col.r, col.g, col.b, 0.85))
+
+
+# --- E a su lado (24/11, Pablo en el playtest: «¿cómo cambio la dirección?»): como el prisma, a ≤ ALCANCE_USAR u -------------
+
+const ALCANCE_USAR: float = 2.7
+
+
+func _unhandled_input(ev: InputEvent) -> void:
+	if not ev.is_action_pressed("interactuar", false):        # E (o lo que tenga asignado «interactuar»), sin repetición
+		return
+	var j: Node3D = Puzle3D.jugador_nodo(get_tree(), null)
+	if j == null:
+		return
+	var d: Vector3 = j.global_position - global_position
+	d.y = 0.0
+	if d.length() <= ALCANCE_USAR:
+		cambiar()
+		get_viewport().set_input_as_handled()
 
 
 # --- contrato con los hechizos: cualquier golpe cambia la aguja -------------------------------------------------------
