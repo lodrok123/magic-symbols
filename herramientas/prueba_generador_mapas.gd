@@ -31,6 +31,12 @@ const VARIANTES: Array = [
 	{"algoritmo": "salas", "salida_a": "Bosque_02:boca_cueva, MonteSumicio:inicio, Cueva:desde_bosque"}, {"algoritmo": "cueva", "salida_a": "A:b,C:d;E:f G:h"},
 	{"algoritmo": "pagina", "n_salas": 3, "salida_a": "A:b,C:d,E:f,G:h,I:j"},
 	{"algoritmo": "salas", "puzles": 4}, {"algoritmo": "pagina", "puzles": 6, "barreras": 4}, {"algoritmo": "cueva", "puzles": 3},
+	# 24/11: el bosque abierto.
+	{"algoritmo": "bosque", "rio": "eo", "ancho_rio": 4}, {"algoritmo": "bosque", "rio": "no", "apertura": 0, "claros": 0},
+	{"algoritmo": "bosque", "apertura": 100, "hierba_alta": 60, "sinuosidad": 100, "bucles_claros": 100, "ancho_camino": 1},
+	{"algoritmo": "bosque", "ancho": 16, "alto": 16}, {"algoritmo": "bosque", "ancho_camino": 4, "tamano_claro": 8, "ancho": 90, "alto": 80, "claros": 12},
+	{"algoritmo": "bosque", "salida_a": "A:b,C:d,E:f,G:h", "lados_salida": "s,o,n,e", "paso_tierra": 3, "ancho": 60, "alto": 50},
+	{"algoritmo": "bosque", "salida_a": "A:b,C:d", "lados_salida": "x,,", "paso_tierra": 1}, {"algoritmo": "bosque", "barreras": 4, "puzles": 3, "campamentos": 1},
 ]
 
 var _fallos: int = 0
@@ -53,9 +59,102 @@ func _initialize() -> void:
 	_salidas_a_mano()
 	_camara_por_sala()
 	_campamentos()
+	_bosque()
 	print("%d comprobaciones en %d ms" % [_hechas, Time.get_ticks_msec() - t0])
 	print("FALLOS: %d" % _fallos)
 	quit(1 if _fallos > 0 else 0)
+
+
+## 17 · EL BOSQUE ABIERTO (24/11, Pablo: «primera pasada de los bosques con el generador, como espacio abierto»). Con la forma del Bosque 01
+## nuevo (cuatro salidas: s, o, s, e; paso de tierra en la segunda) y 25 semillas:
+##   · válido y de una pieza (lo mira `_revisar`), sin cerrojos ni salas de cámara;
+##   · cada salida pegada a SU borde (la casilla de la salida está en la fila o columna 1 de ese lado), con su llegada al lado;
+##   · el suelo del bosque: camino de tierra (g), hierba corta (,), hierba alta (v) y el río (~) de norte a sur con algún vado de piedras (R);
+##   · el paso de tierra: piezas `muro` sobre suelo en el camino de esa salida; SIN romperlas no se llega a la salida desde el inicio y
+##     rompiéndolas sí (andando: el agua no se nada);
+##   · los parámetros raros (lado que no existe, paso de tierra en la salida 1) avisan y no rompen nada.
+func _bosque() -> void:
+	var antes: int = _fallos
+	var con_vado: int = 0
+	var muros: int = 0
+	for semilla in range(1, 26):
+		var par: Dictionary = {"algoritmo": "bosque", "semilla": semilla, "ancho": 48, "alto": 42, "nombre": "PruebaBosque",
+			"salida_a": "CuevaTerrafina:a_bosque=desde_cueva, Precipicio:inicio, Ruinas:inicio, Bosque_02:desde_bosque01",
+			"lados_salida": "s, o, s, e", "paso_tierra": 2, "estilo": "bosque", "luz": "bosque"}
+		var m: Dictionary = _revisar(par)
+		var quien: String = "bosque semilla %d" % semilla
+		var filas: PackedStringArray = m["filas"]
+		var w: int = int(m["ancho"])
+		var h: int = int(m["alto"])
+		var txt: String = "\n".join(m["lineas"])
+		_ok(not txt.contains(" cerrojo ") and (m["salas_camara"] as Array).is_empty(), "el bosque no tiene cerrojos ni salas de cámara: " + quien)
+		# Las salidas en su borde.
+		var lados: Array = ["s", "o", "s", "e"]
+		for k in range(4):
+			var sal: Vector2i = Vector2i(-1, -1)
+			for linea in m["lineas"]:
+				var t: PackedStringArray = String(linea).substr(1).strip_edges().split(" ", false)
+				if t.size() >= 5 and t[1] == "a_salida_%d" % (k + 1):
+					sal = Vector2i(t[3].to_int(), t[4].to_int())
+			var en_borde: bool = {"s": sal.y == h - 2, "o": sal.x == 1, "n": sal.y == 1, "e": sal.x == w - 2}[lados[k]]
+			_ok(sal.x >= 0 and en_borde, "la salida %d va pegada a su borde (%s): %s" % [k + 1, lados[k], quien], str(sal))
+		# El suelo del bosque.
+		var todo: String = "".join(filas)
+		_ok(todo.contains("g") and todo.contains(",") and todo.contains("v") and todo.contains("~"), "hay camino, hierba corta, hierba alta y río: " + quien)
+		con_vado += 1 if todo.contains("R") else 0
+		# El paso de tierra.
+		var celdas_muro: Dictionary = {}
+		for linea in m["lineas"]:
+			var t2: PackedStringArray = String(linea).substr(1).strip_edges().split(" ", false)
+			if t2.size() >= 5 and t2[2] == "muro" and t2[1].begins_with("muro_tierra"):
+				var c: Vector2i = Vector2i(t2[3].to_int(), t2[4].to_int())
+				celdas_muro[c] = true
+				_ok(filas[c.y][c.x] != "#" and filas[c.y][c.x] != "~", "el muro de tierra está sobre suelo: " + quien, str(c))
+		muros += celdas_muro.size()
+		_ok(not celdas_muro.is_empty(), "hay muros en el paso de tierra: " + quien)
+		var sal2: Vector2i = Vector2i(-1, -1)
+		for linea in m["lineas"]:
+			var t3: PackedStringArray = String(linea).substr(1).strip_edges().split(" ", false)
+			if t3.size() >= 5 and t3[1] == "a_salida_2":
+				sal2 = Vector2i(t3[3].to_int(), t3[4].to_int())
+		var ini: Vector2i = m["inicio"]
+		var puentes: Dictionary = {}                  # los puentes de las barreras se cruzan (los tiende su activador)
+		for c in m["cruzables"]:
+			puentes[c] = true
+		_ok(not _se_llega(filas, ini, sal2, celdas_muro, puentes), "sin romper los muros no se llega a la salida del paso de tierra: " + quien)
+		_ok(_se_llega(filas, ini, sal2, {}, puentes), "rompiéndolos, sí: " + quien)
+		_ok(Exportador.texto_mapa(m).contains("; PASO DE TIERRA:"), "el .txt explica el paso de tierra: " + quien)
+	_ok(con_vado >= 15, "el río suele tener vados donde lo cruza un camino", "%d de 25" % con_vado)
+	# Parámetros raros: avisan sin romper.
+	var raro: Dictionary = _revisar({"algoritmo": "bosque", "semilla": 4, "salida_a": "A:b,C:d", "lados_salida": "x,,", "paso_tierra": 1})
+	var avisa: bool = false
+	for a in raro["avisos"]:
+		avisa = avisa or String(a).begins_with("El paso de tierra pide la salida número 1")
+	_ok(avisa and (raro["muros_tierra"] as Array).is_empty(), "el paso de tierra en la salida 1 avisa y no se pone")
+	_resumen("17 bosque abierto: 25 mapas con salidas en su borde, río (%d con vado) y paso de tierra (%d muros)" % [con_vado, muros], antes)
+
+
+## ¿Se llega andando de `a` a `b`? Pared y agua no se cruzan (salvo el agua de `puentes`); `cerradas`, tampoco.
+func _se_llega(filas: PackedStringArray, a: Vector2i, b: Vector2i, cerradas: Dictionary, puentes: Dictionary = {}) -> bool:
+	if a.x < 0 or b.x < 0:
+		return false
+	var visto: Dictionary = {a: true}
+	var cola: Array = [a]
+	var k: int = 0
+	while k < cola.size():
+		var c: Vector2i = cola[k]
+		k += 1
+		if c == b:
+			return true
+		for d in [Vector2i(0, -1), Vector2i(1, 0), Vector2i(0, 1), Vector2i(-1, 0)]:
+			var v: Vector2i = c + d
+			if v.x < 0 or v.y < 0 or v.y >= filas.size() or v.x >= filas[v.y].length() or visto.has(v) or cerradas.has(v):
+				continue
+			if filas[v.y][v.x] == "#" or (filas[v.y][v.x] == "~" and not puentes.has(v)):
+				continue
+			visto[v] = true
+			cola.append(v)
+	return false
 
 
 ## 16 · Campamentos goblin (22/11, Pablo: «sala campamento»). Con `campamentos` = 1 y 2 en «salas» y «pagina» (la «cueva» no tiene salas de 7 × 6):

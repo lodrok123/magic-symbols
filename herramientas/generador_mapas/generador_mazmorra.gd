@@ -12,6 +12,10 @@ extends RefCounted
 ##             inunda lo más bajo de un mapa de ruido (`agua`).
 ##   «pagina»  Mazmorra de «una página» (la idea del One Page Dungeon de watabou): crece desde una sala raíz pegando salas y pasillos a las que ya
 ##             hay, con grupos simétricos respecto al eje de la entrada, y luego se añaden bucles para que no sea un árbol puro.
+##   «bosque»  (24/11) ESPACIO ABIERTO, no mazmorra: claros unidos por CAMINOS SINUOSOS de tierra (`g`) entre masas de árboles, con hierba
+##             corta y alta alrededor, un RÍO que cruza el mapa con vados de piedra donde lo pisa un camino, SALIDAS EN EL BORDE que se pidan
+##             (`lados_salida`) y, si se quiere, un PASO DE TIERRA: muros agrietados en el camino de una salida, que se rompen con tierra.
+##             Sin puertas ni cerrojos; la cámara se frena solo en el borde del mapa. Ver `_gen_bosque`.
 ##
 ## DESPUÉS, IGUAL PARA LOS TRES (`_poblar`): inicio (S) en la sala más al sur, sala del tesoro en la más lejana (tras una puerta con llave si se
 ## puede), cofre de la llave en otra sala lejana, goblins (W / A) según el tamaño y la distancia, salas que se cierran hasta limpiarlas (cerrojo +
@@ -28,7 +32,7 @@ const SUELO: int = 1
 const AGUA: int = 2
 const LETRA: Array[String] = ["#", ".", "~"]
 const DIRS: Array[Vector2i] = [Vector2i(0, -1), Vector2i(1, 0), Vector2i(0, 1), Vector2i(-1, 0)]      ## N, E, S, O
-const ALGORITMOS: Array[String] = ["salas", "cueva", "pagina"]
+const ALGORITMOS: Array[String] = ["salas", "cueva", "pagina", "bosque"]
 const ANCHO_MAX: int = 120
 const ALTO_MAX: int = 120
 const CASILLAS_POR_ENEMIGO: float = 22.0     ## con `enemigos` = 1: un goblin por cada tantas casillas libres de la sala (más en las lejanas), 5 como mucho
@@ -75,6 +79,9 @@ static func parametros_defecto() -> Dictionary:
 		"relleno": 56, "suavizados": 2, "region_min": 12, "agua": 8, "silueta": 60, "metodo": "fractal", "octavas": 4, "tamano_sala": 10.0,
 		# «pagina» (tamaños en casillas)
 		"n_salas": 9, "lado_min": 4, "lado_max": 8, "simetria": true, "pasillos": 30, "bucles": 30,
+		# «bosque» (24/11, Pablo: «primera pasada de los bosques con el generador, como espacio abierto»).
+		"claros": 6, "tamano_claro": 5, "ancho_camino": 2, "sinuosidad": 50, "bucles_claros": 30, "apertura": 55, "rio": "ns", "ancho_rio": 2,
+		"hierba_alta": 15, "lados_salida": "", "paso_tierra": 0,
 		# contenido
 		"enemigos": 1.0, "arqueros": 30, "jarrones": 1.0, "braseros": 1.0, "charcas": 20,
 		"tesoro": true, "llave": true, "salas_cerradas": 40,
@@ -144,11 +151,11 @@ const COFRES: Dictionary = {
 		"oro:20+antidoto:1", "oro:20+esquirla_cristal:2", "tabla:cofre_pequeno"]},
 	"epico": {"titulo": "Épico", "modelo": "epico", "premios": {
 		"tunica_salamandra:1": "Túnica de salamandra", "capa_escarcha:1": "Capa de escarcha", "capucha_musgo:1": "Capucha de musgo",
-		"nucleo_eco:1": "Núcleo de eco", "trozo_corazon:1+oro:60": "Trozo de corazón y 60 de oro", "frasco_vacio:1+oro:40": "Frasco de reserva y 40 de oro",
+		"nucleo_eco:1": "Núcleo de eco", "fragmento_savia:1+oro:60": "Fragmento de savia y 60 de oro", "frasco_vacio:1+oro:40": "Frasco de reserva y 40 de oro",
 		"engarce_glifo:1": "Engarce de glifo", "hoja_grimorio:1+oro:50": "Hoja de grimorio y 50 de oro"}},
 	"legendario": {"titulo": "Legendario", "modelo": "legendario", "da": "oro:150+pocion_grande:2", "premios": {
 		"glifo:barrera": "Glifo «barrera»", "glifo:linea": "Glifo «línea»", "glifo:raido": "Glifo «raido» (pulso)",
-		"glifo:permanencia": "Glifo «permanencia»", "trozo_corazon:1": "Sin glifo: un trozo de corazón más"}},
+		"glifo:permanencia": "Glifo «permanencia»", "fragmento_savia:1": "Sin glifo: un fragmento de savia más"}},
 }
 ## Lo añadido a mano que se pide: [{que: "enemigo" | "cofre", tipo, premio (cofres), c: Vector2i}]. Ver `_aplicar_anadidos`.
 var _anadidos_pedidos: Array = []
@@ -164,6 +171,11 @@ const COFRES_ENLAZABLES: Array[String] = ["cofre_tesoro", "cofre_comun", "cofre_
 var _ultimo_act: String = ""            ## el activador que dejó la última plantilla `salida` estampada
 var _nv: String = ""                    ## el nombre del nivel en minúsculas (para las flags)
 var _letras_extra: String = ""
+# «bosque» (24/11): lo que deja `_gen_bosque` para `_poblar` y `_pintar_terreno`.
+var _b_salas: Array = []                ## por cada destino de `salida_a`, el id de su claro (-1 = que lo elija `_poblar` como siempre); [0] es el del inicio
+var _b_lados: Array = []                ## por cada destino, el lado del borde donde va su salida: "n" | "s" | "e" | "o" | ""
+var _suelo_bosque: Dictionary = {}      ## casilla → letra de suelo del bosque (g camino, . claro, , hierba, v hierba alta, R vado)
+var muros_tierra: Array = []            ## las casillas con MURO AGRIETADO del paso de tierra (se rompen con tierra; para el resto, suelo)
 
 
 func generar(parametros: Dictionary = {}, retoques: Dictionary = {}, enlaces_mano: Dictionary = {}, puzles_mano: Dictionary = {}, movidos: Dictionary = {},
@@ -200,11 +212,18 @@ func generar(parametros: Dictionary = {}, retoques: Dictionary = {}, enlaces_man
 	_ocupada = {}
 	_bloqueos = {}
 	_cont = {}
+	_b_salas = []
+	_b_lados = []
+	_suelo_bosque = {}
+	muros_tierra = []
+	_tierra_puntos = []
 	match String(p["algoritmo"]):
 		"cueva":
 			_gen_cueva()
 		"pagina":
 			_gen_pagina()
+		"bosque":
+			_gen_bosque()
 		_:
 			p["algoritmo"] = "salas"
 			_gen_salas()
@@ -213,6 +232,19 @@ func generar(parametros: Dictionary = {}, retoques: Dictionary = {}, enlaces_man
 	_cerrar_borde()
 	_quitar_inalcanzable()
 	_asegurar_tierra_conectada()
+	# Red de seguridad: si un retoque o el tapado de zonas sueltas dejó algún muro del paso de tierra sin suelo, se quita el paso entero y se avisa.
+	var muro_perdido: bool = false
+	for c in muros_tierra:
+		muro_perdido = muro_perdido or _tipo(c) != SUELO
+	if muro_perdido:
+		lineas = PackedStringArray(Array(lineas).filter(func(l: String) -> bool: return not l.begins_with("; pieza muro_tierra_")))
+		objetos = objetos.filter(func(o: Dictionary) -> bool: return String(o["tipo"]) != "muro_tierra")
+		for c in muros_tierra:
+			_ocupada.erase(c)
+		muros_tierra = []
+		avisos.append("El paso de tierra se ha quitado: alguno de sus muros quedó sin suelo debajo (por un retoque o una zona suelta). Ponlo a mano.")
+	if not _tierra_cierra():
+		avisos.append("El paso de tierra se puede rodear: otro camino (o un vado del río) llega a esa salida sin romper sus muros. Retócalo a mano pintando árboles alrededor.")
 	_revisar_salas_y_puertas()
 	_poblar()
 	return _resultado()
@@ -876,6 +908,455 @@ func _cueva_claros() -> void:
 
 
 # =====================================================================================================================
+#  «bosque»: claros unidos por caminos sinuosos, hierba, río, salidas en el borde y paso de tierra (24/11)
+# =====================================================================================================================
+
+var _camino_b: Dictionary = {}          ## casillas de camino del bosque (para los vados del río)
+var _tierra_puntos: Array = []            ## [suelo del claro de dentro, suelo del claro de la salida] del paso de tierra
+
+## Los destinos de `salida_a` (sin el nombre de la llegada), en el mismo orden en que los lee `_poblar`.
+func _destinos() -> PackedStringArray:
+	var res: PackedStringArray = PackedStringArray()
+	for d in String(p["salida_a"]).replace(";", ",").replace(" ", ",").split(",", false):
+		res.append(d.split("=", true, 1)[0])
+	return res
+
+
+## Los lados pedidos en `lados_salida` (uno por destino, separados por comas; vacío o «-» = dentro del bosque). `w` vale como `o`.
+func _lados_pedidos(n: int) -> Array:
+	var trozos: PackedStringArray = String(p["lados_salida"]).to_lower().replace(";", ",").split(",")
+	var res: Array = []
+	for k in range(n):
+		var l: String = trozos[k].strip_edges() if k < trozos.size() else ""
+		if l == "w":
+			l = "o"
+		res.append(l if ["n", "s", "e", "o"].has(l) else "")
+	return res
+
+
+func _gen_bosque() -> void:
+	w = clampi(int(p["ancho"]), 16, ANCHO_MAX)
+	h = clampi(int(p["alto"]), 16, ALTO_MAX)
+	g = PackedByteArray()
+	g.resize(w * h)
+	g.fill(MURO)
+	_camino_b = {}
+	var r: int = clampi(int(p["tamano_claro"]), 2, 8)
+	var semilla: int = int(p["semilla"])
+	var ruido: FastNoiseLite = FastNoiseLite.new()
+	ruido.seed = semilla + 104729
+	ruido.noise_type = FastNoiseLite.TYPE_SIMPLEX_SMOOTH
+	ruido.frequency = 0.11
+	# 1 · Los claros. Primero el del inicio y los de las salidas (cada uno pegado a su lado del borde si lo pide), después los de dentro,
+	#     cada uno en el sitio más alejado de los que ya hay.
+	var destinos: PackedStringArray = _destinos()
+	var n_dest: int = maxi(destinos.size(), 1)           # sin salidas también hay claro de inicio
+	_b_lados = _lados_pedidos(n_dest)
+	var centros: Array = []
+	var es_salida: Array = []
+	for k in range(n_dest):
+		centros.append(_sitio_claro(centros, r, String(_b_lados[k]), k == 0))
+		es_salida.append(k > 0)
+	var separacion: float = 2.2 * r + 2.0
+	for _i in range(clampi(int(p["claros"]), 0, 30)):
+		var c: Vector2i = _sitio_claro(centros, r, "", false)
+		if _lejania(c, centros) < separacion:
+			avisos.append("Solo caben %d claros de los %d pedidos: agranda el mapa o achica los claros." % [_i, int(p["claros"])])
+			break
+		centros.append(c)
+		es_salida.append(false)
+	# 2 · Se abren los claros: un círculo de radio `tamano_claro` con el borde movido por un ruido, para que no salgan redondos.
+	var sala_de: Array = []
+	for c0 in centros:
+		var c: Vector2i = c0
+		var caja: Rect2i = Rect2i(c, Vector2i.ZERO)
+		for dy in range(-r - 3, r + 4):
+			for dx in range(-r - 3, r + 4):
+				var q: Vector2i = c + Vector2i(dx, dy)
+				if q.x < 1 or q.y < 1 or q.x > w - 2 or q.y > h - 2:
+					continue
+				var rr: float = float(r) * (1.0 + 0.3 * ruido.get_noise_2d(q.x * 1.7, q.y * 1.7))
+				if dx == 0 and dy == 0 or Vector2(dx, dy).length() <= rr:
+					_poner(q, SUELO)
+					_suelo_bosque[q] = "."
+					caja = caja.expand(q)
+		caja.size += Vector2i.ONE
+		sala_de.append(_nueva_sala(caja))
+	_b_salas = sala_de.slice(0, n_dest)
+	# Los claros pegados a un lado llegan SIEMPRE hasta el borde (el ruido podría dejarlos a una casilla): un tramo de camino del
+	# centro al borde, que es por donde se sale.
+	for k in range(n_dest):
+		var lado_k: String = String(_b_lados[k])
+		if LADO_VEC.has(lado_k):
+			var cen: Vector2i = centros[k]
+			var hacia: Vector2i = LADO_VEC[lado_k]
+			var borde: Vector2i = Vector2i(1 if hacia.x < 0 else (w - 2 if hacia.x > 0 else cen.x), 1 if hacia.y < 0 else (h - 2 if hacia.y > 0 else cen.y))
+			_camino_entre(cen, borde, clampi(int(p["ancho_camino"]), 1, 4), 0.0, ruido)
+	# 3 · Qué claro se une con cuál: un árbol de mínima distancia entre los de dentro (el del inicio incluido), unos BUCLES de más entre
+	#     vecinos cercanos, y cada claro de salida colgado del claro de dentro más cercano (es una hoja: solo se llega por su camino).
+	var nucleo: Array = []
+	for i in range(centros.size()):
+		if not bool(es_salida[i]):
+			nucleo.append(i)
+	var aristas: Array = []
+	var en_arbol: Dictionary = {int(nucleo[0]): true}
+	while en_arbol.size() < nucleo.size():
+		var mejor: Array = []
+		var md: float = INF
+		for a in en_arbol:
+			for b in nucleo:
+				if en_arbol.has(b):
+					continue
+				var d: float = Vector2(centros[a]).distance_to(Vector2(centros[b]))
+				if d < md:
+					md = d
+					mejor = [int(a), int(b)]
+		aristas.append(mejor)
+		en_arbol[mejor[1]] = true
+	var media: float = 0.0
+	for e in aristas:
+		media += Vector2(centros[e[0]]).distance_to(Vector2(centros[e[1]]))
+	media = media / aristas.size() if not aristas.is_empty() else 4.0 * r
+	for ia in range(nucleo.size()):
+		for ib in range(ia + 1, nucleo.size()):
+			var a2: int = int(nucleo[ia])
+			var b2: int = int(nucleo[ib])
+			if aristas.has([a2, b2]) or aristas.has([b2, a2]):
+				continue
+			if Vector2(centros[a2]).distance_to(Vector2(centros[b2])) < 1.6 * media and _pct(float(p["bucles_claros"])):
+				aristas.append([a2, b2])
+	for i in range(centros.size()):
+		if not bool(es_salida[i]):
+			continue
+		var cerca: int = int(nucleo[0])
+		for n in nucleo:
+			if Vector2(centros[n]).distance_to(Vector2(centros[i])) < Vector2(centros[cerca]).distance_to(Vector2(centros[i])):
+				cerca = int(n)
+		aristas.append([cerca, i])
+	# 4 · Los caminos: una curva entre los dos centros, combada hacia un lado al azar y con un serpenteo fino (`sinuosidad`).
+	var ancho: int = clampi(int(p["ancho_camino"]), 1, 4)
+	var serp: float = clampf(float(p["sinuosidad"]), 0.0, 100.0) / 100.0
+	var rutas: Dictionary = {}                          # claro de salida → casillas de su camino, del claro de dentro hacia la salida
+	for e in aristas:
+		var celdas: Array = _camino_entre(centros[e[0]], centros[e[1]], ancho, serp, ruido)
+		if bool(es_salida[e[1]]):
+			rutas[int(e[1])] = celdas
+	# El paso de tierra: en el camino de qué salida (1 = la del inicio, que no vale: tiene que ser una de las otras).
+	var k_tierra: int = int(p["paso_tierra"]) - 1
+	if int(p["paso_tierra"]) != 0 and (k_tierra < 1 or k_tierra >= destinos.size()):
+		avisos.append("El paso de tierra pide la salida número %d y las salidas que lo pueden llevar son de la 2 a la %d: no se pone." % [int(p["paso_tierra"]), destinos.size()])
+		k_tierra = -1
+	# Alrededor del camino de esa salida y de su claro no se abre hierba: si no, los muros se podrían rodear.
+	var protegidas: Dictionary = {}
+	var holgura: int = clampi(1 + int(float(p["apertura"]) / 25.0), 1, 5)
+	if k_tierra >= 1 and rutas.has(k_tierra):
+		var base: Array = []
+		var arranque: Vector2i = rutas[k_tierra][0]          # el centro del claro de dentro del que sale ese camino: ahí sí puede haber hierba
+		for c in rutas[k_tierra]:
+			if Vector2(c).distance_to(Vector2(arranque)) > r + 1:
+				base.append(c)
+		for dy in range(-r - 1, r + 2):
+			for dx in range(-r - 1, r + 2):
+				base.append(centros[k_tierra] + Vector2i(dx, dy))
+		for c in base:
+			for dy in range(-holgura - 1, holgura + 2):
+				for dx in range(-holgura - 1, holgura + 2):
+					protegidas[(c as Vector2i) + Vector2i(dx, dy)] = true
+	# 5 · La hierba: se abren casillas de árbol pegadas a lo abierto (hasta `holgura` casillas), a manchas, según `apertura`.
+	var apert: float = clampf(float(p["apertura"]), 0.0, 100.0) / 100.0
+	if apert > 0.0:
+		var manchas: FastNoiseLite = FastNoiseLite.new()
+		manchas.seed = semilla + 7
+		manchas.noise_type = FastNoiseLite.TYPE_SIMPLEX_SMOOTH
+		manchas.frequency = 0.09
+		var dist: PackedInt32Array = PackedInt32Array()
+		dist.resize(w * h)
+		dist.fill(-1)
+		var cola: PackedInt32Array = PackedInt32Array()
+		for i in range(w * h):
+			if g[i] == SUELO:
+				dist[i] = 0
+				cola.append(i)
+		var q0: int = 0
+		while q0 < cola.size():
+			var i: int = cola[q0]
+			q0 += 1
+			if dist[i] >= holgura:
+				continue
+			for d in DIRS:
+				var x: int = i % w + d.x
+				var y: int = i / w + d.y
+				if x < 1 or y < 1 or x > w - 2 or y > h - 2 or dist[y * w + x] >= 0:
+					continue
+				dist[y * w + x] = dist[i] + 1
+				cola.append(y * w + x)
+		for i in range(w * h):
+			var c: Vector2i = Vector2i(i % w, i / w)
+			if dist[i] < 1 or protegidas.has(c):
+				continue
+			var v: float = (manchas.get_noise_2d(float(c.x), float(c.y)) + 1.0) * 0.5
+			if v + apert * 0.6 - (dist[i] - 1) * 0.12 > 0.85:
+				g[i] = SUELO
+				_suelo_bosque[c] = ","
+		# Los árboles sueltos que quedan con tres lados abiertos se quitan (dientes de sierra).
+		var quitar: Array = []
+		for y in range(1, h - 1):
+			for x in range(1, w - 1):
+				var c: Vector2i = Vector2i(x, y)
+				if g[y * w + x] != MURO or protegidas.has(c):
+					continue
+				var abiertos: int = 0
+				for d in DIRS:
+					abiertos += 1 if _tipo(c + d) == SUELO else 0
+				if abiertos >= 3:
+					quitar.append(c)
+		for c in quitar:
+			_poner(c, SUELO)
+			_suelo_bosque[c] = ","
+	# 6 · El río: de borde a borde («ns» de norte a sur, «eo» de este a oeste), serpenteando. Donde lo pisa un camino queda un VADO de piedras.
+	var rio: String = String(p["rio"]).to_lower()
+	if ["ns", "sn", "eo", "oe", "ew", "we"].has(rio):
+		var vertical: bool = rio == "ns" or rio == "sn"
+		var largo_eje: int = h if vertical else w
+		var ancho_eje: int = w if vertical else h
+		var base_r: float = rng.randf_range(0.3, 0.7) * ancho_eje
+		var anch: int = clampi(int(p["ancho_rio"]), 1, 4)
+		var fase: float = rng.randf() * 100.0
+		var rio_celdas: Array = []
+		var prev_lo: int = -1
+		var prev_hi: int = -1
+		for t in range(1, largo_eje - 1):
+			var lo: int = roundi(base_r + ruido.get_noise_1d(fase + t * 0.6) * ancho_eje * 0.18 - (anch - 1) * 0.5)
+			var hi: int = lo + anch - 1
+			if prev_lo >= 0:                             # que cada fila toque la anterior por un lado (sin saltos en diagonal)
+				lo = mini(lo, prev_hi)
+				hi = maxi(hi, prev_lo)
+			prev_lo = lo
+			prev_hi = hi
+			for a in range(lo, hi + 1):
+				var c: Vector2i = Vector2i(a, t) if vertical else Vector2i(t, a)
+				if c.x < 1 or c.y < 1 or c.x > w - 2 or c.y > h - 2:
+					continue
+				if _camino_b.has(c):
+					_suelo_bosque[c] = "R"
+				else:
+					g[c.y * w + c.x] = AGUA
+					_suelo_bosque.erase(c)
+					rio_celdas.append(c)
+		# Las ORILLAS: una casilla de hierba a cada lado del agua, de punta a punta (si no, los tramos que pasan entre árboles quedarían
+		# sueltos y se taparían). Cerca del paso de tierra no: serían un camino para rodear los muros.
+		for c in rio_celdas:
+			for d in DIRS:
+				var q: Vector2i = (c as Vector2i) + d
+				if q.x >= 1 and q.y >= 1 and q.x <= w - 2 and q.y <= h - 2 and _tipo(q) == MURO and not protegidas.has(q):
+					_poner(q, SUELO)
+					_suelo_bosque[q] = ","
+	# 7 · La hierba alta (`v`, arde): las manchas más altas de otro ruido, `hierba_alta` % de la hierba y los claros (no el camino).
+	var pct_alta: float = clampf(float(p["hierba_alta"]), 0.0, 100.0)
+	if pct_alta > 0.0:
+		var alta: FastNoiseLite = FastNoiseLite.new()
+		alta.seed = semilla + 31
+		alta.noise_type = FastNoiseLite.TYPE_SIMPLEX_SMOOTH
+		alta.frequency = 0.15
+		var vals: Array = []
+		for c in _suelo_bosque:
+			if String(_suelo_bosque[c]) == "," or String(_suelo_bosque[c]) == ".":
+				vals.append(alta.get_noise_2d(float(c.x), float(c.y)))
+		if not vals.is_empty():
+			vals.sort()
+			var umbral: float = float(vals[clampi(int(vals.size() * (1.0 - pct_alta / 100.0)), 0, vals.size() - 1)])
+			for c in _suelo_bosque.keys():
+				var l: String = String(_suelo_bosque[c])
+				if (l == "," or l == ".") and alta.get_noise_2d(float(c.x), float(c.y)) >= umbral:
+					_suelo_bosque[c] = "v"
+	# 8 · El paso de tierra, al final (que nada lo vuelva a abrir).
+	if k_tierra >= 1 and rutas.has(k_tierra):
+		_poner_muro_tierra(rutas[k_tierra], centros[k_tierra], r)
+
+
+## La menor distancia de `c` a los centros que ya hay (INF si no hay ninguno).
+func _lejania(c: Vector2i, centros: Array) -> float:
+	var dm: float = INF
+	for o in centros:
+		dm = minf(dm, Vector2(c).distance_to(Vector2(o)))
+	return dm
+
+
+## Dónde poner un claro: de 40 sitios al azar, el más alejado de los que ya hay. Con `lado`, pegado a ese borde (el claro toca la
+## fila o columna 1); sin lado, el del inicio va al sur (la cámara mira al norte: se entra desde abajo) y los demás, en cualquier sitio.
+func _sitio_claro(centros: Array, r: int, lado: String, es_inicio: bool) -> Vector2i:
+	var mejor: Vector2i = Vector2i(w / 2, h / 2)
+	var mejor_d: float = -1.0
+	for _i in range(40):
+		var c: Vector2i
+		match lado:
+			"o":
+				c = Vector2i(r, _azar(r + 2, h - r - 3))
+			"e":
+				c = Vector2i(w - 1 - r, _azar(r + 2, h - r - 3))
+			"n":
+				c = Vector2i(_azar(r + 2, w - r - 3), r)
+			"s":
+				c = Vector2i(_azar(r + 2, w - r - 3), h - 1 - r)
+			_:
+				if es_inicio:
+					c = Vector2i(_azar(r + 2, w - r - 3), _azar(int(h * 0.68), h - r - 2))
+				else:
+					c = Vector2i(_azar(r + 2, w - r - 3), _azar(r + 2, h - r - 3))
+		c = Vector2i(clampi(c.x, 1, w - 2), clampi(c.y, 1, h - 2))
+		var d: float = _lejania(c, centros)
+		if d > mejor_d:
+			mejor_d = d
+			mejor = c
+	return mejor
+
+
+## Abre un camino de `ancho` casillas entre dos puntos y devuelve sus casillas en orden (de `a` a `b`). Una curva cuadrática con el punto de
+## control apartado del medio hacia un lado al azar (`serp` × la distancia) y un serpenteo fino encima; los pasos son de una casilla en
+## cruz (nunca en diagonal: la jugadora y los enemigos andan a cuatro vecinas).
+func _camino_entre(a: Vector2i, b: Vector2i, ancho: int, serp: float, ruido: FastNoiseLite) -> Array:
+	var va: Vector2 = Vector2(a)
+	var vb: Vector2 = Vector2(b)
+	var largo: float = va.distance_to(vb)
+	var perp: Vector2 = (vb - va).orthogonal().normalized() if largo > 0.0 else Vector2.ZERO
+	var ctrl: Vector2 = (va + vb) * 0.5 + perp * largo * serp * rng.randf_range(-0.55, 0.55)
+	var fase: float = rng.randf() * 100.0
+	var pasos: int = maxi(2, int(largo * 3.0))
+	var res: Array = []
+	var prev: Vector2i = Vector2i(-1, -1)
+	for i in range(pasos + 1):
+		var t: float = float(i) / pasos
+		var pt: Vector2 = va.lerp(ctrl, t).lerp(ctrl.lerp(vb, t), t)
+		pt += perp * ruido.get_noise_1d(fase + t * largo * 0.35) * 2.5 * serp * sin(PI * t)
+		var c: Vector2i = Vector2i(clampi(roundi(pt.x), 1, w - 2), clampi(roundi(pt.y), 1, h - 2))
+		if prev.x < 0:
+			_brocha(c, ancho)
+			res.append(c)
+		else:
+			var q: Vector2i = prev
+			while q != c:
+				if q.x != c.x:
+					q.x += signi(c.x - q.x)
+				else:
+					q.y += signi(c.y - q.y)
+				_brocha(q, ancho)
+				res.append(q)
+		prev = c
+	return res
+
+
+func _brocha(c: Vector2i, ancho: int) -> void:
+	for dy in range(ancho):
+		for dx in range(ancho):
+			var q: Vector2i = c + Vector2i(dx - (ancho - 1) / 2, dy - (ancho - 1) / 2)
+			if q.x < 1 or q.y < 1 or q.x > w - 2 or q.y > h - 2:
+				continue
+			_poner(q, SUELO)
+			_suelo_bosque[q] = "g"
+			_camino_b[q] = true
+
+
+## La casilla de suelo más cercana a `c` (en un radio de 6), o (-1, -1).
+func _suelo_cerca(c: Vector2i) -> Vector2i:
+	var mejor: Vector2i = Vector2i(-1, -1)
+	for dy in range(-6, 7):
+		for dx in range(-6, 7):
+			var q: Vector2i = c + Vector2i(dx, dy)
+			if _tipo(q) == SUELO and (mejor.x < 0 or (q - c).length_squared() < (mejor - c).length_squared()):
+				mejor = q
+	return mejor
+
+
+## EL PASO DE TIERRA: en el último tramo del camino de esa salida que ya está fuera de los dos claros, una fila de MUROS AGRIETADOS
+## (`; pieza … muro`, MuroAgrietado3D: los rompen dos impactos de tierra o una explosión) atravesando el camino, con árboles a los lados.
+## Si aún se puede rodear, se cierran con árboles más casillas a los lados hasta que, sin romper los muros, desde el claro de dentro no se
+## llega al de la salida. Los muros son suelo para el resto del generador (rotos, se pasa), pero nada más se pone encima.
+## 24/11: no es un foso de agua porque el puente de tierra del juego (barrera + línea) se para en la orilla: no se tiende sobre el agua.
+func _poner_muro_tierra(ruta: Array, centro_fin: Vector2i, r: int) -> void:
+	var origen: Vector2i = ruta[0]
+	# Los sitios donde probar, del más cercano a la salida hacia dentro: los que ya están fuera de los dos claros y, si no hay, la mitad del camino.
+	var candidatos: Array = []
+	for i in range(ruta.size() - 1, 1, -1):
+		var c: Vector2i = ruta[i]
+		if Vector2(c).distance_to(Vector2(centro_fin)) > r + 1 and Vector2(c).distance_to(Vector2(origen)) > r + 1:
+			candidatos.append(i)
+	if candidatos.is_empty() and ruta.size() >= 6:
+		candidatos.append(ruta.size() / 2)              # claros muy juntos: a mitad de camino
+	if candidatos.is_empty():
+		avisos.append("El camino de la salida del paso de tierra es demasiado corto para los muros: aleja su claro o agranda el mapa.")
+		return
+	var ancho: int = clampi(int(p["ancho_camino"]), 1, 4)
+	var s_min: int = -(ancho - 1) / 2                  # lo que ocupa el camino de lado a lado (como `_brocha`): ahí van los muros
+	var s_max: int = ancho / 2
+	_tierra_puntos = [_suelo_cerca(origen), _suelo_cerca(centro_fin)]
+	var bien: bool = false
+	var c0: Vector2i = ruta[int(candidatos[0])]
+	for k in range(0, mini(candidatos.size(), 24), 3):            # cada 3 casillas, como mucho 8 sitios
+		bien = _cortar_con_muros(ruta, int(candidatos[k]), s_min, s_max)
+		if bien:
+			break
+	if not bien:
+		avisos.append("No se ha podido cortar el camino de la salida del paso de tierra cerca de (%d, %d): ponlo a mano (pieza muro)." % [c0.x, c0.y])
+		return
+	for i in range(muros_tierra.size()):
+		var c: Vector2i = muros_tierra[i]
+		var mid: String = "muro_tierra_%d" % (i + 1)
+		_objeto(c, "muro_tierra", mid)
+		lineas.append("; pieza %s muro %d %d golpes=2" % [mid, c.x, c.y])
+
+
+## Prueba a cortar el camino en `ruta[i0]` con una fila de muros (en el eje por el que avanza y, si no sale, en el otro). Deja todo como
+## estaba si no lo consigue.
+func _cortar_con_muros(ruta: Array, i0: int, s_min: int, s_max: int) -> bool:
+	var d: Vector2i = (ruta[mini(i0 + 3, ruta.size() - 1)] as Vector2i) - (ruta[maxi(i0 - 3, 0)] as Vector2i)
+	var ejes: Array = [Vector2i(1, 0), Vector2i(0, 1)] if absi(d.x) >= absi(d.y) else [Vector2i(0, 1), Vector2i(1, 0)]
+	var c0: Vector2i = ruta[i0]
+	var bien: bool = false
+	for eje in ejes:
+		var trav: Vector2i = Vector2i((eje as Vector2i).y, (eje as Vector2i).x)
+		var foto: Array = [g.duplicate(), _suelo_bosque.duplicate(), _ocupada.duplicate()]
+		muros_tierra = []
+		for lado in range(s_max + 1, 12):
+			for s in range(-lado, lado + 1):
+				var c: Vector2i = c0 + trav * s
+				if c.x < 1 or c.y < 1 or c.x > w - 2 or c.y > h - 2 or _tipo(c) != SUELO or muros_tierra.has(c):
+					continue
+				if s >= s_min and s <= s_max:
+					muros_tierra.append(c)
+					_ocupar(c)
+				else:
+					g[c.y * w + c.x] = MURO                    # a los lados, árboles: que no se rodee
+					_suelo_bosque.erase(c)
+			if _tierra_cierra():
+				break
+		# Bien cortado: no se rodea y cada muro tiene suelo delante y detrás (el camino lo atraviesa, no va a lo largo de la fila de muros).
+		bien = not muros_tierra.is_empty() and _tierra_cierra()
+		for c in muros_tierra:
+			bien = bien and _tipo((c as Vector2i) - eje) == SUELO and _tipo((c as Vector2i) + eje) == SUELO
+		if bien:
+			break
+		g = foto[0]
+		_suelo_bosque = foto[1]
+		_ocupada = foto[2]
+		muros_tierra = []
+	return bien
+
+
+## ¿Los muros cortan de verdad? Sin romperlos, desde el claro de dentro no se llega al de la salida.
+func _tierra_cierra() -> bool:
+	if muros_tierra.is_empty() or _tierra_puntos.size() < 2:
+		return true
+	var desde: Vector2i = _tierra_puntos[0]
+	var hasta: Vector2i = _tierra_puntos[1]
+	if desde.x < 0 or hasta.x < 0:
+		return true
+	var bloq: Dictionary = {}
+	for c in muros_tierra:
+		bloq[c] = true
+	return _distancias(desde, bloq)[hasta.y * w + hasta.x] < 0
+
+
+# =====================================================================================================================
 #  «pagina»: crece desde una sala raíz, con grupos simétricos y bucles
 # =====================================================================================================================
 
@@ -1230,6 +1711,49 @@ func _poner_salida(s: Dictionary, destino: String, n: int, ref: Vector2i) -> boo
 	return true
 
 
+## Como `_poner_salida`, pero pegada al LADO del borde pedido ("n", "s", "e", "o"): la casilla libre de la sala que más se acerca a ese
+## borde y, a igualdad, la más alineada con `ref`. Sin lado, la de siempre.
+func _poner_salida_lado(s: Dictionary, destino: String, n: int, ref: Vector2i, lado: String) -> bool:
+	if not LADO_VEC.has(lado):
+		return _poner_salida(s, destino, n, ref)
+	var hacia: Vector2i = LADO_VEC[lado]
+	var mejor: Vector2i = Vector2i(-1, -1)
+	for c in _celdas_sala(s):
+		if _ocupada.has(c) or _cerca_de_puerta(c) or absi(c.x - ref.x) + absi(c.y - ref.y) < 2:
+			continue
+		var a: int = c.x * hacia.x + c.y * hacia.y
+		var am: int = mejor.x * hacia.x + mejor.y * hacia.y
+		var lat: int = absi((c - ref).x * hacia.y) + absi((c - ref).y * hacia.x)
+		var latm: int = absi((mejor - ref).x * hacia.y) + absi((mejor - ref).y * hacia.x)
+		if mejor.x < 0 or a > am or (a == am and lat < latm):
+			mejor = c
+	if mejor.x < 0:
+		return false
+	_ocupar(mejor)
+	_objeto(mejor, "salida", "a_salida_%d" % n)
+	lineas.append("; pieza a_salida_%d salida %d %d a=%s" % [n, mejor.x, mejor.y, destino])
+	return true
+
+
+const LADO_VEC: Dictionary = {"n": Vector2i(0, -1), "s": Vector2i(0, 1), "e": Vector2i(1, 0), "o": Vector2i(-1, 0)}
+
+## El lado pedido para la salida `k` en el bosque ("" en los demás algoritmos o sin lado).
+func _lado_b(k: int) -> String:
+	if String(p["algoritmo"]) != "bosque" or k >= _b_lados.size():
+		return ""
+	return String(_b_lados[k])
+
+
+## El claro que el bosque reservó para la salida `k`, si sigue vivo y libre ({} si no).
+func _sala_b(k: int) -> Dictionary:
+	if k <= 0 or k >= _b_salas.size():
+		return {}
+	var s: Dictionary = salas[int(_b_salas[k])]
+	if bool(s["viva"]) and (String(s["rol"]) == "" or String(s["rol"]) == "salida"):
+		return s
+	return {}
+
+
 func _rect_txt(r: Rect2i) -> String:
 	return "%d,%d..%d,%d" % [r.position.x, r.position.y, r.end.x - 1, r.end.y - 1]
 
@@ -1438,7 +1962,10 @@ func _poblar() -> void:
 	var cueva: bool = String(p["estilo"]) == "cueva"
 	# 1 · Inicio: la sala más al sur (la cámara mira al norte: se entra desde abajo). En «pagina», la raíz.
 	var s_ini: Dictionary = vivas[0]
-	if String(p["algoritmo"]) != "pagina" or not bool(salas[0]["viva"]):
+	var bosque: bool = String(p["algoritmo"]) == "bosque"
+	if bosque and not _b_salas.is_empty() and bool(salas[int(_b_salas[0])]["viva"]):
+		s_ini = salas[int(_b_salas[0])]                 # el bosque ya eligió el claro del inicio (pegado a su lado, si lo pidió)
+	elif String(p["algoritmo"]) != "pagina" or not bool(salas[0]["viva"]):
 		for s in vivas:
 			if (s["rect"] as Rect2i).end.y > (s_ini["rect"] as Rect2i).end.y:
 				s_ini = s
@@ -1462,8 +1989,14 @@ func _poblar() -> void:
 		llegadas.append(trozos_d[1] if trozos_d.size() > 1 else "")
 	if llegadas.size() > 0 and llegadas[0] != "" and llegadas[0] != "inicio":
 		lineas.append("; pieza %s entrada %d %d" % [llegadas[0], inicio.x, inicio.y])       # la sala de inicio, también con ese nombre
-	if destinos.size() > 0 and not _poner_salida(s_ini, destinos[0], 1, inicio):
+	if destinos.size() > 0 and not _poner_salida_lado(s_ini, destinos[0], 1, inicio, _lado_b(0)):
 		avisos.append("No cabe la salida en la sala de inicio (demasiado pequeña).")
+	# El bosque reserva ya los claros de sus salidas (si no, el tesoro o la llave podrían quedarse con uno).
+	if bosque:
+		for k in range(1, destinos.size()):
+			var sb: Dictionary = _sala_b(k)
+			if not sb.is_empty() and String(sb["rol"]) == "":
+				sb["rol"] = "salida"
 	# 1b · Puzles del catalogo: antes de repartir papeles, porque cambian el suelo de su sala.
 	_colocar_catalogo(vivas, nv)
 	# 2 · Distancia de cada sala al inicio.
@@ -1539,10 +2072,10 @@ func _poblar() -> void:
 	# para que el otro nivel pueda traer a la jugadora justo ahí.
 	var con_salida: Array = [s_ini]
 	for k in range(1, destinos.size()):
-		var sala_k: Dictionary = {}
-		var lejania: float = -1.0
+		var sala_k: Dictionary = _sala_b(k) if bosque else {}
+		var lejania: float = INF if not sala_k.is_empty() else -1.0          # con claro reservado no se busca otro
 		for s in vivas:
-			if String(s["rol"]) != "":
+			if String(s["rol"]) != "" or lejania == INF:
 				continue
 			var dm: float = INF
 			for u in con_salida:
@@ -1555,7 +2088,7 @@ func _poblar() -> void:
 			var llegada: Vector2i = _centro_libre(sala_k)
 			if llegada.x >= 0:
 				_ocupar(llegada)
-				if _poner_salida(sala_k, destinos[k], k + 1, llegada):
+				if _poner_salida_lado(sala_k, destinos[k], k + 1, llegada, _lado_b(k)):
 					sala_k["rol"] = "salida"
 					con_salida.append(sala_k)
 					var id_llegada: String = llegadas[k] if llegadas[k] != "" else "entrada_%d" % (k + 1)
@@ -1583,7 +2116,7 @@ func _poblar() -> void:
 	# 5 · Charcas dentro de las salas grandes (dejando libre el anillo de las paredes: no cortan el paso).
 	for s in vivas:
 		var r: Rect2i = s["rect"]
-		if String(s["rol"]) == "inicio" or String(s["rol"]) == "puzle" or String(s["rol"]) == "campamento" or r.size.x < 5 or r.size.y < 5 or String(p["algoritmo"]) == "cueva":
+		if String(s["rol"]) == "inicio" or String(s["rol"]) == "puzle" or String(s["rol"]) == "campamento" or r.size.x < 5 or r.size.y < 5 or String(p["algoritmo"]) == "cueva" or bosque:
 			continue
 		if not _pct(float(p["charcas"])):
 			continue
@@ -2180,6 +2713,27 @@ func _trasladar(de: Vector2i, a: Vector2i, bloquea: bool) -> void:
 func _pintar_terreno() -> void:
 	if not bool(p["terreno"]):
 		return
+	if String(p["algoritmo"]) == "bosque":
+		# El bosque trae su propio suelo: camino de tierra, claro, hierba corta, hierba alta y vados de piedra. Solo donde sigue habiendo
+		# suelo y no hay ya otra letra (inicio, goblins, braseros…); lo que se retocó a mano a pared o agua se queda como está.
+		# Tampoco en las salas con un puzle del catálogo (de sala o de barrera): sus pistas tienen que quedar de suelo liso.
+		var con_puzle: Array = []
+		for s in _vivas():
+			if String(s["rol"]) == "puzle" or s.has("activador"):
+				con_puzle.append(s["rect"])
+		for c in _suelo_bosque:
+			var en_puzle: bool = false
+			for rp in con_puzle:
+				en_puzle = en_puzle or (rp as Rect2i).has_point(c)
+			if en_puzle:
+				continue
+			var l: String = String(_suelo_bosque[c])
+			if _tipo(c) != SUELO or letras.has(c) or l == ".":
+				continue
+			letras[c] = l
+			if not _letras_extra.contains(l):
+				_letras_extra += l
+		return
 	var en_sala: Dictionary = {}
 	for s in _vivas():
 		var r: Rect2i = s["rect"]
@@ -2474,8 +3028,8 @@ const LADO_CASILLA: float = 2.3      ## S de la maqueta
 
 func _salas_camara() -> Array:
 	var r: Array = []
-	if String(p.get("algoritmo", "salas")) == "cueva" or not bool(p.get("camara_sala", true)):
-		return r
+	if ["cueva", "bosque"].has(String(p.get("algoritmo", "salas"))) or not bool(p.get("camara_sala", true)):
+		return r                       # el bosque es espacio abierto: la cámara solo se frena en el borde del mapa
 	for s in _vivas():
 		var caja: Rect2i = Rect2i()
 		var hay: bool = false
@@ -2523,7 +3077,7 @@ func _resultado() -> Dictionary:
 		"salas": _vivas(), "puertas": puertas, "objetos": objetos, "lineas": lineas, "avisos": avisos,
 		"arqueros": bool(p.get("_arqueros", false)), "retoques": _retoques,
 		"errores": errores, "enlaces": enlaces, "enlaces_mano": _enlaces_mano, "activadores": _activadores.keys(), "barreras": _barreras.size(),
-		"puzles": puzles_puestos, "puzles_mano": _puzles_mano, "cruzables": _puentes.keys(), "letras_extra": _letras_extra,
+		"puzles": puzles_puestos, "puzles_mano": _puzles_mano, "cruzables": _puentes.keys(), "letras_extra": _letras_extra, "muros_tierra": muros_tierra,
 		"movidos": movidos_hechos, "movidos_pedidos": _movidos_pedidos, "anadidos": anadidos_hechos, "apariciones": apariciones_hechas,
 		"stats": {"salas": _vivas().size(), "puertas": puertas.size(), "enemigos": n_enem, "cofres": n_cofres, "jarrones": n_jarrones,
 			"suelo": pisable, "agua": g.count(AGUA), "ocupacion": pisable / float(maxi(1, w * h))},
@@ -2582,6 +3136,9 @@ func _poner_puzle(s: Dictionary, cid: String, nv: String, de_barrera: bool = fal
 		return "no está en el catálogo."
 	var e: Dictionary = cat[cid]
 	var r: Rect2i = s["rect"]
+	for c in muros_tierra:                             # bosque: una plantilla podría tapiar los muros del paso de tierra
+		if r.grow(2).has_point(c):
+			return "la sala toca el paso de tierra."
 	var filas: Array = (e["filas"] as Array).duplicate()
 	var tw: int = int(e["ancho"])
 	var th: int = int(e["alto"])

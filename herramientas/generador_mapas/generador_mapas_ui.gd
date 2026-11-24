@@ -40,18 +40,22 @@ const ICONOS: Dictionary = {
 	# 22/11: el campamento goblin (la empalizada `x` se ve como letra del plano).
 	"puerta_goblin": ["y", Color(0.75, 0.35, 0.1), 1, "puerta goblin (arde)"], "torre_goblin": ["o", Color(0.55, 0.3, 0.15), 1, "torre goblin (arde)"],
 	"tienda_goblin": ["t", Color(0.5, 0.42, 0.3), 1, "tienda goblin"], "estandarte_goblin": ["V", Color(0.7, 0.2, 0.15), 1, "estandarte goblin"],
+	# 24/11: el bosque abierto.
+	"muro_tierra": ["M", Color(0.55, 0.45, 0.35), 1, "muro agrietado del paso de tierra (lo rompen dos golpes de tierra)"],
 }
 const TIPOS_ENEMIGO: Array[String] = ["guerrero", "arquero", "limo", "golem", "chaman", "mouro", "elemental"]
 const TIPOS_COFRE: Array[String] = ["cofre_tesoro", "cofre_llave", "cofre_comun", "cofre_epico", "cofre_legendario"]
 ## Cambiar uno de estos cambia la forma del mapa: los retoques pintados a mano dejan de tener sentido y se borran.
 const CLAVES_FORMA: Array[String] = ["algoritmo", "semilla", "ancho", "alto", "sala_min", "sala_max", "reparto", "densidad_salas", "puertas", "recto", "callejones",
-	"ancho_pasillo", "forma", "relleno", "silueta", "metodo", "octavas", "tamano_sala", "suavizados", "region_min", "agua", "n_salas", "lado_min", "lado_max", "simetria", "pasillos", "bucles"]
+	"ancho_pasillo", "forma", "relleno", "silueta", "metodo", "octavas", "tamano_sala", "suavizados", "region_min", "agua", "n_salas", "lado_min", "lado_max", "simetria", "pasillos", "bucles",
+	"claros", "tamano_claro", "ancho_camino", "sinuosidad", "bucles_claros", "apertura", "hierba_alta", "rio", "ancho_rio", "lados_salida", "paso_tierra"]
 
 ## Los campos del panel. t: titulo | opcion | int | float | bool | texto. `alg`: solo se ve con ese algoritmo.
 const CAMPOS: Array = [
 	{"t": "titulo", "r": "MAPA"},
-	{"k": "algoritmo", "r": "Algoritmo", "t": "opcion", "op": [["salas", "Salas y pasillos (donjon)"], ["cueva", "Cueva o claro de bosque (orgánico)"], ["pagina", "Una página (sala a sala)"]],
-		"a": "Salas y pasillos: rejilla de salas unidas por un laberinto podado.\nCueva: roca natural por autómata celular, con agua.\nUna página: crece desde la entrada pegando salas, con simetría y bucles."},
+	{"k": "algoritmo", "r": "Algoritmo", "t": "opcion", "op": [["salas", "Salas y pasillos (donjon)"], ["cueva", "Cueva o claro de bosque (orgánico)"], ["pagina", "Una página (sala a sala)"],
+		["bosque", "Bosque abierto (claros y caminos)"]],
+		"a": "Salas y pasillos: rejilla de salas unidas por un laberinto podado.\nCueva: roca natural por autómata celular, con agua.\nUna página: crece desde la entrada pegando salas, con simetría y bucles.\nBosque abierto: claros unidos por caminos de tierra entre árboles, con hierba, río, salidas en el borde y paso de tierra. Sin puertas ni cerrojos."},
 	{"k": "semilla", "r": "Semilla", "t": "int", "min": 0, "max": 9999999, "a": "La misma semilla con los mismos parámetros da siempre el mismo mapa."},
 	{"k": "ancho", "r": "Ancho (casillas)", "t": "int", "min": 12, "max": 120, "a": "Una casilla son 2,3 u del juego. La Cueva mide 27 × 25; el Bosque 02, 40 × 40."},
 	{"k": "alto", "r": "Alto (casillas)", "t": "int", "min": 12, "max": 120},
@@ -82,6 +86,21 @@ const CAMPOS: Array = [
 	{"k": "simetria", "r": "Grupos simétricos", "t": "bool", "alg": "pagina", "a": "Las salas a los lados del eje de la entrada salen por parejas."},
 	{"k": "pasillos", "r": "Pasillos (%)", "t": "int", "min": 0, "max": 90, "paso": 5, "alg": "pagina", "a": "Cuántas de las «salas» nuevas son pasillos largos y estrechos."},
 	{"k": "bucles", "r": "Bucles (%)", "t": "int", "min": 0, "max": 100, "paso": 5, "alg": "pagina", "a": "Puertas de más entre salas vecinas, para que no sea un árbol puro."},
+	{"t": "titulo", "r": "BOSQUE ABIERTO", "alg": "bosque"},
+	{"k": "claros", "r": "Claros de dentro", "t": "int", "min": 0, "max": 30, "alg": "bosque", "a": "Claros además del de inicio y los de las salidas. Si no caben, avisa (agranda el mapa o achica los claros)."},
+	{"k": "tamano_claro", "r": "Tamaño de los claros", "t": "int", "min": 2, "max": 8, "alg": "bosque", "a": "Radio de cada claro, en casillas (el borde lo mueve un ruido para que no salgan redondos)."},
+	{"k": "ancho_camino", "r": "Ancho del camino", "t": "int", "min": 1, "max": 4, "alg": "bosque", "a": "Casillas de ancho de los caminos de tierra (letra g)."},
+	{"k": "sinuosidad", "r": "Caminos sinuosos (%)", "t": "int", "min": 0, "max": 100, "paso": 5, "alg": "bosque", "a": "0 = caminos rectos de claro a claro; 100 = muy combados y con serpenteo."},
+	{"k": "bucles_claros", "r": "Bucles (%)", "t": "int", "min": 0, "max": 100, "paso": 5, "alg": "bosque", "a": "Caminos de más entre claros cercanos, para que haya rodeos y no un solo recorrido.\nLos claros de las salidas nunca llevan bucles: se llega por un solo camino."},
+	{"k": "apertura", "r": "Apertura (%)", "t": "int", "min": 0, "max": 100, "paso": 5, "alg": "bosque", "a": "Cuánta hierba se abre alrededor de caminos y claros, a manchas. 0 = solo caminos entre árboles; 100 = bosque muy abierto."},
+	{"k": "hierba_alta", "r": "Hierba alta (%)", "t": "int", "min": 0, "max": 100, "paso": 5, "alg": "bosque", "a": "Parte de la hierba que es alta (letra v: arde y propaga el fuego)."},
+	{"k": "rio", "r": "Río", "t": "opcion", "op": [["ns", "De norte a sur"], ["eo", "De este a oeste"], ["no", "Sin río"]], "alg": "bosque",
+		"a": "Un río de borde a borde con orillas de hierba. Donde lo cruza un camino queda un vado de piedras (letra R)."},
+	{"k": "ancho_rio", "r": "Ancho del río", "t": "int", "min": 1, "max": 4, "alg": "bosque"},
+	{"k": "lados_salida", "r": "Lados de las salidas", "t": "texto", "alg": "bosque",
+		"a": "Uno por cada salida de «Salidas», en el mismo orden y separados por comas: n, s, e, o (o vacío / - = dentro del bosque).\nLa primera es la del inicio. Ejemplo con 4 salidas: s, o, s, e"},
+	{"k": "paso_tierra", "r": "Paso de tierra en la salida nº", "t": "int", "min": 0, "max": 9, "alg": "bosque",
+		"a": "0 = ninguno. Con 2, 3…: el camino de esa salida queda cortado por muros agrietados (letra M en la vista) que solo rompen\ndos golpes de tierra (o una explosión), con árboles a los lados para que no se rodee. La 1 no vale: es la del inicio.\nNo es un foso de agua porque el puente de tierra del juego no se tiende sobre el agua."},
 	{"t": "titulo", "r": "CONTENIDO"},
 	{"k": "enemigos", "r": "Enemigos", "t": "float", "min": 0.0, "max": 4.0, "paso": 0.1, "a": "0 = ninguno; 1 = un goblin por cada ~22 casillas de sala (más en las lejanas); 5 por sala como mucho."},
 	{"k": "arqueros", "r": "Arqueros (%)", "t": "int", "min": 0, "max": 100, "paso": 5, "a": "Parte de los goblins que son arqueros (letra A) en vez de guerreros (W)."},
@@ -170,7 +189,7 @@ class Vista extends Control:
 		_material.set_shader_parameter("mapa", ImageTexture.create_from_image(img))
 		_material.set_shader_parameter("tam", Vector2(int(m["ancho"]), int(m["alto"])))
 		_material.set_shader_parameter("modo", 0 if String(par["estilo"]) == "cueva" else 1)
-		_material.set_shader_parameter("temblor", 0.22 if String(par["algoritmo"]) == "cueva" else 0.07)
+		_material.set_shader_parameter("temblor", 0.22 if ["cueva", "bosque"].has(String(par["algoritmo"])) else 0.07)
 		var t: Vector2i = Vector2i(int(m["ancho"]), int(m["alto"]))
 		if t != _tam:
 			_tam = t
@@ -239,12 +258,14 @@ class Vista extends Control:
 		# El nombre del nivel, como el título de un mapa.
 		draw_string(_titulo, Vector2(28, 62), String((mapa["parametros"] as Dictionary)["nombre"]).replace("_", " "), HORIZONTAL_ALIGNMENT_LEFT, -1, 44,
 			Color(0.8, 0.9, 0.75) if claro else C_TINTA)
-		# El terreno pintado: tierra pisada (g) en ocre y losas (R) en gris azulado, por debajo de todo lo demás.
+		# El terreno pintado: tierra pisada (g) en ocre y losas (R) en gris azulado, por debajo de todo lo demás. En el bosque, además,
+		# la hierba corta (,) en verde claro y la alta (v) en verde más fuerte.
+		var tonos: Dictionary = {"g": Color(0.55, 0.38, 0.2, 0.22), "R": Color(0.42, 0.46, 0.6, 0.28), ",": Color(0.45, 0.65, 0.3, 0.16), "v": Color(0.3, 0.55, 0.2, 0.34)}
 		for y in range(filas.size()):
 			for x in range(filas[y].length()):
 				var ct: String = filas[y][x]
-				if ct == "g" or ct == "R":
-					draw_rect(Rect2(origen + Vector2(x, y) * e, Vector2(e, e)), Color(0.55, 0.38, 0.2, 0.22) if ct == "g" else Color(0.42, 0.46, 0.6, 0.28))
+				if tonos.has(ct):
+					draw_rect(Rect2(origen + Vector2(x, y) * e, Vector2(e, e)), tonos[ct])
 		if not ver_contenido:
 			return
 		# Salas: el papel que hacen (inicio, tesoro, llave, se cierra) y su número.
@@ -254,7 +275,7 @@ class Vista extends Control:
 			var rol: String = String(s["rol"])
 			if ROLES.has(rol):
 				var col: Color = ROLES[rol][1]
-				if String((mapa["parametros"] as Dictionary)["algoritmo"]) != "cueva":
+				if not ["cueva", "bosque"].has(String((mapa["parametros"] as Dictionary)["algoritmo"])):
 					draw_rect(Rect2(origen + Vector2(r.position) * e, Vector2(r.size) * e).grow(-e * 0.2), Color(col, 0.22))
 					draw_rect(Rect2(origen + Vector2(r.position) * e, Vector2(r.size) * e).grow(-e * 0.2), Color(col, 0.9), false, 2.0)
 				else:
@@ -682,6 +703,11 @@ func _cambio(k: String, valor: Variant) -> void:
 	if k == "estilo" and Exportador.LUCES.has(String(valor)):
 		_poner_control("luz", String(valor))          # la luz sigue al estilo (se puede cambiar después)
 		_par["luz"] = String(valor)
+	if k == "algoritmo" and String(valor) == "bosque":
+		# El bosque abierto se dibuja con árboles y luz de bosque, y sin salas que se cierren (se puede cambiar después).
+		for par_b in [["estilo", "bosque"], ["luz", "bosque"], ["salas_cerradas", 0]]:
+			_poner_control(String(par_b[0]), par_b[1])
+			_par[String(par_b[0])] = par_b[1]
 	_sucio = true
 
 
@@ -878,7 +904,9 @@ func _al_pasar(c: Vector2i) -> void:
 		return
 	var partes: PackedStringArray = PackedStringArray(["(%d, %d)" % [c.x, c.y]])
 	var ch: String = (_mapa["filas"] as PackedStringArray)[c.y][c.x]
-	partes.append({"#": "pared", "~": "agua honda", "g": "tierra pisada", "R": "losas"}.get(ch, "suelo"))
+	partes.append({"#": "pared", "~": "agua honda", "g": "tierra pisada", "R": "losas", ",": "hierba corta", "v": "hierba alta (arde)"}.get(ch, "suelo"))
+	if (_mapa.get("muros_tierra", []) as Array).has(c):
+		partes.append("muro agrietado del paso de tierra")
 	for s in _mapa["salas"]:
 		if (s["rect"] as Rect2i).has_point(c):
 			var rol: String = String(s["rol"])
