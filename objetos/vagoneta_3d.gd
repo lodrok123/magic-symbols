@@ -75,6 +75,9 @@ func _sentido_libre() -> Vector2i:
 
 # --- aspecto ---------------------------------------------------------------------------------------------------------
 
+## 24/11 (Pablo, playtest: «las ruedas deben ir paralelas a las vías; anima las ruedas»): el modelo del pack es UNA malla. Sus ruedas y ejes son islas sueltas
+## dentro de ella; se recortan (`_partir_malla`, una vez por modelo) en una malla de la CAJA y una por pieza que GIRA, cada una con el pivote en su centro.
+## El modelo rueda a lo largo de su X: `_giro` lo orienta según la vía (0° si la vía va de este a oeste, 90° si va de norte a sur).
 func _poner_modelo() -> bool:
 	if not ResourceLoader.exists(MODELO):
 		return false
@@ -82,14 +85,216 @@ func _poner_modelo() -> bool:
 	if escena == null:
 		return false
 	var n: Node3D = escena.instantiate() as Node3D
-	for col in n.find_children("*", "CollisionObject3D", true, false):
-		col.queue_free()                       # su cuerpo es el de la vagoneta (la caja de BloqueEmpujable3D)
-	n.name = "vagoneta"
-	n.scale = Vector3.ONE * ESCALA_MODELO
-	add_child(n)
-	_cuerpo = n
-	Ocluso3D.convertir_nodo(n)
+	var malla: MeshInstance3D = n.get_node_or_null("modelo/malla") as MeshInstance3D
+	if malla == null or malla.mesh == null:
+		n.free()
+		return false
+	var partes: Dictionary = _partir_malla(malla.mesh)
+	var raiz := Node3D.new()
+	raiz.name = "vagoneta"
+	raiz.scale = Vector3.ONE * ESCALA_MODELO
+	add_child(raiz)
+	_giro = Node3D.new()
+	_giro.name = "giro"
+	raiz.add_child(_giro)
+	var base := Node3D.new()                   # la transformación de la malla en su pieza (escala 0,68 y el centrado)
+	base.name = "malla"
+	base.transform = malla.transform
+	_giro.add_child(base)
+	var caja := MeshInstance3D.new()
+	caja.name = "caja"
+	caja.mesh = partes["caja"]
+	_copiar_materiales(malla, caja)
+	base.add_child(caja)
+	_ruedas.clear()
+	for r in partes["ruedas"]:
+		var piv := Node3D.new()
+		piv.name = "rueda"
+		piv.position = r[1]
+		base.add_child(piv)
+		var mr := MeshInstance3D.new()
+		mr.mesh = r[0]
+		_copiar_materiales(malla, mr)
+		piv.add_child(mr)
+		_ruedas.append(piv)
+	_radio_rueda = float(partes["radio"]) * malla.transform.basis.get_scale().x * ESCALA_MODELO
+	n.free()
+	_cuerpo = raiz
+	Ocluso3D.convertir_nodo(raiz)
+	_giro.rotation.y = _yaw_de(_eje_de_via(celda))
+	_pos_antes = global_position if is_inside_tree() else position
 	return true
+
+
+static func _copiar_materiales(de: MeshInstance3D, a: MeshInstance3D) -> void:
+	a.material_override = de.material_override
+	for s in de.get_surface_override_material_count():
+		if de.get_surface_override_material(s) != null and s < a.get_surface_override_material_count():
+			a.set_surface_override_material(s, de.get_surface_override_material(s))
+
+
+## La malla partida: {caja: ArrayMesh, ruedas: [[ArrayMesh centrada en su eje, centro]], radio: radio de rueda (unidades de la malla)}. En caché por malla.
+## Una pieza que GIRA es una isla de triángulos casi redonda de perfil (ancho ≈ alto en X e Y), baja (centro por debajo de ALTO_EJE) y no más
+## ancha que una rueda: las cuatro ruedas y los dos ejes. Lo demás es la caja.
+const ALTO_EJE: float = 0.32
+static var _cache_partes: Dictionary = {}
+
+static func _partir_malla(m: Mesh) -> Dictionary:
+	if _cache_partes.has(m.resource_path + str(m.get_instance_id())):
+		return _cache_partes[m.resource_path + str(m.get_instance_id())]
+	var arr: Array = m.surface_get_arrays(0)
+	var v: PackedVector3Array = arr[Mesh.ARRAY_VERTEX]
+	var idx: PackedInt32Array = arr[Mesh.ARRAY_INDEX]
+	# Islas: vértices unidos por posición (las costuras de UV duplican vértices) y por los triángulos que los usan.
+	var padre: Dictionary = {}
+	var clave: Array = []
+	for p in v:
+		var k: Vector3i = Vector3i(roundi(p.x * 2000.0), roundi(p.y * 2000.0), roundi(p.z * 2000.0))
+		clave.append(k)
+		if not padre.has(k):
+			padre[k] = k
+	var raiz: Callable = func(k) -> Variant:
+		while padre[k] != k:
+			padre[k] = padre[padre[k]]
+			k = padre[k]
+		return k
+	for i in range(0, idx.size(), 3):
+		var a = raiz.call(clave[idx[i]])
+		for j in [1, 2]:
+			var b = raiz.call(clave[idx[i + j]])
+			if a != b:
+				padre[b] = a
+	var cajas: Dictionary = {}
+	var tris: Dictionary = {}
+	for i in range(0, idx.size(), 3):
+		var r = raiz.call(clave[idx[i]])
+		var lista_t: PackedInt32Array = tris.get(r, PackedInt32Array())     # un PackedInt32Array se copia al sacarlo: se añade y se vuelve a guardar
+		lista_t.append_array([idx[i], idx[i + 1], idx[i + 2]])
+		tris[r] = lista_t
+		for j in 3:
+			cajas[r] = (cajas[r] as AABB).expand(v[idx[i + j]]) if cajas.has(r) else AABB(v[idx[i + j]], Vector3.ZERO)
+	var caja_idx := PackedInt32Array()
+	var ruedas: Array = []
+	var radio: float = 0.2
+	for r in tris:
+		var c: AABB = cajas[r]
+		var redonda: bool = absf(c.size.x - c.size.y) <= 0.1 * maxf(c.size.x, c.size.y) + 0.005
+		if redonda and c.get_center().y < ALTO_EJE and maxf(c.size.x, c.size.y) <= 0.6:
+			var centro: Vector3 = c.get_center()
+			var va: PackedVector3Array = v.duplicate()
+			for k in va.size():
+				va[k] -= centro
+			var a2: Array = arr.duplicate()
+			a2[Mesh.ARRAY_VERTEX] = va
+			a2[Mesh.ARRAY_INDEX] = tris[r]
+			var mr := ArrayMesh.new()
+			mr.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, a2)
+			mr.surface_set_material(0, m.surface_get_material(0))
+			ruedas.append([mr, centro])
+			if c.size.y > 0.2:
+				radio = c.size.y * 0.5
+		else:
+			caja_idx.append_array(tris[r])
+	var a3: Array = arr.duplicate()
+	a3[Mesh.ARRAY_INDEX] = caja_idx
+	var mc := ArrayMesh.new()
+	mc.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, a3)
+	mc.surface_set_material(0, m.surface_get_material(0))
+	var res: Dictionary = {"caja": mc, "ruedas": ruedas, "radio": radio}
+	_cache_partes[m.resource_path + str(m.get_instance_id())] = res
+	return res
+
+
+## Eje de la vía en la casilla `c`: (1,0) si sigue de este a oeste, (0,1) si de norte a sur (en una curva, el primero que tenga).
+func _eje_de_via(c: Vector2i) -> Vector2i:
+	if rieles.has(c + Vector2i(1, 0)) or rieles.has(c + Vector2i(-1, 0)):
+		if not (rieles.has(c + Vector2i(0, 1)) or rieles.has(c + Vector2i(0, -1))):
+			return Vector2i(1, 0)
+	if rieles.has(c + Vector2i(0, 1)) or rieles.has(c + Vector2i(0, -1)):
+		return Vector2i(0, 1)
+	return Vector2i(1, 0)
+
+
+## El giro del modelo (rueda a lo largo de su X) para ir por un eje: 0 a lo largo de X, 90° a lo largo de Z. Es simétrico: 0 y 180° valen igual.
+static func _yaw_de(d: Vector2i) -> float:
+	return 0.0 if d.x != 0 else PI * 0.5
+
+
+# --- movimiento a la vista: giro, ruedas y sonido (24/11, playtest de Pablo) ---------------------------------------------
+
+const T_GIRO_CURVA: float = 0.18              ## s que tarda en orientarse al tomar una curva
+const VEL_SONIDO_MIN: float = 0.08            ## u/s por debajo de las cuales se calla la rodadura
+var _giro: Node3D = null
+var _ruedas: Array = []
+var _radio_rueda: float = 0.14
+var _angulo_ruedas: float = 0.0
+var _pos_antes: Vector3 = Vector3.ZERO
+var _rodadura: AudioStreamPlayer3D = null
+var _t_quieta: float = 0.0
+var _dir_antes: Vector2i = Vector2i.ZERO
+
+
+func _process(delta: float) -> void:
+	super._process(delta)
+	_animar(delta)
+
+
+func _animar(delta: float) -> void:
+	if delta <= 0.0 or not is_inside_tree():
+		return
+	var ahora: Vector3 = global_position
+	var paso: Vector3 = ahora - _pos_antes
+	_pos_antes = ahora
+	paso.y = 0.0
+	var vel: float = paso.length() / delta
+	# Orientación: hacia donde va (en marcha) o según la vía de su casilla (quieta). Ángulo más corto, módulo 180°.
+	if _giro != null:
+		var objetivo: float = _yaw_de(_dir) if moviendo and _dir != Vector2i.ZERO else _yaw_de(_eje_de_via(celda))
+		var dif: float = wrapf(objetivo - _giro.rotation.y, -PI * 0.5, PI * 0.5)
+		_giro.rotation.y += dif * clampf(delta / T_GIRO_CURVA, 0.0, 1.0)
+		# Ruedas: giran lo que avanza a lo largo del eje del modelo (en contra si va hacia atrás).
+		if not _ruedas.is_empty() and vel > 0.001:
+			var eje: Vector3 = _giro.global_transform.basis.x.normalized()
+			_angulo_ruedas -= paso.dot(eje) / maxf(_radio_rueda, 0.01)
+			for piv in _ruedas:
+				(piv as Node3D).rotation.z = _angulo_ruedas
+	# Sonido: la rodadura metálica en bucle mientras se mueve, con el tono y el volumen de la velocidad; un chirrido al cambiar de dirección (curva o arranque).
+	if vel > VEL_SONIDO_MIN:
+		_t_quieta = 0.0
+		if _rodadura == null or not is_instance_valid(_rodadura):
+			_rodadura = Sfx3D.ambiente(self, "vagoneta_rueda")
+			Sfx3D.play(self, "vagoneta_chirrido", -4.0)
+		if _rodadura != null and is_instance_valid(_rodadura):
+			_rodadura.pitch_scale = clampf(0.7 + vel * 0.12, 0.7, 1.9)
+			_rodadura.volume_db = float(Sfx3D.AMBIENTES["vagoneta_rueda"]["db"]) + clampf(linear_to_db(clampf(vel / 3.0, 0.25, 1.0)), -12.0, 0.0)
+		if moviendo and _dir_antes != Vector2i.ZERO and _dir != _dir_antes:
+			Sfx3D.play(self, "vagoneta_chirrido")
+	else:
+		_t_quieta += delta
+		if _t_quieta > 0.12 and _rodadura != null:
+			Sfx3D.parar(_rodadura)
+			_rodadura = null
+	if moviendo:
+		_dir_antes = _dir
+	elif _t_quieta > 0.12:
+		_dir_antes = Vector2i.ZERO
+
+
+## El traqueteo: la rueda pasa una junta de raíl en cada casilla.
+func _acabar_casilla() -> void:
+	super._acabar_casilla()
+	if rodando:
+		_dir = _siguiente(celda, _dir)
+	Sfx3D.play(self, "vagoneta_junta", 0.0 if rodando else -5.0, 1.15 if rodando else 0.9)
+
+
+## Empujada a mano tampoco suena a piedra arrastrada (el «arrastre» del bloque): suena su rodadura (`_animar`).
+func empujar(dir: Vector2i, con_jugadora: bool = false, impulso: bool = false) -> bool:
+	var ok: bool = super.empujar(dir, con_jugadora, impulso)
+	if ok and _sonido != null:
+		Sfx3D.parar(_sonido)
+		_sonido = null
+	return ok
 
 
 func _poner_caja_madera() -> void:
@@ -181,12 +386,6 @@ func _libre_mas_alla() -> bool:
 	return _casilla_libre(_destino + d, _destino)
 
 
-func _acabar_casilla() -> void:
-	super._acabar_casilla()
-	if rodando:
-		_dir = _siguiente(celda, _dir)
-
-
 func _es_lento() -> bool:
 	return not rodando
 
@@ -215,7 +414,7 @@ func _parar() -> void:
 	choques += 1
 	if muro != null and not muro.roto_ya:
 		muro.romper()
-	Sfx.play(self, "clavar")
+	Sfx3D.play(self, "vagoneta_choque")
 	if get_parent() is Node3D:
 		VfxPuzle3D.polvo(get_parent() as Node3D, global_position + Vector3(0.0, 0.1, 0.0), 0.5)
 	choca.emit(delante)

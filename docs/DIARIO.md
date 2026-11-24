@@ -6177,3 +6177,24 @@ Pablo: «crea semillas con los puzles a validar; conforme los playtestee te digo
   - `tools/validacion_puzles.py alta` las pone al día; `sincronizar` lleva decision_pablo y nota_pablo a las plantillas.
   - Probado de ida y vuelta, y la hoja restaurada. El resto de la hoja no cambia (comparado pestaña a pestaña).
 - **Pruebas:** los 7 niveles cargan sin avisos de Puzle3D. `escenario_catalogo_nuevos` (con «solo aceptados»), `escenario_catalogo_puzles` y `prueba_generador_mapas`: 0 fallos.
+
+### 24/11/2026 · aviso de contexto PUZLES · vagoneta: orientada a la vía, ruedas que giran y sonido metálico
+Pablo, playtest de PtVagonetas: «la vagoneta no puede ir así: las ruedas deben ir paralelas a las vías; anima las ruedas y dales sonido metálico al circular».
+- **`objetos/vagoneta_3d.gd`:**
+  - **Malla partida:** el modelo `lost_trolley_a` es una sola malla, y sus ruedas y ejes son islas sueltas dentro de ella. Se recortan una vez (caché): una malla de la caja y 6 piezas que giran (4 ruedas y 2 ejes), cada una con el pivote en su centro.
+  - **Orientación:** el modelo rueda a lo largo de su X. Va girado según la vía de su casilla (0° este-oeste, 90° norte-sur) y, en marcha, según su dirección; en las curvas se orienta en 0,18 s.
+  - **Ruedas:** giran lo que avanza la vagoneta (ángulo = distancia / radio de rueda).
+  - **Sonido:**
+    - bucle `vagoneta_rueda` con tono y volumen según la velocidad;
+    - `vagoneta_junta` (traqueteo) en cada casilla;
+    - `vagoneta_chirrido` al arrancar y en cada curva;
+    - `vagoneta_choque` (hierro) al chocar rodando;
+    - empujada a mano ya no suena el arrastre de piedra.
+- **Audio:**
+  - `audio/vagoneta_rueda_loop.wav`, sintetizado con `tools/gen_vagoneta_rueda.py`: retumbo, metal a cada vuelta de rueda y chirrido de pestaña; bucle de 2 s sin costura.
+  - `kenney_riel_0..2` y `kenney_vagoneta_choque_0..1`, de Kenney Impact (CC0), en `audio/LICENCIAS.md`.
+  - Entradas nuevas en `nucleo/sfx_3d.gd`.
+- **Pruebas:**
+  - `captura_vagoneta.gd` (nueva, con ventana), 0 fallos: girada 90° en la vía norte-sur y 0° en el tramo este-oeste tras la curva; 6 piezas que giran (unos 16 rad por casilla); la rodadura suena al empujarla; lanzada rompe el muro. Fotos en `docs/capturas/vagoneta/`.
+  - `escenario_catalogo_nuevos`: 0 fallos.
+- **Pendiente de ver:** en las curvas la vía se dibuja como dos tramos que se cruzan, no como una curva. Sin oír en el juego: el sonido es para afinar de oído (dB en `Sfx3D`).

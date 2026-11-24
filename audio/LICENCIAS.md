@@ -59,6 +59,8 @@ con `Sfx.GRABADOS = false` suena ése).
 | `kenney_cofre_tapa_0..2.ogg` | `impactWood_medium_000..002` | Kenney · Impact Sounds |
 | `kenney_golpe_piedra_0..2.ogg` | `impactMining_000..002` | Kenney · Impact Sounds |
 | `kenney_golpe_carne_0..2.ogg` | `impactPunch_medium_000..002` | Kenney · Impact Sounds |
+| `kenney_riel_0..2.ogg` | `impactMetal_light_000..002` (24/11: la junta de raíl de la vagoneta) | Kenney · Impact Sounds |
+| `kenney_vagoneta_choque_0.ogg`, `kenney_vagoneta_choque_1.ogg` | `impactMetal_heavy_000`, `impactMetal_heavy_002` (24/11: la vagoneta que choca) | Kenney · Impact Sounds |
 | `kenney_clavar_0.ogg`, `kenney_clavar_1.ogg` | `impactPunch_heavy_000`, `impactWood_heavy_000` | Kenney · Impact Sounds |
 | `kenney_paso_golem_0..3.ogg` | `footstep_concrete_000..003` (tono ×0,6 en el juego) | Kenney · Impact Sounds |
 | `kenney_paso_goblin_0..3.ogg` | `footstep_grass_000..002`, `footstep_wood_000` (tono ×1,2 en el juego) | Kenney · Impact Sounds |
@@ -66,6 +68,11 @@ con `Sfx.GRABADOS = false` suena ése).
 | `oga_gato_ronroneo_loop.wav` | `cat_purractive_loop.wav` | «cat purr meow» · https://opengameart.org/content/cat-purr-meow |
 | `fs_pluma_pergamino.mp3` | `pluma_pergamino_brktkrgll.mp3` (Freesound 856167, previsualización HQ) | brktkrgll · https://freesound.org/people/brktkrgll/sounds/856167/ |
 | `fs_paginas_bucle.mp3` | `paginas_P_Chester.mp3` (Freesound 465260, previsualización HQ) | P_Chester · https://freesound.org/people/P_Chester/sounds/465260/ |
+
+## Sintetizado — `tools/gen_vagoneta_rueda.py` (24/11/2026)
+
+`vagoneta_rueda_loop.wav`: la rodadura metálica de la vagoneta sobre los raíles (retumbo, parciales de metal a cada vuelta de rueda y chirrido de
+pestaña), en bucle de 2 s sin costura. Por código, sin muestras: no hay licencia que atribuir. Semilla fija.
 
 ## Sintetizados — `tools/gen_sonidos_ambiente.py`
 
