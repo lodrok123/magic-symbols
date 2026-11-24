@@ -111,6 +111,13 @@ func _escenario() -> void:
 			if not Terreno3D.es_vacio(c) or Terreno3D.pisable(c, 0, true, 1, true):
 				mal_hueco += 1
 		_ok("5 el precipicio del paso de tierra es vacío y no se pisa en el juego (%d casillas)" % hueco.size(), not hueco.is_empty() and mal_hueco == 0, "%d mal" % mal_hueco)
+	# 5c · Su aspecto (Precipicio3D): paredes y fondo en el mapa con precipicio; nada en los demás.
+	var pr: Precipicio3D = maqueta.get_node_or_null("Precipicio") as Precipicio3D
+	if hueco.is_empty():
+		_ok("5 sin precipicio la maqueta no monta paredes de precipicio", pr == null)
+	else:
+		_ok("5 la maqueta monta las paredes y el fondo del precipicio", pr != null and pr.n_caras > 0 and pr.n_huecos == hueco.size(),
+			"%d caras, %d huecos" % [pr.n_caras, pr.n_huecos] if pr != null else "sin nodo")
 	await _camara_por_sala(m)
 	maqueta.queue_free()
 	await avanzar(5)

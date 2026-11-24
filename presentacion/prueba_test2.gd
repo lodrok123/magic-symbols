@@ -2101,6 +2101,7 @@ func _construir_suelo(dibujar: bool = true) -> void:
 	_construir_lecho_rio(agua)
 	_construir_bordes_agua(mat_lado)
 	_construir_bisel_mapa()
+	_construir_precipicio()
 	reconstruir_bordes_cauce()      # labio cauce
 
 
@@ -2681,6 +2682,28 @@ func _construir_bisel_mapa() -> void:
 	_bordes_mapa.sobresale_labio = BORDE_LABIO_SOBRESALE
 	add_child(_bordes_mapa)
 	_bordes_mapa.construir(bordes, S, _mat_lado_suelo, _mat_suelo)
+
+
+## 24/11 · PRECIPICIO: las casillas « » de DENTRO del mapa (el paso de tierra de los bosques generados) llevan paredes de roca que bajan a
+## la oscuridad y un fondo negro (`Precipicio3D`). Encima, el labio del borde (`_construir_bisel_mapa`) y el costado del bloque, como siempre.
+var _precipicio: Precipicio3D = null
+
+
+func _construir_precipicio() -> void:
+	if _precipicio != null and is_instance_valid(_precipicio):
+		_precipicio.queue_free()
+	_precipicio = null
+	var huecos: Array[Vector2i] = Precipicio3D.huecos_interiores(_lado, _letra)
+	if huecos.is_empty():
+		return
+	_precipicio = Precipicio3D.new()
+	_precipicio.name = "Precipicio"
+	add_child(_precipicio)
+	var cueva: bool = estilo == "cueva"
+	# La roca: en cueva, la de la pared del foso; fuera, la del costado de los bloques (`cuerpo.png`), algo más gris: la tierra sigue en roca.
+	var ruta: String = SUELO + ("pared_foso_cueva.png" if cueva else "cuerpo.png")
+	var tinte: Color = Color(1.0, 0.98, 1.02) if cueva else Color(0.8, 0.74, 0.7)
+	_precipicio.construir(huecos, _letra, _centro_celda, S, _tex(ruta), tinte * OSCURECER_SUELO)
 
 
 ## V4/B2: pide la imagen del estado del juego (`Mundo3D.textura_estados()`: se rehace sola si algo cambió y es el mismo objeto de siempre) y se la da
