@@ -81,7 +81,7 @@ static func parametros_defecto() -> Dictionary:
 		"n_salas": 9, "lado_min": 4, "lado_max": 8, "simetria": true, "pasillos": 30, "bucles": 30,
 		# «bosque» (24/11, Pablo: «primera pasada de los bosques con el generador, como espacio abierto»).
 		"claros": 6, "tamano_claro": 5, "ancho_camino": 2, "sinuosidad": 50, "bucles_claros": 30, "apertura": 55, "rio": "ns", "ancho_rio": 2,
-		"hierba_alta": 15, "lados_salida": "", "paso_tierra": 0,
+		"hierba_alta": 15, "lados_salida": "", "paso_tierra": 0, "ancho_precipicio": 2,
 		# contenido
 		"enemigos": 1.0, "arqueros": 30, "jarrones": 1.0, "braseros": 1.0, "charcas": 20,
 		"tesoro": true, "llave": true, "salas_cerradas": 40,
@@ -175,7 +175,7 @@ var _letras_extra: String = ""
 var _b_salas: Array = []                ## por cada destino de `salida_a`, el id de su claro (-1 = que lo elija `_poblar` como siempre); [0] es el del inicio
 var _b_lados: Array = []                ## por cada destino, el lado del borde donde va su salida: "n" | "s" | "e" | "o" | ""
 var _suelo_bosque: Dictionary = {}      ## casilla → letra de suelo del bosque (g camino, . claro, , hierba, v hierba alta, R vado)
-var muros_tierra: Array = []            ## las casillas con MURO AGRIETADO del paso de tierra (se rompen con tierra; para el resto, suelo)
+var precipicio: Array = []              ## las casillas de VACÍO del paso de tierra (letra « »: sin suelo; se cruzan con el puente de tierra tendido desde el borde). Para el resto del generador son suelo ocupado
 
 
 func generar(parametros: Dictionary = {}, retoques: Dictionary = {}, enlaces_mano: Dictionary = {}, puzles_mano: Dictionary = {}, movidos: Dictionary = {},
@@ -215,7 +215,7 @@ func generar(parametros: Dictionary = {}, retoques: Dictionary = {}, enlaces_man
 	_b_salas = []
 	_b_lados = []
 	_suelo_bosque = {}
-	muros_tierra = []
+	precipicio = []
 	_tierra_puntos = []
 	match String(p["algoritmo"]):
 		"cueva":
@@ -232,19 +232,17 @@ func generar(parametros: Dictionary = {}, retoques: Dictionary = {}, enlaces_man
 	_cerrar_borde()
 	_quitar_inalcanzable()
 	_asegurar_tierra_conectada()
-	# Red de seguridad: si un retoque o el tapado de zonas sueltas dejó algún muro del paso de tierra sin suelo, se quita el paso entero y se avisa.
-	var muro_perdido: bool = false
-	for c in muros_tierra:
-		muro_perdido = muro_perdido or _tipo(c) != SUELO
-	if muro_perdido:
-		lineas = PackedStringArray(Array(lineas).filter(func(l: String) -> bool: return not l.begins_with("; pieza muro_tierra_")))
-		objetos = objetos.filter(func(o: Dictionary) -> bool: return String(o["tipo"]) != "muro_tierra")
-		for c in muros_tierra:
+	# Red de seguridad: si un retoque o el tapado de zonas sueltas pisó alguna casilla del precipicio, se quita el paso entero y se avisa.
+	var hueco_perdido: bool = false
+	for c in precipicio:
+		hueco_perdido = hueco_perdido or _tipo(c) != SUELO
+	if hueco_perdido:
+		for c in precipicio:
 			_ocupada.erase(c)
-		muros_tierra = []
-		avisos.append("El paso de tierra se ha quitado: alguno de sus muros quedó sin suelo debajo (por un retoque o una zona suelta). Ponlo a mano.")
+		precipicio = []
+		avisos.append("El paso de tierra se ha quitado: alguna casilla del precipicio quedó tapada (por un retoque o una zona suelta). Ponlo a mano.")
 	if not _tierra_cierra():
-		avisos.append("El paso de tierra se puede rodear: otro camino (o un vado del río) llega a esa salida sin romper sus muros. Retócalo a mano pintando árboles alrededor.")
+		avisos.append("El paso de tierra se puede rodear: otro camino (o un vado del río) llega a esa salida sin cruzar el precipicio. Retócalo a mano pintando árboles alrededor.")
 	_revisar_salas_y_puertas()
 	_poblar()
 	return _resultado()
@@ -1171,7 +1169,7 @@ func _gen_bosque() -> void:
 					_suelo_bosque[c] = "v"
 	# 8 · El paso de tierra, al final (que nada lo vuelva a abrir).
 	if k_tierra >= 1 and rutas.has(k_tierra):
-		_poner_muro_tierra(rutas[k_tierra], centros[k_tierra], r)
+		_poner_precipicio(rutas[k_tierra], centros[k_tierra], r)
 
 
 ## La menor distancia de `c` a los centros que ya hay (INF si no hay ninguno).
@@ -1267,12 +1265,14 @@ func _suelo_cerca(c: Vector2i) -> Vector2i:
 	return mejor
 
 
-## EL PASO DE TIERRA: en el último tramo del camino de esa salida que ya está fuera de los dos claros, una fila de MUROS AGRIETADOS
-## (`; pieza … muro`, MuroAgrietado3D: los rompen dos impactos de tierra o una explosión) atravesando el camino, con árboles a los lados.
-## Si aún se puede rodear, se cierran con árboles más casillas a los lados hasta que, sin romper los muros, desde el claro de dentro no se
-## llega al de la salida. Los muros son suelo para el resto del generador (rotos, se pasa), pero nada más se pone encima.
-## 24/11: no es un foso de agua porque el puente de tierra del juego (barrera + línea) se para en la orilla: no se tiende sobre el agua.
-func _poner_muro_tierra(ruta: Array, centro_fin: Vector2i, r: int) -> void:
+## EL PASO DE TIERRA (24/11, Pablo: «el agua es un muro natural; que sea un PRECIPICIO lo que te permita hacer un puente, y el puente se crea
+## DESDE la tierra que existe, no de la nada»): en el último tramo del camino de esa salida que ya está fuera de los dos claros, una franja de
+## VACÍO (letra « », sin suelo) de `ancho_precipicio` casillas de hondo que corta el camino de lado a lado. Se cruza con el puente de tierra
+## (barrera + líneas) lanzado desde la casilla del borde: nace sobre ese suelo y se tiende sobre el vacío (eso último es trabajo de HECHIZOS).
+## Si aún se puede rodear, la grieta se alarga a los lados (solo por suelo: los árboles la frenan) hasta que, sin cruzarla, desde el claro de
+## dentro no se llega al de la salida. Para el resto del generador las casillas del precipicio son suelo ocupado (nada se pone encima) y al
+## escribir el plano salen como « ».
+func _poner_precipicio(ruta: Array, centro_fin: Vector2i, r: int) -> void:
 	var origen: Vector2i = ruta[0]
 	# Los sitios donde probar, del más cercano a la salida hacia dentro: los que ya están fuera de los dos claros y, si no hay, la mitad del camino.
 	var candidatos: Array = []
@@ -1283,75 +1283,78 @@ func _poner_muro_tierra(ruta: Array, centro_fin: Vector2i, r: int) -> void:
 	if candidatos.is_empty() and ruta.size() >= 6:
 		candidatos.append(ruta.size() / 2)              # claros muy juntos: a mitad de camino
 	if candidatos.is_empty():
-		avisos.append("El camino de la salida del paso de tierra es demasiado corto para los muros: aleja su claro o agranda el mapa.")
+		avisos.append("El camino de la salida del paso de tierra es demasiado corto para el precipicio: aleja su claro o agranda el mapa.")
 		return
 	var ancho: int = clampi(int(p["ancho_camino"]), 1, 4)
-	var s_min: int = -(ancho - 1) / 2                  # lo que ocupa el camino de lado a lado (como `_brocha`): ahí van los muros
+	var s_min: int = -(ancho - 1) / 2                  # lo que ocupa el camino de lado a lado (como `_brocha`)
 	var s_max: int = ancho / 2
+	var hondo: int = clampi(int(p.get("ancho_precipicio", 2)), 1, 5)
 	_tierra_puntos = [_suelo_cerca(origen), _suelo_cerca(centro_fin)]
 	var bien: bool = false
 	var c0: Vector2i = ruta[int(candidatos[0])]
-	for k in range(0, mini(candidatos.size(), 24), 3):            # cada 3 casillas, como mucho 8 sitios
-		bien = _cortar_con_muros(ruta, int(candidatos[k]), s_min, s_max)
+	for k in range(0, mini(candidatos.size(), 24), 2):            # cada 2 casillas, como mucho 12 sitios
+		bien = _cortar_con_precipicio(ruta, int(candidatos[k]), s_min, s_max, hondo)
 		if bien:
 			break
 	if not bien:
-		avisos.append("No se ha podido cortar el camino de la salida del paso de tierra cerca de (%d, %d): ponlo a mano (pieza muro)." % [c0.x, c0.y])
-		return
-	for i in range(muros_tierra.size()):
-		var c: Vector2i = muros_tierra[i]
-		var mid: String = "muro_tierra_%d" % (i + 1)
-		_objeto(c, "muro_tierra", mid)
-		lineas.append("; pieza %s muro %d %d golpes=2" % [mid, c.x, c.y])
+		avisos.append("No se ha podido cortar con un precipicio el camino de la salida del paso de tierra cerca de (%d, %d): ponlo a mano (letra espacio)." % [c0.x, c0.y])
 
 
-## Prueba a cortar el camino en `ruta[i0]` con una fila de muros (en el eje por el que avanza y, si no sale, en el otro). Deja todo como
-## estaba si no lo consigue.
-func _cortar_con_muros(ruta: Array, i0: int, s_min: int, s_max: int) -> bool:
+## Prueba a cortar el camino en `ruta[i0]` con una franja de vacío de `hondo` casillas (a lo largo del camino) en el eje por el que avanza y,
+## si no sale, en el otro. Deja todo como estaba si no lo consigue.
+func _cortar_con_precipicio(ruta: Array, i0: int, _s_min: int, s_max: int, hondo: int) -> bool:
 	var d: Vector2i = (ruta[mini(i0 + 3, ruta.size() - 1)] as Vector2i) - (ruta[maxi(i0 - 3, 0)] as Vector2i)
 	var ejes: Array = [Vector2i(1, 0), Vector2i(0, 1)] if absi(d.x) >= absi(d.y) else [Vector2i(0, 1), Vector2i(1, 0)]
 	var c0: Vector2i = ruta[i0]
 	var bien: bool = false
-	for eje in ejes:
-		var trav: Vector2i = Vector2i((eje as Vector2i).y, (eje as Vector2i).x)
-		var foto: Array = [g.duplicate(), _suelo_bosque.duplicate(), _ocupada.duplicate()]
-		muros_tierra = []
-		for lado in range(s_max + 1, 12):
+	for e in ejes:
+		var eje: Vector2i = e
+		var trav: Vector2i = Vector2i(eje.y, eje.x)
+		var foto: Array = [_suelo_bosque.duplicate(), _ocupada.duplicate()]
+		precipicio = []
+		var hay: Dictionary = {}
+		for lado in range(s_max + 1, 14):
 			for s in range(-lado, lado + 1):
-				var c: Vector2i = c0 + trav * s
-				if c.x < 1 or c.y < 1 or c.x > w - 2 or c.y > h - 2 or _tipo(c) != SUELO or muros_tierra.has(c):
-					continue
-				if s >= s_min and s <= s_max:
-					muros_tierra.append(c)
+				for j in range(hondo):
+					var c: Vector2i = c0 + trav * s + eje * j
+					if c.x < 1 or c.y < 1 or c.x > w - 2 or c.y > h - 2 or _tipo(c) != SUELO or hay.has(c):
+						continue
+					hay[c] = true
+					precipicio.append(c)
 					_ocupar(c)
-				else:
-					g[c.y * w + c.x] = MURO                    # a los lados, árboles: que no se rodee
 					_suelo_bosque.erase(c)
 			if _tierra_cierra():
 				break
-		# Bien cortado: no se rodea y cada muro tiene suelo delante y detrás (el camino lo atraviesa, no va a lo largo de la fila de muros).
-		bien = not muros_tierra.is_empty() and _tierra_cierra()
-		for c in muros_tierra:
-			bien = bien and _tipo((c as Vector2i) - eje) == SUELO and _tipo((c as Vector2i) + eje) == SUELO
+		# Bien cortado: no se rodea y hay al menos un sitio donde el hueco mide justo `hondo` en línea recta con suelo firme a los dos lados
+		# (desde donde nace el puente y donde llega). En un camino que baja en escalera no todo su ancho cruza recto: basta con uno.
+		var cruce: bool = false
+		for s in range(-14, 15):
+			var base: Vector2i = c0 + trav * s
+			var antes: Vector2i = base - eje
+			var despues: Vector2i = base + eje * hondo
+			var ok: bool = _tipo(antes) == SUELO and not hay.has(antes) and _tipo(despues) == SUELO and not hay.has(despues)
+			for j in range(hondo):
+				ok = ok and hay.has(base + eje * j)
+			cruce = cruce or ok
+		bien = not precipicio.is_empty() and _tierra_cierra() and cruce
 		if bien:
 			break
-		g = foto[0]
-		_suelo_bosque = foto[1]
-		_ocupada = foto[2]
-		muros_tierra = []
+		_suelo_bosque = foto[0]
+		_ocupada = foto[1]
+		precipicio = []
 	return bien
 
 
-## ¿Los muros cortan de verdad? Sin romperlos, desde el claro de dentro no se llega al de la salida.
+## ¿El precipicio corta de verdad? Sin cruzarlo, desde el claro de dentro no se llega al de la salida.
 func _tierra_cierra() -> bool:
-	if muros_tierra.is_empty() or _tierra_puntos.size() < 2:
+	if precipicio.is_empty() or _tierra_puntos.size() < 2:
 		return true
 	var desde: Vector2i = _tierra_puntos[0]
 	var hasta: Vector2i = _tierra_puntos[1]
 	if desde.x < 0 or hasta.x < 0:
 		return true
 	var bloq: Dictionary = {}
-	for c in muros_tierra:
+	for c in precipicio:
 		bloq[c] = true
 	return _distancias(desde, bloq)[hasta.y * w + hasta.x] < 0
 
@@ -2847,6 +2850,9 @@ func _intentar_barrera_b(paso: Dictionary, n: int, vivas: Array, cueva: bool) ->
 			for cb0 in b["celdas"]:
 				if (c as Vector2i).distance_squared_to(cb0) <= 8:
 					return false
+		for cp in precipicio:                        # 24/11: ni junto al precipicio del paso de tierra (su agua dejaría el puente sin orilla donde llegar)
+			if (c as Vector2i).distance_squared_to(cp) <= 16:
+				return false
 		bloq[c] = true
 	# ¿Corta de verdad? Tiene que dejar bastante mapa a cada lado.
 	var base: PackedInt32Array = _distancias(inicio, solo_llave)
@@ -3053,10 +3059,15 @@ func _salas_camara() -> Array:
 
 func _resultado() -> Dictionary:
 	var filas: PackedStringArray = PackedStringArray()
+	var hueco: Dictionary = {}
+	for c in precipicio:
+		hueco[c] = true
+	if not hueco.is_empty() and not _letras_extra.contains(" "):
+		_letras_extra += " "                       # el precipicio del paso de tierra: casillas sin suelo
 	for y in range(h):
 		var fila: String = ""
 		for x in range(w):
-			fila += String(letras.get(Vector2i(x, y), LETRA[g[y * w + x]]))
+			fila += " " if hueco.has(Vector2i(x, y)) else String(letras.get(Vector2i(x, y), LETRA[g[y * w + x]]))
 		filas.append(fila)
 	var n_enem: int = 0
 	var n_cofres: int = 0
@@ -3077,7 +3088,7 @@ func _resultado() -> Dictionary:
 		"salas": _vivas(), "puertas": puertas, "objetos": objetos, "lineas": lineas, "avisos": avisos,
 		"arqueros": bool(p.get("_arqueros", false)), "retoques": _retoques,
 		"errores": errores, "enlaces": enlaces, "enlaces_mano": _enlaces_mano, "activadores": _activadores.keys(), "barreras": _barreras.size(),
-		"puzles": puzles_puestos, "puzles_mano": _puzles_mano, "cruzables": _puentes.keys(), "letras_extra": _letras_extra, "muros_tierra": muros_tierra,
+		"puzles": puzles_puestos, "puzles_mano": _puzles_mano, "cruzables": _puentes.keys(), "letras_extra": _letras_extra, "precipicio": precipicio,
 		"movidos": movidos_hechos, "movidos_pedidos": _movidos_pedidos, "anadidos": anadidos_hechos, "apariciones": apariciones_hechas,
 		"stats": {"salas": _vivas().size(), "puertas": puertas.size(), "enemigos": n_enem, "cofres": n_cofres, "jarrones": n_jarrones,
 			"suelo": pisable, "agua": g.count(AGUA), "ocupacion": pisable / float(maxi(1, w * h))},
@@ -3136,7 +3147,7 @@ func _poner_puzle(s: Dictionary, cid: String, nv: String, de_barrera: bool = fal
 		return "no está en el catálogo."
 	var e: Dictionary = cat[cid]
 	var r: Rect2i = s["rect"]
-	for c in muros_tierra:                             # bosque: una plantilla podría tapiar los muros del paso de tierra
+	for c in precipicio:                               # bosque: una plantilla podría tapar el precipicio del paso de tierra
 		if r.grow(2).has_point(c):
 			return "la sala toca el paso de tierra."
 	var filas: Array = (e["filas"] as Array).duplicate()

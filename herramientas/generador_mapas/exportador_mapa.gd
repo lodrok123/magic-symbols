@@ -83,9 +83,9 @@ static func texto_mapa(m: Dictionary) -> String:
 	l.append("; # pared · . suelo · ~ agua honda · S inicio · W goblin guerrero · A goblin arquero · T brasero · g tierra pisada (pasillos) · R losas (o basalto bajo la lava) · G elemental del bosque")
 	if String(p["algoritmo"]) == "bosque":
 		l.append("; bosque: g camino de tierra · . claro · , hierba corta · v hierba alta (arde) · R vado de piedras · ~ río")
-		if not (m.get("muros_tierra", []) as Array).is_empty():
-			var f0: Vector2i = (m["muros_tierra"] as Array)[0]
-			l.append("; PASO DE TIERRA: %d muros agrietados desde (%d, %d) (piezas muro_tierra_*): los rompen dos golpes de tierra o una explosión." % [(m["muros_tierra"] as Array).size(), f0.x, f0.y])
+		if not (m.get("precipicio", []) as Array).is_empty():
+			var f0: Vector2i = (m["precipicio"] as Array)[0]
+			l.append("; PASO DE TIERRA: precipicio de %d casillas (letra espacio, sin suelo) desde (%d, %d), %d de hondo en el camino: se cruza con el puente de tierra (barrera + líneas) lanzado desde el borde." % [(m["precipicio"] as Array).size(), f0.x, f0.y, int(p.get("ancho_precipicio", 2))])
 	var limpio: Dictionary = {}
 	for k in p:
 		if not String(k).begins_with("_"):

@@ -70,8 +70,8 @@ func _initialize() -> void:
 ##   · válido y de una pieza (lo mira `_revisar`), sin cerrojos ni salas de cámara;
 ##   · cada salida pegada a SU borde (la casilla de la salida está en la fila o columna 1 de ese lado), con su llegada al lado;
 ##   · el suelo del bosque: camino de tierra (g), hierba corta (,), hierba alta (v) y el río (~) de norte a sur con algún vado de piedras (R);
-##   · el paso de tierra: piezas `muro` sobre suelo en el camino de esa salida; SIN romperlas no se llega a la salida desde el inicio y
-##     rompiéndolas sí (andando: el agua no se nada);
+##   · el paso de tierra: un precipicio (casillas « » sin suelo) en el camino de esa salida; SIN cruzarlo no se llega a la salida desde el
+##     inicio y con el puente sí (andando: el agua no se nada), y hay un tramo de 2 de vacío entre suelo y suelo donde tender el puente;
 ##   · los parámetros raros (lado que no existe, paso de tierra en la salida 1) avisan y no rompen nada.
 func _bosque() -> void:
 	var antes: int = _fallos
@@ -102,16 +102,14 @@ func _bosque() -> void:
 		var todo: String = "".join(filas)
 		_ok(todo.contains("g") and todo.contains(",") and todo.contains("v") and todo.contains("~"), "hay camino, hierba corta, hierba alta y río: " + quien)
 		con_vado += 1 if todo.contains("R") else 0
-		# El paso de tierra.
-		var celdas_muro: Dictionary = {}
-		for linea in m["lineas"]:
-			var t2: PackedStringArray = String(linea).substr(1).strip_edges().split(" ", false)
-			if t2.size() >= 5 and t2[2] == "muro" and t2[1].begins_with("muro_tierra"):
-				var c: Vector2i = Vector2i(t2[3].to_int(), t2[4].to_int())
-				celdas_muro[c] = true
-				_ok(filas[c.y][c.x] != "#" and filas[c.y][c.x] != "~", "el muro de tierra está sobre suelo: " + quien, str(c))
-		muros += celdas_muro.size()
-		_ok(not celdas_muro.is_empty(), "hay muros en el paso de tierra: " + quien)
+		# El paso de tierra: un precipicio (casillas « », sin suelo) con suelo firme a los dos lados del camino.
+		var hueco: Dictionary = {}
+		for c in m["precipicio"]:
+			hueco[c] = true
+			_ok(filas[(c as Vector2i).y][(c as Vector2i).x] == " ", "el precipicio sale en el plano como espacio: " + quien, str(c))
+		muros += hueco.size()
+		_ok(not hueco.is_empty(), "hay precipicio en el paso de tierra: " + quien)
+		_ok(Exportador.validar(m).is_empty(), "el mapa con precipicio pasa la validación del exportador: " + quien, str(Exportador.validar(m)))
 		var sal2: Vector2i = Vector2i(-1, -1)
 		for linea in m["lineas"]:
 			var t3: PackedStringArray = String(linea).substr(1).strip_edges().split(" ", false)
@@ -121,8 +119,20 @@ func _bosque() -> void:
 		var puentes: Dictionary = {}                  # los puentes de las barreras se cruzan (los tiende su activador)
 		for c in m["cruzables"]:
 			puentes[c] = true
-		_ok(not _se_llega(filas, ini, sal2, celdas_muro, puentes), "sin romper los muros no se llega a la salida del paso de tierra: " + quien)
-		_ok(_se_llega(filas, ini, sal2, {}, puentes), "rompiéndolos, sí: " + quien)
+		_ok(not _se_llega(filas, ini, sal2, hueco, puentes), "sin puente no se cruza el precipicio hasta la salida del paso de tierra: " + quien)
+		_ok(_se_llega(filas, ini, sal2, {}, puentes), "con el puente, sí: " + quien)
+		# Desde algún borde del precipicio se tiende en línea recta un puente de `ancho_precipicio` casillas sobre el vacío que llega a suelo.
+		var tendible: bool = false
+		for c in hueco:
+			for d in [Vector2i(0, -1), Vector2i(1, 0), Vector2i(0, 1), Vector2i(-1, 0)]:
+				var borde: Vector2i = (c as Vector2i) - d
+				if hueco.has(borde) or filas[borde.y][borde.x] == "#" or filas[borde.y][borde.x] == "~":
+					continue
+				var fin: Vector2i = (c as Vector2i) + d * 2
+				var todo_hueco: bool = hueco.has((c as Vector2i) + d)
+				if todo_hueco and not hueco.has(fin) and filas[fin.y][fin.x] != "#" and filas[fin.y][fin.x] != "~":
+					tendible = true
+		_ok(tendible, "hay un tramo de 2 casillas de vacío entre suelo y suelo para el puente: " + quien)
 		_ok(Exportador.texto_mapa(m).contains("; PASO DE TIERRA:"), "el .txt explica el paso de tierra: " + quien)
 	_ok(con_vado >= 15, "el río suele tener vados donde lo cruza un camino", "%d de 25" % con_vado)
 	# Parámetros raros: avisan sin romper.
@@ -130,8 +140,8 @@ func _bosque() -> void:
 	var avisa: bool = false
 	for a in raro["avisos"]:
 		avisa = avisa or String(a).begins_with("El paso de tierra pide la salida número 1")
-	_ok(avisa and (raro["muros_tierra"] as Array).is_empty(), "el paso de tierra en la salida 1 avisa y no se pone")
-	_resumen("17 bosque abierto: 25 mapas con salidas en su borde, río (%d con vado) y paso de tierra (%d muros)" % [con_vado, muros], antes)
+	_ok(avisa and (raro["precipicio"] as Array).is_empty(), "el paso de tierra en la salida 1 avisa y no se pone")
+	_resumen("17 bosque abierto: 25 mapas con salidas en su borde, río (%d con vado) y paso de tierra (%d casillas de precipicio)" % [con_vado, muros], antes)
 
 
 ## ¿Se llega andando de `a` a `b`? Pared y agua no se cruzan (salvo el agua de `puentes`); `cerradas`, tampoco.

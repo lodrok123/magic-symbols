@@ -2691,6 +2691,9 @@ func _rechazo_anclaje_tierra(c: Vector2i) -> String:
 
 
 ## Se extiende por casillas contiguas de suelo firme en el eje dominante del apuntado.
+## 24/11 (Pablo: «el puente se crea DESDE la tierra que existe, no de la nada»): la primera casilla tiene que ser suelo firme, y desde ahí
+## el tramo SÍ se tiende sobre el VACÍO (precipicio, letra « ») a la altura de ese suelo, y sigue por suelo firme al otro lado. Sobre el agua
+## no: el río es un muro natural (la losa se para en la orilla).
 func celdas_plataforma_tierra(h: Hechizo, origen: Vector3, dir: Vector3) -> Array[Vector2i]:
 	var c: Vector2i = celda_de(origen)
 	var celdas: Array[Vector2i] = []
@@ -2706,6 +2709,9 @@ func celdas_plataforma_tierra(h: Hechizo, origen: Vector3, dir: Vector3) -> Arra
 	var base: float = y_pies(c)
 	for i in range(1, largo):
 		c += paso
+		if en_mapa(c) and Terreno3D.es_vacio(c) and not Terreno3D.plataformas_tierra.has(c):
+			celdas.append(c)             # sobre el precipicio: la losa sigue a la altura del borde del que nace
+			continue
 		if _rechazo_anclaje_tierra(c) != "" or not is_equal_approx(y_pies(c), base):
 			break
 		celdas.append(c)

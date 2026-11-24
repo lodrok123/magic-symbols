@@ -107,3 +107,25 @@ func _escenario() -> void:
 			lanzador.lanzar_ahora(datos, comienzo, dir) and Terreno3D.plataformas_tierra.size() == largo
 			and esperadas.all(func(c: Vector2i) -> bool: return Terreno3D.plataformas_tierra.has(c)))
 		lanzador._avanzar_caducidades(h.persiste + h.permanencia + 1.0)
+	# 24/11 (Pablo): el PRECIPICIO. Las dos casillas del medio del tramo de 4 pasan a ser vacío (letra « »): el puente nace en el suelo del
+	# borde (`primera`), se tiende sobre el vacío y llega al suelo del otro lado (`ancla`). Desde el vacío no nace nada.
+	var huecos: Array[Vector2i] = [primera + paso, primera + paso * 2]
+	var letras_antes: Array = []
+	for c in huecos:
+		letras_antes.append(Terreno3D.letra_de(c))
+		Terreno3D.poner_letra(c, " ")
+	_ok("el tramo del medio es precipicio (sin suelo)", Terreno3D.es_vacio(huecos[0]) and Terreno3D.es_vacio(huecos[1]) and not jugador._puede_estar(Terreno3D.centro_de(huecos[0], comienzo.y)))
+	_ok("desde el vacío no nace el puente (se crea desde la tierra que existe)",
+		lanzador.celdas_plataforma_tierra(h, Terreno3D.centro_de(huecos[0], comienzo.y), dir).is_empty())
+	var sobre_vacio: Array[Vector2i] = [primera, huecos[0], huecos[1], ancla]
+	_ok("desde el borde, el puente se tiende sobre el precipicio hasta el otro lado", lanzador.celdas_plataforma_tierra(h, comienzo, dir) == sobre_vacio,
+		str(lanzador.celdas_plataforma_tierra(h, comienzo, dir)))
+	lanzador.cooldown_left[0] = 0.0
+	jugador.tinta.actual = jugador.tinta.maxima
+	_ok("se lanza y cubre el vacío", lanzador.lanzar_ahora(datos, comienzo, dir) and Terreno3D.plataformas_tierra.has(huecos[0]) and Terreno3D.plataformas_tierra.has(huecos[1]))
+	_ok("sobre el precipicio se anda a la altura del borde", jugador._puede_estar(Terreno3D.centro_de(huecos[1], Terreno3D.y_pies(huecos[1])))
+		and is_equal_approx(Terreno3D.y_pies(huecos[1]), Terreno3D.y_pies(primera)))
+	lanzador._avanzar_caducidades(h.persiste + h.permanencia + 1.0)
+	_ok("al caducar, el precipicio vuelve a no tener suelo", not Terreno3D.plataformas_tierra.has(huecos[0]) and Terreno3D.es_vacio(huecos[0]))
+	for i in range(huecos.size()):
+		Terreno3D.poner_letra(huecos[i], String(letras_antes[i]))

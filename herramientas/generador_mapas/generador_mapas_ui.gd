@@ -41,14 +41,13 @@ const ICONOS: Dictionary = {
 	"puerta_goblin": ["y", Color(0.75, 0.35, 0.1), 1, "puerta goblin (arde)"], "torre_goblin": ["o", Color(0.55, 0.3, 0.15), 1, "torre goblin (arde)"],
 	"tienda_goblin": ["t", Color(0.5, 0.42, 0.3), 1, "tienda goblin"], "estandarte_goblin": ["V", Color(0.7, 0.2, 0.15), 1, "estandarte goblin"],
 	# 24/11: el bosque abierto.
-	"muro_tierra": ["M", Color(0.55, 0.45, 0.35), 1, "muro agrietado del paso de tierra (lo rompen dos golpes de tierra)"],
 }
 const TIPOS_ENEMIGO: Array[String] = ["guerrero", "arquero", "limo", "golem", "chaman", "mouro", "elemental"]
 const TIPOS_COFRE: Array[String] = ["cofre_tesoro", "cofre_llave", "cofre_comun", "cofre_epico", "cofre_legendario"]
 ## Cambiar uno de estos cambia la forma del mapa: los retoques pintados a mano dejan de tener sentido y se borran.
 const CLAVES_FORMA: Array[String] = ["algoritmo", "semilla", "ancho", "alto", "sala_min", "sala_max", "reparto", "densidad_salas", "puertas", "recto", "callejones",
 	"ancho_pasillo", "forma", "relleno", "silueta", "metodo", "octavas", "tamano_sala", "suavizados", "region_min", "agua", "n_salas", "lado_min", "lado_max", "simetria", "pasillos", "bucles",
-	"claros", "tamano_claro", "ancho_camino", "sinuosidad", "bucles_claros", "apertura", "hierba_alta", "rio", "ancho_rio", "lados_salida", "paso_tierra"]
+	"claros", "tamano_claro", "ancho_camino", "sinuosidad", "bucles_claros", "apertura", "hierba_alta", "rio", "ancho_rio", "lados_salida", "paso_tierra", "ancho_precipicio"]
 
 ## Los campos del panel. t: titulo | opcion | int | float | bool | texto. `alg`: solo se ve con ese algoritmo.
 const CAMPOS: Array = [
@@ -100,7 +99,9 @@ const CAMPOS: Array = [
 	{"k": "lados_salida", "r": "Lados de las salidas", "t": "texto", "alg": "bosque",
 		"a": "Uno por cada salida de «Salidas», en el mismo orden y separados por comas: n, s, e, o (o vacío / - = dentro del bosque).\nLa primera es la del inicio. Ejemplo con 4 salidas: s, o, s, e"},
 	{"k": "paso_tierra", "r": "Paso de tierra en la salida nº", "t": "int", "min": 0, "max": 9, "alg": "bosque",
-		"a": "0 = ninguno. Con 2, 3…: el camino de esa salida queda cortado por muros agrietados (letra M en la vista) que solo rompen\ndos golpes de tierra (o una explosión), con árboles a los lados para que no se rodee. La 1 no vale: es la del inicio.\nNo es un foso de agua porque el puente de tierra del juego no se tiende sobre el agua."},
+		"a": "0 = ninguno. Con 2, 3…: el camino de esa salida queda cortado por un PRECIPICIO (casillas sin suelo, en negro en la vista)\nque se alarga a los lados hasta que no se puede rodear. Se cruza con el puente de tierra (barrera + líneas) lanzado desde el borde.\nLa 1 no vale: es la del inicio."},
+	{"k": "ancho_precipicio", "r": "Hondo del precipicio (casillas)", "t": "int", "min": 1, "max": 5, "alg": "bosque",
+		"a": "Las casillas de vacío que hay que cruzar por el camino. El puente mide 1 + las líneas que lleve:\ncon 2 hacen falta barrera + 2 líneas."},
 	{"t": "titulo", "r": "CONTENIDO"},
 	{"k": "enemigos", "r": "Enemigos", "t": "float", "min": 0.0, "max": 4.0, "paso": 0.1, "a": "0 = ninguno; 1 = un goblin por cada ~22 casillas de sala (más en las lejanas); 5 por sala como mucho."},
 	{"k": "arqueros", "r": "Arqueros (%)", "t": "int", "min": 0, "max": 100, "paso": 5, "a": "Parte de los goblins que son arqueros (letra A) en vez de guerreros (W)."},
@@ -260,7 +261,7 @@ class Vista extends Control:
 			Color(0.8, 0.9, 0.75) if claro else C_TINTA)
 		# El terreno pintado: tierra pisada (g) en ocre y losas (R) en gris azulado, por debajo de todo lo demás. En el bosque, además,
 		# la hierba corta (,) en verde claro y la alta (v) en verde más fuerte.
-		var tonos: Dictionary = {"g": Color(0.55, 0.38, 0.2, 0.22), "R": Color(0.42, 0.46, 0.6, 0.28), ",": Color(0.45, 0.65, 0.3, 0.16), "v": Color(0.3, 0.55, 0.2, 0.34)}
+		var tonos: Dictionary = {"g": Color(0.55, 0.38, 0.2, 0.22), "R": Color(0.42, 0.46, 0.6, 0.28), ",": Color(0.45, 0.65, 0.3, 0.16), "v": Color(0.3, 0.55, 0.2, 0.34), " ": Color(0.06, 0.05, 0.05, 0.9)}
 		for y in range(filas.size()):
 			for x in range(filas[y].length()):
 				var ct: String = filas[y][x]
@@ -904,9 +905,7 @@ func _al_pasar(c: Vector2i) -> void:
 		return
 	var partes: PackedStringArray = PackedStringArray(["(%d, %d)" % [c.x, c.y]])
 	var ch: String = (_mapa["filas"] as PackedStringArray)[c.y][c.x]
-	partes.append({"#": "pared", "~": "agua honda", "g": "tierra pisada", "R": "losas", ",": "hierba corta", "v": "hierba alta (arde)"}.get(ch, "suelo"))
-	if (_mapa.get("muros_tierra", []) as Array).has(c):
-		partes.append("muro agrietado del paso de tierra")
+	partes.append({"#": "pared", "~": "agua honda", "g": "tierra pisada", "R": "losas", ",": "hierba corta", "v": "hierba alta (arde)", " ": "precipicio (sin suelo: se cruza con el puente de tierra)"}.get(ch, "suelo"))
 	for s in _mapa["salas"]:
 		if (s["rect"] as Rect2i).has_point(c):
 			var rol: String = String(s["rol"])

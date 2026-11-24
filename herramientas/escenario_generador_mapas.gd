@@ -25,7 +25,12 @@ func _escenario() -> void:
 	_borrar()
 	Flags.nuevo()
 	Estado.nuevo()
-	var m: Dictionary = Generador.new().generar({"algoritmo": alg, "semilla": 3, "nombre": _nombre, "salas_cerradas": 100, "charcas": 60, "barreras": 4, "puzles": 4, "salida_a": "Cueva:desde_bosque, Bosque_02:boca_cueva"})
+	var par: Dictionary = {"algoritmo": alg, "semilla": 3, "nombre": _nombre, "salas_cerradas": 100, "charcas": 60, "barreras": 4, "puzles": 4, "salida_a": "Cueva:desde_bosque, Bosque_02:boca_cueva"}
+	if alg == "bosque":
+		# 24/11: la forma del Bosque 01 de Pablo, con el paso de tierra (precipicio) en la salida 2.
+		par.merge({"ancho": 48, "alto": 42, "salida_a": "CuevaTerrafina:a_bosque=desde_cueva, Precipicio:inicio, Ruinas:inicio, Bosque_02:desde_bosque01",
+			"lados_salida": "s, o, s, e", "paso_tierra": 2, "estilo": "bosque", "luz": "bosque", "salas_cerradas": 0}, true)
+	var m: Dictionary = Generador.new().generar(par)
 	var antes_mapas: int = DirAccess.get_files_at(Exportador.DIR_MAPAS).size()
 	var antes_escenas: int = DirAccess.get_files_at(Exportador.DIR_ESCENAS).size()
 	var res: Dictionary = Exportador.exportar(m)
@@ -98,6 +103,14 @@ func _escenario() -> void:
 	_ok("5 el suelo del plano es suelo en el juego", mal_suelo == 0, "%d casillas de suelo salen sólidas (de %d miradas)" % [mal_suelo, miradas])
 	_ok("5 las paredes del plano bloquean en el juego", mal_pared == 0, "%d casillas de pared no bloquean" % mal_pared)
 	_ok("5 el agua del plano es agua en el juego", _agua_bien(filas), "")
+	# 5b · El precipicio del paso de tierra (bosque): en el juego es vacío y no se pisa.
+	var hueco: Array = m.get("precipicio", [])
+	if alg == "bosque":
+		var mal_hueco: int = 0
+		for c in hueco:
+			if not Terreno3D.es_vacio(c) or Terreno3D.pisable(c, 0, true, 1, true):
+				mal_hueco += 1
+		_ok("5 el precipicio del paso de tierra es vacío y no se pisa en el juego (%d casillas)" % hueco.size(), not hueco.is_empty() and mal_hueco == 0, "%d mal" % mal_hueco)
 	await _camara_por_sala(m)
 	maqueta.queue_free()
 	await avanzar(5)
