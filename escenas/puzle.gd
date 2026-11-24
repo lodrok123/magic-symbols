@@ -40,6 +40,7 @@ extends Node
 ##                                                                                   `canal` es el cauce que llena (la primera casilla recibe el agua)
 ##   totem                                                                           el tótem de la MAQUETA (letra «i»), enlazado por casilla
 ##   decorado   modelo=<pieza> (obligatoria)  giro=<grados> (0)  escala=<x> (1)         24/10: una pieza de ADORNO sin mecánica en su casilla (geoda_resonante, estalagmita_resonante…). No bloquea.
+##              dx=<casillas> dz=<casillas> (0)  24/11: la corre desde el centro de su casilla (las rocas de pared de LostCave van medio fuera del suelo, sobre la oscuridad)
 ##              27/10: también estalagmitas_a|b, cueva_pared_baja, boca_cueva, llave_pequena, bloque_enlace, roca_musgosa, raices_musgo, rocas_salpicadura, helechos_cueva, musgo_colgante
 ##   brasero    modelo=cueva (24/10): el modelo `brasero_cueva` en vez del del Bosque (mismo reactivo; `Reactivo3D.cambiar_visual`)
 ##   brasero    rele=<id> espera=<s> (1.5) dura=<s> (6)  luz=<x> (1)               el brasero de la MAQUETA (letra «T»), enlazado por casilla. Sin claves es
@@ -460,7 +461,7 @@ const CLAVES: Dictionary = {
 	"totem": {},
 	"brasero": {"rele": "id", "espera": "f", "dura": "f", "luz": "f", "modelo": "s:cueva", "por_hierba": "b"},
 	# 27/10: todo el kit de la Cueva se puede poner de adorno desde el mapa (estalagmitas, pared baja, boca, llave, bloque de enlace, rocas y raíces con musgo)
-	"decorado": {"modelo": "decorado:geoda_resonante|estalagmita_resonante|estalagmita_rota|rocas_salpicadura|helechos_cueva|musgo_colgante|estalagmitas_a|estalagmitas_b|cueva_pared_baja|boca_cueva|llave_pequena|bloque_enlace|roca_musgosa|raices_musgo", "giro": "f", "escala": "f"},
+	"decorado": {"modelo": "decorado:geoda_resonante|estalagmita_resonante|estalagmita_rota|rocas_salpicadura|helechos_cueva|musgo_colgante|estalagmitas_a|estalagmitas_b|cueva_pared_baja|boca_cueva|llave_pequena|bloque_enlace|roca_musgosa|raices_musgo", "giro": "f", "escala": "f", "dx": "f", "dz": "f"},
 	"seto": {"mojable": "b"},
 	"contador": {"de": "celdas", "minimo": "f"},
 	"cuerda": {"sostiene": "id"},
@@ -2736,13 +2737,13 @@ func _crear(pz: Pieza) -> void:
 			var modelo_dec: String = String(pz.p["modelo"]) if pz.p.has("modelo") else ""
 			var clasicos: PackedStringArray = String((CLAVES["decorado"] as Dictionary)["modelo"]).substr(9).split("|")
 			var dec: Node3D = null
+			var pos_dec: Vector3 = Terreno3D.centro_de(pz.celda, Terreno3D.y_pies(pz.celda) - 0.02) \
+					+ Vector3(float(pz.p.get("dx", 0.0)), 0.0, float(pz.p.get("dz", 0.0))) * Terreno3D.casilla
 			if modelo_dec != "" and not (modelo_dec in clasicos) and _pieza_arte_existe(modelo_dec):
 				# 7/11: una pieza de arte/piezas fuera de la lista cerrada (las prov_*): la ESCENA tal cual (ya a su medida y con su colision), no la copia normalizada de la maqueta.
-				dec = _colocar_pieza_arte(modelo_dec, cont, pz.id, Terreno3D.centro_de(pz.celda, Terreno3D.y_pies(pz.celda) - 0.02),
-					float(pz.p.get("giro", 0.0)), Vector3.ONE * float(pz.p.get("escala", 1.0)))
+				dec = _colocar_pieza_arte(modelo_dec, cont, pz.id, pos_dec, float(pz.p.get("giro", 0.0)), Vector3.ONE * float(pz.p.get("escala", 1.0)))
 			else:
-				dec = _colocar_pieza(modelo_dec, cont, pz.id,
-					Terreno3D.centro_de(pz.celda, Terreno3D.y_pies(pz.celda) - 0.02), float(pz.p.get("giro", 0.0)), Vector3.ONE * float(pz.p.get("escala", 1.0)))
+				dec = _colocar_pieza(modelo_dec, cont, pz.id, pos_dec, float(pz.p.get("giro", 0.0)), Vector3.ONE * float(pz.p.get("escala", 1.0)))
 			if dec == null:
 				_avisar_pieza(pz, "decorado necesita «modelo=<pieza>» y que la pieza exista")
 				return
