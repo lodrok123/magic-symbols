@@ -111,3 +111,15 @@ static func receta(id: String) -> Dictionary:
 		if String(r["id"]) == id:
 			return r
 	return {}
+
+
+## La receta `id` solo con las capas de nombre `nombres` (para sumar a un impacto del juego una parte de un efecto, p. ej. el halo y la estrella de hit01 al golpe de fuego).
+static func solo_capas(id: String, nombres: Array) -> Dictionary:
+	var r: Dictionary = receta(id).duplicate()
+	var capas: Array = []
+	for c in r.get("capas", []):
+		if nombres.has(String(c.get("nombre", ""))):
+			capas.append(c)
+	r["capas"] = capas
+	r["id"] = id + "_parte"
+	return r

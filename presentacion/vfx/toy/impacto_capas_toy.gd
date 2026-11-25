@@ -46,6 +46,7 @@ var _pal: Dictionary = {}
 var _plano: Node3D = null
 var _capas: Array = []                        ## [{def, nodos: [...], parts: [...], mm, humo, emitidas}]
 var _rng: RandomNumberGenerator = RandomNumberGenerator.new()
+var _giro_esfera: float = 0.0
 static var _rampas_extra: Dictionary = {}
 
 
@@ -94,6 +95,7 @@ static func paleta(el: String) -> Dictionary:
 
 func _ready() -> void:
 	_rng.randomize()
+	_giro_esfera = _rng.randf() * TAU
 	_k = radio / RADIO_REF
 	_pal = paleta(elemento)
 	_plano = Node3D.new()
@@ -197,7 +199,7 @@ func _montar(d: Dictionary) -> Dictionary:
 	match pieza:
 		"sprite":
 			for i in n:
-				c["nodos"].append(_montar_sprite(d))
+				c["nodos"].append(_montar_sprite(d, i))
 		"halo":
 			for i in n:
 				c["nodos"].append(_montar_halo(d, i))
@@ -262,7 +264,17 @@ func _montar(d: Dictionary) -> Dictionary:
 	return c
 
 
-func _montar_sprite(d: Dictionary) -> MeshInstance3D:
+## Dirección `i` de `n` repartidas por igual en la esfera (espiral de Fibonacci), con un giro al azar para que no salgan siempre iguales.
+func _dir_esfera(i: int, n: int, giro: float) -> Vector3:
+	var y: float = 1.0 - 2.0 * (float(i) + 0.5) / float(maxi(n, 1))
+	var s: float = sqrt(maxf(1.0 - y * y, 0.0))
+	var fi: float = giro + float(i) * PI * (3.0 - sqrt(5.0))
+	return Vector3(cos(fi) * s, y, sin(fi) * s)
+
+
+## `expande` = [r_ini, r_fin] (m): el sprite sale del foco (su `altura`) hacia fuera, en una dirección de la esfera repartida por igual entre los `n` (explosión que crece desde un punto en todos
+## los ángulos, 25/11/2026, Pablo: «debería tener un foco y expandirse uniformemente desde el foco»). `aplasta` < 1 achata la esfera en vertical.
+func _montar_sprite(d: Dictionary, i: int = 0) -> MeshInstance3D:
 	var tex: String = TEXTURAS.get(String(d.get("tex", "destello")), SpriteToy.T_DESTELLO)
 	var aditivo: bool = String(d.get("modo", "aditivo")) == "aditivo" and bool(_pal["aditivo"])
 	var modo: int = SpriteToy.Modo.ADITIVO if aditivo else (SpriteToy.Modo.MEZCLA if bool(d.get("plano", false)) else SpriteToy.Modo.MEZCLA_SIN_PROF)
@@ -276,6 +288,10 @@ func _montar_sprite(d: Dictionary) -> MeshInstance3D:
 	var off: Vector3 = Vector3(_rng.randf_range(-1, 1), _rng.randf_range(0, 1), _rng.randf_range(-1, 1)).normalized() * disp * _rng.randf() if disp > 0.0 else Vector3.ZERO
 	s.position = Vector3(0, float(d.get("altura", 0.2)) * radio, 0) + off
 	s.set_meta("p0", s.position)
+	if d.has("expande"):
+		var de: Vector3 = _dir_esfera(i, int(d.get("n", 1)), _giro_esfera)
+		de = (de + Vector3(_rng.randf_range(-0.12, 0.12), _rng.randf_range(-0.12, 0.12), _rng.randf_range(-0.12, 0.12))).normalized()
+		s.set_meta("dir", Vector3(de.x, de.y * float(d.get("aplasta", 1.0)), de.z))
 	s.set_meta("t0", float(d.get("t0", 0.0)) + _rng.randf() * float(d.get("emision", 0.0)))
 	s.set_meta("vida", _rango(d.get("vida", 0.3), _rng))
 	s.set_meta("tam_k", _rng.randf_range(0.85, 1.15) if int(d.get("n", 1)) > 1 else 1.0)
@@ -436,6 +452,10 @@ func _animar_sprite(s: MeshInstance3D, d: Dictionary, t: float) -> void:
 	var sz: float = lerpf(float(tam[0]), float(tam[1]), _curva(u, String(d.get("curva", "sal")))) * _k * float(s.get_meta("tam_k"))
 	s.scale = Vector3(sz, sz, 1.0) if not bool(d.get("plano", false)) else Vector3(sz, 1.0, sz)
 	s.position = (s.get_meta("p0") as Vector3) + Vector3(0, float(d.get("sube", 0.0)) * maxf(ta, 0.0) * _k, 0)
+	if s.has_meta("dir"):
+		var ex: Array = d["expande"]
+		s.position += (s.get_meta("dir") as Vector3) * lerpf(float(ex[0]), float(ex[1]), _curva(u, "sal")) * _k
+		s.position.y = maxf(s.position.y, 0.35 * sz)          # la parte de abajo de la esfera no se mete en el suelo
 	var m: ShaderMaterial = SpriteToy.mat(s)
 	m.set_shader_parameter("vida", clampf(a * float(d.get("fuerza", 1.0)), 0.0, 1.0))
 	var calor: Array = d.get("calor", [0.0, 0.0])

@@ -41,7 +41,9 @@ const T_CHARCO: float = 0.34              ## s a los que aparece el charquito de
 const GRAVEDAD: float = 9.8
 const ROZAMIENTO: float = 0.6
 const COS_ABERTURA: float = 0.18          ## cos del ángulo máximo respecto a la normal (≈ 80°): la corona sale abierta; todas las gotas quedan en el hemisferio de la normal
-const T_LAMINA: float = 0.2               ## s que dura la lámina de salpicadura
+const ONDAS_EXTRA: int = 2               ## anillos que salen detrás del primero en el GOLPE (25/11/2026, de ToonWater)
+const T_ONDA_EXTRA: float = 0.07         ## s entre anillo y anillo
+const T_LAMINA: float = 0.2              ## s que dura la lámina de salpicadura
 
 ## true: el agua cae sobre algo que ARDE; con `HumoRegla.capas["vapor"]` encendida levanta vapor (nada lo pone en el juego todavía: lo pone quien sepa que hay fuego; el lab lo pone con la tecla 8).
 var sobre_fuego: bool = false
@@ -57,6 +59,7 @@ var _dur: float = 0.8
 var _plano: Node3D = null
 var _lamina: MeshInstance3D = null
 var _anillo: MeshInstance3D = null
+var _ondas_extra: Array = []            ## GOLPE en suelo: los anillos escalonados (meta t0 = su retraso)
 var _vahos: Array = []
 var _espumas: Array = []
 var _mancha: MeshInstance3D = null        ## mancha húmeda en la pared (solo paredes y techos)
@@ -171,6 +174,22 @@ func _construir() -> void:
 		_anillo.scale = Vector3(2.0 * float(_p["anillo"]) * r, 1.0, 2.0 * float(_p["anillo"]) * r)
 		_anillo.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 		_plano.add_child(_anillo)
+		# 25/11/2026 (comparativa con ToonWater de Effekseer, aprobado por Pablo): en el GOLPE, ONDAS_EXTRA anillos más, sin charco, que salen cada T_ONDA_EXTRA s detrás del primero:
+		# el golpe en el suelo se lee mejor con ondas repetidas que con una sola.
+		if variante == Variante.GOLPE:
+			for i in ONDAS_EXTRA:
+				var oq: MeshInstance3D = MeshInstance3D.new()
+				oq.name = "OndaExtra%d" % (i + 1)
+				oq.mesh = q
+				oq.material_override = AguaMallas.material(AguaMallas.SH_ONDA, {"anillos": 1.0, "charco": 0.0, "u": 0.0, "vida": 0.0, "semilla": randf(), "se_va": 0.5,
+					"fade_canto": 0.3, "suave_prof": 0.0}, 0)
+				oq.position = _anillo.position + Vector3(0, 0.003 * (i + 1), 0)
+				var lado_o: float = 2.0 * float(_p["anillo"]) * r * pow(0.85, i + 1)
+				oq.scale = Vector3(lado_o, 1.0, lado_o)
+				oq.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+				oq.set_meta("t0", T_ONDA_EXTRA * (i + 1))
+				_plano.add_child(oq)
+				_ondas_extra.append(oq)
 	# pared: mancha húmeda sutil que se desvanece y, bajo ella, un charquito donde caen las gotas
 	if es_pared():
 		var qm: QuadMesh = QuadMesh.new()
@@ -417,6 +436,11 @@ func avanzar_a(t: float) -> void:
 	if _anillo != null:
 		var ua: float = clampf(t / dur, 0.0, 1.0)
 		(_anillo.material_override as ShaderMaterial).set_shader_parameter("u", ua)
+	for oq in _ondas_extra:
+		var to: float = t - float((oq as Node).get_meta("t0"))
+		var mo: ShaderMaterial = (oq as MeshInstance3D).material_override as ShaderMaterial
+		mo.set_shader_parameter("vida", 1.0 if to >= 0.0 else 0.0)
+		mo.set_shader_parameter("u", clampf(to / dur, 0.0, 1.0))
 	# mancha húmeda de la pared: se extiende y se desvanece (u = edad normalizada)
 	if _mancha != null:
 		(_mancha.material_override as ShaderMaterial).set_shader_parameter("u", clampf(t / dur, 0.0, 1.0))

@@ -77,8 +77,8 @@ func _probar_receta(raiz: Node3D, r: Dictionary) -> void:
 	_comprobar(bajo_suelo == 0, "%s: %d posiciones de partícula por debajo del suelo" % [id, bajo_suelo])
 	# y se libera sola
 	i.set_process(true)
-	var espera: int = int((dur + 0.4) * 60.0) + 10
-	for f in espera:
+	var limite: int = Time.get_ticks_msec() + int((dur + 0.6) * 1000.0)      # por tiempo real: en headless los fotogramas no van a 60
+	while Time.get_ticks_msec() < limite:
 		await process_frame
 		if not is_instance_valid(i):
 			break

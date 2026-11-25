@@ -27,7 +27,7 @@ var _marca: MeshInstance3D = null                     ## la marca de suelo, como
 enum Variante { GOLPE, FIN, REBOTE, AREA }
 
 const PARAMS: Dictionary = {
-	Variante.GOLPE: {"piedras": 12, "polvo": 10, "dur": 1.3, "anillo": true, "centro": 0},
+	Variante.GOLPE: {"piedras": 12, "debris": 14, "polvo": 10, "dur": 1.3, "anillo": true, "centro": 0},
 	Variante.FIN: {"piedras": 18, "polvo": 5, "dur": 1.1, "anillo": false, "centro": 0},
 	Variante.REBOTE: {"piedras": 10, "polvo": 6, "dur": 0.9, "anillo": false, "centro": 0},
 	Variante.AREA: {"piedras": 30, "polvo": 20, "dur": 1.8, "anillo": false, "centro": 8}}
@@ -153,6 +153,17 @@ func _construir() -> void:
 		_pie.append({"p0": pos, "v0": vel, "vida": _rng.randf_range(0.7, 1.2), "tam": tam_c,
 			"eje": Vector3(_rng.randf_range(-1, 1), _rng.randf_range(-1, 1), _rng.randf_range(-1, 1)).normalized(), "vel_ang": _rng.randf_range(4.0, 12.0),
 			"rot0": Basis.from_euler(Vector3(_rng.randf() * TAU, _rng.randf() * TAU, _rng.randf() * TAU)), "tono": _rng.randf()})
+	# DEBRIS (25/11/2026, comparativa con ef_fire03/ef_ice01 de Effekseer, aprobado por Pablo): fragmentos más pequeños y rápidos, más rasantes, que llegan más lejos y duran menos
+	var n_d: int = int(_p.get("debris", 0))
+	for i in n_d:
+		var ang_d: float = _rng.randf() * TAU
+		var alto_d: float = _rng.randf_range(0.15, 0.6)
+		var lado_d: float = sqrt(1.0 - alto_d * alto_d)
+		_pie.append({"p0": Vector3(0, 0.03, 0), "v0": Vector3(cos(ang_d) * lado_d, alto_d, sin(ang_d) * lado_d) * _rng.randf_range(3.5, 6.0) * k, "vida": _rng.randf_range(0.45, 0.75),
+			"tam": _rng.randf_range(0.015, 0.035) * pow(maxf(r / 0.4, 0.4), 0.35),
+			"eje": Vector3(_rng.randf_range(-1, 1), _rng.randf_range(-1, 1), _rng.randf_range(-1, 1)).normalized(), "vel_ang": _rng.randf_range(10.0, 20.0),
+			"rot0": Basis.from_euler(Vector3(_rng.randf() * TAU, _rng.randf() * TAU, _rng.randf() * TAU)), "tono": _rng.randf()})
+	n_p += n_d
 	_mm = TierraToy.crear_mm("Piedrecitas", n_p, TierraToy.Piedras.malla_piedra(), 0.2)
 	_plano.add_child(_mm)
 	# nube de polvo a ras de la superficie (local al plano: la deriva es a lo largo de la normal)

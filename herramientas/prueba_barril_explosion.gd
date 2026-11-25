@@ -421,13 +421,27 @@ func _escenario() -> void:
 	await avanzar(1)
 	var v: Dictionary = _vivos_vfx()
 	_ok("2 sale UNA sola explosión de fuego y el aviso se ha ido", int(v["explosion"]) == 1 and int(v["aviso"]) == 0 and b.aviso == null, str(v))
-	_ok("2 la explosión usa la bola (estilo B) y las chispas (estilo C) de ImpactoFuegoToy", int(v["impacto"]) == 2, str(v))
+	_ok("2 la explosión usa la bola (estilo B) de ImpactoFuegoToy y ya no las chispas en cono hacia arriba (estilo C)", int(v["impacto"]) == 1, str(v))
 	_ok("2 el barril ya no se ve (modelo, mecha y brasa) y no se puede golpear", not b._cuerpo.visible and (b._aro == null or not b._aro.visible) and not b._mecha.visible and b.collision_layer == 0)
 	var ex: ExplosionFuegoToy = b.explosion_vfx
-	_ok("2 la explosión trae su fuego de FuegoToy: %d lenguas y %d brasas, y no son amarillas (escala de rampa %.2f)" % [ex._lenguas.size(), ex._brasas.size(), ExplosionFuegoToy.ESCALA_RAMPA_LENGUA],
-		ex._lenguas.size() == ExplosionFuegoToy.LENGUAS.size() and ex._brasas.size() == ExplosionFuegoToy.BRASAS.size() and ExplosionFuegoToy.ESCALA_RAMPA_LENGUA < 0.8
-		and float(((ex._lenguas[0]["nodo"] as FuegoToy)._mats[0] as ShaderMaterial).get_shader_parameter("escala_rampa")) < 0.8)
-	_ok("2 las lenguas suben y se deshacen (envolvente: 0 al nacer, 1 en pleno, 0 al irse) y las brasas duran ≈ 1 s en el suelo",
+	_ok("2 la explosión ya no sube (0 lenguas) y deja %d brasas de FuegoToy en el suelo que no son amarillas (escala de rampa %.2f)" % [ex._brasas.size(), ExplosionFuegoToy.ESCALA_RAMPA_LENGUA],
+		ex._lenguas.is_empty() and ex._brasas.size() == ExplosionFuegoToy.BRASAS.size() and ExplosionFuegoToy.ESCALA_RAMPA_LENGUA < 0.8
+		and float(((ex._brasas[0]["nodo"] as FuegoToy)._mats[0] as ShaderMaterial).get_shader_parameter("escala_rampa")) < 0.8)
+	# núcleo esférico (25/11/2026): las bocanadas salen del foco en todas las direcciones; a los 0,3 s hay alguna a cada lado (±X, ±Z) y alguna por encima y por debajo del foco
+	var nuc: Node3D = ex.get_node_or_null("Nucleo") as Node3D
+	var lados: Dictionary = {}
+	if nuc != null:
+		nuc.call("avanzar_a", 0.3)
+		var foco: Vector3 = Vector3(0, float(ExplosionFuegoToy.NUCLEO["capas"][0]["altura"]) * float(nuc.get("radio")), 0)
+		for s in nuc.find_children("*", "MeshInstance3D", true, false):
+			if not s.has_meta("dir"):
+				continue
+			var dp: Vector3 = (s as Node3D).position - foco
+			lados["+x" if dp.x > 0.3 else ("-x" if dp.x < -0.3 else "")] = true
+			lados["+z" if dp.z > 0.3 else ("-z" if dp.z < -0.3 else "")] = true
+			lados["arriba" if dp.y > 0.3 else ("abajo" if dp.y < -0.2 else "")] = true
+	_ok("2 el núcleo se abre en esfera desde el foco (lados alcanzados: %s)" % str(lados.keys()), nuc != null and lados.has("+x") and lados.has("-x") and lados.has("+z") and lados.has("-z") and lados.has("arriba") and lados.has("abajo"))
+	_ok("2 las brasas se apagan (envolvente: 0 al nacer, 1 en pleno, 0 al irse) y duran ≈ 1 s en el suelo",
 		ExplosionFuegoToy.envolvente(0.0, 0.04, 0.46, 0.88) == 0.0 and ExplosionFuegoToy.envolvente(0.3, 0.04, 0.46, 0.88) > 0.99 and ExplosionFuegoToy.envolvente(0.9, 0.04, 0.46, 0.88) == 0.0
 		and ExplosionFuegoToy.envolvente(0.5, 0.22, 0.9, 1.35) > 0.99 and ExplosionFuegoToy.envolvente(1.0, 0.22, 0.9, 1.35) > 0.2 and ExplosionFuegoToy.envolvente(1.4, 0.22, 0.9, 1.35) == 0.0
 		and float(ExplosionFuegoToy.BRASAS[0][4]) - float(ExplosionFuegoToy.BRASAS[0][2]) > 0.9 and ExplosionFuegoToy.T_TOTAL >= float(ExplosionFuegoToy.BRASAS[0][4]))

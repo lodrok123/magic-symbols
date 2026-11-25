@@ -34,14 +34,8 @@ const GRUPO: String = "explosion_fuego_toy"
 ## Los tamaños salen de `radio / RADIO_REF` (el barril grande, 2,6 u): un barril pequeño de radio 1,6 lo hace todo ×0,62.
 const RADIO_REF: float = 2.6
 ## Lenguas: [ángulo (°), distancia al centro (× radio), alto (u a RADIO_REF), ancho (u), t de nacimiento (s), t en que empieza a apagarse (s), t en que se ha ido (s)]. La primera es la central.
-const LENGUAS: Array = [
-	[0.0, 0.0, 2.3, 0.55, 0.04, 0.46, 0.88],
-	[20.0, 0.30, 1.6, 0.32, 0.08, 0.40, 0.76],
-	[95.0, 0.34, 1.9, 0.34, 0.12, 0.46, 0.84],
-	[170.0, 0.28, 1.45, 0.30, 0.16, 0.38, 0.74],
-	[235.0, 0.36, 1.75, 0.32, 0.10, 0.44, 0.82],
-	[310.0, 0.32, 1.35, 0.28, 0.19, 0.36, 0.72],
-]
+## 25/11/2026: vacía (la explosión ya no sube; ver NUCLEO). Las de antes eran [0,0,2.3,0.55,…] y cinco alrededor.
+const LENGUAS: Array = []
 ## Brasas: [ángulo (°), distancia (× radio), t de nacimiento, t en que empieza a apagarse, t en que se ha ido]
 const BRASAS: Array = [
 	[40.0, 0.42, 0.22, 0.90, 1.35],
@@ -50,6 +44,19 @@ const BRASAS: Array = [
 	[285.0, 0.66, 0.32, 0.80, 1.25],
 	[340.0, 0.50, 0.30, 0.92, 1.38],
 ]
+## 25/11/2026 (Pablo, tras comparar con ef_fire02 de Effekseer: «en nuestro caso hay una explosión ascendente cuando debería tener un foco y expandirse uniformemente desde el foco en
+## todos los ángulos; el resto —humo, halo y suelo— es mejor lo nuestro»): FUERA las lenguas que suben (LENGUAS queda vacía) y las chispas del estilo C (cono hacia arriba). En su lugar, un
+## NÚCLEO que sale de un FOCO a media altura y se abre en esfera: bocanadas del flipbook de la bola repartidas por igual en todas las direcciones (espiral de Fibonacci) y trazos de chispa en
+## todas las direcciones (los de abajo se quedan en el suelo). Es la coreografía de Fire01_add + Line01_add de fire02, con nuestras piezas y la parte roja de la rampa.
+## Tamaños en m para RADIO_REF (se escala con radio / RADIO_REF). Lo lee ImpactoCapasToy.
+const NUCLEO: Dictionary = {"id": "nucleo_explosion", "capas": [
+	{"pieza": "sprite", "nombre": "bocanadas", "tex": "bola", "modo": "mezcla", "n": 14, "t0": 0.0, "emision": 0.05, "vida": [0.45, 0.7], "tam": [0.9, 1.9], "curva": "sal",
+		"altura": 2.4, "expande": [0.15, 1.7], "aplasta": 0.75, "calor": [0.0, -0.1], "tramo": Vector2(0.0, 0.5), "recorte": Vector2(0.24, 0.62), "luminancia": Vector2(0.25, 0.85),
+		"aparece": 0.03, "se_va": 0.3},
+	{"pieza": "chispas", "nombre": "trazos", "n": 22, "t0": 0.02, "emision": 0.05, "vida": [0.3, 0.55], "cono": [-0.5, 1.0], "vel": [7.0, 12.0], "roce": 3.0, "g": 0.3,
+		"largo": [0.6, 1.1], "ancho": [0.06, 0.09], "h0": 0.95, "r0": [0.0, 0.2], "brasas": 0.25, "brillo": 1.9},
+]}
+const ImpactoCapasToy = preload("res://presentacion/vfx/toy/impacto_capas_toy.gd")
 const BRASA_ALTO: float = 0.34
 const BRASA_ANCHO: float = 0.13
 const T_HUMO: float = 0.10              ## s en que sale la bocanada de humo
@@ -63,7 +70,7 @@ var _t: float = 0.0
 var _decal: MeshInstance3D = null
 var _mat: ShaderMaterial = null
 var _bola: ImpactoFuegoToy = null
-var _chispas: ImpactoFuegoToy = null
+var _nucleo: Node3D = null         ## ImpactoCapasToy con NUCLEO (antes: _chispas, un ImpactoFuegoToy estilo C)
 var _lenguas: Array = []          ## [{nodo: FuegoToy, t0, t1, t2}]
 var _brasas: Array = []
 var _humo_puesto: bool = false
@@ -88,12 +95,9 @@ func _ready() -> void:
 	_bola.aplasta_bola = APLASTA
 	_bola.dur_k = DUR_K
 	add_child(_bola)
-	_chispas = ImpactoFuegoToy.crear(ImpactoFuegoToy.Variante.GOLPE, Vector3.UP, r_bola, ImpactoFuegoToy.Estilo.C)
-	_chispas.name = "Chispas"
-	_chispas.desp_calor = DESP_CALOR
-	_chispas.flash_k = FLASH_K
-	_chispas.flash_brillo = FLASH_BRILLO
-	add_child(_chispas)
+	_nucleo = ImpactoCapasToy.crear(NUCLEO, "fuego", Vector3.UP, ImpactoCapasToy.RADIO_REF * radio / RADIO_REF)
+	_nucleo.name = "Nucleo"
+	add_child(_nucleo)
 	_decal = AvisoAreaFuego.decal(radio)
 	_decal.name = "Onda"
 	_mat = _decal.material_override as ShaderMaterial

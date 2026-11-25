@@ -644,7 +644,7 @@ func _impactos(cl: String) -> void:
 				_ok("[tierra %s] ANILLO en la superficie (radio %.2f m): apertura %.2f → %.2f (0,15 s) y vida %.2f → %.2f (1,15 s)" % [c[0], an1.get("radio", 0.0), an0.get("apertura", -1.0), an1.get("apertura", -1.0), an1.get("vida", -1.0), an2.get("vida", -1.0)],
 					bool(an0["hay"]) and float(an0["apertura"]) < 0.3 and float(an1["apertura"]) > 0.99 and float(an1["vida"]) > 0.99 and float(an2["vida"]) < 0.05 and float(an1["radio"]) > 0.4)
 				_ok("[tierra %s] %d púas que ASOMAN (0 → %.2f m a 0,25 s) y se RETIRAN (%.2f m a 0,85 s); el polvo + cascotes no suben de la cuenta (%d + %d)" % [c[0], p1.size(), p1[0], p2[0], rc[0], rc[1]],
-					p0.size() == 3 and float(p0[0]) < 0.001 and float(p1[0]) > 0.3 and float(p2[0]) < 0.001 and int(rc[0]) <= 12 and int(rc[1]) <= 14 and imp.find_child("Puas", true, false) != null)
+					p0.size() == 3 and float(p0[0]) < 0.001 and float(p1[0]) > 0.3 and float(p2[0]) < 0.001 and int(rc[0]) <= 12 + 14 and int(rc[1]) <= 14 and imp.find_child("Puas", true, false) != null)
 			elif int(c[1]) == 3:
 				# AREA: cascotes en ESPIRAL baja (velocidad sobre todo tangente) y la nube con el centro más claro
 				var esp: int = 0

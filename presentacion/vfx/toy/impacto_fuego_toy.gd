@@ -24,6 +24,11 @@ extends Node3D
 ## `lanzar(v)` y `morir()` existen por el contrato de EfectoVfx3D (EfectoVfx3D.impactar llama a `lanzar`).
 
 const SpriteToy = preload("res://presentacion/vfx/toy/sprite_toy.gd")
+const ImpactoCapasToy = preload("res://presentacion/vfx/toy/impacto_capas_toy.gd")
+const RecetasEffekseer = preload("res://presentacion/vfx/toy/recetas_effekseer.gd")
+## 25/11/2026 (Pablo, tras la comparativa con Effekseer: «golpe hit: añadía el halo a lo que ya tenemos»): el GOLPE del estilo C suma, encima de lo suyo, el halo blando (0,05 s), la estrella
+## grande de rayos (T_VFX_Flare_666, 0,1 s) y el aro de luz que se abre (0,17 s) de ef_parts_hit01, traducidos con nuestros shaders (recetas_effekseer.gd). `halo_hit01 = false` lo quita.
+const CAPAS_HIT01: Array = ["light", "flash", "light_ring"]
 
 enum Variante { GOLPE, FIN, REBOTE }
 enum Estilo { A, B, C }
@@ -64,6 +69,7 @@ var tramo_bola: Vector2 = Vector2(0.3, 0.8)
 var recorte_bola: Vector2 = Vector2(0.0, 1.0)
 var aplasta_bola: float = 1.0
 var dur_k: float = 1.0
+var halo_hit01: bool = true
 
 @export var variante: Variante = Variante.GOLPE
 @export var normal: Vector3 = Vector3.UP
@@ -232,6 +238,10 @@ func _construir() -> void:
 	_plano.add_child(_luz)
 	if es_c:
 		_montar_chispas_c()
+		if variante == Variante.GOLPE and halo_hit01:
+			var h: Node3D = ImpactoCapasToy.crear(RecetasEffekseer.solo_capas("hit01", CAPAS_HIT01), "fuego", normal, radio)
+			h.name = "HaloHit01"
+			add_child(h)
 	_aplicar_tam(0.0)
 
 

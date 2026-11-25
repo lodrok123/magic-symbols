@@ -31,6 +31,19 @@ Hojas (fila de arriba: Effekseer original · en medio: lo de ahora · abajo: lo 
 **Resumen:** lo que aportan los efectos de Effekseer es **ritmo** (destello enorme muy corto, retrasos escalonados, ondas repetidas), no piezas nuevas: en 3 de 5 nuestro impacto ya está igual o mejor.
 Lo que de verdad falta para acercarse a los toon son **texturas**, no código: un aro nítido, arcos y láminas de corona.
 
+## Aplicado al juego (25/11/2026, decisión de Pablo)
+
+Pablo: «de la explosión del barril sí tomaba lo suyo, porque en nuestro caso hay una explosión ascendente cuando debería tener un foco y expandirse uniformemente desde el foco en todos los ángulos. El resto (humo, halo y suelo) es mejor lo nuestro. Golpe hit: añadía el halo a lo que ya tenemos. Del resto de apreciaciones estoy de acuerdo».
+
+| Impacto | Qué cambia | Archivo |
+|---|---|---|
+| Explosión del barril | **Fuera** las lenguas que subían y las chispas en cono hacia arriba. **Nuevo núcleo** (`NUCLEO`): 14 bocanadas del flipbook que salen de un foco a ~1 m y se abren en esfera, repartidas por igual (espiral de Fibonacci), y 22 trazos de chispa en todas direcciones. Se quedan la bola, la onda del suelo, las brasas y el humo. | `explosion_fuego_toy.gd`, `impacto_capas_toy.gd` (`expande`) |
+| Golpe de fuego (estilo C) | Suma el halo blando, la estrella grande de rayos (0,1 s) y el aro de luz (0,17 s) de hit01 (`halo_hit01`, activo por defecto). | `impacto_fuego_toy.gd` |
+| Golpe de agua en el suelo | Dos anillos más (sin charco) cada 0,07 s detrás del primero. | `impacto_agua_toy.gd` |
+| Golpe de tierra | 14 fragmentos pequeños y rápidos (debris), más rasantes y que llegan más lejos. | `impacto_tierra_toy.gd` |
+
+Hojas con el resultado (la fila «AHORA» ya lleva los cambios): `docs/capturas/impactos_effekseer/aplicado/hoja_*.png`.
+
 ## Cómo verlo
 
 `LabVfxComparativa3D` → **Ctrl+4** pone la comparativa (izquierda lo de ahora, derecha lo traducido, se repite solo) · **Ctrl+5** par siguiente (Mayús: anterior) · **Ctrl+6** vista juego / cerca / solo traducido · **Ctrl+7** cámara lenta ×0,25 · **Ctrl+4** sale.
