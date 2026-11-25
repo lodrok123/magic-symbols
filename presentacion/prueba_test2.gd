@@ -4167,13 +4167,10 @@ func _muro_de_ruina(q: Vector2i) -> bool:
 	return _en_mapa(q) and _letra(q) == "#"
 
 
-## 25/11: adornos del pack en una casilla de suelo de las ruinas (no en las que tienen una pieza del mapa: cofre, inicio…).
+## 25/11: adornos del pack en una casilla de suelo de las ruinas: escombros, piedras y cajas junto a los muros (no en las que tienen una pieza del mapa).
 func _adornos_ss(c: Vector2i, l: String) -> void:
 	_contrafuerte_ss(Vector2i(-1, -1))          # lee las piezas del mapa una vez
 	if _celdas_pieza_ss.has(c):
-		if l == "R":
-			for p in PAREDES_SS.adornos_suelo(c, l, func(_q: Vector2i) -> bool: return false, ALTO):
-				_poner_escena(String(p[0]), c, p[1], false)      # bajo una pieza, solo la losa
 		return
 	var en: bool = _en_marcador
 	_en_marcador = false
@@ -4268,7 +4265,7 @@ func _colocar_letras() -> void:
 			var h: int = _hash(x, y, 3)
 			_en_marcador = not "#~.,cUtxV".contains(l)      # pared, agua, suelos, arcos `U`, tienda, empalizada y estandarte son decorado; el resto (también los canales `-` `L`) sale de un marcador
 			if l in [".", "g", "R"] and _ruinas_ss():
-				_adornos_ss(c, l)            # 25/11: losas, escombros, piedras y cajas del pack Stylescape (estilo «ruinas»)
+				_adornos_ss(c, l)            # 25/11: escombros, piedras y cajas del pack Stylescape (estilo «ruinas»)
 			match l:
 				" ":
 					_bloqueadas[c] = true          # fuera de lo pintado: no se pisa

@@ -151,14 +151,14 @@ static func _adornos_tramo(c: Vector2i, lado: Vector2i, centro: Vector3, h: int)
 	return res
 
 
-## Adornos de una casilla de SUELO del estilo ruinas (`letra` = su letra del mapa): las losas del pack si es «R», y junto a un muro, de vez en cuando,
+## Adornos de una casilla de SUELO del estilo ruinas (`letra` = su letra del mapa): junto a un muro, de vez en cuando,
 ## escombros, piedras sueltas o una caja, del lado del muro. No bloquean. Array de [id, Transform3D].
 static func adornos_suelo(c: Vector2i, letra: String, es_muro: Callable, y: float) -> Array:
 	var res: Array = []
 	var centro := Vector3((float(c.x) + 0.5) * S, y, (float(c.y) + 0.5) * S)
 	var h: int = _hash(c, 13)
-	if letra == "R":
-		res.append([id_de(String(LOSAS[h % LOSAS.size()])), Transform3D(Basis(Vector3.UP, deg_to_rad(90.0 * float((h >> 2) % 4))), centro + Vector3(0.0, 0.015, 0.0))])
+	# 25/11 (Pablo: «no me convence el suelo»): las losas del pack (SM_Floor_4x4_TopFace) se veían lisas desde la cámara; las «R» se quedan con el
+	# suelo enlosado del juego. Las piezas siguen generándose (LOSAS) por si se vuelven a probar.
 	var muros_al_lado: Array = []
 	for d in DIRS:
 		if es_muro.call(c + d):
