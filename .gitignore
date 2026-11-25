@@ -91,3 +91,7 @@ arte/stylescape/*
 # Python
 __pycache__/
 *.pyc
+# Pack «SH assets» (25/11/2026, PRUEBA de rendimiento): licencia sin identificar, nada del pack en el repo público.
+# Se regenera con tools/montar_casa_sh.py (ver arte/sh_assets/LEEME.md).
+arte/sh_assets/*
+!arte/sh_assets/LEEME.md
