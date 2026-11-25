@@ -35,6 +35,8 @@ const RECETAS: Dictionary = {
 	"MI_Ivy_Vine_01": ["T_IvyBranch_01_D", "", "", "hiedra"],
 	"MI_Ivy_Vine_02": ["T_IvyBranch_02_D", "", "", "hiedra"],
 }
+## Las losas del pack (MI_Floors, la misma textura que los muros): reciben la luz de arriba y salen más claras que el frente del muro; esto las iguala.
+const COLOR_LOSAS: Color = Color(0.9, 0.86, 0.8)      ## medido: con (0,86·0,84·0,82) salía menos saturado y más oscuro que el muro; con (0,95·0,9·0,82), más; este, entre los dos
 ## La hiedra del pack es un verde muy claro (en Unreal la oscurecía su `Ivy Tint`): se multiplica por esto para que no brille más que la hierba.
 const TINTE_HIEDRA: Color = Color(0.62, 0.68, 0.55)
 
@@ -146,7 +148,7 @@ func _material(m: String) -> Material:
 		# 25/11: con la rugosidad del AORM el suelo brillaba como mojado (reflejos del cielo en una superficie grande y plana): mate.
 		mat.roughness_texture = null
 		mat.roughness = 1.0
-		mat.albedo_color = Color(0.86, 0.84, 0.82)       # un poco más oscuro que los muros, para que se separen
+		mat.albedo_color = COLOR_LOSAS       # 25/11: calibrado en pantalla contra el ladrillo del muro
 	ResourceSaver.save(mat, MATERIALES + m + ".tres")
 	_mats[m] = load(MATERIALES + m + ".tres")
 	return _mats[m]

@@ -4190,6 +4190,9 @@ func _muro_de_ruina(q: Vector2i) -> bool:
 func _adornos_ss(c: Vector2i, l: String) -> void:
 	_contrafuerte_ss(Vector2i(-1, -1))          # lee las piezas del mapa una vez
 	if _celdas_pieza_ss.has(c):
+		if l == "R":
+			var lp: Array = PAREDES_SS.losa_de(c, ALTO)
+			_poner_escena(String(lp[0]), c, lp[1], false)      # bajo una pieza del mapa, solo la losa
 		return
 	var en: bool = _en_marcador
 	_en_marcador = false
@@ -4229,6 +4232,10 @@ func _paredes_ss(c: Vector2i) -> bool:
 	var piezas: Array = PAREDES_SS.muros(c, Callable(self, "_suelo_de_cueva"), Callable(self, "_muro_de_ruina"), ALTO, _contrafuerte_ss(c))
 	for p in piezas:
 		_poner_escena(String(p[0]), c, p[1], true)
+	if not piezas.is_empty() and _tipo_suelo(c) == 3:
+		# 25/11: bajo el muro de una sala enlosada, también la losa del pack (el suelo llega hasta la base del muro)
+		var lp: Array = PAREDES_SS.losa_de(c, ALTO)
+		_poner_escena(String(lp[0]), c, lp[1], false)
 	return not piezas.is_empty()
 
 

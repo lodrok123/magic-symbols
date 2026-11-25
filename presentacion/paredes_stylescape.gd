@@ -151,14 +151,17 @@ static func _adornos_tramo(c: Vector2i, lado: Vector2i, centro: Vector3, h: int)
 	return res
 
 
-## Adornos de una casilla de SUELO del estilo ruinas (`letra` = su letra del mapa): junto a un muro, de vez en cuando,
+## Adornos de una casilla de SUELO del estilo ruinas (`letra` = su letra del mapa): las losas del pack si es «R», y junto a un muro, de vez en cuando,
 ## escombros, piedras sueltas o una caja, del lado del muro. No bloquean. Array de [id, Transform3D].
 static func adornos_suelo(c: Vector2i, letra: String, es_muro: Callable, y: float) -> Array:
 	var res: Array = []
 	var centro := Vector3((float(c.x) + 0.5) * S, y, (float(c.y) + 0.5) * S)
 	var h: int = _hash(c, 13)
-	# 25/11 (Pablo: «no me convence el suelo»): las losas del pack (SM_Floor_4x4_TopFace) se veían lisas desde la cámara; las «R» se quedan con el
-	# suelo enlosado del juego. Las piezas siguen generándose (LOSAS) por si se vuelven a probar.
+	# 25/11: las losas del pack (SM_Floor_4x4_TopFace) en las «R». Se quitaron («no me convence el suelo») y vuelven («prueba con el suelo del pack»):
+	# con el suelo del juego, aun teñido, los colores no casaban con el muro; las del pack son de su misma textura. También van bajo los muros
+	# de una sala enlosada (`losa_de`, la llama la maqueta), para que el suelo llegue hasta la base del muro.
+	if letra == "R":
+		res.append(losa_de(c, y))
 	var muros_al_lado: Array = []
 	for d in DIRS:
 		if es_muro.call(c + d):
@@ -174,6 +177,13 @@ static func adornos_suelo(c: Vector2i, letra: String, es_muro: Callable, y: floa
 	if cual != CAJA and (h >> 15) % 2 == 0:
 		res.append([id_de("SM_Stone_0%d" % (1 + (h >> 16) % 3)), Transform3D(Basis(Vector3.UP, deg_to_rad(float((h >> 5) % 360))), pos + lado * 0.55 - hacia * 0.25)])
 	return res
+
+
+## Una losa del pack en la casilla `c` (variante y giro estables por casilla). [id, Transform3D].
+static func losa_de(c: Vector2i, y: float) -> Array:
+	var h: int = _hash(c, 13)
+	var centro := Vector3((float(c.x) + 0.5) * S, y + 0.015, (float(c.y) + 0.5) * S)
+	return [id_de(String(LOSAS[h % LOSAS.size()])), Transform3D(Basis(Vector3.UP, deg_to_rad(90.0 * float((h >> 2) % 4))), centro)]
 
 
 ## El contrafuerte de una trampa: dos tramos de muro grueso de una casilla de ancho, uno pegado al eje y otro delante, hasta la cara de la casilla
