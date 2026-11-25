@@ -9,8 +9,11 @@ extends RefCounted
 ##     anillos de muro pegados se cosían con muros cruzados);
 ##   · recto (solo E+O o solo N+S) = un tramo entero de 4 m (una casilla); si dobla, acaba o se cruza = medios tramos de 2 m y un POSTE
 ##     en el centro que tapa la junta; una casilla suelta = un poste;
-##   · un tramo horizontal con suelo al norte es la pared SUR de una sala (la que queda entre la cámara y la sala): va BAJA
-##     (1,5 m) para no tapar el interior. El resto, alto (3 m), con ventanas y desperfectos al azar (estable por casilla).
+##   · un tramo horizontal que es la pared SUR de una sala o de un pasillo (la que queda entre la cámara y lo de dentro) va BAJO (1,5 m) para
+##     no taparlo. Es sala si al norte hay suelo y, a FONDO_SALA_MIN..FONDO_SALA_MAX filas, otro muro que la cierra (que no sea el borde del mapa).
+##     25/11 (Pablo: «pon bajos los que tapen»): antes bajaba todo tramo con suelo al norte, y en unas ruinas al aire libre casi todos salían bajos.
+##     Ahora un muro con hierba abierta detrás (hasta el borde del mapa) o con un callejón de una fila se queda ALTO.
+##     El resto, alto (3 m), con ventanas y desperfectos al azar (estable por casilla).
 ## Las piezas (arte/stylescape/piezas/ss_*.tscn) las crea herramientas/generar_piezas_stylescape.gd con el material horneado al beige de
 ## nuestros muros; el musgo de arriba lo pone la maqueta (`musgo_ruina` del shader común). Si el pack no está generado, se salta.
 ##
@@ -39,9 +42,31 @@ const CONTRAFUERTE_FONDO: float = 0.575               ## u: dos tramos llenan la
 const TODAS: Array = ["SM_Wall_04", "SM_Wall_Dmg_02", "SM_Wall_Windows_01", "SM_Wall_Dmg_04", "SM_Wall_Dmg_03",
 	"SM_Wall_02", "SM_Wall_Dmg_03_Alt", "SM_Wall_Dmg_04_Alt", "SM_Wall_Windows_Half",
 	"SM_Wall_Half_04", "SM_Wall_Half_02", "SM_Wall_Dmg_03_Half_01", "SM_Wall_Dmg_04_Half_02",
-	"SM_Wall_01_Corner", "SM_Wall_Half_Corner", "SM_Wall_Thick_04", "SM_Wall_Thick_Half_04"]
+	"SM_Wall_01_Corner", "SM_Wall_Half_Corner", "SM_Wall_Thick_04", "SM_Wall_Thick_Half_04"] + ADORNOS
+## 25/11 (Pablo: «pon los assets nuevos, no solo el muro»): adornos del pack, sin cuerpo (no bloquean). Ver `adornos_muro` y `adornos_suelo`.
+const HIEDRAS: Array = ["SM_HangingIvy_05", "SM_HangingIvy_06", "SM_HangingIvy_01", "SM_HangingIvy_03"]
+const ESCOMBROS: Array = ["SM_Rubble_01", "SM_Rubble_02", "SM_Stone_01", "SM_Stone_02", "SM_Stone_03", "SM_Stone_01"]
+const LOSAS: Array = ["SM_Floor_4x4_TopFace_01", "SM_Floor_4x4_TopFace_02", "SM_Floor_4x4_TopFace_03"]
+const CORNISA: String = "SM_Wall_LedgeDetail_04"
+## Alto y fondo (u) de cada hiedra (medidos de las piezas): cuelga con su parte de arriba en lo alto del muro.
+const DIM_HIEDRA: Dictionary = {"SM_HangingIvy_05": Vector2(1.03, 0.01), "SM_HangingIvy_06": Vector2(0.49, 0.02), "SM_HangingIvy_01": Vector2(0.59, 0.20), "SM_HangingIvy_03": Vector2(0.56, 0.20)}
+const ALTO_MURO: float = 1.72        ## u (3 m)
+const MEDIO_GRUESO: float = 0.145    ## u: medio grueso del muro fino
+const CORNISA_ALTO: float = 0.16
+const CORNISA_FONDO: float = 0.09
+## Cuántos tramos rectos altos llevan hiedra y cuántos cornisa (1 de cada n), y cuántas casillas de suelo junto a un muro llevan escombros (1 de cada n).
+const CADA_HIEDRA: int = 3
+const CADA_CORNISA: int = 2
+const CADA_ESCOMBRO: int = 4
+const CADA_CAJA: int = 9            ## de los escombros, 1 de cada n es una caja de madera
+const CAJA: String = "SM_Crate_01"
+const ADORNOS: Array = ["SM_HangingIvy_05", "SM_HangingIvy_06", "SM_HangingIvy_01", "SM_HangingIvy_03", "SM_Rubble_01", "SM_Rubble_02",
+	"SM_Stone_01", "SM_Stone_02", "SM_Stone_03", "SM_Floor_4x4_TopFace_01", "SM_Floor_4x4_TopFace_02", "SM_Floor_4x4_TopFace_03",
+	"SM_Wall_LedgeDetail_04", "SM_Crate_01"]
 
 const DIRS: Array = [Vector2i(1, 0), Vector2i(-1, 0), Vector2i(0, 1), Vector2i(0, -1)]      ## E, O, S, N
+const FONDO_SALA_MIN: int = 2       ## filas de suelo detrás del muro para que sea una sala o pasillo (con 1 es un callejón: el muro sigue alto)
+const FONDO_SALA_MAX: int = 12      ## más allá, lo de detrás es campo abierto (el muro sigue alto)
 const OCHO: Array = [Vector2i(1, 0), Vector2i(-1, 0), Vector2i(0, 1), Vector2i(0, -1), Vector2i(1, 1), Vector2i(1, -1), Vector2i(-1, 1), Vector2i(-1, -1)]
 
 
@@ -75,7 +100,7 @@ static func muros(c: Vector2i, es_suelo: Callable, es_muro: Callable, y: float, 
 	for d in DIRS:
 		var otra: Vector2i = c + d
 		var u: bool = se_viste(otra, es_suelo, es_muro) and _tramo_con_suelo(c, d, es_suelo)
-		une.append([u, u and _es_bajo(c, d, es_suelo)])
+		une.append([u, u and _es_bajo(c, d, es_suelo, es_muro)])
 	var centro := Vector3((float(c.x) + 0.5) * S, y, (float(c.y) + 0.5) * S)
 	var h: int = _hash(c, 1)
 	var e: bool = une[0][0]
@@ -86,8 +111,12 @@ static func muros(c: Vector2i, es_suelo: Callable, es_muro: Callable, y: float, 
 		var bajo: bool = une[0][1] or une[1][1]
 		var liso: String = "SM_Wall_Half_04" if bajo else "SM_Wall_04"
 		res.append([id_de(liso if contrafuerte != Vector2i.ZERO else _de(BAJOS_4 if bajo else ALTOS_4, h)), _xf(centro, 0.0, h)])
+		if not bajo and contrafuerte == Vector2i.ZERO:
+			res.append_array(_adornos_tramo(c, Vector2i(0, 1) if es_suelo.call(c + Vector2i(0, 1)) else Vector2i(0, -1), centro, h))
 	elif s and n and not e and not o:
 		res.append([id_de("SM_Wall_04" if contrafuerte != Vector2i.ZERO else _de(ALTOS_4, h)), _xf(centro, 90.0, h)])
+		if contrafuerte == Vector2i.ZERO:
+			res.append_array(_adornos_tramo(c, Vector2i(1, 0) if es_suelo.call(c + Vector2i(1, 0)) else Vector2i(-1, 0), centro, h))
 	else:
 		var todos_bajos: bool = true
 		for i in range(4):
@@ -104,7 +133,49 @@ static func muros(c: Vector2i, es_suelo: Callable, es_muro: Callable, y: float, 
 	return res
 
 
-## El tramo de `c` hacia `d` tiene suelo a un lado (en `c` o en la vecina, a cualquiera de los dos costados).
+## Hiedra colgando y cornisa en la cara de un tramo recto ALTO que da al suelo `lado` (estable por casilla). Array de [id, Transform3D].
+static func _adornos_tramo(c: Vector2i, lado: Vector2i, centro: Vector3, h: int) -> Array:
+	var res: Array = []
+	var n := Vector3(float(lado.x), 0.0, float(lado.y))
+	var giro: float = 0.0 if lado.y != 0 else 90.0
+	var a_lo_largo := Vector3(1.0, 0.0, 0.0) if lado.y != 0 else Vector3(0.0, 0.0, 1.0)
+	var h2: int = _hash(c, 9)
+	if h2 % CADA_CORNISA == 0:
+		res.append([id_de(CORNISA), Transform3D(Basis(Vector3.UP, deg_to_rad(giro)), centro + n * (MEDIO_GRUESO + CORNISA_FONDO * 0.5) + Vector3(0.0, ALTO_MURO - CORNISA_ALTO - 0.04, 0.0))])
+	if (h2 >> 2) % CADA_HIEDRA == 0:
+		var hiedra: String = String(HIEDRAS[(h2 >> 4) % HIEDRAS.size()])
+		var dim: Vector2 = DIM_HIEDRA[hiedra]
+		var desliza: float = (float((h2 >> 7) % 61) / 60.0 - 0.5) * 0.9
+		var pos: Vector3 = centro + n * (MEDIO_GRUESO + CORNISA_FONDO + dim.y * 0.5 + 0.01) + a_lo_largo * desliza + Vector3(0.0, ALTO_MURO - dim.x - 0.02, 0.0)
+		res.append([id_de(hiedra), Transform3D(Basis(Vector3.UP, deg_to_rad(giro + (180.0 if lado.y < 0 or lado.x < 0 else 0.0))), pos)])
+	return res
+
+
+## Adornos de una casilla de SUELO del estilo ruinas (`letra` = su letra del mapa): las losas del pack si es «R», y junto a un muro, de vez en cuando,
+## escombros, piedras sueltas o una caja, del lado del muro. No bloquean. Array de [id, Transform3D].
+static func adornos_suelo(c: Vector2i, letra: String, es_muro: Callable, y: float) -> Array:
+	var res: Array = []
+	var centro := Vector3((float(c.x) + 0.5) * S, y, (float(c.y) + 0.5) * S)
+	var h: int = _hash(c, 13)
+	if letra == "R":
+		res.append([id_de(String(LOSAS[h % LOSAS.size()])), Transform3D(Basis(Vector3.UP, deg_to_rad(90.0 * float((h >> 2) % 4))), centro + Vector3(0.0, 0.015, 0.0))])
+	var muros_al_lado: Array = []
+	for d in DIRS:
+		if es_muro.call(c + d):
+			muros_al_lado.append(d)
+	if muros_al_lado.is_empty() or (h >> 4) % CADA_ESCOMBRO != 0:
+		return res
+	var d0: Vector2i = muros_al_lado[(h >> 6) % muros_al_lado.size()]
+	var hacia := Vector3(float(d0.x), 0.0, float(d0.y))
+	var lado := Vector3(-hacia.z, 0.0, hacia.x)
+	var cual: String = CAJA if (h >> 8) % CADA_CAJA == 0 else String(ESCOMBROS[(h >> 9) % ESCOMBROS.size()])
+	var pos: Vector3 = centro + hacia * (S * 0.5 - 0.55) + lado * ((float((h >> 12) % 41) / 40.0 - 0.5) * 1.2)
+	res.append([id_de(cual), Transform3D(Basis(Vector3.UP, deg_to_rad(float((h >> 3) % 360))), pos)])
+	if cual != CAJA and (h >> 15) % 2 == 0:
+		res.append([id_de("SM_Stone_0%d" % (1 + (h >> 16) % 3)), Transform3D(Basis(Vector3.UP, deg_to_rad(float((h >> 5) % 360))), pos + lado * 0.55 - hacia * 0.25)])
+	return res
+
+
 ## El contrafuerte de una trampa: dos tramos de muro grueso de una casilla de ancho, uno pegado al eje y otro delante, hasta la cara de la casilla
 ## que da a `d`. Array de [id, Transform3D]. `bajo` = la pared sur (va baja).
 static func contrafuerte_de(c: Vector2i, d: Vector2i, y: float, bajo: bool = false) -> Array:
@@ -206,12 +277,21 @@ static func integrar_trampa(t: Node) -> int:
 				var ref: Color = TrampaPared3D.COLOR_PIEDRA.srgb_to_linear()
 				var lum: float = _lum_piedra(sm.albedo_texture) if sm.albedo_texture != null else (ref.r * 0.2126 + ref.g * 0.7152 + ref.b * 0.0722)
 				nuevo.set_shader_parameter("lum_ref", lum)
+				if sm.albedo_texture == null and ResourceLoader.exists(TEX_PIEDRA):
+					# sin textura: el ladrillo de los muros, triplanar (la referencia de luz pasa a ser la del ladrillo)
+					nuevo.set_shader_parameter("tex_muro", load(TEX_PIEDRA))
+					nuevo.set_shader_parameter("usa_muro", 1.0)
+					nuevo.set_shader_parameter("lum_ref", _lum_piedra(load(TEX_PIEDRA)) * 0.5)
 				hechos[sm] = nuevo
-			mi.set_surface_override_material(s, hechos[sm])
+			if mi.material_override == sm:
+				mi.material_override = hechos[sm]          # las piezas de primitivas lo ponen para todo el objeto: manda sobre el de la superficie
+			else:
+				mi.set_surface_override_material(s, hechos[sm])
 			cambiados += 1
 	return cambiados
 
 
+## El tramo de `c` hacia `d` tiene suelo a un lado (en `c` o en la vecina, a cualquiera de los dos costados).
 static func _tramo_con_suelo(c: Vector2i, d: Vector2i, es_suelo: Callable) -> bool:
 	var lado := Vector2i(d.y, d.x)       # perpendicular
 	for p in [c, c + d]:
@@ -220,12 +300,27 @@ static func _tramo_con_suelo(c: Vector2i, d: Vector2i, es_suelo: Callable) -> bo
 	return false
 
 
-## Tramo horizontal con suelo al norte (y-1): pared sur de una sala, delante de la cámara. También si al sur hay otra sala (muro compartido):
-## para la sala de arriba sigue estando delante (25/11: con «solo al norte» el muro entre dos salas salía alto y tapaba la de arriba).
-static func _es_bajo(c: Vector2i, d: Vector2i, es_suelo: Callable) -> bool:
+## Tramo horizontal que es la pared SUR de una sala o pasillo (ver la cabecera). Se mira la columna de `c` y la de la vecina: basta una.
+static func _es_bajo(c: Vector2i, d: Vector2i, es_suelo: Callable, es_muro: Callable) -> bool:
 	if d.y != 0:
 		return false
-	return es_suelo.call(c + Vector2i(0, -1)) or es_suelo.call(c + d + Vector2i(0, -1))
+	return _cierra_sala(c, es_suelo, es_muro) or _cierra_sala(c + d, es_suelo, es_muro)
+
+
+## ¿Es el muro `c` el fondo sur de un espacio cerrado? Suelo justo al norte y, subiendo por la columna, otro muro a FONDO_SALA_MIN..FONDO_SALA_MAX
+## filas que no sea el borde del mapa (el borde: un muro con nada encima, ni suelo ni muro).
+static func _cierra_sala(c: Vector2i, es_suelo: Callable, es_muro: Callable) -> bool:
+	if not es_suelo.call(c + Vector2i(0, -1)):
+		return false
+	for k in range(1, FONDO_SALA_MAX + 2):
+		var q: Vector2i = c + Vector2i(0, -k)
+		if es_muro.call(q):
+			var fondo: int = k - 1
+			var borde: bool = not es_muro.call(q + Vector2i(0, -1)) and not es_suelo.call(q + Vector2i(0, -1))
+			return fondo >= FONDO_SALA_MIN and not borde
+		if not es_suelo.call(q):
+			return false
+	return false
 
 
 ## Las piezas están hechas con lo largo en X; 0 = a lo largo de X, 90 = a lo largo de Z. Media vuelta al azar para variar la cara.

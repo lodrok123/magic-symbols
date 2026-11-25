@@ -4167,9 +4167,25 @@ func _muro_de_ruina(q: Vector2i) -> bool:
 	return _en_mapa(q) and _letra(q) == "#"
 
 
+## 25/11: adornos del pack en una casilla de suelo de las ruinas (no en las que tienen una pieza del mapa: cofre, inicio…).
+func _adornos_ss(c: Vector2i, l: String) -> void:
+	_contrafuerte_ss(Vector2i(-1, -1))          # lee las piezas del mapa una vez
+	if _celdas_pieza_ss.has(c):
+		if l == "R":
+			for p in PAREDES_SS.adornos_suelo(c, l, func(_q: Vector2i) -> bool: return false, ALTO):
+				_poner_escena(String(p[0]), c, p[1], false)      # bajo una pieza, solo la losa
+		return
+	var en: bool = _en_marcador
+	_en_marcador = false
+	for p in PAREDES_SS.adornos_suelo(c, l, Callable(self, "_muro_de_ruina"), ALTO):
+		_poner_escena(String(p[0]), c, p[1], false)
+	_en_marcador = en
+
+
 ## 25/11: casillas `#` con una trampa de pared (`; pieza <id> trampa_flechas|trampa_dragon x y mira=…`, sin `exenta=si`) -> hacia dónde mira.
 ## Se lee del mapa del nivel una vez; ahí la maqueta pone un CONTRAFUERTE del pack para que la trampa no flote delante del muro fino.
 var _trampas_pared_ss: Dictionary = {}
+var _celdas_pieza_ss: Dictionary = {}      ## casillas con una pieza del mapa (`; pieza … x y`): ahí no van adornos
 var _trampas_pared_leidas: bool = false
 
 
@@ -4180,6 +4196,8 @@ func _contrafuerte_ss(c: Vector2i) -> Vector2i:
 		if ruta != "" and FileAccess.file_exists(ruta):
 			for linea in FileAccess.get_file_as_string(ruta).split("\n"):
 				var t: PackedStringArray = linea.strip_edges().trim_prefix(";").strip_edges().split(" ", false)
+				if t.size() >= 5 and t[0] == "pieza" and t[3].is_valid_int() and t[4].is_valid_int():
+					_celdas_pieza_ss[Vector2i(int(t[3]), int(t[4]))] = true
 				if t.size() < 5 or t[0] != "pieza" or not t[2] in ["trampa_flechas", "trampa_dragon"] or linea.contains("exenta=si"):
 					continue
 				var mira: String = "s"
@@ -4221,7 +4239,7 @@ func _poner_escena(id: String, c: Vector2i, t: Transform3D, bloquea: bool) -> No
 				var m: Material = mi.get_active_material(s)
 				if m != null:
 					var conv: Material = Ocluso3D.convertir(m.duplicate() as Material)
-					if id.begins_with("ss_") and conv is ShaderMaterial:
+					if id.begins_with("ss_") and String(n.get_meta("categoria", "")) == "muro" and conv is ShaderMaterial:      # 25/11: el musgo, solo en los muros (no en losas, hiedra ni cajas)
 						var caja: AABB = mi.mesh.get_aabb()
 						(conv as ShaderMaterial).set_shader_parameter("musgo_ruina", MUSGO_SS)
 						(conv as ShaderMaterial).set_shader_parameter("musgo_altura", Vector2(caja.position.y, caja.size.y))
@@ -4249,6 +4267,8 @@ func _colocar_letras() -> void:
 			var l: String = _letra(c)
 			var h: int = _hash(x, y, 3)
 			_en_marcador = not "#~.,cUtxV".contains(l)      # pared, agua, suelos, arcos `U`, tienda, empalizada y estandarte son decorado; el resto (también los canales `-` `L`) sale de un marcador
+			if l in [".", "g", "R"] and _ruinas_ss():
+				_adornos_ss(c, l)            # 25/11: losas, escombros, piedras y cajas del pack Stylescape (estilo «ruinas»)
 			match l:
 				" ":
 					_bloqueadas[c] = true          # fuera de lo pintado: no se pisa

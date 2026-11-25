@@ -28,7 +28,15 @@ const RECETAS: Dictionary = {
 	"MI_Walls": ["T_WallTrim_NoMoss_D", "T_WallTrim_NoMoss_N", "T_WallTrim_NoMoss_AORS"],
 	"MI_Stones": ["T_StoneRuins_D", "T_StoneRuins_N", "T_StoneRuins_AORM"],
 	"MI_Walls_Dmg": ["T_WallTrim_Dmg_D", "T_WallTrim_Dmg_N", "T_WallTrim_Dmg_AORM"],
+	# 25/11 (los adornos: losas, caja, hiedra). Las losas, con la piedra de los muros (beige); la madera y la hiedra, con su color (cuarto dato = sin hornear).
+	"MI_Floors": ["T_WallTrim_NoMoss_D", "T_WallTrim_NoMoss_N", "T_WallTrim_NoMoss_AORS", "losa"],
+	"MI_Wall_Wood": ["T_Wood_D", "T_Wood_N", "T_Wood_AORM", "natural"],
+	"MI_Ivy_Leaf": ["T_IvyLeaves_D", "", "", "hiedra"],
+	"MI_Ivy_Vine_01": ["T_IvyBranch_01_D", "", "", "hiedra"],
+	"MI_Ivy_Vine_02": ["T_IvyBranch_02_D", "", "", "hiedra"],
 }
+## La hiedra del pack es un verde muy claro (en Unreal la oscurecía su `Ivy Tint`): se multiplica por esto para que no brille más que la hierba.
+const TINTE_HIEDRA: Color = Color(0.62, 0.68, 0.55)
 
 var _mats: Dictionary = {}
 
@@ -76,7 +84,19 @@ func _material(m: String) -> Material:
 		return null
 	var mat := StandardMaterial3D.new()
 	mat.resource_name = m
-	mat.albedo_texture = _beige(r[0])
+	var modo: String = String(r[3]) if r.size() > 3 else "beige"
+	if modo == "hiedra":
+		# hojas en tarjetas: recorte por alfa, las dos caras, sin normal ni AORM
+		mat.albedo_texture = load(TEX + r[0] + ".png")
+		mat.albedo_color = TINTE_HIEDRA
+		mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA_SCISSOR
+		mat.alpha_scissor_threshold = 0.4
+		mat.cull_mode = BaseMaterial3D.CULL_DISABLED
+		mat.roughness = 0.9
+		ResourceSaver.save(mat, MATERIALES + m + ".tres")
+		_mats[m] = load(MATERIALES + m + ".tres")
+		return _mats[m]
+	mat.albedo_texture = _beige(r[0]) if modo in ["beige", "losa"] else load(TEX + r[0] + ".png")
 	mat.normal_enabled = true
 	mat.normal_texture = load(TEX + r[1] + ".png")
 	var orm: Texture2D = load(TEX + r[2] + ".png")
@@ -87,6 +107,11 @@ func _material(m: String) -> Material:
 	mat.roughness_texture = orm
 	mat.roughness_texture_channel = BaseMaterial3D.TEXTURE_CHANNEL_GREEN
 	mat.metallic = 0.0
+	if modo == "losa":
+		# 25/11: con la rugosidad del AORM el suelo brillaba como mojado (reflejos del cielo en una superficie grande y plana): mate.
+		mat.roughness_texture = null
+		mat.roughness = 1.0
+		mat.albedo_color = Color(0.86, 0.84, 0.82)       # un poco más oscuro que los muros, para que se separen
 	ResourceSaver.save(mat, MATERIALES + m + ".tres")
 	_mats[m] = load(MATERIALES + m + ".tres")
 	return _mats[m]
@@ -153,7 +178,20 @@ func _pieza(nombre: String) -> bool:
 		var mat: Material = _material(nm)
 		if mat != null:
 			mi.set_surface_override_material(s, mat)
-	# Colisión: la caja del muro (para los hechizos; a pie ya bloquea la casilla entera).
+	# Colisión: la caja del muro (para los hechizos; a pie ya bloquea la casilla entera). Los adornos (hiedra, escombros, losas…) no llevan cuerpo.
+	if nombre in PAREDES.ADORNOS:
+		raiz.set_meta("bloquea", false)
+		raiz.set_meta("categoria", "adorno")
+		for n2 in [modelo, mi]:
+			(n2 as Node).owner = raiz
+		var emp := PackedScene.new()
+		emp.pack(raiz)
+		var sal: String = PAREDES.RUTA + id + ".tscn"
+		var e2: int = ResourceSaver.save(emp, sal)
+		raiz.free()
+		esc.free()
+		print("OK     %-28s %5.2f x %5.2f x %5.2f u  giro %3d  %s  (adorno)" % [id, caja.size.x, caja.size.y, caja.size.z, int(giro), str(mats)])
+		return e2 == OK
 	var cuerpo := StaticBody3D.new()
 	cuerpo.name = "cuerpo"
 	cuerpo.collision_layer = CAPA_MUNDO
