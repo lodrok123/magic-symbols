@@ -43,7 +43,7 @@ var _panel_lab: bool = true
 ## Ctrl+4 / 5 / 6 / 7 del lab. Devuelve el nodo de la comparativa (o null si se ha quitado).
 static func tecla(lab: Node3D, keycode: int, mayus: bool) -> Node:
 	var c: Node = lab.get_node_or_null(NOMBRE)
-	if keycode == KEY_8:                                  # 25/11: estela que se queda en el mundo (EstelaMundoToy) en las bolas de fuego, agua y tierra: F4 lanza la bola en vuelo, Z cambia de elemento
+	if keycode == KEY_8:                                  # 25/11: estela que se queda en el mundo (EstelaMundoToy) en las bolas de fuego, agua y tierra: F4 lanza la bola del juego con su carga, Z cambia de elemento
 		EstelaMundo.activa = not EstelaMundo.activa
 		return c
 	if keycode == KEY_4:
@@ -74,7 +74,7 @@ static func poner(lab: Node3D) -> Node:
 static func texto(lab: Node3D) -> String:
 	return "\nCtrl+4 COMPARATIVA de impactos: ahora (izq.) frente a Effekseer traducido (der.) · Ctrl+5 par · Ctrl+6 vista · Ctrl+7 cámara lenta" + \
 		(" · PUESTA" if lab.get_node_or_null(NOMBRE) != null else "") + \
-		"\nCtrl+8 ESTELA EN EL MUNDO de la bola (fuego, agua, tierra; F4 bola en vuelo, Z elemento): " + ("SÍ" if EstelaMundo.activa else "no")
+		"\nCtrl+8 ESTELA EN EL MUNDO de la bola (fuego, agua, tierra; F4 la bola del juego con su carga, Z elemento): " + ("SÍ" if EstelaMundo.activa else "no")
 
 
 # ------------------------------------------------------------------ montaje ------------------------------------------------------------------
