@@ -1,0 +1,2 @@
+aldea | FPS 127 | ms 7.86 | llamadas 188 | triángulos 2054953
+juego | FPS 160 | ms 6.25 | llamadas 98 | triángulos 823227

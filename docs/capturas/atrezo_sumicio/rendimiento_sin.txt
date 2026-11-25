@@ -1,0 +1,2 @@
+aldea_sin | FPS 162 | ms 6.18 | llamadas 129 | triángulos 1096739
+juego_sin | FPS 198 | ms 5.06 | llamadas 68 | triángulos 381460

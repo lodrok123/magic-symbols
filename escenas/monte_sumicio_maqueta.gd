@@ -38,6 +38,7 @@ var _choque_puerta: StaticBody3D           ## el cuerpo de la cancela cerrada (s
 var _puerta_abierta := false
 var _anillo := {}                           ## la empalizada: centro, radio, ángulo de la cancela y medio hueco (para la vegetación)
 const Vegetacion = preload("res://escenas/monte_sumicio_vegetacion.gd")
+const Atrezo = preload("res://escenas/monte_sumicio_atrezo.gd")
 
 
 func montar() -> void:
@@ -81,6 +82,8 @@ func _sembrar_vegetacion() -> void:
 	for paso in escolta.get_children():
 		evitar.append((paso as Node3D).global_position)
 	Vegetacion.sembrar(self, get_parent(), _anillo, casas(), torre, evitar)
+	# 25/11: atrezo del pack «SH assets» (barriles, cajas, leña, cerámica, flores) junto a las casas y la valla (escenas/monte_sumicio_atrezo.gd).
+	Atrezo.sembrar(self, get_parent(), _anillo, casas(), torre, obrador, evitar)
 
 
 func _exit_tree() -> void:
