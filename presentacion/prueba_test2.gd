@@ -4175,7 +4175,7 @@ const PAREDES_SS = preload("res://presentacion/paredes_stylescape.gd")
 const LOSAS_RUINAS: String = "res://arte/stylescape/texturas/losas_piedra_ruinas.res"      ## 25/11: las losas del suelo con el tono de los muros (estilo «ruinas»)
 ## Musgo de ruina (el `musgo_ruina` del shader común, el mismo verde que el arco en ruinas del Bosque) en los muros del pack. El arco usa 0,92;
 ## en estos muros cubría casi todo y se perdía el beige: 0,5.
-const MUSGO_SS: float = 0.5
+const MUSGO_SS: float = 0.15      ## 25/11 (Pablo: «los colores no casan» con el suelo): de 0,5 a 0,15; el verde del musgo era lo que más separaba el muro del suelo
 
 
 func _ruinas_ss() -> bool:

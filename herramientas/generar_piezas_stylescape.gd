@@ -59,7 +59,8 @@ func _initialize() -> void:
 
 ## Calibrado en pantalla (25/11, docs/capturas/stylescape/trampas/2_patio_dragon.png, sin los píxeles de musgo): con el color medio tal cual el suelo
 ## salía 0,583·0,566·0,492 y el frente del muro 0,624·0,593·0,471 (al muro le da otra luz); se corrige con la razón de los dos, en lineal.
-const AJUSTE_LOSAS: Vector3 = Vector3(1.16, 1.11, 0.91)
+## 2.º ajuste (25/11, Pablo: «los colores no casan»), con el musgo del muro a 0,15: el suelo seguía más amarillo (tono 50°) que el ladrillo (42°): más rojo, menos verde.
+const AJUSTE_LOSAS: Vector3 = Vector3(1.22, 1.06, 0.93)
 ## 25/11 (Pablo: «integra el suelo exterior con el muro, los colores de las texturas son distintos»): las losas del suelo del juego (arte/suelo_meshy/
 ## losas_piedra.png, gris lila) TEÑIDAS con el color medio de los muros del pack: mismo dibujo, el tono de la piedra de los muros. Cada canal se
 ## multiplica por (color del muro / color medio de las losas), en lineal. La usa la maqueta en el suelo de piedra con estilo «ruinas».
