@@ -3566,8 +3566,15 @@ func _tocon_reactivo(id_pedido: String, t: Transform3D) -> bool:
 	raiz.remove_child(modelo)
 	raiz.free()
 	var c: Vector2i = _celda_de(t.origin)
+	# Posición del marcador, no nombre autoasignado del nodo: estable al recargar.
+	var clave: String = Rompible3D._limpio(scene_file_path)+".tocon."+Rompible3D._limpio("%s_%d_%d_%d" % [id_pedido,roundi(t.origin.x*100),roundi(t.origin.y*100),roundi(t.origin.z*100)])
+	if Flags.i().tiene(clave):
+		preload("res://presentacion/estados_blender_3d.gd").restos(_props,_props.global_transform*t,true,Pieza3D._caja(modelo,Transform3D.IDENTITY).size)
+		modelo.free()
+		return true
 	_bloqueadas[c] = true
 	var r: Reactivo3D = _nuevo_reactivo("tronco", c, t.origin, modelo, "")
+	r.flag_consumido=clave
 	r.name = "reactivo_tocon"
 	r.set_meta("tocon", id_pedido)
 	r.transform = t
@@ -3602,6 +3609,8 @@ func _reactivo_pieza(tipo: String, id_pedido: String, c: Vector2i, y: float, blo
 		var rs: float = float(SOMBRA_CONTACTO[_id_real(id_pedido)]) * escala
 		_sombras.append(Transform3D(Basis.IDENTITY.scaled(Vector3(rs * 2.0, 1.0, rs * 1.7)), Vector3(p.x, Y_DECAL - 0.005, p.z)))
 	var r: Reactivo3D = _nuevo_reactivo(tipo, c, p, modelo, elemento)
+	if tipo in ["tronco","puerta_goblin","torre_goblin"]:
+		r.clave_carbonizacion=Rompible3D._limpio(scene_file_path)+".madera."+Rompible3D._limpio("%s_%s_%d_%d" % [tipo,id_pedido,c.x,c.y])+".carbonizacion"
 	if _marca_tf.has(c):
 		r.transform = _marca_tf[c]     # 13/10: el marcador tal cual, como en el editor (sin variación aleatoria ni desvíos extra)
 	else:

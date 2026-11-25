@@ -1,0 +1,28 @@
+"""Informe de la prueba integrada en el Bosque02 real."""
+from pathlib import Path
+import json
+import re
+from html import escape
+
+raiz=Path(__file__).resolve().parents[1]
+carpeta=raiz/'output/revision_zona_blender_2026-11-25'
+fotos=json.loads((carpeta/'capturas.json').read_text(encoding='utf-8'))
+log=(carpeta/'consola.log').read_text(encoding='utf-8',errors='replace')
+oks=len(re.findall(r'^OK\s',log,re.M))
+fallos=len(re.findall(r'^FALLO\s',log,re.M))
+errores=len(re.findall(r'^SCRIPT ERROR:',log,re.M))
+galeria=''.join(f'''<figure><a href="../output/revision_zona_blender_2026-11-25/{f['archivo']}"><img loading="lazy" src="../output/revision_zona_blender_2026-11-25/{f['archivo']}" alt="{escape(f['titulo'])}"></a><figcaption>{escape(f['titulo'])} · {escape(f['nota'])}</figcaption></figure>''' for f in fotos)
+html=f'''<!doctype html><html lang="es"><meta charset="utf-8"><title>Prueba integrada de interacciones · Bosque02</title>
+<style>body{{max-width:1400px;margin:40px auto;padding:0 24px;background:#19232d;color:#e6edf3;font:17px/1.6 system-ui}}a{{color:#8ed4ff}}img{{width:100%;display:block}}.galeria{{display:grid;grid-template-columns:repeat(auto-fit,minmax(430px,1fr));gap:20px}}figure{{margin:0;background:#23303b;padding:10px;border-radius:10px}}figcaption{{padding:10px}}.estado{{background:#263d32;padding:18px;border-radius:10px}}code{{color:#b9e1ff}}</style>
+<h1>Revisión de interacciones en Bosque02</h1><p>25/11/2026 · Prueba en la escena real <code>PruebaBosque02.tscn</code>, con suelo, paleta, iluminación, cámara y personaje del juego.</p>
+<p class="estado"><b>{oks} comprobaciones correctas · {fallos} fallos · {errores} errores de script.</b> {len(fotos)} capturas de los actores en ejecución. <a href="../output/revision_zona_blender_2026-11-25/lamina_revision.png">Abrir lámina completa</a>.</p>
+<p>Se colocan temporalmente seis objetos en un claro: cristal, roca, caldera, barril y dos tocones. Los cuatro primeros se montan mediante la gramática de puzles y los tocones mediante la fábrica del nivel. Las colocaciones se crean en memoria; no se modifica el archivo del nivel. Se aísla el combate y el contagio a la hierba de los dos tocones para observar sus estados.</p>
+<p>Secuencia: fuego sobre ambos tocones; agua apaga uno parcialmente quemado; extracción del cristal y pulso posterior; daño intermedio y rotura de roca; caldera abollada en caliente y enfriada; apertura de barril con entrada de E; consumo completo del primer tocón. Se comprueban el paso liberado y la conservación del tocón apagado.</p>
+<p>Después se escribe una copia de flags en <a href="../output/revision_zona_blender_2026-11-25/flags_revision.json">flags_revision.json</a>, se destruye la escena y se vuelve a cargar Bosque02. Las flags se leen de ese archivo. Se verifica cristal agotado sin duplicar recurso, roca rota y fragmentos en la misma pose, abolladura, tapa abierta y restos del tocón. Es una prueba de las flags persistentes; no sobrescribe una partida del usuario.</p>
+<p><b>Corrección encontrada por esta prueba:</b> E podía coger un objeto cercano antes de abrir el barril. El barril se registra ahora en la pista común de proximidad; la recogida cede a esa interacción y la pista ofrece Abrir/Cerrar. Se repitió la entrada real de teclado en Bosque02 y la batería de conexión.</p>
+<p><b>Pendiente resuelto:</b> el tocón apagado a mitad de combustión conserva ahora progreso, origen y alcance de sus marcas al recargar. Vuelve sin llamas, calor ni humedad. Puede volver a prenderse y continuar desde ese frente; el consumo definitivo limpia el estado parcial. El mismo guardado está conectado a troncos, puertas y torres de madera creados por la fábrica. La humedad y el calor siguen siendo transitorios.</p>
+<p>Las vistas ajustan el zoom y el giro de 180° disponible en el juego para evitar los pinos del primer plano; el detalle de la caldera muestra su cara abollada. Se conservan escena, vegetación, suelo e iluminación. Solo se ocultan avisos y paneles de HUD para leer la lámina; la pista E permanece visible.</p>
+<p><a href="../herramientas/escenario_revision_zona_blender.gd">Escenario reproducible</a> · <a href="../output/revision_zona_blender_2026-11-25/consola.log">Log completo</a> · <a href="../output/revision_zona_blender_2026-11-25/zona.json">Posiciones</a> · <a href="CONEXION_BLENDER_2026-11-25.html">Conexiones implementadas</a></p>
+<div class="galeria">{galeria}</div><p>Los avisos de user://, animaciones preexistentes de NPC y recursos al cerrar se conservan en el log. No se confunden con los fallos de comprobaciones.</p></html>'''
+(raiz/'docs/REVISION_ZONA_BLENDER_2026-11-25.html').write_text(html,encoding='utf-8')
+print(f'Informe: {oks} OK, {fallos} fallos, {errores} errores de script, {len(fotos)} capturas')

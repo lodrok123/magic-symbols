@@ -42,6 +42,7 @@ uniform float lado = 2.3;
 uniform vec4 conex = vec4(0.0);          // hay veta vecina al norte (-z), este (+x), sur (+z), oeste (-x)
 uniform vec3 color_pulso : source_color = vec3(0.62, 0.85, 1.0);
 uniform float energia = 0.0;
+uniform float agotado = 0.0;
 uniform float reposo = 0.55;
 uniform float alfa_reposo = 0.85;
 uniform float emision = 2.2;
@@ -83,7 +84,7 @@ void fragment() {
 	if (conex.w < 0.5) { borde *= smoothstep(-0.5, -0.5 + desvanecer, loc.x); }
 	v *= borde;
 	vec3 base = mix(col, vec3(0.45, 0.78, 0.9), clamp(h * (1.0 - m), 0.0, 1.0));
-	ALBEDO = base * reposo;
+	ALBEDO = mix(base,vec3(dot(base,vec3(0.2126,0.7152,0.0722)))*0.5,agotado*0.8) * reposo;
 	ROUGHNESS = 0.6;
 	EMISSION = (color_pulso * energia * emision + color_reposo * emision_reposo) * v;
 	ALPHA = clamp(v, 0.0, 1.0) * mix(alfa_reposo, 1.0, clamp(energia, 0.0, 1.0));
@@ -128,6 +129,8 @@ func _ready() -> void:
 	_dibujar()
 	if mineral:
 		trozo_dado = Flags.i().tiene(flag_mineral())
+		if trozo_dado:
+			for m in _mats.values(): m.set_shader_parameter("agotado",1.0)
 	call_deferred("_refrescar_hilos")        # ya están todas las piezas del mapa: se ven las vetas vecinas de otras piezas
 	set_process(true)
 
@@ -172,6 +175,9 @@ func picar(rune: RuneData, hechizo: Hechizo = null) -> String:
 	var id: String = MineralPulso.dar(lanz, da, self)
 	if id != "":
 		trozo_dado = true
+		for m in _mats.values(): m.set_shader_parameter("agotado",1.0)
+		if get_parent() is Node3D:
+			preload("res://presentacion/feedback_objeto_3d.gd").rafaga(get_parent(),global_position+Vector3.UP*0.1,"polvo",Color(0.5,0.55,0.62),7)
 		Flags.i().poner(flag_mineral())
 	return id
 

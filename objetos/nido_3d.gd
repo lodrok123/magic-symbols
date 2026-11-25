@@ -93,10 +93,7 @@ func nivel_altura() -> int:
 func sacudir(ahora: float = -1.0) -> Array:
 	var t: float = ahora if ahora >= 0.0 else Time.get_ticks_msec() / 1000.0
 	if _visual != null and is_inside_tree():
-		var tw: Tween = create_tween()
-		tw.tween_property(_visual, "rotation:z", 0.12, 0.08)
-		tw.tween_property(_visual, "rotation:z", -0.12, 0.12)
-		tw.tween_property(_visual, "rotation:z", 0.0, 0.1)
+		preload("res://presentacion/feedback_objeto_3d.gd").sacudir(_visual,0.035)
 	var fila: Dictionary = Botin.fila_reactivo("nido", "viento")
 	var espera: float = float(fila.get("cada_s", 0)) if float(fila.get("cada_s", 0)) > 0.0 else T_DEFECTO
 	if t - _ultima < espera:
@@ -107,6 +104,9 @@ func sacudir(ahora: float = -1.0) -> Array:
 	soltado = Botin.desde_texto(String(fila.get("botin", "pluma:1")))
 	var padre: Node3D = get_parent() as Node3D
 	if padre != null:
+		preload("res://presentacion/feedback_objeto_3d.gd").sacudir(_visual,0.12)
+		var centro_visual: Vector3 = global_transform*Pieza3D._caja(_visual,Transform3D.IDENTITY).get_center()
+		preload("res://presentacion/feedback_objeto_3d.gd").rafaga(padre,centro_visual,"pluma",Color(0.85,0.82,0.68),3)
 		Botin.soltar(padre, Terreno3D.centro_de(celda, Terreno3D.y_pies(celda)), soltado)
 	suelta.emit()
 	return soltado

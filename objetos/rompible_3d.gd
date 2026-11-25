@@ -287,6 +287,8 @@ func _trozos(volar: bool) -> void:
 	add_child(_restos)
 	var rng := RandomNumberGenerator.new()
 	rng.seed = hash("%s%d%d" % [String(name), celda.x, celda.y])      # los mismos restos cada vez que nace roto
+	if _fragmentos_blender(volar,rng):
+		return
 	var color: Color = MODELOS[tipo]["trozo"]
 	# 24/10 (tercera tanda): los restos del jarrón son una pieza (`jarron_roto`: la base y los cascos en el suelo), además de los trozos que saltan. Cuelga de este nodo y no de `_restos`
 	# (`n_restos` cuenta solo los trozos). Un tipo sin pieza de restos (la caja) sigue como siempre.
@@ -305,6 +307,7 @@ func _trozos(volar: bool) -> void:
 		var t := MeshInstance3D.new()
 		var b := BoxMesh.new()
 		b.size = Vector3(rng.randf_range(TROZO_MIN, TROZO_MAX), rng.randf_range(TROZO_MIN, TROZO_MAX) * 0.5, rng.randf_range(TROZO_MIN, TROZO_MAX))
+		if tipo == "caja": b.size *= Vector3(1.8,0.45,0.6)  # tablas; los cascos exactos quedan para Blender
 		t.mesh = b
 		var mat := StandardMaterial3D.new()
 		mat.albedo_color = color.darkened(rng.randf_range(0.0, 0.3))
@@ -325,9 +328,46 @@ func _trozos(volar: bool) -> void:
 		tw.tween_method(func(k: float) -> void:
 			t.position = ini.lerp(fin, k) + Vector3(0.0, ALTO_SALTO * 4.0 * k * (1.0 - k), 0.0),
 			0.0, 1.0, T_TROZOS).set_trans(Tween.TRANS_LINEAR)
+		tw.parallel().tween_property(t,"rotation",t.rotation+Vector3(1.1,2.0,0.7),T_TROZOS)
 
 
 ## Cuántos trozos hay en el suelo ahora (las pruebas y las capturas).
+func _fragmentos_blender(volar: bool, rng: RandomNumberGenerator) -> bool:
+	# Los modelos forzados conservan su representación de restos anterior.
+	if modelo_forzado != "": return false
+	var ruta: String = "res://arte/lostcave/blender_interacciones/caja_fragmentos.glb" if tipo=="caja" else "res://arte/meshy/blender_interacciones/%s_fragmentos.glb" % ("jarron_alto" if alternativo else "jarron")
+	if not ResourceLoader.exists(ruta): return false
+	var conjunto := (load(ruta) as PackedScene).instantiate() as Node3D
+	_restos.add_child(conjunto)
+	var caja: AABB = Pieza3D._caja(conjunto,Transform3D.IDENTITY)
+	var objetivo: AABB = Pieza3D._caja(_modelo,Transform3D.IDENTITY) if _modelo != null else caja
+	if _modelo == null and tipo=="caja" and alternativo:
+		objetivo = AABB(caja.position*0.75,caja.size*0.75)
+	var factor: float = objetivo.size.y/maxf(caja.size.y,0.001)
+	conjunto.scale *= factor
+	conjunto.position = objetivo.get_center()-caja.get_center()*factor
+	var piezas: Array[Node] = conjunto.find_children("*","MeshInstance3D",true,false)
+	for p: MeshInstance3D in piezas:
+		p.reparent(_restos,true)
+		var ini: Vector3 = p.position
+		var giro_ini: Vector3 = p.rotation
+		var giro_fin := Vector3(rng.randf_range(-PI,PI),rng.randf()*TAU,rng.randf_range(-PI,PI))
+		var ang: float = rng.randf()*TAU
+		var dist: float = rng.randf_range(0.2,ALCANCE_TROZOS)
+		var base := Transform3D(Basis.from_euler(giro_fin).scaled(p.scale),Vector3.ZERO)
+		var altura: float = -(base*p.mesh.get_aabb()).position.y
+		var fin := Vector3(cos(ang)*dist,altura+0.008,sin(ang)*dist)
+		if not volar:
+			p.rotation=giro_fin; p.position=fin
+			continue
+		var tw := p.create_tween()
+		tw.tween_method(func(k: float) -> void:
+			p.position=ini.lerp(fin,k)+Vector3.UP*ALTO_SALTO*4.0*k*(1.0-k)
+			p.rotation=giro_ini.lerp(giro_fin,k),0.0,1.0,T_TROZOS)
+	conjunto.free()
+	return true
+
+
 func n_restos() -> int:
 	return _restos.get_child_count() if _restos != null else 0
 

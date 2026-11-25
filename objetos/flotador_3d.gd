@@ -36,6 +36,8 @@ var agua: AguaSim3D = null
 var sondas: PackedVector3Array = PackedVector3Array()    ## en el espacio local
 var hundidas: int = 0                                     ## cuántas sondas están en el agua ahora mismo
 var _costra: CostraHielo3D = null                         ## la costra de hielo (Pipeline) mientras está preso
+var _reloj_estela: float = 0.0
+var _antes_hundidas: int = 0
 
 
 func _ready() -> void:
@@ -107,6 +109,11 @@ func _physics_process(_dt: float) -> void:
 		var dif := Vector2(v_corr.x - linear_velocity.x, v_corr.y - linear_velocity.z)
 		var fuerza: Vector2 = dif * ARRASTRE * float(hundidas) / float(sondas.size())
 		apply_central_force(Vector3(fuerza.x, 0.0, fuerza.y))
+	_reloj_estela -= _dt
+	if hundidas > 0 and get_parent() is Node3D and (_antes_hundidas == 0 or (_reloj_estela<=0.0 and linear_velocity.length()>0.25)):
+		_reloj_estela = 0.4
+		preload("res://presentacion/feedback_objeto_3d.gd").rafaga(get_parent(),Vector3(global_position.x,a.superficie_en(global_position)+0.015,global_position.z),"onda",Color(0.55,0.75,0.85),2,maxf(tamano.x,0.5))
+	_antes_hundidas = hundidas
 
 
 ## ¿Está flotando? (al menos 3 de las 4 sondas en el agua). Para decidir si se puede pisar como puente (cuando se encaje).

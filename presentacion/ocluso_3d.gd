@@ -99,6 +99,28 @@ uniform vec3 uv_desp = vec3(0.0);
 
 // V6: quemado y disolver por celdas (ver el comentario de la clase).
 uniform float quemado : hint_range(0.0, 1.0) = 0.0;
+// Combustibles: frente desde el impacto, compartido por todas las mallas del objeto.
+uniform float combustion_activa = 0.0;
+uniform vec3 combustion_origen = vec3(0.0);
+uniform mat4 combustion_espacio;
+uniform float combustion_radio = 1.0;
+uniform float combustion_progreso = 0.0;
+uniform float combustion_calor = 0.0;
+uniform float combustion_tela = 0.0;
+uniform float combustion_fibra = 0.0;
+uniform float combustion_humedad = 0.0;
+// Reacciones de hongos: cero en el resto del decorado.
+uniform float seta_contraccion = 0.0;
+uniform float seta_hielo = 0.0;
+uniform float seta_agua = 0.0;
+uniform float seta_resonante = 0.0;
+uniform float obj_mojado = 0.0;
+uniform float obj_hielo = 0.0;
+uniform float obj_calor = 0.0;
+uniform float obj_energia = 0.0;
+uniform float obj_agotado = 0.0;
+uniform float obj_frutos_vacios = 0.0;
+varying vec3 combustion_pos;
 uniform float disolver : hint_range(0.0, 1.0) = 0.0;
 uniform vec4 carbon_color : source_color = vec4(0.11, 0.095, 0.085, 1.0);
 uniform vec4 ceniza_color : source_color = vec4(0.52, 0.51, 0.49, 1.0);
@@ -180,6 +202,12 @@ vec2 apartar_de(vec2 o, vec4 r, float radio) {
 }
 
 void vertex() {
+	if (seta_contraccion > 0.0 && caja_y.y > 0.0001) {
+		float copa = smoothstep(0.30, 0.65, (VERTEX.y - caja_y.x) / caja_y.y);
+		VERTEX.xz *= 1.0 - 0.13 * copa * seta_contraccion;
+		VERTEX.y -= caja_y.y * 0.07 * copa * seta_contraccion;
+	}
+	combustion_pos = (MODEL_MATRIX * vec4(VERTEX, 1.0)).xyz;
 	po = VERTEX * length(MODEL_MATRIX[0].xyz);
 	vy = VERTEX.y;
 	wy = (MODEL_MATRIX * vec4(VERTEX, 1.0)).y;
@@ -274,7 +302,24 @@ void fragment() {
 	}
 
 	// QUEMADO: el frente avanza con `quemado`; p es «cuándo le toca» a cada punto (ruido + altura: el fuego sube).
-	if (quemado > 0.0) {
+	if (combustion_activa > 0.5 && combustion_progreso > 0.0) {
+		vec3 local_c = (combustion_espacio * vec4(combustion_pos, 1.0)).xyz;
+		vec3 cp = local_c - combustion_origen;
+		float n = ruido3(local_c * 12.0);
+		float llegada = length(cp) / max(combustion_radio, 0.01) * 0.86 + n * 0.10;
+		float avance = combustion_progreso * 1.14 - llegada;
+		float carbon = smoothstep(0.0, 0.09, avance);
+		float brasa = (1.0 - smoothstep(0.025, 0.10, abs(avance - 0.025))) * combustion_calor;
+		// En los modelos de cuerda el hierro comparte atlas con la fibra cálida.
+		float fibra = mix(1.0, smoothstep(0.025, 0.12, a.r - a.b), combustion_fibra);
+		carbon *= fibra;
+		brasa *= fibra;
+		if (combustion_tela > 0.5 && avance > 0.15) { discard; }
+		a.rgb = mix(a.rgb, a.rgb * vec3(0.075, 0.055, 0.045), carbon);
+		a.rgb *= 1.0 - 0.23 * combustion_humedad;
+		brillo_extra += vec3(1.0, 0.19, 0.012) * brasa * (1.1 + 0.35 * sin(TIME * 17.0 + n * 19.0));
+	}
+	if (quemado > 0.0 && combustion_activa < 0.5) {
 		float n = ruido3(po * ruido_escala) * 0.65 + ruido3(po * ruido_escala * 2.7 + 5.0) * 0.35;
 		n = clamp((n - 0.2) / 0.6, 0.0, 1.0);
 		float altura_q = caja_y.y > 0.0001 ? clamp((vy - caja_y.x) / caja_y.y, 0.0, 1.0) : 0.5;
@@ -294,6 +339,32 @@ void fragment() {
 		brillo_extra += brasa_color.rgb * brasa_energia * brasa;
 	}
 
+	float seta_copa = caja_y.y > 0.0001 ? smoothstep(0.32, 0.65, (vy - caja_y.x) / caja_y.y) : 0.0;
+	if (seta_hielo + seta_agua + seta_resonante > 0.0) {
+		float grano = ruido3(po * 85.0);
+		float hielo = seta_copa * seta_hielo * (0.6 + 0.4 * smoothstep(0.35, 0.7, grano));
+		a.rgb = mix(a.rgb, vec3(0.63, 0.84, 0.95), hielo * 0.83);
+		a.rgb *= 1.0 - seta_copa * seta_agua * 0.12;
+		vec3 hongo_resonante = vec3(0.32, 0.66, 0.9) * (0.5 + dot(a.rgb, vec3(0.2126, 0.7152, 0.0722)));
+		a.rgb = mix(a.rgb, hongo_resonante, seta_copa * seta_resonante * 0.78);
+		brillo_extra += vec3(0.18, 0.52, 0.85) * seta_copa * seta_resonante * 0.25;
+		float chispa = pow(max(0.0, sin(TIME * 2.0 + grano * 60.0)), 18.0) * smoothstep(0.85, 0.95, grano);
+		brillo_extra += vec3(0.45, 0.7, 1.0) * chispa * hielo * 0.4;
+	}
+	if (obj_mojado + obj_hielo + obj_calor + obj_energia + obj_agotado > 0.0) {
+		float fruto = smoothstep(0.42,0.62,(a.r-a.g)/max(a.r,0.001));
+		if (obj_frutos_vacios > 0.5 && fruto > 0.35) { discard; }
+		float trama = ruido3(po * 24.0);
+		float altura_obj = caja_y.y > 0.0001 ? clamp((vy-caja_y.x)/caja_y.y,0.0,1.0) : 0.5;
+		float humedo = 1.0-smoothstep(obj_mojado-0.15,obj_mojado+0.12,altura_obj+trama*0.1);
+		a.rgb *= 1.0-0.22*humedo*obj_mojado;
+		float escarcha = smoothstep(0.20,0.65,trama)*obj_hielo;
+		a.rgb = mix(a.rgb,vec3(0.62,0.8,0.91),escarcha*0.65);
+		float gris = dot(a.rgb,vec3(0.2126,0.7152,0.0722));
+		a.rgb = mix(a.rgb,vec3(gris*0.55),obj_agotado*0.8*(1.0-obj_frutos_vacios));
+		brillo_extra += vec3(1.0,0.12,0.015)*obj_calor*(0.35+trama*0.4);
+		brillo_extra += vec3(0.75,0.63,0.08)*obj_energia*(0.15+0.12*sin(TIME*6.0+po.y*4.0));
+	}
 	ALBEDO = a.rgb;
 	SPECULAR = especular;
 	if (usa_orm > 0.5) {
@@ -311,6 +382,11 @@ void fragment() {
 	if (usa_normal > 0.5) {
 		NORMAL_MAP = texture(tex_normal, uv).rgb;
 	}
+	ROUGHNESS = mix(ROUGHNESS, 0.18, seta_copa * seta_agua * 0.9);
+	SPECULAR = mix(SPECULAR, 0.9, seta_copa * seta_agua);
+	ROUGHNESS = mix(ROUGHNESS, 0.38, seta_copa * seta_hielo);
+	ROUGHNESS = mix(ROUGHNESS,0.22,obj_mojado*0.8);
+	ROUGHNESS = mix(ROUGHNESS,0.48,obj_hielo*0.7);
 	EMISSION = emision.rgb * emision_energia * texture(tex_emision, uv).rgb + brillo_extra;
 
 	if (oc_jugador.w > 0.0 && !IN_SHADOW_PASS) {

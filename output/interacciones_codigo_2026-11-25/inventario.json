@@ -1,0 +1,215 @@
+{
+  "fecha": "2026-11-25",
+  "lotes": [
+    {
+      "nombre": "Electricidad",
+      "acciones": [
+        [
+          "Cristales cargados",
+          "Integrado",
+          "Emisión que respira durante la carga, arcos persistentes, debilitamiento final y descarga al extraer.",
+          "objetos/cristal_pulso_3d.gd"
+        ],
+        [
+          "Metal conductor",
+          "Integrado",
+          "Material húmedo y arcos solo cuando una fuente real electrifica su casilla.",
+          "objetos/objetos_3d.gd"
+        ],
+        [
+          "Mojado y electrificado",
+          "Integrado",
+          "Humedad y corriente combinables; la escarcha corta la conducción según las reglas existentes.",
+          "presentacion/feedback_objeto_3d.gd"
+        ],
+        [
+          "Nexo eléctrico",
+          "Integrado",
+          "Agua visible sobre la piedra, bornes con descargas al recibir corriente y corte al secarse.",
+          "objetos/nexo_rayo_3d.gd"
+        ]
+      ]
+    },
+    {
+      "nombre": "Recolección",
+      "acciones": [
+        [
+          "Nidos",
+          "Integrado",
+          "Sacudida fuerte y plumas al obtener recurso; sacudida suave durante la espera, sin apilar tweens.",
+          "objetos/nido_3d.gd"
+        ],
+        [
+          "Plantas",
+          "Integrado",
+          "Partículas al recoger y rebrote con animación; se mantiene la entrega del ingrediente.",
+          "objetos/recolectable_3d.gd"
+        ],
+        [
+          "Arbustos con bayas",
+          "Integrado",
+          "Silueta del arbusto agotado sin obstáculo adicional; máscara de frutos y restauración al rebrotar.",
+          "objetos/recolectable_3d.gd"
+        ],
+        [
+          "Recursos agotados",
+          "Integrado",
+          "Veta y cristal conservan silueta con aspecto diferenciado tras entregar mineral; siguen funcionando como conductores.",
+          "objetos/veta_pulso_3d.gd"
+        ]
+      ]
+    },
+    {
+      "nombre": "Agua y vapor",
+      "acciones": [
+        [
+          "Cuencos",
+          "Completado sobre lo existente",
+          "Nivel y llenado existentes, más ondas al rellenar, burbujas al vaporizar y piedra húmeda.",
+          "objetos/objetos_3d.gd"
+        ],
+        [
+          "Recipientes vacíos",
+          "Integrado",
+          "Gotas residuales y secado visual de la piedra después de vaciarse; no se añade agua a la simulación.",
+          "objetos/objetos_3d.gd"
+        ],
+        [
+          "Surtidores y canales",
+          "Integrado",
+          "La banda húmeda del canal comparte el avance del agua; se conserva el caudal y la animación de la tinaja.",
+          "presentacion/canal_3d.gd"
+        ],
+        [
+          "Flotantes",
+          "Completado sobre lo existente",
+          "Balanceo físico existente por cuatro sondas, más ondas de entrada y estela según velocidad.",
+          "objetos/flotador_3d.gd"
+        ]
+      ]
+    },
+    {
+      "nombre": "Hielo y calor",
+      "acciones": [
+        [
+          "Puertas congeladas",
+          "Completado sobre lo existente",
+          "Costra y vaho existentes, material de escarcha progresiva y gotas al descongelar.",
+          "objetos/objetos_3d.gd"
+        ],
+        [
+          "Metal caliente",
+          "Integrado",
+          "Emisión rojiza según el reloj real de calor y apagado al enfriar.",
+          "presentacion/feedback_objeto_3d.gd"
+        ],
+        [
+          "Escarcha golpeada",
+          "Integrado",
+          "Fragmentos visuales al recibir un golpe sólido por on_spell_hit, sin romper por ello el objeto.",
+          "objetos/objetos_3d.gd"
+        ],
+        [
+          "Secado por calor",
+          "Completado sobre lo existente",
+          "Transición por zonas del material húmedo y vapor del sistema existente; reloj visual independiente para recipientes.",
+          "objetos/objetos_3d.gd"
+        ]
+      ]
+    },
+    {
+      "nombre": "Movimiento y peso",
+      "acciones": [
+        [
+          "Bloques empujables",
+          "Integrado",
+          "Balanceo de arranque y asentamiento del hijo visual, más polvo al detenerse; raíz y rejilla intactas.",
+          "objetos/bloque_empujable_3d.gd"
+        ],
+        [
+          "Placas de presión",
+          "Integrado",
+          "Hundimiento visual proporcional a carga y retorno animado; umbral de activación y colisión intactos.",
+          "objetos/pulsador_3d.gd"
+        ],
+        [
+          "Vagonetas",
+          "Conservado",
+          "Ruedas, orientación, rodadura según velocidad y polvo al choque ya implementados. Se evita competir con su animación de giro.",
+          "objetos/vagoneta_3d.gd"
+        ],
+        [
+          "Objetos lanzados",
+          "Completado sobre lo existente",
+          "Giro de vuelo existente, más polvo de impacto y rebote del hijo visual al dejarlo.",
+          "jugador/cargar_objeto_3d.gd"
+        ]
+      ]
+    },
+    {
+      "nombre": "Rotura y desgaste",
+      "acciones": [
+        [
+          "Cajas y jarrones",
+          "Integrado",
+          "Tablas procedurales al romper cajas y rotación de fragmentos en su parábola. Los cascos exactos quedan para Blender.",
+          "objetos/rompible_3d.gd"
+        ],
+        [
+          "Muros agrietados",
+          "Conservado",
+          "Ya tienen agrietado, polvo, caída y disolución; no se duplican efectos.",
+          "objetos/muro_agrietado_3d.gd"
+        ],
+        [
+          "Vetas minerales",
+          "Integrado",
+          "Aspecto agotado persistente por flag, polvo de extracción y conservación del recorrido del pulso.",
+          "objetos/veta_pulso_3d.gd"
+        ],
+        [
+          "Restos quemados",
+          "Conservado",
+          "Combustión, brasas, humo residual y restos temporales del lote anterior, ya integrados.",
+          "presentacion/combustion_objeto_3d.gd"
+        ]
+      ]
+    },
+    {
+      "nombre": "Mecanismos",
+      "acciones": [
+        [
+          "Puertas y compuertas",
+          "Integrado",
+          "Polvo, pequeño asentamiento angular y clic sincronizados con el final del recorrido.",
+          "objetos/compuerta_3d.gd"
+        ],
+        [
+          "Palancas y botones",
+          "Completado sobre lo existente",
+          "Palancas de aguja ya animadas; botones con recorrido de hundimiento y retorno, conservando su estado lógico.",
+          "objetos/pulsador_3d.gd"
+        ],
+        [
+          "Tótems y receptores",
+          "Conservado",
+          "Estados activos, engastes emisivos y señales del pulso ya presentes y actualizados en el proyecto.",
+          "objetos/receptor_pulso_3d.gd"
+        ],
+        [
+          "Puentes móviles",
+          "Completado sobre lo existente",
+          "Despliegue con sobrepaso existente y nuevo polvo de asentamiento al terminar cada losa.",
+          "objetos/puente_reactivo_3d.gd"
+        ]
+      ]
+    }
+  ],
+  "blender": [
+    "Fragmentos que reproduzcan exactamente la forma, interior y UV de cajas, jarrones y piedra.",
+    "Grietas profundas, abolladuras y roturas que cambien realmente la silueta de un modelo.",
+    "Bayas y otros frutos separados del arbusto para vaciarlo sin máscara de color.",
+    "Variantes definitivas de tocones, ceniza, huecos y recursos agotados con geometría distinta.",
+    "Articulaciones nuevas en modelos que no tengan las piezas separadas ni pivotes adecuados."
+  ]
+}

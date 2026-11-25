@@ -94,6 +94,9 @@ func _secuencia(l: Dictionary, i: int, ultima: bool) -> void:
 	tw.tween_interval(0.08)
 	tw.tween_callback(nodo.set.bind("visible", true))
 	tw.tween_property(nodo, "position:y", y_final, DURA_SUBIDA).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	tw.tween_callback(func() -> void:
+		if get_parent() is Node3D:
+			preload("res://presentacion/feedback_objeto_3d.gd").rafaga(get_parent(),Vector3((l["centro"] as Vector3).x,_y_tope,(l["centro"] as Vector3).z),"polvo",Color(0.55,0.55,0.5),3,0.5))
 	tw.tween_callback(losa_lista.emit.bind(l["celda"] as Vector2i))
 	if mat is ShaderMaterial:
 		tw.tween_method(func(v: float) -> void: (mat as ShaderMaterial).set_shader_parameter("energia", v), 0.0, ENERGIA_RUNA, 0.25)

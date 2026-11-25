@@ -198,6 +198,7 @@ void fragment() {
 var celda: Vector2i = Vector2i.ZERO
 var golpes: int = 2                     ## impactos de tierra que aguanta
 var recibidos: int = 0
+var flag_dano: String = ""            ## Opcional: roca destructible, daño y restos persistentes.
 var roto_ya: bool = false
 var grietas: float = GRIETAS_INICIO     ## las grietas que se ven ahora (0..1)
 var _cuerpo: Node3D = null
@@ -347,6 +348,15 @@ func _ready() -> void:
 	forma.position = Vector3(0.0, ALTO * 0.5, 0.0)
 	add_child(forma)
 	if _poner_modelo():
+		if modelo_id == "roca_est_1" and flag_dano != "":
+			recibidos=int(Flags.i().valor(flag_dano,0))
+			if recibidos >= golpes:
+				roto_ya=true; collision_layer=0
+				remove_from_group("explosionable")
+				Terreno3D.liberar_celda(celda)
+				_cuerpo.visible=false
+				preload("res://presentacion/estados_blender_3d.gd").fragmentos(get_parent(),global_transform,false)
+			elif recibidos>0: _geometria_roca()
 		return
 	var sh := Shader.new()
 	sh.code = CODIGO
@@ -421,6 +431,7 @@ func on_spell_hit(rune_data: RuneData, _direccion: Vector3 = Vector3.ZERO, hechi
 	if reaccion_a(rune_data, hechizo) == "":
 		return
 	recibidos += 1
+	if flag_dano != "": Flags.i().poner(flag_dano,recibidos)
 	if recibidos >= golpes:
 		romper()
 		return
@@ -468,9 +479,16 @@ func romper() -> void:
 	if roto_ya:
 		return
 	roto_ya = true
+	if flag_dano != "": Flags.i().poner(flag_dano,golpes)
 	collision_layer = 0                     # el nodo se queda (los puzles lo consultan), pero ya no se golpea
 	remove_from_group("explosionable")
 	Terreno3D.liberar_celda(celda)
+	if modelo_id == "roca_est_1" and not por_pulso:
+		_cuerpo.visible=false
+		preload("res://presentacion/estados_blender_3d.gd").fragmentos(get_parent(),global_transform,true)
+		Sfx.play(self,"derrumbe")
+		roto.emit()
+		return
 	if por_pulso and _cuerpo != null:
 		_caer()
 		roto.emit()
@@ -566,6 +584,7 @@ func _nacer_caida() -> void:
 
 ## Abre más grietas (`fraccion` 0..1 de los golpes que lleva) y tiembla un instante.
 func _agrietar(fraccion: float) -> void:
+	_geometria_roca()
 	_poner_grietas(lerpf(GRIETAS_INICIO, 0.85, fraccion))
 	Sfx.play(self, "tierra")
 	if get_parent() is Node3D:
@@ -575,3 +594,11 @@ func _agrietar(fraccion: float) -> void:
 	for i in range(4):
 		tw.tween_property(_cuerpo, "position", base + Vector3(randf_range(-0.04, 0.04), 0.0, randf_range(-0.04, 0.04)), 0.04)
 	tw.tween_property(_cuerpo, "position", base, 0.04)
+
+func _geometria_roca() -> void:
+	if modelo_id != "roca_est_1" or _cuerpo == null or _cuerpo.has_meta("variante_blender"): return
+	var nuevo: Node3D = preload("res://presentacion/estados_blender_3d.gd").cargar("roca_agrietada")
+	if nuevo == null: return
+	remove_child(_cuerpo); _cuerpo.queue_free()
+	_cuerpo=nuevo; add_child(nuevo)
+	_mats_modelo=Ocluso3D.convertir_nodo(nuevo)

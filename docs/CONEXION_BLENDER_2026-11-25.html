@@ -1,0 +1,23 @@
+<!doctype html><html lang="es"><meta charset="utf-8"><title>Conexión de estados de Blender</title>
+<style>body{max-width:1100px;margin:40px auto;padding:0 24px;background:#19232d;color:#e6edf3;font:17px/1.6 system-ui}a{color:#8ed4ff}img{width:100%}table{border-collapse:collapse;width:100%}td,th{padding:12px;border:1px solid #465568;text-align:left}pre{background:#23303b;padding:20px;overflow:auto}code{color:#b9e1ff}</style>
+<h1>Variantes de Blender conectadas al juego</h1><p>25/11/2026 · <a href="BLENDER_INTERACCIONES_2026-11-25.html">Assets y editables</a> · <a href="../output/blender_interacciones_2026-11-25/lamina_conexion.png">Lámina de estados</a></p>
+<p>El cristal agotado y los tocones quemados se conectan a los actores existentes. Las rocas destructibles, calderas y barriles con tapa quedan disponibles como piezas de mapa y se ejercitan en un laboratorio. No se han añadido colocaciones nuevas a los niveles existentes.</p>
+<table><tr><th>Objeto</th><th>Disparador y resultado</th><th>Al recargar</th></tr>
+<tr><td>Cristal resonante</td><td>Al entregar la esquirla sustituye el modelo por el cristal truncado. Conserva pulsos, enfriamiento, brillo, carga, colisión y cupo de luz.</td><td>La flag mineral existente restaura directamente la geometría agotada.</td></tr>
+<tr><td>Tocón</td><td>Al consumirse deja tocón carbonizado y ceniza, sin obstáculos nuevos. La señal de consumo sigue liberando el paso. La madera restante añade ceniza a sus restos transitorios.</td><td>Clave estable por escena, modelo y posición. Conserva carbonización parcial si se apaga; vuelve sin fuego y puede reprenderse. Consumido: restaura restos sin combustible ni bloqueo.</td></tr>
+<tr><td>Roca destructible</td><td>Variante de muro con modelo=roca_est_1. El daño intermedio cambia a grietas geométricas; la rotura dispersa ocho piezas con interiores y libera la casilla.</td><td>Recupera daño intermedio o fragmentos asentados con la misma pose. No sustituye los muros de sillares ni las rocas empujables.</td></tr>
+<tr><td>Caldera</td><td>Un sólido denso o una explosión deja abolladura permanente. Fuego calienta; agua/hielo enfrían. Cambiar el modelo conserva el calor actual y los materiales térmicos son propios.</td><td>Restaura la abolladura; el calor es un estado temporal.</td></tr>
+<tr><td>Barril con tapa</td><td>Tipo barril_almacen: E abre/cierra al acercarse, con rótulo y bisagra animada. Entre barriles responde el más cercano. No entrega botín ni abre un inventario.</td><td>Restaura la tapa abierta o cerrada. El barril explosivo conserva su actor, mecha y explosión.</td></tr></table>
+<h2>Colocación y reglas</h2><pre>; pieza piedra muro 10 8 modelo=roca_est_1 golpes=2
+; pieza olla caldera 12 8 giro=90
+; pieza almacen barril_almacen 14 8 giro=0
+
+; puzle abrir cuando=boton.pulsado hace=almacen.abrir
+; puzle cerrar cuando=otro.pulsado hace=almacen.cerrar
+; puzle dano cuando=almacen.abierto hace=olla.abollar</pre>
+<p>Los tres generan claves de guardado por nivel e id; admiten <code>flag=nivel.sala.nombre</code> para fijarla. La caldera ofrece acciones <code>abollar</code> y <code>poner_calor(0..1)</code>, condición <code>abollada|entera</code> y evento <code>abollada</code>. El barril ofrece <code>abrir|cerrar</code>, condiciones y eventos <code>abierto|cerrado</code>. La roca conserva el contrato de <code>muro</code>.</p>
+<h2>Laboratorio y comprobaciones</h2><p>Abrir <a href="../laboratorios/LabEstadosBlender.tscn">LabEstadosBlender.tscn</a>: flechas cambian de objeto, Espacio actúa y R reinicia la muestra. La roca necesita dos impactos; el tocón arde durante su reloj real. El laboratorio reinicia Estado y Flags en memoria y no guarda partida.</p>
+<p><b>288 comprobaciones sin fallos:</b> conexión (31), puzles (128), combustión (26), feedback (24), materiales de cueva (55) y fuego sobre los tocones reales de Bosque02 (24). La prueba <code>herramientas/prueba_conexion_blender.gd</code> verifica extracción, geometría, luces, pulso, daño intermedio, rotura y poses persistentes, emisión térmica, tapa, entrada de interacción cerca/lejos, cierre, consumo del tocón y restauración desde la fábrica del nivel, montaje desde texto y señal de puzle. Los logs están en <code>output/blender_interacciones_2026-11-25/conexion*</code>.</p>
+<p>Las diez capturas proceden de los actores, no de una simulación del material. Se conservan avisos del entorno user:// y del servidor gráfico al cerrar; los fallos de comprobaciones y errores de script se revisan aparte.</p>
+<a href="../output/blender_interacciones_2026-11-25/lamina_conexion.png"><img src="../output/blender_interacciones_2026-11-25/lamina_conexion.png" alt="Cinco objetos antes y después de sus interacciones"></a>
+</html>

@@ -23,6 +23,7 @@ var conduce: bool = false
 var _agua: MeshInstance3D = null
 var _mat_agua: StandardMaterial3D = null
 var _t_chispa: float = 0.0
+var _feedback: Node3D
 
 
 func preparar(p_celda: Vector2i) -> void:
@@ -42,6 +43,7 @@ func _ready() -> void:
 	forma.position = Vector3(0.0, (ALTO + 0.4) * 0.5, 0.0)
 	add_child(forma)
 	_dibujar()
+	_feedback = preload("res://presentacion/feedback_objeto_3d.gd").instalar(self,self)
 	set_process(true)
 
 
@@ -80,7 +82,7 @@ func _dibujar() -> void:
 	disco.bottom_radius = RADIO * 0.85
 	disco.height = 0.06
 	_agua.mesh = disco
-	_agua.position = Vector3(0.0, ALTO - 0.05, 0.0)
+	_agua.position = Vector3(0.0, ALTO + 0.006, 0.0)  # sobre la tapa de la primitiva; antes quedaba oculta dentro
 	_agua.material_override = _mat_agua
 	_agua.visible = false
 	add_child(_agua)
@@ -128,6 +130,7 @@ func secar() -> void:
 
 
 func _poner(si: bool) -> void:
+	if _feedback != null: _feedback.estado(1.0 if si else 0.0)
 	if _agua != null:
 		_agua.visible = si
 	if si == conduce:
@@ -166,3 +169,4 @@ func _process(delta: float) -> void:
 		_mat_agua.albedo_color = COLOR_RAYO if electrificada else COLOR_AGUA
 		_mat_agua.emission_enabled = electrificada
 		_mat_agua.emission = COLOR_RAYO
+		if _feedback != null: _feedback.estado(mojado/T_MOJADO,0,0,1.0 if electrificada else 0.0)

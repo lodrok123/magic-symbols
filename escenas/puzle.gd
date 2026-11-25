@@ -330,6 +330,8 @@ const SENALES: Dictionary = {
 	"molino": {"girando": ["girando", 1, true], "parado": ["girando", 1, false]},
 	"nexo": {"conduce": ["cambio", 1, true], "corta": ["cambio", 1, false]},
 	"barril": {"explota": ["explota", 2, null]},
+	"barril_almacen": {"abierto": ["apertura_cambiada", 1, true], "cerrado": ["apertura_cambiada", 1, false]},
+	"caldera": {"abollada": ["danada", 0, null]},
 	"puerta": {"abierta": ["cambio", 1, true], "cerrada": ["cambio", 1, false]},
 	"totem": {"activado": ["activado", 2, null],
 		# R2 (6/11): la naturaleza enreda el tótem y el hielo lo congela (señales de Reactivo3D); un puzle puede esperar a que lo liberen o descongelen.
@@ -393,6 +395,8 @@ const CONDICIONES: Dictionary = {
 	"nexo": {"conduce": ["conduce", true], "corta": ["conduce", false]},
 	"molino": {"girando": ["activo", true], "parado": ["activo", false]},
 	"barril": {"explotado": ["explotado", true], "encendido": ["encendido", true], "entero": ["explotado", false]},
+	"barril_almacen": {"abierto": ["abierto", true], "cerrado": ["abierto", false]},
+	"caldera": {"abollada": ["abollada", true], "entera": ["abollada", false]},
 	"pulsador": {"activo": ["activo", true], "libre": ["activo", false]},
 	"brasero": {"encendido": ["is_lit", true], "apagado": ["is_lit", false]},
 	"contador": {"todos": ["completo", true], "no_todos": ["completo", false]},
@@ -440,6 +444,8 @@ const ACCIONES: Dictionary = {
 	"compuerta": {"abrir": 0, "cerrar": 0, "alternar": 0},
 	"puerta": {"abrir": 0, "cerrar": 0, "alternar": 0},
 	"barril": {"encender": 0, "apagar": 0},
+	"barril_almacen": {"abrir": 0, "cerrar": 0},
+	"caldera": {"abollar": 0, "poner_calor": 1},
 	"nexo": {"mojar": 0, "secar": 0},
 	"tinaja": {"mojar": 0, "abrir_cauce": 2, "apagar_fuente": 0},
 	"manantial": {"abrir_cauce": 2, "apagar_fuente": 0, "helar": 1},
@@ -486,6 +492,8 @@ const CLAVES: Dictionary = {
 	"nivel": {"objetivo": "f", "banda": "f", "invertido": "b"},
 	"molino": {"umbral": "f", "vertical": "b"},
 	"barril": {"tam": "s:normal|pequeno"},
+	"barril_almacen": {"flag": "flag", "giro": "f"},
+	"caldera": {"flag": "flag", "giro": "f"},
 	"nexo": {},
 	"puerta": {"modelo": "s:llave|reja", "giro": "f", "llave": "flag", "gasta": "b", "abierto": "flag", "flag": "flag"},
 	"emisor": {},
@@ -502,7 +510,7 @@ const CLAVES: Dictionary = {
 	"vigia": {"de": "celdas", "flag": "flag", "puesto": "b", "debil": "s:fuego|agua|tierra|viento|rayo|hielo", "resiste": "s:fuego|agua|tierra|viento|rayo|hielo"},
 	"cerrojo": {"celdas": "celdas", "sala": "celdas", "hasta": "flag"},
 	"cofre": {"aparece_si": "expr", "abierto": "flag", "modelo": "s:legendario|epico", "abre_si": "expr", "glifo": "glifo", "sello": "sello", "da": "da", "gasta": "b"},
-	"muro": {"golpes": "f", "termica": "b", "calor": "f"},
+	"muro": {"golpes": "f", "termica": "b", "calor": "f", "modelo": "s:muro_agrietado|roca_est_1", "flag": "flag"},
 	"lava": {"celdas": "celdas", "vuelve": "f"},
 	"seta": {"variante": "s:roja|azul|marron", "rebrota": "f", "madura": "b"},
 	"alga": {"coge_si": "expr", "rebrota": "f"},
@@ -2344,13 +2352,23 @@ func _crear(pz: Pieza) -> void:
 			cont.add_child(lv)
 			pz.nodo = lv
 		"muro":
+			# modelo=roca_est_1 usa las variantes de Blender y recuerda sus golpes.
 			var mu := MuroAgrietado3D.new()
 			mu.name = pz.id
 			mu.preparar(pz.celda, int(pz.p.get("golpes", 2)), mundo as Node)
+			mu.modelo_id=String(pz.p.get("modelo","muro_agrietado"))
+			if mu.modelo_id=="roca_est_1": mu.flag_dano=String(pz.p.get("flag",Rompible3D._limpio(nivel)+".roca."+Rompible3D._limpio(pz.id)))
 			if bool(pz.p.get("termica", false)):
 				mu.como_termica(float(pz.p.get("calor", MuroAgrietado3D.CALOR_DEFECTO)))      # F14: roca térmica (fuego la pone al rojo, el agua en caliente la parte)
 			cont.add_child(mu)
 			pz.nodo = mu
+		"caldera", "barril_almacen":
+			var actor=preload("res://objetos/interaccion_blender_3d.gd").new()
+			actor.name=pz.id
+			actor.preparar(pz.celda,pz.tipo,String(pz.p.get("flag",Rompible3D._limpio(nivel)+"."+pz.tipo+"."+Rompible3D._limpio(pz.id))))
+			actor.rotation.y=deg_to_rad(float(pz.p.get("giro",0)))
+			cont.add_child(actor)
+			pz.nodo=actor
 		"bloque":
 			var bq := BloqueEmpujable3D.new()
 			bq.name = pz.id
@@ -3737,6 +3755,10 @@ func _ejecutar(a: Dictionary) -> void:
 	var args: Array = a["args"]
 	var nd: Node = pz.nodo if is_instance_valid(pz.nodo) else null
 	match String(a["accion"]):
+		"abollar":
+			if nd != null: nd.call("abollar")
+		"poner_calor":
+			if nd != null: nd.call("poner_calor",float(args[0]) if not args.is_empty() else 0.0)
 		"pulsar":
 			if nd != null:
 				nd.call("pulsar")

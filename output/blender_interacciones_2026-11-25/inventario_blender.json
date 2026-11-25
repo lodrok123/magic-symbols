@@ -1,0 +1,110 @@
+[
+  {
+    "id": "caja_fragmentos",
+    "fuente": "caja",
+    "glb": "arte/lostcave/blender_interacciones/caja_fragmentos.glb",
+    "blend": "arte/lostcave/blender_interacciones/editables/caja_fragmentos.blend",
+    "mallas": 8,
+    "triangulos": 7568,
+    "notas": "Fragmentos recompuestos en su pose original; UV exteriores conservadas, cortes con material interior."
+  },
+  {
+    "id": "jarron_fragmentos",
+    "fuente": "jarron",
+    "glb": "arte/meshy/blender_interacciones/jarron_fragmentos.glb",
+    "blend": "arte/meshy/blender_interacciones/editables/jarron_fragmentos.blend",
+    "mallas": 8,
+    "triangulos": 2744,
+    "notas": "Fragmentos recompuestos en su pose original; UV exteriores conservadas, cortes con material interior."
+  },
+  {
+    "id": "jarron_alto_fragmentos",
+    "fuente": "jarron_alto",
+    "glb": "arte/meshy/blender_interacciones/jarron_alto_fragmentos.glb",
+    "blend": "arte/meshy/blender_interacciones/editables/jarron_alto_fragmentos.blend",
+    "mallas": 8,
+    "triangulos": 2616,
+    "notas": "Fragmentos recompuestos en su pose original; UV exteriores conservadas, cortes con material interior."
+  },
+  {
+    "id": "bayas_separadas",
+    "fuente": "bayas",
+    "glb": "arte/meshy/blender_interacciones/bayas_separadas.glb",
+    "blend": "arte/meshy/blender_interacciones/editables/bayas_separadas.blend",
+    "mallas": 2,
+    "triangulos": 8000,
+    "notas": "4 regiones de frutos, agrupadas en una malla separada; UV conservadas."
+  },
+  {
+    "id": "bayas_agotadas",
+    "fuente": "bayas",
+    "glb": "arte/meshy/blender_interacciones/bayas_agotadas.glb",
+    "blend": "arte/meshy/blender_interacciones/editables/bayas_agotadas.blend",
+    "mallas": 1,
+    "triangulos": 7412,
+    "notas": "Solo ramas y hojas; frutos retirados geométricamente."
+  },
+  {
+    "id": "caldera_abollada",
+    "fuente": "caldera",
+    "glb": "arte/meshy/blender_interacciones/caldera_abollada.glb",
+    "blend": "arte/meshy/blender_interacciones/editables/caldera_abollada.blend",
+    "mallas": 1,
+    "triangulos": 3208,
+    "notas": "Abolladura frontal real; asas y UV preservadas."
+  },
+  {
+    "id": "roca_fragmentos",
+    "fuente": "roca",
+    "glb": "arte/meshy/blender_interacciones/roca_fragmentos.glb",
+    "blend": "arte/meshy/blender_interacciones/editables/roca_fragmentos.blend",
+    "mallas": 8,
+    "triangulos": 796,
+    "notas": "Fragmentos recompuestos en su pose original; UV exteriores conservadas, cortes con material interior."
+  },
+  {
+    "id": "roca_agrietada",
+    "fuente": "roca",
+    "glb": "arte/meshy/blender_interacciones/roca_agrietada.glb",
+    "blend": "arte/meshy/blender_interacciones/editables/roca_agrietada.blend",
+    "mallas": 8,
+    "triangulos": 796,
+    "notas": "Grietas con separación real y caras interiores; sin shader de grietas."
+  },
+  {
+    "id": "cristal_agotado",
+    "fuente": "cristal",
+    "glb": "arte/meshy/blender_interacciones/cristal_agotado.glb",
+    "blend": "arte/meshy/blender_interacciones/editables/cristal_agotado.blend",
+    "mallas": 1,
+    "triangulos": 1226,
+    "notas": "Puntas truncadas; la base permanece."
+  },
+  {
+    "id": "tocon_quemado",
+    "fuente": "tocon",
+    "glb": "arte/meshy/blender_interacciones/tocon_quemado.glb",
+    "blend": "arte/meshy/blender_interacciones/editables/tocon_quemado.blend",
+    "mallas": 1,
+    "triangulos": 8000,
+    "notas": "Borde superior erosionado y material carbonizado."
+  },
+  {
+    "id": "ceniza_restos",
+    "fuente": "procedural",
+    "glb": "arte/meshy/blender_interacciones/ceniza_restos.glb",
+    "blend": "arte/meshy/blender_interacciones/editables/ceniza_restos.blend",
+    "mallas": 14,
+    "triangulos": 280,
+    "notas": "Ceniza y carbones con volumen; sin colisión."
+  },
+  {
+    "id": "barril_articulado",
+    "fuente": "barril",
+    "glb": "arte/lostcave/blender_interacciones/barril_articulado.glb",
+    "blend": "arte/lostcave/blender_interacciones/editables/barril_articulado.blend",
+    "mallas": 2,
+    "triangulos": 980,
+    "notas": "Tapa y cuerpo separados; bisagra en borde trasero y animación abrir_tapa."
+  }
+]

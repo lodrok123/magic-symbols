@@ -41,6 +41,9 @@ var _t_rearme: float = 0.0
 var _t_lectura: float = 0.0
 var _cuerpo: Node3D = null                 ## la losa o el botón (un MeshInstance3D) o, con `modelo`, la escena de la placa
 var _mat: StandardMaterial3D = null
+var _y_sin_peso: float = INF
+var _hundimiento_visual: float = 0.0
+var _tween_hundimiento: Tween
 
 
 func preparar(p_celda: Vector2i, p_modo: String = "magia", p_rearme: float = 0.0) -> void:
@@ -68,6 +71,7 @@ func _ready() -> void:
 	forma.shape = caja
 	add_child(forma)
 	_dibujar()
+	if _cuerpo != null: _y_sin_peso = _cuerpo.position.y
 	if etiqueta == "":
 		etiqueta = {"magia": "CUALQUIER MAGIA", "agua": "SOLO AGUA", "presencia": "PÍSAME"}[modo]
 	if etiqueta != "-":
@@ -162,7 +166,11 @@ func _disparar(como: String) -> void:
 	Sfx.play(self, "boton_clic")     # 13/11 (inventario SFX): antes no sonaba
 	_t_rearme = rearme
 	if _cuerpo != null:
-		_cuerpo.position.y -= 0.12 if modo != "presencia" else HUNDIDO_PLACA
+		if is_inf(_y_sin_peso): _y_sin_peso = _cuerpo.position.y
+		_hundimiento_visual = (0.12 if modo != "presencia" else HUNDIDO_PLACA)* (clampf(float(peso_en_casilla())/float(peso_min),0.35,1.25) if peso_min>0 else 1.0)
+		if _tween_hundimiento != null and _tween_hundimiento.is_valid(): _tween_hundimiento.kill()
+		_tween_hundimiento = create_tween()
+		_tween_hundimiento.tween_property(_cuerpo,"position:y",_y_sin_peso-_hundimiento_visual,0.09)
 		if _mat != null:
 			_mat.emission_enabled = true
 			_mat.emission = COLOR[modo]
@@ -207,7 +215,10 @@ func _rotulo(texto: String, color: Color) -> void:
 func _rearmar() -> void:
 	activo = false
 	if _cuerpo != null:
-		_cuerpo.position.y += 0.12 if modo != "presencia" else HUNDIDO_PLACA
+		if is_inf(_y_sin_peso): _y_sin_peso = _cuerpo.position.y
+		if _tween_hundimiento != null and _tween_hundimiento.is_valid(): _tween_hundimiento.kill()
+		_tween_hundimiento = create_tween()
+		_tween_hundimiento.tween_property(_cuerpo,"position:y",_y_sin_peso,0.14)
 		if _mat != null:
 			_mat.emission_enabled = false
 	if modo == "presencia":

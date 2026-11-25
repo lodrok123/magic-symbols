@@ -45,6 +45,7 @@ var _modelo: bool = false                ## true si poste/cuerda/cabo son los mo
 var _capa: StandardMaterial3D = null     ## capa translúcida (material_overlay) con la que se tiñe el modelo al arder; no toca su textura
 var _mat: StandardMaterial3D = null
 var _luz: OmniLight3D = null
+var _combustion: Node3D
 
 
 func preparar(p_celda: Vector2i, p_sostiene: Node = null) -> void:
@@ -69,6 +70,7 @@ func _ready() -> void:
 	_mat.albedo_color = COLOR_ENTERA
 	# Con los modelos del Pipeline (ARTE §14) se usan los tres; si falta alguno, las primitivas de siempre (el comportamiento no cambia).
 	if _montar_modelos():
+		_montar_combustion()
 		set_process(false)
 		return
 	var poste := MeshInstance3D.new()
@@ -102,7 +104,22 @@ func _ready() -> void:
 	_cabo.position = Vector3(0.28, ALTO * 0.22, 0.0)
 	_cabo.material_override = _mat
 	add_child(_cabo)
+	_montar_combustion()
 	set_process(false)
+
+func _montar_combustion() -> void:
+	var fibras := Node3D.new()
+	fibras.name = "fibras"
+	add_child(fibras)
+	_cuerda.reparent(fibras,true)
+	_cabo.reparent(fibras,true)
+	_combustion = preload("res://presentacion/combustion_objeto_3d.gd").new()
+	add_child(_combustion)
+	_combustion.escala_llamas = 0.45
+	_combustion.cantidad_focos = 4
+	_combustion.copiar_materiales = true
+	_combustion.solo_fibra = true
+	_combustion.montar(fibras,false)
 
 
 ## Monta poste, cuerda tensa y cabo con `PiezaFuego3D`. Devuelve false (sin añadir nada) si falta cualquiera de los cuatro modelos.
@@ -133,6 +150,9 @@ func _montar_modelos() -> bool:
 ## Tiñe la cuerda: `c` = null la deja como es; con color, una capa translúcida con brillo (modelo) o el material propio (primitivas).
 func _tenir(c: Variant, emision: float = 0.0) -> void:
 	if not _modelo:
+		if _combustion != null:
+			for mat in _combustion.materiales:
+				Ocluso3D.poner_color(mat,COLOR_ENTERA if c == null else c)
 		if c == null:
 			_mat.albedo_color = COLOR_ENTERA
 			_mat.emission_enabled = false
@@ -212,7 +232,8 @@ func arder() -> void:
 	estado = EstadoCuerda.ARDIENDO
 	is_lit = true
 	_t = 0.0
-	_tenir(COLOR_ARDE, 1.6)
+	_tenir(null)
+	if _combustion != null: _combustion.prender()
 	_luz = OmniLight3D.new()
 	_luz.light_color = Color(1.0, 0.6, 0.3)
 	_luz.light_energy = 0.9
@@ -237,6 +258,7 @@ func _apagar() -> void:
 	_t = 0.0
 	_tenir(null)
 	_quitar_luz()
+	if _combustion != null: _combustion.apagar()
 	set_process(false)
 	ardiendo_cambio.emit(false)
 
@@ -251,6 +273,10 @@ func _process(delta: float) -> void:
 			set_process(false)
 		return
 	_t += delta
+	if _combustion != null:
+		# El hielo sigue sosteniendo la cuerda: no dibujar una fibra totalmente
+		# consumida mientras su contrato mecánico obliga a mantenerla tensa.
+		_combustion.actualizar(minf(_t/T_ARDE,0.85 if _escarcha_s>0.0 else 1.0))
 	if _luz != null:
 		_luz.light_energy = 0.7 + 0.4 * absf(sin(_t * 18.0))
 	# R2: con escarcha la cuerda está RÍGIDA: arde pero no cede; en cuanto se acaba la escarcha, si sigue ardiendo, se rompe.
@@ -270,6 +296,7 @@ func _romper() -> void:
 	rota_ya = true
 	is_lit = false
 	_quitar_luz()
+	if _combustion != null: _combustion.consumir()
 	remove_from_group(Reactivo3D.GRUPO_ARDE)
 	collision_layer = 0
 	_tenir(COLOR_CENIZA if not _modelo else null, 0.0)
@@ -279,6 +306,12 @@ func _romper() -> void:
 		_cuerda.visible = false
 		_cabo.visible = false
 		_caida.visible = true
+		var ceniza := preload("res://presentacion/combustion_objeto_3d.gd").new()
+		add_child(ceniza)
+		ceniza.solo_fibra = true
+		ceniza.copiar_materiales = true
+		ceniza.montar(_caida,false)
+		ceniza.carbonizar()
 	# La cuerda cae al suelo hecha un cabo; la anilla se queda donde estaba.
 	elif is_inside_tree():
 		var tw: Tween = create_tween()

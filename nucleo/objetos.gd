@@ -40,7 +40,7 @@ static var MINERALES: Dictionary = {}
 static var PLANTAS: Dictionary = {}
 
 ## Las piezas de `fuentes.tsv` que son plantas (las demás `de` son enemigos, cofres, reactivos...). Las cuatro de siempre y las tres de la Cueva que llegan con F0.
-const PIEZAS_PLANTA: PackedStringArray = ["seta", "flor", "raiz", "alga", "musgo", "helecho_cueva", "seta_palida", "lavanda", "bayas", "helecho", "flor_silvestre"]   # 11/11: + las del bosque
+const PIEZAS_PLANTA: PackedStringArray = ["seta", "seta_resonante", "flor", "raiz", "alga", "musgo", "helecho_cueva", "seta_palida", "lavanda", "bayas", "helecho", "flor_silvestre"]   # resonante: segundo paso autorizado, filas existentes de fuentes.tsv
 ## Pila por hueco de un objeto que no está en la tabla (lo de siempre: `Estado.PILA_MAX`).
 const PILA_DEFECTO: int = 9
 

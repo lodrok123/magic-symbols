@@ -1,6 +1,9 @@
 class_name Reactivo3D
 extends Area3D
 
+var flag_consumido: String = ""
+var clave_carbonizacion: String = ""   ## Estado visual parcial, separado de la flag de consumo.
+
 ## OBJETOS DEL TEST 2 QUE REACCIONAN A UN HECHIZO EN 3D (tarea 4.7). Dueño: JUEGO (`objetos/` es del Juego, docs/PROPIETARIOS.md §1).
 ## El Pipeline solo lo COLOCA (PruebaTest2._reactivo: `preparar()` + `fx`/`celda`/`visual`) y pinta su visual; no decide cómo reacciona.
 ##
@@ -258,6 +261,7 @@ var _enredado_s: float = 0.0         ## R2: s que le quedan enredado
 var _escarcha_s: float = 0.0         ## R2: s de escarcha (hielo sobre metal / tela)
 var _caliente_s: float = 0.0         ## R2: s al rojo (magma sobre metal)
 var _lleno_agua: bool = false        ## `hace_vapor`: el recipiente tiene agua (la pone `brotar`, la quita `_vaporizar`). La tinaja no lo usa: vierte y se queda vacía
+var _humedad_visual: float = 0.0    ## secado de la piedra del recipiente; no es el papel mecánico mojable
 var _vapor_faltan: int = 0           ## `hace_vapor`: marcados de vapor que le quedan por hacer
 var _vapor_s: float = 0.0            ## `hace_vapor`: s hasta el siguiente marcado
 var _conduciendo: bool = false       ## R2: está registrado en Terreno3D.conductores ahora (para emitir `conduce_cambio` solo al cambiar)
@@ -267,6 +271,8 @@ var _disolver_v: float = 0.0       ## V6: último valor de `disolver` aplicado (
 var _mats: Array = []            ## [material copiado (StandardMaterial3D o el ShaderMaterial de Ocluso3D), Color original]
 var _sprites: Array = []             ## [SpriteBase3D, Color original]
 var _llama: FuegoToy = null
+var _combustion: Node3D = null   ## presentación del frente; no decide cuándo se consume
+var _feedback_materia: Node3D
 var _snd_fuego: AudioStreamPlayer3D = null   ## el crepitar en bucle mientras arde / está encendido (Sfx3D); se apaga con la llama
 var _luz: OmniLight3D = null
 var _t: float = 0.0
@@ -380,6 +386,10 @@ func cambiar_visual(nuevo: Node3D, datos: Array = []) -> void:
 	move_child(nuevo, 0)
 	visual = nuevo
 	_recoger_materiales()
+	if is_instance_valid(_feedback_materia):
+		_feedback_materia.free()
+		_feedback_materia = preload("res://presentacion/feedback_objeto_3d.gd").instalar(self,visual)
+	if tiene_papel(P_INFLAMABLE): _montar_combustion()
 	if datos.size() >= 4:
 		datos_fuente = datos
 		if _forma_cuerpo != null and _forma_cuerpo.shape is BoxShape3D:
@@ -415,6 +425,7 @@ func _ready() -> void:
 	_forma_cuerpo = forma                       # A2: `toca_punto` mide contra esta caja
 	_recoger_materiales()
 	if tiene_papel(P_INFLAMABLE):
+		_montar_combustion()
 		add_to_group(GRUPO_ARDE)
 	if tiene_papel(P_PESADO):
 		add_to_group(GRUPO_PESO)            # lo que pesa lo detectan las placas (antes solo el bloque de tierra y el empujable)
@@ -438,6 +449,8 @@ func _ready() -> void:
 			_montar_surtidor()
 		"cuenco":
 			_montar_cuenco()
+	if visual != null:
+		_feedback_materia = preload("res://presentacion/feedback_objeto_3d.gd").instalar(self,visual)
 	set_process(false)
 	set_physics_process(tipo == "placa")
 
@@ -663,6 +676,8 @@ func conduce_ahora() -> bool:
 
 
 func on_spell_hit(rune_data: RuneData, direccion: Vector3 = Vector3.ZERO, hechizo: Hechizo = null) -> void:
+	if rune_data != null and (_congelado_s>0.0 or _escarcha_s>0.0) and Materia.golpea(Materia.de(hechizo if hechizo != null else rune_data)) and get_parent() is Node3D:
+		preload("res://presentacion/feedback_objeto_3d.gd").rafaga(get_parent(),global_position+Vector3.UP*0.5,"escarcha",Color(0.6,0.82,0.95),6)
 	match reaccion_a(rune_data, hechizo):
 		"hiela":
 			_helar()
@@ -954,6 +969,8 @@ func _poner_congelado(si: bool) -> void:
 			CongeladoToy.poner(self, CONGELADO_VFX_ALTO, CONGELADO_VFX_RADIO, CONGELADO_S)      # 18/11: costra, cuadraditos celestes y vaho mientras dura (se quita solo si el calor lo descongela antes)
 	else:
 		_reaccionar(Mundo3D.R_DERRETIDO)
+		if antes and get_parent() is Node3D:
+			preload("res://presentacion/feedback_objeto_3d.gd").rafaga(get_parent(),global_position+Vector3.UP*0.5,"gota",Color(0.5,0.75,0.9),6)
 	if antes != si:
 		congelado_cambio.emit(si)
 
@@ -1003,6 +1020,41 @@ func esta_mojado() -> bool:
 	return _mojado_s > 0.0
 
 
+func _montar_combustion() -> void:
+	var previo: float = 0.0
+	var guardado: Dictionary={}
+	if is_instance_valid(_combustion):
+		previo = _combustion.progreso
+		guardado=_combustion.estado_carbonizacion()
+		_combustion.free()
+		_combustion = null
+	if visual == null or not Ocluso3D.usar_quemado_disolver: return
+	_combustion = preload("res://presentacion/combustion_objeto_3d.gd").new()
+	add_child(_combustion)
+	_combustion.montar(visual,tipo == "telarana",tipo in ["tronco","puerta_goblin","torre_goblin"] and not has_meta("tocon"))
+	if _combustion.materiales.is_empty() or _combustion.puntos.is_empty():
+		_combustion.free()
+		_combustion = null
+	else:
+		var clave: String=_clave_carbonizacion()
+		if guardado.is_empty() and clave!="":
+			var dato: Variant=Flags.i().valor(clave,"")
+			if dato is String and dato!="":
+				var valor: Variant=JSON.parse_string(dato)
+				if valor is Dictionary: guardado=valor
+		if not guardado.is_empty(): _combustion.restaurar_carbonizacion(guardado)
+		if estado == EstadoObj.ARDIENDO:
+			_combustion.prender()
+			_combustion.actualizar(maxf(previo,_t/maxf(float(_num_combustible()[0]),0.01)))
+
+func _clave_carbonizacion() -> String:
+	return clave_carbonizacion if clave_carbonizacion!="" else (flag_consumido+".carbonizacion" if flag_consumido!="" else "")
+
+func _guardar_carbonizacion() -> void:
+	var clave: String=_clave_carbonizacion()
+	if clave=="" or _combustion==null or _combustion.progreso<=0.0: return
+	Flags.i().poner(clave,JSON.stringify(_combustion.estado_carbonizacion()))
+
 func ignite(_desde: Vector3 = Vector3.INF) -> void:
 	if not can_burn():
 		return
@@ -1012,9 +1064,12 @@ func ignite(_desde: Vector3 = Vector3.INF) -> void:
 	_t = 0.0
 	_t_contagio = 0.0
 	var d: Array = _num_combustible()
-	_llama = VfxReaccion3D.llama_vertical(self, Vector3.ZERO, float(d[2]), 1.15 * float(d[1]))
-	_luz = _crear_luz(Color(1.0, 0.6, 0.3), 0.9, 3.0, Vector3(0.0, 0.8, 0.0))
-	LuzTitila3D.aplicar(_luz)
+	if _combustion != null:
+		_combustion.prender(_desde)
+	else:
+		_llama = VfxReaccion3D.llama_vertical(self, Vector3.ZERO, float(d[2]), 1.15 * float(d[1]))
+		_luz = _crear_luz(Color(1.0, 0.6, 0.3), 0.9, 3.0, Vector3(0.0, 0.8, 0.0))
+		LuzTitila3D.aplicar(_luz)
 	_snd_fuego = Sfx3D.ambiente(self, "fuego")
 	_ver_ardiendo(true)
 	if _hay_comun():
@@ -1035,6 +1090,13 @@ func _process(delta: float) -> void:
 			PiezaFuego3D.mojado(visual, false)
 			_reaccionar(Mundo3D.R_SECADO)
 	_avanzar_relojes(delta)
+	if not _lleno_agua: _humedad_visual = maxf(0.0,_humedad_visual-delta/4.0)
+	if _feedback_materia != null:
+		var electrificada: bool = false
+		if _conduciendo:
+			for fuente in get_tree().get_nodes_in_group("emisor_rayo"):
+				if (fuente.get("electrificada") as Array).has(celda): electrificada = true
+		_feedback_materia.estado(maxf(_humedad_visual,maxf(_mojado_s/T_MOJADO,_conduce_s/T_CONDUCE)),maxf(_congelado_s/CONGELADO_S,_escarcha_s/ESCARCHA_S),_caliente_s/CALIENTE_S,1.0 if electrificada else 0.0)
 	if rele_activo and is_lit:
 		_avanzar_rele(delta)
 	if estado != EstadoObj.ARDIENDO:
@@ -1044,6 +1106,9 @@ func _process(delta: float) -> void:
 	_t += delta
 	if _hay_comun():
 		_poner_quemado(clampf(_t / maxf(float(_num_combustible()[0]), 0.01), 0.0, 1.0))
+	if _combustion != null:
+		_combustion.actualizar(_t / maxf(float(_num_combustible()[0]),0.01))
+		_guardar_carbonizacion()
 	_t_contagio += delta
 	if _t_contagio >= INTERVALO_CONTAGIO:
 		_t_contagio = 0.0
@@ -1054,7 +1119,7 @@ func _process(delta: float) -> void:
 
 ## R2: cuenta atrás de los estados con reloj (conducción, congelado, enredado, escarcha, al rojo); al acabar cada uno avisa su señal y devuelve el color.
 func _hay_relojes() -> bool:
-	return _vapor_faltan > 0 or _conduce_s > 0.0 or _congelado_s > 0.0 or _enredado_s > 0.0 or _escarcha_s > 0.0 or _caliente_s > 0.0
+	return (_humedad_visual>0.0 and not _lleno_agua) or _vapor_faltan > 0 or _conduce_s > 0.0 or _congelado_s > 0.0 or _enredado_s > 0.0 or _escarcha_s > 0.0 or _caliente_s > 0.0
 
 
 func _avanzar_relojes(delta: float) -> void:
@@ -1104,6 +1169,9 @@ func _apagar() -> void:
 	is_lit = false
 	_reaccionar(Mundo3D.R_APAGADO_AGUA)             # solo lo apaga el agua o el frío (`humedo` en on_spell_hit); el viento no apaga, lleva la llama
 	_quitar_fuego()
+	if _combustion != null:
+		_combustion.apagar()
+		_guardar_carbonizacion()
 	_ver_ardiendo(false)
 	_k = maxf(_k, _quemado_v)               # el fundido a sano parte de lo que llevara quemado (con el material común _k no se anima mientras arde)
 	_animar_k(0.0)
@@ -1112,10 +1180,18 @@ func _apagar() -> void:
 
 
 func _consumir() -> void:
+	if estado == EstadoObj.CONSUMIDO: return
 	estado = EstadoObj.CONSUMIDO
+	if _clave_carbonizacion()!="": Flags.i().quitar(_clave_carbonizacion())
+	if flag_consumido != "": Flags.i().poner(flag_consumido)
+	if has_meta("tocon") and get_parent() is Node3D:
+		var medida: Vector3 = Pieza3D._caja(visual,Transform3D.IDENTITY).size if visual != null else Vector3.ZERO
+		preload("res://presentacion/estados_blender_3d.gd").restos(get_parent(),global_transform,true,medida)
 	is_lit = false
 	_reaccionar(Mundo3D.R_CONSUMIDO)
 	_quitar_fuego()
+	if _combustion != null:
+		_combustion.consumir()
 	fx.ceniza(global_position)
 	collision_layer = 0
 	remove_from_group(GRUPO_ARDE)
@@ -1139,6 +1215,7 @@ func _consumir() -> void:
 ## La telaraña de modelos (PruebaTest2._poner_telarana) trae dos hijas en `visual`: "sana" y "ardiendo" (la red con brasas).
 ## Sin ellas (la de Formas3D, otro combustible) no hace nada: basta el chamuscado del material.
 func _ver_ardiendo(si: bool) -> void:
+	if _combustion != null: return   # conservar la red sana: el shader consume sus hilos
 	if visual == null:
 		return
 	var sana: Node3D = visual.get_node_or_null("sana") as Node3D
@@ -1455,6 +1532,10 @@ func _montar_cuenco() -> void:
 
 ## `hace_vapor`: el calor revienta el recipiente. El primer marcado es ya; los demás, cada VAPOR_INTERVALO_S s (en `_avanzar_relojes`). Queda vacío hasta que `brotar` lo llene.
 func _vaporizar() -> void:
+	_humedad_visual = 1.0
+	if get_parent() is Node3D:
+		preload("res://presentacion/feedback_objeto_3d.gd").rafaga(get_parent(),global_position+Vector3.UP*CUENCO_AGUA_Y,"burbuja",Color(0.55,0.77,0.85),6,0.7)
+		preload("res://presentacion/feedback_objeto_3d.gd").rafaga(get_parent(),global_position+Vector3.UP*CUENCO_AGUA_Y,"gota",Color(0.45,0.7,0.85),4,0.6)
 	_lleno_agua = false
 	if _agua_pila != null:
 		_agua_pila.visible = false
@@ -1492,6 +1573,10 @@ func _marcar_vapor() -> void:
 ## El surtidor echa agua: columna de agua de 2 s, salpicadura en la pila y la pila se llena (se queda llena). Público para que
 ## el Juego lo dispare también sin hechizo (p. ej. al cargar una partida con el cauce ya lleno).
 func brotar(instantaneo: bool = false) -> void:
+	_humedad_visual = 1.0
+	if _feedback_materia != null: _feedback_materia.estado(1)
+	if not instantaneo and get_parent() is Node3D:
+		preload("res://presentacion/feedback_objeto_3d.gd").rafaga(get_parent(),global_position+Vector3.UP*CUENCO_AGUA_Y,"onda",Color(0.45,0.72,0.85),2,1.7)
 	if _es_tinaja:
 		_brotar_tinaja(instantaneo)
 		return
@@ -1884,6 +1969,8 @@ func _empezar_a_verter(instantaneo: bool) -> void:
 ## si no hay agua física), el arroyo y las gotas finas. Deja la tinaja inclinada y vacía; el agua que ya está en el canal NO se toca (la
 ## decide la maqueta). Idempotente; solo hace algo en una tinaja que está vertiendo. Lo llama la maqueta, pero es público para el Juego.
 func dejar_de_verter() -> void:
+	_humedad_visual = 1.0
+	set_process(true)
 	if not _es_tinaja or _vertido_parado:
 		return
 	_vertido_parado = true
@@ -1999,18 +2086,29 @@ func _physics_process(_delta: float) -> void:
 func _recoger_materiales() -> void:
 	if visual == null:
 		return
-	for n in visual.find_children("*", "MeshInstance3D", true, false):
+	var mallas: Array[Node] = visual.find_children("*", "MeshInstance3D", true, false)
+	if visual is MeshInstance3D: mallas.append(visual)
+	for n in mallas:
 		var mi: MeshInstance3D = n as MeshInstance3D
 		if mi.mesh == null:
 			continue
+		var originales: Array[Material] = []
+		for s in mi.mesh.get_surface_count(): originales.append(mi.get_active_material(s))
+		mi.material_override = null   # si queda puesto, tapa las copias de superficie y su disolución
 		for s in range(mi.mesh.get_surface_count()):
-			var mat: Material = mi.get_active_material(s)
+			var mat: Material = originales[s]
 			if mat is StandardMaterial3D:
 				var copia: Material = (mat as StandardMaterial3D).duplicate() as Material
 				copia = Ocluso3D.convertir(copia)      # con el círculo de transparencia del jugador (si está activo)
 				Ocluso3D.poner_caja(copia, mi.mesh)    # V6: la altura de la malla, para que el frente del quemado suba por ella
 				mi.set_surface_override_material(s, copia)
 				_mats.append([copia, Ocluso3D.color_de(copia)])
+			elif Ocluso3D.es_comun(mat):
+				var copia: Material = mat.duplicate()
+				mi.set_surface_override_material(s,copia)
+				_mats.append([copia,Ocluso3D.color_de(copia)])
+			else:
+				mi.set_surface_override_material(s,mat)
 	for n in visual.find_children("*", "SpriteBase3D", true, false):
 		_sprites.append([n, (n as SpriteBase3D).modulate])
 	if visual is SpriteBase3D:

@@ -1,0 +1,22 @@
+{
+  "colmena_recarga": {
+    "escala": "(0.6, 0.6, 0.6)"
+  },
+  "colmena_viento": {
+    "botin": [
+      {
+        "n": 1,
+        "que": "panal"
+      }
+    ],
+    "estado": "vacia",
+    "hijo_panal": false,
+    "modelo_igual": true
+  },
+  "seta_madurada": {
+    "objeto": "seta_resonante",
+    "reacciona_hielo": false,
+    "reacciona_viento": false,
+    "tabla_resonante": {}
+  }
+}

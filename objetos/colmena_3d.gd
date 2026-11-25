@@ -32,6 +32,9 @@ var envenenadas: int = 0                 ## veces que la nube envenenó a la jug
 var _visual: Node3D = null
 var _nube: NubeVeneno3D = null            ## F4: la nube de verdad (`NubeVeneno3D`), hija de la colmena y llamada «nube_veneno»
 var _t_nube: float = 0.0
+var _panal: Node3D
+var _combustion: Node3D
+var _caida: Tween
 
 
 func preparar(p_celda: Vector2i, p_nivel: String = "") -> void:
@@ -69,6 +72,14 @@ func _ready() -> void:
 	forma.position = Vector3(0.0, ALTO_COLGADA, 0.0)
 	add_child(forma)
 	_poner_visual()
+	_panal = _visual.get_node_or_null("panal") as Node3D
+	if _panal != null:
+		_combustion = preload("res://presentacion/combustion_objeto_3d.gd").new()
+		add_child(_combustion)
+		_combustion.escala_llamas = 0.65
+		_combustion.cantidad_focos = 5
+		_combustion.copiar_materiales = true
+		_combustion.montar(_panal,false)
 	if nivel != "" and Flags.i().tiene(flag()):
 		_dejar_vacia(false)
 	set_process(false)
@@ -81,7 +92,10 @@ func _poner_visual() -> void:
 		if n != null:
 			n.name = "modelo"
 			add_child(n)
-			_visual = n
+			_visual = preload("res://presentacion/partes_colmena_3d.gd").crear(n)
+			_visual.name = "modelo"
+			add_child(_visual)
+			n.free()
 			return
 	var raiz := Node3D.new()
 	raiz.name = "modelo"
@@ -124,7 +138,7 @@ func on_spell_hit(rune_data: RuneData, _direccion: Vector3 = Vector3.ZERO, hechi
 		"viento":
 			caer_panal()
 		"fuego":
-			arder()
+			arder(Lanzador3D.ultimo_impacto)
 
 
 func spell_reacts(rune_data: RuneData, _direccion: Vector3 = Vector3.ZERO, hechizo: Hechizo = null) -> bool:
@@ -165,7 +179,7 @@ func caer_panal() -> Array:
 
 
 ## FUEGO: arde. Nube de veneno T_NUBE s y nada de panal.
-func arder() -> bool:
+func arder(desde: Vector3 = Vector3.INF) -> bool:
 	if estado != "colgada":
 		return false
 	estado = "ardiendo"
@@ -175,8 +189,8 @@ func arder() -> bool:
 		Flags.i().poner(flag(), "quemada")
 	_t_nube = T_NUBE
 	_poner_nube()
-	if _visual != null:
-		_visual.visible = false
+	if _combustion != null:
+		_combustion.prender(desde if desde.is_finite() else _combustion.punto_frontal())
 	Mundo3D.avisar_reaccion(Mundo3D.R_PRENDIDO, global_position if is_inside_tree() else position, self)
 	arde.emit()
 	set_process(true)
@@ -186,11 +200,18 @@ func arder() -> bool:
 func _dejar_vacia(con_efecto: bool) -> void:
 	estado = "vacia"
 	colgada = false
-	var panal: Node3D = _visual.get_node_or_null("panal") as Node3D if _visual != null else null
-	if panal != null:
-		panal.visible = false
-	elif _visual != null and not con_efecto:
-		_visual.scale = Vector3.ONE * 0.6
+	if _panal == null: return
+	if not con_efecto:
+		_panal.visible = false
+		return
+	# Misma pose final que al recargar; el movimiento solo presenta la caída.
+	_caida = create_tween().set_parallel(true)
+	_caida.tween_property(_panal,"position:y",_panal.position.y-0.55,0.35).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
+	_caida.tween_property(_panal,"rotation:z",0.35,0.35)
+	_caida.chain().tween_callback(func() -> void:
+		_panal.visible = false
+		_panal.position = Vector3.ZERO
+		_panal.rotation = Vector3.ZERO)
 
 
 ## F4 (29/10): la nube provisional de F1 (una esfera y un radio comprobado aquí) es ahora una `NubeVeneno3D` real: envenena con los números de la tabla, el viento la empuja y la dispersa, y se guarda en la partida.
@@ -208,6 +229,11 @@ func _process(delta: float) -> void:
 		set_process(false)
 		return
 	_t_nube -= delta
+	if _combustion != null:
+		_combustion.actualizar(clampf((T_NUBE-_t_nube)/0.9,0.0,1.0))
+		if T_NUBE-_t_nube >= 0.9 and _panal.visible:
+			_panal.visible = false
+			_combustion.consumir()
 	if _nube != null and is_instance_valid(_nube):
 		envenenadas = _nube.envenenadas
 	if _t_nube <= 0.0:

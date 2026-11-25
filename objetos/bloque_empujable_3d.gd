@@ -375,6 +375,8 @@ func _sostenido() -> bool:
 
 
 func _iniciar_casilla(resto: float) -> void:
+	if _cuerpo != null and not has_signal("choca"):
+		preload("res://presentacion/feedback_objeto_3d.gd").sacudir(_cuerpo,0.035)
 	_destino = celda + _dir
 	Terreno3D.bloquear_celda(_destino)      # el destino se bloquea ANTES de mover: nadie se cuela
 	_ocupadas[_destino] = self
@@ -475,6 +477,10 @@ func _acabar_casilla() -> void:
 
 
 func _parar() -> void:
+	if _cuerpo != null and not has_signal("choca"):
+		preload("res://presentacion/feedback_objeto_3d.gd").sacudir(_cuerpo,0.025)
+	if get_parent() is Node3D:
+		preload("res://presentacion/feedback_objeto_3d.gd").rafaga(get_parent(),global_position+Vector3.UP*0.05,"polvo",Color(0.55,0.52,0.45),4,0.7)
 	vel = 0.0
 	acoplado = false
 	moviendo = false

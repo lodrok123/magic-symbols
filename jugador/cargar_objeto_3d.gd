@@ -554,6 +554,8 @@ func _enemigo_en(p: Vector3) -> Combate3D:
 
 ## El objeto `v` cae o choca en `punto`: golpea a quien esté al lado, se rompe (o se queda en el suelo si no rompe) y lo apunta en `ultimo`.
 func _aterrizar(v: Dictionary, punto: Vector3) -> void:
+	if get_parent() is Node3D:
+		preload("res://presentacion/feedback_objeto_3d.gd").rafaga(get_parent(),punto,"polvo",Color(0.58,0.54,0.46),5,0.6)
 	var o: Node3D = v["objeto"] as Node3D
 	var fila: Dictionary = v["datos"]
 	var t: String = String(v["tipo"])
@@ -624,6 +626,11 @@ func _dejar(o: Node3D, punto: Vector3) -> void:
 	else:
 		o.rotation = Vector3.ZERO
 		o.global_position = punto
+	for nombre in ["modelo","visual"]:
+		var visual: Node = o.get_node_or_null(nombre)
+		if visual is Node3D and not visual is CollisionObject3D:
+			preload("res://presentacion/feedback_objeto_3d.gd").asentar(visual)
+			break
 
 
 ## Rompe (o, si no rompe, deja) lo que lleva en `punto`. Lo usan el golpe recibido y la muerte.

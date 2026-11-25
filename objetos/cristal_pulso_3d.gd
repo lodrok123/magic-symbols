@@ -34,6 +34,9 @@ var esquirla_dada: bool = false         ## ya soltó su esquirla (también con l
 const T_CARGADO: float = 20.0            ## F1 (29/10): s que el cristal sigue cargado tras un hechizo de rayo
 const OBJETO_CARGADO: String = "cristal_cargado"   ## lo que suelta en vez de la esquirla mientras está cargado
 var cargado_s: float = 0.0               ## s que le quedan cargado (> 0 = la siguiente esquirla es `cristal_cargado`)
+var _feedback_carga: Node3D
+var _fase_carga: float = 0.0
+var _geometria_agotada: bool = false
 var esquirla_objeto: String = ""         ## lo que soltó de verdad ("" = aún nada; las pruebas lo leen)
 var _mundo: Node = null
 var _t: float = FASE_INICIAL
@@ -69,6 +72,7 @@ func _ready() -> void:
 	add_child(forma)
 	_dibujar()
 	esquirla_dada = nivel != "" and Flags.i().tiene(flag_esquirla())
+	_pintar()
 	set_process(true)
 
 
@@ -109,6 +113,7 @@ func _dibujar() -> void:
 	if _mat_primitiva != null:
 		_mat_primitiva.emission_energy_multiplier = BrilloPulso3D.ENERGIA_REPOSO
 	_suelo = BrilloPulso3D.suelo_azul(self)
+	_feedback_carga = preload("res://presentacion/feedback_objeto_3d.gd").instalar(self,self)
 
 
 func _exit_tree() -> void:
@@ -141,10 +146,13 @@ func _contar_golpe() -> void:
 	var lanz: Node = get_tree().get_first_node_in_group("spellcaster") if is_inside_tree() else null
 	var que: String = OBJETO_CARGADO if cargado_s > 0.0 else Objetos.mineral_de("cristal_resonante", "golpe")
 	if MineralPulso.dar(lanz, que, self) != "":
+		if que == OBJETO_CARGADO and get_parent() is Node3D:
+			preload("res://presentacion/feedback_objeto_3d.gd").rafaga(get_parent(),global_position+Vector3.UP*ALTO_LUZ,"chispa",Pulso3D.color_de("rayo"),8)
 		esquirla_dada = true
 		esquirla_objeto = que
 		cargado_s = 0.0
 		Flags.i().poner(flag_esquirla())
+		_pintar()
 
 
 ## La flag de la esquirla: `<nivel>.mineral.<id>` (como la de la veta y la de los rompibles).
@@ -188,6 +196,8 @@ func latir(elemento: String = "", por_reloj: bool = false) -> Pulso3D:
 
 
 func _process(delta: float) -> void:
+	_fase_carga += delta
+	var tenia_carga: bool = cargado_s > 0.0
 	if cargado_s > 0.0:
 		cargado_s = maxf(cargado_s - delta, 0.0)
 	if _enfriando > 0.0:
@@ -199,13 +209,34 @@ func _process(delta: float) -> void:
 	if destello > 0.0:
 		destello = maxf(destello - delta / T_DESTELLO, 0.0)
 		_pintar()
+	elif tenia_carga:
+		_pintar()
 
 
 func _pintar() -> void:
+	if esquirla_dada and not _geometria_agotada:
+		var nuevo: Node3D = preload("res://presentacion/estados_blender_3d.gd").cargar("cristal_agotado")
+		if nuevo != null:
+			var viejo := get_node_or_null("modelo")
+			if viejo != null:
+				remove_child(viejo); viejo.queue_free()
+			nuevo.name="modelo"
+			add_child(nuevo)
+			_mats=BrilloPulso3D.preparar(nuevo)
+			_geometria_agotada=true
+			if is_instance_valid(_feedback_carga): _feedback_carga.free()
+			_feedback_carga=preload("res://presentacion/feedback_objeto_3d.gd").instalar(self,nuevo)
 	var e: float = destello * destello          # baja rápido y deja una cola corta
-	BrilloPulso3D.poner(_mats, _color, BrilloPulso3D.ENERGIA_MAX * e)
+	var carga: float = clampf(cargado_s/T_CARGADO,0.0,1.0)
+	var color_actual: Color = _color
+	if carga > 0.0:
+		e = maxf(e,(0.10+0.07*(0.5+0.5*sin(_fase_carga*5.0)))*sqrt(carga))
+		if destello <= 0.0: color_actual = Pulso3D.color_de("rayo")
+	if _feedback_carga != null: _feedback_carga.estado(0,0,0,carga)
+	BrilloPulso3D.poner(_mats, color_actual, BrilloPulso3D.ENERGIA_MAX * e)
+	for m in _mats: m.set_shader_parameter("agotado",1.0 if esquirla_dada else 0.0)
 	if _mat_primitiva != null:
-		_mat_primitiva.emission = _color
+		_mat_primitiva.emission = color_actual
 		_mat_primitiva.emission_energy_multiplier = BrilloPulso3D.ENERGIA_MAX * e + BrilloPulso3D.ENERGIA_REPOSO
 	if _luz != null:
 		var reposo: float = BrilloPulso3D.LUZ_REPOSO_ENERGIA if _luz_reposo else 0.0

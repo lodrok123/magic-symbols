@@ -43,13 +43,14 @@ uniform vec3 color_pulso : source_color = vec3(0.62, 0.85, 1.0);
 uniform float energia = 0.0;
 uniform vec3 color_reposo : source_color = vec3(0.62, 0.85, 1.0);
 uniform float energia_reposo = 0.0;
+uniform float agotado = 0.0;
 
 void fragment() {
 	vec4 t = texture(t_albedo, UV);
 	float lum = dot(t.rgb, vec3(0.299, 0.587, 0.114));
 	float cristal = smoothstep(cian_min, cian_max, min(t.g, t.b) - t.r);
 	vec3 apagado = mix(vec3(lum), t.rgb, sat_reposo) * oscurecer;
-	ALBEDO = mix(t.rgb, apagado, cristal);
+	ALBEDO = mix(t.rgb, apagado, cristal) * (1.0-agotado*cristal*0.28);
 	ROUGHNESS = rugosidad;
 	NORMAL_MAP = texture(t_normal, UV).rgb;
 	EMISSION = (color_pulso * energia + color_reposo * energia_reposo) * cristal;

@@ -1,0 +1,6 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://laboratorios/lab_estados_blender.gd" id="1"]
+
+[node name="LabEstadosBlender" type="Node3D"]
+script = ExtResource("1")

@@ -124,6 +124,20 @@ func _tira(inicio: Vector3, dir: Vector3, largo: float, fase: float = 0.0, desv_
 	mi.position = Vector3(0.0, 0.0, largo * 0.5)
 	mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	pivote.add_child(mi)
+	# La banda húmeda comparte el pivote que se llena: avanza con el agua,
+	# sin sondear ni modificar la simulación de caudal.
+	var humedo := MeshInstance3D.new()
+	var banda := PlaneMesh.new()
+	banda.size = malla.size+Vector2(0.16,0.0)
+	humedo.mesh = banda
+	humedo.position = mi.position-Vector3.UP*0.006
+	humedo.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	var humedad := StandardMaterial3D.new()
+	humedad.albedo_color = Color(0.12,0.19,0.21,0.32)
+	humedad.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	humedad.roughness = 0.18
+	humedo.material_override = humedad
+	pivote.add_child(humedo)
 	pivote.visible = false
 	pivote.scale = Vector3(1.0, 1.0, 0.02)
 	add_child(pivote)

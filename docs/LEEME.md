@@ -35,3 +35,11 @@ de `proyecto/PROPIETARIOS.md` §7 están en su carpeta de tema pero son
 borradores: su dueño los integra en los vivos y los borra.
 
 - [Previsión durante el casteo](PROPUESTA_PREVISION_CASTEO_2026-11-22.md): siluetas funcionales durante la preparación y verificación.
+- [Combustión de objetos](COMBUSTION_OBJETOS_2026-11-24.html): telaraña y barril de madera, frente desde el impacto, llamas de superficie, apagado y restos; laboratorio y lámina de seis fases.
+- [Revisión de interacciones](REVISION_INTERACCIONES_2026-11-24.html): 251 comprobaciones, nueve capturas y prioridades; colmena vacía, cuerda ardiendo y discrepancia de la seta resonante.
+- [Colmena y cuerda: revisión aplicada](COLMENA_CUERDA_2026-11-24.html): panal y soporte separados por código, estado vacío consistente al recargar y cuerda con combustión progresiva; ocho capturas.
+- [Reacciones de setas](REACCIONES_SETAS_2026-11-24.html): esporas con viento, escarcha con hielo, gotas y humedad con agua; pulso seguido de viento/hielo, ingredientes y lámina de seis estados.
+- [Interacciones por código: siete lotes](INTERACCIONES_CODIGO_2026-11-25.html): inventario de 28 actuaciones, componentes reutilizables, laboratorio con 18 muestras, pruebas y tanda posterior de Blender.
+- [Tanda de Blender: 12 variantes](BLENDER_INTERACCIONES_2026-11-25.html): fragmentos, frutos separados, deformaciones, agotados y tapa articulada; editables y comparativas.
+- [Variantes conectadas al juego](CONEXION_BLENDER_2026-11-25.html): agotamiento del cristal, restos quemados persistentes, roca destructible, caldera dañable y barril abrible; laboratorio y lámina.
+- [Prueba integrada en Bosque02](REVISION_ZONA_BLENDER_2026-11-25.html): doce capturas y recarga real del nivel, con lámina, corrección de prioridad de E y carbonización parcial persistente.

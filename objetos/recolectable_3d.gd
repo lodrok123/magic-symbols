@@ -13,8 +13,8 @@ extends Area3D
 ##
 ## SETA RESONANTE (24/10, fase 3 del Pulso; PLAN_PULSO_RESONANTE §4 «setas que maduran», docs/MATERIALES_CUEVA.md). Con `madura=si` la seta está en el grupo de lo que responde a un pulso
 ## (`Pulso3D.GRUPO_PULSABLE`): cada pulso que la toca la hace BRILLAR un instante (una luz azul suave y unas motas) y, si aún no estaba transformada por un elemento, la MADURA: pasa a dar
-## `seta_resonante` (ingrediente común de más valor) y se queda con su tinte azul claro. Un hechizo de elemento ya no la transforma después (ya no es la seta base) ni el pulso, si antes
-## la tocó un elemento (la seta asada se queda asada).
+## `seta_resonante`. Después admite viento → esporas luminosas o hielo → seta cristalizada, según fuentes.tsv. Esos resultados son terminales.
+## El pulso no madura una seta ya transformada por un elemento (la seta asada se queda asada).
 ## Se coloca desde un mapa con `; pieza <id> seta <x> <y> [variante=roja|azul|marron] [rebrota=<s>] [madura=si]` (escenas/puzle.gd).
 
 signal recogido(objeto: String)
@@ -63,6 +63,8 @@ var _t_cond: float = 0.0
 var _rebrotando: bool = false
 var _cogiendo: bool = false             ## la jugadora ya se agacha a cogerla (otra E no lo repite)
 var _luz: OmniLight3D = null            ## la luz azul de cuando le llega un pulso (se crea la primera vez)
+var _reaccion_seta: Node3D
+var _residuo: Node3D
 
 
 ## `p_variante` vacío = la que toque por casilla (intercaladas). `mundo` = la maqueta (pone el modelo con su escala de `Pieza3D.MEDIDA`).
@@ -113,7 +115,10 @@ func _id_visual() -> String:
 func _poner_visual() -> void:
 	var id: String = _id_visual()
 	var n: Node3D = null
-	if id != "":
+	if planta == "bayas" and ResourceLoader.exists("res://arte/meshy/blender_interacciones/bayas_separadas.glb"):
+		n = (load("res://arte/meshy/blender_interacciones/bayas_separadas.glb") as PackedScene).instantiate()
+		Ocluso3D.convertir_nodo(n)
+	if n == null and id != "":
 		if _mundo != null and is_instance_valid(_mundo) and _mundo.has_method("_pieza") and not SOLO_ESCENA.has(id):
 			n = _mundo.call("_pieza", id) as Node3D
 		if n == null:
@@ -128,6 +133,10 @@ func _poner_visual() -> void:
 	n.rotation.y = deg_to_rad(90.0 * float(absi(celda.x * 31 + celda.y * 17) % 4))      # 4/11: múltiplo de 90° (antes % 360)
 	add_child(n)
 	_visual = n
+	if planta == "seta":
+		_reaccion_seta = preload("res://presentacion/reaccion_seta_3d.gd").new()
+		n.add_child(_reaccion_seta)
+		_reaccion_seta.montar(n)
 	if VISUAL_PLANTA.has(planta):
 		if VISUAL_PROVISIONAL.has(planta):
 			Paleta3D.tintar(n, Objetos.color(objeto))
@@ -168,6 +177,7 @@ func _aplicar_disponible() -> void:
 	_refrescar_roca()
 	if _visual != null:
 		_visual.visible = disponible and not recogido_ya
+	if is_instance_valid(_residuo): _residuo.visible = disponible and recogido_ya
 	collision_layer = Lanzador3D.CAPA_REACTIVO if (disponible and not recogido_ya) else 0
 
 
@@ -192,8 +202,13 @@ func _refrescar_roca() -> void:
 func on_spell_hit(rune_data: RuneData, _direccion: Vector3 = Vector3.ZERO, hechizo: Hechizo = null) -> void:
 	if not spell_reacts(rune_data, _direccion, hechizo):
 		return
-	var nuevo: String = String(_tabla()[_via(rune_data, hechizo)])
+	var via: String = _via(rune_data,hechizo)
+	var nuevo: String = String(_tabla()[via])
 	objeto = nuevo
+	if planta == "seta" and via in ["viento","hielo","agua"] and is_instance_valid(_reaccion_seta):
+		_reaccion_seta.aplicar(via,nuevo in ["esporas_luminosas","seta_cristalizada"],_direccion)
+		Sfx.play(self,via)
+		return
 	var c: Color = (Objetos.DATOS.get(nuevo, {}) as Dictionary).get("color", Color.WHITE)
 	if _visual != null:
 		Paleta3D.tintar(_visual, c)
@@ -207,7 +222,8 @@ func spell_reacts(rune_data: RuneData, _direccion: Vector3 = Vector3.ZERO, hechi
 	if rune_data == null or recogido_ya or not disponible:
 		return false
 	var base: String = String((Objetos.PLANTAS.get(planta, {}) as Dictionary).get("base", planta))
-	return objeto == base and _tabla().has(_via(rune_data, hechizo))
+	var admite_paso: bool = objeto == base or (planta == "seta" and objeto == OBJETO_MADURO)
+	return admite_paso and _tabla().has(_via(rune_data, hechizo))
 
 
 ## 13/11 (tarea 11): la tabla de la planta va por nombre de elemento; el nombre sale de las PROPIEDADES del hechizo (`Materia.via`), no de sus etiquetas.
@@ -235,7 +251,9 @@ func on_pulso(pulso: Pulso3D) -> bool:
 		maduro_ahora = true
 		maduraciones += 1
 		objeto = OBJETO_MADURO
-		if _visual != null:
+		if planta == "seta" and is_instance_valid(_reaccion_seta):
+			_reaccion_seta.marcar_resonante()
+		elif _visual != null:
 			Paleta3D.tintar(_visual, Objetos.color(OBJETO_MADURO))
 	if is_inside_tree():
 		if get_parent() is Node3D:
@@ -260,6 +278,8 @@ func _encender_brillo() -> void:
 
 
 func _tabla() -> Dictionary:
+	if planta == "seta" and objeto == OBJETO_MADURO:
+		return (Objetos.PLANTAS.get(OBJETO_MADURO,{}) as Dictionary).get("tabla",{})
 	return (Objetos.PLANTAS.get(planta, {}) as Dictionary).get("tabla", {})
 
 
@@ -321,6 +341,20 @@ func recoger() -> bool:
 		return false
 	recogido_ya = true
 	collision_layer = 0
+	if planta == "bayas" and _visual != null:
+		_residuo = _visual.duplicate() as Node3D
+		_residuo.name = "arbusto_agotado"
+		add_child(_residuo)
+		preload("res://presentacion/feedback_objeto_3d.gd").quitar_colisiones(_residuo)
+		var frutos: Node3D = _residuo.find_child("frutos",true,false)
+		if frutos != null:
+			frutos.visible = false
+		else:
+			var agotado = preload("res://presentacion/feedback_objeto_3d.gd").instalar(_residuo,_residuo,true)
+			agotado.estado(0,0,0,0,1)
+			agotado.marcar_frutos_vacios()
+	if get_parent() is Node3D:
+		preload("res://presentacion/feedback_objeto_3d.gd").rafaga(get_parent(),global_position+Vector3.UP*0.15,"hoja",Objetos.color(objeto),4,0.5)
 	if _visual != null:
 		_visual.visible = false
 	AvisoObjeto.mostrar(lanz, objeto, 1)      # común: «X (+1)»; épico: borde morado, más largo y destello
@@ -353,6 +387,8 @@ func _process(delta: float) -> void:
 	if _t < rebrota:
 		return
 	_rebrotando = false
+	if is_instance_valid(_residuo): _residuo.queue_free()
+	_residuo = null
 	set_process(not coge_si.is_empty())
 	recogido_ya = false
 	objeto = String((Objetos.PLANTAS.get(planta, {}) as Dictionary).get("base", planta))
@@ -360,6 +396,7 @@ func _process(delta: float) -> void:
 		_visual.queue_free()
 		_visual = null
 	_poner_visual()
+	if _visual != null: preload("res://presentacion/feedback_objeto_3d.gd").brotar(_visual)
 	_aplicar_disponible()
 
 

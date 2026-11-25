@@ -184,5 +184,10 @@ func _aplicar(animar: bool) -> void:
 	if animar and is_inside_tree():
 		var tw: Tween = create_tween()
 		tw.tween_property(_losa, "position:y", y_obj, T_MOVER).set_trans(Tween.TRANS_SINE)
+		tw.tween_callback(func() -> void:
+			Sfx.play(self,"boton_clic",0.7)
+			preload("res://presentacion/feedback_objeto_3d.gd").sacudir(_losa,0.015)
+			if get_parent() is Node3D:
+				preload("res://presentacion/feedback_objeto_3d.gd").rafaga(get_parent(),global_position,"polvo",Color(0.55,0.52,0.46),5))
 	else:
 		_losa.position.y = y_obj

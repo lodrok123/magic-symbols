@@ -1,0 +1,4 @@
+[gd_scene load_steps=2 format=3]
+[ext_resource type="Script" path="res://laboratorios/lab_interacciones_codigo.gd" id="1"]
+[node name="LabInteraccionesCodigo" type="Node3D"]
+script = ExtResource("1")
