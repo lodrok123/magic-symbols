@@ -103,7 +103,7 @@ static var CATALOGO: Dictionary = {
 	"descarga_electrica": {"f": ["oga_relampago_1.wav"], "db": -10.0, "tono": 0.08},
 	"chasquidos_electricos": {"f": ["oga_descarga_chasquidos.wav"], "db": -14.0, "tono": 0.0},
 	# 2/11 (tercera tanda, C3): AMBIENTE POR ZONA (nucleo/ambiente_zona.gd; audio/gen_sfx_interfaz.py `ambiente_zonas`). Bucles planos en el bus «Mundo» a −18 dB; los pájaros son tres trinos sueltos.
-	"amb_bosque":  {"f": ["amb_bosque_loop.wav"], "f_sn": ["sn_amb_bosque_0.ogg"],  "db": -18.0, "tono": 0.0},
+	"amb_bosque":  {"f": ["amb_bosque_loop.wav"],  "db": -18.0, "tono": 0.0},     # 25/11 (Pablo): sin el Sonniss (sn_amb_bosque_0, pradera con insectos zumbando: sonaba a moscas); vuelve el viento sintetizado
 	"amb_cueva":   {"f": ["amb_cueva_loop.wav"], "f_sn": ["sn_amb_cueva_0.ogg"],   "db": -18.0, "tono": 0.0},
 	"amb_sala":    {"f": ["amb_sala_loop.wav"],    "db": -18.0, "tono": 0.0},
 	"amb_grillos": {"f": ["amb_grillos_loop.wav"], "f_sn": ["sn_amb_grillos_0.ogg"], "db": -18.0, "tono": 0.0},
