@@ -39,8 +39,13 @@ const RECETAS: Dictionary = {
 ## 25/11, 2.º (Pablo: «diferencia ligeramente el color del suelo»): un poco más oscuro y más gris que el ladrillo, para que muro y suelo no se fundan.
 ## (Antes Color(0,9·0,86·0,8) lo igualaba al muro: 43°·0,247·0,631 contra 44°·0,224·0,627.)
 const COLOR_LOSAS: Color = Color(0.84, 0.81, 0.78)
-const AO_LOSAS: float = 0.6
-const RELIEVE_LOSAS: float = 1.6
+## 3.º (Pablo: «marca las juntas»): oclusión entera con luz directa y más relieve (antes 0,6 y 1,6). Con la luz de arriba eso apenas se notaba
+## (las juntas de esta textura casi no tienen AO), así que además las juntas se OSCURECEN en el color (`_losa_juntas`).
+const AO_LOSAS: float = 1.0
+const RELIEVE_LOSAS: float = 2.4
+## Cuánto oscurece el color según lo inclinada que está la normal (juntas y bordes de losa) y hasta dónde como mucho.
+const JUNTAS_GANANCIA: float = 2.2
+const JUNTAS_MIN: float = 0.5
 ## La hiedra del pack es un verde muy claro (en Unreal la oscurecía su `Ivy Tint`): se multiplica por esto para que no brille más que la hierba.
 const TINTE_HIEDRA: Color = Color(0.62, 0.68, 0.55)
 
@@ -130,6 +135,35 @@ func _losas_ruinas() -> bool:
 	return true
 
 
+## 25/11 (Pablo: «marca las juntas»): el beige de las losas con las juntas oscurecidas. Se sacan de la normal del pack: donde la superficie se
+## inclina (los bordes biselados de cada losa) el color baja, f = 1 − (1 − n.z) × JUNTAS_GANANCIA, sin bajar de JUNTAS_MIN. Solo las losas: el muro no cambia.
+func _losa_juntas(nombre: String, normal: String) -> Texture2D:
+	var ruta_res: String = TEX + nombre + "_losa.res"
+	var base: Image = _beige(nombre).get_image().duplicate()
+	if base.is_compressed():
+		base.decompress()
+	base.clear_mipmaps()
+	base.convert(Image.FORMAT_RGB8)
+	var nm := Image.load_from_file(ProjectSettings.globalize_path(TEX + normal + ".png"))
+	if nm == null or nm.is_empty():
+		return _beige(nombre)
+	nm.convert(Image.FORMAT_RGB8)
+	if nm.get_size() != base.get_size():
+		nm.resize(base.get_width(), base.get_height(), Image.INTERPOLATE_BILINEAR)
+	for yy in range(base.get_height()):
+		for xx in range(base.get_width()):
+			var n: Color = nm.get_pixel(xx, yy)
+			var nx: float = n.r * 2.0 - 1.0
+			var ny: float = n.g * 2.0 - 1.0
+			var nz: float = sqrt(maxf(1.0 - nx * nx - ny * ny, 0.0))
+			var f: float = clampf(1.0 - (1.0 - nz) * JUNTAS_GANANCIA, JUNTAS_MIN, 1.0)
+			var p: Color = base.get_pixel(xx, yy).srgb_to_linear()
+			base.set_pixel(xx, yy, Color(p.r * f, p.g * f, p.b * f).linear_to_srgb())
+	base.generate_mipmaps()
+	ResourceSaver.save(ImageTexture.create_from_image(base), ruta_res)
+	return load(ruta_res) as Texture2D
+
+
 ## El color del pack teñido de beige: beige × (1 + (lum − 0,4) × 2, entre 0,2 y 1,6) mezclado al DETALLE, todo en lineal.
 func _beige(nombre: String) -> Texture2D:
 	var ruta_res: String = TEX + nombre + "_beige.res"
@@ -170,7 +204,7 @@ func _material(m: String) -> Material:
 		ResourceSaver.save(mat, MATERIALES + m + ".tres")
 		_mats[m] = load(MATERIALES + m + ".tres")
 		return _mats[m]
-	mat.albedo_texture = _beige(r[0]) if modo in ["beige", "losa"] else load(TEX + r[0] + ".png")
+	mat.albedo_texture = _beige(r[0]) if modo == "beige" else (_losa_juntas(r[0], r[1]) if modo == "losa" else load(TEX + r[0] + ".png"))
 	mat.normal_enabled = true
 	mat.normal_texture = load(TEX + r[1] + ".png")
 	var orm: Texture2D = load(TEX + r[2] + ".png")
