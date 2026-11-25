@@ -12,7 +12,11 @@ extends Node3D
 ##    (alto total / alto de la cabeza). Usa el mecanismo que ya existe, ProporcionChibi vía `Pj3D.set_proporcion` (los valores del juego están en `Pj3D.PROPORCIONES`; el lab arranca con el de jugadora_base): no escribe nada.
 ##  · Panel de medidas del clip visto: duración, fotogramas, y los 5 huesos con el mayor salto de giro entre claves consecutivas (nuevo y fuente).
 ## No modifica ningún archivo.
-## Teclas: 1-5 cámara · Espacio pausa · V velocidad · ←/→ fotograma · ↑/↓ clip · F fuente · S esqueleto · M marcar cabeza · R ropa · T atuendo · P postura de la elfa · -/+ cabeza · H cabeza del juego · rueda zoom · arrastrar orbita
+##  · REVISIÓN UAL (25/11, Pablo: «antes me gustaría que los metieras en una sala de pruebas para revisión»): los clips de la Universal Animation Library de Quaternius
+##    (CC0; arte/ual/ual1_standard_mixamo.glb, huesos renombrados a Mixamo con tools/ual_a_mixamo.py) se traducen a la jugadora SOLO aquí, con el mismo retarget
+##    que el juego (ClipsFamilia), y salen en la lista como UAL_*; el maniquí de Quaternius se ve al lado con el clip original (F). El juego NO los carga:
+##    ClipsFamilia.FUENTES no cambia. Tecla U = siguiente clip UAL.
+## Teclas: 1-5 cámara · Espacio pausa · V velocidad · ←/→ fotograma · ↑/↓ clip · U siguiente UAL · F fuente · S esqueleto · M marcar cabeza · R ropa · T atuendo · P postura de la elfa · -/+ cabeza · H cabeza del juego · rueda zoom · arrastrar orbita
 ## Abrir: laboratorios/LabJugadora3D.tscn y F6.
 
 const ID: String = "jugadora_base"
@@ -36,6 +40,32 @@ const COLOR_RESTO: Color = Color(0.95, 0.95, 0.95)
 const COLOR_MARCA: Color = Color(1.0, 0.2, 0.9)
 const COLOR_MARCA_2: Color = Color(1.0, 0.85, 0.1)
 const NOMBRES_CAMARA: Array = ["frente", "lado", "tres_cuartos", "arriba", "juego"]
+
+## Clips de la Universal Animation Library en revisión (solo este laboratorio). Formato de ClipsFamilia.FUENTES. «referencia»: Idle (de pie, pies en el suelo).
+## Ojo: al importar, Godot quita el sufijo «_Loop» de los nombres (y los deja en bucle): Idle_Loop del GLB es «Idle» aquí.
+## Los nombres de destino no contienen ninguna clave de Pj3D.SINONIMOS (el tercer barrido de `_buscar_clip` busca por «contains»), así que no le quitan ningún rol a
+## los clips de siempre. Fuera de la revisión: Pistol_* (6), Driving_Loop y A_TPose.
+const PREFIJO_UAL: String = "UAL_"
+const FUENTE_REVISION_UAL: Dictionary = {
+	"ruta": "res://arte/ual/ual1_standard_mixamo.glb", "referencia": "Idle", "clips": {
+		# conjuro en cuatro fases (preparar · mantener en bucle · soltar · volver)
+		"UAL_Conjuro1Entrar": "Spell_Simple_Enter", "UAL_Conjuro2Mantener": "Spell_Simple_Idle",
+		"UAL_Conjuro3Soltar": "Spell_Simple_Shoot", "UAL_Conjuro4Salir": "Spell_Simple_Exit",
+		# combate
+		"UAL_GolpePecho": "Hit_Chest", "UAL_GolpeCabeza": "Hit_Head", "UAL_Muerte": "Death01", "UAL_Voltereta": "Roll",
+		"UAL_EspadaQuieta": "Sword_Idle", "UAL_EspadaTajo": "Sword_Attack", "UAL_PunoDirecto": "Punch_Jab", "UAL_PunoCruzado": "Punch_Cross",
+		# exploración y puzles
+		"UAL_Antorcha": "Idle_Torch", "UAL_AgazapadaQuieta": "Crouch_Idle", "UAL_AgazapadaAvanza": "Crouch_Fwd",
+		"UAL_Interactuar": "Interact", "UAL_CogerMesa": "PickUp_Table", "UAL_Empuje": "Push",
+		"UAL_Nado": "Swim_Fwd", "UAL_Flotar": "Swim_Idle",
+		"UAL_Salto1Inicio": "Jump_Start", "UAL_Salto2Aire": "Jump", "UAL_Salto3Caida": "Jump_Land",
+		# NPC
+		"UAL_SillaEntrar": "Sitting_Enter", "UAL_SillaQuieta": "Sitting_Idle", "UAL_SillaCharla": "Sitting_Talking", "UAL_SillaSalir": "Sitting_Exit",
+		"UAL_CharlaDePie": "Idle_Talking", "UAL_ArreglarRodillas": "Fixing_Kneeling",
+		# dudosos (andares realistas sobre una chibi) y la referencia
+		"UAL_Reposo": "Idle", "UAL_Andar": "Walk", "UAL_AndarFormal": "Walk_Formal", "UAL_Trote": "Jog_Fwd",
+		"UAL_Sprint": "Sprint", "UAL_Baile": "Dance",
+	}}
 
 var _pj: Pj3D = null
 var _sk: Skeleton3D = null
@@ -91,6 +121,7 @@ var _capa: CanvasLayer = null
 func _ready() -> void:
 	_montar_escena()
 	_montar_jugadora()
+	_poner_clips_revision()
 	_montar_fuentes()
 	_montar_clips()
 	_medir_cabeza()
@@ -164,13 +195,28 @@ func _montar_jugadora() -> void:
 		_ap.active = true
 
 
-## Los modelos de los que ClipsFamilia traduce los clips (ver FUENTES): se abren una vez y se esconden hasta que toque verlos.
+## Los clips UAL en revisión (FUENTE_REVISION_UAL), traducidos con el MISMO retarget que el juego (ClipsFamilia._traer_de, con el alineado de reposo de jugadora_base)
+## y añadidos al AnimationPlayer de la jugadora de este laboratorio. No toca la caché de ClipsFamilia: el juego no los ve.
+func _poner_clips_revision() -> void:
+	var ruta: String = String(FUENTE_REVISION_UAL["ruta"])
+	if not ResourceLoader.exists(ruta):
+		push_warning("LabJugadora3D: falta %s (tools/ual_a_mixamo.py)" % ruta)
+		return
+	var res: Dictionary = {}
+	ClipsFamilia._traer_de(FUENTE_REVISION_UAL, _pj._modelo, _sk, res, ClipsFamilia.alinear_de(ID))
+	var lib: AnimationLibrary = _ap.get_animation_library("")
+	for nombre in res.keys():
+		if not lib.has_animation(nombre):
+			lib.add_animation(nombre, res[nombre] as Animation)
+
+
+## Los modelos de los que ClipsFamilia traduce los clips (ver FUENTES): se abren una vez y se esconden hasta que toque verlos. El último es el maniquí UAL en revisión.
 func _montar_fuentes() -> void:
 	_puesto_fuente = Node3D.new()
 	_puesto_fuente.position = Vector3(SEPARACION_FUENTE, 0.0, 0.0)
 	add_child(_puesto_fuente)
 	var altura_nueva: float = _altura_esqueleto(_sk, _pj)
-	for f in (ClipsFamilia.FUENTES.get(ID, []) as Array):
+	for f in (ClipsFamilia.FUENTES.get(ID, []) as Array) + [FUENTE_REVISION_UAL]:
 		var d: Dictionary = f
 		var ruta: String = String(d.get("ruta", ""))
 		if not ResourceLoader.exists(ruta):
@@ -442,7 +488,7 @@ func _montar_interfaz() -> void:
 		f_cam.add_child(bc)
 
 	var ayuda := Label.new()
-	ayuda.text = "1-5 cámara · Espacio pausa · V velocidad · ←/→ fotograma · ↑/↓ clip · F fuente · S esqueleto · M marcas · R ropa · T atuendo · P postura de la elfa · -/+ cabeza · H cabeza del juego · rueda zoom · arrastrar orbita"
+	ayuda.text = "1-5 cámara · Espacio pausa · V velocidad · ←/→ fotograma · ↑/↓ clip · U siguiente UAL · F fuente · S esqueleto · M marcas · R ropa · T atuendo · P postura de la elfa · -/+ cabeza · H cabeza del juego · rueda zoom · arrastrar orbita"
 	ayuda.anchor_top = 1.0
 	ayuda.anchor_bottom = 1.0
 	ayuda.offset_top = -28.0
@@ -540,6 +586,15 @@ func elegir_clip_por_nombre(nombre: String) -> bool:
 			_elegir_clip(i)
 			return true
 	return false
+
+
+## El siguiente clip UAL de la lista (después del visto; vuelve al primero al acabar).
+func siguiente_ual() -> void:
+	for paso in range(1, _clips.size() + 1):
+		var i: int = wrapi(_sel + paso, 0, _clips.size())
+		if String((_clips[i] as Dictionary)["nombre"]).begins_with(PREFIJO_UAL):
+			_elegir_clip(i)
+			return
 
 
 func _elegir_clip(i: int) -> void:
@@ -753,6 +808,8 @@ func _input(ev: InputEvent) -> void:
 				_elegir_clip(_sel - 1)
 			KEY_DOWN:
 				_elegir_clip(_sel + 1)
+			KEY_U:
+				siguiente_ual()
 			KEY_LEFT:
 				poner_pausa(true)
 				_t -= 1.0 / FPS_PASO

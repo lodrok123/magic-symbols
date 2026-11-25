@@ -1,0 +1,38 @@
+MEDIDAS POR CLIP (peores saltos de giro entre claves consecutivas de un hueso, en grados: nuevo = jugadora_base tras ClipsFamilia; fuente = el clip original)
+
+UAL_AgazapadaAvanza  (2.00 s)
+  nuevo : RightUpLeg 16°@12, LeftUpLeg 16°@42, RightFoot 13°@13, LeftFoot 10°@43, LeftToeBase 7°@27
+  fuente: RightFoot 24°@30, RightUpLeg 23°@3, LeftUpLeg 16°@41, RightToeBase 13°@26, LeftFoot 10°@43
+UAL_Antorcha  (1.27 s)
+  nuevo : LeftArm 1°@7, RightLeg 1°@8, LeftForeArm 1°@7, LeftLeg 0°@8, RightUpLeg 0°@10
+  fuente: RightLeg 2°@7, LeftLeg 1°@8, LeftArm 1°@27, RightFoot 1°@22, LeftForeArm 1°@26
+UAL_Conjuro1Entrar  (0.53 s)
+  nuevo : LeftHandThumb3 116°@cierre, LeftHandPinky3 100°@cierre, LeftHandIndex3 98°@cierre, RightHandThumb3 96°@cierre, LeftHandPinky1 92°@cierre
+  fuente: LeftHandThumb3 116°@cierre, LeftHandPinky3 100°@cierre, LeftHandIndex3 98°@cierre, RightHandThumb3 96°@cierre, LeftHandPinky1 92°@cierre
+UAL_Conjuro3Soltar  (0.50 s)
+  nuevo : LeftHandPinky1 18°@0, LeftHandRing1 17°@0, LeftHandIndex1 17°@0, LeftHandMiddle1 17°@0, LeftHandThumb1 17°@0
+  fuente: LeftHandPinky1 18°@0, LeftHandRing1 17°@0, LeftHandIndex1 17°@0, LeftHandMiddle1 17°@0, LeftHandThumb1 17°@0
+UAL_EspadaTajo  (1.53 s)
+  nuevo : RightArm 56°@11, RightUpLeg 41°@9, RightFoot 29°@9, Spine2 28°@11, Hips 27°@10
+  fuente: RightArm 56°@11, RightUpLeg 41°@9, LeftToeBase 38°@1, RightFoot 29°@9, Spine2 28°@11
+UAL_GolpePecho  (0.33 s)
+  nuevo : LeftHandPinky1 16°@1, LeftHandRing1 14°@1, LeftHandIndex3 13°@1, Head 13°@cierre, LeftHandMiddle3 13°@1
+  fuente: RightHandPinky1 23°@1, RightHandIndex1 21°@1, LeftHandIndex1 21°@1, RightHandRing1 21°@1, RightHandMiddle3 19°@1
+UAL_Muerte  (2.40 s)
+  nuevo : LeftForeArm 134°@cierre, Hips 87°@cierre, RightHandThumb3 87°@cierre, LeftHandThumb3 87°@cierre, RightForeArm 85°@cierre
+  fuente: LeftForeArm 134°@cierre, Hips 87°@cierre, RightHandThumb3 87°@cierre, LeftHandThumb3 87°@cierre, RightForeArm 85°@cierre
+UAL_Nado  (1.33 s)
+  nuevo : LeftArm 18°@7, RightArm 17°@6, LeftLeg 16°@39, RightLeg 16°@39, RightHand 15°@8
+  fuente: LeftForeArm 19°@30, LeftArm 18°@7, RightArm 17°@6, RightHand 17°@34, LeftLeg 17°@22
+UAL_Salto1Inicio  (1.33 s)
+  nuevo : RightHandThumb3 96°@cierre, RightFoot 90°@cierre, LeftHandThumb3 87°@cierre, RightLeg 87°@cierre, RightHandIndex1 76°@cierre
+  fuente: RightHandThumb3 96°@cierre, RightFoot 90°@cierre, LeftHandThumb3 87°@cierre, RightLeg 87°@cierre, RightHandIndex1 76°@cierre
+UAL_SillaEntrar  (1.30 s)
+  nuevo : RightUpLeg 98°@cierre, RightLeg 83°@cierre, LeftHandPinky1 81°@cierre, RightHandPinky1 80°@cierre, RightHandRing1 78°@cierre
+  fuente: RightUpLeg 98°@cierre, RightLeg 83°@cierre, LeftHandPinky1 81°@cierre, RightHandPinky1 80°@cierre, RightHandRing1 78°@cierre
+UAL_SillaQuieta  (1.67 s)
+  nuevo : LeftHandIndex3 1°@4, LeftHand 0°@39, Head 0°@11, LeftHandIndex1 0°@5, LeftArm 0°@37
+  fuente: LeftHandIndex3 2°@4, RightHandRing1 1°@4, LeftArm 1°@7, Spine2 1°@8, LeftHand 1°@11
+UAL_Voltereta  (1.47 s)
+  nuevo : RightLeg 104°@cierre, LeftLeg 87°@cierre, LeftUpLeg 85°@cierre, LeftHandIndex1 78°@cierre, LeftHandThumb3 74°@cierre
+  fuente: RightLeg 104°@cierre, LeftLeg 87°@cierre, LeftUpLeg 85°@cierre, LeftHandIndex1 78°@cierre, LeftHandThumb3 74°@cierre
