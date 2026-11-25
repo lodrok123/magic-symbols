@@ -20,6 +20,16 @@ CARPETA = ARGS[0]
 ## Sin --hornear: colores planos y piezas sueltas, como la primera prueba de rendimiento.
 HORNEAR = "--hornear" in ARGS
 SOLO = ARGS[ARGS.index("--solo") + 1].split(",") if "--solo" in ARGS else []    ## para probar con unos pocos
+## --bajo (25/11/2026, Pablo: «optimízalos»): los CONTENEDORES (70-230 mil triángulos) salen DIEZMADOS a los triángulos de OBJETIVO_BAJO,
+## y el color y las normales se hornean DESDE la malla original (alta → baja, «selected to active»): las vetas, los clavos y los biseles
+## quedan en el mapa de normales aunque la malla ya no los tenga.
+BAJO = "--bajo" in ARGS
+OBJETIVO_BAJO = {"barril": 4000, "barril_bajo": 4000, "arcon": 6000, "cajon_abierto": 6000, "caja_cerrada": 8000, "caja_abierta": 8000,
+                 "troncos": 4000}
+JAULA = 0.03            ## m que la malla baja «sale» hacia fuera para buscar la alta al hornear (cage extrusion)
+JAULA_OBJ = {"barril_bajo": 0.08}   ## por objeto (25/11: con 0,03 el barril bajo salía oscuro y con 0,01 con manchas de los aros)
+if "--jaula" in ARGS:
+    JAULA = float(ARGS[ARGS.index("--jaula") + 1])
 os.makedirs(CARPETA, exist_ok=True)
 D = bpy.data
 
@@ -139,8 +149,27 @@ def _resolucion(tam):
     return 1024 if tam > 1.0 else (512 if tam > 0.4 else 256)
 
 
-def _hornear(o, nombre, tam):
-    """UV nuevas, color y normales horneados y un material único con las dos texturas."""
+def _diezmada(alto, objetivo):
+    """Copia de `alto` con un Decimate (colapso) aplicado hasta unos `objetivo` triángulos."""
+    bajo = alto.copy()
+    bajo.data = alto.data.copy()
+    bajo.name = alto.name + "_bajo"
+    TRABAJO.objects.link(bajo)
+    bajo.data.calc_loop_triangles()
+    ratio = min(1.0, objetivo / max(1, len(bajo.data.loop_triangles)))
+    mod = bajo.modifiers.new("d", "DECIMATE")
+    mod.decimate_type = "COLLAPSE"
+    mod.ratio = ratio
+    mod.use_collapse_triangulate = True
+    bpy.ops.object.select_all(action="DESELECT")
+    bajo.select_set(True)
+    bpy.context.view_layer.objects.active = bajo
+    bpy.ops.object.modifier_apply(modifier="d")
+    return bajo
+
+
+def _hornear(o, nombre, tam, alto=None):
+    """UV nuevas, color y normales horneados y un material único con las dos texturas. Con `alto`, se hornea desde esa malla."""
     me = o.data
     if len(me.uv_layers) == 0:
         me.uv_layers.new(name="UVMap")
@@ -166,10 +195,20 @@ def _hornear(o, nombre, tam):
         n.image = col
         m.node_tree.nodes.active = n
         nodos.append((m.node_tree, n))
+    sc = bpy.context.scene
+    if alto is not None:
+        # alta → baja: la malla original (seleccionada) se proyecta sobre la diezmada (activa)
+        alto.select_set(True)
+        o.select_set(True)
+        bpy.context.view_layer.objects.active = o
+        sc.render.bake.use_selected_to_active = True
+        sc.render.bake.cage_extrusion = JAULA_OBJ.get(nombre, JAULA)
+        sc.render.bake.max_ray_distance = 0.0
     bpy.ops.object.bake(type="DIFFUSE", pass_filter={"COLOR"}, margin=8, use_clear=True)
     for nt, n in nodos:
         n.image = nor
     bpy.ops.object.bake(type="NORMAL", normal_space="TANGENT", margin=8, use_clear=True)
+    sc.render.bake.use_selected_to_active = False
     for nt, n in nodos:
         nt.nodes.remove(n)
     col.pack()
@@ -254,11 +293,22 @@ for nombre, (cat, clave) in OBJETOS.items():
                     _arreglar_vegetacion(m)
                 mats.add(m.name)
     res = 0
+    tris_pack = tris
     if HORNEAR and cat != "vegetacion":
         bpy.context.view_layer.update()
         unido = _unir(nuevos)
         unido.name = "sh_" + nombre
-        res = _hornear(unido, nombre, max(mx.x - mn.x, mx.y - mn.y, mx.z - mn.z))
+        tam = max(mx.x - mn.x, mx.y - mn.y, mx.z - mn.z)
+        if BAJO and nombre in OBJETIVO_BAJO:
+            bajo = _diezmada(unido, OBJETIVO_BAJO[nombre])
+            res = _hornear(bajo, nombre, tam, alto=unido)
+            D.objects.remove(unido)
+            bajo.name = "sh_" + nombre
+            unido = bajo
+            unido.data.calc_loop_triangles()
+            tris = len(unido.data.loop_triangles)
+        else:
+            res = _hornear(unido, nombre, tam)
         nuevos = [unido]
         mats = {"sh_" + nombre}
     bpy.ops.object.select_all(action="DESELECT")
@@ -270,12 +320,18 @@ for nombre, (cat, clave) in OBJETOS.items():
                               export_animations=False, export_lights=False, export_cameras=False)
     d = mx - mn
     resumen.append({"nombre": nombre, "categoria": cat, "pack": clave, "piezas": len(nuevos), "piezas_pack": len(objs), "triangulos": tris,
-                    "materiales": len(mats), "textura": res, "x": round(d.x, 2), "y": round(d.y, 2), "z": round(d.z, 2),
+                    "triangulos_pack": tris_pack, "materiales": len(mats), "textura": res, "x": round(d.x, 2), "y": round(d.y, 2), "z": round(d.z, 2),
                     "kb": round(os.path.getsize(ruta) / 1024)})
     for c in nuevos:
         D.objects.remove(c)
     print("ATREZO", nombre, tris, len(nuevos))
 
-with open(os.path.join(CARPETA, "atrezo_sh.json"), "w", encoding="utf-8") as f:
+# con --solo se conservan las filas de los demás objetos que ya hubiera
+ruta_json = os.path.join(CARPETA, "atrezo_sh.json")
+if SOLO and os.path.exists(ruta_json):
+    previo = json.load(open(ruta_json, encoding="utf-8"))
+    nuevos_por_nombre = {r["nombre"]: r for r in resumen}
+    resumen = [nuevos_por_nombre.pop(r["nombre"], r) for r in previo] + list(nuevos_por_nombre.values())
+with open(ruta_json, "w", encoding="utf-8") as f:
     json.dump(resumen, f, ensure_ascii=False, indent=1)
 print("HECHO", len(resumen))

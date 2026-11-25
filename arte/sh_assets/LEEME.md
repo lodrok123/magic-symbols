@@ -24,7 +24,7 @@ Comparativa medida (25/11/2026, RTX 3070): `docs/capturas/casas_sh/comparativa_p
 "C:\Program Files\Blender Foundation\Blender 5.2\blender.exe" -b "C:\Users\pablo\Downloads\SH assets.blend" --python E:\magic-symbols\tools\montar_casa_sh.py -- E:\magic-symbols\arte\sh_assets\casa_sh_sin_optimizar.glb
 "C:\Program Files\Blender Foundation\Blender 5.2\blender.exe" -b "C:\Users\pablo\Downloads\SH assets.blend" --python E:\magic-symbols\tools\montar_casa_sh.py -- E:\magic-symbols\arte\sh_assets\casa_sh_d50.glb --diezmar 0.5
 "C:\Program Files\Blender Foundation\Blender 5.2\blender.exe" -b "C:\Users\pablo\Downloads\SH assets.blend" --python E:\magic-symbols\tools\montar_casa_sh.py -- E:\magic-symbols\arte\sh_assets\casa_sh_d50_unida.glb --diezmar 0.5 --unir
-"C:\Program Files\Blender Foundation\Blender 5.2\blender.exe" -b "C:\Users\pablo\Downloads\SH assets.blend" --python E:\magic-symbols\tools\exportar_atrezo_sh.py -- E:\magic-symbols\arte\sh_assets\atrezo --hornear
+"C:\Program Files\Blender Foundation\Blender 5.2\blender.exe" -b "C:\Users\pablo\Downloads\SH assets.blend" --python E:\magic-symbols\tools\exportar_atrezo_sh.py -- E:\magic-symbols\arte\sh_assets\atrezo --hornear --bajo
 E:\magic-symbols\tools\Godot_v4.7.2-stable_win64.exe --headless --path E:\magic-symbols --import
 ```
 

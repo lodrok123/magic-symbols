@@ -65,6 +65,9 @@ func _ready() -> void:
 	_ir("contenedor")
 	if "--medir" in OS.get_cmdline_user_args():
 		_medir.call_deferred()
+	for a in OS.get_cmdline_user_args():
+		if a.begins_with("contenedores="):
+			_medir_contenedores.call_deferred(a.trim_prefix("contenedores="))
 
 
 func _cargar_datos() -> bool:
@@ -334,6 +337,45 @@ func _medir() -> void:
 		f.store_string("\n".join(L) + "\n")
 		f.close()
 	print("informe: " + ProjectSettings.globalize_path(INFORME + "informe.txt"))
+	get_tree().quit()
+
+
+## Solo los 7 contenedores (25/11, para comparar antes y después de optimizarlos): tiempo de carga de cada .glb sin caché y 100 copias a la
+## vista, con y sin LOD. `-- contenedores=<nombre>` escribe docs/capturas/atrezo_sh/contenedores_<nombre>.txt y se cierra.
+func _medir_contenedores(sufijo: String) -> void:
+	_midiendo = true
+	_catalogo.visible = false
+	DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path(INFORME))
+	DisplayServer.window_set_vsync_mode(DisplayServer.VSYNC_DISABLED)
+	Engine.max_fps = 0
+	var vp: Viewport = get_viewport()
+	var L: PackedStringArray = []
+	L.append("CONTENEDORES SH (%s) · %s · %s · ventana %s" % [sufijo, Time.get_datetime_string_from_system(), RenderingServer.get_video_adapter_name(),
+		str(vp.get_visible_rect().size)])
+	L.append("objeto | tris 1 copia | carga ms | KB | LOD | FPS medio | ms medio | ms p95 | llamadas | triángulos dibujados")
+	_esparcir(0)
+	_zoom = ZOOM_JUEGO
+	await _esperar(1.5)
+	var b: Array = await _tomar(2.5)
+	L.append("BASE (solo suelo) | - | - | - | - | %.1f | %.2f | %.2f | %d | %d" % [b[0], b[1], b[2], b[3], b[4]])
+	for d in _datos:
+		if d["categoria"] != "contenedor":
+			continue
+		var t0 := Time.get_ticks_usec()
+		ResourceLoader.load(CARPETA + "sh_%s.glb" % d["nombre"], "", ResourceLoader.CACHE_MODE_IGNORE)
+		var carga := float(Time.get_ticks_usec() - t0) / 1000.0
+		_esparcir(COPIAS, d["nombre"])
+		for lod in [true, false]:
+			vp.mesh_lod_threshold = 1.0 if lod else 0.0
+			await _esperar(0.8)
+			var r: Array = await _tomar(2.5)
+			L.append("%s | %d | %.0f | %d | %s | %.1f | %.2f | %.2f | %d | %d" % [d["nombre"], int(d["triangulos"]), carga, int(d["kb"]),
+				"sí" if lod else "no", r[0], r[1], r[2], r[3], r[4]])
+			print(L[-1])
+	var f := FileAccess.open(INFORME + "contenedores_%s.txt" % sufijo, FileAccess.WRITE)
+	if f != null:
+		f.store_string("\n".join(L) + "\n")
+		f.close()
 	get_tree().quit()
 
 
