@@ -99,6 +99,8 @@ Cómo estaban nuestras bolas con la cámara del juego (`docs/capturas/estela_mun
 
 **Revisión de agua y tierra** (25/11, Pablo: «mira el resto, agua y piedra»): el agua dejaba nubes blancas de algodón (el agua en el aire no hace espuma) y la tierra una cadena de polvo tan gruesa como la roca, encima de los terrones que ya trae TierraToy. Ahora el agua deja un rocío de gotas que caen en arco con un vaho azulado pequeño junto a la bola, y la tierra un polvo fino y espaciado con más granitos (`agua_cerca_antes/despues.png`, `tierra_cerca_antes/despues.png`; arriba de lado, abajo con la cámara del juego; izquierda sin estela, derecha con ella).
 
+**Flecha de tierra aprobada; bola de agua afinada** (25/11, Pablo: «flecha de tierra aprobada, afina agua»). En vuelo la bola de agua se hace GOTA: cabeza redonda y la mitad de atrás afilada y alargada en cola (uniform `gota` de `agua_esfera` y `agua_esfera_atras`, que movía `AguaToy._forma_vuelo`), tiembla un poco como un líquido y las cintas que la envolvían («balón de playa») bajan a opacidad 0,26. Quieta y en la carga sigue siendo la esfera de siempre (`agua_gota_vuelo.png`).
+
 ## Cómo verlo
 
 `LabVfxComparativa3D` → **Ctrl+4** pone la comparativa (izquierda lo de ahora, derecha lo traducido, se repite solo) · **Ctrl+5** par siguiente (Mayús: anterior) · **Ctrl+6** vista juego / cerca / solo traducido · **Ctrl+7** cámara lenta ×0,25 · **Ctrl+4** sale.

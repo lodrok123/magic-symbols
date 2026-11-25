@@ -13,12 +13,19 @@ uniform float rim_pot = 2.1;             // dureza del borde claro (fresnel)
 uniform float opacidad = 0.56;           // opacidad del centro
 uniform float nucleo_k = 0.62;           // cuánto más claro es el núcleo
 uniform float semilla = 0.0;
+uniform float gota : hint_range(0.0, 1.0) = 0.0;     // 25/11/2026: en vuelo (AguaToy._forma_vuelo) la mitad de ATRÁS (+Z del objeto) se afila y se alarga en cola de gota; 0 = esfera
 uniform float espuma_frente : hint_range(0.0, 1.0) = 0.0;   // en vuelo: espuma blanca suave en el borde delantero (-Z del objeto)
 
 varying vec3 p_obj;
 
 void vertex() {
 	p_obj = VERTEX / radio;
+	if (gota > 0.0 && VERTEX.z > 0.0) {
+		float w = clamp(VERTEX.z / radio, 0.0, 1.0);
+		VERTEX.xy *= 1.0 - gota * 0.78 * w * w;
+		VERTEX.z *= 1.0 + gota * 0.7;
+		NORMAL = normalize(NORMAL + vec3(0.0, 0.0, gota * 0.9 * w * length(NORMAL.xy)));      // la cola mira más hacia atrás: el borde claro sigue a la forma
+	}
 }
 
 void fragment() {

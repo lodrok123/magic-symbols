@@ -51,6 +51,11 @@ const GIRO_QUIETA: float = 1.5          ## rad/s de las cintas con la bola quiet
 const GIRO_VUELO: float = 6.5           ## ... y en vuelo
 const INCLINACION_QUIETA: float = 24.0  ## ° que se inclina el eje de las cintas con la bola quieta (en vuelo van sobre el eje del vuelo)
 const N_CINTAS: int = 2                 ## cintas finas que envuelven la bola sin taparla (cobertura de la esfera < ~30 %)
+const CINTAS_OPACIDAD: float = 0.66     ## la de siempre (quieta y en la carga)
+const CINTAS_OPACIDAD_VUELO: float = 0.26   ## 25/11: en vuelo, tenues (la bola dejaba de parecer agua: «balón de playa»)
+const GOTA_VUELO: Vector2 = Vector2(0.94, 1.0)   ## 25/11: en vuelo, ancho y alto × 0,94 (la cola la afila el shader con `gota`); (x, z) de la escala
+const TIEMBLA_VUELO: float = 0.045      ## 25/11: temblor de líquido en vuelo (fracción del tamaño)
+const T_FORMA_VUELO: float = 0.18       ## s que tarda en pasar de bola a gota al soltarla (y de vuelta)
 const N_ESTELA: int = 2                 ## cintas de la estela en vuelo
 const GOTAS_RESERVA_HAZ: int = 72       ## huecos de la reserva de gotas del haz
 const T_COLA: float = 0.16             ## s que tarda en salir la estela al empezar a volar
@@ -159,6 +164,8 @@ var _inclin: float = INCLINACION_QUIETA
 var _cola_f: float = 0.0
 var _cintas: Node3D = null
 var _inclinable: Node3D = null
+var _esfera: MeshInstance3D = null          ## BOLA: la esfera (en vuelo se hace gota, _forma_vuelo)
+var _f_vuelo: float = 0.0                   ## 0 redonda … 1 gota de vuelo
 var _estela: Node3D = null
 var _marcador: bool = false
 var _haz_cintas: Node3D = null          ## cintas enrolladas en el haz (giran despacio alrededor de su eje)
@@ -768,6 +775,8 @@ func _bola(c: Node3D) -> void:
 	mi.material_override = _mat_esfera(r, sem, 0)
 	mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	c.add_child(mi)
+	_esfera = mi
+	_f_vuelo = 0.0
 	# cintas en espiral alrededor de la bola (eje Z: en vuelo es el del vuelo; quieta se inclina)
 	_inclinable = Node3D.new()
 	_inclinable.name = "Inclinable"
@@ -784,7 +793,7 @@ func _bola(c: Node3D) -> void:
 		var m: MeshInstance3D = MeshInstance3D.new()
 		m.name = "Env%d" % k
 		m.mesh = malla
-		m.material_override = AguaMallas.material(AguaMallas.SH_CINTA, {"fase": f * 2.3, "repeticion": 1.5, "opacidad": 0.66, "suave_prof": 0.15, "extremos": 0.22, "punta": 0.22}, 1)
+		m.material_override = AguaMallas.material(AguaMallas.SH_CINTA, {"fase": f * 2.3, "repeticion": 1.5, "opacidad": CINTAS_OPACIDAD, "suave_prof": 0.15, "extremos": 0.22, "punta": 0.22}, 1)
 		m.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 		_cintas.add_child(m)
 	# estela (solo en vuelo): 2 cintas que se ARRASTRAN detrás, más estrechas que la cabeza, con ondulación irregular (no giran con la cinta envolvente: no es una hélice) y se deshacen
@@ -1672,6 +1681,7 @@ func _avanzar_cintas(delta: float) -> void:
 	if _inclinable != null:
 		_inclinable.rotation_degrees = Vector3(_inclin, 0.0, 0.0)
 	_cintas.rotate_object_local(Vector3(0, 0, 1), (GIRO_VUELO if vuela else GIRO_QUIETA) * velocidad * delta)
+	_forma_vuelo(delta, vuela)
 	if _estela != null and _estela.visible:
 		_cola_f = minf(_cola_f + delta / T_COLA, 1.0)
 		var f: float = smoothstep(0.0, 1.0, _cola_f)
@@ -1679,6 +1689,36 @@ func _avanzar_cintas(delta: float) -> void:
 		# se arrastra con un balanceo lento e irregular (dos senos que no encajan): nunca es una hélice regular
 		var tt: float = Time.get_ticks_msec() * 0.001 * velocidad
 		_estela.rotation = Vector3(0.12 * sin(tt * 3.1) * sin(tt * 1.3), 0.14 * sin(tt * 2.3 + 1.0), 0.9 * sin(tt * 1.7) + 0.6 * sin(tt * 0.9 + 2.0))
+
+
+## FORMA EN VUELO (25/11/2026, Pablo: «afina agua»; se veía como una canica o un balón de playa que no se deforma, mientras el fuego se estira): en vuelo la esfera se hace GOTA
+## (más larga hacia atrás, +Z, y algo más estrecha: GOTA_VUELO, con el centro un poco atrás para que la cabeza siga en su sitio), TIEMBLA como un líquido (dos senos que no encajan,
+## TIEMBLA_VUELO) y las cintas que la envuelven se vuelven tenues (CINTAS_OPACIDAD_VUELO): en vuelo manda el agua, no la jaula. Quieta (y en la carga) todo vuelve a lo de siempre.
+func _forma_vuelo(delta: float, vuela: bool) -> void:
+	if _esfera == null or not is_instance_valid(_esfera):
+		return
+	_f_vuelo = move_toward(_f_vuelo, 1.0 if vuela else 0.0, delta / T_FORMA_VUELO)
+	var f: float = smoothstep(0.0, 1.0, _f_vuelo)
+	var r: float = maxf(semieje_x, semieje_z)
+	var tt: float = Time.get_ticks_msec() * 0.001 * velocidad
+	var tiembla: float = TIEMBLA_VUELO * f * (sin(tt * 13.0) * 0.6 + sin(tt * 21.0 + 1.3) * 0.4)
+	_esfera.scale = Vector3(lerpf(1.0, GOTA_VUELO.x, f) * (1.0 + tiembla), lerpf(1.0, GOTA_VUELO.x, f) * (1.0 - tiembla), lerpf(1.0, GOTA_VUELO.y, f) * (1.0 - 0.5 * tiembla))
+	_esfera.position = Vector3.ZERO
+	# la cola de gota la hace el shader (uniform `gota`, en las dos caras): la cabeza sigue redonda y en su sitio
+	var ma: ShaderMaterial = _esfera.material_override as ShaderMaterial
+	if ma != null:
+		ma.set_shader_parameter("gota", f)
+		if ma.next_pass is ShaderMaterial:
+			(ma.next_pass as ShaderMaterial).set_shader_parameter("gota", f)
+	for m in _cintas.get_children():
+		var mc: ShaderMaterial = (m as MeshInstance3D).material_override as ShaderMaterial
+		if mc != null:
+			mc.set_shader_parameter("opacidad", lerpf(CINTAS_OPACIDAD, CINTAS_OPACIDAD_VUELO, f))
+
+
+## Cuánto va de gota la esfera ahora (0 redonda … 1 gota de vuelo): para las pruebas.
+func forma_vuelo() -> float:
+	return _f_vuelo
 
 
 ## Gotitas que se desprenden de la bola y caen. En vuelo salen por detrás (heredan algo de la velocidad); quieta, alguna gota se desprende por abajo.
