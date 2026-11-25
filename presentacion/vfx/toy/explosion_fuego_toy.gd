@@ -55,9 +55,10 @@ const NUCLEO: Dictionary = {"id": "nucleo_explosion", "capas": [
 		"aparece": 0.03, "se_va": 0.3},
 	{"pieza": "chispas", "nombre": "trazos", "n": 22, "t0": 0.02, "emision": 0.05, "vida": [0.3, 0.55], "cono": [-0.5, 1.0], "vel": [7.0, 12.0], "roce": 3.0, "g": 0.3,
 		"largo": [0.6, 1.1], "ancho": [0.06, 0.09], "h0": 0.95, "r0": [0.0, 0.2], "brasas": 0.25, "brillo": 1.9},
-	# (25/11, «aro nítido + distorsión») onda de choque EN EL AIRE desde el foco: un aro de borde duro que se abre deprisa y adelgaza, y el aire que se deforma detrás
-	{"pieza": "aro", "nombre": "onda_aire", "t0": 0.0, "vida": 0.28, "tam": [0.8, 5.4], "grosor": [0.45, 0.03], "altura": 2.4, "tono": 0.25, "tono_filo": 0.6, "brillo": 1.0,
-		"se_va": 0.14, "prioridad": 4},
+	# (25/11, «aro nítido + distorsión») onda de choque: un aro de borde duro que se abre deprisa y adelgaza, y el aire que se deforma desde el foco
+	# (Pablo, 25/11: «tumbarla en el suelo»; de pie, el suelo la cortaba y quedaba una cúpula) va TUMBADA, por delante de la onda del decal: llega al radio en 0,28 s (la del decal en 0,38)
+	{"pieza": "aro", "nombre": "onda_suelo", "plano": true, "t0": 0.0, "vida": 0.28, "tam": [0.8, 5.4], "grosor": [0.45, 0.03], "tono": 0.25, "tono_filo": 0.6, "brillo": 1.0,
+		"se_va": 0.14, "prioridad": 0},                 # antes que la bola y las bocanadas: el fuego queda encima
 	{"pieza": "distorsion", "nombre": "aire", "t0": 0.02, "vida": 0.45, "tam": [1.2, 6.5], "fuerza": 0.03, "ancho": 0.18, "altura": 2.4, "se_va": 0.3},
 ]}
 const ImpactoCapasToy = preload("res://presentacion/vfx/toy/impacto_capas_toy.gd")

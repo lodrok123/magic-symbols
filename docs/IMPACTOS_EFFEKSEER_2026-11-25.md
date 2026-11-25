@@ -56,7 +56,7 @@ Dónde se usan:
 | Impacto | Qué lleva |
 |---|---|
 | Golpe de fuego (estilo C) | El aro de choque de hit01 y su distorsión, además del halo y la estrella. |
-| Explosión del barril | Una onda de choque en el aire desde el foco: un aro que se abre hasta el radio en 0,28 s, más el aire que se deforma detrás. |
+| Explosión del barril | Un aro de choque TUMBADO en el suelo (Pablo: «tumbarla en el suelo»; de pie, el suelo lo cortaba en cúpula), que llega al radio en 0,28 s, por delante de la onda blanda (0,38 s), y el aire que se deforma desde el foco. |
 | ToonHit (receta del lab) | HitBase, HitSub y Ring ya son arcos y aros nítidos tumbados en la pared: ahora sí se parece al original. |
 
 Hojas: `docs/capturas/impactos_effekseer/aro_distorsion/`. Ojo: la distorsión solo se nota sobre fondo con dibujo. En el suelo liso del lab casi no se ve; en el borde de la pared, sí.
