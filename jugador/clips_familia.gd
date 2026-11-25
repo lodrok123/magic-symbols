@@ -98,6 +98,8 @@ const DEDOS_ALINEAR: Array = [
 	"HandThumb1", "HandThumb2", "HandThumb3", "HandIndex1", "HandIndex2", "HandIndex3", "HandMiddle1", "HandMiddle2", "HandMiddle3",
 	"HandRing1", "HandRing2", "HandRing3", "HandPinky1", "HandPinky2", "HandPinky3"]
 const FUENTE_CLIPS_UAL: Dictionary = {
+	# «espejo» (25/11): en el original el brazo que lanza es el IZQUIERDO (el que lleva el libro): reflejados, lanza con la derecha y el libro va en la izquierda.
+	"espejo": ["Spell_Simple_Enter", "Spell_Simple_Idle", "Spell_Simple_Shoot", "Spell_Simple_Exit"],
 	"ruta": RUTA_CLIPS_UAL, "referencia": "Idle", "alinear_extra": DEDOS_ALINEAR, "clips": {
 		"UAL_Conjuro1Entrar": "Spell_Simple_Enter", "UAL_Conjuro2Mantener": "Spell_Simple_Idle",
 		"UAL_Conjuro3Soltar": "Spell_Simple_Shoot", "UAL_Conjuro4Salir": "Spell_Simple_Exit",
@@ -419,12 +421,92 @@ static func _traer_de(f: Dictionary, modelo_d: Node3D, sk_d: Skeleton3D, res: Di
 		var traducido: Animation = (c.traducir(ap_s.get_animation(origen), base) as Array)[0]
 		if (f.get("centrar", []) as Array).has(origen):
 			_centrar_cadera(traducido, sk_d)
+		if (f.get("espejo", []) as Array).has(origen):
+			espejar(traducido, sk_d)
 		res[destino] = traducido
 	fuente.free()
 
 
 ## Quita al clip `an` el desplazamiento medio de la cadera en el plano del suelo, para que quede centrado sobre el personaje (los clips «en el sitio» de Mixamo traen la
 ## postura puesta a un lado: Combat_Stance de Gribble desplaza la cadera 0,34 de su alto de cadera). La altura no se toca.
+## ESPEJO (25/11, Pablo: «cambia el lanzamiento de la mano izquierda a la derecha, por el libro en la otra mano»): refleja el clip `an` (ya traducido a `sk_d`) de izquierda a
+## derecha. Se copia el MOVIMIENTO, como en el retarget: lo que gira cada hueso respecto a su reposo, en el espacio del esqueleto (`D = G · G_reposo⁻¹`), pasa a su hueso
+## gemelo (Left ↔ Right) reflejado en el plano de simetría del cuerpo, y se vuelve a aplicar sobre el reposo de ese gemelo. Vale porque el reposo de la jugadora es simétrico
+## (el de Mixamo). El eje lateral se mide del reposo (de la cadera derecha a la izquierda). La cadera se refleja también en posición. Todas las pistas de giro han de
+## tener las claves en los mismos instantes (así salen de `_Ctx.traducir`).
+static func espejar(an: Animation, sk_d: Skeleton3D) -> void:
+	var n: int = sk_d.get_bone_count()
+	var li: int = sk_d.find_bone("mixamorig_LeftUpLeg")
+	var ri: int = sk_d.find_bone("mixamorig_RightUpLeg")
+	if li < 0 or ri < 0:
+		return
+	var lat: Vector3 = (sk_d.get_bone_global_rest(li).origin - sk_d.get_bone_global_rest(ri).origin).normalized()
+	var gemelo: Array = []
+	var pista: Array = []                 # hueso -> pista de giro (-1 = sin pista)
+	gemelo.resize(n)
+	pista.resize(n)
+	pista.fill(-1)
+	var g_rest: Array = []
+	for i in range(n):
+		var nom: String = sk_d.get_bone_name(i)
+		var otro: String = nom.replace("Left", "§").replace("Right", "Left").replace("§", "Right")
+		var j: int = sk_d.find_bone(otro)
+		gemelo[i] = j if j >= 0 else i
+		g_rest.append(_Ctx._quat(sk_d.get_bone_global_rest(i).basis))
+	var t_cad: int = -1
+	var cadera: int = sk_d.find_bone("mixamorig_Hips")
+	for t in range(an.get_track_count()):
+		var b: int = sk_d.find_bone(String(an.track_get_path(t)).get_slice(":", 1))
+		if b < 0:
+			continue
+		if an.track_get_type(t) == Animation.TYPE_ROTATION_3D:
+			pista[b] = t
+		elif an.track_get_type(t) == Animation.TYPE_POSITION_3D and b == cadera:
+			t_cad = t
+	var orden: Array = _Ctx._orden(sk_d)
+	var ref: int = -1
+	for i in range(n):
+		if int(pista[i]) >= 0:
+			ref = int(pista[i])
+			break
+	if ref < 0:
+		return
+	var reflejar := func(q: Quaternion) -> Quaternion:
+		var u := Vector3(q.x, q.y, q.z)
+		var r: Vector3 = -(u - 2.0 * u.dot(lat) * lat)
+		return Quaternion(r.x, r.y, r.z, q.w)
+	for k in range(an.track_get_key_count(ref)):
+		var g: Array = []
+		g.resize(n)
+		for i in orden:
+			var p: int = sk_d.get_bone_parent(i)
+			var loc: Quaternion = an.track_get_key_value(int(pista[i]), k) if int(pista[i]) >= 0 else _Ctx._quat(sk_d.get_bone_rest(i).basis)
+			g[i] = loc if p < 0 else (g[p] as Quaternion) * loc
+		var g2: Array = []
+		g2.resize(n)
+		for i in orden:
+			var j: int = int(gemelo[i])
+			if int(pista[i]) < 0 or int(pista[j]) < 0:
+				# sin pista (lo que el clip no anima: la capa, las puntas): sigue a su padre en su reposo, como lo reproducirá el juego
+				var pr: int = sk_d.get_bone_parent(i)
+				var rl: Quaternion = _Ctx._quat(sk_d.get_bone_rest(i).basis)
+				g2[i] = rl if pr < 0 else (g2[pr] as Quaternion) * rl
+				continue
+			var d: Quaternion = (g[j] as Quaternion) * (g_rest[j] as Quaternion).inverse()
+			g2[i] = (reflejar.call(d) as Quaternion) * (g_rest[i] as Quaternion)
+		for i in orden:
+			if int(pista[i]) < 0:
+				continue
+			var p2: int = sk_d.get_bone_parent(i)
+			var loc2: Quaternion = (g2[i] as Quaternion) if p2 < 0 else (g2[p2] as Quaternion).inverse() * (g2[i] as Quaternion)
+			an.track_set_key_value(int(pista[i]), k, loc2.normalized())
+	if t_cad >= 0:
+		var reposo: Vector3 = sk_d.get_bone_rest(cadera).origin
+		for k in range(an.track_get_key_count(t_cad)):
+			var v: Vector3 = an.track_get_key_value(t_cad, k) - reposo
+			an.track_set_key_value(t_cad, k, reposo + v - 2.0 * v.dot(lat) * lat)
+
+
 static func _centrar_cadera(an: Animation, sk_d: Skeleton3D) -> void:
 	var cadera: int = sk_d.find_bone("mixamorig_Hips")
 	if cadera < 0:

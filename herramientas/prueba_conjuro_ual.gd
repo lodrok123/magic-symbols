@@ -4,6 +4,7 @@ extends SceneTree
 ##  · Lanzador3D.usa_conjuro_ual: sí con fuego + flecha; no con fuego sin flecha ni con agua + flecha;
 ##  · apuntar: entrar (una vez) y, al acabar, mantener en bucle (sigue ahí pasado su largo); llamar otra vez no la reinicia;
 ##  · soltar: soltar y luego salir; `soltar_lanzar` vuelve a idle;
+##  · lanza con la mano DERECHA (los clips van reflejados, ClipsFamilia «espejo»): manteniendo, la derecha va alta y la izquierda (la del libro) baja;
 ##  · los dedos van alineados: en mantener, las falanges del índice no se doblan más de 60° (sin alinear pasaban de 100°).
 ## Sin ventana:
 ##   godot --headless --path . --script res://herramientas/prueba_conjuro_ual.gd
@@ -53,6 +54,11 @@ func _correr() -> void:
 	_ok(pj.animacion_actual == "cast_conjuro_mantener", "mantener sigue en bucle pasado su largo (%s)" % pj.animacion_actual)
 	pj.apuntar_conjuro()
 	_ok(pj.animacion_actual == "cast_conjuro_mantener", "apuntar otra vez no reinicia (%s)" % pj.animacion_actual)
+	# 25/11 (espejo): lanza con la DERECHA (la izquierda lleva el libro): manteniendo, la mano derecha va alta y al frente y la izquierda baja.
+	var md: Vector3 = pj.posicion_mano("derecha")
+	var mi: Vector3 = pj.posicion_mano("izquierda")
+	var alto: float = pj.alto_modelo() * pj.scale.y
+	_ok(md.y - mi.y > 0.15 * alto, "manteniendo, la mano derecha va más alta que la izquierda (%.2f u frente a %.2f; alto %.2f)" % [md.y - pj.global_position.y, mi.y - pj.global_position.y, alto])
 	var dedo: float = _flexion_indice(pj)
 	_ok(dedo < 60.0, "dedos alineados en mantener: el índice se dobla %.0f° (máx. 60)" % dedo)
 

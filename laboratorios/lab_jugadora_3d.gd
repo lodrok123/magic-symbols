@@ -53,6 +53,7 @@ const PREFIJO_UAL: String = "UAL_"
 ## (dedos casi rectos) no es el de la jugadora (cerrados por MANO_RELAJADA): esa diferencia pasaba entera y los dedos se metían en la palma. Se alinea también el
 ## tramo de cada falange (ClipsFamilia.DEDOS_ALINEAR, «alinear_extra»), solo para estos clips. false = como antes (para comparar; los cuatro del conjuro ya los
 ## da el juego con ClipsFamilia.FUENTE_CLIPS_UAL y van siempre alineados).
+## Ojo (25/11): los cuatro UAL_Conjuro* que da el juego van REFLEJADOS (lanza con la derecha; ClipsFamilia «espejo»); el maniquí de al lado los enseña sin reflejar.
 static var alinear_dedos_ual: bool = true
 const FUENTE_REVISION_UAL: Dictionary = {
 	"ruta": "res://arte/ual/ual1_standard_mixamo.glb", "referencia": "Idle", "clips": {
