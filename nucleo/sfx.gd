@@ -59,7 +59,7 @@ static var CATALOGO: Dictionary = {
 
 	# --- Magia del mundo (sintetizados).
 	"prender":  {"f": ["prender.wav"],  "db": -9.0,  "tono": 0.12},
-	"congelar": {"f": ["oga_congelar_0.wav", "oga_congelar_1.wav"], "db": -6.0, "tono": 0.06},
+	"congelar": {"f": ["oga_congelar_1.wav"], "db": -6.0, "tono": 0.06},   # 25/11: variante 2 aprobada en el comentario de Pablo
 	"chispa":   {"f": ["chispa.wav"],   "db": -12.0, "tono": 0.14},
 	"derrumbe": {"f": ["derrumbe.wav"], "f_sn": ["sn_derrumbe_0.ogg"], "db": -7.0,  "tono": 0.10},
 	"rodar":    {"f": ["rodar.wav"],    "db": -8.0,  "tono": 0.08},
@@ -78,8 +78,9 @@ static var CATALOGO: Dictionary = {
 		"db": -6.0, "tono": 0.05},
 	"libro_abre":    {"f": ["libro_abre.ogg"], "f_sn": ["sn_libro_abre_0.ogg"],   "db": -7.0, "tono": 0.04},
 	"libro_cierra":  {"f": ["libro_cierra.ogg"], "db": -7.0, "tono": 0.04},
-	"pagina":        {"f": ["pagina_0.ogg", "pagina_1.ogg", "pagina_2.ogg"], "f_sn": ["sn_pagina_0.ogg"],
-		"db": -6.0, "tono": 0.06},      # 13/11 (Pablo): hojeo de libro antiguo, y más alto (−10 → −6)
+	# 25/11 (Pablo): recortes cortos del tramo 50–55 s; un único sonido por hoja.
+	"pagina":        {"f": ["fs_pagina_corta_0.wav", "fs_pagina_corta_1.wav", "fs_pagina_corta_2.wav"],
+		"db": -6.0, "tono": 0.0},
 	# 2/11 (tarea R): «f» = lo grabado nuevo, «f_sint» = lo que sonaba antes (con GRABADOS = false suena este). Ver docs/DIARIO.md 306 para el porqué de cada archivo.
 	"clavar":        {"f": ["kenney_clavar_0.ogg", "kenney_clavar_1.ogg"], "f_sint": ["clavar.ogg"], "db": -10.0, "tono": 0.12},
 	"creak":         {"f": ["creak.ogg"],  "db": -11.0, "tono": 0.08},
@@ -93,12 +94,11 @@ static var CATALOGO: Dictionary = {
 	"trazo":    {"f": ["trazo.wav"],    "db": -16.0, "tono": 0.18},
 	# 2/11 (tarea R): la pluma que suena MIENTRAS se arrastra el trazo (bucle; volumen por velocidad: `Spellbook`), y las hojas pasando para la animación de página (tarea L; sin uso aún).
 	"pluma_bucle":   {"f": ["fs_pluma_pergamino.mp3"], "db": -30.0, "tono": 0.0},
-	"paginas_bucle": {"f": ["fs_paginas_bucle.mp3"],   "db": -16.0, "tono": 0.0},
+	"paginas_bucle": {"f": ["fs_paginas_50_55_loop.wav"], "db": -16.0, "tono": 0.0},
 	"sello_ok": {"f": ["sello_ok.wav"], "db": -11.0, "tono": 0.03},
-	# 27/10: la CONJURACIÓN suena arcana, sea cual sea el elemento (OpenGameArt, CC0: «Magic Spell SFX» de JaggedStone). Lo toca el Lanzador al
-	# empezar cada conjuro, debajo del sonido del elemento (`Lanzador3D._sonar_fase_v2`, fase «carga»).
-	"conjuro_arcano": {"f": ["oga_conjuro_arcano_0.ogg", "oga_conjuro_arcano_1.ogg", "oga_conjuro_arcano_2.ogg", "oga_conjuro_arcano_3.ogg",
-			"oga_conjuro_arcano_4.ogg", "oga_conjuro_arcano_5.ogg", "oga_conjuro_arcano_6.ogg"], "db": -13.0, "tono": 0.04},
+	# 25/11 (Pablo): escritura + carga del elemento; se conserva la clave como alias
+	# para las llamadas existentes. Ya no selecciona los siete conjuros rechazados.
+	"conjuro_arcano": {"f": ["fs_conjuro_escritura_0.wav", "fs_conjuro_escritura_1.wav", "fs_conjuro_escritura_2.wav"], "db": -13.0, "tono": 0.02},
 	# 27/10: la DESCARGA de la fuente eléctrica (EmisorRayo3D): un chasquazo al soltar y chisporroteo mientras dura (antes no sonaba).
 	"descarga_electrica": {"f": ["oga_relampago_1.wav"], "db": -10.0, "tono": 0.08},
 	"chasquidos_electricos": {"f": ["oga_descarga_chasquidos.wav"], "db": -14.0, "tono": 0.0},
@@ -165,7 +165,7 @@ static var CATALOGO: Dictionary = {
 	# (golpe_carne, golpe_piedra, limo_golpe y limo_muere están en Sfx3D.CATALOGO: son del cuerpo del enemigo y llevan distancia, como su grito.)
 	"dano_jugadora":    {"f": ["dano_jugadora.wav"], "f_sn": ["sn_dano_jugadora_0.ogg"], "db": -7.0,  "tono": 0.08},
 	"latido":           {"f": ["latido.wav"],           "db": -8.0,  "tono": 0.0},
-	"voltereta":        {"f": ["voltereta.wav"], "f_sn": ["sn_voltereta_0.ogg", "sn_voltereta_1.ogg", "sn_voltereta_2.ogg"], "db": -14.0, "tono": 0.10},
+	"voltereta":        {"f": ["voltereta.wav"], "f_sn": ["sn_voltereta_1.ogg"], "db": -17.0, "tono": 0.0},   # 25/11: variante 2, 3 dB más discreta
 	"recarga_lista":    {"f": ["recarga_lista.wav"], "f_sn": ["sn_recarga_lista_0.ogg"],    "db": -16.0, "tono": 0.03},
 	"golpe_mundo":      {"f": ["golpe_mundo.wav"],      "db": -11.0, "tono": 0.10},
 	"carga_bucle":      {"f": ["carga_bucle.wav"], "f_sn": ["sn_carga_bucle_0.ogg"],      "db": -18.0, "tono": 0.0},
@@ -190,10 +190,10 @@ static var CATALOGO: Dictionary = {
 	"brasero_linde_resuelto": {"f": ["brasero_linde_resuelto.wav"], "db": -8.0, "tono": 0.0},
 	"pocion":     {"f": ["pocion.wav"],     "db": -8.0,  "tono": 0.0},
 	"pocion_fin": {"f": ["pocion.wav"],     "db": -8.0,  "tono": 0.0, "pitch": 1.15},
-	"recoger":    {"f": ["kenney_recoger_0.ogg", "kenney_recoger_1.ogg", "kenney_recoger_2.ogg", "kenney_recoger_3.ogg"], "f_sint": ["recoger.wav"], "db": -10.0, "tono": 0.04},
+	"recoger":    {"f": ["kenney_recoger_0.ogg"], "f_sint": ["recoger.wav"], "db": -11.9382, "tono": 0.0},   # variante 1, −20 % de amplitud (bajada provisional)
 	"golpe_ui":   {"f": ["golpe_ui.wav"],   "db": -8.0,  "tono": 0.0},
-	"comprar":    {"f": ["kenney_comprar_0.ogg", "kenney_comprar_1.ogg"], "f_sint": ["comprar.wav"], "db": -8.0,  "tono": 0.0},
-	"ui_tick":    {"f": ["kenney_clic_0.ogg", "kenney_clic_1.ogg", "kenney_clic_2.ogg", "kenney_clic_3.ogg", "kenney_clic_4.ogg"], "f_sint": ["ui_tick.wav"], "db": -20.0, "tono": 0.04},
+	"comprar":    {"f": ["kenney_comprar_0.ogg"], "f_sint": ["comprar.wav"], "db": -9.9382, "tono": 0.0},   # variante 1, −20 % de amplitud
+	"ui_tick":    {"f": ["kenney_clic_1.ogg"], "f_sint": ["ui_tick.wav"], "db": -20.0, "tono": 0.0},   # clic 2 de la escucha (índice de archivo 1)
 	"ui_equipar": {"f": ["kenney_equipar_0.ogg", "kenney_equipar_1.ogg"], "f_sint": ["ui_equipar.wav"], "db": -12.0, "tono": 0.0},
 	# 31/10 (gamefeel tarea U): el barrido al vaciar la página del grimorio y el tono suave de la vuelta tras morir (audio/gen_sfx_interfaz.py).
 	"barrido":    {"f": ["barrido.wav"], "f_sn": ["sn_barrido_0.ogg"],    "db": -12.0, "tono": 0.04},
@@ -205,7 +205,7 @@ static var CATALOGO: Dictionary = {
 	"golpe_sordo": {"f": ["golpe_sordo.wav"], "db": -12.0, "tono": 0.06},
 	# 1/11 (gamefeel tarea E2): el remate de la muerte por elemento, tras el grito (`Combate3D._muerte_elemental`). «pira_muerte» y «derrumbe_muerte» son los de siempre más bajos.
 	"pira_muerte":     {"f": ["pira.wav"],     "db": -14.0, "tono": 0.0},
-	"derrumbe_muerte": {"f": ["derrumbe.wav"], "db": -12.0, "tono": 0.10},
+	"derrumbe_muerte": {"f": ["derrumbe_piedra_muerte.wav"], "db": -12.0, "tono": 0.0},   # 25/11: referencia de Pablo, recorte corto aprobado (2 s)
 	"hielo_rompe":     {"f": ["hielo_rompe.wav"], "f_sn": ["sn_hielo_rompe_0.ogg"], "db": -9.0, "tono": 0.06},
 	"chispazo":        {"f_lc": ["lc_chispazo_0.ogg", "lc_chispazo_1.ogg", "lc_chispazo_2.ogg"], "f": ["chispazo.wav"], "f_sn": ["sn_chispazo_0.ogg"],    "db": -11.0, "tono": 0.06},
 	"salpicadura":     {"f_lc": ["lc_salpicadura_0.ogg", "lc_salpicadura_1.ogg", "lc_salpicadura_2.ogg"], "f": ["salpicadura.wav"], "f_sn": ["sn_salpicadura_0.ogg"], "db": -10.0, "tono": 0.08},

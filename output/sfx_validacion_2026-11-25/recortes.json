@@ -1,0 +1,74 @@
+[
+  {
+    "archivo": "audio/fs_pagina_corta_0.wav",
+    "segundos": 0.38,
+    "ganancia_db": 19.78230779164631,
+    "rms_dbfs": -24.0,
+    "origen_s": [
+      50.36,
+      50.74
+    ]
+  },
+  {
+    "archivo": "audio/fs_pagina_corta_1.wav",
+    "segundos": 0.38,
+    "ganancia_db": 23.61419646165107,
+    "rms_dbfs": -24.0,
+    "origen_s": [
+      51.31,
+      51.690000000000005
+    ]
+  },
+  {
+    "archivo": "audio/fs_pagina_corta_2.wav",
+    "segundos": 0.38,
+    "ganancia_db": 27.42020881792022,
+    "rms_dbfs": -24.0,
+    "origen_s": [
+      53.19,
+      53.57
+    ]
+  },
+  {
+    "archivo": "audio/fs_paginas_50_55_loop.wav",
+    "segundos": 4.96,
+    "ganancia_db": 23.940624236225943,
+    "rms_dbfs": -27.24374536870897
+  },
+  {
+    "archivo": "audio/fs_conjuro_escritura_0.wav",
+    "segundos": 0.65,
+    "ganancia_db": 15.79625097430593,
+    "rms_dbfs": -25.0,
+    "origen_s": [
+      1.1,
+      1.75
+    ]
+  },
+  {
+    "archivo": "audio/fs_conjuro_escritura_1.wav",
+    "segundos": 0.65,
+    "ganancia_db": 13.894764395796209,
+    "rms_dbfs": -25.0,
+    "origen_s": [
+      1.96,
+      2.61
+    ]
+  },
+  {
+    "archivo": "audio/fs_conjuro_escritura_2.wav",
+    "segundos": 0.65,
+    "ganancia_db": 13.393836247171462,
+    "rms_dbfs": -25.0,
+    "origen_s": [
+      5.19,
+      5.840000000000001
+    ]
+  },
+  {
+    "archivo": "output/sfx_validacion_2026-11-25/piedra_candidata.wav",
+    "segundos": 6.0,
+    "ganancia_db": -25.46781982333924,
+    "rms_dbfs": -30.926074305645553
+  }
+]

@@ -1,0 +1,122 @@
+[
+  {
+    "id": 1,
+    "n": "paginas_bucle",
+    "titulo": "Paso de páginas del grimorio",
+    "cuando": "Mientras se anima el cambio de página.",
+    "motivo": "El archivo dura 101 s y tarda aproximadamente 1001 ms en superar −60 dBFS. Una animación breve puede terminar antes del tramo útil.",
+    "propuesta": "Conservar la grabación si te gusta el papel; recortar un inicio que responda inmediatamente.",
+    "pregunta": "¿El papel encaja con el libro? ¿Falla el sonido o solo tarda demasiado en llegar?",
+    "clips": [
+      "fs_paginas_bucle.mp3"
+    ],
+    "segundos": 6,
+    "entrada": {
+      "catalogo": "Sfx",
+      "nombre": "paginas_bucle",
+      "files": [
+        "fs_paginas_bucle.mp3"
+      ]
+    }
+  },
+  {
+    "id": 2,
+    "n": "conjuro_arcano",
+    "titulo": "Conjuración arcana común",
+    "cuando": "Al empezar a conjurar, debajo de la carga del elemento.",
+    "motivo": "Siete variantes abarcan 19,4 dB RMS de archivo completo. Las colas y duraciones influyen en ese dato; hay que comprobar si cambia demasiado su presencia.",
+    "propuesta": "Primero comparar las tomas; igualar las compatibles y retirar solo las que no compartan identidad.",
+    "pregunta": "¿Estas dos tomas parecen el mismo ritual? ¿Alguna es demasiado débil, larga o de otro estilo?",
+    "clips": [
+      "oga_conjuro_arcano_5.ogg",
+      "oga_conjuro_arcano_2.ogg"
+    ],
+    "entrada": {
+      "catalogo": "Sfx",
+      "nombre": "conjuro_arcano",
+      "files": [
+        "oga_conjuro_arcano_0.ogg",
+        "oga_conjuro_arcano_1.ogg",
+        "oga_conjuro_arcano_2.ogg",
+        "oga_conjuro_arcano_3.ogg",
+        "oga_conjuro_arcano_4.ogg",
+        "oga_conjuro_arcano_5.ogg",
+        "oga_conjuro_arcano_6.ogg"
+      ]
+    }
+  },
+  {
+    "id": 3,
+    "n": "comprar",
+    "titulo": "Confirmación de compra",
+    "cuando": "Al comprar en la tienda, por el bus Interfaz.",
+    "motivo": "Las dos variantes tienen 17,7 dB de rango RMS y duran 0,85 frente a 0,29 s. Un único ajuste de catálogo no iguala ambas.",
+    "propuesta": "Elegir la identidad de compra y ajustar después el nivel de cada toma.",
+    "pregunta": "¿Te convence alguna de las dos? ¿La compra debería sonar a monedas, confirmación mágica u otra cosa?",
+    "entrada": {
+      "catalogo": "Sfx",
+      "nombre": "comprar",
+      "files": [
+        "kenney_comprar_0.ogg",
+        "kenney_comprar_1.ogg"
+      ]
+    }
+  },
+  {
+    "id": 4,
+    "n": "ui_tick",
+    "titulo": "Clic de selección del menú",
+    "cuando": "Selecciones y navegación de interfaz; se repite mucho.",
+    "motivo": "Una toma dura 100 ms y las otras unos 10 ms; el rango RMS es 13,6 dB. El RMS de clics tan cortos no mide por sí solo su volumen percibido.",
+    "propuesta": "Escoger un clic consistente y discreto; conservar variantes solo si no cambia el carácter del menú.",
+    "pregunta": "¿Alguno pincha, parece un error o resulta molesto al repetirlo?",
+    "entrada": {
+      "catalogo": "Sfx",
+      "nombre": "ui_tick",
+      "files": [
+        "kenney_clic_0.ogg",
+        "kenney_clic_1.ogg",
+        "kenney_clic_2.ogg",
+        "kenney_clic_3.ogg",
+        "kenney_clic_4.ogg"
+      ]
+    }
+  },
+  {
+    "id": 5,
+    "n": "recoger",
+    "titulo": "Recogida de objetos",
+    "cuando": "Al recoger objetos, incluida la recogida por interfaz.",
+    "motivo": "Las cuatro variantes abarcan 10,0 dB RMS de archivo completo. Conviene revisar identidad y duración además de nivel.",
+    "propuesta": "Conservar las tomas que comuniquen una recompensa pequeña y equilibrarlas.",
+    "pregunta": "¿Se entiende como recoger algo? ¿Alguna toma es demasiado aparatosa o parece otra acción?",
+    "entrada": {
+      "catalogo": "Sfx",
+      "nombre": "recoger",
+      "files": [
+        "kenney_recoger_0.ogg",
+        "kenney_recoger_1.ogg",
+        "kenney_recoger_2.ogg",
+        "kenney_recoger_3.ogg"
+      ]
+    }
+  },
+  {
+    "id": 6,
+    "n": "arrastre",
+    "cat": "Ambiente3D",
+    "titulo": "Bloque de piedra desplazándose",
+    "cuando": "Mientras se empuja un bloque. La vagoneta ya usa su propio sonido aprobado.",
+    "motivo": "Repite rodar.wav, un golpe/rodadura de 0,6 s con extremos más de 23 dB por debajo del RMS global. Puede producir un movimiento pulsante en lugar de un roce sostenido.",
+    "propuesta": "Si se percibe como golpes separados, sustituir el bucle por fricción continua con detalle granular; dejar golpes para arranque y parada.",
+    "pregunta": "¿Se oye piedra arrastrándose o un golpe que vuelve a empezar? ¿Qué material o peso te falta?",
+    "bucle": true,
+    "entrada": {
+      "catalogo": "Ambiente3D",
+      "nombre": "arrastre",
+      "files": [
+        "rodar.wav"
+      ]
+    }
+  }
+]

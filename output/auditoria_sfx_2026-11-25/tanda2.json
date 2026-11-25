@@ -1,0 +1,114 @@
+[
+  {
+    "id": 7,
+    "n": "paso_madera",
+    "cat": "Sfx3D",
+    "titulo": "Pasos sobre madera",
+    "cuando": "La jugadora camina sobre puentes o superficies de madera.",
+    "motivo": "Las tres tomas abarcan 8,6 dB RMS de archivo completo y tienen ataques distintos. La aleatoriedad puede hacer que un paso destaque sobre los otros.",
+    "propuesta": "Conservar las tomas que parezcan el mismo calzado y superficie; equilibrarlas antes de tocar el volumen general.",
+    "pregunta": "¿Qué variantes parecen madera? ¿Alguna parece otro suelo, demasiado pesada o demasiado larga?",
+    "entrada": {
+      "catalogo": "Sfx3D",
+      "nombre": "paso_madera",
+      "files": [
+        "oga_paso_madera_0.ogg",
+        "oga_paso_madera_1.ogg",
+        "oga_paso_madera_2.ogg"
+      ]
+    }
+  },
+  {
+    "id": 8,
+    "n": "paso_goblin",
+    "cat": "Sfx3D",
+    "titulo": "Pasos del goblin",
+    "cuando": "El goblin anda; en el juego se reproducen con tono base ×1,2.",
+    "motivo": "Cuatro tomas abarcan 9,1 dB RMS. Tres duran aproximadamente 0,7 s y otra 0,25 s; también se mezclan hierba y madera.",
+    "propuesta": "Elegir una familia de pasos ligeros y coherentes para la criatura; ajustar nivel y material después de tu escucha.",
+    "pregunta": "¿Encajan con un goblin ligero? ¿Cuál conservarías y cuál parece de otro cuerpo o superficie?",
+    "entrada": {
+      "catalogo": "Sfx3D",
+      "nombre": "paso_goblin",
+      "files": [
+        "kenney_paso_goblin_0.ogg",
+        "kenney_paso_goblin_1.ogg",
+        "kenney_paso_goblin_2.ogg",
+        "kenney_paso_goblin_3.ogg"
+      ]
+    }
+  },
+  {
+    "id": 9,
+    "n": "veneno_charco",
+    "cat": "Sfx3D",
+    "titulo": "Impacto de la bola de veneno",
+    "cuando": "La bola del chamán impacta y forma el charco venenoso.",
+    "motivo": "Tres variantes abarcan 8,0 dB RMS de archivo completo y duran entre 0,43 y 0,77 s.",
+    "propuesta": "Conservar una identidad líquida y viscosa; igualar las variantes compatibles, sin convertir el impacto en una explosión grande.",
+    "pregunta": "¿Suena a veneno viscoso o a otra cosa? ¿Alguna variante resulta demasiado aparatosa?",
+    "entrada": {
+      "catalogo": "Sfx3D",
+      "nombre": "veneno_charco",
+      "files": [
+        "lc_veneno_charco_0.ogg",
+        "lc_veneno_charco_1.ogg",
+        "lc_veneno_charco_2.ogg"
+      ]
+    }
+  },
+  {
+    "id": 10,
+    "n": "congelar",
+    "cat": "Sfx",
+    "titulo": "Congelación del mundo",
+    "cuando": "Una reacción congela un objeto o una parte del mundo; no es el disparo de la flecha de hielo.",
+    "motivo": "Las dos tomas duran 2,65 y 1,16 s, con 7,3 dB de rango RMS. La primera termina con aproximadamente 1,30 s bajo −60 dBFS.",
+    "propuesta": "Elegir el timbre de cristalización y recortar el silencio sobrante; ajustar presencia entre ambas.",
+    "pregunta": "¿Se entiende que algo se está congelando? ¿Te convence alguna de las dos o cambiarías la textura?",
+    "entrada": {
+      "catalogo": "Sfx",
+      "nombre": "congelar",
+      "files": [
+        "oga_congelar_0.wav",
+        "oga_congelar_1.wav"
+      ]
+    }
+  },
+  {
+    "id": 11,
+    "n": "voltereta",
+    "cat": "Sfx",
+    "titulo": "Voltereta de la jugadora",
+    "cuando": "Al esquivar rodando; es una acción frecuente durante combate.",
+    "motivo": "Tres tomas abarcan 5,9 dB RMS de archivo completo. La variación puede cambiar mucho la presencia de cada esquiva.",
+    "propuesta": "Buscar un movimiento breve de ropa/cuerpo, consistente y discreto, que no compita con los avisos enemigos.",
+    "pregunta": "¿Se oye una voltereta o un golpe/ataque? ¿Alguna cansa al repetirla?",
+    "entrada": {
+      "catalogo": "Sfx",
+      "nombre": "voltereta",
+      "files": [
+        "sn_voltereta_0.ogg",
+        "sn_voltereta_1.ogg",
+        "sn_voltereta_2.ogg"
+      ]
+    }
+  },
+  {
+    "id": 12,
+    "n": "derrumbe_muerte",
+    "cat": "Sfx",
+    "titulo": "Desmoronamiento al morir por tierra",
+    "cuando": "Remate de muerte elemental de tierra, además del sonido propio del enemigo.",
+    "motivo": "Utiliza derrumbe.wav y tarda unos 180 ms en superar −60 dBFS. El derrumbe normal utiliza otra fuente cuando Sonniss está activo.",
+    "propuesta": "Si el material encaja, alinear el golpe útil con la rotura y quitar el previo; sustituirlo solo si no comunica desmoronamiento.",
+    "pregunta": "¿Parece piedra o tierra deshaciéndose? ¿Notas el golpe tardío o un timbre que no encaja?",
+    "entrada": {
+      "catalogo": "Sfx",
+      "nombre": "derrumbe_muerte",
+      "files": [
+        "derrumbe.wav"
+      ]
+    }
+  }
+]

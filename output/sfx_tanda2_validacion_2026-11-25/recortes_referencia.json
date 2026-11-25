@@ -1,0 +1,16 @@
+[
+  {
+    "archivo": "piedra_corta.wav",
+    "inicio_video_s": 0.45,
+    "fin_video_s": 2.45,
+    "ganancia_db": 8.0,
+    "integrado": false
+  },
+  {
+    "archivo": "piedra_cola_completa.wav",
+    "inicio_video_s": 0.45,
+    "fin_video_s": 5.63,
+    "ganancia_db": 8.0,
+    "integrado": false
+  }
+]

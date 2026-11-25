@@ -214,7 +214,7 @@ func vender() -> bool:
 		return false
 	mensaje = "Has vendido %s%s por %d de oro" % [Objetos.nombre(o), "" if n == 1 else " ×%d" % n, precio]
 	mensaje_bien = true
-	Sfx.play_ui("moneda")
+	Sfx.play_ui("comprar")      # 25/11: mismo sonido validado para compra y venta.
 	_refrescar()
 	return true
 
@@ -239,7 +239,7 @@ func comprar() -> bool:
 	Tiendas.comprar(tienda, o, cantidad)
 	mensaje = "Has comprado %s%s" % [nombre, "" if cantidad == 1 else " ×%d" % cantidad]
 	mensaje_bien = true
-	Sfx.play_ui("moneda")
+	Sfx.play_ui("comprar")
 	_refrescar()
 	return true
 

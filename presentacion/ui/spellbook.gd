@@ -650,7 +650,7 @@ func _manejar_raton(event: InputEvent) -> void:
 ## --- TAREA L (2/11): LA MANO PASA LA PÁGINA ---
 ## Al pulsar 1/2/3 con el libro abierto la mano sube (LEVANTADA), va al borde derecho de las páginas en T_MANO_IR, agarra la hoja (PINZA) y tira de ella hacia el lomo
 ## mientras la hoja se aplasta en X hasta HOJA_MIN (T_HOJA_CIERRA, pivote en el lomo); la hoja nueva se despliega con TRANS_BACK (T_HOJA_ABRE) y la mano suelta (LEVANTADA).
-## Con `paginas_bucle` de fondo y `pagina` al terminar. Es la misma cuenta que `grimorio_ui._pasar`. La hoja es el libro entero (el nodo se escala en X); la mano, hija
+## Con un recorte corto de `pagina` al empezar, sin otro remate al terminar. Es la misma cuenta que `grimorio_ui._pasar`. La hoja es el libro entero (el nodo se escala en X); la mano, hija
 ## suya, se contraescala para no aplastarse con él. Total <= T_PASAR_MAX (los tres tiempos se encogen en proporción si la suma lo pasara).
 ## `caster.select_page` ocurre cuando la hoja está del todo plegada (CAMBIA_AL_CERRAR = true: así la hoja que se despliega ya es la nueva) o, con false, al FINAL. Nada lee la
 ## página antes: `page_hud` y el dibujo del libro leen `caster.page` cada fotograma.
@@ -835,7 +835,7 @@ func _pasar_aplicar() -> void:
 func _pasar_fin() -> void:
 	if not _pasar_cambiada:
 		_pasar_aplicar()
-	Sfx.play(_oyente(), "pagina")
+	# El recorte de papel ya sonó al empezar: no añadir otra hoja al terminar.
 	_pasar_restaurar()
 	pasar_pagina_usado_ms = Time.get_ticks_msec() - _pasar_ini_ms
 	while not _pasar_pend.is_empty() and not _pasando:
@@ -875,18 +875,21 @@ func _cancelar_pasar() -> void:
 
 func _arrancar_bucle_paginas() -> void:
 	_parar_bucle_paginas()
-	var flujo: AudioStream = Sfx.flujo_en_bucle("paginas_bucle")
+	# Conserva el nombre del método/reproductor para las cancelaciones existentes.
+	# Ahora es un único recorte de 380 ms, sin bucle, para la animación de <=450 ms.
+	var archivos: Array = Sfx.archivos_de(Sfx.CATALOGO["pagina"])
+	var flujo: AudioStream = load(Sfx.CARPETA + String(archivos.pick_random()))
 	if flujo == null:
 		return
 	Sfx._asegurar_bus_interfaz()
 	_pasar_bucle = AudioStreamPlayer.new()
 	_pasar_bucle.stream = flujo
 	_pasar_bucle.bus = Sfx.BUS_INTERFAZ
-	_pasar_bucle.volume_db = Sfx.db_de("paginas_bucle")
+	_pasar_bucle.volume_db = Sfx.db_de("pagina")
 	_pasar_bucle.process_mode = Node.PROCESS_MODE_ALWAYS
 	add_child(_pasar_bucle)
 	_pasar_bucle.play()
-	Sfx._anotar("paginas_bucle", _pasar_bucle.volume_db, 1.0)
+	Sfx._anotar("pagina", _pasar_bucle.volume_db, 1.0)
 
 
 func _parar_bucle_paginas() -> void:

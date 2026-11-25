@@ -28,8 +28,9 @@ func _initialize() -> void:
 		if not ResourceLoader.exists(Sfx3D.CARPETA + f):
 			faltan.append("%s/%s" % [clave, f])
 	_ok("1 todos los sonidos del catálogo existen y se cargan", faltan.is_empty(), "%d archivos · faltan %s" % [n, str(faltan)])
-	for clave in ["conjuro_arcano", "descarga_electrica", "chasquidos_electricos", "congelar", "rayo", "hielo", "arde_bucle"]:
+	for clave in ["descarga_electrica", "chasquidos_electricos", "congelar", "rayo", "hielo", "arde_bucle"]:
 		_ok("2 Sfx tiene «%s» con un archivo grabado (oga_)" % clave, Sfx.CATALOGO.has(clave) and String((Sfx.CATALOGO[clave]["f"] as Array)[0]).begins_with("oga_"))
+	_ok("2 la capa común de conjuro usa escritura grabada, no el conjuro genérico rechazado", String(Sfx.CATALOGO["conjuro_arcano"]["f"][0]).begins_with("fs_conjuro_escritura_"))
 	for clave in ["paso_hierba", "paso_tierra", "paso_roca", "paso_madera"]:
 		_ok("2 Sfx3D tiene «%s» con pisadas grabadas" % clave, Sfx3D.CATALOGO.has(clave) and String((Sfx3D.CATALOGO[clave]["f"] as Array)[0]).begins_with("oga_"))
 	var fuego: AudioStream = Sfx3D.bucle("fuego")

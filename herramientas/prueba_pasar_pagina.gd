@@ -109,7 +109,7 @@ func _s1_s3() -> void:
 	var antes_poses: Dictionary = mano.poses_vistas.duplicate()
 	_tecla(1)
 	_ok("1 al pulsar empieza la animación y la página NO ha cambiado", libro.call("pasando_pagina") and lanz.page == 0)
-	_ok("1 `paginas_bucle` suena al empezar y `pagina` aún no", Sfx.veces("paginas_bucle") == 1 and Sfx.veces("pagina") == 0)
+	_ok("1 un recorte `pagina` empieza con la hoja, sin bucle", Sfx.veces("paginas_bucle") == 0 and Sfx.veces("pagina") == 1)
 	var cambio_f: int = -1
 	var n: int = 0
 	var min_x: float = 9.0
@@ -130,7 +130,7 @@ func _s1_s3() -> void:
 	var dur: float = float(n) / 30.0
 	_ok("3 duración %.2f s (%d fotogramas a 30 fps) <= T_PASAR_MAX %.2f" % [dur, n, libro.T_PASAR_MAX], dur <= libro.T_PASAR_MAX + 1.0 / 30.0 and n > 3)
 	_ok("1 la página cambia durante la animación, con la hoja plegada (fotograma %d), no antes" % cambio_f, cambio_f > 1 and cambio_f < n and pagina_antes_de_plegar)
-	_ok("1 al terminar: página 1 y `pagina` suena una vez", lanz.page == 1 and Sfx.veces("pagina") == 1 and Sfx.veces("paginas_bucle") == 1)
+	_ok("1 al terminar: página 1 y un único recorte, sin bucle ni segundo remate", lanz.page == 1 and Sfx.veces("pagina") == 1 and Sfx.veces("paginas_bucle") == 0)
 	_ok("1 el bucle se corta al terminar (no queda reproductor)", libro.get("_pasar_bucle") == null)
 	_ok("3 la hoja llega a scale.x ≈ %.2f (mínimo visto %.3f)" % [libro.HOJA_MIN, libro.hoja_min_visto], absf(libro.hoja_min_visto - libro.HOJA_MIN) < 0.005)
 	_ok("3 …y vuelve a 1 (escala %s) con el pivote en el centro" % str(libro.scale), is_equal_approx(libro.scale.x, 1.0) and is_equal_approx(libro.scale.y, 1.0) and libro.pivot_offset.is_equal_approx(libro.size * 0.5))
@@ -177,7 +177,7 @@ func _s5_cadena() -> void:
 		n += 1
 		vio_1 = vio_1 or lanz.page == 1
 	_ok("5 pasa por la página 1 y acaba en la 2 (%d fotogramas = %.2f s)" % [n, float(n) / 30.0], vio_1 and lanz.page == 2 and n <= 2 * 14 + 1)
-	_ok("5 dos `pagina` y dos `paginas_bucle`", Sfx.veces("pagina") == 2 and Sfx.veces("paginas_bucle") == 2, "%d / %d" % [Sfx.veces("pagina"), Sfx.veces("paginas_bucle")])
+	_ok("5 dos cambios producen dos recortes, sin bucles superpuestos", Sfx.veces("pagina") == 2 and Sfx.veces("paginas_bucle") == 0, "%d / %d" % [Sfx.veces("pagina"), Sfx.veces("paginas_bucle")])
 	await _fotogramas(3)
 
 

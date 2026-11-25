@@ -30,7 +30,7 @@ const CATALOGO: Dictionary = {
 	"paso_hierba": {"f": ["oga_paso_hojas_0.ogg", "oga_paso_hojas_1.ogg"], "db": -16.0, "tono": 0.10, "unidad": 3.0, "alcance": 10.0},
 	"paso_tierra": {"f": ["oga_paso_barro_0.ogg", "oga_paso_grava_0.ogg"], "db": -16.0, "tono": 0.10, "unidad": 3.0, "alcance": 10.0},
 	"paso_roca": {"f": ["oga_paso_piedra_0.ogg", "oga_paso_grava_0.ogg"], "db": -16.0, "tono": 0.10, "unidad": 3.0, "alcance": 10.0},
-	"paso_madera": {"f": ["oga_paso_madera_0.ogg", "oga_paso_madera_1.ogg", "oga_paso_madera_2.ogg"], "db": -16.0, "tono": 0.08,
+	"paso_madera": {"f": ["oga_paso_madera_1.ogg"], "db": -16.0, "tono": 0.08,   # 25/11: variante 2 aprobada
 		"unidad": 3.0, "alcance": 10.0},
 	# 10/11: «f_sn» = voces de criatura del lote GDC 2026 de Sonniss (subidas de tono al cocerlas: de orco a goblin). Solo suenan si los archivos están en esta máquina (`Sfx.archivos_de`).
 	"goblin_grito": {"f": ["goblin_grito_0.ogg", "goblin_grito_1.ogg", "goblin_grito_2.ogg"], "f_sn": ["sn_goblin_grito_0.ogg", "sn_goblin_grito_1.ogg", "sn_goblin_grito_2.ogg"],
@@ -45,7 +45,7 @@ const CATALOGO: Dictionary = {
 	"golpe_piedra": {"f": ["kenney_golpe_piedra_0.ogg", "kenney_golpe_piedra_1.ogg", "kenney_golpe_piedra_2.ogg"], "f_sint": ["golpe_piedra.wav"], "db": -8.0, "tono": 0.08},
 	# Pasos de los enemigos (tarea R): el gólem pesa (concreto, tono ×0,6, fuerte); el goblin es ligero (hierba y madera, tono ×1,2). Los dispara el propio enemigo al andar (`PasosEnemigo3D`).
 	"paso_golem":   {"f": ["kenney_paso_golem_0.ogg", "kenney_paso_golem_1.ogg", "kenney_paso_golem_2.ogg", "kenney_paso_golem_3.ogg"], "db": -4.0, "tono": 0.06, "base": 0.6, "unidad": 4.0, "alcance": 16.0},
-	"paso_goblin":  {"f": ["kenney_paso_goblin_0.ogg", "kenney_paso_goblin_1.ogg", "kenney_paso_goblin_2.ogg", "kenney_paso_goblin_3.ogg"], "db": -14.0, "tono": 0.08, "base": 1.2, "unidad": 3.0, "alcance": 11.0},
+	"paso_goblin":  {"f": ["kenney_paso_goblin_0.ogg"], "db": -14.0, "tono": 0.08, "base": 1.2, "unidad": 3.0, "alcance": 11.0},   # 25/11: variante 1 aprobada
 	"limo_golpe":   {"f": ["limo_golpe.wav"], "f_sn": ["sn_limo_golpe_0.ogg"], "db": -9.0, "tono": 0.12},
 	"limo_muere":   {"f": ["limo_muere.wav"], "f_sn": ["sn_limo_muere_0.ogg"], "db": -7.0, "tono": 0.06},
 	"gato_maullido": {"f": ["oga_gato_maullido_0.wav", "oga_gato_maullido_1.wav", "oga_gato_maullido_2.ogg"], "f_sint": ["gato_maullido_0.ogg", "gato_maullido_1.ogg"],
@@ -71,7 +71,7 @@ const CATALOGO: Dictionary = {
 	"limo_divide":  {"f": ["limo_golpe.wav"], "f_sn": ["sn_limo_divide_0.ogg"], "db": -9.0, "tono": 0.10},
 	# 13/11 (pack de magia de Leonardo Calvo, CC BY 4.0): el chamán suelta la bola de veneno, la bola revienta en el suelo y las raíces del Elemental brotan. Antes no sonaban.
 	"veneno_bola":   {"f": ["limo_golpe.wav"], "f_lc": ["lc_veneno_bola_0.ogg", "lc_veneno_bola_1.ogg", "lc_veneno_bola_2.ogg"], "db": -10.0, "tono": 0.08},
-	"veneno_charco": {"f": ["limo_muere.wav"], "f_lc": ["lc_veneno_charco_0.ogg", "lc_veneno_charco_1.ogg", "lc_veneno_charco_2.ogg"], "db": -9.0, "tono": 0.08},
+	"veneno_charco": {"f": ["limo_muere.wav"], "f_lc": ["lc_veneno_charco_2.ogg"], "db": -9.0, "tono": 0.03, "base": 0.85},   # 25/11: variante 3, más grave
 	"raices_brotan": {"f": ["derrumbe.wav"], "f_lc": ["lc_raices_brotan_0.ogg", "lc_raices_brotan_1.ogg", "lc_raices_brotan_2.ogg"], "db": -8.0, "tono": 0.06},
 	"arco":         {"f": ["arco.wav"], "db": -10.0, "tono": 0.08},                                        # el arquero suelta la flecha (antes «arco» estaba en Sfx y nadie lo pedía)
 	# 24/11 (Pablo: «sonido metálico al circular»): la VAGONETA (Vagoneta3D). «junta» = el traqueteo de la rueda al pasar cada junta de raíl (una por casilla);
@@ -90,10 +90,10 @@ const AMBIENTES: Dictionary = {
 	"agua": {"f": "oga_agua_corriendo_loop.ogg", "db": -10.0, "unidad": 3.0, "alcance": 14.0, "alto": 0.3},
 	"agua_cae": {"f": "agua_cae_loop.ogg", "db": -6.0, "unidad": 3.0, "alcance": 16.0, "alto": 0.4},   # 15/10 (Pablo): el chorro de la tinaja al caer
 	"murmullo": {"f": "conversacion_murmullo_loop.ogg", "db": -10.0, "unidad": 3.0, "alcance": 12.0, "alto": 1.2},
-	# 28/10: el arrastre del bloque de piedra al empujarlo (BloqueEmpujable3D): no hay un arrastre grabado, así que el «rodar» sintetizado en bucle, bajo.
+	# 25/11: arrastre granular de grava/piedra aprobado por Pablo; nivel sutil.
 	# 2/11 (tarea R): el ronroneo del gato quieto cerca de la jugadora (OpenGameArt «cat purr meow», CC0).
 	"gato_ronroneo": {"f": "oga_gato_ronroneo_loop.wav", "db": -14.0, "unidad": 2.0, "alcance": 8.0, "alto": 0.3},
-	"arrastre": {"f": "rodar.wav", "db": -17.0, "unidad": 2.0, "alcance": 10.0, "alto": 0.2},
+	"arrastre": {"f": "arrastre_piedra_loop.wav", "db": -23.0, "unidad": 2.0, "alcance": 10.0, "alto": 0.2},
 	# 25/11: traqueteo seco de ruedas/ejes con roce continuo, sin silbido tonal.
 	# Vagoneta3D le cambia el tono y el volumen con la velocidad.
 	"vagoneta_rueda": {"f": "vagoneta_rueda_loop.wav", "db": -9.0, "unidad": 3.0, "alcance": 14.0, "alto": 0.3},

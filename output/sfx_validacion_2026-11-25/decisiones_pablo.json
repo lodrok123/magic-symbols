@@ -1,0 +1,44 @@
+{
+  "fecha": "2026-11-25",
+  "decisiones": [
+    {
+      "id": 1,
+      "estado": "Mejorable",
+      "nota": "Demasiado largo sacaria varios clips cortos entre 50 y 55 hay un bucle de paginas valido.",
+      "accion": "Tres recortes de 380 ms y bucle de 4,96 s; una sola muestra por cambio de hoja."
+    },
+    {
+      "id": 2,
+      "estado": "A cambiar",
+      "nota": "No lo haria asi, usaria una mezcla de escritura mas el sonido elemental conjurado del elemento.",
+      "accion": "Capa común sustituida por escritura; conserva la carga propia del elemento. Mezcla pendiente de escucha."
+    },
+    {
+      "id": 3,
+      "estado": "Aceptado",
+      "nota": "Aceptado el primero para comprar o vender algo. Baja el sonido un 20%",
+      "archivo": "kenney_comprar_0.ogg",
+      "accion": "Solo variante 1; ganancia ×0,8 (−1,9382 dB), compra y venta conectadas."
+    },
+    {
+      "id": 4,
+      "estado": "Aceptado",
+      "nota": "Aceptado el clic 2",
+      "archivo": "kenney_clic_1.ogg",
+      "accion": "Solo segunda variante de la escucha, sin variación aleatoria de tono."
+    },
+    {
+      "id": 5,
+      "estado": "Aceptado",
+      "nota": "Aceptado el clic 1 pero baja el sonido.",
+      "archivo": "kenney_recoger_0.ogg",
+      "accion": "Solo primera variante. Bajada provisional del 20 %, al no indicarse cantidad."
+    },
+    {
+      "id": 6,
+      "estado": "Aceptado",
+      "nota": "mejor haz el sonido mas sutil pero bien aprobado",
+      "accion": "Nueva versión aprobada e integrada como arrastre_piedra_loop.wav a −23 dB: 6 dB por debajo del ajuste anterior del arrastre."
+    }
+  ]
+}

@@ -69,6 +69,18 @@ con `Sfx.GRABADOS = false` suena ése).
 | `fs_pluma_pergamino.mp3` | `pluma_pergamino_brktkrgll.mp3` (Freesound 856167, previsualización HQ) | brktkrgll · https://freesound.org/people/brktkrgll/sounds/856167/ |
 | `fs_paginas_bucle.mp3` | `paginas_P_Chester.mp3` (Freesound 465260, previsualización HQ) | P_Chester · https://freesound.org/people/P_Chester/sounds/465260/ |
 
+### Recortes elegidos en la validación SFX del 25/11/2026
+
+`fs_pagina_corta_0..2.wav`: recortes de 380 ms, exclusivamente dentro de los segundos 50–55 de `fs_paginas_bucle.mp3` (P_Chester, crédito anterior).
+`fs_paginas_50_55_loop.wav`: ese tramo con cruce de 40 ms, periodo final 4,96 s, disponible para hojeo sostenido. Un cambio de página utiliza un solo recorte corto.
+`fs_conjuro_escritura_0..2.wav`: recortes de 650 ms de `fs_pluma_pergamino.mp3` (brktkrgll, crédito anterior), mezclados en el juego con la carga del elemento.
+Ganancias, fundidos e intervalos exactos en `output/sfx_validacion_2026-11-25/recortes.json`; procesamiento en `tools/procesa_sfx_validados.py`.
+`arrastre_piedra_loop.wav`: propuesta de piedra aprobada el 25/11, integrada con nivel sutil (−23 dB en catálogo). Granulación de grava y piedra de kdd (OpenGameArt CC0, mismos créditos que las pisadas existentes). Copia exacta de `output/sfx_validacion_2026-11-25/piedra_candidata.wav`.
+
+### Desmoronamiento por tierra — referencia facilitada por Pablo (25/11/2026)
+
+`derrumbe_piedra_muerte.wav`: audio extraído del vídeo adjunto `20261125-1045-37.4288775.mp4`, segundos 0,45–2,45; fundidos de 30 ms y ganancia de +8 dB. Sustitución del caso 12 autorizada por Pablo. Autor y licencia de la grabación original no identificados; no se atribuye CC0. Procedencia y recortes conservados en `output/sfx_tanda2_validacion_2026-11-25/`.
+
 ## Sintetizado — `tools/gen_vagoneta_rueda.py` (25/11/2026)
 
 `vagoneta_rueda_loop.wav`: traqueteo seco de ruedas/ejes y roce continuo de fondo, en bucle periódico de 6 s.

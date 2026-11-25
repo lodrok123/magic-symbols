@@ -43,3 +43,7 @@ borradores: su dueño los integra en los vivos y los borra.
 - [Tanda de Blender: 12 variantes](BLENDER_INTERACCIONES_2026-11-25.html): fragmentos, frutos separados, deformaciones, agotados y tapa articulada; editables y comparativas.
 - [Variantes conectadas al juego](CONEXION_BLENDER_2026-11-25.html): agotamiento del cristal, restos quemados persistentes, roca destructible, caldera dañable y barril abrible; laboratorio y lámina.
 - [Prueba integrada en Bosque02](REVISION_ZONA_BLENDER_2026-11-25.html): doce capturas y recarga real del nivel, con lámina, corrección de prioridad de E y carbonización parcial persistente.
+- [Primera escucha de SFX](ESCUCHA_SFX_2026-11-25.html): barrido técnico actualizado de 160 entradas y seis candidatos con reproductores, variantes y notas para validar con Pablo.
+- [Cambios tras validar los SFX](VALIDACION_SFX_2026-11-25.html): recortes de papel, escritura con el elemento, variantes de interfaz elegidas y piedra aprobada con nivel sutil.
+- [Segunda escucha de SFX](ESCUCHA_SFX_TANDA2_2026-11-25.html): casos 7–12, pasos de madera y goblin, impacto de veneno, congelación, voltereta y muerte por tierra; variantes y notas para validar.
+- [Segunda tanda aplicada](VALIDACION_SFX_TANDA2_2026-11-25.html): variantes 7–11 fijadas; veneno más grave y voltereta más discreta. Desmoronamiento del caso 12 sustituido por el recorte corto aprobado.

@@ -1,0 +1,44 @@
+[
+  {
+    "f": "fs_paginas_bucle.mp3",
+    "inicio": 50,
+    "duracion": 5,
+    "salida": "paginas_50_55"
+  },
+  {
+    "f": "fs_pluma_pergamino.mp3",
+    "inicio": 0,
+    "duracion": 6,
+    "salida": "pluma_fuente"
+  },
+  {
+    "f": "oga_paso_grava_0.ogg",
+    "inicio": 0,
+    "duracion": 0.7,
+    "salida": "grava_fuente"
+  },
+  {
+    "f": "oga_paso_piedra_0.ogg",
+    "inicio": 0,
+    "duracion": 0.29,
+    "salida": "piedra_fuente"
+  },
+  {
+    "f": "agua_carga.wav",
+    "inicio": 0,
+    "duracion": 0.7,
+    "salida": "agua_carga_fuente"
+  },
+  {
+    "f": "fuego_carga.wav",
+    "inicio": 0,
+    "duracion": 0.7,
+    "salida": "fuego_carga_fuente"
+  },
+  {
+    "f": "hielo_carga.wav",
+    "inicio": 0,
+    "duracion": 0.8,
+    "salida": "hielo_carga_fuente"
+  }
+]
