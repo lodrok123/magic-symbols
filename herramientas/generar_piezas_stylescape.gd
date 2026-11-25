@@ -53,7 +53,41 @@ func _initialize() -> void:
 		if _pieza(String(nombre)):
 			bien += 1
 	print("RESULTADO piezas=%d de %d" % [bien, PAREDES.TODAS.size()])
-	quit(0 if bien == PAREDES.TODAS.size() else 1)
+	var losas: bool = _losas_ruinas()
+	quit(0 if bien == PAREDES.TODAS.size() and losas else 1)
+
+
+## Calibrado en pantalla (25/11, docs/capturas/stylescape/trampas/2_patio_dragon.png, sin los píxeles de musgo): con el color medio tal cual el suelo
+## salía 0,583·0,566·0,492 y el frente del muro 0,624·0,593·0,471 (al muro le da otra luz); se corrige con la razón de los dos, en lineal.
+const AJUSTE_LOSAS: Vector3 = Vector3(1.16, 1.11, 0.91)
+## 25/11 (Pablo: «integra el suelo exterior con el muro, los colores de las texturas son distintos»): las losas del suelo del juego (arte/suelo_meshy/
+## losas_piedra.png, gris lila) TEÑIDAS con el color medio de los muros del pack: mismo dibujo, el tono de la piedra de los muros. Cada canal se
+## multiplica por (color del muro / color medio de las losas), en lineal. La usa la maqueta en el suelo de piedra con estilo «ruinas».
+func _losas_ruinas() -> bool:
+	var origen: String = "res://arte/suelo_meshy/losas_piedra.png"
+	var im := Image.load_from_file(ProjectSettings.globalize_path(origen))
+	if im == null or im.is_empty():
+		print("FALLO  no está %s" % origen)
+		return false
+	im.convert(Image.FORMAT_RGB8)
+	var media := Color(0, 0, 0)
+	var chica: Image = im.duplicate()
+	chica.resize(64, 64, Image.INTERPOLATE_BILINEAR)
+	for yy in range(64):
+		for xx in range(64):
+			media += chica.get_pixel(xx, yy).srgb_to_linear()
+	media = Color(media.r / 4096.0, media.g / 4096.0, media.b / 4096.0)
+	var muro: Color = PAREDES.color_piedra().srgb_to_linear()
+	var k := Vector3(muro.r / maxf(media.r, 0.001), muro.g / maxf(media.g, 0.001), muro.b / maxf(media.b, 0.001)) * AJUSTE_LOSAS
+	for yy in range(im.get_height()):
+		for xx in range(im.get_width()):
+			var p: Color = im.get_pixel(xx, yy).srgb_to_linear()
+			im.set_pixel(xx, yy, Color(minf(p.r * k.x, 1.0), minf(p.g * k.y, 1.0), minf(p.b * k.z, 1.0)).linear_to_srgb())
+	im.generate_mipmaps()
+	var ruta: String = TEX + "losas_piedra_ruinas.res"
+	ResourceSaver.save(ImageTexture.create_from_image(im), ruta)
+	print("OK     losas del suelo teñidas: %s (media de las losas %s -> muro %s)" % [ruta, media.linear_to_srgb(), muro.linear_to_srgb()])
+	return true
 
 
 ## El color del pack teñido de beige: beige × (1 + (lum − 0,4) × 2, entre 0,2 y 1,6) mezclado al DETALLE, todo en lineal.

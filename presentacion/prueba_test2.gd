@@ -1997,6 +1997,10 @@ func _construir_suelo(dibujar: bool = true) -> void:
 	# Es el suelo de tipo 3: bajo el cristal, la tinaja, los canales y el cauce seco.
 	var piedra: String = "losas_piedra.png" if ResourceLoader.exists(SUELO + "losas_piedra.png") else "stone_arriba.png"
 	mat_suelo.set_shader_parameter("t_piedra", _tex(SUELO + piedra))
+	# 25/11 (estilo «ruinas»): las mismas losas teñidas con el color de los muros del pack Stylescape, para que suelo y muro sean de la misma piedra
+	# (herramientas/generar_piezas_stylescape.gd las crea; sin ellas, las de siempre).
+	if estilo == "ruinas" and ResourceLoader.exists(LOSAS_RUINAS):
+		mat_suelo.set_shader_parameter("t_piedra", load(LOSAS_RUINAS) as Texture2D)
 	# Borde de hierba (15/10, DIARIO 84): si no está la textura el shader no pinta nada (borde_fuerza = 0).
 	if ResourceLoader.exists(SUELO + "hierba_borde.png"):
 		mat_suelo.set_shader_parameter("t_borde", load(SUELO + "hierba_borde.png") as Texture2D)
@@ -4168,6 +4172,7 @@ func _decor_lostcave(c: Vector2i) -> void:
 
 ## --- 25/11: estilo «ruinas»: muros finos del pack Stylescape: Ruins en los `#` que tocan suelo (presentacion/paredes_stylescape.gd) ---
 const PAREDES_SS = preload("res://presentacion/paredes_stylescape.gd")
+const LOSAS_RUINAS: String = "res://arte/stylescape/texturas/losas_piedra_ruinas.res"      ## 25/11: las losas del suelo con el tono de los muros (estilo «ruinas»)
 ## Musgo de ruina (el `musgo_ruina` del shader común, el mismo verde que el arco en ruinas del Bosque) en los muros del pack. El arco usa 0,92;
 ## en estos muros cubría casi todo y se perdía el beige: 0,5.
 const MUSGO_SS: float = 0.5
