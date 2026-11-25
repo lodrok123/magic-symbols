@@ -359,16 +359,25 @@ func apuntar_en_marcha(b: bool) -> void:
 
 ## Entra en el modo apuntar: la elfa pone el clip de lanzar de la forma y las motas del elemento en la mano (Pj3D.lanzar,
 ## del Pipeline) y sigue animada a velocidad normal aunque el mundo vaya al 70 %.
-func apuntar_lanzar(elemento: String, _forma: String, ralentizado: float) -> void:
+## 25/11: `conjuro_ual` true (flecha + fuego, lo decide Lanzador3D.usa_conjuro_ual) = en vez de readandwrite, el conjuro de Quaternius (Pj3D.apuntar_conjuro: entrar y mantener en bucle).
+var _conjuro_ual: bool = false
+
+
+func apuntar_lanzar(elemento: String, _forma: String, ralentizado: float, conjuro_ual: bool = false) -> void:
 	# 6.2: mientras se apunta se SOSTIENE readandwrite en bucle (una forma vacía no está en ANIM_CAST: Pj3D usa "leer") y
 	# las motas del elemento en la mano. El clip de la forma (`cast`) sale solo al soltar (lanzar_clip).
-	pj.apuntar()                                   # 6.11: libro en las manos + readandwrite sostenido
+	_conjuro_ual = conjuro_ual
+	if conjuro_ual:
+		pj.apuntar_conjuro()
+	else:
+		pj.apuntar()                               # 6.11: libro en las manos + readandwrite sostenido
 	pj.set_velocidad_animacion(1.0 / maxf(ralentizado, 0.1))
 
 
 ## Sale del modo apuntar (al soltar o al cancelar): vuelve a idle. Si se soltó, lanzar_clip vuelve a poner el clip.
 ## `lanzando` true = se sale del apuntado PARA LANZAR: el libro se queda en la mano (T-CP1: no vuelve al cinto hasta que acabe el lanzamiento).
 func terminar_apuntar(lanzando: bool = false) -> void:
+	_conjuro_ual = false                           # al lanzar, `lanzar_clip` recibe el suyo
 	pj.set_velocidad_animacion(1.0)
 	pj.soltar_lanzar(not lanzando)
 	_lanzando = false
@@ -389,8 +398,15 @@ func mirada() -> Vector3:
 ## Al soltar: el clip de la forma (Pj3D.ANIM_CAST, o readandwrite) y las motas, lo que dure el clip (entre 0,5 y 1,4 s).
 ## T-CP1: con `punto` (id de CastPoints) el clip es el del cast point (recortado, a su velocidad, con el libro en la mano que toca) y `_t_lanzar` dura
 ## lo que dura ese recorte; el disparo lo espera `Lanzador3D` mirando `fraccion_cast()`.
-func lanzar_clip(elemento: String, forma: String, punto: String = "", sostener: float = -1.0) -> void:
+func lanzar_clip(elemento: String, forma: String, punto: String = "", sostener: float = -1.0, conjuro_ual: bool = false) -> void:
 	pj.mirar(_mirada, 1.0)
+	_conjuro_ual = false
+	if conjuro_ual and pj.tiene_conjuro_ual():
+		# 25/11 (flecha + fuego): soltar y salir del conjuro UAL; vuelve a idle al acabar (soltar_lanzar), como los casts de siempre.
+		_t_lanzar = clampf(pj.lanzar_conjuro(elemento), 0.4, 2.5)
+		_lanzando = true
+		PlayLog.event("cast_clip", {"forma": forma, "clip": "conjuro_ual", "duracion": snappedf(_t_lanzar, 0.01)})
+		return
 	var d_punto: float = pj.lanzar(forma, elemento, punto, sostener)      # pone las motas del elemento y el clip de la forma (en bucle)
 	if pj.cast_activo():
 		_t_lanzar = clampf(d_punto, 0.4, 4.0 if sostener < 0.0 else T_LANZAR_SOSTENIDO_MAX)       # 19/11: un haz sostiene el gesto lo que dura (y la jugadora no se mueve mientras)
@@ -1766,7 +1782,12 @@ func _animar(mov: Vector3, correr: bool) -> void:
 		# A1: apuntando con 1/2/3 pulsada. Quieta: la pose de apuntar (libro en las manos); andando: el clip de andar (la mirada ya la lleva el Lanzador hacia el ratón). `jugar` no reinicia el clip que ya suena.
 		# Andando el clip sigue el ritmo del mundo (a `TIEMPO_PAGINA` los pies no patinan); quieta la pose va a velocidad normal, como en `apuntar_lanzar`.
 		pj.set_velocidad_animacion(1.0 if mov != Vector3.ZERO else 1.0 / maxf(Engine.time_scale, 0.1))
-		pj.jugar("walk" if mov != Vector3.ZERO else "leer")
+		if mov != Vector3.ZERO:
+			pj.jugar("walk")
+		elif _conjuro_ual:
+			pj.apuntar_conjuro()                       # 25/11: quieta, el conjuro (entrar → mantener); no lo reinicia si ya suena
+		else:
+			pj.jugar("leer")
 		return
 	if _t_lanzar > 0.0 or _t_golpe > 0.0 or (lanz != null and lanz.modo_lanzar):
 		return

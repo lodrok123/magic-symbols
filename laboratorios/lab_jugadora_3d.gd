@@ -30,8 +30,10 @@ const FPS_PASO: float = 30.0
 const TAM_CAMARA_JUEGO: float = 6.0              ## PruebaTest2.ZOOM_INICIAL (ventana de altura 1, vertical)
 const ELEVACION_JUEGO: float = 30.0              ## 90° − INCLINACION (60°) de PruebaTest2
 const CENTRO_JUEGO: float = 0.85                 ## el foco del juego está a 0,85 del alto del personaje (PruebaTest2._centro)
-const ANCHO_PANEL_IZQ: float = 470.0
-const ANCHO_PANEL_DER: float = 350.0
+## 25/11 (Pablo: «me gustaría que los menús fueran mucho más pequeños»): letra y paneles reducidos. TAM_LETRA es el tamaño de toda la interfaz (antes, el de Godot: 16).
+const TAM_LETRA: int = 10
+const ANCHO_PANEL_IZQ: float = 290.0
+const ANCHO_PANEL_DER: float = 220.0
 const PEORES: int = 5
 const PESO_CABEZA_MIN: float = 0.5               ## peso en Head para que un vértice cuente como «de la cabeza» al medirla
 const COLOR_PIERNAS: Color = Color(0.35, 1.0, 0.45)
@@ -46,6 +48,12 @@ const NOMBRES_CAMARA: Array = ["frente", "lado", "tres_cuartos", "arriba", "jueg
 ## Los nombres de destino no contienen ninguna clave de Pj3D.SINONIMOS (el tercer barrido de `_buscar_clip` busca por «contains»), así que no le quitan ningún rol a
 ## los clips de siempre. Fuera de la revisión: Pistol_* (6), Driving_Loop y A_TPose.
 const PREFIJO_UAL: String = "UAL_"
+## DEDOS (25/11, Pablo: «¿por qué los dedos están así?»): los clips UAL son los primeros que traen pista de dedos (los de chibi_elf no: los dedos de la jugadora se
+## quedan en su reposo, cerrado por Pj3D.MANO_RELAJADA). El retarget copia el giro de cada falange RESPECTO A SU REPOSO, y el reposo de la mano del maniquí
+## (dedos casi rectos) no es el de la jugadora (cerrados por MANO_RELAJADA): esa diferencia pasaba entera y los dedos se metían en la palma. Se alinea también el
+## tramo de cada falange (ClipsFamilia.DEDOS_ALINEAR, «alinear_extra»), solo para estos clips. false = como antes (para comparar; los cuatro del conjuro ya los
+## da el juego con ClipsFamilia.FUENTE_CLIPS_UAL y van siempre alineados).
+static var alinear_dedos_ual: bool = true
 const FUENTE_REVISION_UAL: Dictionary = {
 	"ruta": "res://arte/ual/ual1_standard_mixamo.glb", "referencia": "Idle", "clips": {
 		# conjuro en cuatro fases (preparar · mantener en bucle · soltar · volver)
@@ -203,7 +211,9 @@ func _poner_clips_revision() -> void:
 		push_warning("LabJugadora3D: falta %s (tools/ual_a_mixamo.py)" % ruta)
 		return
 	var res: Dictionary = {}
-	ClipsFamilia._traer_de(FUENTE_REVISION_UAL, _pj._modelo, _sk, res, ClipsFamilia.alinear_de(ID))
+	var f: Dictionary = FUENTE_REVISION_UAL.duplicate()
+	f["alinear_extra"] = ClipsFamilia.DEDOS_ALINEAR if alinear_dedos_ual else []
+	ClipsFamilia._traer_de(f, _pj._modelo, _sk, res, ClipsFamilia.alinear_de(ID))
 	var lib: AnimationLibrary = _ap.get_animation_library("")
 	for nombre in res.keys():
 		if not lib.has_animation(nombre):
@@ -387,7 +397,10 @@ func _refrescar_cabeza() -> void:
 func _montar_interfaz() -> void:
 	_capa = CanvasLayer.new()
 	add_child(_capa)
+	var tema := Theme.new()
+	tema.default_font_size = TAM_LETRA
 	_caja_panel = PanelContainer.new()
+	_caja_panel.theme = tema
 	_caja_panel.anchor_bottom = 1.0
 	_caja_panel.offset_left = 8.0
 	_caja_panel.offset_top = 8.0
@@ -404,7 +417,7 @@ func _montar_interfaz() -> void:
 	caja.add_child(_titulo("LAB JUGADORA · %s (no modifica archivos)" % ID))
 	caja.add_child(_titulo("Clips (clic o ↑/↓) · [roles de Pj3D] · duración · ← fuente"))
 	_lista = ItemList.new()
-	_lista.custom_minimum_size = Vector2(0.0, 300.0)
+	_lista.custom_minimum_size = Vector2(0.0, 220.0)
 	_lista.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	for i in range(_clips.size()):
 		_lista.add_item(_texto_clip(_clips[i] as Dictionary))
@@ -432,7 +445,7 @@ func _montar_interfaz() -> void:
 	caja.add_child(f_t)
 	var lt := Label.new()
 	lt.text = "fotograma"
-	lt.custom_minimum_size = Vector2(80.0, 0.0)
+	lt.custom_minimum_size = Vector2(50.0, 0.0)
 	f_t.add_child(lt)
 	_sl_tiempo = HSlider.new()
 	_sl_tiempo.min_value = 0.0
@@ -446,7 +459,7 @@ func _montar_interfaz() -> void:
 		poner_fraccion(v))
 	f_t.add_child(_sl_tiempo)
 	_lbl_tiempo = Label.new()
-	_lbl_tiempo.custom_minimum_size = Vector2(110.0, 0.0)
+	_lbl_tiempo.custom_minimum_size = Vector2(70.0, 0.0)
 	f_t.add_child(_lbl_tiempo)
 
 	_chk_fuente = _casilla(caja, "Modelo fuente al lado, con el clip original (F)", true, func(on: bool) -> void: mostrar_fuente(on))
@@ -469,11 +482,11 @@ func _montar_interfaz() -> void:
 			_poner_cabeza(v))
 	f_c.add_child(_sl_cabeza)
 	_lbl_cabeza = Label.new()
-	_lbl_cabeza.custom_minimum_size = Vector2(60.0, 0.0)
+	_lbl_cabeza.custom_minimum_size = Vector2(40.0, 0.0)
 	f_c.add_child(_lbl_cabeza)
 	_lbl_alturas = Label.new()
 	_lbl_alturas.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	_lbl_alturas.custom_minimum_size = Vector2(430.0, 0.0)
+	_lbl_alturas.custom_minimum_size = Vector2(ANCHO_PANEL_IZQ - 40.0, 0.0)
 	caja.add_child(_lbl_alturas)
 
 	caja.add_child(_titulo("Cámara"))
@@ -489,13 +502,15 @@ func _montar_interfaz() -> void:
 
 	var ayuda := Label.new()
 	ayuda.text = "1-5 cámara · Espacio pausa · V velocidad · ←/→ fotograma · ↑/↓ clip · U siguiente UAL · F fuente · S esqueleto · M marcas · R ropa · T atuendo · P postura de la elfa · -/+ cabeza · H cabeza del juego · rueda zoom · arrastrar orbita"
+	ayuda.theme = tema
 	ayuda.anchor_top = 1.0
 	ayuda.anchor_bottom = 1.0
-	ayuda.offset_top = -28.0
+	ayuda.offset_top = -18.0
 	ayuda.offset_left = 8.0
 	_capa.add_child(ayuda)
 
 	_panel_der = PanelContainer.new()
+	_panel_der.theme = tema
 	_panel_der.anchor_left = 1.0
 	_panel_der.anchor_right = 1.0
 	_panel_der.anchor_bottom = 1.0

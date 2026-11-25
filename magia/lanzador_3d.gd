@@ -1159,7 +1159,8 @@ func _entrar_modo_lanzar(rapido: bool = false, pagina: int = -1) -> void:
 			jugador.call("apuntar_en_marcha", true)
 		else:
 			jugador.call("bloquear", true)
-		jugador.call("apuntar_lanzar", Objetos.elemento_de(rune), (_preparado["receta"] as Receta3D).forma_vfx(), tiempo)
+		jugador.call("apuntar_lanzar", Objetos.elemento_de(rune), (_preparado["receta"] as Receta3D).forma_vfx(), tiempo,
+			usa_conjuro_ual(_preparado["receta"] as Receta3D, Objetos.elemento_de(rune)))
 	_crear_marcadores(rune.color)
 	Sensacion3D.carga(self, Objetos.elemento_de(rune))     # gamefeel lote 4: el aro que se cierra en la mano y el zumbido que sube
 	if rapido:
@@ -1421,6 +1422,16 @@ func _avisar_sin_construir(motivo: String) -> void:
 ## Lo que pasa al soltar: animación, cobro, recarga y (tras el conjuro, si lo hay) el disparo. Público para las pruebas.
 ## `con_conjuro` false = el disparo sale en el mismo fotograma, como antes de la Fase 14.5.
 ## Devuelve false si un sólido quieto no cabe donde nace (aviso y NADA se cobra: ni tinta ni recarga); true si se lanzó.
+## CONJURO UAL (25/11, Pablo: «para la flecha + fuego (hechizos de movimiento) usa en bucle el conjunto UAL conjuro 1, 2, 3 y 4»): elementos con los que un hechizo con
+## FLECHA se apunta y se lanza con las cuatro fases del conjuro de Quaternius (Pj3D.apuntar_conjuro / lanzar_conjuro) en vez de readandwrite + el clip de la forma.
+## Para dárselo a otro elemento basta añadirlo aquí.
+const CONJURO_UAL_ELEMENTOS: PackedStringArray = ["fuego"]
+
+
+static func usa_conjuro_ual(receta: Receta3D, elemento: String) -> bool:
+	return receta != null and CONJURO_UAL_ELEMENTOS.has(elemento) and int(receta.contadores.get("flecha", 0)) > 0
+
+
 func lanzar_ahora(datos: Dictionary, origen: Vector3, dir: Vector3, con_conjuro: bool = false) -> bool:
 	var motivo_no: String = rechazo_de_construccion(datos, origen, dir)
 	if motivo_no != "":
@@ -1440,10 +1451,15 @@ func lanzar_ahora(datos: Dictionary, origen: Vector3, dir: Vector3, con_conjuro:
 		var sostener_gesto: float = -1.0
 		var h_gesto: Hechizo = receta.hechizo(rune)
 		var punto_haz: String = CastPoints.variacion_de("haz")
-		if GESTO_HAZ and h_gesto != null and h_gesto.haz and punto_haz != "":
+		var es_haz: bool = GESTO_HAZ and h_gesto != null and h_gesto.haz and punto_haz != ""
+		if es_haz:
 			punto = punto_haz
 			sostener_gesto = Hechizo.HAZ_DURA_S + h_gesto.permanencia
-		jugador.call("lanzar_clip", elemento, receta.forma_vfx(), punto, sostener_gesto)
+		# 25/11: flecha + fuego se lanza con el conjuro UAL (soltar → salir), sin cast point; un haz conserva su gesto sostenido.
+		var conjuro: bool = usa_conjuro_ual(receta, elemento) and not es_haz
+		if conjuro:
+			punto = ""
+		jugador.call("lanzar_clip", elemento, receta.forma_vfx(), punto, sostener_gesto, conjuro)
 		var activo: String = String(jugador.call("punto_cast")) if jugador.has_method("punto_cast") else ""
 		if activo != "":
 			_cast_point = {"id": activo, "origen": String(CastPoints.datos(activo)["origen"]), "dir": dir, "origen_mundo": origen, "elemento": elemento}

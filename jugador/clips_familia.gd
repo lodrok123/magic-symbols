@@ -86,6 +86,22 @@ const FUENTE_MIXAMO_ANCIANA: Dictionary = {
 	"ruta": RUTA_CLIPS_MIXAMO, "referencia": "Idle", "clips": {
 		"Mixamo_Rezar": "Praying_2",
 	}}
+## CONJURO UAL (25/11, Pablo: «para la flecha + fuego (hechizos de movimiento) usa en bucle el conjunto UAL conjuro 1, 2, 3 y 4»): los cuatro clips del conjuro de la Universal
+## Animation Library de Quaternius (CC0; arte/ual/ual1_standard_mixamo.glb, huesos renombrados con tools/ual_a_mixamo.py). Los encadena Pj3D (`apuntar_conjuro` / `lanzar_conjuro`):
+##   UAL_Conjuro1Entrar  alza la mano derecha (una vez)          UAL_Conjuro2Mantener  la mano en alto, cargando (bucle, mientras se apunta)
+##   UAL_Conjuro3Soltar  empuja la mano al frente (una vez)      UAL_Conjuro4Salir     baja la mano (una vez)
+## «referencia»: Idle (Godot quita el «_Loop» de Idle_Loop al importar). «alinear_extra»: los clips UAL traen pista de DEDOS y el reposo de la mano del maniquí (dedos casi
+## rectos) no es el de la jugadora (cerrados por Pj3D.MANO_RELAJADA): sin alinear las falanges, cada una sumaba unos 20° de más y los dedos se metían en la palma (100–126° por
+## falange, medido con herramientas/medidas_dedos_ual.gd; alineados copian los del maniquí). Solo para esta fuente: las demás no cambian.
+const RUTA_CLIPS_UAL: String = "res://arte/ual/ual1_standard_mixamo.glb"
+const DEDOS_ALINEAR: Array = [
+	"HandThumb1", "HandThumb2", "HandThumb3", "HandIndex1", "HandIndex2", "HandIndex3", "HandMiddle1", "HandMiddle2", "HandMiddle3",
+	"HandRing1", "HandRing2", "HandRing3", "HandPinky1", "HandPinky2", "HandPinky3"]
+const FUENTE_CLIPS_UAL: Dictionary = {
+	"ruta": RUTA_CLIPS_UAL, "referencia": "Idle", "alinear_extra": DEDOS_ALINEAR, "clips": {
+		"UAL_Conjuro1Entrar": "Spell_Simple_Enter", "UAL_Conjuro2Mantener": "Spell_Simple_Idle",
+		"UAL_Conjuro3Soltar": "Spell_Simple_Shoot", "UAL_Conjuro4Salir": "Spell_Simple_Exit",
+	}}
 ## SURGIR (12/11): el único clip de Mixamo que se añade al fantasma (el mouro sale del pozo, `MouroEspectro3D`) y a las dos ánimas de la Santa Compaña (la repuesta sale de la tierra,
 ## `SantaCompana3D`) es el de levantarse del suelo (Getting_Up, rol `cast_surgir` de `Pj3D.SINONIMOS`).
 const FUENTE_MIXAMO_SURGIR: Dictionary = {
@@ -141,6 +157,7 @@ const FUENTES: Dictionary = {
 		FUENTE_UNA_MANO,             # 24/10: los tres casts a una mano (CastOneHandFront / Up / Ground)
 		FUENTE_CLIPS_CARGA,          # 4/11: cargar_idle, cargar_andar, levantar, lanzar_objeto, dejar_objeto y coger_lanzar (ver arriba)
 		FUENTE_CLIPS_MIXAMO,         # 5/11: Mixamo_CastDosManos, Mixamo_Nadar, Mixamo_Flotar y Mixamo_Voltereta (ver arriba)
+		FUENTE_CLIPS_UAL,            # 25/11: los cuatro del conjuro de Quaternius (flecha + fuego; ver arriba)
 	],
 	# Chamán goblin (28/10): el esqueleto de Marimanta (66 huesos con las MISMAS bases de hueso: tools/autorig_chaman.py) y sus 7 clips (idle, andar de anciana, hablar, tramar, correr); las reacciones
 	# (hit, death, ahogarse), del goblin guerrero como las del asesino. `trazar` y `clavar` los genera AnimacionesChaman. Con `{}` se traen todos los de Marimanta con su nombre.
@@ -369,7 +386,9 @@ static func _traer_de(f: Dictionary, modelo_d: Node3D, sk_d: Skeleton3D, res: Di
 		return
 	var ap_s: AnimationPlayer = aps[0] as AnimationPlayer
 	var c := _Ctx.new()
-	c.preparar(fuente, sks[0] as Skeleton3D, modelo_d, sk_d, alinear)
+	# «alinear_extra» (opcional): huesos que se alinean SOLO con esta fuente (los dedos de los clips UAL), además de los del destino.
+	var alinear_f: Array = alinear + (f.get("alinear_extra", []) as Array) if not alinear.is_empty() else alinear
+	c.preparar(fuente, sks[0] as Skeleton3D, modelo_d, sk_d, alinear_f)
 	var base: String = String(modelo_d.get_path_to(sk_d)) + ":"
 	# 1) la altura de los pies: con el clip de referencia de la fuente, cuánto hay que subir/bajar la cadera destino.
 	var referencia: String = String(f.get("referencia", CLIP_REFERENCIA))

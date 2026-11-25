@@ -78,6 +78,11 @@ const SINONIMOS: Dictionary = {
 	"cast_agarre": ["chargedspellcast001"],       # el toque del mouro (antes pedido por nombre en `MouroEspectro3D._clip_toque`)
 	"cast_recoger": ["collectobject"],            # la ánima nueva guía se agacha a recoger la cruz del suelo (`AnimaCompana3D.recoger_cruz`)
 	"cast_surgir": ["mixamo_incorporarse"],       # el mouro sale del pozo y la ánima repuesta de la tierra: se levantan del suelo (Getting_Up de Mixamo, ver `ClipsFamilia.FUENTE_MIXAMO_SURGIR`)
+	# Conjuro UAL (25/11; flecha + fuego): las cuatro fases que encadenan `apuntar_conjuro` y `lanzar_conjuro` (ver CONJURO_UAL). Estados del árbol «lanzar_conjuro_*».
+	"cast_conjuro_entrar": ["ual_conjuro1entrar"],
+	"cast_conjuro_mantener": ["ual_conjuro2mantener"],
+	"cast_conjuro_soltar": ["ual_conjuro3soltar"],
+	"cast_conjuro_salir": ["ual_conjuro4salir"],
 }
 
 ## Segundo del clip (a velocidad 1) en que ocurre lo que el Juego sincroniza con él: en `abrir_cofre`, las manos llegan abajo, a la tapa (el clip recortado empieza 0,8 s después
@@ -1143,6 +1148,7 @@ func _process(delta: float) -> void:
 	_actualizar_equipo_solo_en()
 	if not _juguete.is_empty():
 		sincronizar_juguete()    # juguete: el tinte que Combate3D escribe en el material de control pasa al shader
+	_seguir_conjuro()
 	if _cp.is_empty() or _arbol == null or not _arbol.listo():
 		return
 	# `posicion()` es relativa al recorte [a, b]; el instante, en segundos absolutos del clip como siempre. El congelado es la velocidad 0 del árbol:
@@ -1455,6 +1461,82 @@ func apuntar() -> void:
 func cancelar_apuntar() -> void:
 	libro_en_manos(false, 0.15)
 	soltar_lanzar()
+
+
+## --- CONJURO UAL (25/11, Pablo: «para la flecha + fuego (hechizos de movimiento) usa en bucle el conjunto UAL conjuro 1, 2, 3 y 4») ---
+## Las cuatro fases del conjuro de Quaternius (ClipsFamilia.FUENTE_CLIPS_UAL) encadenadas: al APUNTAR, entrar (una vez) y mantener (en bucle mientras se apunta);
+## al SOLTAR, soltar y salir (una vez cada una) y, al acabar el lanzamiento, idle (`soltar_lanzar`). El libro va en la mano izquierda: el conjuro es de la derecha.
+## Quien elige el conjuro es Lanzador3D (`usa_conjuro_ual`). Si al personaje le falta alguno de los cuatro clips, se apunta y se lanza como siempre.
+const CONJURO_UAL: Array = ["cast_conjuro_entrar", "cast_conjuro_mantener", "cast_conjuro_soltar", "cast_conjuro_salir"]
+## Velocidad de soltar y salir (1 = la del clip: 0,50 s y 0,43 s, ya cortos; los casts de siempre van a VEL_CAST porque duran 1–3 s).
+const VEL_CONJURO_UAL: float = 1.0
+var _conjuro_de: String = ""                   ## rol de la cadena que suena ahora; al terminar pasa a `_conjuro_sig` («» = sin cadena)
+var _conjuro_sig: String = ""
+
+
+func tiene_conjuro_ual() -> bool:
+	if _ap == null:
+		return false
+	for rol in CONJURO_UAL:
+		if _buscar_clip(String(rol)) == "":
+			return false
+	return true
+
+
+## Apuntar con el conjuro: como `apuntar()` (libro en la mano, sin chispas) pero con entrar → mantener. Se puede llamar cada fotograma (Jugador3D, apuntado rápido
+## quieta): si ya está entrando o manteniendo, no reinicia nada.
+func apuntar_conjuro() -> void:
+	if not tiene_conjuro_ual():
+		if animacion_actual != "leer":
+			apuntar()
+		return
+	if animacion_actual == CONJURO_UAL[0] or animacion_actual == CONJURO_UAL[1]:
+		return
+	_quitar_chispas()
+	_cp = {}
+	_brazo_libro_peso(0.0)
+	animacion_actual = ""
+	_encadenar(CONJURO_UAL[0], CONJURO_UAL[1], 1.0)
+	libro_en_manos(true)
+
+
+## Soltar el conjuro: soltar → salir, con las chispas del elemento en la mano derecha. Devuelve lo que duran las dos (s); el Juego llama a `soltar_lanzar()` al acabar.
+func lanzar_conjuro(elemento: String) -> float:
+	if not tiene_conjuro_ual():
+		return lanzar("proyectil", elemento)
+	_quitar_chispas()
+	_cp = {}
+	_brazo_libro_peso(0.0)
+	animacion_actual = ""
+	_encadenar(CONJURO_UAL[2], CONJURO_UAL[3], VEL_CONJURO_UAL)
+	_poner_chispas(elemento)
+	return (duracion(CONJURO_UAL[2]) + duracion(CONJURO_UAL[3])) / VEL_CONJURO_UAL
+
+
+## Pone `rol` una vez y deja `sig` para cuando acabe (`_seguir_conjuro`). `sig` en bucle si es el de mantener.
+func _encadenar(rol: String, sig: String, vel: float) -> void:
+	jugar(rol, true, vel)
+	_conjuro_de = rol if animacion_actual == rol else ""
+	_conjuro_sig = sig if _conjuro_de != "" else ""
+
+
+## Cada fotograma: cuando el clip de la cadena llega al final, pone el siguiente. Si otro clip lo ha sustituido (andar, golpe, idle), la cadena se olvida.
+func _seguir_conjuro() -> void:
+	if _conjuro_de == "" or _arbol == null:
+		return
+	if animacion_actual != _conjuro_de:
+		_conjuro_de = ""
+		_conjuro_sig = ""
+		return
+	if _conjuro_sig == "" or not _arbol.terminado():
+		return
+	var sig: String = _conjuro_sig
+	var vel: float = _arbol.vel_estado
+	animacion_actual = ""
+	var bucle: bool = sig == CONJURO_UAL[1]
+	jugar(sig, not bucle, vel)
+	_conjuro_de = sig if animacion_actual == sig and not bucle else ""
+	_conjuro_sig = ""
 
 
 ## --- 6.12 Clips nuevos del héroe ---
