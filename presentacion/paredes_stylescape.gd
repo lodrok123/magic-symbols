@@ -64,6 +64,10 @@ const ADORNOS: Array = ["SM_HangingIvy_05", "SM_HangingIvy_06", "SM_HangingIvy_0
 	"SM_Stone_01", "SM_Stone_02", "SM_Stone_03", "SM_Floor_4x4_TopFace_01", "SM_Floor_4x4_TopFace_02", "SM_Floor_4x4_TopFace_03",
 	"SM_Wall_LedgeDetail_04", "SM_Crate_01"]
 
+## 25/11: franja de sombra de contacto al pie de los muros (la crea el generador de piezas; ver presentacion/sombra_base_ruinas.gdshader).
+const SOMBRA_BASE: String = "ss_sombra_base"
+const ALTO_SOMBRA: float = 0.03      ## u sobre el suelo (las losas del pack van a 0,015)
+
 const DIRS: Array = [Vector2i(1, 0), Vector2i(-1, 0), Vector2i(0, 1), Vector2i(0, -1)]      ## E, O, S, N
 const FONDO_SALA_MIN: int = 2       ## filas de suelo detrás del muro para que sea una sala o pasillo (con 1 es un callejón: el muro sigue alto)
 const FONDO_SALA_MAX: int = 12      ## más allá, lo de detrás es campo abierto (el muro sigue alto)
@@ -130,6 +134,26 @@ static func muros(c: Vector2i, es_suelo: Callable, es_muro: Callable, y: float, 
 		res.append([id_de(POSTE_BAJO if todos_bajos and res.size() > 0 else POSTE_ALTO), Transform3D(Basis.IDENTITY, centro)])
 	if contrafuerte != Vector2i.ZERO:
 		res.append_array(contrafuerte_de(c, contrafuerte, y, bool(une[0][1]) or bool(une[1][1])))
+	res.append_array(sombras_base(c, une, es_suelo, centro, contrafuerte))
+	return res
+
+
+## 25/11 (Pablo: «la base del muro acaba recta; una sombra estrecha y suave pegada a la base»): por cada brazo de muro de la casilla (del centro
+## a la vecina con la que une), una franja de sombra a cada costado que da al suelo, pegada a la cara. Del lado de una trampa, en la cara del
+## contrafuerte (el borde de la casilla). Array de [id, Transform3D].
+static func sombras_base(c: Vector2i, une: Array, es_suelo: Callable, centro: Vector3, contrafuerte: Vector2i = Vector2i.ZERO) -> Array:
+	var res: Array = []
+	for i in range(4):
+		if not une[i][0]:
+			continue
+		var a: Vector2i = DIRS[i]
+		for p in [Vector2i(a.y, a.x), Vector2i(-a.y, -a.x)]:
+			if not (es_suelo.call(c + p) or es_suelo.call(c + a + p)):
+				continue
+			var p3 := Vector3(float(p.x), 0.0, float(p.y))
+			var fuera: float = S * 0.5 if p == contrafuerte else MEDIO_GRUESO
+			var pos: Vector3 = centro + Vector3(float(a.x), 0.0, float(a.y)) * S * 0.25 + p3 * fuera + Vector3(0.0, ALTO_SOMBRA, 0.0)
+			res.append([SOMBRA_BASE, Transform3D(Basis(Vector3.UP, atan2(p3.x, p3.z)), pos)])
 	return res
 
 

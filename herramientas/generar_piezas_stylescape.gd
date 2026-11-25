@@ -36,7 +36,11 @@ const RECETAS: Dictionary = {
 	"MI_Ivy_Vine_02": ["T_IvyBranch_02_D", "", "", "hiedra"],
 }
 ## Las losas del pack (MI_Floors, la misma textura que los muros): reciben la luz de arriba y salen más claras que el frente del muro; esto las iguala.
-const COLOR_LOSAS: Color = Color(0.9, 0.86, 0.8)      ## medido: con (0,86·0,84·0,82) salía menos saturado y más oscuro que el muro; con (0,95·0,9·0,82), más; este, entre los dos
+## 25/11, 2.º (Pablo: «diferencia ligeramente el color del suelo»): un poco más oscuro y más gris que el ladrillo, para que muro y suelo no se fundan.
+## (Antes Color(0,9·0,86·0,8) lo igualaba al muro: 43°·0,247·0,631 contra 44°·0,224·0,627.)
+const COLOR_LOSAS: Color = Color(0.84, 0.81, 0.78)
+const AO_LOSAS: float = 0.6
+const RELIEVE_LOSAS: float = 1.6
 ## La hiedra del pack es un verde muy claro (en Unreal la oscurecía su `Ivy Tint`): se multiplica por esto para que no brille más que la hierba.
 const TINTE_HIEDRA: Color = Color(0.62, 0.68, 0.55)
 
@@ -56,7 +60,40 @@ func _initialize() -> void:
 			bien += 1
 	print("RESULTADO piezas=%d de %d" % [bien, PAREDES.TODAS.size()])
 	var losas: bool = _losas_ruinas()
-	quit(0 if bien == PAREDES.TODAS.size() and losas else 1)
+	var sombra: bool = _sombra_base()
+	quit(0 if bien == PAREDES.TODAS.size() and losas and sombra else 1)
+
+
+## 25/11 (Pablo: «una sombra estrecha y suave pegada a la base»): la franja de sombra de contacto (presentacion/sombra_base_ruinas.gdshader), de MEDIA
+## casilla de largo (un brazo de muro) y con Z local de la cara del muro (0) hacia fuera. Sin cuerpo ni sombra propia.
+func _sombra_base() -> bool:
+	var raiz := Node3D.new()
+	var id: String = PAREDES.SOMBRA_BASE
+	raiz.name = id
+	raiz.set_meta("id", id)
+	raiz.set_meta("bloquea", false)
+	raiz.set_meta("reactivo", false)
+	raiz.set_meta("inflamable", false)
+	raiz.set_meta("origen", "Magic Symbols")
+	raiz.set_meta("categoria", "sombra")
+	var plano := PlaneMesh.new()
+	plano.size = Vector2(PAREDES.S * 0.5, 0.5)
+	plano.center_offset = Vector3(0.0, 0.0, 0.25)
+	var mat := ShaderMaterial.new()
+	mat.shader = load("res://presentacion/sombra_base_ruinas.gdshader")
+	plano.material = mat
+	var mi := MeshInstance3D.new()
+	mi.name = "malla"
+	mi.mesh = plano
+	mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	raiz.add_child(mi)
+	mi.owner = raiz
+	var emp := PackedScene.new()
+	emp.pack(raiz)
+	var err: int = ResourceSaver.save(emp, PAREDES.RUTA + id + ".tscn")
+	raiz.free()
+	print("%s    %s (sombra de contacto)" % ["OK " if err == OK else "FALLO", id])
+	return err == OK
 
 
 ## Calibrado en pantalla (25/11, docs/capturas/stylescape/trampas/2_patio_dragon.png, sin los píxeles de musgo): con el color medio tal cual el suelo
@@ -149,6 +186,9 @@ func _material(m: String) -> Material:
 		mat.roughness_texture = null
 		mat.roughness = 1.0
 		mat.albedo_color = COLOR_LOSAS       # 25/11: calibrado en pantalla contra el ladrillo del muro
+		# 2.º (Pablo: «el suelo parece lavado, las juntas muy tenues»): la oclusión del AORM también con luz directa y más relieve: las juntas se leen.
+		mat.ao_light_affect = AO_LOSAS
+		mat.normal_scale = RELIEVE_LOSAS
 	ResourceSaver.save(mat, MATERIALES + m + ".tres")
 	_mats[m] = load(MATERIALES + m + ".tres")
 	return _mats[m]
