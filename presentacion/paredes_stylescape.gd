@@ -16,8 +16,11 @@ extends RefCounted
 ##
 ## TRAMPAS DE PARED (25/11): una trampa (`trampa_flechas`, `trampa_dragon`) va pegada a la CARA de su casilla `#` (media casilla hacia el suelo), pero
 ## el muro fino va por el EJE: sin más, la trampa flotaba a 1 u del muro. En esa casilla se pone además un CONTRAFUERTE (`contrafuerte` = hacia dónde
-## mira la trampa): un pilar del pack de 1 u de lado que sale del muro hasta la cara de la casilla; la trampa queda apoyada en él. Y el tramo de esa
-## casilla es liso (sin ventanas: una ventana detrás de la trampa se veía por los lados).
+## mira la trampa) que llena desde el muro hasta la cara de la casilla; la trampa queda apoyada en él. Y el tramo de esa casilla es liso (sin ventanas:
+## una ventana detrás de la trampa se veía por los lados). 25/11 (Pablo: «integra la base de la trampa en el muro, que parezcan del mismo sitio»): el
+## contrafuerte ya no es un pilar (otro dibujo de piedra) sino dos tramos de MURO GRUESO del pack (el mismo ladrillo que el muro fino), uno detrás de otro,
+## de una casilla de ancho: la casilla de la trampa se lee como un trozo de muro macizo. Y `integrar_trampa` pasa la piedra de la propia trampa (la losa
+## del mascarón o del dragón) al beige de los muros (presentacion/piedra_ruinas.gdshader).
 
 const RUTA: String = "res://arte/stylescape/piezas/"
 const S: float = 2.3
@@ -29,13 +32,14 @@ const BAJOS_4: Array = ["SM_Wall_Half_04"]      ## (SM_Wall_Dmg_02_Half_01 mide 
 const BAJOS_2: Array = ["SM_Wall_Half_02", "SM_Wall_Dmg_03_Half_01", "SM_Wall_Dmg_04_Half_02"]
 const POSTE_ALTO: String = "SM_Wall_01_Corner"
 const POSTE_BAJO: String = "SM_Wall_Half_Corner"
-const CONTRAFUERTE: String = "SM_Pillar_01"       ## 1,8 × 1,8 × 3 m = 1,03 × 1,03 × 1,72 u
-const CONTRAFUERTE_LADO: float = 1.035            ## u
+const CONTRAFUERTE: String = "SM_Wall_Thick_04"        ## 4 × 1 × 3 m = 2,3 × 0,575 × 1,72 u (alto)
+const CONTRAFUERTE_BAJO: String = "SM_Wall_Thick_Half_04"   ## 4 × 1 × 1,5 m (en una pared sur, que va baja)
+const CONTRAFUERTE_FONDO: float = 0.575               ## u: dos tramos llenan la media casilla (1,15 u) del eje a la cara
 ## Todas las mallas que usa (el generador de piezas las crea).
 const TODAS: Array = ["SM_Wall_04", "SM_Wall_Dmg_02", "SM_Wall_Windows_01", "SM_Wall_Dmg_04", "SM_Wall_Dmg_03",
 	"SM_Wall_02", "SM_Wall_Dmg_03_Alt", "SM_Wall_Dmg_04_Alt", "SM_Wall_Windows_Half",
 	"SM_Wall_Half_04", "SM_Wall_Half_02", "SM_Wall_Dmg_03_Half_01", "SM_Wall_Dmg_04_Half_02",
-	"SM_Wall_01_Corner", "SM_Wall_Half_Corner", "SM_Pillar_01"]
+	"SM_Wall_01_Corner", "SM_Wall_Half_Corner", "SM_Wall_Thick_04", "SM_Wall_Thick_Half_04"]
 
 const DIRS: Array = [Vector2i(1, 0), Vector2i(-1, 0), Vector2i(0, 1), Vector2i(0, -1)]      ## E, O, S, N
 const OCHO: Array = [Vector2i(1, 0), Vector2i(-1, 0), Vector2i(0, 1), Vector2i(0, -1), Vector2i(1, 1), Vector2i(1, -1), Vector2i(-1, 1), Vector2i(-1, -1)]
@@ -96,16 +100,116 @@ static func muros(c: Vector2i, es_suelo: Callable, es_muro: Callable, y: float, 
 			res.append([id_de(_de(BAJOS_2 if bajo2 else ALTOS_2, h + i * 7)), _xf(mitad, 0.0 if d.y == 0 else 90.0, h + i)])
 		res.append([id_de(POSTE_BAJO if todos_bajos and res.size() > 0 else POSTE_ALTO), Transform3D(Basis.IDENTITY, centro)])
 	if contrafuerte != Vector2i.ZERO:
-		res.append(contrafuerte_de(c, contrafuerte, y))
+		res.append_array(contrafuerte_de(c, contrafuerte, y, bool(une[0][1]) or bool(une[1][1])))
 	return res
 
 
 ## El tramo de `c` hacia `d` tiene suelo a un lado (en `c` o en la vecina, a cualquiera de los dos costados).
-## El contrafuerte de una trampa: su cara delantera en la cara de la casilla que da a `d`; por detrás se mete en el muro fino del eje.
-static func contrafuerte_de(c: Vector2i, d: Vector2i, y: float) -> Array:
+## El contrafuerte de una trampa: dos tramos de muro grueso de una casilla de ancho, uno pegado al eje y otro delante, hasta la cara de la casilla
+## que da a `d`. Array de [id, Transform3D]. `bajo` = la pared sur (va baja).
+static func contrafuerte_de(c: Vector2i, d: Vector2i, y: float, bajo: bool = false) -> Array:
 	var centro := Vector3((float(c.x) + 0.5) * S, y, (float(c.y) + 0.5) * S)
-	var k: float = S * 0.5 - CONTRAFUERTE_LADO * 0.5
-	return [id_de(CONTRAFUERTE), Transform3D(Basis.IDENTITY, centro + Vector3(float(d.x), 0.0, float(d.y)) * k)]
+	var giro: float = 0.0 if d.y != 0 else 90.0           # lo largo del tramo, a lo largo del muro
+	var id: String = id_de(CONTRAFUERTE_BAJO if bajo else CONTRAFUERTE)
+	var res: Array = []
+	for k in [CONTRAFUERTE_FONDO * 0.5, CONTRAFUERTE_FONDO * 1.5]:
+		res.append([id, Transform3D(Basis(Vector3.UP, deg_to_rad(giro)), centro + Vector3(float(d.x), 0.0, float(d.y)) * k)])
+	return res
+
+
+## --- la piedra de la trampa, como la de los muros ---
+const SHADER_PIEDRA = preload("res://presentacion/piedra_ruinas.gdshader")
+const TEX_PIEDRA: String = "res://arte/stylescape/texturas/T_WallTrim_NoMoss_D_beige.res"
+static var _color_piedra: Color = Color(0.0, 0.0, 0.0, 0.0)
+static var _lum_tex: Dictionary = {}       ## textura -> luminancia media de su piedra (lineal)
+
+
+## El color medio de la piedra de los muros (el beige horneado del pack), en sRGB.
+static func color_piedra() -> Color:
+	if _color_piedra.a > 0.0:
+		return _color_piedra
+	_color_piedra = Color(0.72, 0.63, 0.55)
+	if ResourceLoader.exists(TEX_PIEDRA):
+		var im: Image = (load(TEX_PIEDRA) as Texture2D).get_image()
+		if im != null and not im.is_empty():
+			im = im.duplicate()
+			if im.is_compressed():
+				im.decompress()
+			im.convert(Image.FORMAT_RGB8)
+			im.resize(32, 32, Image.INTERPOLATE_BILINEAR)
+			var suma := Color(0, 0, 0)
+			for yy in range(32):
+				for xx in range(32):
+					suma += im.get_pixel(xx, yy)
+			_color_piedra = Color(suma.r / 1024.0, suma.g / 1024.0, suma.b / 1024.0)
+	return _color_piedra
+
+
+## Luminancia media (lineal) de los píxeles de PIEDRA (poco saturados) de una textura; 0,45 si no se puede leer.
+static func _lum_piedra(tex: Texture2D) -> float:
+	if tex == null:
+		return 0.45
+	if _lum_tex.has(tex):
+		return _lum_tex[tex]
+	var v: float = 0.45
+	var im: Image = tex.get_image()
+	if im != null and not im.is_empty():
+		im = im.duplicate()
+		if im.is_compressed():
+			im.decompress()
+		if not im.is_compressed():
+			im.convert(Image.FORMAT_RGB8)
+			im.resize(48, 48, Image.INTERPOLATE_BILINEAR)
+			var suma: float = 0.0
+			var n: int = 0
+			for yy in range(48):
+				for xx in range(48):
+					var p: Color = im.get_pixel(xx, yy).srgb_to_linear()
+					var mx: float = maxf(p.r, maxf(p.g, p.b))
+					if mx > 0.001 and (mx - minf(p.r, minf(p.g, p.b))) / mx < 0.25:
+						suma += p.r * 0.2126 + p.g * 0.7152 + p.b * 0.0722
+						n += 1
+			if n > 20:
+				v = suma / float(n)
+	_lum_tex[tex] = v
+	return v
+
+
+## Cambia los materiales de PIEDRA de una trampa de pared (sus StandardMaterial3D con luz, opacos y sin emisión) por el de piedra de ruinas. Lo que
+## brilla (ranura, ojos, garganta) o es transparente se queda como está.
+static func integrar_trampa(t: Node) -> int:
+	var cambiados: int = 0
+	var hechos: Dictionary = {}
+	for h in t.find_children("*", "MeshInstance3D", true, false):
+		var mi: MeshInstance3D = h as MeshInstance3D
+		if mi.mesh == null:
+			continue
+		for s in range(mi.mesh.get_surface_count()):
+			var m: Material = mi.get_active_material(s)
+			if not (m is StandardMaterial3D):
+				continue
+			var sm: StandardMaterial3D = m
+			if sm.emission_enabled or sm.shading_mode == BaseMaterial3D.SHADING_MODE_UNSHADED or sm.transparency != BaseMaterial3D.TRANSPARENCY_DISABLED:
+				continue
+			if not hechos.has(sm):
+				var nuevo := ShaderMaterial.new()
+				nuevo.shader = SHADER_PIEDRA
+				if sm.albedo_texture != null:
+					nuevo.set_shader_parameter("tex_albedo", sm.albedo_texture)
+				nuevo.set_shader_parameter("color", sm.albedo_color)
+				if sm.normal_enabled and sm.normal_texture != null:
+					nuevo.set_shader_parameter("tex_normal", sm.normal_texture)
+					nuevo.set_shader_parameter("usa_normal", 1.0)
+				nuevo.set_shader_parameter("rugosidad", maxf(sm.roughness, 0.6))
+				nuevo.set_shader_parameter("piedra", color_piedra())
+				# Sin textura (las piezas de primitivas): la referencia es la piedra clara de las trampas, así la oscura (dintel, jambas) sigue más oscura.
+				var ref: Color = TrampaPared3D.COLOR_PIEDRA.srgb_to_linear()
+				var lum: float = _lum_piedra(sm.albedo_texture) if sm.albedo_texture != null else (ref.r * 0.2126 + ref.g * 0.7152 + ref.b * 0.0722)
+				nuevo.set_shader_parameter("lum_ref", lum)
+				hechos[sm] = nuevo
+			mi.set_surface_override_material(s, hechos[sm])
+			cambiados += 1
+	return cambiados
 
 
 static func _tramo_con_suelo(c: Vector2i, d: Vector2i, es_suelo: Callable) -> bool:

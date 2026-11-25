@@ -32,7 +32,7 @@ const CADA_DEFECTO: float = 1.2
 const VEL_DEFECTO: float = 3.5            ## casillas/s
 const ALCANCE_DEFECTO: int = 8
 const FOGONAZO_S: float = 0.25
-const SEMIEJE_FLECHA_M: float = 0.28      ## semieje (m) de la bola de la flecha de fuego: el de la jugadora es 0,10 (en vuelo, la mitad); la de la trampa se ve y se esquiva mejor un poco más gruesa
+const SEMIEJE_FLECHA_M: float = 0.28      ## (25/11: ya no se usa; la bola es la de la jugadora) semieje (m) que se le ponía antes a la bola de la trampa
 
 # --- medidas (u) ---
 const LOSA: Vector3 = Vector3(1.6, 1.9, 0.30)
@@ -316,8 +316,10 @@ func _disparar() -> void:
 	if not RUNAS.has(elemento):
 		Sfx3D.play(self, "arco")     # 13/11 (inventario SFX): antes no sonaba (la flecha normal; la de fuego es un hechizo y ya suena)
 	if RUNAS.has(elemento):
-		var h: Hechizo = construir_hechizo({"flecha": 1}, {"velocidad": vel, "distancia_max": float(alcance), "gravedad": 0.0, "impulso_salida": 0.0, "golpea_lanzador": false, "rebotes": 0,
-				"semiejes.x": SEMIEJE_FLECHA_M, "semiejes.y": SEMIEJE_FLECHA_M, "semiejes.z": SEMIEJE_FLECHA_M})
+		# 25/11 (Pablo: «para la trampa que echa bolas de fuego usa el fuego nuevo de la jugadora»): ya no se le cambian los semiejes (antes, una bola de 0,28 m
+		# por eje, que FuegoToy dibujaba como una pila de bolas): la bola es la misma que la de la jugadora con fuego + ᛇ, con su forma y su cola. Solo cambian
+		# el vuelo (velocidad, alcance, sin caída ni rebotes) y que no hiera a quien la lanza.
+		var h: Hechizo = construir_hechizo({"flecha": 1}, {"velocidad": vel, "distancia_max": float(alcance), "gravedad": 0.0, "impulso_salida": 0.0, "golpea_lanzador": false, "rebotes": 0})
 		var hv: HechizoVivo = lanzar_hechizo_vivo(h, origen, dir)
 		if hv != null:
 			_vuelos.append(weakref(hv))

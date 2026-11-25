@@ -22,7 +22,8 @@ enum Fase { REPOSO, AVISO, FUEGO, APAGADA }
 const AVISO_S: float = 0.5
 const RITMO_LLAMAS: float = 0.7           ## las llamas del chorro crecen un 30 % más despacio que las de la jugadora («nacer» del haz: 0,4 s → 0,57 s; Pablo, 5/11). Solo el dibujo
 const TICK_S: float = 0.8                 ## s entre dos haces seguidos (> 0,4 s de `Jugador3D.INVULNERABLE`: cada haz entra)
-const DANO_TICK: float = 10.0             ## daño a la jugadora por tick (compárese: golpe de goblin 20, barril 20, flecha de goblin 12)
+const ULTIMO_HAZ_MIN_S: float = 0.3      ## 25/11: con menos fuego por delante que esto no se lanza otro haz (sería un destello)
+const DANO_TICK: float = 10.0            ## daño a la jugadora por tick (compárese: golpe de goblin 20, barril 20, flecha de goblin 12)
 const LATERAL_U: float = 0.75             ## u a cada lado del eje en las que quema a la jugadora
 const ENCENDIDA_DEFECTO: float = 2.0
 const APAGADA_DEFECTO: float = 1.5
@@ -46,6 +47,7 @@ var fase: int = Fase.REPOSO
 var ticks: int = 0                        ## haces lanzados (las pruebas)
 var golpes_jugadora: int = 0              ## veces que ha herido a la jugadora
 var escupidas: int = 0                    ## veces que ha empezado a escupir
+var ticks_en_fuego: int = 0               ## 25/11: haces lanzados en el fuego de ahora (se pone a 0 al empezar a escupir)
 
 var _t_ciclo: float = 0.0
 var _t_tick: float = 0.0
@@ -102,6 +104,7 @@ func _ready() -> void:
 	if fase == Fase.FUEGO:
 		_t_tick = 0.0
 		escupidas += 1
+		ticks_en_fuego = 0
 	_animar(0.0, true)
 
 
@@ -300,6 +303,7 @@ func _cambiar_fase(nueva: int) -> void:
 	if nueva == Fase.FUEGO:
 		_t_tick = 0.0
 		escupidas += 1
+		ticks_en_fuego = 0
 		escupe.emit()
 	elif antes == Fase.FUEGO:
 		calla.emit()
@@ -320,9 +324,19 @@ func _al_encender() -> void:
 func _tick() -> void:
 	if _hechizo == null:
 		_hechizo = construir_hechizo({"linea_x": clampi(alcance - 2, 1, 4)})
+	# 25/11 (Pablo: «que coincida el apagar el haz con que el fuego para»): cada haz se ve HAZ_DURA_S (0,9 s) y se relanza cada TICK_S (0,8 s), así que el
+	# último seguía ardiendo hasta 0,9 s después de que la cabeza callara. Ahora el haz que no cabe entero en lo que queda de fuego se ACORTA para acabar
+	# justo con él (su `permanencia` negativa recorta la vida del dibujo), y si queda menos de ULTIMO_HAZ_MIN_S ya no se lanza otro.
+	var queda: float = periodo() - _t_ciclo if fase == Fase.FUEGO else encendida_s
+	if ticks_en_fuego > 0 and queda < ULTIMO_HAZ_MIN_S:
+		return
+	ticks_en_fuego += 1
 	if _hechizo != null:
 		var h: Hechizo = _hechizo.copiar()
 		h.set_meta(VfxToyJuego.META_RITMO_NACER, RITMO_LLAMAS)
+		if queda < Hechizo.HAZ_DURA_S:
+			h.permanencia = minf(h.permanencia, queda - Hechizo.HAZ_DURA_S)
+			h.set_meta(VfxToyJuego.META_VIDA_EXACTA, true)      # solo el último: los de en medio conservan su vida de siempre y se solapan sin parpadeo
 		lanzar_hechizo_vivo(h, origen_chorro(), dir)
 	if HumoRegla.capas["dragon"]:           # humo por regla (apagado por defecto): donde el chorro se frena, en su punta
 		var punta: Vector3 = global_position + dir * largo_chorro_u()

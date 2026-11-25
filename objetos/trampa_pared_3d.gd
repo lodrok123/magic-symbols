@@ -33,6 +33,7 @@ const COLOR_BRASA_VIVA: Color = Color(1.0, 0.5, 0.12)
 ## (`mira`, `cada`, `desfase`, `alcance`, `cerca`, `agua`), mismo hechizo real, mismo apagado con agua; la boca queda a 1,3 u del centro de su casilla, o sea en la casilla de delante. Su caja de hechizos
 ## abarca también el bloque, para que el agua que le da por un lado le llegue. En el mapa: `; pieza <id> trampa_flechas x y mira=e exenta=si` con x,y una casilla de SUELO.
 const FONDO_EXENTA_U: float = 0.15
+const PAREDES_SS = preload("res://presentacion/paredes_stylescape.gd")
 const CUERPO_EXENTA_U: float = 0.9
 
 var exenta: bool = false                    ## true = de pie en una casilla de suelo (tótem), no metida en un muro
@@ -117,6 +118,9 @@ func _ready() -> void:
 	_construir()
 	if exenta:
 		_construir_peana()
+	# 25/11 (estilo «ruinas»): la piedra de la trampa, la misma que la de los muros del pack (presentacion/paredes_stylescape.gd).
+	if _mundo != null and is_instance_valid(_mundo) and String(_mundo.get("estilo")) == "ruinas" and PAREDES_SS.disponible():
+		PAREDES_SS.integrar_trampa(self)
 	set_physics_process(true)
 
 

@@ -785,7 +785,7 @@ func _haz(elemento: String, h: Hechizo, hz: Dictionary, suelo: float, vida: floa
 	# 7/11: la vida del haz (HAZ_DURA_S 0,9 s) puede ser MENOR que su «nacer» (el haz de tierra con 14 púas tarda 0,94 s en brotar): el hundimiento empezaba antes de que salieran las últimas y nunca
 	# se veían todas arriba. El dibujo aguanta al menos lo que tarda en nacer + una pausa; la lógica (daño, casillas) sigue con su HAZ_DURA_S.
 	var ap_n: AnimationPlayer = t.get_node_or_null("Anim") as AnimationPlayer
-	if ap_n != null and ap_n.has_animation("nacer"):
+	if ap_n != null and ap_n.has_animation("nacer") and not bool(h.get_meta(META_VIDA_EXACTA, false)):
 		vida = maxf(vida, ap_n.get_animation("nacer").length / maxf(ap_n.speed_scale, 0.05) + 0.45)
 	_expira_en(t, maxf(vida, 0.3))
 	if elemento == "fuego" and _haz_con_gas(h, hz, suelo, vida):
@@ -882,6 +882,9 @@ static func _choques_locales(choques: Array, desde: Vector3, al: Vector3) -> Arr
 ## 5/11 (Pablo, el dragón de pared: «desacelera las llamas un 30 % para que crezcan menos rápido»): quien lanza el hechizo puede marcarlo con la meta `ritmo_nacer_vfx` (× la velocidad de «nacer»;
 ## 0,7 = un 30 % más lento). Solo el crecimiento: al acabar «nacer» el toy vuelve a ritmo 1 (su «morir» dura lo de siempre). Sin la meta no cambia nada.
 const META_RITMO_NACER: StringName = &"ritmo_nacer_vfx"
+## 25/11 (el dragón de pared: «que coincida el apagar el haz con que el fuego para»): con esta meta a true, el haz vive EXACTAMENTE la vida que dice la lógica
+## (`Hechizo.HAZ_DURA_S` + `permanencia`), sin el mínimo de «nacer + 0,45 s»: el dragón acorta su último haz para que acabe cuando calla. Sin la meta no cambia nada.
+const META_VIDA_EXACTA: StringName = &"vida_exacta_vfx"
 
 
 func _ritmo_nacer(t: Node3D, ritmo: float) -> void:

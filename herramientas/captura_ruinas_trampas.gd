@@ -7,6 +7,7 @@ extends "res://herramientas/escenario_base.gd"
 ## Fotos en docs/capturas/stylescape/trampas/.
 
 const ESCENA: String = "res://escenas/PruebaRuinasTrampas.tscn"
+const PAREDES_SS = preload("res://presentacion/paredes_stylescape.gd")
 const DIR: String = "res://docs/capturas/stylescape/trampas"
 ## [foto, casilla de la jugadora, trampa a la que esperar (nodo), señal]
 const FOTOS: Array = [
@@ -37,12 +38,12 @@ func _escenario() -> void:
 	var muros: int = 0
 	for n in maqueta.find_children("*", "Node3D", true, false):
 		var id: String = String((n as Node).get_meta("id", ""))
-		if id == "ss_pillar_01":
+		if id.begins_with("ss_wall_thick"):
 			pilares.append(n)
 		elif id.begins_with("ss_"):
 			muros += 1
 	_ok("3 muros finos del pack en las paredes", muros > 50, "%d piezas" % muros)
-	_ok("3 un contrafuerte por trampa de pared (5)", pilares.size() == 5, str(pilares.size()))
+	_ok("3 un contrafuerte (dos tramos de muro grueso) por trampa de pared (5)", pilares.size() == 10, str(pilares.size()))
 	# Cada trampa de pared tiene un contrafuerte detrás, con la cara a ras de la suya (a menos de 0,2 u).
 	var pegadas: int = 0
 	for n in maqueta.find_children("*", "TrampaPared3D", true, false):
@@ -50,11 +51,21 @@ func _escenario() -> void:
 		if t.exenta:
 			continue
 		for p in pilares:
-			var cara: Vector3 = (p as Node3D).global_position + t.dir * (0.5175)
+			var cara: Vector3 = (p as Node3D).global_position + t.dir * (PAREDES_SS.CONTRAFUERTE_FONDO * 0.5)
 			if Vector2(cara.x - t.global_position.x, cara.z - t.global_position.z).length() < 0.2:
 				pegadas += 1
 				break
 	_ok("3 cada trampa de pared está apoyada en su contrafuerte", pegadas == 5, "%d de 5" % pegadas)
+	# 25/11: la piedra de las trampas es la de los muros (piedra_ruinas.gdshader).
+	var con_piedra: int = 0
+	for n in maqueta.find_children("*", "TrampaPared3D", true, false):
+		for h in (n as Node).find_children("*", "MeshInstance3D", true, false):
+			var mi: MeshInstance3D = h
+			if mi.mesh != null and mi.get_active_material(0) is ShaderMaterial and (mi.get_active_material(0) as ShaderMaterial).shader == PAREDES_SS.SHADER_PIEDRA:
+				con_piedra += 1
+				break
+	_ok("5 las 6 trampas llevan la piedra de los muros", con_piedra == 6, "%d de 6" % con_piedra)
+	await _fin_del_fuego()
 	for cl in root.find_children("*", "CanvasLayer", true, false):
 		(cl as CanvasLayer).visible = false
 	root.get_window().size = Vector2i(1600, 900)
@@ -77,3 +88,41 @@ func _escenario() -> void:
 		print("captura: ", ruta)
 		await avanzar(90)            # la invulnerabilidad y la vida: que no se acumule daño de una foto a otra
 		jugador.set("vida", jugador.get("vida_max") if jugador.get("vida_max") != null else jugador.get("vida"))
+
+
+## 25/11: el chorro del dragón se apaga cuando la cabeza calla: 0,15 s después de `calla` no queda ningún toy de fuego visible.
+func _fin_del_fuego() -> void:
+	var d: TrampaDragon3D = maqueta.find_child("t_dragon_pasillo", true, false) as TrampaDragon3D
+	if d == null:
+		_ok("6 el chorro del dragón se apaga con la cabeza", false, "sin dragón")
+		return
+	colocar_jugador(Vector2i(23, 10))
+	await avanzar(10)
+	var t0: float = reloj.t
+	while d.fase != TrampaDragon3D.Fase.FUEGO and reloj.t - t0 < 8.0:
+		await process_frame
+	while d.fase == TrampaDragon3D.Fase.FUEGO and reloj.t - t0 < 12.0:
+		await process_frame
+	var centro: Vector3 = d.boca_mundo() + d.dir * 2.0
+	# Al callar, el último haz tiene que estar SOLTÁNDOSE de la boca (su «morir»: `corte` > 0, la cola se aleja 1 s) y no seguir pegado a ella (corte = 0).
+	await avanzar_s(0.1)
+	var pegados: int = 0
+	var soltandose: int = 0
+	for t in root.find_children("*", "FuegoToy", true, false):
+		var p: Vector3 = (t as Node3D).global_position
+		if not (t as Node3D).is_visible_in_tree() or Vector2(p.x - centro.x, p.z - centro.z).length() >= 3.0 or int(t.get("figura")) != FuegoToy.Figura.HAZ:
+			continue
+		if float(t.get("corte")) > 0.0:
+			soltandose += 1
+		else:
+			pegados += 1
+	_ok("6 el chorro del dragón se suelta de la boca cuando la cabeza calla (0,1 s después ningún haz sigue pegado)", pegados == 0, "%d pegados, %d soltándose" % [pegados, soltandose])
+
+
+func _toys_fuego(centro: Vector3) -> int:
+	var n: int = 0
+	for t in root.find_children("*", "FuegoToy", true, false):
+		var p: Vector3 = (t as Node3D).global_position
+		if (t as Node3D).is_visible_in_tree() and Vector2(p.x - centro.x, p.z - centro.z).length() < 3.0:
+			n += 1
+	return n
