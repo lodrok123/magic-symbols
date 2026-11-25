@@ -1,10 +1,11 @@
 extends Node3D
 
 ## LABORATORIO de PRUEBA del pack «Stylescape: Ruins» (Fab, Unreal → Godot, 25/11/2026).
-## Una ruina pequeña montada con piezas del pack sobre hierba, con la luz del Bosque, la jugadora (1 u) dentro y, a la derecha, nuestras
-## piezas (muro en ruina, muro agrietado, roca musgosa, árboles) para comparar. Detrás, el muestrario con TODAS las piezas.
-## Teclas:  T cambia el material (4 modos, abajo) · L luz (bosque / ruinas / clásico) · flechas/WASD mover · rueda o +/- zoom
-##          1 la ruina · 2 el muestrario · N nombres sí/no
+## DOS SALAS IDÉNTICAS montadas con piezas del pack sobre hierba (25/11: Pablo pidió compararlas lado a lado), cada una con su material
+## (por defecto la A con el modo 2 y la B con el modo 3), con la luz del Bosque y la jugadora (1 u) dentro. A la derecha, nuestras piezas
+## (muro en ruina, muro agrietado, roca musgosa, árboles) para comparar. Detrás, el muestrario con TODAS las piezas (va con la sala A).
+## Teclas:  T material de la sala A · Y material de la sala B · L luz (bosque / ruinas / clásico) · flechas/WASD mover · rueda o +/- zoom
+##          1 las dos salas · 2 el muestrario · 3 nuestras piezas · N nombres sí/no
 ## Modos de material:  1) el pack tal cual  2) el pack con su musgo arriba  3) textura del pack teñida con la paleta  4) paleta casi plana
 ## Si no hay piezas: exportarlas desde Unreal (tools/ue_exportar_stylescape.py) y prepararlas (tools/preparar_stylescape.py); no viajan en git.
 ## Captura sin tocar nada:  Godot --path . res://laboratorios/LabStylescape.tscn -- --captura   (deja PNG en docs/capturas/stylescape/)
@@ -71,26 +72,33 @@ const RUINA: Array = [
 	["SM_HangingIvy_02", Vector3(4.6, 1.0, 0.02), true],
 	["SM_HangingIvy_04", Vector3(-0.1, 1.5, 1.2), false],
 ]
-## Nuestras piezas para comparar: [escena, posición en u respecto a la esquina de la ruina, escala]
+## Nuestras piezas para comparar: [escena, posición en u, escala]. Los muros y la roca, a la derecha de la sala B; el árbol, a la izquierda de la A.
 const NUESTRAS: Array = [
-	["res://arte/piezas/muro_ruina.tscn", Vector3(8.4, 0, 0.6), 1.0],
-	["res://arte/piezas/muro_agrietado.tscn", Vector3(10.6, 0, 0.6), 1.0],
-	["res://arte/piezas/roca_musgosa.tscn", Vector3(8.8, 0, 3.0), 1.0],
+	["res://arte/piezas/muro_ruina.tscn", Vector3(17.4, 0, 0.6), 1.0],
+	["res://arte/piezas/muro_agrietado.tscn", Vector3(19.6, 0, 0.6), 1.0],
+	["res://arte/piezas/roca_musgosa.tscn", Vector3(17.8, 0, 3.0), 1.0],
 	["res://arte/piezas/arbol_redondo.tscn", Vector3(-1.8, 0, -1.2), 0.9],
-	["res://arte/piezas/pino.tscn", Vector3(12.6, 0, -0.6), 1.0],
+	["res://arte/piezas/pino.tscn", Vector3(21.6, 0, -0.6), 1.0],
 ]
-const FOCO_RUINA: Vector3 = Vector3(5.4, 0, 1.6)
-const ZOOM_RUINA: float = 9.5
+## Las dos salas: posición en u de cada una y su modo de material al abrir (índices de MODOS: 1 = modo 2, 2 = modo 3).
+const SALAS: Array = [Vector3(0, 0, 0), Vector3(9.0, 0, 0)]
+const MODOS_INICIALES: Array = [1, 2]
+const FOCO_RUINA: Vector3 = Vector3(7.6, 0, 0.0)
+const ZOOM_RUINA: float = 10.5
+const FOCO_NUESTRAS: Vector3 = Vector3(18.5, 0, 1.6)
 
 var _cam: Camera3D
 var _foco: Vector3 = FOCO_RUINA
 var _zoom: float = ZOOM_RUINA
 var _sol: DirectionalLight3D
 var _entorno: Environment
-var _modo: int = 0
+var _modos: Array = MODOS_INICIALES.duplicate()     ## modo de cada sala (el muestrario va con la sala A)
 var _luz: int = 0
 var _materiales: Array[ShaderMaterial] = []
 var _tipos: Array[String] = []
+var _grupos: Array[int] = []                       ## a qué sala pertenece cada material
+var _grupo_actual: int = 0
+var _rotulos_sala: Array[Label3D] = []
 var _rotulos: Array[Label3D] = []
 var _hud: Label
 var _escenas: Dictionary = {}
@@ -102,7 +110,10 @@ func _ready() -> void:
 	if not DirAccess.dir_exists_absolute(MALLAS):
 		push_warning("LabStylescape: no hay mallas en %s (ver la cabecera del script)" % MALLAS)
 	else:
-		_montar_ruina()
+		for i in range(SALAS.size()):
+			_grupo_actual = i
+			_montar_ruina(SALAS[i], i)
+		_grupo_actual = 0
 		_montar_nuestras()
 		_montar_muestrario()
 	_cam = Camera3D.new()
@@ -183,6 +194,7 @@ func _vestir(n: Node) -> void:
 			m.set_surface_override_material(s, sm)
 			_materiales.append(sm)
 			_tipos.append(String(r[3]))
+			_grupos.append(_grupo_actual)
 
 
 ## Pone la pieza con su caja empezando en `esquina` (metros), girada para que lo largo vaya por X o por Z. Devuelve la caja en metros.
@@ -216,14 +228,25 @@ func _caja(n: Node3D, giro: Transform3D) -> AABB:
 	return total
 
 
-func _montar_ruina() -> void:
+func _montar_ruina(origen: Vector3, sala: int) -> void:
 	var raiz := Node3D.new()
-	raiz.name = "ruina"
+	raiz.name = "sala_%s" % ["A", "B"][sala]
 	raiz.scale = Vector3.ONE * ESCALA
+	raiz.position = origen
 	add_child(raiz)
 	for p in RUINA:
 		_poner(raiz, p[0], p[1], p[2])
-	_jugadora(Vector3(3.0, 0.11, 2.4) * ESCALA)
+	_jugadora(origen + Vector3(3.0, 0.11, 2.4) * ESCALA)
+	var r := Label3D.new()
+	r.font_size = 40
+	r.pixel_size = 0.01
+	r.billboard = BaseMaterial3D.BILLBOARD_ENABLED
+	r.no_depth_test = true
+	r.outline_size = 10
+	r.position = origen + Vector3(3.3, 3.2, 0.0)
+	add_child(r)
+	_rotulos.append(r)
+	_rotulos_sala.append(r)
 
 
 func _montar_nuestras() -> void:
@@ -235,7 +258,7 @@ func _montar_nuestras() -> void:
 		add_child(n)
 		n.position = p[1]
 		n.scale = Vector3.ONE * float(p[2])
-	_rotulo_libre("nuestras piezas →", Vector3(9.5, 3.0, 0.6))
+	_rotulo_libre("nuestras piezas", Vector3(18.5, 3.0, 0.6))
 
 
 func _montar_muestrario() -> void:
@@ -293,8 +316,10 @@ func _jugadora(pos: Vector3) -> void:
 
 
 func _aplicar_modo() -> void:
-	var m: Array = MODOS[_modo]
+	for i in range(_rotulos_sala.size()):
+		_rotulos_sala[i].text = "%s · material %s" % [["A", "B"][i], String(MODOS[_modos[i]][0]).get_slice(" ", 0)]
 	for i in range(_materiales.size()):
+		var m: Array = MODOS[_modos[_grupos[i]]]
 		var sm: ShaderMaterial = _materiales[i]
 		var tipo: String = _tipos[i]
 		sm.set_shader_parameter("mezcla_textura", m[1])
@@ -341,7 +366,10 @@ func _unhandled_input(ev: InputEvent) -> void:
 			KEY_MINUS, KEY_KP_SUBTRACT:
 				_zoom = minf(120.0, _zoom * 1.25)
 			KEY_T:
-				_modo = (_modo + 1) % MODOS.size()
+				_modos[0] = (int(_modos[0]) + 1) % MODOS.size()
+				_aplicar_modo()
+			KEY_Y:
+				_modos[1] = (int(_modos[1]) + 1) % MODOS.size()
 				_aplicar_modo()
 			KEY_L:
 				_luz = (_luz + 1) % LUCES.size()
@@ -352,6 +380,9 @@ func _unhandled_input(ev: InputEvent) -> void:
 			KEY_2:
 				_foco = Vector3(ANCHO_FILA * 0.5, 0, _z_muestrario - 4.0)
 				_zoom = 30.0
+			KEY_3:
+				_foco = FOCO_NUESTRAS
+				_zoom = 9.5
 			KEY_N:
 				for r in _rotulos:
 					r.visible = not r.visible
@@ -359,32 +390,29 @@ func _unhandled_input(ev: InputEvent) -> void:
 
 
 func _actualizar_hud() -> void:
-	_hud.text = "Stylescape: Ruins (prueba) · material: %s · luz: %s\nT material · L luz · 1 ruina · 2 muestrario · N nombres · WASD/flechas · rueda zoom" % [
-		MODOS[_modo][0], LUCES[_luz]]
+	_hud.text = "Stylescape: Ruins (prueba) · sala A: %s · sala B: %s · luz: %s\nT material A · Y material B · L luz · 1 salas · 2 muestrario · 3 nuestras · N nombres · WASD/flechas · rueda zoom" % [
+		MODOS[_modos[0]][0], MODOS[_modos[1]][0], LUCES[_luz]]
 
 
-## Una foto por modo de material de la ruina y una del muestrario, en docs/capturas/stylescape/, y sale.
+## Capturas en docs/capturas/stylescape/: las dos salas como abren (A modo 2, B modo 3), cada modo en las dos salas y el muestrario; y sale.
 func _capturar() -> void:
 	DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path("res://docs/capturas/stylescape"))
+	await _foto(FOCO_RUINA, ZOOM_RUINA, "salas_A2_B3.png")
 	for i in range(MODOS.size()):
-		_modo = i
-		_aplicar_modo()
-		_actualizar_hud()
-		_foco = FOCO_RUINA
-		_zoom = ZOOM_RUINA
-		_colocar_camara()
-		for k in range(20):
-			await get_tree().process_frame
-		await RenderingServer.frame_post_draw
-		get_viewport().get_texture().get_image().save_png("res://docs/capturas/stylescape/ruina_modo%d.png" % (i + 1))
-	_modo = 0
+		_modos = [i, i]
+		await _foto(SALAS[0] + Vector3(3.4, 0, 1.6), 9.0, "ruina_modo%d.png" % (i + 1))
+	_modos = MODOS_INICIALES.duplicate()
+	await _foto(Vector3(ANCHO_FILA * 0.5, 0, _z_muestrario - 4.0), 30.0, "muestrario.png")
+	get_tree().quit()
+
+
+func _foto(foco: Vector3, zoom: float, archivo: String) -> void:
 	_aplicar_modo()
 	_actualizar_hud()
-	_foco = Vector3(ANCHO_FILA * 0.5, 0, _z_muestrario - 4.0)
-	_zoom = 30.0
+	_foco = foco
+	_zoom = zoom
 	_colocar_camara()
 	for k in range(20):
 		await get_tree().process_frame
 	await RenderingServer.frame_post_draw
-	get_viewport().get_texture().get_image().save_png("res://docs/capturas/stylescape/muestrario.png")
-	get_tree().quit()
+	get_viewport().get_texture().get_image().save_png("res://docs/capturas/stylescape/" + archivo)
