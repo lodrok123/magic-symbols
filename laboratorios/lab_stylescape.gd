@@ -41,6 +41,8 @@ var COLOR_TIPO: Dictionary = {
 const PIEDRA_MUROS: Color = Color(0.715, 0.62, 0.555)
 const PIEDRA_MUROS_OSCURA: Color = Color(0.61, 0.555, 0.43)
 const MUSGO_ROCA: Color = Color(0.50, 0.575, 0.32)
+## 25/11 (Pablo: «el musgo sigue muy claro»): el verde de la roca, oscurecido. 0 = tal cual; 0,3 = un 30 % más oscuro.
+const MUSGO_ROCA_OSCURECER: float = 0.3
 const MUSGO_ESCALA_BEIGE: float = 2.0   ## repeticiones de la textura de musgo por u en el modo 3 (más alto = grano más fino)
 var COLOR_TIPO_BEIGE: Dictionary = {
 	"piedra": PIEDRA_MUROS, "losa": PIEDRA_MUROS.lerp(PIEDRA_MUROS_OSCURA, 0.3), "madera": Paleta3D.MADERA, "hiedra": Paleta3D.HIERBA_SOMBRA,
@@ -341,7 +343,7 @@ func _aplicar_modo() -> void:
 		sm.set_shader_parameter("musgo", float(m[3]) * float(MUSGO_TIPO[tipo]))
 		sm.set_shader_parameter("musgo_textura", m[4])
 		var beige: bool = m[7] == "beige"
-		sm.set_shader_parameter("color_musgo", MUSGO_ROCA if beige else Paleta3D.HIERBA_SOMBRA.darkened(MUSGO_OSCURECER))
+		sm.set_shader_parameter("color_musgo", MUSGO_ROCA.darkened(MUSGO_ROCA_OSCURECER) if beige else Paleta3D.HIERBA_SOMBRA.darkened(MUSGO_OSCURECER))
 		sm.set_shader_parameter("musgo_detalle", m[8])
 		sm.set_shader_parameter("musgo_escala", MUSGO_ESCALA_BEIGE if beige else 0.5)
 		sm.set_shader_parameter("musgo_cobertura", m[6])
