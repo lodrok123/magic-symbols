@@ -1511,6 +1511,20 @@ func _tipo_suelo(c: Vector2i) -> int:
 	var l: String = _letra(c)
 	if _germinadas.has(c) and not _es_agua(l):
 		return 0            # germinada en juego (naturaleza sobre tierra mojada): suelo de hierba
+	if l == "#" and estilo == "ruinas":
+		# 25/11 (Pablo: «no está integrado el suelo con el muro»): el muro fino va por el eje de su casilla y la casilla `#` era hierba, así que entre el
+		# muro y las losas de la sala quedaba media casilla de hierba. En las ruinas, bajo el muro va el suelo de la sala de al lado: piedra si alguna
+		# vecina es piedra, si no tierra si alguna es tierra; si no, hierba (las vecinas que son muro no cuentan).
+		var mejor: int = 0
+		for d in [Vector2i(0, 1), Vector2i(1, 0), Vector2i(0, -1), Vector2i(-1, 0)]:
+			var q: Vector2i = c + d
+			if _en_mapa(q) and _letra(q) != "#" and not _es_agua(_letra(q)):
+				var tq: int = _tipo_suelo(q)
+				if tq == 3:
+					return 3
+				if tq == 2:
+					mejor = 2
+		return mejor
 	if _reglas != null or _de_archivo or (_modo_nivel and nivel != "test2"):
 		# Test de jugabilidad y niveles editables (salvo el Test 2, que conserva su aldea): el suelo sale de las letras (hierba de bosque; camino bajo la puerta, la salida y las losas).
 		if l == "c" or l == "e" or l == "u" or l == "-" or l == "L" or l == "R":
