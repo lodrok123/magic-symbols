@@ -3,7 +3,7 @@ Uso: python procesa_sonniss.py <carpeta sonniss_gdc2026> <carpeta audio del jueg
 import os, sys, struct
 import numpy as np
 import soundfile as sf
-from scipy.signal import resample_poly
+from scipy.signal import resample_poly, butter, sosfiltfilt
 from math import gcd
 
 BASE = "\\\\?\\" + os.path.abspath(sys.argv[1])
@@ -64,6 +64,9 @@ ELEGIDOS = {
     "sn_tiempo_tic_0": ("Antique Clocks", "Crooked Antique", 0.97, 1.26, 0.05, 1.0, {"como": "tiempo_tic.wav"}),
     "sn_boton_clic_0": ("HD Lock", "Latch Button", 0.0, 0.2, 0.05, 1.0, {"como": "boton_clic.wav"}),
     "sn_amb_bosque_0": ("Highlands of Norway", "Meadow Pipits", 30.0, 52.0, 0.0, 1.0, {"como": "amb_bosque_loop.wav", "bucle": 2.0}),
+    # 25/11 (Pablo: el de la pradera sonaba a moscas: «many Insects humming», zumbido sostenido de +5 dB a 369 Hz). Viento fuerte en los árboles de un parque
+    # de Berlín: sin tono sostenido; el tramo 6-28 s es el de menos tráfico lejano, y el «paso_alto» (Hz) quita lo que queda de él (los graves < 150 Hz).
+    "sn_amb_bosque_1": ("Storms Lakes Parks", "Humboldthain Park Strong Wind", 6.0, 28.0, 0.0, 1.0, {"como": "amb_bosque_loop.wav", "bucle": 2.0, "paso_alto": 180.0}),
     "sn_amb_grillos_0": ("East Coast America", "Forest Crickets", 25.0, 47.0, 0.0, 1.0, {"como": "amb_grillos_loop.wav", "bucle": 2.0}),
     "sn_amb_cueva_0": ("Chimney Wind", "ChimneyWind05", 40.0, 62.0, 0.0, 1.0, {"como": "amb_cueva_loop.wav", "bucle": 2.0}),
     # Acciones que no sonaban (nombres nuevos del catálogo):
@@ -171,6 +174,9 @@ for destino, datos in ELEGIDOS.items():
     a = int(ini * sr)
     b = len(m) if fin is None else min(len(m), int(fin * sr))
     m = m[a:b]
+    if "paso_alto" in extra:
+        # 25/11: filtro paso alto (Butterworth de 4.º orden, sin desfase) para quitar retumbo de tráfico u otros graves de fondo.
+        m = sosfiltfilt(butter(4, float(extra["paso_alto"]), btype="highpass", fs=sr, output="sos"), m).astype(np.float32)
     # «tono» va cocido en el archivo (más agudo y más corto): la voz de orco sube a goblin sin tocar el catálogo
     sr_ef = int(round(sr * tono))
     g = gcd(SR, sr_ef)

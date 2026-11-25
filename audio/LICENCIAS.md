@@ -263,7 +263,8 @@ El script recorta la toma, pasa a mono 44,1 kHz, funde, iguala el pico a −3 dB
 | `sn_muerte_0.ogg` | Sfx `muerte` | `Cartoon Transition Bass Down.wav` | Cinematic Sound Design - Cartoon & Animation Vol 2 |
 | `sn_tiempo_tic_0.ogg` | Sfx `tiempo_tic` | `CLOCKTick_Crooked Antique Clock_344 Audio_Antique Clocks.wav` | 344 Audio - Antique Clocks |
 | `sn_boton_clic_0.ogg` | Sfx `boton_clic` | `MECHLtch_Click Deep Mechanism Latch Button Nearfield Thunk 02_ESM_HDLM.wav` | Epic Stock Media - HD Lock And Mechanism Sound Design Kit |
-| `sn_amb_bosque_0.ogg` | Sfx `amb_bosque` | `AMBSwmp_Meadow Pipits calling many Insects humming Wind blowing through Grass_JSE_HoN_Stereo.wav` | Just Sound Effects - Highlands of Norway |
+| `sn_amb_bosque_0.ogg` | (ya no se usa desde el 25/11: sonaba a moscas) | `AMBSwmp_Meadow Pipits calling many Insects humming Wind blowing through Grass_JSE_HoN_Stereo.wav` | Just Sound Effects - Highlands of Norway |
+| `sn_amb_bosque_1.ogg` | Sfx `amb_bosque` | `AMBPark_Berlin City Humboldthain Park Strong Wind On Trees Foliage Traffic Wash 03_ESM_CPS.wav` (6-28 s, paso alto a 180 Hz) | Epic Stock Media - Public Spaces - Storms Lakes Parks and Rural Nature Exteriors |
 | `sn_amb_grillos_0.ogg` | Sfx `amb_grillos` | `AMBSubn_Ambience, Forest Crickets, Birds, Connecticut 02_344 Audio_East Coast America.wav` | 344 Audio - East Coast America Vol. 1 |
 | `sn_amb_cueva_0.ogg` | Sfx `amb_cueva` | `WINDInt_ChimneyWind05_InMotionAudio_ChimneyWind.wav` | InMotionAudio - Chimney Wind |
 | `sn_sintetizar_0.ogg` | Sfx `sintetizar` | `MAGAngl_Magic Light Spell Enchantment Potion Effect Tonal Bright 03_ESM_FG2.wav` | Epic Stock Media - Fantasy Game 2 - Sound Kit for Enchanted Realms |
