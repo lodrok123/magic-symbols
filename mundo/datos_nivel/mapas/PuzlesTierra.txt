@@ -1,0 +1,111 @@
+; Laboratorio de PUZLES DE TIERRA (21/11/2026, Juego). 33 x 19: siete salas de 7 x 7 (T1..T7) y una sala tapiada, en dos filas, unidas por un PASILLO (y = 9) por el que se va de una a otra; cada sala tiene una sola
+; puerta al pasillo (el mismo esqueleto que PuzlesFuego/PuzlesAgua, pero con pasillo: así las trampas y el agua de una sala no se asoman a la de al lado). El jugador S nace en el pasillo. Lo lee PruebaTest2 (nivel = "PuzlesTierra");
+; las piezas y los puzles de cada sala son las lineas `; pieza` y `; puzle` de mas abajo (las lee escenas/puzle.gd; el lab solo pone HUD, teclas, carteles y la via `!`/`@` de T4). NO se hornea: es un laboratorio.
+; Letras de la maqueta: # muro . suelo S jugador c cauce seco (T3: el arroyo) · ESPACIO = VACIO (un foso sin fondo que no se pisa: T1 la isla de la placa, T4 el foso).
+; Letras del lab (PruebaTest2 las ignora, son suelo): ! boton de piedra (cualquier magia) @ placa de presencia (pisarla).
+; Salas (columna, fila): T1 placa a distancia (0,0) · T2 dos placas (1,0) · T3 desvia el arroyo (2,0) · T4 puente de suelo (3,0) · T5 escudo contra flechas (0,1) · T6 bloque de enlace (1,1) · T7 sella la mamoa (2,1) · (3,1) tapiada.
+; Kit de hechizos del lab: `demo` (fuego, agua y tierra; flecha, linea, barrera, altura, raido y suelo): lo que la jugadora tendra en la demo.
+; ---------------------------------------------------------------------------------------------------------------------------------
+; Piezas y puzles de cada sala (la gramatica esta en la cabecera de escenas/puzle.gd).
+; ---------------------------------------------------------------------------------------------------------------------------------
+; --- T1 PLACA A DISTANCIA (x 1..7, y 1..7): la placa de PESO (7,6) esta en una isla de roca rodeada de vacio, fuera de alcance andando. Un bloque de tierra levantado encima (pesa 1) la pisa y abre la puerta (4,3);
+; ---   la puerta se cierra si el bloque caduca (7 s, lo que dura la tierra de un hechizo): hay que pasar antes. Detras, un cofre. Vias: boton ! (2,5) y placa @ (2,7) abren la puerta.
+; pieza t1_cofre cofre 4 1 da=oro:20
+; pieza t1_puerta puerta 4 3 modelo=llave
+; pieza t1_peso pulsador 7 6 modo=presencia peso=1
+; pieza t1_boton pulsador 2 5 modo=magia
+; pieza t1_placa pulsador 2 7 modo=presencia
+; puzle t1_abre cuando=t1_peso.pulsado hace=t1_puerta.abrir
+; puzle t1_cierra cuando=t1_peso.soltado hace=t1_puerta.cerrar
+; puzle t1_boton_abre cuando=t1_boton.pulsado hace=t1_puerta.abrir
+; puzle t1_placa_abre cuando=t1_placa.pulsado hace=t1_puerta.abrir
+; --- T2 DOS PLACAS, UNA ROCA Y LA TIERRA (x 9..15, y 1..7): dos placas de peso 1 en (10,5) y (14,5); la roca pequena (10,6) se empuja al norte sobre la primera y un bloque de tierra pisa la otra. La puerta (12,3) abre solo con las dos
+; ---   pisadas a la vez y se cierra en cuanto una se suelta (el bloque dura 7 s: se pone el ultimo). Vias: boton ! (13,7) y placa @ (15,7) abren la puerta.
+; pieza t2_cofre cofre 12 1 da=oro:20
+; pieza t2_puerta puerta 12 3 modelo=llave
+; pieza t2_pa pulsador 10 5 modo=presencia peso=1
+; pieza t2_pb pulsador 14 5 modo=presencia peso=1
+; pieza t2_roca roca_empujable 10 6 tam=pequena
+; pieza t2_boton pulsador 13 7 modo=magia
+; pieza t2_placa pulsador 15 7 modo=presencia
+; puzle t2_abre_a cuando=t2_pa.pulsado si=t2_pb.activo hace=t2_puerta.abrir
+; puzle t2_abre_b cuando=t2_pb.pulsado si=t2_pa.activo hace=t2_puerta.abrir
+; puzle t2_cierra_a cuando=t2_pa.soltado hace=t2_puerta.cerrar
+; puzle t2_cierra_b cuando=t2_pb.soltado hace=t2_puerta.cerrar
+; puzle t2_boton_abre cuando=t2_boton.pulsado hace=t2_puerta.abrir
+; puzle t2_placa_abre cuando=t2_placa.pulsado hace=t2_puerta.abrir
+; --- T3 DESVIA EL ARROYO (x 17..23, y 1..7): un arroyo de cauce `c` (17..23, 3) corre de oeste a este desde el manantial (17,3) (1,0 u3/s) hasta el sumidero (23,3). A mitad (19,3) sale un BRAZO sin salida al sur (19,4..6) con el detector
+; ---   de nivel (19,6). Sin hacer nada el brazo se queda en ~0,19 (el agua pasa de largo). Un bloque de tierra en el cauce DESPUES del brazo (20..22, 3) hace de PRESA (la tierra levantada sube el suelo de la casilla y el agua no pasa): el agua remonta
+; ---   por el brazo hasta ~0,4 en unos 6 s y el detector (0,3) abre la puerta (23,6) para siempre (la puerta no se cierra si la presa caduca: es una vez). Una presa ANTES del brazo (17..18, 3) lo deja seco. El agua del arroyo es poco profunda (< 0,25:
+; ---   `es_agua` es falso) y por eso se puede construir en el cauce. Detras de la puerta, un cofre (23,7). Vias: boton ! (17,7) y placa @ (21,7) abren la puerta.
+; pieza t3_cauce cuenca 17 3 celdas=17,3..23,3+19,4..19,6
+; pieza t3_manantial manantial 17 3 caudal=1.0 rampa=no
+; pieza t3_sumidero cuenca 23 3 fijo=0.02
+; pieza t3_nivel nivel 19 6 objetivo=0.3
+; pieza t3_puerta puerta 23 6
+; pieza t3_cofre cofre 23 7 da=oro:20
+; pieza t3_boton pulsador 17 7 modo=magia
+; pieza t3_placa pulsador 21 7 modo=presencia
+; puzle t3_abre cuando=t3_nivel.alcanzado hace=t3_puerta.abrir
+; puzle t3_boton_abre cuando=t3_boton.pulsado hace=t3_puerta.abrir
+; puzle t3_placa_abre cuando=t3_placa.pulsado hace=t3_puerta.abrir
+; --- T4 PUENTE DE SUELO (x 25..31, y 1..7): un foso de vacio de dos casillas (y 4 y 5, de pared a pared) separa la entrada del cofre (28,2). El glifo ᛒ suelo + tierra planta UNA losa (8 s) en la casilla de vacio que se apunta (hasta 3 casillas
+; ---   de la jugadora): dos losas, (28,5) y (28,4), y se cruza andando en ~3 s (la jugadora queda ~1,6 s quieta tras cada lanzamiento). La barrera + linea de tierra (el puente de roca) NO sirve aqui: ancla en suelo firme y no cruza vacio.
+; ---   Vias: boton ! (26,7) y placa @ (30,7) plantan las dos losas por codigo (12 s; lo hace el lab: el .txt no tiene una accion «plantar losa»).
+; pieza t4_cofre cofre 28 2 da=oro:20
+; pieza t4_boton pulsador 26 7 modo=magia
+; pieza t4_placa pulsador 30 7 modo=presencia
+; --- T5 ESCUDO CONTRA FLECHAS (x 1..7, y 11..17): una antecamara (y 11..12) y un PASILLO de una casilla (x=4, y 13..17) que acaba en un mascaron (4,18) metido en el muro sur, que dispara una flecha normal (12 y aturde) cada 1 s hacia el norte. El pasillo
+; ---   gira al este en (4,16) hacia la placa del fondo (7,16), con el cofre (7,15) encima. Sin proteccion, el aturdimiento de cada flechazo deja a la jugadora en la linea de tiro y no se llega. Un bloque de tierra (tierra + barrera) en (4,17), delante de
+; ---   la boca, tapa todas las flechas mientras dura (7 s) y deja cruzar en ~2 s. El mascaron duerme (cerca=3) hasta que la jugadora llega a (4,14): se lanza desde ahi (3 casillas) antes del primer disparo. Pisar la placa del fondo hace aparecer el cofre.
+; ---   Vias: boton ! (2,12) apaga el mascaron 8 s · placa @ (6,12) hace aparecer el cofre.
+; pieza t5_trampa trampa_flechas 4 18 mira=n cada=1.0 elemento=ninguno alcance=5 cerca=3
+; pieza t5_fondo pulsador 7 16 modo=presencia
+; pieza t5_cofre cofre 7 15 aparece_si=t5_fondo.activo|t5_placa.activo da=oro:20
+; pieza t5_boton pulsador 2 12 modo=magia
+; pieza t5_placa pulsador 6 12 modo=presencia
+; puzle t5_boton_apaga cuando=t5_boton.pulsado hace=t5_trampa.apagar(8)
+; --- T6 BLOQUE DE ENLACE (x 9..15, y 11..17): el cristal (9,12) solo late cuando le da un hechizo (cada=0); su veta (10..11, 12) y (13..14, 12) tiene un HUECO en (12,12) que solo conduce con un bloque de tierra encima. Al otro lado, el receptor
+; ---   (15,12) pide un pulso de TIERRA y abre la puerta (12,14) (detras, un cofre). Hace falta el bloque sobre el hueco (tierra + barrera desde (12,11)) Y un hechizo de TIERRA al cristal (tierra + flecha desde (9,13)): con fuego el pulso llega pero el receptor
+; ---   no lo acepta, sin bloque el pulso se para en el hueco. El pulso de la propia jugadora (tierra + flecha + ᚱ) lanzado sobre la veta tambien vale. Vias: boton ! (10,13) activa el receptor · placa @ (14,13) abre la puerta.
+; pieza t6_cristal cristal 9 12 cada=0
+; pieza t6_veta veta 10 12 celdas=10,12..11,12+13,12..14,12 enlaces=12,12
+; pieza t6_receptor receptor 15 12 elemento=tierra
+; pieza t6_puerta puerta 12 14 modelo=llave
+; pieza t6_cofre cofre 12 16 da=oro:20
+; pieza t6_boton pulsador 10 13 modo=magia
+; pieza t6_placa pulsador 14 13 modo=presencia
+; puzle t6_abre cuando=t6_receptor.activado hace=t6_puerta.abrir
+; puzle t6_boton_activa cuando=t6_boton.pulsado hace=t6_receptor.activar
+; puzle t6_placa_abre cuando=t6_placa.pulsado hace=t6_puerta.abrir
+; --- T7 SELLA LA MAMOA (x 17..23, y 11..17): una mamoa (20,14) de la que vuelve el mouro (20,16) cada vez que lo vences (hasta 3 veces; la tercera agrieta la mamoa y ya no sella). Con la mamoa TAPADA (un bloque de tierra encima: tierra + barrera
+; ---   desde (20,11); o la roca pequena (19,14) empujada al este hasta ella, que la tapa para siempre) el mouro muere de verdad; entonces aparece el cofre (23,17) (si la mamoa sigue tapada al caer el ultimo). El mouro ve a la jugadora a 4 casillas:
+; ---   (20,11) esta a 5 y puede lanzar desde alli sin despertarlo. Vias: boton ! (18,13) tapa la mamoa · placa @ (22,13) hace aparecer el cofre.
+; pieza t7_mamoa mamoa 20 14
+; pieza t7_roca roca_empujable 19 14 tam=pequena
+; pieza t7_mouro mouro 20 16 mamoa=t7_mamoa
+; pieza t7_vigia vigia 20 16 de=20,16
+; pieza t7_cofre cofre 23 17 aparece_si=t7_vigia.todos+t7_mamoa.tapada|t7_placa.activo da=oro:30
+; pieza t7_boton pulsador 18 13 modo=magia
+; pieza t7_placa pulsador 22 13 modo=presencia
+; puzle t7_boton_tapa cuando=t7_boton.pulsado hace=t7_mamoa.tapar
+; ---------------------------------------------------------------------------------------------------------------------------------
+#################################
+#.......#.......#.......#.......#
+#.......#.......#.......#.......#
+####.#######.####ccccccc#.......#
+#.......#.......#..c....#       #
+#.....  #.......#..c....#       #
+#..... .#.......#..c....#.......#
+#.....  #.......#.....#.#.......#
+####.#######.#######.#######.####
+#.S.............................#
+####.#######.#######.############
+#.......#.......#.......#########
+#.......#.......#.......#########
+####.####.......#.......#########
+####.#######.####.......#########
+####.##.#.......#.......#########
+####....#.......#.......#########
+####.####.......#.......#########
+#################################

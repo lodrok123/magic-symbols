@@ -6,7 +6,7 @@
 ;   % pulsador de agua (solo el agua) Z puerta de premio (se abre al resolver). Las piezas de agua van sobre casillas c o canal y se
 ;   colocan por coordenadas: si se mueve una c de sitio hay que cambiar la linea `; pieza` tambien (Puzle3D avisa al arrancar si una pieza cae mal).
 ; Salas (columna, fila): Q2 trasvase (0,0) · Q1 cuenca con tinaja (1,0) · Q3 presa de hielo (2,0) · Q9 molino (3,0) · Q4 desvio del rio (0,1) ·
-;   inicio (1,1) · Q5 vaciar el pasillo (2,1) · Q10 roca y barril (3,1) · Q8 nivel justo (0,2) · Q6 riego (1,2) · Q7 rayo por el agua (2,2) · (3,2) libre.
+;   inicio (1,1) · Q5 vaciar el pasillo (2,1) · Q10 roca y barril (3,1) · Q8 nivel justo (0,2) · Q6 riego (1,2) · Q7 rayo por el agua (2,2) · Q11 (3,2) · fila de abajo (18/11 y 20/11, 33 x 33): Q13 caldera (0,3) · Q14 reloj de agua (1,3) · Q15 lava con peso (2,3) · Q12 foso (3,3) · fila 4 (25/11, 33 x 41): T1a desvio en seco (0,4) · T1b retener (1,4).
 ; Letras de la maqueta que tambien usan: e fuente electrica (EmisorRayo3D lo monta el lab) · i totem de rayo. Q7: dos pozos c con agua fija
 ;   a los lados y, en medio, una casilla de suelo con el NEXO (NexoRayo3D): mojarlo restaura la conexion electrica.
 ; Giros: las tinajas con 180 vierten hacia el OESTE (Reactivo3D.INCLINA_HACIA con ese giro); el codo L con 90 abre al este y al sur;
@@ -32,9 +32,10 @@
 ; giro 27 25 180
 ; giro 26 25 90
 ; giro 26 26 90
-; giro 13 26 180
-; giro 12 26 90
-; giro 12 27 90
+; giro 5 27 180
+; giro 13 34 180
+; giro 12 34 90
+; giro 12 35 90
 ; ---------------------------------------------------------------------------------------------------------------------------------
 ; Piezas y puzles de cada sala (Fase 12.3: los lee escenas/puzle.gd; la gramatica esta en su cabecera). El laboratorio solo pone HUD,
 ; teclas y carteles. Las tinajas del lab vierten 0.5 u3/s durante 20 u3 (Pablo, 15/10); el arroyo de Q3 echa 1.5 u3/s.
@@ -184,32 +185,87 @@
 ; puzle q12_vierte cuando=q12_tinaja.agua_llega hace=q12_tinaja.abrir_cauce(0.5,20)
 ; puzle q12_moja_boton cuando=q12_boton.pulsado hace=q12_tinaja.mojar
 ; puzle q12_moja_placa cuando=q12_placa.pulsado hace=q12_tinaja.mojar
-; --- T1a DESVIO EN SECO (20/11, rama demo/puzles-tres-sellos; sala (0,3), x 1..7, y 25..31; docs/PUZLES_DEMO_TRES_SELLOS_2026-11-20.md T1): sustituye a Q4 sin hielo. El manantial (4,26) esta cerrado por la compuerta-GRIFO (4,27), que alterna el boton ! (2,26) o la placa @ (6,26).
-; ---   Detras, una bifurcacion SECA (4,28): el brazo este (5..7,28) lleva al nivel (6,28) (objetivo 0.4) y el oeste (3..1,28) se pierde por el desague (1,28). Con los brazos secos se tapa con TIERRA (+ ᛜ) la primera casilla del brazo del desague (3,28) y despues se abre el grifo:
+; --- Q13 LA CALDERA (20/11, sala (0,3), x 1..7, y 25..31): la cuenca (2..3, 26..27, 4 casillas, como la de Q8) se llena por la tinaja (5,27) y debajo hay un brasero (3,29). La puerta (1,31) abre con LAS DOS COSAS a la vez: la cuenca
+; ---   a 0,45 o mas (detector q13_nivel en (2,26)) Y el brasero encendido. El agua que desborda lo apaga: el detector q13_desborda (0,8 en (3,27)) corta la llama en cuanto el nivel lo alcanza (una vez, como el charco de F5), y la tinaja vierte
+; ---   hasta ~0,9: hay que dosificar (la tinaja no se vuelve a mojar mientras sube) o ENCENDER DESPUES del desborde. Si la llama se apaga la puerta se cierra. Vias: boton ! (2,31) moja la tinaja · placa @ (6,31) enciende el brasero.
+; pieza q13_cuenca cuenca 2 26 celdas=2,26..3,27
+; pieza q13_nivel nivel 2 26 objetivo=0.45
+; pieza q13_desborda nivel 3 27 objetivo=0.8
+; pieza q13_tinaja tinaja 5 27 canal=4,27
+; pieza q13_brasero brasero 3 29
+; pieza q13_cont contador 5 29 de=3,29
+; pieza q13_puerta puerta 1 31
+; pieza q13_boton pulsador 2 31 modo=magia
+; pieza q13_placa pulsador 6 31 modo=presencia
+; puzle q13_vierte cuando=q13_tinaja.agua_llega hace=q13_tinaja.abrir_cauce(0.5,20)
+; puzle q13_abre_nivel cuando=q13_nivel.alcanzado si=q13_cont.todos hace=q13_puerta.abrir
+; puzle q13_abre_llama cuando=q13_cont.todos si=q13_nivel.alcanzado hace=q13_puerta.abrir
+; puzle q13_cierra_nivel cuando=q13_nivel.perdido hace=q13_puerta.cerrar
+; puzle q13_cierra_llama cuando=q13_cont.no_todos hace=q13_puerta.cerrar
+; puzle q13_desborde_apaga cuando=q13_desborda.alcanzado hace=q13_brasero.apagar
+; puzle q13_boton_moja cuando=q13_boton.pulsado hace=q13_tinaja.mojar
+; puzle q13_placa_enciende cuando=q13_placa.pulsado hace=q13_brasero.encender
+; --- Q14 RELOJ DE AGUA (20/11, sala (1,3), x 9..15, y 25..31): una cuenca llena (10..12, 26..29, 12 casillas, a 0,9) con un DESAGÜE: una compuerta cerrada en (11,30) y el sumidero (11,31). En cuanto se enciende el PRIMERO de los tres braseros
+; ---   (15,26) (14,29) (13,31) se abre la compuerta y la cuenca se vacía sola: el nivel (detector q14_nivel en (10,29), 0,35) es el cronómetro visible. La puerta (9,31) abre cuando los tres arden Y el nivel aún está en 0,35 o más
+; ---   (se mira al encender el último). Si el agua baja de 0,35 antes de encender el tercero, ya no abre (la compuerta no se vuelve a cerrar: la sala se recarga con R). Los braseros no se apagan solos.
+; ---   Vias: boton ! (10,31) enciende los tres a la vez · placa @ (15,31) solo abre el desagüe (arranca el reloj).
+; pieza q14_reloj cuenca 10 26 celdas=10,26..12,29 nivel=0.9
+; pieza q14_compuerta compuerta 11 30 vertical=no
+; pieza q14_sumidero cuenca 11 31 fijo=0.02
+; pieza q14_nivel nivel 10 29 objetivo=0.35
+; pieza q14_b1 brasero 15 26
+; pieza q14_b2 brasero 14 29
+; pieza q14_b3 brasero 13 31
+; pieza q14_cont contador 13 27 de=15,26+14,29+13,31
+; pieza q14_puerta puerta 9 31
+; pieza q14_boton pulsador 10 31 modo=magia rearme=2
+; pieza q14_placa pulsador 15 31 modo=presencia
+; puzle q14_arranca_b1 cuando=q14_b1.encendido hace=q14_compuerta.abrir
+; puzle q14_arranca_b2 cuando=q14_b2.encendido hace=q14_compuerta.abrir
+; puzle q14_arranca_b3 cuando=q14_b3.encendido hace=q14_compuerta.abrir
+; puzle q14_abre cuando=q14_cont.todos si=q14_nivel.alcanzado hace=q14_puerta.abrir
+; puzle q14_boton_enciende cuando=q14_boton.pulsado hace=q14_b1.encender y=q14_b2.encender y=q14_b3.encender
+; puzle q14_placa_desagua cuando=q14_placa.pulsado hace=q14_compuerta.abrir
+; --- Q15 LAVA CON PESO (20/11, sala (2,3), x 17..23, y 25..31): un rio de lava de 2 casillas (21,28) (22,28) en un paso de la pared (dos columnas de muro, x=21 y 22) separa la mitad de la entrada (x 17..20) de un rincon (x=23) que solo se alcanza por la lava;
+; ---   en él, una placa de PESO (23,28, peso 1). La roca pequeña (19,28) pesa 1: hay que ENFRIAR la lava con agua (una flecha de agua desde (20,28) enfría las dos casillas: el centro y su vecina), rodear la roca, EMPUJARLA al este por la roca
+; ---   enfriada hasta la placa (4 casillas, ~10 s) y que descanse sobre ella: la placa abre la puerta (20,31) mientras pesa. La roca vuelve a ser lava a los 22 s de enfriarse (vuelve=22): si la lava vuelve con la roca encima, la roca SE HUNDE
+; ---   (Lava3D._fundir → BloqueEmpujable3D.hundirse_en_lava), se disuelve en vapor y reaparece en su casilla del mapa (19,28) al cabo de 1,2 s (si está libre). Vias: boton ! (17,26) enfria la lava sin agua · placa @ (17,30) abre la puerta.
+; pieza q15_lava lava 21 28 celdas=21,28..22,28 vuelve=22
+; pieza q15_roca roca_empujable 19 28 tam=pequena
+; pieza q15_peso pulsador 23 28 modo=presencia peso=1
+; pieza q15_puerta puerta 20 31
+; pieza q15_boton pulsador 17 26 modo=magia
+; pieza q15_placa pulsador 17 30 modo=presencia
+; puzle q15_abre cuando=q15_peso.pulsado hace=q15_puerta.abrir
+; puzle q15_cierra cuando=q15_peso.soltado hace=q15_puerta.cerrar
+; puzle q15_boton_enfria cuando=q15_boton.pulsado hace=q15_lava.enfriar
+; puzle q15_placa_abre cuando=q15_placa.pulsado hace=q15_puerta.abrir
+; --- T1a DESVIO EN SECO (20/11; 25/11 bajada a la fila 4 al juntar con hechizos/cuatro-elementos, que puso Q13-Q15 en la fila 3; rama demo/puzles-tres-sellos; sala (0,4), x 1..7, y 33..39; docs/PUZLES_DEMO_TRES_SELLOS_2026-11-20.md T1): sustituye a Q4 sin hielo. El manantial (4,34) esta cerrado por la compuerta-GRIFO (4,35), que alterna el boton ! (2,34) o la placa @ (6,34).
+; ---   Detras, una bifurcacion SECA (4,36): el brazo este (5..7,36) lleva al nivel (6,36) (objetivo 0.4) y el oeste (3..1,36) se pierde por el desague (1,36). Con los brazos secos se tapa con TIERRA (+ ᛜ) la primera casilla del brazo del desague (3,36) y despues se abre el grifo:
 ; ---   la tierra NO se puede levantar sobre agua (Lanzador3D.puede_construir_en), por eso ha de ir antes. Dura 25 s. Cerrar el grifo apaga el manantial y los desagues vacian los brazos: se puede reintentar.
-; pieza t1a_red cuenca 4 26 celdas=4,26..4,28+1,28..3,28+5,28..7,28
-; pieza t1a_manantial manantial 4 26 caudal=1.2 rampa=no inicia=no
-; pieza t1a_compuerta compuerta 4 27 vertical=no estrecha=no
-; pieza t1a_desague cuenca 1 28 fijo=0.02
-; pieza t1a_nivel nivel 6 28 objetivo=0.4
-; pieza t1a_puerta puerta 4 30
-; pieza t1a_boton pulsador 2 26 modo=magia rearme=2
-; pieza t1a_placa pulsador 6 26 modo=presencia
+; pieza t1a_red cuenca 4 34 celdas=4,34..4,36+1,36..3,36+5,36..7,36
+; pieza t1a_manantial manantial 4 34 caudal=1.2 rampa=no inicia=no
+; pieza t1a_compuerta compuerta 4 35 vertical=no estrecha=no
+; pieza t1a_desague cuenca 1 36 fijo=0.02
+; pieza t1a_nivel nivel 6 36 objetivo=0.4
+; pieza t1a_puerta puerta 4 38
+; pieza t1a_boton pulsador 2 34 modo=magia rearme=2
+; pieza t1a_placa pulsador 6 34 modo=presencia
 ; puzle t1a_grifo_abre cuando=t1a_compuerta.abierta hace=t1a_manantial.abrir_cauce
 ; puzle t1a_grifo_cierra cuando=t1a_compuerta.cerrada hace=t1a_manantial.apagar_fuente
 ; puzle t1a_abre cuando=t1a_nivel.alcanzado hace=t1a_puerta.abrir
 ; puzle t1a_cierra cuando=t1a_nivel.perdido hace=t1a_puerta.cerrar
 ; puzle t1a_boton_alterna cuando=t1a_boton.pulsado hace=t1a_compuerta.alternar
 ; puzle t1a_placa_alterna cuando=t1a_placa.pulsado hace=t1a_compuerta.alternar
-; --- T1b RETENER (20/11, sala (1,3), x 9..15, y 25..31): sustituye a Q3 sin hielo. Tinaja (13,26) -> codo (12,26) -> recto (12,27) -> cuenca de 1 casilla (12,28) con una BOCA seca (12,29) que da al desague (12,30): sin presa el agua se va.
-; ---   TIERRA (+ ᛜ) en la boca (12,30) ANTES de regar la tinaja (no se levanta sobre agua) y despues agua a la tinaja (o boton ! (10,26) / placa @ (10,30)): el nivel (12,28) >= 0.3 abre la puerta (15,25) mientras aguante (25 s) y la cierra al perderse.
-; pieza t1b_cuenca cuenca 12 28 celdas=12,28..12,29
-; pieza t1b_desague cuenca 12 30 fijo=0.02
-; pieza t1b_nivel nivel 12 28 objetivo=0.3
-; pieza t1b_puerta puerta 15 25
-; pieza t1b_tinaja tinaja 13 26 canal=12,26+12,27
-; pieza t1b_boton pulsador 10 26 modo=magia
-; pieza t1b_placa pulsador 10 30 modo=presencia
+; --- T1b RETENER (20/11, sala (1,4), x 9..15, y 33..39): sustituye a Q3 sin hielo. Tinaja (13,34) -> codo (12,34) -> recto (12,35) -> cuenca de 1 casilla (12,36) con una BOCA seca (12,37) que da al desague (12,38): sin presa el agua se va.
+; ---   TIERRA (+ ᛜ) en la boca (12,38) ANTES de regar la tinaja (no se levanta sobre agua) y despues agua a la tinaja (o boton ! (10,34) / placa @ (10,38)): el nivel (12,36) >= 0.3 abre la puerta (15,33) mientras aguante (25 s) y la cierra al perderse.
+; pieza t1b_cuenca cuenca 12 36 celdas=12,36..12,37
+; pieza t1b_desague cuenca 12 38 fijo=0.02
+; pieza t1b_nivel nivel 12 36 objetivo=0.3
+; pieza t1b_puerta puerta 15 33
+; pieza t1b_tinaja tinaja 13 34 canal=12,34+12,35
+; pieza t1b_boton pulsador 10 34 modo=magia
+; pieza t1b_placa pulsador 10 38 modo=presencia
 ; puzle t1b_vierte cuando=t1b_tinaja.agua_llega hace=t1b_tinaja.abrir_cauce(0.5,20)
 ; puzle t1b_abre cuando=t1b_nivel.alcanzado hace=t1b_puerta.abrir
 ; puzle t1b_cierra cuando=t1b_nivel.perdido hace=t1b_puerta.cerrar
@@ -240,11 +296,19 @@
 #Z....@.#...Z...#.!Z..@.#.!.Z.@.#
 #.......#.......#.......#.......#
 ####.#######.#######.#######.####
-#.......#......Z#.......##Lu.!@##
-#.!.c.@.#.!.Lu..#.......##-..cc##
-#...c...#...-...#.......##c...c##
-#ccccccc#...c...#.......##c...c##
-#.......#...c...#.......##c...c##
-#...Z...#.@.c...#.......##ccccc##
-#.......#.......#.......#########
+#.......#.......#....##.##Lu.!@##
+#.cc....#.ccc..T#!...##.##-..cc##
+#.cc-u..#.ccc...#....##.##c...c##
+#.......#.ccc...#......@##c...c##
+#..T....#.ccc.T.#....##.##c...c##
+#.......#..c....#@...##.##ccccc##
+#Z!...@.#Z!c.T.@#...Z##.#########
+####.#######.####################
+#.......#......Z#################
+#.!.c.@.#.!.Lu..#################
+#...c...#...-...#################
+#ccccccc#...c...#################
+#.......#...c...#################
+#...Z...#.@.c...#################
+#.......#.......#################
 #################################

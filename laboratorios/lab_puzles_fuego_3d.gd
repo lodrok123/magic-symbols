@@ -23,7 +23,7 @@ extends Node
 ##   F5 (0,0) DERRITE EL BLOQUE: cuenca A llena (2–3,2–3), compuerta de HIELO (4,3), cuenca B (5–6,2–3) y una antorcha (6,5). El fuego derrite el hielo,
 ##            el agua llega a B y a 0,2 el charco APAGA la antorcha. La puerta (1,6) se abre con la antorcha encendida Y el hielo derretido: el orden
 ##            importa. `!` derrite el hielo, `@` enciende la antorcha.
-## Teclas: 1–5 llevan al jugador a la entrada de esa sala (F1, F2, F3, F4, F5) · 6–8 a las trampas de pared (F7–F9) · 9, 0 y «-» a los puzles nuevos (F10, F11, F12; ver NUEVOS) · R recarga la escena · (las de la maqueta siguen valiendo).
+## Teclas: 1–5 llevan al jugador a la entrada de esa sala (F1, F2, F3, F4, F5) · 6–8 a las trampas de pared (F7–F9) · 9, 0 y «-» a los puzles nuevos (F10, F11, F12; ver NUEVOS) · teclado numérico 1…4 o Alt+1…4 a F13…F16 · R recarga la escena · (las de la maqueta siguen valiendo).
 ## F6–F10 (caldera, fogata con combustible, luz en cueva, viento y escudo) son de la segunda tanda: las salas (2,1) (3,1) (0,2)–(3,2) están libres.
 
 const NIVEL_MAPA: String = "PuzlesFuego"
@@ -68,6 +68,11 @@ const TRAMPAS: Array = [
 ]
 ## PUZLES NUEVOS (18/11/2026): tres salas más, aparte de las anteriores para no tocar `_puzles` ni `_trampas` (que cuentan las pruebas). Teclas 9, 0 y «-» (a la izquierda de la 1 en el teclado español: la tecla de al lado del 0).
 ##   F10 (2,1) LLEVA LA PÓLVORA: un muro agrietado tapa un nicho con un cofre; el barril pequeño de (22,10) (la otra punta de la sala) se coge, se enciende con fuego, se lleva y se lanza o se deja junto al muro. Botón `!` enciende el barril donde está; placa `@` rompe el muro.
+## SEGUNDA TANDA (20/11/2026): el mapa pasa a 33 × 33 con una fila de salas más ((0,3)…(3,3), con hueco en x = 4, 12, 20, 28 de la fila 24). Teclado numérico 1…4 o Alt+1…4 (la fila de números ya está llena; `indice_nuevo_por_tecla`).
+##   F16 (3,3) BRASERO BAJO LA GOTERA: una cabeza que escupe AGUA cada 7 s por la columna del brasero (26,27) y lo apaga; la puerta (29,27) abre mientras arde. Encender en la pausa y cruzar a tiempo, quemar la cuerda (válvula) o tapar la boca con tierra.
+##   F15 (2,3) BRASEROS EN ORDEN CON MURAL: cuatro braseros que se encienden en un orden (uno equivocado los apaga todos); el orden está en una losa del suelo tapada de barro que el agua limpia.
+##   F14 (1,3) CHOQUE TÉRMICO: un nicho con cofre tapado por una roca térmica (10,27): el fuego la pone al rojo 8 s y el agua mientras está caliente la parte; los golpes y las explosiones no la rompen.
+##   F13 (0,3) DRAGÓN QUE ENCIENDE + BARRERA: una cabeza de dragón en el muro (6,24) escupe cada 7 s por la columna x=6; prende una fila de setos (2..6, 26) hasta un barril (1,26) que, al reventar, sella el cofre (1,27). Agua a la cabeza, un seto mojado o una barrera de agua (2 s) delante de la boca.
 const NUEVOS: Array = [
 	{"nombre": "F10 pólvora", "entrada": Vector2i(19, 13), "cartel": Vector2i(21, 10),
 		"texto": "F10 · LLEVA LA PÓLVORA\nCoge el barril pequeño del fondo (E), enciéndelo con fuego y LLÉVALO junto al muro agrietado del rincón:\nlánzalo contra él o déjalo en la casilla de al lado (la mecha dura 2,4 s). Donde nace no llega; el grande es un señuelo.\nBotón: enciende el pequeño donde está · placa: rompe el muro.",
@@ -78,6 +83,18 @@ const NUEVOS: Array = [
 	{"nombre": "F12 setas de veneno", "entrada": Vector2i(28, 17), "cartel": Vector2i(30, 19),
 		"texto": "F12 · SETAS DE VENENO\nDos setas del pasillo se hinchan y exhalan una nube verde cada 10 s (9 s de vida): nace de la seta, se extiende\ncon ondas y el pasillo siempre está lleno. El fuego prende el gas (a la seta o a su nube): arde 6 s y no sale veneno;\ncruza hasta la placa del fondo. Agua a una seta: la atasca 8 s (y apaga su llama) · botón: atasca las dos 10 s.",
 		"ids": {"r1": "f12_r1", "r2": "f12_r2", "placa": "f12_placa", "boton": "f12_boton"}},
+	{"nombre": "F13 dragón y barrera", "entrada": Vector2i(4, 25), "cartel": Vector2i(4, 28),
+		"texto": "F13 · EL DRAGÓN QUE ENCIENDE\nLa cabeza del muro (arriba a la derecha) escupe fuego a los 6 s de entrar y cada 7 s: prende la fila de setos y el fuego corre hasta el barril,\nque al reventar entierra el cofre. Vías: agua a la cabeza (la apaga 8 s) · mojar un seto (cortafuegos) · BARRERA de agua delante de la boca.\nBotón: apaga el dragón 8 s · placa: prende el primer seto a mano.",
+		"ids": {"dragon": "f13_dragon", "s1": "f13_s1", "s2": "f13_s2", "s3": "f13_s3", "s4": "f13_s4", "s5": "f13_s5", "barril_grande": "f13_barril", "cofre": "f13_cofre", "boton": "f13_boton", "placa": "f13_placa"}},
+	{"nombre": "F14 choque térmico", "entrada": Vector2i(12, 25), "cartel": Vector2i(12, 29),
+		"texto": "F14 · CHOQUE TÉRMICO\nLa roca que tapa el nicho (arriba a la izquierda) no se rompe a golpes ni con explosiones.\nFuego: la pone al rojo 8 s. Agua MIENTRAS sigue al rojo: la parte (con vapor). Fría, el agua no le hace nada.\nBotón: la calienta · placa: la parte.",
+		"ids": {"muro": "f14_muro", "cofre": "f14_cofre", "boton": "f14_boton", "placa": "f14_placa"}},
+	{"nombre": "F15 braseros en orden", "entrada": Vector2i(20, 25), "cartel": Vector2i(20, 30),
+		"texto": "F15 · BRASEROS EN ORDEN\nEnciende los cuatro braseros en el orden correcto: uno equivocado los apaga todos.\nEl orden está en la losa del centro, tapada de barro: moja el suelo con una LÍNEA de agua (agua + ᛁ) y se ve.\nBotón: limpia el mural · placa: los enciende en orden.",
+		"ids": {"orden": "f15_orden", "mural": "f15_mural", "b1": "f15_b1", "b2": "f15_b2", "b3": "f15_b3", "b4": "f15_b4", "puerta": "f15_puerta", "boton": "f15_boton", "placa": "f15_placa"}},
+	{"nombre": "F16 gotera", "entrada": Vector2i(28, 25), "cartel": Vector2i(27, 28),
+		"texto": "F16 · BRASERO BAJO LA GOTERA\nUna cabeza escupe un chorro de agua cada 7 s y apaga el brasero. La puerta abre mientras arde.\nEnciéndelo en la pausa (fuego, desde 2 casillas, fuera de la columna) y cruza antes del siguiente chorro (~4 s).\nO corta el agua: quema la cuerda (válvula), o tapa la boca con una barrera de tierra. Botón: apaga la gotera 8 s · placa: enciende el brasero.",
+		"ids": {"gotera": "f16_gotera", "brasero": "f16_brasero", "cont": "f16_cont", "puerta": "f16_puerta", "cofre": "f16_cofre", "cuerda": "f16_cuerda", "boton": "f16_boton", "placa": "f16_placa"}},
 ]
 ## Papeles que toda sala tiene en su diccionario aunque no los use (null): el HUD y el escenario los leen sin mirar si existen.
 const PAPELES_SIEMPRE: Array = ["detector", "compuerta", "puerta", "contador"]
@@ -254,7 +271,7 @@ func _unhandled_input(ev: InputEvent) -> void:
 		get_tree().reload_current_scene()
 		return
 	var teclas: Dictionary = {KEY_1: 0, KEY_2: 1, KEY_3: 2, KEY_4: 3, KEY_5: 4}
-	if teclas.has(k.keycode):
+	if teclas.has(k.keycode) and not k.alt_pressed:         # Alt+1… son de los puzles nuevos de la segunda tanda (más abajo)
 		var n: int = int(teclas[k.keycode])
 		if n < _puzles.size():
 			colocar_jugador(_puzles[n]["entrada"] as Vector2i)
@@ -268,6 +285,25 @@ func _unhandled_input(ev: InputEvent) -> void:
 		var nn: int = int(teclas_n[k.keycode])
 		if nn < _nuevos.size():
 			colocar_jugador(_nuevos[nn]["entrada"] as Vector2i)
+	var ne: int = indice_nuevo_por_tecla(k)
+	if ne >= 0 and ne < _nuevos.size():
+		colocar_jugador(_nuevos[ne]["entrada"] as Vector2i)
+
+
+## Las salas de la segunda tanda de puzles nuevos (F13…F16, 20/11) no tienen tecla propia en la fila de números (ya está llena): van en el teclado numérico (1…4) o con Alt + 1…4 (el portátil no lo tiene).
+## Devuelve el índice en `_nuevos` (F13 es la cuarta) o -1 si la tecla no es de esas.
+func indice_nuevo_por_tecla(k: InputEventKey) -> int:
+	var cifra: int = -1
+	match k.keycode:
+		KEY_KP_1: cifra = 1
+		KEY_KP_2: cifra = 2
+		KEY_KP_3: cifra = 3
+		KEY_KP_4: cifra = 4
+		KEY_1: cifra = 1 if k.alt_pressed else -1
+		KEY_2: cifra = 2 if k.alt_pressed else -1
+		KEY_3: cifra = 3 if k.alt_pressed else -1
+		KEY_4: cifra = 4 if k.alt_pressed else -1
+	return -1 if cifra < 0 else 2 + cifra
 
 
 ## Teletransporte del jugador a una casilla (lo mismo que escenario_base.colocar_jugador).
@@ -378,7 +414,7 @@ func _refrescar_hud() -> void:
 			var bt: Barril3D = q["barril"]
 			lt += "  barril %s" % ("EXPLOTADO" if bt.explotado else ("encendido" if bt.encendido else "entero"))
 		t += lt + "\n"
-	t += "PUZLES NUEVOS · 9, 0, - ir a la sala\n"
+	t += "PUZLES NUEVOS · 9, 0, - (F10, F11, F12) · teclado numérico 1…4 o Alt+1…4 (F13…F16) ir a la sala\n"
 	for q in _nuevos:
 		t += "  %-18s%s\n" % [String(q["nombre"]), _estado_nuevo(q)]
 	for a in _avisos:
@@ -392,6 +428,8 @@ func _estado_nuevo(q: Dictionary) -> String:
 	var muro: Variant = q.get("muro")
 	if muro != null and is_instance_valid(muro):
 		s += "  muro %s" % ("ROTO" if bool((muro as Object).get("roto_ya")) else "entero")
+		if bool((muro as Object).get("termica")) and not bool((muro as Object).get("roto_ya")):
+			s += " (%s)" % (("AL ROJO %.1f s" % float((muro as Object).get("calor_s"))) if bool((muro as Object).get("caliente")) else "fría")
 	var cofre: Variant = q.get("cofre")
 	if cofre != null and is_instance_valid(cofre):
 		s += "  cofre %s" % ("abierto" if bool((cofre as Object).get("es_abierto")) else ("cerrado" if bool((cofre as Object).get("es_cerrado")) else "oculto"))
@@ -399,7 +437,7 @@ func _estado_nuevo(q: Dictionary) -> String:
 	if barril != null and is_instance_valid(barril):
 		var b: Barril3D = barril
 		s += "  barril pequeño %s" % ("EXPLOTADO" if b.explotado else ("encendido %.1f s" % (b.mecha_restante() * b.t_mecha) if b.encendido else "entero"))
-	for papel in ["t1", "t2", "t3"]:
+	for papel in ["t1", "t2", "t3", "dragon"]:
 		var tr: Variant = q.get(papel)
 		if tr != null and is_instance_valid(tr):
 			s += "  %s %s" % [papel.to_upper(), _estado_trampa(tr)]
@@ -409,6 +447,35 @@ func _estado_nuevo(q: Dictionary) -> String:
 			var r: Respiradero3D = rp
 			s += "  %s %s" % [papel.to_upper(), "ATASCADO" if not r.activo else ("AVISA" if r.en_aviso else "exhala en %.0f s" % (r.cada - r._t))]
 	s += "  nubes %d" % NubeVeneno3D.vivas.size() if q.has("r1") else ""
+	var gt: Variant = q.get("gotera")
+	if gt != null and is_instance_valid(gt):
+		s += "  gotera %s" % _estado_trampa(gt)
+		var brg: Variant = q.get("brasero")
+		if brg != null and is_instance_valid(brg):
+			s += "  brasero %s" % _llama(brg)
+		var cuer: Variant = q.get("cuerda")
+		if cuer != null and is_instance_valid(cuer):
+			s += "  cuerda %s" % ["entera", "ARDIENDO", "ROTA"][int((cuer as Cuerda3D).estado)]
+		var pg: Variant = q.get("puerta")
+		if pg != null and is_instance_valid(pg):
+			s += "  puerta %s" % ("ABIERTA" if bool((pg as Object).get("abierta")) else "cerrada")
+	var sq: Variant = q.get("orden")
+	if sq != null and is_instance_valid(sq):
+		var sb: SecuenciaBraseros3D = sq
+		s += "  orden %d/%d%s (fallos %d)" % [sb.paso, sb.braseros.size(), " HECHA" if sb.hecha else "", sb.fallos]
+		s += "  braseros " + " ".join(PackedStringArray([_llama(q["b1"]), _llama(q["b2"]), _llama(q["b3"]), _llama(q["b4"])]))
+	var mu: Variant = q.get("mural")
+	if mu != null and is_instance_valid(mu):
+		s += "  mural %s" % ("LIMPIO" if bool((mu as Object).get("limpio_ya")) else "tapado")
+	if q.has("s1") and q.has("barril_grande"):
+		var setos: String = ""
+		for id in ["s1", "s2", "s3", "s4", "s5"]:
+			var sp: Variant = q.get(id)
+			setos += "%s " % ("·" if sp == null or not is_instance_valid(sp) else ("ARDE" if bool(sp.get("is_lit")) else ("mojado" if bool(sp.call("esta_mojado")) else "seco")))
+		s += "  setos " + setos
+		var bg: Variant = q.get("barril_grande")
+		if bg != null and is_instance_valid(bg):
+			s += " barril %s" % ("EXPLOTADO" if (bg as Barril3D).explotado else ("encendido" if (bg as Barril3D).encendido else "entero"))
 	var pl: Variant = q.get("placa")
 	if pl != null and is_instance_valid(pl):
 		s += "  placa %s" % ("PISADA" if bool((pl as Object).get("activo")) else "libre")

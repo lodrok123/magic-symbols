@@ -2258,6 +2258,14 @@ func solidez_para(p: Vector3, dano: float) -> bool:
 	return false
 
 
+## Lo mismo que `solidez_para` pero SOLO MIRANDO (no la golpea): para la línea de mira de los avisos de flecha (21/11), que dibuja hasta donde se parará.
+func solidez_contiene(p: Vector3) -> bool:
+	for s in _solideces_v2:
+		if is_instance_valid(s) and (s as SolidezV2).contiene(p):
+			return true
+	return false
+
+
 ## Todo lo que el rayo cruza en las capas reactiva y de bloqueo, ordenado por distancia.
 func _rayo_areas(espacio: PhysicsDirectSpaceState3D, pos: Vector3, d: Vector3, largo: float) -> Array:
 	var res: Array = []

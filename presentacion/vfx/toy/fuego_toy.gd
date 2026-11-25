@@ -115,6 +115,34 @@ const PILAR_ESTIRA: float = 0.65         ## repeticiones verticales de la textur
 const PILAR_RAIZ_CHATO: float = 0.8      ## raíz de un pilar bajo y ancho (alto/radio < 1,2): casi no se estrecha, que si no parece un cuenco
 const PILAR_CALOR: float = -0.2          ## compensa en la rampa el relleno de más: el corazón se queda en naranja, sin amarillo ni blanco
 const PILAR_VAIVEN_M: float = 0.16       ## metros que se ladea el chorro entero (pilar de referencia, r 0,5)
+## INICIO Y FINAL DE LA BARRERA (21/11, Pablo: «el pilar y el muro ya los tienen, faltan la barrera y la línea»). Solo dibujo; mismo esquema que el pilar y el muro.
+##   INICIO: un anillo de aviso se cierra sobre el borde de la cúpula y el aro del suelo se enciende recorriendo el perímetro (`BARRERA_AVISO_S`), con grietas que salen del centro;
+##   detrás, las llamas suben en ola alrededor de la cúpula, de un lado al opuesto, hasta cerrarla por arriba (`BARRERA_BROTE_S`). Las chispas no salen hasta que hay llama.
+##   FINAL (`BARRERA_FINAL_S`, dentro de la vida del hechizo): las llamas bajan por tramos (cada sector a su ritmo), el fuego se oscurece hacia el humo y suelta bocanadas toon por donde baja;
+##   después, el RESCOLDO (el aro y las grietas, que se enfrían del blanco al rojo, y el humo) se descuelga y se apaga `PILAR_RESCOLDO_S` por su cuenta.
+## A false, el nacer y morir de antes (el cuerpo entero crece y se encoge).
+const BARRERA_INICIO_FINAL: bool = true
+const BARRERA_AVISO_S: float = 0.3
+const BARRERA_BROTE_S: float = 0.55
+const BARRERA_FINAL_S: float = 0.8
+const BARRERA_AVISO_TAM: float = 1.7          ## el anillo de aviso empieza en esta fracción mayor que el borde de la cúpula y se cierra sobre él
+const BARRERA_GRIETAS_TAM: float = 2.7        ## diámetro del plano de grietas, en veces el semieje horizontal
+const BARRERA_GRIETAS_CALOR: float = 0.5      ## calor de las grietas mientras la barrera está viva (rojizo, más suave que el del pilar)
+const BARRERA_HUMO_POR_M: float = 2.5         ## bocanadas de humo por metro de semieje horizontal (×2) en todo el final
+const BARRERA_HUMO_TAM: Vector2 = Vector2(0.5, 1.2)      ## diámetro de la bocanada al nacer y al final, en veces el alto de la cúpula
+## INICIO Y FINAL DEL HAZ (21/11). Solo dibujo. El haz ya salía de la mano (`crece`) y se soltaba al cortarse (`corte`); con el interruptor:
+##   INICIO (`HAZ_NACER_S`): sale de la mano como un chorro FINO (`HAZ_FINO_INI`) que engorda según avanza hasta su largo; el brillo de la mano se enciende con él y las chispas solo salen cuando ha llegado.
+##   FINAL (`HAZ_FINAL_S`): se corta en la mano y la cola se va consumiendo hacia la punta (`HAZ_COLA` 1 = hasta la punta; apenas avanza, `HAZ_AVANCE_FINAL`), soltando bocanadas de humo por donde se consume;
+##   el humo se descuelga al acabar y se disipa solo. Respeta el largo cortado por los choques (`HazChoque.largo_corte`).
+## En el juego el haz de FUEGO lo dibuja el gas (`HazGasJuego`) y del FuegoToy solo quedan las luces: esto se ve donde se dibuja el FuegoToy (lab, o sin RenderingDevice).
+const HAZ_INICIO_FINAL: bool = true
+const HAZ_NACER_S: float = 0.45
+const HAZ_FINAL_S: float = 1.0
+const HAZ_FINO_INI: float = 0.35              ## anchura del chorro recién salido (× la entera)
+const HAZ_COLA: float = 1.0
+const HAZ_AVANCE_FINAL: float = 0.15
+const HAZ_HUMO_POR_M: float = 2.0             ## bocanadas de humo por metro de largo en todo el final
+const HAZ_HUMO_TAM: Vector2 = Vector2(0.6, 1.6)          ## diámetro de la bocanada al nacer y al final, en veces el radio del haz (tope 0,9 m)
 const HAZ_R_ORIGEN: float = 0.012
 const HAZ_ABRE: float = 3.0
 ## HAZ, ideas de la demo de gas de three.js (9/11/2026): salpicadura donde choca, punta de humo y luz en el suelo (ver `_haz`).
@@ -271,6 +299,8 @@ func _set_z(v: float) -> void:
 func _set_crece(v: float) -> void:
 	crece = v
 	_param_mats("crece", v)
+	if HAZ_INICIO_FINAL and _listo and figura == Figura.HAZ:
+		_haz_inicio_final()
 	_emitir_haz()
 
 
@@ -278,8 +308,11 @@ func _set_corte(v: float) -> void:
 	corte = v
 	_param_mats("corte", v)
 	if _listo and figura == Figura.HAZ:
-		for h in _halos:
-			h.set_shader_parameter("vida", 1.0 - smoothstep(0.1, 0.7, v))      # el resplandor del origen se apaga al soltarse el chorro
+		if HAZ_INICIO_FINAL:
+			_haz_inicio_final()
+		else:
+			for h in _halos:
+				h.set_shader_parameter("vida", 1.0 - smoothstep(0.1, 0.7, v))      # el resplandor del origen se apaga al soltarse el chorro
 	_emitir_haz()
 
 
@@ -1140,6 +1173,28 @@ func _barrera(c: Node3D, luz: OmniLight3D) -> void:
 	var meridiano: float = FuegoToyMallas.perimetro_elipse(rh, ry) * 0.5
 	var malla: ArrayMesh = FuegoToyMallas.elipsoide(rx, ry, rz, 25, clampi(int(round(ecuador / 0.12)), 48, 200))
 	_halo(c, "Anillo", Vector2(2.6 * rx, 2.6 * rz), Vector3(0, 0.03, 0), 0.35, 1.0, 0, Color(1.0, 0.28, 0.06), {"anillo": 1.0, "latido": 0.04})
+	if BARRERA_INICIO_FINAL:
+		var hf: Node3D = HumoToyFuego.new()
+		hf.name = "HumoFinal"
+		c.add_child(hf)
+		hf.call("montar", clampi(int(round(BARRERA_HUMO_POR_M * 2.0 * rh)), 8, 28), {"claro": PILAR_HUMO_CLARO, "sombra": PILAR_HUMO_SOMBRA, "viejo": PILAR_HUMO_VIEJO,
+			"tam_ini": BARRERA_HUMO_TAM.x * ry, "tam_fin": BARRERA_HUMO_TAM.y * ry, "vida": PILAR_HUMO_VIDA_S, "deriva": Vector3(0, 0.7, 0), "mundo": true})
+		var pgb: PlaneMesh = PlaneMesh.new()
+		pgb.size = Vector2(BARRERA_GRIETAS_TAM * rx, BARRERA_GRIETAS_TAM * rz)
+		var grb: MeshInstance3D = MeshInstance3D.new()
+		grb.name = "Grietas"
+		grb.mesh = pgb
+		var mgb: ShaderMaterial = ShaderMaterial.new()
+		mgb.shader = load(SH_GRIETAS_FUEGO)
+		mgb.render_priority = -2
+		mgb.set_shader_parameter("semilla", 0.37)
+		mgb.set_shader_parameter("brazos", 9)
+		mgb.set_shader_parameter("vida", 0.0)
+		grb.material_override = mgb
+		grb.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		grb.position = Vector3(0, 0.03, 0)
+		c.add_child(grb)
+		_halo(c, "Aviso", Vector2(2.7 * rx, 2.7 * rz), Vector3(0, 0.05, 0), 0.8, 1.6, 0, Color(1.0, 0.32, 0.07), {"anillo": 1.0, "vida": 0.0})
 	var q: QuadMesh = QuadMesh.new()
 	q.size = Vector2(2.0 * rx * k_aro, 2.0 * rz * k_aro)
 	q.orientation = PlaneMesh.FACE_Y
@@ -1183,6 +1238,7 @@ func _haz(c: Node3D, luz: OmniLight3D) -> void:
 	# ronda de Pablo (2/11, haz con cuerpo): más ancho (HAZ_ABRE), bocanadas redondeadas (volutas), centro lleno y claro (cuerpo), más opaco, bolitas grandes al cortarse y una lámina
 	# cruzada («Cruz», giro de 60° alrededor del eje) para que mirado casi a lo largo del haz (cámara del juego) siga habiendo volumen
 	var p: Dictionary = {"largo": largo, "r_origen": HAZ_R_ORIGEN, "r_fin": r, "crece": crece, "corte": corte,
+		"fino_ini": HAZ_FINO_INI if HAZ_INICIO_FINAL else 1.0, "cola": HAZ_COLA if HAZ_INICIO_FINAL else 0.7, "avance": HAZ_AVANCE_FINAL if HAZ_INICIO_FINAL else 0.6,
 		"volutas": 2.0, "cuerpo": 0.3, "desfase": 1.05, "umbral": 0.24, "blandura": 0.42, "tam_bolas": 1.8, "transparencia": 1.0, "fuerza_borde": 1.0,
 		"humo": 1.0 if haz_ideas else 0.0, "tope_calor": HAZ_TOPE_CALOR if haz_ideas else 1.0, "remolino": 0.55 if haz_ideas else 0.0, "nucleo_claro": 0.4 if haz_ideas else 0.0}      # 9/11: la punta se vuelve humo, la rampa se corta en naranja (sin amarillo) y las lenguas hacen remolino
 	var ext: MeshInstance3D = _fuego(c, "Chorro", malla, Vector3(0, h, 0), p, 0, SH_HAZ, _rampa_de_bola())
@@ -1216,8 +1272,17 @@ func _haz(c: Node3D, luz: OmniLight3D) -> void:
 		_humo_punta(c, largo, h, r, f)
 	else:
 		_trocitos(c, _cant(3.0, f, 1, 10), Vector3(r, r, largo * 0.15), Vector3(0, h, -largo * 0.8), 1.0)
-	_particulas(c, "Chispas", _cant(10.0, f, 4, 40), 1.0, 0.07, Vector3(r, r, largo * 0.45), Vector2(0.3, 0.9), Vector3(0, 1, 0), 30.0, Vector3(0, 0.3, 0),
+	if HAZ_INICIO_FINAL:
+		var hfz: Node3D = HumoToyFuego.new()
+		hfz.name = "RastroFinal"      # no empieza por «Humo»: prueba_haz_fuego_ideas cuenta los hijos «Humo*» (el humo de la punta)
+		c.add_child(hfz)
+		var rh_: float = minf(r, 0.9)
+		hfz.call("montar", clampi(int(round(HAZ_HUMO_POR_M * largo)), 6, 28), {"claro": PILAR_HUMO_CLARO, "sombra": PILAR_HUMO_SOMBRA, "viejo": PILAR_HUMO_VIEJO,
+			"tam_ini": HAZ_HUMO_TAM.x * rh_, "tam_fin": HAZ_HUMO_TAM.y * rh_, "vida": PILAR_HUMO_VIDA_S, "deriva": Vector3(0, 0.7, 0), "mundo": true})
+	var chz: GPUParticles3D = _particulas(c, "Chispas", _cant(10.0, f, 4, 40), 1.0, 0.07, Vector3(r, r, largo * 0.45), Vector2(0.3, 0.9), Vector3(0, 1, 0), 30.0, Vector3(0, 0.3, 0),
 		([Color(1.0, 0.55, 0.2, 0.0), Color(1.0, 0.5, 0.15, 1.0), Color(0.95, 0.32, 0.08, 0.0)] if haz_ideas else [Color(1.0, 0.8, 0.4, 0.0), Color(1.0, 0.6, 0.2, 1.0), Color(1.0, 0.5, 0.12, 0.0)]), "chispas", Vector3(0, h, -largo * 0.5), largo + 6.0)
+	if HAZ_INICIO_FINAL:
+		_emisores_choque.append(chz)          # las chispas del haz no salen durante el nacer (el chorro aún no ha llegado) ni al soltarse
 	# idea 1 (el fuego envuelve lo que golpea) e idea 3 (luz en el suelo): solo con los choques que ha calculado la lógica
 	var cs: Array = []
 	for ch in (choques if haz_ideas else []):
@@ -1326,11 +1391,116 @@ func _set_aparicion(v: float) -> void:
 		elif sube:
 			_pilar_muriendo = false
 		_pilar_inicio_final(v)
+	if BARRERA_INICIO_FINAL and _listo and figura == Figura.BARRERA:
+		var apb: AnimationPlayer = get_node_or_null("Anim") as AnimationPlayer
+		if apb != null and apb.is_playing():
+			_pilar_muriendo = String(apb.current_animation) == "morir"
+		elif baja:
+			_pilar_muriendo = true
+		elif sube:
+			_pilar_muriendo = false
+		_barrera_inicio_final(v)
 
 
 var _pilar_muriendo: bool = false
 var _pilar_rescoldo_suelto: bool = false
 var _pilar_humo_n: int = 0
+
+
+## HAZ (21/11): el brillo de la mano sigue al chorro (se enciende al salir y se apaga al soltarse) y, al cortarse, la cola que se consume suelta humo por donde va. Se llama desde `crece` y `corte`.
+func _haz_inicio_final() -> void:
+	for h in _halos:
+		h.set_shader_parameter("vida", smoothstep(0.0, 0.3, crece) * (1.0 - smoothstep(0.1, 0.7, corte)))
+	if _cuerpo == null:
+		return
+	if corte < 0.02:
+		_pilar_humo_n = 0
+		_pilar_rescoldo_suelto = false
+		return
+	var hf: Node3D = _cuerpo.get_node_or_null("RastroFinal") as Node3D
+	if hf == null:
+		return
+	var largo: float = HazChoque.largo_corte(choques, semieje_x * 2.0)
+	var total: int = clampi(int(round(HAZ_HUMO_POR_M * largo)), 6, 28)
+	var quiero: int = int(float(total) * clampf(corte * 1.1, 0.0, 1.0))
+	var r: float = minf(semieje_z * HAZ_ABRE, 0.9)
+	var h: float = maxf(semieje_y, 0.4)
+	while _pilar_humo_n < quiero:
+		_pilar_humo_n += 1
+		var z: float = -largo * clampf(corte * (1.0 + HAZ_AVANCE_FINAL) + randf_range(0.0, 0.08), 0.0, 1.0)      # por donde va la cola que se consume
+		hf.call("emitir", global_transform * Vector3(randf_range(-0.4, 0.4) * r, h + randf_range(-0.2, 0.5) * r, z), Vector3(randf_range(-0.1, 0.1), randf_range(0.4, 0.9), 0.0),
+			randf_range(0.85, 1.15), randf_range(0.8, 1.2))
+	if corte >= 0.999 and not _pilar_rescoldo_suelto:
+		_pilar_rescoldo_suelto = true
+		_soltar_rescoldo()
+
+
+## BARRERA (21/11): reparte `aparicion` en aviso (el anillo se cierra y el aro recorre el perímetro), brote (las llamas suben en ola) y, al bajar, final (las llamas bajan por tramos, con humo).
+func _barrera_inicio_final(v: float) -> void:
+	var fa: float = BARRERA_AVISO_S / (BARRERA_AVISO_S + BARRERA_BROTE_S)
+	var brote: float = 1.0
+	var suelta: float = 0.0
+	var k: float = 1.0
+	var g_calor: float = BARRERA_GRIETAS_CALOR
+	var g_vida: float = 1.0
+	var g_alcance: float = 1.3
+	if _pilar_muriendo:
+		suelta = clampf(1.0 - v, 0.0, 1.0)
+		g_calor = BARRERA_GRIETAS_CALOR * lerpf(0.75, 1.0, v)
+	else:
+		brote = clampf((v - fa) / (1.0 - fa), 0.0, 1.0)
+		k = clampf(v / fa, 0.0, 1.0)
+		g_alcance = lerpf(0.05, 1.3, k)
+		g_calor = BARRERA_GRIETAS_CALOR * lerpf(0.08, 1.0, smoothstep(0.45, 1.0, k))
+		g_vida = smoothstep(0.0, 0.12, k)
+	_param_mats("vida", 1.0)
+	_param_mats("brote", brote)
+	_param_mats("suelta", suelta)
+	_param_mats("apaga", smoothstep(0.1, 0.9, suelta))
+	_param_mats("recorrido", smoothstep(0.0, 1.0, k))
+	if not _pilar_muriendo:
+		_pilar_rescoldo_suelto = false
+	elif v <= 0.001 and not _pilar_rescoldo_suelto:
+		_pilar_rescoldo_suelto = true
+		if _cuerpo != null:
+			_cuerpo.scale = Vector3.ONE
+		_soltar_rescoldo()
+		return
+	if _cuerpo == null:
+		return
+	_cuerpo.scale = Vector3.ONE
+	var hf: Node3D = _cuerpo.get_node_or_null("HumoFinal") as Node3D
+	if hf != null:
+		if not _pilar_muriendo:
+			_pilar_humo_n = 0
+		else:
+			var rh: float = maxf(semieje_x, semieje_z)
+			var total: int = clampi(int(round(BARRERA_HUMO_POR_M * 2.0 * rh)), 8, 28)
+			var quiero: int = int(float(total) * clampf(suelta * 1.15, 0.0, 1.0))
+			while _pilar_humo_n < quiero:
+				_pilar_humo_n += 1
+				var ang: float = randf() * TAU
+				var alt: float = clampf(1.4 * semieje_y * (1.0 - suelta) * randf_range(0.3, 1.0), 0.05, 1.35 * semieje_y)       # por donde van bajando las llamas
+				var yn: float = (alt - 0.4 * semieje_y) / semieje_y
+				var rad: float = sqrt(maxf(1.0 - yn * yn, 0.05))
+				hf.call("emitir", global_transform * Vector3(cos(ang) * semieje_x * rad, alt, sin(ang) * semieje_z * rad), Vector3(cos(ang) * 0.15, randf_range(0.5, 0.9), sin(ang) * 0.15),
+					randf_range(0.85, 1.15), randf_range(0.8, 1.2))
+	# las chispas no salen hasta que hay llama (ni cuando ya se ha ido casi toda)
+	var salen: bool = (brote > 0.6) if not _pilar_muriendo else (suelta < 0.45)
+	for gp in _cuerpo.find_children("*", "GPUParticles3D", false, false):
+		if (gp as GPUParticles3D).emitting != salen:
+			(gp as GPUParticles3D).emitting = salen
+	var gr: MeshInstance3D = _cuerpo.get_node_or_null("Grietas") as MeshInstance3D
+	if gr != null:
+		var mg: ShaderMaterial = gr.material_override as ShaderMaterial
+		mg.set_shader_parameter("alcance", g_alcance)
+		mg.set_shader_parameter("calor", g_calor)
+		mg.set_shader_parameter("vida", g_vida)
+	var av: MeshInstance3D = _cuerpo.get_node_or_null("Aviso") as MeshInstance3D
+	if av != null:
+		var e: float = lerpf(BARRERA_AVISO_TAM, 1.0, k * k)
+		av.scale = Vector3(e, 1.0, e)
+		(av.material_override as ShaderMaterial).set_shader_parameter("vida", 0.0 if _pilar_muriendo else smoothstep(0.0, 0.2, k) * (1.0 - smoothstep(0.8, 1.0, k)))
 
 
 ## Reparte `aparicion` en las fases del muro: aviso (las grietas corren), brote (cremallera del centro a los extremos) y, al morir, retirada de los extremos al centro con humo.
@@ -1390,6 +1560,15 @@ func _soltar_rescoldo() -> void:
 	var padre: Node = get_parent()
 	if padre == null or _cuerpo == null or not is_inside_tree():
 		return
+	var aro: MeshInstance3D = _cuerpo.get_node_or_null("Aro") as MeshInstance3D      # el aro de la barrera se queda al rojo y se enfría
+	if aro != null and BARRERA_INICIO_FINAL:
+		aro.reparent(padre, true)
+		aro.add_to_group("rescoldo_fuego")
+		var ma: ShaderMaterial = aro.material_override as ShaderMaterial
+		var twa: Tween = aro.create_tween()
+		twa.tween_property(ma, "shader_parameter/enfria", 1.0, PILAR_RESCOLDO_S)
+		twa.parallel().tween_property(ma, "shader_parameter/vida", 0.0, PILAR_RESCOLDO_S).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
+		twa.tween_callback(aro.queue_free)
 	var gr: MeshInstance3D = _cuerpo.get_node_or_null("Grietas") as MeshInstance3D
 	if gr != null:
 		gr.reparent(padre, true)
@@ -1400,6 +1579,8 @@ func _soltar_rescoldo() -> void:
 		tw.parallel().tween_property(mg, "shader_parameter/vida", 0.0, PILAR_RESCOLDO_S).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
 		tw.tween_callback(gr.queue_free)
 	var hf: Node3D = _cuerpo.get_node_or_null("HumoFinal") as Node3D
+	if hf == null:
+		hf = _cuerpo.get_node_or_null("RastroFinal") as Node3D       # el del haz
 	if hf != null:
 		hf.reparent(padre, true)
 		hf.add_to_group("rescoldo_fuego")
@@ -2020,11 +2201,11 @@ func _anim_si_hace_falta() -> void:
 			nacer = (PILAR_AVISO_S + PILAR_BROTE_S) if PILAR_INICIO_FINAL else 0.4
 			morir_s = PILAR_FINAL_S if PILAR_INICIO_FINAL else 0.6
 		Figura.BARRERA:
-			nacer = 0.5
-			morir_s = 0.6
+			nacer = (BARRERA_AVISO_S + BARRERA_BROTE_S) if BARRERA_INICIO_FINAL else 0.5
+			morir_s = BARRERA_FINAL_S if BARRERA_INICIO_FINAL else 0.6
 		Figura.HAZ:
-			nacer = 0.4
-			morir_s = 1.0
+			nacer = HAZ_NACER_S if HAZ_INICIO_FINAL else 0.4
+			morir_s = HAZ_FINAL_S if HAZ_INICIO_FINAL else 1.0
 	var lib: AnimationLibrary = AnimationLibrary.new()
 	var es_haz: bool = figura == Figura.HAZ
 	for nom in ["nacer", "vivir", "morir"]:

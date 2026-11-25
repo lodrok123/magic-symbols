@@ -463,6 +463,10 @@ func _empezar_lanzar(tipo: String = "bola") -> void:
 	_tipo_lanzar = tipo
 	if tipo == "flecha":
 		_cd_flecha = CD_FLECHA
+		# 21/11 (Pablo: «quiero que las flechas sean visibles»): la línea de mira, teñida del verde del veneno, desde que levanta el bastón hasta que suelta (INSTANTE_LANZAR s de clip).
+		_apunte_es_fijo = false
+		_apunte_fijado = jugador.position + Vector3(0.0, 0.8, 0.0)
+		_poner_linea_de_mira(AnimacionesChaman.INSTANTE_LANZAR / maxf(ritmo(), 0.1), COLOR_FLECHA_VENENO)
 	else:
 		_cd_bola = CD_BOLA_V2 if CHAMAN_V2 else CD_BOLA
 	moviendo = 0
@@ -504,7 +508,10 @@ func _soltar_flecha_veneno() -> void:
 	_bola_soltada = true
 	var b: BastonChaman3D = pj.baston()
 	var origen: Vector3 = b.cima_global() if b != null else position + Vector3(0, altura * 0.8, 0)
-	var destino: Vector3 = jugador.position + Vector3(0.0, 0.8, 0.0)
+	# Si la línea de mira ya se fijó, la flecha va hacia donde la línea apuntaba (lo que se ve es lo que pega); si no (AVISAR_ATAQUES apagado, lanzamiento muy corto), hacia donde está la jugadora.
+	var destino: Vector3 = _apunte_fijado if _apunte_es_fijo else jugador.position + Vector3(0.0, 0.8, 0.0)
+	_apunte_es_fijo = false
+	_quitar_linea()
 	var t_vuelo: float = maxf(origen.distance_to(destino) / VEL_FLECHA_VENENO, 0.1)
 	var aviso: AvisoAtaque3D = AvisoAtaque3D.circulo(mundo, Vector3(destino.x, jugador.position.y, destino.z), RADIO_IMPACTO_FLECHA, t_vuelo, self)
 	var flecha: Node3D = _crear_flecha()
@@ -529,7 +536,12 @@ func _teñir_flecha(flecha: Node3D) -> void:
 	m.emission = COLOR_FLECHA_VENENO
 	m.emission_energy_multiplier = 1.6
 	for n in flecha.find_children("*", "MeshInstance3D", true, false):
+		if (n as Node).get_parent() is EstelaFlecha3D:
+			continue                                          # la estela lleva su propio material (abajo, teñida)
 		(n as MeshInstance3D).material_override = m
+	var estela: Node = flecha.get_node_or_null("Estela")
+	if estela is EstelaFlecha3D:
+		(estela as EstelaFlecha3D).poner_color(COLOR_FLECHA_VENENO)
 
 
 func _vuelo_flecha_veneno(k: float, flecha: Node3D, origen: Vector3, destino: Vector3, aviso: AvisoAtaque3D) -> void:
@@ -554,6 +566,8 @@ func _flecha_veneno_llega(flecha: Node3D, destino: Vector3) -> void:
 
 
 func _terminar_lanzar() -> void:
+	_quitar_linea()
+	_apunte_es_fijo = false
 	c_estado = "vigila"
 	_t_estado = 0.0
 	pj.agarrar_baston(false, 0.25)

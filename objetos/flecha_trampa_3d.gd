@@ -12,7 +12,7 @@ const VEL_U: float = 8.0                   ## u/s (la del goblin, 9, algo más l
 const LARGO_U: float = 0.6
 const RADIO_U: float = 0.6                 ## radio con el que acierta (horizontal)
 const ALTO_ACIERTO_U: float = 1.7
-const COLOR: Color = Color(0.62, 0.45, 0.25)
+const COLOR: Color = Color(0.8, 0.62, 0.4)             ## madera clara (antes 0,62·0,45·0,25: se perdía en la hierba)
 
 var dir: Vector3 = Vector3.RIGHT
 var alcance_u: float = 18.4
@@ -39,28 +39,50 @@ static func disparar(dueno_: Node, origen: Vector3, d: Vector3, alcance: float, 
 	return f
 
 
+## 21/11: más legible (Pablo: «quiero que las flechas sean visibles»): asta más gruesa y clara, punta de acero mayor, plumas rojas en el culatín y una estela corta detrás (`EstelaFlecha3D`).
+## Solo dibujo: el largo, la velocidad y los radios de acierto no cambian.
+const ASTA_U: float = 0.075
+const PUNTA_U: float = 0.17
+const COLOR_PLUMAS: Color = Color(0.92, 0.24, 0.18)
+
+
+func _material_plano(c: Color) -> StandardMaterial3D:
+	var m := StandardMaterial3D.new()
+	m.albedo_color = c
+	m.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	m.cull_mode = BaseMaterial3D.CULL_DISABLED
+	return m
+
+
 func _ready() -> void:
 	var mi := MeshInstance3D.new()
 	var caja := BoxMesh.new()
-	caja.size = Vector3(0.05, 0.05, LARGO_U)
+	caja.size = Vector3(ASTA_U, ASTA_U, LARGO_U)
 	mi.mesh = caja
-	var m := StandardMaterial3D.new()
-	m.albedo_color = COLOR
-	m.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-	mi.material_override = m
+	mi.material_override = _material_plano(COLOR)
 	mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	add_child(mi)
 	var punta := MeshInstance3D.new()
 	var pm := PrismMesh.new()
-	pm.size = Vector3(0.12, 0.12, 0.14)
+	pm.size = Vector3(PUNTA_U, PUNTA_U, 0.22)
 	punta.mesh = pm
 	punta.rotation.x = -PI * 0.5
-	punta.position = Vector3(0.0, 0.0, -LARGO_U * 0.5 - 0.05)
-	var mp := StandardMaterial3D.new()
-	mp.albedo_color = Color(0.7, 0.72, 0.76)
-	mp.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-	punta.material_override = mp
+	punta.position = Vector3(0.0, 0.0, -LARGO_U * 0.5 - 0.08)
+	punta.material_override = _material_plano(Color(0.86, 0.89, 0.94))
+	punta.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	add_child(punta)
+	var plumas: StandardMaterial3D = _material_plano(COLOR_PLUMAS)
+	for giro in [0.0, PI * 0.5]:
+		var pl := MeshInstance3D.new()
+		var q := BoxMesh.new()
+		q.size = Vector3(0.22, 0.012, 0.16)
+		pl.mesh = q
+		pl.rotation.z = giro
+		pl.position = Vector3(0.0, 0.0, LARGO_U * 0.5 - 0.08)
+		pl.material_override = plumas
+		pl.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		add_child(pl)
+	add_child(EstelaFlecha3D.crear(LARGO_U * 0.5))
 
 
 func _physics_process(delta: float) -> void:

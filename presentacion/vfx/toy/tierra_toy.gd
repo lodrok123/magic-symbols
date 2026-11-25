@@ -86,6 +86,42 @@ const MURO_ESTALLA_TRAMO: float = 0.3                                 ## …y en
 const MURO_TROZOS: int = 4                                            ## piedras pequeñas por roca
 const PIEDRAS_MURO: int = 72                                          ## reserva de terrones del muro (sus rocas × MURO_TROZOS y los del asentamiento)
 const MURO_POLVO_GRIETA: float = 30.0                                 ## bocanadas de polvo por segundo en los frentes de la grieta
+## 21/11 (Pablo: faltan el inicio y el final de la bola, la barrera y la línea; el muro de arriba es el modelo). Cada uno con su interruptor; a false, lo de antes. Pablo: el arte de las púas
+## activas y el muro quedan como están: aquí solo cambia CÓMO APARECEN Y SE VAN.
+##   BOLA — INICIO (si nace sin carga, por `lanzar`): terrones y polvo que vuelan de alrededor y se COMPACTAN en la roca, que crece de aplastada a redonda (con carga, ya se hacía con el anillo
+##   de piedras). FINAL (impacto o muerte en el aire): la roca desaparece y se PARTE en `BOLA_FIN_CASCOTES` cascotes grandes que saltan con polvo, además de lo de antes.
+##   BARRERA — INICIO LENTO: una grieta en ANILLO corre por el suelo (`BARRERA_GRIETAS` tramos tangentes) y sobre ella las rocas brotan EN OLA alrededor, cada una con su polvo y cascotes; luego
+##   las losas del techo cierran la cúpula. FINAL: primero se desploma el techo y las rocas se hunden por tramos, en ola, desmoronándose con polvo y cascotes; queda la marca de tierra partida
+##   (la del pilar) y se borra.
+##   HAZ — INICIO: una GRIETA corre por el suelo delante de las púas (`HAZ_GRIETA_S` s antes de la primera) con polvo en su frente, y cada púa brota tras ella (ya brotaban en orden). FINAL: las
+##   púas tiemblan, se resquebrajan (cascotes y polvo) y se hunden en orden, de la mano a la punta, y la grieta se borra al final. Respeta `haz_tope`.
+const BOLA_INICIO_FINAL: bool = true
+const BARRERA_INICIO_FINAL: bool = true
+const HAZ_INICIO_FINAL: bool = true
+static var prueba_apagar: bool = false                                ## (pruebas) fuerza los tres interruptores a false sin tocar el fichero
+const T_NACER_BOLA_INI: float = 0.5                                   ## s que tarda la bola sin carga en juntarse y compactarse
+const BOLA_INI_TASA: float = 70.0                                     ## terrones por segundo que acuden a la roca
+const BOLA_INI_RADIO: float = 2.6                                     ## de dónde parten, en veces el radio de la bola
+const BOLA_INI_SUBIDA_S: float = 0.3                                  ## s que tarda cada terrón en llegar a la roca
+const BOLA_FIN_CASCOTES: int = 10                                     ## cascotes grandes en que se parte la roca
+const PIEDRAS_BOLA_NUEVA: int = 44                                    ## reserva de terrones de la bola con el final nuevo (los de vuelo, los de la rotura y los cascotes)
+const T_NACER_BARRERA: float = 1.5
+const T_MORIR_BARRERA: float = 1.1
+const BARRERA_GRIETAS: int = 8                                        ## tramos de la grieta en anillo
+const BARRERA_GRIETA_FRAC: float = 0.5                                ## fracción del nacer en que la grieta ha dado la vuelta entera
+const BARRERA_OLA_DESDE: float = 0.12                                 ## fracción del nacer en que sale la primera roca…
+const BARRERA_OLA_TRAMO: float = 0.4                                  ## …y en esta fracción salen las demás, en ola alrededor
+const BARRERA_SALE_FRAC: float = 0.2                                  ## lo que tarda en salir cada roca (fracción del nacer)
+const BARRERA_TECHO_DESDE: float = 0.66                               ## cuando salen las losas del techo (fracción del nacer) y el paso entre ellas
+const BARRERA_TECHO_PASO: float = 0.04
+const BARRERA_HUNDE_DESDE: float = 0.15                               ## fracción del morir a la que empieza a hundirse la primera roca (el techo, a 0)…
+const BARRERA_HUNDE_TRAMO: float = 0.4                                ## …y en esta fracción las demás, en ola
+const BARRERA_POLVO_GRIETA: float = 40.0                              ## bocanadas por segundo en el frente de la grieta de la barrera
+const BARRERA_MARCA_TAM: float = 2.7                                  ## lado de la marca de tierra partida, en veces el mayor semieje
+const HAZ_GRIETA_S: float = 0.3                                       ## s en que solo corre la grieta, antes de que brote la primera púa
+const HAZ_T_MORIR: float = 1.0
+const HAZ_POLVO_GRIETA: float = 36.0                                  ## bocanadas por segundo en el frente de la grieta del haz
+const HAZ_TIEMBLA: float = 0.10                                       ## fracción del morir que tiembla cada púa antes de hundirse
 const PUAS_MAX: int = 14                                              ## púas de una línea (el resto hasta MAX_BLOQUES, lajas)
 const ACLARA_PUA: float = 1.15                                        ## x el albedo de la pua y la laja (7/11: en el Bosque salian casi negras contra la hierba)
 const NORMAL_ARRIBA_JUEGO: float = 0.45                               ## 12/11: en el juego la normal de púas y lajas se dobla esto hacia arriba (`normal_arriba` del shader de roca: el sol casi vertical del Bosque les daba de canto)
@@ -511,6 +547,19 @@ static func polvo_params(tam_ini: float, tam_fin: float, vida: float, deriva: Ve
 		"umbral": 0.42, "ruido_borde": 0.22, "mundo": mundo, "giro_vel": 0.4, "curva": 0.5, "friccion": 1.6}
 
 
+## Los tres interruptores de 21/11 (con el forzado de las pruebas).
+static func bola_nueva() -> bool:
+	return BOLA_INICIO_FINAL and not prueba_apagar
+
+
+static func barrera_nueva() -> bool:
+	return BARRERA_INICIO_FINAL and not prueba_apagar
+
+
+static func haz_nuevo_global() -> bool:
+	return HAZ_INICIO_FINAL and not prueba_apagar
+
+
 @export_group("Figura y ejes (m)")
 @export var figura: Figura = Figura.BOLA: set = _set_figura
 @export_range(0.05, 8.0, 0.01, "or_greater") var semieje_x: float = 0.4: set = _set_x
@@ -582,6 +631,14 @@ var _acc_g: float = 0.0
 ## HAZ (línea de púas), 19/11: algo la PARA antes de su largo. `haz_tope` = m del origen a la cara de lo que toca (≤ 0: nada). Como en HieloToy: ponerlo ANTES de construir.
 var haz_tope: float = -1.0
 var _marca_pilar: MeshInstance3D = null    ## PILAR: decal de tierra partida bajo la columna
+var _ini_t: float = -1.0                ## BOLA sin carga: s desde que empezó a compactarse (-1: no)
+var _ini_piedras: Node3D = null         ## BOLA: terrones que acuden a la roca (sin gravedad, locales)
+var _ini_n: int = 0                     ## (pruebas) terrones emitidos en el inicio
+var _ini_acc: float = 0.0
+var _n_cascotes_final: int = 0          ## (pruebas) cascotes grandes de la última rotura de la bola
+var _grietas_barrera: Array = []        ## BARRERA: tramos de la grieta en anillo
+var _barrera_dir: Array = []            ## BARRERA: [centro, dirección] de cada tramo (en local)
+var _acc_gb: float = 0.0
 var _y_act: Array = []                  ## (pruebas) desplazamiento vertical actual de cada bloque (m; < 0 = aún bajo tierra)
 
 
@@ -937,6 +994,8 @@ func impactar_en(pos: Vector3, normal: Vector3 = Vector3.UP, escala: float = -1.
 	_est = EstadoCarga.NINGUNA
 	_bola_rota = true
 	_quitar_visual_carga()
+	if bola_nueva() and figura == Figura.BOLA:
+		_cascotes_bola_final(normal)                                                # 21/11: la roca se parte en cascotes grandes además del impacto
 	_soltar_reservas()
 	if _ap != null and _ap.has_animation("morir"):
 		_ap.speed_scale = 4.0
@@ -996,8 +1055,12 @@ func lanzar(v: float = -1.0) -> void:
 			(b as Dictionary)["soltado"] = false
 			(b as Dictionary)["polvo_ya"] = false
 			(b as Dictionary)["estallado"] = false
+			(b as Dictionary)["hundido_ya"] = false
 		_avanzar_bloques(0.0)
-		_brote_anticipo()
+		if not _barrera_ok() and not _haz_nuevo():                                  # la barrera y la línea nuevas empiezan por la grieta, no por un brote de polvo en cada roca
+			_brote_anticipo()
+	elif bola_nueva() and _est == EstadoCarga.NINGUNA:
+		_empezar_inicio_bola()
 	super.lanzar(v)
 
 
@@ -1018,6 +1081,8 @@ func morir() -> void:
 	if figura == Figura.BOLA and not _bola_rota and _piedras != null and is_instance_valid(_piedras) and is_inside_tree():
 		_bola_rota = true
 		_romper_bola()
+		if bola_nueva() and _ap != null:
+			_ap.speed_scale = 3.5                                                   # la roca se parte: desaparece enseguida, no se encoge despacio
 	super.morir()
 
 
@@ -1070,6 +1135,9 @@ func _construir() -> void:
 	_brillo = null
 	_marca_pilar = null
 	_grietas_muro = []
+	_grietas_barrera = []
+	_barrera_dir = []
+	_acc_gb = 0.0
 	_acc_g = 0.0
 	_t_cerrada = -1.0
 	_asentado = false
@@ -1092,6 +1160,16 @@ func _construir() -> void:
 		_:
 			_barrera(cuerpo)
 	_anim_si_hace_falta()
+
+
+## ¿La línea de tierra (no la ígnea, que ya tiene su grieta) lleva el inicio y el final nuevos?
+func _haz_nuevo() -> bool:
+	return figura == Figura.HAZ and haz_nuevo_global() and not linea_ignea
+
+
+## ¿La barrera lleva el inicio y el final nuevos?
+func _barrera_ok() -> bool:
+	return figura == Figura.BARRERA and barrera_nueva()
 
 
 ## Un bloque de la figura: roca `malla` (id) con la base en `pos`, giro `rot`, que ocupa `wx` × `h` × `wz` m, sale tras `retraso` (0..0,6 de la subida) y con su tono.
@@ -1297,7 +1375,37 @@ func _barrera(c: Node3D) -> void:
 		var b: Dictionary = _b("roca_est_2", Vector3(d2.x * semieje_x * 0.3, semieje_y * 0.8, d2.z * semieje_z * 0.3), HieloMallas._inclinar(-d2, rng.randf_range(0.65, 0.85), atan2(-d2.x, -d2.z)), w2, semieje_y * 0.28, w2 * 0.75, 0.3 + 0.06 * float(k), rng)
 		b["techo"] = true
 		capa.append(b)
+	var nueva: bool = barrera_nueva()
+	if nueva:
+		# 21/11: las rocas brotan EN OLA alrededor (por ángulo) sobre la grieta en anillo; el techo después; al morir, el techo primero y las rocas por tramos en la misma ola
+		for i in n:
+			var bq: Dictionary = capa[i]
+			var fr: float = float(i) / float(n)
+			bq["retraso"] = BARRERA_OLA_DESDE + BARRERA_OLA_TRAMO * fr
+			bq["dur"] = BARRERA_SALE_FRAC
+			bq["ret_hunde"] = BARRERA_HUNDE_DESDE + BARRERA_HUNDE_TRAMO * fr
+		for k in 3:
+			var bt: Dictionary = capa[n + k]
+			bt["retraso"] = BARRERA_TECHO_DESDE + BARRERA_TECHO_PASO * float(k)
+			bt["dur"] = BARRERA_SALE_FRAC + 0.02
+			bt["ret_hunde"] = 0.0
 	_montar_bloques(c, capa)
+	if nueva:
+		var perim_g: float = perim / float(BARRERA_GRIETAS)
+		for k in BARRERA_GRIETAS:
+			var ag: float = TAU * (float(k) + 0.5) / float(BARRERA_GRIETAS)
+			var pg: Vector3 = Vector3(cos(ag) * semieje_x * 0.92, 0.02, sin(ag) * semieje_z * 0.92)
+			var tg: Vector3 = Vector3(-sin(ag) * semieje_x, 0.0, cos(ag) * semieje_z).normalized()      # tangente, en el sentido en que crece el ángulo
+			var g: MeshInstance3D = crear_quad_suelo("GrietaAnillo%d" % k, 0.9, perim_g * 1.25, SH_GRIETAS, {"avance": 0.0, "vida": 0.0, "semilla": 0.21 + 0.17 * float(k), "grosor": 0.03}, pg)
+			g.rotation.y = atan2(tg.x, tg.z)                                                         # el +Z del quad (por donde avanza la grieta) a lo largo de la tangente
+			c.add_child(g)
+			_grietas_barrera.append(g)
+			_barrera_dir.append([pg, tg, perim_g * 1.25])
+		var dm: float = BARRERA_MARCA_TAM * maxf(semieje_x, semieje_z)
+		_marca_pilar = crear_decal_suelo("Marca", dm, dm, PILAR_MARCA_ALTO, {"mascara": load(TEX_MARCA_SUELO), "vida": 0.0, "fuerza": 1.0}, Vector3.ZERO, -3)
+		_marca_pilar.rotation.y = rng.randf() * TAU
+		_marca_pilar.set_meta("lado", dm)
+		c.add_child(_marca_pilar)
 	var pm: PlaneMesh = PlaneMesh.new()
 	pm.size = Vector2.ONE * minf(semieje_x, semieje_z) * 1.3
 	_brillo = MeshInstance3D.new()
@@ -1341,7 +1449,7 @@ func _haz(c: Node3D) -> void:
 		var w: float = clampf(alto * ANCHO_PUA * rng.randf_range(0.85, 1.15), 0.12, maxf(_haz_r * PUA_ANCHO_MAX_R, 0.3))
 		var lado: float = rng.randf_range(-0.55, 0.55) * _haz_r
 		var id: String = MALLAS_PUA[i % MALLAS_PUA.size()]
-		var ret: float = (0.05 + PASO_PUA_S * float(i)) / t_nacer
+		var ret: float = (0.05 + _haz_adelanto() + PASO_PUA_S * float(i)) / t_nacer
 		var pos: Vector3 = Vector3(lado, 0.0, -f * _haz_largo)
 		var inclinacion: float = rng.randf_range(0.12, 0.30)
 		var giro: float = rng.randf_range(-0.35, 0.35) + (PI if rng.randf() < 0.5 else 0.0)
@@ -1372,6 +1480,11 @@ func _haz(c: Node3D) -> void:
 		_grietas = crear_quad_suelo("Grietas", maxf(_haz_r * 2.6, 0.5), _haz_largo * 1.04, SH_GRIETAS, {"avance": 0.0, "vida": 1.0, "semilla": 0.37, "grosor": 0.02}, Vector3(0, 0.02, -_haz_largo * 0.5))
 		_grietas.rotation.y = PI
 		c.add_child(_grietas)
+	elif _haz_nuevo():
+		# 21/11: la línea de tierra también lleva grieta: corre por delante de las púas (la misma del haz ígneo, con el color pardo de las grietas) y se borra al final
+		_grietas = crear_quad_suelo("Grietas", maxf(_haz_r * 3.0, 0.9), _haz_largo * 1.04, SH_GRIETAS, {"avance": 0.0, "vida": 0.0, "semilla": 0.37, "grosor": 0.03}, Vector3(0, 0.02, -_haz_largo * 0.5))
+		_grietas.rotation.y = PI
+		c.add_child(_grietas)
 
 
 ## Ancla cada púa y laja una vez que la línea ya tiene su posición y dirección.
@@ -1385,7 +1498,12 @@ func anclar_linea_al_suelo(cota: Callable) -> void:
 
 ## Lo que dura «nacer» en el haz: anticipación + una púa tras otra + la última saliendo.
 func _t_nacer_haz() -> float:
-	return 0.05 + PASO_PUA_S * float(maxi(_haz_n, 1)) + SUBE_PUA_S + 0.05
+	return 0.05 + _haz_adelanto() + PASO_PUA_S * float(maxi(_haz_n, 1)) + SUBE_PUA_S + 0.05
+
+
+## s en que solo corre la grieta antes de que brote la primera púa (0 con el interruptor apagado o en la línea ígnea).
+func _haz_adelanto() -> float:
+	return HAZ_GRIETA_S if _haz_nuevo() else 0.0
 
 
 func _anim_si_hace_falta() -> void:
@@ -1393,9 +1511,14 @@ func _anim_si_hace_falta() -> void:
 	var es_vol: bool = figura != Figura.BOLA
 	var nacer: float = T_NACER_BOLA
 	var morir_s: float = T_MORIR_BOLA
+	if figura == Figura.BOLA and bola_nueva():
+		nacer = T_NACER_BOLA_INI
 	if figura == Figura.HAZ:
 		nacer = _t_nacer_haz()                      # depende de cuántas púas tenga (una tras otra)
-		morir_s = 0.8                               # se hunden en orden: la punta primero, la mano la última
+		morir_s = HAZ_T_MORIR if _haz_nuevo() else 0.8      # se hunden en orden, de la mano a la punta
+	elif figura == Figura.BARRERA and barrera_nueva():
+		nacer = T_NACER_BARRERA
+		morir_s = T_MORIR_BARRERA
 	elif figura == Figura.MURO and MURO_INICIO_FINAL:
 		nacer = T_NACER_MURO
 		morir_s = T_MORIR_MURO
@@ -1462,6 +1585,9 @@ func _avanzar_bloques(delta: float) -> void:
 	var tt: float = Time.get_ticks_msec() * 0.001
 	_y_act = []
 	var es_haz: bool = figura == Figura.HAZ
+	var haz_n: bool = _haz_nuevo()
+	var barr_n: bool = _barrera_ok()
+	var por_bloque: bool = es_haz or barr_n                                     # polvo y cascotes por roca, cuando asoma (púas y barrera en ola), no todo de golpe
 	var entierro: float = ENTIERRO_LINEA if es_haz and not linea_ignea else 0.0
 	var k_ant: float = ANTICIPO if not es_haz else 0.0
 	var asentados: int = 0
@@ -1484,7 +1610,7 @@ func _avanzar_bloques(delta: float) -> void:
 		elif bool(b.get("techo", false)):
 			techo_puesto = false
 		var rh: float = float(b.get("ret_hunde", -1.0))
-		var tiembla: bool = (sb < k_ant + ret) if not es_haz else (sb < ret and sb > ret - 0.08)
+		var tiembla: bool = (sb < k_ant + ret) if not por_bloque else (sb < ret and sb > ret - 0.08)
 		var te: float = float(b.get("t_estalla", -1.0))                             # MURO que estalla: fracción de `hunde` a la que revienta esta roca (-1: se hunde, como siempre)
 		var oculto: bool = false
 		if hd > 0.0 and te >= 0.0:
@@ -1495,7 +1621,11 @@ func _avanzar_bloques(delta: float) -> void:
 					b["estallado"] = true
 					_estallar_bloque(b, h)
 		elif hd > 0.0:
-			tiembla = tiembla or ((hd < 0.3) if rh < 0.0 else (hd >= rh and hd < rh + 0.08))
+			var ini_t: float = rh - HAZ_TIEMBLA if (haz_n or barr_n) else rh                # las púas y las rocas de la barrera se resquebrajan antes de hundirse
+			tiembla = tiembla or ((hd < 0.3) if rh < 0.0 else (hd >= ini_t and hd < rh + 0.08))
+			if (haz_n or barr_n) and rh >= 0.0 and hd >= rh + 0.03 and not bool(b.get("hundido_ya", false)) and delta > 0.0:
+				b["hundido_ya"] = true
+				_desmoronar(b, h)                                                          # se rompe al empezar a hundirse: cascotes y polvo
 		if tiembla:                                                                  # temblor antes de salir; al morir, antes de hundirse
 			pos += Vector3(sin(tt * 61.0 + float(j) * 1.7), 0.0, cos(tt * 53.0 + float(j))) * 0.015
 		if hd > 0.0 and te < 0.0:
@@ -1503,10 +1633,10 @@ func _avanzar_bloques(delta: float) -> void:
 				y -= alto_sube * 1.05 * smoothstep(rh + 0.04, rh + 0.42, hd)            # en orden (la punta del haz primero); a hunde = 1 todas bajo tierra
 			else:
 				y -= alto_sube * 1.05 * smoothstep(0.25, 1.0, hd)
-		if es_haz and s >= 0.08 and not bool(b.get("polvo_ya", false)) and delta > 0.0:
+		if por_bloque and s >= 0.08 and not bool(b.get("polvo_ya", false)) and delta > 0.0:
 			b["polvo_ya"] = true
 			_polvo_pua(b)                                                            # 7/11 (Pablo): la púa rompe el suelo y suelta su nube baja y corta
-		if es_haz and s >= 0.62 and not bool(b["soltado"]) and delta > 0.0:
+		if por_bloque and s >= 0.62 and not bool(b["soltado"]) and delta > 0.0:
 			b["soltado"] = true
 			_cascotes_de(b)                                                          # al asomar del todo: cascotes y polvo de su base
 		_y_act.append(y)
@@ -1524,6 +1654,8 @@ func _avanzar_bloques(delta: float) -> void:
 	_avanzar_grietas(sb, hd)
 	_avanzar_marca_pilar(sb, hd)
 	_avanzar_grietas_muro(delta, sb, hd)
+	_avanzar_grietas_barrera(delta, sb, hd)
+	_polvo_grieta_haz(delta, sb, hd)
 	# MURO que estalla: en cuanto ha reventado la última roca, los trozos y el polvo pasan al padre (siguen cayendo cuando el efecto se libere). No se espera al `hd >= 0,98` de
 	# `_polvo_de_bloques`: con un morir de 0,75 s esa ventana dura 15 ms, menos que un fotograma, y se la saltaba (los trozos desaparecían en el aire).
 	if delta > 0.0 and figura == Figura.MURO and MURO_INICIO_FINAL and hd >= MURO_ESTALLA_DESDE + MURO_ESTALLA_TRAMO + 0.08 and _piedras != null:
@@ -1531,7 +1663,7 @@ func _avanzar_bloques(delta: float) -> void:
 		return
 	_avanzar_brillo(delta, techo_puesto and sb >= 0.999 and figura == Figura.BARRERA, hd)
 	if delta > 0.0 and is_inside_tree():
-		_polvo_de_bloques(delta, sb, hd, k_ant, asentados if not es_haz else 0)
+		_polvo_de_bloques(delta, sb, hd, k_ant, asentados if not por_bloque else 0)
 
 
 ## MURO: la grieta se abre del centro a los extremos en la primera parte del nacer, con polvo arenoso en sus dos frentes; se queda bajo el muro y se cierra al final del morir.
@@ -1612,9 +1744,102 @@ func _avanzar_grietas(sb: float, hd: float) -> void:
 	if m == null:
 		return
 	var t_n: float = _t_nacer_haz()
+	if _haz_nuevo():
+		# 21/11: la grieta sale sola `HAZ_GRIETA_S` antes de la primera púa y llega a la punta (un poco antes de que brote la última); se queda mientras las púas se hunden y se borra al final
+		var t_fin: float = _haz_adelanto() + 0.05 + PASO_PUA_S * float(maxi(_haz_n - 1, 0)) - 0.08
+		m.set_shader_parameter("avance", clampf(sb * t_n / maxf(t_fin, 0.1), 0.0, 1.0))
+		m.set_shader_parameter("vida", (1.0 - smoothstep(0.45, 1.0, hd)) * smoothstep(0.0, 0.02, sb))
+		return
 	var avance: float = clampf((sb * t_n + 0.12) / maxf(t_n - SUBE_PUA_S, 0.05), 0.0, 1.0)      # en segundos: a la vez que brota la púa k, la grieta va unas púas por delante
 	m.set_shader_parameter("avance", avance)
 	m.set_shader_parameter("vida", (1.0 - smoothstep(0.0, 0.7, hd)) * smoothstep(0.0, 0.02, sb))
+
+
+## HAZ: polvo arenoso en el frente de la grieta mientras corre (antes y entre las púas).
+func _polvo_grieta_haz(delta: float, sb: float, hd: float) -> void:
+	if not _haz_nuevo() or delta <= 0.0 or sb <= 0.0 or sb >= 0.98 or hd > 0.0 or _polvo == null or not is_instance_valid(_polvo) or not is_inside_tree():
+		return
+	var av: float = float(estado_grietas()["avance"])
+	if av <= 0.0 or av >= 1.0:
+		return
+	var tr: Transform3D = global_transform
+	_acc_gb += HAZ_POLVO_GRIETA * clampf(chispas, 0.0, 1.0) * delta
+	while _acc_gb >= 1.0:
+		_acc_gb -= 1.0
+		var z: float = -av * _haz_largo * 1.04 * randf_range(0.9, 1.0) if randf() < 0.75 else -av * _haz_largo * randf()
+		var x: float = randf_range(-1.0, 1.0) * maxf(_haz_r, 0.2) * 1.1
+		_polvo.call("emitir", tr * Vector3(x, 0.06, z), tr.basis * Vector3(signf(x) * randf_range(0.2, 0.6), randf_range(0.25, 0.6), randf_range(-0.5, 0.1)), randf_range(0.7, 1.0), randf_range(0.5, 0.8))
+
+
+## BARRERA: la grieta en anillo da la vuelta (cada tramo corre en el sentido del ángulo, uno tras otro) con polvo en su frente; se queda bajo las rocas y la marca de tierra partida la
+## releva al hundirse (se borra con el morir).
+func _avanzar_grietas_barrera(delta: float, sb: float, hd: float) -> void:
+	if _grietas_barrera.is_empty():
+		return
+	var p: float = clampf(sb / BARRERA_GRIETA_FRAC, 0.0, 1.0)
+	var k_n: int = _grietas_barrera.size()
+	var activos: Array = []
+	for k in k_n:
+		var g: MeshInstance3D = _grietas_barrera[k]
+		if g == null or not is_instance_valid(g):
+			continue
+		var av: float = clampf((p * float(k_n + 1) - float(k)) / 1.5, 0.0, 1.0)
+		var m: ShaderMaterial = g.material_override as ShaderMaterial
+		m.set_shader_parameter("avance", av)
+		m.set_shader_parameter("vida", smoothstep(0.0, 0.03, sb) * (1.0 - smoothstep(0.5, 0.95, hd)))
+		if av > 0.0 and av < 1.0:
+			activos.append(k)
+	if delta <= 0.0 or hd > 0.0 or sb >= BARRERA_GRIETA_FRAC + 0.1 or activos.is_empty() or _polvo == null or not is_instance_valid(_polvo) or not is_inside_tree():
+		return
+	var tr: Transform3D = global_transform
+	_acc_gb += BARRERA_POLVO_GRIETA * clampf(chispas, 0.0, 1.0) * delta
+	while _acc_gb >= 1.0:
+		_acc_gb -= 1.0
+		var k2: int = activos[randi() % activos.size()]
+		var d: Array = _barrera_dir[k2]
+		var av2: float = float(estado_grietas_barrera()["avances"][k2])
+		var pos: Vector3 = (d[0] as Vector3) + (d[1] as Vector3) * (float(d[2]) * (av2 - 0.5)) + Vector3(0, 0.04, 0)
+		var fuera: Vector3 = Vector3(pos.x / maxf(semieje_x, 0.1), 0.0, pos.z / maxf(semieje_z, 0.1)).normalized()
+		_polvo.call("emitir", tr * pos, tr.basis * (fuera * randf_range(0.2, 0.6) + (d[1] as Vector3) * randf_range(0.1, 0.4) + Vector3(0, randf_range(0.25, 0.55), 0)), randf_range(0.8, 1.1), randf_range(0.6, 0.95))
+
+
+## (pruebas) `avances` de cada tramo de la grieta en anillo de la barrera y `vida` del primero (vacío / -1 si no la hay).
+func estado_grietas_barrera() -> Dictionary:
+	var av: Array = []
+	var vida_g: float = -1.0
+	for g in _grietas_barrera:
+		if g == null or not is_instance_valid(g):
+			continue
+		var m: ShaderMaterial = (g as MeshInstance3D).material_override as ShaderMaterial
+		av.append(float(m.get_shader_parameter("avance")))
+		if vida_g < 0.0:
+			vida_g = float(m.get_shader_parameter("vida"))
+	return {"avances": av, "vida": vida_g}
+
+
+## Una roca o púa que empieza a hundirse se rompe: cascotes que saltan de su volumen y polvo.
+func _desmoronar(b: Dictionary, h: float) -> void:
+	if _polvo == null or not is_instance_valid(_polvo) or _piedras == null or not is_instance_valid(_piedras) or not is_inside_tree():
+		return
+	var tr: Transform3D = global_transform
+	var p0: Vector3 = b["pos"]
+	var w: float = float(b["wx"]) * ancho
+	var es_laja: bool = String(b["malla"]).begins_with("laja_")
+	var es_pie: bool = String(b["malla"]).begins_with("piedra_est_")
+	var k: float = clampf(chispas, 0.0, 1.0)
+	_piedras.set("suelo_y", global_position.y + 0.01)
+	for q in (1 if (es_laja or es_pie) else 3):
+		var a: float = randf() * TAU
+		var d: Vector3 = Vector3(cos(a), 0.0, sin(a))
+		_polvo.call("emitir", tr * (p0 + d * w * 0.35 + Vector3(0, randf_range(0.1, 0.5) * h, 0)), tr.basis * (d * randf_range(0.5, 1.2) + Vector3(0, 0.35, 0)), randf_range(0.7, 1.0), randf_range(0.6, 0.9) * sqrt(maxf(w, 0.3)))
+	if es_laja or es_pie:
+		return
+	for q in 2:
+		if randf() > 0.9 * k:
+			continue
+		var a2: float = randf() * TAU
+		var d2: Vector3 = Vector3(cos(a2), 0.0, sin(a2))
+		_piedras.call("emitir", tr * (p0 + Vector3(0, randf_range(0.2, 0.8) * h, 0) + d2 * w * 0.3), tr.basis * (d2 * randf_range(0.8, 1.9) + Vector3(0, randf_range(0.8, 1.8), 0)), randf_range(0.9, 1.4), randf_range(0.05, 0.1) * sqrt(maxf(w, 0.3)), Vector3.ZERO, (tr * p0).y + 0.01)
 
 
 ## (pruebas) `avance` y `vida` de las grietas del haz (-1 si no las hay).
@@ -1698,7 +1923,7 @@ func _polvo_de_bloques(delta: float, sb: float, hd: float, k_ant: float, asentad
 	var tr: Transform3D = global_transform
 	var k: float = clampf(chispas, 0.0, 1.0)
 	_piedras.set("suelo_y", global_position.y + 0.01)
-	if sb < k_ant + 0.2 and sb > 0.0 and asentados == 0 and figura != Figura.HAZ:      # anticipación (y los bloques que aún esperan su retraso): polvo que brota de la base (el haz lo hace púa a púa)
+	if sb < k_ant + 0.2 and sb > 0.0 and asentados == 0 and figura != Figura.HAZ and not _barrera_ok():      # anticipación (y los bloques que aún esperan su retraso): polvo que brota de la base (el haz lo hace púa a púa)
 		_acc += 40.0 * k * delta
 		while _acc >= 1.0:
 			_acc -= 1.0
@@ -1742,6 +1967,88 @@ func _romper_bola() -> void:
 		for q in 6:
 			var d2: Vector3 = Vector3(randf_range(-1, 1), randf_range(-0.3, 0.6), randf_range(-1, 1)).normalized()
 			_polvo.call("emitir", tr * (d2 * r * 0.5), tr.basis * d2 * 1.2, 1.0, 1.0)
+	if bola_nueva():
+		_cascotes_bola_final(Vector3.ZERO)
+
+
+## BOLA, final (21/11): la roca se parte en `BOLA_FIN_CASCOTES` cascotes GRANDES (los terrones de la roca, a su tamaño) que salen de su volumen hacia fuera —y hacia la cara de impacto, si la hay—
+## con lo que lleve de velocidad, y una nube de polvo en el sitio.
+func _cascotes_bola_final(normal: Vector3) -> void:
+	_n_cascotes_final = 0
+	if _piedras == null or not is_instance_valid(_piedras) or not is_inside_tree():
+		return
+	var r: float = maxf(semieje_x, semieje_z) * clampf(_c_escala, 0.3, 1.5)
+	var tr: Transform3D = global_transform
+	_piedras.set("suelo_y", global_position.y - altura_suelo)
+	for k in BOLA_FIN_CASCOTES:
+		var d: Vector3 = Vector3(randf_range(-1, 1), randf_range(-0.2, 1), randf_range(-1, 1)).normalized()
+		var v: Vector3 = d * randf_range(1.4, 3.0) + normal * randf_range(0.5, 1.6) + Vector3(0, randf_range(0.8, 1.8), 0) + _vel_mundo * 0.2
+		if _piedras.call("emitir", tr * (d * r * randf_range(0.2, 0.7)), v, randf_range(1.0, 1.6), r * randf_range(0.22, 0.38)) >= 0:
+			_n_cascotes_final += 1
+	if _polvo != null and is_instance_valid(_polvo):
+		for q in 7:
+			var d2: Vector3 = Vector3(randf_range(-1, 1), randf_range(-0.2, 0.5), randf_range(-1, 1)).normalized()
+			_polvo.call("emitir", tr * (d2 * r * 0.6), d2 * randf_range(0.8, 1.8) + normal * 0.5, randf_range(0.8, 1.1), randf_range(1.0, 1.5) * sqrt(maxf(r / 0.4, 0.5)))
+
+
+## (pruebas) cascotes grandes de la última rotura de la bola.
+func estado_final_bola() -> Dictionary:
+	return {"cascotes": _n_cascotes_final}
+
+
+## BOLA, inicio (21/11): la bola que nace sin carga se COMPACTA: terrones y polvo que acuden de alrededor (de abajo sobre todo, del suelo) a la roca, que crece de aplastada a redonda
+## con la animación «nacer». Con carga, ya se hacía con el anillo de piedras.
+func _empezar_inicio_bola() -> void:
+	if not is_inside_tree():
+		return
+	if _ini_piedras != null and is_instance_valid(_ini_piedras):
+		_ini_piedras.queue_free()
+	var p: Piedras = Piedras.new()
+	p.name = "Compacta"
+	p.gravedad = 0.0
+	add_child(p)
+	p.montar(28, false)
+	_ini_piedras = p
+	_ini_t = 0.0
+	_ini_n = 0
+	_ini_acc = 0.0
+
+
+func _avanzar_inicio_bola(delta: float) -> void:
+	if _ini_t < 0.0 or figura != Figura.BOLA:
+		return
+	_ini_t += delta
+	var u: float = clampf(_ini_t / T_NACER_BOLA_INI, 0.0, 1.0)
+	var r: float = maxf(semieje_x, semieje_z)
+	var tr: Transform3D = global_transform
+	if u < 0.8 and _ini_piedras != null and is_instance_valid(_ini_piedras):
+		_ini_acc += BOLA_INI_TASA * clampf(chispas, 0.0, 1.0) * delta
+		while _ini_acc >= 1.0:
+			_ini_acc -= 1.0
+			var d: Vector3 = Vector3(randf_range(-1, 1), randf_range(-1.0, 0.4), randf_range(-1, 1)).normalized()
+			var rr: float = r * BOLA_INI_RADIO * randf_range(0.75, 1.15)
+			var vida: float = BOLA_INI_SUBIDA_S * randf_range(0.8, 1.1)
+			if int(_ini_piedras.call("emitir", d * rr, -d * (rr - r * 0.5) / vida, vida, r * randf_range(0.14, 0.24), Vector3.ZERO)) >= 0:
+				_ini_n += 1
+			if _polvo != null and is_instance_valid(_polvo) and randf() < 0.3:
+				_polvo.call("emitir", tr * (d * rr * 0.8), -(tr.basis * d) * (rr * 0.8) / 0.4, 0.4, 0.45)
+	if u >= 1.0:
+		_ini_t = -1.0
+		if _polvo != null and is_instance_valid(_polvo):
+			for q in 6:                                                              # al juntarse: un resoplido de polvo alrededor
+				var a: float = TAU * float(q) / 6.0 + randf() * 0.5
+				_polvo.call("emitir", tr * (Vector3(cos(a), -0.2, sin(a)) * r * 0.7), tr.basis * (Vector3(cos(a), 0.15, sin(a)) * randf_range(0.8, 1.4)), 0.7, 0.7)
+		if _ini_piedras != null and is_instance_valid(_ini_piedras) and is_inside_tree():
+			get_tree().create_timer(0.5).timeout.connect(_ini_piedras.queue_free)
+		_ini_piedras = null
+
+
+## (pruebas) inicio de la bola sin carga: segundos desde que empezó (-1: no está), terrones vivos y emitidos.
+func estado_inicio_bola() -> Dictionary:
+	var v: int = 0
+	if _ini_piedras != null and is_instance_valid(_ini_piedras):
+		v = int(_ini_piedras.call("vivas"))
+	return {"t": _ini_t, "vivas": v, "emitidos": _ini_n}
 
 
 # ------------------------------------------------------------------ vuelo y reservas ------------------------------------------------------------------
@@ -1752,8 +2059,10 @@ func _set_proyectil(v: bool) -> void:
 
 ## Reservas de polvo (humo toon pardo, en el mundo) y de piedras (terrones y fragmentos, en el mundo).
 func _montar_reservas() -> void:
-	var quiero_polvo: int = POLVO_FIG_HAZ if (figura == Figura.HAZ or (figura == Figura.MURO and MURO_INICIO_FINAL)) else POLVO_FIG
-	var quiero_piedras: int = PIEDRAS_MURO if (figura == Figura.MURO and MURO_INICIO_FINAL) else PIEDRAS_FIG
+	var quiero_polvo: int = POLVO_FIG_HAZ if (figura == Figura.HAZ or (figura == Figura.MURO and MURO_INICIO_FINAL) or _barrera_ok()) else POLVO_FIG
+	var quiero_piedras: int = PIEDRAS_MURO if ((figura == Figura.MURO and MURO_INICIO_FINAL) or _barrera_ok()) else PIEDRAS_FIG
+	if figura == Figura.BOLA and bola_nueva():
+		quiero_piedras = PIEDRAS_BOLA_NUEVA
 	# 18/11: se rehacen también si la figura pide otra reserva (antes se quedaban las del primer montaje: el muro que estalla solo tenía 24 terrones de los ~50 que suelta)
 	if _polvo != null and is_instance_valid(_polvo) and _piedras != null and is_instance_valid(_piedras) and int(_polvo.call("capacidad")) == quiero_polvo and int(_piedras.call("capacidad")) == quiero_piedras:
 		return
@@ -1781,6 +2090,7 @@ func _process(delta: float) -> void:
 	super._process(delta)
 	_avanzar_carga(delta)
 	_avanzar_bola(delta)
+	_avanzar_inicio_bola(delta)
 	_avanzar_bloques(delta)
 	_emitir_bola(delta)
 

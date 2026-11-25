@@ -260,7 +260,10 @@ func _comprobar_proyectil(g: Combate3D) -> void:
 	_ok("4 arquero: hay proyectil en vuelo al soltar", flecha != null)
 	if flecha == null:
 		return
-	var mallas: Array[Node] = flecha.find_children("*", "MeshInstance3D", true, false)
+	var mallas: Array[Node] = []
+	for m in flecha.find_children("*", "MeshInstance3D", true, false):
+		if not (m.get_parent() is EstelaFlecha3D):           # 21/11: la estela no es el cuerpo de la flecha
+			mallas.append(m)
 	var con_caja: bool = false
 	for n in mallas:
 		if (n as MeshInstance3D).mesh is BoxMesh:

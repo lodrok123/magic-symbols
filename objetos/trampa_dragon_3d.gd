@@ -11,6 +11,7 @@ extends TrampaPared3D
 ##
 ## Ciclo: `ciclo=<encendida>,<apagada>` en s (2,0 y 1,5 por defecto) y `desfase=<s>` (en qué punto del ciclo empieza; 0 = empieza en reposo). El ciclo se cuenta desde el INICIO del descanso: reposo → aviso (los
 ## últimos AVISO_S s del descanso) → fuego → reposo… Sin descanso (`apagada` = 0) escupe siempre; sin fuego (`encendida` = 0) no escupe nunca.
+## 20/11 (F16): con `elemento=agua` el chorro es una GOTERA: moja y apaga lo que arde (un brasero) pero NO hiere a la jugadora (`_tick`). La cabeza sigue dibujándose igual (brasas y humo en el aviso: no se ha tocado el dibujo).
 ## Dibujo: primitivas (losa, boca de cueva, cuello de 5 bolas, cabeza con mandíbula articulada). Pieza `trampa_dragon` en el mapa; dueño: Juego.
 
 signal escupe                      ## empieza a echar fuego
@@ -327,7 +328,8 @@ func _tick() -> void:
 		var punta: Vector3 = global_position + dir * largo_chorro_u()
 		HumoRegla.enganchar_dragon(self, Vector3(punta.x, boca_mundo().y - 0.2, punta.z), dir)
 	ticks += 1
-	if jugadora_en_chorro() and herir_jugadora(DANO_TICK, boca_mundo()):
+	# 20/11 (F16 «Brasero bajo la gotera»): un chorro de AGUA (elemento=agua) no hiere a la jugadora (solo moja lo que toca y apaga lo que arde); el de fuego, el de hielo… sigue hiriendo como antes.
+	if elemento != "agua" and jugadora_en_chorro() and herir_jugadora(DANO_TICK, boca_mundo()):
 		golpes_jugadora += 1
 
 

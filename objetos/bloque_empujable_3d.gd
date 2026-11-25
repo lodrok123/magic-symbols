@@ -27,6 +27,9 @@ extends Area3D
 ## NO SE GUARDA su posición: al recargar el nivel vuelve a su casilla del mapa. Y para que NUNCA quede atascado sin remedio: un bloque que ya no se puede mover en ninguna dirección (contra una pared
 ## al final de una pista, tras pasarse de la placa) y que no está sirviendo (ni sobre una placa ni sobre un hueco de veta) se DESHACE a los `T_PERDIDO` s y vuelve a formarse en su casilla del mapa.
 ##
+## SOBRE LAVA (20/11, Q15 «Lava con peso»): el bloque se empuja por encima de la roca de una lava enfriada (`Lava3D`, la casilla ya no es sólida). Si la lava VUELVE (`vuelve=`) con el bloque encima, `Lava3D._fundir` llama a `hundirse_en_lava()`: el bloque
+## suelta sus casillas, se oculta entre vapor (`hundido_en_lava` = true; sin peso, sin empujón) y a los `T_HUNDIDO` s reaparece en su casilla del mapa (`origen`) si está libre. Señal `se_hundio`. Un bloque que ya llegó a una casilla fuera de la lava no se hunde.
+##
 ## ROCA (5/11/2026, docs/ROCAS_EMPUJABLES_2026-11-05.md): tercer material, `roca`. Una roca estilizada MEDIANA o PEQUEÑA (`RocasEstilizadas.tamano_de`) que se empuja EXACTAMENTE igual que la piedra (mismo clip, mismo
 ## arranque, misma velocidad, mismo arrastre, mismo atasco/«perdido»), pero con el modelo de la roca (variante del bioma) y SU PESO: `peso_valor` = 2 la mediana, 1 la pequeña (la piedra cuadrada pesa 3, el hielo 1).
 ## Una placa con `peso=<n>` (Pulsador3D) solo se pisa si lo que hay encima suma `n` o más. La roca NO tiende los huecos de las vetas (eso es solo del bloque de piedra).
@@ -37,6 +40,7 @@ extends Area3D
 signal movido(celda: Vector2i)
 signal paso_dado(celda: Vector2i, vel: float)      ## al llegar al centro de CADA casilla (también al encadenar sin parar); `vel` = u/s con que pasa
 signal reaparecio
+signal se_hundio_en_lava                                   ## 20/11: la lava volvió bajo él y se hundió (ver `hundirse`)
 
 const MODELO_PIEDRA: String = "bloque_enlace"
 ## --- PESO (28/10, Pablo: «movimientos lentos y sostenidos»): cifras para afinar de oído ---
@@ -49,6 +53,7 @@ const T_FRENADO_HIELO: float = 0.12     ## s de frenado «al chocar» del hielo
 const MEDIA_CASILLA: float = 0.5        ## fracción de casilla que el hielo va pegado a la jugadora antes de soltarse
 const VEL_MIN: float = 0.3              ## u/s: suelo de la velocidad al frenar (llega al centro de la casilla sin quedarse a arrastrarse)
 const T_PERDIDO: float = 3.0            ## s que aguanta un bloque perdido antes de volver a formarse en su casilla
+const T_HUNDIDO: float = 1.2            ## s que pasa hundido en la lava (invisible) antes de reaparecer en su casilla del mapa (si está libre; si no, reintenta cada segundo)
 const ALTO: float = 1.5                 ## u: alto de la caja que se golpea con hechizos
 const ESCALA_PIEDRA: Vector3 = Vector3(1.55, 1.9, 1.55)      ## el modelo mide 1,0 × 0,7 × 1,0 (una losa): se ensancha y se alza hasta parecer un bloque en una casilla de 2,3
 const LADO_HIELO: float = 1.56
@@ -76,7 +81,10 @@ var variante: String = ""               ## solo `roca`: "musgo" | "neutra" | "ma
 var id_modelo: String = ""              ## solo `roca`: el id de pieza con el que se dibuja (`roca_est_musgo_1`…)
 var peso_valor: int = 3                 ## lo que pesa sobre una placa con `peso=` (grupo `peso`): piedra 3 · roca mediana 2 · roca pequeña 1 · hielo 1
 var moviendo: bool = false
-var empujones: int = 0                  ## empujones aceptados (las pruebas)
+var hundido_en_lava: bool = false               ## true mientras está hundido en la lava (oculto, fuera de los grupos `peso` y `empujable`) hasta que reaparece en su casilla del mapa
+var hundimientos: int = 0               ## veces que se ha hundido (las pruebas)
+var _t_hundido: float = 0.0
+var empujones: int = 0                 ## empujones aceptados (las pruebas)
 var pasos: int = 0                      ## casillas recorridas en total (las pruebas)
 var ultimo_paro: Vector2i = Vector2i.ZERO
 var _dir: Vector2i = Vector2i.ZERO
@@ -272,7 +280,7 @@ func _poner_hielo() -> void:
 
 ## ¿Cabe el bloque en la casilla vecina en esa dirección cardinal?
 func puede_moverse(dir: Vector2i) -> bool:
-	if absi(dir.x) + absi(dir.y) != 1:
+	if hundido_en_lava or absi(dir.x) + absi(dir.y) != 1:
 		return false
 	return _casilla_libre(celda + dir, celda)
 
@@ -381,6 +389,11 @@ func _libre_mas_alla() -> bool:
 
 
 func _process(delta: float) -> void:
+	if hundido_en_lava:
+		_t_hundido += delta
+		if _t_hundido >= T_HUNDIDO:
+			_volver_del_hundimiento()
+		return
 	if moviendo:
 		_mover(minf(delta, 0.1))
 		return
@@ -575,6 +588,60 @@ func _reaparecer() -> void:
 	_t_perdido = 0.0
 	if get_parent() is Node3D:
 		VfxPuzle3D.polvo(get_parent() as Node3D, aqui + Vector3(0.0, 0.1, 0.0), 0.8)
+		VfxPuzle3D.polvo(get_parent() as Node3D, global_position + Vector3(0.0, 0.1, 0.0), 0.8)
+	Sfx.play(self, "derrumbe")
+	reaparecio.emit()
+
+
+## LAVA QUE VUELVE (20/11, Q15): `Lava3D._fundir` llama a esto si la roca enfriada bajo el bloque vuelve a ser lava. El bloque suelta las casillas que tenía (la suya y, si iba en marcha, la de destino; la lava bloquea
+## la suya justo después), deja de ser empujable y de pesar (sale de los grupos `peso` y `empujable`: una placa de peso no lo cuenta), se oculta entre vapor y a los `T_HUNDIDO` s reaparece en su casilla del mapa
+## (`_volver_del_hundimiento`). Pasa lo mismo con la piedra, la roca y el hielo.
+func hundirse_en_lava() -> void:
+	if hundido_en_lava:
+		return
+	hundido_en_lava = true
+	hundimientos += 1
+	_t_hundido = 0.0
+	var aqui: Vector3 = global_position if is_inside_tree() else position
+	var reservadas: Array[Vector2i] = [celda]
+	if moviendo and _destino != celda:
+		reservadas.append(_destino)
+	for c in reservadas:
+		Terreno3D.liberar_celda(c)
+		_olvidar(c)
+	moviendo = false
+	acoplado = false
+	vel = 0.0
+	_con_jugadora = false
+	if _sonido != null:
+		Sfx3D.parar(_sonido)
+		_sonido = null
+	celda = origen
+	collision_layer = 0
+	remove_from_group("peso")
+	remove_from_group("empujable")
+	visible = false
+	if is_inside_tree() and get_parent() is Node3D:
+		VfxPuzle3D.vapor(get_parent() as Node3D, aqui + Vector3(0.0, 0.3, 0.0), 1.6)
+		Sfx.play(self, "congelar")
+	se_hundio_en_lava.emit()
+
+
+## Termina el hundimiento: reaparece en su casilla del mapa si está libre (si no, lo reintenta cada segundo).
+func _volver_del_hundimiento() -> void:
+	if not _casilla_de_origen_libre():
+		_t_hundido = T_HUNDIDO - 1.0
+		return
+	hundido_en_lava = false
+	celda = origen
+	position = Terreno3D.centro_de(celda, Terreno3D.y_pies(celda))
+	Terreno3D.bloquear_celda(celda)
+	_registrar(celda)
+	collision_layer = Lanzador3D.CAPA_REACTIVO
+	add_to_group("peso")
+	add_to_group("empujable")
+	visible = true
+	if get_parent() is Node3D:
 		VfxPuzle3D.polvo(get_parent() as Node3D, global_position + Vector3(0.0, 0.1, 0.0), 0.8)
 	Sfx.play(self, "derrumbe")
 	reaparecio.emit()

@@ -90,6 +90,10 @@ const SALAS: Array = [
 ]
 ## PUZLES NUEVOS (18/11/2026): salas aparte de las diez de arriba para no tocar `_puzles` (que cuentan las pruebas). Teclas «-» y «=» (a la derecha del 0).
 ##   Q11 (3,2) DOS RIEGOS A LA VEZ: dos pulsadores de agua (26,19) y (28,19) con rearme 0,35 s; la puerta (28,22) abre solo si los dos están activos a la vez (una línea de agua los moja a los dos). Botón `!` de control, placa `@` abre.
+## SEGUNDA TANDA (20/11/2026): tres salas más en la fila de abajo, sin tecla propia en la fila de números (ya llena): teclado numérico 1, 2, 3 o Alt+1, 2, 3 (`indice_nuevo_por_tecla`).
+##   Q13 (0,3) LA CALDERA: cuenca de 4 casillas + tinaja y un brasero debajo; la puerta abre con la cuenca a 0,45 o más Y el brasero encendido; el agua que llega a 0,8 (desborde) lo apaga una vez. Botón `!` moja la tinaja, placa `@` enciende el brasero.
+##   Q14 (1,3) RELOJ DE AGUA: cuenca de 12 casillas a 0,9 con un desagüe (compuerta + sumidero) que abre el primer brasero encendido; la puerta abre con los tres encendidos mientras el nivel sigue en 0,35 o más (~14 s). Botón `!` los enciende, placa `@` abre el desagüe.
+##   Q15 (2,3) LAVA CON PESO: dos casillas de lava (vuelve=22) entre la entrada y una placa de peso; agua desde al lado las enfría, se empuja la roca pequeña por encima hasta la placa; si la lava vuelve con la roca encima, se hunde y reaparece. Botón `!` enfría, placa `@` abre.
 const NUEVOS: Array = [
 	{"nombre": "Q11 dos riegos", "entrada": Vector2i(25, 19), "cartel": Vector2i(28, 17),
 		"texto": "Q11 · DOS RIEGOS A LA VEZ\nLos dos botones azules solo se quedan pulsados 0,35 s: hay que mojarlos casi a la vez.\nUna LÍNEA de agua (dos glifos ᛁ) desde el oeste de la fila los moja a los dos; dos flechas sueltas no llegan.\nEl rojo es de control (no abre nada) · la placa amarilla abre.",
@@ -97,18 +101,27 @@ const NUEVOS: Array = [
 	{"nombre": "Q12 foso y balsa", "entrada": Vector2i(28, 25), "cartel": Vector2i(28, 28),
 		"texto": "Q12 · FOSO CON COFRE FLOTANTE\nEl cofre está en una balsa, en el fondo del foso, lejos de la pasarela, y sellado.\nLlena el foso (agua a la tinaja, o botón/placa): la balsa flota y deriva hasta la pasarela (14 s).\nCuando atraca, el cofre se abre con E desde la pasarela.",
 		"ids": {"balsa": "q12_balsa", "cofre": "q12_cofre", "tinaja": "q12_tinaja", "boton": "q12_boton", "placa": "q12_placa"}},
+	{"nombre": "Q13 caldera", "entrada": Vector2i(4, 25), "cartel": Vector2i(6, 29),
+		"texto": "Q13 · LA CALDERA\nLlena la cuenca (agua a la tinaja) y enciende el brasero de debajo (fuego): la puerta abre con las dos cosas a la vez.\nSi el agua desborda (0,8), APAGA el brasero y la puerta se cierra: dosifica o enciende después.\nBotón: moja la tinaja · placa: enciende el brasero.",
+		"ids": {"nivel": "q13_nivel", "desborda": "q13_desborda", "brasero": "q13_brasero", "tinaja": "q13_tinaja", "cont": "q13_cont", "puerta": "q13_puerta", "boton": "q13_boton", "placa": "q13_placa"}},
+	{"nombre": "Q14 reloj de agua", "entrada": Vector2i(12, 25), "cartel": Vector2i(13, 28),
+		"texto": "Q14 · RELOJ DE AGUA\nEn cuanto enciendes el primer brasero se abre el desagüe y la cuenca se vacía sola: el nivel es el cronómetro.\nEnciende los tres (fuego) antes de que baje de 0,35 y la puerta abre; si no, recarga con R.\nBotón: enciende los tres a la vez · placa: solo abre el desagüe.",
+		"ids": {"reloj": "q14_nivel", "compuerta": "q14_compuerta", "b1": "q14_b1", "b2": "q14_b2", "b3": "q14_b3", "cont": "q14_cont", "puerta": "q14_puerta", "boton": "q14_boton", "placa": "q14_placa"}},
+	{"nombre": "Q15 lava con peso", "entrada": Vector2i(20, 25), "cartel": Vector2i(19, 30),
+		"texto": "Q15 · LAVA CON PESO\nEl rincón de la placa de peso solo se alcanza por la lava. Agua a la lava (desde la casilla de al lado) la enfría en roca: 22 s.\nRodea la roca y EMPÚJALA al este por encima hasta la placa (~10 s). Si la lava vuelve con la roca encima, se hunde y reaparece.\nBotón: enfría la lava · placa: abre la puerta.",
+		"ids": {"lava": "q15_lava", "roca": "q15_roca", "peso": "q15_peso", "puerta": "q15_puerta", "boton": "q15_boton", "placa": "q15_placa"}},
 ]
-## T1 · LA PRESA EN SECO (20/11/2026, rama demo/puzles-tres-sellos; docs/PUZLES_DEMO_TRES_SELLOS_2026-11-20.md): dos salas más, en `PRESAS` para no tocar `_puzles` ni `_nuevos`. Teclas «[» y «]».
-##   T1a (0,3) DESVÍO EN SECO (sustituye a Q4 sin hielo): el grifo (compuerta (4,27)) abre un manantial; bifurcación seca (4,28): brazo este al nivel (6,28), brazo oeste al desagüe (1,28). Tierra en (3,28) ANTES de abrir el grifo.
-##   T1b (1,3) RETENER (sustituye a Q3 sin hielo): tinaja → cuenca (12,28) con boca seca (12,29) al desagüe (12,30). Tierra en la boca ANTES de regar la tinaja.
+## T1 · LA PRESA EN SECO (20/11/2026; 25/11 bajada a la FILA 4 del mapa al juntar con hechizos/cuatro-elementos, que puso Q13-Q15 en la fila 3; rama demo/puzles-tres-sellos; docs/PUZLES_DEMO_TRES_SELLOS_2026-11-20.md): dos salas más, en `PRESAS` para no tocar `_puzles` ni `_nuevos`. Teclas «[» y «]».
+##   T1a (0,4) DESVÍO EN SECO (sustituye a Q4 sin hielo): el grifo (compuerta (4,35)) abre un manantial; bifurcación seca (4,36): brazo este al nivel (6,36), brazo oeste al desagüe (1,36). Tierra en (3,36) ANTES de abrir el grifo.
+##   T1b (1,4) RETENER (sustituye a Q3 sin hielo): tinaja → cuenca (12,36) con boca seca (12,37) al desagüe (12,38). Tierra en la boca ANTES de regar la tinaja.
 const PRESAS: Array = [
-	{"nombre": "T1a desvio en seco", "entrada": Vector2i(4, 25), "cartel": Vector2i(4, 29),
+	{"nombre": "T1a desvio en seco", "entrada": Vector2i(4, 33), "cartel": Vector2i(4, 37),
 		"texto": "T1a · DESVÍO EN SECO
 La tierra no se levanta sobre el agua: prepara la presa con los cauces SECOS.
 Tierra + ᛜ en la primera casilla del brazo del desagüe (oeste de la bifurcación) y DESPUÉS abre el grifo (botón rojo o placa).
 El agua va al brazo este, sube el nivel y se abre la puerta. Si te equivocas, cierra el grifo, espera a que se vacíe y reintenta.",
 		"ids": {"compuerta": "t1a_compuerta", "nivel": "t1a_nivel", "puerta": "t1a_puerta", "boton": "t1a_boton", "placa": "t1a_placa"}},
-	{"nombre": "T1b retener", "entrada": Vector2i(12, 25), "cartel": Vector2i(12, 29),
+	{"nombre": "T1b retener", "entrada": Vector2i(12, 33), "cartel": Vector2i(12, 37),
 		"texto": "T1b · RETENER
 La cuenca se vacía por una boca de desagüe seca.
 Tierra + ᛜ en la boca (la casilla de abajo de la cuenca) ANTES de regar; luego agua a la tinaja (botón o placa también).
@@ -260,7 +273,7 @@ func _unhandled_input(ev: InputEvent) -> void:
 		return
 	# El orden de _puzles es Q1…Q6, Q7, Q8, Q9, Q10; la tecla 0 es Q10.
 	var teclas: Dictionary = {KEY_1: 0, KEY_2: 1, KEY_3: 2, KEY_4: 3, KEY_5: 4, KEY_6: 5, KEY_7: 6, KEY_8: 7, KEY_9: 8, KEY_0: 9}
-	if teclas.has(k.keycode):
+	if teclas.has(k.keycode) and not k.alt_pressed:         # Alt+1… son de los puzles nuevos (más abajo)
 		var n: int = int(teclas[k.keycode])
 		if n < _puzles.size():
 			colocar_jugador(_puzles[n]["entrada"] as Vector2i)
@@ -274,6 +287,23 @@ func _unhandled_input(ev: InputEvent) -> void:
 		var np: int = int(teclas_p[k.keycode])
 		if np < _presas.size():
 			colocar_jugador(_presas[np]["entrada"] as Vector2i)
+	var ne: int = indice_nuevo_por_tecla(k)
+	if ne >= 0 and ne < _nuevos.size():
+		colocar_jugador(_nuevos[ne]["entrada"] as Vector2i)
+
+
+## Las salas de la segunda tanda de puzles nuevos (Q13, Q14, Q15, 20/11) no tienen tecla propia en la fila de números (ya está llena): van en el teclado numérico (1, 2, 3) o con Alt + 1, 2, 3
+## (el portátil no lo tiene). Devuelve el índice en `_nuevos` (la sala Q13 es la tercera) o -1 si la tecla no es de esas.
+func indice_nuevo_por_tecla(k: InputEventKey) -> int:
+	var cifra: int = -1
+	match k.keycode:
+		KEY_KP_1: cifra = 1
+		KEY_KP_2: cifra = 2
+		KEY_KP_3: cifra = 3
+		KEY_1: cifra = 1 if k.alt_pressed else -1
+		KEY_2: cifra = 2 if k.alt_pressed else -1
+		KEY_3: cifra = 3 if k.alt_pressed else -1
+	return -1 if cifra < 0 else 1 + cifra
 
 
 ## Teletransporte del jugador a una casilla (lo mismo que escenario_base.colocar_jugador).
@@ -351,7 +381,7 @@ func _refrescar_hud() -> void:
 		if p != null:
 			linea += "  puerta %s" % ("ABIERTA" if p.abierta else "cerrada")
 		t += linea + "\n"
-	t += "PUZLES NUEVOS · - y = ir a la sala\n"
+	t += "PUZLES NUEVOS · - y = (Q11, Q12) · teclado numérico 1, 2, 3 o Alt+1, 2, 3 (Q13, Q14, Q15) ir a la sala\n"
 	for q in _nuevos:
 		t += "  %-18s%s\n" % [String(q["nombre"]), _estado_nuevo(q)]
 	t += "LA PRESA EN SECO · [ y ] ir a la sala
@@ -382,6 +412,26 @@ func _estado_nuevo(q: Dictionary) -> String:
 	var cf: Variant = q.get("cofre")
 	if cf != null and is_instance_valid(cf):
 		s += "  cofre %s" % ("abierto" if bool((cf as Object).get("es_abierto")) else ("sellado" if not bool((cf as Object).call("sellado_cumplido")) else "listo (E)"))
+	for papel in ["nivel", "desborda", "reloj"]:
+		var nv: Variant = q.get(papel)
+		if nv != null and is_instance_valid(nv):
+			s += "  %s %.2f" % [papel, (nv as NivelAgua3D).profundidad]
+	var lv: Variant = q.get("lava")
+	if lv != null and is_instance_valid(lv):
+		s += "  lava %s" % ("ACTIVA" if bool((lv as Object).get("is_lit")) else "apagada")
+	var rq: Variant = q.get("roca")
+	if rq != null and is_instance_valid(rq):
+		s += "  roca en %s%s" % [str((rq as BloqueEmpujable3D).celda), " HUNDIDA" if (rq as BloqueEmpujable3D).hundido_en_lava else ""]
+	var pe: Variant = q.get("peso")
+	if pe != null and is_instance_valid(pe):
+		s += "  placa de peso %s" % ("PISADA" if bool((pe as Object).get("activo")) else "libre")
+	var kc: Variant = q.get("compuerta")
+	if kc != null and is_instance_valid(kc):
+		s += "  compuerta %s" % ("ABIERTA" if bool((kc as Object).get("abierta")) else "cerrada")
+	for papel in ["brasero", "b1", "b2", "b3"]:
+		var br: Variant = q.get(papel)
+		if br != null and is_instance_valid(br):
+			s += "  %s %s" % [papel, "ARDE" if bool((br as Object).get("is_lit")) else "apagado"]
 	return s
 
 

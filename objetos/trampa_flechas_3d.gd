@@ -21,7 +21,10 @@ extends TrampaPared3D
 
 signal dispara                     ## acaba de salir una flecha
 
-const AVISO_S: float = 0.35
+## 21/11/2026 (Pablo: «quiero que las flechas sean visibles»): el aviso sube de 0,35 a 0,6 s y durante él se dibuja la LÍNEA DE MIRA (`AvisoAtaque3D.linea`) por el carril de la flecha, desde la ranura hasta donde
+## se parará (primer muro, bloque o barrera): fina y tenue los primeros 0,2 s y fijada (ancha, viva) los últimos 0,4 s (`AvisoAtaque3D.T_FIJADO`). Con `cada` < 0,6 el aviso dura `cada` (como antes: `minf`).
+## Solo cambia lo que se ve: el disparo sigue saliendo cada `cada` s exactos, así que los puzles temporizados (T5 con cada=1,0; F8, F9, F11) no se mueven.
+const AVISO_S: float = 0.6
 const DANO_JUGADORA: float = 12.0         ## la misma que la flecha del arquero goblin (Combate3D.DANO_FLECHA)
 const RADIO_ACIERTO_U: float = 0.6        ## radio con el que la flecha acierta a la jugadora (horizontal)
 const ALTO_ACIERTO_U: float = 1.7         ## altura de la jugadora sobre sus pies hasta la que acierta
@@ -56,6 +59,7 @@ var disparos: int = 0
 var golpes_jugadora: int = 0
 var en_aviso: bool = false
 
+var linea: AvisoAtaque3D = null           ## la línea de mira del aviso en curso (null fuera del aviso o con `Combate3D.AVISAR_ATAQUES` apagado)
 var _t: float = 0.0                       ## s desde el último disparo
 var _t_fogonazo: float = 0.0
 var _vuelos: Array = []                   ## WeakRef de los HechizoVivo en vuelo (para herir a la jugadora)
@@ -192,11 +196,13 @@ func _physics_process(delta: float) -> void:
 		_t_fogonazo = maxf(_t_fogonazo - delta, 0.0)
 	if _contar_apagada(delta):
 		en_aviso = false
+		_apagar_linea()
 		_pintar(0.0)
 		_cerrar_boca(delta)
 		return
 	if dormida():
 		en_aviso = false
+		_apagar_linea()
 		_t = fposmod(desfase_s, cada_s)
 		_pintar(0.0)
 		_cerrar_boca(delta)
@@ -207,8 +213,27 @@ func _physics_process(delta: float) -> void:
 		_disparar()
 	var aviso: float = minf(AVISO_S, cada_s)
 	en_aviso = _t >= cada_s - aviso
+	if en_aviso:
+		_encender_linea()
+	else:
+		_apagar_linea()
 	_pintar(clampf((_t - (cada_s - aviso)) / aviso, 0.0, 1.0) if en_aviso else 0.0)
 	_poner_boca(pose_boca(_t))
+
+
+## La línea de mira del aviso: desde la ranura hasta donde se parará la flecha, con lo que le quede de aviso hasta salir.
+func _encender_linea() -> void:
+	if linea != null and is_instance_valid(linea):
+		return
+	var origen: Vector3 = boca_mundo()
+	var padre: Node = get_parent() if get_parent() != null else self
+	linea = AvisoAtaque3D.linea(padre, origen, origen + dir * float(alcance) * Terreno3D.casilla, maxf(cada_s - _t, 0.05), self, lanzador(), COLOR_BRASA if elemento == "fuego" else AvisoAtaque3D.COLOR, RADIO_ACIERTO_U)
+
+
+func _apagar_linea() -> void:
+	if linea != null and is_instance_valid(linea):
+		linea.apagar()
+	linea = null
 
 
 ## La pose de la boca a `t` s del último disparo (el siguiente, a `cada_s - t`): {"angulo": grados de la mandíbula, "atras": u que se echa atrás la cabeza, "aprieta": 0…1}.
@@ -275,6 +300,7 @@ func _cerrar_boca(delta: float) -> void:
 
 func _al_apagar() -> void:
 	en_aviso = false
+	_apagar_linea()
 
 
 func _al_encender() -> void:
@@ -282,6 +308,7 @@ func _al_encender() -> void:
 
 
 func _disparar() -> void:
+	_apagar_linea()                  # la flecha sale: la línea se apaga detrás
 	disparos += 1
 	_t_fogonazo = FOGONAZO_S
 	dispara.emit()

@@ -132,6 +132,13 @@ const HAZ_BOCA_U: float = 0.4               ## RAYO: u que el haz nace por delan
 const HAZ_TOPE_MARGEN_U: float = 0.12            ## VFX: el haz «chocó» si se quedó corto por más de esto (u) de lo que pedía; menos es el redondeo de la última casilla
 const HAZ_MAX_CHOQUES_VFX: int = 2                ## VFX: puntos de choque que se mandan al dibujo
 const HAZ_PUNTA_Y_U: float = 0.1           ## RAYO: altura sobre el suelo (u) de la punta del dibujo
+## 21/11 (Pablo: «el haz no se corta en los enemigos, solo en los muros; el de fuego los atraviesa y golpea a todos los de la fila: otra ventaja del fuego»): el interruptor y la lista de lo que
+## ATRAVIESA enemigos. Los demás haces (agua, tierra, hielo, rayo) se CORTAN en el PRIMER enemigo vivo de su recorrido: solo ese recibe el golpe y el estado, el dibujo acaba en su cara con su impacto
+## y lo que hay detrás (otros enemigos, casillas, objetos) no se toca. A false, el haz de antes (todos atraviesan). El corte se fija al nacer el haz: golpea UNA vez, en ese instante.
+const HAZ_CORTA_EN_ENEMIGO: bool = true
+const HAZ_ATRAVIESA_ENEMIGOS: PackedStringArray = ["fuego", "viento", "magma"]
+const HAZ_CORTE_COLA_U: float = 0.6        ## un objeto (no enemigo) a esta distancia de la cara del corte, o menos, aún recibe el golpe (su radio de contacto)
+const HAZ_CORTE_MIN_U: float = 0.3        ## el haz cortado mide al menos esto (u): un enemigo pegado a la mano no lo reduce a nada
 
 ## Cuántos hechizos vivos lleva un mismo lanzamiento (el padre y sus hijos comparten uno): el tope es Hechizo.MAX_VIVOS.
 class Linaje extends RefCounted:
@@ -516,23 +523,37 @@ func _materializar_haz(origen: Vector3, dir: Vector3) -> int:
 		restante_cas -= fin2.distance_to(salto["salida"] as Vector2) / cas
 		inicio_s = salto["salida"]
 		fin2 = inicio_s
-	golpes_camino = golpes_total
 	# Las casillas del recorrido: la recta de la mano al final muestreada a un cuarto de casilla (una diagonal no se salta ninguna), sin la del lanzador ni las sólidas.
 	var c0: Vector2i = Terreno3D.celda_de(origen)
-	var celdas: Array = []
-	var vistas: Dictionary = {}
+	var celdas: Array = _haz_celdas(segmentos, c0)
+	# 21/11: los haces que no atraviesan enemigos se cortan en el primero (ver HAZ_CORTA_EN_ENEMIGO): se recorta el trazo, las casillas, los golpes y los topes a su cara, y el resto de enemigos se da por tocado.
+	var ya_tocados: Dictionary = {}
+	var cortes: Array = []
+	if HAZ_CORTA_EN_ENEMIGO and not HAZ_ATRAVIESA_ENEMIGOS.has(elemento) and lanz != null and lanz.is_inside_tree():
+		var pe: Dictionary = _haz_primer_enemigo(celdas, golpes_total, o2, d2)
+		if not pe.is_empty():
+			var corte_m: float = maxf(float(pe["d"]) - Combate3D.RADIO_CUERPO_ENEMIGO, HAZ_CORTE_MIN_U)
+			if corte_m < o2.distance_to(fin2):
+				segmentos = _haz_recortar(segmentos, o2, d2, corte_m)
+				fin2 = o2 + d2 * corte_m
+				topes = topes.filter(func(t: Vector2) -> bool: return (t - o2).dot(d2) < corte_m)
+				golpes_total = golpes_total.filter(func(gp: Dictionary) -> bool:
+					var ob: Node = gp["obj"] as Node
+					if ob == null or not is_instance_valid(ob):
+						return false
+					if ob.is_in_group("combate3d"):
+						return ob == pe["obj"]
+					return ((gp["punto"] as Vector3) - Vector3(o2.x, (gp["punto"] as Vector3).y, o2.y)).dot(Vector3(d2.x, 0.0, d2.y)) <= corte_m + HAZ_CORTE_COLA_U)
+				celdas = _haz_celdas(segmentos, c0)
+				var ce: Vector2i = Terreno3D.celda_de((pe["obj"] as Node3D).global_position)
+				if ce != c0 and not celdas.has(ce) and Lanzador3D.en_mapa(ce) and not Lanzador3D.celda_solida(ce, 0):
+					celdas.append(ce)                       # el suelo bajo el enemigo golpeado también recibe el estado
+				for n in get_tree().get_nodes_in_group("combate3d"):
+					if n != pe["obj"]:
+						ya_tocados[n.get_instance_id()] = true
+				cortes.append(Vector2(fin2.x, fin2.y))
+	golpes_camino = golpes_total
 	var largo: float = o2.distance_to(fin2)
-	for seg in segmentos:
-		var a_s: Vector2 = seg[0]
-		var b_s: Vector2 = seg[1]
-		var pasos: int = maxi(int(ceilf(a_s.distance_to(b_s) / (cas * 0.25))), 1)
-		for i in range(pasos + 1):
-			var q: Vector2 = a_s.lerp(b_s, float(i) / float(pasos))
-			var c: Vector2i = Terreno3D.celda_de(Vector3(q.x, 0.0, q.y))
-			if c == c0 or vistas.has(c) or not Lanzador3D.en_mapa(c) or Lanzador3D.celda_solida(c, 0):
-				continue
-			vistas[c] = true
-			celdas.append(c)
 	_celdas_volumen = celdas
 	var suelo: float = Terreno3D.y_pies(c0) if Terreno3D.en_mapa(c0) else origen.y
 	var d3 := Vector3(d2.x, 0.0, d2.y)
@@ -545,12 +566,12 @@ func _materializar_haz(origen: Vector3, dir: Vector3) -> int:
 		"eventos": [{"t": 0.0, "pos": o2, "dir": d2}], "t_caida": 0.0, "viaja": false, "velocidad": 0.0, "permanencia": h.permanencia, "vida_total": vida_vfx,
 		"elevacion": h.elevacion, "separacion": h.separacion, "dispersion": h.dispersion, "gravedad": h.gravedad,
 		"haz": {"desde": mano, "hasta": punta, "ancho": Hechizo.HAZ_ANCHO * cas, "alcance": h.alcance_haz, "largo": largo,
-			"choques": _haz_choques(topes, golpes_total, o2, d2, mano.y)}}
+			"choques": _haz_choques(topes, golpes_total, o2, d2, mano.y, cortes)}}
 	if not seco:
 		lanz._sonar_fase_v2("impacto", elemento, String(g.get("nombre", "")), origen)
 		lanz.hechizo_v2.emit(estado, elemento, volumen, origen, dir, g["props"])
 	var ctx: Dictionary = {"data": data, "elemento": elemento, "g": g, "celdas": celdas, "niveles": 1, "vida": vida_vfx, "origen": origen, "dir": d3, "estado": estado,
-		"fraccion": 1.0, "tocados": {}, "golpes": golpes_camino.duplicate()}
+		"fraccion": 1.0, "tocados": ya_tocados, "golpes": golpes_camino.duplicate()}
 	_golpes_del_camino(ctx)
 	_materia_haz(ctx)
 	if is_inside_tree() and not seco:
@@ -774,7 +795,7 @@ func _estallar(dir: Vector3) -> void:
 ## SOLO PARA EL VFX (9/11, haz de fuego: «el fuego envuelve lo que golpea»): los puntos donde el haz CHOCA, a la altura de la mano. `topes` = donde se paró contra una casilla sólida o una barrera
 ## (la normal es la de la cara golpeada, hacia el lanzador); `golpes` = lo que cruza (enemigos, objetos que reaccionan: la normal mira contra el haz). El final del alcance sin obstáculo NO es un choque.
 ## Devuelve [{punto: Vector3, normal: Vector3, tipo: «muro» | «enemigo» | «objeto»}], el tope primero y luego lo cruzado por orden de distancia, como mucho `HAZ_MAX_CHOQUES_VFX`. No toca la lógica.
-func _haz_choques(topes: Array, golpes: Array, o2: Vector2, d2: Vector2, y: float) -> Array:
+func _haz_choques(topes: Array, golpes: Array, o2: Vector2, d2: Vector2, y: float, cortes: Array = []) -> Array:
 	var res: Array = []
 	var cas: float = Terreno3D.casilla
 	for t in topes:
@@ -784,12 +805,17 @@ func _haz_choques(topes: Array, golpes: Array, o2: Vector2, d2: Vector2, y: floa
 		var en_x: bool = (sx and not sz) or (sx == sz and absf(d2.x) >= absf(d2.y))          # la cara golpeada es la perpendicular a X o a Z (las casillas son rectas)
 		var n: Vector3 = Vector3(-signf(d2.x), 0.0, 0.0) if en_x else Vector3(0.0, 0.0, -signf(d2.y))
 		res.append({"punto": Vector3(fin.x, y, fin.y), "normal": n, "tipo": "muro"})
+	for ct in cortes:
+		# 21/11: el haz cortado en un enemigo dibuja su impacto como contra un tope («muro»: corta el dibujo), de cara al lanzador, y la marca `corte` lo distingue de un muro de verdad (el hielo pone ahí su corona)
+		res.append({"punto": Vector3((ct as Vector2).x, y, (ct as Vector2).y), "normal": Vector3(-d2.x, 0.0, -d2.y), "tipo": "muro", "corte": true})
 	var cruzados: Array = []
 	var vistos: Dictionary = {}
 	for gp in golpes:
 		var obj: Node = gp["obj"] as Node
 		if obj == null or not is_instance_valid(obj) or vistos.has(obj.get_instance_id()):
 			continue
+		if not cortes.is_empty() and obj.is_in_group("combate3d"):
+			continue                                          # el enemigo del corte ya es el choque «muro» de arriba
 		vistos[obj.get_instance_id()] = true
 		var pt: Variant = gp.get("punto", null)
 		if not (pt is Vector3):
@@ -803,6 +829,66 @@ func _haz_choques(topes: Array, golpes: Array, o2: Vector2, d2: Vector2, y: floa
 			break
 		res.append({"punto": cz["punto"], "normal": cz["normal"], "tipo": cz["tipo"]})
 	return res.slice(0, HAZ_MAX_CHOQUES_VFX)
+
+
+## Las casillas de los segmentos del haz (la recta de cada tramo muestreada a un cuarto de casilla), sin la del lanzador (`c0`), sin las que están fuera del mapa ni las sólidas.
+func _haz_celdas(segmentos: Array, c0: Vector2i) -> Array:
+	var cas: float = Terreno3D.casilla
+	var celdas: Array = []
+	var vistas: Dictionary = {}
+	for seg in segmentos:
+		var a_s: Vector2 = seg[0]
+		var b_s: Vector2 = seg[1]
+		var pasos: int = maxi(int(ceilf(a_s.distance_to(b_s) / (cas * 0.25))), 1)
+		for i in range(pasos + 1):
+			var q: Vector2 = a_s.lerp(b_s, float(i) / float(pasos))
+			var c: Vector2i = Terreno3D.celda_de(Vector3(q.x, 0.0, q.y))
+			if c == c0 or vistas.has(c) or not Lanzador3D.en_mapa(c) or Lanzador3D.celda_solida(c, 0):
+				continue
+			vistas[c] = true
+			celdas.append(c)
+	return celdas
+
+
+## 21/11: el primer enemigo vivo (grupo combate3d) tocado por el haz: el que está en una de sus casillas o lo cruzó el barrido (`golpes`), el de menor distancia a lo largo de la recta.
+## Devuelve {obj, d} (d en m desde `o2` en la dirección `d2`) o vacío. Los que quedan detrás de la mano no cuentan.
+func _haz_primer_enemigo(celdas: Array, golpes: Array, o2: Vector2, d2: Vector2) -> Dictionary:
+	var cand: Dictionary = {}
+	var en_celdas: Dictionary = {}
+	for c in celdas:
+		en_celdas[c] = true
+	for n in lanz.get_tree().get_nodes_in_group("combate3d"):
+		if is_instance_valid(n) and not fuera_de_juego(n) and en_celdas.has(Lanzador3D.celda_de((n as Node3D).global_position)):
+			cand[n.get_instance_id()] = n
+	for gp in golpes:
+		var ob: Node = gp["obj"] as Node
+		if ob != null and is_instance_valid(ob) and ob.is_in_group("combate3d") and not fuera_de_juego(ob):
+			cand[ob.get_instance_id()] = ob
+	var mejor: Dictionary = {}
+	for id in cand:
+		var n3: Node3D = cand[id] as Node3D
+		var d: float = (Vector2(n3.global_position.x, n3.global_position.z) - o2).dot(d2)
+		if d < -0.3:
+			continue
+		if mejor.is_empty() or d < float(mejor["d"]):
+			mejor = {"obj": n3, "d": d}
+	return mejor
+
+
+## Los segmentos [a, b] del haz recortados a `corte_m` metros de `o2` a lo largo de `d2`: los que empiezan después desaparecen y el que lo contiene acaba en el corte.
+func _haz_recortar(segmentos: Array, o2: Vector2, d2: Vector2, corte_m: float) -> Array:
+	var res: Array = []
+	for seg in segmentos:
+		var a: Vector2 = seg[0]
+		var b: Vector2 = seg[1]
+		var ta: float = (a - o2).dot(d2)
+		var tb: float = (b - o2).dot(d2)
+		if ta >= corte_m:
+			continue
+		res.append([a, b if tb <= corte_m else o2 + d2 * corte_m])
+	if res.is_empty():
+		res.append([o2, o2 + d2 * corte_m])
+	return res
 
 
 ## `perfora` del haz: si justo delante de `desde` (a menos de media casilla) hay una casilla sólida o una barrera, sigue en línea recta hasta salir de ella (como mucho `max_m` metros) y devuelve
@@ -1256,6 +1342,9 @@ func _materia_liquido(ctx: Dictionary) -> int:
 	if lanz != null and h.solidez > 0.0 and h.glifos_linea() > 0 and not h.viaja:
 		volumen = minf(volumen, lanz.limite_agua_muro)
 	var total: float = volumen * pow(Terreno3D.casilla, 3.0) * float(ctx.get("fraccion", 1.0)) * FACTOR_AGUA_HECHIZO   # R3: copias y tandas reparten el volumen
+	var n_ocupa: int = libres.size()
+	if MURO_AGUA_HACIA_DELANTE and lanz != null and h.solidez > 0.0 and h.glifos_linea() > 0 and not h.viaja:
+		libres = _casillas_agua_delante(libres, ctx["dir"] as Vector3)      # 21/11: el muro moja hacia delante, no a los dos lados
 	var parte: float = total / float(libres.size())
 	# El agua entra en la simulación cuando la masa del VFX por estado ha caído (t_caida); la solidez, si hay, protege desde el principio.
 	var echar: Callable = func() -> void:
@@ -1269,7 +1358,29 @@ func _materia_liquido(ctx: Dictionary) -> int:
 				sim.marcar_hechizo(cc)             # solo donde NO había manantial: es agua de hechizo en suelo llano, la que se absorbe si queda en película
 	_despues(tiempo_caida(ctx["g"]), echar)
 	_registrar_charco(libres, tiempo_caida(ctx["g"]))
-	return libres.size()
+	return n_ocupa
+
+
+## 21/11 (Pablo: «el muro de agua moja hacia delante»): el agua de un MURO (barrera + ᛁ) no cae en las casillas del propio muro, repartida a los dos lados: cae en la franja de delante, coherente con la
+## lámina que rompe hacia delante. Cada casilla del muro se desplaza `MURO_AGUA_ADELANTO_CAS` casillas en la dirección del lanzamiento (sin repetir, solo casillas libres y en mapa; si delante no hay sitio,
+## se queda la casilla original). Nunca hay MÁS casillas que las del muro (el tope de legibilidad: el mismo volumen de agua, ni más casillas mojadas ni más extensas) y el volumen total no cambia.
+const MURO_AGUA_HACIA_DELANTE: bool = true
+const MURO_AGUA_ADELANTO_CAS: int = 1       ## casillas que se desplaza hacia delante la casilla donde cae el agua del muro
+func _casillas_agua_delante(libres: Array, dir: Vector3) -> Array:
+	var d := Vector3(dir.x, 0.0, dir.z)
+	if d.length() < 0.001:
+		return libres
+	d = d.normalized()
+	var cas: float = Terreno3D.casilla
+	var res: Array = []
+	for c in libres:
+		var p: Vector3 = Terreno3D.centro_de(c as Vector2i) + d * cas * float(MURO_AGUA_ADELANTO_CAS)
+		var q: Vector2i = Terreno3D.celda_de(p)
+		if not Lanzador3D.en_mapa(q) or Lanzador3D.bloqueada(q) or Lanzador3D.altura_en(q) >= 1:
+			q = c as Vector2i
+		if not res.has(q):
+			res.append(q)
+	return res
 
 
 ## B5: el charco que deja un hechizo de agua, como zona de cruce (fuego por agua = vapor, rayo por agua = descarga). Una ZonaV2 sin pulso (no es zona de `_zonas_v2`: las pruebas y el limo cuentan esas)

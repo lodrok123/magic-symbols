@@ -45,6 +45,10 @@ uniform float escala_jir : hint_range(0.2, 2.0) = 1.0;    // × la frecuencia de
 uniform float borde_blanco : hint_range(0.0, 1.0) = 0.0;  // borde más luminoso (amarillo-blanco)
 uniform float lam_amplio : hint_range(0.0, 1.0) = 0.0;    // los lamidos salen en más superficie y con más cuerpo
 uniform float interior_calor : hint_range(0.0, 1.0) = 0.0; // jirones interiores más calientes (más naranja intenso)
+// 21/11 (inicio y final de la barrera, FuegoToy): con los valores de serie (brote 1, suelta 0, apaga 0) se dibuja entera, como siempre.
+uniform float brote : hint_range(0.0, 1.0) = 1.0;    // 0 → 1: las llamas suben en ola por la cúpula, de un lado al opuesto, hasta cerrarla por arriba
+uniform float suelta : hint_range(0.0, 1.0) = 0.0;   // 0 → 1: las llamas bajan por tramos (cada sector a su ritmo) hasta dejar solo el suelo
+uniform float apaga : hint_range(0.0, 1.0) = 0.0;    // 0 → 1: el fuego se oscurece hacia el pardo del humo
 group_uniforms;
 
 varying vec3 dir_o;
@@ -116,7 +120,17 @@ void fragment() {
 	float alfa = max(alfa_int * (1.0 - 0.4 * borde), borde * 0.95);
 	alfa *= suelo;
 #endif
+	// inicio y final: nivel (0-1) hasta el que hay llama en este punto de la cúpula. Brote: la ola sale de +X y rodea la cúpula hacia -X; suelta: cada sector baja a su ritmo
+	float ang_c = atan(dir_o.z, dir_o.x);
+	float hv = clamp((dir_o.y + 0.4) / 1.4, 0.0, 1.0);
+	float nb = clamp(brote * 1.5 - 0.5 * abs(ang_c) / PI, 0.0, 1.0);
+	float nf = clamp(suelta * 1.5 - 0.5 * texture(ruido_a, vec2(ang_c / TAU * 4.0 + semilla, 0.37)).r, 0.0, 1.0);
+	float nivel = nb * (1.0 - nf);
+	float rug = texture(ruido_v, vec2(ang_c / TAU * repeticion.x * 2.0 + semilla, hv * 2.0 - t * 0.3)).r - 0.5;
+	float tope = nivel * 1.14 + rug * 0.14 * sin(clamp(nivel, 0.0, 1.0) * PI);
+	alfa *= 1.0 - smoothstep(tope - 0.1, tope, hv);
 	vec3 col = mix(texture(rampa, vec2(idx, 0.5)).rgb, texture(rampa_azul, vec2(idx, 0.5)).rgb, tono);
+	col = mix(col, vec3(0.30, 0.15, 0.09), apaga * 0.65);
 	float titila = 1.0 + 0.1 * chisporroteo * (sin(TIME * 9.3 + semilla * 31.0) * 0.6 + sin(TIME * 14.1 + semilla * 17.0) * 0.4);
 	ALBEDO = col * brillo * titila * (1.0 + (0.4 + 0.5 * borde_blanco) * borde);
 #ifndef LAMIDOS

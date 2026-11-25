@@ -1,4 +1,4 @@
-; Laboratorio de PUZLES DE FUEGO (Fase 14.6, 16/10, Juego). 33 x 25: doce salas de 7 x 7 (4 x 3) separadas por muros, con un hueco entre
+; Laboratorio de PUZLES DE FUEGO (Fase 14.6, 16/10, Juego). 33 x 33 desde el 20/11 (antes 33 x 25: la fila de abajo, (0,3)..(3,3), se añadió con F13-F16): dieciséis salas de 7 x 7 (4 x 4) separadas por muros, con un hueco entre
 ; salas vecinas (el mismo esqueleto que PuzlesAgua). El jugador S nace en la sala del centro. Lo lee PruebaTest2 (nivel = "PuzlesFuego"); las
 ; piezas y los puzles de cada sala son las lineas `; pieza` y `; puzle` de mas abajo (las lee escenas/puzle.gd; el lab solo pone HUD, teclas,
 ; carteles y la MECHA de F4). NO se hornea: es un laboratorio. Permiso de Pablo para crear este archivo (16/10).
@@ -113,7 +113,9 @@
 ; pieza t_fl_placa pulsador 1 20 modo=presencia
 ; --- F9 LA FLECHA DE FUEGO QUE ENCIENDE (sala (1,2), x 9..15, y 17..23): un mascaron en el muro NORTE (14,16) que mira al sur (se ve de frente: la boca se abre al disparar) lanza cada 3 s una FLECHA DE FUEGO
 ; ---   por la columna x=14: prende el primer seto (14,19), el fuego corre al segundo (14,20) y enciende el barril (14,21), que explota (uso positivo de la trampa). Via: boton ! (9,18) la apaga; el agua a un seto lo salva (cortafuegos). Antes (hasta el 5/11) estaba en el muro oeste (8,22) mirando al este, y se veia de canto.
-; pieza t_fl_fuego trampa_flechas 14 16 mira=s cada=3.0 elemento=fuego alcance=8 cerca=6
+; --- 20/11: cerca 6 -> 4. Con 6 la trampa ya estaba DESPIERTA en la casilla de inicio S (12,12), a 5,4 casillas de su casilla de delante (14,17): disparaba sola a los 3 s y quemaba setos y barril
+; ---   antes de que la jugadora entrase (y prueba_trampas_pared fallaba o no segun lo que tardase la carga). Con 4 duerme desde S y despierta al entrar por el hueco (12,16), a 2,2 casillas.
+; pieza t_fl_fuego trampa_flechas 14 16 mira=s cada=3.0 elemento=fuego alcance=8 cerca=4
 ; pieza t_fl_s1 seto 14 19 mojable=si
 ; pieza t_fl_s2 seto 14 20 mojable=si
 ; pieza t_fl_barril barril 14 21
@@ -149,6 +151,63 @@
 ; pieza f12_placa pulsador 28 23 modo=presencia
 ; pieza f12_boton pulsador 30 17 modo=magia
 ; puzle f12_boton_atasca cuando=f12_boton.pulsado hace=f12_r1.apagar(10) y=f12_r2.apagar(10)
+; --- F13 DRAGON QUE ENCIENDE + BARRERA (20/11, sala (0,3), x 1..7, y 25..31; la fila de salas que se añadió debajo, con hueco en (4,24) (12,24) (20,24) (28,24); se entra por (4,24) a (4,25)): una cabeza de dragon metida en el muro (6,24) escupe hacia el sur un
+; ---   chorro de fuego (1,0 s de fuego, 6,0 s de descanso; alcance 3: cubre (6,25) (6,26) (6,27); duerme si la jugadora esta a mas de 8 casillas). El chorro prende el primer seto de una FILA de cinco (2..6, 26) y el fuego corre hacia el oeste hasta el BARRIL (1,26),
+; ---   que revienta y SELLA el cofre (1,27) pegado a el (abre_si = el barril NO ha explotado: el derrumbe lo entierra). A la primera cabezada del dragon (a los 6 s de entrar) le siguen ~10 s de fuego por la fila: no se llega al cofre andando (12 casillas por el rincon de
+; ---   la derecha, x=7, y la fila de abajo, y=28). Vias: AGUA a la cabeza del dragon (la apaga 8 s) · mojar un seto (cortafuegos: la fila se corta y el barril no arde) · una BARRERA de agua delante de la boca (el chorro se para en ella mientras vive). Botón ! (3,30) apaga el dragon 8 s ·
+; ---   placa @ (5,30) prende el primer seto a mano (el barril arde sin el dragon).
+; pieza f13_dragon trampa_dragon 6 24 mira=s ciclo=1.0,6.0 desfase=0 alcance=3 cerca=8
+; pieza f13_s1 seto 6 26 mojable=si
+; pieza f13_s2 seto 5 26 mojable=si
+; pieza f13_s3 seto 4 26 mojable=si
+; pieza f13_s4 seto 3 26 mojable=si
+; pieza f13_s5 seto 2 26 mojable=si
+; pieza f13_barril barril 1 26
+; pieza f13_cofre cofre 1 27 abre_si=!f13_barril.explotado da=oro:30
+; pieza f13_boton pulsador 3 30 modo=magia
+; pieza f13_placa pulsador 5 30 modo=presencia
+; puzle f13_boton_apaga cuando=f13_boton.pulsado hace=f13_dragon.apagar(8)
+; puzle f13_placa_prende cuando=f13_placa.pulsado hace=f13_s1.encender
+; --- F14 CHOQUE TERMICO (20/11, sala (1,3), x 9..15, y 25..31): un nicho de 2 x 2 (9..10, 25..26) con un cofre (9,25) tapado por una ROCA TERMICA en (10,27) (muros en (11,25) (11,26) (9,27)). La roca no se rompe con golpes de tierra ni con explosiones: el FUEGO la pone al rojo
+; ---   8 s (emision rojo-naranja y una luz calida, nunca amarillo; otro fuego renueva el calor) y el AGUA mientras sigue caliente la parte (vapor, y aparece el cofre). Fria, el agua no le hace nada; pasados los 8 s se enfria sola y hay que calentarla otra vez.
+; ---   Se juega desde (10,28), una casilla al sur de la roca. Vias: boton ! (13,30) calienta la roca (falta el agua) · placa @ (11,30) la parte directamente.
+; pieza f14_muro muro 10 27 termica=si
+; pieza f14_cofre cofre 9 25 aparece_si=f14_muro.roto da=oro:30
+; pieza f14_boton pulsador 13 30 modo=magia
+; pieza f14_placa pulsador 11 30 modo=presencia
+; puzle f14_boton_calienta cuando=f14_boton.pulsado hace=f14_muro.calentar
+; puzle f14_placa_rompe cuando=f14_placa.pulsado hace=f14_muro.romper
+; --- F15 BRASEROS EN ORDEN CON MURAL (20/11, sala (2,3), x 17..23, y 25..31): cuatro braseros en las esquinas ((22,26) (18,30) (22,30) (18,26)) que hay que encender EN ORDEN; encender otro los apaga TODOS (también el nuevo) y se empieza de nuevo.
+; ---   La pista del orden es un MURAL: una losa en el suelo del centro (20,28) tapada de BARRO, que solo se ve tras mojarla con agua (flecha de agua a la losa desde 2 casillas): deja ver un plano de la sala con un punto y un número por brasero
+; ---   (1, 2, 3, 4). Con los cuatro encendidos en orden se abre la puerta (20,31). Vias: boton ! (17,28) limpia el mural sin agua · placa @ (23,28) enciende los cuatro en orden (y abre).
+; pieza f15_b1 brasero 22 26
+; pieza f15_b2 brasero 18 30
+; pieza f15_b3 brasero 22 30
+; pieza f15_b4 brasero 18 26
+; pieza f15_orden secuencia 20 27 de=22,26+18,30+22,30+18,26
+; pieza f15_mural mural 20 28 de=22,26+18,30+22,30+18,26
+; pieza f15_puerta puerta 20 31
+; pieza f15_boton pulsador 17 28 modo=magia
+; pieza f15_placa pulsador 23 28 modo=presencia
+; puzle f15_abre cuando=f15_orden.completa hace=f15_puerta.abrir
+; puzle f15_boton_limpia cuando=f15_boton.pulsado hace=f15_mural.limpiar
+; puzle f15_placa_enciende cuando=f15_placa.pulsado hace=f15_b1.encender y=f15_b2.encender y=f15_b3.encender y=f15_b4.encender
+; --- F16 BRASERO BAJO LA GOTERA (20/11, sala (3,3), x 25..31, y 25..31; se entra por (28,24) a (28,25)): una cabeza de dragon que escupe AGUA (elemento=agua: una gotera, no hiere) en el muro (26,24) lanza cada 7 s (1,5 s de chorro, 5,5 s de descanso) un chorro por la columna x=26 (alcance 4)
+; ---   que APAGA el brasero (26,27). La puerta (29,27), en el tabique x=29, abre mientras el brasero arde (contador) y se cierra si se apaga; detras hay un rincon (x 30..31) con un cofre (31,27). Hay que encender el brasero en la PAUSA (fuego desde (28,27), a 2 casillas, fuera de la columna)
+; ---   y cruzar la puerta antes del siguiente chorro (~4 s). O CORTAR EL AGUA: quemar la cuerda (27,26) (la valvula del chorro: la gotera se apaga para siempre) o TAPAR la boca con una barrera de tierra delante. Botón ! (27,30) apaga la gotera 8 s · placa @ (28,30) enciende el brasero.
+; pieza f16_gotera trampa_dragon 26 24 mira=s ciclo=1.5,5.5 desfase=0 alcance=4 elemento=agua agua=no
+; pieza f16_brasero brasero 26 27
+; pieza f16_cont contador 27 29 de=26,27
+; pieza f16_puerta puerta 29 27
+; pieza f16_cofre cofre 31 27 da=oro:30
+; pieza f16_cuerda cuerda 27 26
+; pieza f16_boton pulsador 27 30 modo=magia
+; pieza f16_placa pulsador 28 30 modo=presencia
+; puzle f16_abre cuando=f16_cont.todos hace=f16_puerta.abrir
+; puzle f16_cierra cuando=f16_cont.no_todos hace=f16_puerta.cerrar
+; puzle f16_cuerda_corta cuando=f16_cuerda.rota hace=f16_gotera.apagar
+; puzle f16_boton_apaga cuando=f16_boton.pulsado hace=f16_gotera.apagar(8)
+; puzle f16_placa_enciende cuando=f16_placa.pulsado hace=f16_brasero.encender
 ; ---------------------------------------------------------------------------------------------------------------------------------
 #################################
 #.......#...Z...#.-.....#......Z#
@@ -174,4 +233,12 @@
 #.......#.......#.......#..#.#..#
 #.......#.......#.......#..#.#..#
 #.......#.......#...@...#..#@#..#
+####.#######.#######.#######.####
+#.......#..#....#.......#....#..#
+#.zzzzz.#..#....#.T...T.#....#..#
+#.......##......#.......#.T..Z..#
+#.......#.......#!.....@#....#..#
+#.......#.......#.......#....#..#
+#..!.@..#..@.!..#.T...T.#..!@#..#
+#.......#.......#...Z...#....#..#
 #################################
