@@ -21,11 +21,39 @@ uniform vec4 color_musgo : source_color = vec4(0.55, 0.72, 0.25, 1.0);
 uniform float musgo_escala = 0.5;                             // repeticiones de la textura de musgo por unidad de mundo
 uniform float musgo_umbral : hint_range(0.0, 1.0) = 0.55;     // a partir de qué inclinación (normal.y) hay musgo
 uniform float musgo_suave : hint_range(0.01, 0.5) = 0.12;
+// 25/11 (Pablo: «desaparece la parte superior»): el musgo liso del color de la hierba tapaba TODA la cara de arriba y se fundía con el suelo.
+// Ahora va a MANCHAS (ruido en el mundo) y deja ver la piedra entre ellas: cobertura 1 = toda la cara, 0,4 = algo menos de la mitad.
+uniform float musgo_cobertura : hint_range(0.0, 1.0) = 1.0;
+uniform float musgo_ruido = 1.6;                              // tamaño de las manchas: más alto = manchas más pequeñas
+uniform float musgo_borde : hint_range(0.01, 0.3) = 0.06;     // lo blando del borde de cada mancha
 
 uniform float recorte : hint_range(0.0, 1.0) = 0.0;           // > 0 para la hiedra (hojas con alfa)
 
 varying vec3 n_mundo;
 varying vec3 p_mundo;
+
+float azar(vec2 p) {
+	return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453);
+}
+
+// ruido de valor suave (0..1), dos octavas
+float ruido(vec2 p) {
+	float total = 0.0;
+	float peso = 0.65;
+	for (int o = 0; o < 2; o++) {
+		vec2 i = floor(p);
+		vec2 f = fract(p);
+		f = f * f * (3.0 - 2.0 * f);
+		float a = azar(i);
+		float b = azar(i + vec2(1.0, 0.0));
+		float c = azar(i + vec2(0.0, 1.0));
+		float d = azar(i + vec2(1.0, 1.0));
+		total += peso * mix(mix(a, b, f.x), mix(c, d, f.x), f.y);
+		p *= 2.3;
+		peso = 0.35;
+	}
+	return total;
+}
 
 void vertex() {
 	n_mundo = normalize((MODEL_MATRIX * vec4(NORMAL, 0.0)).xyz);
@@ -44,6 +72,10 @@ void fragment() {
 	vec3 base = mix(paleta, pack, mezcla_textura);
 
 	float arriba = smoothstep(musgo_umbral - musgo_suave, musgo_umbral + musgo_suave, n_mundo.y) * musgo;
+	if (musgo_cobertura < 0.999) {
+		float u = 1.0 - musgo_cobertura;
+		arriba *= smoothstep(u - musgo_borde, u + musgo_borde, ruido(p_mundo.xz * musgo_ruido));
+	}
 	vec3 musgo_tex = texture(tex_musgo, p_mundo.xz * musgo_escala).rgb;
 	vec3 musgo_c = mix(color_musgo.rgb * mix(1.0, 0.85 + lum * 0.4, detalle), musgo_tex, musgo_textura);
 	ALBEDO = mix(base, musgo_c, arriba);

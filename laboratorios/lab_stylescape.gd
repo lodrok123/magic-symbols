@@ -31,16 +31,19 @@ const RECETAS: Dictionary = {
 var COLOR_TIPO: Dictionary = {
 	"piedra": Paleta3D.PIEDRA, "losa": Paleta3D.PIEDRA.lerp(Paleta3D.PIEDRA_OSCURA, 0.25), "madera": Paleta3D.MADERA, "hiedra": Paleta3D.HIERBA_SOMBRA,
 }
-## [nombre, mezcla_textura, detalle, musgo, musgo_textura, fuerza_normal]
+## [nombre, mezcla_textura, detalle, musgo, musgo_textura, fuerza_normal, cobertura del musgo]
+## 25/11: en 3 y 4 el musgo va a manchas (cobertura 0,4) para que la cara de arriba de los muros siga siendo piedra y no se funda con la hierba.
 const MODOS: Array = [
-	["1 · pack tal cual", 1.0, 0.0, 0.0, 0.0, 1.0],
-	["2 · pack con su musgo arriba", 1.0, 0.0, 1.0, 1.0, 1.0],
-	["3 · textura del pack teñida con la paleta", 0.0, 0.75, 1.0, 0.0, 0.7],
-	["4 · paleta casi plana", 0.0, 0.2, 1.0, 0.0, 0.3],
+	["1 · pack tal cual", 1.0, 0.0, 0.0, 0.0, 1.0, 1.0],
+	["2 · pack con su musgo arriba", 1.0, 0.0, 1.0, 1.0, 1.0, 1.0],
+	["3 · textura del pack teñida con la paleta", 0.0, 0.75, 1.0, 0.0, 0.7, 0.4],
+	["4 · paleta casi plana", 0.0, 0.2, 1.0, 0.0, 0.3, 0.4],
 ]
 const LUCES: Array = ["bosque", "ruinas", "clasico"]
-## Cuánto musgo lleva cada tipo en los modos con musgo (las losas del suelo casi nada: si no, se confunden con la hierba).
-const MUSGO_TIPO: Dictionary = {"piedra": 1.0, "losa": 0.15, "madera": 0.4, "hiedra": 0.0}
+## Cuánto musgo lleva cada tipo en los modos con musgo (las losas del suelo y las cajas, nada: se confundían con la hierba).
+const MUSGO_TIPO: Dictionary = {"piedra": 1.0, "losa": 0.0, "madera": 0.0, "hiedra": 0.0}
+## Color del musgo con la paleta: el verde de sombra de la hierba OSCURECIDO, para que se distinga del suelo (con el verde tal cual desaparecía).
+const MUSGO_OSCURECER: float = 0.35
 
 ## La ruina, en METROS de Unreal: [malla, esquina mínima (x, y, z), largo a lo largo de X (true) o de Z (false)]
 const RUINA: Array = [
@@ -298,7 +301,8 @@ func _aplicar_modo() -> void:
 		sm.set_shader_parameter("detalle", m[2])
 		sm.set_shader_parameter("musgo", float(m[3]) * float(MUSGO_TIPO[tipo]))
 		sm.set_shader_parameter("musgo_textura", m[4])
-		sm.set_shader_parameter("color_musgo", Paleta3D.HIERBA_SOMBRA)
+		sm.set_shader_parameter("color_musgo", Paleta3D.HIERBA_SOMBRA.darkened(MUSGO_OSCURECER))
+		sm.set_shader_parameter("musgo_cobertura", m[6])
 		sm.set_shader_parameter("fuerza_normal", m[5])
 		sm.set_shader_parameter("color_piedra", Color.WHITE if float(m[1]) > 0.5 else COLOR_TIPO[tipo])
 
