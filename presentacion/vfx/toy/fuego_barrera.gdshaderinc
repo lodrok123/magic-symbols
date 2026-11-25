@@ -44,7 +44,8 @@ uniform float lamido_alto : hint_range(0.0, 0.6) = 0.2; // cuánto salen los lam
 uniform float escala_jir : hint_range(0.2, 2.0) = 1.0;    // × la frecuencia de los jirones (menos = corrientes más anchas)
 uniform float borde_blanco : hint_range(0.0, 1.0) = 0.0;  // borde más luminoso (amarillo-blanco)
 uniform float lam_amplio : hint_range(0.0, 1.0) = 0.0;    // los lamidos salen en más superficie y con más cuerpo
-uniform float interior_calor : hint_range(0.0, 1.0) = 0.0; // jirones interiores más calientes (más naranja intenso)
+uniform float interior_calor : hint_range(0.0, 1.0) = 0.0;
+uniform float tope_rampa : hint_range(0.3, 1.0) = 1.0;   // 25/11/2026: hasta dónde se recorre la rampa (1 = hasta el amarillo pálido; la barrera usa 0,62: rojos y naranjas, nunca amarillo) // jirones interiores más calientes (más naranja intenso)
 // 21/11 (inicio y final de la barrera, FuegoToy): con los valores de serie (brote 1, suelta 0, apaga 0) se dibuja entera, como siempre.
 uniform float brote : hint_range(0.0, 1.0) = 1.0;    // 0 → 1: las llamas suben en ola por la cúpula, de un lado al opuesto, hasta cerrarla por arriba
 uniform float suelta : hint_range(0.0, 1.0) = 0.0;   // 0 → 1: las llamas bajan por tramos (cada sector a su ritmo) hasta dejar solo el suelo
@@ -129,12 +130,13 @@ void fragment() {
 	float rug = texture(ruido_v, vec2(ang_c / TAU * repeticion.x * 2.0 + semilla, hv * 2.0 - t * 0.3)).r - 0.5;
 	float tope = nivel * 1.14 + rug * 0.14 * sin(clamp(nivel, 0.0, 1.0) * PI);
 	alfa *= 1.0 - smoothstep(tope - 0.1, tope, hv);
+	idx *= tope_rampa;
 	vec3 col = mix(texture(rampa, vec2(idx, 0.5)).rgb, texture(rampa_azul, vec2(idx, 0.5)).rgb, tono);
 	col = mix(col, vec3(0.30, 0.15, 0.09), apaga * 0.65);
 	float titila = 1.0 + 0.1 * chisporroteo * (sin(TIME * 9.3 + semilla * 31.0) * 0.6 + sin(TIME * 14.1 + semilla * 17.0) * 0.4);
 	ALBEDO = col * brillo * titila * (1.0 + (0.4 + 0.5 * borde_blanco) * borde);
 #ifndef LAMIDOS
-	ALBEDO = mix(ALBEDO, vec3(1.0, 0.86, 0.5) * brillo * titila, borde_blanco * smoothstep(0.5, 1.0, borde) * 0.6);
+	ALBEDO = mix(ALBEDO, mix(vec3(1.0, 0.86, 0.5), vec3(1.0, 0.55, 0.25), 1.0 - tope_rampa) * brillo * titila, borde_blanco * smoothstep(0.5, 1.0, borde) * 0.6);
 #endif
 	ALPHA = clamp(alfa * transparencia * vida, 0.0, 1.0);
 }

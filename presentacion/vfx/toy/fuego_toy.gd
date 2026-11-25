@@ -55,6 +55,8 @@ const PILAR_VELOCIDAD: float = 1.6       ## × la velocidad de las llamas del pi
 ##   FINAL: se corta por la base; la raíz se estrecha y se suelta y lo que queda arriba es lo último en irse.
 ## A false, el nacer y morir de antes (el cuerpo entero crece y se encoge).
 const PILAR_INICIO_FINAL: bool = true
+const PILAR_ADORNO: bool = true            ## 25/11: brasas en espiral y aros que laten en la base (pilar_adorno_toy.gd)
+const PilarAdornoToy = preload("res://presentacion/vfx/toy/pilar_adorno_toy.gd")
 const PILAR_AVISO_S: float = 0.35
 ## 17/11 (Pablo, con un vídeo de un hechizo de fuego: grietas que corren por el suelo, se encienden, de ellas revienta el fuego y al irse quedan al rojo y se apagan: «pensaba en algo
 ## así. Añádelo, crea un fuego que nace y muere»). GRIETAS bajo el pilar (grietas_magma.gdshader, el del cráter de magma): en el aviso salen del centro, oscuras, y se encienden; viven
@@ -122,6 +124,8 @@ const PILAR_VAIVEN_M: float = 0.16       ## metros que se ladea el chorro entero
 ##   después, el RESCOLDO (el aro y las grietas, que se enfrían del blanco al rojo, y el humo) se descuelga y se apaga `PILAR_RESCOLDO_S` por su cuenta.
 ## A false, el nacer y morir de antes (el cuerpo entero crece y se encoge).
 const BARRERA_INICIO_FINAL: bool = true
+const BARRERA_TOPE_RAMPA: float = 0.62      ## 25/11: la cúpula recorre la rampa de la bola solo hasta aquí (como HAZ_TOPE_CALOR): sin el tramo amarillo
+const BARRERA_BORDE_BLANCO: float = 0.3     ## 25/11: antes 1,0 (borde amarillo-blanco)
 const BARRERA_AVISO_S: float = 0.3
 const BARRERA_BROTE_S: float = 0.55
 const BARRERA_FINAL_S: float = 0.8
@@ -1154,6 +1158,9 @@ func _pilar(c: Node3D, luz: OmniLight3D) -> void:
 	_particulas(c, "Chispas", _cant(16.0, area, 6, 60), 1.8, 0.07, Vector3(rx * 0.6, 0.1, rz * 0.6), Vector2(0.6, 1.5) * vv, Vector3(0, 1, 0), 20.0, Vector3(0, 0.5, 0) * vv,
 		[Color(1.0, 0.8, 0.4, 0.0), Color(1.0, 0.6, 0.2, 1.0), Color(1.0, 0.5, 0.12, 0.0)], "chispas", Vector3(0, 0.075 * alto, 0), rm * 2.0 + alto + 4.0)
 	_ajustar_luz(luz, Vector3(0, 0.325 * alto, 0), 2.0, 7.0)
+	# 25/11/2026 (revisión de formas con ef_holy01 / ef_wind03 de Effekseer): brasas que suben en espiral y aros que laten en la base (pilar_adorno_toy.gd)
+	if PILAR_ADORNO:
+		c.add_child(PilarAdornoToy.crear(self, rm, alto))
 
 
 # ---- BARRERA ----
@@ -1201,7 +1208,7 @@ func _barrera(c: Node3D, luz: OmniLight3D) -> void:
 	var aro: MeshInstance3D = MeshInstance3D.new()
 	aro.name = "Aro"
 	aro.mesh = q
-	aro.material_override = _mat_fuego(SH_ARO, {"radio_aro": corte / k_aro, "grosor": clampf(0.045 / maxf(fr, 0.3), 0.02, 0.07), "brillo": 1.0, "semilla": 0.4}, 2, _rampa_de_bola())
+	aro.material_override = _mat_fuego(SH_ARO, {"radio_aro": corte / k_aro, "grosor": clampf(0.045 / maxf(fr, 0.3), 0.02, 0.07), "brillo": 1.0, "semilla": 0.4, "tope_rampa": BARRERA_TOPE_RAMPA}, 2, _rampa_de_bola())
 	aro.position = Vector3(0, 0.05, 0)
 	aro.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	c.add_child(aro)
@@ -1210,8 +1217,10 @@ func _barrera(c: Node3D, luz: OmniLight3D) -> void:
 		"rep_ruido": Vector2(maxf(3.0, FuegoToyMallas.repeticiones_u(ecuador, m[2])), maxf(1.5, meridiano / float(m[3]))), "semiejes": Vector3(rx, ry, rz), "suelo_y": -0.4 * ry,
 		"ondulacion": 0.6, "lamido_alto": 0.22, "transparencia": 0.97,
 		# ronda de Pablo (haz y barrera con cuerpo): borde más grueso y luminoso, interior lleno de corrientes anchas (≈60 % de la superficie) y lamidos amplios
-		"borde_pot": 1.15, "borde_fuerza": 1.9, "borde_blanco": 1.0, "velo": 0.1, "jirones": 0.9, "cobertura": 0.92, "escala_jir": 0.5, "blandura": 0.3,
-		"interior_calor": 1.0, "lam_amplio": 1.0}
+		"borde_pot": 1.15, "borde_fuerza": 1.9, "velo": 0.1, "jirones": 0.9, "cobertura": 0.92, "escala_jir": 0.5, "blandura": 0.3,
+		"interior_calor": 1.0, "lam_amplio": 1.0,
+		# 25/11 (revisión de formas con Effekseer): la cúpula salía AMARILLO-BLANCA (borde_blanco 1 y la rampa hasta su final pálido). Rojos y naranjas con contraste, nunca amarillo.
+		"tope_rampa": BARRERA_TOPE_RAMPA, "borde_blanco": BARRERA_BORDE_BLANCO}
 	var mi: MeshInstance3D = _fuego(c, "Cascara", malla, Vector3(0, 0.4 * ry, 0), p, 0, SH_BARRERA_ATRAS, _rampa_de_bola())
 	(mi.material_override as ShaderMaterial).next_pass = _mat_fuego(SH_BARRERA_DELANTE, p, 1, _rampa_de_bola())
 	var p2: Dictionary = p.duplicate()

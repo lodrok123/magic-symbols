@@ -1347,8 +1347,8 @@ func _inicio_final() -> void:
 	var h_1: float = ba.barrera_alto()
 	var anillo_act: float = _alfa_max(ba._bar_espuma_datos)
 	var esc_act: Vector3 = ba._bar_mi.scale
-	_ok("BARRERA inicio: anillo de espuma (%.2f) con la membrana en el suelo (%.2f), sube a media altura (%.2f, escala y %.2f) y activa queda igual que antes (altura %.2f, escala %s, sin anillo %.2f)" % [anillo, h_01, h_06, y_06, h_1, str(esc_act), anillo_act],
-		anillo > 0.4 and h_01 < 0.05 and h_06 > 0.1 and h_06 < 0.9 and h_1 == 1.0 and esc_act.is_equal_approx(Vector3(1.5, 1.5, 1.5)) and ba._bar_mi.position.is_zero_approx() and anillo_act < 0.01)
+	_ok("BARRERA inicio: anillo de espuma (%.2f) con la membrana en el suelo (%.2f), sube a media altura (%.2f, escala y %.2f) y activa queda igual que antes (altura %.2f, escala %s) con la espuma tenue del pie (25/11: %.2f)" % [anillo, h_01, h_06, y_06, h_1, str(esc_act), anillo_act],
+		anillo > 0.4 and h_01 < 0.05 and h_06 > 0.1 and h_06 < 0.9 and h_1 == 1.0 and esc_act.is_equal_approx(Vector3(1.5, 1.5, 1.5)) and ba._bar_mi.position.is_zero_approx() and anillo_act > 0.25 and anillo_act < AguaToy.BARRERA_ESPUMA_VIVA + 0.05)
 	ba.final_t = 0.5
 	await _esperar(0.3)
 	var h_f5: float = ba.barrera_alto()
@@ -1365,8 +1365,8 @@ func _inicio_final() -> void:
 	bo2.inicio_t = 0.1
 	bo2.final_t = 1.0
 	await _esperar(0.1)
-	_ok("BARRERA con inicio_final = false: el elipsoide de siempre (escala %s, sin anillo %.2f, nacer %.2f s)" % [str(bo2._bar_mi.scale), _alfa_max(bo2._bar_espuma_datos), bo2.get_node("Anim").get_animation("nacer").length],
-		bo2._bar_mi.scale.is_equal_approx(Vector3(1.5, 1.5, 1.5)) and _alfa_max(bo2._bar_espuma_datos) < 0.01 and absf(bo2.get_node("Anim").get_animation("nacer").length - 0.4) < 0.001)
+	_ok("BARRERA con inicio_final = false: el tamaño de siempre (escala %s, espuma tenue del pie %.2f, nacer %.2f s)" % [str(bo2._bar_mi.scale), _alfa_max(bo2._bar_espuma_datos), bo2.get_node("Anim").get_animation("nacer").length],
+		bo2._bar_mi.scale.is_equal_approx(Vector3(1.5, 1.5, 1.5)) and _alfa_max(bo2._bar_espuma_datos) > 0.25 and _alfa_max(bo2._bar_espuma_datos) < AguaToy.BARRERA_ESPUMA_VIVA + 0.05 and absf(bo2.get_node("Anim").get_animation("nacer").length - 0.4) < 0.001)
 	_limpiar_ifs()
 	await process_frame
 	# ---- HAZ: sale de la mano con gotas y avanza; al cortarse gotea de la mano

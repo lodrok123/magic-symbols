@@ -80,6 +80,7 @@ const CASILLA_REF: float = 2.3          ## m: lo que mide una casilla del juego 
 ##   HAZ: el chorro sale de la mano con un chorrito de gotas y avanza hasta su largo; al cortarse gotea de la mano y la cola cae en gotas.
 const BOLA_INICIO_FINAL: bool = true
 const MURO_INICIO_FINAL: bool = true
+const OLA_CREMALLERA: float = 1.0       ## 25/11 (revisión de formas con ef_ice02): la ola sube del CENTRO a los extremos (agua_ola*: `cremallera`), como el muro de fuego; 0 = toda a la vez
 const PILAR_INICIO_FINAL: bool = true
 ## 21/11 (Pablo: «dale al pilar de agua un aspecto uniforme, ahora tiene un cilindro interior»): el tubo NÚCLEO (más fino y más claro, dentro de la cortina) no se dibuja. A true, el de antes.
 const PILAR_NUCLEO: bool = false
@@ -107,6 +108,8 @@ const T_BARRERA_NACER_IF: float = 0.9     ## s que tarda la membrana en formarse
 const T_BARRERA_MORIR_IF: float = 1.0     ## s que tarda en caer
 const GOTAS_RESERVA_BARRERA: int = 48     ## huecos de la reserva de gotas de la barrera (salpicadura del borde)
 const N_ESPUMA_BARRERA: int = 14          ## franjas del anillo de espuma del borde de la barrera
+const BARRERA_RIM_POT: float = 1.5        ## 25/11: borde claro de la membrana más ancho que el de la bola (2,1)
+const BARRERA_ESPUMA_VIVA: float = 0.4    ## 25/11: opacidad de la espuma del pie mientras la barrera vive (antes 0: solo al formarse y al caer)
 const BARRERA_SUBE_DESDE: float = 0.2     ## fracción del nacer a partir de la cual la membrana empieza a subir (antes, solo el anillo del suelo)
 
 @export_group("Figura y ejes (m)")
@@ -1230,11 +1233,11 @@ func _ola(c: Node3D) -> void:
 	_ola_hojas = []
 	for k in 3:
 		var capa: float = float(k - 1)
-		var p: Dictionary = {"a": a, "b": b, "alto": alto, "crece": crece, "corte": corte, "capa": capa, "semilla": 0.19 * float(k), "suave_prof": 0.15, "opacidad": 0.5 if k == 1 else 0.4, "ritmo": 0.45 + 0.08 * float(k)}
+		var p: Dictionary = {"a": a, "b": b, "alto": alto, "crece": crece, "corte": corte, "capa": capa, "cremallera": OLA_CREMALLERA, "semilla": 0.19 * float(k), "suave_prof": 0.15, "opacidad": 0.5 if k == 1 else 0.4, "ritmo": 0.45 + 0.08 * float(k)}
 		var mi: MeshInstance3D = _mi_agua(c, "Ola%d" % k, malla, AguaMallas.material(AguaMallas.SH_OLA, p, k))
 		mi.custom_aabb = caja
 		_ola_hojas.append(mi)
-	var pl: Dictionary = {"a": a, "alto": alto, "crece": crece, "corte": corte, "suave_prof": 0.15}
+	var pl: Dictionary = {"a": a, "alto": alto, "crece": crece, "corte": corte, "suave_prof": 0.15, "cremallera": OLA_CREMALLERA}
 	_ola_cuerpo = AguaMallas.ola_mm("Masa", AguaMallas.ola_laminas(a, b, alto, true), 0, pl.merged({"opacidad": 0.46}))
 	c.add_child(_ola_cuerpo)
 	_ola_cresta = AguaMallas.ola_mm("Cresta", AguaMallas.ola_laminas(a, b, alto, false), 1, pl.merged({"opacidad": 0.5}))
@@ -1270,7 +1273,7 @@ func _ola(c: Node3D) -> void:
 ## Altura (m) de la cresta en el centro (x = 0) con los valores actuales de `crece` y `corte` (sin el ruido de la ondulación). La MISMA rotura que agua_ola.gdshader: el perfil gira sobre el pie
 ## hasta corte 0,5 (θ hasta 1,45 rad; la cresta baja con cosθ) y luego se hunde con gravedad (×(1 − 0,92·g), g = smoothstep(0,3, 1)^1,5).
 func ola_altura() -> float:
-	var rise: float = smoothstep(0.0, 1.0, crece)
+	var rise: float = smoothstep(0.0, 1.0, clampf(crece * (1.0 + 0.6 * OLA_CREMALLERA), 0.0, 1.0))      # en el centro (x = 0), con la cremallera del shader
 	var th: float = 1.45 * smoothstep(0.0, 0.5, corte)
 	var g: float = pow(smoothstep(0.4, 1.0, corte), 1.5)
 	return semieje_y * rise * cos(th) * (1.0 - 0.92 * g)
@@ -1439,7 +1442,8 @@ func _avanzar_barrera(_delta: float) -> void:
 	# anillo de espuma del borde: al formarse se abre y se apaga cuando la membrana ya está; al caer vuelve y salpica
 	var al_ini: float = smoothstep(0.0, 0.18, ini) * (1.0 - smoothstep(0.55, 0.95, ini))
 	var al_fin: float = smoothstep(0.25, 0.5, fin) * (1.0 - smoothstep(0.82, 1.0, fin))
-	var al: float = (maxf(al_ini, al_fin) * 0.9) if con else 0.0
+	var al_vivo: float = BARRERA_ESPUMA_VIVA * (smoothstep(0.5, 1.0, ini) if con else 1.0) * (1.0 - smoothstep(0.0, 0.3, fin))      # 25/11: espuma tenue en el pie mientras vive
+	var al: float = maxf((maxf(al_ini, al_fin) * 0.9) if con else 0.0, al_vivo)
 	var rs: Vector2 = barrera_radio_suelo()
 	var mf: MultiMesh = _bar_fra.multimesh
 	_bar_espuma_datos.resize(N_ESPUMA_BARRERA)
@@ -1506,6 +1510,12 @@ func _marcador_provisional(c: Node3D) -> void:
 	c.add_child(mi)
 	if figura == Figura.BARRERA:
 		_bar_mi = mi
+		# 25/11/2026 (revisión de formas con Effekseer; VFX_SECUENCIA_MEJORAS 19/11 §1): de elipsoide liso a MEMBRANA: vetas de agua que suben, espuma en el pie, borde más claro
+		# y el centro más claro para ver lo de dentro (agua_esfera.gdshader, uniform `membrana`). La espuma del borde (franjas) se queda tenue mientras vive.
+		var mm: ShaderMaterial = mi.material_override as ShaderMaterial
+		if mm != null and mm.next_pass is ShaderMaterial:
+			(mm.next_pass as ShaderMaterial).set_shader_parameter("membrana", 1.0)
+			(mm.next_pass as ShaderMaterial).set_shader_parameter("rim_pot", BARRERA_RIM_POT)
 		_bar_fra = AguaMallas.franjas_mm("Franjas", N_ESPUMA_BARRERA)         # anillo de espuma del borde (solo se ve al formarse y al caer)
 		c.add_child(_bar_fra)
 		_bar_espuma_datos.clear()

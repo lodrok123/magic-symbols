@@ -13,6 +13,7 @@ uniform float velocidad : hint_range(0.1, 4.0) = 1.0;
 uniform float tono : hint_range(0.0, 1.0) = 0.0;
 uniform float vida : hint_range(0.0, 1.0) = 1.0;
 uniform float semilla = 0.0;
+uniform float tope_rampa : hint_range(0.3, 1.0) = 1.0;   // 25/11/2026: hasta dónde se recorre la rampa (la barrera de fuego usa 0,62: sin el blanco-amarillo)
 uniform float fade_canto : hint_range(0.0, 1.0) = 0.0;
 uniform float recorrido : hint_range(0.0, 1.0) = 1.0;   // 21/11 (inicio de la barrera): fracción del perímetro ya encendida; sale de +X y rodea hasta -X (1 = el aro entero, como siempre)
 uniform float enfria : hint_range(0.0, 1.0) = 0.0;      // 21/11 (final de la barrera): el rescoldo pasa del blanco-naranja al rojo oscuro
@@ -34,8 +35,8 @@ void fragment() {
 	float an = abs(a) * 2.0;
 	f *= 1.0 - smoothstep(recorrido * 1.1 - 0.1, recorrido * 1.1, an);
 	f *= 1.0 + 1.2 * exp(-pow((an - recorrido) / 0.07, 2.0)) * (1.0 - step(0.999, recorrido));       // cabeza más brillante donde va el recorrido
-	vec3 cn = texture(rampa, vec2(0.97 - 0.5 * enfria, 0.5)).rgb;
-	vec3 ch = texture(rampa, vec2(0.52 - 0.3 * enfria, 0.5)).rgb;
+	vec3 cn = texture(rampa, vec2((0.97 - 0.5 * enfria) * tope_rampa, 0.5)).rgb;
+	vec3 ch = texture(rampa, vec2((0.52 - 0.3 * enfria) * mix(1.0, tope_rampa, 0.6), 0.5)).rgb;
 	vec3 col = mix(ch, cn, clamp(nucleo, 0.0, 1.0));
 	col = mix(col, col.bgr * vec3(0.4, 0.8, 1.0), tono);
 	float s = 1.0;

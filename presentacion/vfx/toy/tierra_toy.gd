@@ -165,6 +165,12 @@ const T_NACER_BOLA: float = 0.3
 const T_MORIR: float = 0.6              ## se hunde
 const T_MORIR_BOLA: float = 0.4
 const ANTICIPO: float = 0.1 / T_NACER   ## fracción de `sube` que dura el temblor previo
+## PILAR con CARGA (25/11/2026, revisión de formas con ef_ice03 de Effekseer: el pilar salía de golpe, entero a los 0,3 s): 0,45 s de carga (la marca se abre, la base tiembla,
+## sale polvo y SALTAN piedrecitas) y luego BROTA: la columna sube con una ONDA de polvo en anillo y cascotes que saltan. Nace en T_NACER_PILAR.
+const T_NACER_PILAR: float = 1.0
+const ANTICIPO_PILAR: float = 0.45 / T_NACER_PILAR
+const PILAR_ONDA_POLVO: int = 14        ## bocanadas de la onda de polvo al brotar
+const PILAR_SALTAN: float = 14.0        ## piedrecitas por segundo que saltan durante la carga
 const SOBREPASO: float = 0.1            ## cuánto se pasa de su sitio antes de asentarse (fracción del alto)
 const MAX_BLOQUES: int = 24
 const POLVO_FIG: int = 18
@@ -631,6 +637,8 @@ var _acc_g: float = 0.0
 ## HAZ (línea de púas), 19/11: algo la PARA antes de su largo. `haz_tope` = m del origen a la cara de lo que toca (≤ 0: nada). Como en HieloToy: ponerlo ANTES de construir.
 var haz_tope: float = -1.0
 var _marca_pilar: MeshInstance3D = null    ## PILAR: decal de tierra partida bajo la columna
+var _pilar_brotado: bool = false           ## PILAR (25/11): ya salió la onda de polvo del brote
+var _acc_salta: float = 0.0                 ## PILAR (25/11): acumulador de piedrecitas de la carga
 var _ini_t: float = -1.0                ## BOLA sin carga: s desde que empezó a compactarse (-1: no)
 var _ini_piedras: Node3D = null         ## BOLA: terrones que acuden a la roca (sin gravedad, locales)
 var _ini_n: int = 0                     ## (pruebas) terrones emitidos en el inicio
@@ -1522,6 +1530,9 @@ func _anim_si_hace_falta() -> void:
 	elif figura == Figura.MURO and MURO_INICIO_FINAL:
 		nacer = T_NACER_MURO
 		morir_s = T_MORIR_MURO
+	elif figura == Figura.PILAR and PILAR_COLUMNA:
+		nacer = T_NACER_PILAR
+		morir_s = T_MORIR
 	elif es_vol:
 		nacer = T_NACER
 		morir_s = T_MORIR
@@ -1589,7 +1600,7 @@ func _avanzar_bloques(delta: float) -> void:
 	var barr_n: bool = _barrera_ok()
 	var por_bloque: bool = es_haz or barr_n                                     # polvo y cascotes por roca, cuando asoma (púas y barrera en ola), no todo de golpe
 	var entierro: float = ENTIERRO_LINEA if es_haz and not linea_ignea else 0.0
-	var k_ant: float = ANTICIPO if not es_haz else 0.0
+	var k_ant: float = (ANTICIPO_PILAR if (figura == Figura.PILAR and PILAR_COLUMNA) else ANTICIPO) if not es_haz else 0.0
 	var asentados: int = 0
 	var techo_puesto: bool = true
 	for j in _bloques.size():
@@ -1930,7 +1941,28 @@ func _polvo_de_bloques(delta: float, sb: float, hd: float, k_ant: float, asentad
 			var b: Dictionary = _bloques[randi() % _bloques.size()]
 			var loc: Vector3 = (b["pos"] as Vector3) + Vector3(randf_range(-0.5, 0.5) * float(b["wx"]), 0.05, randf_range(-0.5, 0.5) * float(b["wz"]))
 			_polvo.call("emitir", tr * loc, tr.basis * Vector3(randf_range(-0.4, 0.4), 0.5, randf_range(-0.4, 0.4)), 0.7, 0.6)
-	elif asentados > 0 and not _asentado and hd <= 0.0:
+		if figura == Figura.PILAR and PILAR_COLUMNA and sb < k_ant:      # carga del pilar: piedrecitas que saltan del suelo agrietado
+			_acc_salta += PILAR_SALTAN * k * delta
+			while _acc_salta >= 1.0:
+				_acc_salta -= 1.0
+				var a4: float = randf() * TAU
+				var d4: Vector3 = Vector3(cos(a4), 0.0, sin(a4))
+				var r4: float = maxf(semieje_x, semieje_z) * randf_range(0.6, 2.2)
+				_piedras.call("emitir", tr * (d4 * r4 + Vector3(0, 0.03, 0)), tr.basis * (d4 * randf_range(0.1, 0.4) + Vector3(0, randf_range(1.2, 2.2), 0)), randf_range(0.5, 0.8), randf_range(0.03, 0.06) * sqrt(maxf(semieje_x / 0.25, 0.4)))
+	if figura == Figura.PILAR and PILAR_COLUMNA and sb >= k_ant and not _pilar_brotado and hd <= 0.0:
+		_pilar_brotado = true                                                       # BROTA: onda de polvo en anillo y cascotes hacia arriba
+		var rb: float = maxf(semieje_x, semieje_z)
+		for q in PILAR_ONDA_POLVO:
+			var a5: float = TAU * float(q) / float(PILAR_ONDA_POLVO) + randf_range(-0.15, 0.15)
+			var d5: Vector3 = Vector3(cos(a5), 0.0, sin(a5))
+			_polvo.call("emitir", tr * (d5 * rb * 1.1 + Vector3(0, 0.06, 0)), tr.basis * (d5 * randf_range(2.2, 3.4) + Vector3(0, 0.25, 0)), randf_range(0.8, 1.1), randf_range(0.9, 1.3) * sqrt(maxf(rb / 0.25, 0.4)))
+		for q in 8:
+			var a6: float = randf() * TAU
+			var d6: Vector3 = Vector3(cos(a6), 0.0, sin(a6))
+			_piedras.call("emitir", tr * (d6 * rb * 0.8 + Vector3(0, 0.15, 0)), tr.basis * (d6 * randf_range(0.8, 2.0) + Vector3(0, randf_range(2.4, 4.0), 0)), randf_range(0.9, 1.4), randf_range(0.06, 0.12) * sqrt(maxf(rb / 0.25, 0.4)))
+	if sb <= 0.0:
+		_pilar_brotado = false
+	if asentados > 0 and not _asentado and hd <= 0.0:
 		_asentado = true
 		for b2 in _bloques:
 			var w: float = float(b2["wx"]) * ancho

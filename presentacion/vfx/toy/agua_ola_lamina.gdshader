@@ -14,6 +14,7 @@ uniform sampler2D onda66 : filter_linear_mipmap, repeat_disable;    // T_Wave66
 uniform int modo = 0;
 uniform float a = 3.45;
 uniform float alto = 1.5;
+uniform float cremallera : hint_range(0.0, 1.0) = 0.0;   // 25/11/2026 (revisión de formas con ef_ice02 de Effekseer): 1 = el CENTRO sube primero y los extremos después, como el muro de fuego
 uniform float crece : hint_range(0.0, 1.0) = 1.0;
 uniform float corte : hint_range(0.0, 1.0) = 0.0;
 uniform float avance = 0.0;
@@ -45,7 +46,8 @@ void vertex() {
 	float xl = INSTANCE_CUSTOM.z;
 	v_alfa = INSTANCE_CUSTOM.w;
 	float t = TIME * velocidad;
-	float rise = smoothstep(0.0, 1.0, clamp(crece * 1.25 - dly * 0.25, 0.0, 1.0));
+	float cx = clamp(crece * (1.0 + 0.6 * cremallera) - 0.6 * cremallera * abs(xl) / max(a, 0.01), 0.0, 1.0);      // cremallera: los extremos van detrás
+	float rise = smoothstep(0.0, 1.0, clamp(cx * 1.25 - dly * 0.25, 0.0, 1.0));
 	// la misma rotura que agua_ola.gdshader (giro sobre el pie hasta corte 0,5 y hundimiento después); el retraso por lámina es pequeño para que no se desarme en cascada
 	float f2 = clamp(corte * 1.08 - dly * 0.08, 0.0, 1.0);
 	float lean = smoothstep(0.0, 0.5, f2);

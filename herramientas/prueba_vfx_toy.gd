@@ -1,5 +1,7 @@
 extends SceneTree
 
+const PilarAdornoToy = preload("res://presentacion/vfx/toy/pilar_adorno_toy.gd")
+
 ## PRUEBA de los cinco efectos de fuego «toy» (1/11, docs/PRUEBA3_VFX_TOY_2026-11-01.md §3). Sin ventana:
 ##   godot --headless --path . --script res://herramientas/prueba_vfx_toy.gd
 ## Para BolaFuegoToy, MuroFuegoToy, PilarFuegoToy, BarreraFuegoToy (y ImpactoBolaToy, que la bola instancia al chocar) comprueba:
@@ -588,6 +590,7 @@ func _pulido() -> void:
 	await process_frame
 	# 17/11: el pilar lleva una malla más que la escena validada, el anillo de aviso de su inicio («Aviso»); capas de fuego, las mismas 2
 	var de_mas: int = 2 if FuegoToy.PILAR_INICIO_FINAL else 0      # «Aviso» y «Grietas» («HumoFinal» son partículas, no cuenta aquí)
+	de_mas += PilarAdornoToy.N_AROS if FuegoToy.PILAR_ADORNO else 0      # 25/11: los aros que laten en la base (pilar_adorno_toy.gd; las brasas en espiral son un MultiMesh)
 	_ok("pilar 0,5·4 (el validado) sigue con 2 capas, sin capas añadidas (y %d mallas de más: el anillo de aviso y las grietas)" % de_mas, p05.find_child("Capa0", true, false) == null
 		and (p05.find_child("Aviso", true, false) != null) == FuegoToy.PILAR_INICIO_FINAL
 		and p05.find_children("*", "MeshInstance3D", true, false).size() == val.find_children("*", "MeshInstance3D", true, false).size() + de_mas)

@@ -19,6 +19,7 @@ uniform sampler2D liquido : filter_linear_mipmap, repeat_enable;    // T_LiquidV
 uniform float a = 3.45;                  // semieje x
 uniform float b = 0.3;                   // semieje z
 uniform float alto = 1.5;
+uniform float cremallera : hint_range(0.0, 1.0) = 0.0;   // 25/11/2026 (revisión de formas con ef_ice02 de Effekseer): 1 = el CENTRO sube primero y los extremos después, como el muro de fuego
 uniform float crece : hint_range(0.0, 1.0) = 1.0;
 uniform float corte : hint_range(0.0, 1.0) = 0.0;
 uniform float avance = 0.0;
@@ -75,7 +76,8 @@ vec2 punto(float s, float H, float R, float Lb, float cu, float zc, float co) {
 void vertex() {
 	float t = TIME * velocidad;
 	float x = (UV.x - 0.5) * 2.0 * a;
-	float rise = smoothstep(0.0, 1.0, crece);
+	float cx = clamp(crece * (1.0 + 0.6 * cremallera) - 0.6 * cremallera * abs(x) / max(a, 0.01), 0.0, 1.0);      // cremallera: los extremos van detrás
+	float rise = smoothstep(0.0, 1.0, cx);
 	float H = alto * rise * envol(x, t, semilla) * (1.0 - 0.15 * abs(capa));
 	float cu = smoothstep(0.45, 1.0, crece);
 	// PARED de agua (16/11): cara delantera alta y casi vertical, espalda corta y labio estrecho; antes (R = 0,26·H, espalda de 2b+0,25H) quedaba una cúpula baja

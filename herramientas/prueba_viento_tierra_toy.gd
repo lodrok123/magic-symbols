@@ -325,7 +325,7 @@ func _tierra_sube() -> void:
 	await _esperar(0.08)
 	var polvo: Node = m.find_child("Polvo", true, false)
 	var p_ant: int = int(polvo.call("vivas"))
-	await _esperar(0.7)
+	await _esperar(maxf(0.7, TierraToy.T_NACER_PILAR + 0.25 - 0.08))      # 25/11: el pilar nace en T_NACER_PILAR (con su carga)
 	var terr: Node = m.find_child("Terrones", true, false)
 	_ok("nacer: polvo en la anticipación (%d bocanadas a los 0,08 s) y fragmentos al asentarse (%d terrones)" % [p_ant, int(terr.call("vivas"))], p_ant >= 1 and int(terr.call("vivas")) >= 2 and m.get("_asentado"))
 	m.morir()
