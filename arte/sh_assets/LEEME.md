@@ -14,11 +14,16 @@ El inventario completo está en `C:\Users\pablo\Documents\magic-symbols\INVENTAR
 
 Comparativa medida (25/11/2026, RTX 3070): `docs/capturas/casas_sh/comparativa_pasada1.txt` y `_pasada2.txt`.
 
+- `atrezo/sh_*.glb`: los 64 objetos pequeños (contenedores, adornos, cerámica, piedra, vegetación), uno por archivo, sin
+  optimizar; `atrezo/atrezo_sh.json` con sus cifras. Se ven y se miden en `laboratorios/LabAtrezoSH.tscn`.
+  Fallos conocidos: los arbustos y `hierba_1` salen blancos (no viaja su textura con hoja alfa).
+
 ## Regenerar
 ```
 "C:\Program Files\Blender Foundation\Blender 5.2\blender.exe" -b "C:\Users\pablo\Downloads\SH assets.blend" --python E:\magic-symbols\tools\montar_casa_sh.py -- E:\magic-symbols\arte\sh_assets\casa_sh_sin_optimizar.glb
 "C:\Program Files\Blender Foundation\Blender 5.2\blender.exe" -b "C:\Users\pablo\Downloads\SH assets.blend" --python E:\magic-symbols\tools\montar_casa_sh.py -- E:\magic-symbols\arte\sh_assets\casa_sh_d50.glb --diezmar 0.5
 "C:\Program Files\Blender Foundation\Blender 5.2\blender.exe" -b "C:\Users\pablo\Downloads\SH assets.blend" --python E:\magic-symbols\tools\montar_casa_sh.py -- E:\magic-symbols\arte\sh_assets\casa_sh_d50_unida.glb --diezmar 0.5 --unir
+"C:\Program Files\Blender Foundation\Blender 5.2\blender.exe" -b "C:\Users\pablo\Downloads\SH assets.blend" --python E:\magic-symbols\tools\exportar_atrezo_sh.py -- E:\magic-symbols\arte\sh_assets\atrezo
 E:\magic-symbols\tools\Godot_v4.7.2-stable_win64.exe --headless --path E:\magic-symbols --import
 ```
 
