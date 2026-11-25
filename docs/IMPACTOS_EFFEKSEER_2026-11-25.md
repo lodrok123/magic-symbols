@@ -88,7 +88,7 @@ Cómo estaban nuestras bolas con la cámara del juego (`docs/capturas/estela_mun
 - **Escala:** sigue la raíz del radio, con un mínimo de 0,6. La bola del juego mide 0,12 m de radio y, a escala lineal, la estela quedaba de pocos centímetros.
 - **Visibilidad:** las MultiMesh llevan una caja de visibilidad que cubre todo el mapa. Si no, Godot las descartaba lejos del origen.
 
-**Estado:** apagada de serie (`EstelaMundoToy.activa = false`) hasta que Pablo la vea. En `LabVfxComparativa3D`, **Ctrl+8** la enciende, **F4** lanza la bola en vuelo y **Z** cambia de elemento. Prueba: `herramientas/prueba_estela_mundo.gd` (19 comprobaciones). Antes y después en el juego: `docs/capturas/estela_mundo/hoja_estela_antes_despues.png`, que se regenera con `captura_vfx_en_juego.gd -- <carpeta> fuego,agua,tierra proyectil procedural estela`.
+**Estado:** ENCENDIDA de serie desde el 25/11 (Pablo: «Sí, enciende la estela»; `EstelaMundoToy.activa = true`). Antes la cola se abre y ondula (cada bocanada con deriva lateral y vaivén). OJO: F4 del lab lanzaba la bola VIEJA de la prueba 3 (`BolaFuegoToy.tscn`); ahora lanza la oficial `FuegoToy` a 0,12 m. En `LabVfxComparativa3D`, **Ctrl+8** la enciende, **F4** lanza la bola en vuelo y **Z** cambia de elemento. Prueba: `herramientas/prueba_estela_mundo.gd` (19 comprobaciones). Antes y después en el juego: `docs/capturas/estela_mundo/hoja_estela_antes_despues.png`, que se regenera con `captura_vfx_en_juego.gd -- <carpeta> fuego,agua,tierra proyectil procedural estela`.
 
 **Revisión de la bola de fuego** (Pablo: «no me gusta la bola de fuego»):
 

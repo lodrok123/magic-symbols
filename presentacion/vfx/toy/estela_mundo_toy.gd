@@ -18,8 +18,8 @@ const HieloMallas = preload("res://presentacion/vfx/toy/hielo_mallas.gd")
 const RADIO_REF: float = 0.4
 const GRAVEDAD: float = 9.8
 
-## Interruptor global (lo de serie del juego; el lab lo alterna para comparar).
-static var activa: bool = false
+## Interruptor global (lo de serie del juego; el lab lo alterna con Ctrl+8 para comparar). Encendida de serie desde el 25/11/2026 (Pablo: «Sí, enciende la estela»).
+static var activa: bool = true
 
 ## Receta por elemento (tamaños en m para una bola de RADIO_REF). Escalan con K_TAM(radio): la raíz de radio / RADIO_REF, con suelo 0,6 (la bola del juego mide 0,12 m de radio y
 ## a escala lineal la estela quedaba de pocos centímetros, invisible con la cámara del juego; en Effekseer la estela es más ancha que la bola).
