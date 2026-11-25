@@ -36,6 +36,11 @@ const CD_BOLA_V2: float = 6.0                   ## v2: la bola pasa a ser secund
 const T_QUIETA: float = 2.0                     ## v2: s que la jugadora lleva casi sin moverse para que valga la bola...
 const RADIO_QUIETA: float = 1.0                 ## ...«casi» = a menos de esta distancia (u) de donde estaba hace T_QUIETA s
 const COLOR_FLECHA_VENENO: Color = Color(0.45, 0.95, 0.3)
+## 25/11 (Pablo: la «magic flame» de la demo de EffectBlocks, «para el ataque de veneno del goblin chamán»): llama de veneno en la punta del bastón mientras carga el lanzamiento, y otra pequeña
+## con estela en la flecha de veneno. El efecto es presentacion/vfx/bloques/bloques_vfx.gd (tamaños en VENENO_K_BASTON / VENENO_K_FLECHA / VENENO_VIDA_FLECHA de ese archivo).
+const BloquesVfx = preload("res://presentacion/vfx/bloques/bloques_vfx.gd")
+const LLAMA_VENENO: bool = true
+var llama_baston: Node3D = null                 ## la llama de la punta del bastón mientras lanza (null si no hay)
 
 const ID: String = "goblin_chaman"
 const VIDA: float = 30.0                    ## 29/10 (DANO_Y_TINTA): 50 → 30
@@ -475,10 +480,36 @@ func _empezar_lanzar(tipo: String = "bola") -> void:
 	pj.set_velocidad_animacion(1.0)
 	pj.animacion_actual = ""
 	pj.jugar("lanzar", true)
+	_encender_llama_baston()
+
+
+## La llama de veneno en la cima del bastón (en el mundo, no colgada del bastón: el bastón va escalado y la llama no debe heredarlo; la sigue `_seguir_llama_baston`).
+func _encender_llama_baston() -> void:
+	_apagar_llama_baston()
+	if not LLAMA_VENENO or mundo == null:
+		return
+	llama_baston = BloquesVfx.crear_veneno_chaman(false, BloquesVfx.VENENO_K_BASTON)
+	mundo.add_child(llama_baston)
+	_seguir_llama_baston()
+
+
+func _seguir_llama_baston() -> void:
+	if llama_baston == null or not is_instance_valid(llama_baston):
+		return
+	var b: BastonChaman3D = pj.baston() if pj != null else null
+	llama_baston.global_position = b.cima_global() if b != null else global_position + Vector3(0, altura * 0.8, 0)
+
+
+## Deja de echar llama (las bocanadas que ya están en el aire acaban su vida) y se suelta la referencia.
+func _apagar_llama_baston() -> void:
+	if llama_baston != null and is_instance_valid(llama_baston):
+		llama_baston.call("apagar")
+	llama_baston = null
 
 
 func _ia_lanzando(delta: float) -> void:
 	moviendo = 0
+	_seguir_llama_baston()
 	_t_lanzar += delta * ritmo()         # tiempo DEL CLIP: el clip va a ritmo, así que INSTANTE_LANZAR / DUR_LANZAR (s de clip) tardan 1 / ritmo
 	if not _bola_soltada and _t_lanzar >= AnimacionesChaman.INSTANTE_LANZAR:
 		if _tipo_lanzar == "flecha":
@@ -491,6 +522,7 @@ func _ia_lanzando(delta: float) -> void:
 
 func _soltar_bola() -> void:
 	_bola_soltada = true
+	_apagar_llama_baston()                 # el veneno sale del bastón
 	Sfx3D.play(self, "veneno_bola")     # 13/11 (pack de magia): antes no sonaba
 	var b: BastonChaman3D = pj.baston()
 	var origen: Vector3 = b.cima_global() if b != null else position + Vector3(0, altura * 0.8, 0)
@@ -519,6 +551,13 @@ func _soltar_flecha_veneno() -> void:
 	mundo.add_child(flecha)
 	flecha.position = origen
 	flecha.look_at(destino, Vector3.UP)
+	_apagar_llama_baston()                 # el veneno sale del bastón...
+	if LLAMA_VENENO:                       # ...y viaja con la flecha, dejando estela (top_level: el giro de la flecha no tuerce la llama; la mueve _vuelo_flecha_veneno)
+		var llama: Node3D = BloquesVfx.crear_veneno_chaman(true, BloquesVfx.VENENO_K_FLECHA, BloquesVfx.VENENO_VIDA_FLECHA)
+		llama.name = "LlamaVeneno"
+		llama.top_level = true
+		flecha.add_child(llama)
+		llama.global_position = origen
 	var tw: Tween = flecha.create_tween()
 	tw.tween_method(_vuelo_flecha_veneno.bind(flecha, origen, destino, aviso), 0.0, 1.0, t_vuelo)
 	tw.tween_callback(_flecha_veneno_llega.bind(flecha, destino))
@@ -548,10 +587,20 @@ func _vuelo_flecha_veneno(k: float, flecha: Node3D, origen: Vector3, destino: Ve
 	_vuelo_flecha(k, flecha, origen, destino)           # burbuja, solidez, llamas
 	if is_instance_valid(flecha) and flecha.has_meta("parada") and aviso != null and is_instance_valid(aviso):
 		aviso.cancelar()
+	if is_instance_valid(flecha):
+		var llama: Node3D = flecha.get_node_or_null("LlamaVeneno") as Node3D
+		if llama != null:
+			llama.global_position = flecha.global_position
 
 
 func _flecha_veneno_llega(flecha: Node3D, destino: Vector3) -> void:
 	if is_instance_valid(flecha):
+		var llama: Node3D = flecha.get_node_or_null("LlamaVeneno") as Node3D
+		if llama != null and mundo != null:            # la estela no desaparece de golpe con la flecha: se queda en el mundo y se apaga
+			var pos: Vector3 = llama.global_position
+			llama.reparent(mundo)
+			llama.global_position = pos
+			llama.call("apagar")
 		var parada: bool = flecha.has_meta("parada")
 		flecha.queue_free()
 		if parada:
@@ -566,6 +615,7 @@ func _flecha_veneno_llega(flecha: Node3D, destino: Vector3) -> void:
 
 
 func _terminar_lanzar() -> void:
+	_apagar_llama_baston()                 # interrumpido antes de soltar, o al acabar
 	_quitar_linea()
 	_apunte_es_fijo = false
 	c_estado = "vigila"
@@ -591,5 +641,6 @@ func _morir(ahogado: bool = false) -> void:
 	if pj != null and is_instance_valid(pj):
 		pj.agarrar_baston(false, 0.0)
 		pj.teñir_baston(Color.WHITE, 0.0)
+	_apagar_llama_baston()
 	c_estado = "muerto"
 	super(ahogado)

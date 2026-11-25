@@ -27,6 +27,9 @@ const VENENO_TAM_BOCANADA: float = 0.40        ## m de cada hexágono de la llam
 const VENENO_BOCANADAS: int = 34
 const VENENO_MOTAS: int = 22                   ## puntitos verdes que flotan alrededor
 const VENENO_LUZ: float = 1.2                  ## energía de la luz verde (0 = sin luz)
+const VENENO_K_BASTON: float = 0.75           ## escala de la llama en la punta del bastón del chamán del juego (mide 0,85 u)
+const VENENO_K_FLECHA: float = 0.35            ## escala de la llama que lleva la flecha de veneno
+const VENENO_VIDA_FLECHA: float = 0.28         ## s de cada bocanada de la estela de la flecha (largo de la estela ≈ esto × 9 u/s)
 ## Humo tóxico
 const HUMO_BOCANADAS: int = 18
 const HUMO_VIDA: float = 3.6                   ## s que tarda cada bocanada en deshacerse
@@ -304,24 +307,39 @@ func _poner_luz(color: Color, energia: float, alcance: float, alto: float) -> vo
 
 ## La llama de veneno: bocanadas hexagonales verdes que suben, un núcleo claro y motas que flotan. `en_vuelo` = true: las bocanadas se quedan en el mundo (estela) al moverse,
 ## para el proyectil. Se sostiene hasta que la quiten.
-static func crear_veneno_chaman(en_vuelo: bool = false) -> Node3D:
+## `k`: escala de todo (1 = la de la galería; el chamán del juego mide 0,85 u y usa VENENO_K_BASTON / VENENO_K_FLECHA). `vida_llama`: s de cada bocanada (en vuelo, corta: si no,
+## la estela de una flecha a 9 u/s mediría metros).
+static func crear_veneno_chaman(en_vuelo: bool = false, k: float = 1.0, vida_llama: float = 0.9) -> Node3D:
 	var e: Node3D = _nuevo("veneno", "VenenoChaman")
 	var col: Dictionary = colores("veneno")
-	var sube: float = VENENO_ALTO_LLAMA / 0.9
-	e.add_child(particulas("Llama", VENENO_BOCANADAS, 0.9, textura("hex"), VENENO_TAM_BOCANADA, {
-		"radio": 0.07, "dir": Vector3.UP, "abanico": 14.0, "vel": Vector2(0.45, 0.8) * sube, "gravedad": Vector3(0, 0.5, 0), "frenado": Vector2(0.4, 0.8),
+	var sube: float = VENENO_ALTO_LLAMA * k / 0.9
+	e.add_child(particulas("Llama", VENENO_BOCANADAS, vida_llama, textura("hex"), VENENO_TAM_BOCANADA * k, {
+		"radio": 0.07 * k, "dir": Vector3.UP, "abanico": 14.0, "vel": Vector2(0.45, 0.8) * sube, "gravedad": Vector3(0, 0.5 * k, 0), "frenado": Vector2(0.4, 0.8),
 		"escala": Vector2(0.7, 1.1), "curva": [Vector2(0.0, 0.45), Vector2(0.22, 1.0), Vector2(1.0, 0.12)], "local": not en_vuelo,
 		"colores": [_con_alfa(col["caliente"], 0.9, 1.15), _con_alfa(col["brillo"], 0.8, 1.1), _con_alfa(NubeVenenoVfx.VERDE, 0.65, 1.0), _con_alfa(col["humo"], 0.0)]}))
-	e.add_child(particulas("Nucleo", 10, 0.45, textura("hex"), VENENO_TAM_BOCANADA * 0.6, {
-		"radio": 0.04, "dir": Vector3.UP, "abanico": 10.0, "vel": Vector2(0.3, 0.5), "escala": Vector2(0.8, 1.0), "local": not en_vuelo, "aditivo": true, "prioridad": 1,
+	e.add_child(particulas("Nucleo", 10, minf(0.45, vida_llama), textura("hex"), VENENO_TAM_BOCANADA * 0.6 * k, {
+		"radio": 0.04 * k, "dir": Vector3.UP, "abanico": 10.0, "vel": Vector2(0.3, 0.5) * k, "escala": Vector2(0.8, 1.0), "local": not en_vuelo, "aditivo": true, "prioridad": 1,
 		"curva": [Vector2(0.0, 0.7), Vector2(0.3, 1.0), Vector2(1.0, 0.0)],
 		"colores": [_con_alfa(col["brillo"], 0.8, 1.3), _con_alfa(NubeVenenoVfx.VERDE, 0.5, 1.2), _con_alfa(NubeVenenoVfx.VERDE, 0.0)]}))
-	e.add_child(particulas("Motas", VENENO_MOTAS, 1.8, textura("circulo"), 0.045, {
-		"radio": 0.45, "dir": Vector3.UP, "abanico": 60.0, "vel": Vector2(0.08, 0.3), "gravedad": Vector3(0, 0.12, 0), "aditivo": true, "local": not en_vuelo, "azar_vida": 0.5,
+	e.add_child(particulas("Motas", VENENO_MOTAS, 1.8 * minf(1.0, vida_llama / 0.9 + 0.3), textura("circulo"), 0.045 * maxf(k, 0.6), {
+		"radio": 0.45 * k, "dir": Vector3.UP, "abanico": 60.0, "vel": Vector2(0.08, 0.3) * k, "gravedad": Vector3(0, 0.12 * k, 0), "aditivo": true, "local": not en_vuelo, "azar_vida": 0.5,
 		"curva": [Vector2(0.0, 0.0), Vector2(0.2, 1.0), Vector2(0.8, 1.0), Vector2(1.0, 0.0)],
 		"colores": [_con_alfa(col["brillo"], 0.0, 2.2), _con_alfa(col["brillo"], 1.0, 2.2), _con_alfa(NubeVenenoVfx.VERDE, 0.0, 1.5)]}))
-	e.call("_poner_luz", col["luz"], VENENO_LUZ, 2.2, 0.25)
+	e.call("_poner_luz", col["luz"], VENENO_LUZ * k, 2.2 * maxf(k, 0.5), 0.25 * k)
 	return e
+
+
+## Deja de soltar partículas y se libera cuando se acaba la última (las que ya están en el aire terminan su vida: no corta en seco). La luz se apaga en 0,2 s.
+func apagar() -> void:
+	var vida_max: float = 0.0
+	for h in get_children():
+		if h is GPUParticles3D:
+			(h as GPUParticles3D).emitting = false
+			vida_max = maxf(vida_max, (h as GPUParticles3D).lifetime)
+	if _luz != null:
+		create_tween().tween_property(_luz, "light_energy", 0.0, 0.2)
+		_luz = null                                  # que el parpadeo de _process no la vuelva a encender
+	p["duracion"] = _t + vida_max + 0.1
 
 
 # ------------------------------------------------------------------ HUMO TÓXICO (ambiente) ------------------------------------------------------------------
