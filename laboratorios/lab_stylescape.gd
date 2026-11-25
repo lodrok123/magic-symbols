@@ -3,8 +3,8 @@ extends Node3D
 ## LABORATORIO de PRUEBA del pack «Stylescape: Ruins» (Fab, Unreal → Godot, 25/11/2026).
 ## DOS SALAS IDÉNTICAS montadas con piezas del pack sobre hierba (25/11: Pablo pidió compararlas lado a lado), cada una con su material
 ## (por defecto la A con el 3 anterior —modo 5— y la B con el 3 nuevo), con la luz del Bosque y la jugadora (1 u) dentro. A la derecha, nuestras piezas
-## (muro en ruina, muro agrietado, roca musgosa, árboles) para comparar. Detrás, el muestrario con TODAS las piezas (va con la sala A).
-## Teclas:  T material de la sala A · Y material de la sala B · L luz (bosque / ruinas / clásico) · flechas/WASD mover · rueda o +/- zoom
+## (muro en ruina, muro agrietado, roca musgosa, árboles) para comparar. Detrás, el muestrario con TODAS las piezas (con su propio material: el 3).
+## Teclas:  T material de la sala A · Y material de la sala B · M material del muestrario · L luz (bosque / ruinas / clásico) · flechas/WASD mover · rueda o +/- zoom
 ##          1 las dos salas · 2 el muestrario · 3 nuestras piezas · N nombres sí/no
 ## Modos de material:  1) el pack tal cual  2) el pack con su musgo arriba  3) teñido con el beige de nuestros muros  4) paleta casi plana
 ##                     5) el 3 anterior (gris lila de Paleta3D)
@@ -98,7 +98,7 @@ const NUESTRAS: Array = [
 ]
 ## Las dos salas: posición en u de cada una y su modo de material al abrir (índices de MODOS: 2 = modo 3, 4 = modo 5).
 const SALAS: Array = [Vector3(0, 0, 0), Vector3(9.0, 0, 0)]
-const MODOS_INICIALES: Array = [4, 2]   ## A: el 3 anterior · B: el 3 nuevo
+const MODOS_INICIALES: Array = [4, 2, 2]   ## A: el 3 anterior · B: el 3 nuevo · muestrario: el 3 nuevo (25/11, Pablo)
 const FOCO_RUINA: Vector3 = Vector3(7.6, 0, 0.0)
 const ZOOM_RUINA: float = 10.5
 const FOCO_NUESTRAS: Vector3 = Vector3(18.5, 0, 1.6)
@@ -108,7 +108,7 @@ var _foco: Vector3 = FOCO_RUINA
 var _zoom: float = ZOOM_RUINA
 var _sol: DirectionalLight3D
 var _entorno: Environment
-var _modos: Array = MODOS_INICIALES.duplicate()     ## modo de cada sala (el muestrario va con la sala A)
+var _modos: Array = MODOS_INICIALES.duplicate()     ## modo de la sala A, de la B y del muestrario
 var _luz: int = 0
 var _materiales: Array[ShaderMaterial] = []
 var _tipos: Array[String] = []
@@ -129,7 +129,7 @@ func _ready() -> void:
 		for i in range(SALAS.size()):
 			_grupo_actual = i
 			_montar_ruina(SALAS[i], i)
-		_grupo_actual = 0
+		_grupo_actual = 2
 		_montar_nuestras()
 		_montar_muestrario()
 	_cam = Camera3D.new()
@@ -387,6 +387,9 @@ func _unhandled_input(ev: InputEvent) -> void:
 			KEY_T:
 				_modos[0] = (int(_modos[0]) + 1) % MODOS.size()
 				_aplicar_modo()
+			KEY_M:
+				_modos[2] = (int(_modos[2]) + 1) % MODOS.size()
+				_aplicar_modo()
 			KEY_Y:
 				_modos[1] = (int(_modos[1]) + 1) % MODOS.size()
 				_aplicar_modo()
@@ -409,8 +412,8 @@ func _unhandled_input(ev: InputEvent) -> void:
 
 
 func _actualizar_hud() -> void:
-	_hud.text = "Stylescape: Ruins (prueba) · sala A: %s · sala B: %s · luz: %s\nT material A · Y material B · L luz · 1 salas · 2 muestrario · 3 nuestras · N nombres · WASD/flechas · rueda zoom" % [
-		MODOS[_modos[0]][0], MODOS[_modos[1]][0], LUCES[_luz]]
+	_hud.text = "Stylescape: Ruins (prueba) · sala A: %s · sala B: %s · muestrario: %s · luz: %s\nT material A · Y material B · M material muestrario · L luz · 1 salas · 2 muestrario · 3 nuestras · N nombres · WASD/flechas · rueda zoom" % [
+		String(MODOS[_modos[0]][0]).get_slice(" ", 0), String(MODOS[_modos[1]][0]).get_slice(" ", 0), String(MODOS[_modos[2]][0]).get_slice(" ", 0), LUCES[_luz]]
 
 
 ## Capturas en docs/capturas/stylescape/: las dos salas como abren (A el 3 anterior, B el 3 nuevo), cada modo en las dos salas y el muestrario; y sale.
@@ -418,7 +421,7 @@ func _capturar() -> void:
 	DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path("res://docs/capturas/stylescape"))
 	await _foto(FOCO_RUINA, ZOOM_RUINA, "salas_A3anterior_B3nuevo.png")
 	for i in range(MODOS.size()):
-		_modos = [i, i]
+		_modos = [i, i, i]
 		await _foto(SALAS[0] + Vector3(3.4, 0, 1.6), 9.0, "ruina_modo%d.png" % (i + 1))
 	_modos = MODOS_INICIALES.duplicate()
 	await _foto(Vector3(ANCHO_FILA * 0.5, 0, _z_muestrario - 4.0), 30.0, "muestrario.png")
