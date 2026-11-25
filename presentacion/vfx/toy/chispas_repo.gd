@@ -421,9 +421,12 @@ static func enganchar_estela(toy: Node3D, clave: String, paleta_: int, radio: fl
 	if not activa(clave) or not toy.is_inside_tree():
 		return null
 	var magma: bool = paleta_ == Paleta.MAGMA
-	var e: ChispasRepo = crear(paleta_, _escena_de(toy), 40 if magma else 32, {"escalon": 0.3, "emite": -1.0, "vida_min": 0.4 if magma else 0.25, "vida_max": 1.4 if magma else 0.8,
-		"ancho": (0.065 if magma else 0.05) * clampf(radio / 0.4, 0.6, 2.0), "v_frente": 0.5, "v_azar": 0.6 if magma else 0.9, "k_base": 0.55, "choca_piel": false, "y_suelo": suelo_y,
-		"estira": ESTIRA * (0.7 if magma else 1.0)})
+	# 25/11/2026 (Pablo: «mira hielo y rayo»): en el RAYO las chispas heredaban el 55 % de la velocidad de la bola y vivían hasta 0,8 s: a 8 m/s salían disparadas como trazos largos
+	# y se repartían lejos (parecía LLUVIA). Ahora, rayo: heredan poco (k_base 0,15), viven menos (≤ 0,45 s), salen algo más al azar y el trazo es más corto: chisporrotean pegadas a
+	# su camino, como los arcos de la bola de ef_lightning03. El MAGMA no cambia.
+	var e: ChispasRepo = crear(paleta_, _escena_de(toy), 40 if magma else 32, {"escalon": 0.3, "emite": -1.0, "vida_min": 0.4 if magma else 0.18, "vida_max": 1.4 if magma else 0.45,
+		"ancho": (0.065 if magma else 0.05) * clampf(radio / 0.4, 0.6, 2.0), "v_frente": 0.5, "v_azar": 0.6 if magma else 1.1, "k_base": 0.55 if magma else 0.15, "choca_piel": false, "y_suelo": suelo_y,
+		"estira": ESTIRA * (0.7 if magma else 0.55)})
 	if e == null:
 		return null
 	e.poner_esfera(toy.global_position, radio * 0.8)

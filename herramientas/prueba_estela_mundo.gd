@@ -2,7 +2,7 @@ extends SceneTree
 
 ## PRUEBA de la estela que se queda en el mundo (25/11/2026, presentacion/vfx/toy/estela_mundo_toy.gd):
 ##   godot --headless --path . --script res://herramientas/prueba_estela_mundo.gd
-## Para fuego, agua y tierra: con EstelaMundoToy.activa apagada la bola en vuelo NO cuelga estela; encendida, cuelga UNA, hermana de la bola (no hija: se queda en el mundo),
+## Para fuego, agua, tierra y hielo (25/11): con EstelaMundoToy.activa apagada la bola en vuelo NO cuelga estela; encendida, cuelga UNA, hermana de la bola (no hija: se queda en el mundo),
 ## suelta bocanadas según avanza (≈ una por `paso` m), las bocanadas NO se mueven con la bola, y al morir la bola la estela se apaga y se libera sola.
 ## Y que los otros toys (sin `_estela_elemento`) no cuelgan nada.
 
@@ -29,7 +29,7 @@ func _correr() -> void:
 	await process_frame
 	var raiz: Node3D = Node3D.new()
 	root.add_child(raiz)
-	for el in ["fuego", "agua", "tierra"]:
+	for el in ["fuego", "agua", "tierra", "hielo"]:
 		await _probar(raiz, el)
 	await _probar_otro(raiz)
 	EstelaMundo.activa = false
@@ -48,6 +48,10 @@ func _bola(el: String) -> EfectoToy:
 			var a := AguaToy.new()
 			a.definir(AguaToy.Figura.BOLA, 0.4, 0.4, 0.4, true)
 			b = a
+		"hielo":
+			var h := HieloToy.new()
+			h.definir(HieloToy.Figura.BOLA, 0.4, 0.4, 0.4, true)
+			b = h
 		_:
 			var t := TierraToy.new()
 			t.definir(TierraToy.Figura.BOLA, 0.4, 0.4, 0.4, true)

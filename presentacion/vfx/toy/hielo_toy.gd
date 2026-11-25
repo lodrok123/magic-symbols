@@ -1403,3 +1403,8 @@ func _emitir_haz(delta: float) -> void:
 		var loc: Vector3 = Vector3(randf_range(-0.5, 0.5) * _haz_r, _haz_alt + randf_range(-0.5, 0.5) * _haz_r, _haz_z_punta() * randf_range(0.6, 1.0))
 		var vel: Vector3 = tr.basis * Vector3(randf_range(-0.6, 0.6), randf_range(0.0, 0.8), -randf_range(0.2, 1.2))
 		_esq.call("emitir", tr * loc, vel, randf_range(0.6, 1.0), randf_range(0.04, 0.08), 0.88, randf(), Vector3.ZERO)
+
+
+## Estela que se queda en el mundo (EstelaMundoToy, 25/11/2026): solo la BOLA.
+func _estela_elemento() -> String:
+	return "hielo" if figura == Figura.BOLA else ""

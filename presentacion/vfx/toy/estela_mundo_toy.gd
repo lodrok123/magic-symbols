@@ -15,6 +15,8 @@ const HumoToy = preload("res://presentacion/vfx/toy/humo_toy.gd")
 const AguaGotas = preload("res://presentacion/vfx/toy/agua_gotas.gd")
 const AguaPaleta = preload("res://presentacion/vfx/toy/agua_paleta.gd")
 const HieloMallas = preload("res://presentacion/vfx/toy/hielo_mallas.gd")
+const HieloPaleta = preload("res://presentacion/vfx/toy/hielo_paleta.gd")
+static var _rampa_hielo: GradientTexture1D = null
 const RADIO_REF: float = 0.4
 const GRAVEDAD: float = 9.8
 
@@ -32,6 +34,10 @@ const RECETAS: Dictionary = {
 		"motas": 0.45, "n_motas": 40, "vida_mota": [0.3, 0.6], "vel_mota": [0.5, 1.4], "g_mota": -0.08},
 	"agua": {"paso": 0.15, "vida": [0.18, 0.32], "tam": [0.26, 0.06], "deriva": 0.05, "disperso": 0.05, "n": 30,
 		"motas": 1.6, "n_motas": 60, "vida_mota": [0.3, 0.55], "vel_mota": [0.3, 1.0], "g_mota": 0.9},
+	## 25/11 (Pablo: «mira hielo y rayo»): el hielo apenas dejaba rastro y su cristal casi blanco se perdía en la hierba. Como ef_ice01 de Effekseer (smoke01 + glitter01):
+	## VAHO FRÍO que se abre y baja un poco (escarcha clara con sombra azul honda: da el contraste que le falta al cristal) y DESTELLOS que titilan y caen despacio.
+	"hielo": {"paso": 0.2, "vida": [0.22, 0.38], "tam": [0.13, 0.3], "deriva": -0.08, "disperso": 0.05, "n": 22,
+		"motas": 1.1, "n_motas": 44, "vida_mota": [0.35, 0.7], "vel_mota": [0.15, 0.6], "g_mota": 0.12},
 	"tierra": {"paso": 0.2, "vida": [0.3, 0.5], "tam": [0.16, 0.42], "deriva": 0.05, "disperso": 0.05, "n": 24,
 		"motas": 1.2, "n_motas": 40, "vida_mota": [0.35, 0.6], "vel_mota": [0.2, 0.8], "g_mota": 1.0},
 }
@@ -50,6 +56,7 @@ var _sprites: Array = []          ## fuego: [{mi, t0, vida, pos, giro, tam_k}] (
 var _sig: int = 0
 var _humo: Node3D = null          ## agua y tierra
 var _mm: MultiMeshInstance3D = null
+var _destellos: Array = []        ## hielo: estrellas de HieloMallas.destello (blend_mix: el hielo no lleva nada aditivo)
 var _motas: Array = []            ## [{p0, v0, t0, vida, g, tono, ancho, eje, rot0}]
 var _sig_m: int = 0
 var _sueltas: int = 0             ## bocanadas soltadas (para las pruebas)
@@ -90,6 +97,18 @@ func _ready() -> void:
 			_humo.call("montar", int(_r["n"]), {"claro": AguaPaleta.CAUSTICAS, "sombra": AguaPaleta.SOMERO, "viejo": AguaPaleta.SOMERO, "tam_ini": float(_r["tam"][0]) * _k,
 				"tam_fin": float(_r["tam"][1]) * _k, "vida": float(_r["vida"][1]), "deriva": Vector3(0, float(_r["deriva"]), 0), "mundo": true, "friccion": 3.0, "erosion": 0.9})
 			_mm = AguaGotas.crear_mm("Gotas", int(_r["n_motas"]))
+		"hielo":
+			_humo = HumoToy.new()
+			_humo.name = "VahoFrio"
+			add_child(_humo)
+			_humo.call("montar", int(_r["n"]), {"claro": HieloPaleta.ESCARCHA, "sombra": HieloPaleta.HONDO, "viejo": HieloPaleta.CLARO, "tam_ini": float(_r["tam"][0]) * _k,
+				"tam_fin": float(_r["tam"][1]) * _k, "vida": float(_r["vida"][1]), "deriva": Vector3(0, float(_r["deriva"]), 0), "mundo": true, "friccion": 3.0, "erosion": 0.9})
+			for i in int(_r["n_motas"]):
+				var d: MeshInstance3D = HieloMallas.destello("Destello%d" % i)
+				d.visible = false
+				add_child(d)
+				d.top_level = true
+				_destellos.append(d)
 		"tierra":
 			_humo = HumoToy.new()
 			_humo.name = "Polvo"
@@ -98,9 +117,10 @@ func _ready() -> void:
 			q["friccion"] = 3.0
 			_humo.call("montar", int(_r["n"]), q)
 			_mm = TierraToy.crear_mm("Granitos", int(_r["n_motas"]), TierraToy.Piedras.malla_piedra(), 0.2)
-	add_child(_mm)
-	_mm.top_level = true
-	_mm.global_transform = Transform3D.IDENTITY
+	if _mm != null:
+		add_child(_mm)
+		_mm.top_level = true
+		_mm.global_transform = Transform3D.IDENTITY
 	for i in int(_r["n_motas"]):
 		_motas.append({"t0": -10.0, "vida": 0.1, "p0": Vector3.ZERO, "v0": Vector3.ZERO, "g": 0.0, "tono": 0.0, "ancho": 0.0,
 			"eje": Vector3.UP, "rot0": Basis.IDENTITY})
@@ -214,7 +234,7 @@ func _animar() -> void:
 		m.set_shader_parameter("calor", lerpf(0.04, -0.22, pow(u, 0.7)))       # se enfría deprisa: del naranja de la cabeza al rojo (25/11: más contraste)
 		m.set_shader_parameter("giro", float(s["giro"]) + ta * 2.0)
 		m.set_shader_parameter("fotograma", clampf(u * float(SpriteToy.FOTOGRAMAS_FUEGO), 0.0, float(SpriteToy.FOTOGRAMAS_FUEGO) - 1.001))
-	var mm: MultiMesh = _mm.multimesh
+	var mm: MultiMesh = _mm.multimesh if _mm != null else null
 	for i in _motas.size():
 		var p: Dictionary = _motas[i]
 		var ta2: float = _t - float(p["t0"])
@@ -231,6 +251,15 @@ func _animar() -> void:
 		match elemento:
 			"fuego":
 				SpriteToy.poner_chispa(mm, i, pos, vel.normalized() if vel.length() > 0.01 else Vector3.UP, 0.0, float(p["ancho"]) * (1.0 - 0.5 * u2), 0.32 - 0.25 * u2, alfa, true)      # brasas naranja-rojo, nunca amarillo pálido
+			"hielo":
+				var titila: float = 0.35 + 0.65 * absf(sin(ta2 * 22.0 + float(p["tono"]) * 9.0))      # destello que parpadea
+				var ds: MeshInstance3D = _destellos[i]
+				ds.visible = true
+				ds.global_position = pos
+				ds.scale = Vector3.ONE * float(p["ancho"]) * 2.8 * (1.0 - 0.5 * u2)
+				var md: ShaderMaterial = ds.material_override as ShaderMaterial
+				md.set_shader_parameter("vida", alfa * titila)
+				md.set_shader_parameter("giro", float(p["tono"]) * TAU + ta2 * 3.0)
 			"agua":
 				AguaGotas.poner(mm, i, pos, vel.normalized() if vel.length() > 0.01 else Vector3.DOWN, float(p["ancho"]) * 2.2, float(p["ancho"]), float(p["tono"]), alfa, false)
 			"tierra":
@@ -242,14 +271,28 @@ func _animar() -> void:
 
 func _ocultar_motas() -> void:
 	for i in _motas.size():
-		_ocultar_mota(_mm.multimesh, i)
+		_ocultar_mota(_mm.multimesh if _mm != null else null, i)
 
 
 func _ocultar_mota(mm: MultiMesh, i: int) -> void:
 	match elemento:
 		"fuego":
 			SpriteToy.poner_chispa(mm, i, Vector3.ZERO, Vector3.UP, 0.0, 0.0, 0.0, 0.0, false)
+		"hielo":
+			(_destellos[i] as MeshInstance3D).visible = false
 		"agua":
 			AguaGotas.poner(mm, i, Vector3.ZERO, Vector3.DOWN, 0.0, 0.0, 0.0, 0.0, false)
 		_:
 			HieloMallas.ocultar(mm, i)
+
+
+## Rampa del hielo para los destellos (grieta honda → hondo → núcleo → borde → blanco), de HieloPaleta.
+static func rampa_hielo() -> GradientTexture1D:
+	if _rampa_hielo == null:
+		var g: Gradient = Gradient.new()
+		g.offsets = PackedFloat32Array([0.0, 0.3, 0.6, 0.85, 1.0])
+		g.colors = PackedColorArray([HieloPaleta.GRIETA, HieloPaleta.HONDO, HieloPaleta.NUCLEO, HieloPaleta.BORDE, Color(1, 1, 1)])
+		_rampa_hielo = GradientTexture1D.new()
+		_rampa_hielo.gradient = g
+		_rampa_hielo.width = 128
+	return _rampa_hielo

@@ -101,6 +101,8 @@ Cómo estaban nuestras bolas con la cámara del juego (`docs/capturas/estela_mun
 
 **Flecha de tierra aprobada; bola de agua afinada** (25/11, Pablo: «flecha de tierra aprobada, afina agua»). En vuelo la bola de agua se hace GOTA: cabeza redonda y la mitad de atrás afilada y alargada en cola (uniform `gota` de `agua_esfera` y `agua_esfera_atras`, que movía `AguaToy._forma_vuelo`), tiembla un poco como un líquido y las cintas que la envolvían («balón de playa») bajan a opacidad 0,26. Quieta y en la carga sigue siendo la esfera de siempre (`agua_gota_vuelo.png`).
 
+**Agua aprobada; hielo y rayo** (25/11, Pablo: «agua aprobada, ahora mira hielo y rayo»). HIELO: su cristal casi blanco apenas dejaba rastro y se perdía en la hierba. Recibe la estela que se queda en el mundo, como ef_ice01: vaho frío en bocanadas pequeñas (escarcha clara con sombra azul honda, que da el contraste que le falta) y destellos que titilan, con las estrellas del propio hielo (`HieloMallas.destello`, blend_mix: el hielo no lleva nada aditivo). RAYO: las chispas de su estela (`ChispasRepo`, `rayo_proyectil`) heredaban el 55 % de la velocidad de la bola y vivían hasta 0,8 s, y se esparcían lejos como lluvia. Ahora heredan el 15 %, viven 0,45 s como mucho y su trazo es más corto: chisporrotean pegadas a su camino. El magma, que usa la misma función, no cambia (`hielo_cerca_antes/despues.png`, `rayo_cerca_antes/despues.png`).
+
 ## Cómo verlo
 
 `LabVfxComparativa3D` → **Ctrl+4** pone la comparativa (izquierda lo de ahora, derecha lo traducido, se repite solo) · **Ctrl+5** par siguiente (Mayús: anterior) · **Ctrl+6** vista juego / cerca / solo traducido · **Ctrl+7** cámara lenta ×0,25 · **Ctrl+4** sale.
