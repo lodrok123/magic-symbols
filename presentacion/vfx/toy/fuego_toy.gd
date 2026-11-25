@@ -918,7 +918,10 @@ func _bola(c: Node3D, luz: OmniLight3D) -> void:
 	fr.add_child(flare)
 	_avance_cabeza = -0.12 * k
 	_vuelo(c, k)
-	_trocitos(c, _cant(2.0, k, 1, 6), Vector3(0.1, 0.05, 0.1) * k, Vector3(0, 0.55 * k * ky, 0), k)
+	# 25/11/2026 (Pablo: «no me gusta la bola de fuego»): los trocitos median 0,2 m fijos y van pegados a la bola (local_coords). Con la bola del juego (r 0,12, 0,24 m de ancho) eran
+	# tan grandes como ella y en vuelo iban ENCIMA como un disco amarillo pálido. Ahora: solo con la bola quieta (en vuelo ya está la estela) y a escala de la bola.
+	if not viaja:
+		_trocitos(c, _cant(2.0, k, 1, 6), Vector3(0.1, 0.05, 0.1) * k, Vector3(0, 0.55 * k * ky, 0), k, 0.2 * minf(k, 1.0))
 	_particulas(c, "Chispas", _cant(8.0, k, 4, 24), 1.3, 0.07 * k, Vector3(0.2, 0.15 * ky, 0.2) * k, Vector2(0.3, 0.8) * k, Vector3(0, 1, 0), 40.0, Vector3(0, 0.35 * k, 0),
 		[Color(1.0, 0.8, 0.4, 0.0), Color(1.0, 0.62, 0.22, 1.0), Color(1.0, 0.55, 0.15, 0.0)], "chispas", Vector3.ZERO, r * 2.0 + 4.0)
 	_ajustar_luz(luz, Vector3.ZERO, 1.1, 4.5)
@@ -1992,8 +1995,8 @@ func _particulas(padre: Node, nombre: String, cantidad: int, vida_s: float, tam:
 
 
 ## Trocitos de llama que se desprenden de las puntas (rampa amarillo â†’ naranja â†’ rojo). `v`: factor de velocidad.
-func _trocitos(c: Node, cantidad: int, caja: Vector3, pos: Vector3, v: float) -> void:
-	_particulas(c, "Trocitos", cantidad, 0.5, 0.2, caja, Vector2(0.7, 1.4) * v, Vector3(0, 1, 0), 15.0, Vector3(0, 0.4, 0) * v,
+func _trocitos(c: Node, cantidad: int, caja: Vector3, pos: Vector3, v: float, tam: float = 0.2) -> void:
+	_particulas(c, "Trocitos", cantidad, 0.5, tam, caja, Vector2(0.7, 1.4) * v, Vector3(0, 1, 0), 15.0, Vector3(0, 0.4, 0) * v,
 		[Color(1.0, 0.7, 0.2, 0.9), Color(1.0, 0.38, 0.08, 0.8), Color(0.85, 0.15, 0.04, 0.0)], "trocitos", pos, maxf(caja.x, caja.z) * 2.0 + 4.0)
 
 

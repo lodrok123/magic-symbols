@@ -26,7 +26,7 @@ static var activa: bool = false
 ##   paso: m recorridos entre bocanada y bocanada · vida: s de cada bocanada · tam: [al nacer, al morir] (diámetro) · deriva: m/s (subir el humo, caer el polvo)
 ##   motas: cuántas motas por bocanada (probabilidad si < 1) · vida_mota · vel_mota (m/s, hacia fuera) · g_mota (× gravedad)
 const RECETAS: Dictionary = {
-	"fuego": {"paso": 0.09, "vida": [0.15, 0.33], "tam": [0.56, 0.12], "deriva": 0.35, "disperso": 0.08, "n": 44,
+	"fuego": {"paso": 0.055, "vida": [0.1, 0.26], "tam": [0.4, 0.05], "deriva": 0.25, "disperso": 0.035, "n": 64,
 		"motas": 0.45, "n_motas": 40, "vida_mota": [0.3, 0.6], "vel_mota": [0.5, 1.4], "g_mota": -0.08},
 	"agua": {"paso": 0.1, "vida": [0.25, 0.45], "tam": [0.55, 0.15], "deriva": 0.1, "disperso": 0.07, "n": 40,
 		"motas": 0.9, "n_motas": 44, "vida_mota": [0.3, 0.55], "vel_mota": [0.4, 1.2], "g_mota": 0.9},
@@ -73,8 +73,8 @@ func _ready() -> void:
 			FuegoToy._rampas()
 			for i in int(_r["n"]):
 				var s: MeshInstance3D = SpriteToy.crear("Bocanada", SpriteToy.T_FLIPBOOK, SpriteToy.Modo.MEZCLA_SIN_PROF, false,
-					{"usar_alfa": 1.0, "fb_cols": 5, "fb_filas": 5, "fotograma": 0.0, "fotograma_max": float(SpriteToy.FOTOGRAMAS_FUEGO - 1), "luminancia": Vector2(0.25, 0.85),
-					"tramo": Vector2(0.0, 0.5), "recorte": Vector2(0.24, 0.62), "brillo": 0.95, "giro": 0.0, "vida": 0.0}, 0)
+					{"usar_alfa": 1.0, "fb_cols": 5, "fb_filas": 5, "fotograma": 0.0, "fotograma_max": float(SpriteToy.FOTOGRAMAS_FUEGO - 1), "luminancia": Vector2(0.12, 0.95),
+					"tramo": Vector2(0.02, 0.68), "recorte": Vector2(0.28, 0.6), "brillo": 1.0, "giro": 0.0, "vida": 0.0}, 0)
 				SpriteToy.mat(s).set_shader_parameter("rampa", FuegoToy._rampa_bola)
 				s.visible = false
 				add_child(s)
@@ -204,7 +204,7 @@ func _animar() -> void:
 		mi.global_position = (s["pos"] as Vector3) + Vector3(0, float(_r["deriva"]) * ta * _k, 0)
 		var m: ShaderMaterial = SpriteToy.mat(mi)
 		m.set_shader_parameter("vida", smoothstep(0.0, 0.08, u) * (1.0 - smoothstep(0.55, 1.0, u)))
-		m.set_shader_parameter("calor", lerpf(0.0, -0.16, u))                 # se enfría: del naranja de la cabeza al rojo
+		m.set_shader_parameter("calor", lerpf(0.04, -0.22, pow(u, 0.7)))       # se enfría deprisa: del naranja de la cabeza al rojo (25/11: más contraste)
 		m.set_shader_parameter("giro", float(s["giro"]) + ta * 2.0)
 		m.set_shader_parameter("fotograma", clampf(u * float(SpriteToy.FOTOGRAMAS_FUEGO), 0.0, float(SpriteToy.FOTOGRAMAS_FUEGO) - 1.001))
 	var mm: MultiMesh = _mm.multimesh
@@ -223,7 +223,7 @@ func _animar() -> void:
 		var alfa: float = smoothstep(0.0, 0.08, u2) * (1.0 - smoothstep(0.6, 1.0, u2))
 		match elemento:
 			"fuego":
-				SpriteToy.poner_chispa(mm, i, pos, vel.normalized() if vel.length() > 0.01 else Vector3.UP, 0.0, float(p["ancho"]) * (1.0 - 0.5 * u2), 0.55 - 0.4 * u2, alfa, true)
+				SpriteToy.poner_chispa(mm, i, pos, vel.normalized() if vel.length() > 0.01 else Vector3.UP, 0.0, float(p["ancho"]) * (1.0 - 0.5 * u2), 0.32 - 0.25 * u2, alfa, true)      # brasas naranja-rojo, nunca amarillo pálido
 			"agua":
 				AguaGotas.poner(mm, i, pos, vel.normalized() if vel.length() > 0.01 else Vector3.DOWN, float(p["ancho"]) * 2.2, float(p["ancho"]), float(p["tono"]), alfa, false)
 			"tierra":

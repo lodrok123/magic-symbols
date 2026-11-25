@@ -90,6 +90,11 @@ Cómo estaban nuestras bolas con la cámara del juego (`docs/capturas/estela_mun
 
 **Estado:** apagada de serie (`EstelaMundoToy.activa = false`) hasta que Pablo la vea. En `LabVfxComparativa3D`, **Ctrl+8** la enciende, **F4** lanza la bola en vuelo y **Z** cambia de elemento. Prueba: `herramientas/prueba_estela_mundo.gd` (19 comprobaciones). Antes y después en el juego: `docs/capturas/estela_mundo/hoja_estela_antes_despues.png`, que se regenera con `captura_vfx_en_juego.gd -- <carpeta> fuego,agua,tierra proyectil procedural estela`.
 
+**Revisión de la bola de fuego** (Pablo: «no me gusta la bola de fuego»):
+
+- **Disco amarillo pálido encima de la bola en vuelo.** Eran los «trocitos» de FuegoToy: miden 0,2 m fijos, casi el ancho de la bola del juego (0,24 m), y van pegados a ella. Ahora solo salen con la bola quieta y a escala de la bola (`docs/capturas/estela_mundo/bola_fuego_disco_trocitos.png`: arriba en medio, sin los trocitos, ya no está).
+- **Estela del fuego.** Las bocanadas eran más grandes que la cabeza, iban separadas como pompones y tenían un naranja plano. Ahora son del ancho de la cabeza o menos, van seguidas (cola continua que se estrecha) y tienen más contraste: se enfrían deprisa hacia el rojo. Las brasas, antes amarillo pálido, son naranja-rojo (`bola_fuego_cerca_revision.png`).
+
 ## Cómo verlo
 
 `LabVfxComparativa3D` → **Ctrl+4** pone la comparativa (izquierda lo de ahora, derecha lo traducido, se repite solo) · **Ctrl+5** par siguiente (Mayús: anterior) · **Ctrl+6** vista juego / cerca / solo traducido · **Ctrl+7** cámara lenta ×0,25 · **Ctrl+4** sale.
