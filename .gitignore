@@ -83,6 +83,10 @@ arte/lostcave/*
 !arte/lostcave/tabla_lostcave.gd
 !arte/lostcave/tabla_lostcave.gd.uid
 
+# Pack «Stylescape: Ruins» (Fab, 25/11/2026, PRUEBA): licencia de Fab, nada de assets sueltos en un repo público.
+# Se regenera exportando desde Unreal (tools/ue_exportar_stylescape.py) y con tools/preparar_stylescape.py.
+arte/stylescape/*
+
 # Python
 __pycache__/
 *.pyc
