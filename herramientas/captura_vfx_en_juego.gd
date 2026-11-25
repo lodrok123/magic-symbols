@@ -26,6 +26,7 @@ var _solo_h: String = ""
 var _modos: Array = ["actual", "procedural"]      ## con «procedural» solo: lo de serie del juego (ajuste + lista por defecto de project.godot) sin la comparación con lo viejo
 var _json: Array = []
 var _sufijo: String = ""
+var _tiempos: Array = TIEMPOS
 
 
 func _escenario() -> void:
@@ -41,6 +42,8 @@ func _escenario() -> void:
 	if a.size() > 4 and a[4] == "estela":            # 25/11/2026: con la estela que se queda en el mundo (EstelaMundoToy) encendida; los ficheros llevan «_estela»
 		(load("res://presentacion/vfx/toy/estela_mundo_toy.gd") as GDScript).set("activa", true)
 		_sufijo = "_estela"
+	if a.size() > 5 and a[5] != "":            # 25/11/2026: instantes (s) separados por comas, en vez de TIEMPOS
+		_tiempos = Array(a[5].split(",")).map(func(x): return float(x))
 	DirAccess.make_dir_recursive_absolute(_dir)
 	Flags.nuevo()
 	Misiones.nuevo()
@@ -102,7 +105,7 @@ func _una(el: String, hz: Array, modo: String) -> void:
 	lanzador.hechizo_v2.disconnect(cb)
 	print("HECHIZO_V2 %s %s %s: %s" % [el, id, modo, str(avisos)])
 	var t_ant: float = 0.0
-	var tiempos: Array = TIEMPOS
+	var tiempos: Array = _tiempos
 	for t in tiempos:
 		await avanzar_s(float(t) - t_ant)
 		t_ant = float(t)

@@ -15,6 +15,7 @@ extends Node
 ## Uso:   VfxToyJuego.conectar(lanzador, mundo)
 
 const AJUSTE: String = "magic_symbols/vfx_procedural"
+const HazAdornosToy = preload("res://presentacion/vfx/toy/haz_adornos_toy.gd")      ## 25/11: boquilla y punta del haz de fuego y de agua (lo que el gas no dibuja)
 const AJUSTE_ELEMENTOS: String = "magic_symbols/vfx_procedural_elementos"
 const ELEMENTOS_DEFECTO: String = "fuego,agua,hielo,rayo,magma,viento,tierra"      ## 6/11: magma, viento y tierra se encienden de serie; 19/11: y el HIELO (Pablo aprueba todo el VFX de hielo: «aceptados todos»)
 const ELEMENTOS: PackedStringArray = ["fuego", "agua", "hielo", "rayo", "magma", "viento", "tierra"]      ## los que SABE dibujar el toy (cuáles lo hacen de verdad: `usa_toy`)
@@ -789,8 +790,10 @@ func _haz(elemento: String, h: Hechizo, hz: Dictionary, suelo: float, vida: floa
 	_expira_en(t, maxf(vida, 0.3))
 	if elemento == "fuego" and _haz_con_gas(h, hz, suelo, vida):
 		HazGasJuego.solo_luz(t)              # el gas dibuja el chorro y la masa; del FuegoToy quedan la luz del suelo y la del hechizo
+		HazAdornosToy.poner(t.get_parent(), hz, elemento, vida, suelo, origen)      # 25/11: fogonazo y lenguas en la mano, chispas y llamas donde choca (lo que el gas no tiene)
 	elif elemento == "agua" and t is AguaToy and _haz_con_gas(h, hz, suelo, vida, "agua"):
 		HazGasJuego.ocultar_toy(t)           # 10/11: el gas en modo agua dibuja el chorro, la lámina y las gotas; el AguaToy sigue vivo pero no se ve
+		HazAdornosToy.poner(t.get_parent(), hz, elemento, vida, suelo, origen)      # 25/11: rocío y vaho en la mano, salpicadura y espuma donde choca
 	elif elemento == "viento" and _haz_con_gas(h, hz, suelo, vida, "viento"):
 		HazGasJuego.ocultar_toy(t)           # 11/11: el gas en modo viento dibuja la hélice de bruma, el polvo y las hojas (ajuste vfx_haz_gas_viento, encendido de serie desde el 11/11)
 	elif elemento == "rayo" and _haz_con_gas(h, hz, suelo, vida, "rayo"):

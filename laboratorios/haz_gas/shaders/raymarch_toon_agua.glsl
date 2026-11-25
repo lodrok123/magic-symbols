@@ -90,6 +90,7 @@ vec2 ruido_agua(vec3 p, vec3 u) {
 float agua_cru(vec3 pos) { return textureLod(gas, (pos - WLO) / WTAM, 0.0).x * K_T; }
 
 float campo(vec3 pos) {
+	if (pos.x < V.look2.w) return -1.0;      // 25/11/2026: SALIDA que viaja (ver raymarch_toon.glsl)
 	vec3 uvw = (pos - WLO) / WTAM;
 	float f = textureLod(gas, uvw, 0.0).x * K_T;
 	if (abs(f - UMBRAL) < AMP) {

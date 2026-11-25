@@ -80,6 +80,8 @@ float lenguas_en(vec3 p, vec3 u) {
 struct Campo { float fuego; float humo; float T; };
 
 Campo campo(vec3 pos) {
+	// 25/11/2026 (SALIDA que viaja, Laser01 de Effekseer): más allá de V.look2.w (x del dominio; el chorro va hacia -x desde la boquilla) aún no hay nada que dibujar
+	if (pos.x < V.look2.w) { Campo z; z.fuego = -1.0; z.humo = -1.0; z.T = 0.0; return z; }
 	vec3 uvw = (pos - WLO) / WTAM;
 	vec4 s = textureLod(gas, uvw, 0.0);
 	Campo c;

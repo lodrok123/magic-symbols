@@ -59,8 +59,9 @@ var params: Dictionary = {
 const PARAMS_AGUA: Dictionary = {"burnRate": 0.0, "heat": 1.0, "sootYield": 0.0, "expansion": 0.0, "cool": 0.35, "buoyancy": 0.0, "weight": 30.0, "drag": 0.7,
 	"wind": 6.0, "push": 5.0, "confine": 4.0, "subgrid": 1.5, "viscosity": 0.15, "turbulence": 6.0}
 ## El dibujo toon del agua (raymarch_toon_agua.glsl): la misma superficie (umbral 0,3, blandura 0,22) con los tres tonos, las cáusticas y el fresnel del AguaToy.
-var toon_agua: Dictionary = {"umbral": 0.3, "blandura": 0.22, "contraste": 1.0, "opac_max": 0.88, "k_T": 1.0, "opac_min": 0.55, "amplitud": 0.35, "escala": 0.45,
-	"causticas": 0.35, "fresnel": 0.35, "escala_rampa": 1.2, "flujo": 0.9, "profundidad": 0.6}
+## 25/11/2026: contraste 1,0 → 1,35 y profundidad 0,6 → 0,9 (el centro del chorro más claro, como el fuego)
+var toon_agua: Dictionary = {"umbral": 0.3, "blandura": 0.22, "contraste": 1.35, "opac_max": 0.88, "k_T": 1.0, "opac_min": 0.55, "amplitud": 0.35, "escala": 0.45,
+	"causticas": 0.35, "fresnel": 0.35, "escala_rampa": 1.2, "flujo": 0.9, "profundidad": 0.9}
 const AguaPaletaGas = preload("res://presentacion/vfx/toy/agua_paleta.gd")
 const GOTAS_CADA: int = 7                   ## el agua dibuja 1 de cada 7 chispas como gota (11/11, antes 3: «demasiadas gotas finas»)
 const GOTAS_GROSOR: float = 1.7             ## y más gordas (antes 1)
@@ -139,8 +140,9 @@ var jugadora_juego: Node3D = null
 signal dibujo_cambiado(es_toon: bool)
 var toon: bool = true
 ## Mandos del dibujo toon (los de fuego_lelu.gdshaderinc donde existen: umbral 0,3, blandura 0,22, contraste 1,1, chisporroteo 0,6; tope 0,62 = HAZ_TOPE_CALOR).
-var toon_params: Dictionary = {"umbral": 0.3, "blandura": 0.22, "contraste": 1.1, "tope": 0.62, "k_T": 1.0, "k_c": 0.5, "amplitud": 0.45, "escala": 0.45,
-	"umbral_humo": 0.9, "opacidad_humo": 0.8, "escala_rampa": 1.0, "sube": 0.9, "chisporroteo": 0.6, "profundidad": 0.6}
+## 25/11/2026 (revisión del haz con Laser01): contraste 1,1 → 1,5 y escala_rampa 1,0 → 1,25: bordes más rojos y NÚCLEO más claro (hasta el tope 0,62: naranja, nunca amarillo)
+var toon_params: Dictionary = {"umbral": 0.3, "blandura": 0.22, "contraste": 1.5, "tope": 0.62, "k_T": 1.0, "k_c": 0.5, "amplitud": 0.45, "escala": 0.45,
+	"umbral_humo": 0.9, "opacidad_humo": 0.8, "escala_rampa": 1.25, "sube": 0.9, "chisporroteo": 0.6, "profundidad": 0.6}
 const TEX_LELU: String = "res://assets/vfx/lelu_noise/"
 var _toon_tex: Array = []                   ## [lenguas, ruido_a, ruido_fino, rampa de la bola]: las MISMAS texturas que FuegoToy._mat_fuego
 var _esfera: MeshInstance3D = null
@@ -152,6 +154,11 @@ var _mat_chispas_toon: ShaderMaterial = null
 var solver: HazGasSolver = null
 var efecto: HazGasRaymarch = null
 var frame: int = 0
+## 25/11/2026 (revisión del haz con Laser01 de Effekseer: el chorro aparecía ENTERO de golpe): al nacer (y al volver a encenderse) el dibujo toon de fuego y agua
+## solo llega hasta un límite que va de la boquilla al final del chorro en T_SALIDA s: el haz SALE de la mano. La simulación no cambia.
+const T_SALIDA: float = 0.15
+var _salida_t0: float = -2.0                  ## -2: aún no se ha dibujado (la salida empieza en el primer dibujo: el gas se precalienta antes)
+var _salida_t: float = 0.0                    ## s de juego desde que salió
 var gpu_ms: Dictionary = {}
 var gpu_viewport_ms: float = 0.0
 
@@ -638,7 +645,27 @@ func _aplicar_dibujo() -> void:
 			(n as Node3D).visible = false
 
 
+## x del dominio hasta la que se dibuja el chorro ahora (SALIDA): de la boquilla al objetivo en T_SALIDA s, con frenada; luego, todo (-1e9). Solo fuego y agua.
+func limite_salida() -> float:
+	if not (elemento == "fuego" or es_agua()):
+		return -1.0e9
+	if _salida_t0 < -1.0:
+		_salida_t0 = 0.0
+		_salida_t = 0.0
+	else:
+		_salida_t += get_process_delta_time()       # tiempo de JUEGO (ni el de la simulación, que va por subpasos y se precalienta, ni el reloj real)
+	var u: float = clampf(_salida_t / T_SALIDA, 0.0, 1.0)
+	if u >= 1.0:
+		return -1.0e9
+	var nz: float = (params["nozzle"] as Vector3).x
+	var tg: float = (_target_base as Vector3).x
+	return nz - (nz - tg) * 1.15 * (1.0 - pow(1.0 - u, 2.0))
+
+
 func chorro(encendido: bool) -> void:
+	if encendido and float(params.get("beamOn", 0.0)) < 0.5:
+		_salida_t0 = 0.0      # 25/11: vuelve a SALIR de la mano
+		_salida_t = 0.0
 	params["beamOn"] = 1.0 if encendido else 0.0
 
 
@@ -789,6 +816,7 @@ func _process(delta: float) -> void:
 			if r.is_valid():
 				rids.append(r)
 		efecto.toon_tex = rids
+		efecto.limite_x = limite_salida()
 	efecto.aspecto = PackedFloat32Array([params["thickness"], params["relief"], params["edge"], params["smokeAlbedo"], params["flameBody"], params["emitGain"],
 		params["fireOnSmoke"], params["farOnSmoke"], params["lampOnSmoke"], 1.0 if toon else params["saturacion"], 0.0 if toon else params["vineta"]])
 	if elemento == "rayo" or elemento == "viento":

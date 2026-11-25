@@ -29,6 +29,8 @@ var agua: bool = false
 ## 11/11: MODOS VIENTO y RAYO. `dibujo` = nombre del shader toon del elemento ("" = el del fuego o, con `agua`, el del agua). `tex_1` (si es válida) sustituye a la
 ## velocidad en el enlace 1 con muestreo que repite: el rayo lee ahí el flujo sin divergencia horneado (flujo_48) para sus arcos.
 var dibujo: String = ""
+## 25/11/2026: SALIDA que viaja (toon de fuego y agua): x del dominio más allá de la cual aún no se dibuja (look2.w). Muy negativa = todo.
+var limite_x: float = -1.0e9
 var tex_1: RID = RID()
 var _muestreo_repite: RID
 
@@ -136,7 +138,7 @@ func _render_callback(_tipo: int, render_data: RenderData) -> void:
 	v.append_array([float(solver.calidad["steps"]) * (1.5 if es_toon else 1.0), float(_fotograma % 64) if temporal and not es_toon else 0.0, 1.0 if con_profundidad else 0.0, 1.0 if depurar else 0.0])
 	v.append_array(aspecto.slice(0, 4))
 	v.append_array(aspecto.slice(4, 8))
-	v.append_array([aspecto[8], aspecto[9], aspecto[10], 0.0])
+	v.append_array([aspecto[8], aspecto[9], aspecto[10], limite_x])
 	if toon_param.size() == 16:
 		v.append_array(toon_param)
 	else:

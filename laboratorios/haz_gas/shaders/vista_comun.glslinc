@@ -10,7 +10,7 @@ layout(set = SET_VISTA, binding = 0, std140) uniform Vista {
 	vec4 marcha;       // x pasos, y fotograma % 64, z ¿hay profundidad?, w -
 	vec4 look0;        // thickness, relief, edge, smokeAlbedo
 	vec4 look1;        // flameBody, emitGain, fireOnSmoke, farOnSmoke
-	vec4 look2;        // lampOnSmoke, saturacion, vineta, -
+	vec4 look2;        // lampOnSmoke, saturacion, vineta, w: (toon de fuego y agua, 25/11) x del dominio más allá de la cual aún no se dibuja (la SALIDA del haz)
 	vec4 toon0;        // MODO TOON (raymarch_toon.glsl): umbral, blandura, contraste, tope de la rampa
 	vec4 toon1;        // k_T, k_combustible, amplitud del ruido, escala del ruido (1/m del dominio)
 	vec4 toon2;        // umbral del humo, opacidad del humo, escala de la rampa, tiempo
