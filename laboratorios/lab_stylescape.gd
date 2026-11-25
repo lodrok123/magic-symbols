@@ -2,11 +2,12 @@ extends Node3D
 
 ## LABORATORIO de PRUEBA del pack «Stylescape: Ruins» (Fab, Unreal → Godot, 25/11/2026).
 ## DOS SALAS IDÉNTICAS montadas con piezas del pack sobre hierba (25/11: Pablo pidió compararlas lado a lado), cada una con su material
-## (por defecto la A con el modo 2 y la B con el modo 3), con la luz del Bosque y la jugadora (1 u) dentro. A la derecha, nuestras piezas
+## (por defecto la A con el 3 anterior —modo 5— y la B con el 3 nuevo), con la luz del Bosque y la jugadora (1 u) dentro. A la derecha, nuestras piezas
 ## (muro en ruina, muro agrietado, roca musgosa, árboles) para comparar. Detrás, el muestrario con TODAS las piezas (va con la sala A).
 ## Teclas:  T material de la sala A · Y material de la sala B · L luz (bosque / ruinas / clásico) · flechas/WASD mover · rueda o +/- zoom
 ##          1 las dos salas · 2 el muestrario · 3 nuestras piezas · N nombres sí/no
-## Modos de material:  1) el pack tal cual  2) el pack con su musgo arriba  3) textura del pack teñida con la paleta  4) paleta casi plana
+## Modos de material:  1) el pack tal cual  2) el pack con su musgo arriba  3) teñido con el beige de nuestros muros  4) paleta casi plana
+##                     5) el 3 anterior (gris lila de Paleta3D)
 ## Si no hay piezas: exportarlas desde Unreal (tools/ue_exportar_stylescape.py) y prepararlas (tools/preparar_stylescape.py); no viajan en git.
 ## Captura sin tocar nada:  Godot --path . res://laboratorios/LabStylescape.tscn -- --captura   (deja PNG en docs/capturas/stylescape/)
 
@@ -32,13 +33,26 @@ const RECETAS: Dictionary = {
 var COLOR_TIPO: Dictionary = {
 	"piedra": Paleta3D.PIEDRA, "losa": Paleta3D.PIEDRA.lerp(Paleta3D.PIEDRA_OSCURA, 0.25), "madera": Paleta3D.MADERA, "hiedra": Paleta3D.HIERBA_SOMBRA,
 }
-## [nombre, mezcla_textura, detalle, musgo, musgo_textura, fuerza_normal, cobertura del musgo]
-## 25/11: en 3 y 4 el musgo va a manchas (cobertura 0,4) para que la cara de arriba de los muros siga siendo piedra y no se funda con la hierba.
+## 25/11 (Pablo: «el 3 como está no me convence»): el 3 ahora tiñe con el BEIGE de nuestros muros de Meshy y el musgo lleva textura.
+## Medido de las texturas de arte/meshy/piezas/muro_ruina.glb y muro_agrietado.glb (piedra sin los píxeles verdes: media de los dos)
+## y del verde de roca_musgosa.glb (solo sus píxeles verdes). El gris lila de Paleta3D.PIEDRA queda en el modo 5 («3 anterior»).
+## Calibrado en pantalla (25/11): con el beige medido tal cual (0,49·0,43·0,32) el frente de la sala salía 0,41·0,37·0,24 y nuestro muro
+## 0,60·0,53·0,42 (el claroscuro y la oclusión del pack oscurecen); se multiplicó canal a canal por esa diferencia.
+const PIEDRA_MUROS: Color = Color(0.715, 0.62, 0.555)
+const PIEDRA_MUROS_OSCURA: Color = Color(0.61, 0.555, 0.43)
+const MUSGO_ROCA: Color = Color(0.50, 0.575, 0.32)
+const MUSGO_ESCALA_BEIGE: float = 2.0   ## repeticiones de la textura de musgo por u en el modo 3 (más alto = grano más fino)
+var COLOR_TIPO_BEIGE: Dictionary = {
+	"piedra": PIEDRA_MUROS, "losa": PIEDRA_MUROS.lerp(PIEDRA_MUROS_OSCURA, 0.3), "madera": Paleta3D.MADERA, "hiedra": Paleta3D.HIERBA_SOMBRA,
+}
+## [nombre, mezcla_textura, detalle, musgo, musgo_textura, fuerza_normal, cobertura del musgo, paleta («lila» o «beige»), musgo_detalle]
+## 25/11: en 3, 4 y 5 el musgo va a manchas (cobertura 0,4) para que la cara de arriba de los muros siga siendo piedra y no se funda con la hierba.
 const MODOS: Array = [
-	["1 · pack tal cual", 1.0, 0.0, 0.0, 0.0, 1.0, 1.0],
-	["2 · pack con su musgo arriba", 1.0, 0.0, 1.0, 1.0, 1.0, 1.0],
-	["3 · textura del pack teñida con la paleta", 0.0, 0.75, 1.0, 0.0, 0.7, 0.4],
-	["4 · paleta casi plana", 0.0, 0.2, 1.0, 0.0, 0.3, 0.4],
+	["1 · pack tal cual", 1.0, 0.0, 0.0, 0.0, 1.0, 1.0, "lila", 0.0],
+	["2 · pack con su musgo arriba", 1.0, 0.0, 1.0, 1.0, 1.0, 1.0, "lila", 0.0],
+	["3 · teñido con el beige de nuestros muros, musgo con textura", 0.0, 0.75, 1.0, 0.0, 0.7, 0.4, "beige", 1.0],
+	["4 · paleta casi plana", 0.0, 0.2, 1.0, 0.0, 0.3, 0.4, "lila", 0.0],
+	["5 · el 3 anterior (gris lila, musgo liso)", 0.0, 0.75, 1.0, 0.0, 0.7, 0.4, "lila", 0.0],
 ]
 const LUCES: Array = ["bosque", "ruinas", "clasico"]
 ## Cuánto musgo lleva cada tipo en los modos con musgo (las losas del suelo y las cajas, nada: se confundían con la hierba).
@@ -80,9 +94,9 @@ const NUESTRAS: Array = [
 	["res://arte/piezas/arbol_redondo.tscn", Vector3(-1.8, 0, -1.2), 0.9],
 	["res://arte/piezas/pino.tscn", Vector3(21.6, 0, -0.6), 1.0],
 ]
-## Las dos salas: posición en u de cada una y su modo de material al abrir (índices de MODOS: 1 = modo 2, 2 = modo 3).
+## Las dos salas: posición en u de cada una y su modo de material al abrir (índices de MODOS: 2 = modo 3, 4 = modo 5).
 const SALAS: Array = [Vector3(0, 0, 0), Vector3(9.0, 0, 0)]
-const MODOS_INICIALES: Array = [1, 2]
+const MODOS_INICIALES: Array = [4, 2]   ## A: el 3 anterior · B: el 3 nuevo
 const FOCO_RUINA: Vector3 = Vector3(7.6, 0, 0.0)
 const ZOOM_RUINA: float = 10.5
 const FOCO_NUESTRAS: Vector3 = Vector3(18.5, 0, 1.6)
@@ -317,7 +331,7 @@ func _jugadora(pos: Vector3) -> void:
 
 func _aplicar_modo() -> void:
 	for i in range(_rotulos_sala.size()):
-		_rotulos_sala[i].text = "%s · material %s" % [["A", "B"][i], String(MODOS[_modos[i]][0]).get_slice(" ", 0)]
+		_rotulos_sala[i].text = "%s · %s" % [["A", "B"][i], String(MODOS[_modos[i]][0]).get_slice(",", 0).get_slice(" (", 0)]
 	for i in range(_materiales.size()):
 		var m: Array = MODOS[_modos[_grupos[i]]]
 		var sm: ShaderMaterial = _materiales[i]
@@ -326,10 +340,13 @@ func _aplicar_modo() -> void:
 		sm.set_shader_parameter("detalle", m[2])
 		sm.set_shader_parameter("musgo", float(m[3]) * float(MUSGO_TIPO[tipo]))
 		sm.set_shader_parameter("musgo_textura", m[4])
-		sm.set_shader_parameter("color_musgo", Paleta3D.HIERBA_SOMBRA.darkened(MUSGO_OSCURECER))
+		var beige: bool = m[7] == "beige"
+		sm.set_shader_parameter("color_musgo", MUSGO_ROCA if beige else Paleta3D.HIERBA_SOMBRA.darkened(MUSGO_OSCURECER))
+		sm.set_shader_parameter("musgo_detalle", m[8])
+		sm.set_shader_parameter("musgo_escala", MUSGO_ESCALA_BEIGE if beige else 0.5)
 		sm.set_shader_parameter("musgo_cobertura", m[6])
 		sm.set_shader_parameter("fuerza_normal", m[5])
-		sm.set_shader_parameter("color_piedra", Color.WHITE if float(m[1]) > 0.5 else COLOR_TIPO[tipo])
+		sm.set_shader_parameter("color_piedra", Color.WHITE if float(m[1]) > 0.5 else (COLOR_TIPO_BEIGE[tipo] if beige else COLOR_TIPO[tipo]))
 
 
 func _process(delta: float) -> void:
@@ -394,10 +411,10 @@ func _actualizar_hud() -> void:
 		MODOS[_modos[0]][0], MODOS[_modos[1]][0], LUCES[_luz]]
 
 
-## Capturas en docs/capturas/stylescape/: las dos salas como abren (A modo 2, B modo 3), cada modo en las dos salas y el muestrario; y sale.
+## Capturas en docs/capturas/stylescape/: las dos salas como abren (A el 3 anterior, B el 3 nuevo), cada modo en las dos salas y el muestrario; y sale.
 func _capturar() -> void:
 	DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path("res://docs/capturas/stylescape"))
-	await _foto(FOCO_RUINA, ZOOM_RUINA, "salas_A2_B3.png")
+	await _foto(FOCO_RUINA, ZOOM_RUINA, "salas_A3anterior_B3nuevo.png")
 	for i in range(MODOS.size()):
 		_modos = [i, i]
 		await _foto(SALAS[0] + Vector3(3.4, 0, 1.6), 9.0, "ruina_modo%d.png" % (i + 1))

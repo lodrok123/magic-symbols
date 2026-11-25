@@ -26,6 +26,9 @@ uniform float musgo_suave : hint_range(0.01, 0.5) = 0.12;
 uniform float musgo_cobertura : hint_range(0.0, 1.0) = 1.0;
 uniform float musgo_ruido = 1.6;                              // tamaño de las manchas: más alto = manchas más pequeñas
 uniform float musgo_borde : hint_range(0.01, 0.3) = 0.06;     // lo blando del borde de cada mancha
+// 25/11 (Pablo: las manchas lisas parecían pintura): con el color de la paleta, el musgo toma el claroscuro de la textura de musgo
+// del pack (T_RockyMoss_D) multiplicado por nuestro verde. 0 = verde liso; 1 = todo el claroscuro.
+uniform float musgo_detalle : hint_range(0.0, 1.0) = 0.0;
 
 uniform float recorte : hint_range(0.0, 1.0) = 0.0;           // > 0 para la hiedra (hojas con alfa)
 
@@ -77,7 +80,10 @@ void fragment() {
 		arriba *= smoothstep(u - musgo_borde, u + musgo_borde, ruido(p_mundo.xz * musgo_ruido));
 	}
 	vec3 musgo_tex = texture(tex_musgo, p_mundo.xz * musgo_escala).rgb;
-	vec3 musgo_c = mix(color_musgo.rgb * mix(1.0, 0.85 + lum * 0.4, detalle), musgo_tex, musgo_textura);
+	float lum_musgo = dot(musgo_tex, vec3(0.299, 0.587, 0.114));
+	vec3 musgo_paleta = color_musgo.rgb * mix(1.0, 0.85 + lum * 0.4, detalle * (1.0 - musgo_detalle))
+		* mix(1.0, clamp(0.3 + lum_musgo * 2.2, 0.3, 1.7) * mix(0.72, 1.25, ruido(p_mundo.xz * musgo_ruido * 5.0)), musgo_detalle);
+	vec3 musgo_c = mix(musgo_paleta, musgo_tex, musgo_textura);
 	ALBEDO = mix(base, musgo_c, arriba);
 
 	vec3 orm = mix(vec3(1.0, 0.85, 0.5), texture(tex_orm, UV).rgb, usa_orm);
