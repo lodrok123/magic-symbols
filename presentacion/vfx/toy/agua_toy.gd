@@ -1363,3 +1363,8 @@ func _emitir_gotas(delta: float) -> void:
 		else:
 			var abajo: Vector3 = pos + Vector3(randf_range(-0.4, 0.4) * r, -0.85 * r, randf_range(-0.4, 0.4) * r)
 			_gotas.call("emitir", abajo, Vector3(0, -0.3, 0), randf_range(0.5, 0.8), tam * 0.9, 0, 0.9, randf(), 1.0)
+
+
+## Estela que se queda en el mundo (EstelaMundoToy, 25/11/2026): solo la BOLA.
+func _estela_elemento() -> String:
+	return "agua" if figura == Figura.BOLA else ""

@@ -39,6 +39,8 @@ var _t: float = 0.0
 var _fase: float = 0.0
 ## Cuánto se adelanta la cabeza de la bola en vuelo (m, por -Z). FuegoToy lo escala con el tamaño de la bola.
 var _avance_cabeza: float = -0.12
+const EstelaMundoToy = preload("res://presentacion/vfx/toy/estela_mundo_toy.gd")
+var _em_estela: Node3D = null
 
 
 func _ready() -> void:
@@ -93,8 +95,35 @@ func _recoger() -> void:
 	_aplicar_todo()
 
 
+## ESTELA QUE SE QUEDA EN EL MUNDO (25/11/2026, de ef_fire01_projectile de Effekseer): si la subclase dice su elemento (`_estela_elemento`, solo la BOLA de fuego, agua y tierra)
+## y EstelaMundoToy.activa está encendida, al echar a volar se cuelga una estela HERMANA (suelta en la escena) que sigue a la bola y se apaga sola cuando esta choca o muere.
+func _estela_elemento() -> String:
+	return ""
+
+
+func _estela_radio() -> float:
+	return maxf(float(get("semieje_x") if get("semieje_x") != null else 0.4), 0.05)
+
+
+func _poner_estela() -> void:
+	if _em_estela != null and is_instance_valid(_em_estela):
+		return
+	var el: String = _estela_elemento()
+	var padre: Node = get_parent()
+	if el == "" or padre == null:
+		return
+	_em_estela = EstelaMundoToy.crear(self, el, _estela_radio())
+	padre.add_child(_em_estela)
+
+
+func estela_mundo() -> Node3D:
+	return _em_estela if _em_estela != null and is_instance_valid(_em_estela) else null
+
+
 func _process(delta: float) -> void:
 	super._process(delta)
+	if proyectil and _listo and EstelaMundoToy.activa and is_inside_tree():
+		_poner_estela()
 	if proyectil and _listo:
 		for gp in _vuelo_part:
 			for pase in [gp.draw_pass_1]:

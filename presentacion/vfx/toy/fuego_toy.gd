@@ -2049,3 +2049,8 @@ func _anim_si_hace_falta() -> void:
 		ap.remove_animation_library("")
 	ap.add_animation_library("", lib)
 	dura_morir = morir_s
+
+
+## Estela que se queda en el mundo (EstelaMundoToy, 25/11/2026): solo la BOLA.
+func _estela_elemento() -> String:
+	return "fuego" if figura == Figura.BOLA else ""

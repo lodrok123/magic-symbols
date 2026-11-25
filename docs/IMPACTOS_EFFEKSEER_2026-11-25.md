@@ -61,6 +61,35 @@ Dónde se usan:
 
 Hojas: `docs/capturas/impactos_effekseer/aro_distorsion/`. Ojo: la distorsión solo se nota sobre fondo con dibujo. En el suelo liso del lab casi no se ve; en el borde de la pared, sí.
 
+## Bolas en vuelo: estela que se queda en el mundo (25/11/2026, tercera ronda)
+
+Pablo: «revisa cómo hace el repositorio una bola de fuego y demás elementos… es un elemento mejorable en todos los elementos». Para la prueba eligió fuego, agua y tierra.
+
+En la demo de Effekseer solo hay un proyectil de verdad, `ef_fire01_projectile`. La bola **no arrastra su cola**: cada instante suelta una bocanada que **se queda donde nació**. La bocanada vive 0,13–0,4 s, encoge y se enfría. La cola sale sola, larga, irregular y más fina hacia atrás, y deja leer el recorrido. El resto de efectos (hielo, rayo, viento, sagrado) son de área o impactos.
+
+Cómo estaban nuestras bolas con la cámara del juego (`docs/capturas/estela_mundo/hoja_proyectiles_todos_antes.png`):
+
+- **Agua:** una canica casi sin estela. Era la más floja.
+- **Fuego:** una llama corta.
+- **Tierra:** una roca con piedrecitas.
+- **Hielo:** un cristal pálido que se pierde sobre la hierba.
+- **Rayo:** bien.
+- **Viento:** grande y recargado.
+
+**Nueva pieza:** `presentacion/vfx/toy/estela_mundo_toy.gd`.
+
+- Va suelta en la escena, como hermana de la bola. Sigue a la bola mientras vuela y suelta una bocanada cada pocos centímetros.
+- Cuando la bola choca o muere, termina de apagarse y se libera sola.
+- La cuelga `EfectoToy` solo en la BOLA de fuego, agua y tierra (`_estela_elemento`).
+- Cada elemento usa piezas que ya existían:
+  - **Fuego:** bocanadas del flipbook con la parte roja de la rampa, que encogen y se enfrían, más brasas que se desprenden.
+  - **Agua:** vaho de espuma (humo toon con los colores del agua) más gotas que caen.
+  - **Tierra:** polvo pardo (humo toon de TierraToy) más granitos que caen.
+- **Escala:** sigue la raíz del radio, con un mínimo de 0,6. La bola del juego mide 0,12 m de radio y, a escala lineal, la estela quedaba de pocos centímetros.
+- **Visibilidad:** las MultiMesh llevan una caja de visibilidad que cubre todo el mapa. Si no, Godot las descartaba lejos del origen.
+
+**Estado:** apagada de serie (`EstelaMundoToy.activa = false`) hasta que Pablo la vea. En `LabVfxComparativa3D`, **Ctrl+8** la enciende, **F4** lanza la bola en vuelo y **Z** cambia de elemento. Prueba: `herramientas/prueba_estela_mundo.gd` (19 comprobaciones). Antes y después en el juego: `docs/capturas/estela_mundo/hoja_estela_antes_despues.png`, que se regenera con `captura_vfx_en_juego.gd -- <carpeta> fuego,agua,tierra proyectil procedural estela`.
+
 ## Cómo verlo
 
 `LabVfxComparativa3D` → **Ctrl+4** pone la comparativa (izquierda lo de ahora, derecha lo traducido, se repite solo) · **Ctrl+5** par siguiente (Mayús: anterior) · **Ctrl+6** vista juego / cerca / solo traducido · **Ctrl+7** cámara lenta ×0,25 · **Ctrl+4** sale.

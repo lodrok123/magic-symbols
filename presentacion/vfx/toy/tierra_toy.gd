@@ -1823,3 +1823,7 @@ func _emitir_bola(delta: float) -> void:
 			var loc2: Vector3 = Vector3(randf_range(-0.4, 0.4) * r, randf_range(-0.3, 0.3) * r, r * randf_range(0.8, 1.3))
 			_polvo.call("emitir", tr * loc2, _vel_mundo * 0.15 + tr.basis * Vector3(randf_range(-0.4, 0.4), 0.2, 0.2), 0.8, 0.8)
 
+
+## Estela que se queda en el mundo (EstelaMundoToy, 25/11/2026): solo la BOLA.
+func _estela_elemento() -> String:
+	return "tierra" if figura == Figura.BOLA else ""

@@ -25,6 +25,7 @@ var _solo: String = ""
 var _solo_h: String = ""
 var _modos: Array = ["actual", "procedural"]      ## con «procedural» solo: lo de serie del juego (ajuste + lista por defecto de project.godot) sin la comparación con lo viejo
 var _json: Array = []
+var _sufijo: String = ""
 
 
 func _escenario() -> void:
@@ -37,6 +38,9 @@ func _escenario() -> void:
 		_solo_h = a[2]
 	if a.size() > 3 and a[3] != "":
 		_modos = Array(a[3].split(","))
+	if a.size() > 4 and a[4] == "estela":            # 25/11/2026: con la estela que se queda en el mundo (EstelaMundoToy) encendida; los ficheros llevan «_estela»
+		(load("res://presentacion/vfx/toy/estela_mundo_toy.gd") as GDScript).set("activa", true)
+		_sufijo = "_estela"
 	DirAccess.make_dir_recursive_absolute(_dir)
 	Flags.nuevo()
 	Misiones.nuevo()
@@ -54,8 +58,11 @@ func _escenario() -> void:
 		return
 	colocar_jugador(c)
 	await avanzar_s(2.0)
-	for el in ["fuego", "agua"]:
-		if _solo != "" and _solo != el:
+	var elementos: Array = ["fuego", "agua"]
+	if _solo.contains(","):                      # 25/11/2026: lista de elementos separada por comas (p. ej. fuego,agua,tierra,viento,hielo,rayo)
+		elementos = Array(_solo.split(",", false))
+	for el in elementos:
+		if _solo != "" and not _solo.contains(",") and _solo != el:
 			continue
 		for hz in HECHIZOS:
 			if _solo_h != "" and _solo_h != String(hz[0]):
@@ -102,7 +109,7 @@ func _una(el: String, hz: Array, modo: String) -> void:
 		_ocultar_ui(root)      # el cartel de zona («La boca de la cueva») es un CanvasLayer que nace al empezar: se esconde antes de cada foto
 		if t == tiempos[0] and (id == "bola_quieta" or id == "proyectil"):
 			_medir(el, id, modo)
-		var nombre: String = "%s_%s_%s_%03d" % [el, id, modo, int(round(float(t) * 100.0))]
+		var nombre: String = "%s_%s_%s%s_%03d" % [el, id, modo, _sufijo, int(round(float(t) * 100.0))]
 		root.get_viewport().get_texture().get_image().save_png(_dir.path_join(nombre + ".png"))
 		_json.append({"id": nombre, "elemento": el, "hechizo": id, "titulo": String(hz[1]), "modo": modo, "t": float(t)})
 	# esperar a que se apague todo (el haz dura 2,6 s, la bola quieta 3 s)
