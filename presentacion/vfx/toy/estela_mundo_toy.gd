@@ -26,7 +26,7 @@ static var activa: bool = false
 ##   paso: m recorridos entre bocanada y bocanada · vida: s de cada bocanada · tam: [al nacer, al morir] (diámetro) · deriva: m/s (subir el humo, caer el polvo)
 ##   motas: cuántas motas por bocanada (probabilidad si < 1) · vida_mota · vel_mota (m/s, hacia fuera) · g_mota (× gravedad)
 const RECETAS: Dictionary = {
-	"fuego": {"paso": 0.055, "vida": [0.1, 0.26], "tam": [0.4, 0.05], "deriva": 0.25, "disperso": 0.035, "n": 64,
+	"fuego": {"paso": 0.055, "vida": [0.12, 0.3], "tam": [0.4, 0.06], "deriva": 0.35, "disperso": 0.035, "abre": 0.55, "n": 64,
 		"motas": 0.45, "n_motas": 40, "vida_mota": [0.3, 0.6], "vel_mota": [0.5, 1.4], "g_mota": -0.08},
 	"agua": {"paso": 0.1, "vida": [0.25, 0.45], "tam": [0.55, 0.15], "deriva": 0.1, "disperso": 0.07, "n": 40,
 		"motas": 0.9, "n_motas": 44, "vida_mota": [0.3, 0.55], "vel_mota": [0.4, 1.2], "g_mota": 0.9},
@@ -78,7 +78,7 @@ func _ready() -> void:
 				SpriteToy.mat(s).set_shader_parameter("rampa", FuegoToy._rampa_bola)
 				s.visible = false
 				add_child(s)
-				_sprites.append({"mi": s, "t0": -10.0, "vida": 0.2, "pos": Vector3.ZERO, "giro": 0.0, "tam_k": 1.0})
+				_sprites.append({"mi": s, "t0": -10.0, "vida": 0.2, "pos": Vector3.ZERO, "giro": 0.0, "tam_k": 1.0, "lat": Vector3.ZERO, "fase": 0.0})
 			_mm = SpriteToy.chispas_mm("Brasas", int(_r["n_motas"]), 1.6)
 			(_mm.material_override as ShaderMaterial).set_shader_parameter("rampa", FuegoToy._rampa_bola)
 		"agua":
@@ -168,6 +168,10 @@ func _soltar(pos: Vector3, _dir: Vector3) -> void:
 			s["pos"] = pos + off
 			s["giro"] = _rng.randf() * TAU
 			s["tam_k"] = _rng.randf_range(0.8, 1.2)
+			# 25/11 (Pablo: «la cola no es realista»): cada bocanada se aparta un poco hacia un lado al azar (y algo hacia arriba), así la cola se ABRE y ondula según se queda atrás
+			# en vez de ser un palo recto; `fase` le da un vaivén propio.
+			s["lat"] = Vector3(_rng.randf_range(-1, 1), _rng.randf_range(-0.3, 1.0), _rng.randf_range(-1, 1)).normalized() * float(_r.get("abre", 0.0)) * _rng.randf_range(0.4, 1.0)
+			s["fase"] = _rng.randf() * TAU
 		_:
 			var lado: Vector3 = Vector3(_rng.randf_range(-1, 1), _rng.randf_range(-0.3, 0.6), _rng.randf_range(-1, 1)).normalized()
 			_humo.call("emitir", pos + off, lado * 0.25 * _k, vida / float(_r["vida"][1]), _rng.randf_range(0.8, 1.2))
@@ -201,7 +205,8 @@ func _animar() -> void:
 		var tam: Array = _r["tam"]
 		var sz: float = lerpf(float(tam[0]), float(tam[1]), 1.0 - pow(1.0 - u, 1.6)) * _k * float(s["tam_k"])
 		mi.scale = Vector3(sz, sz, 1.0)
-		mi.global_position = (s["pos"] as Vector3) + Vector3(0, float(_r["deriva"]) * ta * _k, 0)
+		var vaiven: Vector3 = Vector3(sin(ta * 17.0 + float(s["fase"])), 0.0, cos(ta * 13.0 + float(s["fase"]))) * 0.03 * _k * u
+		mi.global_position = (s["pos"] as Vector3) + Vector3(0, float(_r["deriva"]) * ta * _k, 0) + (s["lat"] as Vector3) * ta * _k + vaiven
 		var m: ShaderMaterial = SpriteToy.mat(mi)
 		m.set_shader_parameter("vida", smoothstep(0.0, 0.08, u) * (1.0 - smoothstep(0.55, 1.0, u)))
 		m.set_shader_parameter("calor", lerpf(0.04, -0.22, pow(u, 0.7)))       # se enfría deprisa: del naranja de la cabeza al rojo (25/11: más contraste)
