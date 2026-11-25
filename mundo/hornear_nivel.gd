@@ -20,10 +20,14 @@ const NIVELES: String = "res://mundo/datos_nivel/"
 const PIEZAS: String = "res://arte/piezas/"
 ## 24/11: las piezas del pack Stylized Lost Cave (`lost_*`: paredes y adornos de `paredes_cueva = "lostcave"`) viven aparte, fuera de git.
 const PIEZAS_LOSTCAVE: String = "res://arte/lostcave/piezas/"
+## 25/11: los muros finos del pack Stylescape: Ruins (`ss_*`, estilo «ruinas»), también fuera de git.
+const PIEZAS_STYLESCAPE: String = "res://arte/stylescape/piezas/"
 const BIBLIOTECA: String = "res://mundo/datos_nivel/suelo_tipos.tres"
 
 
 static func ruta_pieza(id: String) -> String:
+	if id.begins_with("ss_"):
+		return PIEZAS_STYLESCAPE + id + ".tscn"
 	return (PIEZAS_LOSTCAVE if id.begins_with("lost_") else PIEZAS) + id + ".tscn"
 const S: float = 2.3
 const ALTO: float = 2.3 * 0.45

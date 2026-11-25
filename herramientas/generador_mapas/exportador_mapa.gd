@@ -10,7 +10,7 @@ const MARCA_ESCENA: String = "metadata/generador_mapas"
 const DIR_MAPAS: String = "res://mundo/datos_nivel/mapas/"
 const DIR_ESCENAS: String = "res://escenas/"
 const DIR_NIVELES: String = "res://mundo/datos_nivel/"
-const ESTILOS: Array[String] = ["cueva", "bosque", "pantano"]
+const ESTILOS: Array[String] = ["cueva", "bosque", "pantano", "ruinas"]     ## 25/11: «ruinas» = bosque con muros finos del pack Stylescape
 const LUCES: Array[String] = ["cueva", "cueva_lava", "cueva_goblin", "cueva_hielo", "cueva_ruinas", "santuario", "ruinas", "bosque", "atardecer", "pantano", "hielo", "fuego", "agua", "clasico"]
 ## Letras que el generador puede poner en el plano.
 const LETRAS_VALIDAS: String = "#.~SWAT"

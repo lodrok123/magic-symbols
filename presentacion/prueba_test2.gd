@@ -839,6 +839,8 @@ void light() {
 ## La Cueva (23/10): «bosque» (de serie: árboles en las paredes, hierba) o «cueva» (paredes de roca del kit de cueva según sus vecinas, suelo de
 ## roca y basalto, estalagmitas). Ver `_pared_cueva`.
 @export var estilo: String = "bosque"      ## «pantano» (8/11): suelo de BARRO (ver `_textura_barro`); el resto del estilo es el del bosque
+## «ruinas» (25/11): el bosque, pero los `#` que tocan suelo son MUROS FINOS del pack Stylescape: Ruins por el eje de la casilla
+## (presentacion/paredes_stylescape.gd); los `#` de más adentro siguen siendo árboles. Sin el pack generado, todo árboles (bosque).
 ## 24/11 (pack Stylized Lost Cave): con estilo «cueva», «lostcave» viste los `#` con las rocas del pack en vez del kit de Tripo (ver
 ## presentacion/paredes_lostcave.gd) y siembra junto a las paredes setas y cristalitos del pack. "" = el kit de siempre. Si el pack no está
 ## generado en esta máquina (arte/lostcave, fuera de git) vuelve solo al kit.
@@ -4150,6 +4152,29 @@ func _decor_lostcave(c: Vector2i) -> void:
 	_poner_escena(id, c, Transform3D(Basis(Vector3.UP, deg_to_rad(float(h % 360))), p), false)
 
 
+## --- 25/11: estilo «ruinas»: muros finos del pack Stylescape: Ruins en los `#` que tocan suelo (presentacion/paredes_stylescape.gd) ---
+const PAREDES_SS = preload("res://presentacion/paredes_stylescape.gd")
+## Musgo de ruina (el `musgo_ruina` del shader común, el mismo verde que el arco en ruinas del Bosque) en los muros del pack. El arco usa 0,92;
+## en estos muros cubría casi todo y se perdía el beige: 0,5.
+const MUSGO_SS: float = 0.5
+
+
+func _ruinas_ss() -> bool:
+	return estilo == "ruinas" and PAREDES_SS.disponible()
+
+
+func _muro_de_ruina(q: Vector2i) -> bool:
+	return _en_mapa(q) and _letra(q) == "#"
+
+
+## true si la casilla `#` se ha vestido con muros del pack (si no, la maqueta le pone su árbol como en el bosque).
+func _paredes_ss(c: Vector2i) -> bool:
+	var piezas: Array = PAREDES_SS.muros(c, Callable(self, "_suelo_de_cueva"), Callable(self, "_muro_de_ruina"), ALTO)
+	for p in piezas:
+		_poner_escena(String(p[0]), c, p[1], true)
+	return not piezas.is_empty()
+
+
 ## Una pieza con ESCENA propia ya a su medida (las lost_* del pack: arte/lostcave/piezas/<id>.tscn) en la transformación `t`. Se apunta en el
 ## registro como las de `_poner` (así sale en el nivel horneado: HorneadorNivel busca las lost_* en su carpeta) y sus materiales pasan por
 ## Ocluso3D como el decorado en lotes.
@@ -4159,7 +4184,7 @@ func _poner_escena(id: String, c: Vector2i, t: Transform3D, bloquea: bool) -> No
 		return null
 	if bloquea:
 		_bloqueadas[c] = true
-	var ruta: String = PAREDES_LC.RUTA + id + ".tscn"
+	var ruta: String = (PAREDES_SS.RUTA if id.begins_with("ss_") else PAREDES_LC.RUTA) + id + ".tscn"     # 25/11: ss_ = muros del pack Stylescape
 	if not ResourceLoader.exists(ruta):
 		return null
 	var n: Node3D = (load(ruta) as PackedScene).instantiate() as Node3D
@@ -4172,7 +4197,12 @@ func _poner_escena(id: String, c: Vector2i, t: Transform3D, bloquea: bool) -> No
 			for s in range(mi.mesh.get_surface_count()):
 				var m: Material = mi.get_active_material(s)
 				if m != null:
-					mi.set_surface_override_material(s, Ocluso3D.convertir(m.duplicate() as Material))
+					var conv: Material = Ocluso3D.convertir(m.duplicate() as Material)
+					if id.begins_with("ss_") and conv is ShaderMaterial:
+						var caja: AABB = mi.mesh.get_aabb()
+						(conv as ShaderMaterial).set_shader_parameter("musgo_ruina", MUSGO_SS)
+						(conv as ShaderMaterial).set_shader_parameter("musgo_altura", Vector2(caja.position.y, caja.size.y))
+					mi.set_surface_override_material(s, conv)
 	_props.add_child(n)
 	return n
 
@@ -4204,6 +4234,8 @@ func _colocar_letras() -> void:
 						_bloqueadas[c] = true      # en modo escena el borde sigue cerrado; el resto lo deciden las piezas del .tscn
 					if estilo == "cueva" and _lostcave():
 						_paredes_lostcave(c)
+					elif _ruinas_ss() and _paredes_ss(c):
+						pass                       # 25/11: muro fino del pack Stylescape (los `#` sin suelo al lado siguen abajo: árbol)
 					elif estilo == "cueva":
 						_pared_cueva(c)
 					elif estilo == "pantano":

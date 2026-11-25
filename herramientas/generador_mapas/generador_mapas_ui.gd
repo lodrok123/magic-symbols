@@ -125,7 +125,7 @@ const CAMPOS: Array = [
 	{"k": "jarrones", "r": "Jarrones por sala", "t": "float", "min": 0.0, "max": 6.0, "paso": 0.5, "a": "Contra la pared del fondo. Dan oro (o poción, 1 de cada 5)."},
 	{"t": "titulo", "r": "NIVEL"},
 	{"k": "nombre", "r": "Nombre del nivel", "t": "texto", "a": "Letras sin acento, cifras y «_». Será mapas/<Nombre>.txt y escenas/Prueba<Nombre>.tscn."},
-	{"k": "estilo", "r": "Estilo", "t": "opcion", "op": [["cueva", "Cueva (roca)"], ["bosque", "Bosque (árboles)"], ["pantano", "Pantano (barro)"]], "a": "Cómo dibuja la maqueta las paredes y el suelo."},
+	{"k": "estilo", "r": "Estilo", "t": "opcion", "op": [["cueva", "Cueva (roca)"], ["bosque", "Bosque (árboles)"], ["pantano", "Pantano (barro)"], ["ruinas", "Ruinas (muros del pack)"]], "a": "Cómo dibuja la maqueta las paredes y el suelo.\nRuinas = el bosque, pero las paredes «#» que tocan una sala son muros finos del pack Stylescape: Ruins (los de más adentro, árboles).\nNecesita el pack generado en esta máquina (ver arte/stylescape/LEEME.md); si no está, sale como el bosque."},
 	{"k": "paredes", "r": "Paredes (cueva)", "t": "opcion", "op": [["kit", "Kit de cueva"], ["lostcave", "Rocas del pack Lost Cave"]], "a": "Con estilo cueva: de qué se hacen las paredes «#».\nLost Cave = rocas del pack Stylized Lost Cave mirando a cada sala, setas y cristalitos junto a la pared.\nNecesita el pack generado en esta máquina (tools\\preparar_lostcave.cmd); si no está, sale el kit."},
 	{"k": "luz", "r": "Luz", "t": "opcion", "op": [], "a": "La fila de LuzZona3D.ZONAS que ilumina el nivel."},
 	{"k": "kit", "r": "Kit de la jugadora", "t": "opcion", "op": [["pruebas", "Pruebas (todo)"], ["demo", "Demo: fuego, agua, tierra"], ["demo_inicio", "Arranque de la demo: fuego, flecha, barrera"],

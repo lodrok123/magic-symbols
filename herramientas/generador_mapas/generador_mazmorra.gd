@@ -1894,7 +1894,7 @@ func _reservar_jefe(vivas: Array) -> void:
 			return                                       # ya hay una a mano
 	var cid: String = pedido
 	if pedido == "auto":
-		cid = "jefe_elemental" if (String(p["algoritmo"]) == "bosque" or String(p["estilo"]) == "bosque") else "jefe_golem"
+		cid = "jefe_elemental" if (String(p["algoritmo"]) == "bosque" or String(p["estilo"]) in ["bosque", "ruinas"]) else "jefe_golem"     # 25/11: las ruinas son bosque
 	if not JEFES.has(cid):
 		return
 	var dist: PackedInt32Array = _distancias(inicio)
