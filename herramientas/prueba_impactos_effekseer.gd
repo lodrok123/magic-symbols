@@ -99,6 +99,17 @@ func _capa_visible(c: Dictionary, t: float) -> bool:
 				var mh: MeshInstance3D = h
 				if mh.scale.x > 0.001 and float((mh.material_override as ShaderMaterial).get_shader_parameter("brillo")) > 0.01:
 					return true
+		"aro":
+			for h in c["nodos"]:
+				var ma: MeshInstance3D = h
+				var sm: ShaderMaterial = ma.material_override as ShaderMaterial
+				if ma.visible and ma.scale.x > 0.001 and float(sm.get_shader_parameter("vida")) > 0.01 and float(sm.get_shader_parameter("grosor")) > 0.0:
+					return true
+		"distorsion":
+			for h in c["nodos"]:
+				var md: MeshInstance3D = h
+				if md.visible and md.scale.x > 0.001 and float((md.material_override as ShaderMaterial).get_shader_parameter("intensidad")) > 0.01:
+					return true
 		"chispas", "gotas", "piedras":
 			var mm: MultiMesh = (c["mm"] as MultiMeshInstance3D).multimesh
 			for k in mm.instance_count:

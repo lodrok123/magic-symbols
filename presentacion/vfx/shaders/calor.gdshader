@@ -12,7 +12,11 @@ uniform float escala = 1.2;
 uniform float borde : hint_range(0.0, 0.5) = 0.35;      // anchura del desvanecido radial
 uniform float intensidad : hint_range(0.0, 1.0) = 1.0;   // la anima la escena (0 = sin calor)
 uniform bool billboard = true;
-uniform int mascara = 0;                                 // 0 radial (quad), 1 vertical (cilindro: se apaga arriba y abajo)
+uniform int mascara = 0;                                 // 0 radial (quad), 1 vertical (cilindro: se apaga arriba y abajo), 2 anillo (onda de choque)
+// mascara 2 (25/11/2026, la capa «dist» de hit01 / Simple_Distortion de Effekseer): solo deforma en una banda de radio `aro` (0..1 del quad) y ancho `aro_ancho`,
+// empujando la imagen HACIA FUERA (como una lente que se abre), más el ruido de `normales` si lo hay. La anima la CPU (impacto_capas_toy.gd, pieza «distorsion»).
+uniform float aro : hint_range(0.0, 1.0) = 0.6;
+uniform float aro_ancho : hint_range(0.01, 0.6) = 0.18;
 
 void vertex() {
 	if (billboard) {
@@ -31,12 +35,19 @@ void fragment() {
 		float v = UV.y < 0.5 ? UV.y * 2.0 : 1.0;   // CylinderMesh: los lados usan v en [0, 0,5]
 		m = smoothstep(0.0, borde, v) * smoothstep(0.0, borde, 1.0 - v);
 		m *= pow(abs(dot(normalize(NORMAL), normalize(VIEW))), 2.0);   // se apaga hacia la silueta: sin «tubo de cristal»
+	} else if (mascara == 2) {
+		float x = (r - aro) / aro_ancho;
+		m = exp(-x * x * 2.0) * (1.0 - smoothstep(0.9, 1.0, r));
 	} else {
 		m = 1.0 - smoothstep(1.0 - borde, 1.0, r);
 	}
 	m *= intensidad;
 	vec2 n = texture(normales, UV * escala + vec2(0.0, -TIME * velocidad)).rg * 2.0 - 1.0;
 	vec2 d = n * fuerza * m;
+	if (mascara == 2) {
+		// en billboard el UV del quad va como la pantalla (x a la derecha, y hacia abajo): la dirección radial del quad ES la de la pantalla. Se lee hacia DENTRO: lo de fuera parece empujado.
+		d = d * 0.4 - normalize(c + vec2(0.00001)) * fuerza * m;
+	}
 	ALBEDO = texture(pantalla, SCREEN_UV + d).rgb;
 	ALPHA = m;   // se funde con el fondo real hacia los bordes: sin escalón visible en el cielo
 }

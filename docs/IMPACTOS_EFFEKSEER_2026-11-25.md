@@ -44,6 +44,23 @@ Pablo: «de la explosión del barril sí tomaba lo suyo, porque en nuestro caso 
 
 Hojas con el resultado (la fila «AHORA» ya lleva los cambios): `docs/capturas/impactos_effekseer/aplicado/hoja_*.png`.
 
+## Aro nítido y distorsión (25/11/2026, segunda ronda, Pablo: «aro nítido + distorsión»)
+
+Las dos piezas que faltaban, sin texturas nuevas:
+
+- **Aro de choque nítido** (`presentacion/vfx/toy/aro_choque.gdshader`). Anillo de borde duro con anti-alias de un píxel, en dos tonos toon de la rampa (cuerpo y filo exterior), entero o partido en arcos afilados (medias lunas). Mezcla normal, no aditiva: sumado sobre el suelo claro, el naranja se lavaba a crema. Es la pieza `aro` de ImpactoCapasToy: crece, adelgaza y se apaga.
+- **Distorsión del aire**. Es el `calor.gdshader` de siempre con una máscara nueva (`mascara = 2`, anillo) que empuja la imagen hacia fuera. Lo que ya lo usaba no cambia. Es la pieza `distorsion`.
+
+Dónde se usan:
+
+| Impacto | Qué lleva |
+|---|---|
+| Golpe de fuego (estilo C) | El aro de choque de hit01 y su distorsión, además del halo y la estrella. |
+| Explosión del barril | Una onda de choque en el aire desde el foco: un aro que se abre hasta el radio en 0,28 s, más el aire que se deforma detrás. |
+| ToonHit (receta del lab) | HitBase, HitSub y Ring ya son arcos y aros nítidos tumbados en la pared: ahora sí se parece al original. |
+
+Hojas: `docs/capturas/impactos_effekseer/aro_distorsion/`. Ojo: la distorsión solo se nota sobre fondo con dibujo. En el suelo liso del lab casi no se ve; en el borde de la pared, sí.
+
 ## Cómo verlo
 
 `LabVfxComparativa3D` → **Ctrl+4** pone la comparativa (izquierda lo de ahora, derecha lo traducido, se repite solo) · **Ctrl+5** par siguiente (Mayús: anterior) · **Ctrl+6** vista juego / cerca / solo traducido · **Ctrl+7** cámara lenta ×0,25 · **Ctrl+4** sale.

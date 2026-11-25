@@ -28,7 +28,8 @@ const ImpactoCapasToy = preload("res://presentacion/vfx/toy/impacto_capas_toy.gd
 const RecetasEffekseer = preload("res://presentacion/vfx/toy/recetas_effekseer.gd")
 ## 25/11/2026 (Pablo, tras la comparativa con Effekseer: «golpe hit: añadía el halo a lo que ya tenemos»): el GOLPE del estilo C suma, encima de lo suyo, el halo blando (0,05 s), la estrella
 ## grande de rayos (T_VFX_Flare_666, 0,1 s) y el aro de luz que se abre (0,17 s) de ef_parts_hit01, traducidos con nuestros shaders (recetas_effekseer.gd). `halo_hit01 = false` lo quita.
-const CAPAS_HIT01: Array = ["light", "flash", "light_ring"]
+## + (25/11, «aro nítido + distorsión») el aro de choque de borde duro (aro_choque.gdshader) y el anillo de distorsión del aire (calor.gdshader, máscara 2).
+const CAPAS_HIT01: Array = ["light", "flash", "light_ring", "shockring", "dist"]
 
 enum Variante { GOLPE, FIN, REBOTE }
 enum Estilo { A, B, C }

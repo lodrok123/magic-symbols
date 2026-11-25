@@ -25,6 +25,8 @@ const AguaPaleta = preload("res://presentacion/vfx/toy/agua_paleta.gd")
 const HieloMallas = preload("res://presentacion/vfx/toy/hielo_mallas.gd")
 const SH_HALO_SIN_PROF: String = "res://presentacion/vfx/toy/halo_impacto.gdshader"
 const SH_HALO_PROF: String = "res://presentacion/vfx/toy/halo_toy.gdshader"
+const SH_ARO: String = "res://presentacion/vfx/toy/aro_choque.gdshader"
+const SH_CALOR: String = "res://presentacion/vfx/shaders/calor.gdshader"
 const SH_GRIETA: String = "res://presentacion/vfx/toy/tierra_anillo.gdshader"
 const TEX_MARCA: String = "res://assets/vfx/lelu_noise/T_Groundmark19.png"
 const RADIO_REF: float = 0.4
@@ -203,6 +205,12 @@ func _montar(d: Dictionary) -> Dictionary:
 		"halo":
 			for i in n:
 				c["nodos"].append(_montar_halo(d, i))
+		"aro":
+			for i in n:
+				c["nodos"].append(_montar_aro(d, i))
+		"distorsion":
+			for i in n:
+				c["nodos"].append(_montar_distorsion(d, i))
 		"chispas", "gotas", "piedras":
 			n = maxi(int(round(float(n) * clampf(sqrt(_k), 0.6, 1.8))), 1)
 			_montar_particulas(c, d, pieza, n)
@@ -335,6 +343,68 @@ func _montar_halo(d: Dictionary, i: int) -> MeshInstance3D:
 	return mi
 
 
+## ARO NÍTIDO (aro_choque.gdshader): anillo de borde duro en dos tonos de la rampa (`tono` cuerpo, `tono_filo` banda exterior), entero o en `arcos`. Crece de tam[0] a tam[1] (m, lado del
+## quad) mientras su `grosor` pasa de grosor[0] a grosor[1] (fracción del radio). Billboard o, con `plano`, tumbado en la superficie.
+func _montar_aro(d: Dictionary, i: int) -> MeshInstance3D:
+	var plano: bool = bool(d.get("plano", false))
+	var q: QuadMesh = QuadMesh.new()
+	q.size = Vector2.ONE
+	if plano:
+		q.orientation = PlaneMesh.FACE_Y
+	var m: ShaderMaterial = ShaderMaterial.new()
+	m.shader = load(SH_ARO)
+	m.render_priority = int(d.get("prioridad", 2))
+	var gr: Gradient = (_pal["rampa"] as GradientTexture1D).gradient
+	m.set_shader_parameter("color", gr.sample(float(d.get("tono", 0.55))))
+	m.set_shader_parameter("color_filo", gr.sample(float(d.get("tono_filo", 0.85))))
+	m.set_shader_parameter("filo", float(d.get("filo", 0.35)))
+	m.set_shader_parameter("arcos", int(d.get("arcos", 0)))
+	m.set_shader_parameter("hueco", float(d.get("hueco", 0.35)))
+	m.set_shader_parameter("radio", 0.96)
+	m.set_shader_parameter("billboard", 0 if plano else 2)
+	m.set_shader_parameter("fade_canto", 0.25 if plano else 0.0)
+	m.set_shader_parameter("vida", 0.0)
+	var mi: MeshInstance3D = MeshInstance3D.new()
+	mi.name = "Aro_" + String(d.get("nombre", ""))
+	mi.mesh = q
+	mi.material_override = m
+	mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	mi.position = Vector3(0, (0.035 + 0.004 * i if plano else float(d.get("altura", 0.45)) * radio), 0)
+	mi.set_meta("t0", float(d.get("t0", 0.0)) + float(d.get("escalonado", 0.0)) * float(i))
+	mi.set_meta("vida", _rango(d.get("vida", 0.3), _rng))
+	mi.set_meta("tam_k", _rng.randf_range(0.85, 1.15) if int(d.get("n", 1)) > 1 else 1.0)
+	mi.set_meta("giro0", _rng.randf() * TAU)
+	mi.scale = Vector3.ZERO
+	_plano.add_child(mi)
+	return mi
+
+
+## DISTORSIÓN (calor.gdshader, máscara de anillo): una banda que deforma lo que hay detrás y se abre de tam[0] a tam[1] (m). Siempre billboard.
+func _montar_distorsion(d: Dictionary, i: int) -> MeshInstance3D:
+	var q: QuadMesh = QuadMesh.new()
+	q.size = Vector2.ONE
+	var m: ShaderMaterial = ShaderMaterial.new()
+	m.shader = load(SH_CALOR)
+	m.render_priority = -3                                   # antes que lo transparente: deforma el fondo, no las llamas
+	m.set_shader_parameter("mascara", 2)
+	m.set_shader_parameter("billboard", true)
+	m.set_shader_parameter("aro", 0.7)
+	m.set_shader_parameter("aro_ancho", float(d.get("ancho", 0.16)))
+	m.set_shader_parameter("fuerza", float(d.get("fuerza", 0.02)))
+	m.set_shader_parameter("intensidad", 0.0)
+	var mi: MeshInstance3D = MeshInstance3D.new()
+	mi.name = "Distorsion_" + String(d.get("nombre", ""))
+	mi.mesh = q
+	mi.material_override = m
+	mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	mi.position = Vector3(0, float(d.get("altura", 0.45)) * radio, 0)
+	mi.set_meta("t0", float(d.get("t0", 0.0)) + float(d.get("escalonado", 0.0)) * float(i))
+	mi.set_meta("vida", _rango(d.get("vida", 0.3), _rng))
+	mi.scale = Vector3.ZERO
+	_plano.add_child(mi)
+	return mi
+
+
 ## Partículas movidas por la CPU (fórmula cerrada, como ImpactoFuegoToy estilo C): salen de cerca del punto de impacto con una dirección del cono (o del anillo), se frenan con `roce`,
 ## caen con `g` (× gravedad, hacia abajo del MUNDO) y nunca bajan de la superficie ni del suelo.
 func _montar_particulas(c: Dictionary, d: Dictionary, pieza: String, n: int) -> void:
@@ -409,6 +479,19 @@ func avanzar_a(t: float) -> void:
 			"halo":
 				for h in c["nodos"]:
 					_animar_halo(h, d, t)
+			"aro":
+				for h in c["nodos"]:
+					_animar_aro(h, d, t)
+			"distorsion":
+				for h in c["nodos"]:
+					var ta_d: float = t - float(h.get_meta("t0"))
+					var vida_d: float = float(h.get_meta("vida"))
+					var tam_d: Array = d.get("tam", [0.4, 1.6])
+					var sz_d: float = lerpf(float(tam_d[0]), float(tam_d[1]), _curva(ta_d / vida_d, String(d.get("curva", "sal")))) * _k
+					(h as MeshInstance3D).scale = Vector3(sz_d, sz_d, 1.0)
+					(h as MeshInstance3D).visible = ta_d >= 0.0 and ta_d <= vida_d
+					((h as MeshInstance3D).material_override as ShaderMaterial).set_shader_parameter("intensidad",
+						_fundido(ta_d, vida_d, float(d.get("aparece", 0.03)), float(d.get("se_va", vida_d * 0.6))))
 			"chispas", "gotas", "piedras":
 				_animar_particulas(c, d, t, g)
 			"humo":
@@ -474,6 +557,23 @@ func _animar_halo(h: MeshInstance3D, d: Dictionary, t: float) -> void:
 	var sz: float = lerpf(float(tam[0]), float(tam[1]), _curva(u, String(d.get("curva", "sal")))) * _k * float(h.get_meta("tam_k"))
 	h.scale = Vector3(sz, sz, 1.0) if not bool(d.get("plano", false)) else Vector3(sz, 1.0, sz)
 	(h.material_override as ShaderMaterial).set_shader_parameter("brillo", float(d.get("brillo", 1.0)) * a)
+
+
+func _animar_aro(h: MeshInstance3D, d: Dictionary, t: float) -> void:
+	var ta: float = t - float(h.get_meta("t0"))
+	var vida: float = float(h.get_meta("vida"))
+	var u: float = clampf(ta / vida, 0.0, 1.0)
+	var a: float = _fundido(ta, vida, float(d.get("aparece", 0.0)), float(d.get("se_va", vida * 0.5)))
+	var tam: Array = d.get("tam", [0.2, 1.6])
+	var sz: float = lerpf(float(tam[0]), float(tam[1]), _curva(u, String(d.get("curva", "sal")))) * _k * float(h.get_meta("tam_k"))
+	h.scale = Vector3(sz, sz, 1.0) if not bool(d.get("plano", false)) else Vector3(sz, 1.0, sz)
+	h.visible = ta >= 0.0 and ta <= vida
+	var m: ShaderMaterial = h.material_override as ShaderMaterial
+	var gros: Array = d.get("grosor", [0.5, 0.06])
+	m.set_shader_parameter("grosor", lerpf(float(gros[0]), float(gros[1]), _curva(u, "sal")))
+	m.set_shader_parameter("brillo", float(d.get("brillo", 1.4)))
+	m.set_shader_parameter("vida", a)
+	m.set_shader_parameter("giro", float(h.get_meta("giro0")) + float(d.get("giro", 0.0)) * maxf(ta, 0.0))
 
 
 func _animar_particulas(c: Dictionary, d: Dictionary, t: float, g: Vector3) -> void:
