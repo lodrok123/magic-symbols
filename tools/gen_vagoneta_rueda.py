@@ -1,68 +1,82 @@
-"""Sintetiza audio/vagoneta_rueda_loop.wav (24/11/2026): la rodadura METÁLICA de la vagoneta sobre los raíles, en bucle sin costura.
-
-Pablo: «sonido metálico al circular». No hay en el proyecto una grabación de vagoneta: se construye con tres capas:
-  · retumbo: ruido grave filtrado (la caja de madera y el eje);
-  · roce de rueda contra raíl: parciales inarmónicos de metal (como una barra que vibra) excitados a cada vuelta de rueda, con su decaimiento;
-  · un leve chirrido agudo que sube y baja (la pestaña de la rueda contra el carril).
-Todo en 2,0 s exactos, con el ruido hecho periódico (se repite igual al final y al principio): el bucle no hace clic. El tono lo cambia el juego con la
-velocidad (Vagoneta3D). Uso (desde la raíz del repo):  python tools/gen_vagoneta_rueda.py
+"""Rodadura seca de vagoneta y roce continuo (25/11/2026).
+Pablo: «Traqueteo seco de ruedas y juntas, con roce continuo de fondo».
+Sin audio de YouTube: no se pudo escuchar la referencia. Síntesis propia,
+sin muestras. Bucle de 6 s y tres juntas cortas de 0,14 s. Requiere numpy.
+Uso: python tools/gen_vagoneta_rueda.py
 """
-import os
+from pathlib import Path
+import json
 import wave
 import numpy as np
-from scipy.signal import butter, sosfiltfilt
 
 SR = 44100
-DUR = 2.0
-N = int(SR * DUR)
-t = np.arange(N) / SR
-rng = np.random.default_rng(7)
+DUR = 6.0
+N = round(SR * DUR)
+RAIZ = Path(__file__).resolve().parents[1]
+rng = np.random.default_rng(25112026)
 
 
-def ruido_periodico(lo, hi):
-	"""Ruido de banda [lo, hi] Hz que encaja consigo mismo al repetirse (se filtra en el dominio de la frecuencia)."""
-	espectro = np.fft.rfft(rng.standard_normal(N))
-	f = np.fft.rfftfreq(N, 1 / SR)
-	espectro[(f < lo) | (f > hi)] = 0
-	r = np.fft.irfft(espectro, N)
-	return r / (np.abs(r).max() + 1e-9)
+def ruido_banda(n, lo, hi):
+    """Filtro suave de una señal periódica: no corta colas en la costura."""
+    f = np.fft.rfftfreq(n, 1 / SR)
+    mascara = (1 - np.exp(-(f / lo) ** 4)) * np.exp(-(f / hi) ** 4)
+    r = np.fft.irfft(np.fft.rfft(rng.standard_normal(n)) * mascara, n)
+    return r / max(float(np.sqrt(np.mean(r * r))), 1e-12)
 
 
-# 24/11, playtest de Pablo: «más metálico». Menos retumbo, metal más fuerte, más agudo y que resuena más, y más roce de rueda contra carril.
-# 1 · retumbo grave
-retumbo = ruido_periodico(40, 220) * 0.12
+def golpe(n, posicion, fuerza, cola):
+    # Cola corta sin osciladores afinados ni resonancia sostenida.
+    dt = np.mod(np.arange(n) / SR - posicion, n / SR)
+    envolvente = (1 - np.exp(-dt / 0.0007)) * np.exp(-dt / cola)
+    seco = ruido_banda(n, 260, 4200)
+    cuerpo = ruido_banda(n, 90, 700)
+    return fuerza * envolvente * (0.74 * seco + 0.26 * cuerpo)
 
-# 2 · golpes de rueda: una excitación por vuelta (6 por segundo = 12 en el bucle) que hace sonar parciales de metal
-vueltas = 12
-metal = np.zeros(N)
-parciales = [(612, 0.8, 5.0), (1180, 0.9, 6.0), (1733, 0.8, 7.0), (2650, 0.65, 8.0), (3910, 0.5, 10.0), (5240, 0.35, 12.0), (6870, 0.22, 15.0)]
-for k in range(vueltas):
-	t0 = k / vueltas * DUR + rng.uniform(-0.01, 0.01)
-	fuerza = rng.uniform(0.6, 1.0)
-	for reps in (0, 1):                                  # también la cola que da la vuelta al final del bucle
-		dt = (t - t0 + reps * DUR)
-		mask = dt >= 0
-		for fr, a, dec in parciales:
-			metal[mask] += fuerza * a * np.sin(2 * np.pi * fr * rng.uniform(0.985, 1.015) * dt[mask]) * np.exp(-dec * dt[mask])
-metal *= 0.55 / (np.abs(metal).max() + 1e-9)
 
-# 3 · chirrido de pestaña: un tono agudo que oscila suave (periódico en 2 s), con su armónico
-fase = 2 * np.pi * (2900 * t + 120 / (2 * np.pi * 0.5) * np.sin(2 * np.pi * 0.5 * t))
-chirrido = (np.sin(fase) + 0.4 * np.sin(2 * fase)) * (0.5 + 0.5 * np.sin(2 * np.pi * 1.0 * t)) ** 2
-chirrido *= 0.09
+def guardar(nombre, senal, pico):
+    senal = senal - np.mean(senal)
+    if '_loop' not in nombre:
+        # Quitar DC después del fundido desplaza los extremos: devolverlos a cero.
+        senal[0] = senal[-1] = 0.0
+    senal *= pico / max(float(np.max(np.abs(senal))), 1e-12)
+    ruta = RAIZ / 'audio' / nombre
+    pcm = np.round(np.clip(senal, -1, 1) * 32767).astype('<i2')
+    with wave.open(str(ruta), 'wb') as w:
+        w.setnchannels(1)
+        w.setsampwidth(2)
+        w.setframerate(SR)
+        w.writeframes(pcm.tobytes())
+    return {'archivo': nombre, 'segundos': len(senal) / SR,
+            'pico_dbfs': float(20 * np.log10(np.max(np.abs(senal)))),
+            'rms_dbfs': float(20 * np.log10(np.sqrt(np.mean(senal ** 2)))),
+            'salto_costura': float(abs(senal[0] - senal[-1]))}
 
-# 4 · roce de hierro contra hierro: ruido agudo pegado al metal
-roce = ruido_periodico(2500, 8000) * 0.12
 
-senal = retumbo + metal + chirrido + roce
-sos = butter(2, 12000, "low", fs=SR, output="sos")
-senal = sosfiltfilt(sos, np.concatenate([senal, senal, senal]))[N:2 * N]   # filtrado circular: sin costura
-senal = senal / (np.abs(senal).max() + 1e-9) * 0.8
+def main():
+    t = np.arange(N) / SR
+    # Roce ancho y cuerpo discreto: no hay silbido agudo constante.
+    variacion = 0.88 + 0.08 * np.sin(2 * np.pi * t / DUR * 5)
+    roce = ruido_banda(N, 320, 3400) * 0.018 * variacion
+    cuerpo = ruido_banda(N, 55, 280) * 0.010
+    traqueteo = np.zeros(N)
+    # Pares de holgura de ruedas/ejes, NO otras juntas de vía.
+    # Las juntas se disparan en el juego al cruzar una casilla.
+    for k in range(12):
+        inicio = k * DUR / 12 + rng.uniform(-0.035, 0.035)
+        fuerza = rng.uniform(0.12, 0.20)
+        traqueteo += golpe(N, inicio, fuerza, rng.uniform(0.009, 0.017))
+        traqueteo += golpe(N, inicio + rng.uniform(0.075, 0.11), fuerza * 0.62, 0.009)
+    datos = [guardar('vagoneta_rueda_loop.wav', roce + cuerpo + traqueteo, 0.65)]
+    for i in range(3):
+        n = round(SR * 0.14)
+        senal = golpe(n, 0.004, 1.0, 0.012 + i * 0.002)
+        senal += golpe(n, 0.047 + i * 0.004, 0.45, 0.008)
+        # Estos one-shots no vuelven sobre sí mismos: extremos suaves.
+        fade = np.minimum(1, np.arange(n) / (SR * 0.002))
+        fade *= np.minimum(1, np.arange(n)[::-1] / (SR * 0.014))
+        datos.append(guardar(f'vagoneta_junta_{i}.wav', senal * fade, 0.62))
+    print(json.dumps(datos, indent=2, ensure_ascii=False))
 
-ruta = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "audio", "vagoneta_rueda_loop.wav")
-with wave.open(ruta, "wb") as w:
-	w.setnchannels(1)
-	w.setsampwidth(2)
-	w.setframerate(SR)
-	w.writeframes((senal * 32767).astype(np.int16).tobytes())
-print("escrito", ruta, "%.2f s" % DUR, "salto en la costura: %.4f" % abs(senal[0] - senal[-1]))
+
+if __name__ == '__main__':
+    main()

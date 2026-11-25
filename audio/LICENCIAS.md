@@ -69,10 +69,12 @@ con `Sfx.GRABADOS = false` suena ése).
 | `fs_pluma_pergamino.mp3` | `pluma_pergamino_brktkrgll.mp3` (Freesound 856167, previsualización HQ) | brktkrgll · https://freesound.org/people/brktkrgll/sounds/856167/ |
 | `fs_paginas_bucle.mp3` | `paginas_P_Chester.mp3` (Freesound 465260, previsualización HQ) | P_Chester · https://freesound.org/people/P_Chester/sounds/465260/ |
 
-## Sintetizado — `tools/gen_vagoneta_rueda.py` (24/11/2026)
+## Sintetizado — `tools/gen_vagoneta_rueda.py` (25/11/2026)
 
-`vagoneta_rueda_loop.wav`: la rodadura metálica de la vagoneta sobre los raíles (retumbo, parciales de metal a cada vuelta de rueda y chirrido de
-pestaña), en bucle de 2 s sin costura. Por código, sin muestras: no hay licencia que atribuir. Semilla fija.
+`vagoneta_rueda_loop.wav`: traqueteo seco de ruedas/ejes y roce continuo de fondo, en bucle periódico de 6 s.
+`vagoneta_junta_0..2.wav`: tres golpes cortos y secos de junta de raíl (0,14 s). Sustituyen en esa función los impactos Kenney de cola más larga.
+Síntesis por ruido filtrado y envolventes cortas, sin grabaciones ni audio extraído de YouTube: no hay licencia de muestras que atribuir.
+Semilla fija; requiere numpy, sin scipy. La versión del 24/11 usaba parciales resonantes y un chirrido tonal.
 
 ## Sintetizados — `tools/gen_sonidos_ambiente.py`
 

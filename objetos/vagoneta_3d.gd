@@ -212,17 +212,17 @@ func _animar(delta: float) -> void:
 			_angulo_ruedas -= paso.dot(eje) / maxf(_radio_rueda, 0.01)
 			for piv in _ruedas:
 				(piv as Node3D).rotation.z = _angulo_ruedas
-	# Sonido: la rodadura metálica en bucle mientras se mueve, con el tono y el volumen de la velocidad; un chirrido al cambiar de dirección (curva o arranque).
+	# 25/11 (Pablo): traqueteo seco con roce por debajo. Arrancar no chirría;
+	# el chirrido se reserva a las curvas y no domina la rodadura en recta.
 	if vel > VEL_SONIDO_MIN:
 		_t_quieta = 0.0
 		if _rodadura == null or not is_instance_valid(_rodadura):
 			_rodadura = Sfx3D.ambiente(self, "vagoneta_rueda")
-			Sfx3D.play(self, "vagoneta_chirrido", -4.0)
 		if _rodadura != null and is_instance_valid(_rodadura):
-			_rodadura.pitch_scale = clampf(0.7 + vel * 0.12, 0.7, 1.9)
-			_rodadura.volume_db = float(Sfx3D.AMBIENTES["vagoneta_rueda"]["db"]) + clampf(linear_to_db(clampf(vel / 3.0, 0.25, 1.0)), -12.0, 0.0)
+			_rodadura.pitch_scale = clampf(0.55 + vel * 0.45, 0.55, 1.5)
+			_rodadura.volume_db = float(Sfx.AJUSTES.get("vagoneta_rueda", Sfx3D.AMBIENTES["vagoneta_rueda"]["db"])) + linear_to_db(clampf(vel / VEL_EMPUJE, 0.25, 1.0))
 		if moviendo and _dir_antes != Vector2i.ZERO and _dir != _dir_antes:
-			Sfx3D.play(self, "vagoneta_chirrido")
+			Sfx3D.play(self, "vagoneta_chirrido", -6.0)
 	else:
 		_t_quieta += delta
 		if _t_quieta > 0.12 and _rodadura != null:
