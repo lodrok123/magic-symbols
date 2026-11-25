@@ -3,6 +3,8 @@ extends "res://herramientas/escenario_base.gd"
 ## mientras carga, la flecha de veneno en vuelo con su estela y la estela que se apaga al llegar. Para MIRARLO, no es una prueba.
 ## NECESITA VENTANA:   godot --path . --resolution 1280x720 --fixed-fps 30 --script res://herramientas/captura_chaman_llama.gd -- [carpeta]
 ## Salida por defecto en res://output/chaman_llama_2026-11-25/llama_*.png
+## Con este script se encontró (25/11) la bola blanca que salía al disparar: NaN en la cola de EstelaFlecha3D (pow de un negativo), que el glow pintaba como un disco blanco.
+## Truco que sirvió para dar con ella: congelar el árbol (`paused`), esconder mitades de lo visible y mirar el píxel con get_image().get_pixel() hasta que queda un nodo.
 
 var _dir: String = "res://output/chaman_llama_2026-11-25"
 var _cam: Camera3D = null
@@ -51,9 +53,6 @@ func _escenario() -> void:
 			hechas["carga"] = true
 			for k in 4:
 				await avanzar_s(0.1)
-				var ll: Node3D = _ch.llama_baston
-				print("carga %d: chamán %s · llama %s · dentro del árbol %s" % [k, _ch.global_position, ll.global_position if ll != null and is_instance_valid(ll) else "—",
-					ll.is_inside_tree() if ll != null and is_instance_valid(ll) else false])
 				await _foto("1_carga_baston_%d" % k)
 		var f: Node3D = _ch.ultima_flecha
 		if f != null and is_instance_valid(f) and not hechas.has("vuelo"):
@@ -61,6 +60,8 @@ func _escenario() -> void:
 			hechas["vuelo"] = true
 			if is_instance_valid(f):
 				await _foto("2_flecha_en_vuelo")
+				var c: Color = root.get_viewport().get_texture().get_image().get_pixel(885, 340)
+				print("píxel de la cola de la estela (885, 340): %s %s" % [c, "← BLANCO: ¿NaN otra vez?" if c.r > 0.9 and c.g > 0.9 and c.b > 0.9 else "(bien)"])
 		elif hechas.has("vuelo") and not hechas.has("apagandose") and (f == null or not is_instance_valid(f)):
 			await avanzar_s(0.1)
 			hechas["apagandose"] = true

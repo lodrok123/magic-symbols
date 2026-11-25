@@ -18,7 +18,7 @@ uniform vec4 color : source_color = vec4(0.9, 0.93, 1.0, 1.0);
 uniform float alfa = 0.7;
 void fragment() {
 	float lado = 1.0 - smoothstep(0.15, 1.0, abs(UV.x * 2.0 - 1.0));
-	float cola = pow(1.0 - UV.y, 1.6);
+	float cola = pow(max(1.0 - UV.y, 0.0), 1.6);   // 25/11: con UV.y un pelo por encima de 1, pow() de un negativo daba NaN y el glow lo pintaba como una bola blanca enorme en la cola
 	ALBEDO = color.rgb;
 	ALPHA = lado * cola * alfa;
 }
