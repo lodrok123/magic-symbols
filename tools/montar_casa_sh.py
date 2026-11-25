@@ -10,11 +10,20 @@ Uso (no modifica el .blend: trabaja en memoria y no guarda):
   "C:\\Program Files\\Blender Foundation\\Blender 5.2\\blender.exe" -b "C:\\Users\\pablo\\Downloads\\SH assets.blend" --python E:\\magic-symbols\\tools\\montar_casa_sh.py -- E:\\magic-symbols\\arte\\sh_assets\\casa_sh_sin_optimizar.glb
 
 Planta: 8 × 4 m (Blender: X ancho, Y fondo, la fachada mira a -Y), muros de 4 m, tejado a dos aguas de tejas sueltas.
+
+Opciones de OPTIMIZACIÓN (después de la ruta de salida):
+  --diezmar 0.5   cada pieza pasa por un Decimate (colapso) que deja esa fracción de triángulos (0.5 = la mitad)
+  --unir          al final se unen todas las piezas en UN objeto (una superficie por material)
+Ejemplo de la casa optimizada:  ... -- E:\\magic-symbols\\arte\\sh_assets\\casa_sh_d50_unida.glb --diezmar 0.5 --unir
 """
 import bpy, sys, math, os, json
 from mathutils import Vector, Matrix
 
-SALIDA = sys.argv[sys.argv.index("--") + 1]
+ARGS = sys.argv[sys.argv.index("--") + 1:]
+SALIDA = ARGS[0]
+DIEZMAR = float(ARGS[ARGS.index("--diezmar") + 1]) if "--diezmar" in ARGS else 1.0
+UNIR = "--unir" in ARGS
+MIN_TRIS_DIEZMAR = 64     # las piezas más pequeñas que esto se dejan como están (no ganan nada y se deforman)
 os.makedirs(os.path.dirname(SALIDA), exist_ok=True)
 D = bpy.data
 CASA = D.collections.new("CASA_PRUEBA")
@@ -36,8 +45,29 @@ def _congelar(o):
     """Malla del objeto con modificadores, lattices y curvas ya aplicados, evaluada en su sitio original."""
     if o.name not in _congeladas:
         dg = bpy.context.evaluated_depsgraph_get()
-        _congeladas[o.name] = D.meshes.new_from_object(o.evaluated_get(dg), preserve_all_data_layers=True, depsgraph=dg)
+        me = D.meshes.new_from_object(o.evaluated_get(dg), preserve_all_data_layers=True, depsgraph=dg)
+        if DIEZMAR < 1.0:
+            me = _diezmar(me)
+        _congeladas[o.name] = me
     return _congeladas[o.name]
+
+
+def _diezmar(me):
+    """Decimate por colapso sobre una malla suelta: devuelve una malla nueva con DIEZMAR de sus triángulos."""
+    me.calc_loop_triangles()
+    if len(me.loop_triangles) < MIN_TRIS_DIEZMAR:
+        return me
+    tmp = D.objects.new("_diezmar", me)
+    CASA.objects.link(tmp)
+    mod = tmp.modifiers.new("d", "DECIMATE")
+    mod.decimate_type = "COLLAPSE"
+    mod.ratio = DIEZMAR
+    mod.use_collapse_triangulate = True
+    bpy.context.view_layer.update()
+    dg = bpy.context.evaluated_depsgraph_get()
+    nueva = D.meshes.new_from_object(tmp.evaluated_get(dg), preserve_all_data_layers=True, depsgraph=dg)
+    D.objects.remove(tmp)
+    return nueva
 
 
 def _copiar(objs):
@@ -185,7 +215,26 @@ for m in usados:
     if m.name.startswith("Metal"):
         bsdf.inputs["Metallic"].default_value = 0.6
 
+# --- unir (opcional): todas las piezas en un solo objeto; Blender agrupa las caras por material
+if UNIR:
+    bpy.context.view_layer.update()
+    mallas_casa = [o for o in CASA.objects if o.type == "MESH"]
+    for o in mallas_casa:
+        mw = o.matrix_world.copy()
+        o.parent = None
+        o.matrix_world = mw
+    for o in [o for o in CASA.objects if o.type == "EMPTY"]:
+        D.objects.remove(o)
+    bpy.ops.object.select_all(action="DESELECT")
+    for o in mallas_casa:
+        o.select_set(True)
+    bpy.context.view_layer.objects.active = mallas_casa[0]
+    bpy.ops.object.join()
+    unida = bpy.context.view_layer.objects.active
+    unida.name = "casa_sh"
+
 # --- exportar solo la casa (los lattices y curvas no se exportan; sus deformaciones van aplicadas)
+nuevos = [o for o in CASA.objects]
 bpy.ops.object.select_all(action="DESELECT")
 for o in nuevos:
     o.select_set(True)
@@ -205,7 +254,8 @@ for o in nuevos:
         mallas += 1
         o.evaluated_get(dg).to_mesh_clear()
 mats = len({s.material.name for o in nuevos for s in getattr(o, "material_slots", []) if s.material})
-inf = {"triangulos": tris, "objetos_con_malla": mallas, "materiales": mats, "glb": SALIDA}
+inf = {"triangulos": tris, "objetos_con_malla": mallas, "materiales": mats, "diezmar": DIEZMAR, "unida": UNIR,
+       "glb": SALIDA, "mb": round(os.path.getsize(SALIDA) / 1048576, 1)}
 with open(os.path.splitext(SALIDA)[0] + ".json", "w", encoding="utf-8") as f:
     json.dump(inf, f, ensure_ascii=False, indent=1)
 print("CASA", inf)

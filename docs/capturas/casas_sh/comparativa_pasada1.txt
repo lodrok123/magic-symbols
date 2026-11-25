@@ -1,0 +1,38 @@
+CASAS SH: COMPARATIVA DE VARIANTES · 2026-11-25T19:01:07 · NVIDIA GeForce RTX 3070 · ventana (1152.0, 648.0) · forward_plus
+
+variante | carga ms
+sin optimizar | 206
+diezmada 50% | 137
+diezmada 50% + unida | 227
+
+variante | casas | vista | LOD | FPS medio | ms medio | ms p95 | llamadas | triángulos dibujados | objetos | VRAM MB
+sin optimizar | 1 | juego | sí | 164.6 | 6.07 | 10.91 | 592 | 925673 | 1250 | 468
+sin optimizar | 1 | juego | no | 213.5 | 4.68 | 9.79 | 592 | 3776144 | 1252 | 468
+sin optimizar | 9 | juego | sí | 412.3 | 2.43 | 5.68 | 805 | 1506847 | 2491 | 468
+sin optimizar | 9 | juego | no | 215.8 | 4.63 | 7.20 | 801 | 8965488 | 2491 | 468
+sin optimizar | 9 | todas | sí | 289.0 | 3.46 | 5.07 | 1109 | 1280496 | 7726 | 468
+sin optimizar | 9 | todas | no | 85.6 | 11.69 | 12.74 | 1109 | 31255688 | 7726 | 468
+sin optimizar | 25 | juego | sí | 354.2 | 2.82 | 4.14 | 1042 | 1525030 | 3156 | 468
+sin optimizar | 25 | juego | no | 183.9 | 5.44 | 7.82 | 1037 | 11759539 | 3158 | 468
+sin optimizar | 25 | todas | sí | 106.7 | 9.37 | 18.32 | 2137 | 2423487 | 24389 | 476
+sin optimizar | 25 | todas | no | 23.5 | 42.55 | 46.88 | 2137 | 102401560 | 24393 | 476
+diezmada 50% | 1 | juego | sí | 406.8 | 2.46 | 4.52 | 592 | 1051651 | 1250 | 476
+diezmada 50% | 1 | juego | no | 333.0 | 3.00 | 6.07 | 592 | 2098782 | 1250 | 476
+diezmada 50% | 9 | juego | sí | 268.3 | 3.73 | 8.31 | 801 | 1920474 | 2489 | 476
+diezmada 50% | 9 | juego | no | 192.9 | 5.18 | 8.78 | 801 | 4692983 | 2489 | 476
+diezmada 50% | 9 | todas | sí | 157.2 | 6.36 | 11.49 | 1109 | 4157138 | 7724 | 476
+diezmada 50% | 9 | todas | no | 59.3 | 16.86 | 24.56 | 1109 | 15836002 | 7724 | 476
+diezmada 50% | 25 | juego | sí | 288.9 | 3.46 | 7.09 | 1037 | 2124885 | 3154 | 476
+diezmada 50% | 25 | juego | no | 204.8 | 4.88 | 7.80 | 1037 | 6089758 | 3154 | 476
+diezmada 50% | 25 | todas | sí | 166.3 | 6.01 | 8.70 | 2137 | 11093290 | 24391 | 476
+diezmada 50% | 25 | todas | no | 37.8 | 26.45 | 28.00 | 2137 | 51402412 | 24389 | 476
+diezmada 50% + unida | 1 | juego | sí | 474.9 | 2.11 | 2.76 | 108 | 1100388 | 520 | 476
+diezmada 50% + unida | 1 | juego | no | 403.7 | 2.48 | 3.50 | 108 | 2098802 | 520 | 476
+diezmada 50% + unida | 9 | juego | sí | 136.1 | 7.35 | 8.43 | 152 | 8147126 | 856 | 476
+diezmada 50% + unida | 9 | juego | no | 97.1 | 10.30 | 11.17 | 150 | 15512738 | 856 | 476
+diezmada 50% + unida | 9 | todas | sí | 151.0 | 6.62 | 7.61 | 192 | 7367696 | 918 | 476
+diezmada 50% + unida | 9 | todas | no | 89.3 | 11.20 | 12.41 | 192 | 18027851 | 919 | 476
+diezmada 50% + unida | 25 | juego | sí | 127.7 | 7.83 | 9.29 | 173 | 8609136 | 921 | 476
+diezmada 50% + unida | 25 | juego | no | 79.9 | 12.51 | 15.23 | 171 | 18027855 | 921 | 476
+diezmada 50% + unida | 25 | todas | sí | 54.5 | 18.34 | 21.18 | 255 | 20384477 | 1847 | 476
+diezmada 50% + unida | 25 | todas | no | 29.6 | 33.81 | 40.36 | 255 | 54916183 | 1847 | 476

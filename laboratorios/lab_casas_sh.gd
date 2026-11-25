@@ -4,13 +4,20 @@ extends Node3D
 ## Carga `arte/sh_assets/casa_sh_sin_optimizar.glb` (una casa montada con las piezas del pack TAL CUAL: 1,68 M triángulos,
 ## 391 objetos, 21 materiales; la genera tools/montar_casa_sh.py) y la repite en rejilla para ver cuánto cuesta.
 ## Luz, entorno, cámara (ortogonal a 30° sobre el suelo, tamaño 6) y materiales (Ocluso3D) como en el juego.
-## Teclas:  1-6 número de casas (0 · 1 · 4 · 9 · 16 · 25) · V vista del juego / todas las casas a la vista
+## Variantes (tecla T): sin optimizar · diezmada al 50 % (piezas sueltas) · diezmada al 50 % y unida en un objeto.
+## Teclas:  1-6 número de casas (0 · 1 · 4 · 9 · 16 · 25) · T variante · V vista del juego / todas las casas a la vista
 ##          L LOD automático de Godot sí/no · O sombras del sol sí/no · flechas/WASD mover · rueda o +/- zoom
-## Medición automática (necesita ventana; escribe docs/capturas/casas_sh/informe.txt y una captura por caso, y se cierra):
+## Medición automática de las 3 variantes (necesita ventana; escribe docs/capturas/casas_sh/comparativa.txt y una captura
+## de cada variante, y se cierra):
 ##   Godot --path E:\magic-symbols res://laboratorios/LabCasasSH.tscn -- --medir
 ## Los números dependen de la máquina: sirven para comparar en la MISMA máquina.
 
-const RUTA_CASA: String = "res://arte/sh_assets/casa_sh_sin_optimizar.glb"
+const VARIANTES: Array = [
+	["sin optimizar", "res://arte/sh_assets/casa_sh_sin_optimizar.glb"],
+	["diezmada 50%", "res://arte/sh_assets/casa_sh_d50.glb"],
+	["diezmada 50% + unida", "res://arte/sh_assets/casa_sh_d50_unida.glb"],
+]
+const CANTIDADES_MEDIR: Array = [1, 9, 25]
 const ESCALA: float = 0.68            ## la misma que se usó con Lost Cave (un carro de 1,8 m queda en 1,22 u)
 const SEPARACION: float = 9.0         ## u entre centros de casa (la casa mide unos 5,4 × 2,7 u en planta)
 const CANTIDADES: Array = [0, 1, 4, 9, 16, 25]
@@ -20,6 +27,8 @@ const LUZ_SOL: float = 1.0
 const CARPETA_INFORME: String = "res://docs/capturas/casas_sh/"
 
 var _casa: PackedScene
+var _variante: int = 0
+var _escenas: Dictionary = {}         ## variante -> PackedScene ya cargada
 var _cam: Camera3D
 var _sol: DirectionalLight3D
 var _hud: Label
@@ -52,11 +61,12 @@ func _ready() -> void:
 	_casas = Node3D.new()
 	_casas.name = "Casas"
 	add_child(_casas)
-	if not ResourceLoader.exists(RUTA_CASA):
-		_hud.text = "Falta %s\nGenérala con tools/montar_casa_sh.py (ver arte/sh_assets/LEEME.md)" % RUTA_CASA
-		push_warning(_hud.text)
-		return
-	_casa = load(RUTA_CASA) as PackedScene
+	for v in VARIANTES:
+		if not ResourceLoader.exists(String(v[1])):
+			_hud.text = "Falta %s\nGenérala con tools/montar_casa_sh.py (ver arte/sh_assets/LEEME.md)" % v[1]
+			push_warning(_hud.text)
+			return
+	_cargar_variante(0)
 	_poner_casas(1)
 	if "--medir" in OS.get_cmdline_user_args():
 		_medir.call_deferred()
@@ -91,6 +101,18 @@ func _montar_luz() -> void:
 	sm.roughness = 1.0
 	suelo.material_override = Ocluso3D.convertir(sm)
 	add_child(suelo)
+
+
+## Carga la variante (la primera vez) y devuelve cuántos ms tardó en cargar; 0 si ya estaba cargada.
+func _cargar_variante(v: int) -> float:
+	_variante = v
+	var ms: float = 0.0
+	if not _escenas.has(v):
+		var t0: int = Time.get_ticks_usec()
+		_escenas[v] = ResourceLoader.load(String(VARIANTES[v][1]), "", ResourceLoader.CACHE_MODE_IGNORE) as PackedScene   # carga real, sin caché
+		ms = float(Time.get_ticks_usec() - t0) / 1000.0
+	_casa = _escenas[v]
+	return ms
 
 
 ## Rejilla de n casas centrada en el origen, con la jugadora delante de la casa central como referencia de tamaño.
@@ -170,6 +192,9 @@ func _unhandled_input(ev: InputEvent) -> void:
 		match ev.keycode:
 			KEY_1, KEY_2, KEY_3, KEY_4, KEY_5, KEY_6:
 				_poner_casas(int(CANTIDADES[ev.keycode - KEY_1]))
+			KEY_T:
+				_cargar_variante((_variante + 1) % VARIANTES.size())
+				_poner_casas(_n)
 			KEY_V:
 				_vista_todas = not _vista_todas
 				_ajustar_vista()
@@ -187,14 +212,14 @@ func _actualizar_hud() -> void:
 	if _casa == null:
 		return
 	var mb: float = 1024.0 * 1024.0
-	_hud.text = "Casas SH SIN OPTIMIZAR · %d casa(s) · vista %s · LOD %s · sombras %s\n" % [_n, "todas" if _vista_todas else "juego",
+	_hud.text = "Casas SH: %s · %d casa(s) · vista %s · LOD %s · sombras %s\n" % [String(VARIANTES[_variante][0]).to_upper(), _n, "todas" if _vista_todas else "juego",
 		"sí" if get_viewport().mesh_lod_threshold > 0.0 else "NO", "sí" if _sol.shadow_enabled else "no"] + \
 		"FPS %d · llamadas de dibujo %d · triángulos dibujados %d · objetos %d · VRAM %.0f MB\n" % [Engine.get_frames_per_second(),
 		RenderingServer.get_rendering_info(RenderingServer.RENDERING_INFO_TOTAL_DRAW_CALLS_IN_FRAME),
 		RenderingServer.get_rendering_info(RenderingServer.RENDERING_INFO_TOTAL_PRIMITIVES_IN_FRAME),
 		RenderingServer.get_rendering_info(RenderingServer.RENDERING_INFO_TOTAL_OBJECTS_IN_FRAME),
 		RenderingServer.get_rendering_info(RenderingServer.RENDERING_INFO_VIDEO_MEM_USED) / mb] + \
-		"1-6 casas (0/1/4/9/16/25) · V vista · L LOD · O sombras · WASD mover · rueda zoom"
+		"1-6 casas (0/1/4/9/16/25) · T variante · V vista · L LOD · O sombras · WASD mover · rueda zoom"
 
 
 # ---------------------------------------------------------------- medición automática
@@ -209,33 +234,44 @@ func _medir() -> void:
 		gi.close()
 	var lineas: PackedStringArray = []
 	var vp: Viewport = get_viewport()
-	lineas.append("CASAS SH SIN OPTIMIZAR · %s · %s · ventana %s · %s" % [Time.get_datetime_string_from_system(), RenderingServer.get_video_adapter_name(),
-		str(vp.get_visible_rect().size), RenderingServer.get_current_rendering_method()])
-	lineas.append("casas | vista | LOD | FPS medio | ms medio | ms p95 | llamadas | triángulos dibujados | objetos | VRAM MB")
+	lineas.append("CASAS SH: COMPARATIVA DE VARIANTES · %s · %s · ventana %s · %s" % [Time.get_datetime_string_from_system(),
+		RenderingServer.get_video_adapter_name(), str(vp.get_visible_rect().size), RenderingServer.get_current_rendering_method()])
 	print(lineas[0])
-	print(lineas[1])
-	for n in CANTIDADES:
-		_poner_casas(int(n))
-		for vista in [false, true]:
-			if int(n) <= 1 and vista:
-				continue          # con 0 o 1 casa las dos vistas son casi la misma
-			_vista_todas = vista
-			_ajustar_vista()
-			for lod in [true, false]:
-				vp.mesh_lod_threshold = 1.0 if lod else 0.0
-				await _esperar(1.2)
-				var r: Array = await _tomar(3.0)
-				var fila: String = "%d | %s | %s | %.1f | %.2f | %.2f | %d | %d | %d | %.0f" % [n, "todas" if vista else "juego", "sí" if lod else "no",
-					r[0], r[1], r[2], r[3], r[4], r[5], r[6]]
-				lineas.append(fila)
-				print(fila)
-				if lod:
-					vp.get_texture().get_image().save_png(ProjectSettings.globalize_path(CARPETA_INFORME + "casas_%02d_%s.png" % [n, "todas" if vista else "juego"]))
-	var f := FileAccess.open(CARPETA_INFORME + "informe.txt", FileAccess.WRITE)
+	# 1 · carga: ms que tarda load() la primera vez (el .glb ya importado por Godot)
+	lineas.append("")
+	lineas.append("variante | carga ms")
+	for v in range(VARIANTES.size()):
+		_escenas.erase(v)
+		var ms: float = _cargar_variante(v)
+		lineas.append("%s | %.0f" % [VARIANTES[v][0], ms])
+		print(lineas[-1])
+	# 2 · rendimiento
+	lineas.append("")
+	lineas.append("variante | casas | vista | LOD | FPS medio | ms medio | ms p95 | llamadas | triángulos dibujados | objetos | VRAM MB")
+	for v in range(VARIANTES.size()):
+		_cargar_variante(v)
+		for n in CANTIDADES_MEDIR:
+			_poner_casas(int(n))
+			for vista in [false, true]:
+				if int(n) <= 1 and vista:
+					continue          # con 1 casa las dos vistas son casi la misma
+				_vista_todas = vista
+				_ajustar_vista()
+				for lod in [true, false]:
+					vp.mesh_lod_threshold = 1.0 if lod else 0.0
+					await _esperar(1.2)
+					var r: Array = await _tomar(3.0)
+					var fila: String = "%s | %d | %s | %s | %.1f | %.2f | %.2f | %d | %d | %d | %.0f" % [VARIANTES[v][0], n, "todas" if vista else "juego",
+						"sí" if lod else "no", r[0], r[1], r[2], r[3], r[4], r[5], r[6]]
+					lineas.append(fila)
+					print(fila)
+					if lod and int(n) == 1:
+						vp.get_texture().get_image().save_png(ProjectSettings.globalize_path(CARPETA_INFORME + "variante_%d_1casa.png" % v))
+	var f := FileAccess.open(CARPETA_INFORME + "comparativa.txt", FileAccess.WRITE)
 	if f != null:
 		f.store_string("\n".join(lineas) + "\n")
 		f.close()
-	print("informe: " + ProjectSettings.globalize_path(CARPETA_INFORME + "informe.txt"))
+	print("informe: " + ProjectSettings.globalize_path(CARPETA_INFORME + "comparativa.txt"))
 	get_tree().quit()
 
 

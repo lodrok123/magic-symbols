@@ -8,11 +8,17 @@ El inventario completo está en `C:\Users\pablo\Documents\magic-symbols\INVENTAR
 ## Qué hay aquí (fuera de git)
 - `casa_sh_sin_optimizar.glb`: una casa montada con las piezas del pack **tal cual** (1,68 M triángulos, 391 objetos, 21 materiales).
   Los materiales procedurales del pack se sustituyen por un color plano con el mismo nombre.
-- `casa_sh_sin_optimizar.json`: sus cifras.
+- `casa_sh_d50.glb`: la misma casa con un Decimate al 50 % en cada pieza (838 k triángulos, 391 objetos).
+- `casa_sh_d50_unida.glb`: diezmada al 50 % y unida en UN objeto (838 k triángulos, 1 objeto, 21 superficies).
+- `*.json`: las cifras de cada una.
+
+Comparativa medida (25/11/2026, RTX 3070): `docs/capturas/casas_sh/comparativa_pasada1.txt` y `_pasada2.txt`.
 
 ## Regenerar
 ```
 "C:\Program Files\Blender Foundation\Blender 5.2\blender.exe" -b "C:\Users\pablo\Downloads\SH assets.blend" --python E:\magic-symbols\tools\montar_casa_sh.py -- E:\magic-symbols\arte\sh_assets\casa_sh_sin_optimizar.glb
+"C:\Program Files\Blender Foundation\Blender 5.2\blender.exe" -b "C:\Users\pablo\Downloads\SH assets.blend" --python E:\magic-symbols\tools\montar_casa_sh.py -- E:\magic-symbols\arte\sh_assets\casa_sh_d50.glb --diezmar 0.5
+"C:\Program Files\Blender Foundation\Blender 5.2\blender.exe" -b "C:\Users\pablo\Downloads\SH assets.blend" --python E:\magic-symbols\tools\montar_casa_sh.py -- E:\magic-symbols\arte\sh_assets\casa_sh_d50_unida.glb --diezmar 0.5 --unir
 E:\magic-symbols\tools\Godot_v4.7.2-stable_win64.exe --headless --path E:\magic-symbols --import
 ```
 
