@@ -97,6 +97,8 @@ Cómo estaban nuestras bolas con la cámara del juego (`docs/capturas/estela_mun
 
 **Bola de fuego oficial** (25/11, Pablo: «integra la bola como la versión oficial»): FuegoToy BOLA del juego (r 0,12) con la estela encendida y sin trocitos en vuelo. En el lab, **F4** = la bola del juego con su ciclo entero (carga → suelta → vuelo con estela → pared), del elemento de **Z**.
 
+**Revisión de agua y tierra** (25/11, Pablo: «mira el resto, agua y piedra»): el agua dejaba nubes blancas de algodón (el agua en el aire no hace espuma) y la tierra una cadena de polvo tan gruesa como la roca, encima de los terrones que ya trae TierraToy. Ahora el agua deja un rocío de gotas que caen en arco con un vaho azulado pequeño junto a la bola, y la tierra un polvo fino y espaciado con más granitos (`agua_cerca_antes/despues.png`, `tierra_cerca_antes/despues.png`; arriba de lado, abajo con la cámara del juego; izquierda sin estela, derecha con ella).
+
 ## Cómo verlo
 
 `LabVfxComparativa3D` → **Ctrl+4** pone la comparativa (izquierda lo de ahora, derecha lo traducido, se repite solo) · **Ctrl+5** par siguiente (Mayús: anterior) · **Ctrl+6** vista juego / cerca / solo traducido · **Ctrl+7** cámara lenta ×0,25 · **Ctrl+4** sale.

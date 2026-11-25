@@ -21,6 +21,8 @@ const GRAVEDAD: float = 9.8
 ## Interruptor global (lo de serie del juego; el lab lo alterna con Ctrl+8 para comparar). Encendida de serie desde el 25/11/2026 (Pablo: «Sí, enciende la estela»).
 static var activa: bool = true
 
+## 25/11 (Pablo: «mira el resto, agua y piedra»): el agua dejaba nubes blancas de algodón y la tierra una cadena de polvo tan gruesa como la roca, encima de los terrones que ya trae
+## TierraToy. Ahora: agua = vaho azulado pequeño y corto (cáusticas → somero, nada de blanco espuma) y MÁS gotas; tierra = polvo fino y espaciado y más granitos.
 ## Receta por elemento (tamaños en m para una bola de RADIO_REF). Escalan con K_TAM(radio): la raíz de radio / RADIO_REF, con suelo 0,6 (la bola del juego mide 0,12 m de radio y
 ## a escala lineal la estela quedaba de pocos centímetros, invisible con la cámara del juego; en Effekseer la estela es más ancha que la bola).
 ##   paso: m recorridos entre bocanada y bocanada · vida: s de cada bocanada · tam: [al nacer, al morir] (diámetro) · deriva: m/s (subir el humo, caer el polvo)
@@ -28,10 +30,10 @@ static var activa: bool = true
 const RECETAS: Dictionary = {
 	"fuego": {"paso": 0.055, "vida": [0.12, 0.3], "tam": [0.4, 0.06], "deriva": 0.35, "disperso": 0.035, "abre": 0.55, "n": 64,
 		"motas": 0.45, "n_motas": 40, "vida_mota": [0.3, 0.6], "vel_mota": [0.5, 1.4], "g_mota": -0.08},
-	"agua": {"paso": 0.1, "vida": [0.25, 0.45], "tam": [0.55, 0.15], "deriva": 0.1, "disperso": 0.07, "n": 40,
-		"motas": 0.9, "n_motas": 44, "vida_mota": [0.3, 0.55], "vel_mota": [0.4, 1.2], "g_mota": 0.9},
-	"tierra": {"paso": 0.12, "vida": [0.35, 0.6], "tam": [0.3, 0.75], "deriva": 0.12, "disperso": 0.06, "n": 40,
-		"motas": 0.6, "n_motas": 30, "vida_mota": [0.35, 0.6], "vel_mota": [0.3, 1.0], "g_mota": 1.0},
+	"agua": {"paso": 0.15, "vida": [0.18, 0.32], "tam": [0.26, 0.06], "deriva": 0.05, "disperso": 0.05, "n": 30,
+		"motas": 1.6, "n_motas": 60, "vida_mota": [0.3, 0.55], "vel_mota": [0.3, 1.0], "g_mota": 0.9},
+	"tierra": {"paso": 0.2, "vida": [0.3, 0.5], "tam": [0.16, 0.42], "deriva": 0.05, "disperso": 0.05, "n": 24,
+		"motas": 1.2, "n_motas": 40, "vida_mota": [0.35, 0.6], "vel_mota": [0.2, 0.8], "g_mota": 1.0},
 }
 
 var objetivo: Node3D = null
@@ -85,7 +87,7 @@ func _ready() -> void:
 			_humo = HumoToy.new()
 			_humo.name = "Vaho"
 			add_child(_humo)
-			_humo.call("montar", int(_r["n"]), {"claro": AguaPaleta.ESPUMA, "sombra": AguaPaleta.CAUSTICAS, "viejo": AguaPaleta.SOMERO, "tam_ini": float(_r["tam"][0]) * _k,
+			_humo.call("montar", int(_r["n"]), {"claro": AguaPaleta.CAUSTICAS, "sombra": AguaPaleta.SOMERO, "viejo": AguaPaleta.SOMERO, "tam_ini": float(_r["tam"][0]) * _k,
 				"tam_fin": float(_r["tam"][1]) * _k, "vida": float(_r["vida"][1]), "deriva": Vector3(0, float(_r["deriva"]), 0), "mundo": true, "friccion": 3.0, "erosion": 0.9})
 			_mm = AguaGotas.crear_mm("Gotas", int(_r["n_motas"]))
 		"tierra":
