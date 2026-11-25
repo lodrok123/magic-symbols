@@ -1,0 +1,46 @@
+##############################
+#......#############.........#
+#......#RRRRRRRRRRR#.........#
+#......#RRRRRRRRRRR#.........#
+#......#RRRRRRRRRRR#.#########
+#......#RRRRRRRRRRR#.#TRRRRRR#
+#......#RRRRRRRRRRR#.#RRRRRRR#
+#......######R######.#RRRRzRR#
+#....................#RRRRRRR#
+#.....################RRRRRRR#
+#.....ggggggggggggggggRRRRRRR#
+#.ggggggggggggggggggggRRRRRRR#
+#.g...################RRRRRRR#
+#.g..................#RRRRRRR#
+#.g.T...T............#RRRRRRR#
+#.g..................#TRRRRRR#
+#.g..................###..####
+#.gS.........................#
+#............................#
+#............................#
+##############################
+; ======================================================================================================================================================
+;  RUINAS CON TRAMPAS (25/11/2026). Escena de prueba del estilo «ruinas» (muros finos del pack Stylescape: Ruins, presentacion/paredes_stylescape.gd) con
+;  las dos trampas de pared del juego: el MASCARÓN que escupe bolas de fuego (`trampa_flechas`, objetos/trampa_flechas_3d.gd) y la cabeza de DRAGÓN que echa un
+;  chorro (`trampa_dragon`, objetos/trampa_dragon_3d.gd). Donde va una trampa, la maqueta pone un CONTRAFUERTE del pack (un pilar que sale del muro fino hasta
+;  la cara de la casilla) para que la trampa no flote delante del muro. Kit `pruebas` (agua y barrera incluidas). Recorrido:
+;  Ruinas AL AIRE LIBRE: hierba abierta con edificios de muros de una casilla (así los muros son finos por los dos lados y no salen árboles entre salas).
+;    1 · Se empieza al suroeste (3,17), en la hierba, junto a dos braseros.
+;    2 · PASILLO DE LOS MASCARONES (6..20, 10..11): tres mascarones en el muro norte disparan bolas de fuego hacia el sur, por turnos (cada 2 s, desfasados 0,66 s).
+;        Se cruza cronometrando, con una barrera, o apagándolos con agua (8 s).
+;    3 · Patio enlosado (22..28, 5..15), se entra desde el pasillo: un DRAGÓN en el muro norte (26,4) escupe hacia el sur cada 4,5 s y quema el seto de (26,7); otro DRAGÓN en
+;        el muro oeste (21,7) cruza el patio hacia el este 2 s de cada 4. Puerta al sur (24..25, 16).
+;    4 · Sala del tesoro (8..18, 2..6), enlosada, puerta (13,7): un TÓTEM de ruinas (mascarón exento, 10,4) dispara hacia el este por la fila 4, delante del cofre (17,3).
+;  Lo lanza escenas/PruebaRuinasTrampas.tscn. Prueba: herramientas/captura_ruinas_trampas.gd.
+; ======================================================================================================================================================
+; # pared · . hierba · g tierra pisada · R losas · S inicio · T brasero · z seto
+;
+; zona 1,1..28,19 ruinas mezcla=0.8 rotulo=Ruinas_de_prueba
+;
+; pieza t_masc_1 trampa_flechas 9 9 mira=s cada=2.0 desfase=0 elemento=fuego alcance=2 cerca=8
+; pieza t_masc_2 trampa_flechas 12 9 mira=s cada=2.0 desfase=0.66 elemento=fuego alcance=2 cerca=8
+; pieza t_masc_3 trampa_flechas 15 9 mira=s cada=2.0 desfase=1.33 elemento=fuego alcance=2 cerca=8
+; pieza t_dragon_patio trampa_dragon 26 4 mira=s ciclo=1.5,3.0 desfase=1.0 alcance=4 cerca=7
+; pieza t_dragon_pasillo trampa_dragon 21 7 mira=e ciclo=2.0,2.0 desfase=0 alcance=4 cerca=7
+; pieza t_totem trampa_flechas 10 4 mira=e exenta=si cada=2.5 desfase=0 elemento=fuego alcance=8 cerca=8
+; pieza cofre_ruinas cofre 17 3 abierto=ruinastrampas.tesoro.cofre da=oro:40

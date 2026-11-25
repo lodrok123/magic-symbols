@@ -13,6 +13,11 @@ extends RefCounted
 ##     (1,5 m) para no tapar el interior. El resto, alto (3 m), con ventanas y desperfectos al azar (estable por casilla).
 ## Las piezas (arte/stylescape/piezas/ss_*.tscn) las crea herramientas/generar_piezas_stylescape.gd con el material horneado al beige de
 ## nuestros muros; el musgo de arriba lo pone la maqueta (`musgo_ruina` del shader común). Si el pack no está generado, se salta.
+##
+## TRAMPAS DE PARED (25/11): una trampa (`trampa_flechas`, `trampa_dragon`) va pegada a la CARA de su casilla `#` (media casilla hacia el suelo), pero
+## el muro fino va por el EJE: sin más, la trampa flotaba a 1 u del muro. En esa casilla se pone además un CONTRAFUERTE (`contrafuerte` = hacia dónde
+## mira la trampa): un pilar del pack de 1 u de lado que sale del muro hasta la cara de la casilla; la trampa queda apoyada en él. Y el tramo de esa
+## casilla es liso (sin ventanas: una ventana detrás de la trampa se veía por los lados).
 
 const RUTA: String = "res://arte/stylescape/piezas/"
 const S: float = 2.3
@@ -24,11 +29,13 @@ const BAJOS_4: Array = ["SM_Wall_Half_04"]      ## (SM_Wall_Dmg_02_Half_01 mide 
 const BAJOS_2: Array = ["SM_Wall_Half_02", "SM_Wall_Dmg_03_Half_01", "SM_Wall_Dmg_04_Half_02"]
 const POSTE_ALTO: String = "SM_Wall_01_Corner"
 const POSTE_BAJO: String = "SM_Wall_Half_Corner"
+const CONTRAFUERTE: String = "SM_Pillar_01"       ## 1,8 × 1,8 × 3 m = 1,03 × 1,03 × 1,72 u
+const CONTRAFUERTE_LADO: float = 1.035            ## u
 ## Todas las mallas que usa (el generador de piezas las crea).
 const TODAS: Array = ["SM_Wall_04", "SM_Wall_Dmg_02", "SM_Wall_Windows_01", "SM_Wall_Dmg_04", "SM_Wall_Dmg_03",
 	"SM_Wall_02", "SM_Wall_Dmg_03_Alt", "SM_Wall_Dmg_04_Alt", "SM_Wall_Windows_Half",
 	"SM_Wall_Half_04", "SM_Wall_Half_02", "SM_Wall_Dmg_03_Half_01", "SM_Wall_Dmg_04_Half_02",
-	"SM_Wall_01_Corner", "SM_Wall_Half_Corner"]
+	"SM_Wall_01_Corner", "SM_Wall_Half_Corner", "SM_Pillar_01"]
 
 const DIRS: Array = [Vector2i(1, 0), Vector2i(-1, 0), Vector2i(0, 1), Vector2i(0, -1)]      ## E, O, S, N
 const OCHO: Array = [Vector2i(1, 0), Vector2i(-1, 0), Vector2i(0, 1), Vector2i(0, -1), Vector2i(1, 1), Vector2i(1, -1), Vector2i(-1, 1), Vector2i(-1, -1)]
@@ -54,8 +61,9 @@ static func se_viste(c: Vector2i, es_suelo: Callable, es_muro: Callable) -> bool
 
 
 ## Las piezas de la casilla de muro `c`: Array de [id, Transform3D] (origen = base de la pieza, en el centro de la casilla).
-## `es_suelo` y `es_muro` son Callable(Vector2i) -> bool; `y` es la altura del suelo (ALTO de la maqueta).
-static func muros(c: Vector2i, es_suelo: Callable, es_muro: Callable, y: float) -> Array:
+## `es_suelo` y `es_muro` son Callable(Vector2i) -> bool; `y` es la altura del suelo (ALTO de la maqueta). `contrafuerte` = hacia dónde mira la
+## trampa de pared que va en esta casilla (ZERO = ninguna).
+static func muros(c: Vector2i, es_suelo: Callable, es_muro: Callable, y: float, contrafuerte: Vector2i = Vector2i.ZERO) -> Array:
 	var res: Array = []
 	if not se_viste(c, es_suelo, es_muro):
 		return res
@@ -72,9 +80,10 @@ static func muros(c: Vector2i, es_suelo: Callable, es_muro: Callable, y: float) 
 	var n: bool = une[3][0]
 	if e and o and not s and not n:
 		var bajo: bool = une[0][1] or une[1][1]
-		res.append([id_de(_de(BAJOS_4 if bajo else ALTOS_4, h)), _xf(centro, 0.0, h)])
+		var liso: String = "SM_Wall_Half_04" if bajo else "SM_Wall_04"
+		res.append([id_de(liso if contrafuerte != Vector2i.ZERO else _de(BAJOS_4 if bajo else ALTOS_4, h)), _xf(centro, 0.0, h)])
 	elif s and n and not e and not o:
-		res.append([id_de(_de(ALTOS_4, h)), _xf(centro, 90.0, h)])
+		res.append([id_de("SM_Wall_04" if contrafuerte != Vector2i.ZERO else _de(ALTOS_4, h)), _xf(centro, 90.0, h)])
 	else:
 		var todos_bajos: bool = true
 		for i in range(4):
@@ -86,10 +95,19 @@ static func muros(c: Vector2i, es_suelo: Callable, es_muro: Callable, y: float) 
 			var mitad: Vector3 = centro + Vector3(float(d.x), 0.0, float(d.y)) * S * 0.25
 			res.append([id_de(_de(BAJOS_2 if bajo2 else ALTOS_2, h + i * 7)), _xf(mitad, 0.0 if d.y == 0 else 90.0, h + i)])
 		res.append([id_de(POSTE_BAJO if todos_bajos and res.size() > 0 else POSTE_ALTO), Transform3D(Basis.IDENTITY, centro)])
+	if contrafuerte != Vector2i.ZERO:
+		res.append(contrafuerte_de(c, contrafuerte, y))
 	return res
 
 
 ## El tramo de `c` hacia `d` tiene suelo a un lado (en `c` o en la vecina, a cualquiera de los dos costados).
+## El contrafuerte de una trampa: su cara delantera en la cara de la casilla que da a `d`; por detrás se mete en el muro fino del eje.
+static func contrafuerte_de(c: Vector2i, d: Vector2i, y: float) -> Array:
+	var centro := Vector3((float(c.x) + 0.5) * S, y, (float(c.y) + 0.5) * S)
+	var k: float = S * 0.5 - CONTRAFUERTE_LADO * 0.5
+	return [id_de(CONTRAFUERTE), Transform3D(Basis.IDENTITY, centro + Vector3(float(d.x), 0.0, float(d.y)) * k)]
+
+
 static func _tramo_con_suelo(c: Vector2i, d: Vector2i, es_suelo: Callable) -> bool:
 	var lado := Vector2i(d.y, d.x)       # perpendicular
 	for p in [c, c + d]:

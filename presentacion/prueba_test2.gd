@@ -4167,9 +4167,32 @@ func _muro_de_ruina(q: Vector2i) -> bool:
 	return _en_mapa(q) and _letra(q) == "#"
 
 
+## 25/11: casillas `#` con una trampa de pared (`; pieza <id> trampa_flechas|trampa_dragon x y mira=…`, sin `exenta=si`) -> hacia dónde mira.
+## Se lee del mapa del nivel una vez; ahí la maqueta pone un CONTRAFUERTE del pack para que la trampa no flote delante del muro fino.
+var _trampas_pared_ss: Dictionary = {}
+var _trampas_pared_leidas: bool = false
+
+
+func _contrafuerte_ss(c: Vector2i) -> Vector2i:
+	if not _trampas_pared_leidas:
+		_trampas_pared_leidas = true
+		var ruta: String = HorneadorNivel.ruta_mapa(nivel)
+		if ruta != "" and FileAccess.file_exists(ruta):
+			for linea in FileAccess.get_file_as_string(ruta).split("\n"):
+				var t: PackedStringArray = linea.strip_edges().trim_prefix(";").strip_edges().split(" ", false)
+				if t.size() < 5 or t[0] != "pieza" or not t[2] in ["trampa_flechas", "trampa_dragon"] or linea.contains("exenta=si"):
+					continue
+				var mira: String = "s"
+				for k in t:
+					if k.begins_with("mira="):
+						mira = k.substr(5)
+				_trampas_pared_ss[Vector2i(int(t[3]), int(t[4]))] = TrampaPared3D.DIRS_CELDA.get(mira, Vector2i(0, 1))
+	return _trampas_pared_ss.get(c, Vector2i.ZERO)
+
+
 ## true si la casilla `#` se ha vestido con muros del pack (si no, la maqueta le pone su árbol como en el bosque).
 func _paredes_ss(c: Vector2i) -> bool:
-	var piezas: Array = PAREDES_SS.muros(c, Callable(self, "_suelo_de_cueva"), Callable(self, "_muro_de_ruina"), ALTO)
+	var piezas: Array = PAREDES_SS.muros(c, Callable(self, "_suelo_de_cueva"), Callable(self, "_muro_de_ruina"), ALTO, _contrafuerte_ss(c))
 	for p in piezas:
 		_poner_escena(String(p[0]), c, p[1], true)
 	return not piezas.is_empty()
