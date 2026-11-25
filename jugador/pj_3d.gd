@@ -83,6 +83,9 @@ const SINONIMOS: Dictionary = {
 	"cast_conjuro_mantener": ["ual_conjuro2mantener"],
 	"cast_conjuro_soltar": ["ual_conjuro3soltar"],
 	"cast_conjuro_salir": ["ual_conjuro4salir"],
+	# UAL 2 (25/11; ClipsFamilia.FUENTE_CLIPS_UAL2): abrir un cofre pequeño (Cofre3D) y romper con la mano algo que se saca (aún sin objeto que lo pida).
+	"abrir_cofre_pequeno": ["ual_abrircofrepequeno"],
+	"romper_objeto": ["ual_romper"],
 }
 
 ## Segundo del clip (a velocidad 1) en que ocurre lo que el Juego sincroniza con él: en `abrir_cofre`, las manos llegan abajo, a la tapa (el clip recortado empieza 0,8 s después
@@ -92,7 +95,10 @@ const SINONIMOS: Dictionary = {
 ##   levantar 1,05 = las manos cerradas sobre el objeto, abajo, justo antes de subir (llegan abajo a 0,62 s y se quedan hasta ~1,25 s) · dejar_objeto 1,3 = el objeto ya apoyado (manos a ≤ 2 cm de su
 ##   mínimo desde 1,18 s) · lanzar_objeto 0,41 = la suelta, pico de velocidad de las manos (5,3 u/s del GLB, a 0,38–0,42 s) · coger_lanzar_agarre 0,72 = mano derecha en lo más bajo (y 0,31) y
 ##   coger_lanzar 2,13 = la suelta con la derecha (pico de 7,0 u/s). `coger_lanzar_agarre` no es un rol: es solo la clave de la segunda marca de ese clip.
-const INSTANTE_CLIP: Dictionary = {"abrir_cofre": 1.4, "agacharse": 1.75, "levantar": 1.05, "dejar_objeto": 1.3, "lanzar_objeto": 0.41, "coger_lanzar_agarre": 0.72, "coger_lanzar": 2.13}
+## 25/11 (UAL 2, herramientas/medidas_clips_ual.gd): abrir_cofre_pequeno 0,53 = la mano izquierda en lo más bajo, en la tapa, justo antes de levantarla · romper_objeto 0,45 = la mano
+##   izquierda llega arriba, a la cara (donde se rompería lo que lleva).
+const INSTANTE_CLIP: Dictionary = {"abrir_cofre": 1.4, "agacharse": 1.75, "levantar": 1.05, "dejar_objeto": 1.3, "lanzar_objeto": 0.41, "coger_lanzar_agarre": 0.72, "coger_lanzar": 2.13,
+	"abrir_cofre_pequeno": 0.53, "romper_objeto": 0.45}
 ## Lo mismo por MODELO (id del personaje -> rol -> segundo del clip a velocidad 1): el gólem de piedra golpea el suelo con el puño a los AnimacionesGolem.INSTANTE_GOLPE s de `attack` (medido con herramientas/prueba_golem_anim.gd) y queda de rodillas a T_EXPUESTO_ABAJO s de `expuesto`.
 const INSTANTE_CLIP_MODELO: Dictionary = {"golem_piedra": {"attack": AnimacionesGolem.INSTANTE_GOLPE, "expuesto": AnimacionesGolem.T_EXPUESTO_ABAJO},
 	"goblin_chaman": {"clavar": AnimacionesChaman.INSTANTE_CLAVAR, "lanzar": AnimacionesChaman.INSTANTE_LANZAR}}   # el chamán clava el bastón en el suelo a los INSTANTE_CLAVAR s de `clavar`
@@ -1494,10 +1500,17 @@ func apuntar_conjuro() -> void:
 		return
 	_quitar_chispas()
 	_cp = {}
-	_brazo_libro_peso(0.0)
 	animacion_actual = ""
 	_encadenar(CONJURO_UAL[0], CONJURO_UAL[1], 1.0)
-	libro_en_manos(true)
+	libro_en_manos(true, 0.3, "izquierda")
+	_libro_conjuro()
+
+
+## 25/11 (Pablo: «la mano izquierda debería estar en posición de sostener un libro»): durante el conjuro, el brazo izquierdo en la pose de llevar el libro (BrazoLibro3D, la misma
+## de los lanzamientos por cast point; en jugadora_base, POSE_LIBRO_BRAZO). Los dedos de esa mano ya vienen sin pista (ClipsFamilia «dedos_reposo»). `soltar_lanzar` lo quita.
+func _libro_conjuro() -> void:
+	_brazo_libro_lado("izquierda")
+	_brazo_libro_peso(CastPoints.peso_brazo if CastPoints.brazo_activo else 0.0)
 
 
 ## Soltar el conjuro: soltar → salir, con las chispas del elemento en la mano derecha. Devuelve lo que duran las dos (s); el Juego llama a `soltar_lanzar()` al acabar.
@@ -1506,9 +1519,10 @@ func lanzar_conjuro(elemento: String) -> float:
 		return lanzar("proyectil", elemento)
 	_quitar_chispas()
 	_cp = {}
-	_brazo_libro_peso(0.0)
 	animacion_actual = ""
 	_encadenar(CONJURO_UAL[2], CONJURO_UAL[3], VEL_CONJURO_UAL)
+	libro_en_manos(true, 0.3, "izquierda", true)      # lanzando: el libro «en_mano_cerrado», como en los cast points
+	_libro_conjuro()
 	_poner_chispas(elemento)
 	return (duracion(CONJURO_UAL[2]) + duracion(CONJURO_UAL[3])) / VEL_CONJURO_UAL
 

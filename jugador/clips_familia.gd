@@ -100,9 +100,24 @@ const DEDOS_ALINEAR: Array = [
 const FUENTE_CLIPS_UAL: Dictionary = {
 	# «espejo» (25/11): en el original el brazo que lanza es el IZQUIERDO (el que lleva el libro): reflejados, lanza con la derecha y el libro va en la izquierda.
 	"espejo": ["Spell_Simple_Enter", "Spell_Simple_Idle", "Spell_Simple_Shoot", "Spell_Simple_Exit"],
+	# 25/11 (Pablo: «la mano izquierda debería estar en posición de sostener un libro y la derecha, la que estira, tendría que tener los dedos juntos: se separan en el medio»).
+	# Tras el espejo: la izquierda pierde las pistas de dedos (se queda en su reposo, el de Pj3D.MANO_RELAJADA, como en todos los lanzamientos con libro; el brazo lo pone
+	# BrazoLibro3D) y en la derecha los dedos se juntan (`juntar_dedos`: sin abrirse en abanico, conservando cuánto se doblan).
+	"dedos_reposo": ["Left"], "dedos_juntos": ["Right"],
 	"ruta": RUTA_CLIPS_UAL, "referencia": "Idle", "alinear_extra": DEDOS_ALINEAR, "clips": {
 		"UAL_Conjuro1Entrar": "Spell_Simple_Enter", "UAL_Conjuro2Mantener": "Spell_Simple_Idle",
 		"UAL_Conjuro3Soltar": "Spell_Simple_Shoot", "UAL_Conjuro4Salir": "Spell_Simple_Exit",
+	}}
+## UAL 2 (25/11, Pablo, tras la galería LabGaleriaUAL3D): dos clips de la segunda librería de Quaternius (CC0; arte/ual/ual2_standard_mixamo.glb). Instantes medidos con
+## herramientas/medidas_clips_ual.gd (Pj3D.INSTANTE_CLIP):
+##   UAL_AbrirCofrePequeno  Chest_Open, 1,37 s: «usa chest open para cofres pequeños». Con la IZQUIERDA baja a la tapa (lo más bajo a 0,47–0,53 s) y la sube hasta 0,93 s.
+##   UAL_Romper             Consume, 1,33 s: «puede valer para otro tipo de objeto, algo que saques y rompes con la mano». Sube la izquierda a la cara (0,40 s), la tiene ahí
+##                          hasta 0,93 s y la baja. Rol `romper_objeto`: listo para cuando exista ese objeto (aún no lo pide nadie).
+## «referencia»: Idle_FoldArms (UAL 2 no trae Idle; de pie con los brazos cruzados, los pies igual de plantados).
+const RUTA_CLIPS_UAL2: String = "res://arte/ual/ual2_standard_mixamo.glb"
+const FUENTE_CLIPS_UAL2: Dictionary = {
+	"ruta": RUTA_CLIPS_UAL2, "referencia": "Idle_FoldArms", "alinear_extra": DEDOS_ALINEAR, "clips": {
+		"UAL_AbrirCofrePequeno": "Chest_Open", "UAL_Romper": "Consume",
 	}}
 ## SURGIR (12/11): el único clip de Mixamo que se añade al fantasma (el mouro sale del pozo, `MouroEspectro3D`) y a las dos ánimas de la Santa Compaña (la repuesta sale de la tierra,
 ## `SantaCompana3D`) es el de levantarse del suelo (Getting_Up, rol `cast_surgir` de `Pj3D.SINONIMOS`).
@@ -160,6 +175,7 @@ const FUENTES: Dictionary = {
 		FUENTE_CLIPS_CARGA,          # 4/11: cargar_idle, cargar_andar, levantar, lanzar_objeto, dejar_objeto y coger_lanzar (ver arriba)
 		FUENTE_CLIPS_MIXAMO,         # 5/11: Mixamo_CastDosManos, Mixamo_Nadar, Mixamo_Flotar y Mixamo_Voltereta (ver arriba)
 		FUENTE_CLIPS_UAL,            # 25/11: los cuatro del conjuro de Quaternius (flecha + fuego; ver arriba)
+		FUENTE_CLIPS_UAL2,           # 25/11: abrir cofre pequeño y romper (ver arriba)
 	],
 	# Chamán goblin (28/10): el esqueleto de Marimanta (66 huesos con las MISMAS bases de hueso: tools/autorig_chaman.py) y sus 7 clips (idle, andar de anciana, hablar, tramar, correr); las reacciones
 	# (hit, death, ahogarse), del goblin guerrero como las del asesino. `trazar` y `clavar` los genera AnimacionesChaman. Con `{}` se traen todos los de Marimanta con su nombre.
@@ -423,6 +439,10 @@ static func _traer_de(f: Dictionary, modelo_d: Node3D, sk_d: Skeleton3D, res: Di
 			_centrar_cadera(traducido, sk_d)
 		if (f.get("espejo", []) as Array).has(origen):
 			espejar(traducido, sk_d)
+		for lado_j in (f.get("dedos_juntos", []) as Array):
+			juntar_dedos(traducido, sk_d, String(lado_j))
+		for lado_r in (f.get("dedos_reposo", []) as Array):
+			quitar_dedos(traducido, String(lado_r))
 		res[destino] = traducido
 	fuente.free()
 
@@ -505,6 +525,124 @@ static func espejar(an: Animation, sk_d: Skeleton3D) -> void:
 		for k in range(an.track_get_key_count(t_cad)):
 			var v: Vector3 = an.track_get_key_value(t_cad, k) - reposo
 			an.track_set_key_value(t_cad, k, reposo + v - 2.0 * v.dot(lat) * lat)
+
+
+## Quita al clip `an` las pistas de giro de los dedos de la mano `lado` («Left» | «Right»): esos dedos se quedan en su reposo (Pj3D.MANO_RELAJADA).
+static func quitar_dedos(an: Animation, lado: String) -> void:
+	for t in range(an.get_track_count() - 1, -1, -1):
+		if an.track_get_type(t) == Animation.TYPE_ROTATION_3D and String(an.track_get_path(t)).get_slice(":", 1).begins_with("mixamorig_%sHand" % lado) \
+				and not String(an.track_get_path(t)).ends_with("Hand"):
+			an.remove_track(t)
+
+
+## DEDOS JUNTOS (25/11): en cada fotograma, el índice, el anular y el meñique de la mano `lado` se ponen como el CORAZÓN: la primera falange apunta adonde apunta la del
+## corazón (sin abanico y doblada lo mismo) y las otras dos se doblan lo mismo que las suyas respecto a su reposo. Así la mano queda con los cuatro dedos juntos, como una
+## palma abierta. Primero se probó solo quitar el abanico (girar en el plano de la palma): el índice y el corazón quedaban juntos, pero el anular y el meñique del clip se doblan
+## el triple (70° frente a 28°) y la mano hacía una «V». `factor` 1 = como el corazón; 0 = como venían. El pulgar no se toca. Todo en el espacio del esqueleto; las pistas de
+## giro han de tener las claves en los mismos instantes (las de `_Ctx.traducir`).
+const DEDOS_JUNTOS_FACTOR: float = 1.0
+## Paralelos, los dedos de la jugadora dejan huecos (los nudillos están separados y los dedos son finos): cada dedo se inclina además hacia el corazón en el plano de la palma
+## lo justo para cerrar esta fracción del hueco en las puntas (0 = paralelos; 1 = las puntas en la línea del corazón, se montarían).
+const DEDOS_JUNTOS_CIERRE: float = 0.6
+
+
+static func juntar_dedos(an: Animation, sk_d: Skeleton3D, lado: String, factor: float = DEDOS_JUNTOS_FACTOR, cierre: float = DEDOS_JUNTOS_CIERRE) -> void:
+	var pre: String = "mixamorig_%sHand" % lado
+	var mano: int = sk_d.find_bone(pre)
+	var medio: int = sk_d.find_bone(pre + "Middle1")
+	var medio2: int = sk_d.find_bone(pre + "Middle2")
+	var indice: int = sk_d.find_bone(pre + "Index1")
+	var menique: int = sk_d.find_bone(pre + "Pinky1")
+	if mano < 0 or medio < 0 or medio2 < 0 or indice < 0 or menique < 0:
+		return
+	var medio3: int = sk_d.find_bone(pre + "Middle3")
+	var dedos: Array = []          # [falange 1, falange 2, falange 3] de los dedos que se juntan al corazón
+	for d in ["Index", "Ring", "Pinky"]:
+		var a: int = sk_d.find_bone(pre + d + "1")
+		var b: int = sk_d.find_bone(pre + d + "2")
+		var c3: int = sk_d.find_bone(pre + d + "3")
+		if a >= 0 and b >= 0:
+			dedos.append([a, b, c3])
+	var n: int = sk_d.get_bone_count()
+	var pista: Array = []
+	pista.resize(n)
+	pista.fill(-1)
+	for t in range(an.get_track_count()):
+		if an.track_get_type(t) != Animation.TYPE_ROTATION_3D:
+			continue
+		var b2: int = sk_d.find_bone(String(an.track_get_path(t)).get_slice(":", 1))
+		if b2 >= 0:
+			pista[b2] = t
+	for par in dedos:
+		if int(pista[int(par[0])]) < 0:
+			return                   # sin pista en la falange no hay abanico que corregir: el clip deja ese dedo en su reposo
+	var orden: Array = _Ctx._orden(sk_d)
+	var ref: int = int(pista[medio])
+	if ref < 0:
+		return
+	for k in range(an.track_get_key_count(ref)):
+		# giros y posiciones globales (espacio del esqueleto) en esta clave; la cadera, en su reposo (no cambia direcciones)
+		var g: Array = []
+		var p: Array = []
+		g.resize(n)
+		p.resize(n)
+		for i in orden:
+			var pa: int = sk_d.get_bone_parent(i)
+			var loc: Quaternion = an.track_get_key_value(int(pista[i]), k) if int(pista[i]) >= 0 else _Ctx._quat(sk_d.get_bone_rest(i).basis)
+			g[i] = loc if pa < 0 else (g[pa] as Quaternion) * loc
+			p[i] = sk_d.get_bone_rest(i).origin if pa < 0 else (p[pa] as Vector3) + (g[pa] as Quaternion) * sk_d.get_bone_rest(i).origin
+		var dir_m: Vector3 = (p[medio2] as Vector3) - (p[medio] as Vector3)
+		if dir_m.length() < 1e-10:
+			continue
+		dir_m = dir_m.normalized()
+		# Dirección de cada falange del corazón (de su articulación a la siguiente), en el espacio del esqueleto.
+		var cadena_m: Array = [medio, medio2, medio3, sk_d.find_bone(pre + "Middle4")]
+		# El plano de la palma (para el cierre): su normal y el eje de lado a lado, perpendicular al corazón.
+		var normal: Vector3 = ((p[menique] as Vector3) - (p[indice] as Vector3)).cross((p[medio] as Vector3) - (p[mano] as Vector3))
+		var lateral: Vector3 = normal.cross(dir_m)
+		# Umbrales diminutos: el esqueleto de la jugadora va en unidades muy pequeñas (los nudillos, a ~0,001 unos de otros; su producto vectorial, ~1e-6).
+		var con_cierre: bool = cierre > 0.0 and normal.length() > 1e-14 and lateral.length() > 1e-14
+		if con_cierre:
+			normal = normal.normalized()
+			lateral = lateral.normalized()
+		for par in dedos:
+			var cadena_f: Array = [int(par[0]), int(par[1]), int(par[2]), sk_d.find_bone(pre + sk_d.get_bone_name(int(par[0])).trim_prefix(pre).trim_suffix("1") + "4")]
+			# Falange a falange, de la base a la punta: el giro mínimo que lleva su dirección (con su padre ya colocado) a la de la falange del corazón.
+			var g_padre0: Quaternion = g[sk_d.get_bone_parent(int(cadena_f[0]))]
+			var g_padre: Quaternion = g_padre0
+			var g_base: Quaternion = Quaternion.IDENTITY
+			var hecho: bool = false
+			for j in range(3):
+				var f: int = int(cadena_f[j])
+				var sig: int = int(cadena_f[j + 1])
+				var m: int = int(cadena_m[j])
+				var m_sig: int = int(cadena_m[j + 1])
+				if f < 0 or sig < 0 or m < 0 or m_sig < 0 or int(pista[f]) < 0:
+					break
+				var loc: Quaternion = an.track_get_key_value(int(pista[f]), k)
+				var g_f: Quaternion = g_padre * loc
+				var dir_f: Vector3 = g_f * sk_d.get_bone_rest(sig).origin
+				var dir_c: Vector3 = (g[m] as Quaternion) * sk_d.get_bone_rest(m_sig).origin
+				if dir_f.length() < 1e-10 or dir_c.length() < 1e-10:
+					break
+				var giro: Quaternion = Quaternion.IDENTITY.slerp(Quaternion(dir_f.normalized(), dir_c.normalized()), factor)
+				var g_nuevo: Quaternion = giro * g_f
+				an.track_set_key_value(int(pista[f]), k, (g_padre.inverse() * g_nuevo).normalized())
+				if j == 0:
+					g_base = g_nuevo
+					hecho = true
+				g_padre = g_nuevo
+			# Cierre: el dedo entero gira en la palma hacia el corazón (solo la 1ª falange; las otras la siguen con sus giros locales).
+			var f1: int = int(cadena_f[0])
+			if con_cierre and hecho:
+				var largo: float = 0.0
+				for j2 in range(1, 4):
+					if int(cadena_f[j2]) >= 0:
+						largo += sk_d.get_bone_rest(int(cadena_f[j2])).origin.length()
+				var s: float = ((p[f1] as Vector3) - (p[medio] as Vector3)).dot(lateral)
+				if largo > 1e-12:
+					var a: float = asin(clampf(-cierre * s / largo, -0.7, 0.7))
+					an.track_set_key_value(int(pista[f1]), k, (g_padre0.inverse() * (Quaternion(normal, a) * g_base)).normalized())
 
 
 static func _centrar_cadera(an: Animation, sk_d: Skeleton3D) -> void:

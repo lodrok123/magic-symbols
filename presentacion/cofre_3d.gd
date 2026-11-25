@@ -46,7 +46,11 @@ const NODO_CUERPO: String = "cofre_cuerpo"
 const NODO_TAPA: String = "cofre_tapa"
 
 const T_ANTICIPA: float = 0.4                ## s de anticipación antes de girar la tapa
-const GESTO_AGACHARSE: String = "agacharse"  ## rol de Pj3D que hace la jugadora al abrir un cofre pequeño (Jugador3D.gesto)
+## 25/11 (Pablo: «usa chest open para cofres pequeños»): el gesto es `abrir_cofre_pequeno` (Chest_Open de Quaternius, 1,37 s: baja la mano a la tapa y la levanta; la tapa gira a
+## los 0,53 s, Pj3D.INSTANTE_CLIP). Si el personaje no lo tiene, el de antes: agacharse (con su velocidad).
+const GESTO_COFRE: String = "abrir_cofre_pequeno"
+const VEL_COFRE: float = 1.0                 ## a su velocidad: ya es corto (1,37 s)
+const GESTO_AGACHARSE: String = "agacharse"  ## rol de Pj3D que hacía la jugadora al abrir un cofre pequeño (Jugador3D.gesto); ahora, el de respaldo
 const VEL_AGACHARSE: float = 1.8             ## a qué velocidad: el clip entero dura 3,5 s y esperar tanto para cada cofre cansaría; con 1,8 la tapa gira a los ~1 s
 const T_ABRIR_SIN_CLIP: float = 0.55
 const ANGULO_SIN_CLIP: float = 105.0         ## grados, solo si no hay clip
@@ -297,14 +301,20 @@ func _agachar_jugadora() -> float:
 	var j: Node = lanz.get("jugador") as Node if lanz != null else null
 	if j == null or not j.has_method("gesto") or not is_instance_valid(j):
 		return 0.0
-	var dur: float = float(j.call("gesto", GESTO_AGACHARSE, VEL_AGACHARSE))
+	var rol: String = GESTO_COFRE
+	var vel: float = VEL_COFRE
+	var dur: float = float(j.call("gesto", rol, vel))
+	if dur <= 0.0:
+		rol = GESTO_AGACHARSE
+		vel = VEL_AGACHARSE
+		dur = float(j.call("gesto", rol, vel))
 	if dur <= 0.0:
 		return 0.0
 	var hacia: Vector3 = global_position - (j as Node3D).global_position
 	hacia.y = 0.0
 	if hacia.length() > 0.01 and j.has_method("mirar_hacia"):
 		j.call("mirar_hacia", hacia)
-	return maxf(Pj3D.instante_clip(GESTO_AGACHARSE) / VEL_AGACHARSE - T_ANTICIPA, 0.0)
+	return maxf(Pj3D.instante_clip(rol) / vel - T_ANTICIPA, 0.0)
 
 
 func _empezar_anticipacion() -> void:

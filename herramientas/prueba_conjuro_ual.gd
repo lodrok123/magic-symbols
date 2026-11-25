@@ -61,6 +61,22 @@ func _correr() -> void:
 	_ok(md.y - mi.y > 0.15 * alto, "manteniendo, la mano derecha va más alta que la izquierda (%.2f u frente a %.2f; alto %.2f)" % [md.y - pj.global_position.y, mi.y - pj.global_position.y, alto])
 	var dedo: float = _flexion_indice(pj)
 	_ok(dedo < 60.0, "dedos alineados en mantener: el índice se dobla %.0f° (máx. 60)" % dedo)
+	# 25/11: la mano izquierda sujeta el libro (brazo del libro puesto, a la izquierda, y sus dedos sin pista: en su reposo) y la derecha lleva los dedos juntos.
+	var brazo: BrazoLibro3D = pj._brazo
+	_ok(brazo != null and brazo.lado == "izquierda" and brazo.influence > 0.5, "brazo del libro: izquierda con peso %.2f" % (brazo.influence if brazo != null else -1.0))
+	var con_dedos_izq: Array = []
+	for rol in Pj3D.CONJURO_UAL:
+		var an: Animation = pj._ap.get_animation(pj.clip_de(String(rol)))
+		for t in range(an.get_track_count()):
+			var hueso: String = String(an.track_get_path(t)).get_slice(":", 1)
+			if hueso.begins_with("mixamorig_LeftHand") and hueso != "mixamorig_LeftHand":
+				con_dedos_izq.append(String(rol))
+				break
+	_ok(con_dedos_izq.is_empty(), "la mano del libro no trae pistas de dedos (%s)" % [con_dedos_izq])
+	var abanico: Vector2 = _abanico_derecha(pj)
+	_ok(abanico.y < abanico.x * 0.9, "dedos de la derecha juntos manteniendo: las puntas del índice y el meñique, más juntas que sus nudillos (%.2f veces la distancia de los nudillos)" % (abanico.y / maxf(abanico.x, 1e-9)))
+	var curva: float = _curva_vs_corazon(pj)
+	_ok(curva < 10.0, "y doblados como el corazón (sin «V»): la última falange difiere %.1f° en doblez de la del corazón (máx. 10)" % curva)
 
 	var d: float = pj.lanzar_conjuro("fuego")
 	_ok(pj.animacion_actual == "cast_conjuro_soltar", "al soltar: soltar (%s)" % pj.animacion_actual)
@@ -70,8 +86,38 @@ func _correr() -> void:
 	pj.soltar_lanzar()
 	_ok(pj.animacion_actual == "idle", "soltar_lanzar vuelve a idle (%s)" % pj.animacion_actual)
 
+	_ok(pj._brazo == null or pj._brazo.influence == 0.0, "soltar_lanzar quita el brazo del libro")
+
+	# UAL 2 (25/11): el cofre pequeño y romper.
+	var d_cofre: float = pj.duracion("abrir_cofre_pequeno")
+	_ok(absf(d_cofre - 1.37) < 0.05, "abrir_cofre_pequeno = Chest_Open (%.2f s)" % d_cofre)
+	_ok(is_equal_approx(Pj3D.instante_clip("abrir_cofre_pequeno"), 0.53), "instante del cofre pequeño 0,53 s")
+	_ok(absf(pj.duracion("romper_objeto") - 1.33) < 0.05, "romper_objeto = Consume (%.2f s)" % pj.duracion("romper_objeto"))
+	_ok(pj.clip_de("abrir_cofre") != pj.clip_de("abrir_cofre_pequeno"), "el cofre legendario sigue con su clip (%s)" % pj.clip_de("abrir_cofre"))
+
 	print("\n%s (%d fallos)" % ["TODO BIEN" if _fallos == 0 else "HAY FALLOS", _fallos])
 	quit(1 if _fallos > 0 else 0)
+
+
+## Mano derecha: (distancia entre los nudillos del índice y el meñique, distancia entre sus puntas). Puntas más juntas que nudillos = dedos cerrados, sin abanico.
+func _abanico_derecha(pj: Pj3D) -> Vector2:
+	var sk: Skeleton3D = pj.find_children("*", "Skeleton3D", true, false)[0] as Skeleton3D
+	var p := func(n: String) -> Vector3: return sk.get_bone_global_pose(sk.find_bone("mixamorig_RightHand" + n)).origin
+	return Vector2(((p.call("Index1") as Vector3) - (p.call("Pinky1") as Vector3)).length(), ((p.call("Index4") as Vector3) - (p.call("Pinky4") as Vector3)).length())
+
+
+## Mayor diferencia de DOBLEZ (grados) entre la última falange (3 → 4) del corazón derecho y la del índice, el anular y el meñique: el ángulo de cada una con la normal de la palma
+## (cuánto se mete hacia la palma), sin contar el giro de lado a lado (el cierre hacia el corazón). Si uno se dobla más que el corazón, sale aquí.
+func _curva_vs_corazon(pj: Pj3D) -> float:
+	var sk: Skeleton3D = pj.find_children("*", "Skeleton3D", true, false)[0] as Skeleton3D
+	var p := func(n: String) -> Vector3: return sk.get_bone_global_pose(sk.find_bone("mixamorig_RightHand" + n)).origin
+	var normal: Vector3 = ((p.call("Pinky1") as Vector3) - (p.call("Index1") as Vector3)).cross((p.call("Middle1") as Vector3) - (p.call("") as Vector3)).normalized()
+	var dobla := func(d: String) -> float: return rad_to_deg(((p.call(d + "4") as Vector3) - (p.call(d + "3") as Vector3)).normalized().angle_to(normal))
+	var m: float = dobla.call("Middle")
+	var peor: float = 0.0
+	for d in ["Index", "Ring", "Pinky"]:
+		peor = maxf(peor, absf(float(dobla.call(d)) - m))
+	return peor
 
 
 ## Mayor ángulo entre falanges consecutivas del índice derecho (y del tramo muñeca → nudillo con la primera).
