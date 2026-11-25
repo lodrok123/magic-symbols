@@ -5,7 +5,8 @@ extends Node3D
 ## (por defecto la A con el 3 anterior —modo 5— y la B con el 3 nuevo), con la luz del Bosque y la jugadora (1 u) dentro. A la derecha, nuestras piezas
 ## (muro en ruina, muro agrietado, roca musgosa, árboles) para comparar. Detrás, el muestrario con TODAS las piezas (con su propio material: el 3).
 ## Teclas:  T material de la sala A · Y material de la sala B · M material del muestrario · L luz (bosque / ruinas / clásico) · flechas/WASD mover · rueda o +/- zoom
-##          1 las dos salas · 2 el muestrario · 3 nuestras piezas · N nombres sí/no
+##          1 las dos salas · 2 el muestrario · 3 nuestras piezas · 4 las salas sobre la rejilla (muro_ruina / muros finos del pack)
+##          N nombres sí/no   (M cambia el material del muestrario y de los muros finos)
 ## Modos de material:  1) el pack tal cual  2) el pack con su musgo arriba  3) teñido con el beige de nuestros muros  4) paleta casi plana
 ##                     5) el 3 anterior (gris lila de Paleta3D)
 ## Si no hay piezas: exportarlas desde Unreal (tools/ue_exportar_stylescape.py) y prepararlas (tools/preparar_stylescape.py); no viajan en git.
@@ -103,6 +104,22 @@ const FOCO_RUINA: Vector3 = Vector3(7.6, 0, 0.0)
 const ZOOM_RUINA: float = 10.5
 const FOCO_NUESTRAS: Vector3 = Vector3(18.5, 0, 1.6)
 
+## --- 25/11 · SALAS SOBRE LA REJILLA (Pablo: «usa los muros del pack para los bordes de las salas, más finos: ocupan mucha masa visual»).
+## Dos salas iguales de 6 × 5 casillas (borde de muro, hueco de puerta delante): la izquierda con muro_ruina en cada casilla de borde, como
+## las pone hoy el juego (Pieza3D.crear_visual: una casilla de ancho y casi otra de fondo); la derecha con muros del pack de 0,5 m (0,29 u)
+## por el EJE de cada casilla de borde, así la casilla sigue bloqueada igual pero el muro ocupa una sexta parte. Las líneas marcan las casillas.
+const CASILLA: float = 2.3                       ## Pieza3D.S
+const CASILLA_M: float = 4.0                     ## la casilla en metros del pack (2,3 u / 0,575)
+const REJILLA_ANCHO: int = 6
+const REJILLA_FONDO: int = 5
+const REJILLA_PUERTA: Vector2i = Vector2i(2, 4)  ## casilla del borde delantero que queda abierta (puerta)
+const REJILLA_ORIGEN: Array = [Vector3(0, 0, 16.0), Vector3(16.1, 0, 16.0)]   ## esquina de cada sala (u): muro_ruina · pack
+const MUROS_4M: Array = ["SM_Wall_04", "SM_Wall_Dmg_02", "SM_Wall_Windows_01", "SM_Wall_Dmg_04", "SM_Wall_Dmg_03"]
+const MUROS_2M: Array = ["SM_Wall_02", "SM_Wall_Dmg_03_Alt", "SM_Wall_Dmg_04_Alt", "SM_Wall_Half_02"]
+const POSTE: String = "SM_Wall_01_Corner"
+const FOCO_REJILLA: Vector3 = Vector3(14.8, 0, 18.6)
+const ZOOM_REJILLA: float = 17.0
+
 var _cam: Camera3D
 var _foco: Vector3 = FOCO_RUINA
 var _zoom: float = ZOOM_RUINA
@@ -132,6 +149,8 @@ func _ready() -> void:
 		_grupo_actual = 2
 		_montar_nuestras()
 		_montar_muestrario()
+		_montar_rejilla_muro_ruina(REJILLA_ORIGEN[0])
+		_montar_rejilla_pack(REJILLA_ORIGEN[1])
 	_cam = Camera3D.new()
 	_cam.projection = Camera3D.PROJECTION_ORTHOGONAL
 	_cam.far = 600.0
@@ -405,6 +424,9 @@ func _unhandled_input(ev: InputEvent) -> void:
 			KEY_3:
 				_foco = FOCO_NUESTRAS
 				_zoom = 9.5
+			KEY_4:
+				_foco = FOCO_REJILLA
+				_zoom = ZOOM_REJILLA
 			KEY_N:
 				for r in _rotulos:
 					r.visible = not r.visible
@@ -412,7 +434,7 @@ func _unhandled_input(ev: InputEvent) -> void:
 
 
 func _actualizar_hud() -> void:
-	_hud.text = "Stylescape: Ruins (prueba) · sala A: %s · sala B: %s · muestrario: %s · luz: %s\nT material A · Y material B · M material muestrario · L luz · 1 salas · 2 muestrario · 3 nuestras · N nombres · WASD/flechas · rueda zoom" % [
+	_hud.text = "Stylescape: Ruins (prueba) · sala A: %s · sala B: %s · muestrario: %s · luz: %s\nT material A · Y material B · M material muestrario · L luz · 1 salas · 2 muestrario · 3 nuestras · 4 salas en rejilla · N nombres · WASD/flechas · rueda zoom" % [
 		String(MODOS[_modos[0]][0]).get_slice(" ", 0), String(MODOS[_modos[1]][0]).get_slice(" ", 0), String(MODOS[_modos[2]][0]).get_slice(" ", 0), LUCES[_luz]]
 
 
@@ -424,6 +446,7 @@ func _capturar() -> void:
 		_modos = [i, i, i]
 		await _foto(SALAS[0] + Vector3(3.4, 0, 1.6), 9.0, "ruina_modo%d.png" % (i + 1))
 	_modos = MODOS_INICIALES.duplicate()
+	await _foto(FOCO_REJILLA, ZOOM_REJILLA, "rejilla_muro_ruina_vs_pack.png")
 	await _foto(Vector3(ANCHO_FILA * 0.5, 0, _z_muestrario - 4.0), 30.0, "muestrario.png")
 	get_tree().quit()
 
@@ -438,3 +461,104 @@ func _foto(foco: Vector3, zoom: float, archivo: String) -> void:
 		await get_tree().process_frame
 	await RenderingServer.frame_post_draw
 	get_viewport().get_texture().get_image().save_png("res://docs/capturas/stylescape/" + archivo)
+
+
+## --- Salas sobre la rejilla ---
+
+func _es_borde(c: Vector2i) -> bool:
+	if c == REJILLA_PUERTA:
+		return false
+	return c.x == 0 or c.y == 0 or c.x == REJILLA_ANCHO - 1 or c.y == REJILLA_FONDO - 1
+
+
+func _celdas_borde() -> Array[Vector2i]:
+	var res: Array[Vector2i] = []
+	for j in range(REJILLA_FONDO):
+		for i in range(REJILLA_ANCHO):
+			if _es_borde(Vector2i(i, j)):
+				res.append(Vector2i(i, j))
+	return res
+
+
+## Las líneas de las casillas (para ver qué ocupa cada muro) y un rótulo encima.
+func _rejilla(origen: Vector3, texto: String) -> void:
+	var im := ImmediateMesh.new()
+	im.surface_begin(Mesh.PRIMITIVE_LINES)
+	for i in range(REJILLA_ANCHO + 1):
+		im.surface_add_vertex(origen + Vector3(i * CASILLA, 0.03, 0))
+		im.surface_add_vertex(origen + Vector3(i * CASILLA, 0.03, REJILLA_FONDO * CASILLA))
+	for j in range(REJILLA_FONDO + 1):
+		im.surface_add_vertex(origen + Vector3(0, 0.03, j * CASILLA))
+		im.surface_add_vertex(origen + Vector3(REJILLA_ANCHO * CASILLA, 0.03, j * CASILLA))
+	im.surface_end()
+	var mi := MeshInstance3D.new()
+	mi.mesh = im
+	var m := StandardMaterial3D.new()
+	m.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	m.albedo_color = Color(0.25, 0.4, 0.2, 0.5)
+	m.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	mi.material_override = m
+	add_child(mi)
+	_rotulo_libre(texto, origen + Vector3(REJILLA_ANCHO * CASILLA * 0.5, 3.2, -0.5))
+	_jugadora(origen + Vector3(REJILLA_ANCHO * CASILLA * 0.5, 0, REJILLA_FONDO * CASILLA * 0.5))
+
+
+## Como hoy en el juego: un muro_ruina por casilla de borde, centrado (Pieza3D: una casilla por su lado mayor).
+func _montar_rejilla_muro_ruina(origen: Vector3) -> void:
+	_rejilla(origen, "muro_ruina (como hoy)")
+	for c in _celdas_borde():
+		var v: Node3D = Pieza3D.crear_visual("muro_ruina")
+		if v == null:
+			continue
+		add_child(v)
+		v.position = origen + Vector3((c.x + 0.5) * CASILLA, 0, (c.y + 0.5) * CASILLA)
+		v.rotation_degrees.y = Pieza3D.giro_de("muro_ruina")
+
+
+## Muros finos del pack por el eje de cada casilla de borde: tramo entero (4 m) donde el muro sigue recto, dos medios (2 m) donde
+## dobla o acaba, y un poste en esquinas y finales para tapar la junta.
+func _montar_rejilla_pack(origen: Vector3) -> void:
+	_rejilla(origen, "muros finos del pack (0,29 u)")
+	var raiz := Node3D.new()
+	raiz.scale = Vector3.ONE * ESCALA
+	raiz.position = origen
+	add_child(raiz)
+	var n: int = 0
+	for c in _celdas_borde():
+		var centro := Vector3((c.x + 0.5) * CASILLA_M, 0, (c.y + 0.5) * CASILLA_M)
+		var e: bool = _es_borde(c + Vector2i(1, 0))
+		var o: bool = _es_borde(c + Vector2i(-1, 0)) and c.x > 0
+		var s: bool = _es_borde(c + Vector2i(0, 1))
+		var nn: bool = _es_borde(c + Vector2i(0, -1)) and c.y > 0
+		e = e and c.x < REJILLA_ANCHO - 1
+		s = s and c.y < REJILLA_FONDO - 1
+		if e and o and not s and not nn:
+			_poner_centrado(raiz, MUROS_4M[n % MUROS_4M.size()], centro, true)
+		elif s and nn and not e and not o:
+			_poner_centrado(raiz, MUROS_4M[n % MUROS_4M.size()], centro, false)
+		else:
+			var h: float = CASILLA_M * 0.25
+			if e:
+				_poner_centrado(raiz, MUROS_2M[n % MUROS_2M.size()], centro + Vector3(h, 0, 0), true)
+			if o:
+				_poner_centrado(raiz, MUROS_2M[(n + 1) % MUROS_2M.size()], centro - Vector3(h, 0, 0), true)
+			if s:
+				_poner_centrado(raiz, MUROS_2M[(n + 2) % MUROS_2M.size()], centro + Vector3(0, 0, h), false)
+			if nn:
+				_poner_centrado(raiz, MUROS_2M[(n + 3) % MUROS_2M.size()], centro - Vector3(0, 0, h), false)
+			_poner_centrado(raiz, POSTE, centro, true)
+		n += 1
+
+
+## Como _poner, pero dejando el CENTRO de la caja (en planta) en `centro` (metros) y la base en y = centro.y.
+func _poner_centrado(padre: Node3D, nombre: String, centro: Vector3, largo_x: bool) -> void:
+	var nodo: Node3D = _cargar(nombre)
+	if nodo == null:
+		return
+	padre.add_child(nodo)
+	var caja: AABB = _caja(nodo, Transform3D())
+	if (caja.size.x >= caja.size.z) != largo_x:
+		nodo.rotation_degrees.y = 90.0
+		caja = _caja(nodo, Transform3D(Basis(Vector3.UP, deg_to_rad(90.0))))
+	var c: Vector3 = caja.position + caja.size * 0.5
+	nodo.position = Vector3(centro.x - c.x, centro.y - caja.position.y, centro.z - c.z)
