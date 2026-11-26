@@ -26,6 +26,8 @@ const GROSOR_PLACA: float = 0.1
 const CADA: float = 0.1                    ## s entre dos lecturas de presencia
 const PLACA_CUEVA: String = "res://arte/piezas/placa_presion_cueva.tscn"   ## la losa con anillo y runa de la hoja D2 (1,8 × 1,8, 0,2 de alto)
 const HUNDIDO_PLACA: float = 0.04          ## cuánto baja la placa al pisarla
+## El color de la pista (`pista`) según su primer sello: tierra ocre, agua azul, fuego naranja (nunca amarillo).
+const COLOR_PISTA: Dictionary = {"tierra": Color(0.9, 0.68, 0.42), "agua": Color(0.55, 0.8, 1.0), "fuego": Color(1.0, 0.5, 0.25)}
 
 var modo: String = "magia"
 var celda: Vector2i = Vector2i.ZERO
@@ -33,6 +35,8 @@ var rearme: float = 0.0
 var cuerpos: Array = []                    ## Node3D extra que también pisan la placa (un tronco, un goblin…)
 var etiqueta: String = ""                  ## rótulo fijo sobre el pulsador (16/10, Pablo: «no entiendo el puzle»); "" = el del modo; "-" = ninguno
 var modelo: String = ""                    ## 23/10: «cueva» = la placa de piedra de la Cueva (PLACA_CUEVA) en vez de la losa ocre; solo en modo presencia
+var pista: Array = []                      ## 26/11 (playtest de la balanza: Pablo lanzó la plataforma de tierra, que nace bajo los pies): el hechizo que pide la placa,
+                                           ## en sellos y glifos («tierra», «barrera»); se escribe bajo el rótulo, «TIERRA + BARRERA», en el color del primer sello
 var peso_min: int = 0                      ## 5/11: > 0 = placa de PESO (solo modo presencia): se pisa con esa suma de `peso_valor` de lo que haya encima (grupo `peso`), no con la jugadora
 var _avisado_ligero: bool = false
 var activo: bool = false                   ## pulsado y aún sin rearmar (o pisado)
@@ -84,6 +88,17 @@ func _ready() -> void:
 		rot.modulate = COLOR[modo].lightened(0.35)
 		rot.position = Vector3(0.0, (ALTO_BOTON if modo != "presencia" else 0.0) + 0.75, 0.0)
 		add_child(rot)
+	if not pista.is_empty():
+		var pi := Label3D.new()
+		pi.name = "Pista"
+		pi.text = " + ".join(pista.map(func(x) -> String: return String(x).to_upper()))
+		pi.billboard = BaseMaterial3D.BILLBOARD_ENABLED
+		pi.font_size = 26
+		pi.outline_size = 8
+		pi.pixel_size = 0.005
+		pi.modulate = COLOR_PISTA.get(String(pista[0]), Color(1.0, 0.9, 0.75))
+		pi.position = Vector3(0.0, (ALTO_BOTON if modo != "presencia" else 0.0) + 0.55, 0.0)
+		add_child(pi)
 	set_process(true)
 
 

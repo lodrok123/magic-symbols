@@ -5,7 +5,7 @@
 #############.#######..#...........#####################
 #############.#.....#..#...........#####################
 #############.#.....#..#...........#####################
-#############.#.....#..g...........#####################
+#############.#.T.T.#..g...........#####################
 #############.#.....#..#...........#####################
 #############.###.###..#...........#####################
 #############.###.###..#...........#####################
@@ -81,7 +81,9 @@
 ; pieza cat4_cofre cofre 17 16 abierto=ptaguatierra.cat4.cofre da=tabla:cofre_pequeno
 ; pieza cat5_pa pulsador 15 5 modo=presencia peso=2 modelo=cueva
 ; pieza cat5_pb pulsador 17 5 modo=presencia peso=1 modelo=cueva
-; pieza cat5_pc pulsador 19 5 modo=presencia peso=1 modelo=cueva
+; pieza cat5_pc pulsador 19 5 modo=presencia peso=1 pista=tierra+barrera modelo=cueva
+; pieza cat5_luz_a brasero 16 7 encendido=si luz=2.8 modelo=cueva
+; pieza cat5_luz_b brasero 18 7 encendido=si luz=2.8 modelo=cueva
 ; pieza cat5_rm roca_empujable 15 7 tam=mediana
 ; pieza cat5_rp roca_empujable 17 7 tam=pequena
 ; pieza cat5_cofre cofre 19 8 aparece_si=cat5_pa.activo+cat5_pb.activo+cat5_pc.activo abierto=ptaguatierra.cat5.cofre da=oro:40+pocion:1

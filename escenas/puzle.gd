@@ -21,6 +21,7 @@ extends Node
 ##
 ## PIEZAS (tipo → claves, entre paréntesis el valor por defecto) y qué clase de `objetos/` es:
 ##   pulsador   modo=magia|agua|presencia (magia)  rearme=<s> (0)  modelo=cueva          Pulsador3D: botón, pulsador de agua o placa (modelo=cueva: la placa de piedra de la Cueva)
+##              26/11 `pista=tierra+barrera`: escribe bajo su rótulo el hechizo que pide (sellos y glifos del libro unidos con «+»)
 ##   compuerta  abierta (no)  abre_con=fuego|agua|hielo|rayo|explosion  cierra_con=…  estrecha (si)  vertical (si)   Compuerta3D
 ##              26/11 `modelo=muro`: se dibuja como el muro de sillares del muro agrietado y al abrirse salta en pedazos (la presa que rompe un barril)
 ##   nivel      objetivo=<u> (0.45)  banda=<u> (0)  invertido (no)                    NivelAgua3D: lee la profundidad de su casilla
@@ -48,6 +49,7 @@ extends Node
 ##                                                                                   el de siempre. Con `rele` (el id de OTRO brasero), al encenderse enciende a ése
 ##                                                                                   `espera` s después y él se apaga a los `dura` s; `dura` sin `rele` = se apaga solo.
 ##                                                                                   `luz=<x>` (24/10): la llama alumbra x veces más (en la Cueva, `luz=2.2`). Un pulso de FUEGO lo enciende
+##                                                                                   `encendido=si` (26/11): nace ardiendo (alumbra una sala que no es de fuego)
 ##   seto       mojable (no)                                                         el seto de la MAQUETA (letra «z»), enlazado por casilla. `mojable=si`: el agua lo
 ##                                                                                   moja y no prende en Reactivo3D.T_MOJADO s (el cortafuegos)
 ##   contador   de=<lista de casillas>  minimo=<n> (todos)                           ContadorReactivos3D: cuenta lo que arde (`is_lit`) en esas casillas (braseros,
@@ -488,7 +490,7 @@ const ACCIONES: Dictionary = {
 const ALIAS_TIPO: Dictionary = {"seta_veneno": "respiradero"}
 ## Claves de cada tipo de pieza y qué valor admiten: «f» número, «b» sí/no, «celdas» lista de casillas, «fijo» número o sí, «s:a|b» una de esas palabras.
 const CLAVES: Dictionary = {
-	"pulsador": {"modo": "s:magia|agua|presencia", "rearme": "f", "modelo": "s:cueva", "peso": "f"},
+	"pulsador": {"modo": "s:magia|agua|presencia", "rearme": "f", "modelo": "s:cueva", "peso": "f", "pista": "receta"},
 	"compuerta": {"abierta": "b", "abre_con": "s:fuego|agua|hielo|rayo|explosion", "cierra_con": "s:fuego|agua|hielo|rayo", "estrecha": "b", "vertical": "b", "modelo": "s:muro"},
 	"nivel": {"objetivo": "f", "banda": "f", "invertido": "b"},
 	"molino": {"umbral": "f", "vertical": "b"},
@@ -502,7 +504,7 @@ const CLAVES: Dictionary = {
 	"manantial": {"caudal": "f", "volumen": "f", "rampa": "b", "inicia": "b", "celdas": "celdas", "sin_piedra": "b", "bloque": "celdas", "terraza": "f", "pilares": "b", "espuma": "f"},
 	"tinaja": {"canal": "celdas"},
 	"totem": {},
-	"brasero": {"rele": "id", "espera": "f", "dura": "f", "luz": "f", "modelo": "s:cueva", "por_hierba": "b"},
+	"brasero": {"rele": "id", "espera": "f", "dura": "f", "luz": "f", "modelo": "s:cueva", "por_hierba": "b", "encendido": "b"},
 	# 27/10: todo el kit de la Cueva se puede poner de adorno desde el mapa (estalagmitas, pared baja, boca, llave, bloque de enlace, rocas y raíces con musgo)
 	"decorado": {"modelo": "decorado:geoda_resonante|estalagmita_resonante|estalagmita_rota|rocas_salpicadura|helechos_cueva|musgo_colgante|estalagmitas_a|estalagmitas_b|cueva_pared_baja|boca_cueva|llave_pequena|bloque_enlace|roca_musgosa|raices_musgo", "giro": "f", "escala": "f", "dx": "f", "dz": "f"},
 	"seto": {"mojable": "b"},
@@ -1824,6 +1826,16 @@ static func _valor(tipo: String, t: String) -> Array:
 		if not (t in vale_d) and not _pieza_arte_existe(t):
 			return [false, null, "tiene que ser uno de: %s, o el id de una pieza de arte/piezas (p. ej. prov_barrel)" % ", ".join(vale_d)]
 		return [true, t, ""]
+	if tipo == "receta":
+		# 26/11: «tierra+barrera»: sellos y glifos del libro unidos con «+» (la pista de qué hechizo pide una placa). Devuelve [String].
+		var partes: Array = []
+		for r in t.split("+", false):
+			if not (GestureLibrary.ELEMENTS.has(String(r)) or GestureLibrary.SIGILS.has(String(r))):
+				return [false, null, "«%s» no es un sello ni un glifo del libro (fuego, agua, tierra, flecha, barrera…)" % r]
+			partes.append(String(r))
+		if partes.is_empty():
+			return [false, null, "lista vacía"]
+		return [true, partes, ""]
 	if tipo.begins_with("s:"):
 		var vale: PackedStringArray = tipo.substr(2).split("|")
 		if not (t in vale):
@@ -2300,6 +2312,7 @@ func _crear(pz: Pieza) -> void:
 			b.name = pz.id
 			b.modelo = String(pz.p.get("modelo", ""))
 			b.peso_min = maxi(0, int(pz.p.get("peso", 0)))
+			b.pista = pz.p.get("pista", []) as Array
 			b.preparar(pz.celda, String(pz.p.get("modo", "magia")), float(pz.p.get("rearme", 0.0)))
 			cont.add_child(b)
 			pz.nodo = b
@@ -2548,6 +2561,8 @@ func _crear(pz: Pieza) -> void:
 					raiz_b.remove_child(modelo_b)
 					raiz_b.free()
 					br.cambiar_visual(modelo_b, [0.80, 0.55, 0.12, 0.95])
+			if bool(pz.p.get("encendido", false)):
+				br.call_deferred("encender_llama")          # 26/11: nace ardiendo (la luz de una sala de puzle que no es de fuego: la balanza)
 			pz.nodo = br
 		"seto":
 			var se: Reactivo3D = _reactivo("seto", pz.celda)

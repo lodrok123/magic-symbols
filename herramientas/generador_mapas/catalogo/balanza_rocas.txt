@@ -8,16 +8,21 @@
 ;  La balanza de la mina de Lost Cave (LC2). Tres placas de peso (2, 1 y 1) y solo dos rocas: la mediana (pesa 2) y la pequeña (1), cada
 ;  una en línea con su placa (dos empujones hacia arriba). La tercera placa se pisa con un bloque de TIERRA (tierra + barrera, nace donde
 ;  apuntas), que dura 25 s: con las tres a la vez aparece el cofre.
+;  26/11 (playtest de Pablo, vídeo): no se veían las rocas (sala a oscuras) y lanzó la plataforma de tierra, que nace bajo los pies.
+;  Ahora dos braseros encendidos desde el principio alumbran las rocas (T, en su fila y entre ellas: fuera del paso de las rocas y de
+;  donde se empuja; junto a las placas dejaban la mitad sur, la de las rocas, a oscuras) y la tercera placa dice «TIERRA + BARRERA».
 #######
 #.....#
 #.....#
-#.....#
+#.T.T.#
 #.....#
 ###.###
 ###.###
 ; pieza pa pulsador 1 1 modo=presencia peso=2 $MODELO
 ; pieza pb pulsador 3 1 modo=presencia peso=1 $MODELO
-; pieza pc pulsador 5 1 modo=presencia peso=1 $MODELO
+; pieza pc pulsador 5 1 modo=presencia peso=1 pista=tierra+barrera $MODELO
+; pieza luz_a brasero 2 3 encendido=si luz=2.8 $MODELO
+; pieza luz_b brasero 4 3 encendido=si luz=2.8 $MODELO
 ; pieza rm roca_empujable 1 3 tam=mediana
 ; pieza rp roca_empujable 3 3 tam=pequena
 ; pieza cofre cofre 5 4 aparece_si=pa.activo+pb.activo+pc.activo abierto=$NIVEL.$ID.cofre da=oro:40+pocion:1

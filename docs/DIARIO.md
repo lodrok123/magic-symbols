@@ -6627,3 +6627,26 @@ Pablo, con un vídeo de PtAguaTierra, sala 6: «revisa este puzzle; también que
   - `escenario_catalogo_puzles` y `escenario_puzles_agua`: 0 fallos.
 - **En PtAguaTierra, como sala 7** (Alt + 7), con la hoja dada de alta: 26 filas `cat_*`.
 - Al regenerar, el escondite y el bloque de hielo se cambian de sala (los dos estaban sin probar). Los demás Pt se dejan como estaban, porque solo les cambiaba la fecha de la cabecera.
+
+### 26/11/2026 · aviso de contexto PUZLES · balanza: luz en la sala y pista del hechizo
+Pablo: «luz y pista del hechizo».
+
+**Luz**
+- Dos braseros encendidos desde el principio. La clave nueva `encendido=si` del brasero (`puzle.gd`) hace que nazca ardiendo.
+- Van en la fila de las rocas y entre ellas, con `luz=2.8`, fuera del paso de las rocas y de las casillas desde donde se empujan.
+- Primero los puse junto a las placas, pero así la mitad sur de la sala, la de las rocas, seguía a oscuras.
+
+**Pista**
+- La tercera placa escribe «TIERRA + BARRERA» bajo su «PESO 1», en ocre.
+- Es la clave nueva `pista=tierra+barrera` del pulsador (`objetos/pulsador_3d.gd`). Acepta sellos y glifos del libro unidos con «+» y los valida al leer el mapa.
+
+**Las rocas sí se dibujaban**
+- En las fotos de antes no se veían. Con la cámara baja, el muro sur (de dos casillas) tapa su fila, y además estaban a oscuras.
+- Desde casi cenital se ven bien: la mediana, como un bloque, y la pequeña, que es chica.
+- `captura_balanza` hace ya la foto de inicio así.
+- En el vídeo de Pablo, el pedrusco con musgo al que empujaba era la roca mediana.
+
+**Pruebas**
+- `captura_balanza`, con las dos comprobaciones nuevas «[legible]» (braseros encendidos y pista escrita): 0 fallos. Fotos en `docs/capturas/balanza/`.
+- `escenario_catalogo_puzles`, `escenario_catalogo_nuevos` y `generar_playtest_puzles`: 0 fallos.
+- PtAguaTierra regenerado: solo cambia la sala de la balanza.

@@ -38,11 +38,14 @@ func _escenario() -> void:
 	if rm == null or rp == null or pc == null:
 		return
 	print("rocas al empezar: mediana ", rm.celda, " pequeña ", rp.celda, " · placas ", _pz.pieza(_pre + "pa").celda, _pz.pieza(_pre + "pb").celda, _pz.pieza(_pre + "pc").celda)
-	await _foto("1_inicio.png")
-	# Lo que ve la jugadora al entrar (cámara del juego, con su luz): ¿se ven las rocas?
-	colocar_jugador(rp.celda + Vector2i(0, 2))
-	await avanzar_s(1.5)
-	await _foto_juego("0_al_entrar_camara_juego.png")
+	# 26/11 (Pablo: «luz y pista del hechizo»): dos braseros encendidos alumbran la sala y la tercera placa dice qué hechizo pide.
+	var luz_a = _pz.nodo(_pre + "luz_a")
+	var luz_b = _pz.nodo(_pre + "luz_b")
+	_ok("[legible] los dos braseros de la sala nacen encendidos (luz)", luz_a != null and luz_b != null and bool(luz_a.get("is_lit")) and bool(luz_b.get("is_lit")))
+	var pista: Label3D = pc.get_node_or_null("Pista") as Label3D
+	_ok("[legible] la tercera placa escribe la pista «TIERRA + BARRERA»", pista != null and pista.text == "TIERRA + BARRERA", pista.text if pista != null else "sin pista")
+	# Casi cenital: con la cámara baja, el muro sur de dos casillas tapa la fila de las rocas (las fotos de antes no las enseñaban).
+	await _foto("1_inicio.png", Vector3(0.0, 11.0, 1.5))
 	# La pequeña (peso 1) a su placa: dos empujones hacia el norte, andando.
 	for i in 2:
 		await _empujar_andando(rp, Vector2i(0, -1))
@@ -106,26 +109,17 @@ func _lanzar(elemento: String, glifos: Array, objetivo: Vector2i, desde: Vector2
 	return false
 
 
-func _foto_juego(nombre: String) -> void:
-	if not _fotos:
-		return
-	await avanzar(4)
-	await RenderingServer.frame_post_draw
-	root.get_viewport().get_texture().get_image().save_png(ProjectSettings.globalize_path(DIR + "/" + nombre))
-	print("captura: ", nombre)
-
-
-func _foto(nombre: String) -> void:
+func _foto(nombre: String, desde: Vector3 = Vector3(0.0, 6.5, 6.5)) -> void:
 	if not _fotos:
 		return
 	for cl in root.find_children("*", "CanvasLayer", true, false):
 		(cl as CanvasLayer).visible = false
 	var cam_juego: Camera3D = root.get_viewport().get_camera_3d()
-	var centro: Vector3 = Terreno3D.centro_de(_pz.pieza(_pre + "pb").celda + Vector2i(0, 1), Terreno3D.alto_suelo)
+	var centro: Vector3 = Terreno3D.centro_de(_pz.pieza(_pre + "pb").celda + Vector2i(0, 2), Terreno3D.alto_suelo)
 	var cam := Camera3D.new()
 	cam.fov = 55.0
 	maqueta.add_child(cam)
-	cam.global_position = centro + Vector3(0.0, 6.5, 6.5)
+	cam.global_position = centro + desde
 	cam.look_at(centro + Vector3(0.0, 0.3, 0.0))
 	cam.current = true
 	await avanzar(6)
