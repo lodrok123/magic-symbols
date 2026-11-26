@@ -1,8 +1,11 @@
 [gd_scene format=3]
 
 [ext_resource type="PackedScene" path="res://arte/meshy/piezas/planta_hojas.glb" id="1_ceolt"]
+[ext_resource type="Script" path="res://presentacion/fab_ue/variante_vegetal.gd" id="1_pg4fb"]
 
 [node name="planta_hojas" type="Node3D" unique_id=497553003]
+script = ExtResource("1_pg4fb")
+caja_original = AABB(-0.2806942, 0, -0.31155342, 0.5613884, 0.59999996, 0.62310684)
 metadata/id = "planta_hojas"
 metadata/bloquea = false
 metadata/reactivo = false
@@ -10,5 +13,5 @@ metadata/inflamable = false
 
 [node name="modelo" type="Node3D" parent="." unique_id=701754685]
 
-[node name="planta_hojas2" type="Node3D" parent="modelo" unique_id=1169938799 instance=ExtResource("1_ceolt")]
+[node name="planta_hojas2" parent="modelo" unique_id=1169938799 instance=ExtResource("1_ceolt")]
 transform = Transform3D(4.7204485, 0, 0, 0, 4.7204485, 0, 0, 0, 4.7204485, 0, 0, 0)

@@ -1,8 +1,11 @@
 [gd_scene format=3]
 
 [ext_resource type="PackedScene" path="res://arte/meshy/piezas/helechos_cueva.glb" id="1_e5of4"]
+[ext_resource type="Script" path="res://presentacion/fab_ue/variante_vegetal.gd" id="1_wmsnq"]
 
 [node name="helechos_cueva" type="Node3D" unique_id=1052413469]
+script = ExtResource("1_wmsnq")
+caja_original = AABB(-0.33719978, 0, -0.3579841, 0.67439955, 0.6, 0.7159682)
 metadata/id = "helechos_cueva"
 metadata/bloquea = false
 metadata/reactivo = false
@@ -10,5 +13,5 @@ metadata/inflamable = false
 
 [node name="modelo" type="Node3D" parent="." unique_id=1223059763]
 
-[node name="helechos_cueva2" type="Node3D" parent="modelo" unique_id=1715603653 instance=ExtResource("1_e5of4")]
+[node name="helechos_cueva2" parent="modelo" unique_id=1715603653 instance=ExtResource("1_e5of4")]
 transform = Transform3D(4.638227, 0, 0, 0, 4.638227, 0, 0, 0, 4.638227, 0, 0, 0)

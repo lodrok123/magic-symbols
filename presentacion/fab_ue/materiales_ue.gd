@@ -61,6 +61,94 @@ static func col(v, por_defecto: Color = Color.WHITE) -> Color:
 	return Color(float(v[0]), float(v[1]), float(v[2]))
 
 
+## --- MATERIAL DEL JUEGO (26/11, decisión de Pablo) -----------------------------------------------------------------------------------
+## La misma receta, pero como StandardMaterial3D, para las piezas que SUSTITUYEN vegetación del juego. El juego convierte los
+## StandardMaterial3D a su material propio (Ocluso3D.convertir), que es el que sabe quemarse, mojarse, helarse, reaccionar y apartarse;
+## con los shaders del pack (material()) todo eso dejaría de verse. A cambio se aproxima lo que el material del juego no tiene:
+##   · hojas: el degradado Main→Gradient se queda en un tinte medio; la textura se multiplica una vez (el grafo de BK la multiplica dos:
+##     se compensa con HOJAS_JUEGO_K).
+##   · hierba: la mezcla de Color 01/02 por ruido, en su media.
+##   · rocas: la capa de hierba de arriba y el detalle no se pintan (solo color, relieve y oclusión de la máscara).
+## Los tintes de Unreal son lineales: albedo_color se escribe en sRGB (linear_to_srgb).
+const HOJAS_JUEGO_K: float = 0.6
+## 2.º (26/11, fotos del Bosque antes/después): con el tinte de Unreal las copas salían casi NEGRAS con la luz del juego. La paleta del
+## juego (paleta_copa, VERDES_COPA de la maqueta) corrige el TONO pero conserva lo oscuro del albedo, y los modelos de Meshy traen texturas
+## claras. Así que en el material del juego el tinte de hojas, hierba y troncos conserva su tono pero se lleva a esta luminosidad
+## (el canal mayor, en sRGB). Las rocas, setas y flores no se tocan.
+const JUEGO_LUMINOSIDAD: float = 0.82
+const JUEGO_DESATURAR: float = 0.35
+var _mats_juego: Dictionary = {}
+
+
+## El tinte (lineal) en sRGB con el canal mayor a JUEGO_LUMINOSIDAD: mismo tono, tan claro como las piezas de Meshy.
+static func _claro(tinte_lineal: Color) -> Color:
+	var c: Color = Color(tinte_lineal.r, tinte_lineal.g, tinte_lineal.b).linear_to_srgb()
+	var m: float = maxf(maxf(c.r, c.g), maxf(c.b, 0.001))
+	var claro := Color(c.r / m * JUEGO_LUMINOSIDAD, c.g / m * JUEGO_LUMINOSIDAD, c.b / m * JUEGO_LUMINOSIDAD)
+	# 3.º: los arbustos (que no pasan por la paleta de copa de la maqueta) salían verde chillón: un poco hacia el gris, como la paleta pastel
+	var gris: float = (claro.r + claro.g + claro.b) / 3.0
+	return claro.lerp(Color(gris, gris, gris), JUEGO_DESATURAR)
+
+
+func material_juego(clave: String) -> Material:
+	if _mats_juego.has(clave):
+		return _mats_juego[clave]
+	if not informe["materiales"].has(clave):
+		return null
+	var m: Dictionary = informe["materiales"][clave]
+	var tx: Dictionary = m["texturas"]
+	var es: Dictionary = m["escalares"]
+	var ve: Dictionary = m["vectores"]
+	var padre: String = String(m["padre"])
+	var sm := StandardMaterial3D.new()
+	sm.resource_name = clave
+	sm.texture_filter = BaseMaterial3D.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS_ANISOTROPIC
+	sm.roughness = 0.9
+	match padre:
+		"MM_BK_VegetationLeaves", "MM_BK_HillsLeaves":
+			var tinte: Color = col(ve.get("Main Color")).lerp(col(ve.get("Gradient Color")), 0.5)
+			sm.albedo_texture = tex(tx.get("Texture"))
+			sm.albedo_color = _claro(tinte)
+			sm.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA_SCISSOR
+			sm.alpha_scissor_threshold = 0.5
+		"MM_BK_Grass":
+			var mezcla: Color = col(ve.get("Color 01")).lerp(col(ve.get("Color 02")), 0.5)
+			var tinte: Color = Color.WHITE.lerp(mezcla, clampf(float(es.get("Color Power", 0.0)), 0.0, 1.0))
+			sm.albedo_texture = tex(tx.get("Albedo"))
+			sm.albedo_color = _claro(tinte)
+			sm.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA_SCISSOR
+			sm.alpha_scissor_threshold = 0.5
+			sm.cull_mode = BaseMaterial3D.CULL_DISABLED
+		"MM_BK_VegetationTrunk":
+			sm.albedo_texture = tex(tx.get("Albedo"))
+			sm.albedo_color = _claro(col(ve.get("Main Color")))
+			_relieve(sm, tex(tx.get("Normal")))
+		"MM_BK_StandardLayered", "MM_BK_Standard", "MM_BK_StandardOpacity", "MM_BK_StandardEmissive", "MM_CoveredStandard", "MM_BK_Banks":
+			sm.albedo_texture = tex(tx.get("Albedo"))
+			sm.albedo_color = col(ve.get("Color")).linear_to_srgb()
+			_relieve(sm, tex(tx.get("Normal")))
+			if padre == "MM_BK_StandardOpacity":
+				sm.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA_SCISSOR
+				sm.alpha_scissor_threshold = 0.5
+		"MM_BK_Water":
+			sm.albedo_color = Color(0.22, 0.48, 0.62, 0.65)
+			sm.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+			sm.roughness = 0.1
+		_:
+			# Stylescape y lo que no se conozca: el material del pack tal cual (el juego lo deja como está)
+			var otro: Material = material(clave)
+			_mats_juego[clave] = otro
+			return otro
+	_mats_juego[clave] = sm
+	return sm
+
+
+static func _relieve(sm: StandardMaterial3D, normal: Texture2D) -> void:
+	if normal != null:
+		sm.normal_enabled = true
+		sm.normal_texture = normal
+
+
 ## El material de Godot para la receta `clave` (p. ej. «PureNature_Meadows__MI_OakLeaves»). `alto_malla` (m) es para el degradado de las hojas.
 ## Devuelve null si la receta no está en el informe.
 func material(clave: String, alto_malla: float = 10.0) -> Material:

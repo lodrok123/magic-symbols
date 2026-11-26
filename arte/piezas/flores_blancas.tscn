@@ -1,6 +1,7 @@
 [gd_scene format=4]
 
 [ext_resource type="Texture2D" path="res://arte/meshy/piezas/bosque_flora_0.jpg" id="1_3hu4x"]
+[ext_resource type="Script" path="res://presentacion/fab_ue/variante_vegetal.gd" id="1_4q4at"]
 [ext_resource type="Texture2D" path="res://arte/meshy/piezas/bosque_flora_1.jpg" id="2_4q4at"]
 [ext_resource type="Texture2D" path="res://arte/meshy/piezas/bosque_flora_2.jpg" id="3_p8gqb"]
 
@@ -52,6 +53,8 @@ blend_shape_mode = 0
 shadow_mesh = SubResource("ArrayMesh_xv5er")
 
 [node name="flores_blancas" type="Node3D" unique_id=584769380]
+script = ExtResource("1_4q4at")
+caja_original = AABB(-0.2584394, 0, -0.26498276, 0.5168788, 0.34, 0.5299655)
 metadata/id = "flores_blancas"
 metadata/bloquea = false
 metadata/reactivo = false

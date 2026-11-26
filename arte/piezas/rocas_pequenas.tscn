@@ -1,8 +1,11 @@
 [gd_scene format=3]
 
+[ext_resource type="Script" path="res://presentacion/fab_ue/variante_vegetal.gd" id="1_eoqjk"]
 [ext_resource type="PackedScene" path="res://arte/meshy/piezas/rocas_pequenas.glb" id="1_kmiak"]
 
 [node name="rocas_pequenas" type="Node3D" unique_id=987145674]
+script = ExtResource("1_eoqjk")
+caja_original = AABB(-0.34174404, 0, -0.30236253, 0.6834881, 0.32999998, 0.60472506)
 metadata/id = "rocas_pequenas"
 metadata/bloquea = false
 metadata/reactivo = false
@@ -10,5 +13,5 @@ metadata/inflamable = false
 
 [node name="modelo" type="Node3D" parent="." unique_id=1436242059]
 
-[node name="rocas_pequenas2" type="Node3D" parent="modelo" unique_id=348466427 instance=ExtResource("1_kmiak")]
+[node name="rocas_pequenas2" parent="modelo" unique_id=348466427 instance=ExtResource("1_kmiak")]
 transform = Transform3D(1.5926522, 0, 0, 0, 1.5926522, 0, 0, 0, 1.5926522, 0, 0, 0)

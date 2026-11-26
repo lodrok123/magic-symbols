@@ -3348,7 +3348,10 @@ func _en_piezas_sueltas(id: String) -> bool:
 
 
 ## Copia de una pieza escalada a su medida, con la base en y = 0. null si no está en ninguna biblioteca.
-func _pieza(id: String) -> Node3D:
+func _pieza(id: String, con_variantes: bool = true) -> Node3D:
+	# 26/11: vegetación que Pablo eligió sustituir por la del pack Pure Nature (TablaVariantes), al tamaño de la pieza que sustituye
+	var variante: Node3D = Pieza3D.visual_variante(id, TablaVariantes.elegir(id)) if con_variantes else null
+	if variante != null: return _a_paleta(variante, id)
 	# 12/10: modelo suelto `meshy/piezas/<id>.glb` (p. ej. el cristal de la fuente eléctrica): se usa tal cual, sin depender del nombre del nodo.
 	var suelto: String = "res://arte/meshy/piezas/" + id + ".glb"
 	if ResourceLoader.exists(suelto):
@@ -3909,11 +3912,13 @@ func _golpear_objetos(elemento: String, punto: Vector3) -> void:
 
 
 ## Las mallas de una pieza ya medida (como la deja _pieza), con su transformación respecto a la base.
-func _plantilla(id: String) -> Array:
-	if _plantillas.has(id):
-		return _plantillas[id]
+## 26/11: `ruta` = una variante de TablaVariantes (vegetación del pack); "" = la pieza original. Cada una tiene su plantilla.
+func _plantilla(id: String, ruta: String = "") -> Array:
+	var clave: String = id if ruta == "" else id + "|" + ruta
+	if _plantillas.has(clave):
+		return _plantillas[clave]
 	var res: Array = []
-	var n: Node3D = _pieza(id)
+	var n: Node3D = _a_paleta(Pieza3D.visual_variante(id, ruta), id) if ruta != "" else _pieza(id, false)
 	if n != null:
 		_mallas_de(n, Transform3D.IDENTITY, res)
 		n.free()
@@ -3959,7 +3964,7 @@ func _plantilla(id: String) -> Array:
 				for i in range(malla.get_surface_count()):
 					_preparar_musgo_ruina(malla.surface_get_material(i), caja_ruina)
 		parte[0] = malla
-	_plantillas[id] = res
+	_plantillas[clave] = res
 	return res
 
 
@@ -4022,12 +4027,15 @@ func _construir_lotes() -> void:
 		for t in (_lotes[id] as Array):
 			var o: Vector3 = (t as Transform3D).origin
 			var k := Vector2i(floori(o.x / BLOQUE_LOTE), floori(o.z / BLOQUE_LOTE))
-			if not trozos.has(k):
-				trozos[k] = []
-			(trozos[k] as Array).append(t)
-		for k in trozos:
-			var copias: Array = trozos[k]
-			for parte in _plantilla(String(id)):
+			# 26/11: cada trozo es zona + variante (TablaVariantes: vegetación del pack; "" = la original), siempre la misma para el mismo sitio
+			var kv: Array = [k, TablaVariantes.elegir_en(String(id), o)]
+			if not trozos.has(kv):
+				trozos[kv] = []
+			(trozos[kv] as Array).append(t)
+		for kv in trozos:
+			var copias: Array = trozos[kv]
+			var k: Vector2i = kv[0]
+			for parte in _plantilla(String(id), String(kv[1])):
 				var mm := MultiMesh.new()
 				mm.transform_format = MultiMesh.TRANSFORM_3D
 				mm.mesh = parte[0] as Mesh

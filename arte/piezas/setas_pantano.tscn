@@ -1,6 +1,7 @@
 [gd_scene format=4]
 
 [ext_resource type="Texture2D" path="res://arte/meshy/packs/pack_pantano_7.png" id="1_6qr6o"]
+[ext_resource type="Script" path="res://presentacion/fab_ue/variante_vegetal.gd" id="1_urcm3"]
 
 [sub_resource type="StandardMaterial3D" id="StandardMaterial3D_01ni3"]
 resource_name = "material_7"
@@ -43,6 +44,8 @@ blend_shape_mode = 0
 shadow_mesh = SubResource("ArrayMesh_tr2ln")
 
 [node name="setas_pantano" type="Node3D" unique_id=349273901]
+script = ExtResource("1_urcm3")
+caja_original = AABB(-0.27485973, 0, -0.16861413, 0.54971945, 0.5, 0.33722827)
 metadata/id = "setas_pantano"
 metadata/bloquea = false
 metadata/reactivo = false

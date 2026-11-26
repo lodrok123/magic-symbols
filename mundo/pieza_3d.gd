@@ -273,6 +273,11 @@ static var giro_activo: bool = true
 
 ## Copia del modelo de la pieza, a su medida y con la base en y = 0 centrada. null si ninguna biblioteca la tiene.
 static func crear_visual(id_pedido: String) -> Node3D:
+	# 26/11: vegetación que Pablo eligió sustituir por la del pack Pure Nature (TablaVariantes; docs/fab_ue/candidatos_vegetacion.json).
+	# Se normaliza con el MEDIDA de la pieza que sustituye: sale a su mismo tamaño. "" = la original (o el pack no está en esta máquina).
+	var variante: Node3D = null if _sin_variantes else visual_variante(id_pedido, TablaVariantes.elegir(id_pedido))
+	if variante != null:
+		return variante
 	var id: String = id_real(id_pedido)
 	# 12/10: un modelo suelto con el mismo nombre que el id (`meshy/piezas/<id>.glb`) se usa directamente, sin depender del nombre
 	# del nodo raíz que deje el importador.
@@ -378,6 +383,52 @@ static func forma_colision(id_pedido: String) -> Dictionary:
 			f["radio"] = r
 	_formas[id] = f
 	return f
+
+
+## 26/11: el visual de la variante `ruta` (TablaVariantes: vegetación del pack Pure Nature) para la pieza `id`, normalizado como la pieza
+## que sustituye (su MEDIDA: sale a su mismo tamaño). null si `ruta` es "" o no existe (entonces se usa la original).
+static func visual_variante(id: String, ruta: String) -> Node3D:
+	if ruta == "":
+		return null
+	var ps: PackedScene = load(ruta) as PackedScene
+	if ps == null:
+		return null
+	var v: Node3D = ps.instantiate() as Node3D
+	var cv: AABB = _caja(v, Transform3D.IDENTITY)
+	# una variante PLANA (el musgo de agua) no se puede igualar por la altura: se iguala a lo que ocupa en planta el original
+	if cv.size.y < maxf(cv.size.x, cv.size.z) * 0.15:
+		return _normalizar_planta(v, id, cv)
+	return _normalizar(v, id)
+
+
+## 26/11: el visual de `id` SIN las variantes del pack (la pieza original). Para medirla y para las pruebas.
+static var _sin_variantes: bool = false
+
+
+static func crear_visual_original(id: String) -> Node3D:
+	_sin_variantes = true
+	var v: Node3D = crear_visual(id)
+	_sin_variantes = false
+	return v
+
+
+## 26/11: lo que ocupa en planta (ancho mayor) el visual ORIGINAL de `id`, medido una vez. Para las variantes planas de TablaVariantes.
+static var _planta_original: Dictionary = {}
+
+
+static func _normalizar_planta(modelo: Node3D, id: String, caja: AABB) -> Node3D:
+	if not _planta_original.has(id):
+		var orig: Node3D = crear_visual_original(id)
+		var co: AABB = _caja(orig, Transform3D.IDENTITY) if orig != null else AABB()
+		_planta_original[id] = maxf(co.size.x, co.size.z) if orig != null else 1.0
+		if orig != null:
+			orig.free()
+	var f: float = float(_planta_original[id]) / maxf(maxf(caja.size.x, caja.size.z), 0.0001)
+	var raiz := Node3D.new()
+	raiz.add_child(modelo)
+	modelo.scale *= f
+	modelo.position = -Vector3(caja.position.x + caja.size.x * 0.5, caja.position.y, caja.position.z + caja.size.z * 0.5) * f
+	return raiz
 
 
 static func _normalizar(modelo: Node3D, id: String) -> Node3D:

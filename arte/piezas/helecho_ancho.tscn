@@ -1,8 +1,11 @@
 [gd_scene format=3]
 
+[ext_resource type="Script" path="res://presentacion/fab_ue/variante_vegetal.gd" id="1_6qynt"]
 [ext_resource type="PackedScene" path="res://arte/meshy/piezas/helecho_ancho.glb" id="1_nyhs4"]
 
 [node name="helecho_ancho" type="Node3D" unique_id=579814152]
+script = ExtResource("1_6qynt")
+caja_original = AABB(-0.3932991, 0, -0.37340248, 0.7865982, 0.49999997, 0.74680495)
 metadata/id = "helecho_ancho"
 metadata/bloquea = false
 metadata/reactivo = false
@@ -10,5 +13,5 @@ metadata/inflamable = false
 
 [node name="modelo" type="Node3D" parent="." unique_id=1363911076]
 
-[node name="helecho_ancho2" type="Node3D" parent="modelo" unique_id=1624296563 instance=ExtResource("1_nyhs4")]
+[node name="helecho_ancho2" parent="modelo" unique_id=1624296563 instance=ExtResource("1_nyhs4")]
 transform = Transform3D(5.6934366, 0, 0, 0, 5.6934366, 0, 0, 0, 5.6934366, 0, 0, 0)
