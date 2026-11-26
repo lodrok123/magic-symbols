@@ -210,12 +210,23 @@ func _ver_fila(i: int) -> void:
 		ancho_max = maxf(ancho_max, maxf(caja.size.x, caja.size.z))
 		alto_max = maxf(alto_max, caja.size.y)
 		piezas.append([n, caja])
-	var paso: float = ancho_max * 1.25
-	var esc_texto: float = clampf(maxf(ancho_max, alto_max) * 0.0025, 0.002, 0.03)
+	# 3.º (26/11, Pablo: «¿por qué el 26 está tan lejos?»): cada columna ocupa SU ancho, no el de la pieza más ancha. Con una sola pieza
+	# enorme y plana en la fila (26b, musgo de agua de 5,75 u) la fila se estiraba, la cámara se alejaba y lo demás salía diminuto.
+	var anchos: Array = []
+	var alto_tipico: float = 0.3
+	for pz in piezas:
+		var cj: AABB = pz[1]
+		anchos.append(maxf(maxf(cj.size.x, cj.size.z), 0.4))
+		alto_tipico = maxf(alto_tipico, cj.size.y)
+	var margen: float = maxf(0.35, alto_tipico * 0.35)
+	var paso: float = margen * 2.0
+	var esc_texto: float = clampf(maxf(alto_tipico, margen * 2.0) * 0.0025, 0.0015, 0.03)
+	var x_cursor: float = margen * 3.0           # hueco a la izquierda para la figura de la jugadora
 	for j in range(piezas.size()):
 		var n: Node3D = piezas[j][0]
 		var caja: AABB = piezas[j][1]
-		var x: float = paso * (j + 1)
+		var x: float = x_cursor + anchos[j] * 0.5
+		x_cursor += anchos[j] + margen
 		n.position = Vector3(x - (caja.position.x + caja.size.x * 0.5), 0.0, -(caja.position.z + caja.size.z * 0.5))
 		var l := Label3D.new()
 		# solo el código: con los nombres largos los rótulos se pisaban (los nombres van en la lista de candidatos)
@@ -233,15 +244,15 @@ func _ver_fila(i: int) -> void:
 	cap.height = 1.0
 	cap.radius = 0.18
 	fig.mesh = cap
-	fig.position = Vector3(paso * 0.2, 0.5, -paso * 0.3)
+	fig.position = Vector3(margen * 1.5, 0.5, 0.0)
 	var mf := StandardMaterial3D.new()
 	mf.albedo_color = Color(0.9, 0.3, 0.6)
 	fig.material_override = mf
 	_nodo_grupo.add_child(fig)
 	# cámara de frente (X a la derecha), 25° por encima, encuadrando la fila entera
-	var ancho: float = paso * 4.6
-	var centro: Vector3 = CANDIDATOS_ORIGEN + Vector3(paso * 2.6, alto_max * 0.5, 0.0)
-	var dist: float = maxf(ancho * 0.5 / tan(deg_to_rad(_cam_candidatos.fov * 0.5)), alto_max * 2.2) * 1.05
+	var ancho: float = x_cursor + margen
+	var centro: Vector3 = CANDIDATOS_ORIGEN + Vector3(ancho * 0.5, alto_max * 0.4, 0.0)
+	var dist: float = maxf(ancho * 0.5 / tan(deg_to_rad(_cam_candidatos.fov * 0.5)), alto_max * 2.2) * 1.08
 	var ang: float = deg_to_rad(25.0)
 	_cam_candidatos.position = centro + Vector3(0.0, sin(ang) * dist, cos(ang) * dist)
 	_cam_candidatos.look_at(centro, Vector3.UP)
