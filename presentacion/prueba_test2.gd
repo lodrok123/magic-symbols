@@ -5662,7 +5662,8 @@ const ADORNOS: Dictionary = {
 	"radio_grupo": 0.75,     ## u: las piedras pequeñas se reparten a esta distancia como mucho de la grande
 	"separacion": 3,         ## casillas entre centros de grupos (Chebyshev): grupos pocos y bien separados
 	# flores y matas bajas en el BORDE de los corros de hierba (piezas que ya existen en arte/piezas; sin colisión, van a los lotes)
-	"borde_ids": ["flores_amarillas", "flores_colores", "helecho_ancho"],
+	# 26/11 (Pablo): + flores del pack para decorar el suelo (17c, 18a), la heliconia como flor de ambiente (21b) y el musgo como hierba corta (26b)
+	"borde_ids": ["flores_amarillas", "flores_colores", "helecho_ancho", "margarita_amarilla_suelo", "margarita_blanca_suelo", "flor_heliconia", "musgo_suelo"],
 	"borde_mata": Vector2(0.12, 0.88),   ## valor del campo de matas en que un punto cuenta como borde de corro (la banda del smoothstep de las matas es estrecha)
 	"borde_prob": 0.30,      ## probabilidad por casilla de llevar una pieza de borde (la mayoría se descarta por no estar en la banda o por tener algo cerca)
 	"borde_escala": Vector2(0.7, 1.05),
@@ -5741,8 +5742,10 @@ const MATA_MAX_ADORNO: float = 0.08     ## en una casilla de hierba (`,` o `v`) 
 const PROB_GRUPO_ADORNO: float = 0.22  ## probabilidad de que una casilla libre de claro lleve un grupito
 const PROB_SETAS_ADORNO: float = 0.45   ## de los grupitos, los que son de setas (el resto, de piedrecitas)
 const RADIO_LIBRE_ADORNO: float = 1.15  ## distancia mínima (unidades) a cualquier pieza, marcador o pieza de puzle
-const ADORNO_SETAS: Array = ["setas", "setas_amarillas", "setas_marrones"]
-const ADORNO_ESCALA_SETAS: Dictionary = {"setas": Vector2(0.75, 1.1), "setas_amarillas": Vector2(0.75, 1.1), "setas_marrones": Vector2(0.5, 0.7)}
+## 26/11: + las setas nuevas del pack Pure Nature que eligió Pablo (TablaVariantes; sin el pack en la máquina no salen: _plantilla vacía)
+const ADORNO_SETAS: Array = ["setas", "setas_amarillas", "setas_marrones", "seta_pradera", "seta_amarilla_alta", "seta_amarilla_fina"]
+const ADORNO_ESCALA_SETAS: Dictionary = {"setas": Vector2(0.75, 1.1), "setas_amarillas": Vector2(0.75, 1.1), "setas_marrones": Vector2(0.5, 0.7),
+	"seta_pradera": Vector2(0.75, 1.1), "seta_amarilla_alta": Vector2(0.75, 1.1), "seta_amarilla_fina": Vector2(0.75, 1.1)}
 var _n_adornos: int = 0
 var _adornos_setas: int = 0
 var _adornos_piedras: int = 0

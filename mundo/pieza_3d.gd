@@ -395,10 +395,34 @@ static func visual_variante(id: String, ruta: String) -> Node3D:
 		return null
 	var v: Node3D = ps.instantiate() as Node3D
 	var cv: AABB = _caja(v, Transform3D.IDENTITY)
+	# pieza NUEVA (no existía en el juego): su tamaño viene de TablaVariantes.MEDIDAS (el de la pieza que se dio como referencia)
+	if TablaVariantes.MEDIDAS.has(id):
+		return _normalizar_a(v, cv, TablaVariantes.MEDIDAS[id])
 	# una variante PLANA (el musgo de agua) no se puede igualar por la altura: se iguala a lo que ocupa en planta el original
 	if cv.size.y < maxf(cv.size.x, cv.size.z) * 0.15:
 		return _normalizar_planta(v, id, cv)
 	return _normalizar(v, id)
+
+
+## 26/11: escala `modelo` (caja `caja`) a una medida {"alto": u} o {"planta": u}, centrado en planta y con la base en y = 0.
+static func _normalizar_a(modelo: Node3D, caja: AABB, medida: Dictionary) -> Node3D:
+	var f: float = 1.0
+	if medida.has("alto"):
+		f = float(medida["alto"]) / maxf(caja.size.y, 0.0001)
+	else:
+		f = float(medida.get("planta", 1.0)) / maxf(maxf(caja.size.x, caja.size.z), 0.0001)
+	var raiz := Node3D.new()
+	raiz.add_child(modelo)
+	modelo.scale *= f
+	modelo.position = -Vector3(caja.position.x + caja.size.x * 0.5, caja.position.y, caja.position.z + caja.size.z * 0.5) * f
+	# una pieza casi sin grosor (el musgo de agua) se levanta un poco: la maqueta entierra los adornos HUNDIR (0,03) y quedaba bajo el suelo
+	if caja.size.y * f < ALZAR_PLANA:
+		modelo.position.y += ALZAR_PLANA
+	return raiz
+
+
+## 26/11: lo que se levanta una pieza nueva casi plana para no quedar enterrada ni pelearse con el suelo.
+const ALZAR_PLANA: float = 0.05
 
 
 ## 26/11: el visual de `id` SIN las variantes del pack (la pieza original). Para medirla y para las pruebas.
