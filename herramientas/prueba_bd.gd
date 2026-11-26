@@ -191,7 +191,8 @@ func _compatibilidad() -> void:
 	_ok("4 PLANTAS.alga igual que antes (la reacción de la charca electrificada espera a su fase)", Objetos.PLANTAS["alga"] == {"base": "alga_cueva", "tabla": {"fuego": "alga_seca"}}, str(Objetos.PLANTAS["alga"]))
 	_ok("4 PLANTAS nuevas: musgo, helecho de cueva y seta pálida, con base y sin tabla", Objetos.PLANTAS["musgo"] == {"base": "musgo_cueva", "tabla": {}}
 		and Objetos.PLANTAS["helecho_cueva"] == {"base": "helecho_cueva", "tabla": {}} and Objetos.PLANTAS["seta_palida"] == {"base": "seta_palida", "tabla": {}}
-		and Objetos.PLANTAS.size() == 11 and Objetos.PLANTAS["lavanda"]["base"] == "lavanda" and Objetos.PLANTAS["bayas"]["base"] == "baya", str(Objetos.PLANTAS.keys()))      # 11/11: + lavanda, bayas, helecho y flor silvestre
+		and Objetos.PLANTAS.size() == 12 and Objetos.PLANTAS["lavanda"]["base"] == "lavanda" and Objetos.PLANTAS["bayas"]["base"] == "baya", str(Objetos.PLANTAS.keys()))
+	_ok("4 seta resonante conecta viento e hielo desde fuentes.tsv", Objetos.PLANTAS["seta_resonante"] == {"base":"seta_resonante","tabla":{"viento":"esporas_luminosas","hielo":"seta_cristalizada"}})
 	_ok("4 MINERALES igual que antes", Objetos.MINERALES == {"veta": {"via": "tierra", "golpes": 1, "da": "mineral_veta"},
 		"cristal_resonante": {"via": "golpe", "golpes": 2, "da": "esquirla_cristal"}, "jarron": {"via": "romper", "golpes": 1, "da": "esquirla_cristal"}}, str(Objetos.MINERALES))
 	_ok("4 mineral_de sigue dando lo mismo", Objetos.mineral_de("veta", "tierra") == "mineral_veta" and Objetos.mineral_de("cristal_resonante", "golpe") == "esquirla_cristal"

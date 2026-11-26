@@ -270,8 +270,9 @@ func _r1_sola_y_contraejemplos() -> void:
 		await _hasta(1.5)
 		var plantada: Dictionary = _solidas(hv)
 		_ok("%s R1 sin ᛃ · el muro llegó al final, golpeó una vez (%d) y SE PLANTA allí (solidez en %s, como la barrera de ᛜ + ᛇ de siempre)" % [el, e_medio.golpes.size(), str(plantada.keys())], e_medio.golpes.size() == 1 and plantada.size() == 1 and plantada.has(ORIGEN_C + Vector2i(3, 0)))
-		await _hasta(5.2)
-		_ok("%s R1 sin ᛃ · …y se deshace al acabar su vida (persiste + permanencia, mínimo 2 s)" % el, _solidas(hv).is_empty())
+		var vida_r1: float = maxf(h.persiste + h.permanencia, HechizoVivo.VIDA_MIN_SOLIDEZ_V2)       # 23/11: toda barrera dura su base (Sigils.BARRERA_DURA_BASE_S); antes 2 s
+		await _hasta(1.5 + vida_r1 + 1.0)
+		_ok("%s R1 sin ᛃ · …y se deshace al acabar su vida (persiste + permanencia = %.1f s, mínimo 2 s)" % [el, vida_r1], _solidas(hv).is_empty())
 	# --- ᚲ ᛇ: la bola de siempre ---
 	for el in ["fuego", "agua"]:
 		_montar()

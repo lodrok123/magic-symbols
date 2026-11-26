@@ -1,0 +1,98 @@
+######################################################################
+######################################################################
+################################################..####################
+#################################..############...####################
+###############ggg##############....##########..W.####################
+##############ggg..#############.....#####~~......####################
+##############ggg......#########......gggggg......W###################
+################g.......g#######..A...ggggg##......g##########gW##W.##
+##################.....Agg######.....Tggggg#######Tgg#########g......#
+###################.....ggggg###ggggggggggg########ggg#########......#
+###################W....gggggg##g~~ggggggggg###################..~...#
+###################....Tggggggg#g~~ggggggggg####################~~...#
+######.....#######~ggggggggggggggggggggggggg###################~~....#
+######.....#g####gggggggggggggggggggggg.#######################~gggg##
+######.....#ggggggggggggggggggggggggggg.##.##########~~~#######~gg####
+########.###ggggggggggggggggggggggggggg.##.##.gg####gg~~~ggg###gg#####
+########.###gggggggggggg###gggggggggggg.##.##.ggg##ggg~~ggggg##gg#####
+#######....Tgggggggggg#####.....ggggggg.##.##.ggggggggg~gggggg gg#####
+#######gggggggggggggg######..~..ggggggg.##.##.gggggggggggggggg g######
+########ggggggggg########~~~~~..ggggggg.......gggggggggggggggg########
+#########ggggggg########~~~~A...ggggggggggggggggggggggggggggggg#######
+##########gg###########~~~~.....ggg#####gggggggggggggggggggg#gg#######
+######################~~~~.....###########gggggggggggg#######gg#######
+#####################~gggT.....############gggggggggg########..#######
+##############~~~T##~~~~gggggggg##gg#######~gggggggg#########~~#.#####
+####gggg#####.W~..g~~~~~ggggggggggg~~#######~~T.....#########.....####
+####ggggggg....~..ggg~ggggg##gggggg~gg#######~~......#######~....A####
+####gggggg~~~.....ggggggggg##gggggT.W...#####~~......g######...W.#####
+#####ggg#####.....ggggggggg##ggggg.......####~~~W..W.g#####..~..######
+#############.....###gggggg##ggggg..W...######~~~....g#####T...#######
+##############...#####ggggg##ggggg......#######~...########gggg#######
+######################gggggg##gggg.......##################gggg#######
+######################gggggg#########....gg################gggg#######
+######################.....T##########...gggg###############gggg######
+######################......##########ggggggg~###############ggg######
+######################......###########gggggg#########################
+######################..S...##########################################
+######################.....###########################################
+#######################..#############################################
+######################################################################
+; ======================================================================================================================
+;  GENERADO por herramientas/generador_mapas. 2026-11-24. Nivel «Cueva_Terrafina», 70 × 40, algoritmo «cueva», semilla 542611.
+;  12 salas, 0 puertas, 19 enemigos, 2 cofres, 12 jarrones. Escena: escenas/PruebaCueva_Terrafina.tscn. Mientras esta cabecera siga aquí, la herramienta puede volver a escribir
+;  este archivo (guarda copia si lo has retocado). Para adoptarlo como nivel hecho a mano, borra la palabra GENERADO de la línea de arriba.
+; ======================================================================================================================
+; # pared · . suelo · ~ agua honda · S inicio · W goblin guerrero · A goblin arquero · T brasero · g tierra pisada (pasillos) · R losas (o basalto bajo la lava) · G elemental del bosque
+; PRECIPICIO «precipicio_2» en (62, 17): 2 casillas sin suelo (letra espacio), 1 de hondo. Barrera sin activador: se cruza con el puente de tierra (barrera + líneas) lanzado desde el borde.
+; generador {"acabado":true,"agua":8,"algoritmo":"cueva","alto":40,"ancho":70,"ancho_camino":2,"ancho_pasillo":2,"ancho_precipicio":2,"ancho_rio":2,"apertura":55,"arqueros":30,"b_braseros":true,"b_placa":true,"b_precipicio":true,"b_puente":true,"barreras":2,"braseros":1.0,"bucles":30,"bucles_claros":30,"callejones":100,"camara_sala":true,"campamentos":0,"charcas":20,"claros":6,"densidad_salas":1.0,"enemigos":1.0,"estilo":"cueva","forma":"rectangulo","hierba_alta":15,"jarrones":1.5,"kit":"demo","lado_max":8,"lado_min":4,"lados_salida":"","llave":true,"luz":"cueva","metodo":"fractal","n_salas":9,"nombre":"Cueva_Terrafina","octavas":4,"paredes":"kit","pasillos":30,"paso_tierra":0,"puertas":50,"puzles":0,"recto":60,"region_min":12,"relleno":56,"reparto":"dispersas","rio":"ns","rotulo":true,"runas":"fuego,flecha,linea","sala_jefe":"no","sala_max":4,"sala_min":2,"salas_cerradas":40,"salida_a":"","semilla":542611,"silueta":60,"simetria":true,"sinuosidad":50,"suavizados":2,"tamano_claro":5,"tamano_sala":10.0,"terreno":true,"tesoro":true}
+; puzles 6>piedra_premio
+; anadidos salida|Bosque_01:inicio|pisar;1;si;llegada_m1;|61,19 salida|MonteSumicio:desde_fraga|pisar;1;si;llegada_m2;|24,38 enemigo|gatopedro||24,29 enemigo|gatopedro||33,28 enemigo|gatopedro||19,15 enemigo|gatopedro||37,11 cofre|legendario|glifo:barrera|33,15
+; apariciones a6<a4+a5+a2+a3
+;
+; zona 1,1..68,38 cueva mezcla=0.8 rotulo=Cueva_Terrafina
+;
+; pieza inicio entrada 24 36
+; pieza cat1_bloque bloque 42 16 material=piedra
+; pieza cat1_placa pulsador 42 14 modo=presencia peso=3 modelo=cueva
+; puzle cat1_marca cuando=cat1_placa.pulsado hace=flag.poner(cueva_terrafina.cat1.hecho)
+; pieza cat1_cofre cofre 44 19 modelo=epico aparece_si=flag.cueva_terrafina.cat1.hecho abierto=cueva_terrafina.cat1.cofre da=tabla:cofre_pequeno
+; pieza cat2_cristal cristal 6 12 cada=0
+; pieza cat2_veta veta 7 12 celdas=7,12..9,12
+; pieza cat2_receptor receptor 10 12 elemento=fuego flag=cueva_terrafina.cat2.fuego
+; pieza puente_1 puente 61 24 celdas=61,24+62,24
+; pieza tesoro cofre 66 9 abierto=cueva_terrafina.tesoro.cofre da=oro:60+pocion:1
+; pieza brasero_1 brasero 27 33 luz=2.4 modelo=cueva
+; pieza jarron_1 jarron 67 7 botin=oro
+; pieza brasero_2 brasero 37 8 luz=2.4 modelo=cueva
+; pieza jarron_2 jarron 33 3 botin=oro
+; pieza brasero_3 brasero 11 17 luz=2.4 modelo=cueva
+; pieza jarron_3 jarron 9 17 botin=oro
+; pieza jarron_4 jarron 7 17 botin=oro
+; pieza brasero_4 brasero 46 25 luz=2.4 modelo=cueva
+; pieza jarron_5 jarron 52 26 botin=pocion
+; pieza brasero_5 brasero 25 23 luz=2.4 modelo=cueva
+; pieza brasero_6 brasero 17 24 luz=2.4 modelo=cueva
+; pieza jarron_6 jarron 13 25 botin=oro
+; pieza brasero_7 brasero 23 11 luz=2.4 modelo=cueva
+; pieza jarron_7 jarron 23 7 botin=oro
+; pieza jarron_8 jarron 22 6 botin=pocion
+; pieza brasero_8 brasero 59 29 luz=2.4 modelo=cueva
+; pieza jarron_9 jarron 65 25 botin=oro
+; pieza brasero_9 brasero 34 27 luz=2.4 modelo=cueva
+; pieza jarron_10 jarron 40 28 botin=oro
+; pieza brasero_10 brasero 50 8 luz=2.4 modelo=cueva
+; pieza jarron_11 jarron 47 3 botin=oro
+; pieza jarron_12 jarron 44 5 botin=oro
+; pieza salida_m1 salida 61 19 a=Bosque_01:inicio
+; pieza llegada_m1 entrada 61 18
+; pieza salida_m2 salida 24 38 a=MonteSumicio:desde_fraga
+; pieza llegada_m2 entrada 24 37
+; pieza enemigo_m1 gatopedro 24 29
+; pieza enemigo_m2 gatopedro 33 28
+; pieza enemigo_m3 gatopedro 19 15
+; pieza enemigo_m4 gatopedro 37 11
+; pieza cofre_m1 cofre 33 15 modelo=legendario glifo=barrera abierto=cueva_terrafina.cofre_m1.abierto da=oro:150+pocion_grande:2 aparece_si=flag.cueva_terrafina.cofre_m1.aparece
+; pieza vigia_ap1 vigia 19 15 de=19,15+37,11+24,29+33,28 flag=cueva_terrafina.cofre_m1.aparece
+; puzle resuelve_puente_1 cuando=cat2_receptor.activado hace=flag.poner(cueva_terrafina.puente_1.abierta)
+; puzle abre_puente_1 cuando=flag.cueva_terrafina.puente_1.abierta hace=puente_1.tender

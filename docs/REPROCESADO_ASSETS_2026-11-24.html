@@ -1,0 +1,29 @@
+<!doctype html><html lang="es"><meta charset="utf-8"><meta name="viewport" content="width=device-width"><title>Assets reprocesados · 24/11/2026</title>
+<style>body{font:16px/1.65 system-ui;background:#121b25;color:#e4edf7;max-width:1100px;margin:35px auto;padding:20px}a{color:#9cd5ff}h1{font-size:38px}img{max-width:100%;border-radius:8px}.nota{padding:16px;background:#21374b;border-radius:8px}code{overflow-wrap:anywhere}section{margin:40px 0}</style>
+<h1>31 assets recuperados por reprocesado</h1>
+<p>24/11/2026 · Primer lote: <b>30 variantes LeLu y lost_stalagmite_b</b>. No han hecho falta modelos nuevos ni Blender. Se conservan las mallas, escalas y colisiones.</p>
+<p class="nota"><b>No necesito archivos ni instalaciones adicionales para este lote.</b> Las fuentes estaban disponibles. Blender 5.2 está instalado, aunque no fue necesario usarlo.</p>
+<p><b>Izquierda: antes. Derecha: después.</b> Arriba, roca_est_3; abajo, la estalagmita.</p>
+<a href="../output/reprocesado_assets/antes_despues.png"><img src="../output/reprocesado_assets/antes_despues.png" alt="Antes y después de las dos reparaciones"></a>
+<section><h2>LeLu: atlas invertidos verticalmente</h2>
+<p>Las PNG externas usadas por el separador estaban invertidas en Y respecto a las imágenes embebidas del GLB original. Las UV eran utilizables: el problema no requería aumentar polígonos ni rehacer el desplegado.</p>
+<p>Se recuperaron los seis mapas directamente del GLB: albedo neutro, musgo, magma, normal, roughness y emisión. Se actualizaron ambas copias compartidas de los mapas, beneficiando a las 30 variantes, incluidas las 21 señaladas en la auditoría.</p>
+<p>El separador ahora extrae los bytes originales en lugar de copiar las imágenes externas invertidas. Se añadió <code>--solo-texturas</code> para repetir la operación sin regenerar mallas. Las formas siguen siendo low poly; se ha corregido el texturizado, sin añadir detalle geométrico.</p>
+<p><a href="../arte/meshy/aprobacion3d/rocas_estilizadas/separar_rocas.py">Separador corregido</a> · <a href="../output/reprocesado_assets/capturas/hoja_01.png">Primeras 20 variantes corregidas</a> · <a href="../output/reprocesado_assets/capturas/hoja_02.png">Últimas 10</a></p>
+<p>Las comparaciones de modelo fuente mantienen cámara y renderer Compatibility. Además se guardaron 30 tiras nuevas con Pieza3D, Ocluso3D, reverso y escala junto a la jugadora en Forward+, en <code>output/reprocesado_assets/contexto_despues/</code>.</p></section>
+<section><h2>Lost Cave: máscara incompatible con la estalagmita</h2>
+<p>Las cuñas negras persistían al quitar el normal y al usar el material sin iluminación: estaban pintadas en el albedo horneado. La receta de <code>M_Stalagmite_b</code> empleaba la máscara genérica <code>T_Rockshader_MaskMap</code>, cuyas zonas oscuras se proyectaban sobre las agujas.</p>
+<p>La tabla ahora indica que esa pieza debe hornearse sin la máscara de otro atlas. Se conservan la losa repetida de piedra y el normal propio. Solo se regeneró <code>M_Stalagmite_b_roca.png</code>; no se modificaron la malla de 5.724 triángulos, sus materiales, las colisiones ni otras texturas de Lost Cave. Si se desea oclusión pintada adicional, deberá hornearse sobre la UV de esta pieza.</p>
+<p>Se añadió <code>--roca-material M_Stalagmite_b</code> al generador para regenerar únicamente ese horneado. La excepción vive en <code>ROCA_SIN_MASCARA_ATLAS</code>, en la tabla de Lost Cave.</p>
+<p><a href="../output/revision_assets/lostcave/lostcave_giros_forward.png">Antes en Forward+ (primera fila)</a> · <a href="../output/reprocesado_assets/lostcave_despues/lostcave_giros.png">Después en Forward+, cuatro giros</a></p>
+<img loading="lazy" src="../output/reprocesado_assets/lostcave_despues/lostcave_giros.png" alt="Estalagmita corregida en sus cuatro giros"></section>
+<section><h2>Verificación</h2><ul>
+<li>Regresión específica: seis mapas comparados byte a byte con el GLB original, en las dos ubicaciones. Cero fallos.</li>
+<li>El albedo horneado de la estalagmita tiene luminancia mínima muestreada 0,264, sin las antiguas cuñas negras. Se revisaron sus cuatro giros.</li>
+<li>Las 30 variantes se revisaron en dos hojas y se capturaron a escala del juego.</li>
+<li>Prueba de rocas estilizadas: cero fallos. La prueba ampliada de rocas empujables presenta cinco fallos en el escenario de la balanza del Bosque 02. El control, con los seis mapas anteriores cargados en caché sin cambiar el disco, termina con los mismos cinco fallos y 151 comprobaciones: la incidencia se reproduce antes y después de la reparación visual.</li>
+<li>La reimportación termina, aunque el editor headless avisa de que no puede guardar sus ajustes globales en este entorno.</li></ul>
+<p>Scripts: <a href="../herramientas/prueba_reprocesado_assets.gd">regresión específica</a> y <a href="../herramientas/generar_piezas_lostcave.gd">generador de Lost Cave</a>. Logs, copias previas, diagnóstico y capturas en <code>output/reprocesado_assets/</code>.</p>
+<p>Para repetir: ejecutar el separador con el GLB original y <code>--solo-texturas</code>; después el generador con <code>--roca-material M_Stalagmite_b</code>, reimportar y ejecutar la regresión específica.</p></section>
+<section><h2>Alcance pendiente</h2><p>Este primer lote corresponde a LeLu y la estalagmita. No incluye cambios opcionales de paleta de rocas de río y follaje ni retoques manuales de jarrones, caja o barril. Caja y barril necesitan una fuente con detalle suficiente o adaptar otra pieza existente. Roca_hueca y la identidad de setas_amarillas siguen pendientes.</p>
+<p><a href="REVISION_ASSETS_2026-11-24.html">Auditoría inicial</a>. Sus capturas y dictámenes se conservan como evidencia anterior a la reparación. Sin commit.</p></section></html>

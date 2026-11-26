@@ -1,5 +1,6 @@
 extends RefCounted
 class_name LechoRio3D
+const AJUSTE_NATURALES = preload("res://presentacion/ajuste_naturales_3d.gd")
 ## LECHO REAL BAJO EL AGUA FILTRO (Pipeline, 22/10; referencia: un río de Echoes of Wisdom). Con `agua_filtro` el agua es un filtro turquesa casi transparente (AguaRender3D),
 ## así que lo que hay debajo se VE: aquí está ese fondo.
 ##   · MATERIAL del bloque del lecho (`crear_material`): textura de cantos rodados en coordenadas de mundo (baja de contraste) + CÁUSTICAS como luz suave y aditiva que se mueve
@@ -574,7 +575,7 @@ static func _modelo(id: String, objetivo: float, por_alto: bool, mece: bool, bri
 			tf = tf * (n as Node3D).transform
 		if n is MeshInstance3D and (n as MeshInstance3D).mesh != null:
 			var mi: MeshInstance3D = n
-			partes.append({"malla": mi.mesh, "tf": tf, "mat": _material_adorno(mi.mesh, mece, brillo), "tris": floori(mi.mesh.get_faces().size() / 3.0)})
+			partes.append({"malla": mi.mesh, "tf": tf, "mat": _material_adorno(mi.mesh, mece, brillo, id), "tris": floori(mi.mesh.get_faces().size() / 3.0)})
 			var a: AABB = tf * mi.mesh.get_aabb()
 			caja = a if primero else caja.merge(a)
 			primero = false
@@ -593,7 +594,7 @@ static func _modelo(id: String, objetivo: float, por_alto: bool, mece: bool, bri
 
 
 ## Material de un adorno: su textura de albedo (la del .glb), la luz de dibujo animado del lecho y, en las algas, el balanceo.
-static func _material_adorno(malla: Mesh, mece: bool, brillo: float) -> ShaderMaterial:
+static func _material_adorno(malla: Mesh, mece: bool, brillo: float, id: String = "") -> ShaderMaterial:
 	if _shader_adorno == null:
 		Ambiente3D.preparar_global()
 		_shader_adorno = Shader.new()
@@ -607,6 +608,10 @@ static func _material_adorno(malla: Mesh, mece: bool, brillo: float) -> ShaderMa
 		if b != null:
 			tex = b.albedo_texture
 			col = b.albedo_color
+	# Solo las tres rocas de río: las algas conservan su albedo y balanceo.
+	var derivada: String = AJUSTE_NATURALES.CARPETA_ROCAS + id + ".png"
+	if id in IDS_ROCAS and ResourceLoader.exists(derivada):
+		tex = load(derivada) as Texture2D
 	if tex != null:
 		m.set_shader_parameter("t_albedo", tex)
 	m.set_shader_parameter("tinte", Vector3(col.r, col.g, col.b))

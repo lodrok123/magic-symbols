@@ -318,6 +318,15 @@ const CARGA_RANGO_V2: int = 3
 const CARGA_POTENCIA_V2: float = 1.5
 const CARGA_PESO_DANO: int = 2
 const RADIO_BARRERA_U: float = 1.3        ## u: radio de la circunferencia que rodea al jugador con barrera (= Lanzador3D.RADIO_BURBUJA; la prueba comprueba que coinciden)
+## 23/11/2026 (Pablo, PLAN_COMBATE: «pon al glifo de valores base los de un tamaño base»; «tiene que ser procedural»): MEDIDAS MÍNIMAS DE LA FORMA «MURO DELANTE» (`Hechizo.es_muro`:
+## solidez, nace en la mano y no viaja; se deduce por propiedades, no por elemento). Un muro mide como mínimo 1 casilla de ancho (semieje X 0,5) y 2 niveles de alto (semieje Y 1,0,
+## ~2,1 u: tapa a la jugadora de pies a cabeza); son mínimos (los «suelos» del paso 4 de `Hechizo.construir`): con Línea o Altura por encima, mandan los glifos, y el coste no cambia
+## (cuenta `semiejes_glifos`). Lo que nace donde apuntas (un sólido quieto) no es un muro: es su bloque. Antes la barrera sola salía como la esfera base de 0,10 (una bolita).
+const MURO_ANCHO_MIN_V2: float = 0.50
+const MURO_ALTO_MIN_V2: float = 1.00
+## Duración base de TODA barrera (s de `permanencia`, dato de `GLIFOS["barrera"]`): la 1.ª ᛜ da esto y cada ᛜ siguiente +1 s (antes: la 1.ª nada; la solidez, mínimo 2 s).
+## Aguanta un ataque largo entero (el barrido del dragón, 2,6 s) y algo más.
+const BARRERA_DURA_BASE_S: float = 6.0
 const VELOCIDAD_FLECHA_ESCALA_ANTIGUA_U: float = 4.0   ## u/s: la velocidad de la flecha de ayer (decisión de Pablo, 19/10: la misma). En metros sale de dividirla por la casilla: `velocidad_flecha()`
 ## m/s de una flecha = 4 u/s / casilla (≈ 1,7 con casilla 2,3). Es una función y no una const porque depende de `Terreno3D.casilla`; la tabla `GLIFOS` la pide con «@velocidad_flecha».
 static func velocidad_flecha() -> float:
@@ -388,10 +397,11 @@ const GLIFOS: Dictionary = {
 		{"campo": "distancia_max", "op": "suma", "valor": 1.0, "tope": 6.0, "desde": 1.0},
 			{"campo": "impulso_salida", "op": "suma", "valor": IMPULSO_POR_FLECHA_V2, "salta": 1}]},
 	# La barrera (18/10): solidez 1 · 1,5^n (tope 3). 30/10 (playtest de Pablo, «mejor que no sea apuntable, más intuitivo»): YA NO nace donde apuntas (sin `en_punto`): nace en el lanzador y lo rodea, como antes del 18/10;
-	# los sólidos quietos (tierra, hielo) siguen naciendo donde apuntas por `Hechizo.SOLIDO_QUIETO_EN_PUNTO` (un bloque no puede nacer bajo la jugadora). Cada glifo sucesivo suma 1 s de PERMANENCIA (salta 1; antes iba a `persiste`, ESPEC_HECHIZO §0.3). Ya NO hay radio mínimo: el tamaño lo ponen solo los ejes X/Y/Z.
+	# los sólidos quietos (tierra, hielo) siguen naciendo donde apuntas por `Hechizo.SOLIDO_QUIETO_EN_PUNTO` (un bloque no puede nacer bajo la jugadora). Cada glifo sucesivo suma 1 s de PERMANENCIA (salta 1; antes iba a `persiste`, ESPEC_HECHIZO §0.3). Ya NO hay radio mínimo: el tamaño lo ponen solo los ejes X/Y/Z. 23/11 (Pablo): ya no rodea; la barrera que nace en la mano es un MURO DELANTE (`MURO_*_MIN_V2`) y toda barrera dura `BARRERA_DURA_BASE_S`.
 	"barrera": {"repertorio": "barrera", "cooldown": 3.0, "tinta": {"por_glifo": 4.0, "tope": 12.0}, "momento": "continuo", "paso": 4, "modificadores": [
 		{"campo": "solidez", "op": "multiplica", "valor": 1.5, "tope": 3.0, "desde": 1.0},
-		{"campo": "permanencia", "op": "suma", "valor": 1.0, "salta": 1}]},
+		{"campo": "permanencia", "op": "suma", "valor": BARRERA_DURA_BASE_S, "hasta": 1},      # 23/11 (Pablo): la 1.ª da la duración base…
+		{"campo": "permanencia", "op": "suma", "valor": 1.0, "salta": 1}]},                    # …y cada ᛜ siguiente +1 s
 	"repeticion": {"cuenta_dano": false, "repertorio": "repeticion", "cooldown": 1.5, "tinta": {"por_glifo": 3.0, "tope": 9.0}, "momento": "inicio", "paso": 2, "modificadores": [{"campo": "copias", "op": "suma", "valor": 1.0, "tope": 4.0, "desde": 1.0}]},
 	"rebote": {"cuenta_dano": false, "repertorio": "rebote", "cooldown": 1.5, "tinta": {"por_glifo": 2.0, "tope": 6.0}, "momento": "final", "paso": 3, "modificadores": [{"campo": "rebotes", "op": "suma", "valor": 1.0, "tope": 3.0}]},
 	# ᚷ «crecer» (hasta el 23/10 se llamaba «pulso»; el id, el parámetro `crece` y el efecto no cambian: ver NOMBRE_VISIBLE). Crece mientras vive.
@@ -470,8 +480,13 @@ const VOLUMEN_AGUA_BASE_V2: float = 4.0 / 3.0 * PI * 0.25 * 0.25 * 0.25
 
 
 ## Agua (casillas³) que echa un hechizo líquido de geometría `g`: VOLUMEN_AGUA_BASE_V2 × (volumen del elipsoide / volumen de la esfera base).
+## 23/11: en un MURO (`g["muro"]`) cuenta lo dibujado (`*_glifos`), como el coste: los mínimos de la forma (`MURO_*_MIN_V2`) le dan cuerpo al escudo, no crean agua
+## (con el muro de 1 casilla × 2 niveles una barrera de agua echaba ~50 veces el agua de la esfera base y encharcaba media sala).
 static func volumen_agua_v2(g: Dictionary) -> float:
-	return VOLUMEN_AGUA_BASE_V2 * volumen_v2(g) / volumen_v2({"x": RADIO_BASE_V2, "y": RADIO_BASE_V2, "z": RADIO_BASE_V2})
+	var gv: Dictionary = g
+	if bool(g.get("muro", false)):
+		gv = {"x": g.get("x_glifos", g["x"]), "y": g.get("y_glifos", g["y"]), "z": g.get("z_glifos", g["z"])}
+	return VOLUMEN_AGUA_BASE_V2 * volumen_v2(gv) / volumen_v2({"x": RADIO_BASE_V2, "y": RADIO_BASE_V2, "z": RADIO_BASE_V2})
 
 
 ## Tamaño RELATIVO del hechizo (la esfera base sin propiedades vale 1): crece con el volumen y con el nº de propiedades distintas, ∝ volumen × (1 + COSTE_PROP_V2 × nº).
@@ -479,7 +494,7 @@ static func volumen_agua_v2(g: Dictionary) -> float:
 static func coste_v2(g: Dictionary, props: Dictionary) -> float:
 	var base: float = volumen_v2({"x": RADIO_BASE_V2, "y": RADIO_BASE_V2, "z": RADIO_BASE_V2})
 	# Con barrera el volumen sube al de la circunferencia del jugador, pero eso NO encarece el hechizo: se cuenta lo que dieron los glifos.
-	var gc: Dictionary = {"x": g.get("x_glifos", g["x"]), "y": g["y"], "z": g.get("z_glifos", g["z"])}
+	var gc: Dictionary = {"x": g.get("x_glifos", g["x"]), "y": g.get("y_glifos", g["y"]), "z": g.get("z_glifos", g["z"])}       # 23/11: también la Y (el alto base del escudo no encarece)
 	return volumen_v2(gc) / base * (1.0 + COSTE_PROP_V2 * float(props.size())) * recargo_continuo(props)
 
 

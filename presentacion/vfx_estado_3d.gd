@@ -574,7 +574,7 @@ class EfectoHechizo:
 	## Cuánto se adelanta el centro del volumen sobre la mano, en casillas. Lo decide el Lanzador3D (GeometriaV2.adelanto, entrada 165): con barrera
 	## (`props` trae `solidez`) es 0 —el volumen rodea al jugador y está centrado en él— y sin ella, z − radio base. `e` es lo que ha crecido en planta.
 	func _adelanto(e: float = 1.0) -> float:
-		return Lanzador3D.GeometriaV2.adelanto({"z": float(g.get("z", 0.5)) * e, "props": props})
+		return Lanzador3D.GeometriaV2.adelanto({"z": float(g.get("z", 0.5)) * e, "props": props, "muro": bool(g.get("muro", false))})       # 23/11: con «muro» (la barrera es un escudo delante) el dibujo va donde las casillas
 
 	## Proyectil: el dibujo es hijo del HechizoVivo, así que sólo gira hacia donde va (la dirección horizontal de su velocidad) y baja medio volumen
 	## para que el centro del elipsoide caiga en el origen del nodo (= la posición del proyectil).

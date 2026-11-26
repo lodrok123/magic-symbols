@@ -6069,6 +6069,210 @@ ucleo/datos/partida_ejemplo.json). prueba_partida_entera, prueba_partida_menu y 
 - `prueba_libro_rojo` en 0 fallos. Fotos 17–21 en `docs/capturas/libro_rojo_2026-11-22/`. **Sin commit.**
 - (COMBATE, 22/11) Pablo probó el Verraco: «el concepto funciona, faltan animaciones y demás, pero me gusta». Pendiente para el Pipeline: modelo y animaciones del Verraco (hoy primitivas).
 
+### 23/11/2026 · aviso de contexto HECHIZOS Y LIBRO (15) · prototipo lanzable de anidación y combinación
+- **`magia/lanzador_3d.gd` gana la señal `hechizo_vivo_creado(vivo)`**, emitida en `lanzar_hechizo`. Solo la escucha el prototipo; el juego no cambia.
+- **Nuevo `laboratorios/prototipo_anidado.gd`**, montado por `lab_libro_rojo.gd`:
+  - el segundo círculo del libro rojo sale con su elemento y sus glifos al impactar, al acabar o a la vez (0,17 s);
+  - se cobra al nacer;
+  - destello, rótulo y sonido al nacer.
+- **La combinación** (magma) ya se lanzaba; ahora tiene prueba.
+- **Pruebas:** nueva `herramientas/prueba_prototipo_anidado.gd` (0 fallos). Fotos en `docs/capturas/prototipo_anidado_2026-11-23/` (`captura_prototipo_anidado.gd`). **Sin commit.**
+
+### 23/11/2026 · aviso de contexto HECHIZOS Y LIBRO (16) · B9c, la trayectoria de la flecha
+- **`presentacion/apuntado_3d.gd`:** si el vuelo es recto (sin gravedad, como ahora), la cinta de la previsión va **a ras de suelo y sin sombra**, y acaba en la retícula. Antes eran dos rayas: la cinta en el aire y su sombra punteada. Interruptor `Apuntado3D.bajar_vuelo_recto` (solo para las fotos de antes/después).
+- **Nueva `herramientas/prueba_trayectoria_flecha.gd`** (148 comprobaciones, 0 fallos): fuego, tierra y agua con ᛇ y ᛇᛇ, libre, contra goblin y contra pared. El punto previsto coincide con el real y acaba por el mismo motivo.
+- **Fotos:** `docs/capturas/trayectoria_flecha_2026-11-23/` (`captura_trayectoria_flecha.gd`). **Sin commit.**
+
+
+## 23/11/2026 · COMBATE · La barrera es un muro delante, con tamaño y duración de base (procedural)
+
+**Pedido de Pablo:** «pon al glifo de valores base los de un tamaño base. Permite mover al personaje si está con barrera». Y después: «no vale con que funcione, tiene que ser procedural; revisa las interacciones con lo demás».
+
+**Qué cambia (sin casos por elemento):**
+- **Duración:** es un dato del glifo, en `Sigils.GLIFOS["barrera"]`. La primera ᛜ suma `BARRERA_DURA_BASE_S` = 6 s a `permanencia` (`suma` con `hasta` 1) y cada ᛜ siguiente +1 s, como antes. Vale para TODA barrera: la de tierra, la que viaja (al plantarse) y la que nace en la mano.
+- **Tamaño:** es una regla de la FORMA «muro delante» (`Hechizo.es_muro`). Se deduce solo de propiedades: tiene solidez, no nace donde apuntas y no viaja salvo que lleve ᛁ. Lo cumplen todas las barreras que nacen en la mano, sea cual sea el elemento.
+  - `Hechizo._minimos_de_forma` le pone los mínimos `Sigils.MURO_ANCHO_MIN_V2` = 0,5 de semieje X (1 casilla) y `MURO_ALTO_MIN_V2` = 1,0 de Y (2 niveles, unos 2,1 u).
+  - Son mínimos: con Línea o Altura por encima mandan los glifos, así que ᛜ + 3 ᛁ sigue midiendo 3 casillas.
+  - La tierra y el hielo nacen donde apuntas: no son muro y no cambian. Siguen el bloque, el anillo A4 y el puente.
+- **Ya no rodea a la jugadora:** `GeometriaV2.celdas` no incluye la casilla de quien lanza cuando es muro, porque si no también la protegía por detrás. El muro sale en la casilla de delante (`DISTANCIA_MURO`).
+- **Lo dibujado manda en lo que no es geometría.** El coste (`semiejes_glifos`; `coste_v2` ahora también usa `y_glifos`), el nombre del gesto y su cast point (`_derivar` usa `_glifos_*`), el nombre de la página («Escudo de agua» sigue igual) y el agua que echa (`volumen_agua_v2` con `muro` cuenta lo dibujado). Los mínimos de la forma no crean materia: si no, el muro de agua echaba unas 50 veces más agua.
+- **Visuales:**
+  - `vfx_estado_3d._adelanto` pasaba un `g` sin la clave `muro` y pintaba centrado en la jugadora.
+  - La previsión del lanzamiento dibujaba el muro en el origen y no delante; ya pasaba con ᛜ + ᛁ.
+  - Las dos usan ahora `GeometriaV2.adelanto`.
+- **Aguante:** no se toca. La barrera sola tiene solidez 1,5, así que aguanta 45: casi cuatro flechas de 12.
+- **Moverse:** no había nada que impidiera moverse. `SolidezV2` no bloquea el paso y el gesto de lanzar dura unos 1,0 s; la prueba lo fija.
+
+**Interacciones revisadas:**
+- **Contacto C19:** las flechas contra barreras siguen la tabla.
+- **Aliento del dragón:** se corta si levantas la barrera mirándolo.
+- **Viento:** el muro de viento es alargado y ahora desvía flechas por su cara, como el muro de viento con ᛁ.
+- **Verraco:** choca con el muro y se aturde.
+- **Corazas, nombres, materia y agua:** sin cambios.
+
+**Huecos que ya estaban y ahora pesan más (para decidir):**
+1. El cuerpo a cuerpo de los enemigos no mira las barreras: atraviesan el muro (SolidezV2 solo para proyectiles).
+2. La bola de veneno solo mira la burbuja (B2, pendiente).
+
+**Pruebas:**
+- **Nueva:** `herramientas/prueba_escudo_barrera.gd`, 0 fallos.
+- **Actualizadas a la regla nueva:**
+  - `prueba_receta_v2`: 0 (1001 combinaciones × 6 elementos).
+  - `prueba_hechizo`: 0 (240 596 comparaciones).
+  - `prueba_contacto`: 0.
+  - `prueba_reglas_glifos` (R1 sin ᛃ espera la vida nueva): 0, con su comando sin `--fixed-fps`.
+- **Sin cambios, 0 fallos:** `prueba_nombre_hechizo`, `prueba_cobro_sin_efecto`, `prueba_barrera`, `escenario_barrera`, `escenario_dragon_jefe`, `escenario_verraco`, `prueba_materia_v2`, `prueba_barrera_tierra_plataforma`, `prueba_barrera_legible`, `prueba_escudo`, `prueba_hechizo_vivo`, `prueba_coraza_elemento`.
+
+**Aviso a HECHIZOS:** he tocado `nucleo/sigils.gd` (tabla de la barrera y constantes `MURO_*`, `BARRERA_DURA_BASE_S`, `coste_v2`, `volumen_agua_v2`), `nucleo/hechizo.gd` (`es_muro`, `_minimos_de_forma`, la clave `muro` y `y_glifos` en `geo()`, y la forma desde `_glifos_*`), `nucleo/nombre_hechizo.gd`, `magia/lanzador_3d.gd` (`GeometriaV2.celdas`), `magia/prevision_casteo_3d.gd` y `presentacion/vfx_estado_3d.gd`.
+
+### 24/11/2026 · aviso de contexto HECHIZOS Y LIBRO (17) · efectos comunes de glifo
+- **Nuevo `presentacion/vfx/glifo_comun_vfx.gd` (`GlifoComunVfx`)**, idea sacada del análisis de VFX de Mystralia. Cada glifo enseña su runa (el PNG del libro) un instante donde actúa, sea cual sea el elemento:
+  - ᚠ: en la mano, con un trazo por copia;
+  - ᚢ: en cada rebote;
+  - hijo: al nacer, en el prototipo del libro rojo.
+- **Conectado en `presentacion/prueba_test2.gd`** (una línea junto a `VfxToyJuego.conectar`). `GlifoComunVfx.activo = false` lo calla.
+- **Laboratorio `LabVfxComparativa3D`:** Ctrl+1 ᚠ, Ctrl+2 ᚢ, Ctrl+3 hijo (sello = elemento de Z).
+- **Pruebas:** nueva `herramientas/prueba_glifo_comun.gd` (0 fallos); `prueba_prototipo_anidado`, `prueba_trayectorias` y `prueba_vfx_en_juego` siguen con 0. Fotos en `docs/capturas/glifo_comun_2026-11-24/`. **Sin commit.**
+
+### 24/11/2026 · aviso de dirección · generador de mapas: algoritmo «bosque» (espacio abierto)
+Pablo: «quiero hacer la primera pasada con el generador y más tarde retocarlo a mano». Nuevo algoritmo **«bosque»** en `herramientas/generador_mapas/generador_mazmorra.gd` (`_gen_bosque`):
+- **Claros** unidos por **caminos sinuosos** de tierra (`g`) entre árboles: árbol de mínima distancia + bucles (`bucles_claros`); los claros de salida son hojas.
+- **Hierba** alrededor a manchas (`apertura`), **hierba alta** `v` (`hierba_alta`), **río** de borde a borde (`rio` ns/eo, `ancho_rio`) con orillas y **vados** `R` donde lo cruza un camino.
+- **Salidas en el borde** pedido (`lados_salida`: n, s, e, o, uno por destino de `salida_a`; el claro llega siempre hasta el borde).
+- **Paso de tierra** (`paso_tierra` = nº de salida): una fila de **muros agrietados** (`; pieza muro_tierra_N muro x y golpes=2`) que corta el camino de esa salida, con árboles a los lados; se comprueba que no se rodea.
+  - **No es un foso de agua:** el puente de tierra (barrera + línea) se para en la orilla (`prueba_plataforma_tierra`: «varias líneas se detienen antes del agua»). Si se quiere el puente sobre agua del mapa de Pablo, es trabajo de HECHIZOS.
+- Sin cerrojos ni salas de cámara (la cámara se frena en el borde del mapa). La herramienta pone estilo y luz de bosque al elegirlo.
+- **Herramienta:** campos nuevos en `generador_mapas_ui.gd` (sección BOSQUE ABIERTO), hierba pintada en la vista, icono `M` del muro. **Exportador:** leyenda del bosque y línea `; PASO DE TIERRA` en el .txt.
+- **Pruebas:** `prueba_generador_mapas` añade «bosque» a todos los bloques, 8 variantes y el bloque 17 (salidas en su borde, suelo del bosque, río con vado, muros que cortan y se pueden romper). `escenario_generador_mapas -- bosque` carga el mapa en la maqueta: 0 fallos (también con la forma del Bosque 01 nuevo: 12 goblins y 17 piezas montadas).
+- **Ojo al sustituir Bosque_01/02:** «Sustituir» escribe una escena nueva sin el script de reglas de esos bosques. Generar con otro nombre (`Bosque01Gen`), adoptar y retocar.
+- Captura: `docs/capturas/generador_bosque_01.png`. **Sin commit.**
+
+### 24/11/2026 · aviso de dirección · paso de tierra = PRECIPICIO, y el puente de tierra se tiende sobre el vacío
+Pablo: «el agua es un muro natural; que sea un precipicio lo que te permita hacer un puente. El puente se crea DESDE la tierra que existe, no de la nada».
+- **Hechizos** (`Lanzador3D.celdas_plataforma_tierra`): el puente de tierra (barrera + líneas) nace en una casilla de suelo firme, como siempre, y ahora sigue **sobre el vacío** (letra « ») a la altura de ese borde hasta el suelo del otro lado. Desde el vacío no nace. Sobre el **agua sigue parándose** en la orilla. `prueba_plataforma_tierra`: 6 comprobaciones nuevas, 0 fallos.
+- **Generador** (bosque): el paso de tierra ya no son muros agrietados. Es una franja de **precipicio** (casillas « », sin suelo) que corta el camino de esa salida, `ancho_precipicio` casillas de hondo (2 por defecto: barrera + 2 líneas), y se alarga a los lados por el suelo hasta que no se rodea. Campo nuevo «Hondo del precipicio» en la herramienta; el vacío se ve en negro. Clave del resultado: `precipicio` (antes `muros_tierra`). Las barreras con puzle no se ponen a menos de 4 casillas del precipicio (su agua dejaba el puente sin orilla).
+- **Pruebas:** `prueba_generador_mapas` 0 fallos (bloque 17: el precipicio sale como espacio, valida, no se cruza sin puente y hay un tramo de 2 de vacío entre suelo y suelo). `escenario_generador_mapas -- bosque` ahora usa la forma del Bosque 01 y comprueba que el precipicio es vacío y no se pisa en el juego: 0 fallos.
+- Commit `dd111f20` (en `lanzador_3d.gd` solo el trozo del puente: lo demás sin commit de ese archivo es de la sesión de HECHIZOS). Sin push.
+- **Pendiente:** cómo se ve el precipicio en 3D (hoy es un hueco sin suelo, sin paredes de roca). La captura `docs/capturas/generador_bosque_01.png` aún enseña los muros.
+
+### 24/11/2026 · aviso de dirección · aspecto del precipicio en 3D
+Pablo: «haz el aspecto del precipicio en 3D». Antes, las casillas « » de dentro del mapa no tenían suelo ni nada debajo: desde la cámara solo se veía el costado de tierra del bloque de enfrente y parecía suelo continuo.
+- **`Precipicio3D`** (`presentacion/precipicio_3d.gd`), montado por la maqueta en `_construir_precipicio`:
+  - paredes de roca de 9 m desde el pie de cada bloque que da al hueco, con salientes suaves hacia dentro;
+  - un fondo negro.
+  - Solo en los huecos de DENTRO del mapa: el relleno de fuera del cuadrado no se toca, y hoy ningún mapa existente tiene huecos por dentro.
+- **Degradado en metros:** con la cámara del juego, a través de un hueco de 2 casillas, solo se ve el metro y medio de arriba de la pared de enfrente. La roca pasa de su color a negro en ese tramo.
+- **Textura:** en el bosque, `cuerpo.png` (la del costado de los bloques: la tierra sigue en roca); en cueva, `pared_foso_cueva.png`.
+- **Fotos:** `docs/capturas/precipicio_sin_puente.png` y `precipicio_con_puente.png`, hechas con `herramientas/captura_precipicio.gd`, que genera el Bosque 01 y lo carga.
+- **Pruebas:** `escenario_generador_mapas` (bosque y salas) 0 fallos; `prueba_plataforma_tierra` 0 fallos.
+- Commit `c8631a34`, sin push. En `prueba_test2.gd` solo van mis trozos: la línea de `GlifoComunVfx` es de la sesión de HECHIZOS y sigue sin commit.
+
+### 24/11/2026 · aviso de dirección · el precipicio, un tipo más de barrera en el generador
+Pablo: «mételo como un puente más».
+- Las barreras con puzle salen ahora al azar entre **puerta**, **puente plegado** y **precipicio** (casilla nueva «Barrera: precipicios», marcada de serie).
+- **El precipicio no lleva activador ni reglas:** el paso se vuelve vacío y se cruza con el puente de tierra (barrera + líneas) lanzado desde el borde.
+- **Hondo:**
+  - en una puerta de sala, 1 (barrera + 1 línea);
+  - en un pasillo de cueva, página o bosque, hasta «Hondo del precipicio» (2 de serie). Ese campo sale ya en todos los algoritmos.
+- **En el .txt**, una línea `; PRECIPICIO «precipicio_N»` por cada uno.
+- La puerta donde va no admite cerrojo.
+- **Pruebas:**
+  - `prueba_generador_mapas`: 0 fallos. Bloque 18: precipicios en salas, cueva, página y bosque; cortan el mapa y tienen tramo recto para el puente; con los valores de serie también salen.
+  - `escenario_generador_mapas -- salas precipicio semilla=1`, `-- cueva precipicio semilla=1` y `-- bosque`: 0 fallos.
+- **Fotos:** `docs/capturas/precipicio_barrera_salas_*.png`.
+- **Ojo:** con los valores de serie, las mismas semillas sacan ahora otros mapas (cambió el sorteo del tipo de barrera).
+- Commit `2da8fcb2`, sin push.
+
+### 24/11/2026 · aviso de dirección · generador: las salidas se ven en el mapa
+Pablo: «que el mapa refleje las salidas: una flecha y una entrada y salida claras, y su nombre».
+- En la vista de la herramienta, cada salida lleva **dos flechas** en el borde del mapa más cercano: la de **salida** (azul) y la de **entrada** (verde).
+- Fuera del mapa, una **etiqueta** con el nombre del nivel de destino y, en pequeño, «sale a «punto de allí» · entra por «llegada de aquí»».
+- Si la salida queda dentro del mapa (salas, página), una raya discontinua la une a su flecha.
+- «Encajar vista» deja sitio alrededor para flechas y nombres.
+- Solo cambia la herramienta, no el juego. Captura: `docs/capturas/generador_salidas_bosque01.png`.
+- Commit `a24b6846`, sin push.
+### 24/11/2026 · aviso de dirección · generador: se entra por donde se viene
+Pablo: «haz que la entrada sea acorde a desde donde haya entrado».
+- **Antes:** la llegada de cada salida iba al centro de su sala o claro.
+- **Ahora:** va a dos casillas de su salida, hacia dentro, con una de hueco para no volver a salir nada más llegar.
+  - La **S** también, porque es la llegada de la primera salida (en el Bosque 01, la de la Cueva de Terra Fina).
+  - Si no hay sitio libre cerca, se queda donde estaba.
+- **Ojo:** con la misma semilla, la S y las llegadas salen en otro sitio que antes.
+- **Pruebas:** `prueba_generador_mapas` 0 fallos (bloque 17: llegadas a 2-4 casillas de su salida); `escenario_generador_mapas -- bosque` y `-- salas` 0 fallos.
+- Captura actualizada: `docs/capturas/generador_salidas_bosque01.png`. Commit `757ff27a`, sin push.
+### 24/11/2026 · aviso de contexto GAMEFEEL
+- **La gota de tinta recogible ya tiene su aspecto** (concepto de Pablo «Gota de tinta · azul arcano»).
+  - Nueva `presentacion/gota_tinta_3d.gd` (`GotaTinta3D`), hecha en 3D y en código: cuerpo con la punta curvada y la gotita, remolino, charco quieto en el suelo y estirón hacia ella al imantarse. Color del pigmento activo.
+  - La jugabilidad es la de C1 de COMBATE, sin cambios. En `combate_3d.gd` (`Botin3D`) solo se tocan tres líneas; avisado.
+  - Pruebas: `escenario_recogibles`, `escenario_botin_curva` y `prueba_botin_zona` dan 0 fallos.
+  - Fotos en `docs/capturas/gota_tinta` (herramienta `captura_gota_tinta.gd`). En la cueva azul se confunde algo con el suelo.
+  - Para registrar la clase nueva se pasó `--headless --import`.
+  - Sin jugar, sin commit.
+### 24/11/2026 · aviso de dirección · catálogo de puzles: 12 plantillas (6 nuevas)
+Pablo: «añade un catálogo más extenso a los puzzles. Creo que ya hay varios validados».
+- **Qué cuenta como validado:** en la hoja maestra (pestaña Puzzles) ninguno tiene `decision_pablo` ni aprobación explícita. Se han tomado los que están **«En juego»** en un nivel y tienen prueba, usan fuego, agua o tierra y se montan solo con piezas del mapa, sin script de nivel.
+- **Nuevas** en `herramientas/generador_mapas/catalogo/`:
+  - `rele_braseros` (activador de barrera, fuego): cámara C del Bosque 01.
+  - `contrafuego` (premio, fuego): setos y barril de la cámara B del Bosque 01.
+  - `escondite_muro` (premio, tierra): muro agrietado del Bosque 02.
+  - `puente_cuerda` (paso, agua o fuego): puente roto del Bosque 02 y G4.
+  - `riega_pulsador` (activador de barrera, agua): pulsador de agua del Bosque 02.
+  - `piedra_premio` (premio, empuje): la piedra a la placa K del Bosque 02.
+- **Arreglos en el camino:**
+  - **puente_cuerda:** la placa, pegada a la orilla, no recibía la flecha de agua, que se paraba antes. Va a dos filas del agua y la cuerda en la otra orilla.
+  - **contrafuego:** lleva una fila libre bajo los setos para poder dispararle al primero.
+  - **Generador:** el seto `z` bloquea su casilla, y un campamento ya no va a una sala con activador de barrera (se quedaba sin sitio para su cofre).
+- **Pruebas:**
+  - `escenario_catalogo_puzles` (nuevo) resuelve cada plantilla en el juego: 0 fallos. Con fuego y agua de verdad en contrafuego, puente y riega; con la acción de la pieza (encender, romper, pulsar) en relé, muro y piedra.
+  - `escenario_generador_mapas -- salas puzle=<id>`: las seis se montan sin avisos.
+  - `prueba_generador_mapas`: 0 fallos.
+- **Ojo:**
+  - Con dos activadores de barrera más, una misma semilla saca otros mapas.
+  - Durante la prueba salieron errores de compilación de `GotaTinta3D`: es de otra sesión, no de esto.
+- Commit `ca187ddf`. **Push hecho** de la rama hasta ese commit.
+### 24/11/2026 · aviso de dirección · generador: puzle → cofre y campamento como puzle
+Pablo: «enlaza los puzzles a los cofres y enemigos. Mete también la posibilidad de meter los campamentos como "puzzles" para meter salas de enemigos temáticas». Pablo probó el bosque generado: «está bien en general».
+- **Puzle → cofre** (pincel «enlazar»):
+  - Clic en una pieza del puzle (o en el suelo de su sala) y clic en el cofre: el cofre aparece al resolverlo.
+  - Se suma a los enemigos enlazados: aparece cuando se cumple todo.
+  - Cada plantilla dice su señal en `; resuelto` (o la de `activa`). «Charca que hay que helar» y «Río de lava» no se pueden enlazar: no dan señal.
+- **Campamento como puzle:** «Campamento goblin (sala de enemigos)» en la pestaña «Puzles» y en los pinceles. Va aparte de «Campamentos goblin», y su limpieza también se enlaza a un cofre.
+- **Campamento en el bosque y en la cueva:** antes no se ponía nunca, porque buscaba puertas de sala. Ahora levanta la empalizada en un hueco de 7 × 6 del claro, con la puerta goblin hacia el inicio. El cofre épico va dentro de la cerca.
+- **Pruebas:** `escenario_enlace_puzle_cofre` (nuevo, Bosque 01 semilla 12): el cofre enlazado a un puzle y a un campamento no aparece hasta cumplir los dos, 0 fallos. `prueba_generador_mapas`: 0 fallos.
+- Captura: `docs/capturas/generador_enlace_puzle_cofre.png`. Commit `e433c66a`. **Sin push** (no pedido).
+### 24/11/2026 · aviso de dirección · Tintero de escriba: la tinta máxima sube con fragmentos
+Pablo: «Vamos a meter también mejoras de capacidad total de tinta» (lámina «Tintero de escriba: tres cofres, tres fragmentos, una mejora de tinta»), y «Sí, móntalo».
+- **Cómo funciona:** igual que la Savia. Cada cofre da un `fragmento_tintero`; con tres se reúne un tintero y la tinta máxima sube 20.
+  - Son 4 tinteros: es la parte de los «secretos» del total cerrado (100 → 300); los jefes siguen con 4 de +30.
+  - Mejora `tinta_tintero` (`mejoras.tsv`).
+  - La barra se entera sola, también en una partida nueva (`Tinta.actualizar`), y lo ganado entra en la barra.
+- **Dónde sale:** cofres de **secreto y de puzle**. La Savia se queda en los de combate.
+  - Generador: «Fragmento de tintero» como premio de cofres épicos y legendarios (a mano).
+  - El cofre del campamento no lo da.
+- **Inventario:** «Tintero 2/3 · Te falta 1», junto a la Savia. Es el cuenco partido en tres, con su veta azul por trozo; entero, con halo y «Tinta al máximo».
+- **Icono:** forma `cuenco` en `Objetos.dibujar`.
+- **Pruebas:** `captura_tintero` 0 fallos: contador y tinta de la jugadora 100 → 120 → 180. `prueba_generador_mapas`, `prueba_piezas_mejora`, `prueba_tinta`, `prueba_tinta_reaccion`, `prueba_dano_tinta`, `prueba_partida_entera` y `prueba_textos_objetos`: 0 fallos.
+  - Fallan `prueba_bolsa`, `prueba_partida` y `prueba_sintesis` por la capacidad de la mochila (12 → 16) y la clave `tiendas`. Son cambios sin commit de otra sesión, no del tintero.
+- **Commit `928f0b53`** (tinta, mejoras, generador, prueba y fotos en `docs/capturas/tintero`).
+  - **Sin commit:** el objeto (`objetos.tsv`, `fuentes.tsv`, `textos_objetos.gd`), el icono (`objetos.gd`) y el contador (`menu_pestanas.gd`). Van en los mismos archivos que la Savia de la sesión «Mejora de vida en cofres épicos», también sin commit, y el contador se apoya en el suyo.
+- **Pendiente de Pablo:** qué cofres concretos llevan fragmento (un tintero por bioma en la demo: bosque, cueva y pantano).
+### 24/11/2026 · aviso de dirección · commit conjunto de la Savia y el Tintero
+- Pablo: «Sí, juntos». Commit `611e0cd4`.
+- **Lo que entra:**
+  - De la Savia de Giamonios (sesión «Mejora de vida en cofres épicos»): el objeto, la conversión de trozos de corazón al cargar, los fragmentos en cofres épicos de `Bosque_02` y `CuevaResonante`, el `SaviaMenu` y `captura_savia`.
+  - Lo que quedaba del Tintero: el objeto, el icono «cuenco» y el `TinteroMenu`.
+- **Pruebas:** `captura_savia` y `captura_tintero`, 0 fallos.
+- Sin push.
+- **Para decidir:** el cofre del escondite del Bosque 02 (tras el muro agrietado) se quedó sin trozo con la Savia, y es un buen sitio para el primer fragmento de tintero.
+
+### 24/11/2026 · revisión técnica de SFX
+- Encargo: revisar los sonidos del juego y clasificarlos en Aceptado, Mejorable y A cambiar, con argumentos.
+- Entrega: `docs/REVISION_SFX_2026-11-24.md`, catálogo reproducible `.html` del mismo nombre y dos CSV en `docs/qa/` (catálogo y archivos medidos). Enlazado desde `docs/LEEME.md`.
+- Alcance: 156 entradas de Sfx, Sfx3D y sus ambientes; 352 archivos fuente decodificados con Godot en un proyecto aislado. Resultado provisional: 83 aceptados, 69 mejorables y 4 a cambiar; siete grupos adicionales de carencias.
+- Límite explícito: **no se han escuchado los audios ni una partida**. La clasificación es técnica/funcional, no aprobación de timbre o mezcla. Se conservan las elecciones de Pablo del 13/11.
+- Hallazgos: `golem_carga` no existe y el verraco comprueba un catálogo distinto del que reproduce; el contacto con suelo excluye el sonido; tres impactos declarados no tienen llamada de fase; Sfx.play_en/bucle quedan en Master y no siguen Mundo; páginas con unos 1001 ms iniciales bajo −60 dBFS; variantes de conjuro y compra con rangos amplios de RMS completo.
+- Sin cambios de audio, código de juego o escenas; sin commit. Scripts y datos de medición en `output/revision_sfx/`.
+
 ### 24/11/2026 · aviso de contexto PUZLES · Lost Cave: siete puzles montados
 Pablo: «monta los puzzles para la cueva. Inventaria lo que ya hay; hay nuevos assets (úsalos para puzzles si tienen coherencia)». Documento: `docs/PUZLES_LOSTCAVE_2026-11-24.md` (inventario, propuesta y §4 con lo montado). Se esperó al commit `08779380` de la sesión de assets de la cueva para no pisarla.
 - **En `tools/mapa_lostcave.py`** (genera `LostCave.txt`), solo fuego, agua y tierra:
@@ -6087,6 +6291,15 @@ Pablo: «monta los puzzles para la cueva. Inventaria lo que ya hay; hay nuevos a
   - Corrieron con los cambios sin commit de HECHIZOS en `lanzador_3d.gd`, `hechizo.gd` y `sigils.gd`.
 - Fotos: `docs/capturas/lostcave_puzles/`. Sin jugar con teclado.
 
+### 24/11/2026 · revisión visual e inventario de assets
+- Encargo: inventariar assets y capturar los que conviene rehacer por calidad, texturas o geometría.
+- Entrega: `docs/REVISION_ASSETS_2026-11-24.html` (informe con búsqueda, filtros, prioridades y capturas), enlazado desde LEEME. Datos, CSV, scripts reproducibles y fotos en `output/revision_assets/`.
+- Inventario: 1.017 archivos 3D y 2.538 imágenes, incluyendo originales y variantes. Barrido visual de 293 GLB + 207 escenas de Lost Cave; 58 imágenes sueltas revisadas en láminas. No equivale a 500 diseños únicos o activos.
+- Resultado: 23 entradas P1, 5 P2, 11 mejoras opcionales y 461 sin defecto evidente en el barrido. Once grupos de trabajo. Prioridades: texturizado de 21 rocas/piedras LeLu, roca_hueca borrosa, caras negras en lost_stalagmite_b, identidad de setas_amarillas, caja/barril y cerámica.
+- Evidencia: 293 PNG individuales, 15 hojas, 28 tiras de detalle/reverso/escala con Pieza3D y Ocluso3D, 12 hojas de Lost Cave y giros adicionales en Forward+ de estalagmita, follaje y seis calcas. Compatibility no dibuja las calcas: no atribuir esa ausencia al asset. El defecto negro de la estalagmita persiste en Forward+.
+- Límite: capturas de laboratorio, sin partida ni auditoría de animaciones, VFX o todas las texturas. Referencias textuales no prueban uso activo. Hipótesis UV/atlas de LeLu sin causa cerrada: los 30 modelos tienen UV0 sin triángulos UV de área nula.
+- Verificación: 500 filas del CSV visual, 293 capturas esperadas presentes y enlaces locales del HTML comprobados sin faltantes. Sin cambios a arte, materiales, escenas o código del juego; sin commit.
+
 ### 24/11/2026 · aviso de contexto PUZLES · generador: barril de pólvora y gatopedro a mano
 Pablo, con el escondite del muro en una cueva generada: «¿cómo añado un barril aquí?» y «para la cueva añade los gatopedros (acuérdate de su mecánica)».
 - **Juego, `escenas/puzle.gd`: pieza nueva `gatopedro`** (sin claves). Es el Gatopedro3D de Terra Fina, que hasta ahora solo ponía su script de nivel:
@@ -6103,6 +6316,14 @@ Pablo, con el escondite del muro en una cueva generada: «¿cómo añado un barr
 - **Pruebas:**
   - `escenario_generador_gatopedro_barril` (nueva), 0 fallos: escondite + barril pegado al muro + gatopedro; aviso en un rincón; en el juego el gatopedro huye, y fuego al barril rompe el muro.
   - `prueba_generador_mapas`, `escenario_catalogo_puzles`, `prueba_gatopedro` y `escenario_lostcave_puzles`: ver el commit.
+
+### 24/11/2026 · primer lote de assets reprocesados: LeLu y estalagmita
+- Autorización: «ok hazlo. Dime que necesitas», tras proponer empezar por LeLu y lost_stalagmite_b.
+- LeLu: causa confirmada, PNG externas invertidas verticalmente respecto a las embebidas del GLB. El separador ahora recupera los seis mapas originales; instaladas las dos copias compartidas. Mejoran las 30 variantes sin cambiar GLB, UV, escalas o colisiones. CLI --solo-texturas; Python de Blender disponible, no se necesitó remodelar.
+- Lost Cave: las cuñas negras de stalagmite_b estaban en el albedo horneado, no en las normales (diagnóstico sin normal y sin iluminación). La tabla exceptúa M_Stalagmite_b de la máscara genérica incompatible; conserva la losa y el normal propio. Regenerada solo M_Stalagmite_b_roca.png. Generador con --roca-material M_X para horneado individual.
+- Evidencia: output/reprocesado_assets/antes_despues.png, 30 PNG, dos hojas, 30 tiras detalle/reverso/escala en Forward+ y cuatro giros de estalagmita. Copias anteriores en antes/. Informe docs/REPROCESADO_ASSETS_2026-11-24.html, enlazado desde LEEME y la auditoría inicial. Listado de 31 entradas en assets_corregidos.csv/json.
+- Verificación: prueba_reprocesado_assets nueva, 0 fallos; byte a byte de los seis mapas contra el GLB en ambas ubicaciones; albedo de estalagmita sin cuñas negras, luminancia mínima muestreada 0,264. prueba_rocas_estilizadas: 0 fallos. prueba_rocas_empujables: 5 fallos en la balanza del Bosque 02; control con las seis texturas anteriores en caché reproduce exactamente los mismos cinco fallos, 151 comprobaciones. No se modificaron mapas ni mecánicas.
+- No se necesitan archivos del usuario para este lote. Quedan fuera las mejoras opcionales de paleta y los retoques manuales de caja, barril y cerámica. Sin commit. La PNG generada de Lost Cave permanece fuera de git según el pipeline del pack.
 
 ### 24/11/2026 · aviso de contexto PUZLES · generador: vagonetas, catálogo de 22, salas del jefe y filtro de runas
 Pablo:
@@ -6153,12 +6374,46 @@ Pablo:
 - `prueba_rocas_empujables` da 5 fallos en la sección 3 (balanza del Bosque 02). Ya fallaban igual en una copia limpia de `08779380`, de antes de esto: vienen de los cambios de otra sesión en `Bosque_02.txt`. **Aviso a quien lleve el Bosque 02.**
 - Captura: `docs/capturas/generador_puzles_runas.png` (herramienta `captura_generador_puzles.gd`). Sin jugar con teclado.
 
+### 24/11/2026 · lote 2: rocas de río y follaje para revisión
+- Encargo: «haz ese lote y genera una lámina para revisión». Aplicadas tres rocas de río y lost_bush, lost_fern_a y lost_greentrees.
+- Rocas: albedos derivados del GLB original en arte/suelo_meshy/rocas_rio/, blanco reducido y musgo moderado. LechoRio3D carga el derivado por id; las algas conservan sus materiales y balanceo. PNG con mipmaps, sin procesamiento por píxel durante la partida.
+- Follaje: verdes con saturación 0,62 y brillo 0,90; derivados separados de Atlas 1/3, alfa preservado y mipmaps; corte alfa 0,40 para hojas finas. Corteza, normales y ORM conservados. Los atlas compartidos no se modifican ni se cambian los materiales de otras plantas.
+- Generador Lost Cave: --follaje regenera solo estas tres piezas, sin borrar el resto del pack. La generación completa también aplica los derivados. Parámetros en TablaLostCave; transformación en presentacion/ajuste_naturales_3d.gd.
+- Entrega: output/paleta_naturales_2026-11-24/lamina_revision.png (1600×1960, 24 capturas), lamina_en_nivel.png (1600×1080, Bosque 01 y Lost Cave) y docs/PALETA_NATURALES_2026-11-24.html. Enlazado en LEEME. Copias previas y fotos individuales en la carpeta del lote.
+- Verificación: prueba_paleta_naturales, 0 fallos (incluye mipmaps, selección de textura real del lecho, dimensiones, alfa, normal/ORM y alga de control); prueba_agua_filtro, 0 fallos. Láminas en Forward+, misma cámara y luz dentro de cada pareja. En nivel se alternan 3 materiales del río y 9 superficies de follaje/corteza de las piezas seleccionadas (la corteza es idéntica).
+- Límite: la copa de greentrees sigue siendo fina; no se ha remodelado. Bajo la luz azul de cueva el ajuste de color es sutil. Agua y cáusticas animadas entre fotos. Sin cambios de mapas ni mecánicas, sin commit.
+
+### 24/11/2026 · lote 3: pruebas visuales de setas, caja y barril
+- Encargo: «ok prueba eso». Se compararon dos alternativas por asset; no se modificaron las asignaciones del juego.
+- Setas: id_real conserva setas_amarillas y el GLB instalado coincide byte a byte con la fuente de s_fantasy_garden_props. La fuente tiene apariencia de flores: no es una sustitución equivocada del código. Opciones: setas_rojas recoloreadas a dorado (A, 1.500 tri) y lost_largemushrooms_a doradas (B, 3.312 tri), altura 0,35 u. Recomiendo A.
+- Caja: lost_box_a (A, 4.684 tri) y lost_box_e (B, 2.000 tri), altura 0,80 u. Recomiendo A por mantener forma cúbica y refuerzos definidos; la huella resulta menor que en la caja actual.
+- Barril decorativo: lost_barrel (A, 816 tri) y lost_barrel_a (B, 2.992 tri), altura 0,80 u. Recomiendo A para el decorado.
+- Hallazgo importante al probar Barril3D real: usa el barril de puzle_terrain mediante PiezaPuzle3D, altura 0,95 u y calavera. Es distinto del barril.glb decorativo que salió mal en la auditoría. Conservaría el de pólvora: ambas sustituciones pierden su señal de peligro.
+- Compatibilidad: las dos propuestas se montaron en Barril3D conservando forma física, radio y mecha; funciona el tinte rojo y apagar devuelve el blanco base. No es una prueba de explosión o encendido completo.
+- Entrega: docs/SUSTITUCIONES_ASSETS_2026-11-24.html, enlazado en LEEME; lámina principal y lámina del barril real en output/sustituciones_assets_2026-11-24/. Medidas de nueve versiones en medidas.json. Herramientas propuesta_sustituciones_assets, captura_sustituciones_assets y prueba_propuesta_sustituciones_assets.
+- Prueba específica final: TOTAL DE FALLOS: 0 (fuente/id, color, escala/base, ausencia de cuerpos extra y compatibilidad visual del barril). Propuestas en memoria, sin cambios de mapas, fábricas o mecánicas; sin commit.
+
 ### 24/11/2026 · aviso de contexto PUZLES · generador: editar un cofre añadido
 Pablo: «¿es posible editarlo? quiero cambiar este cofre a épico».
 - **Pestaña «Cofres», lista «Cofres del mapa»:** cada cofre añadido a mano lleva ahora dos desplegables, calidad y recompensa, además de «Quitar».
   - El cofre se queda en su casilla y conserva lo que tenga enlazado (enemigos o puzles).
   - Al cambiar de calidad toma la primera recompensa de la nueva; en el común se sortea.
 - Comprobado con la herramienta abierta: un legendario enlazado a un gólem pasa a épico y sigue saliendo con `aparece_si`; luego se cambia la recompensa. La prueba fue temporal y está borrada.
+
+### 24/11/2026 · lote 3: opción A aprobada y aplicada
+- Aprobación: «Opción A». Se conectan setas amarillas doradas, caja, caja pequeña de la misma familia y barril decorativo. El barril de pólvora mantiene puzle_terrain y su calavera.
+- Derivados autocontenidos generados con generar_visuales_aprobados.gd; setas en arte/meshy/revisados y piezas Cosmos dentro del pack excluido arte/lostcave/visuales_aprobados. Pieza3D y la fábrica de maqueta seleccionan los derivados; si faltan, vuelven al original.
+- Regeneradas solo las cuatro escenas de arte/piezas. El generador toma las formas físicas del modelo original para conservar las colisiones y metadatos anteriores. Copias previas en output/opcion_a_aplicada_2026-11-24/antes.
+- prueba_visuales_aprobados: cero fallos; verifica tres vías de carga, triángulos, altura/base, ausencia de cuerpos extra, colisiones y metadatos frente a las copias previas, y selección independiente del barril de pólvora. QA específica requiere esas copias originales. Generación y horneado: cero fallos. Advertencias del motor al salir sobre recursos y caché user://; sin errores de script.
+- Captura Forward+ de las cuatro escenas: output/opcion_a_aplicada_2026-11-24/lamina_aplicada.png. Actualizado docs/SUSTITUCIONES_ASSETS_2026-11-24.html, ya enlazado desde LEEME. La herramienta comparativa mantiene variante 0 como original para reproducir las láminas previas. Sin cambios de mecánicas ni mapas, sin commit.
+
+### 24/11/2026 · combustión visual de objetos: telaraña y barril de madera
+- Encargo: implementar las dos pruebas propuestas. Nuevo módulo presentacion/combustion_objeto_3d.gd y shader llama_superficie.gdshader: frente radial irregular desde el impacto, focos sobre puntos de la geometría, humo y luz cálida. El shader común Ocluso3D conserva su comportamiento para los materiales que no activan combustion_activa.
+- Reactivo3D conecta la presentación en prender, avanzar, apagar y consumir. Se conserva su contrato de tiempos, propagación, retirada de colisión, señales y botín. Las copias de materiales incluyen ahora el MeshInstance raíz y los materiales comunes ya convertidos; antes quedaban fuera de esa recogida. El daño visual persiste después de apagar, sin cambiar los papeles mecánicos de humedad.
+- La telaraña pierde hilos detrás del frente. La madera queda carbonizada; troncos, puertas y torres dejan seis tablas procedurales temporales sin colisión. Llamas, humo y luz se crean al primer encendido. Hasta ocho focos (dos quads por foco), catorce bocanadas y una luz sin sombras por objeto encendido; pendiente medir un incendio masivo.
+- Laboratorio ejecutable: laboratorios/LabCombustionObjetos.tscn. 1 prende, 2 agua, 3 reconstruye. Assets reales: red sana y barril A. El barril de madera prueba el contrato del tronco; los barriles decorativos de los mapas no pasan a ser reactivos automáticamente y Barril3D de pólvora conserva su mecha y explosión. El laboratorio registra botín sin crear recogibles, para no consultar un Terreno3D que allí no existe.
+- Prueba nueva: prueba_combustion_objetos, TOTAL DE FALLOS: 0; avance, impacto, agua por on_spell_hit, daño persistente, reencendido, movimiento/giro/escala, formas físicas, consumo, restos sobre el suelo, independencia de materiales y recursos originales. Regresiones prueba_fuego y prueba_materia_reactivos_2: FALLOS: 0. Corregido en QA un supuesto de aislamiento: el primer objeto podía prender al segundo por el contagio real; la comprobación de creación diferida se hace antes de prender cualquiera.
+- Entrega: output/combustion_2026-11-24/lamina_combustion.png, seis fases Forward+; capturador herramientas/captura_combustion_objetos.gd. Informe docs/COMBUSTION_OBJETOS_2026-11-24.html enlazado en LEEME. Captura controlada del ciclo, sin partida completa; tablas simplificadas por código, sin Blender. Sin commit.
 
 ### 24/11/2026 · aviso de contexto PUZLES · niveles de playtest y validación de los puzles del catálogo
 Pablo: «crea semillas con los puzles a validar; conforme los playtestee te digo si hay ajustes o si están aceptados; una vez aceptados ya los usaremos en mapas oficiales».
@@ -6177,6 +6432,14 @@ Pablo: «crea semillas con los puzles a validar; conforme los playtestee te digo
   - `tools/validacion_puzles.py alta` las pone al día; `sincronizar` lleva decision_pablo y nota_pablo a las plantillas.
   - Probado de ida y vuelta, y la hoja restaurada. El resto de la hoja no cambia (comparado pestaña a pestaña).
 - **Pruebas:** los 7 niveles cargan sin avisos de Puzle3D. `escenario_catalogo_nuevos` (con «solo aceptados»), `escenario_catalogo_puzles` y `prueba_generador_mapas`: 0 fallos.
+
+### 24/11/2026 · revisión adicional de interacciones
+- Encargo: «revisa más interacciones». Auditoría sin modificar reglas ni assets: cuatro baterías, código de objetos y nueve capturas de los assets reales.
+- Resultado: prueba_reacciones_entorno_objetos 107 OK; prueba_materia_reactivos_3 54 OK; prueba_flotador 14 OK; prueba_barril_explosion 76 OK sobre escenario real. Total 251 comprobaciones, todas con FALLOS: 0 y sin SCRIPT ERROR. El escenario de explosión emite numerosas advertencias de PlayLog por user:// no escribible.
+- Reproducción nueva: Colmena3D con el asset instalado entrega panal y pasa a vacia con viento, pero conserva idéntica firma visual. _dejar_vacia busca hija directa panal, ausente en el GLB envuelto; al nacer ya usada escala el modelo completo a 0,6. Falta contrato visual estable lleno/vacío y prueba sobre el modelo real.
+- Reproducción nueva: seta base madura con on_pulso a seta_resonante; luego no reacciona a viento ni hielo y PLANTAS carece de tabla resonante, aunque fuentes.tsv declara esporas_luminosas y seta_cristalizada. El comentario del controlador define una sola transformación: discrepancia de diseño/datos pendiente, no se cambió la regla.
+- Prioridades visuales: cuerda ardiendo (hoy tinte y luz, sin frente), colmena quemada (oculta modelo inmediatamente) y plantas elementales (mismo modelo teñido con motas doradas comunes). Inspección adicional: carga persistente del cristal poco diferenciada del destello, nido sin señal de espera; cajas/jarrones rompen con cualquier hechizo por contrato, no son cajas físicas por defecto.
+- Entrega: docs/REVISION_INTERACCIONES_2026-11-24.html, enlazado desde LEEME; output/revision_interacciones_2026-11-24/lamina_revision.png, evidencias.json y logs. Capturador/sonda en esa carpeta. Recomendación: visual vacío de colmena y combustión de cuerda, después transformaciones de plantas. Sin cambios de jugabilidad ni commit.
 
 ### 24/11/2026 · aviso de contexto PUZLES · vagoneta: orientada a la vía, ruedas que giran y sonido metálico
 Pablo, playtest de PtVagonetas: «la vagoneta no puede ir así: las ruedas deben ir paralelas a las vías; anima las ruedas y dales sonido metálico al circular».
@@ -6199,6 +6462,20 @@ Pablo, playtest de PtVagonetas: «la vagoneta no puede ir así: las ruedas deben
   - `escenario_catalogo_nuevos`: 0 fallos.
 - **Pendiente de ver:** en las curvas la vía se dibuja como dos tramos que se cruzan, no como una curva. Sin oír en el juego: el sonido es para afinar de oído (dB en `Sfx3D`).
 
+### 24/11/2026 · colmena y cuerda: revisión visual aplicada
+- Encargo: «ok revisalas», tras recomendar el lote colmena/cuerda. Se corrige el visual vacío y se adapta la combustión, sin cambiar sus consecuencias mecánicas.
+- Colmena: partes_colmena_3d separa soporte y panal por un plano en el cuello, con recorte interpolado de UV/normales y tangentes regeneradas. GLB original intacto. Viento anima la caída 0,35 s; al acabar y al recargar la flag queda el mismo soporte a escala 1, sin el antiguo encogimiento a 0,6. Fuego carboniza la cera 0,9 s; la nube empieza inmediatamente y conserva sus 3 s, sin panal de recompensa.
+- Cuerda: CombustionObjeto3D sobre cuerda/cabo, cuatro focos más pequeños, humo y carbonización persistente al apagar. Perfil de fibra por tonos cálidos para no carbonizar los herrajes grises del atlas; cabo caído carbonizado. Se conservan T_ARDE, escarcha, rotura, colisión y soporte que cae; también funciona sin modelos.
+- QA visual detectó material_override tapando el material de superficie: se corrige en el componente y en la recogida de Reactivo3D, manteniendo la referencia de material que usa la disolución final. Nueva prueba verifica materiales realmente visibles, no solo parámetros internos.
+- Pruebas: colmena_cuerda_visual, combustion_objetos, fuego, reacciones_entorno_objetos y materia_reactivos_3, cero fallos. Se verifican dimensiones reales, panal único, estado al recargar mediante flag, veneno, apagado, escarcha y caída del soporte. Capturas Forward+ con modelos reales y reloj controlado, sin partida completa.
+- Entrega: docs/COLMENA_CUERDA_2026-11-24.html y output/colmena_cuerda_2026-11-24/lamina_colmena_cuerda.png (ocho estados, 2560×960). Capturador herramientas/captura_colmena_cuerda_visual.gd. Actualizada la auditoría anterior con enlace al lote aplicado. El corte y el selector de fibra están ajustados a los assets actuales; pendientes de revisar si se sustituyen. Sin commit.
+
+### 24/11/2026 · rama de la colmena sin cuello de cera
+- Petición con captura: que la sección restante sea de madera y tenga forma de rama. El corte horizontal anterior retenía parte del cuello amarillo y amputaba la punta curva real.
+- Sustituida la separación por altura por clasificación de componentes conectadas en partes_colmena_3d. La rama es la isla más alta, de 1.018 triángulos; cera e insectos quedan en panal. No se eliminan ni crean triángulos, se conservan normales y UV y se regeneran tangentes. Se atenúa el naranja de la madera preservando veta y anillos. GLB intacto, sin cambios de lógica.
+- Pruebas prueba_rama_colmena y prueba_colmena_cuerda_visual: cero fallos. Verificadas conservación de geometría, dimensiones, punta curva, materiales, caída, recarga y fuego.
+- Capturas Forward+ inspeccionadas: output/rama_colmena_2026-11-24/rama_detalle.png y colmena_completa.png. Actualizado docs/COLMENA_CUERDA_2026-11-24.html, ya enlazado en LEEME; la lámina de ocho estados anterior queda identificada como primera versión. Sin Blender ni commit.
+
 ### 24/11/2026 · aviso de contexto PUZLES · playtest PtVagonetas: 2 aceptados, rodadura más metálica y atajos a las salas
 Pablo: «he revisado los puzles 1 y 3 (el resto no los he encontrado). Han funcionado bien. Metería un sonido más metálico a las ruedas de la vagoneta; el resto bien».
 - **Aceptados:** `vagoneta_pista` y `vagoneta_boton`. En la hoja, decision_pablo «Aceptar» y verificado «Pablo (visto)». `validacion_puzles.py sincronizar` los pasa a sus `.txt` (`; validacion aceptado`).
@@ -6213,6 +6490,11 @@ Pablo: «he revisado los puzles 1 y 3 (el resto no los he encontrado). Han funci
   - Comprobado con las 22 salas de los 5 niveles con puzles, y con pulsaciones de teclado de verdad: Alt+2 y el 4 del teclado numérico.
   - Captura: `docs/capturas/vagoneta/atajos_sala2.png`.
 - `docs/PLAYTEST_PUZLES.md` regenerado: estados y explicación de los atajos. Los mapas Pt no cambian (mismas semillas).
+
+### 24/11/2026 · rama aplicada al caso de cera consumida
+- Petición: usar la rama de madera aprobada cuando se consume la cera. Confirmado el cableado real de Colmena3D: al terminar la combustión se oculta panal y permanece la isla completa de madera.
+- Añadidas comprobaciones explícitas a prueba_colmena_cuerda_visual: la rama de 1.018 triángulos conserva malla y material tras el fuego; al recargar la flag quemada permanece solo esa rama. TOTAL DE FALLOS: 0.
+- Captura del estado real después de arder y terminar el veneno: output/rama_colmena_2026-11-24/cera_consumida.png. No es una ocultación manual para la foto. No ha sido necesario otro cambio de lógica: la separación aprobada ya alimenta ese estado. Sin commit.
 
 ### 24/11/2026 · aviso de contexto PUZLES · la aguja de la vagoneta se cambia también con E
 Pablo, playtest de PtVagonetas, sala 4: «¿cómo cambio la dirección?». Solo se cambiaba dándole un hechizo a la palanca, una barra fina difícil de acertar.
@@ -6270,6 +6552,15 @@ Pablo: «sí, en todos».
   - El Bosque 02 se cuelga **solo dentro de la herramienta con ventana**: deja de responder al cargar, sin gastar CPU. Por eso se probó sin ventana y no tiene foto.
   - Abierto como juego normal, con ventana, carga y responde.
   - No parece del tótem, porque sin ventana carga bien, pero no está aislado.
+
+### 24/11/2026 · reacciones de setas y cadena resonante aplicadas
+- Encargo: «ok adelante» al lote viento/hielo/agua y recomendación de permitir pulso seguido de viento o hielo. Nuevo presentacion/reaccion_seta_3d.gd, integrado en Recolectable3D para planta seta y sus tres variantes.
+- Viento: contracción de copa por shader, doce granos y diez bocanadas de esporas que siguen el impacto. Hielo: escarcha progresiva y nueve cristales persistentes. Agua: gotas que caen, humedad y reflejo sobre los sombreros. Partículas transitorias terminan a 1,8 s. Copias de materiales por instancia; se conserva textura, normales, geometría y acierto. Sonido de cada elemento en vez de sello_ok y motas doradas para esas tres reacciones de setas.
+- Datos: añadida seta_resonante a PIEZAS_PLANTA para cargar sus dos filas existentes de fuentes.tsv. Recolectable admite segundo paso solo cuando planta=seta y objeto=seta_resonante: viento da esporas_luminosas; hielo da seta_cristalizada. Son terminales; no admite agua/fuego tras madurar. Madura=si sigue siendo necesario. Una seta transformada directamente por elemento no madura con pulso.
+- Pulso da aspecto azulado y emisión suave en las copas sin teñir todo el suelo. La cadena resonante conserva ese estado y añade esporas luminosas o cristales más largos. Recoger entrega el objeto resultante; al rebrotar se restaura presentación e ingrediente base.
+- Prueba nueva prueba_reaccion_seta: TOTAL DE FALLOS: 0; variantes, ingredientes, contracción real del shader, partículas, escarcha/humedad, recolección a Estado, cadenas, bloqueo de otras vías, resultados terminales, disponibilidad y rebrote. Regresiones prueba_materia_reactivos_3 y prueba_materiales_cueva: FALLOS: 0.
+- prueba_bd: actualizada la expectativa de 11 a 12 entradas y añadida comprobación de la tabla resonante. Conserva cinco fallos previos (105/106 objetos y capacidad de mochila esperada por la prueba). Control con catálogo sin la nueva entrada resonante reproduce los mismos cinco fallos, en output/reacciones_setas_2026-11-24/bd_control_final_consola.log. No se alteran las expectativas ajenas para ocultarlos.
+- Entrega: docs/REACCIONES_SETAS_2026-11-24.html enlazado en LEEME; output/reacciones_setas_2026-11-24/lamina_reacciones_setas.png (1920×960, seis estados Forward+). Capturador herramientas/captura_reaccion_seta.gd. Auditoría anterior enlaza al lote aplicado. Sin modelos/texturas nuevos, sin cambios de mapas y sin commit.
 
 ### 24/11/2026 · aviso de contexto PUZLES · playtest PtFuego: relé aceptado; el cofre del cristal salía detrás del muro
 Pablo, con un vídeo: «3 aceptado, mira 6».
@@ -6345,51 +6636,6 @@ Pablo: «6 aceptado», tras jugarlo con el cofre dentro de la sala.
 ## 546 — VFX y JUEGO (21/11): **inicio y final de las formas que faltaban, haz que se corta en el primer enemigo y muro de agua que moja hacia delante** (Pablo, puntos 5 y 6 de la revisión del 18/11: «Trabaja sobre esto»). Cuatro agentes Sonnet en paralelo, un commit cada uno. «Línea» = la figura HAZ (en tierra, la línea de púas). **Fuego** (6a69cc61, 77bd7b66): barrera = aviso, aro que se enciende recorriendo el perímetro, llamas en ola hasta cerrar; al morir bajan por sectores con humo y queda rescoldo. Haz = sale fino de la mano y engorda; al morir se corta en la mano y la cola se consume con humo (`RastroFinal`, para no contar como el humo de la punta). OJO: en el juego el haz de fuego lo dibuja el gas (`HazGasJuego`); ahí todavía no hay inicio/final, solo en el lab o sin gas. **Agua** (d76c8c61): las cinco formas; el estado activo no cambia; la barrera sigue siendo el elipsoide provisional (la membrana del doc del 19/11 queda pendiente). **Tierra** (b6691be9): bola, barrera y línea; el arte de las púas y el muro no se tocan; la bola nueva solo se ve sin carga (en el juego la bola nace de la carga). **Jugabilidad** (7ce7d6ef, `HechizoVivo`): `HAZ_CORTA_EN_ENEMIGO`; agua, tierra, rayo y hielo se cortan en el primer enemigo y solo le hieren a él; `HAZ_ATRAVIESA_ENEMIGOS` = fuego, viento y magma (estos dos como en el lab). Daño y dibujo salen del mismo cálculo. El corte es el del instante en que nace el haz (golpea una vez). `MURO_AGUA_HACIA_DELANTE`: el agua del muro cae una casilla por delante, mismas casillas y tope; la simulación aún deja ~3 casillas mojadas detrás al fluir. **Pruebas** antes (35daa377) y después, en copia aparte: 21 sin fallos en las dos; nuevas `prueba_haz_corte_enemigos` y `prueba_muro_agua_delante` 0; `prueba_vfx_en_juego` 25 = 25; `prueba_cast_points` 1 → 0 y `prueba_trampas_pared` 2 → 1 (intermitentes). Capturas: `captura_barrera_haz_fuego`, `captura_agua_inicio_final`, `captura_tierra_inicio_final`. Sin ver en el juego todavía.
 
 ## 547 — VFX (21/11): **pilar de agua uniforme, sin cilindro interior** (Pablo, con captura del lab: «dale al pilar de agua un aspecto uniforme ahora tiene un cilindro interior»). Era el tubo NÚCLEO de `AguaToy._pilar` (grosor 0,55, más claro, dentro de la cortina). `PILAR_NUCLEO = false`: el nodo se crea pero no se dibuja (sigue en `_pil_tubos` para no mover índices). La cortina sola ya da la columna con su flujo; no hizo falta subirle la opacidad. prueba_agua_toy, prueba_vfx_toy y prueba_agua_sim: 0. Captura: `captura_pilar_agua.gd`.
-
-### 24/11/2026 · combustión visual de objetos: telaraña y barril de madera
-- Encargo: implementar las dos pruebas propuestas. Nuevo módulo presentacion/combustion_objeto_3d.gd y shader llama_superficie.gdshader: frente radial irregular desde el impacto, focos sobre puntos de la geometría, humo y luz cálida. El shader común Ocluso3D conserva su comportamiento para los materiales que no activan combustion_activa.
-- Reactivo3D conecta la presentación en prender, avanzar, apagar y consumir. Se conserva su contrato de tiempos, propagación, retirada de colisión, señales y botín. Las copias de materiales incluyen ahora el MeshInstance raíz y los materiales comunes ya convertidos; antes quedaban fuera de esa recogida. El daño visual persiste después de apagar, sin cambiar los papeles mecánicos de humedad.
-- La telaraña pierde hilos detrás del frente. La madera queda carbonizada; troncos, puertas y torres dejan seis tablas procedurales temporales sin colisión. Llamas, humo y luz se crean al primer encendido. Hasta ocho focos (dos quads por foco), catorce bocanadas y una luz sin sombras por objeto encendido; pendiente medir un incendio masivo.
-- Laboratorio ejecutable: laboratorios/LabCombustionObjetos.tscn. 1 prende, 2 agua, 3 reconstruye. Assets reales: red sana y barril A. El barril de madera prueba el contrato del tronco; los barriles decorativos de los mapas no pasan a ser reactivos automáticamente y Barril3D de pólvora conserva su mecha y explosión. El laboratorio registra botín sin crear recogibles, para no consultar un Terreno3D que allí no existe.
-- Prueba nueva: prueba_combustion_objetos, TOTAL DE FALLOS: 0; avance, impacto, agua por on_spell_hit, daño persistente, reencendido, movimiento/giro/escala, formas físicas, consumo, restos sobre el suelo, independencia de materiales y recursos originales. Regresiones prueba_fuego y prueba_materia_reactivos_2: FALLOS: 0. Corregido en QA un supuesto de aislamiento: el primer objeto podía prender al segundo por el contagio real; la comprobación de creación diferida se hace antes de prender cualquiera.
-- Entrega: output/combustion_2026-11-24/lamina_combustion.png, seis fases Forward+; capturador herramientas/captura_combustion_objetos.gd. Informe docs/COMBUSTION_OBJETOS_2026-11-24.html enlazado en LEEME. Captura controlada del ciclo, sin partida completa; tablas simplificadas por código, sin Blender. Sin commit.
-
-### 24/11/2026 · revisión adicional de interacciones
-- Encargo: «revisa más interacciones». Auditoría sin modificar reglas ni assets: cuatro baterías, código de objetos y nueve capturas de los assets reales.
-- Resultado: prueba_reacciones_entorno_objetos 107 OK; prueba_materia_reactivos_3 54 OK; prueba_flotador 14 OK; prueba_barril_explosion 76 OK sobre escenario real. Total 251 comprobaciones, todas con FALLOS: 0 y sin SCRIPT ERROR. El escenario de explosión emite numerosas advertencias de PlayLog por user:// no escribible.
-- Reproducción nueva: Colmena3D con el asset instalado entrega panal y pasa a vacia con viento, pero conserva idéntica firma visual. _dejar_vacia busca hija directa panal, ausente en el GLB envuelto; al nacer ya usada escala el modelo completo a 0,6. Falta contrato visual estable lleno/vacío y prueba sobre el modelo real.
-- Reproducción nueva: seta base madura con on_pulso a seta_resonante; luego no reacciona a viento ni hielo y PLANTAS carece de tabla resonante, aunque fuentes.tsv declara esporas_luminosas y seta_cristalizada. El comentario del controlador define una sola transformación: discrepancia de diseño/datos pendiente, no se cambió la regla.
-- Prioridades visuales: cuerda ardiendo (hoy tinte y luz, sin frente), colmena quemada (oculta modelo inmediatamente) y plantas elementales (mismo modelo teñido con motas doradas comunes). Inspección adicional: carga persistente del cristal poco diferenciada del destello, nido sin señal de espera; cajas/jarrones rompen con cualquier hechizo por contrato, no son cajas físicas por defecto.
-- Entrega: docs/REVISION_INTERACCIONES_2026-11-24.html, enlazado desde LEEME; output/revision_interacciones_2026-11-24/lamina_revision.png, evidencias.json y logs. Capturador/sonda en esa carpeta. Recomendación: visual vacío de colmena y combustión de cuerda, después transformaciones de plantas. Sin cambios de jugabilidad ni commit.
-
-### 24/11/2026 · colmena y cuerda: revisión visual aplicada
-- Encargo: «ok revisalas», tras recomendar el lote colmena/cuerda. Se corrige el visual vacío y se adapta la combustión, sin cambiar sus consecuencias mecánicas.
-- Colmena: partes_colmena_3d separa soporte y panal por un plano en el cuello, con recorte interpolado de UV/normales y tangentes regeneradas. GLB original intacto. Viento anima la caída 0,35 s; al acabar y al recargar la flag queda el mismo soporte a escala 1, sin el antiguo encogimiento a 0,6. Fuego carboniza la cera 0,9 s; la nube empieza inmediatamente y conserva sus 3 s, sin panal de recompensa.
-- Cuerda: CombustionObjeto3D sobre cuerda/cabo, cuatro focos más pequeños, humo y carbonización persistente al apagar. Perfil de fibra por tonos cálidos para no carbonizar los herrajes grises del atlas; cabo caído carbonizado. Se conservan T_ARDE, escarcha, rotura, colisión y soporte que cae; también funciona sin modelos.
-- QA visual detectó material_override tapando el material de superficie: se corrige en el componente y en la recogida de Reactivo3D, manteniendo la referencia de material que usa la disolución final. Nueva prueba verifica materiales realmente visibles, no solo parámetros internos.
-- Pruebas: colmena_cuerda_visual, combustion_objetos, fuego, reacciones_entorno_objetos y materia_reactivos_3, cero fallos. Se verifican dimensiones reales, panal único, estado al recargar mediante flag, veneno, apagado, escarcha y caída del soporte. Capturas Forward+ con modelos reales y reloj controlado, sin partida completa.
-- Entrega: docs/COLMENA_CUERDA_2026-11-24.html y output/colmena_cuerda_2026-11-24/lamina_colmena_cuerda.png (ocho estados, 2560×960). Capturador herramientas/captura_colmena_cuerda_visual.gd. Actualizada la auditoría anterior con enlace al lote aplicado. El corte y el selector de fibra están ajustados a los assets actuales; pendientes de revisar si se sustituyen. Sin commit.
-
-### 24/11/2026 · rama de la colmena sin cuello de cera
-- Petición con captura: que la sección restante sea de madera y tenga forma de rama. El corte horizontal anterior retenía parte del cuello amarillo y amputaba la punta curva real.
-- Sustituida la separación por altura por clasificación de componentes conectadas en partes_colmena_3d. La rama es la isla más alta, de 1.018 triángulos; cera e insectos quedan en panal. No se eliminan ni crean triángulos, se conservan normales y UV y se regeneran tangentes. Se atenúa el naranja de la madera preservando veta y anillos. GLB intacto, sin cambios de lógica.
-- Pruebas prueba_rama_colmena y prueba_colmena_cuerda_visual: cero fallos. Verificadas conservación de geometría, dimensiones, punta curva, materiales, caída, recarga y fuego.
-- Capturas Forward+ inspeccionadas: output/rama_colmena_2026-11-24/rama_detalle.png y colmena_completa.png. Actualizado docs/COLMENA_CUERDA_2026-11-24.html, ya enlazado en LEEME; la lámina de ocho estados anterior queda identificada como primera versión. Sin Blender ni commit.
-
-### 24/11/2026 · rama aplicada al caso de cera consumida
-- Petición: usar la rama de madera aprobada cuando se consume la cera. Confirmado el cableado real de Colmena3D: al terminar la combustión se oculta panal y permanece la isla completa de madera.
-- Añadidas comprobaciones explícitas a prueba_colmena_cuerda_visual: la rama de 1.018 triángulos conserva malla y material tras el fuego; al recargar la flag quemada permanece solo esa rama. TOTAL DE FALLOS: 0.
-- Captura del estado real después de arder y terminar el veneno: output/rama_colmena_2026-11-24/cera_consumida.png. No es una ocultación manual para la foto. No ha sido necesario otro cambio de lógica: la separación aprobada ya alimenta ese estado. Sin commit.
-
-### 24/11/2026 · reacciones de setas y cadena resonante aplicadas
-- Encargo: «ok adelante» al lote viento/hielo/agua y recomendación de permitir pulso seguido de viento o hielo. Nuevo presentacion/reaccion_seta_3d.gd, integrado en Recolectable3D para planta seta y sus tres variantes.
-- Viento: contracción de copa por shader, doce granos y diez bocanadas de esporas que siguen el impacto. Hielo: escarcha progresiva y nueve cristales persistentes. Agua: gotas que caen, humedad y reflejo sobre los sombreros. Partículas transitorias terminan a 1,8 s. Copias de materiales por instancia; se conserva textura, normales, geometría y acierto. Sonido de cada elemento en vez de sello_ok y motas doradas para esas tres reacciones de setas.
-- Datos: añadida seta_resonante a PIEZAS_PLANTA para cargar sus dos filas existentes de fuentes.tsv. Recolectable admite segundo paso solo cuando planta=seta y objeto=seta_resonante: viento da esporas_luminosas; hielo da seta_cristalizada. Son terminales; no admite agua/fuego tras madurar. Madura=si sigue siendo necesario. Una seta transformada directamente por elemento no madura con pulso.
-- Pulso da aspecto azulado y emisión suave en las copas sin teñir todo el suelo. La cadena resonante conserva ese estado y añade esporas luminosas o cristales más largos. Recoger entrega el objeto resultante; al rebrotar se restaura presentación e ingrediente base.
-- Prueba nueva prueba_reaccion_seta: TOTAL DE FALLOS: 0; variantes, ingredientes, contracción real del shader, partículas, escarcha/humedad, recolección a Estado, cadenas, bloqueo de otras vías, resultados terminales, disponibilidad y rebrote. Regresiones prueba_materia_reactivos_3 y prueba_materiales_cueva: FALLOS: 0.
-- prueba_bd: actualizada la expectativa de 11 a 12 entradas y añadida comprobación de la tabla resonante. Conserva cinco fallos previos (105/106 objetos y capacidad de mochila esperada por la prueba). Control con catálogo sin la nueva entrada resonante reproduce los mismos cinco fallos, en output/reacciones_setas_2026-11-24/bd_control_final_consola.log. No se alteran las expectativas ajenas para ocultarlos.
-- Entrega: docs/REACCIONES_SETAS_2026-11-24.html enlazado en LEEME; output/reacciones_setas_2026-11-24/lamina_reacciones_setas.png (1920×960, seis estados Forward+). Capturador herramientas/captura_reaccion_seta.gd. Auditoría anterior enlaza al lote aplicado. Sin modelos/texturas nuevos, sin cambios de mapas y sin commit.
-
 ### 25/11/2026 · siete lotes de interacciones por código
 - Encargo: preparar todo lo posible por código y reservar Blender. Inventariadas 28 actuaciones de los siete lotes; se completan las ausentes y se conservan vagonetas, muros, palancas de aguja, tótems/receptores y combustión ya resueltos. No se cambian daño, botín, relojes mecánicos, masas ni rejilla de movimiento.
 - Base nueva: presentacion/feedback_objeto_3d.gd. Estados combinables de humedad, hielo, calor, energía y agotamiento; arcos sin luces adicionales; sacudida sin apilar tweens; rebrote y asentamiento del hijo visual; ráfagas acotadas a 16 piezas y 1,1 s. Plumas procedurales con silueta curvada, polvo, gotas, burbujas, escarcha y ondas. Se preservan materiales especializados y referencias a materiales controladas por los actores; los clones usan copias independientes.
@@ -6432,6 +6678,13 @@ Pablo: «6 aceptado», tras jugarlo con el cofre dentro de la sala.
 - Prueba nueva herramientas/prueba_carbonizacion_persistente.gd: 22 OK, incluyendo archivo de flags real, tocón girado/escalado, marcas/materiales, frío sin efectos, segundo ciclo apagar/recargar, reprender y consumir una sola vez, limpieza de ficha, restos únicos, puerta de madera y datos inválidos. Logs y guardados de QA en output/carbonizacion_persistente_2026-11-25.
 - Repetida la zona completa de Bosque02 con salida y recarga: 29 OK, cero fallos y cero errores de script; foto 12 muestra ahora el tocón parcialmente quemado al volver. Regresiones de combustión 26 OK y conexión Blender 31 OK. Total 108 comprobaciones sin fallos. Se mantienen los avisos de recursos del motor al cerrar, sin errores de script finales.
 - Regenerados docs/REVISION_ZONA_BLENDER_2026-11-25.html y su lámina de doce capturas; actualizada la ficha de conexión. Las observaciones anteriores del diario quedan como historia del defecto ya resuelto. Sin commit.
+
+### 25/11/2026 · SFX de vagoneta: traqueteo seco y roce
+- Pablo rechazó la rodadura anterior y dio el vídeo https://www.youtube.com/watch?v=CULppdYegqE como referencia. No se pudo acceder a su audio. Aclaración explícita: «Traqueteo seco de ruedas y juntas, con roce continuo de fondo». Se implementa esa descripción; no se afirma haber comparado o escuchado el vídeo.
+- `tools/gen_vagoneta_rueda.py`: se sustituyen los parciales resonantes y el silbido por ruido filtrado con transitorios cortos de rueda/eje y roce de fondo; bucle de 6 s en vez de 2 s. Genera también tres juntas de 0,14 s. Síntesis propia determinista, sin muestras externas; requiere numpy, ya no scipy. Actualizada `audio/LICENCIAS.md`.
+- `nucleo/sfx_3d.gd`: junta seca propia en lugar del impacto Kenney de cola más larga, a −13 dB. Choque conservado. `objetos/vagoneta_3d.gd`: sin chirrido al arrancar, curva con chirrido 6 dB más bajo; rodadura con tono/volumen en función de la velocidad real de empuje (1 u/s), respetando Sfx.AJUSTES. No cambia movimiento ni reglas del puzle.
+- Validación: `herramientas/prueba_sonido_vagoneta.gd` carga PruebaPtVagonetas, comprueba arranque, sostenido, bus, junta y parada; FALLOS: 0. Medición de cuatro WAV: mono 44,1 kHz, sin clipping, juntas con extremos a cero y salto del bucle dentro de las diferencias normales de la señal. Importados los recursos. No validación auditiva artística.
+- Datos, logs, copia anterior y muestra de 9 s en `output/vagoneta_sfx_2026-11-25/`. `escucha_vagoneta.wav` combina rodadura y juntas a velocidad normal; sin espacialización y con +9 dB comunes para facilitar escucha. La mezcla del juego conserva sus ganancias. Sin commit.
 
 ### 25/11/2026 · commit de reactividad y primera tanda de escucha de SFX
 - Commit de reactividad solicitado por Pablo: `591a0788`, 207 archivos. Incluye componentes, estados persistentes, variantes Meshy de Blender, pruebas, laboratorios, documentación y evidencias enlazadas. Solo los fragmentos de reactividad de PruebaTest2 y de documentos compartidos; no hechizos, mapas, gotas ni paletas. Derivados Cosmos conservan su exclusión de Git y se regeneran con el pipeline incluido. Sin push.
@@ -6598,6 +6851,74 @@ Pablo: «6 aceptado», tras jugarlo con el cofre dentro de la sala.
 - Pablo pide commit de los sonidos. Se agrupan las selecciones, niveles, impactos por elemento, carga/bucles de fuego, separación de burbuja y madera, y variantes cortas del goblin. Incluye archivos redistribuibles, licencias, pruebas, escuchas, decisiones y generadores de regeneración local.
 - Las fuentes y derivados Sonniss conservan su exclusión del repositorio; no se fuerzan assets ignorados. Las pruebas más recientes de recursos y rutas específicas terminan en `FALLOS: 0`; se conservan sus registros y los avisos de limpieza del escenario.
 - Commit preparado con índice separado y contenido parcial de lanzador, índice documental y diario para no incorporar cambios de otras tareas. Los shaders ya preparados en el índice original se conservan. Sin push.
+
+### 26/11/2026 · objetivo de secuencia completa y novena tanda de SFX
+- Pablo quiere completar en todos los elementos carga → salida → vuelo cuando proceda → impacto → persistencia/final cuando correspondan, incluyendo carga sostenida y cancelación según la acción.
+- Próxima tanda 49–53: inicio de carga de agua, hielo, rayo, viento y tierra. No se repite aprobación del fuego A, que ya cubre carga y bucles de fuego. Se separan explícitamente las elecciones previas de impacto de la validación de carga, y el inicio de carga de su futura continuidad sostenida. Después toca salida de los seis elementos.
+- `docs/ESCUCHA_SFX_TANDA9_2026-11-26.html`: cinco muestras actuales aisladas, sin la escritura ya aprobada, razones por función de anticipación y decisiones/notas con clave propia tanda9. No se declara escucha del revisor ni se afirma que los cinco elementos tengan ya bucle sostenido.
+- Inventario actualizado sin recursos seleccionados ausentes. Cinco muestras presentes, cinco entradas no repetidas en tandas previas y JavaScript válido. Generador y datos junto al inventario en `output/auditoria_sfx_2026-11-25/`. Sin cambios al juego ni commit.
+
+### 26/11/2026 · revisión de cargas 49–53
+- Pablo pide agua algo más grave, rechaza hielo (debe sonar a hielo) y rayo (quiere chisporroteo), pide viento mucho más sutil y acepta tierra.
+- Aplicado: `agua_carga` selecciona `agua_carga_grave.wav`, remuestreo del sintetizado propio a ×0,92 (−1,44 semitonos), sin normalizar, manteniendo −9 dB y variación de tono. Duración resultante 0,761 s. `viento_carga` baja de −12 a −22 dB, misma muestra. `tierra_carga` aceptada sin ajustes.
+- Propuestas no integradas: hielo A fisura, hielo B movimiento/agrietamiento de hielo, ambas Alexander Kopeikin/Sonniss; rayo A snaploop de faxcorp (OpenGameArt, CC0), rayo B ArcDesign15 de InMotionAudio/Sonniss. Recortes con fundidos 15/90 ms y RMS objetivo −24 dBFS, techo −6 dBFS. Procedencia y edición registradas en `output/sfx_tanda9_validacion_2026-11-26/preparacion.json`. Las cargas anteriores de hielo/rayo siguen provisionales hasta elegir sustitución.
+- `docs/VALIDACION_SFX_TANDA9_2026-11-26.html`: siete muestras, nivel de catálogo para valorar viento y modo original para comparar textura. Sin mezcla con escritura ni bucles sostenidos. El revisor no afirma escucha. Siete archivos presentes, JavaScript válido y diff sin errores de espacios; sin commit.
+- Recurso de agua grave importado y prueba de recursos de esta revisión terminada: `FALLOS: 0`.
+
+### 26/11/2026 · cargas 49–53 aceptadas
+- Pablo acepta agua ajustada, hielo A (fisuras), rayo A (chasquidos eléctricos) y viento ajustado; tierra conserva su aprobación previa.
+- Copias exactas: hielo A → `audio/sn_hielo_carga_fisuras.wav` en `hielo_carga.f_sn`, manteniendo −11 dB; rayo A → `audio/oga_rayo_carga_chasquidos.wav` como selección única de `rayo_carga`, manteniendo −9 dB y retirando la prioridad del sonido anterior. Agua grave y viento a −22 dB conservados. No se generan bucles sostenidos por esta aprobación del inicio de carga.
+- Licencias, índice, página y decisiones actualizados. `output/sfx_tanda9_validacion_2026-11-26/aprobar_a.cjs` verifica igualdad binaria y registra huellas; hielo mantiene exclusión Sonniss y respaldo sin ese lote. Rayo es derivado CC0 de faxcorp.
+- Cinco muestras presentes y JavaScript válido; ambos recursos importados y prueba de recursos `FALLOS: 0`. Diff sin errores de espacios. Sin commit.
+
+### 26/11/2026 · décima tanda: carga sostenida de cinco elementos
+- Pablo pide continuar. Se preparan propuestas 54–58 de bucle mientras se mantiene el hechizo listo: agua, hielo, rayo, viento y tierra. Fuego ya tiene su bucle aprobado. Esta tanda no reabre los inicios aceptados ni los confunde con la repetición sostenida.
+- Propuestas derivadas de las cinco cargas elegidas. Se quitan silencios exteriores a umbral relativo del 1 % y se cruza final e inicio con coseno/seno, hasta 120 ms. Sin normalizar; solo se reduce ganancia si el cruce supera pico 0,95. Fuente, recorte, costura, nivel y procedencia en `output/sfx_tanda10_validacion_2026-11-26/propuestas.json`. Hielo conserva procedencia/licencia Sonniss, rayo CC0 de faxcorp y resto síntesis propia. No se versionan ni integran por esta preparación los audios de propuestas.
+- Niveles propuestos: agua −13, hielo −15, rayo −13, viento −22, tierra −12 dB. Se explica que continuidad técnica no asegura naturalidad; el revisor no ha escuchado los archivos. La escena mezcla aún sus rutas existentes; integrar arranque, parada y cancelación de los bucles elegidos sigue pendiente.
+- `docs/ESCUCHA_SFX_TANDA10_2026-11-26.html`: cinco muestras en bucle, botón de ocho segundos, modos de nivel y notas con clave independiente tanda10; resumen para el chat. Cinco WAV sin saturación, archivos presentes y JavaScript válido. Sin cambios al juego ni commit; no se repiten pruebas del juego para propuestas fuera del catálogo.
+
+### 26/11/2026 · bucles sostenidos 54–58 aceptados e integrados
+- Pablo acepta los cinco bucles. Copias exactas en audio: agua_carga_bucle, sn_hielo_carga_bucle, oga_rayo_carga_bucle, viento_carga_bucle y tierra_carga_bucle. Catálogo a −13/−15/−13/−22/−12 dB respectivamente, sin variación de tono. Hielo conserva respaldo sintetizado sin Sonniss; su archivo grabado sigue excluido por licencia.
+- `Sensacion3D.carga` transmite el elemento al AroCarga. Para los cinco elementos se sustituye el zumbido genérico por su bucle aprobado; se mantiene ×1,0 y posición de la mano mientras se apunta. Se utiliza la parada existente al lanzar/cancelar y al retirar el aro. Fuego conserva su ruta de ConjuroVfx3D/FasesFuego3D; no se añade una segunda reproducción elemental de fuego en el aro.
+- Página, índice, licencias y metadatos actualizados. `aprobar.cjs` comprueba copias exactas y registra huellas. Los niveles y ondas de las propuestas aceptadas se conservan al integrarlas; los inicios de carga no se modifican.
+- `herramientas/prueba_sfx_carga_sostenida.gd` carga escena real y comprueba selección de cinco bucles sin zumbido genérico, WAV en modo bucle, reproducción activa, tono/nivel estables, parada/liberación tras las salidas reales de lanzamiento y cancelación, y ausencia de audio huérfano al retirar el aro. `FALLOS: 0`. Prueba general de recursos `FALLOS: 0`. Cinco muestras de escucha presentes y JavaScript válido. Sin commit.
+
+### 26/11/2026 · tanda 11: salida de hechizos 59–64
+- Pablo pide la tanda siguiente. Se preparan salidas de fuego, agua, hielo, rayo, viento y tierra, separadas de carga, vuelo e impacto.
+- Comprobado `_disparar`: no hay entradas elemento_disparo; el selector por fase cae en la señal general, salvo formas que viajan de hielo, que priorizan hielo_flecha. Se muestran las selecciones reales, distinguiendo en el caso 61 cuatro variantes de flecha y cuatro de otras formas. Las aprobaciones previas para impacto no se extienden a salida.
+- `docs/ESCUCHA_SFX_TANDA11_2026-11-26.html`: 27 muestras, modos original/nivel de catálogo aproximado, notas con clave independiente y resumen. Se orienta a un gesto breve al salir de la mano; tierra advierte que la fuente puede incluir impacto y admite pedir conservar solo el inicio. No se afirma escucha del revisor.
+- Inventario actualizado: 171 entradas y sin recursos seleccionados ausentes. Veintisiete archivos presentes, seis identificadores 59–64 y JavaScript válido. Generador y `tanda11.json` junto al inventario. Sin cambios al juego ni commit; no se repiten pruebas del juego para una página de escucha.
+
+### 26/11/2026 · salidas de flecha 59–64 aceptadas
+- Pablo acepta variante 1 de los seis elementos y concreta que se asocia a la flecha que viaja. Para hielo corresponde a la primera variante del grupo de flecha, no la de otras formas.
+- Catálogo: nuevas fuego_flecha/agua_flecha/rayo_flecha/viento_flecha/tierra_flecha con lc_fuego_0/lc_agua_0/lc_rayo_0/lc_viento_0/lc_tierra_0. hielo_flecha fija lc_hielo_flecha_0. Se conservan niveles y variaciones de tono. La selección existente de `_disparar` solo usa esas entradas cuando `receta.geo().viaja`; no se cambia la lógica ni se valida salida de otras formas. Se actualiza su comentario para reflejar los seis elementos.
+- Impactos, inicios de carga y bucles sostenidos conservados. No se crean/copían archivos de audio ni se versionan assets excluidos. Procedencia y destino anotados en audio/LICENCIAS.md.
+- `docs/VALIDACION_SFX_TANDA11_2026-11-26.html` y decisiones en `output/sfx_tanda11_validacion_2026-11-26/`. Seis muestras presentes, JavaScript válido, inventario sin seleccionados ausentes y prueba de recursos `FALLOS: 0`. Diff sin errores de espacios. Sin commit.
+
+### 26/11/2026 · tanda 12: propuestas de vuelo de flecha 65–70
+- Pablo pide seguir con vuelo de fuego, agua, hielo, rayo, viento y tierra. No hay entradas específicas de vuelo en el catálogo; se preparan propuestas fuera del juego, sin introducir aún reproductores en HechizoVivo.
+- Bases: grabación de fuego AntumDeluge CC0 y cinco bucles sostenidos elegidos. Se atenúa brillo con filtro circular de 2.600 Hz, sin normalizar ni amplificar; fuego usa recorte 1–2,3 s con cruce circular de 120 ms. Niveles propuestos −22/−23/−25/−25/−28/−24 dB. No se presupone que aprobar carga valide vuelo; fuentes, procesamiento y licencias en `output/sfx_tanda12_validacion_2026-11-26/propuestas.json`.
+- `docs/ESCUCHA_SFX_TANDA12_2026-11-26.html`: seis propuestas con botón de tres segundos, comparación de nivel, notas locales con clave propia y opción «Sin sonido de vuelo». Se explica que falta conexión al proyectil y parada en impacto, expiración o desaparición si se acepta. Sin simular movimiento espacial, Doppler ni mezcla de fases; el revisor no afirma escucha.
+- Seis WAV sin saturación y archivos presentes, JavaScript válido. Sin cambios al juego ni commit; no se repiten pruebas del juego para propuestas fuera del catálogo.
+
+### 26/11/2026 · vuelos 65–70 aceptados e integrados
+- Pablo acepta los seis vuelos. Copias exactas en audio: fuego_vuelo, agua_vuelo, sn_hielo_vuelo, oga_rayo_vuelo, viento_vuelo y tierra_vuelo. Entradas de catálogo conservan −22/−23/−25/−25/−28/−24 dB y tono fijo. Hielo conserva exclusión Sonniss y respaldo sintetizado; no se reprocesan los audios elegidos.
+- HechizoVivo crea un único reproductor espacial hijo del proyectil. Arranca al iniciar movimiento, no durante `retardo` ni en previsión en seco. Sigue su posición; rebotes y vuelta no reinician el mismo sonido. Una transformación elemental sustituye la entrada sin superponer reproductores. Se corta inmediatamente al terminar el proyectil y al salir del árbol, aunque quede materia persistente. Haces instantáneos y volúmenes no proyectiles no generan este bucle.
+- Página, índice, licencias y metadatos actualizados; `aprobar.cjs` registra huellas y comprueba copias exactas. Unidad de atenuación 2 u y alcance 16 u; bus espacial del mundo. Carga, salida e impacto permanecen separados.
+- `herramientas/prueba_sfx_vuelo.gd`: seis proyectiles reales con selección, nivel/tono, WAV circular, posición, rebote sin duplicados y parada inmediata en impacto; espera antes de moverse, eliminación sin audio huérfano, previsión silenciosa y volumen sin proyectil. Prueba de vuelo y prueba general de recursos: `FALLOS: 0`. La prueba de retardo se ejecuta antes de los impactos para que la tierra que deja el escenario no bloquee su nacimiento. Seis muestras presentes, JavaScript válido y diff sin errores de espacios. Sin commit.
+
+### 26/11/2026 · persistencia reutiliza la carga sostenida
+- Pablo pide utilizar la carga para persistencia. Se reutilizan las seis entradas elemento_carga_bucle, sus ondas, tono fijo y niveles, sin nuevos audios ni otra selección artística.
+- Nuevo `SonidoPersistencia3D`: una voz por linaje y elemento compartida por sus manifestaciones, con referencias débiles. Zonas de pulso, charcos de cruce, solideces/barreras y bloques temporales registran dueños reales; bloques no pisables y haces usan un dueño temporal con la duración del efecto. Orbes siguen su centro y se retiran al terminar la órbita. Burbuja sigue su centro y deja de sonar al reventar.
+- El charco registra sonido después de caer el agua, no antes. La voz sigue al centro de los dueños vivos y no se duplica si un mismo hechizo crea campo más barrera. Se corta al desaparecer el último dueño, caducar, romperse, reventar o vaciarse las celdas. Los sólidos temporales se vinculan a los nodos construidos para respetar su retirada real; no se sonorizan automáticamente las piezas del mapa. Instantáneos sin duración no reciben un bucle indefinido y la previsión en seco sigue sin crear estos dueños.
+- Licencias e índice actualizados; no se cambian carga, salida ni vuelo ni se añaden archivos de sonido. El componente usa el bus espacial del mundo, unidad de atenuación 2 u y alcance 16 u.
+- `herramientas/prueba_sfx_persistencia.gd`: seis elementos con solidez y zona reales; muestra idéntica a la carga, tono/nivel, posición, deduplicación, continuación mientras queda un dueño, rotura final, agua retardada, eliminación sin audio huérfano, burbuja reventada y zona vaciada. `FALLOS: 0`. Regresión de vuelo y recursos: `FALLOS: 0`. Hubo que actualizar la caché de clases por una TablaVariantes añadida en otra tarea antes de repetir las pruebas; no se modifica esa tarea. Persisten los avisos de limpieza del escenario al cerrar, sin fallos en las comprobaciones. Diff sin errores de espacios. Registros en `output/sfx_persistencia_2026-11-26/`. Sin commit.
+
+### 26/11/2026 · tanda 13: finales de efectos 71–76
+- Pablo pide la lista de finalización. Se preparan propuestas para apagado de fuego, disipación de agua, final de hielo, residuo eléctrico, viento que se desvanece y retirada/desmoronamiento de tierra. Hielo ofrece A disipación y B rotura: no se confunden caducidad y destrucción.
+- Siete recortes breves, 0,23–0,70 s, con entrada de 12 ms y salida de hasta 240 ms, sin normalizar/amplificar. Bases: fuego AntumDeluge CC0, agua/viento de síntesis propia, hielo de fisuras Alexander Kopeikin/Sonniss, rayo de faxcorp CC0 y tierra de la referencia facilitada por Pablo (licencia original no identificada). Fuentes, cortes y niveles en `output/sfx_tanda13_validacion_2026-11-26/propuestas.json`.
+- `docs/ESCUCHA_SFX_TANDA13_2026-11-26.html`: seis casos con siete reproductores, nivel propuesto/original, notas con clave tanda13 y opción «Sin sonido final». Se pide indicar si el sonido vale al caducar, romperse o ambos. No se mezclan con el bucle persistente ni se afirma escucha del revisor.
+- Siete WAV sin saturación, archivos presentes y JavaScript válido. Sin cambios al juego ni commit; pendientes de validación antes de conectar finales a sus causas.
 
 ### 26/11/2026 · aviso de contexto PUZLES · la balanza, revisada con el vídeo; puzle nuevo «presa_barril»
 Pablo, con un vídeo de PtAguaTierra, sala 6: «revisa este puzzle; también querría un puzzle de una pared que bloquea una masa de agua: al destruir un barril explosivo, la pared se destruye dejando pasar el agua».

@@ -4630,6 +4630,9 @@ class Botin3D extends MeshInstance3D:
 		m.emission_energy_multiplier = 0.9
 		forma.material = m
 		b.mesh = forma
+		b.set_meta("color", col)
+		if p_tipo == TIPO_TINTA:
+			GotaTinta3D.montar(b, col)                     # 24/11 (gamefeel, concepto de Pablo): la gota de verdad, con su charco; la esfera de arriba se descarta
 		return b
 
 	## ¿Está todavía saltando hacia su sitio? (las pruebas lo leen)
@@ -4650,6 +4653,9 @@ class Botin3D extends MeshInstance3D:
 				return
 		_t += delta
 		rotate_y(delta * (2.0 if not imantada else 9.0))
+		if tipo == TIPO_TINTA:                                  # 24/11 (gamefeel): el charco solo con ella quieta; imantada, se estira hacia ella
+			var hacia_j: Vector3 = jugador.position + Vector3(0.0, 0.8, 0.0) - position if jugador != null and is_instance_valid(jugador) else Vector3.ZERO
+			GotaTinta3D.al_paso(self, _t_salto < 0.0 and not imantada, _base_y - 0.3, imantada, hacia_j, _vel)
 		if _t_salto >= 0.0:
 			_t_salto += delta
 			var u: float = clampf(_t_salto / T_SALTO, 0.0, 1.0)
@@ -4714,7 +4720,7 @@ class Botin3D extends MeshInstance3D:
 				var t: Tinta = _tinta()
 				if t != null:
 					t.recuperar(entra)
-				Combate3D.flotante(get_parent(), position + Vector3(0, 0.5, 0), "+%d tinta" % int(round(entra)), (mesh.material as StandardMaterial3D).albedo_color)
+				Combate3D.flotante(get_parent(), position + Vector3(0, 0.5, 0), "+%d tinta" % int(round(entra)), get_meta("color", Color(0.3, 0.55, 1.0)) as Color)     # 24/11: la gota ya no lleva malla propia
 				Sfx.play(self, "tinta_sube")
 			else:
 				if jugador != null and is_instance_valid(jugador):

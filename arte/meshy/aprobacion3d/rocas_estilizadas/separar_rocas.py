@@ -8,15 +8,15 @@ El pack trae las mismas 10 mallas tres veces (A = tierra parda, B = con musgo, C
     (la escala final la pone `MEDIDA` de mundo/pieza_3d.gd),
   - la escribe como GLB con un nodo llamado como el id y UN material con SOLO el juego A (albedo; roughness fija 0,9; sin normal,
     sin roughness de C y sin emissive: mezclar juegos enseñaba las grietas de la lava sobre el color de A),
-  - las texturas NO van embebidas (serian 3,3 MB x 10): se referencian por URI relativa, una sola copia compartida.
+  - extrae las PNG embebidas del original, sin voltearlas, y las comparte por URI relativa.
 
 Uso:  python -I separar_rocas.py <sm_rocks_objects.glb> <carpeta_texturas_origen>
+Solo recuperar las texturas, sin cambiar mallas: python -I separar_rocas.py <sm_rocks_objects.glb> --solo-texturas
 Escribe en esta misma carpeta (fuentes, texturas en ./texturas) y en arte/meshy/piezas (instaladas, texturas en ./tex_rocas_est).
 """
 from __future__ import annotations
 
 import json
-import shutil
 import struct
 import sys
 from pathlib import Path
@@ -47,6 +47,33 @@ VARIANTES = {
                "emisivo": ("T_rocks_C_emissives_2.png", "rocas_magma_emisivo.png")},
 }
 
+# Las PNG externas exportadas por la herramienta anterior están volteadas en Y.
+# Las UV de glTF se corresponden con las imágenes EMBEBIDAS: copiarlas conserva
+# la orientación y también evita invertir por separado normal, emisión y roughness.
+IMAGENES_GLTF = {
+    "T_rocks_A_col_0.png": "T_rocks_A_col",
+    "T_rocks_B_colors_1.png": "T_rocks_B_colors",
+    "T_rocks_C_col_4.png": "T_rocks_C_col",
+    "T_rocks_C_normal_3.png": "T_rocks_C_normal",
+    "T_rocks_C_roughtness_5@channels=G.png": "T_rocks_C_roughtness",
+    "T_rocks_C_emissives_2.png": "T_rocks_C_emissives",
+}
+
+
+def instalar_texturas(j: dict, b: bytes) -> None:
+    imagenes = {im.get("name"): im for im in j["images"]}
+    for variante in VARIANTES.values():
+        for origen, nombre in variante.values():
+            imagen = imagenes[IMAGENES_GLTF[origen]]
+            vista = j["bufferViews"][imagen["bufferView"]]
+            if vista.get("buffer", 0) != 0 or imagen.get("mimeType") != "image/png":
+                raise ValueError("Se esperaba una PNG embebida en el buffer GLB")
+            inicio = vista.get("byteOffset", 0)
+            png = b[inicio:inicio + vista["byteLength"]]
+            for carpeta in (AQUI / "texturas", PIEZAS / "tex_rocas_est"):
+                carpeta.mkdir(exist_ok=True)
+                (carpeta / nombre).write_bytes(png)
+
 
 def leer_glb(p: Path):
     d = p.read_bytes()
@@ -75,14 +102,14 @@ def datos(j: dict, b: bytes, acc: int, comp: int, n: int) -> bytes:
 
 def main() -> None:
     glb = Path(sys.argv[1])
-    tex = Path(sys.argv[2])
+    # Se conserva el argumento histórico de carpeta por compatibilidad con el CLI.
     j, b = leer_glb(glb)
     (AQUI / "texturas").mkdir(exist_ok=True)
     (PIEZAS / "tex_rocas_est").mkdir(exist_ok=True)
-    for v in VARIANTES.values():
-        for o, n in v.values():
-            shutil.copy2(tex / o, AQUI / "texturas" / n)
-            shutil.copy2(tex / o, PIEZAS / "tex_rocas_est" / n)
+    instalar_texturas(j, b)
+    if "--solo-texturas" in sys.argv[2:]:
+        print("Texturas instaladas desde las PNG embebidas, sin modificar mallas.")
+        return
     lote = {}
     for im, id_ in IDS.items():
         at = j["meshes"][im]["primitives"][0]["attributes"]
@@ -152,4 +179,5 @@ def main() -> None:
             print(vid, lote[vid]["tam_m"], lote[vid]["tris"])
 
 
-main()
+if __name__ == "__main__":
+    main()

@@ -627,6 +627,21 @@ Vídeo de Pablo (22/11, 37 s; analizado por fotogramas). Pablo: «no quiero este
 ### O28 · Los hechizos tienen nombre
 Captura de Pablo (22/11) del selector de hechizos en combate: cuatro botones (X, Y, B, RT), cada uno con el icono del tipo de hechizo y **su nombre** al lado. Unos son automáticos («Immedi #2») y otros los ha puesto la jugadora («Hielo doble», «Camino de tierra», «Dash»). Pablo: «el juego deja renombrar tus hechizos para que, cuando elijas la página, sepas qué conjuras». Para nosotros: H16 de `PROPUESTAS_SESION_MYSTRALIA_2026-11-21.md`.
 
+### O29 · Puzle: la esfera tras el murete (cambiar el hechizo para llegar)
+Vídeo de Pablo (23/11, 27 s; analizado por fotogramas). Pablo: «puzle sencillo».
+- **La sala:** una plataforma circular con un **cofre cerrado** en el centro. Al norte, unas escaleras suben a un pasillo, pero las corta un **murete de piedra con una estrella** que no se puede cruzar. Detrás del murete, sobre un pedestal y a unas 3 casillas, hay una **esfera armilar dorada** con un contorno amarillo que avisa de que se puede activar.
+- **Cómo se juega:**
+  1. Desde el murete, la jugadora lanza su hechizo de fuego hacia la esfera (15,4 s). **No llega:** el murete corta el disparo directo.
+  2. Abre el libro y **edita la página** «Actus #5» (17–20 s): le añade el incremento **Invertir** («invierte la dirección de la cualidad asociada»), que cambia la trayectoria.
+  3. Vuelve a lanzar (20,5 s) y el fuego **llega a la esfera**: destello blanco (20,8 s), llamas (21 s) y queda encendida en rojo.
+  4. Se **abre el cofre** del centro (22 s) y una **cinemática** enseña una losa negra con una runa que aparece abajo, junto al puente (23–25 s).
+- No se distingue la trayectoria exacta (pasa en menos de 0,3 s): lo que se ve es **un intento fallido, editar la página y un intento bueno**.
+- **Lo que hace bueno el diseño:**
+  - **El obstáculo es la pregunta:** el objetivo se ve y está cerca, pero el tiro recto no sirve.
+  - **La respuesta es el libro, no la puntería:** se resuelve cambiando la forma del hechizo, que es lo que hace único al juego.
+  - **Barato:** una pieza que se enciende y un murete; la recompensa (cofre y atajo) se enseña con una cinemática corta.
+- **Para nosotros:** P14 de `PROPUESTAS_SESION_MYSTRALIA_2026-11-21.md`.
+
 ## 7. Preguntas para decidir
 
 1. ¿Te interesa el **disparador que lanza otra página** (A) para después de la demo o incluso dentro?

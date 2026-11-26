@@ -151,6 +151,9 @@ var proyectil: bool = false                ## ¿se mueve? (velocidad > 0)
 var activo: bool = false                   ## proyectil en vuelo
 var motivo_fin: String = ""                ## «golpe» | «muro» | «suelo» | «alcance» | «tiempo» | «frenado» | «retorno»
 var p: Vector3 = Vector3.ZERO              ## posición en el mundo
+
+var _sonido_vuelo: AudioStreamPlayer3D = null
+var _nombre_sonido_vuelo: String = ""
 var v: Vector3 = Vector3.ZERO              ## velocidad (u/s): su dirección es hacia dónde va y su módulo, cuánto
 var recorrido: float = 0.0                 ## u recorridas en este tramo (la ida o la vuelta)
 var _p_previa: Vector3 = Vector3.ZERO     ## dónde estaba al empezar el paso (el rayo de los objetos va de aquí a `p`)
@@ -284,7 +287,40 @@ static func salida_de_copia(hechizo: Hechizo, i: int, n: int, dir: Vector3) -> D
 	return {"dir": d0.rotated(Vector3.UP, deg_to_rad(grados)), "desvio": desvio}
 
 
+## Un reproductor por proyectil, hijo suyo: sigue su posición y no sobrevive al nodo.
+## La previsión en seco, la espera inicial y los hechizos instantáneos no generan vuelo.
+func _actualizar_sonido_vuelo() -> void:
+	if seco or not proyectil or not activo or espera > 0.0 or h == null or not is_inside_tree() or v.length_squared() < 0.000001:
+		_parar_sonido_vuelo()
+		return
+	var nombre: String = elemento + "_vuelo"
+	if not Sfx.CATALOGO.has(nombre):
+		_parar_sonido_vuelo()
+		return
+	if is_instance_valid(_sonido_vuelo) and _nombre_sonido_vuelo == nombre:
+		return
+	_parar_sonido_vuelo()
+	_sonido_vuelo = Sfx.bucle(self, nombre, 1.0) as AudioStreamPlayer3D
+	if _sonido_vuelo == null:
+		return
+	_nombre_sonido_vuelo = nombre
+	_sonido_vuelo.reparent(self, false)
+	_sonido_vuelo.position = Vector3.ZERO
+	_sonido_vuelo.unit_size = 2.0
+	_sonido_vuelo.max_distance = 16.0
+	_sonido_vuelo.bus = Sfx3D.bus_para(_sonido_vuelo)
+
+
+func _parar_sonido_vuelo() -> void:
+	if is_instance_valid(_sonido_vuelo):
+		_sonido_vuelo.stop()
+		_sonido_vuelo.queue_free()
+	_sonido_vuelo = null
+	_nombre_sonido_vuelo = ""
+
+
 func _exit_tree() -> void:
+	_parar_sonido_vuelo()
 	if _contado and linaje != null:
 		linaje.vivos -= 1
 		_contado = false
@@ -575,6 +611,7 @@ func _materializar_haz(origen: Vector3, dir: Vector3) -> int:
 	_golpes_del_camino(ctx)
 	_materia_haz(ctx)
 	if is_inside_tree() and not seco:
+		SonidoPersistencia3D.temporal(self, elemento, origen, vida_vfx, linaje)
 		_despues(vida_vfx, func() -> void: pass)         # el HechizoVivo vive lo que se ve el haz: el dibujo cuelga de él y, si se va antes, se apaga a los 0,5 s (VfxElemento3D._soltar)
 	return maxi(celdas.size(), 1)
 
@@ -622,6 +659,7 @@ func _materializar_orbita(origen: Vector3, dir: Vector3) -> int:
 		"orbita": {"n": n, "radio": radio_orbita_u, "vuelta_s": ORBITA_VUELTA_S, "vida": _vida_orbita, "radio_orbe": maxf(maxf(float(g["x"]), float(g["z"])) * Hechizo.ESCALA_PROYECTIL * cas, ORBE_RADIO_MIN_U)}}
 	lanz._sonar_fase_v2("impacto", elemento, String(g.get("nombre", "")), origen)
 	lanz.hechizo_v2.emit(estado, elemento, volumen, origen, dir, g["props"])
+	SonidoPersistencia3D.registrar(self, elemento, linaje, Callable(self, "_centro_orbita"))
 	_despues(_vida_orbita, _fin_orbita)
 	return n
 
@@ -731,6 +769,7 @@ func _orbe_busca() -> void:
 
 ## Se acaba la órbita: los orbes se apagan (lo que ya salió disparado sigue su vuelo).
 func _fin_orbita() -> void:
+	SonidoPersistencia3D.retirar(self, true)
 	for o in orbes:
 		(o as Dictionary)["activo"] = false
 
@@ -1282,6 +1321,8 @@ func _materia_solido(ctx: Dictionary) -> int:
 			_marcar(String(ctx["elemento"]), cc)
 		if rune.pisable:
 			var opc: Dictionary = {"resta": persiste, "color": rune.color.darkened(0.15), "v2": true, "apilar": int(ctx["niveles"]), "elemento": String(ctx["elemento"])}
+			opc["sfx_persistencia"] = true
+			opc["sfx_linaje"] = linaje
 			opc.merge(perfil_solido(cc, ctx))
 			for _k in range(int(ctx["niveles"])):
 				if lanz.construir_tierra(cc, true, opc):
@@ -1290,6 +1331,8 @@ func _materia_solido(ctx: Dictionary) -> int:
 			Lanzador3D.bloquear_celda(cc)
 			lanz._despues(persiste, Lanzador3D.liberar_celda.bind(cc))      # la casilla se libera aunque este nodo ya no exista
 			puestos += int(ctx["niveles"])
+	if puestos > 0 and not rune.pisable:
+		SonidoPersistencia3D.temporal(lanz.mundo, String(ctx["elemento"]), ctx["origen"], persiste, linaje)
 	return puestos
 
 
@@ -1395,6 +1438,7 @@ func _registrar_charco(celdas: Array, t_caida: float) -> void:
 	var l: Lanzador3D = lanz
 	l.mundo.add_child(z)
 	l.zonas_cruce.append(z)
+	SonidoPersistencia3D.registrar_despues(z, z.elemento, linaje, t_caida)
 	z.tree_exited.connect(HechizoVivo._olvidar.bind(weakref(l), z))
 
 
@@ -1443,6 +1487,7 @@ func _abrir_zona(ctx: Dictionary) -> int:
 	var l: Lanzador3D = lanz                               # el callback no puede capturar `self` (este nodo se borra al acabar sus eventos) ni el lanzador (puede morir antes que la zona)
 	l.mundo.add_child(z)
 	l._zonas_v2.append(z)
+	SonidoPersistencia3D.registrar(z, z.elemento, linaje)
 	z.tree_exited.connect(HechizoVivo._olvidar.bind(weakref(l), z))
 	if bool(ctx.get("impacto", false)):
 		# la zona nace al PARARSE el proyectil: quien ya recibió su golpe no cobra además el pulso periódico en el mismo instante (sí los siguientes, si sigue dentro)
@@ -1629,6 +1674,7 @@ func _solidez(ctx: Dictionary, solidez: float, refleja: bool) -> Lanzador3D.Soli
 	s.periodo_late = h.intervalo if h.intervalo > 0.0 else INTERVALO_LATIDO
 	l.mundo.add_child(s)
 	l._solideces_v2.append(s)
+	SonidoPersistencia3D.registrar(s, s.elemento, linaje)
 	s.tree_exited.connect(HechizoVivo._olvidar.bind(weakref(l), s))
 	return s
 
@@ -2035,6 +2081,7 @@ func _iniciar_proyectil(origen: Vector3, dir: Vector3, desvio: Vector3 = Vector3
 	lanz._sonar_fase_v2("impacto", elemento, String(g.get("nombre", "")), origen)
 	if h.estela != "":
 		lanz.vfx_hechizo.emit(h.estela, p, elemento)
+	_actualizar_sonido_vuelo()
 	return 1
 
 
@@ -2070,6 +2117,7 @@ func paso(dt: float) -> void:
 			return
 		dt -= espera
 		espera = 0.0
+	_actualizar_sonido_vuelo()
 	edad += dt
 	if _radio_u < _radio_pleno_u:                                          # `crece` en vuelo: el radio de acierto sube a `crece` m/s hasta el entero
 		_radio_u = minf(_radio_pleno_u, _radio_u + _crece_u * dt)
@@ -2359,6 +2407,7 @@ func _transformar(f: Dictionary) -> void:
 	data = rune
 	elemento = nuevo.elemento
 	estado = nuevo.estado_materia if MATERIA_V2.has(nuevo.estado_materia) else ESTADO_RESERVA_V2
+	_actualizar_sonido_vuelo()
 
 
 ## B5 · «descargar»: el rayo que cruza un charco descarga sobre TODA la zona de agua (y el agua que la toca): daño del hechizo a quien esté dentro, y la zona pasa a `electrificada`. Es la
@@ -2467,6 +2516,7 @@ func _terminar(causa: String) -> void:
 	if not activo:
 		return
 	activo = false
+	_parar_sonido_vuelo()
 	motivo_fin = causa
 	var dir_fin: Vector3 = v.normalized() if v.length() > 0.001 else Vector3.RIGHT
 	if causa == "cruce":

@@ -136,11 +136,17 @@ static var CATALOGO: Dictionary = {
 	"fuego_carga":  {"f": ["fuego_carga_crepitar.wav"], "db": -9.0, "tono": 0.04},   # 26/11: crepitar A aprobado para carga
 	# 26/11: misma fuente real A mientras se carga/apunta, en bucle; no se repite el recorte con fundidos de la carga breve.
 	"fuego_carga_bucle": {"f": ["oga_fuego_crepita_loop.wav"], "db": -14.0, "tono": 0.0},
-	"agua_carga":   {"f": ["agua_carga.wav"],   "db": -9.0,  "tono": 0.04},
-	"hielo_carga":  {"f": ["hielo_carga.wav"],  "db": -11.0, "tono": 0.03},
-	"rayo_carga":   {"f": ["rayo_carga.wav"], "f_sn": ["sn_rayo_carga_0.ogg"],   "db": -9.0,  "tono": 0.04},
-	"viento_carga": {"f": ["viento_carga.wav"], "db": -12.0, "tono": 0.05},
-	"tierra_carga": {"f": ["tierra_carga.wav"], "db": -8.0,  "tono": 0.04},
+	# 26/11: bucles sostenidos 54–58 aprobados; tono fijo y nivel distinto del inicio de carga.
+	"agua_carga_bucle": {"f": ["agua_carga_bucle.wav"], "db": -13.0, "tono": 0.0},
+	"hielo_carga_bucle": {"f": ["hielo_carga.wav"], "f_sn": ["sn_hielo_carga_bucle.wav"], "db": -15.0, "tono": 0.0},
+	"rayo_carga_bucle": {"f": ["oga_rayo_carga_bucle.wav"], "db": -13.0, "tono": 0.0},
+	"viento_carga_bucle": {"f": ["viento_carga_bucle.wav"], "db": -22.0, "tono": 0.0},
+	"tierra_carga_bucle": {"f": ["tierra_carga_bucle.wav"], "db": -12.0, "tono": 0.0},
+	"agua_carga":   {"f": ["agua_carga_grave.wav"], "db": -9.0, "tono": 0.04},   # 26/11: tono ×0,92, sin cambiar nivel
+	"hielo_carga":  {"f": ["hielo_carga.wav"], "f_sn": ["sn_hielo_carga_fisuras.wav"], "db": -11.0, "tono": 0.03},   # 26/11: carga A, fisuras, aprobada
+	"rayo_carga":   {"f": ["oga_rayo_carga_chasquidos.wav"], "db": -9.0, "tono": 0.04},   # 26/11: carga A, chasquidos eléctricos, aprobada
+	"viento_carga": {"f": ["viento_carga.wav"], "db": -22.0, "tono": 0.05},   # 26/11: carga mucho más sutil, 10 dB menos
+	"tierra_carga": {"f": ["tierra_carga.wav"], "db": -8.0, "tono": 0.04},   # 26/11: aceptada sin ajustes
 	"tiempo_carga": {"f": ["tiempo_carga.wav"], "db": -11.0, "tono": 0.02},
 	"x_mano_impacto": {"f": ["x_mano_impacto.wav"], "db": -6.0, "tono": 0.06},
 	"alto_impacto":   {"f": ["alto_impacto.wav"],   "db": -6.0, "tono": 0.06},
@@ -230,7 +236,20 @@ static var CATALOGO: Dictionary = {
 	"tinta_sube":   {"f": ["logro_fanfarria.wav"], "db": -8.0, "tono": 0.0},   # Tinta._ganar: sube la tinta máxima (play_ui). Sin grabación propia: la fanfarria sintetizada
 	# 13/11 (Pablo): DISPARO DE UNA FLECHA por elemento. Si existe «<elemento>_flecha», el hechizo que viaja suena con él al salir en vez de con el del elemento
 	# (`Lanzador3D._disparar`). Hoy solo el hielo; dar de alta «fuego_flecha», etc. basta para los demás.
-	"hielo_flecha": {"f_lc": ["lc_hielo_flecha_0.ogg", "lc_hielo_flecha_1.ogg", "lc_hielo_flecha_2.ogg", "lc_hielo_flecha_3.ogg"], "f": ["oga_congelar_1.wav"], "db": -8.0, "tono": 0.06},
+	# 26/11: variantes 1 aprobadas para SALIDA de flechas que viajan (59–64), no para otras formas.
+	"fuego_flecha": {"f_lc": ["lc_fuego_0.ogg"], "f": ["elem_fuego.wav"], "db": -8.0, "tono": 0.10},
+	"agua_flecha": {"f_lc": ["lc_agua_0.ogg"], "f": ["elem_agua.wav"], "db": -7.0, "tono": 0.10},
+	"hielo_flecha": {"f_lc": ["lc_hielo_flecha_0.ogg"], "f": ["oga_congelar_1.wav"], "db": -8.0, "tono": 0.06},
+	"rayo_flecha": {"f_lc": ["lc_rayo_0.ogg"], "f": ["oga_relampago_0.wav", "oga_relampago_1.wav"], "db": -10.0, "tono": 0.08},
+	"viento_flecha": {"f_lc": ["lc_viento_0.ogg"], "f": ["elem_viento.wav"], "db": -11.0, "tono": 0.12},
+	"tierra_flecha": {"f_lc": ["lc_tierra_0.ogg"], "f": ["elem_tierra.wav"], "db": -8.0, "tono": 0.10},
+	# 26/11: vuelo 65–70 aprobado; bucle discreto mientras el proyectil se desplaza.
+	"fuego_vuelo": {"f": ["fuego_vuelo.wav"], "db": -22.0, "tono": 0.0},
+	"agua_vuelo": {"f": ["agua_vuelo.wav"], "db": -23.0, "tono": 0.0},
+	"hielo_vuelo": {"f_sn": ["sn_hielo_vuelo.wav"], "f": ["hielo_carga.wav"], "db": -25.0, "tono": 0.0},
+	"rayo_vuelo": {"f": ["oga_rayo_vuelo.wav"], "db": -25.0, "tono": 0.0},
+	"viento_vuelo": {"f": ["viento_vuelo.wav"], "db": -28.0, "tono": 0.0},
+	"tierra_vuelo": {"f": ["tierra_vuelo.wav"], "db": -24.0, "tono": 0.0},
 }
 
 ## El bus de la interfaz. Vive en `default_bus_layout.tres` (−6 dB, enviado a Master); si no está (pruebas sin el layout), `play_ui` lo crea al primer uso.

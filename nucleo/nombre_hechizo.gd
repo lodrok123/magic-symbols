@@ -48,8 +48,9 @@ static func forma_de(h: Hechizo) -> String:
 		return "plataforma" if h.es_plataforma_tierra() or h.elemento == "tierra" or h.elemento == "hielo" else "trampa"
 	if p == "colocado" and h.solidez <= 0.0:
 		return "area"
-	if p == "proteccion" and maxf(h.semieje_x, maxf(h.semieje_y, h.semieje_z)) > Sigils.RADIO_BASE_V2 + 0.001:
-		return "colocado"                        # barrera con ejes (ᛁ, ᛏ): un muro, no un escudo que te rodea
+	var sg: Vector3 = h.semiejes_glifos          # 23/11: lo que dieron los glifos (el escudo base de la barrera no cuenta: sola sigue siendo «Escudo»)
+	if p == "proteccion" and maxf(sg.x, maxf(sg.y, sg.z)) > Sigils.RADIO_BASE_V2 + 0.001:
+		return "colocado"                        # barrera con ejes (ᛁ, ᛏ): un muro, no el escudo de la barrera sola
 	return p
 
 
@@ -64,7 +65,7 @@ static func rasgo_de(h: Hechizo, genero: String, plural: bool, forma: String = "
 		return "que pulsan" if plural else "que pulsa"
 	if h.viaja and h.distancia_max > ALCANCE_UNA_FLECHA + 0.001:
 		return ("largas" if plural else "larga") if genero == "f" else ("largos" if plural else "largo")
-	if h.semieje_y > Sigils.RADIO_BASE_V2 + 0.001 or h.crece > 0.0:
+	if h.semiejes_glifos.y > Sigils.RADIO_BASE_V2 + 0.001 or h.crece > 0.0:       # 23/11: la altura de los glifos (no el alto base del escudo)
 		return "grandes" if plural else "grande"
 	return ""
 

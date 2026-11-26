@@ -6,6 +6,8 @@ extends SceneTree
 ##               opacidad del follaje en el alfa del color y HORNEA la roca en mosaico (losa × máscara) a una textura por material.
 ##   --ajustes   pone en los .import de arte/lostcave/texturas los ajustes de 3D: VRAM, mipmaps y mapa de normales en las *_N.
 ##               (después hay que reimportar:  godot --headless --path . --import)
+##   --roca-material M_X  regenera solamente la textura horneada de ese material de roca.
+##   --follaje   regenera solo las tres piezas de FOLLAJE_PIEZAS, con sus materiales derivados.
 ##   --piezas    (por defecto) crea materiales/*.tres, mallas_res/<id>.res y piezas/lost_<nombre>.tscn con el formato de arte/piezas
 ##               (raíz Node3D con metadata, `modelo/malla` y `cuerpo` StaticBody3D en la capa 1024 con la colisión del autor), y las calcas
 ##               (símbolos y grietas) como piezas con un nodo Decal.
@@ -13,6 +15,7 @@ extends SceneTree
 ##   godot --headless --path . --script res://herramientas/generar_piezas_lostcave.gd -- --piezas
 
 const T = preload("res://arte/lostcave/tabla_lostcave.gd")
+const AJUSTE_NATURALES = preload("res://presentacion/ajuste_naturales_3d.gd")
 const CAPA_MUNDO: int = 1024
 const S: float = 2.3
 const ALFA_JSON: String = "res://arte/lostcave/texturas/_alfa.json"   ## texturas de color que llevan alfa (para decidir el recorte)
@@ -34,6 +37,18 @@ func _initialize() -> void:
 		return
 	_mats = JSON.parse_string(txt)
 	match modo:
+		"--follaje":
+			_piezas(T.FOLLAJE_PIEZAS)
+		"--roca-material":
+			var argumentos: PackedStringArray = OS.get_cmdline_user_args()
+			var material_pedido: String = argumentos[-1]
+			if _tipo(material_pedido) != "roca":
+				push_error("Se esperaba un material de roca: " + material_pedido)
+				quit(1)
+				return
+			if _hornear_roca(material_pedido) == 0:
+				quit(1)
+				return
 		"--texturas":
 			_texturas()
 		"--ajustes":
@@ -203,7 +218,9 @@ func _hornear_roca(m: String) -> int:
 	var sal := Image.create(lado, lado, false, Image.FORMAT_RGB8)
 	for y in lado:
 		for x in lado:
-			var mk: Color = mascara.get_pixel(x, y)
+			# La máscara genérica pertenece a otro atlas: en esta pieza pintaba
+			# cuñas negras sobre las agujas. Conservar la losa y el normal propios.
+			var mk: Color = Color(0.0, 0.5, 1.0) if m in T.ROCA_SIN_MASCARA_ATLAS else mascara.get_pixel(x, y)
 			var u: float = float(x) / lado * rep
 			var v: float = float(y) / lado * rep
 			if mk.r > 0.5:
@@ -243,11 +260,12 @@ func _ajustes() -> void:
 
 # ---------------------------------------------------------------- paso 3: materiales y piezas
 
-func _piezas() -> void:
+func _piezas(solo: Array = []) -> void:
 	for c in [T.CARPETA_MATERIALES, T.CARPETA_MALLAS_RES, T.CARPETA_PIEZAS]:
 		DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path(c))
 	# las piezas y mallas son todas de este generador: se borran antes para que no queden huérfanas si cambia un id
 	for c in [T.CARPETA_MALLAS_RES, T.CARPETA_PIEZAS]:
+		if not solo.is_empty(): continue
 		for f in DirAccess.get_files_at(c):
 			if f.begins_with(T.PREFIJO):
 				DirAccess.remove_absolute(ProjectSettings.globalize_path(c + f))
@@ -262,6 +280,7 @@ func _piezas() -> void:
 			nombres.append(f.trim_suffix(".gltf"))
 	nombres.sort()
 	for nombre in nombres:
+		if not solo.is_empty() and nombre not in solo: continue
 		if T.EXCLUIDAS.has(nombre):
 			continue
 		var cat: String = _generar(String(nombre))
@@ -269,6 +288,7 @@ func _piezas() -> void:
 			hechas += 1
 			cuenta[cat] = int(cuenta.get(cat, 0)) + 1
 	for m in _mats:
+		if not solo.is_empty(): continue
 		if _tipo(m) == "calca" and _calca(String(m)):
 			hechas += 1
 			cuenta["calca"] = int(cuenta.get("calca", 0)) + 1
@@ -346,6 +366,30 @@ func _material(m: String) -> Material:
 		mat = load(T.CARPETA_MATERIALES + m + ".tres") as StandardMaterial3D
 	_hechos[m] = mat
 	return mat
+
+
+## Duplicar el material y el albedo: ninguna otra planta que comparta atlas cambia.
+func _material_follaje(original: StandardMaterial3D, id: String) -> StandardMaterial3D:
+	var clave: String = original.resource_name + "_natural"
+	if _hechos.has(clave): return _hechos[clave]
+	var mat: StandardMaterial3D = original.duplicate()
+	var im: Image = AJUSTE_NATURALES.procesar(original.albedo_texture.get_image(), false, T.FOLLAJE_SATURACION, T.FOLLAJE_BRILLO)
+	var ruta_png: String = T.CARPETA_TEXTURAS + clave + ".png"
+	im.save_png(ruta_png)
+	# Un recurso .res independiente permite guardar la textura sin una importación
+	# intermedia; generar mipmaps aquí evita ruido fino al alejar la cámara.
+	im.generate_mipmaps()
+	var tex := ImageTexture.create_from_image(im)
+	var ruta_tex: String = T.CARPETA_TEXTURAS + clave + ".res"
+	ResourceSaver.save(tex, ruta_tex)
+	mat.albedo_texture = load(ruta_tex) as Texture2D
+	mat.resource_name = clave
+	mat.alpha_scissor_threshold = T.FOLLAJE_CORTE_ALFA
+	var ruta_mat: String = T.CARPETA_MATERIALES + clave + ".tres"
+	ResourceSaver.save(mat, ruta_mat)
+	_hechos[clave] = load(ruta_mat)
+	print("PALETA FOLLAJE ",id," ",clave)
+	return _hechos[clave]
 
 
 ## Transformación de un nodo respecto a la raíz de la escena importada (la escena no está en el árbol: se multiplica a mano).
@@ -427,6 +471,8 @@ func _generar(nombre: String) -> String:
 		mats_usados.append(m)
 		inflamable = inflamable and T.MAT_INFLAMABLE.has(m)
 		var mat: Material = _material(m)
+		if nombre in T.FOLLAJE_PIEZAS and m.begins_with("M_Atlas_") and mat is StandardMaterial3D:
+			mat = _material_follaje(mat, id)
 		if mat != null:
 			mi.set_surface_override_material(s, mat)
 		var arr: Array = malla.surface_get_arrays(s)

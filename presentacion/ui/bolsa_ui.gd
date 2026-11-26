@@ -50,7 +50,7 @@ const SEP_X: float = 66.0                ## entre centros de huecos de la misma 
 const SEP_Y: float = 68.0                ## entre filas
 const Y_PRIMERA_FILA: float = 62.0
 const TAM_BOLSA: float = 58.0            ## lado de cada hueco en la bolsa (algo menor que TAM: se necesita aire entre ellos)
-const COLOR_CORAZON: Color = Color("c0392b")
+const COLOR_CORAZON: Color = Color("a3242e")      ## rojo savia (24/11): el mismo que el fragmento de savia
 const COLOR_SILUETA: Color = Color("c9c2b0")            ## placeholder gris cálido hasta que llegue el PNG `mochila_silueta`
 const COLOR_SILUETA_BORDE: Color = Color("8b8273")
 const COLOR_ELEGIDO: Color = Color("e0a526")
@@ -355,12 +355,9 @@ class Hueco extends Control:
 			pulsado.call(id)
 
 
-## Un corazón rojo de radio `r` centrado en `p` (dos círculos y un triángulo), para los objetos que curan.
+## La marca de los objetos que curan (24/11): una gota de savia de Giamonios, no un corazón (identidad propia, Pablo). La dibuja `Objetos.gota`.
 static func corazon(c: CanvasItem, p: Vector2, r: float) -> void:
-	c.draw_circle(p + Vector2(-r * 0.5, -r * 0.25), r * 0.58, COLOR_CORAZON)
-	c.draw_circle(p + Vector2(r * 0.5, -r * 0.25), r * 0.58, COLOR_CORAZON)
-	c.draw_colored_polygon(PackedVector2Array([p + Vector2(-r * 1.04, -r * 0.05), p + Vector2(r * 1.04, -r * 0.05), p + Vector2(0.0, r * 1.15)]), COLOR_CORAZON)
-	c.draw_circle(p + Vector2(-r * 0.6, -r * 0.5), r * 0.16, Color(1, 1, 1, 0.55))
+	Objetos.gota(c, p + Vector2(0.0, r * 0.1), r * 1.05, COLOR_CORAZON)
 
 
 ## La bolsa de fondo: su silueta (el PNG `mochila_silueta` del Pipeline si existe; si no, un gris cálido con borde y la cuerda del cuello).

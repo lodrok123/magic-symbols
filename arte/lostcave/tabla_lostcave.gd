@@ -81,6 +81,12 @@ const TIPO_SHADER: Dictionary = {"S_Simple_Asset": "pbr", "S_Standard": "pbr", "
 const MAT_ALIAS: Dictionary = {}
 ## Brillo: el «_BaseColor_Value» de Unity (0,73 en casi todo) multiplica el color. false = color de la textura tal cual.
 const USAR_BRILLO_UNITY: bool = true
+## Lote de revisión: albedos derivados SOLO en estas piezas, no en los atlas comunes.
+const FOLLAJE_PIEZAS: Array[String] = ["SM_Bush", "SM_Fern_a", "SM_GreenTrees"]
+const FOLLAJE_SATURACION: float = 0.62
+const FOLLAJE_BRILLO: float = 0.90
+## Umbral algo menor para conservar hojas finas en mipmaps. No cambia el alfa fuente.
+const FOLLAJE_CORTE_ALFA: float = 0.40
 ## Emisión: multiplicador sobre la fuerza de Unity (cristales 4, faroles 3,9, setas 1). Bajar si deslumbra con el glow del juego.
 const EMISION_ESCALA: float = 0.6
 ## LUZ PROPIA (24/11): las piezas que brillan llevan una OmniLight3D, porque en la cueva del juego (casi a oscuras, LuzZona3D «cueva») la emisión
@@ -105,6 +111,8 @@ const LLAMA_ENERGIA: float = 2.0
 ## ROCA (horneado): veces que se repite la losa sobre la UV de la malla, oscuridad de la oclusión (B) y aclarado de bordes por curvatura (G).
 const ROCA_REPETICION: Dictionary = {"M_RockTiles": 4.0, "M_Tunnel": 4.0, "M_Stalagmite_a": 3.0, "M_Stalagmite_b": 3.0, "M_StoneColumn_a": 3.0,
 	"M_StoneColumn_b": 3.0, "M_RockArray_a": 3.0}
+## Sin máscara genérica de otro atlas: mantener la losa y el normal propio.
+const ROCA_SIN_MASCARA_ATLAS: Array[String] = ["M_Stalagmite_b"]
 const ROCA_OCLUSION: float = 0.75        ## 0 = la oclusión no oscurece; 1 = las grietas se van a negro
 const ROCA_CURVATURA: float = 0.12       ## cuánto aclaran los cantos (G de la máscara por encima de 0,5). Con 0,35 salían blanquecinos (24/11)
 const ROCA_BRILLO: float = 0.8           ## multiplica la losa: con 1 la roca salía más clara y rosada que las losas pintadas del pack (24/11)

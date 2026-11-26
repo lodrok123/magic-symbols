@@ -1,0 +1,99 @@
+################################################
+########################,~~,####################
+########################,..,####################
+######.v#################,~.,###################
+##.....v.################,.~,v###########,,#####
+#....vv...################,~.~v#########,....###
+#....v.....################,,~.,########.....,##
+#.vv.......################,~.,#######........,#
+#gggggg....###############,WWv########.........#
+#gggggg....##############,..v#########v...v....#
+#....ggg..##############v..,##########vvvv~gggg#
+#....ggg..#############v.~,#########,.vvvvggggg#
+###...gg.##############..~~.#######,,...vvgg...#
+######gg##############...~~.########,,....gg...#
+######   ############....~~..#########,,..gg..##
+######   #########,.~.....~~.v##########,,gg.###
+#######ggg########,.#######~.,###########ggg####
+#######ggg#######,,.###.###..gg###..#####.gg####
+#######.......##,gg.###.###..ggg..........g#####
+#####...........ggg........~~ggg..........g#####
+#####...........ggg.zzzz...~~,#g..........,#####
+####,...........g,,#........~~,,...~.~....,#####
+#####~~~~~~~~~~~,########,,,,.~~..#####...,#####
+#####~~~~~~~~~~~###########,#,~~..##.##...######
+#####...........############,..,..##.##...######
+#####...........###########v..,#.........#######
+########......############,..,###.......########
+########.....###########,,..,####.....##########
+########vgg############,.~.,####,ggg############
+#####,,,vgg############,.~,####,,ggg############
+####v,,,vgg#############,~.,##,,,gg#############
+###........#############,.~,#,,,,gg#############
+##...#####.##############,~~,,..ggg.############
+##...##.##...############,.~...vggg..###########
+##...##.##...,############,~~...gg...###########
+##...##.##...,###########,~~....gg..v###########
+##...##.##...v###########,~~....ggv..###########
+#,...##.##...,###########,.~....ggvv.###########
+#v...........#############,~~..Sgg...###########
+##..........#############v..,...gg.v.###########
+###.......##############v.~T#...gg.#############
+################################################
+; ======================================================================================================================
+;  GENERADO por herramientas/generador_mapas. 2026-11-24. Nivel «Bosque01demo», 48 × 42, algoritmo «bosque», semilla 12.
+;  7 salas, 0 puertas, 5 enemigos, 5 cofres, 4 jarrones. Escena: escenas/PruebaBosque01demo.tscn. Mientras esta cabecera siga aquí, la herramienta puede volver a escribir
+;  este archivo (guarda copia si lo has retocado). Para adoptarlo como nivel hecho a mano, borra la palabra GENERADO de la línea de arriba.
+; ======================================================================================================================
+; # pared · . suelo · ~ agua honda · S inicio · W goblin guerrero · A goblin arquero · T brasero · g tierra pisada (pasillos) · R losas (o basalto bajo la lava) · G elemental del bosque
+; bosque: g camino de tierra · . claro · , hierba corta · v hierba alta (arde) · R vado de piedras · ~ río
+; PASO DE TIERRA: precipicio de 6 casillas (letra espacio, sin suelo) desde (6, 14), 2 de hondo en el camino: se cruza con el puente de tierra (barrera + líneas) lanzado desde el borde.
+; generador {"acabado":true,"agua":8,"algoritmo":"bosque","alto":42,"ancho":48,"ancho_camino":2,"ancho_pasillo":2,"ancho_precipicio":2,"ancho_rio":2,"apertura":55,"arqueros":30,"b_braseros":true,"b_placa":true,"b_precipicio":true,"b_puente":true,"barreras":3,"braseros":1.0,"bucles":30,"bucles_claros":30,"callejones":100,"camara_sala":true,"campamentos":1,"charcas":20,"claros":6,"densidad_salas":1.0,"enemigos":4.0,"estilo":"bosque","forma":"rectangulo","hierba_alta":15,"jarrones":1.0,"lado_max":8,"lado_min":4,"lados_salida":"s, o, s, e","llave":true,"luz":"bosque","metodo":"fractal","n_salas":9,"nombre":"Bosque01demo","octavas":4,"pasillos":30,"paso_tierra":2,"puertas":50,"puzles":3,"recto":60,"region_min":12,"relleno":56,"reparto":"dispersas","rio":"ns","rotulo":true,"sala_max":4,"sala_min":2,"salas_cerradas":0,"salida_a":"CuevaTerrafina:a_bosque=desde_cueva, Precipicio:inicio, Ruinas:inicio, Bosque_02:desde_bosque01","semilla":12,"silueta":60,"simetria":true,"sinuosidad":50,"suavizados":2,"tamano_claro":5,"tamano_sala":10.0,"terreno":true,"tesoro":true}
+; retoques 31,35. 31,37. 32,30. 34,28. 35,21~ 36,25. 36,26. 37,21~ 42,10~
+; enlaces puente_1>cat4_placa
+; anadidos enemigo|guerrero||27,8 enemigo|guerrero||28,8 cofre|epico|fragmento_savia:1+oro:60|27,1 cofre|legendario|glifo:barrera|36,19 cofre|comun|oro:45|25,35 enemigo|limo||31,33 enemigo|limo||33,33 enemigo|limo||32,33 cofre|comun|oro:25+pocion:1|31,30 cofre|epico|hoja_grimorio:1+oro:50|6,38
+; apariciones a2<a0+a1 a8<a5+a7+a6
+;
+; zona 1,1..46,40 bosque mezcla=0.8 rotulo=Bosque01demo
+;
+; pieza inicio entrada 31 38
+; pieza a_salida_1 salida 31 40 a=CuevaTerrafina:a_bosque
+; pieza desde_cueva entrada 31 38
+; pieza cat1_puente puente 15 22 celdas=15,22+15,23
+; pieza cat1_placa pulsador 6 20 modo=agua
+; pieza cat1_cuerda cuerda 6 24 sostiene=cat1_puente
+; puzle cat1_tiende cuando=cat1_placa.pulsado hace=cat1_puente.tender
+; puzle cat1_marca cuando=cat1_puente.tendido hace=flag.poner(bosque01demo.cat1.puente)
+; puzle cat1_vuelve cuando=flag.bosque01demo.cat1.puente hace=cat1_puente.tender
+; pieza cat2_muro muro 36 24 golpes=2
+; pieza cat2_cofre cofre 36 23 abierto=bosque01demo.cat2.cofre da=tabla:cofre_pequeno
+; pieza cat3_barril barril 24 20
+; pieza cat3_puerta puerta 23 18
+; puzle cat3_marca cuando=cat3_barril.explota hace=flag.poner(bosque01demo.cat3.hecho)
+; puzle cat3_abre cuando=flag.bosque01demo.cat3.hecho hace=cat3_puerta.abrir
+; pieza cat3_cofre cofre 23 17 aparece_si=flag.bosque01demo.cat3.hecho abierto=bosque01demo.cat3.cofre da=oro:60+seta_asada:2
+; pieza a_salida_2 salida 1 7 a=Precipicio:inicio
+; pieza entrada_2 entrada 3 7
+; pieza a_salida_3 salida 7 40 a=Ruinas:inicio
+; pieza entrada_3 entrada 7 38
+; pieza a_salida_4 salida 46 10 a=Bosque_02:desde_bosque01
+; pieza entrada_4 entrada 44 10
+; pieza cat4_bloque bloque 7 35 material=piedra
+; pieza cat4_placa pulsador 7 33 modo=presencia peso=3
+; pieza puente_1 puente 20 15 celdas=20,15
+; pieza jarron_1 jarron 35 32 botin=oro
+; pieza jarron_2 jarron 4 4 botin=oro
+; pieza jarron_3 jarron 5 38 botin=oro
+; pieza jarron_4 jarron 40 5 botin=oro
+; pieza cofre_m1 cofre 27 1 modelo=epico abierto=bosque01demo.cofre_m1.abierto da=fragmento_savia:1+oro:60 aparece_si=flag.bosque01demo.cofre_m1.aparece
+; pieza cofre_m2 cofre 36 19 modelo=legendario glifo=barrera abierto=bosque01demo.cofre_m2.abierto da=oro:150+pocion_grande:2
+; pieza cofre_m3 cofre 25 35 abierto=bosque01demo.cofre_m3.abierto da=oro:45
+; pieza enemigo_m3 limo 31 33
+; pieza enemigo_m4 limo 33 33
+; pieza enemigo_m5 limo 32 33
+; pieza cofre_m4 cofre 31 30 abierto=bosque01demo.cofre_m4.abierto da=oro:25+pocion:1 aparece_si=flag.bosque01demo.cofre_m4.aparece
+; pieza cofre_m5 cofre 6 38 modelo=epico abierto=bosque01demo.cofre_m5.abierto da=hoja_grimorio:1+oro:50
+; pieza vigia_ap1 vigia 27 8 de=27,8+28,8 flag=bosque01demo.cofre_m1.aparece
+; pieza vigia_ap2 vigia 31 33 de=31,33+32,33+33,33 flag=bosque01demo.cofre_m4.aparece
+; puzle resuelve_puente_1 cuando=cat4_placa.pulsado hace=flag.poner(bosque01demo.puente_1.abierta)
+; puzle abre_puente_1 cuando=flag.bosque01demo.puente_1.abierta hace=puente_1.tender

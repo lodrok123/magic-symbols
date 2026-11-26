@@ -6,6 +6,8 @@ extends Node
 @export var abrir_al_empezar: bool = true
 var libro: LibroRojo = null
 var _libro_al_entrar: String = ""
+## 23/11: el prototipo LANZABLE de la anidación (el segundo círculo sale cuando toca). Ver `laboratorios/prototipo_anidado.gd`.
+var anidado: Node = null
 
 
 func _ready() -> void:
@@ -30,6 +32,11 @@ func _abrir_cuando_este_el_lanzador() -> void:
 		if lz != null:
 			break
 		await get_tree().process_frame
+	if lz is Lanzador3D:
+		anidado = (load("res://laboratorios/prototipo_anidado.gd") as GDScript).new()
+		anidado.name = "PrototipoAnidado"
+		add_child(anidado)
+		anidado.call("conectar", lz)
 	var jug: Node = lz.get("jugador") if lz != null else null
 	var t0: int = Time.get_ticks_msec()
 	while jug != null and jug.has_method("puede_lanzar") and not bool(jug.call("puede_lanzar")) and Time.get_ticks_msec() - t0 < 30000:

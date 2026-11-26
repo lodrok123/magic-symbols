@@ -1,0 +1,16 @@
+[remap]
+
+importer="csv_translation"
+type="Translation"
+uid="uid://c0j078bywr2r8"
+
+[deps]
+
+source_file="res://docs/qa/SFX_ARCHIVOS_2026-11-24.csv"
+
+[params]
+
+compress=1
+delimiter=0
+unescape_keys=false
+unescape_translations=true

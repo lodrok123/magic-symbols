@@ -1,5 +1,46 @@
 # De dónde sale cada sonido
 
+## Finales 71–76 aprobados (26/11/2026)
+
+- `fuego_fin.wav`: recorte del fuego de AntumDeluge, OpenGameArt, CC0. `agua_fin.wav` y `viento_fin.wav`: derivados de las texturas de síntesis propia elegidas.
+- `sn_hielo_fin.wav`: opción B aceptada, recorte de 0–0,40 s de `sn_hielo_carga_fisuras.wav`, procedente de Alexander Kopeikin, Sonniss GDC 2026. Conserva esa licencia y exclusión `audio/sn_*`; no se integra la opción A.
+- `oga_rayo_fin.wav`: recorte de los chasquidos de faxcorp, OpenGameArt, CC0. `tierra_fin.wav`: recorte de 0,05–0,75 s de `derrumbe_piedra_muerte.wav`, referencia facilitada por Pablo, autor/licencia originales no identificados.
+- Las seis copias conservan exactamente la edición y el nivel aceptados: −22/−23/−19/−25/−28/−22 dB, tono fijo. Fuentes, recortes, fundidos y huellas en `output/sfx_tanda13_validacion_2026-11-26/propuestas.json`; generación y copia con `preparar.py` y `aprobar.cjs`.
+- Se reproducen una vez al terminar la última manifestación activa de cada elemento/linaje. Retirar un dueño sin final o cerrar la escena no reproduce ese cierre; no se usan para cancelación de carga ni como impacto de flecha.
+
+## Persistencia: reutiliza carga sostenida (26/11/2026)
+
+Por indicación de Pablo, la persistencia usa directamente `fuego_carga_bucle`, `agua_carga_bucle`, `hielo_carga_bucle`, `rayo_carga_bucle`, `viento_carga_bucle` y `tierra_carga_bucle`, con los mismos archivos, niveles y tono fijo. No se crean ni procesan nuevos audios; conservan sus licencias y exclusiones ya documentadas. `SonidoPersistencia3D` agrupa por linaje/elemento las manifestaciones activas para no duplicar un mismo bucle entre campo, barrera y materia de un hechizo.
+
+## Vuelo de flechas 65–70 aprobado (26/11/2026)
+
+- `fuego_vuelo.wav`: derivado de la grabación de fuego de AntumDeluge (OpenGameArt, CC0), recorte 1–2,3 s con cruce circular de 120 ms. `agua_vuelo.wav`, `viento_vuelo.wav` y `tierra_vuelo.wav`: derivados de los bucles propios de carga elegidos.
+- `sn_hielo_vuelo.wav`: derivado del bucle de fisuras de Alexander Kopeikin, Sonniss GDC 2026. Conserva licencia Sonniss y exclusión `audio/sn_*`; respaldo sintetizado disponible sin ese lote.
+- `oga_rayo_vuelo.wav`: derivado del bucle de chasquidos de faxcorp, Electricity Game Sound Pack, OpenGameArt, CC0.
+- Los seis usan el filtro circular suave de 2.600 Hz de las propuestas, sin normalizar ni amplificar. Son copias exactas de los audios aceptados. Niveles de catálogo por elemento: fuego −22, agua −23, hielo −25, rayo −25, viento −28 y tierra −24 dB, tono fijo ×1,0.
+- Generación/copia: `output/sfx_tanda12_validacion_2026-11-26/preparar.py` y `aprobar.cjs`. Fuente, edición y huellas registradas en `propuestas.json`. Cada reproductor espacial es hijo de su proyectil; los sonidos de carga, salida e impacto son entradas separadas.
+
+## Salida de flechas: variantes 1 aprobadas, casos 59–64 (26/11/2026)
+
+Las entradas `fuego_flecha`, `agua_flecha`, `hielo_flecha`, `rayo_flecha`, `viento_flecha` y `tierra_flecha` seleccionan respectivamente `lc_fuego_0.ogg`, `lc_agua_0.ogg`, `lc_hielo_flecha_0.ogg`, `lc_rayo_0.ogg`, `lc_viento_0.ogg` y `lc_tierra_0.ogg`. Son las primeras variantes escuchadas, aprobadas por Pablo únicamente para la salida de la flecha que viaja. Conservan archivos, niveles y licencia de las fuentes del pack documentadas abajo; no se crean copias ni se añaden audios excluidos al repositorio. Las otras formas no quedan aprobadas por esta elección.
+
+## Bucles de carga sostenida 54–58 aprobados (26/11/2026)
+
+- `agua_carga_bucle.wav`, `viento_carga_bucle.wav` y `tierra_carga_bucle.wav`: derivados de las cargas de síntesis propia elegidas, conservando el tono de agua grave. Recorte de silencios y cruce circular de hasta 120 ms, sin normalizar. Niveles −13/−22/−12 dB respectivamente.
+- `sn_hielo_carga_bucle.wav`: derivado del recorte de fisuras A de Alexander Kopeikin, Sonniss GDC 2026, elegido para la carga de hielo. Mantiene esa licencia y exclusión `audio/sn_*` del repositorio; respaldo sintetizado disponible sin Sonniss. Nivel −15 dB.
+- `oga_rayo_carga_bucle.wav`: derivado de los chasquidos A, `snaploop.wav` de faxcorp, Electricity Game Sound Pack, OpenGameArt, CC0; conserva su procedencia. Nivel −13 dB.
+- Generación y copia: `output/sfx_tanda10_validacion_2026-11-26/preparar.py` y `aprobar.cjs`. Fuente, recortes, cruce, niveles y huellas de las copias exactas en `propuestas.json`. Los cinco bucles se reproducen a tono fijo ×1,0; no se les aplica la subida de tono del zumbido genérico.
+
+## Cargas de hielo y rayo: opciones A aprobadas (26/11/2026)
+
+- `sn_hielo_carga_fisuras.wav`: copia exacta de hielo A, intervalo 0,30–1,20 s de `ice, surface cracking, fissure, fast, hard-003.wav`, Alexander Kopeikin — 100 kHz Designed Ice, Sonniss GDC 2026. Fundidos 15/90 ms, ganancia −13,283896 dB. Conserva licencia Sonniss y exclusión `audio/sn_*` del repositorio; respaldo sin Sonniss en el catálogo.
+- `oga_rayo_carga_chasquidos.wav`: copia exacta de rayo A, intervalo 0–0,70 s de `oga_descarga_chasquidos.wav`, procedente de `snaploop.wav` de faxcorp, Electricity Game Sound Pack, OpenGameArt, CC0 (fuente y enlace en la tabla original). Fundidos 15/90 ms, ganancia +0,120843 dB. Sustituye el sonido previo de carga, sin prioridad de otro archivo.
+- Generación y copias: `output/sfx_tanda9_validacion_2026-11-26/preparar.py` y `aprobar_a.cjs`. Huellas y decisiones en `aprobacion.json`. Las muestras elegidas no se reprocesan al integrarlas. Son inicios de carga; los bucles sostenidos se preparan por separado.
+
+## Carga de agua más grave (26/11/2026)
+
+`agua_carga_grave.wav`: derivado del sintetizado propio `agua_carga.wav` mediante remuestreo a velocidad ×0,92 (aproximadamente −1,44 semitonos), sin normalizar ni modificar nivel; duración ligeramente mayor. Generador: `output/sfx_tanda9_validacion_2026-11-26/preparar.py`. No incorpora grabaciones externas. Seleccionado en `Sfx.agua_carga`, conservando −9 dB.
+
 ## Magia: destinos aprobados para impacto y carga (26/11/2026)
 
 - `fuego_carga_crepitar.wav`: copia exacta de la propuesta fuego A, recorte de 1–2 s de `oga_fuego_crepita_loop.wav` (AntumDeluge, Fire Crackling, OpenGameArt, CC0). Fundidos 40/160 ms y nivel del recorte documentados en `output/sfx_tanda8_validacion_2026-11-26/propuestas.json`. Para fuego ardiendo y carga sostenida se usa la grabación de origen `oga_fuego_crepita_loop.wav`, que ya está preparada como bucle; no se repite el recorte con fundidos. El ambiente 3D de fuego ya utilizaba esa fuente.

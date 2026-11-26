@@ -1164,7 +1164,7 @@ static func impacto_mundo(lanz: Lanzador3D, p: Vector3, dir: Vector3, elemento: 
 		Sfx.play_en(lanz, "golpe_mundo", p, clampf(1.2 - 0.25 * tam, 0.6, 1.2))     # EN el impacto, no en ella
 
 
-## Empieza la carga: un aro del color del elemento se cierra en la mano del Lanzador mientras dura el modo de lanzar y un zumbido sube de tono. Lo llama
+## Empieza la carga: un aro del color del elemento se cierra en la mano del Lanzador mientras dura el modo de lanzar, con bucle elemental o zumbido de respaldo. Lo llama
 ## `Lanzador3D._entrar_modo_lanzar`; `carga_fin` lo quita (`_salir_modo`). Un aro nuevo sustituye al que hubiera.
 static func carga(lanz: Lanzador3D, elemento: String) -> void:
 	carga_fin(lanz)
@@ -1174,6 +1174,7 @@ static func carga(lanz: Lanzador3D, elemento: String) -> void:
 	var a := AroCarga.new()
 	a.name = "AroCarga"
 	a.lanz = lanz
+	a.elemento = elemento
 	a.color = Vfx3D.COLOR.get(elemento, Color.WHITE)
 	lanz.add_child(a)
 
@@ -1187,13 +1188,15 @@ static func carga_fin(lanz: Lanzador3D) -> void:
 		(a as AroCarga).apagar()
 
 
-## El aro de carga (lote 4): un toro plano a la altura de la mano que se cierra en T_CARGA y luego late; el zumbido `carga_bucle` sube de tono con él.
+## El aro de carga se cierra en T_CARGA y luego late. Los bucles elementales aprobados mantienen tono fijo; solo el zumbido de respaldo sube de tono.
 class AroCarga extends MeshInstance3D:
 	var lanz: Lanzador3D = null
+	var elemento: String = ""
 	var color: Color = Color.WHITE
 	var t: float = 0.0
 	var _zumbido: Node = null
 	var _apagando: bool = false
+	var _sonido_elemental: bool = false
 
 	func _ready() -> void:
 		process_mode = Node.PROCESS_MODE_ALWAYS
@@ -1213,7 +1216,11 @@ class AroCarga extends MeshInstance3D:
 		mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
 		material_override = mat
 		cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-		_zumbido = Sfx.bucle(lanz, "carga_bucle", Sensacion3D.TONO_CARGA.x)
+		# Fuego conserva su ruta de ConjuroVfx3D/FasesFuego3D. Los otros
+		# cinco elementos sustituyen el zumbido genérico por su bucle aprobado.
+		var nombre: String = elemento + "_carga_bucle"
+		_sonido_elemental = elemento != "fuego" and Sfx.CATALOGO.has(nombre)
+		_zumbido = Sfx.bucle(lanz, nombre if _sonido_elemental else "carga_bucle", 1.0 if _sonido_elemental else Sensacion3D.TONO_CARGA.x)
 		_colocar()
 
 	func _colocar() -> void:
@@ -1235,7 +1242,8 @@ class AroCarga extends MeshInstance3D:
 		if mat != null and not _apagando:
 			mat.albedo_color.a = 0.35 + 0.55 * k
 		if _zumbido != null and is_instance_valid(_zumbido):
-			_zumbido.set("pitch_scale", lerpf(Sensacion3D.TONO_CARGA.x, Sensacion3D.TONO_CARGA.y, k))
+			if not _sonido_elemental:
+				_zumbido.set("pitch_scale", lerpf(Sensacion3D.TONO_CARGA.x, Sensacion3D.TONO_CARGA.y, k))
 			_zumbido.set("global_position", global_position)
 
 	func _process(delta: float) -> void:

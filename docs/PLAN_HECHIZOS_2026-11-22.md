@@ -18,7 +18,7 @@
 | 2 | **B8 · M1, cifras del libro** | Medir antes de cambiar el libro | B | Nada (aprobada, en pausa) |
 | 3 | **B9a · Qué glifos suben el daño** (H14 §10) | La base del balance de todo lo demás | B (un dato por glifo) + regenerar los golden | **P9** |
 | 4 | **B9b · Barrera legible con la tabla C19** (H14 §3) | Saber qué para cada barrera y cuál se irá | M | La tabla de combate (`nucleo/contacto.gd`, ya hecha) |
-| 5 | **B9c · Flecha: trayectoria completa en la previsión** (H14 §8) | Ver adónde llega antes de lanzar | B–M | B9a (el daño implícito sale de ahí) |
+| 5 | **B9c · Flecha: trayectoria completa en la previsión** (H14 §8) · **hecho 23/11** | Ver adónde llega antes de lanzar | B–M | B9a (el daño implícito sale de ahí) |
 | 6 | **B9d · Sobrecarga legible** (H14 §4, la parte de la demo) | Progreso, umbral y coste antes de soltar | B–M | Coordinar con GAMEFEEL (arco dorado del HUD) |
 | 7 | **B3 · Presentación de glifos (H5, H6, H8)** | Que cada glifo nuevo se entienda al ganarlo | M | B1 |
 | 8 | **B4 · Coste visible al dibujar (H9)** | Que la tinta se lea en el libro | B | Mejor después de B9a (cambia los números) |
@@ -307,6 +307,20 @@ Un selector de qué hechizo va en cada botón, **en el libro y en combate**. El 
   - **Prueba:** `prueba_libro_rojo`, bloque 12, 0 fallos.
   - **Fotos:** `docs/capturas/libro_rojo_2026-11-22/` 17–21.
   - **Para probar a mano:** si las notas a medio dibujar ayudan o distraen, y si se entienden los verbos.
+- **6.ª vuelta (23/11): PROTOTIPO LANZABLE de la anidación y de la combinación** (Pablo: «crea un prototipo del hechizo anidado y el de la combinación»):
+  - **Anidación:** `laboratorios/prototipo_anidado.gd`, solo en el lab del libro rojo. No toca `Hechizo` ni `HechizoVivo`. El lanzador solo gana la señal `hechizo_vivo_creado`, que nadie más usa.
+    - Si la página lanzada tiene un hijo escrito en el libro rojo, el segundo círculo sale con **su propio elemento y sus glifos** (un `Hechizo` normal, el `lanzar_hechizo` de siempre):
+      - **al impactar**, donde choca el primero (golpe, muro, suelo o cruce); si llega a su alcance sin chocar, no nace;
+      - **al acabar**, donde termina, sea como sea;
+      - **a la vez**, desde la mano, 0,17 s después.
+    - **Se cobra al nacer** (P11 sigue abierta).
+    - Al nacer: destello, rótulo «→ al impactar: tierra» y sonido.
+    - **Sin** los contrapesos de «a la vez» (recarga y tiempo sumados, sin sobrecarga).
+  - **Combinación:** ya se lanzaba (fuego + tierra en el mismo núcleo = **magma**, la lógica del libro avanzado). Ahora tiene prueba.
+  - **Prueba:** `herramientas/prueba_prototipo_anidado.gd`, 0 fallos. Cubre al impactar contra un goblin (nace junto a él, cobra 12 de tinta, levanta el muro), al impactar sin nada (no nace), al acabar, a la vez (0,27 s medidos a 30 fps), sin tinta y magma.
+  - **Fotos:** `docs/capturas/prototipo_anidado_2026-11-23/`.
+  - **Para pasarlo al sistema de verdad (B7):** la condición y el hijo en `Hechizo`, el coste en `Dano`, la previsión del segundo círculo y los contrapesos.
+  - **Pablo (23/11): «no hace falta de momento».** Los contrapesos y el balance se ajustarán **con playtest** cuando llegue el momento. El prototipo se queda como está.
 - **No cuadra con el código (para Pablo):**
   - el libro de prueba pone `Repertoire.libro = "avanzado"` mientras la página tiene dos sellos, porque la combinación solo existe en ese libro. El lab lo devuelve al salir.
   - En la estructura B, dibujar en el núcleo 1 cuando ya hay dos sellos **reemplaza el más antiguo** (la regla del avanzado, `element_viejo`), no necesariamente el de la izquierda.
@@ -517,6 +531,23 @@ Todo con los mismos `_sumar` y `por_nivel` que ya hay, y conectado en `Estadisti
     - **Pruebas reescritas a propósito:** `prueba_apuntado` 2, `prueba_cast_points` E2b, `prueba_ejecucion_combinaciones` A2, `prueba_hechizo` (§2 y los campos del `.tres`) y `prueba_hechizo_vivo` (el mecanismo del arco se sigue probando con la gravedad puesta a mano). Todas dan 0 fallos.
     - **Sin relación:** `prueba_flecha_agua_revision` da 927 fallos («las gotas activas deben estar por encima del suelo»). Es el laboratorio de efectos de la flecha de agua, con sus propias gotas; no usa `Hechizo`.
     - **Código que ya no se usa:** la rama «con gravedad» de `Lanzador3D._salida_de_mano` (`lanzador_3d.gd:1719-1723`) y la de las cintas del agua en arco (`vfx_elemento_3d.gd:382`). Se dejan por si se vuelve atrás.
+  - **HECHO el 23/11 (Pablo: «sigue con B9c, la trayectoria de la flecha»):**
+    - **Previsto = real.** Nueva `herramientas/prueba_trayectoria_flecha.gd`: fuego, tierra y agua con ᛇ y con ᛇᛇ, sin nada delante, con un goblin a 2 casillas y con una pared a 1,5. En los 18 casos el punto final previsto cae a ≤ 0,2 u del real (0,7–0,8 u con goblin: la retícula se pone en los pies del goblin y la flecha se para al tocarlo, a menos de media casilla) y acaba por el mismo motivo (alcance / golpe / muro). 148 comprobaciones, 0 fallos.
+    - **Arreglado: dos rayas.** Sin gravedad la flecha vuela recta a la altura de la mano, y `Apuntado3D` pintaba la cinta en el aire **y** su sombra punteada en el suelo: dos rayas paralelas, y la cinta no acababa en la retícula. Ahora, si el vuelo no sube ni baja (`_vuelo_plano`, ±0,12 u), la cinta va **a ras de suelo, sin sombra**, y termina dentro de la retícula. La sombra queda para cuando haya arco.
+    - **Fotos:** `docs/capturas/trayectoria_flecha_2026-11-23/` (antes_* y despues_*; `herramientas/captura_trayectoria_flecha.gd`).
+    - **Siguen bien:** `prueba_trayectorias`, `prueba_apuntado`, `prueba_prevision_casteo`, `prueba_cast_points` y `prueba_hechizo_vivo`, 0 fallos.
+    - **Parámetros separados:** alcance (`alcance`, ᛇ +1 casilla) y velocidad ya lo son en `Hechizo`; la curvatura no existe todavía. Se añade solo cuando una sala la pida, desde el hueco de la corona (**P5**/H4).
+
+### Efectos comunes de glifo (24/11) · hecho, a revisar por Pablo
+- **Origen:** `docs/MYSTRALIA_VFX_HECHIZOS_CODIGO_2026-11-24.md` §2 (Mystralia tiene efectos de rebote, multidisparo, empuje… que no dependen del elemento). Pablo eligió esta idea de las tres.
+- **Qué es:** cada glifo que cambia lo que pasa enseña SU runa (el PNG del libro, `art/ui/glyphs/`), pequeña y un instante (≈ 0,6 s), donde actúa. El elemento ya lo cuenta el toy; esto cuenta el glifo.
+  - **ᚠ repetición:** al soltar, la runa sobre la mano y un trazo por copia, paralelos y separados como salen las copias (`desvio`); en ráfaga (ᛇ antes de ᚠ), trazos en fila.
+  - **ᚢ rebote:** en cada rebote, la runa en el punto y un aro plano contra lo que rebotó.
+  - **Nace un hijo** (de momento solo el prototipo del libro rojo): un aro que se cierra sobre el punto y la runa del sello del hijo. Sustituye al destello de estrella.
+- **Archivos:** nuevo `presentacion/vfx/glifo_comun_vfx.gd` (`GlifoComunVfx`), conectado en `presentacion/prueba_test2.gd` junto a `VfxToyJuego`; `laboratorios/prototipo_anidado.gd`; laboratorio `LabVfxComparativa3D` (Ctrl+1 ᚠ, Ctrl+2 ᚢ, Ctrl+3 hijo con el sello elegido con Z).
+- **Sin luces** (el presupuesto de luces es del toy) y sin tapar: se dibuja por encima del VFX del elemento.
+- **A decidir por Pablo:** el color (`COLOR_GLIFO`, tinta clara neutra), el tamaño y si ᚠ en ráfaga necesita algo más que la fila. Siguientes candidatos: ᚱ pulso (va con B9e), ᛇ no (la flecha ya es el proyectil).
+- **Prueba:** `herramientas/prueba_glifo_comun.gd` (30 comprobaciones, 0 fallos) y una línea más en `prueba_prototipo_anidado.gd`. Fotos: `docs/capturas/glifo_comun_2026-11-24/` (`captura_glifo_comun.gd`).
 
 ### B9d · Sobrecarga legible y, después, Carga ⧖ (H14 §4)
 - **Hoy:**

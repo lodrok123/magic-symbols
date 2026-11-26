@@ -48,7 +48,11 @@ var _visual: Node3D = null
 static func soltar(p_mundo: Node3D, p_jugador: Jugador3D, id: String, n: int, pos: Vector3) -> BotinObjeto3D:
 	if p_mundo == null:
 		return null
-	var b := BotinObjeto3D.new()
+	return colocar(BotinObjeto3D.new(), p_mundo, p_jugador, id, n, pos)
+
+
+## Prepara `b` (un BotinObjeto3D o una subclase) para caer en `pos` y lo mete en `p_mundo`.
+static func colocar(b: BotinObjeto3D, p_mundo: Node3D, p_jugador: Jugador3D, id: String, n: int, pos: Vector3) -> BotinObjeto3D:
 	b.jugador = p_jugador
 	b.objeto = id
 	b.cantidad = n

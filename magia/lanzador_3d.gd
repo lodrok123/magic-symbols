@@ -241,6 +241,9 @@ var _t_hielo: float = 0.0
 var manifestaciones_vivas: int = 0
 
 signal lanzado(elemento: String, forma: String, manifestaciones: int)
+## 23/11 (sesión HECHIZOS): se acaba de crear un HechizoVivo (`lanzar_hechizo`). Lo escucha el PROTOTIPO de anidación del lab del libro rojo
+## (`laboratorios/prototipo_anidado.gd`) para lanzar el segundo círculo cuando toca. Nadie más lo usa.
+signal hechizo_vivo_creado(vivo: HechizoVivo)
 signal modo_cambiado(activo: bool)
 ## Una casilla pasó a ser agua (o dejó de serlo) según la simulación. Para quien dependa de «es agua» y no pregunte cada vez.
 signal agua_cambio(c: Vector2i, es_agua: bool)
@@ -1419,9 +1422,6 @@ func _avisar_sin_construir(motivo: String) -> void:
 	PlayLog.event("cast_rechazado_construccion", {"motivo": motivo})
 
 
-## Lo que pasa al soltar: animación, cobro, recarga y (tras el conjuro, si lo hay) el disparo. Público para las pruebas.
-## `con_conjuro` false = el disparo sale en el mismo fotograma, como antes de la Fase 14.5.
-## Devuelve false si un sólido quieto no cabe donde nace (aviso y NADA se cobra: ni tinta ni recarga); true si se lanzó.
 ## CONJURO UAL (25/11, Pablo: «para la flecha + fuego (hechizos de movimiento) usa en bucle el conjunto UAL conjuro 1, 2, 3 y 4»): elementos con los que un hechizo con
 ## FLECHA se apunta y se lanza con las cuatro fases del conjuro de Quaternius (Pj3D.apuntar_conjuro / lanzar_conjuro) en vez de readandwrite + el clip de la forma.
 ## Para dárselo a otro elemento basta añadirlo aquí.
@@ -1432,6 +1432,9 @@ static func usa_conjuro_ual(receta: Receta3D, elemento: String) -> bool:
 	return receta != null and CONJURO_UAL_ELEMENTOS.has(elemento) and int(receta.contadores.get("flecha", 0)) > 0
 
 
+## Lo que pasa al soltar: animación, cobro, recarga y (tras el conjuro, si lo hay) el disparo. Público para las pruebas.
+## `con_conjuro` false = el disparo sale en el mismo fotograma, como antes de la Fase 14.5.
+## Devuelve false si un sólido quieto no cabe donde nace (aviso y NADA se cobra: ni tinta ni recarga); true si se lanzó.
 func lanzar_ahora(datos: Dictionary, origen: Vector3, dir: Vector3, con_conjuro: bool = false) -> bool:
 	var motivo_no: String = rechazo_de_construccion(datos, origen, dir)
 	if motivo_no != "":
@@ -1651,7 +1654,7 @@ func _disparar(datos: Dictionary, origen: Vector3, dir: Vector3, retardo: float)
 	var forma: String = receta.forma()
 	ultimo_disparo = {"pagina": indice + 1, "origen": origen, "dir": dir}
 	conjuro_fase.emit("disparo", elemento, _pos_mano())
-	# 13/11 (Pablo): una FLECHA (hechizo que viaja) con sonido propio dado de alta («<elemento>_flecha»; hoy el hielo) sale con él y no con el del elemento.
+	# 26/11: una FLECHA (hechizo que viaja) usa «<elemento>_flecha»; los seis elementos tienen variante 1 aprobada para esta salida.
 	var snd_flecha: String = "%s_flecha" % elemento
 	if Sfx.CATALOGO.has(snd_flecha) and bool(receta.geo().get("viaja", false)):
 		sonidos_fase.append({"fase": "disparo", "pedido": snd_flecha, "suena": snd_flecha, "elemento": elemento})
@@ -1984,6 +1987,7 @@ func lanzar_hechizo(hechizo: Hechizo, origen: Vector3, dir: Vector3) -> int:
 	var vivo: HechizoVivo = HechizoVivo.crear(hechizo, origen, dir, self)
 	if es_barrera and vivo.casillas > 0:
 		barreras_vivas.append({"linaje": vivo.linaje, "pos": origen, "vivo": weakref(vivo)})
+	hechizo_vivo_creado.emit(vivo)          # 23/11: el prototipo de anidación del lab del libro rojo escucha aquí (nadie más; no cambia nada del juego)
 	return vivo.casillas
 
 
@@ -2424,6 +2428,7 @@ func levantar_burbuja(rune: RuneData, elemento: String, calidad: float = 1.0) ->
 	b.punto = (jugador as Node3D).position + Vector3(0.0, ALTO_BURBUJA, 0.0)
 	b.sigue = jugador as Node3D
 	mundo.add_child(b)
+	SonidoPersistencia3D.registrar(b, elemento, null, Callable(b, "centro"))
 	_visual_burbuja(elemento, b)
 	_proteger_con(b)
 	manifestaciones_vivas += 1
@@ -2868,6 +2873,8 @@ func construir_tierra(c: Vector2i, dibujar: bool = true, opc: Dictionary = {}) -
 	var centro: Vector3 = centro_de(c, Terreno3D.alto_suelo + Terreno3D.ALTO_NIVEL * (float(n) - 0.5))
 	bloque.position = centro - Vector3(0, Terreno3D.ALTO_NIVEL * 0.6, 0)
 	mundo.add_child(bloque)
+	if bool(opc.get("sfx_persistencia", false)):
+		SonidoPersistencia3D.registrar(bloque, String(opc.get("elemento", "tierra")), opc.get("sfx_linaje") as Object)
 	if facetado:
 		VfxTierra.vestir_bloque(bloque, caja.size, Vector3(centro.x, centro.y - Terreno3D.ALTO_NIVEL * 0.5, centro.z), desplaza)      # solo dibujo: la colisión de arriba no cambia
 	(entrada["nodos"] as Array).append(bloque)
@@ -2936,6 +2943,7 @@ func _aplicar_tope_tierra() -> void:
 func _deshacer_bloque(b: Dictionary) -> void:
 	for n in (b["nodos"] as Array):
 		if is_instance_valid(n):
+			SonidoPersistencia3D.retirar(n as Node3D, true)
 			var mi: Node3D = n as Node3D
 			var tw: Tween = mi.create_tween()
 			tw.tween_property(mi, "scale", Vector3(1.0, 0.02, 1.0), 0.2)
@@ -3167,6 +3175,7 @@ class GeometriaV2 extends RefCounted:
 		var c0 := Vector2i(int(floorf(origen.x / casilla)), int(floorf(origen.y / casilla)))
 		var n: int = int(ceilf(maxf(sx, sz * 2.0))) + 1
 		var salida: Array = []
+		var muro: bool = es_muro(g)          # 23/11 (Pablo): el escudo delante NO incluye la casilla de quien lanza (si no, también la protegería por detrás)
 		for dx in range(-n, n + 1):
 			for dz in range(-n, n + 1):
 				var c := Vector2i(c0.x + dx, c0.y + dz)
@@ -3174,8 +3183,11 @@ class GeometriaV2 extends RefCounted:
 				var rel: Vector2 = (centro - origen) / casilla
 				var lz: float = rel.dot(d) - avance
 				var lx: float = rel.dot(perp)
-				if (lz * lz) / (sz * sz) + (lx * lx) / (sx * sx) <= 1.0 or c == c0:
-					salida.append(c)
+				if (lz * lz) / (sz * sz) + (lx * lx) / (sx * sx) <= 1.0 or (c == c0 and not muro):
+					if not (muro and c == c0):
+						salida.append(c)
+		if salida.is_empty():
+			salida.append(c0)
 		return salida
 
 
@@ -3348,6 +3360,7 @@ class Burbuja extends Node3D:
 		if reventada:
 			return false
 		reventada = true
+		SonidoPersistencia3D.retirar(self, true)
 		if Mundo3D.actual != null:
 			Mundo3D.actual.avisar_impacto(impacto, elemento, Lanzador3D.RADIO_BURBUJA)
 		reaccion = Lanzador3D.reaccion_burbuja(elemento, recibido, impacto)
@@ -3407,6 +3420,7 @@ class Burbuja extends Node3D:
 		if visual != null and is_instance_valid(visual) and sigue != null and is_instance_valid(sigue):
 			visual.position = sigue.position + visual_rel
 		if _t >= vida:
+			SonidoPersistencia3D.retirar(self, true)
 			queue_free()                    # sin tocarla, la burbuja se desvanece: NO revienta (ni salpica ni reacciona)
 			return
 		if reventada:
@@ -3493,6 +3507,7 @@ class ZonaV2 extends Node3D:
 			_acum -= intervalo
 			pulso()
 		if vida <= 0.0:
+			SonidoPersistencia3D.retirar(self, true)
 			queue_free()
 
 	func _physics_process(delta: float) -> void:
@@ -3533,6 +3548,7 @@ class SolidezV2 extends Node3D:
 	func golpe(dano: float) -> bool:
 		aguante -= dano
 		if aguante <= 0.0:
+			SonidoPersistencia3D.retirar(self, true)
 			queue_free()
 		return true
 
@@ -3541,6 +3557,7 @@ class SolidezV2 extends Node3D:
 		vida -= delta
 		edad += delta
 		if vida <= 0.0:
+			SonidoPersistencia3D.retirar(self, true)
 			queue_free()
 
 	func _physics_process(delta: float) -> void:

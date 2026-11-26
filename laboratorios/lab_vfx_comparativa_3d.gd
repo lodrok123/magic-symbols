@@ -17,6 +17,8 @@ extends Node3D
 
 const ESCENA_BOLA: String = "res://presentacion/vfx/efectos/BolaFuego.tscn"
 const LabVientoVeneno = preload("res://laboratorios/lab_viento_veneno.gd")     ## 11/11: teclas «,» y «.» (campo de viento y nube de veneno como gas pesado)
+const LabImpactosEffekseer = preload("res://laboratorios/lab_impactos_effekseer.gd")     ## 25/11: Ctrl+4..7, comparativa de impactos de ahora frente a los traducidos de Effekseer
+const LabBloquesVfx = preload("res://laboratorios/lab_bloques_vfx.gd")                   ## 25/11: Ctrl+9 / Ctrl+0, galería de efectos «bloques» (veneno del chamán, explosiones, rayo, portal, decals)
 const ESCENA_MURO: String = "res://presentacion/vfx/efectos/MuroFuego.tscn"
 const ESCENA_COLUMNA: String = "res://presentacion/vfx/efectos/ColumnaFuego.tscn"
 const ESCENA_MURO_TOON: String = "res://presentacion/vfx/toon/MuroFuegoToon.tscn"
@@ -63,6 +65,7 @@ const MANDOS_IMPACTO: Array = [["tam_estallido", 0.5, 2.0, 0.1, 1.0], ["vel_flip
 const DURACION_CARGA_LAB: float = 1.2              ## s que dura la carga hasta llenarse
 const SOSTEN_CARGA_LAB: float = 0.6                ## s que se sostiene ya llena (respira) antes de soltar: el «⧖ carga» largo
 const RADIO_BOLA_LAB: float = 0.4
+const RADIO_BOLA_JUEGO: float = 0.12        ## 25/11: radio de la bola de fuego en vuelo del juego (el glifo «flecha»; medido con captura_vfx_en_juego): el de F4
 const RADIO_AREA_LAB: float = 1.8                  ## m de radio de la explosión de área (P)
 const ID_JUGADORA: String = "jugadora_base"
 const ALTO_JUEGO: float = 1.0
@@ -244,7 +247,28 @@ func _process(delta: float) -> void:
 	if _panel != null:
 		var lp: Array = luces_y_particulas()
 		_panel.text = ("fps %d · luces %d · partículas %d · efectos %d · cámara %s\n1 bola · 2 muro · 3 columna · 4 PARRILLA de los 7 elementos (con parrilla, 8 la rehace) · 5 muro toon · 6 columna toon · 7 bola toon · 0 diez muros · 9 diez toon · X limpia · F muro del haz · F12 masa de fuego (muro / esfera / nada) · Mayús+F12 GAS 3D (port de la demo: esfera / muro / nada) · C cámara · flechas andar · H panel\n%s"
-			% [int(Engine.get_frames_per_second()), lp[0], lp[1], _efectos.get_child_count(), CAMARAS[camara_actual], _texto_mandos_toon()] + _texto_param() + _texto_carga() + _texto_dummy() + _texto_gesto_camara() + "\nSupr congelado (CongeladoToy) · \\ arder (ArdiendoToy: cuerpo incandescente, lenguas, brasas y luz; el dummy con fuego también) · Insert placa de hielo" + "\n8 humo por regla (HumoRegla; con parrilla puesta, Mayús+8): %s (magma: %s)" % ["SÍ" if HumoRegla.hay_alguna() else "no", "sí" if HumoRegla.capas.get("magma", false) else "no"] + "\n. chispas tipo repo (ChispasRepo: rayo, electrificado, brasas de magma): %s · , electrificar un muñeco y una casilla de agua (arcos en su cápsula: %s)" % ["SÍ" if ChispasRepo.hay_alguna() else "no", "sí" if ChispasRepo.activa("electrificado_capsula") else "no"] + LabVientoVeneno.texto()) if _panel_visible else ""
+			% [int(Engine.get_frames_per_second()), lp[0], lp[1], _efectos.get_child_count(), CAMARAS[camara_actual], _texto_mandos_toon()] + _texto_param() + _texto_carga() + _texto_dummy() + _texto_gesto_camara() + "\nSupr congelado (CongeladoToy) · \\ arder (ArdiendoToy: cuerpo incandescente, lenguas, brasas y luz; el dummy con fuego también) · Insert placa de hielo" + "\n8 humo por regla (HumoRegla; con parrilla puesta, Mayús+8): %s (magma: %s)" % ["SÍ" if HumoRegla.hay_alguna() else "no", "sí" if HumoRegla.capas.get("magma", false) else "no"] + "\n. chispas tipo repo (ChispasRepo: rayo, electrificado, brasas de magma): %s · , electrificar un muñeco y una casilla de agua (arcos en su cápsula: %s)" % ["SÍ" if ChispasRepo.hay_alguna() else "no", "sí" if ChispasRepo.activa("electrificado_capsula") else "no"] + LabVientoVeneno.texto() + "\nCtrl+1 ᚠ copias · Ctrl+2 ᚢ rebote · Ctrl+3 nace un hijo (sello: el elemento de Z) — efectos comunes de glifo (GlifoComunVfx)" + LabImpactosEffekseer.texto(self) + LabBloquesVfx.texto(self)) if _panel_visible else ""
+
+
+## 24/11 (sesión HECHIZOS): EFECTOS COMUNES DE GLIFO (GlifoComunVfx), sin hechizo debajo: aquí se juzga solo cómo se ven.
+##   0 · ᚠ: la runa en la mano y el abanico de tres copias hacia donde mira la jugadora.   1 · ᚢ: rebote contra una pared imaginaria a 2,5 m.   2 · el hijo nace a 3 m (sello = `elemento`).
+var _glifo_comun: GlifoComunVfx = null
+func glifo_comun(i: int) -> Node3D:
+	if _glifo_comun == null or not is_instance_valid(_glifo_comun):
+		_glifo_comun = GlifoComunVfx.conectar(null, self)
+	var base: Vector3 = _pj.global_position if _pj != null else Vector3.ZERO
+	var d: Vector3 = Vector3(_dir.x, 0.0, _dir.z).normalized()
+	var mano: Vector3 = base + Vector3(0.0, ALTURA_MANO, 0.0) + d * 0.4
+	var r: Node3D = null
+	match i:
+		0:                                          # como en el juego: copias paralelas, separadas a un lado (aprox. el `desvio` de HechizoVivo.salida_de_copia)
+			var lado: Vector3 = d.cross(Vector3.UP) * 0.45
+			r = _glifo_comun.copias(_efectos, mano, [d, d, d], false, [lado, Vector3.ZERO, -lado])
+		1: r = _glifo_comun.rebote(_efectos, base + Vector3(0.0, ALTURA_MANO, 0.0) + d * 2.5, -d)
+		2: r = _glifo_comun.hijo_nace(_efectos, base + d * 3.0, elemento)
+	if r != null:
+		ultimo_efecto = r
+	return r
 
 
 func _unhandled_input(ev: InputEvent) -> void:
@@ -252,6 +276,16 @@ func _unhandled_input(ev: InputEvent) -> void:
 		_raton_camara_libre(ev)
 		return
 	if not (ev is InputEventKey) or not ev.is_pressed() or ev.is_echo():
+		return
+	var tecla: InputEventKey = ev as InputEventKey
+	if tecla.ctrl_pressed and [KEY_1, KEY_2, KEY_3].has(tecla.keycode):
+		glifo_comun(tecla.keycode - KEY_1)
+		return
+	if tecla.ctrl_pressed and [KEY_4, KEY_5, KEY_6, KEY_7, KEY_8].has(tecla.keycode):                  # 25/11: comparativa de impactos con Effekseer (laboratorios/lab_impactos_effekseer.gd)
+		LabImpactosEffekseer.tecla(self, tecla.keycode, tecla.shift_pressed)
+		return
+	if tecla.ctrl_pressed and [KEY_9, KEY_0].has(tecla.keycode):                                     # 25/11: galería de efectos «bloques» (laboratorios/lab_bloques_vfx.gd)
+		LabBloquesVfx.tecla(self, tecla.keycode, tecla.shift_pressed)
 		return
 	match (ev as InputEventKey).keycode:
 		KEY_1: efecto("bola")
@@ -265,7 +299,7 @@ func _unhandled_input(ev: InputEvent) -> void:
 		KEY_F1: _toy = true; efecto("bola_toy")
 		KEY_F2: _toy = true; efecto("muro_toy")
 		KEY_F3: _toy = true; efecto("pilar_toy")
-		KEY_F4: _toy = true; efecto("bola_vuelo_toy")
+		KEY_F4: carga_completa(RADIO_BOLA_JUEGO)                                                              # 25/11 (Pablo: «intégralo con la carga en el lab»): la bola DEL JUEGO del elemento de Z con su ciclo entero: carga en la mano → suelta → vuela con su estela → choca en la pared
 		KEY_F5: _toy = true; efecto("barrera_toy")
 		KEY_F6: _toy = true; diez_muros(false, true)
 		KEY_Z: alternar_elemento()
@@ -329,7 +363,15 @@ func efecto(cual: String) -> Node3D:
 	if ruta == "" or not ResourceLoader.exists(ruta):
 		push_warning("falta la escena del efecto «%s»" % cual)
 		return null
-	var e: Node3D = (load(ruta) as PackedScene).instantiate() as Node3D
+	var e: Node3D = null
+	if cual == "bola_vuelo_toy":
+		# 25/11/2026 (Pablo: «no me gusta la bola de fuego», mirando F4): F4 lanzaba BolaFuegoToy.tscn, la escena VIEJA de la prueba 3 (EfectoToy suelto), no la bola del
+		# juego. Ahora es la oficial: FuegoToy BOLA en vuelo, del tamaño de la flecha del juego (RADIO_BOLA_JUEGO), con su estela (Ctrl+8) y todo lo que lleva en el juego.
+		var f := FuegoToy.new()
+		f.definir(FuegoToy.Figura.BOLA, RADIO_BOLA_JUEGO, RADIO_BOLA_JUEGO, RADIO_BOLA_JUEGO, true)
+		e = f
+	else:
+		e = (load(ruta) as PackedScene).instantiate() as Node3D
 	_efectos.add_child(e)
 	var pie: Vector3 = _pj.global_position
 	match cual:

@@ -23,6 +23,13 @@ const ALCANCE: float = 22.0              ## más allá no se oye (u; la casilla 
 ## nombre -> archivos (se elige uno al azar, sin repetir el anterior), db, variación de tono (±) y `base` de tono.
 ## Los db están ESTIMADOS (no medidos en el juego): suben o bajan aquí, en un solo sitio.
 const CATALOGO: Dictionary = {
+	# 26/11: finales 71–76 aprobados; hielo B. Una vez al terminar la persistencia.
+	"fuego_fin": {"f": ["fuego_fin.wav"], "db": -22.0, "tono": 0.0, "unidad": 2.0, "alcance": 16.0},
+	"agua_fin": {"f": ["agua_fin.wav"], "db": -23.0, "tono": 0.0, "unidad": 2.0, "alcance": 16.0},
+	"hielo_fin": {"f_sn": ["sn_hielo_fin.wav"], "f": ["hielo_rompe.wav"], "db": -19.0, "tono": 0.0, "unidad": 2.0, "alcance": 16.0},
+	"rayo_fin": {"f": ["oga_rayo_fin.wav"], "db": -25.0, "tono": 0.0, "unidad": 2.0, "alcance": 16.0},
+	"viento_fin": {"f": ["viento_fin.wav"], "db": -28.0, "tono": 0.0, "unidad": 2.0, "alcance": 16.0},
+	"tierra_fin": {"f": ["tierra_fin.wav"], "db": -22.0, "tono": 0.0, "unidad": 2.0, "alcance": 16.0},
 	# 27/10: PISADAS GRABADAS (OpenGameArt, CC0, «Different steps on wood, stone, leaves, gravel and mud» de kdd; ver audio/LICENCIAS.md): hojas
 	# en la hierba, barro y grava en la tierra, piedra y grava en la roca y madera en los puentes. Pocas tomas por suelo: la variación la pone el
 	# tono (±10 %). Volumen bajo a propósito (Pablo: «muy fuerte, un sonido sutil»): se ajusta de oído aquí. Las sintetizadas suaves

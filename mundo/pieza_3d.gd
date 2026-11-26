@@ -33,6 +33,14 @@ var _visual: Node3D = null
 ## --- Tablas de piezas (una sola copia: las usa la maqueta, que las alias en prueba_test2.gd, y el editor) ---
 const S: float = 2.3                       ## lado de una casilla (el de PruebaTest2.S)
 const CARPETA_PIEZAS: String = "res://arte/meshy/piezas/"
+## Lote 3 aprobado: originales conservados y respaldo automático si falta el pack.
+## Las piezas de Cosmos siguen dentro de arte/lostcave (fuera de git).
+const VISUALES_APROBADOS: Dictionary = {
+	"setas_amarillas": "res://arte/meshy/revisados/setas_amarillas.glb",
+	"caja": "res://arte/lostcave/visuales_aprobados/caja.glb",
+	"caja_pequena": "res://arte/lostcave/visuales_aprobados/caja.glb",
+	"barril": "res://arte/lostcave/visuales_aprobados/barril.glb"
+}
 
 const BIBLIOTECAS: Array = ["res://arte/meshy/arboles_2.glb", "res://arte/meshy/mercado.glb",
 	"res://arte/meshy/bosque.glb", "res://arte/meshy/objetos.glb", "res://arte/meshy/magia.glb",
@@ -272,12 +280,23 @@ static var giro_activo: bool = true
 
 
 ## Copia del modelo de la pieza, a su medida y con la base en y = 0 centrada. null si ninguna biblioteca la tiene.
-static func crear_visual(id_pedido: String) -> Node3D:
-	# 26/11: vegetación que Pablo eligió sustituir por la del pack Pure Nature (TablaVariantes; docs/fab_ue/candidatos_vegetacion.json).
-	# Se normaliza con el MEDIDA de la pieza que sustituye: sale a su mismo tamaño. "" = la original (o el pack no está en esta máquina).
-	var variante: Node3D = null if _sin_variantes else visual_variante(id_pedido, TablaVariantes.elegir(id_pedido))
-	if variante != null:
-		return variante
+static func visual_aprobado(id: String) -> Node3D:
+	var ruta: String = String(VISUALES_APROBADOS.get(id,""))
+	if ruta == "" or not ResourceLoader.exists(ruta): return null
+	var ps: PackedScene = load(ruta) as PackedScene
+	if ps == null: return null
+	return _normalizar(ps.instantiate() as Node3D,id)
+
+
+static func crear_visual(id_pedido: String, usar_aprobados: bool = true) -> Node3D:
+	if usar_aprobados:
+		# 26/11: vegetación que Pablo eligió sustituir por la del pack Pure Nature (TablaVariantes; docs/fab_ue/candidatos_vegetacion.json).
+		# Se normaliza con el MEDIDA de la pieza que sustituye: sale a su mismo tamaño. "" = la original (o el pack no está en esta máquina).
+		var variante: Node3D = null if _sin_variantes else visual_variante(id_pedido, TablaVariantes.elegir(id_pedido))
+		if variante != null:
+			return variante
+		var aprobado: Node3D = visual_aprobado(id_pedido)
+		if aprobado != null: return aprobado
 	var id: String = id_real(id_pedido)
 	# 12/10: un modelo suelto con el mismo nombre que el id (`meshy/piezas/<id>.glb`) se usa directamente, sin depender del nombre
 	# del nodo raíz que deje el importador.

@@ -117,7 +117,12 @@ static func generar(id: String) -> bool:
 		raiz.add_child(ctrl)
 		ctrl.owner = raiz
 	var tipo: String = _tipo(id)
-	var formas_previas: Array = _formas(vis, tipo, id) if tipo != "ninguna" else []
+	# El lote aprobado cambia el dibujo. Conservar el contorno físico anterior
+	# evita que elegir otro modelo altere casillas o puzles ya montados.
+	var vis_fisico: Node3D = Pieza3D.crear_visual(id,false) if Pieza3D.VISUALES_APROBADOS.has(id) else vis
+	if vis_fisico == null: vis_fisico = vis
+	var formas_previas: Array = _formas(vis_fisico, tipo, id) if tipo != "ninguna" else []
+	if vis_fisico != vis and vis_fisico != null: vis_fisico.free()
 	if tipo != "ninguna" and formas_previas.is_empty() and _usa_contorno(tipo):
 		# 4/11: más baja que ColisionPieza.ALTO_MIN_SOLIDO (0,45): se pisa y se sube encima. Sin cuerpo y sin `bloquea` (aunque esté en BLOQUEA).
 		raiz.set_meta("bloquea", false)

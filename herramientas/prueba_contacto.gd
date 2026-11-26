@@ -33,7 +33,9 @@ func _contra_barrera(elemento: String, ardiendo: bool) -> Dictionary:
 	await avanzar(2)
 	lanzar(elemento, ["barrera"], Vector3(1, 0, 0))
 	await avanzar_s(0.4)
-	var p: Vector3 = jugador.position + Vector3(0, 0.8, 0)
+	var p: Vector3 = jugador.position + Vector3(Terreno3D.casilla, 0.8, 0)       # 23/11 (Pablo): el escudo está en la casilla de DELANTE, ya no encima
+	if elemento == "tierra":
+		p = jugador.position + Vector3(0, 0.8, 0)                               # la tierra en tu casilla: el anillo (A4)
 	var s: Lanzador3D.SolidezV2 = lanzador.solidez_en(p)
 	if s == null:
 		return {"accion": "SIN BARRERA", "parada": false, "gastada": false}
@@ -109,7 +111,7 @@ func _escenario() -> void:
 			await _quitar_barreras()
 			colocar_jugador(cel_j)
 			await avanzar(2)
-			lanzar(el, ["barrera"], Vector3(1, 0, 0))
+			lanzar(el, ["barrera"], -dj)                    # 23/11: el escudo sale delante, así que se levanta mirando al dragón
 			await avanzar_s(0.4)
 			var largo: float = dr.largo_aliento_u(o, dj)
 			var corta: bool = largo < sin_nada - 0.01

@@ -176,6 +176,26 @@ Revisión con fotos en `PROPUESTAS_SESION_MYSTRALIA_2026-11-21.md` §G7. Lo hech
 
 **No se ha jugado.**
 
+### 2.12 · Gota de tinta recogible: el aspecto (HECHO, 24/11)
+
+- **Pedido de Pablo:** integrar la gota del concepto «Gota de tinta · azul arcano · tinta viscosa». **La jugabilidad ya existía** (C1 de combate: el enemigo la suelta al morir, salta, flota, se imanta y da tinta; caduca a los 8 s). Faltaba el aspecto, que era una esfera estirada.
+- **3D, no 2D:**
+  - la gota gira, salta y vuela hacia ella con la cámara a 60°;
+  - la punta curvada es asimétrica y solo se lee al girar si tiene volumen;
+  - al imantarse se estira hacia ella, y un sprite plano no lo haría bien.
+- **Hecha en código, sin modelo externo:** `presentacion/gota_tinta_3d.gd` (`GotaTinta3D`).
+  - **Cuerpo:** un torno sobre una espina que se dobla en la punta, con la gotita que cuelga.
+  - **Charco:** irregular, solo con la gota quieta. Ni gira ni flota con ella.
+  - **Material:** del color del pigmento activo («Azul Arcano» por defecto, el del concepto), con un remolino más claro, el borde más oscuro, brillo y algo de emisión.
+  - **Imán:** la gota apunta hacia ella y se estira según la velocidad.
+- **En `enemigos/combate_3d.gd` (Botin3D, avisado a combate):** se tocan tres líneas: montar la gota, llamar a `al_paso` cada fotograma y leer el color del número desde una meta. Valores, imán y contadores no cambian.
+- **Pruebas:** `escenario_recogibles`, `escenario_botin_curva` y `prueba_botin_zona` dan 0 fallos.
+- **Fotos:** herramienta `herramientas/captura_gota_tinta.gd` → `docs/capturas/gota_tinta/`. Hojas: `hoja_juego` (cámara del juego), `hoja_cerca` (de cerca, misma inclinación) y `hoja_iman` (el estirón).
+  - Se parece al concepto.
+  - **En la cueva azul de la Sala del Gólem se confunde algo con el suelo.** En el bosque debería destacar; si no, se puede subir la emisión (`emision` del material).
+- **Nota técnica:** al crear una clase nueva hay que registrarla con `godot --headless --path E:\magic-symbols --import`. Si no, las pruebas sin ventana no la encuentran.
+- **No se ha jugado.**
+
 ---
 
 ## 3. Orden propuesto de trabajo

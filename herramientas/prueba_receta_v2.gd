@@ -132,7 +132,8 @@ func _topes_y_casos() -> void:
 		"ᛜ + 3 ᛁ = muro de 3 casillas (con 2 ᛁ, 1; con 40, 7 por el tope de 3,0 de semieje; 3/11): %d / %d / %d" % [muro_n.call(Sigils.GLIFOS_ANCHO_MURO_3_V2), muro_n.call(Sigils.GLIFOS_ANCHO_MURO_3_V2 - 1), muro_n.call(40)])
 	_ok(_casi(float(_av2({"barrera": 1, "linea_x": Sigils.GLIFOS_ANCHO_MURO_3_V2})["z"]), rb), "el fondo del muro no crece con los ᛁ horizontales")
 	g = _av2({"barrera": 1})
-	_ok(_casi(g["x"], rb) and _casi(g["z"], rb) and _casi(g["y"], rb), "barrera: ya NO tiene radio mínimo (18/10): sin ejes, el volumen es el radio base")
+	_ok(_casi(g["x"], Sigils.MURO_ANCHO_MIN_V2) and _casi(g["z"], rb) and _casi(g["y"], Sigils.MURO_ALTO_MIN_V2) and _casi(g["x_glifos"], rb) and bool(g["muro"]),
+		"barrera sola (23/11, Pablo): muro delante de 1 casilla de ancho y 2 niveles (mínimos de la forma); lo de los glifos sigue en el radio base (no encarece)")
 	_ok(_casi(Sigils.RADIO_BARRERA_U, Lanzador3D.RADIO_BURBUJA), "RADIO_BARRERA_U coincide con Lanzador3D.RADIO_BURBUJA")
 	g = _av2({"flecha": 1, "barrera": 2, "repeticion": 2, "rebote": 2, "pulso": 2})
 	var p: Dictionary = g["props"]
@@ -150,7 +151,7 @@ func _topes_y_casos() -> void:
 		return Lanzador3D.GeometriaV2.nombre_derivado(gg, float((gg["props"] as Dictionary).get("viaja", 0.0)) > 0.0)
 	_ok(N.call({}) == "x_mano", "esfera → x_mano")
 	_ok(N.call({"altura": 2}) == "alto", "pilar → alto")
-	_ok(N.call({"barrera": 1, "linea_x": 2}) == "abajo", "muro bajo quieto (barrera + ᛁ) → abajo")
+	_ok(String(_av2({"barrera": 1, "linea_x": 2})["nombre"]) == "abajo", "muro bajo quieto (barrera + ᛁ) → abajo (23/11: el nombre sale de los glifos; el alto base del escudo no lo cambia)")
 	_ok(N.call({"linea_x": 2}) == "x_mano" and _av2({"linea_x": 2})["haz"] == true, "21/10: ᛁ sola (sin barrera ni flecha) es un haz → x_mano (mano al frente)")
 	_ok(_av2({"barrera": 1, "linea_x": 2})["haz"] == false and _av2({"flecha": 1, "linea_x": 2})["haz"] == false and _av2({"altura": 2})["haz"] == false and _av2({})["haz"] == false, "con barrera, con flecha o sin ᛁ no hay haz")
 	_ok(N.call({"linea_x": 1, "linea_z": 1}) == "abajo" or N.call({"linea_x": 1, "linea_z": 1}) == "x_mano", "losa pequeña: nombre válido")
@@ -231,7 +232,11 @@ func _combinaciones(nombres: Array) -> void:
 		for n in combo:
 			r.apply(n)
 		_ok(r.ignorados.is_empty(), "%s: Receta3D no ignora ningún glifo" % etiqueta)
-		_ok(String(r.forma()) == Lanzador3D.GeometriaV2.nombre_derivado(g, viaja), "%s: forma() ≠ nombre derivado" % etiqueta)
+		var g_nom: Dictionary = g.duplicate()                     # 23/11: el nombre sale de lo que dieron los glifos (el escudo base de la barrera no cambia el gesto)
+		g_nom["x"] = g.get("x_glifos", g["x"])
+		g_nom["y"] = g.get("y_glifos", g["y"])
+		g_nom["z"] = g.get("z_glifos", g["z"])
+		_ok(String(r.forma()) == Lanzador3D.GeometriaV2.nombre_derivado(g_nom, viaja), "%s: forma() ≠ nombre derivado" % etiqueta)
 		_ok(r.cooldown > 0.0 or combo.is_empty(), "%s: recarga" % etiqueta)
 		_ok(absf(r.tamano_relativo() - coste) < 0.0001, "%s: tamano_relativo() de la receta ≠ Sigils.coste_v2" % etiqueta)
 		# 13/11 (T9): aquí se medían `Receta3D.manifestaciones()`, `vida()` y `potenciada()` (el camino «Campo», retirado). El rasterizado vivo es `GeometriaV2.celdas`, que se mide arriba.
@@ -571,7 +576,11 @@ func _ciclo_de_vida() -> void:
 		_ok(absf(s.aguante - Hechizo.RESISTENCIA_POR_SOLIDEZ * 2.25) < 0.001, "solidez · %s: aguante = %.1f × 2,25 (×1,5²) = %.1f" % [e, Hechizo.RESISTENCIA_POR_SOLIDEZ, s.aguante])
 		var lejos := Vector3((ORIGEN_C.x + 1.5) * Terreno3D.casilla, 0.5, (ORIGEN_C.y + 0.5) * Terreno3D.casilla)
 		var propia: Vector2i = Lanzador3D.celda_de(_jug.position)
-		_ok(s.contiene(Lanzador3D.centro_de(ORIGEN_C, 0.5)) and s.bloquea_a(Lanzador3D.centro_de(ORIGEN_C, 0.5), 0, propia), "solidez · %s: bloquea en la casilla de la mano" % e)
+		# 23/11 (Pablo): la barrera que nace en la mano es un escudo DELANTE (la casilla siguiente); la de tierra y hielo nace donde apuntas, como siempre
+		var c_esc: Vector2i = ORIGEN_C if e in ["earth", "ice"] else ORIGEN_C + Vector2i(1, 0)
+		_ok(s.contiene(Lanzador3D.centro_de(c_esc, 0.5)) and s.bloquea_a(Lanzador3D.centro_de(c_esc, 0.5), 0, propia), "solidez · %s: bloquea en %s" % [e, "la casilla de la mano" if c_esc == ORIGEN_C else "la casilla de delante"])
+		if c_esc != ORIGEN_C:
+			_ok(not s.contiene(Lanzador3D.centro_de(ORIGEN_C, 0.5)), "solidez · %s: el escudo no ocupa la casilla de la mano (no protege por detrás)" % e)
 		_ok(not s.bloquea_a(Lanzador3D.centro_de(Vector2i(2, 2), 0.5), 0, propia), "solidez · %s: no bloquea fuera del volumen" % e)
 	# bloquea el trazo del jugador y aguanta golpes ajenos hasta romperse
 	_montar()
@@ -580,17 +589,18 @@ func _ciclo_de_vida() -> void:
 	_ok(_l._barrera_en(Lanzador3D.centro_de(ORIGEN_C + Vector2i(1, 1), 0.5), 0), "solidez: _barrera_en ve el muro (una casilla por delante y de lado: bloquea el trazo del jugador)")
 	_ok(not _l._barrera_en(Lanzador3D.centro_de(ORIGEN_C + Vector2i(0, 1), 0.5), 0), "solidez: el muro ya no rodea la mano (la casilla de al lado de la jugadora queda libre)")
 	var s2: Lanzador3D.SolidezV2 = _l._solideces_v2[0]
-	var punto: Vector3 = Lanzador3D.centro_de(ORIGEN_C, 0.5)
-	var total: float = s2.aguante                       # 45 = 30 × 1,5 (una barrera)
+	var punto: Vector3 = Lanzador3D.centro_de(ORIGEN_C + Vector2i(1, 0), 0.5)       # 23/11: en el muro (ya no ocupa la casilla de la mano)
+	var total: float = s2.aguante                      # 45 = 30 × 1,5 (una barrera)
 	_ok(_l.solidez_para(punto, 12.0) and _l.solidez_para(punto, 12.0) and _l.solidez_para(punto, 12.0), "solidez: para tres flechas ajenas y aguanta (de %.1f queda %.1f)" % [total, s2.aguante])
 	_ok(is_instance_valid(s2) and not s2.is_queued_for_deletion(), "solidez: aún en pie con aguante %.1f" % s2.aguante)
 	_l.solidez_para(punto, 12.0)
 	_ok(s2.is_queued_for_deletion(), "solidez: al agotar el aguante (%.1f) se deshace" % s2.aguante)
 	s2 = null
-	# dura: lo que no persiste (agua) tiene una vida mínima
+	# dura: 23/11 (Pablo) la barrera que se queda dura de base BARRERA_DURA_BASE_S (antes, el agua —persiste 0— solo la vida mínima de 2 s)
 	_montar()
 	_l._materializar(_receta(["barrera"]), _rune("water"), _origen(), Vector3.RIGHT)
-	_ok(absf((_l._solideces_v2[0] as Lanzador3D.SolidezV2).vida - HechizoVivo.VIDA_MIN_SOLIDEZ_V2) < 0.001, "solidez: el agua (persiste 0) dura la vida mínima")
+	var vida_agua: float = (_l._solideces_v2[0] as Lanzador3D.SolidezV2).vida if not _l._solideces_v2.is_empty() else -1.0
+	_ok(vida_agua >= Sigils.BARRERA_DURA_BASE_S - 0.001, "solidez: la barrera de agua dura su base de %.0f s (%.2f)" % [Sigils.BARRERA_DURA_BASE_S, vida_agua])
 
 	# --- Orden de dibujo irrelevante y combinaciones que «salen solas» ---
 	var a: Array = _lanzar0(["flecha", "pulso", "repeticion", "linea_x"], "fire")

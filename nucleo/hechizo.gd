@@ -101,6 +101,7 @@ const SOLIDOS_CON_HAZ: PackedStringArray = ["tierra"]
 const ESCALA_PROYECTIL: float = 0.5
 ## Lo que dura una `permanencia` o `persiste` ya multiplicada por la calidad también pasa por el límite de arriba.
 ## Resistencia de una barrera por cada ×1 de solidez: la `AGUANTE_SOLIDEZ_V2` de HechizoVivo (30), que ahora vive aquí (ESPEC §1.4 dice «base 10»: se mantiene 30 para no cambiar lo que aguanta hoy).
+## 23/11/2026: se comprobó que ya basta. La barrera sola tiene solidez 1,5 (`Sigils.GLIFOS["barrera"]`), así que aguanta 45 = casi cuatro flechas (`Combate3D.DANO_FLECHA` 12).
 const RESISTENCIA_POR_SOLIDEZ: float = 30.0
 ## Altura de la mano sobre el suelo en u (la de siempre para un proyectil): `altura_salida` la guarda en metros (÷ casilla).
 const ALTURA_MANO_U: float = 0.9
@@ -553,6 +554,27 @@ func _aplicar_orden(orden: Array) -> void:
 					origen["escala_nace"] = "glifo:%s" % String(par["despues"])
 
 
+## 23/11/2026 (Pablo, PLAN_COMBATE: «tiene que ser procedural»): ¿es un MURO DELANTE? Se deduce SOLO de propiedades (como `proyectil`, `haz` o `solido_quieto`), nunca del elemento:
+## tiene solidez, NO nace donde apuntas (`en_punto`: lo sólido quieto es su bloque) y no viaja salvo que lleve ᛁ (el muro que avanza, R1). Es la clave `muro` de `geo()`
+## (`GeometriaV2.es_muro`: lo adelanta DISTANCIA_MURO y no ocupa la casilla de quien lanza) y lo que decide sus medidas mínimas (`_minimos_de_forma`).
+var es_muro: bool:
+	get:
+		return solidez > 0.0 and not en_punto and (glifos_linea() > 0 or not viaja)
+
+
+## Los «suelos» de una FORMA (paso 4 de la cabecera): un muro mide como mínimo `Sigils.MURO_ANCHO_MIN_V2` de semieje X y `MURO_ALTO_MIN_V2` de Y (1 casilla × 2 niveles).
+## Son mínimos: si los glifos dan más, mandan ellos. No tocan `_glifos_*` (el coste, el nombre del gesto y el nombre de la página cuentan lo dibujado). Idempotente: `con()` lo puede repetir.
+func _minimos_de_forma() -> void:
+	if not es_muro:
+		return
+	if semieje_x < Sigils.MURO_ANCHO_MIN_V2:
+		semieje_x = Sigils.MURO_ANCHO_MIN_V2
+		origen["semiejes.x"] = "forma:muro"
+	if semieje_y < Sigils.MURO_ALTO_MIN_V2:
+		semieje_y = Sigils.MURO_ALTO_MIN_V2
+		origen["semiejes.y"] = "forma:muro"
+
+
 ## Límites globales de seguridad (ESPEC §1.9), al final de `construir()` y de `con()`. Un semieje tampoco baja de `grosor_min`.
 func _limitar() -> void:
 	semieje_x = clampf(semieje_x, grosor_min, LIM_SEMIEJE_HORIZONTAL)
@@ -687,7 +709,8 @@ func _contar_glifos_dano() -> int:
 ## 5. Lo que sale de lo anterior.
 func _derivar() -> void:
 	viaja = distancia_max > 0.0
-	forma = "x_mano" if (haz or (estado_materia == "solido" and Sigils.HAZ_ACTIVO and glifos_linea() > 0 and solidez <= 0.0 and distancia_max <= 0.0 and not orbita)) else nombre_derivado(semieje_x, semieje_y, semieje_z, viaja)       # un haz sale con la mano al frente (= GeometriaV2.nombre_derivado con g["haz"])
+	# 23/11: el nombre (animación y cast point) sale de lo que dieron los glifos: los mínimos de la forma muro (`_minimos_de_forma`) no cambian el gesto
+	forma = "x_mano" if (haz or (estado_materia == "solido" and Sigils.HAZ_ACTIVO and glifos_linea() > 0 and solidez <= 0.0 and distancia_max <= 0.0 and not orbita)) else nombre_derivado(_glifos_x, _glifos_y, _glifos_z, viaja)       # un haz sale con la mano al frente (= GeometriaV2.nombre_derivado con g["haz"])
 	niveles = maxi(1, roundi(2.0 * semieje_y))
 	cast_point = CastPoints.variacion_de(forma)
 	var base: float = 4.0 / 3.0 * PI * pow(Sigils.RADIO_BASE_V2, 3.0)
@@ -712,6 +735,9 @@ func _derivar() -> void:
 		elif not solido_quieto and String(origen.get("en_punto", "")) == ORIGEN_EN_PUNTO_SOLIDO:
 			en_punto = false
 			origen.erase("en_punto")
+	# 23/11: los mínimos de la forma, al final (necesitan saber si nace donde apuntas); los niveles salen de la altura ya con el mínimo
+	_minimos_de_forma()
+	niveles = maxi(1, roundi(2.0 * semieje_y))
 
 
 ## Superficie aproximada de un elipsoide (fórmula de Knud Thomsen, error < 1,1 %).
@@ -761,9 +787,9 @@ func propiedades_usadas() -> Dictionary:
 ## La geometría en el formato de siempre (el de siempre de `Lanzador3D.GeometriaV2`): {x, y, z, props, x_glifos, z_glifos, nombre, viaja, y_tope, valida, aviso}.
 ## Es lo que leen `GeometriaV2.celdas`, el VFX por estado y el laboratorio mientras no pasen a leer el Hechizo directamente.
 func geo() -> Dictionary:
-	return {"x": semieje_x, "y": semieje_y, "z": semieje_z, "props": propiedades_usadas(), "x_glifos": _glifos_x, "z_glifos": _glifos_z,
+	return {"x": semieje_x, "y": semieje_y, "z": semieje_z, "props": propiedades_usadas(), "x_glifos": _glifos_x, "y_glifos": _glifos_y, "z_glifos": _glifos_z,
 		"nombre": forma, "viaja": viaja, "y_tope": niveles - 1, "valida": true, "aviso": "", "haz": haz,
-		"muro": solidez > 0.0 and glifos_linea() > 0 and not en_punto}       # 31/10 (REV 01): ᛜ + ᛁ = muro delante, no burbuja (`GeometriaV2.es_muro`); lo que nace donde apuntas ya está delante
+		"muro": es_muro}       # 23/11 (Pablo): toda barrera que nace en la mano es un muro delante, ya no rodea · 31/10 (REV 01): ᛜ + ᛁ = muro delante, no burbuja (`GeometriaV2.es_muro`); lo que nace donde apuntas ya está delante
 
 
 ## Cuántas ᛁ (`linea_x` + `linea_z`) lleva el hechizo.

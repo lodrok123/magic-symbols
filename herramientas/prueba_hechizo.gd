@@ -124,6 +124,8 @@ func _igual_que_hoy(c: Dictionary, rune: RuneData, calidad: float, et: String) -
 	var persiste: float = rune.persiste * (Sigils.quality_factor(calidad) if rune.persiste > 0.0 else 1.0)
 	_ok(_casi(h.persiste, persiste), "%s: persiste %.3f ≠ %.3f" % [et, h.persiste, persiste])
 	var perm_base: float = float(maxi(int(c.get("barrera", 0)) - 1, 0)) + float(props.get("permanencia", 0.0))      # la barrera suma 1 s por glifo sucesivo y ᛉ 2 s por glifo
+	if int(c.get("barrera", 0)) > 0:
+		perm_base += Sigils.BARRERA_DURA_BASE_S        # 23/11 (Pablo): toda barrera dura de base BARRERA_DURA_BASE_S (dato de `Sigils.GLIFOS["barrera"]`)
 	var perm: float = perm_base * (Sigils.quality_factor(calidad) if perm_base > 0.0 else 1.0)
 	_ok(_casi(h.permanencia, perm), "%s: permanencia %.3f ≠ %.3f" % [et, h.permanencia, perm])
 	var n_g: int = 0
@@ -251,9 +253,10 @@ func _casos_sueltos(runes: Dictionary) -> void:
 	# la barrera ya NO tiene radio mínimo (18/10): el tamaño lo ponen solo los ejes; nace donde apuntas y cada glifo sucesivo suma 1 s
 	var barrera: Hechizo = Hechizo.construir(runes["earth"], {"barrera": 1})
 	_ok(_casi(barrera.semiejes.x, Sigils.RADIO_BASE_V2) and _casi(barrera.semiejes.z, Sigils.RADIO_BASE_V2) and _casi(barrera.semiejes.y, Sigils.RADIO_BASE_V2), "barrera: sin ejes, x y z = radio base")
-	_ok(barrera.en_punto and _casi(barrera.persiste, runes["earth"].persiste * Sigils.quality_factor(1.0)) and barrera.permanencia == 0.0, "barrera ×1: en_punto, persiste del elemento y sin permanencia")
+	_ok(barrera.en_punto and _casi(barrera.persiste, runes["earth"].persiste * Sigils.quality_factor(1.0)) and _casi(barrera.permanencia, Sigils.BARRERA_DURA_BASE_S * Sigils.quality_factor(1.0)),
+		"barrera ×1: en_punto, persiste del elemento y la duración base de la barrera (23/11: %.1f s)" % barrera.permanencia)
 	var barrera3: Hechizo = Hechizo.construir(runes["earth"], {"barrera": 3, "linea_x": 2})
-	_ok(_casi(barrera3.persiste, runes["earth"].persiste * Sigils.quality_factor(1.0)) and _casi(barrera3.permanencia, 2.0 * Sigils.quality_factor(1.0)) and _casi(barrera3.semiejes.x, Sigils.semieje_horizontal_v2(2)), "barrera ×3: permanencia +2 s y la anchura solo la dan los ejes (%.2f s, x %.2f)" % [barrera3.permanencia, barrera3.semiejes.x])
+	_ok(_casi(barrera3.persiste, runes["earth"].persiste * Sigils.quality_factor(1.0)) and _casi(barrera3.permanencia, (Sigils.BARRERA_DURA_BASE_S + 2.0) * Sigils.quality_factor(1.0)) and _casi(barrera3.semiejes.x, Sigils.semieje_horizontal_v2(2)), "barrera ×3: base +2 s y la anchura solo la dan los ejes (%.2f s, x %.2f)" % [barrera3.permanencia, barrera3.semiejes.x])
 	_ok(not Hechizo.construir(runes["fire"], {"linea_x": 2}).en_punto and not Hechizo.construir(runes["earth"], {"linea_x": 2}).en_punto and Hechizo.construir(runes["ice"], {"linea_x": 2}).en_punto, "sin barrera: ni el fuego ni la tierra con ᛁ nacen en el punto (6/11: la tierra es un haz de púas); el hielo con ᛁ sí (sigue siendo su bloque)")
 	# 24/10: un SÓLIDO QUIETO (tierra/hielo con solo ᛏ, ᚢ o ᚱ) nace donde apuntas; una flecha, un haz o un elemento que no es sólido, no
 	for elem in ["earth", "ice"]:

@@ -1428,6 +1428,7 @@ func _ready() -> void:
 	var vfx_elemento: VfxElemento3D = VfxElemento3D.conectar(get_node_or_null("Lanzador3D"), self)
 	vfx_elemento.casilla = Terreno3D.casilla
 	VfxToyJuego.conectar(get_node_or_null("Lanzador3D"), self)      # A1 (2/11): FuegoToy/AguaToy en el juego; inerte salvo con `magic_symbols/vfx_procedural` = true
+	GlifoComunVfx.conectar(get_node_or_null("Lanzador3D") as Lanzador3D, self)     # 24/11 (HECHIZOS): efectos comunes de glifo (ᚠ al soltar, ᚢ en cada rebote), sea cual sea el elemento
 	vfx_estado.encendido = false
 	# Bloque 2 EoW (23/10): con el libro abierto o apuntando, lo que reaccionaría al hechizo se marca con un borde de luz (Realce3D).
 	var lz: Lanzador3D = get_node_or_null("Lanzador3D") as Lanzador3D
@@ -3357,6 +3358,8 @@ func _pieza(id: String, con_variantes: bool = true) -> Node3D:
 	# 26/11: vegetación que Pablo eligió sustituir por la del pack Pure Nature (TablaVariantes), al tamaño de la pieza que sustituye
 	var variante: Node3D = Pieza3D.visual_variante(id, TablaVariantes.elegir(id)) if con_variantes else null
 	if variante != null: return _a_paleta(variante, id)
+	var aprobado: Node3D = Pieza3D.visual_aprobado(id)
+	if aprobado != null: return _a_paleta(aprobado,id)
 	# 12/10: modelo suelto `meshy/piezas/<id>.glb` (p. ej. el cristal de la fuente eléctrica): se usa tal cual, sin depender del nombre del nodo.
 	var suelto: String = "res://arte/meshy/piezas/" + id + ".glb"
 	if ResourceLoader.exists(suelto):
@@ -4202,12 +4205,12 @@ func _ruinas_ss() -> bool:
 	return estilo == "ruinas" and PAREDES_SS.disponible()
 
 
-func _muro_de_ruina(q: Vector2i) -> bool:
-	return _en_mapa(q) and _letra(q) == "#"
-
 func _enlosada(q: Vector2i) -> bool:
 	return _en_mapa(q) and _letra(q) == "R"
 
+
+func _muro_de_ruina(q: Vector2i) -> bool:
+	return _en_mapa(q) and _letra(q) == "#"
 
 
 ## 25/11: adornos del pack en una casilla de suelo de las ruinas: escombros, piedras y cajas junto a los muros (no en las que tienen una pieza del mapa).
@@ -4251,9 +4254,6 @@ func _contrafuerte_ss(c: Vector2i) -> Vector2i:
 	return _trampas_pared_ss.get(c, Vector2i.ZERO)
 
 
-## true si la casilla `#` se ha vestido con muros del pack (si no, la maqueta le pone su árbol como en el bosque).
-func _paredes_ss(c: Vector2i) -> bool:
-	var piezas: Array = PAREDES_SS.muros(c, Callable(self, "_suelo_de_cueva"), Callable(self, "_muro_de_ruina"), ALTO, _contrafuerte_ss(c))
 ## 26/11 (Pablo: «pon en el nivel todos los assets nuevos para ver cómo casan»): líneas del mapa para el estilo «ruinas»:
 ##   ; ss <Malla> x y [giro=grados] [dx=u] [dz=u] [dy=u]   una pieza del pack (SM_…) en la casilla (x, y), desplazada (dx, dz) del centro y girada
 ##   ; muestrario_ss x0 y0 x1 y1                             todas las piezas del pack en filas dentro de ese rectángulo de casillas
@@ -4287,6 +4287,9 @@ func _extras_ss() -> void:
 	_en_marcador = en
 
 
+## true si la casilla `#` se ha vestido con muros del pack (si no, la maqueta le pone su árbol como en el bosque).
+func _paredes_ss(c: Vector2i) -> bool:
+	var piezas: Array = PAREDES_SS.muros(c, Callable(self, "_suelo_de_cueva"), Callable(self, "_muro_de_ruina"), ALTO, _contrafuerte_ss(c))
 	for p in piezas:
 		_poner_escena(String(p[0]), c, p[1], true)
 	if not piezas.is_empty():

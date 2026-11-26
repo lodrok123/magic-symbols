@@ -35,6 +35,11 @@ de `proyecto/PROPIETARIOS.md` §7 están en su carpeta de tema pero son
 borradores: su dueño los integra en los vivos y los borra.
 
 - [Previsión durante el casteo](PROPUESTA_PREVISION_CASTEO_2026-11-22.md): siluetas funcionales durante la preparación y verificación.
+- [Revisión de SFX](REVISION_SFX_2026-11-24.md): 156 entradas clasificadas y argumentadas, mediciones de 352 archivos y catálogo con reproductores; evaluación técnica provisional, pendiente de escucha.
+- [Revisión visual de assets](REVISION_ASSETS_2026-11-24.html): inventario técnico de 1.017 archivos 3D y 2.538 imágenes; 500 entradas renderizadas, 28 acciones prioritarias y 11 mejoras opcionales, con capturas y CSV en output/revision_assets/.
+- [Reprocesado de assets](REPROCESADO_ASSETS_2026-11-24.html): 30 variantes LeLu y la estalagmita corregidas por código; causas, pruebas y comparación antes/después.
+- [Paleta natural: lote 2](PALETA_NATURALES_2026-11-24.html): seis assets ajustados por código, lámina antes/después y comparación dentro del Bosque 01 y Lost Cave.
+- [Sustituciones: lote 3](SUSTITUCIONES_ASSETS_2026-11-24.html): opción A aplicada a setas, cajas y barril decorativo; comparación previa y barril de pólvora conservado.
 - [Combustión de objetos](COMBUSTION_OBJETOS_2026-11-24.html): telaraña y barril de madera, frente desde el impacto, llamas de superficie, apagado y restos; laboratorio y lámina de seis fases.
 - [Revisión de interacciones](REVISION_INTERACCIONES_2026-11-24.html): 251 comprobaciones, nueve capturas y prioridades; colmena vacía, cuerda ardiendo y discrepancia de la seta resonante.
 - [Colmena y cuerda: revisión aplicada](COLMENA_CUERDA_2026-11-24.html): panal y soporte separados por código, estado vacío consistente al recargar y cuerda con combustión progresiva; ocho capturas.
@@ -62,3 +67,10 @@ borradores: su dueño los integra en los vivos y los borra.
 - [Séptima tanda revisada](VALIDACION_SFX_TANDA7_2026-11-25.html): 37–41 aceptados; opción B aceptada e integrada para la pantalla de muerte.
 - [Octava escucha de SFX](ESCUCHA_SFX_TANDA8_2026-11-26.html): casos 43–48, señales generales de fuego, agua, hielo, rayo, viento y tierra; 23 variantes para validar.
 - [Octava tanda revisada](VALIDACION_SFX_TANDA8_2026-11-26.html): impactos de agua 2 sutil, hielo 3, rayo 1, viento A y tierra 1; fuego A para carga y bucles de fuego ardiendo.
+- [Novena escucha de SFX](ESCUCHA_SFX_TANDA9_2026-11-26.html): casos 49–53, inicio de carga de agua, hielo, rayo, viento y tierra. Fuego ya aprobado; continuación sostenida y salidas pendientes de revisión separada.
+- [Novena tanda revisada](VALIDACION_SFX_TANDA9_2026-11-26.html): cinco inicios de carga aceptados: agua más grave, hielo A, rayo A, viento 10 dB más sutil y tierra conservada.
+- [Décima escucha de SFX](ESCUCHA_SFX_TANDA10_2026-11-26.html): bucles de carga sostenida 54–58 aceptados e integrados para agua, hielo, rayo, viento y tierra; reutilizados también para persistencia por indicación de Pablo.
+- [Salida de hechizos: tanda 11](ESCUCHA_SFX_TANDA11_2026-11-26.html): casos 59–64, salida de fuego, agua, hielo, rayo, viento y tierra. Hielo distingue flecha y otras formas; 27 muestras actuales para validar este uso.
+- [Salidas de flecha aceptadas](VALIDACION_SFX_TANDA11_2026-11-26.html): casos 59–64 integrados con variante 1 de los seis elementos, únicamente para flechas que viajan.
+- [Vuelo de flechas: tanda 12](ESCUCHA_SFX_TANDA12_2026-11-26.html): seis vuelos 65–70 aceptados e integrados; siguen al proyectil y se cortan al terminar. Escucha de tres segundos.
+- [Finalización de efectos: tanda 13](ESCUCHA_SFX_TANDA13_2026-11-26.html): seis finales 71–76 aceptados e integrados, con B para hielo; una vez al terminar la última manifestación del hechizo.

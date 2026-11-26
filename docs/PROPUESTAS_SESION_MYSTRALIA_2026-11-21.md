@@ -591,6 +591,7 @@ Hoy las teclas 1/2/3 ya hacen cosas al pulsar (`Lanzador3D.pulsar_pagina`, `magi
 | P11 | **X10 · Reflejar el rayo de luz**: un haz de luz cae del techo sobre un pedestal. La protección de la jugadora (barrera o burbuja) lo **refleja hacia donde mira**, y girando lo lleva hasta un receptor (ver abajo) | MAGES O24 (Pablo, 22/11) | M | Propuesta |
 | P12 | **X11 · La luz mueve la vagoneta**: una vagoneta con un cristal **avanza por su raíl mientras le da la luz** y se para si no. La luz llega por un cristal que se gira con E y por el reflejo de la jugadora (X10), que tiene que seguirla mientras se mueve (ver abajo) | MAGES O25 (Pablo, 22/11) | M | Propuesta (necesita P6 y X10) |
 | P13 | **X12 · Alinear los cristales y poner tú el último reflejo**: primero se dejan girados los cristales fijos (con E) y después la jugadora **cierra la cadena con su reflejo**, mientras lo mantiene, hasta la puerta (ver abajo) | MAGES O26 (Pablo, 22/11) | B (sobre X10) | Propuesta |
+| P14 | **X13 · El brasero tras el murete**: el objetivo se ve, pero un murete corta el tiro recto; hay que **cambiar la página** para que el hechizo llegue (rebote, retorno o altura) (ver abajo) | MAGES O29 (Pablo, 23/11) | B | Propuesta |
 | P6 | **Plataforma móvil** como pieza (la necesitan X5 y X6): recorrido fijo, la mueve una placa o va sola, y lleva lo que tiene encima (jugadora, barrera, brasero) | MAGES O2 y O4 | M | Propuesta |
 
 ### P11 · X10 · Reflejar el rayo de luz (de O24)
@@ -673,6 +674,33 @@ Y del pulso resonante (`escenas/puzle.gd:87-140`) ya existen el **prisma**, que 
 - X12: alinear y cerrar la cadena.
 
 Con la luz cenital, el reflejo y el prisma con luz se pueden hacer las tres.
+
+### P14 · X13 · El brasero tras el murete (de O29)
+
+**En Mystralia:** una esfera que se enciende con fuego está detrás de un murete que no se cruza. El tiro recto choca; la jugadora **edita la página** (añade Invertir) y el segundo tiro llega. Se abre el cofre de la sala y aparece un atajo.
+
+**La idea para nosotros:** un **puzle de libro**. No pide puntería ni piezas nuevas, sino **saber qué glifo cambia el camino** del hechizo. Es el mejor tipo de puzle para enseñar que las páginas se preparan.
+
+**Lo que ya tenemos:**
+- **El objetivo:** un **brasero** (Reactivo3D), que ya enciende con fuego y pone su flag. El contador y el cofre con `aparece_si` también existen.
+- **El murete:** cualquier casilla de roca baja o `#`, que corta el proyectil.
+- **Glifos que cambian el camino**, ya hechos:
+  - **ᚢ rebote** (`rebotes`): rebota en la pared lateral y entra por el hueco. Es la versión más clara: se ve el ángulo.
+  - **retorno** (`retorna`): el proyectil va y vuelve. Sirve si el brasero está **detrás de la jugadora** respecto a un pilar, o si se lanza desde el otro lado de una reja.
+  - **altura** (`altura_salida`): pasa **por encima** del murete. Es la traducción más directa, pero la altura llega más tarde (Cuevas).
+- **ᚨ buscar no vale:** hoy solo busca enemigos en un cono de 60° (`hechizo_vivo.gd:672`), no braseros. Mejor así: si buscara braseros, el puzle se resolvería solo.
+
+**Salas de ejemplo (de fácil a difícil):**
+- **Rebote (Bosque 01 o 02):** el brasero está en un nicho detrás de un murete, con una pared de piedra en ángulo al lado. Con fuego + flecha, choca; con fuego + flecha + rebote, entra. Recompensa: cofre o atajo.
+- **Retorno:** el brasero está en un saliente a la espalda de la jugadora, separado por una reja que deja pasar el fuego pero no a ella. Se lanza hacia delante, el hechizo vuelve y lo enciende al pasar.
+- **Doble (más tarde):** dos braseros, uno por rebote y otro por altura, que se encienden con un temporizador (P8). Obliga a llevar **dos páginas** preparadas.
+
+**Qué hace falta construir:** casi nada.
+1. **Comprobar** que el rebote del fuego entra en el nicho de forma fiable desde la casilla obvia (prueba de escenario, como las demás).
+2. **La pista:** el murete o una placa junto a él dibuja el glifo que pide (como la pista de pago de P2), o se deja a la vista una pared que «invita» a rebotar.
+3. **El enseñar la recompensa:** la cámara por sala o un plano corto del atajo que aparece. Si no, basta con el cofre a la vista.
+
+**Cuidado:** que el murete se lea como **«no se cruza, pero se ve por encima»**: bajo, con el brasero visible, para que la jugadora piense en el hechizo y no en buscar otro camino.
 
 ## Mejoras fuera de los hechizos (Pablo, 22/11)
 

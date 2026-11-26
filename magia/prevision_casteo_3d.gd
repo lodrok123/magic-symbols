@@ -67,7 +67,7 @@ static func cima_silueta(h: Hechizo, origen: Vector3, pies: Vector3) -> Vector3:
 	if f == "proteccion":
 		var tiene_forma: bool = maxf(h.semieje_x, maxf(h.semieje_y, h.semieje_z)) > Sigils.RADIO_BASE_V2 + 0.001
 		if tiene_forma:
-			return origen + Vector3.UP * (0.08 + h.semiejes.y * Terreno3D.casilla * 2.0)
+			return origen + Vector3.UP * (0.08 + h.semiejes.y * Terreno3D.casilla * 2.0)       # (la cima: el rótulo va encima de quien lanza aunque el muro esté delante)
 		return pies + Vector3.UP * (0.08 + CIMA_PROTECCION_U)
 	if f == "colocado" and h.solidez > 0.0:
 		return origen + Vector3.UP * (0.05 + maxf(0.18, h.semiejes.y * Terreno3D.casilla * 2.0))
@@ -222,8 +222,9 @@ func _dibujar() -> void:
 	elif tipo == "proteccion":
 		var tiene_forma: bool = maxf(_h.semieje_x, maxf(_h.semieje_y, _h.semieje_z)) > Sigils.RADIO_BASE_V2 + 0.001
 		if tiene_forma:
-			# Un muro/pilar conserva sus ejes; no se redondea hasta hacerlo otra burbuja.
-			_casco(_origen + Vector3.UP * 0.08, Vector3(e.x, e.y * 2.0, e.z), x)
+			# Un muro/pilar conserva sus ejes; no se redondea hasta hacerlo otra burbuja. 23/11: va donde va a nacer (`GeometriaV2.adelanto`, lo mismo que las casillas y el VFX: el muro, delante)
+			var centro_m: Vector3 = _origen + _dir * Lanzador3D.GeometriaV2.adelanto(_h.geo()) * cas
+			_casco(centro_m + Vector3.UP * 0.08, Vector3(e.x, e.y * 2.0, e.z), x)
 		else:
 			var r: float = cas * 0.46
 			# Cúpula ABIERTA: insinúa el gesto de cubrirse, no una barrera activa.

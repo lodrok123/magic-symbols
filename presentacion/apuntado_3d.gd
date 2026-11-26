@@ -32,7 +32,8 @@ const COLORES: Dictionary = {
 const COLOR_NO: Color = Color(1.0, 0.25, 0.22)        ## lo que no se lanzaría
 const ANCHO_CINTA: float = 0.26                        ## u
 const ALTO_PARA_SOMBRA: float = 0.35                   ## u por encima del suelo: más alto que esto, el recorrido dibuja su sombra
-const RADIO_RETICULA: float = 0.36                     ## en casillas
+const DESNIVEL_PLANO_U: float = 0.12                   ## B9c: un vuelo que no sube ni baja más que esto es «recto» y su cinta va a ras de suelo
+const RADIO_RETICULA: float = 0.36                    ## en casillas
 const CONTORNO_U: float = 0.035                        ## grosor del contorno oscuro de anillos y retículas (u)
 const TAM_CURSOR: int = 48                             ## px del cursor (la punta, en el centro)
 ## Qué textura viva lleva el fantasma de cada elemento (`CODIGO_FANTASMA`, uniform `tipo`).
@@ -210,6 +211,8 @@ static var _sh_fantasma: Shader = null
 
 ## Para las pruebas: lo dibujado en el último `mostrar`.
 var caminos_dibujados: Array = []          ## [PackedVector3Array]
+var a_ras_dibujado: bool = false           ## B9c: el último `mostrar` bajó alguna cinta a ras de suelo (vuelo recto)
+static var bajar_vuelo_recto: bool = true  ## B9c: false = como antes (cinta en el aire + sombra); solo para las fotos de antes/después
 var principal_dibujado: int = -1           ## A4: qué camino de `caminos_dibujados` va entero (el del centro del abanico); los demás, tenues (-1 = ninguno)
 var rebotes_dibujados: Array[Vector3] = [] ## A4: dónde se dibujó cada rombo de rebote (el punto del quiebre)
 var reticulas: Array[Vector3] = []         ## dónde quedó cada retícula (en el suelo)
@@ -420,8 +423,14 @@ func mostrar(recorrido: Dictionary, origen: Vector3, dir: Vector3, largo: float,
 	# A4: con varias copias (ᚠ) el proyectil «de verdad» es el del centro del abanico (`HechizoVivo.salida_de_copia` las abre de izquierda a derecha); las demás, tenues.
 	if not caminos_dibujados.is_empty():
 		principal_dibujado = (caminos_dibujados.size() - 1) / 2
+	a_ras_dibujado = false
 	for k in range(caminos_dibujados.size()):
 		var c: PackedVector3Array = caminos_dibujados[k]
+		# B9c (23/11): sin gravedad la flecha vuela RECTA a la altura de la mano; cinta en el aire + sombra en el suelo eran dos rayas paralelas (recargado) y la cinta no
+		# acababa donde la retícula. Si el vuelo no sube ni baja (`_vuelo_plano`), la cinta va a ras de suelo y sin sombra; la sombra queda para cuando haya arco.
+		if bajar_vuelo_recto and _vuela_alto(c) and _vuelo_plano(c):
+			c = _a_ras(c)
+			a_ras_dibujado = true
 		largo_max = maxf(largo_max, _cinta(im if k == principal_dibujado else tm, c, false))
 		if _vuela_alto(c):
 			_cinta(sm, _a_ras(c), true)
@@ -599,6 +608,15 @@ func _vuela_alto(pts: PackedVector3Array) -> bool:
 		if p.y - _y_suelo(p) > ALTO_PARA_SOMBRA:
 			return true
 	return false
+
+
+## B9c: el vuelo no sube ni baja más de `DESNIVEL_PLANO_U` respecto a su salida (sin arco: recto a la altura de la mano). El último punto no cuenta: si lo paró un golpe,
+## la previsión lo pone en los pies de lo golpeado (`HechizoVivo.prever`), no a la altura del vuelo.
+func _vuelo_plano(pts: PackedVector3Array) -> bool:
+	for k in range(pts.size() - 1):
+		if absf(pts[k].y - pts[0].y) > DESNIVEL_PLANO_U:
+			return false
+	return true
 
 
 func _a_ras(pts: PackedVector3Array) -> PackedVector3Array:
