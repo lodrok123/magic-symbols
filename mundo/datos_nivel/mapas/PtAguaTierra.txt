@@ -10,20 +10,20 @@
 #############.###.###..#...........#####################
 #############.###.###..#...........#####################
 #############..........#...........#####################
-#####.......#..........#################################
+#####.......g..........#################################
 #####.......#####g######################################
-#####.#####.#####.######################################
-#####.##.##.#####.######################################
-#####.##.##.#####.######################################
-#####.##.##.#####.######...........#####################
-#####.##.##.#####.######...........#####################
-#####.##.##.#####.######...........#####################
-#####.##.##.#####g######...........#####################
-#####.......g..........#...#####...#####################
-#####.......#..........#...##.##...#####################
-#############..........#...##.##...#####################
-#############..........g...........#####################
-#############~~~~~~~~~~#...........#####################
+#####.......#####.######################################
+#####.......############################################
+#####.......#####.######################################
+#####.......#####.######...........#...........#########
+#####.......#####.######...........#..#######..#########
+#####.......#####.######...#####...#..#ccccc#..#########
+#####.......#####g######...##.##...#..#ccccc#..#########
+#####.......g..........#...##.##...g..#.....#..#########
+#####.......#..........#...##.##...#..#.....#..#########
+#############..........#...##.##...#..###.###..#########
+#############..........g...##.##...#..###.###..#########
+#############~~~~~~~~~~#...##.##...#...........#########
 #############~~~~~~~~~~#...........#####################
 #############..........#...........#####################
 #############..........#################################
@@ -45,15 +45,15 @@
 #######################.........########################
 ########################################################
 ; ======================================================================================================================
-;  GENERADO por herramientas/generador_mapas. 2026-11-24. Nivel «PtAguaTierra», 56 × 46, algoritmo «pagina», semilla 1.
-;  9 salas, 8 puertas, 0 enemigos, 2 cofres, 0 jarrones. Escena: escenas/PruebaPtAguaTierra.tscn. Mientras esta cabecera siga aquí, la herramienta puede volver a escribir
+;  GENERADO por herramientas/generador_mapas. 2026-11-26. Nivel «PtAguaTierra», 56 × 46, algoritmo «pagina», semilla 1.
+;  10 salas, 10 puertas, 0 enemigos, 2 cofres, 0 jarrones. Escena: escenas/PruebaPtAguaTierra.tscn. Mientras esta cabecera siga aquí, la herramienta puede volver a escribir
 ;  este archivo (guarda copia si lo has retocado). Para adoptarlo como nivel hecho a mano, borra la palabra GENERADO de la línea de arriba.
 ; ======================================================================================================================
 ; # pared · . suelo · ~ agua honda · S inicio · W goblin guerrero · A goblin arquero · T brasero · g tierra pisada (pasillos) · R losas (o basalto bajo la lava) · G elemental del bosque
-; generador {"acabado":true,"agua":8,"algoritmo":"pagina","alto":46,"ancho":56,"ancho_camino":2,"ancho_pasillo":2,"ancho_precipicio":2,"ancho_rio":2,"apertura":55,"arqueros":0,"b_braseros":true,"b_placa":true,"b_precipicio":true,"b_puente":true,"barreras":0,"braseros":0.0,"bucles":10,"bucles_claros":30,"callejones":100,"camara_sala":true,"campamentos":0,"charcas":0,"claros":6,"densidad_salas":1.0,"enemigos":0.0,"estilo":"cueva","forma":"rectangulo","hierba_alta":15,"jarrones":0.0,"kit":"demo","lado_max":11,"lado_min":7,"lados_salida":"","llave":false,"luz":"cueva","metodo":"fractal","n_salas":9,"nombre":"PtAguaTierra","octavas":4,"paredes":"kit","pasillos":20,"paso_tierra":0,"puertas":50,"puzles":0,"recto":60,"region_min":12,"relleno":56,"reparto":"dispersas","rio":"ns","rotulo":true,"runas":"","sala_jefe":"no","sala_max":4,"sala_min":2,"salas_cerradas":0,"salida_a":"","semilla":1,"silueta":60,"simetria":false,"sinuosidad":50,"solo_aceptados":false,"suavizados":2,"tamano_claro":5,"tamano_sala":10.0,"terreno":true,"tesoro":false}
-; puzles 1>riega_pulsador 2>rio_lava 3>puente_cuerda 5>balanza_rocas 6>hielo_pista 7>escondite_muro
-; anadidos cofre|comun|oro:45|18,39 cofre|comun|oro:20|5,18
-; apariciones a0<pz1 a1<pz6
+; generador {"acabado":true,"agua":8,"algoritmo":"pagina","alto":46,"ancho":56,"ancho_camino":2,"ancho_pasillo":2,"ancho_precipicio":2,"ancho_rio":2,"apertura":55,"arqueros":0,"b_braseros":true,"b_placa":true,"b_precipicio":true,"b_puente":true,"barreras":0,"braseros":0.0,"bucles":10,"bucles_claros":30,"callejones":100,"camara_sala":true,"campamentos":0,"charcas":0,"claros":6,"densidad_salas":1.0,"enemigos":0.0,"estilo":"cueva","forma":"rectangulo","hierba_alta":15,"jarrones":0.0,"kit":"demo","lado_max":11,"lado_min":7,"lados_salida":"","llave":false,"luz":"cueva","metodo":"fractal","n_salas":10,"nombre":"PtAguaTierra","octavas":4,"paredes":"kit","pasillos":20,"paso_tierra":0,"puertas":50,"puzles":0,"recto":60,"region_min":12,"relleno":56,"reparto":"dispersas","rio":"ns","rotulo":true,"runas":"","sala_jefe":"no","sala_max":4,"sala_min":2,"salas_cerradas":0,"salida_a":"","semilla":1,"silueta":60,"simetria":false,"sinuosidad":50,"solo_aceptados":false,"suavizados":2,"tamano_claro":5,"tamano_sala":10.0,"terreno":true,"tesoro":false}
+; puzles 1>riega_pulsador 2>rio_lava 3>puente_cuerda 4>escondite_muro 5>balanza_rocas 7>hielo_pista 9>presa_barril
+; anadidos cofre|comun|oro:45|18,39 cofre|comun|oro:20|26,23
+; apariciones a0<pz1 a1<pz7
 ;
 ; zona 1,1..54,44 cueva mezcla=0.8 rotulo=PtAguaTierra
 ;
@@ -66,6 +66,7 @@
 ; camara 5,12..11,22
 ; camara 24,17..34,27
 ; camara 24,1..34,11
+; camara 36,17..46,25
 ;
 ; pieza inicio entrada 27 39
 ; pieza cat1_placa pulsador 18 38 modo=agua modelo=cueva
@@ -76,23 +77,32 @@
 ; puzle cat3_tiende cuando=cat3_placa.pulsado hace=cat3_puente.tender
 ; puzle cat3_marca cuando=cat3_puente.tendido hace=flag.poner(ptaguatierra.cat3.puente)
 ; puzle cat3_vuelve cuando=flag.ptaguatierra.cat3.puente hace=cat3_puente.tender
-; pieza cat4_pa pulsador 15 5 modo=presencia peso=2 modelo=cueva
-; pieza cat4_pb pulsador 17 5 modo=presencia peso=1 modelo=cueva
-; pieza cat4_pc pulsador 19 5 modo=presencia peso=1 modelo=cueva
-; pieza cat4_rm roca_empujable 15 7 tam=mediana
-; pieza cat4_rp roca_empujable 17 7 tam=pequena
-; pieza cat4_cofre cofre 19 8 aparece_si=cat4_pa.activo+cat4_pb.activo+cat4_pc.activo abierto=ptaguatierra.cat4.cofre da=oro:40+pocion:1
-; pieza cat5_bloque bloque 8 19 material=hielo
-; pieza cat5_placa pulsador 8 18 modo=presencia modelo=cueva
-; pieza cat6_muro muro 29 23 golpes=2
-; pieza cat6_cofre cofre 29 22 abierto=ptaguatierra.cat6.cofre da=tabla:cofre_pequeno
+; pieza cat4_muro muro 17 17 golpes=2
+; pieza cat4_cofre cofre 17 16 abierto=ptaguatierra.cat4.cofre da=tabla:cofre_pequeno
+; pieza cat5_pa pulsador 15 5 modo=presencia peso=2 modelo=cueva
+; pieza cat5_pb pulsador 17 5 modo=presencia peso=1 modelo=cueva
+; pieza cat5_pc pulsador 19 5 modo=presencia peso=1 modelo=cueva
+; pieza cat5_rm roca_empujable 15 7 tam=mediana
+; pieza cat5_rp roca_empujable 17 7 tam=pequena
+; pieza cat5_cofre cofre 19 8 aparece_si=cat5_pa.activo+cat5_pb.activo+cat5_pc.activo abierto=ptaguatierra.cat5.cofre da=oro:40+pocion:1
+; pieza cat6_bloque bloque 29 24 material=hielo
+; pieza cat6_placa pulsador 29 23 modo=presencia modelo=cueva
+; pieza cat7_embalse cuenca 39 19 celdas=39,19..40,20 nivel=0.9
+; pieza cat7_vaso cuenca 42 19 celdas=42,19..43,20
+; pieza cat7_dique compuerta 41 20 abre_con=explosion estrecha=no modelo=muro
+; pieza cat7_dique_alto compuerta 41 19 abre_con=explosion estrecha=no modelo=muro
+; pieza cat7_barril barril 41 21
+; pieza cat7_nivel nivel 43 20 objetivo=0.25
+; pieza cat7_cofre cofre 43 22 aparece_si=cat7_nivel.alcanzado abierto=ptaguatierra.cat7.cofre da=oro:40+pocion:1
+; puzle cat7_cae_entero cuando=cat7_dique.abierta hace=cat7_dique_alto.abrir
 ; pieza cofre_m1 cofre 18 39 abierto=ptaguatierra.cofre_m1.abierto da=oro:45 aparece_si=flag.ptaguatierra.cofre_m1.pz1
-; pieza cofre_m2 cofre 5 18 abierto=ptaguatierra.cofre_m2.abierto da=oro:20 aparece_si=flag.ptaguatierra.cofre_m2.pz6
+; pieza cofre_m2 cofre 26 23 abierto=ptaguatierra.cofre_m2.abierto da=oro:20 aparece_si=flag.ptaguatierra.cofre_m2.pz7
 ; puzle apa_cofre_m1_pz1 cuando=cat1_placa.pulsado hace=flag.poner(ptaguatierra.cofre_m1.pz1)
-; puzle apa_cofre_m2_pz6 cuando=cat5_placa.pulsado hace=flag.poner(ptaguatierra.cofre_m2.pz6)
+; puzle apa_cofre_m2_pz7 cuando=cat6_placa.pulsado hace=flag.poner(ptaguatierra.cofre_m2.pz7)
 ; zona 15,38..21,39 cueva mezcla=0.5 nombre=pt_riega_pulsador rotulo=1._Riega_la_placa
 ; zona 17,32..18,36 cueva mezcla=0.5 nombre=pt_rio_lava rotulo=2._Río_de_lava
 ; zona 13,21..22,30 cueva mezcla=0.5 nombre=pt_puente_cuerda rotulo=3._Puente_plegado_agua_o_fuego
-; zona 24,17..34,27 cueva mezcla=0.5 nombre=pt_escondite_muro rotulo=4._Escondite_tras_el_muro_agrietado
-; zona 5,12..11,22 cueva mezcla=0.5 nombre=pt_hielo_pista rotulo=5._Bloque_de_hielo_en_la_pista
+; zona 15,14..19,19 cueva mezcla=0.5 nombre=pt_escondite_muro rotulo=4._Escondite_tras_el_muro_agrietado
+; zona 24,17..34,27 cueva mezcla=0.5 nombre=pt_hielo_pista rotulo=5._Bloque_de_hielo_en_la_pista
 ; zona 13,3..22,12 cueva mezcla=0.5 nombre=pt_balanza_rocas rotulo=6._Balanza_dos_rocas_y_un_bloque_de_tierra
+; zona 36,17..46,25 cueva mezcla=0.5 nombre=pt_presa_barril rotulo=7._Presa_el_barril_rompe_el_muro_del_agua

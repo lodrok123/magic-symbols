@@ -33,6 +33,11 @@ var estrecha: bool = true                  ## abierta, deja pasar el agua solo p
                                            ## 3 veces más lento que con la casilla entera (15/10, Pablo: «el llenado tiene que ser más progresivo»)
 var _losa: MeshInstance3D = null
 var _y_cerrada: float = 0.0
+## 26/11 (Pablo: «una pared que bloquea una masa de agua; al explotar un barril la pared se destruye y deja pasar el agua»): `modelo = "muro"`
+## dibuja el muro de sillares del muro agrietado (MuroAgrietado3D.MODELO_MURO) en vez de la losa o el pedrusco; al abrirse se hace añicos
+## (fragmentos, polvo, derrumbe) y no vuelve: un muro roto no se cierra a la vista (cerrar sigue tapando el agua, por código).
+var modelo: String = ""
+var _muro: Node3D = null
 
 
 func preparar(p_celda: Vector2i, p_abierta: bool = false, p_abre_con: String = "", p_cierra_con: String = "", p_vertical: bool = true) -> void:
@@ -64,6 +69,8 @@ func _ready() -> void:
 
 
 func _dibujar() -> void:
+	if modelo == "muro" and _poner_muro():
+		return
 	_losa = MeshInstance3D.new()
 	var b := BoxMesh.new()
 	var ancho: float = Terreno3D.casilla * 0.96
@@ -91,6 +98,35 @@ func _dibujar() -> void:
 	_y_cerrada = ALTO * 0.5 - Terreno3D.LECHO_AGUA * 0.5
 	_losa.position = Vector3(0.0, _y_cerrada, 0.0)
 	add_child(_losa)
+
+
+## El muro de sillares (la pieza del muro agrietado, con el material común para que se vea a través al tapar a la jugadora). false sin modelo.
+func _poner_muro() -> bool:
+	var ruta: String = "res://arte/piezas/%s.tscn" % MuroAgrietado3D.MODELO_MURO
+	if not ResourceLoader.exists(ruta):
+		return false
+	var n: Node3D = (load(ruta) as PackedScene).instantiate() as Node3D
+	if n == null:
+		return false
+	for col in n.find_children("*", "CollisionObject3D", true, false):
+		col.free()
+	n.name = "muro"
+	add_child(n)
+	Ocluso3D.convertir_nodo(n)
+	_muro = n
+	return true
+
+
+## El muro salta en pedazos (lo de MuroAgrietado3D.romper con la roca: fragmentos que vuelan, polvo y derrumbe).
+func _romper_muro(animar: bool) -> void:
+	if _muro == null or not _muro.visible:
+		return
+	_muro.visible = false
+	if not animar or not is_inside_tree() or not (get_parent() is Node3D):
+		return
+	preload("res://presentacion/estados_blender_3d.gd").fragmentos(get_parent() as Node3D, global_transform, true)
+	VfxPuzle3D.polvo(get_parent() as Node3D, global_position + Vector3(0.0, 0.1, 0.0), 1.1)
+	Sfx.play(self, "derrumbe")
 
 
 ## --- Contrato con los hechizos ---
@@ -135,6 +171,7 @@ func recibir_explosion(_punto: Vector3) -> void:
 
 
 ## --- Abrir y cerrar ---
+## (El muro, `modelo=muro`, se rompe al abrir: suena el derrumbe en `_romper_muro`, no el chasquido de la losa.)
 
 func abrir() -> void:
 	if abierta:
@@ -178,6 +215,10 @@ func _aplicar(animar: bool) -> void:
 		if sim != null:
 			sim.quitar_estrecho(celda)                   # vuelve a leer la casilla: sin cauce abierto es pared otra vez
 			sim.solidificar_casilla(celda, true)
+	if _muro != null:
+		if abierta:
+			_romper_muro(animar)
+		return
 	if _losa == null:
 		return
 	var y_obj: float = _y_cerrada - (ALTO + Terreno3D.LECHO_AGUA) * 0.92 if abierta else _y_cerrada

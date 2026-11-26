@@ -1,0 +1,27 @@
+; catalogo presa_barril
+; titulo Presa: el barril rompe el muro del agua
+; tipo premio
+; necesita fuego+flecha
+; validacion pendiente
+; pide fuego
+; resuelto nivel.alcanzado
+;  26/11, Pablo: «una pared que bloquea una masa de agua; al destruir un barril explosivo la pared se destruye dejando pasar el agua».
+;  Arriba, un embalse lleno (2 × 2, a 0,9) y un vaso seco (2 × 2) separados por un muro de sillares de dos casillas (compuerta con
+;  `modelo=muro`: solo la abre una explosión). Pegado al muro, por el lado de la sala, un barril de pólvora. Una flecha de fuego lo prende,
+;  explota y el muro salta en pedazos: el agua del embalse corre al vaso, sube el nivel y aparece el cofre. Las dos casillas del muro caen a
+;  la vez (la explosión solo alcanza la de abajo; la de arriba la tira una regla).
+#######
+#ccccc#
+#ccccc#
+#.....#
+#.....#
+###.###
+###.###
+; pieza embalse cuenca 1 1 celdas=1,1..2,2 nivel=0.9
+; pieza vaso cuenca 4 1 celdas=4,1..5,2
+; pieza dique compuerta 3 2 abre_con=explosion estrecha=no modelo=muro
+; pieza dique_alto compuerta 3 1 abre_con=explosion estrecha=no modelo=muro
+; pieza barril barril 3 3
+; pieza nivel nivel 5 2 objetivo=0.25
+; pieza cofre cofre 5 4 aparece_si=nivel.alcanzado abierto=$NIVEL.$ID.cofre da=oro:40+pocion:1
+; puzle cae_entero cuando=dique.abierta hace=dique_alto.abrir

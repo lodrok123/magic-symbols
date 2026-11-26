@@ -53,9 +53,10 @@ E:\magic-symbols\tools\Godot_v4.7.2-stable_win64.exe --path E:\magic-symbols res
 | 1 | 1 | **Riega la placa** (`riega_pulsador`) | agua + flecha | pendiente |
 | 2 | 2 | **Río de lava** (`rio_lava`) | agua + flecha, o hielo + flecha | pendiente |
 | 3 | 3 | **Puente plegado: agua o fuego** (`puente_cuerda`) | agua + flecha, o fuego + flecha | pendiente |
-| 4 | 7 | **Escondite tras el muro agrietado** (`escondite_muro`) | tierra + flecha | pendiente |
-| 5 | 6 | **Bloque de hielo en la pista** (`hielo_pista`) | tierra + barrera | pendiente |
+| 4 | 4 | **Escondite tras el muro agrietado** (`escondite_muro`) | tierra + flecha | pendiente |
+| 5 | 7 | **Bloque de hielo en la pista** (`hielo_pista`) | tierra + barrera | pendiente |
 | 6 | 5 | **Balanza: dos rocas y un bloque de tierra** (`balanza_rocas`) | tierra + barrera | pendiente |
+| 7 | 9 | **Presa: el barril rompe el muro del agua** (`presa_barril`) | fuego + flecha | pendiente |
 
 ## PtEmpujePulso · Empuje y pulso
 
@@ -118,6 +119,7 @@ E:\magic-symbols\tools\Godot_v4.7.2-stable_win64.exe --path E:\magic-symbols res
 | Pared hueca y nicho (ᚱ) (`pared_hueca_nicho`) | premio | fuego + raido, o agua + raido, o tierra + raido | PtEmpujePulso · 3 | pendiente |
 | Bloque de piedra en la pista (`piedra_pista`) | salida | empujar | PtEmpujePulso · 1 | pendiente |
 | Peso de la piedra (cofre) (`piedra_premio`) | premio | empujar | PtEmpujePulso · 2 | pendiente |
+| Presa: el barril rompe el muro del agua (`presa_barril`) | premio | fuego + flecha | PtAguaTierra · 7 | pendiente |
 | Prisma: rojo y azul (`prisma_rojo_azul`) | premio | fuego + agua + flecha | PtEmpujePulso · 5 | pendiente |
 | Puente plegado: agua o fuego (`puente_cuerda`) | paso | agua + flecha, o fuego + flecha | PtAguaTierra · 3 | pendiente |
 | Relé de braseros (`rele_braseros`) | salida | fuego + flecha | PtFuego · 3 | aceptado |

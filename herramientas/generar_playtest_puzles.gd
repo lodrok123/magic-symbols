@@ -19,7 +19,7 @@ const SEMILLAS_MAX: int = 400
 const GRUPOS: Array = [
 	["PtFuego", "Fuego", "demo", ["braseros_puerta", "braseros_premio", "rele_braseros", "contrafuego", "barril_muro", "cristal_receptor"], {}],
 	["PtVagonetas", "Vagonetas", "demo", ["vagoneta_pista", "vagoneta_curva", "vagoneta_boton", "vagoneta_aguja"], {}],
-	["PtAguaTierra", "Agua y tierra", "demo", ["riega_pulsador", "puente_cuerda", "rio_lava", "escondite_muro", "hielo_pista", "balanza_rocas"], {}],
+	["PtAguaTierra", "Agua y tierra", "demo", ["riega_pulsador", "puente_cuerda", "rio_lava", "escondite_muro", "hielo_pista", "balanza_rocas", "presa_barril"], {}],
 	["PtEmpujePulso", "Empuje y pulso", "demo", ["piedra_pista", "piedra_premio", "pared_hueca_nicho", "prisma_rojo_azul", "estatuas_sellos"], {}],
 	["PtJefeCueva", "Jefe de la cueva", "demo", [], {"sala_jefe": "jefe_golem", "campamentos": 1, "n_salas": 6}],
 	["PtJefeBosque", "Jefe del bosque", "demo", [], {"algoritmo": "bosque", "estilo": "bosque", "luz": "bosque", "sala_jefe": "jefe_elemental", "campamentos": 1, "claros": 5, "ancho": 50, "alto": 44}],

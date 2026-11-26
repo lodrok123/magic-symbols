@@ -22,6 +22,7 @@ extends Node
 ## PIEZAS (tipo → claves, entre paréntesis el valor por defecto) y qué clase de `objetos/` es:
 ##   pulsador   modo=magia|agua|presencia (magia)  rearme=<s> (0)  modelo=cueva          Pulsador3D: botón, pulsador de agua o placa (modelo=cueva: la placa de piedra de la Cueva)
 ##   compuerta  abierta (no)  abre_con=fuego|agua|hielo|rayo|explosion  cierra_con=…  estrecha (si)  vertical (si)   Compuerta3D
+##              26/11 `modelo=muro`: se dibuja como el muro de sillares del muro agrietado y al abrirse salta en pedazos (la presa que rompe un barril)
 ##   nivel      objetivo=<u> (0.45)  banda=<u> (0)  invertido (no)                    NivelAgua3D: lee la profundidad de su casilla
 ##   molino     umbral=<u/s> (0.3)  vertical (si)                                     Molino3D
 ##   barril     tam=normal|pequeno (normal)                                           Barril3D. `tam=pequeno`: barril de 0,55 u que la jugadora coge y lanza (radio 1,6, mecha 2,4 s)
@@ -488,7 +489,7 @@ const ALIAS_TIPO: Dictionary = {"seta_veneno": "respiradero"}
 ## Claves de cada tipo de pieza y qué valor admiten: «f» número, «b» sí/no, «celdas» lista de casillas, «fijo» número o sí, «s:a|b» una de esas palabras.
 const CLAVES: Dictionary = {
 	"pulsador": {"modo": "s:magia|agua|presencia", "rearme": "f", "modelo": "s:cueva", "peso": "f"},
-	"compuerta": {"abierta": "b", "abre_con": "s:fuego|agua|hielo|rayo|explosion", "cierra_con": "s:fuego|agua|hielo|rayo", "estrecha": "b", "vertical": "b"},
+	"compuerta": {"abierta": "b", "abre_con": "s:fuego|agua|hielo|rayo|explosion", "cierra_con": "s:fuego|agua|hielo|rayo", "estrecha": "b", "vertical": "b", "modelo": "s:muro"},
 	"nivel": {"objetivo": "f", "banda": "f", "invertido": "b"},
 	"molino": {"umbral": "f", "vertical": "b"},
 	"barril": {"tam": "s:normal|pequeno"},
@@ -2306,6 +2307,7 @@ func _crear(pz: Pieza) -> void:
 			var k := Compuerta3D.new()
 			k.name = pz.id
 			k.estrecha = bool(pz.p.get("estrecha", true))
+			k.modelo = String(pz.p.get("modelo", ""))
 			k.preparar(pz.celda, bool(pz.p.get("abierta", false)), String(pz.p.get("abre_con", "")), String(pz.p.get("cierra_con", "")), bool(pz.p.get("vertical", true)))
 			cont.add_child(k)
 			pz.nodo = k

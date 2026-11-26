@@ -24,7 +24,7 @@ func _escenario() -> void:
 	Catalogo.recargar()
 	var cat: Dictionary = Catalogo.todos()
 	var nuevas: Array = ["vagoneta_pista", "vagoneta_curva", "vagoneta_boton", "vagoneta_aguja", "barril_muro", "balanza_rocas",
-		"cristal_receptor", "prisma_rojo_azul", "pared_hueca_nicho", "estatuas_sellos"]
+		"cristal_receptor", "prisma_rojo_azul", "pared_hueca_nicho", "estatuas_sellos", "presa_barril"]
 	_ok("0 el catálogo tiene %d plantillas (22 o más)" % cat.size(), cat.size() >= 22)
 	var sin_nec: Array = cat.keys().filter(func(c) -> bool: return not FileAccess.get_file_as_string(Catalogo.CARPETA + String(c) + ".txt").contains("; necesita"))
 	_ok("0 todas dicen lo que necesitan (; necesita)", sin_nec.is_empty(), str(sin_nec))
@@ -42,6 +42,7 @@ func _escenario() -> void:
 			"prisma_rojo_azul": await _prisma()
 			"pared_hueca_nicho": await _pared_hueca()
 			"estatuas_sellos": await _estatuas()
+			"presa_barril": await _presa()
 	await _jefes()
 	_filtro()
 	_borrar()
@@ -218,6 +219,29 @@ func _barril_muro() -> void:
 	var bc: Vector2i = _c("barril")
 	_ok("3 barril: flecha de fuego al barril desde la entrada", await _lanzar("fuego", ["flecha"], bc, bc + Vector2i(0, 2)))
 	_ok("3 barril: explota y rompe el muro pegado", await _esperar(func() -> bool: return muro.roto_ya, 5.0))
+
+
+## 26/11: la presa. El embalse lleno, el vaso seco; flecha de fuego al barril: el muro (las dos casillas) salta, el agua pasa y aparece el cofre.
+func _presa() -> void:
+	var muro = _n("dique")
+	var alto = _n("dique_alto")
+	var nivel = _n("nivel")
+	var cofre = _n("cofre")
+	if muro == null or alto == null or nivel == null or cofre == null:
+		_ok("3 presa: piezas", false)
+		return
+	var sim: AguaSim3D = Terreno3D.agua_sim
+	var ce: Vector2i = _c("embalse")
+	var cv: Vector2i = _c("vaso")
+	await avanzar_s(2.0)
+	_ok("3 presa: el embalse está lleno y el vaso seco; el muro aguanta", sim.profundidad_casilla(ce) > 0.6 and sim.profundidad_casilla(cv) < 0.05 and not muro.abierta,
+		"embalse %.2f vaso %.2f" % [sim.profundidad_casilla(ce), sim.profundidad_casilla(cv)])
+	_ok("3 presa [legible]: el muro se dibuja como muro de sillares (no el pedrusco)", muro.get("_muro") != null)
+	var bc: Vector2i = _c("barril")
+	_ok("3 presa: flecha de fuego al barril desde la entrada", await _lanzar("fuego", ["flecha"], bc, bc + Vector2i(0, 2)))
+	_ok("3 presa: explota y el muro cae entero (sus dos casillas)", await _esperar(func() -> bool: return muro.abierta and alto.abierta, 5.0))
+	_ok("3 presa: el agua pasa al vaso, sube el nivel y aparece el cofre", await _esperar(func() -> bool: return nivel.alcanzado and not cofre.es_oculto, 20.0),
+		"embalse %.2f vaso %.2f" % [sim.profundidad_casilla(ce), sim.profundidad_casilla(cv)])
 
 
 func _balanza() -> void:

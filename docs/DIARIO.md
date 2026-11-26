@@ -6598,3 +6598,32 @@ Pablo: «6 aceptado», tras jugarlo con el cofre dentro de la sala.
 - Pablo pide commit de los sonidos. Se agrupan las selecciones, niveles, impactos por elemento, carga/bucles de fuego, separación de burbuja y madera, y variantes cortas del goblin. Incluye archivos redistribuibles, licencias, pruebas, escuchas, decisiones y generadores de regeneración local.
 - Las fuentes y derivados Sonniss conservan su exclusión del repositorio; no se fuerzan assets ignorados. Las pruebas más recientes de recursos y rutas específicas terminan en `FALLOS: 0`; se conservan sus registros y los avisos de limpieza del escenario.
 - Commit preparado con índice separado y contenido parcial de lanzador, índice documental y diario para no incorporar cambios de otras tareas. Los shaders ya preparados en el índice original se conservan. Sin push.
+
+### 26/11/2026 · aviso de contexto PUZLES · la balanza, revisada con el vídeo; puzle nuevo «presa_barril»
+Pablo, con un vídeo de PtAguaTierra, sala 6: «revisa este puzzle; también querría un puzzle de una pared que bloquea una masa de agua: al destruir un barril explosivo, la pared se destruye dejando pasar el agua».
+
+**Balanza (`balanza_rocas`): la mecánica funciona, pero la sala no se entiende**
+- Nueva `herramientas/captura_balanza.gd`: la juega andando, con teclas de verdad.
+  - Lleva las dos rocas a sus placas con dos empujones cada una (peso 1 y peso 2).
+  - Lanza tierra + barrera sobre la tercera placa y aparece el cofre.
+  - 0 fallos. Fotos en `docs/capturas/balanza/`.
+- Lo que se ve en el vídeo:
+  - Pablo apunta a la placa y lanza su página 3, «Tierra + Suelo + Línea Z» (plataforma de tierra), que nace bajo sus pies: la roca le sale encima.
+  - Lo que pide el puzle es tierra + barrera, que nace donde apuntas, y nada en la sala lo dice.
+  - Las dos rocas empujables no se ven en ningún momento. La sala está a oscuras (en los Pt no hay braseros sueltos) y la roca pequeña, oscura sobre suelo oscuro, casi no se distingue.
+- **Pablo decide** cómo arreglarlo: luz en la sala, rocas más visibles o una pista del hechizo. Sigue pendiente.
+
+**Puzle nuevo `presa_barril`** («Presa: el barril rompe el muro del agua», premio, fuego + flecha)
+- Arriba, un embalse lleno (cuenca de 2 × 2 a 0,9) y un vaso seco, separados por un muro de dos casillas. Pegado al muro, un barril.
+- Con una flecha de fuego el barril explota y el muro salta en pedazos. El agua se reparte entre los dos lados, sube el nivel del vaso y aparece el cofre.
+- **Compuerta, `modelo=muro`** (`objetos/compuerta_3d.gd`, clave en `puzle.gd`):
+  - La compuerta que solo abre una explosión se dibuja con el muro de sillares del muro agrietado, en vez del pedrusco de laboratorio.
+  - Al abrirse se rompe: fragmentos, polvo y derrumbe.
+  - Las dos casillas caen a la vez gracias a una regla, porque la explosión solo alcanza la de abajo.
+  - Los ids de las piezas son `dique`, no `muro`: el generador prefija en los valores las palabras que coinciden con un id local, y `modelo=muro` se convertía en `modelo=cat1_muro`.
+- **Pruebas:**
+  - En `escenario_catalogo_nuevos`, 0 fallos: el embalse 0,90 / el vaso 0,00 → tras la explosión, el embalse 0,26 / el vaso 0,39 y aparece el cofre.
+  - `captura_presa.gd`: 0 fallos en PtAguaTierra, con fotos de antes, la explosión y después en `docs/capturas/presa/`.
+  - `escenario_catalogo_puzles` y `escenario_puzles_agua`: 0 fallos.
+- **En PtAguaTierra, como sala 7** (Alt + 7), con la hoja dada de alta: 26 filas `cat_*`.
+- Al regenerar, el escondite y el bloque de hielo se cambian de sala (los dos estaban sin probar). Los demás Pt se dejan como estaban, porque solo les cambiaba la fecha de la cabecera.
