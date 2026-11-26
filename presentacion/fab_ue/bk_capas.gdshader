@@ -28,12 +28,15 @@ uniform float capa_umbral = 0.55;        // rocas: a partir de qué «cuánto mi
 uniform float capa_dureza = 6.0;
 uniform float capa_alto = 0.4;           // troncos: m desde el suelo
 uniform float capa_transicion = 1.0;     // troncos: m de transición
+uniform vec3 emision = vec3(0.0);        // MM_BK_StandardEmissive (lineal)
 
 varying vec3 v_mundo;
 varying vec3 v_normal_mundo;
+varying float v_sobre_base;              // altura sobre el origen de la pieza (el suelo donde se planta), en unidades del mundo
 
 void vertex() {
 	v_mundo = (MODEL_MATRIX * vec4(VERTEX, 1.0)).xyz;
+	v_sobre_base = v_mundo.y - MODEL_MATRIX[3].y;
 	v_normal_mundo = normalize((MODEL_MATRIX * vec4(NORMAL, 0.0)).xyz);
 }
 
@@ -45,13 +48,14 @@ void fragment() {
 	float w = 0.0;
 	if (hay_capa) {
 		if (capa_por_altura) {
-			w = clamp(1.0 - (v_mundo.y - capa_alto) / max(capa_transicion, 0.01), 0.0, 1.0);
+			w = clamp(1.0 - (v_sobre_base - capa_alto) / max(capa_transicion, 0.01), 0.0, 1.0);
 		} else {
 			w = clamp((v_normal_mundo.y - capa_umbral) * capa_dureza, 0.0, 1.0);
 		}
 		c = mix(c, texture(capa_albedo, UV * repeticion_capa).rgb * capa_tinte, w);
 	}
 	ALBEDO = c;
+	EMISSION = emision;
 	ROUGHNESS = rugosidad;
 	SPECULAR = 0.3;
 	NORMAL_MAP = texture(normal_tex, UV).rgb;

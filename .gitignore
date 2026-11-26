@@ -92,6 +92,11 @@ arte/stylescape/*
 # Se regenera con tools/ue_montar_prueba_bosque.py, tools/ue_exportar_prueba_bosque.py y tools/preparar_prueba_bosque.py.
 arte/comparativa_bosque/*
 
+# Packs «Pure Nature» de BK (Fab, 26/11/2026): licencia de Fab, nada de assets sueltos en un repo público.
+# Se regenera con tools/ue_exportar_pure_nature.py, tools/preparar_pure_nature.py y herramientas/generar_piezas_pure_nature.gd.
+arte/pure_nature/*
+!arte/pure_nature/LEEME.md
+
 # Python
 __pycache__/
 *.pyc

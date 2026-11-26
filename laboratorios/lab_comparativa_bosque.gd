@@ -4,18 +4,19 @@ extends Node3D
 ## La MISMA escena que el mapa de Unreal /Game/MagicSymbols/MS_PruebaBosque (proyecto E:\ue_proyectos\StylescapeRuins): mismas piezas en el
 ## mismo sitio (docs/capturas/comparativa_ue_godot/escena.json), mismas texturas (a 2K, sin teñir de beige) y las dos mismas cámaras.
 ## Así lo único que cambia entre las fotos de Unreal y las de aquí es el motor: la luz, el posproceso y los materiales (que aquí son una
-## aproximación de los de Unreal, ver laboratorios/comparativa_bosque/*.gdshader).
+## aproximación de los de Unreal, ver presentacion/fab_ue/: MaterialesUE y sus shaders).
 ##
 ## Teclas:  1 cámara del juego (30° sobre el suelo) · 2 cámara de detalle · L cambia la luz:
 ##            · «unreal»: imitando la de la demo de Meadows (sol, cielo azul, luz rebotada SDFGI, oclusión, bloom, saturación)
 ##            · «juego»:  la luz y el posproceso de NUESTRO bosque (LuzZona3D «bosque», Posproceso3D, Paleta3D), sin luz rebotada
 ##          G luz rebotada (SDFGI) sí/no
+##          3 MUESTRARIO de todas las piezas Pure Nature (pn_*), un bloque por pack; ← → cambian de pack
+## Fotos del muestrario:  Godot --path . res://laboratorios/LabComparativaBosque.tscn -- --muestrario   (muestrario_<pack>.png)
 ## Captura sin tocar nada:  Godot --path . res://laboratorios/LabComparativaBosque.tscn -- --captura
 ##   deja docs/capturas/comparativa_ue_godot/godot_<luz>_<cámara>.png, junto a las unreal_<cámara>.png, y comparativa_<cámara>.png (las tres juntas).
 ## Si no hay mallas: tools/ue_montar_prueba_bosque.py, tools/ue_exportar_prueba_bosque.py y tools/preparar_prueba_bosque.py (no viajan en git).
 
 const RAIZ: String = "res://arte/comparativa_bosque/"
-const SHADERS: String = "res://laboratorios/comparativa_bosque/"
 const CAPTURAS: String = "res://docs/capturas/comparativa_ue_godot/"
 const CM: float = 0.01
 
@@ -36,10 +37,6 @@ const UE_SATURACION: float = 1.3
 const UE_CONTRASTE: float = 1.1
 const UE_BLOOM: float = 0.25
 const UE_SDFGI_ENERGIA: float = 1.0
-## Cuánto se aclaran las hojas de BK (ver bk_follaje.gdshader). Calibrado midiendo el arbusto y la copa de la izquierda en Cam_Juego.
-const HOJAS_BRILLO: float = 6.0
-## Desde qué inclinación hacia arriba coge musgo la piedra de las ruinas (más alto = menos musgo). 1.ª: 0,45 (el muro salía más verde que en Unreal).
-const RUINAS_MUSGO_UMBRAL: float = 0.55
 
 var _escena: Dictionary
 var _informe: Dictionary
@@ -51,7 +48,7 @@ var _sol: DirectionalLight3D
 var _hud: Label
 var _vineta: CanvasLayer
 var _mats: Dictionary = {}
-var _texs: Dictionary = {}
+var _traductor: MaterialesUE
 var _mallas: Dictionary = {}
 
 
@@ -62,6 +59,7 @@ func _ready() -> void:
 		return
 	_escena = JSON.parse_string(FileAccess.get_file_as_string(ruta_escena))
 	_informe = JSON.parse_string(FileAccess.get_file_as_string(RAIZ + "informe.json"))
+	_traductor = MaterialesUE.new(_informe, RAIZ + "texturas/")
 	_montar_luz()
 	var n: int = 0
 	for p in _escena["piezas"]:
@@ -96,6 +94,8 @@ func _ready() -> void:
 		_capturar()
 	elif OS.get_cmdline_user_args().has("--depurar"):
 		_depurar()
+	elif OS.get_cmdline_user_args().has("--muestrario"):
+		_capturar_muestrario()
 
 
 ## Unreal (cm; X delante, Y derecha, Z arriba; mano izquierda) -> Godot (m; Y arriba; mano derecha): (x, z, y) / 100.
@@ -154,142 +154,24 @@ func _malla(fbx: String) -> Array:
 	return r
 
 
-func _tex(nombre) -> Texture2D:
-	if nombre == null or String(nombre) == "":
-		return null
-	var k: String = String(nombre)
-	if not _texs.has(k):
-		var ruta: String = RAIZ + "texturas/" + k + ".png"
-		_texs[k] = load(ruta) if ResourceLoader.exists(ruta) else null
-	return _texs[k]
-
-
-func _col(v, por_defecto: Color = Color.WHITE) -> Color:
-	if v == null:
-		return por_defecto
-	return Color(float(v[0]), float(v[1]), float(v[2]))
-
-
-## Traduce cada material de Unreal (por su material maestro) a uno de Godot. La receta (texturas y números) viene de informe.json.
+## El material de Godot para una receta de Unreal: el suelo de la prueba aquí; lo demás, MaterialesUE (presentacion/fab_ue/materiales_ue.gd).
 func _material(clave: String, aabb: AABB) -> Material:
-	var k: String = clave + ("|%.1f" % aabb.size.y)
-	if _mats.has(k):
-		return _mats[k]
-	var mat: Material = null
 	if clave.ends_with("__suelo__"):
-		var sm := StandardMaterial3D.new()
-		var tx: String = "PureNature_Meadows__T_Grass01_"
-		sm.albedo_texture = _tex(tx + "a")
-		sm.normal_enabled = true
-		sm.normal_texture = _tex(tx + "n")
-		sm.roughness = float(_escena["suelo"]["rugosidad"])
-		var rep: float = float(_escena["suelo"]["repeticion"])
-		sm.uv1_scale = Vector3(rep, rep, 1.0)
-		sm.texture_filter = BaseMaterial3D.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS_ANISOTROPIC
-		mat = sm
-	elif _informe["materiales"].has(clave):
-		var m: Dictionary = _informe["materiales"][clave]
-		var tx: Dictionary = m["texturas"]
-		var es: Dictionary = m["escalares"]
-		var ve: Dictionary = m["vectores"]
-		var padre: String = String(m["padre"])
-		var sh := ShaderMaterial.new()
-		match padre:
-			"MM_BK_VegetationLeaves":
-				sh.shader = load(SHADERS + "bk_follaje.gdshader")
-				sh.set_shader_parameter("albedo", _tex(tx.get("Texture")))
-				sh.set_shader_parameter("normal_tex", _tex(tx.get("NormalTex")))
-				sh.set_shader_parameter("fuerza_normal", float(es.get("Normal Intensity", 0.2)))
-				sh.set_shader_parameter("es_hoja", true)
-				sh.set_shader_parameter("color_abajo", _col(ve.get("Main Color")))
-				sh.set_shader_parameter("color_arriba", _col(ve.get("Gradient Color")))
-				sh.set_shader_parameter("degradado_desplaz", float(es.get("Gradient Offset", 0.5)))
-				sh.set_shader_parameter("degradado_contraste", float(es.get("Gradient Contrast", 1.5)))
-				sh.set_shader_parameter("altura_malla", max(aabb.end.y, 0.5))
-				sh.set_shader_parameter("brillo_hojas", HOJAS_BRILLO)
-			"MM_BK_Grass":
-				sh.shader = load(SHADERS + "bk_follaje.gdshader")
-				sh.set_shader_parameter("albedo", _tex(tx.get("Albedo")))
-				sh.set_shader_parameter("normal_tex", _tex(tx.get("Normal")))
-				sh.set_shader_parameter("fuerza_normal", float(es.get("Normal Power", 0.0)))
-				sh.set_shader_parameter("hay_normal", float(es.get("Normal Power", 0.0)) > 0.0)
-				sh.set_shader_parameter("rugosidad", float(es.get("Roughness", 0.8)))
-				sh.set_shader_parameter("es_hoja", false)
-				sh.set_shader_parameter("color_abajo", _col(ve.get("Color 01")))
-				sh.set_shader_parameter("color_arriba", _col(ve.get("Color 02")))
-				sh.set_shader_parameter("fuerza_color", float(es.get("Color Power", 0.0)))
-				sh.set_shader_parameter("ruido", _tex(tx.get("Noise")))
-				sh.set_shader_parameter("escala_ruido", float(es.get("Noise Scale", 10000.0)) * CM)
-			"MM_BK_StandardLayered", "MM_BK_Standard":
-				sh.shader = load(SHADERS + "bk_capas.gdshader")
-				sh.set_shader_parameter("albedo", _tex(tx.get("Albedo")))
-				sh.set_shader_parameter("normal_tex", _tex(tx.get("Normal")))
-				sh.set_shader_parameter("mascara", _tex(tx.get("Mask")))
-				sh.set_shader_parameter("hay_mascara", tx.get("Mask") != null)
-				sh.set_shader_parameter("tinte", _col(ve.get("Color")))
-				sh.set_shader_parameter("fuerza_normal", float(es.get("Normal Power", 1.0)))
-				sh.set_shader_parameter("oclusion", float(es.get("Occlusion", 0.7)))
-				if tx.get("Detail Albedo") != null:
-					sh.set_shader_parameter("hay_detalle", true)
-					sh.set_shader_parameter("detalle", _tex(tx.get("Detail Albedo")))
-					sh.set_shader_parameter("repeticion_detalle", float(es.get("Detail Tiling", 3.0)))
-				if tx.get("Layer Albedo") != null:
-					sh.set_shader_parameter("hay_capa", true)
-					sh.set_shader_parameter("capa_albedo", _tex(tx.get("Layer Albedo")))
-					sh.set_shader_parameter("capa_tinte", _col(ve.get("Layer Color")))
-					sh.set_shader_parameter("repeticion_capa", float(es.get("Layer Tiling", 5.0)))
-					# «Blend Normal» de BK: cuanto más bajo, más caras cogen la capa. 0,15–0,25 en el pack -> umbral 0,45–0,55.
-					sh.set_shader_parameter("capa_umbral", 0.3 + float(es.get("Blend Normal", 0.25)))
-					sh.set_shader_parameter("capa_dureza", clampf(float(es.get("Blend Sharpness", 5.0)), 2.0, 20.0))
-			"MM_BK_VegetationTrunk":
-				sh.shader = load(SHADERS + "bk_capas.gdshader")
-				sh.set_shader_parameter("albedo", _tex(tx.get("Albedo")))
-				sh.set_shader_parameter("normal_tex", _tex(tx.get("Normal")))
-				sh.set_shader_parameter("mascara", _tex(tx.get("Mask")))
-				sh.set_shader_parameter("hay_mascara", true)
-				sh.set_shader_parameter("tinte", _col(ve.get("Main Color")))
-				sh.set_shader_parameter("oclusion", float(es.get("Ambient Occlusion", 0.5)))
-				if tx.get("Layer Albedo") != null and tx.get("Layer Albedo") != tx.get("Albedo"):
-					sh.set_shader_parameter("hay_capa", true)
-					sh.set_shader_parameter("capa_por_altura", true)
-					sh.set_shader_parameter("capa_albedo", _tex(tx.get("Layer Albedo")))
-					sh.set_shader_parameter("capa_alto", float(es.get("Offset", 40.0)) * CM)
-					sh.set_shader_parameter("capa_transicion", float(es.get("Falloff", 100.0)) * CM)
-					sh.set_shader_parameter("repeticion_capa", 1.0)
-			"M_RuinsMaster":
-				sh.shader = load(SHADERS + "ruinas_pack.gdshader")
-				sh.set_shader_parameter("albedo", _tex(tx.get("Diffuse")))
-				sh.set_shader_parameter("normal_tex", _tex(tx.get("Normal")))
-				sh.set_shader_parameter("aorm", _tex(tx.get("AO_R_S")))
-				sh.set_shader_parameter("tinte", _col(ve.get("Tint")))
-				sh.set_shader_parameter("ao_potencia", float(es.get("AO Power", 1.5)))
-				sh.set_shader_parameter("rugosidad_potencia", float(es.get("Roughness Power", 1.0)))
-				sh.set_shader_parameter("aplanar", clampf(float(es.get("Normal Flatness", 0.25)), 0.0, 1.0))
-				sh.set_shader_parameter("capa_albedo", _tex(tx.get("Top Layer Diffuse")))
-				sh.set_shader_parameter("capa_repeticion", float(es.get("Top Layer Tiling", 10.0)))
-				sh.set_shader_parameter("capa_opacidad", float(es.get("Top Layer Opacity", 1.0)))
-				sh.set_shader_parameter("capa_relieve", float(es.get("Blend Normal", 50.0)))
-				sh.set_shader_parameter("capa_umbral", RUINAS_MUSGO_UMBRAL)
-				sh.set_shader_parameter("borde_color", _col(ve.get("Rim Lighting Color")))
-			"M_Ivy":
-				var sm := StandardMaterial3D.new()
-				sm.albedo_texture = _tex(tx.get("Diffuse"))
-				sm.albedo_color = _col(ve.get("Ivy Tint")).linear_to_srgb()   # los colores de Unreal son lineales; albedo_color se lee en sRGB
-				sm.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA_SCISSOR
-				sm.alpha_scissor_threshold = 0.5
-				sm.cull_mode = BaseMaterial3D.CULL_DISABLED
-				sm.roughness = float(es.get("Roughness", 0.6))
-				mat = sm
-			_:
-				var sm := StandardMaterial3D.new()
-				sm.albedo_color = Color(0.6, 0.6, 0.6)
-				mat = sm
-				push_warning("material sin receta: %s (padre %s)" % [clave, padre])
-		if mat == null:
-			mat = sh
-	else:
+		if not _mats.has("suelo"):
+			var sm := StandardMaterial3D.new()
+			var tx: String = "PureNature_Meadows__T_Grass01_"
+			sm.albedo_texture = _traductor.tex(tx + "a")
+			sm.normal_enabled = true
+			sm.normal_texture = _traductor.tex(tx + "n")
+			sm.roughness = float(_escena["suelo"]["rugosidad"])
+			var rep: float = float(_escena["suelo"]["repeticion"])
+			sm.uv1_scale = Vector3(rep, rep, 1.0)
+			sm.texture_filter = BaseMaterial3D.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS_ANISOTROPIC
+			_mats["suelo"] = sm
+		return _mats["suelo"]
+	var mat: Material = _traductor.material(clave, aabb.end.y)
+	if mat == null:
 		push_warning("material no exportado: " + clave)
-	_mats[k] = mat
 	return mat
 
 
@@ -374,11 +256,133 @@ func _elegir_camara(i: int) -> void:
 	_actualizar_hud()
 
 
+## --- MUESTRARIO (26/11): todas las piezas pn_* de los packs Pure Nature (herramientas/generar_piezas_pure_nature.gd), un bloque por pack,
+## detrás de la escena de la comparativa, con la misma luz. Van a la escala del juego (0,575 u/m): un árbol de 15 m mide 8,6 u.
+const MUESTRARIO_PIEZAS: String = "res://arte/pure_nature/"
+const MUESTRARIO_Z: float = 45.0         ## dónde empieza (m), pasada la escena de la comparativa
+const MUESTRARIO_ANCHO: float = 60.0     ## ancho de cada fila
+const MUESTRARIO_HUECO: float = 0.8
+var _bloques: Array = []                 ## [{pack, centro: Vector3, ancho, fondo}]
+var _bloque: int = -1
+var _cam_muestrario: Camera3D
+var _disposicion: Array = []             ## lo que se guarda en muestrario.json para montar lo mismo en Unreal (tools/ue_montar_muestrario.py)
+
+
+func _montar_muestrario() -> bool:
+	if not _bloques.is_empty():
+		return true
+	var ruta: String = MUESTRARIO_PIEZAS + "indice.json"
+	if not FileAccess.file_exists(ruta):
+		push_warning("no hay piezas Pure Nature (ver herramientas/generar_piezas_pure_nature.gd)")
+		return false
+	var indice: Dictionary = JSON.parse_string(FileAccess.get_file_as_string(ruta))
+	var por_pack: Dictionary = {}
+	for id in indice:
+		var p: String = indice[id]["pack"]
+		if not por_pack.has(p):
+			por_pack[p] = []
+		por_pack[p].append(indice[id])
+	var orden_cat: Array = ["arbol", "roca", "adorno", "seta", "planta", "suelo"]
+	var z: float = MUESTRARIO_Z
+	for pack in por_pack.keys().duplicate().map(func(x): return String(x)):
+		var lista: Array = por_pack[pack]
+		lista.sort_custom(func(a, b):
+			var ca: int = orden_cat.find(a["categoria"])
+			var cb: int = orden_cat.find(b["categoria"])
+			return ca < cb if ca != cb else float(a["caja"][4]) > float(b["caja"][4]))
+		var x: float = 0.0
+		var z_fila: float = z
+		var fondo_fila: float = 0.0
+		var z0: float = z
+		for e in lista:
+			var c: Array = e["caja"]
+			var ancho: float = float(c[3])
+			var fondo: float = float(c[5])
+			if x > 0.0 and x + ancho > MUESTRARIO_ANCHO:
+				x = 0.0
+				z_fila += fondo_fila + MUESTRARIO_HUECO
+				fondo_fila = 0.0
+			var ps: PackedScene = load(MUESTRARIO_PIEZAS + "piezas/" + String(e["id"]) + ".tscn") as PackedScene
+			if ps != null:
+				var n: Node3D = ps.instantiate()
+				n.position = Vector3(x - float(c[0]), 0.0, z_fila - float(c[2]))
+				add_child(n)
+				_disposicion.append({"id": e["id"], "ruta_ue": e.get("ruta_ue", ""), "pos": [n.position.x, n.position.y, n.position.z]})
+			x += ancho + MUESTRARIO_HUECO
+			fondo_fila = maxf(fondo_fila, fondo)
+		var fondo_total: float = z_fila + fondo_fila - z0
+		_bloques.append({"pack": pack, "centro": Vector3(MUESTRARIO_ANCHO * 0.5, 0.0, z0 + fondo_total * 0.5), "ancho": MUESTRARIO_ANCHO, "fondo": fondo_total})
+		z = z_fila + fondo_fila + 6.0
+	# suelo bajo el muestrario
+	var suelo := MeshInstance3D.new()
+	var pl := PlaneMesh.new()
+	pl.size = Vector2(MUESTRARIO_ANCHO + 20.0, z - MUESTRARIO_Z + 20.0)
+	suelo.mesh = pl
+	suelo.position = Vector3(MUESTRARIO_ANCHO * 0.5, -0.01, (MUESTRARIO_Z + z) * 0.5)
+	suelo.material_override = _material("x__suelo__", AABB())
+	add_child(suelo)
+	_cam_muestrario = Camera3D.new()
+	_cam_muestrario.name = "Cam_Muestrario"
+	_cam_muestrario.far = 500.0
+	_cam_muestrario.fov = 50.0
+	_cam_muestrario.keep_aspect = Camera3D.KEEP_WIDTH
+	add_child(_cam_muestrario)
+	print("muestrario: %d packs, %d piezas" % [_bloques.size(), indice.size()])
+	return true
+
+
+## Pone la cámara del muestrario delante del bloque `i` (un pack), mirando desde 35° por encima.
+func _ver_bloque(i: int) -> void:
+	if not _montar_muestrario() or _bloques.is_empty():
+		return
+	_bloque = posmod(i, _bloques.size())
+	var b: Dictionary = _bloques[_bloque]
+	var centro: Vector3 = b["centro"]
+	var dist: float = maxf(float(b["ancho"]), float(b["fondo"]) * 1.6) * 0.95
+	var ang: float = deg_to_rad(35.0)
+	_cam_muestrario.position = centro + Vector3(0.0, sin(ang) * dist, -cos(ang) * dist)
+	_cam_muestrario.look_at(centro, Vector3.UP)
+	_cam_muestrario.current = true
+	_actualizar_hud()
+
+
+func _capturar_muestrario() -> void:
+	_hud.visible = false
+	if not _montar_muestrario():
+		get_tree().quit()
+		return
+	_luz = "unreal"
+	_aplicar_luz()
+	# 26/11: la disposición y las cámaras, para montar el MISMO muestrario en Unreal y comparar foto con foto (en u del juego; Unreal
+	# lo pasa a cm con la escala de las piezas).
+	var camaras: Array = []
+	for i in range(_bloques.size()):
+		_ver_bloque(i)
+		var fw: Vector3 = -_cam_muestrario.global_transform.basis.z
+		camaras.append({"nombre": "Cam_" + String(_bloques[i]["pack"]).trim_prefix("PureNature_"), "pos": [_cam_muestrario.position.x, _cam_muestrario.position.y, _cam_muestrario.position.z],
+			"dir": [fw.x, fw.y, fw.z], "fov": _cam_muestrario.fov})
+	var arch := FileAccess.open(CAPTURAS + "muestrario.json", FileAccess.WRITE)
+	arch.store_string(JSON.stringify({"escala": 0.575, "piezas": _disposicion, "camaras": camaras}, " "))
+	arch.close()
+	for i in range(_bloques.size()):
+		_ver_bloque(i)
+		for f in range(120):
+			await get_tree().process_frame
+		await RenderingServer.frame_post_draw
+		var archivo: String = "muestrario_%s.png" % String(_bloques[i]["pack"]).trim_prefix("PureNature_").to_lower()
+		get_viewport().get_texture().get_image().save_png(CAPTURAS + archivo)
+		print("captura ", archivo)
+	get_tree().quit()
+
+
 func _actualizar_hud() -> void:
 	if _hud == null:
 		return
-	_hud.text = "Comparativa Unreal / Godot · cámara %s (1/2) · luz «%s» (L) · luz rebotada %s (G)" % [
-		(_camaras[_cam_actual] as Camera3D).name if not _camaras.is_empty() else "-", _luz, "sí" if _entorno.sdfgi_enabled else "no"]
+	var donde: String = (_camaras[_cam_actual] as Camera3D).name if not _camaras.is_empty() else "-"
+	if _cam_muestrario != null and _cam_muestrario.current and _bloque >= 0:
+		donde = "muestrario %s (3 / ← →)" % String(_bloques[_bloque]["pack"]).trim_prefix("PureNature_")
+	_hud.text = "Comparativa Unreal / Godot · %s · cámaras 1/2 · muestrario 3 · luz «%s» (L) · luz rebotada %s (G)" % [
+		donde, _luz, "sí" if _entorno.sdfgi_enabled else "no"]
 
 
 func _unhandled_input(ev: InputEvent) -> void:
@@ -389,6 +393,14 @@ func _unhandled_input(ev: InputEvent) -> void:
 			_elegir_camara(0)
 		KEY_2:
 			_elegir_camara(min(1, _camaras.size() - 1))
+		KEY_3:
+			_ver_bloque(max(_bloque, 0))
+		KEY_RIGHT:
+			if _bloque >= 0:
+				_ver_bloque(_bloque + 1)
+		KEY_LEFT:
+			if _bloque >= 0:
+				_ver_bloque(_bloque - 1)
 		KEY_L:
 			_luz = "juego" if _luz == "unreal" else "unreal"
 			_aplicar_luz()

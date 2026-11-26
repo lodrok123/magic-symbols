@@ -3,13 +3,20 @@
 # (con -ExecutePythonScript el editor se cierra en cuanto acaba el script, antes de que dé tiempo a renderizar).
 # Abre el mapa, se pone en cada cámara (Cam_Juego, Cam_Detalle), espera a que Lumen se asiente, saca una foto 1920x1080
 # y cierra el editor. Las fotos acaban en docs/capturas/comparativa_ue_godot/unreal_<camara>.png
-import unreal, os, shutil, glob, time
+# Con el argumento «muestrario» (py …/ue_capturar_prueba_bosque.py muestrario) hace lo mismo con el muestrario de piezas Pure Nature
+# (tools/ue_montar_muestrario.py): una foto por pack, unreal_Cam_<Pack>.png.
+import unreal, os, shutil, glob, time, sys, json
 
 MAPA = "/Game/MagicSymbols/MS_PruebaBosque"
 DESTINO = r"E:\magic-symbols\docs\capturas\comparativa_ue_godot"
 CAMARAS = ["Cam_Juego", "Cam_Detalle"]
 ESPERA = 25.0           # segundos por cámara antes de la foto (texturas, Lumen y la exposición automática tardan en asentarse)
 ESPERA_CARGA = 40.0     # segundos tras cargar el mapa (la primera vez compila sombreadores y sube texturas)
+if "muestrario" in sys.argv[1:]:
+    MAPA = "/Game/MagicSymbols/MS_Muestrario"
+    with open(os.path.join(DESTINO, "muestrario.json"), encoding="utf-8") as f:
+        CAMARAS = [c["nombre"] for c in json.load(f)["camaras"]]
+    ESPERA_CARGA = 120.0
 DIR_FOTOS = os.path.join(unreal.Paths.project_saved_dir(), "Screenshots")
 
 les = unreal.get_editor_subsystem(unreal.LevelEditorSubsystem)
