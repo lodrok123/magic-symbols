@@ -34,6 +34,7 @@ const RECETAS: Dictionary = {
 	"MI_Ivy_Leaf": ["T_IvyLeaves_D", "", "", "hiedra"],
 	"MI_Ivy_Vine_01": ["T_IvyBranch_01_D", "", "", "hiedra"],
 	"MI_Ivy_Vine_02": ["T_IvyBranch_02_D", "", "", "hiedra"],
+	"MI_Stairs": ["T_StoneRuins_D", "T_StoneRuins_N", "T_StoneRuins_AORM"],      # 26/11: la escalera de piedra (en Unreal, la misma piedra que MI_Stones)
 }
 ## Las losas del pack (MI_Floors, la misma textura que los muros): reciben la luz de arriba y salen más claras que el frente del muro; esto las iguala.
 ## 25/11, 2.º (Pablo: «diferencia ligeramente el color del suelo»): un poco más oscuro y más gris que el ladrillo, para que muro y suelo no se fundan.
@@ -59,14 +60,22 @@ func _initialize() -> void:
 		print("FALLO  no hay mallas en %s: antes, tools/preparar_stylescape.py e importar" % MALLAS)
 		quit(1)
 		return
+	# 26/11 (Pablo: «pon en el nivel todos los assets nuevos»): TODAS las mallas del pack (menos las EXCLUIDAS); las que no son de PAREDES.TODAS
+	# salen sin cuerpo (son para el muestrario y para colocar a mano con `; ss` en el mapa).
+	var nombres: Array = PAREDES.TODAS.duplicate()
+	for f in DirAccess.get_files_at(MALLAS):
+		if f.ends_with(".fbx"):
+			var nm: String = f.get_basename()
+			if not nm in nombres and not nm in PAREDES.EXCLUIDAS:
+				nombres.append(nm)
 	var bien: int = 0
-	for nombre in PAREDES.TODAS:
+	for nombre in nombres:
 		if _pieza(String(nombre)):
 			bien += 1
-	print("RESULTADO piezas=%d de %d" % [bien, PAREDES.TODAS.size()])
+	print("RESULTADO piezas=%d de %d" % [bien, nombres.size()])
 	var losas: bool = _losas_ruinas()
 	var sombra: bool = _sombra_base()
-	quit(0 if bien == PAREDES.TODAS.size() and losas and sombra else 1)
+	quit(0 if bien == nombres.size() and losas and sombra else 1)
 
 
 ## 25/11 (Pablo: «una sombra estrecha y suave pegada a la base»): la franja de sombra de contacto (presentacion/sombra_base_ruinas.gdshader), de MEDIA
@@ -273,6 +282,7 @@ func _pieza(nombre: String) -> bool:
 	raiz.set_meta("origen", ORIGEN)
 	raiz.set_meta("pieza_original", nombre)
 	raiz.set_meta("categoria", "muro")
+	raiz.set_meta("caja", (t * xf) * malla.get_aabb())      # 26/11: la caja en la pieza (el muestrario la lee sin instanciar)
 	var modelo := Node3D.new()
 	modelo.name = "modelo"
 	raiz.add_child(modelo)
@@ -290,9 +300,10 @@ func _pieza(nombre: String) -> bool:
 		if mat != null:
 			mi.set_surface_override_material(s, mat)
 	# Colisión: la caja del muro (para los hechizos; a pie ya bloquea la casilla entera). Los adornos (hiedra, escombros, losas…) no llevan cuerpo.
-	if nombre in PAREDES.ADORNOS:
+	if nombre in PAREDES.ADORNOS or not nombre in PAREDES.TODAS:
 		raiz.set_meta("bloquea", false)
-		raiz.set_meta("categoria", "adorno")
+		# las de piedra de muro (pilares, cornisas, barandillas, muros sueltos…) llevan el musgo de los muros; suelos, madera y hiedra, no
+		raiz.set_meta("categoria", "muro" if not nombre in PAREDES.ADORNOS and (mats.has("MI_Walls") or mats.has("MI_Walls_Dmg") or mats.has("MI_Stones") or mats.has("MI_Stairs")) else "adorno")
 		for n2 in [modelo, mi]:
 			(n2 as Node).owner = raiz
 		var emp := PackedScene.new()

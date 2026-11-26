@@ -29,8 +29,9 @@ const RUTA: String = "res://arte/stylescape/piezas/"
 const S: float = 2.3
 
 ## Tramos de 4 m (una casilla) y de 2 m (media), altos y bajos. Nombres de malla del pack: la pieza es "ss_" + nombre en minúsculas.
-const ALTOS_4: Array = ["SM_Wall_04", "SM_Wall_Dmg_02", "SM_Wall_Windows_01", "SM_Wall_Dmg_04", "SM_Wall_Dmg_03", "SM_Wall_04"]
-const ALTOS_2: Array = ["SM_Wall_02", "SM_Wall_Dmg_03_Alt", "SM_Wall_Dmg_04_Alt", "SM_Wall_Windows_Half", "SM_Wall_02"]
+## 26/11 (Pablo: «pon todos los assets nuevos»): también las saeteras (Loopholes).
+const ALTOS_4: Array = ["SM_Wall_04", "SM_Wall_Dmg_02", "SM_Wall_Windows_01", "SM_Wall_Dmg_04", "SM_Wall_Dmg_03", "SM_Wall_04", "SM_Wall_Loopholes_01"]
+const ALTOS_2: Array = ["SM_Wall_02", "SM_Wall_Dmg_03_Alt", "SM_Wall_Dmg_04_Alt", "SM_Wall_Windows_Half", "SM_Wall_02", "SM_Wall_Loopholes_Half"]
 const BAJOS_4: Array = ["SM_Wall_Half_04"]      ## (SM_Wall_Dmg_02_Half_01 mide 3 m, no una casilla: fuera)
 const BAJOS_2: Array = ["SM_Wall_Half_02", "SM_Wall_Dmg_03_Half_01", "SM_Wall_Dmg_04_Half_02"]
 const POSTE_ALTO: String = "SM_Wall_01_Corner"
@@ -42,14 +43,17 @@ const CONTRAFUERTE_FONDO: float = 0.575               ## u: dos tramos llenan la
 const TODAS: Array = ["SM_Wall_04", "SM_Wall_Dmg_02", "SM_Wall_Windows_01", "SM_Wall_Dmg_04", "SM_Wall_Dmg_03",
 	"SM_Wall_02", "SM_Wall_Dmg_03_Alt", "SM_Wall_Dmg_04_Alt", "SM_Wall_Windows_Half",
 	"SM_Wall_Half_04", "SM_Wall_Half_02", "SM_Wall_Dmg_03_Half_01", "SM_Wall_Dmg_04_Half_02",
-	"SM_Wall_01_Corner", "SM_Wall_Half_Corner", "SM_Wall_Thick_04", "SM_Wall_Thick_Half_04"] + ADORNOS
+	"SM_Wall_01_Corner", "SM_Wall_Half_Corner", "SM_Wall_Thick_04", "SM_Wall_Thick_Half_04", "SM_Wall_Loopholes_01", "SM_Wall_Loopholes_Half",
+	"SM_Pillar_04", "SM_Pillar_03", "SM_Wall_Ledge_Thick_04"] + ADORNOS      ## (las tres últimas: el marco de las trampas, ver contrafuerte_de)
+## 26/11: mallas del pack que NO se generan: el plano inclinado y el círculo del muestrario de Unreal (material de rejilla, no son ruina).
+const EXCLUIDAS: Array = ["SM_Slope", "SM_Circle_01"]
 ## 25/11 (Pablo: «pon los assets nuevos, no solo el muro»): adornos del pack, sin cuerpo (no bloquean). Ver `adornos_muro` y `adornos_suelo`.
-const HIEDRAS: Array = ["SM_HangingIvy_05", "SM_HangingIvy_06", "SM_HangingIvy_01", "SM_HangingIvy_03"]
+const HIEDRAS: Array = ["SM_HangingIvy_05", "SM_HangingIvy_06", "SM_HangingIvy_01", "SM_HangingIvy_03", "SM_HangingIvy_02"]
 const ESCOMBROS: Array = ["SM_Rubble_01", "SM_Rubble_02", "SM_Stone_01", "SM_Stone_02", "SM_Stone_03", "SM_Stone_01"]
 const LOSAS: Array = ["SM_Floor_4x4_TopFace_01", "SM_Floor_4x4_TopFace_02", "SM_Floor_4x4_TopFace_03"]
 const CORNISA: String = "SM_Wall_LedgeDetail_04"
 ## Alto y fondo (u) de cada hiedra (medidos de las piezas): cuelga con su parte de arriba en lo alto del muro.
-const DIM_HIEDRA: Dictionary = {"SM_HangingIvy_05": Vector2(1.03, 0.01), "SM_HangingIvy_06": Vector2(0.49, 0.02), "SM_HangingIvy_01": Vector2(0.59, 0.20), "SM_HangingIvy_03": Vector2(0.56, 0.20)}
+const DIM_HIEDRA: Dictionary = {"SM_HangingIvy_05": Vector2(1.03, 0.01), "SM_HangingIvy_06": Vector2(0.49, 0.02), "SM_HangingIvy_01": Vector2(0.59, 0.20), "SM_HangingIvy_03": Vector2(0.56, 0.20), "SM_HangingIvy_02": Vector2(1.26, 0.35)}
 const ALTO_MURO: float = 1.72        ## u (3 m)
 const MEDIO_GRUESO: float = 0.145    ## u: medio grueso del muro fino
 const CORNISA_ALTO: float = 0.16
@@ -60,7 +64,7 @@ const CADA_CORNISA: int = 2
 const CADA_ESCOMBRO: int = 4
 const CADA_CAJA: int = 9            ## de los escombros, 1 de cada n es una caja de madera
 const CAJA: String = "SM_Crate_01"
-const ADORNOS: Array = ["SM_HangingIvy_05", "SM_HangingIvy_06", "SM_HangingIvy_01", "SM_HangingIvy_03", "SM_Rubble_01", "SM_Rubble_02",
+const ADORNOS: Array = ["SM_HangingIvy_05", "SM_HangingIvy_06", "SM_HangingIvy_01", "SM_HangingIvy_03", "SM_HangingIvy_02", "SM_Rubble_01", "SM_Rubble_02",
 	"SM_Stone_01", "SM_Stone_02", "SM_Stone_03", "SM_Floor_4x4_TopFace_01", "SM_Floor_4x4_TopFace_02", "SM_Floor_4x4_TopFace_03",
 	"SM_Wall_LedgeDetail_04", "SM_Crate_01"]
 
@@ -212,14 +216,88 @@ static func losa_de(c: Vector2i, y: float) -> Array:
 
 ## El contrafuerte de una trampa: dos tramos de muro grueso de una casilla de ancho, uno pegado al eje y otro delante, hasta la cara de la casilla
 ## que da a `d`. Array de [id, Transform3D]. `bajo` = la pared sur (va baja).
+## 26/11 (Pablo: «integra las trampas como parte del muro»): y un MARCO del pack, como un nicho tallado en el muro: dos pilares a los lados de la
+## trampa (medio metidos en el contrafuerte, medio fuera) y una cornisa gruesa encima que vuela un poco sobre la cara.
+const PILAR_TRAMPA: String = "SM_Pillar_04"           ## 0,59 × 0,61 × 1,78 u
+const PILAR_TRAMPA_BAJO: String = "SM_Pillar_03"      ## 0,77 × 0,76 × 0,86 u (en una pared sur, baja)
+const CORNISA_TRAMPA: String = "SM_Wall_Ledge_Thick_04"   ## 2,3 × 0,75 × 0,16 u
+const CORNISA_TRAMPA_FONDO: float = 0.75
+const VUELO_CORNISA: float = 0.12                     ## u que la cornisa sale por delante de la cara del contrafuerte
 static func contrafuerte_de(c: Vector2i, d: Vector2i, y: float, bajo: bool = false) -> Array:
 	var centro := Vector3((float(c.x) + 0.5) * S, y, (float(c.y) + 0.5) * S)
 	var giro: float = 0.0 if d.y != 0 else 90.0           # lo largo del tramo, a lo largo del muro
 	var id: String = id_de(CONTRAFUERTE_BAJO if bajo else CONTRAFUERTE)
+	var hacia := Vector3(float(d.x), 0.0, float(d.y))
+	var lado := Vector3(-hacia.z, 0.0, hacia.x)
 	var res: Array = []
 	for k in [CONTRAFUERTE_FONDO * 0.5, CONTRAFUERTE_FONDO * 1.5]:
-		res.append([id, Transform3D(Basis(Vector3.UP, deg_to_rad(giro)), centro + Vector3(float(d.x), 0.0, float(d.y)) * k)])
+		res.append([id, Transform3D(Basis(Vector3.UP, deg_to_rad(giro)), centro + hacia * k)])
+	var cara: Vector3 = centro + hacia * (S * 0.5)
+	for s in [-1.0, 1.0]:
+		res.append([id_de(PILAR_TRAMPA_BAJO if bajo else PILAR_TRAMPA), Transform3D(Basis(Vector3.UP, deg_to_rad(giro)), cara + lado * (S * 0.5 * s))])
+	var alto: float = ALTO_MURO * (0.5 if bajo else 1.0)
+	res.append([id_de(CORNISA_TRAMPA), Transform3D(Basis(Vector3.UP, deg_to_rad(giro)), cara + hacia * (VUELO_CORNISA - CORNISA_TRAMPA_FONDO * 0.5) + Vector3(0.0, alto, 0.0))])
 	return res
+
+
+## 26/11 (Pablo: «pon en el nivel todos los assets nuevos para ver cómo casan»): el MUESTRARIO, todas las piezas generadas del pack en filas
+## dentro del rectángulo de casillas `desde`..`hasta` (ambas incluidas), por orden de nombre (así las familias quedan juntas: arcos, suelos,
+## pilares, barandillas, escaleras, muros, muros gruesos, madera…), en filas seguidas. Cada pieza, con su medida real (la caja de su malla).
+## (Una fila por familia dejaba media explanada vacía.) Array de [id, Transform3D].
+const HUECO_MUESTRARIO: float = 0.8
+static func muestrario(desde: Vector2i, hasta: Vector2i, y: float) -> Array:
+	var res: Array = []
+	var ids: Array = []
+	for f in DirAccess.get_files_at(RUTA):
+		var nombre: String = f.trim_suffix(".remap")
+		if nombre.begins_with("ss_") and nombre.ends_with(".tscn") and nombre != SOMBRA_BASE + ".tscn":
+			ids.append(nombre.trim_suffix(".tscn"))
+	ids.sort()
+	var x0: float = float(desde.x) * S + HUECO_MUESTRARIO
+	var x1: float = float(hasta.x + 1) * S - HUECO_MUESTRARIO
+	var x: float = x0
+	var z: float = float(desde.y) * S + HUECO_MUESTRARIO
+	var fondo_fila: float = 0.0
+	for id in ids:
+		var caja: AABB = _caja_pieza(String(id))
+		if x > x0 and x + caja.size.x > x1:
+			x = x0
+			z += fondo_fila + HUECO_MUESTRARIO
+			fondo_fila = 0.0
+		var pos := Vector3(x + caja.size.x * 0.5 - (caja.position.x + caja.size.x * 0.5), y, z + caja.size.z * 0.5 - (caja.position.z + caja.size.z * 0.5))
+		res.append([id, Transform3D(Basis.IDENTITY, pos)])
+		x += caja.size.x + HUECO_MUESTRARIO
+		fondo_fila = maxf(fondo_fila, caja.size.z)
+	if z + fondo_fila > float(hasta.y + 1) * S:
+		push_warning("muestrario del pack: no cabe en las casillas %s..%s (llega a la fila %.1f)" % [desde, hasta, (z + fondo_fila) / S])
+	return res
+
+
+## La caja (en la pieza) de las mallas de una pieza generada: la `caja` que guarda el generador en la raíz (sin instanciar: instanciar y liberar
+## 200 piezas llenaba la consola de avisos de material nulo); si no la tiene, instanciándola.
+static func _caja_pieza(id: String) -> AABB:
+	var ps: PackedScene = load(RUTA + id + ".tscn") as PackedScene
+	var st: SceneState = ps.get_state()
+	for i in range(st.get_node_property_count(0)):
+		if st.get_node_property_name(0, i) == "metadata/caja":
+			return st.get_node_property_value(0, i)
+	var n: Node = ps.instantiate()
+	var caja := AABB()
+	var hay: bool = false
+	for h in n.find_children("*", "MeshInstance3D", true, false):
+		var mi: MeshInstance3D = h
+		if mi.mesh == null:
+			continue
+		var xf := Transform3D.IDENTITY
+		var p: Node = mi
+		while p != null and p != n:
+			xf = (p as Node3D).transform * xf
+			p = p.get_parent()
+		var b: AABB = xf * mi.mesh.get_aabb()
+		caja = b if not hay else caja.merge(b)
+		hay = true
+	n.free()
+	return caja
 
 
 ## --- la piedra de la trampa, como la de los muros ---

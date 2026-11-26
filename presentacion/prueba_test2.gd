@@ -1336,6 +1336,8 @@ func _ready() -> void:
 	_crono("suelo")
 	_modo_escena = usar_escena and not _modo_nivel and ResourceLoader.exists(_ruta_escena())
 	_colocar_letras()
+	if _ruinas_ss():
+		_extras_ss()      # 26/11: piezas del pack puestas a mano (`; ss`) y el muestrario (`; muestrario_ss`)
 	_crono("letras")
 	_montar_canal()
 	_montar_agua_fisica()
@@ -1515,16 +1517,21 @@ func _tipo_suelo(c: Vector2i) -> int:
 		# 25/11 (Pablo: «no está integrado el suelo con el muro»): el muro fino va por el eje de su casilla y la casilla `#` era hierba, así que entre el
 		# muro y las losas de la sala quedaba media casilla de hierba. En las ruinas, bajo el muro va el suelo de la sala de al lado: piedra si alguna
 		# vecina es piedra, si no tierra si alguna es tierra; si no, hierba (las vecinas que son muro no cuentan).
-		var mejor: int = 0
+		# 26/11: el lado enlosado ya lo cubren las losas del pack por cuartos (`_paredes_ss`); el suelo de la casilla es el del OTRO lado (hierba o
+		# tierra), que si no asomaba piedra media casilla sobre la hierba. Piedra solo si todas las vecinas de suelo son piedra.
+		var mejor: int = -1
+		var piedra: bool = false
 		for d in [Vector2i(0, 1), Vector2i(1, 0), Vector2i(0, -1), Vector2i(-1, 0)]:
 			var q: Vector2i = c + d
 			if _en_mapa(q) and _letra(q) != "#" and not _es_agua(_letra(q)):
 				var tq: int = _tipo_suelo(q)
 				if tq == 3:
-					return 3
-				if tq == 2:
-					mejor = 2
-		return mejor
+					piedra = true
+				else:
+					mejor = maxi(mejor, tq)
+		if mejor >= 0:
+			return mejor
+		return 3 if piedra else 0
 	if _reglas != null or _de_archivo or (_modo_nivel and nivel != "test2"):
 		# Test de jugabilidad y niveles editables (salvo el Test 2, que conserva su aldea): el suelo sale de las letras (hierba de bosque; camino bajo la puerta, la salida y las losas).
 		if l == "c" or l == "e" or l == "u" or l == "-" or l == "L" or l == "R":
@@ -4185,6 +4192,10 @@ func _ruinas_ss() -> bool:
 func _muro_de_ruina(q: Vector2i) -> bool:
 	return _en_mapa(q) and _letra(q) == "#"
 
+func _enlosada(q: Vector2i) -> bool:
+	return _en_mapa(q) and _letra(q) == "R"
+
+
 
 ## 25/11: adornos del pack en una casilla de suelo de las ruinas: escombros, piedras y cajas junto a los muros (no en las que tienen una pieza del mapa).
 func _adornos_ss(c: Vector2i, l: String) -> void:
@@ -4230,12 +4241,51 @@ func _contrafuerte_ss(c: Vector2i) -> Vector2i:
 ## true si la casilla `#` se ha vestido con muros del pack (si no, la maqueta le pone su árbol como en el bosque).
 func _paredes_ss(c: Vector2i) -> bool:
 	var piezas: Array = PAREDES_SS.muros(c, Callable(self, "_suelo_de_cueva"), Callable(self, "_muro_de_ruina"), ALTO, _contrafuerte_ss(c))
+## 26/11 (Pablo: «pon en el nivel todos los assets nuevos para ver cómo casan»): líneas del mapa para el estilo «ruinas»:
+##   ; ss <Malla> x y [giro=grados] [dx=u] [dz=u] [dy=u]   una pieza del pack (SM_…) en la casilla (x, y), desplazada (dx, dz) del centro y girada
+##   ; muestrario_ss x0 y0 x1 y1                             todas las piezas del pack en filas dentro de ese rectángulo de casillas
+## Son decorado: no bloquean (lo que bloquea es la letra de la casilla).
+func _extras_ss() -> void:
+	var ruta: String = HorneadorNivel.ruta_mapa(nivel)
+	if ruta == "" or not FileAccess.file_exists(ruta):
+		return
+	var en: bool = _en_marcador
+	_en_marcador = false
+	for linea in FileAccess.get_file_as_string(ruta).split("\n"):
+		var t: PackedStringArray = linea.strip_edges().trim_prefix(";").strip_edges().split(" ", false)
+		if t.size() >= 4 and t[0] == "ss" and t[2].is_valid_int() and t[3].is_valid_int():
+			var c := Vector2i(int(t[2]), int(t[3]))
+			var giro: float = 0.0
+			var off := Vector3.ZERO
+			for k in t:
+				var kv: PackedStringArray = k.split("=")
+				if kv.size() != 2:
+					continue
+				match kv[0]:
+					"giro": giro = float(kv[1])
+					"dx": off.x = float(kv[1])
+					"dz": off.z = float(kv[1])
+					"dy": off.y = float(kv[1])
+			_poner_escena(PAREDES_SS.id_de(t[1]), c, Transform3D(Basis(Vector3.UP, deg_to_rad(giro)), _centro_celda(c, ALTO) + off), false)
+		elif t.size() >= 5 and t[0] == "muestrario_ss":
+			var desde := Vector2i(int(t[1]), int(t[2]))
+			for p in PAREDES_SS.muestrario(desde, Vector2i(int(t[3]), int(t[4])), ALTO):
+				_poner_escena(String(p[0]), desde, p[1], false)
+	_en_marcador = en
+
+
 	for p in piezas:
 		_poner_escena(String(p[0]), c, p[1], true)
-	if not piezas.is_empty() and _tipo_suelo(c) == 3:
-		# 25/11: bajo el muro de una sala enlosada, también la losa del pack (el suelo llega hasta la base del muro)
-		var lp: Array = PAREDES_SS.losa_de(c, ALTO)
-		_poner_escena(String(lp[0]), c, lp[1], false)
+	if not piezas.is_empty():
+		# 25/11: bajo el muro de una sala enlosada, también la losa del pack (el suelo llega hasta la base del muro).
+		# 26/11: por CUARTOS (losas de 2×2 m del pack), solo los del lado enlosado: la losa entera asomaba media casilla al otro lado del muro
+		# (sobre la hierba, en la puerta sur del patio).
+		for sx in [-1, 1]:
+			for sz in [-1, 1]:
+				if _enlosada(c + Vector2i(0, sz)) or _enlosada(c + Vector2i(sx, 0)):
+					var h: int = _hash(c.x * 2 + (sx + 1) / 2, c.y * 2 + (sz + 1) / 2, 11)
+					var pos: Vector3 = _centro_celda(c, ALTO) + Vector3(float(sx), 0.0, float(sz)) * S * 0.25 + Vector3(0.0, 0.015, 0.0)
+					_poner_escena(PAREDES_SS.id_de("SM_Floor_2x2_0%d_TopFace" % (1 + h % 3)), c, Transform3D(Basis(Vector3.UP, deg_to_rad(90.0 * float((h >> 2) % 4))), pos), false)
 	return not piezas.is_empty()
 
 

@@ -16,6 +16,15 @@ const FOTOS: Array = [
 	["3_dragon_oeste", Vector2i(23, 8), "t_dragon_pasillo", "escupe"],
 	["4_sala_totem", Vector2i(12, 5), "t_totem", "dispara"],
 	["5_entrada", Vector2i(4, 13), "", ""],
+	# 26/11: las piezas del pack a mano y el muestrario
+	["6_puerta_tesoro", Vector2i(13, 8), "", ""],
+	["7_arco_sur", Vector2i(24, 18), "", ""],
+	["8_escaleras", Vector2i(8, 14), "", ""],
+	["9_muestrario_1", Vector2i(13, 23), "", ""],
+	["10_muestrario_2", Vector2i(13, 27), "", ""],
+	["11_muestrario_3", Vector2i(13, 31), "", ""],
+	["12_muestrario_4", Vector2i(13, 35), "", ""],
+	["13_muestrario_5", Vector2i(13, 38), "", ""],
 ]
 
 
@@ -38,7 +47,7 @@ func _escenario() -> void:
 	var muros: int = 0
 	for n in maqueta.find_children("*", "Node3D", true, false):
 		var id: String = String((n as Node).get_meta("id", ""))
-		if id.begins_with("ss_wall_thick"):
+		if id in ["ss_wall_thick_04", "ss_wall_thick_half_04"] and _junto_a_trampa(n as Node3D):      # 26/11: el muestrario también tiene muros gruesos
 			pilares.append(n)
 		elif id.begins_with("ss_"):
 			muros += 1
@@ -117,6 +126,14 @@ func _fin_del_fuego() -> void:
 		else:
 			pegados += 1
 	_ok("6 el chorro del dragón se suelta de la boca cuando la cabeza calla (0,1 s después ningún haz sigue pegado)", pegados == 0, "%d pegados, %d soltándose" % [pegados, soltandose])
+
+
+func _junto_a_trampa(n: Node3D) -> bool:
+	for t in maqueta.find_children("*", "TrampaPared3D", true, false):
+		var p: Vector3 = (t as Node3D).global_position
+		if not (t as TrampaPared3D).exenta and Vector2(p.x - n.global_position.x, p.z - n.global_position.z).length() < 2.0:
+			return true
+	return false
 
 
 func _toys_fuego(centro: Vector3) -> int:

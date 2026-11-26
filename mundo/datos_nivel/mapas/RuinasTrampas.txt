@@ -18,6 +18,26 @@
 #.gS.........................#
 #............................#
 #............................#
+#############gggg#############
+#gggggggggggggggggggggggggggg#
+#gggggggggggggggggggggggggggg#
+#gggggggggggggggggggggggggggg#
+#gggggggggggggggggggggggggggg#
+#gggggggggggggggggggggggggggg#
+#gggggggggggggggggggggggggggg#
+#gggggggggggggggggggggggggggg#
+#gggggggggggggggggggggggggggg#
+#gggggggggggggggggggggggggggg#
+#gggggggggggggggggggggggggggg#
+#gggggggggggggggggggggggggggg#
+#gggggggggggggggggggggggggggg#
+#gggggggggggggggggggggggggggg#
+#gggggggggggggggggggggggggggg#
+#gggggggggggggggggggggggggggg#
+#gggggggggggggggggggggggggggg#
+#gggggggggggggggggggggggggggg#
+#gggggggggggggggggggggggggggg#
+#gggggggggggggggggggggggggggg#
 ##############################
 ; ======================================================================================================================================================
 ;  RUINAS CON TRAMPAS (25/11/2026). Escena de prueba del estilo «ruinas» (muros finos del pack Stylescape: Ruins, presentacion/paredes_stylescape.gd) con
@@ -31,11 +51,16 @@
 ;    3 · Patio enlosado (22..28, 5..15), se entra desde el pasillo: un DRAGÓN en el muro norte (26,4) escupe hacia el sur cada 4,5 s y quema el seto de (26,7); otro DRAGÓN en
 ;        el muro oeste (21,7) cruza el patio hacia el este 2 s de cada 4. Puerta al sur (24..25, 16).
 ;    4 · Sala del tesoro (8..18, 2..6), enlosada, puerta (13,7): un TÓTEM de ruinas (mascarón exento, 10,4) dispara hacia el este por la fila 4, delante del cofre (17,3).
+;    5 · 26/11 (Pablo: «pon en el nivel todos los assets nuevos para ver cómo casan»): piezas del pack puestas a mano (`; ss`, abajo): portal en la puerta
+;        del tesoro, arco en la puerta sur del patio, pilares en las esquinas, barandilla y escalera de piedra en el muro bajo del pasillo, escalera de
+;        madera contra la sala del tesoro, piedras de esquina, suelos variados en el patio, vigas y tablas caídas en la sala. Las trampas de pared van
+;        en un nicho del muro (dos pilares y una cornisa, presentacion/paredes_stylescape.gd `contrafuerte_de`).
+;    6 · MUESTRARIO (8..19, 21..39, en una explanada de tierra 1..28), por la puerta sur (13..16, 20): todas las piezas del pack, en filas por familia, a su tamaño.
 ;  Lo lanza escenas/PruebaRuinasTrampas.tscn. Prueba: herramientas/captura_ruinas_trampas.gd.
 ; ======================================================================================================================================================
 ; # pared · . hierba · g tierra pisada · R losas · S inicio · T brasero · z seto
 ;
-; zona 1,1..28,19 ruinas mezcla=0.8 rotulo=Ruinas_de_prueba
+; zona 1,1..28,39 ruinas mezcla=0.8 rotulo=Ruinas_de_prueba
 ;
 ; pieza t_masc_1 trampa_flechas 9 9 mira=s cada=2.0 desfase=0 elemento=fuego alcance=2 cerca=8
 ; pieza t_masc_2 trampa_flechas 12 9 mira=s cada=2.0 desfase=0.66 elemento=fuego alcance=2 cerca=8
@@ -44,3 +69,51 @@
 ; pieza t_dragon_pasillo trampa_dragon 21 7 mira=e ciclo=2.0,2.0 desfase=0 alcance=4 cerca=7
 ; pieza t_totem trampa_flechas 10 4 mira=e exenta=si cada=2.5 desfase=0 elemento=fuego alcance=8 cerca=8
 ; pieza cofre_ruinas cofre 17 3 abierto=ruinastrampas.tesoro.cofre da=oro:40
+;
+; --- 26/11: piezas del pack a mano (; ss <Malla> x y [giro=] [dx=] [dz=] [dy=], u desde el centro de la casilla) ---
+; portal en la puerta de la sala del tesoro (muro bajo): la pieza con puerta y medio muro bajo a cada lado hasta los postes
+; ss SM_Wall_Door_01 13 7
+; ss SM_Wall_Half_02 12 7 dx=0.575
+; ss SM_Wall_Half_02 14 7 dx=-0.575
+; arcadas en relieve en la cara sur de la sala del tesoro
+; ss SM_Wall_ArchDetail_04 9 7 dz=0.26
+; ss SM_Wall_ArchDetail_04 10 7 dz=0.26
+; ss SM_Wall_ArchDetail_04 16 7 dz=0.26
+; ss SM_Wall_ArchDetail_04 17 7 dz=0.26
+; pilares en las esquinas
+; ss SM_Pillar_01 7 7
+; ss SM_Pillar_01_Dmg 19 7
+; ss SM_Pillar_02 21 4
+; ss SM_Pillar_05 21 16
+; arco de piedra en la puerta sur del patio (24..25, 16), con medio muro bajo a cada lado
+; ss SM_Arch_01 25 16 dx=-1.15
+; ss SM_Wall_Half_03 23 16 dx=0.8
+; ss SM_Wall_Half_03 26 16 dx=-0.8
+; barandilla sobre el muro bajo del pasillo, con sus pilarcillos
+; ss SM_Railing_Pillar_01 14 12 dx=-1.15 dy=0.86
+; ss SM_Railing_02_04 14 12 dy=0.86
+; ss SM_Railing_02_04 15 12 dy=0.86
+; ss SM_Railing_02_04 16 12 dy=0.86
+; ss SM_Railing_Pillar_01 16 12 dx=1.15 dy=0.86
+; escalera de piedra contra el muro bajo, desde la hierba
+; ss SM_Stairs_Half 10 13 dz=-0.5
+; escalera de madera contra la sala del tesoro (oeste)
+; ss SM_Stairs_Wood_Full 6 4 dx=-0.2
+; piedras de esquina en los extremos de los muros
+; ss SM_Edge_Stones_01 6 9 dx=-0.15
+; ss SM_Edge_Stones_01_Half_01 6 12 dx=-0.15
+; ss SM_Edge_Stones_02 21 17 dx=0.15
+; suelos del pack variados en el patio y losas sueltas en la hierba de la entrada
+; ss SM_Floor_4x4_01_Dmg 23 13
+; ss SM_Floor_4x4_03_Alt 27 11
+; ss SM_Floor_6x4_03_Dmg 24 9 dx=0.575
+; ss SM_Floor_2x2_01_TopFace 4 18 dy=0.02
+; ss SM_Floor_2x2_02_TopFace 5 18 dx=0.3 dz=0.4 dy=0.02 giro=20
+; vigas y tablas caídas en la sala del tesoro
+; ss SM_Wood_Floor_2x2 15 5
+; ss SM_Rafter_02 16 5 giro=35
+; ss SM_Rafter_Dmg 9 2 giro=-20
+; ss SM_HangingIvy_04 11 1 dz=0.6 dy=1.72
+;
+; muestrario de todo el pack
+; muestrario_ss 8 21 19 39
