@@ -2,6 +2,11 @@
 ; titulo El cofre que viene a ti
 ; tipo premio
 ; pide agua o fuego
+; prueba solucion A: golpe agua riego desde 2:7 | espera balsa atracada | espera alcanzable cofre | max 30
+; prueba solucion B: golpe fuego tapon desde 4:5 | espera cuenca foso todas_bajo 0.25 | espera alcanzable cofre | max 15
+; prueba solucion C: golpe agua riego desde 2:7 | espera balsa a_flote | golpe fuego tapon desde 4:5 | espera alcanzable cofre | max 40
+; prueba nada: golpe fuego riego desde 2:7 | nunca alcanzable cofre | durante 20
+; prueba nada_tapon: golpe agua tapon desde 4:5 | nunca alcanzable cofre | durante 20
 ;  Un foso de 3 × 3 (x3..5, y2..4) en el fondo de la sala, medio inundado (0,35 u: no se pisa, pero la balsa aún no flota, que pide 0,5 u). Sobre una balsa, en la esquina
 ;  del fondo (5,2), hay un cofre a más de 2,7 u de cualquier casilla pisable: desde la orilla no se alcanza con E. DOS soluciones, el cofre solo depende de la distancia:
 ;    A) AGUA: el pulsador de agua de la orilla (2,6) riega, su regla abre el manantial del foso (0,6 u³/s) y el foso sube; con 0,5 u de agua la balsa FLOTA, deriva por

@@ -15,7 +15,12 @@ extends RefCounted
 ##                                   23/11: con varias letras («ccc»), las n-1 primeras son la CABEZA fija (pegada a la izquierda) y la ÚLTIMA se repite hasta
 ##                                   el ancho de la sala (se ignoran los espacios del final). Una sala más estrecha que la fila más larga no sirve.
 ##   ; ancho_min <n>                 solo con `estira x`: ancho mínimo de la sala (para que los comodines `$XC` y `$X1` no choquen con la cabeza)
-##   ; cueva pieza …                 una línea que solo se escribe si el estilo del mapa es «cueva» (el brasero con el modelo de la Cueva)
+##   ; prueba anchos 5 8 12          (26/11) solo para el COMPROBADOR AUTOMÁTICO (`herramientas/comprobar_puzles_agua.gd`, que documenta el formato entero): los anchos de sala a los que probar
+##                                   la plantilla (solo con `estira x`; el generador los fuerza con el parámetro `ancho_puzle`).
+##   ; prueba mapa ancho=70 alto=60 sala_min=4  parámetros del mapa generado donde se prueba (para plantillas grandes que no caben en el mapa por defecto).
+##   ; prueba solucion A: golpe fuego cuerda | espera puente tendido | max 6
+##                                   una prueba jugada con hechizos reales: golpes, esperas hasta una condición, tope de tiempo. También `prueba nada: …` con `nunca … | durante <s>`.
+##   ; cueva pieza …               una línea que solo se escribe si el estilo del mapa es «cueva» (el brasero con el modelo de la Cueva)
 ##   <filas del plano>               # pared · . suelo · ~ agua · c cauce del juego (suelo ocupado, SIN icono «?» por casilla; la vista lo pinta azul) ·
 ##                                   espacio = no tocar · cualquier otra letra = suelo con esa letra del juego (y un icono «?» en la vista)
 ##   ; pieza … / ; puzle …           como en un mapa. Los ids son locales (al colocar se les pone delante `cat<n>_`). Las casillas de la plantilla (x y de la pieza y las listas de
@@ -53,7 +58,8 @@ static func _leer() -> Dictionary:
 
 
 static func leer_texto(texto: String, id_defecto: String = "") -> Dictionary:
-	var e: Dictionary = {"id": id_defecto, "titulo": id_defecto, "tipo": "premio", "pide": "", "activa": "", "estira": "", "ancho_min": 0, "barrera": false, "filas": [], "lineas": [], "lineas_cueva": [], "ancho": 0, "alto": 0}
+	var e: Dictionary = {"id": id_defecto, "titulo": id_defecto, "tipo": "premio", "pide": "", "activa": "", "estira": "", "ancho_min": 0, "barrera": false, "filas": [], "lineas": [], "lineas_cueva": [], "ancho": 0, "alto": 0,
+		"anchos": [], "pruebas": [], "mapa": {}}
 	for linea in texto.split("\n"):
 		var l: String = String(linea).replace("\r", "")
 		if l.strip_edges() == "":
@@ -81,6 +87,18 @@ static func leer_texto(texto: String, id_defecto: String = "") -> Dictionary:
 					e["ancho_min"] = resto.to_int()
 				"barrera":
 					e["barrera"] = resto == "si"
+				"prueba":
+					# Líneas del comprobador (`herramientas/comprobar_puzles_agua.gd`): el generador no las usa.
+					if resto.begins_with("anchos"):
+						for n in resto.substr(6).strip_edges().split(" ", false):
+							(e["anchos"] as Array).append(n.to_int())
+					elif resto.begins_with("mapa "):
+						for kv in resto.substr(5).split(" ", false):
+							var par: PackedStringArray = kv.split("=", true, 1)
+							if par.size() == 2:
+								(e["mapa"] as Dictionary)[par[0]] = par[1].to_int() if par[1].is_valid_int() else (par[1].to_float() if par[1].is_valid_float() else par[1])
+					else:
+						(e["pruebas"] as Array).append(resto)
 				"cueva":
 					if resto.begins_with("pieza ") or resto.begins_with("puzle "):
 						(e["lineas_cueva"] as Array).append("; " + resto)

@@ -4,6 +4,12 @@
 ; pide fuego
 ; estira x
 ; ancho_min 5
+; prueba anchos 5 8 12
+; prueba solucion A: golpe fuego cuerda desde $XC-1:3 | espera puente tendido | max 5 | cruza $XC:3 a $XC:0
+; prueba solucion B: golpe fuego tapon desde 1:3 | espera cuenca cauce todas_bajo 0.25 | max 20 | cruza $XC:3 a $XC:0
+; prueba solucion B_seco: golpe fuego tapon desde 1:3 | espera cuenca cauce todas_bajo 0.05 | max 60
+; prueba nada: golpe agua tapon desde 1:3 | nunca cuenca cauce bajo 0.25 | durante 15
+; prueba nada_cuerda: golpe agua cuerda desde $XC-1:3 | nunca puente tendido | durante 10
 ;  Una acequia de lado a lado de la sala, dos casillas de ancho, llena a 0,4 u (con >= 0,25 u no se pisa), así que hay que cruzarla de otra manera.
 ;  Hay DOS soluciones, las dos con fuego y las dos se resuelven desde la ORILLA SUR (la de entrada), sin que el disparo cruce el agua:
 ;    A) El PUENTE: bajo el agua, en la columna central ($XC), hay un puente plegado atado a una cuerda que cuelga del poste de su cabecera sur, ya en la orilla. Un golpe de

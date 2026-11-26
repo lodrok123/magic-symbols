@@ -3,6 +3,9 @@
 ; tipo salida
 ; activa meta.pulsado
 ; pide tierra
+; prueba mapa ancho=70 alto=60 sala_min=4 sala_max=7 estilo=cueva luz=cueva
+; prueba solucion A: reposo 30 | golpe tierra rio_d con barrera desde 10:6 | espera pasarela tendido | max 8 | cruza 9:3 a 9:1
+; prueba nada: reposo 30 | golpe agua molino desde 10:3 | nunca pasarela tendido | durante 15
 ;  P4 (23/11/2026, Ruinas/Cuevas, después de Tierra; sin hielo): hay que llegar a la orilla norte, al otro lado de una galería inundada (la franja
 ;  de cauce de arriba). El manantial corre SIEMPRE y reparte su caudal en una bifurcación (esquina de abajo a la derecha): al norte, el brazo del
 ;  MOLINO, que sube y entra en la galería; al sur, el brazo del DESAGÜE, que se pierde.

@@ -2591,6 +2591,10 @@ func _poner_puzle(s: Dictionary, cid: String, nv: String, de_barrera: bool = fal
 	if String(e["estira"]) == "x":
 		# Una franja: cada fila se repite hasta el ancho de la sala y se prueba en cada altura, la del centro primero.
 		tw = r.size.x
+		# 26/11: `ancho_puzle` (parámetro del mapa, 0 = el de la sala) fuerza el ancho de la franja: lo usa el comprobador de puzles de agua para probar una plantilla a varios anchos.
+		# Más ancha que la sala se autoajusta (excava la roca de alrededor, como siempre); más estrecha deja el resto de la sala como suelo.
+		if int(p.get("ancho_puzle", 0)) > 0:
+			tw = int(p["ancho_puzle"])
 		# 23/11: cada fila pierde los espacios del final (`leer_texto` la rellena hasta el ancho). Una letra = se repite entera; n >= 2 = las n-1 primeras
 		# son la CABEZA fija (a la izquierda) y la última se repite hasta el ancho de la sala. Una sala más estrecha que la fila (o que `ancho_min`) no vale.
 		var minimo: int = int(e.get("ancho_min", 0))
