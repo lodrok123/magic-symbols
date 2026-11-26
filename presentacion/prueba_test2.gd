@@ -298,6 +298,10 @@ uniform float rugosidad = 0.5;            // 0 liso · 1 muy rugoso (tecla B)
 uniform float tam_rugosidad = 1.4;        // unidades de mundo por repetición del relieve
 uniform float relieve_hierba = 0.0;       // 14/11: relieve de más en la hierba (que por defecto lleva la mitad que el camino); 0 = como siempre
 uniform float relieve_junta = 1.0;        // 14/11: relieve que conserva la franja pintada de la junta hierba→otro suelo: 1 = como siempre · 0 = lisa
+// 26/11 (Pablo: «baja la normal de la hierba y la arena; la tierra no la toques»): multiplican el relieve SOLO de la hierba (w.r) y de la
+// arena del camino (w.g). 1 = como antes · 0 = lisa. La tierra (w.b) y la piedra (w.a) no cambian.
+uniform float relieve_hierba_k = 0.5;
+uniform float relieve_arena_k = 0.5;
 // Relieve PROPIO de la tierra: mapa de normales sacado de su textura (piedras en relieve, musgo y gravilla). Si no hay
 // (usa_normal_tierra = 0) la tierra usa el relieve genérico de arriba, como siempre.
 uniform sampler2D normal_tierra : hint_normal, filter_linear_mipmap, repeat_enable;
@@ -687,6 +691,7 @@ void fragment() {
 	// 14/11: `relieve_hierba` suma relieve SOLO en la hierba (w.r); 0 en todos los niveles salvo los que lo pidan (Monte Sumicio).
 	float fuerza = rugosidad * (0.5 + 0.5 * (w.g + w.b) + 0.8 * w.a + relieve_hierba * w.r) * (1.0 - he);
 	fuerza *= mix(1.0, relieve_junta, tapa_junta);     // la franja pintada de la junta ya trae su dibujo: el ruido de la normal la ensucia
+	fuerza *= 1.0 - (1.0 - relieve_hierba_k) * w.r - (1.0 - relieve_arena_k) * w.g;    // 26/11: menos relieve en hierba y arena (tierra igual)
 	NORMAL_MAP = nr * 0.5 + 0.5;
 	NORMAL_MAP_DEPTH = fuerza * 2.2;
 }
