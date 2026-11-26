@@ -18,7 +18,6 @@ const VARIANTES: Dictionary = {
 	"arbusto_otono": ["res://arte/pure_nature/juego/pn_mountains_bush3.tscn"],
 	"flor_heliconia": ["res://arte/pure_nature/juego/pn_jungle_heliconia2.tscn"],
 	"flor_reactiva": ["res://arte/pure_nature/juego/pn_meadows_lupin2.tscn","res://arte/pure_nature/juego/pn_jungle_anthurium2.tscn",""],
-	"flores_amarillas": ["res://arte/pure_nature/juego/pn_mountains_daisy.tscn"],
 	"flores_blancas": ["res://arte/pure_nature/juego/pn_meadows_daisy.tscn","res://arte/pure_nature/juego/pn_meadows_flowermeadow4.tscn",""],
 	"flores_colores": ["res://arte/pure_nature/juego/pn_meadows_flowermeadow3.tscn","res://arte/pure_nature/juego/pn_asianvalley_astilb_2.tscn"],
 	"helecho": ["res://arte/pure_nature/juego/pn_mountains_fern1.tscn",""],
