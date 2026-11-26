@@ -16,16 +16,17 @@
 ;  Dónde está cada cosa: fila 0 = orilla norte (con dos paredes a la izquierda); fila 1 = dos de pared (x0 y x1) y el cauce; fila 2 = desagüe (x0), tapón (x1) y cauce (x2 .. $X1);
 ;  fila 3 = orilla sur. El cauce solo empieza en x2 para que el desagüe y el tapón no se pisen con el puente, que va en $XC (por eso `ancho_min 5`: con 5 de ancho $XC vale 2).
 ;  Las paredes de las filas 0-1 van de dos en dos (como en piedra_pista): una pared suelta quedaría de punta, con agua o suelo por tres lados.
-;  Tapón: `vertical=si` porque el agua corre aquí de este a oeste (hacia el desagüe) y la losa tiene que cruzar la casilla de norte a sur; con `vertical=no` (el de Q5, que corre de
-;  norte a sur) el agua no pasaba (medido el 23/11: el cauce seguía en 0,70 u con el tapón «abierto»). `estrecha=no` y `nivel=0.4`: con el hueco estrecho (por defecto) y 0,7 u el cauce
-;  de 11 de ancho tardaba ~25 s en bajar de 0,25 u; así, ~11 s (el vaciado crece con el ancho de la sala).
+;  Tapón: `tarda=8` (26/11): la compuerta se abre ENTERA y la simulación limita lo que sale de su casilla a (agua del cauce) / 8 u³/s: una COTA MÍNIMA (no baja de ~8 s), no un motor: en una sala
+;  ancha la física del interior tarda más sola y el tope ni se nota (con el hueco estrecho y 0,7 u el cauce de 11 de ancho tardaba ~25 s). Ya no hace falta `vertical=si estrecha=no`:
+;  la compuerta mira sola por qué lados da a agua (con `vertical=no` el agua no pasaba, medido el 23/11) y `vertical` es solo el dibujo de la losa, que se orienta sola. `nivel=0.4` se queda
+;  para que el cauce tenga poca agua que sacar (con 0,7 u la cola sería más larga).
 ;  Las letras `c` son el cauce del juego (`cauce_hondo`: una `c` seca es un foso; con >= 0,25 u de agua no se pisa).
 ##.
 ##c
 ccc
 .
 ; pieza cauce cuenca 2 1 celdas=2,1..$X1,2 nivel=0.4
-; pieza tapon compuerta 1 2 abre_con=fuego vertical=si estrecha=no
+; pieza tapon compuerta 1 2 abre_con=fuego tarda=8
 ; pieza desague cuenca 0 2 fijo=0.02
 ; pieza puente puente $XC 1 celdas=$XC,1..$XC,2
 ; pieza cuerda cuerda $XC 3 sostiene=puente

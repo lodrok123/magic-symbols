@@ -21,7 +21,10 @@ extends Node
 ##
 ## PIEZAS (tipo → claves, entre paréntesis el valor por defecto) y qué clase de `objetos/` es:
 ##   pulsador   modo=magia|agua|presencia (magia)  rearme=<s> (0)  modelo=cueva          Pulsador3D: botón, pulsador de agua o placa (modelo=cueva: la placa de piedra de la Cueva)
-##   compuerta  abierta (no)  abre_con=fuego|agua|hielo|rayo|explosion  cierra_con=…  estrecha (si)  vertical (si)   Compuerta3D
+##   compuerta  abierta (no)  abre_con=fuego|agua|hielo|rayo|explosion  cierra_con=…  estrecha (si)  vertical (sola)  caudal=<u³/s>  tarda=<s>   Compuerta3D
+##                                                                                   `vertical` es solo el DIBUJO de la losa (si no se da, se orienta sola); el agua pasa por los lados de la casilla que dan a cauce/agua.
+##                                                                                   `caudal` o `tarda` (26/11): al abrirse se abre ENTERA y el agua que sale de su casilla se limita a ese caudal, o al volumen del lado
+##                                                                                   alto / `tarda` s: el vaciado no baja de ese tiempo (cota mínima: una sala ancha ya tarda más sola; ver compuerta_3d.gd y AguaSim3D.limitar_paso)
 ##   nivel      objetivo=<u> (0.45)  banda=<u> (0)  invertido (no)                    NivelAgua3D: lee la profundidad de su casilla
 ##   molino     umbral=<u/s> (0.3)  vertical (si)  hechizo (si)                       Molino3D: gira a ω ∝ corriente en su plano (tope 3 rad/s), con inercia, y se baja al fondo de su casilla (foso, canal, río). `umbral` = corriente que da `girando`. `hechizo=no`: el golpe de agua solo la empuja un instante y NO cuenta para `girando` (solo lo mueve el agua del cauce)
 ##   barril     tam=normal|pequeno (normal)                                           Barril3D. `tam=pequeno`: barril de 0,55 u que la jugadora coge y lanza (radio 1,6, mecha 2,4 s)
@@ -29,7 +32,7 @@ extends Node
 ##   puerta     modelo=llave (losa)                                                  losa que bloquea su casilla hasta abrirse (PuertaPuzle). `modelo=llave`: el marco
 ##                                                                                   de piedra y la hoja con herrajes (arte/piezas/puerta_llave_*), girados con la pared
 ##   emisor                                                                          EmisorRayo3D: la fuente eléctrica (letra «e»)
-##   cuenca     celdas=<lista> (la propia x,y)  nivel=<u> (no llena)  fijo=<u>|si     abre casillas c o canal al agua; `nivel` las llena a esa
+##   cuenca     celdas=<lista> (la propia x,y)  nivel=<u> (no llena)  fijo=<u>|si  bordes (no)   abre casillas c o canal al agua; `nivel` las llena a esa
 ##                                                                                   profundidad; `fijo=<u>` mantiene ese nivel (un desagüe);
 ##                                                                                   `fijo=si` lo mantiene en `nivel`
 ##   manantial  caudal=<u³/s> (0.5)  volumen=<u³> (0 = infinito)  rampa (si)  inicia (si)  celdas=<lista>
@@ -463,14 +466,14 @@ const ALIAS_TIPO: Dictionary = {"seta_veneno": "respiradero"}
 ## Claves de cada tipo de pieza y qué valor admiten: «f» número, «b» sí/no, «celdas» lista de casillas, «fijo» número o sí, «s:a|b» una de esas palabras.
 const CLAVES: Dictionary = {
 	"pulsador": {"modo": "s:magia|agua|presencia", "rearme": "f", "modelo": "s:cueva", "peso": "f"},
-	"compuerta": {"abierta": "b", "abre_con": "s:fuego|agua|hielo|rayo|explosion", "cierra_con": "s:fuego|agua|hielo|rayo", "estrecha": "b", "vertical": "b"},
+	"compuerta": {"abierta": "b", "abre_con": "s:fuego|agua|hielo|rayo|explosion", "cierra_con": "s:fuego|agua|hielo|rayo", "estrecha": "b", "vertical": "b", "caudal": "f", "tarda": "f"},
 	"nivel": {"objetivo": "f", "banda": "f", "invertido": "b"},
 	"molino": {"umbral": "f", "vertical": "b", "hechizo": "b"},
 	"barril": {"tam": "s:normal|pequeno"},
 	"nexo": {},
 	"puerta": {"modelo": "s:llave|reja", "giro": "f", "llave": "flag", "gasta": "b", "abierto": "flag", "flag": "flag"},
 	"emisor": {},
-	"cuenca": {"celdas": "celdas", "nivel": "f", "fijo": "fijo"},
+	"cuenca": {"celdas": "celdas", "nivel": "f", "fijo": "fijo", "bordes": "b"},
 	"manantial": {"caudal": "f", "volumen": "f", "rampa": "b", "inicia": "b", "celdas": "celdas", "sin_piedra": "b", "bloque": "celdas", "terraza": "f", "pilares": "b", "espuma": "f"},
 	"tinaja": {"canal": "celdas"},
 	"totem": {},
@@ -3043,7 +3046,9 @@ func _crear(pz: Pieza) -> void:
 			var k := Compuerta3D.new()
 			k.name = pz.id
 			k.estrecha = bool(pz.p.get("estrecha", true))
-			k.preparar(pz.celda, bool(pz.p.get("abierta", false)), String(pz.p.get("abre_con", "")), String(pz.p.get("cierra_con", "")), bool(pz.p.get("vertical", true)))
+			k.caudal = maxf(float(pz.p.get("caudal", 0.0)), 0.0)
+			k.tarda = maxf(float(pz.p.get("tarda", 0.0)), 0.0)
+			k.preparar(pz.celda, bool(pz.p.get("abierta", false)), String(pz.p.get("abre_con", "")), String(pz.p.get("cierra_con", "")), bool(pz.p["vertical"]) if pz.p.has("vertical") else null)
 			cont.add_child(k)
 			pz.nodo = k
 		"nivel":
@@ -3213,6 +3218,8 @@ func _crear(pz: Pieza) -> void:
 				else:
 					for c in celdas:
 						Terreno3D.agua_sim.fijar_nivel(c as Vector2i, _fondo(c as Vector2i) + prof)
+			if bool(pz.p.get("bordes", false)):
+				_poner_bordes(celdas)
 		"manantial":
 			if bool(pz.p.get("sin_piedra", false)):
 				_ocultar_piedra_canal(celdas, cont)
@@ -4243,6 +4250,23 @@ func _forma_ancha(bloque: Array) -> void:
 				if abre[Vector2i(dx, 0)] and abre[Vector2i(0, dy)]:
 					lados.append(Vector2i(dx, dy))
 		sim.abrir_solo(c as Vector2i, lados, false)
+
+
+## 26/11 (`cuenca bordes=si`): la cuenca es un RECIPIENTE de verdad. Sus fronteras hacia las casillas vecinas que no son de la cuenca y no llevan agua (tierra, suelo firme, muros)
+## se bloquean con `AguaSim3D.pared_entre`: antes un hueco 1×1 rebosaba en cuanto su nivel pasaba el suelo de al lado y un canal se desbordaba por los lados. Siguen abiertas las
+## vecinas que son cauce (`c`, canal), un `~`, una cuenca ya abierta (y por tanto las compuertas, que van sobre c) o que ya tienen agua.
+func _poner_bordes(celdas: Array) -> void:
+	var sim: AguaSim3D = Terreno3D.agua_sim
+	for c in celdas:
+		for d in [Vector2i(1, 0), Vector2i(-1, 0), Vector2i(0, 1), Vector2i(0, -1)]:
+			var n: Vector2i = (c as Vector2i) + (d as Vector2i)
+			if celdas.has(n):
+				continue
+			var con_agua: bool = Terreno3D.hay_mundo() and Terreno3D.en_mapa(n) and (Terreno3D.es_cauce_seco(n) or Terreno3D.letra_de(n) == "~")
+			if Terreno3D.cauces_abiertos.has(n) or sim.profundidad_casilla(n) > 0.0:
+				con_agua = true
+			if not con_agua:
+				sim.pared_entre(c as Vector2i, d as Vector2i, true)
 
 
 func _abrir_celdas(celdas: Array) -> void:

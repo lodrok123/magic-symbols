@@ -13,6 +13,17 @@ extends Area3D
 ##
 ## Qué pasa con el agua al cerrar: la que había en la casilla se reparte entre las vecinas abiertas (lo hace `_poner_cerrado`).
 ## Qué NO hace: no es una puerta para el jugador (la casilla de cauce no se pisa). Se dibuja sola: una losa que baja al abrirse.
+##
+## 26/11 (puzles de agua sin ajustar a mano): dos cosas que antes obligaban a medir cada puzle.
+##  - SIN ORIENTACIÓN: al abrirse con `estrecha`, la compuerta abre el trocito central y los de los lados que dan a una casilla vecina por la que el agua puede ir (un cauce
+##    `c`, un canal que abre hacia ella, agua o una cuenca abierta), sea cual sea `vertical`. Antes `vertical=no` en una compuerta que corría de este a oeste NO dejaba pasar nada
+##    (medido el 23/11 en puente_aliviadero). `vertical` queda solo para el DIBUJO de la losa y, si no se da, la losa se orienta sola perpendicular al paso detectado.
+##  - CAUDAL PROPIO: `caudal=<u³/s>` o `tarda=<s>`. Con cualquiera de los dos la compuerta se abre ENTERA (como `estrecha=no`: que la física del hueco no sea el cuello de botella) y
+##    la simulación limita lo que sale de su casilla (`AguaSim3D.limitar_paso`). Con `tarda`, q = volumen del cuerpo de agua de su lado alto / tarda (`AguaSim3D.volumen_cuerpo_alto`,
+##    medido al abrirse): es una COTA MÍNIMA del tiempo, un tope que frena, no un motor. Vaciar o trasvasar no baja de ~`tarda` s (ni la cola de la física lo acelera), pero si la sala es ancha el agua del fondo
+##    tarda más en llegar a la compuerta POR SÍ SOLA (la simulación reparte el agua por diferencia de altura, sin que el caudal dependa de la profundidad: el tiempo crece con el ancho al cuadrado; medido en
+##    `prueba_agua_sim` 15) y el tope ni se nota. Sirve para que una sala estrecha no vacíe demasiado rápido; para una ancha, `tarda` ≥ lo que tarda sola. Con `caudal` el tope es ese número. Si hay los dos manda
+##    `caudal`. Si al abrirse no hay agua en el lado alto (V = 0) no se limita nada. Al cerrarse se quita el límite. Sin `caudal` ni `tarda` el comportamiento es el de siempre.
 
 signal cambio(abierta: bool)
 
@@ -28,21 +39,29 @@ var celda: Vector2i = Vector2i.ZERO
 var abierta: bool = false
 var abre_con: String = ""
 var cierra_con: String = ""
-var vertical: bool = true                  ## la losa cruza la casilla de norte a sur (true) o de este a oeste
+var vertical: bool = true                  ## la losa cruza la casilla de norte a sur (true) o de este a oeste. SOLO DIBUJO desde el 26/11 (el paso del agua lo decide `_lados_paso`)
+var vertical_auto: bool = true             ## 26/11: no se dio `vertical`: la losa se orienta sola perpendicular al paso del agua detectado
+var caudal: float = 0.0                    ## 26/11: tope de caudal de salida (u³/s) al abrirse; 0 = sin tope (ver la cabecera)
+var tarda: float = 0.0                     ## 26/11: s que debe tardar en pasar el agua de su lado alto; 0 = sin tope (ver la cabecera)
 var estrecha: bool = true                  ## abierta, deja pasar el agua solo por el trocito central (AguaSim3D.abrir_solo): el trasvase es
                                            ## 3 veces más lento que con la casilla entera (15/10, Pablo: «el llenado tiene que ser más progresivo»)
 var _losa: MeshInstance3D = null
 var _y_cerrada: float = 0.0
 
 
-func preparar(p_celda: Vector2i, p_abierta: bool = false, p_abre_con: String = "", p_cierra_con: String = "", p_vertical: bool = true) -> void:
+func preparar(p_celda: Vector2i, p_abierta: bool = false, p_abre_con: String = "", p_cierra_con: String = "", p_vertical: Variant = null) -> void:
 	celda = p_celda
 	abierta = p_abierta
 	abre_con = p_abre_con
 	cierra_con = p_cierra_con
-	vertical = p_vertical
+	vertical_auto = p_vertical == null
+	vertical = true if p_vertical == null else bool(p_vertical)
 	position = Terreno3D.centro_de(celda, Terreno3D.alto_suelo)
 	Terreno3D.cauces_a_ras[celda] = true      # cauce hondo: la casilla de una compuerta no es foso (cerrada es un dique a ras)
+	if vertical_auto:
+		var por_agua: Array = _lados_paso()
+		if not por_agua.is_empty():
+			vertical = (por_agua[0] as Vector2i).x != 0      # el agua pasa de este a oeste → la losa cruza de norte a sur
 
 
 func _ready() -> void:
@@ -161,21 +180,59 @@ func alternar() -> void:
 		abrir()
 
 
+## 26/11: los lados (Vector2i unitarios) por los que el agua puede cruzar esta casilla. Un lado cuenta si la vecina tiene algún trocito abierto y lleva agua posible: ya tiene agua, es un
+## cauce (`c` o `~`), una cuenca ya abierta o un canal que abre hacia aquí. Si UN extremo de un eje cuenta, entra también el otro (si es abierto): el agua que entra tiene que poder salir.
+## Sin ninguno (o sin simulación) se usa el eje que dice `vertical`, que es lo que hacía antes.
+func _lados_paso() -> Array:
+	var sim: AguaSim3D = Terreno3D.agua_sim
+	var r: Array = []
+	if sim != null:
+		var con_mundo: bool = Terreno3D.hay_mundo()
+		var abierta_n := {}
+		var agua_n := {}
+		for d in [Vector2i(1, 0), Vector2i(-1, 0), Vector2i(0, 1), Vector2i(0, -1)]:
+			var n: Vector2i = celda + (d as Vector2i)
+			if not sim._dentro_casilla(n) or sim._trozos_abiertos(n).is_empty():
+				continue
+			abierta_n[d] = true
+			var lleva: bool = sim.profundidad_casilla(n) > 0.0
+			if not lleva and con_mundo and Terreno3D.en_mapa(n):
+				if Terreno3D.es_canal_ruinas(n):
+					lleva = Terreno3D.abre_hacia(n, -(d as Vector2i))
+				else:
+					lleva = Terreno3D.cauces_abiertos.has(n) or Terreno3D.es_cauce_seco(n) or Terreno3D.letra_de(n) == "~"
+			if lleva:
+				agua_n[d] = true
+		for par in [[Vector2i(1, 0), Vector2i(-1, 0)], [Vector2i(0, 1), Vector2i(0, -1)]]:
+			if agua_n.has(par[0]) or agua_n.has(par[1]):
+				for d in par:
+					if abierta_n.has(d):
+						r.append(d)
+	if r.is_empty():
+		return [Vector2i(1, 0), Vector2i(-1, 0)] if vertical else [Vector2i(0, 1), Vector2i(0, -1)]
+	return r
+
 ## Lleva el estado al mundo (simulación + cauces abiertos) y a la losa.
 func _aplicar(animar: bool) -> void:
 	var sim: AguaSim3D = Terreno3D.agua_sim
 	if abierta:
 		Terreno3D.cauces_abiertos[celda] = true
 		if sim != null:
-			if estrecha:
-				# El hueco de la compuerta: el agua cruza la losa de un lado al otro (perpendicular a ella), por el trocito central.
-				var lados: Array = [Vector2i(1, 0), Vector2i(-1, 0)] if vertical else [Vector2i(0, 1), Vector2i(0, -1)]
-				sim.abrir_solo(celda, lados)
+			var limitada: bool = caudal > 0.0 or tarda > 0.0
+			var q: float = caudal
+			if q <= 0.0 and tarda > 0.0:
+				q = sim.volumen_cuerpo_alto(celda) / tarda        # se mide ANTES de abrir: la casilla aún es pared y no mezcla los dos lados
+			if estrecha and not limitada:
+				# El hueco de la compuerta: el agua cruza por el trocito central y los de los lados que dan a agua posible (26/11: sin depender de `vertical`).
+				sim.abrir_solo(celda, _lados_paso())
 			else:
 				sim.solidificar_casilla(celda, false)
+			if limitada and q > 0.0:
+				sim.limitar_paso(celda, q)
 	else:
 		Terreno3D.cauces_abiertos.erase(celda)
 		if sim != null:
+			sim.quitar_limite(celda)
 			sim.quitar_estrecho(celda)                   # vuelve a leer la casilla: sin cauce abierto es pared otra vez
 			sim.solidificar_casilla(celda, true)
 	if _losa == null:
