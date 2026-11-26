@@ -42,6 +42,16 @@ Hay 7 (26/11/2026): Asian Valley, Fantasy Forest, Islands, Jungle, Meadows, Moun
 6. Comprobarlo contra Unreal (opcional): `LabComparativaBosque -- --muestrario` (fotos de Godot y `muestrario.json`),
    `tools/ue_montar_muestrario.py` y `ue_capturar_prueba_bosque.py muestrario` (fotos de Unreal), y `python tools\comparar_muestrario.py`.
 
+7. **Vegetación del juego sustituida por el pack** (decisión de Pablo, 26/11): lo elegido en `docs/fab_ue/candidatos_vegetacion.json`
+   (vista de candidatos del laboratorio, tecla 4). Crea `arte/pure_nature/juego/pn_*.tscn` (el modelo del pack con el material del juego,
+   que es el que se quema, se moja, se hiela y reacciona) y la tabla `presentacion/fab_ue/tabla_variantes.gd`:
+
+       tools\Godot_v4.7.2-stable_win64.exe --headless --path . --script res://herramientas/aplicar_candidatos_vegetacion.gd
+       tools\Godot_v4.7.2-stable_win64.exe --headless --path . --script res://herramientas/prueba_variantes_vegetacion.gd
+
+   La prueba tiene que acabar en `fallos=0`. **Sin este paso (o sin el pack) el juego usa las piezas originales**: no se rompe nada.
+   Para comparar con las originales: la variable de entorno `MS_SIN_VARIANTES=1`.
+
 ## Qué hay aquí (todo fuera de git)
 
 `mallas/` FBX · `texturas/` PNG · `informe.json` las recetas de material · `materiales/` `.tres` · `mallas_res/` · `piezas/` ·
