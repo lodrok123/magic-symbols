@@ -140,7 +140,9 @@ static func texto_mapa(m: Dictionary) -> String:
 		l.append("; apariciones " + " ".join(tap))
 	l.append(";")
 	if bool(p["rotulo"]):
-		l.append("; zona 1,1..%d,%d %s mezcla=0.8 rotulo=%s" % [int(m["ancho"]) - 2, int(m["alto"]) - 2, String(p["luz"]), nombre])
+		# 26/11: `titulo_nivel` (opcional, no sale en el panel: se escribe en el `; generador` del .txt o lo pone la herramienta) = el rótulo del mapa entero en vez del nombre del nivel.
+		var rotulo_nivel: String = String(p.get("titulo_nivel", "")).strip_edges()
+		l.append("; zona 1,1..%d,%d %s mezcla=0.8 rotulo=%s" % [int(m["ancho"]) - 2, int(m["alto"]) - 2, String(p["luz"]), rotulo_nivel.replace(" ", "_") if rotulo_nivel != "" else nombre])
 		l.append(";")
 	# 20/11: las salas de cámara (CamaraSalas): la cámara se frena en su borde y se acerca en las pequeñas.
 	var cam: Array = m.get("salas_camara", [])
@@ -164,6 +166,10 @@ static func texto_escena(m: Dictionary) -> String:
 	l.append("[ext_resource type=\"Script\" path=\"res://escenas/puzle.gd\" id=\"2_pz\"]")
 	if cueva:
 		l.append("[ext_resource type=\"Script\" path=\"res://presentacion/luz_portatil_cueva.gd\" id=\"3_luz\"]")
+	# 26/11: con cabaña (parámetro `cabana`), la guardabosques (letra `m`) habla: un nodo con su diálogo (escenas/guardabosques_cabana_3d.gd).
+	var con_cabana: bool = not (m.get("cabana", {}) as Dictionary).is_empty()
+	if con_cabana:
+		l.append("[ext_resource type=\"Script\" path=\"res://escenas/guardabosques_cabana_3d.gd\" id=\"4_gc\"]")
 	l.append("")
 	l.append("[node name=\"Prueba%s\" type=\"Node3D\"]" % nombre)
 	l.append("script = ExtResource(\"1_poc\")")
@@ -206,6 +212,10 @@ static func texto_escena(m: Dictionary) -> String:
 	l.append("")
 	l.append("[node name=\"Puzles\" type=\"Node\" parent=\".\"]")
 	l.append("script = ExtResource(\"2_pz\")")
+	if con_cabana:
+		l.append("")
+		l.append("[node name=\"GuardabosquesCabana\" type=\"Node\" parent=\".\"]")
+		l.append("script = ExtResource(\"4_gc\")")
 	return "\n".join(l) + "\n"
 
 

@@ -1,0 +1,144 @@
+####################################################################################
+####################################################################################
+####################################################################################
+#####################################################v##############################
+################################################,,.vvvvv############################
+##############################################,,.....v.v############################
+##############################################,.......vvvv##########################
+##############################################v........v.##################.########
+###############.#############################vv.W........###############......######
+##############.....,,########################......ggg...##############.........####
+############W,....v....######################.....vgggg...############..........####
+##########,,......vv...######################.....vgggggg,############.#############
+##########,......vv....######################......gggggAggg#########..#.......#.###
+###########............#######################....Wgg.ggggggggggg####..#.......#.###
+###########vv....gg.....#######################....gg..gggggggggggggg..#.......#..,#
+############.....gg.....#######################,,,,gg,,,#gggg,#gggggg..####.####..##
+############v....gg....,##########################,gg,,v#vgggg######,..####.####..,#
+############vv.vvggvvv.,###########################gg,,v##,gggg#####,............###
+############vAvv.gg.v..,###########################gg#####,,gggg#######........#####
+##############W..gg...,,###,,,#####################gg######,,ggg,#######.....#######
+################.gg##,####v.~.,####################gg#######,,ggg########,gg########
+################ggg######,.~~~.,###################gg########vgggg,######,gg########
+################ggg#####,..,,,~,,##################ggg#######,,ggg,#####,ggg,,######
+################gg,####,..,##,~~.,############v,##,ggg########,,ggg#####,ggg,.,,####
+################gg,####,~,####,~..,#####,###,,..,##,gg#########,ggg#####,gg,,~~.,#,#
+#########,####,ggg,,##v..,####,.,..v##,,.,#v.~~~.,,ggg#######,###ggg####ggg,~~~~.,.#
+########,,####,ggg,,##,~,######,#,~v#v.~..vv~...~~~...#####,,.,#...........~~,,,.~.#
+#######,.,####,gg####,..,########,..,.~~v~~~..#.~~~....###,.~~~,...........~.###,.,#
+#####,,,~.,##,ggg####,~,##########,~,~vv#,~..#..#########,.~~,~~~~........~~.####,##
+####,.~~~..,#,ggg###,..,##########,.~.,##,.,##..##########RgggRR.~~.#######..#######
+#,v,.~~~..~~,ggg####,~,############,.,####,##...###ccc###RRggggg....##...##..#######
+#~~~~.....~~Rggg##,,..,#############,#######....###ccc###Rgg##gg....##..T##..#######
+#~~~,v...vv.RRgv#,.,~v######################....###ccc###,,#####....##...##..#######
+#,,,.......ggR~.#,~~.v################,,,,,g....##...c.##,######....##...##..#######
+###.......gggg~~,.~~,################,,,,ggg....##...c.#########....##...##..#######
+###......gggg..~~~,,################,,gggggg.............#######....##...##.########
+##,.....ggggggggRg,,,#########,,,,##,gggggg,##...........########...........########
+##,,....ggmgggggggggg######..........ggg,,#####..........gg,v######.........########
+##,,..vvvvgg..,#ggggggg,,##..........gg########,,######gggggv########.......########
+###,,..vvvgg..v####gggggg............g#################,,ggggv#########ggg,#########
+#######vv.gg#########gggg...........####################,,gggg#########,gg##########
+#########vgg###########gg...#####...#####################,,gggg########vgg##########
+##########gg###########,,...##.##...######################,,gggg########ggg#########
+##########gg############,...##.##....#######################,gggg#######ggg#########
+##########gg#############............#######################,,gggg#######gg#########
+#########,gg#############...........###########################gggg######ggg########
+#########,gg############,..........############################,gggg#####ggg########
+#########,gg,############..........############################,,ggggg####gg########
+#######......#############..........############################vvggggg###gg##,#####
+######.......###############,,,vgggg,###########################,vv,gggg##gg##,#####
+##...........###################,ggg,#############################v,,...........####
+##............###################,ggg###############################,............###
+#,............####################gggg###############################............###
+####...........####################ggg###############################....T...T...###
+####ccccccccccc#####################ggg#############################v.............##
+##ccccccccccccc#####################ggggg,####,,..##################,.............,#
+##.............,#####################ggggg,,,,...vv.,###############,.............,#
+####...........########################gggg,vvv..vv...#########,,gggg....T...T....##
+#####.........##########################gggggvvv.......####,,gggggggg............###
+#####........############################ggggggv.......##gggggggggg,##.........#####
+#######.....###############################gggggg....gggggggggg###v###.........#####
+########,v,#################################.gggggggggggggg,,,########...###.#######
+#########,,#################################...gggggggg,##v#########################
+###########################################......gg....,############################
+##########################################vv.....Sg.....,###########################
+############################################v....gg....,############################
+##############################################.,.gg..###############################
+####################################################################################
+; ======================================================================================================================
+;  GENERADO por herramientas/generador_mapas. 2026-11-26. Nivel «BosqueCabana», 84 × 68, algoritmo «bosque», semilla 1.
+;  10 salas, 0 puertas, 6 enemigos, 0 cofres, 9 jarrones. Escena: escenas/PruebaBosqueCabana.tscn. Mientras esta cabecera siga aquí, la herramienta puede volver a escribir
+;  este archivo (guarda copia si lo has retocado). Para adoptarlo como nivel hecho a mano, borra la palabra GENERADO de la línea de arriba.
+; ======================================================================================================================
+; # pared · . suelo · ~ agua honda · S inicio · W goblin guerrero · A goblin arquero · T brasero · g tierra pisada (pasillos) · R losas (o basalto bajo la lava) · G elemental del bosque
+; bosque: g camino de tierra · . claro · , hierba corta · v hierba alta (arde) · R vado de piedras · ~ río
+; generador {"acabado":true,"agua":8,"algoritmo":"bosque","alto":68,"ancho":84,"ancho_camino":2,"ancho_pasillo":2,"ancho_precipicio":2,"ancho_rio":2,"apertura":50,"arqueros":25,"b_braseros":true,"b_placa":true,"b_precipicio":true,"b_puente":true,"barreras":0,"braseros":0.0,"bucles":30,"bucles_claros":40,"cabana":"prov_house_02","cabana_en":"","callejones":100,"camara_sala":true,"campamentos":0,"charcas":0,"claros":9,"decorado":true,"densidad_salas":1.0,"enemigos":0.4,"estilo":"bosque","forma":"rectangulo","hierba_alta":15,"jarrones":3.0,"kit":"demo","lado_max":8,"lado_min":4,"lados_salida":"s","llave":false,"luz":"bosque","metodo":"fractal","n_salas":9,"nombre":"BosqueCabana","octavas":4,"paredes":"kit","pasillos":30,"paso_tierra":0,"puertas":50,"puzles":0,"recto":60,"region_min":12,"relleno":56,"reparto":"dispersas","rio":"eo","rotulo":true,"rotulos_claros":true,"runas":"","sala_jefe":"no","sala_max":4,"sala_min":2,"salas_cerradas":0,"salida_a":"BosqueGen02:desde_cabana=desde_02","semilla":1,"silueta":60,"simetria":true,"sinuosidad":50,"solo_aceptados":false,"suavizados":2,"tamano_claro":6,"tamano_sala":10.0,"terreno":true,"tesoro":false,"titulo_nivel":"La senda del guardabosques","titulos_claros":"0=La senda del guardabosques;1=El claro de la emboscada;7=El calvero de los goblins"}
+; puzles 2>estatuas_sellos 3>puente_aliviadero 4>cofre_balsa 5>braseros_orden 6>escondite_muro 9>dragon_brasero
+;
+; zona 1,1..82,66 bosque mezcla=0.8 rotulo=La_senda_del_guardabosques
+;
+; pieza inicio entrada 49 64
+; pieza a_salida_1 salida 49 66 a=BosqueGen02:desde_cabana
+; pieza desde_02 entrada 49 64
+; pieza cat1_estatuas estatuas 72 12 celdas=72,12+75,12+78,12 secuencia=fuego,agua,tierra flag=bosquecabana.cat1.estatuas
+; pieza cat1_cofre cofre 75 14 modelo=epico aparece_si=flag.bosquecabana.cat1.estatuas abierto=bosquecabana.cat1.cofre da=oro:50+fragmento_savia:1
+; pieza cat2_cauce cuenca 4 54 celdas=4,54..14,55 nivel=0.4
+; pieza cat2_tapon compuerta 3 55 abre_con=fuego tarda=8
+; pieza cat2_desague cuenca 2 55 fijo=0.02
+; pieza cat2_puente puente 8 54 celdas=8,54..8,55
+; pieza cat2_cuerda cuerda 8 56 sostiene=cat2_puente
+; pieza cat3_foso cuenca 51 30 celdas=51,30..53,32 nivel=0.35
+; pieza cat3_manantial manantial 51 30 caudal=0.6 volumen=0 rampa=no inicia=no
+; pieza cat3_riego pulsador 50 34 modo=agua rearme=2
+; puzle cat3_llena cuando=cat3_riego.pulsado hace=cat3_manantial.abrir_cauce(0.6,20)
+; pieza cat3_tapon compuerta 53 33 abre_con=fuego vertical=no
+; pieza cat3_desague cuenca 53 34 fijo=0.02
+; pieza cat3_balsa balsa 53 30 ruta=52,30+51,30+51,31+51,32 cofre=cat3_cofre calado=0.5 vel=1.5
+; pieza cat3_cofre cofre 53 30 abierto=bosquecabana.cat3.cofre da=oro:40
+; pieza cat4_orden secuencia 75 56 de=77,53+73,57+77,57+73,53 flag=bosquecabana.cat4.orden
+; pieza cat4_mural mural 75 55 de=77,53+73,57+77,57+73,53 flag=bosquecabana.cat4.mural
+; pieza cat4_cofre cofre 75 54 aparece_si=flag.bosquecabana.cat4.orden abierto=bosquecabana.cat4.cofre da=oro:40+pocion:1
+; pieza cat5_muro muro 30 43 golpes=2
+; pieza cat5_cofre cofre 30 42 abierto=bosquecabana.cat5.cofre da=tabla:cofre_pequeno
+; pieza cat6_dragon trampa_dragon 69 32 mira=e ciclo=90,1 alcance=3
+; pieza cat6_brasero brasero 72 31 dura=3
+; pieza cat6_cofre cofre 70 30 abierto=bosquecabana.cat6.cofre da=oro:35+pocion:1
+; puzle cat6_apaga cuando=cat6_brasero.encendido hace=cat6_dragon.apagar(4)
+; pieza cabana_casa decorado 9 34 modelo=prov_house_02
+; pieza cabana_a1 decorado 11 35 modelo=prov_barrel
+; pieza cabana_a2 decorado 11 34 modelo=prov_barrel_open giro=40
+; pieza cabana_a3 decorado 12 35 modelo=prov_crate_01 giro=15
+; pieza cabana_a4 decorado 6 34 modelo=prov_cart giro=90
+; pieza cabana_a5 decorado 11 33 modelo=tronco_sin_resina giro=90
+; pieza cabana_a6 decorado 12 33 modelo=tocon_alto
+; pieza cabana_a7 decorado 8 38 modelo=cartel
+; pieza cabana_a8 decorado 7 32 modelo=prov_fence_01
+; pieza cabana_a9 decorado 6 32 modelo=prov_fence_01
+; pieza cabana_a10 decorado 5 32 modelo=prov_fence_01
+; pieza cabana_a11 decorado 7 33 modelo=prov_flower_01_c
+; pieza cabana_a12 decorado 6 33 modelo=prov_flower_02_c
+; pieza cabana_a13 decorado 7 35 modelo=prov_flower_pot
+; pieza cabana_a14 decorado 5 35 modelo=prov_bush_02
+; pieza cabana_a15 decorado 7 36 modelo=prov_jar_01
+; pieza cabana_a16 decorado 8 36 modelo=prov_bench
+; pieza cabana_a17 decorado 11 36 modelo=prov_stool
+; pieza jarron_1 jarron 53 57 botin=oro
+; pieza jarron_2 jarron 48 55 botin=oro
+; pieza jarron_3 jarron 43 56 botin=oro
+; pieza jarron_4 jarron 23 14 botin=oro
+; pieza jarron_5 jarron 14 9 botin=oro
+; pieza jarron_6 jarron 18 9 botin=pocion
+; pieza jarron_7 jarron 45 8 botin=oro
+; pieza jarron_8 jarron 55 4 botin=pocion
+; pieza jarron_9 jarron 47 5 botin=oro
+; zona 43,55..55,66 bosque mezcla=0.5 nombre=claro_0 rotulo=La_senda_del_guardabosques
+; zona 11,8..23,20 bosque mezcla=0.5 nombre=claro_1 rotulo=El_claro_de_la_emboscada
+; zona 69,7..81,19 bosque mezcla=0.5 nombre=pz_estatuas_sellos rotulo=Tres_estatuas_fuego_agua_tierra_ᚱ
+; zona 2,48..14,60 bosque mezcla=0.5 nombre=pz_puente_aliviadero rotulo=El_puente_y_el_aliviadero
+; zona 44,26..56,37 bosque mezcla=0.5 nombre=pz_cofre_balsa rotulo=El_cofre_que_viene_a_ti
+; zona 69,50..81,61 bosque mezcla=0.5 nombre=pz_braseros_orden rotulo=Braseros_en_orden_y_mural_de_barro
+; zona 25,37..36,48 bosque mezcla=0.5 nombre=pz_escondite_muro rotulo=Escondite_tras_el_muro_agrietado
+; zona 45,3..57,14 bosque mezcla=0.5 nombre=claro_7 rotulo=El_calvero_de_los_goblins
+; zona 3,28..15,41 bosque mezcla=0.5 nombre=cabana rotulo=La_cabaña_del_guardabosques
+; zona 64,26..76,38 bosque mezcla=0.5 nombre=pz_dragon_brasero rotulo=El_brasero_tras_el_chorro

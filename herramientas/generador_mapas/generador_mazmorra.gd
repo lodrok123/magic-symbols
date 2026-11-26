@@ -108,6 +108,12 @@ static func parametros_defecto() -> Dictionary:
 		"solo_aceptados": false,
 		# 24/11 (Pablo: «salas de jefe para los enemigos grandes»): "no" | "auto" (cueva: gólem · bosque: elemental) | "jefe_golem" | "jefe_elemental".
 		"sala_jefe": "no",
+		# 26/11 (Pablo: «niveles medio grandes de bosque: 01, 02 y la cabaña del guardabosques»), solo algoritmo «bosque»:
+		#   `cabana` = la pieza de casa (de CABANAS) que se levanta en el claro más grande sin papel ("" = ninguna): casilla de huella bloqueada, atrezo alrededor, la
+		#   guardabosques delante (letra `m`) y SIN enemigos ni jarrones en ese claro. `cabana_en` = «x,y»: el centro de la casa, si no se quiere el sitio automático.
+		#   `rotulos_claros` = una zona con rótulo por cada claro con papel (la entrada, cada puzle, el campamento…); `titulos_claros` = «id=Título;id=Título» para
+		#   ponerles nombre a mano (el id de sala sale en la pestaña de salas; las palabras se unen solas).
+		"cabana": "", "cabana_en": "", "rotulos_claros": false, "titulos_claros": "",
 	}
 
 
@@ -208,6 +214,7 @@ func generar(parametros: Dictionary = {}, retoques: Dictionary = {}, enlaces_man
 	_anadidos_pedidos = anadidos.duplicate(true)
 	anadidos_hechos = []
 	_n_barriles = 0
+	_cabana_hecha = {}
 	puzles_puestos = {}
 	_puzles_mano = puzles_mano.duplicate()
 	_n_cat = 0
@@ -2322,6 +2329,7 @@ func _poblar() -> void:
 				sb["rol"] = "salida"
 	# 1b · Puzles del catalogo: antes de repartir papeles, porque cambian el suelo de su sala.
 	_colocar_catalogo(vivas, nv)
+	_poner_cabana(vivas)                                # 26/11: la cabaña del guardabosques (bosque): reserva su claro antes de repartir enemigos y jarrones
 	# 2 · Distancia de cada sala al inicio.
 	var dist: PackedInt32Array = _distancias(inicio)
 	var dmax: int = 1
@@ -2490,7 +2498,7 @@ func _poblar() -> void:
 	var hay_arquero: bool = false
 	for s in vivas:
 		var rol: String = String(s["rol"])
-		if rol == "inicio" or rol == "salida" or rol == "puzle" or rol == "campamento" or rol == "jefe" or (rol == "tesoro" and not puerta_llave.is_empty()):
+		if rol == "inicio" or rol == "salida" or rol == "puzle" or rol == "campamento" or rol == "jefe" or rol == "cabana" or (rol == "tesoro" and not puerta_llave.is_empty()):
 			continue                               # donde se llega de otro nivel no espera nadie (el campamento ya trae su gente)
 		var celdas: Array = _celdas_sala(s).filter(func(c: Vector2i) -> bool: return not _ocupada.has(c) and not _cerca_de_puerta(c) and absi(c.x - inicio.x) + absi(c.y - inicio.y) >= 5)
 		var n: int = clampi(int(round(celdas.size() / CASILLAS_POR_ENEMIGO * fuerza * (0.6 + 0.8 * int(s["dist"]) / float(dmax)))), 0, 5)
@@ -2552,7 +2560,7 @@ func _poblar() -> void:
 	var n_jar: float = clampf(float(p["jarrones"]), 0.0, 6.0)
 	for s in vivas:
 		var r: Rect2i = s["rect"]
-		if r.size.x < 3 or r.size.y < 3 or String(s["rol"]) == "puzle" or String(s["rol"]) == "campamento":
+		if r.size.x < 3 or r.size.y < 3 or String(s["rol"]) == "puzle" or String(s["rol"]) == "campamento" or String(s["rol"]) == "cabana":
 			continue
 		var quiero_b: int = int(n_bras) + (1 if _pct(fmod(n_bras, 1.0) * 100.0) else 0)
 		var rincones: Array = [r.position, Vector2i(r.end.x - 1, r.position.y), Vector2i(r.position.x, r.end.y - 1), r.end - Vector2i.ONE]
@@ -2585,6 +2593,205 @@ func _poblar() -> void:
 	_aplicar_apariciones(nv)
 	_emitir_barreras(nv)
 	_pintar_terreno()
+	_rotulos_de_claros()
+
+
+# =====================================================================================================================
+#  La cabaña del guardabosques y los rótulos de los claros (26/11)
+# =====================================================================================================================
+
+## Las casas que se pueden levantar con el parámetro `cabana` (`arte/piezas/<modelo>.tscn`: piezas del pack Fantasy Provencal que ya bloquean su huella solas,
+## metadato `bloquea`, ver `Puzle3D._bloquear_huella`). La puerta de todas mira al sur (a la cámara).
+##   `ancho` × `alto`: casillas que ocupa su colisión, centradas en la casilla de la casa (se mide con herramientas/_medir_casas… en la verificación del nivel).
+##   `guarda`: la casilla de la guardabosques respecto al centro (delante de la puerta y algo a un lado: no tapa el paso a la puerta). Si no vale, se prueban `guarda_alt`.
+##   `atrezo`: [pieza de arte/piezas, dx, dy, giro en grados]: el entorno (leñera, barriles, carreta, huerto, valla, farol…) como `decorado` sin mecánica.
+##             Cada una se pone solo si su casilla es suelo libre; las que no tienen sitio se saltan sin aviso.
+const CABANAS: Dictionary = {
+	"prov_house_02": {"ancho": 3, "alto": 3, "guarda": Vector2i(1, 3), "guarda_alt": [Vector2i(-1, 3), Vector2i(2, 3), Vector2i(-2, 3)],
+		"atrezo": [
+			["prov_barrel", 2, 1, 0], ["prov_barrel_open", 2, 0, 40], ["prov_crate_01", 3, 1, 15], ["prov_cart", -3, 0, 90],
+			["tronco_sin_resina", 2, -1, 90], ["tocon_alto", 3, -1, 0], ["cartel", -1, 4, 0],
+			["prov_fence_01", -2, -2, 0], ["prov_fence_01", -3, -2, 0], ["prov_fence_01", -4, -2, 0],
+			["prov_flower_01_c", -2, -1, 0], ["prov_flower_02_c", -3, -1, 0], ["prov_flower_pot", -2, 1, 0],
+			["prov_bush_01", 3, -2, 0], ["prov_bush_02", -4, 1, 0],
+			["prov_jar_01", -2, 2, 0], ["prov_bench", -1, 2, 0], ["prov_stool", 2, 2, 0],
+		]},
+}
+var _cabana_hecha: Dictionary = {}       ## la cabaña que se montó: {c, modelo, guarda, sala, huella}; {} si no hay
+
+
+## Levanta la cabaña en el claro más grande sin papel (o donde diga `cabana_en`). Reserva el claro (rol «cabana»: sin enemigos, jarrones ni braseros), bloquea la huella
+## de la casa, pone el atrezo, la guardabosques (letra `m`) delante y un poco de tierra pisada ante la puerta. Con «cabana» vacío no hace nada.
+func _poner_cabana(vivas: Array) -> void:
+	_cabana_hecha = {}
+	var modelo: String = String(p.get("cabana", "")).strip_edges()
+	if modelo == "" or modelo == "no":
+		return
+	if String(p["algoritmo"]) != "bosque":
+		avisos.append("La cabaña solo se levanta con el algoritmo «bosque»: no se pone.")
+		return
+	if not CABANAS.has(modelo):
+		avisos.append("La cabaña «%s» no existe (valen: %s): no se pone." % [modelo, ", ".join(CABANAS.keys())])
+		return
+	var def: Dictionary = CABANAS[modelo]
+	var intentos: Array = []                         # [sala, centro]
+	var pedido: String = String(p.get("cabana_en", "")).replace(" ", "")
+	if pedido != "":
+		var xy: PackedStringArray = pedido.split(",")
+		if xy.size() == 2 and xy[0].is_valid_int() and xy[1].is_valid_int():
+			var cp: Vector2i = Vector2i(xy[0].to_int(), xy[1].to_int())
+			for s in vivas:
+				if (s["rect"] as Rect2i).has_point(cp) and String(s["rol"]) == "":
+					intentos.append([s, cp])
+			if intentos.is_empty():
+				avisos.append("`cabana_en` = (%d, %d) no cae en un claro libre: la cabaña se pone donde el generador elige." % [cp.x, cp.y])
+		else:
+			avisos.append("`cabana_en` tiene que ser «x,y» («%s»): la cabaña se pone donde el generador elige." % pedido)
+	if intentos.is_empty():
+		var libres: Array = vivas.filter(func(s: Dictionary) -> bool: return String(s["rol"]) == "")
+		libres.sort_custom(func(a: Dictionary, b: Dictionary) -> bool:
+			var aa: int = (a["rect"] as Rect2i).get_area()
+			var ab: int = (b["rect"] as Rect2i).get_area()
+			return aa > ab or (aa == ab and int(a["id"]) < int(b["id"])))
+		for s in libres:
+			var r: Rect2i = s["rect"]
+			var meta: Vector2 = Vector2(r.position) + Vector2(r.size) * Vector2(0.5, 0.36)       # algo al norte del centro: delante queda sitio para el patio y la gente
+			var celdas: Array = _celdas_sala(s)
+			celdas.sort_custom(func(a: Vector2i, b: Vector2i) -> bool:
+				var da: float = Vector2(a).distance_squared_to(meta)
+				var db: float = Vector2(b).distance_squared_to(meta)
+				return da < db or (da == db and (a.y < b.y or (a.y == b.y and a.x < b.x))))
+			for c in celdas.slice(0, 120):
+				intentos.append([s, c])
+	for it in intentos:
+		if _cabana_en(it[0] as Dictionary, it[1] as Vector2i, modelo, def):
+			return
+	avisos.append("No hay sitio para la cabaña «%s» (hace falta un claro libre con %d × %d de huella y patio delante): agranda los claros o pide `cabana_en`." % [modelo, int(def["ancho"]), int(def["alto"])])
+
+
+## ¿Cabe la casa con su patio centrada en `c`? Si sí, la monta y devuelve true.
+func _cabana_en(s: Dictionary, c: Vector2i, modelo: String, def: Dictionary) -> bool:
+	var an: int = int(def["ancho"])
+	var al: int = int(def["alto"])
+	var origen: Vector2i = c - Vector2i(an / 2, al / 2)
+	var huella: Array = []
+	for y in range(al):
+		for x in range(an):
+			huella.append(origen + Vector2i(x, y))
+	# La casa y su patio (un anillo de una casilla a los lados y detrás, y cuatro filas delante): suelo libre, sin agua, vado, precipicio ni puerta cerca.
+	var patio: Array = []
+	for y in range(origen.y - 1, origen.y + al + 4):
+		for x in range(origen.x - 1, origen.x + an + 1):
+			patio.append(Vector2i(x, y))
+	for q in patio:
+		if not _libre(q) or letras.has(q) or _cerca_de_puerta(q) or String(_suelo_bosque.get(q, ".")) == "R":
+			return false
+	for q in huella:
+		_ocupar(q, true)
+	if (_componentes(true, _bloqueos)[1] as Array).size() > 1 or not _resoluble():
+		for q in huella:
+			_ocupada.erase(q)
+			_bloqueos.erase(q)
+		return false
+	s["rol"] = "cabana"
+	s["titulo"] = "La cabaña del guardabosques"
+	lineas.append("; pieza cabana_casa decorado %d %d modelo=%s" % [c.x, c.y, modelo])
+	_objeto(c, "cabana", "cabana_casa")
+	# El atrezo: lo que no tiene suelo libre se salta. No bloquea para el generador (lo que tiene colisión bloquea solo al montarse).
+	var n_a: int = 0
+	var fuera_del_paso: Dictionary = {}
+	for k in range(1, 5):
+		fuera_del_paso[c + Vector2i(0, al / 2 + k)] = true             # el paso de la puerta al patio se deja siempre libre
+	for a in def["atrezo"]:
+		var cc: Vector2i = c + Vector2i(int(a[1]), int(a[2]))
+		if fuera_del_paso.has(cc) or not _libre(cc) or letras.has(cc) or String(_suelo_bosque.get(cc, ".")) == "R" or _cerca_de_puerta(cc):
+			continue
+		n_a += 1
+		_ocupar(cc)
+		lineas.append("; pieza cabana_a%d decorado %d %d modelo=%s%s" % [n_a, cc.x, cc.y, String(a[0]), (" giro=%d" % int(a[3])) if int(a[3]) != 0 else ""])
+		_objeto(cc, "cabana", "cabana_a%d" % n_a)
+	# La guardabosques: delante, a un lado de la puerta.
+	var guarda: Vector2i = Vector2i(-1, -1)
+	for off in [def["guarda"]] + (def["guarda_alt"] as Array):
+		var cg: Vector2i = c + (off as Vector2i)
+		if _libre(cg) and not letras.has(cg):
+			_ocupar(cg, true)
+			if (_componentes(true, _bloqueos)[1] as Array).size() <= 1 and _resoluble():
+				guarda = cg
+				break
+			_ocupada.erase(cg)
+			_bloqueos.erase(cg)
+	if guarda.x >= 0:
+		letras[guarda] = "m"
+		if not _letras_extra.contains("m"):
+			_letras_extra += "m"
+		_objeto(guarda, "cabana", "guardabosques_cabana")
+	else:
+		avisos.append("La cabaña no tiene sitio libre delante para la guardabosques: queda sin ella.")
+	# Tierra pisada ante la puerta (dos filas) y el resto del patio, ocupado (nada se pone encima).
+	for x in range(c.x - 1, c.x + 2):
+		for y in range(c.y + al / 2 + 1, c.y + al / 2 + 3):
+			var q: Vector2i = Vector2i(x, y)
+			if _tipo(q) == SUELO and not letras.has(q):
+				letras[q] = "g"
+				if not _letras_extra.contains("g"):
+					_letras_extra += "g"
+	for q in patio:
+		_ocupar(q)
+	_cabana_hecha = {"c": c, "modelo": modelo, "guarda": guarda, "sala": int(s["id"]), "huella": huella}
+	return true
+
+
+## Una zona con rótulo por cada claro con papel (`rotulos_claros`): la entrada, cada puzle (con su título), el campamento, la cabaña… Con `titulos_claros` («id=Título;id=Título»)
+## se les pone nombre a mano, también a los claros sin papel. Cada zona lleva `nombre=` (sale en el diario de partida: PlayLog.zona).
+func _rotulos_de_claros() -> void:
+	if not bool(p.get("rotulos_claros", false)):
+		return
+	var manual: Dictionary = {}
+	for par in String(p.get("titulos_claros", "")).split(";", false):
+		var kv: PackedStringArray = par.split("=", true, 1)
+		if kv.size() == 2 and kv[0].strip_edges().is_valid_int():
+			manual[kv[0].strip_edges().to_int()] = kv[1].strip_edges()
+	for s in _vivas():
+		var id: int = int(s["id"])
+		var rol: String = String(s["rol"])
+		var titulo: String = String(manual.get(id, ""))
+		var nombre: String = "claro_%d" % id
+		if titulo == "":
+			match rol:
+				"inicio":
+					titulo = "La entrada"
+				"salida":
+					titulo = "El paso a otro bosque"
+					for l in lineas:
+						var t: PackedStringArray = String(l).substr(1).strip_edges().split(" ", false)
+						if t.size() >= 6 and t[0] == "pieza" and t[2] == "salida" and (s["rect"] as Rect2i).has_point(Vector2i(t[3].to_int(), t[4].to_int())):
+							titulo = "El paso a " + t[5].substr(2).split(":")[0].replace("_", " ")
+				"puzle":
+					titulo = String(s.get("titulo", "Un puzle"))
+					if s.has("catalogo"):
+						nombre = "pz_" + String(s["catalogo"])
+					elif JEFES.has(String(puzles_puestos.get(id, ""))):
+						titulo = String(JEFES[String(puzles_puestos[id])]["titulo"])
+						nombre = "jefe_%d" % id
+					elif String(puzles_puestos.get(id, "")) == CAMPAMENTO:
+						titulo = "El campamento goblin"
+						nombre = "campamento_%d" % id
+				"campamento":
+					titulo = "El campamento goblin"
+					nombre = "campamento_%d" % id
+				"jefe":
+					titulo = "La guarida del jefe"
+				"cabana":
+					titulo = "La cabaña del guardabosques"
+					nombre = "cabana"
+				"tesoro":
+					titulo = "El claro del tesoro"
+		if titulo == "":
+			continue
+		var txt: String = titulo.replace(":", "").replace("(", "").replace(")", "").replace(",", "").replace("«", "").replace("»", "").strip_edges().replace(" ", "_")
+		var r: Rect2i = s["rect"]
+		lineas.append("; zona %d,%d..%d,%d %s mezcla=0.5 nombre=%s rotulo=%s" % [r.position.x, r.position.y, r.end.x - 1, r.end.y - 1, String(p["luz"]), nombre, txt])
 
 
 # =====================================================================================================================
@@ -3626,7 +3833,7 @@ func _resultado() -> Dictionary:
 		"arqueros": bool(p.get("_arqueros", false)), "retoques": _retoques,
 		"errores": errores, "enlaces": enlaces, "enlaces_mano": _enlaces_mano, "activadores": _activadores.keys(), "barreras": _barreras.size(),
 		"puzles": puzles_puestos, "puzles_mano": _puzles_mano, "cruzables": _puentes.keys(), "letras_extra": _letras_extra, "precipicio": precipicio, "barreras_precipicio": barreras_precipicio,
-		"movidos": movidos_hechos, "movidos_pedidos": _movidos_pedidos, "anadidos": anadidos_hechos, "apariciones": apariciones_hechas, "salas_enlazables": _salas_enlazables(),
+		"cabana": _cabana_hecha, "movidos": movidos_hechos, "movidos_pedidos": _movidos_pedidos, "anadidos": anadidos_hechos, "apariciones": apariciones_hechas, "salas_enlazables": _salas_enlazables(),
 		"stats": {"salas": _vivas().size(), "puertas": puertas.size(), "enemigos": n_enem, "cofres": n_cofres, "jarrones": n_jarrones,
 			"suelo": pisable, "agua": g.count(AGUA), "ocupacion": pisable / float(maxi(1, w * h))},
 	}

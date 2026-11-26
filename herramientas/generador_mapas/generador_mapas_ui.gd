@@ -43,6 +43,8 @@ const ICONOS: Dictionary = {
 	# 24/11: el bosque abierto.
 	# 24/11 (Pablo): el gatopedro (pestaña «Enemigos») y el barril de pólvora (pestaña «Cofres»).
 	"gatopedro": ["p", Color(0.85, 0.55, 0.25), 0, "gatopedro (huye)"], "barril": ["b", Color(0.75, 0.2, 0.1), 1, "barril de pólvora"],
+	# 26/11: la cabaña del guardabosques (parámetro `cabana`: la casa, su atrezo y la guardabosques son objetos de este tipo).
+	"cabana": ["C", Color(0.6, 0.4, 0.22), 1, "cabaña del guardabosques (casa, atrezo o ella)"],
 }
 const TIPOS_ENEMIGO: Array[String] = ["guerrero", "arquero", "limo", "golem", "chaman", "mouro", "elemental", "gatopedro"]
 const TIPOS_COFRE: Array[String] = ["cofre_tesoro", "cofre_llave", "cofre_comun", "cofre_epico", "cofre_legendario"]
@@ -102,6 +104,11 @@ const CAMPOS: Array = [
 		"a": "Uno por cada salida de «Salidas», en el mismo orden y separados por comas: n, s, e, o (o vacío / - = dentro del bosque).\nLa primera es la del inicio. Ejemplo con 4 salidas: s, o, s, e"},
 	{"k": "paso_tierra", "r": "Paso de tierra en la salida nº", "t": "int", "min": 0, "max": 9, "alg": "bosque",
 		"a": "0 = ninguno. Con 2, 3…: el camino de esa salida queda cortado por un PRECIPICIO (casillas sin suelo, en negro en la vista)\nque se alarga a los lados hasta que no se puede rodear. Se cruza con el puente de tierra (barrera + líneas) lanzado desde el borde.\nLa 1 no vale: es la del inicio."},
+	{"k": "cabana", "r": "Cabaña del guardabosques", "t": "opcion", "op": [["no", "Ninguna"], ["prov_house_02", "Casa de madera (Provencal 02)"]], "alg": "bosque",
+		"a": "Una casa en el claro libre más grande, con su atrezo (barriles, carreta, huerto, valla…) y la guardabosques delante. El claro queda SIN enemigos ni jarrones.\nSolo el exterior. Para elegir el sitio: «Centro de la cabaña»."},
+	{"k": "cabana_en", "r": "Centro de la cabaña (x,y)", "t": "texto", "alg": "bosque", "a": "Vacío = el generador elige el claro y el sitio. Con «x,y» la casa se centra en esa casilla (tiene que ser suelo libre de un claro, con patio delante)."},
+	{"k": "rotulos_claros", "r": "Rótulos por claro", "t": "bool", "alg": "bosque", "a": "Una zona con rótulo al entrar en cada claro con papel: la entrada, cada puzle (con su título), el campamento, la cabaña…"},
+	{"k": "titulos_claros", "r": "Títulos de claros (id=Título;…)", "t": "texto", "alg": "bosque", "a": "Pone nombre a mano a los claros: «3=El arroyo;5=Los tres fuegos». El id es el número de sala. Va con «Rótulos por claro»."},
 	{"t": "titulo", "r": "CONTENIDO"},
 	{"k": "enemigos", "r": "Enemigos", "t": "float", "min": 0.0, "max": 4.0, "paso": 0.1, "a": "0 = ninguno; 1 = un goblin por cada ~22 casillas de sala (más en las lejanas); 5 por sala como mucho."},
 	{"k": "arqueros", "r": "Arqueros (%)", "t": "int", "min": 0, "max": 100, "paso": 5, "a": "Parte de los goblins que son arqueros (letra A) en vez de guerreros (W)."},

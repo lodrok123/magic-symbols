@@ -1,0 +1,22 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://presentacion/prueba_test2.gd" id="1_poc"]
+[ext_resource type="Script" path="res://escenas/puzle.gd" id="2_pz"]
+
+[node name="PruebaBosqueGen01" type="Node3D"]
+script = ExtResource("1_poc")
+fuego_nuevo = true
+nivel = "BosqueGen01"
+estilo = "bosque"
+zona_luz = "bosque"
+agua_fisica = true
+agua_corre = false
+kit = "demo_inicio"
+decorado_bioma = true
+riqueza_suelo = true
+semilla_decorado = 1
+camara_por_sala = true
+metadata/generador_mapas = true
+
+[node name="Puzles" type="Node" parent="."]
+script = ExtResource("2_pz")

@@ -1,0 +1,119 @@
+########################################################################
+##############################,..,##########################,,gg.v,v####
+#############################,.~,#########################....gg..vv,###
+####,,,,#####################,~.,########################.....ggv.v.,,##
+###.......###############,,,,..,#########################.....gg..vvvv##
+##..#####..#############,..~~~,##########################v...ggg...,v###
+#,..##.##...###########,.~,,vv###########################v..gggg...#####
+#,..##.##...###########,~~,##############################,,gggg....#####
+#,..##.##...#######,,##v~~,##############################,gggg.....#####
+#,..##.##...ggggg,,,,##v~~,########v###############,####ggggg......#####
+#,..##.##...ggggggggg,,.~,#######,,,#############,v,##,ggggg,###########
+####........,v,ggggggggR~,######W.,.###########,,,v.##gWgg,#############
+####........g,###vvggggRRgg###,,,....##########,,....gggg###############
+######,,,,gggg#####,,,ggRRggg,.....v..#########......Wgg################
+######,,,##gggg######,.~~gggggWg.......#######,.....ggg.################
+############gggg######,.~,,ggggggggW...######,,....gggg.################
+#############ggg#######,.~~~,,ggggggg..,,,,,,,,..ggggg.vv###############
+##############ggg,v#####,,,.~~vv.ggggggggggggggggWgggg.vv,##############
+##############ggg,#########v.~vvv..gggggggggggggggggggg.v,##############
+###############ggg##########,.~.vv.....####vvv,,....gggg,,###,##########
+###############ggg###########,.~......#########,.....gggg,##,,,#########
+################ggg###########,~~....,##########,,v.##ggg,##,vv#########
+################ggg#########,,,~.,#,,#############,####.........########
+#################ggg,####,,v~.~~,######################.........########
+#################ggg,,#,,.~~~,,,#######################.#######..#######
+#################vgg,,v.~.,,,#########################..###.###..#######
+#################,ggg,,~~,############################..###.###..#######
+#################.......~.,###########################...........#######
+#################......~~v############################..zzzz....########
+################......~~,,############################..........########
+###############.T...T.~~,,##,#######,,,###############..........########
+##############..........RRggg,######.....########,,ggg........##########
+#############,....T.....gRRggggg..........#######ggggg.......###########
+############,,..........RRvggggg...#####...,##ggggggg####,,gg###########
+############,,..........,.~~.v,g...##.##...gggggggg,,####,gggv##########
+#############,..........#,~.v#,,...##.##...ggggg,,v######,ggg,##########
+###############.........,~~,##,,...##.##...gg##,##########gg,,##########
+###################ggvv,.~,,#,,,...##.##...,,#############ggvv##########
+###################gg###,.~~,,,,...##.##...ggv,#########,gggv###########
+###################gggv##,,.~~~,...........gggg,,#######,gggv###########
+###################ggg,####,,,.~~.#........ggggggv####,,,gg,v###########
+####################gg,,######,~~.##...#####,ggggg.###.....,############
+####################gg,,#####,.~v,###########,,ggg.........,############
+####################gg,,######,.~.v############,gg.........,,###########
+####################ggv,#######,v~.v############,,.........,,###########
+####################gg,v########,~~,##############...T.T...,,###########
+###################vgg,,########,~~,##############.........,,###########
+###################ggg,,########,,~.,############,.........,############
+##################,ggg,,######,,..~,#############,.........#############
+##############,,...gg,,######,.~~,,##############,.........#############
+##############,,.vvgg.,#####,..v,################,......################
+##############vvvvvgg..,##,,~.,####################,,###################
+#############vvvvvggg..vv,..~,##########################################
+############,vvv.vggg..~~.~,,###########################################
+###########,,.....gg...~~,,#############################################
+###########,,.....gg...~~,##############################################
+###########,,,...Sgg.vv,~.,#############################################
+############v,,...gg.v.,~~,#############################################
+##############,,..gg.,,,~~,#############################################
+########################################################################
+; ======================================================================================================================
+;  GENERADO por herramientas/generador_mapas. 2026-11-26. Nivel «BosqueGen01», 72 × 60, algoritmo «bosque», semilla 1.
+;  9 salas, 0 puertas, 6 enemigos, 2 cofres, 12 jarrones. Escena: escenas/PruebaBosqueGen01.tscn. Mientras esta cabecera siga aquí, la herramienta puede volver a escribir
+;  este archivo (guarda copia si lo has retocado). Para adoptarlo como nivel hecho a mano, borra la palabra GENERADO de la línea de arriba.
+; ======================================================================================================================
+; # pared · . suelo · ~ agua honda · S inicio · W goblin guerrero · A goblin arquero · T brasero · g tierra pisada (pasillos) · R losas (o basalto bajo la lava) · G elemental del bosque
+; bosque: g camino de tierra · . claro · , hierba corta · v hierba alta (arde) · R vado de piedras · ~ río
+; generador {"acabado":true,"agua":8,"algoritmo":"bosque","alto":60,"ancho":72,"ancho_camino":2,"ancho_pasillo":2,"ancho_precipicio":2,"ancho_rio":2,"apertura":60,"arqueros":0,"b_braseros":true,"b_placa":true,"b_precipicio":true,"b_puente":true,"barreras":0,"braseros":0.0,"bucles":30,"bucles_claros":25,"cabana":"","cabana_en":"","callejones":100,"camara_sala":true,"campamentos":0,"charcas":0,"claros":7,"decorado":true,"densidad_salas":1.0,"enemigos":0.5,"estilo":"bosque","forma":"rectangulo","hierba_alta":15,"jarrones":3.0,"kit":"demo_inicio","lado_max":8,"lado_min":4,"lados_salida":"s,n","llave":false,"luz":"bosque","metodo":"fractal","n_salas":9,"nombre":"BosqueGen01","octavas":4,"paredes":"kit","pasillos":30,"paso_tierra":0,"puertas":50,"puzles":0,"recto":60,"region_min":12,"relleno":56,"reparto":"dispersas","rio":"ns","rotulo":true,"rotulos_claros":true,"runas":"","sala_jefe":"no","sala_max":4,"sala_min":2,"salas_cerradas":0,"salida_a":"MonteSumicio:desde_fraga=desde_sumicio,BosqueGen02:desde_01=desde_02","semilla":1,"silueta":60,"simetria":true,"sinuosidad":45,"solo_aceptados":false,"suavizados":2,"tamano_claro":5,"tamano_sala":10.0,"terreno":true,"tesoro":true,"titulo_nivel":"El umbral del bosque","titulos_claros":"0=El umbral del bosque;1=El camino al bosque profundo;4=El claro de los goblins"}
+; puzles 2>barril_muro 3>braseros_puerta 5>braseros_premio 6>contrafuego 7>piedra_premio
+; anadidos cofre|comun|oro:45|54,45
+; apariciones a0<pz3
+;
+; zona 1,1..70,58 bosque mezcla=0.8 rotulo=El_umbral_del_bosque
+;
+; pieza inicio entrada 17 56
+; pieza a_salida_1 salida 17 58 a=MonteSumicio:desde_fraga
+; pieza desde_sumicio entrada 17 56
+; pieza cat1_cofre cofre 6 6 abierto=bosquegen01.cat1.cofre da=oro:30+pocion:1
+; pieza cat1_muro muro 6 7 golpes=2
+; pieza cat1_barril barril 6 8
+; pieza cat2_luces contador 54 46 de=53,45+55,45 modelo=totem
+; pieza cat3_luces contador 18 30 de=16,30+20,30+18,32 modelo=totem
+; pieza cat3_premio cofre 18 31 aparece_si=flag.bosquegen01.cat3.hecho abierto=bosquegen01.cat3.cofre da=oro:40
+; puzle cat3_listo cuando=cat3_luces.todos hace=flag.poner(bosquegen01.cat3.hecho)
+; pieza cat4_barril barril 60 28
+; pieza cat4_puerta puerta 59 26
+; puzle cat4_marca cuando=cat4_barril.explota hace=flag.poner(bosquegen01.cat4.hecho)
+; puzle cat4_abre cuando=flag.bosquegen01.cat4.hecho hace=cat4_puerta.abrir
+; pieza cat4_cofre cofre 59 25 aparece_si=flag.bosquegen01.cat4.hecho abierto=bosquegen01.cat4.cofre da=oro:60+seta_asada:2
+; pieza cat5_bloque bloque 37 36 material=piedra
+; pieza cat5_placa pulsador 37 34 modo=presencia peso=3
+; puzle cat5_marca cuando=cat5_placa.pulsado hace=flag.poner(bosquegen01.cat5.hecho)
+; pieza cat5_cofre cofre 39 39 modelo=epico aparece_si=flag.bosquegen01.cat5.hecho abierto=bosquegen01.cat5.cofre da=tabla:cofre_pequeno
+; pieza a_salida_2 salida 62 1 a=BosqueGen02:desde_01
+; pieza desde_02 entrada 62 3
+; pieza tesoro cofre 50 16 abierto=bosquegen01.tesoro.cofre da=oro:60+pocion:1
+; pieza jarron_1 jarron 17 49 botin=oro
+; pieza jarron_2 jarron 13 52 botin=oro
+; pieza jarron_3 jarron 16 49 botin=oro
+; pieza jarron_4 jarron 60 1 botin=oro
+; pieza jarron_5 jarron 58 2 botin=pocion
+; pieza jarron_6 jarron 61 1 botin=oro
+; pieza jarron_7 jarron 31 12 botin=oro
+; pieza jarron_8 jarron 30 12 botin=oro
+; pieza jarron_9 jarron 37 13 botin=oro
+; pieza jarron_10 jarron 46 14 botin=oro
+; pieza jarron_11 jarron 53 12 botin=oro
+; pieza jarron_12 jarron 52 12 botin=oro
+; pieza cofre_m1 cofre 54 45 abierto=bosquegen01.cofre_m1.abierto da=oro:45 aparece_si=flag.bosquegen01.cofre_m1.pz3
+; puzle apa_cofre_m1_pz3 cuando=cat2_luces.todos hace=flag.poner(bosquegen01.cofre_m1.pz3)
+; zona 13,49..22,58 bosque mezcla=0.5 nombre=claro_0 rotulo=El_umbral_del_bosque
+; zona 57,1..67,9 bosque mezcla=0.5 nombre=claro_1 rotulo=El_camino_al_bosque_profundo
+; zona 2,4..11,12 bosque mezcla=0.5 nombre=pz_barril_muro rotulo=Voladura_barril_contra_el_muro
+; zona 50,41..58,50 bosque mezcla=0.5 nombre=pz_braseros_puerta rotulo=Dos_braseros_que_abren
+; zona 29,11..38,21 bosque mezcla=0.5 nombre=claro_4 rotulo=El_claro_de_los_goblins
+; zona 14,27..23,36 bosque mezcla=0.5 nombre=pz_braseros_premio rotulo=Tres_braseros_y_un_cofre
+; zona 54,22..64,32 bosque mezcla=0.5 nombre=pz_contrafuego rotulo=Contrafuego_setos_y_barril
+; zona 32,31..42,41 bosque mezcla=0.5 nombre=pz_piedra_premio rotulo=Peso_de_la_piedra_cofre
+; zona 46,11..55,21 bosque mezcla=0.5 nombre=claro_8 rotulo=El_claro_del_tesoro
