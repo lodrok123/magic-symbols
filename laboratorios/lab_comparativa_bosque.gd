@@ -96,6 +96,31 @@ func _ready() -> void:
 		_depurar()
 	elif OS.get_cmdline_user_args().has("--muestrario"):
 		_capturar_muestrario()
+	elif OS.get_cmdline_user_args().has("--medir"):
+		_medir()
+
+
+## Mide (`-- --medir`) lo que tarda en arrancar y en ver cada pack del muestrario (lo mismo que pulsar 3 y →), y la memoria de vídeo.
+## 26/11: Pablo «el lab se queda colgado, la tecla 3 no funciona».
+func _medir() -> void:
+	var mb := func() -> String:
+		return "vídeo %d MB · texturas %d MB · objetos %d" % [Performance.get_monitor(Performance.RENDER_VIDEO_MEM_USED) / 1048576.0,
+			Performance.get_monitor(Performance.RENDER_TEXTURE_MEM_USED) / 1048576.0, Performance.get_monitor(Performance.OBJECT_NODE_COUNT)]
+	for f in range(5):
+		await get_tree().process_frame
+	print("MEDIR arranque: %d ms desde el inicio · %s" % [Time.get_ticks_msec(), mb.call()])
+	var t0: int = Time.get_ticks_msec()
+	await _ver_bloque(0)
+	await get_tree().process_frame
+	await get_tree().process_frame
+	print("MEDIR tecla 3 (primer pack): %d ms · %s" % [Time.get_ticks_msec() - t0, mb.call()])
+	for i in range(1, _bloques.size()):
+		t0 = Time.get_ticks_msec()
+		await _ver_bloque(i)
+		await get_tree().process_frame
+		await get_tree().process_frame
+		print("MEDIR → %s: %d ms · %s" % [_bloques[i]["pack"], Time.get_ticks_msec() - t0, mb.call()])
+	get_tree().quit()
 
 
 ## Unreal (cm; X delante, Y derecha, Z arriba; mano izquierda) -> Godot (m; Y arriba; mano derecha): (x, z, y) / 100.
@@ -266,6 +291,9 @@ var _bloques: Array = []                 ## [{pack, centro: Vector3, ancho, fond
 var _bloque: int = -1
 var _cam_muestrario: Camera3D
 var _disposicion: Array = []             ## lo que se guarda en muestrario.json para montar lo mismo en Unreal (tools/ue_montar_muestrario.py)
+var _nodo_bloque: Node3D                 ## las piezas del pack que se está viendo (solo uno cargado a la vez)
+var _bloque_cargado: int = -1
+var _cargando: bool = false
 
 
 func _montar_muestrario() -> bool:
@@ -292,6 +320,7 @@ func _montar_muestrario() -> bool:
 			var cb: int = orden_cat.find(b["categoria"])
 			return ca < cb if ca != cb else float(a["caja"][4]) > float(b["caja"][4]))
 		var x: float = 0.0
+		var piezas_bloque: Array = []
 		var z_fila: float = z
 		var fondo_fila: float = 0.0
 		var z0: float = z
@@ -303,16 +332,16 @@ func _montar_muestrario() -> bool:
 				x = 0.0
 				z_fila += fondo_fila + MUESTRARIO_HUECO
 				fondo_fila = 0.0
-			var ps: PackedScene = load(MUESTRARIO_PIEZAS + "piezas/" + String(e["id"]) + ".tscn") as PackedScene
-			if ps != null:
-				var n: Node3D = ps.instantiate()
-				n.position = Vector3(x - float(c[0]), 0.0, z_fila - float(c[2]))
-				add_child(n)
-				_disposicion.append({"id": e["id"], "ruta_ue": e.get("ruta_ue", ""), "pos": [n.position.x, n.position.y, n.position.z]})
+			# 26/11: aquí solo se calcula DÓNDE va cada pieza; se cargan al ver su pack (_cargar_bloque). Cargar las 579 de golpe congelaba
+			# la ventana 32 s y llenaba la memoria de vídeo (7,9 GB en una tarjeta de 8): el laboratorio parecía colgado.
+			var pos := Vector3(x - float(c[0]), 0.0, z_fila - float(c[2]))
+			piezas_bloque.append({"id": String(e["id"]), "pos": pos})
+			_disposicion.append({"id": e["id"], "ruta_ue": e.get("ruta_ue", ""), "pos": [pos.x, pos.y, pos.z]})
 			x += ancho + MUESTRARIO_HUECO
 			fondo_fila = maxf(fondo_fila, fondo)
 		var fondo_total: float = z_fila + fondo_fila - z0
-		_bloques.append({"pack": pack, "centro": Vector3(MUESTRARIO_ANCHO * 0.5, 0.0, z0 + fondo_total * 0.5), "ancho": MUESTRARIO_ANCHO, "fondo": fondo_total})
+		_bloques.append({"pack": pack, "centro": Vector3(MUESTRARIO_ANCHO * 0.5, 0.0, z0 + fondo_total * 0.5), "ancho": MUESTRARIO_ANCHO, "fondo": fondo_total,
+			"piezas": piezas_bloque})
 		z = z_fila + fondo_fila + 6.0
 	# suelo bajo el muestrario
 	var suelo := MeshInstance3D.new()
@@ -332,10 +361,8 @@ func _montar_muestrario() -> bool:
 	return true
 
 
-## Pone la cámara del muestrario delante del bloque `i` (un pack), mirando desde 35° por encima.
-func _ver_bloque(i: int) -> void:
-	if not _montar_muestrario() or _bloques.is_empty():
-		return
+## Pone la cámara del muestrario delante del bloque `i` (un pack), mirando desde 35° por encima. No carga nada.
+func _colocar_camara(i: int) -> void:
 	_bloque = posmod(i, _bloques.size())
 	var b: Dictionary = _bloques[_bloque]
 	var centro: Vector3 = b["centro"]
@@ -343,7 +370,39 @@ func _ver_bloque(i: int) -> void:
 	var ang: float = deg_to_rad(35.0)
 	_cam_muestrario.position = centro + Vector3(0.0, sin(ang) * dist, -cos(ang) * dist)
 	_cam_muestrario.look_at(centro, Vector3.UP)
+
+
+## Deja cargadas SOLO las piezas del bloque `i` (libera las del que hubiera antes).
+func _cargar_bloque(i: int) -> void:
+	if _bloque_cargado == i:
+		return
+	if _nodo_bloque != null:
+		_nodo_bloque.queue_free()
+	_nodo_bloque = Node3D.new()
+	_nodo_bloque.name = "Muestrario_" + String(_bloques[i]["pack"])
+	add_child(_nodo_bloque)
+	for p in _bloques[i]["piezas"]:
+		var ps: PackedScene = load(MUESTRARIO_PIEZAS + "piezas/" + String(p["id"]) + ".tscn") as PackedScene
+		if ps != null:
+			var n: Node3D = ps.instantiate()
+			n.position = p["pos"]
+			_nodo_bloque.add_child(n)
+	_bloque_cargado = i
+
+
+## Va al pack `i`: avisa en pantalla, deja pintar ese aviso y entonces carga (así no parece colgado mientras carga).
+func _ver_bloque(i: int) -> void:
+	if _cargando or not _montar_muestrario() or _bloques.is_empty():
+		return
+	_cargando = true
+	_colocar_camara(i)
 	_cam_muestrario.current = true
+	if _bloque_cargado != _bloque:
+		_hud.text = "Cargando %s… (%d piezas)" % [String(_bloques[_bloque]["pack"]).trim_prefix("PureNature_"), _bloques[_bloque]["piezas"].size()]
+		await get_tree().process_frame
+		await get_tree().process_frame
+		_cargar_bloque(_bloque)
+	_cargando = false
 	_actualizar_hud()
 
 
@@ -358,7 +417,7 @@ func _capturar_muestrario() -> void:
 	# lo pasa a cm con la escala de las piezas).
 	var camaras: Array = []
 	for i in range(_bloques.size()):
-		_ver_bloque(i)
+		_colocar_camara(i)
 		var fw: Vector3 = -_cam_muestrario.global_transform.basis.z
 		camaras.append({"nombre": "Cam_" + String(_bloques[i]["pack"]).trim_prefix("PureNature_"), "pos": [_cam_muestrario.position.x, _cam_muestrario.position.y, _cam_muestrario.position.z],
 			"dir": [fw.x, fw.y, fw.z], "fov": _cam_muestrario.fov})
@@ -366,7 +425,7 @@ func _capturar_muestrario() -> void:
 	arch.store_string(JSON.stringify({"escala": 0.575, "piezas": _disposicion, "camaras": camaras}, " "))
 	arch.close()
 	for i in range(_bloques.size()):
-		_ver_bloque(i)
+		await _ver_bloque(i)
 		for f in range(120):
 			await get_tree().process_frame
 		await RenderingServer.frame_post_draw

@@ -39,7 +39,11 @@ void fragment() {
 	// y no tapa entera la cara superior. Normal del mapa (tangente) -> vista -> mundo.
 	// 2.º (26/11): «Blend Normal» exagera el relieve de la textura antes de mirar qué apunta arriba (50 en los muros, 100 en las losas,
 	// 8 en la madera): así cada ladrillo con la cara algo inclinada hacia arriba coge musgo, a manchas, también en las paredes verticales.
-	vec3 nt = texture(normal_tex, UV).rgb * 2.0 - 1.0;
+	// 5.º (26/11): con las texturas comprimidas para la GPU, las normales solo guardan R y G (el B no vale): se reconstruye, como hace
+	// Godot con NORMAL_MAP. Sin esto volvían las manchas azules de los pilares.
+	vec3 nt;
+	nt.xy = texture(normal_tex, UV).rg * 2.0 - 1.0;
+	nt.z = sqrt(max(0.0, 1.0 - dot(nt.xy, nt.xy)));
 	nt.xy *= capa_relieve * 0.1;
 	vec3 n_vista = normalize(TANGENT * nt.x + BINORMAL * nt.y + NORMAL * nt.z);
 	vec3 n_mundo = normalize((INV_VIEW_MATRIX * vec4(n_vista, 0.0)).xyz);
