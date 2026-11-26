@@ -61,6 +61,7 @@ func _initialize() -> void:
 	_campamentos()
 	_bosque()
 	_barrera_precipicio()
+	_plantillas_cauce()
 	print("%d comprobaciones en %d ms" % [_hechas, Time.get_ticks_msec() - t0])
 	print("FALLOS: %d" % _fallos)
 	quit(1 if _fallos > 0 else 0)
@@ -355,6 +356,164 @@ func _camara_por_sala() -> void:
 	_ok(absf(CamaraSalas.zoom_que_cabe_en(Vector2i(5, 4), 2.3) - 5.35) < 0.02, "zoom que cabe en 5×4", str(CamaraSalas.zoom_que_cabe_en(Vector2i(5, 4), 2.3)))
 	_resumen("cámara por sala: %d salas en 36 mapas, %d obligan a acercar por debajo de 4" % [n_salas, n_avisos], antes)
 
+
+## 17 · Plantillas con cauce (23/11): `estira x` con cabeza fija, `$XC`, la letra `c` y las coordenadas de `ruta=` / `enlaces=`. Para varias semillas de «salas» y
+## «pagina», cada plantilla nueva se pone a mano en una sala libre y se mira, en el plano y en las líneas del mapa, que lo trasladado cae donde debe.
+func _plantillas_cauce() -> void:
+	var antes: int = _fallos
+	# La gramática, sin mapa: la cabeza fija, una letra por fila y los espacios del final.
+	var e: Dictionary = Catalogo.leer_texto("; estira x\n.\nccc\n##c\n")
+	_ok(String(e["filas"][1]).rstrip(" ") == "ccc" and String(e["filas"][0]).rstrip(" ") == "." and int(e["ancho"]) == 3, "leer_texto rellena las filas hasta el ancho (3)", str(e["filas"]))
+	var puestos: Dictionary = {"puente_aliviadero": 0, "cofre_balsa": 0, "veta_dos_caminos": 0, "charca_helada": 0, "rio_lava": 0}
+	for cid in puestos:
+		_ok(Catalogo.todos().has(cid), "el catálogo trae «%s»" % cid)
+	for alg in ["salas", "pagina"]:
+		for semilla in range(1, 9):
+			var par: Dictionary = {"algoritmo": alg, "semilla": semilla, "nombre": "PruebaCat"}
+			var base: Dictionary = Generador.new().generar(par)
+			for cid in puestos:
+				for sala in base["salas"]:
+					if String(sala["rol"]) == "inicio":
+						continue
+					var m: Dictionary = _revisar(par, {}, {int(sala["id"]): cid})
+					if (m["puzles"] as Dictionary).get(int(sala["id"]), "") != cid:
+						continue
+					puestos[cid] += 1
+					var quien: String = "%s en %s semilla %d" % [cid, alg, semilla]
+					_comprobar_plantilla(cid, m, sala["rect"], quien)
+					break
+	for cid in puestos:
+		_ok(int(puestos[cid]) >= 4, "«%s» se pone a mano en al menos 4 de 16 mapas" % cid, "%d" % puestos[cid])
+	# `ancho_min`: la acequia no entra en una sala estrecha y lo dice.
+	var rechazos: int = 0
+	for semilla in range(1, 9):
+		var par2: Dictionary = {"algoritmo": "pagina", "semilla": semilla, "lado_min": 2, "lado_max": 3, "pasillos": 0, "n_salas": 6}
+		var base2: Dictionary = Generador.new().generar(par2)
+		for sala in base2["salas"]:
+			if String(sala["rol"]) == "inicio" or (sala["rect"] as Rect2i).size.x >= 5:
+				continue
+			var m2: Dictionary = Generador.new().generar(par2, {}, {}, {int(sala["id"]): "puente_aliviadero"})
+			if (m2["puzles"] as Dictionary).has(int(sala["id"])):
+				continue
+			rechazos += 1
+			_ok("\n".join(m2["avisos"]).contains("puente_aliviadero"), "una sala estrecha rechaza la acequia y lo dice: semilla %d" % semilla, "\n".join(m2["avisos"]))
+			break
+	_ok(rechazos >= 1, "alguna sala estrecha rechazó la acequia (ancho_min 5)", "%d" % rechazos)
+	_resumen("17 · plantillas con cauce (puente_aliviadero, cofre_balsa, veta_dos_caminos): %s" % str(puestos), antes)
+
+
+## Una línea `; pieza <nombre>` del mapa, partida en palabras (vacía si no está).
+func _linea_pieza(m: Dictionary, nombre: String) -> PackedStringArray:
+	for l in m["lineas"]:
+		var t: PackedStringArray = String(l).substr(1).strip_edges().split(" ", false)
+		if t.size() >= 5 and t[0] == "pieza" and t[1] == nombre:
+			return t
+	return PackedStringArray()
+
+
+func _clave(t: PackedStringArray, k: String) -> String:
+	for i in range(5, t.size()):
+		if t[i].begins_with(k + "="):
+			return t[i].substr(k.length() + 1)
+	return ""
+
+
+## Las casillas de una lista `x,y`, `x0,y0..x1,y1` y `+` (como las de las piezas).
+func _casillas(lista: String) -> Array:
+	var res: Array = []
+	for trozo in lista.split("+", false):
+		if trozo.contains(".."):
+			var ab: PackedStringArray = trozo.replace("..", ",").split(",")
+			for y in range(ab[1].to_int(), ab[3].to_int() + 1):
+				for x in range(ab[0].to_int(), ab[2].to_int() + 1):
+					res.append(Vector2i(x, y))
+		else:
+			var xy: PackedStringArray = trozo.split(",")
+			res.append(Vector2i(xy[0].to_int(), xy[1].to_int()))
+	return res
+
+
+func _comprobar_plantilla(cid: String, m: Dictionary, rect_sala: Rect2i, quien: String) -> void:
+	var filas: PackedStringArray = m["filas"]
+	var txt: String = "\n".join(m["lineas"])
+	_ok(not txt.contains("$"), "sin comodines sin sustituir: " + quien)
+	for o in m["objetos"]:
+		_ok(String(o.get("txt", "")) != "c", "la letra c no deja un icono «?» por casilla: " + quien)
+	var letra: Callable = func(c: Vector2i) -> String: return filas[c.y][c.x] if c.y >= 0 and c.y < filas.size() and c.x >= 0 and c.x < filas[c.y].length() else "?"
+	match cid:
+		"charca_helada", "rio_lava":
+			# Las plantillas de una letra por fila salen como siempre: una fila entera de «~» (o «R») del ancho de la sala.
+			var ch: String = "~" if cid == "charca_helada" else "R"
+			var hay: bool = false
+			for y in range(rect_sala.position.y, rect_sala.end.y):
+				hay = hay or filas[y].substr(rect_sala.position.x, rect_sala.size.x) == ch.repeat(rect_sala.size.x)
+			_ok(hay, "la franja de una letra por fila cubre el ancho de la sala: " + quien)
+		"puente_aliviadero":
+			var d: PackedStringArray = _linea_pieza(m, "cat1_desague")
+			var tp: PackedStringArray = _linea_pieza(m, "cat1_tapon")
+			var ca: PackedStringArray = _linea_pieza(m, "cat1_cauce")
+			var pu: PackedStringArray = _linea_pieza(m, "cat1_puente")
+			var cu: PackedStringArray = _linea_pieza(m, "cat1_cuerda")
+			_ok(d.size() > 0 and tp.size() > 0 and ca.size() > 0 and pu.size() > 0 and cu.size() > 0, "salen las cinco piezas con el prefijo cat1_: " + quien, txt)
+			if d.size() == 0 or tp.size() == 0 or ca.size() == 0 or pu.size() == 0 or cu.size() == 0:
+				return
+			var x0: int = d[3].to_int()
+			var y2: int = d[4].to_int()                              # la fila del desagüe y el tapón (la de abajo del cauce)
+			var y1: int = y2 - 1
+			var tw: int = rect_sala.size.x
+			_ok(x0 == rect_sala.position.x and tp[3].to_int() == x0 + 1 and tp[4].to_int() == y2, "cabeza fija: desagüe en x0 y tapón en x1 (%d,%d / %d,%d): %s" % [x0, y2, tp[3].to_int(), tp[4].to_int(), quien])
+			var celdas_c: Array = _casillas(_clave(ca, "celdas"))
+			_ok(celdas_c.size() == 2 * (tw - 2) and celdas_c[0] == Vector2i(x0 + 2, y1) and celdas_c.back() == Vector2i(x0 + tw - 1, y2), "el cauce va de x2 a $X1 en dos filas: %s" % quien, str(celdas_c.size()))
+			var xc: int = x0 + int((tw - 1) * 0.5)
+			_ok(pu[3].to_int() == xc and cu[3].to_int() == xc and cu[4].to_int() == y2 + 1 and _casillas(_clave(pu, "celdas")) == [Vector2i(xc, y1), Vector2i(xc, y2)],
+				"el puente en la columna central $XC y su cuerda en la orilla sur, en la cabecera: " + quien, txt)
+			_ok(xc >= x0 + 2, "el puente queda fuera del desagüe y el tapón: " + quien)
+			var bien_plano: bool = true
+			for c in celdas_c:
+				bien_plano = bien_plano and letra.call(c) == "c"
+			for x in range(x0, x0 + tw):
+				bien_plano = bien_plano and letra.call(Vector2i(x, y2)) == "c"
+			for yy in [y1 - 1, y1]:
+				bien_plano = bien_plano and letra.call(Vector2i(x0, yy)) == "#" and letra.call(Vector2i(x0 + 1, yy)) == "#"
+			_ok(bien_plano, "el plano trae el cauce (c) en las casillas de la cuenca y las paredes dobles sobre el desagüe: " + quien)
+		"cofre_balsa":
+			var fo: PackedStringArray = _linea_pieza(m, "cat1_foso")
+			var ba: PackedStringArray = _linea_pieza(m, "cat1_balsa")
+			var co: PackedStringArray = _linea_pieza(m, "cat1_cofre")
+			var tp2: PackedStringArray = _linea_pieza(m, "cat1_tapon")
+			var de2: PackedStringArray = _linea_pieza(m, "cat1_desague")
+			_ok(fo.size() > 0 and ba.size() > 0 and co.size() > 0 and tp2.size() > 0 and de2.size() > 0, "salen las piezas con el prefijo cat1_: " + quien, txt)
+			if fo.size() == 0 or ba.size() == 0 or co.size() == 0 or tp2.size() == 0 or de2.size() == 0:
+				return
+			var o: Vector2i = Vector2i(fo[3].to_int() - 3, fo[4].to_int() - 2)          # la esquina de la plantilla
+			var ruta: Array = _casillas(_clave(ba, "ruta"))
+			_ok(ruta == [o + Vector2i(4, 2), o + Vector2i(3, 2), o + Vector2i(3, 3), o + Vector2i(3, 4)], "la ruta de la balsa está trasladada a la plantilla: %s" % quien, str(ruta))
+			_ok(Vector2i(ba[3].to_int(), ba[4].to_int()) == o + Vector2i(5, 2) and Vector2i(co[3].to_int(), co[4].to_int()) == o + Vector2i(5, 2), "balsa y cofre están en el reposo (5,2): " + quien)
+			_ok(_clave(ba, "cofre") == "cat1_cofre", "la balsa lleva el cofre de la instancia: " + quien, _clave(ba, "cofre"))
+			_ok(_clave(co, "abierto").ends_with(".cat1.cofre") and not _clave(co, "abierto").contains("$"), "la flag del cofre lleva el id de la instancia: " + quien, _clave(co, "abierto"))
+			_ok(txt.contains("cuando=cat1_riego.pulsado hace=cat1_manantial.abrir_cauce(0.6,20)"), "la regla de riego usa los ids de la instancia y deja sus argumentos: " + quien, txt)
+			var bien: bool = true
+			for c in _casillas(_clave(fo, "celdas")) + ruta + [Vector2i(tp2[3].to_int(), tp2[4].to_int())]:
+				bien = bien and letra.call(c) == "c"
+			_ok(bien, "el foso, la ruta y el tapón caen sobre casillas c del plano: " + quien)
+			_ok(letra.call(Vector2i(de2[3].to_int(), de2[4].to_int())) == "c" and letra.call(o + Vector2i(3, 5)) == ".", "el desagüe es una c y la orilla (3,5) suelo: " + quien)
+		"veta_dos_caminos":
+			var co2: PackedStringArray = _linea_pieza(m, "cat1_corta")
+			var la: PackedStringArray = _linea_pieza(m, "cat1_larga")
+			var pr: PackedStringArray = _linea_pieza(m, "cat1_prisma")
+			var re: PackedStringArray = _linea_pieza(m, "cat1_receptor")
+			var cr: PackedStringArray = _linea_pieza(m, "cat1_cristal")
+			_ok(co2.size() > 0 and la.size() > 0 and pr.size() > 0 and re.size() > 0 and cr.size() > 0, "salen las cinco piezas con el prefijo cat1_: " + quien, txt)
+			if co2.size() == 0 or la.size() == 0 or pr.size() == 0 or re.size() == 0 or cr.size() == 0:
+				return
+			var o2: Vector2i = Vector2i(cr[3].to_int() - 2, cr[4].to_int() - 5)
+			var celdas_corta: Array = _casillas(_clave(co2, "celdas"))
+			_ok(_casillas(_clave(co2, "enlaces")) == [o2 + Vector2i(5, 5)], "el hueco de la veta corta se traslada a (5,5) de la plantilla: %s" % quien, _clave(co2, "enlaces"))
+			_ok(celdas_corta.has(o2 + Vector2i(4, 5)) and celdas_corta.has(o2 + Vector2i(6, 5)) and not celdas_corta.has(o2 + Vector2i(5, 5)), "la veta corta tiene su hueco sin losa: " + quien)
+			_ok(Vector2i(pr[3].to_int(), pr[4].to_int()) == o2 + Vector2i(2, 1) and Vector2i(re[3].to_int(), re[4].to_int()) == o2 + Vector2i(8, 5), "prisma en la esquina (2,1) y receptor en (8,5): " + quien)
+			_ok(_clave(re, "flag").ends_with(".cat1.hecho") and not _clave(re, "flag").contains("$"), "la flag del receptor lleva el id de la instancia: " + quien, _clave(re, "flag"))
+			_ok(_clave(pr, "dir") == "n" and letra.call(o2 + Vector2i(2, 0)) == "#", "el prisma nace mirando a la pared: " + quien)
+			_ok((m["activadores"] as Array).has("cat1_receptor"), "el receptor cuenta como activador de la salida: " + quien, str(m["activadores"]))
 
 func _ok(bien: bool, texto: String, info: String = "") -> void:
 	_hechas += 1
@@ -929,7 +1088,10 @@ func _catalogo() -> void:
 					_ok(not txt.contains("$"), "no queda ningún comodín sin sustituir en «%s»" % cid, txt)
 					_ok(Exportador.puzles_de(Exportador.texto_mapa(m)) == {int(sala["id"]): cid}, "el puzle a mano se guarda en el .txt: " + cid)
 					break
-		_ok(puestos >= 8, "«%s» se puede poner en al menos 8 de 16 mapas" % cid, "%d" % puestos)
+		# Las plantillas muy anchas (molino_paso_bajo mide 15) solo caben en las pocas salas generadas que llegan a ese ancho: para ellas basta con que
+		# aparezcan en 2 de 16 mapas (con los anchos de sala por defecto casi ninguna sala las admite; no es un fallo de la plantilla).
+		var min_mapas: int = 2 if int(cat[cid]["ancho"]) >= 14 else 8
+		_ok(puestos >= min_mapas, "«%s» se puede poner en al menos %d de 16 mapas" % [cid, min_mapas], "%d" % puestos)
 	# Salas pequeñas (2-3 casillas): la plantilla de 5 × 3 no cabe y el suelo se ajusta.
 	# 24/11: con más plantillas de activador de barrera, el mapa de base cambia y alguna sala ya es lo bastante grande: puesto sin excavar
 	# también vale. Lo que se pide es que se ponga casi siempre y que, en la mayoría, haya hecho falta excavar.

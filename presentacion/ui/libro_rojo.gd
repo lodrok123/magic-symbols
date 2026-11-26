@@ -50,40 +50,22 @@ const FAMILIA_SELLOS: Array = ["fuego", "agua", "tierra", "viento", "rayo", "hie
 const FAMILIA_FORMA: Array = ["flecha", "linea", "altura", "pulso", "permanencia", "rebote", "buscar", "repeticion", "retorno"]
 const FAMILIA_POTENCIA: Array = ["barrera", "raido", "perforar", "suelo", "retardo"]
 const FAMILIA_CONDICIONES: Array = ["al impactar", "al acabar", "a la vez", "al rebotar"]
-## Textos PROVISIONALES de la ficha (los escribe la sesión HECHIZOS para la prueba; son los de H8 y los decide Pablo). [frase, con qué vale]
-const FICHAS: Dictionary = {
-	"fuego": ["Quema y prende lo que arde.", "cualquier glifo"],
-	"agua": ["Moja, apaga y empuja.", "cualquier glifo"],
-	"tierra": ["Construye: bloques, muros y plataformas.", "cualquier glifo"],
-	"viento": ["Empuja y desvía.", "cualquier glifo"],
-	"rayo": ["Descarga; salta por lo mojado.", "cualquier glifo"],
-	"hielo": ["Congela y hace placas que resbalan.", "cualquier glifo"],
-	"flecha": ["Lo lanza: sale volando hacia donde apuntas.", "bola, barrera (muro que avanza)"],
-	"linea": ["Lo alarga en línea: un chorro o un muro largo.", "bola (chorro), barrera (muro)"],
-	"altura": ["Lo hace más alto.", "bloque, barrera"],
-	"pulso": ["Crece mientras vive.", "bola, barrera"],
-	"permanencia": ["Dura más: +2 s.", "barrera, bloque, zona"],
-	"rebote": ["Rebota en las paredes.", "flecha"],
-	"buscar": ["Persigue al enemigo más cercano.", "flecha"],
-	"repeticion": ["Una copia más a la vez (en ráfaga si va tras ᛇ).", "flecha, bola, barrera"],
-	"retorno": ["Vuelve a tu mano al acabar.", "flecha"],
-	"barrera": ["Lo vuelve sólido: para proyectiles.", "bola, flecha, haz"],
-	"raido": ["Suelta un pulso de su elemento.", "flecha (al chocar), barrera (sin parar)"],
-	"perforar": ["Atraviesa enemigos.", "flecha, haz"],
-	"suelo": ["Se planta en la casilla: trampa o plataforma.", "cualquier elemento"],
-	"retardo": ["Carga: espera, pero sale más grande y fuerte.", "cualquier forma"],
-}
+## Los textos de la ficha (frase, con qué vale, verbo) viven en `FichasGlifo` (23/11): son PROVISIONALES y los decide Pablo. Aquí solo van estos dos envoltorios.
+## `ficha_de` devuelve [frase (una sola, la misma de la lámina), con qué vale].
+static func ficha_de(id: String) -> Array:
+	return [FichasGlifo.frase(id), FichasGlifo.bases(id)]
+
+
+## El nombre-verbo de una runa (las notas y el catálogo); un id sin ficha se devuelve igual.
+static func verbo_de(id: String) -> String:
+	return FichasGlifo.verbo(id)
+
 
 ## LAS NOTAS DEL PERSONAJE (5.ª vuelta, 22/11, boceto de Pablo): hojas sueltas a la IZQUIERDA del libro (fuera de él: no tapan ni el trazado ni el conjuro), con las
 ## pestañas Sellos · Unión · Glifos. Son «inteligentes»: la hoja de delante es la del destino elegido (núcleo → Sellos, hueco → Glifos, enlace → Unión) y solo apunta
 ## lo que el personaje CONOCE (y «N por descubrir» al pie). Mientras se dibuja, se apagan las runas que ya no pueden salir y se marca la que va ganando (✓); el último
 ## intento fallido queda TACHADO junto a la runa que parecía. Un clic en una nota abre el CUADERNO (la página extendida) en esa runa.
 ## Los nombres son VERBOS de lo que hace cada runa (el boceto de Pablo), no el nombre del hechizo: los hechizos guardados se BAUTIZAN (H16).
-const VERBOS: Dictionary = {
-	"fuego": "Fuego", "agua": "Agua", "tierra": "Tierra", "viento": "Viento", "rayo": "Rayo", "hielo": "Hielo",
-	"flecha": "Viaja", "linea": "Línea", "altura": "Altura", "pulso": "Crecer", "permanencia": "Dura", "rebote": "Rebotes", "buscar": "Busca",
-	"repeticion": "Copias", "retorno": "Vuelve", "barrera": "Solidez", "raido": "Pulso", "perforar": "Atraviesa", "suelo": "Planta", "retardo": "Carga",
-}
 const UNION: Array = [["al impactar", "El segundo círculo nace donde choca el primero."], ["al acabar", "Nace cuando el primero se acaba."],
 	["a la vez", "Salen los dos casi juntos (≈ 0,17 s)."], ["combinar", "Dos sellos en el mismo núcleo: un solo hechizo (magma, naturaleza…)."]]
 const NOTAS_ANCHO_K: float = 0.205             ## parte del ancho de pantalla para las notas (el libro se aparta a la derecha)
@@ -1545,7 +1527,7 @@ func _dibujar_notas() -> void:
 		var t: String = TrazosRectos.texto_guia(String(id), delante == "sellos")
 		if t != "":
 			TrazosRectos.dibujar_guia(self, t, caja, col, 1.4)          # con el punto de inicio y la flecha: cómo se dibuja
-		_texto(Vector2(caja.end.x + 8.0, y + alto * 0.5 + 5.0), String(VERBOS.get(id, id)), 15, col, false, f.size.x - alto - 40.0)
+		_texto(Vector2(caja.end.x + 8.0, y + alto * 0.5 + 5.0), verbo_de(id), 15, col, false, f.size.x - alto - 40.0)
 		if lider:
 			_texto(Vector2(f.end.x - 18.0, y + alto * 0.5 + 6.0), "✓", 18, RUBI)
 			draw_line(Vector2(caja.end.x + 8.0, y + alto - 4.0), Vector2(f.end.x - 26.0, y + alto - 4.0), Color(RUBI, 0.6), 1.2)
@@ -1629,7 +1611,7 @@ func _dibujar_cuaderno() -> void:
 		if sel:
 			draw_rect(Rect2(Vector2(c.position.x + 16.0, y), Vector2(mitad - 32.0, alto)), Color(RUBI, 0.10))
 		TrazosRectos.dibujar_guia(self, TrazosRectos.texto_guia(String(id), cuaderno_tab == "sellos"), caja, TINTA, 1.3)
-		_texto(Vector2(caja.end.x + 10.0, y + alto * 0.5 + 5.0), String(VERBOS.get(id, id)), 15, TINTA, false, mitad - alto - 60.0)
+		_texto(Vector2(caja.end.x + 10.0, y + alto * 0.5 + 5.0), verbo_de(id), 15, TINTA, false, mitad - alto - 60.0)
 		_botones["cat:%s" % String(id)] = Rect2(Vector2(c.position.x + 16.0, y), Vector2(mitad - 32.0, alto))
 		y += alto
 	var faltan: int = por_descubrir(cuaderno_tab)
@@ -1644,14 +1626,14 @@ func _dibujar_cuaderno() -> void:
 	var x: float = c.position.x + mitad + 24.0
 	var es_sello: bool = cuaderno_tab == "sellos"
 	var t: String = TrazosRectos.texto_guia(sel_catalogo, es_sello)
-	_texto(Vector2(x, c.position.y + 44.0), String(VERBOS.get(sel_catalogo, sel_catalogo)), 26, TINTA, false, mitad - 140.0)
+	_texto(Vector2(x, c.position.y + 44.0), verbo_de(sel_catalogo), 26, TINTA, false, mitad - 140.0)
 	var futhark: String = String((GestureLibrary.BIBLIA.get(sel_catalogo, {}) as Dictionary).get("futhark", ""))
 	var n_trazos: int = 1 if t == "" else t.split("|").size()
 	_texto(Vector2(x, c.position.y + 68.0), "%s · %d %s" % [futhark if futhark != "" else _nombre_simbolo(sel_catalogo), n_trazos, "trazo" if n_trazos == 1 else "trazos"], 13, Color(TINTA, 0.6), false, mitad - 40.0)
 	var lado: float = minf(c.size.y * 0.30, mitad * 0.42)
 	if t != "":
 		_guia_animada(t, Rect2(Vector2(x, c.position.y + 82.0), Vector2(lado, lado)), clampf(_t_practica / T_PRACTICA, 0.0, 1.0))
-	var fi: Array = FICHAS.get(sel_catalogo, ["", ""])
+	var fi: Array = ficha_de(sel_catalogo)
 	var xt: float = x + lado + 16.0
 	_texto(Vector2(xt, c.position.y + 104.0), String(fi[0]), 14, TINTA, false, c.end.x - xt - 20.0)
 	if String(fi[1]) != "":
@@ -1661,7 +1643,7 @@ func _dibujar_cuaderno() -> void:
 	var p: Rect2 = caja_practica()
 	draw_rect(p, Color(PERGAMINO_SOMBRA, 0.35))
 	draw_rect(p, Color(TINTA, 0.35), false, 1.0)
-	_texto(Vector2(p.get_center().x, p.position.y - 8.0), "Practica aquí: dibuja «%s»" % String(VERBOS.get(sel_catalogo, sel_catalogo)), 13, Color(TINTA, 0.7), true, p.size.x + 80.0)
+	_texto(Vector2(p.get_center().x, p.position.y - 8.0), "Practica aquí: dibuja «%s»" % verbo_de(sel_catalogo), 13, Color(TINTA, 0.7), true, p.size.x + 80.0)
 	for tr in _prac_trazos:
 		if (tr as PackedVector2Array).size() >= 2:
 			draw_polyline(tr, TINTA, 3.0, true)
@@ -1692,11 +1674,11 @@ func evaluar_practica(trazos: Array = []) -> bool:
 			leido = "?" + String(r.get("name", ""))
 	prac_ok = leido == sel_catalogo
 	if prac_ok:
-		prac_resultado = "¡Bien! Eso es «%s»." % String(VERBOS.get(leido, leido))
+		prac_resultado = "¡Bien! Eso es «%s»." % verbo_de(leido)
 	elif leido.begins_with("?"):
-		prac_resultado = "No lo reconozco (se parece a «%s»)." % String(VERBOS.get(leido.substr(1), leido.substr(1)))
+		prac_resultado = "No lo reconozco (se parece a «%s»)." % verbo_de(leido.substr(1))
 	else:
-		prac_resultado = "Eso es «%s», no «%s»." % [String(VERBOS.get(leido, leido)), String(VERBOS.get(sel_catalogo, sel_catalogo))]
+		prac_resultado = "Eso es «%s», no «%s»." % [verbo_de(leido), verbo_de(sel_catalogo)]
 	PlayLog.event("libro_rojo_practica", {"practica": sel_catalogo, "leido": leido, "ok": prac_ok})
 	_prac_trazos.clear()
 	queue_redraw()
@@ -1839,7 +1821,7 @@ func _dibujar_ficha(caja: Rect2) -> void:
 	var nombre: String = _nombre_simbolo(id)
 	var futhark: String = String(GestureLibrary.BIBLIA.get(id, {}).get("futhark", "")) if GestureLibrary.BIBLIA.has(id) else ""
 	_texto(Vector2(x, caja.position.y + 22.0), ("%s %s" % [futhark, nombre]).strip_edges() + ("" if tiene else "  · bloqueado"), 16, TINTA, false, ancho_txt)
-	var f: Array = FICHAS.get(id, ["", ""])
+	var f: Array = ficha_de(id)
 	_texto(Vector2(x, caja.position.y + 44.0), String(f[0]) if tiene else "Aún no lo tienes.", 13, Color(TINTA, 0.85), false, ancho_txt)
 	if tiene and String(f[1]) != "":
 		_texto(Vector2(x, caja.position.y + 64.0), "Vale con: %s" % String(f[1]), 12, Color(TINTA, 0.65), false, ancho_txt)

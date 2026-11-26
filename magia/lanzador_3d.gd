@@ -100,10 +100,12 @@ const AVISO_CADUCA: float = 3.0             ## segundos finales en que parpadea
 
 
 ## --- El repertorio del Test 3: los seis elementos, nueve sellos (sin `pilar` ni `retardo`) ---
-## LIBRO (16/10, Pablo): el libro antiguo («nivel1» y la lámina de doce casillas) era un placeholder. TODAS las progresiones usan ya `LIBROS["bosque"]`
-## (grimorio_bosque.png): tres huecos de glifo que se abren por orden (abajo → abajo-izq → abajo-der) según `glifos_por_pagina`. Con 2, como hasta ahora,
-## están abiertos los dos primeros y el juego es el mismo; con 6 (los bancos de pruebas) se abren los tres y el resto del presupuesto se apila en ellos.
-## Cuando existan las mejoras que abren huecos, `glifos_por_pagina` de nivel1/bosque pasa a ser lo que haya ganado el jugador (hoy no hay mecanismo).
+## LIBRO (12/11, Pablo: «el libro de los dos círculos abajo como libro oficial en todos los mapas»): TODAS las progresiones usan `LIBROS["avanzado"]`
+## (spellbook.gd): el círculo mágico arriba (dos medallones de sello y una corona de 6 huecos de glifo) y DOS CÍRCULOS DE DIBUJO abajo (sellos a la izquierda,
+## glifos a la derecha). Los huecos de la corona se abren por orden según `glifos_por_pagina` (los demás salen tapados, diario 463); los engarces de glifo fijan el
+## total (diario 458). Dos sellos por página desde el principio: la tabla de parejas (`CombosSellos`) ya vale en el Bosque. Antes (16/10–12/11) era «bosque»
+## (grimorio_bosque.png, tres huecos abajo), que sigue en `LIBROS` para las pruebas que lo piden a mano; `Repertoire.cambiar_libro` y `libro_conseguido` quedan
+## para un libro futuro que dé la aventura.
 ## --- Progresión en 3D: qué tienes en cada nivel (vocabulario del diseño: SELLO = elemento, GLIFO = forma) ---
 ## `Repertoire` ya hace que el libro solo enseñe lo activo; aquí se decide QUÉ está activo, y cuántas páginas (libros) hay y
 ## cuántos glifos caben en una. «todo» es el banco de pruebas de siempre (Test 3). La clave se elige con el nombre del nivel
@@ -114,34 +116,34 @@ const CAPACIDAD_PRIMER_LIBRO: Array = [4, 6]
 const PROGRESIONES: Dictionary = {
 	"todo": {"sellos": ["fuego", "agua", "viento", "tierra", "rayo", "hielo"],
 		"glifos": ["flecha", "barrera", "linea", "altura", "levitacion", "repeticion", "rebote", "pulso", "perforar", "retorno", "buscar", "retardo", "suelo"],
-		"paginas": 3, "glifos_por_pagina": 6, "libro": "bosque"},
+		"paginas": 3, "glifos_por_pagina": 6, "libro": "avanzado"},
 	# Primer nivel (Pablo, 8/10): UN sello y DOS glifos, una sola página, y como mucho dos glifos en ella.
-	"nivel1": {"sellos": ["fuego"], "glifos": ["flecha", "barrera"], "paginas": 1, "glifos_por_pagina": 2, "libro": "bosque", "capacidad": CAPACIDAD_PRIMER_LIBRO},
+	"nivel1": {"sellos": ["fuego"], "glifos": ["flecha", "barrera"], "paginas": 1, "glifos_por_pagina": 2, "libro": "avanzado", "capacidad": CAPACIDAD_PRIMER_LIBRO},
 	# Bosque 1 (Fase 9, 9.9, Pablo 10/10): se empieza con FUEGO + FLECHA y una página (un hueco de sello, dos de glifo). El
 	# sello de AGUA se recoge detrás de la telaraña (Bosque3D, zona `a`) y la BARRERA se compra al guardabosques por 20 de oro.
-	"bosque": {"sellos": ["fuego"], "glifos": ["flecha"], "paginas": 1, "glifos_por_pagina": 2, "libro": "bosque", "capacidad": CAPACIDAD_PRIMER_LIBRO},
+	"bosque": {"sellos": ["fuego"], "glifos": ["flecha"], "paginas": 1, "glifos_por_pagina": 2, "libro": "avanzado", "capacidad": CAPACIDAD_PRIMER_LIBRO},
 	# Kit de pruebas (11.15, Pablo 12/10): el Bosque como laboratorio, con TODO el repertorio desde el principio, hielo incluido.
 	# Se elige con `mundo.kit = "pruebas"`; el Bosque3D no quita ni bloquea nada de esto (solo desbloquea, y es idempotente).
 	"pruebas": {"sellos": ["fuego", "agua", "viento", "tierra", "rayo", "hielo"],
 		"glifos": ["flecha", "barrera", "linea", "altura", "levitacion", "repeticion", "rebote", "pulso", "perforar", "retorno", "buscar", "retardo", "suelo"],
-		"paginas": 3, "glifos_por_pagina": 6, "libro": "bosque"},
+		"paginas": 3, "glifos_por_pagina": 6, "libro": "avanzado"},
 	# 27/10: la Gruta Batida (docs/GRUTA_BATIDA.md), el nivel de la BARRERA: tres elementos (fuego, tierra, hielo) y solo flecha, barrera y línea, para que cada puzle se lea como «¿dónde y de qué levanto la barrera?».
 	# El cofre del final da ᛉ permanencia (la barrera que dura).
 	"barrera": {"sellos": ["fuego", "tierra", "hielo"], "glifos": ["flecha", "barrera", "linea"],
-		"paginas": 3, "glifos_por_pagina": 4, "libro": "bosque", "capacidad": CAPACIDAD_PRIMER_LIBRO},
+		"paginas": 3, "glifos_por_pagina": 4, "libro": "avanzado", "capacidad": CAPACIDAD_PRIMER_LIBRO},
 	# 28/10 (Pablo: «la barrera como concepto, sin más elementos que el fuego»): la Gruta Batida nueva. FUEGO + FLECHA y nada más: los tótems enseñan la barrera
 	# y el cofre del santuario da ᛜ (Puzle3D, `glifo=barrera`). La versión de tres elementos queda en docs/GRUTA_PERMANENCIA.md con el kit «barrera».
-	"gruta": {"sellos": ["fuego"], "glifos": ["flecha"], "paginas": 1, "glifos_por_pagina": 2, "libro": "bosque", "capacidad": CAPACIDAD_PRIMER_LIBRO},
+	"gruta": {"sellos": ["fuego"], "glifos": ["flecha"], "paginas": 1, "glifos_por_pagina": 2, "libro": "avanzado", "capacidad": CAPACIDAD_PRIMER_LIBRO},
 	# 18/11 (Pablo): kit de la demo: solo fuego, agua y tierra (sin viento, hielo, rayo ni reacciones). Es el repertorio COMPLETO de la demo (el techo), no el de arranque:
 	# cuando existan los cofres que dan cada sello y glifo, el arranque será fuego + flecha, como en «bosque».
 	"demo": {"sellos": ["fuego", "agua", "tierra"], "glifos": ["flecha", "linea", "barrera", "altura", "raido", "suelo"],
-		"paginas": 3, "glifos_por_pagina": 6, "libro": "bosque", "capacidad": CAPACIDAD_PRIMER_LIBRO},
+		"paginas": 3, "glifos_por_pagina": 6, "libro": "avanzado", "capacidad": CAPACIDAD_PRIMER_LIBRO},
 	# 22/11 (docs/PLAN_HECHIZOS_2026-11-22.md §2): el ARRANQUE de la demo, el kit de todas las escenas de la ruta (Bosque 01 v01, Bosque 02, Cueva, Cueva Resonante,
 	# Monte Sumicio). Lo demás se gana: cofres `glifo=` / `sello=` (flags global.glifo.* / global.sello.*, que Puzle3D._restaurar_glifos rearma en cada nivel),
 	# el agua de Marimanta y las hojas de grimorio (mejora `paginas`, que suma encima de estas 2). La barrera y la segunda página son las del TUTORIAL
 	# (una minimazmorra-cueva que aún no existe, Pablo 22/11): mientras no exista, este kit las da; cuando exista, salen de aquí y las dan sus cofres.
 	"demo_inicio": {"sellos": ["fuego"], "glifos": ["flecha", "barrera"],
-		"paginas": 2, "glifos_por_pagina": 2, "libro": "bosque", "capacidad": CAPACIDAD_PRIMER_LIBRO},
+		"paginas": 2, "glifos_por_pagina": 2, "libro": "avanzado", "capacidad": CAPACIDAD_PRIMER_LIBRO},
 }
 const PROGRESION_FORZADA: String = ""          ## «nivel1», «todo»…: manda sobre el nombre del nivel (para probar)
 ## 22/11: SOLO PARA LAS PRUEBAS. {kit de la escena: kit que se usa en su lugar}. `escenario_base.cargar` pone {"demo_inicio": "pruebas"} para que los escenarios escritos con el
@@ -244,6 +246,8 @@ signal lanzado(elemento: String, forma: String, manifestaciones: int)
 ## 23/11 (sesión HECHIZOS): se acaba de crear un HechizoVivo (`lanzar_hechizo`). Lo escucha el PROTOTIPO de anidación del lab del libro rojo
 ## (`laboratorios/prototipo_anidado.gd`) para lanzar el segundo círculo cuando toca. Nadie más lo usa.
 signal hechizo_vivo_creado(vivo: HechizoVivo)
+## H6 (23/11): lo que lleva el hechizo que ACABA de salir (los nombres de sus glifos, como en la página: linea_x, altura…). Lo oye `PistaGlifo` para saber que la jugadora ya usó la runa nueva.
+signal glifos_lanzados(glifos: Array)
 signal modo_cambiado(activo: bool)
 ## Una casilla pasó a ser agua (o dejó de serlo) según la simulación. Para quien dependa de «es agua» y no pregunte cada vez.
 signal agua_cambio(c: Vector2i, es_agua: bool)
@@ -1685,6 +1689,7 @@ func _disparar(datos: Dictionary, origen: Vector3, dir: Vector3, retardo: float)
 			"previsto": snappedf(float(t[0]) + float(t[1]) + float(t[2]), 0.01), "retardo": snappedf(retardo, 0.01), "interrumpido": false})
 	PlayLog3D.manifestaciones(n, forma, elemento)
 	Estadisticas.contar_lanzamiento(indice + 1, String(datos.get("elemento_nombre", elemento)), datos["glifos"] if datos.get("glifos") is Array else [])      # M1 (22/11): por página y por receta
+	glifos_lanzados.emit((datos["glifos"] as Array).duplicate() if datos.get("glifos") is Array else [])
 	lanzado.emit(elemento, forma, n)
 
 

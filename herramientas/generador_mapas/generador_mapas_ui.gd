@@ -283,6 +283,9 @@ class Vista extends Control:
 				var ct: String = filas[y][x]
 				if tonos.has(ct):
 					draw_rect(Rect2(origen + Vector2(x, y) * e, Vector2(e, e)), tonos[ct])
+				elif ct == "c":
+					# 23/11: el cauce del juego (letra `c`, plantillas del catálogo): un azul agua más claro que el del `~`, que se lea como «aquí se llena o se vacía».
+					draw_rect(Rect2(origen + Vector2(x, y) * e, Vector2(e, e)), Color(0.45, 0.78, 0.95, 0.75))
 		if not ver_contenido:
 			return
 		# Salas: el papel que hacen (inicio, tesoro, llave, se cierra) y su número.
@@ -1062,7 +1065,7 @@ func _al_pasar(c: Vector2i) -> void:
 		return
 	var partes: PackedStringArray = PackedStringArray(["(%d, %d)" % [c.x, c.y]])
 	var ch: String = (_mapa["filas"] as PackedStringArray)[c.y][c.x]
-	partes.append({"#": "pared", "~": "agua honda", "g": "tierra pisada", "R": "losas", ",": "hierba corta", "v": "hierba alta (arde)", " ": "precipicio (sin suelo: se cruza con el puente de tierra)"}.get(ch, "suelo"))
+	partes.append({"#": "pared", "~": "agua honda", "g": "tierra pisada", "R": "losas", ",": "hierba corta", "v": "hierba alta (arde)", "c": "cauce", " ": "precipicio (sin suelo: se cruza con el puente de tierra)"}.get(ch, "suelo"))
 	for s in _mapa["salas"]:
 		if (s["rect"] as Rect2i).has_point(c):
 			var rol: String = String(s["rol"])

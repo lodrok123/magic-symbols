@@ -1,0 +1,52 @@
+; catalogo molino_paso_bajo
+; titulo El molino y la pasarela
+; tipo salida
+; activa meta.pulsado
+; pide tierra
+; prueba mapa ancho=70 alto=60 sala_min=4 sala_max=7 estilo=cueva luz=cueva
+; prueba solucion A: reposo 30 | golpe tierra rio_d con barrera desde 10:6 | espera pasarela tendido | max 8 | cruza 9:3 a 9:1
+; prueba nada: reposo 30 | golpe agua molino desde 10:3 | nunca pasarela tendido | durante 15
+;  P4 (23/11/2026, Ruinas/Cuevas, después de Tierra; sin hielo): hay que llegar a la orilla norte, al otro lado de una galería inundada (la franja
+;  de cauce de arriba). El manantial corre SIEMPRE y reparte su caudal en una bifurcación (esquina de abajo a la derecha): al norte, el brazo del
+;  MOLINO, que sube y entra en la galería; al sur, el brazo del DESAGÜE, que se pierde.
+;  Solución única, «Levantar la pasarela»: tierra en la boca del brazo del desagüe → todo el caudal sube por el molino → la rueda gira fuerte y hay
+;  corriente de verdad en su brazo (el nivel) → se tiende la pasarela sobre la galería.
+;  (Descartada el 23/11: una segunda solución «dejar practicable la galería», con tierra en la boca del molino para vaciar la galería. Nunca funcionó:
+;  la boca del molino queda bajo ≥ 0,28 u de agua y Lanzador3D.puede_construir_en rechaza la tierra sobre agua, umbral 0,25 u.)
+;  Dos reglas de diseño: (1) el manantial no se cierra nunca y la galería tiene salida: con medio caudal entra más de lo que sale y sigue
+;  inundada. (2) El molino lleva hechizo=no: un golpe de Agua solo le da un empujón visible que NO cuenta para `girando`; solo lo activa la corriente
+;  del cauce (todo el caudal). Por eso ya no hace falta ningún nivel: la regla es una sola, molino.girando → pasarela.tender.
+;  AFINADO (23/11, herramientas/escenario_catalogo_molino.gd): caudal 10 (con menos, la galería no se sostiene inundada). El molino (12,3) con vertical=si (por defecto)
+;  ya queda en el plano del flujo: la corriente del brazo corre por Z y dir_abajo() = (0,-1), proyección = |flujo|. Medido: medio caudal (reposo) flujo (0,005; -0,144),
+;  proyección 0,14 (0,12-0,18), ω 0,13-0,20 rad/s; todo el caudal (tierra en el desagüe) corriente 1,41 máx, luego 0,6-1,1 sostenida, ω 0,65-1,25. umbral=0,4 u/s en el plano
+;  (ω_umbral 0,43, se suelta por debajo de 0,34) separa medio caudal (ω ≤ 0,2: la mitad) de todo el caudal (ω ≥ 0,65: ×1,5 por encima) con margen.
+;  NIVELES INICIALES (23/11): el equilibrio con medio caudal NO es uniforme (el río baja de 1,08 u en la fuente a 0,30 en la boca del molino), así que el río va en tramos, cada uno a su nivel
+;  medido tras asentarse (caso 0), y la galería a 0,30 (antes 0,45 y el río vacío: la galería se vaciaba hacia el río en una oleada de 2-2,7 u/s hacia +Z que giraba el molino y tendía la
+;  pasarela sola). Pico de corriente en el brazo, 0-10 s: antes 2,72 u/s (con un río uniforme a 0,5, 1,47); ahora 0,37 u/s (< umbral 0,4), sin girar y con la pasarela plegada. Subido a umbral 0,5 (23/11) para dejar margen sobre ese pico; todo el caudal sostenido (0,61-0,73) sigue por encima y no se suelta (0,4).
+;  Las paredes tienen dos casillas de grueso por el mismo motivo que en piedra_pista (punta de pared con hueco): la del este es una columna más (x 14), el agua no se mueve. La plantilla es abierta por abajo.
+###############
+#####........##
+#####cccccccc##
+#...........c##
+#...........c##
+#....cccccccc##
+##..........c##
+##..........c##
+...............
+; pieza galeria cuenca 7 2 celdas=6,2..12,2 nivel=0.3
+; pieza grifo_g compuerta 6 2 abierta=si estrecha=no
+; pieza sale_g cuenca 5 2 fijo=0.2
+; pieza rio cuenca 5 5 celdas=5,5..6,5 nivel=1.08
+; pieza rio7 cuenca 7 5 nivel=1.0
+; pieza rio8 cuenca 8 5 nivel=0.9
+; pieza rio9 cuenca 9 5 nivel=0.76
+; pieza rio10 cuenca 10 5 nivel=0.6
+; pieza rio11 cuenca 11 5 nivel=0.43
+; pieza rio12 cuenca 12 5 celdas=12,5+12,3..12,4 nivel=0.3
+; pieza rio_d cuenca 12 6 nivel=0.16
+; pieza sale_r cuenca 12 7 fijo=0.02
+; pieza fuente manantial 5 5 caudal=10.0 rampa=no
+; pieza molino molino 12 3 umbral=0.5 hechizo=no
+; pieza pasarela puente 9 2
+; pieza meta pulsador 9 1 modo=presencia $MODELO
+; puzle pasarela cuando=molino.girando hace=pasarela.tender

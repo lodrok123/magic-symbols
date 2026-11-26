@@ -55,7 +55,7 @@ const SELLOS: Dictionary = {
 	"flecha": "UL,D,UL",          # ᛇ  gancho arriba, palo, gancho abajo (de una vez)
 	"retorno": "DL,DR",           # ᛃ  no tiene PNG todavía: «<» hasta que lo tenga
 	"altura": "D|UR,DR",          # ᛏ  palo y el tejado Λ
-	"rebote": "U,DR",             # la Λ de pata izquierda recta
+	"rebote": "D,UR,D,UL",        # ᛞ  dagaz (24/11, Pablo): |X| de un solo trazo: baja el palo, sube en diagonal, baja el otro palo y vuelve (cerrado)
 	"barrera": "DL,DR,UR,UL",     # ◇  el rombo (cerrado: cualquier esquina vale)
 	"repeticion": "D|UR|UR",      # ᚠ  palo y dos ramas que suben
 	"pulso": "DR|DL",             # ᚷ  la X
@@ -360,9 +360,11 @@ static func _coste_trazo(leida: Array, plantilla: Array) -> Dictionary:
 static func _cerrada(plantilla: Array) -> bool:
 	if plantilla.size() < 3:
 		return false
+	# Se suma en rejilla (cada diagonal avanza un paso en x y uno en y): así ᛞ («D,UR,D,UL», palo + diagonal) también cierra.
 	var suma := Vector2.ZERO
 	for d in plantilla:
-		suma += vector_de(int(d))
+		var v: Vector2 = vector_de(int(d))
+		suma += Vector2(signf(v.x) if absf(v.x) > 0.3 else 0.0, signf(v.y) if absf(v.y) > 0.3 else 0.0)
 	return suma.length() < 0.25
 
 

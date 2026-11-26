@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://d0i41v78webol"
-path="res://.godot/imported/botanico-1-sello.png-c533dfb69810a09690cd43302c74370a.ctex"
+uid="uid://5pn87pwoy6va"
+path="res://.godot/imported/grimorio_toon_botanico.png-f7c333e7d73765b8ef72e9d3295e1a1d.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://docs/diseno_grimorios/toon/botanico-1-sello.png"
-dest_files=["res://.godot/imported/botanico-1-sello.png-c533dfb69810a09690cd43302c74370a.ctex"]
+source_file="res://art/ui/grimorio_toon_botanico.png"
+dest_files=["res://.godot/imported/grimorio_toon_botanico.png-f7c333e7d73765b8ef72e9d3295e1a1d.ctex"]
 
 [params]
 

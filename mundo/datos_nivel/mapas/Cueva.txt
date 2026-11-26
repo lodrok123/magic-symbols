@@ -175,7 +175,7 @@
 ; El receptor de C6: la veta del prisma acaba junto a él. Al activarse pone la flag que DESELLA el cofre legendario (abre_si): el cofre se abre con E, da el glifo ᚱ «pulso» (flag cueva.c6.glifo)
 ; y lo desbloquea en el libro con la secuencia de PLAN_PULSO_RESONANTE §8. Mientras está cerrado echa una columna de luz dorada (VfxCalidad3D), visible desde la puerta.
 ; pieza ante_cofre receptor 14 13 flag=cueva.c6.pulso
-; pieza tesoro cofre 13 13 modelo=legendario abre_si=flag.cueva.c6.pulso abierto=cueva.c6.glifo glifo=raido
+; pieza tesoro cofre 13 13 modelo=legendario abre_si=flag.cueva.c6.pulso abierto=cueva.c6.glifo glifo=raido reto=cueva.c6.salida reto_en=11,16
 ; La salida de C6 (el atajo a la boca) es ahora una PARED HUECA: suena con cualquier pulso (la veta oeste lleva hasta ella) y solo se abre con el pulso del jugador (ᚱ). Sin pulsador de reserva.
 ; pieza salida pared_hueca 9 16 flag=cueva.c6.salida
 ; pieza seta_c6a seta 16 18

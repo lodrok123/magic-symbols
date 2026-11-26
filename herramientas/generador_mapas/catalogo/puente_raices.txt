@@ -1,0 +1,21 @@
+; catalogo puente_raices
+; titulo El puente de zarcillos
+; tipo paso
+; pide agua
+;  23/11/2026 (PUENTE DE ZARCILLOS, fase 1 con modelos provisionales; el archivo conserva el nombre `puente_raices` por compatibilidad con el catálogo). Una galería inundada de 5 × 2 (x2..6, y3..4: agua honda «~», no se pisa: no se nada) separa la orilla de abajo (de cara a la cámara) de la de arriba. En la orilla de
+;  abajo, en (4,5), hay una PIEDRA CON SURCO sobre un bancal y, en su borde hacia el agua, un NUDO de zarcillos dormido (verde oliva). Un golpe de Agua a la casilla la moja y GERMINA: el agua sube en el hueco de la piedra, un hilo baja por el surco, el nudo se abre y, desde él, un PUENTE DE ZARCILLOS
+;  se teje sobre el agua casilla a casilla (de (4,4) a (4,3): un arranque en abanico y un tramo tejido) y se agarra con dos anillos a unas rocas de la casilla de llegada (4,2); cada tramo que se asienta se puede pisar. Es de tipo `paso` (el puzle ES la barrera: su agua `~` cuenta como cruzable para el generador) y no `salida`: una `salida` no puede partir la sala con agua `~` («corta el paso») y con un cauce `c` el río se vadearía. La señal `tendido` del puente (`trama.tendido`) sirve igualmente para enlazar otra cosa a mano.
+;  Reglas de diseño: (1) el orden de `celdas` del puente IMPORTA (se teje desde la primera, la pegada al nudo): se escribe con «+» de la casilla del bancal hacia fuera, no con «..» (que va de menor a mayor). (2) `dir` del bancal y del puente es el MISMO (aquí `n`: el puente sale hacia arriba, y = −1) y la plantilla es fija: no se gira. (3) Ni la piedra ni el nudo bloquean su casilla
+;  (si no, el agua no la alcanzaría y no germinaría). (4) `tendido_si=flag.…` es la MISMA flag del bancal: si se recarga el mapa con el bancal germinado, el puente sale ya tendido, sin animación. (5) Los ids de las piezas (`hueco`, `trama`) NO pueden coincidir con un valor de otra clave (`modelo=surco`, `estilo=zarcillos`, `dir=n`): al estampar, el generador antepone `cat<n>_` a todo lo que se llame como una pieza local y rompería el valor. (6) La casilla de llegada (4,2) tiene que ser suelo libre: el anclaje (rocas) se monta ahí. (7) Es agua honda «~» y no un cauce «c» a propósito: un cauce con poca agua se vadea (medido el 23/11) y la superficie de «~» es justo la altura a la que el puente se apoya. (8) El bancal pide suelo de
+;  tierra o arena: con un estilo de mapa de hierba la pieza avisa. Plantilla fija de 9 × 8, abierta por abajo, con paredes de dos casillas de grueso (una pared suelta de una casilla quedaría de punta en mitad de la sala).
+#########
+#########
+##.....##
+##~~~~~##
+##~~~~~##
+##.....##
+##.....##
+.........
+; pieza hueco bancal 4 5 flag=$NIVEL.$ID.germino modelo=surco dir=n
+; pieza trama puente 4 4 celdas=4,4+4,3 estilo=zarcillos dir=n tendido_si=flag.$NIVEL.$ID.germino
+; puzle crece cuando=hueco.germino hace=trama.tender

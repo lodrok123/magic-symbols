@@ -29,6 +29,8 @@ class_name AguaSim3D
 ##   agua.quitar(pos_mundo, volumen, radio)      # fuego que evapora
 ##   agua.helar_casilla(c, true)                 # hielo: el agua se queda quieta
 ##   agua.solidificar_casilla(c, true)           # bloque de tierra: tapa y aparta el agua
+##   agua.pared_entre(c, Vector2i(1, 0), true)   # 26/11: pared en la frontera entre dos casillas (un recipiente de verdad); `paredes_casilla` por varios lados
+##   agua.limitar_paso(c, 0.8)                   # 26/11: la casilla (una compuerta) deja salir como mucho 0,8 u³/s; `quitar_limite(c)`
 ##   en _physics_process: agua.paso(delta); for cambio in agua.cambios(): ...   # casillas que pasan a agua / a seco
 ##
 ## Unidades: las del mundo (u). Volumen en u³. Caudal en u³/s. Alturas en Y del mundo.
@@ -88,8 +90,12 @@ var absorbido_hz: float = 0.0           ## u³ de agua de HECHIZO que ha bebido 
 var hz := PackedByteArray()             ## 1 = agua de hechizo (ver HZ_PELICULA); por trocito
 var mojado := PackedFloat32Array()      ## segundos que le quedan al trocito para secarse (0 = seco); estado «mojado» del suelo
 var vecinos := PackedInt32Array()       ## 4 por trocito, el índice del vecino o -1 (borde); se calcula una vez
+## 26/11: PAREDES ENTRE TROCITOS. 4 por trocito (mismo índice que `caudal`: 0 −x, 1 +x, 2 −z, 3 +z); 1 = ese borde no deja pasar agua aunque los dos trocitos estén abiertos y a
+## distinta altura. Siempre SIMÉTRICO (si i→j está bloqueado, j→i también). Lo escriben `pared_entre` / `paredes_casilla`. Ver su comentario.
+var pared_borde := PackedByteArray()
 
 var _acumulado: float = 0.0
+var _limites: Dictionary = {}           ## Vector2i -> u³/s: casillas con LÍMITE DE CAUDAL de salida (ver `limitar_paso`)
 var _rampas: Array = []                 ## manantiales que suben poco a poco: [{c: Vector2i, v: u³/s ganados por segundo, t: s que faltan}]
 var _topes: Dictionary = {}             ## Vector2i -> u³ que le quedan por echar a un manantial FINITO (una tinaja): al llegar a 0 se apaga
 var _agotadas: Array = []               ## casillas cuyo manantial finito se ha agotado desde la última vez que alguien preguntó
@@ -135,6 +141,9 @@ func configurar(p_ancho: int, p_alto: int, p_sub: int, p_lado: float, suelo_y: C
 	prof.fill(0.0)
 	caudal.resize(n * 4)
 	caudal.fill(0.0)
+	pared_borde.resize(n * 4)
+	pared_borde.fill(0)
+	_limites.clear()
 	cerrado.resize(n)
 	cerrado.fill(0)
 	helado.resize(n)
@@ -267,6 +276,112 @@ func _trozos_abiertos(c: Vector2i) -> PackedInt32Array:
 		if cerrado[i] == 0:
 			r.append(i)
 	return r
+
+
+## --- 26/11 · Paredes entre trocitos y límite de caudal ---
+## POR QUÉ: cada puzle de agua obligaba a medir y ajustar a mano por dos causas que no eran «el agua»: (1) un recipiente de una casilla rebosaba en cuanto
+## su nivel pasaba el suelo de al lado (la simulación solo conoce «cerrado» por trocito, no un borde que no deja pasar); (2) no había forma de acotar cuánto
+## tarda un vaciado (la boca era siempre el hueco de la casilla). Aquí: la pared es una pared (caudal 0 por ese borde) y el límite es una boca más pequeña (un tope de caudal de salida):
+## el agua sigue siendo agua. OJO: el límite es una COTA, no hace el tiempo independiente del ancho de la sala (ver `limitar_paso`).
+
+const _DIRS4: Array = [Vector2i(-1, 0), Vector2i(1, 0), Vector2i(0, -1), Vector2i(0, 1)]
+
+
+## k (0 −x, 1 +x, 2 −z, 3 +z) de una dirección unitaria, o −1 si no lo es.
+static func _k_de_dir(d: Vector2i) -> int:
+	return _DIRS4.find(d)
+
+
+## Bloquea (`si`) o desbloquea todos los bordes de trocito de la FRONTERA entre la casilla `c` y la vecina `c + d` (d ∈ (±1,0), (0,±1)): por ahí no pasa agua en ningún
+## sentido, aunque los trocitos estén abiertos. Es simétrico. No mueve agua: lo que hubiera a cada lado se queda donde está. Si las dos casillas tienen una pared
+## puesta por piezas distintas, desbloquear la frontera quita las dos (no hay cuenta de «quién la puso»; el juego pone cada frontera una sola vez).
+func pared_entre(c: Vector2i, d: Vector2i, si: bool) -> void:
+	var k: int = _k_de_dir(d)
+	if k < 0 or not _dentro_casilla(c) or not _dentro_casilla(c + d):
+		return
+	var k_op: int = k ^ 1                           # 0↔1, 2↔3
+	var v: int = 1 if si else 0
+	for s in range(sub):
+		var sx: int = s
+		var sy: int = s
+		match k:
+			0: sx = 0
+			1: sx = sub - 1
+			2: sy = 0
+			_: sy = sub - 1
+		var i: int = (c.y * sub + sy) * w + c.x * sub + sx
+		var j: int = vecinos[i * 4 + k]
+		if j < 0:
+			continue
+		pared_borde[i * 4 + k] = v
+		pared_borde[j * 4 + k_op] = v
+		if si:
+			caudal[i * 4 + k] = 0.0                 # el empuje que llevaba hacia la pared se pierde (nada cruza)
+			caudal[j * 4 + k_op] = 0.0
+
+
+## `pared_entre` por varios lados de la casilla: `lados` = Array de Vector2i unitarios.
+func paredes_casilla(c: Vector2i, lados: Array, si: bool) -> void:
+	for d in lados:
+		pared_entre(c, d as Vector2i, si)
+
+
+## ¿Está bloqueado el borde `k` del trocito `i`? (para quien recorre vecinos fuera de `_paso`)
+func borde_bloqueado(i: int, k: int) -> bool:
+	return pared_borde[i * 4 + k] == 1
+
+
+## LÍMITE DE CAUDAL de una casilla (una compuerta con `caudal=` o `tarda=`): el agua que SALE de la casilla (flujos de sus trocitos hacia trocitos de OTRA casilla) no
+## pasa de `q_u3s` u³/s en conjunto; si la física da más, se escalan todos esos flujos por igual. Lo de dentro de la casilla no se toca y el volumen se conserva exactamente
+## (solo se REDUCE lo que sale; lo que no sale se queda). Es una COTA: el vaciado por una compuerta no baja de V / q (V = agua de su lado alto). NO acelera nada: si la física da menos que q (sala ancha:
+## el agua del fondo tarda en llegar a la boca, el tiempo crece con el cuadrado del ancho; o la cola del vaciado, con poco nivel) manda la física y el tope no se nota. Medido en prueba_agua_sim 15.
+## Por eso la compuerta con límite se abre ENTERA (que la boca no sea el cuello de botella). `quitar_limite` lo retira. q ≤ 0 lo quita.
+func limitar_paso(c: Vector2i, q_u3s: float) -> void:
+	if q_u3s <= 0.0:
+		_limites.erase(c)
+	else:
+		_limites[c] = q_u3s
+
+
+func quitar_limite(c: Vector2i) -> void:
+	_limites.erase(c)
+
+
+## u³/s de límite de la casilla (INF si no tiene).
+func limite_de(c: Vector2i) -> float:
+	return float(_limites[c]) if _limites.has(c) else INF
+
+
+## Volumen (u³) del CUERPO DE AGUA del lado alto de una casilla (`c`, normalmente una compuerta cerrada): entre sus 4 vecinas se toma el trocito con agua (más que
+## PROF_CHARCO, sin hielo) de superficie más alta y se inunda desde él por los trocitos con agua conectados, respetando cerrados, hielo y `pared_borde`, sin entrar en `c`.
+## Sirve para `tarda`: q = volumen / segundos. 0 si ninguna vecina tiene agua.
+func volumen_cuerpo_alto(c: Vector2i) -> float:
+	var semilla: int = -1
+	var mejor: float = -INF
+	for d in _DIRS4:
+		for i in _trozos_abiertos(c + (d as Vector2i)):
+			if helado[i] == 0 and prof[i] > PROF_CHARCO and suelo[i] + prof[i] > mejor:
+				mejor = suelo[i] + prof[i]
+				semilla = i
+	if semilla < 0:
+		return 0.0
+	var vis := PackedByteArray()
+	vis.resize(w * h)
+	vis[semilla] = 1
+	var pila: Array[int] = [semilla]
+	var vol: float = 0.0
+	while not pila.is_empty():
+		var i: int = pila.pop_back()
+		vol += prof[i]
+		for k in range(4):
+			var j: int = vecinos[i * 4 + k]
+			if j < 0 or vis[j] == 1 or cerrado[j] == 1 or helado[j] == 1 or prof[j] <= PROF_CHARCO or pared_borde[i * 4 + k] == 1:
+				continue
+			if Vector2i((j % w) / sub, (j / w) / sub) == c:
+				continue
+			vis[j] = 1
+			pila.append(j)
+	return vol * l * l
 
 
 ## Un manantial: `caudal_u3s` u³/s repartidos por los trocitos ABIERTOS de la casilla (0 lo apaga). Si no hay ninguno abierto
@@ -719,7 +834,7 @@ func recipiente(c: Vector2i, rebose: float = INF) -> Dictionary:
 		var mejor: int = semilla
 		for k in range(4):
 			var j: int = vecinos[semilla * 4 + k]
-			if j >= 0 and cerrado[j] == 0 and suelo[j] < suelo[mejor]:
+			if j >= 0 and cerrado[j] == 0 and pared_borde[semilla * 4 + k] == 0 and suelo[j] < suelo[mejor]:
 				mejor = j
 		if mejor == semilla:
 			break
@@ -742,7 +857,7 @@ func recipiente(c: Vector2i, rebose: float = INF) -> Dictionary:
 			var derrama: bool = false
 			for k in range(4):
 				var j: int = vecinos[i * 4 + k]
-				if j < 0 or (cerrado[j] == 0 and vis[j] == 0 and suelo[j] < hi):
+				if j < 0 or (cerrado[j] == 0 and vis[j] == 0 and suelo[j] < hi and pared_borde[i * 4 + k] == 0):
 					derrama = true
 					break
 			if derrama:
@@ -754,7 +869,7 @@ func recipiente(c: Vector2i, rebose: float = INF) -> Dictionary:
 			break
 		for k in range(4):
 			var j2: int = vecinos[i * 4 + k]
-			if j2 >= 0 and cerrado[j2] == 0 and vis[j2] == 0:
+			if j2 >= 0 and cerrado[j2] == 0 and vis[j2] == 0 and pared_borde[i * 4 + k] == 0:
 				vis[j2] = 1
 				_mont_meter(cola, Vector2(suelo[j2], float(j2)))
 	var cap: float = 0.0
@@ -831,7 +946,7 @@ func caida_en_trozo(i: int) -> float:
 	var m: float = 0.0
 	for k in range(4):
 		var j: int = vecinos[i * 4 + k]
-		if j >= 0 and cerrado[j] == 0 and caudal[i * 4 + k] > 0.0:
+		if j >= 0 and cerrado[j] == 0 and pared_borde[i * 4 + k] == 0 and caudal[i * 4 + k] > 0.0:
 			m = maxf(m, sup - (suelo[j] + prof[j]))
 	return m
 
@@ -1022,7 +1137,7 @@ func _paso(dt: float) -> void:
 			for k in range(4):
 				var j: int = vecinos[b + k]
 				var v: float = 0.0
-				if j >= 0 and cerrado[j] == 0 and helado[j] == 0:
+				if j >= 0 and cerrado[j] == 0 and helado[j] == 0 and pared_borde[b + k] == 0:     # 26/11: un borde con pared no deja pasar
 					v = maxf(0.0, caudal[b + k] * amortigua + k_g * (HZ_FRENO if hz[i] == 1 else 1.0) * (sup - suelo[j] - prof[j]))
 				caudal[b + k] = v
 				total += v
@@ -1031,6 +1146,10 @@ func _paso(dt: float) -> void:
 				if tope < 1.0:
 					for k in range(4):
 						caudal[b + k] *= tope
+	# 2 bis) Límite de caudal de salida de las casillas limitadas (compuerta con `caudal=`/`tarda=`): solo se REDUCE lo que sale, así que el recorte K sigue valiendo.
+	if not _limites.is_empty():
+		for c in _limites:
+			_recortar_salida(c as Vector2i, float(_limites[c]))
 	# 3) Mover el agua: lo que sale de i entra en su vecino (conserva el volumen exactamente). Y la caja nueva.
 	for y in range(y0, y1 + 1):
 		for x in range(x0, x1 + 1):
@@ -1063,6 +1182,25 @@ func _paso(dt: float) -> void:
 				prof[i] = 0.0                  # restos de redondeo: el recorte K ya impide vaciar de más
 			if prof[i] > 0.0 or mojado[i] > 0.0 or fuente[i] != 0.0 or fijo[i] > -INF or helado[i] == 1:
 				_incluir_xy(x, y)
+
+
+## Escala los flujos que salen de la casilla `c` hacia trocitos de otras casillas para que sumen como mucho `q` (ver `limitar_paso`).
+func _recortar_salida(c: Vector2i, q: float) -> void:
+	var t: PackedInt32Array = _trozos(c)
+	var suma: float = 0.0
+	for i in t:
+		for k in range(4):
+			var j: int = vecinos[i * 4 + k]
+			if j >= 0 and Vector2i((j % w) / sub, (j / w) / sub) != c:
+				suma += caudal[i * 4 + k]
+	if suma <= q:
+		return
+	var f: float = q / suma
+	for i in t:
+		for k in range(4):
+			var j: int = vecinos[i * 4 + k]
+			if j >= 0 and Vector2i((j % w) / sub, (j / w) / sub) != c:
+				caudal[i * 4 + k] *= f
 
 
 ## Marca como agua de HECHIZO el agua (presente y futura) de los trocitos de una casilla: la de `HechizoVivo._materia_liquido` en suelo sin manantial. Ver HZ_PELICULA.
@@ -1217,7 +1355,7 @@ func _poner_cerrado(i: int, si: bool) -> void:
 	var abiertos: Array[int] = []
 	for k in range(4):
 		var j: int = vecinos[i * 4 + k]
-		if j >= 0 and cerrado[j] == 0:
+		if j >= 0 and cerrado[j] == 0 and pared_borde[i * 4 + k] == 0:     # por un borde con pared no se reparte agua
 			abiertos.append(j)
 	if prof[i] > 0.0 and not abiertos.is_empty():
 		var parte: float = prof[i] / float(abiertos.size())

@@ -2346,7 +2346,9 @@ func _poblar() -> void:
 				var copia: PackedByteArray = g.duplicate()
 				for k in range(1, ps.size()):
 					g[int(ps[k]["c"].y) * w + int(ps[k]["c"].x)] = MURO
-				if (_componentes()[1] as Array).size() <= 1:
+				# 23/11: también contando lo que bloquea (los braseros de una plantilla del catálogo): tapiar una puerta no puede dejar encerrada una sala
+				# cuya otra salida tapa un brasero (semilla 707 con 4 puzles: braseros_premio quedaba aislada).
+				if (_componentes()[1] as Array).size() <= 1 and (_componentes(true, _bloqueos)[1] as Array).size() <= 1:
 					for k in range(1, ps.size()):
 						puertas.erase(ps[k])
 					s_tes = s
@@ -3709,8 +3711,23 @@ func _poner_puzle(s: Dictionary, cid: String, nv: String, de_barrera: bool = fal
 	if String(e["estira"]) == "x":
 		# Una franja: cada fila se repite hasta el ancho de la sala y se prueba en cada altura, la del centro primero.
 		tw = r.size.x
+		# 26/11: `ancho_puzle` (parámetro del mapa, 0 = el de la sala) fuerza el ancho de la franja: lo usa el comprobador de puzles de agua para probar una plantilla a varios anchos.
+		# Más ancha que la sala se autoajusta (excava la roca de alrededor, como siempre); más estrecha deja el resto de la sala como suelo.
+		if int(p.get("ancho_puzle", 0)) > 0:
+			tw = int(p["ancho_puzle"])
+		# 23/11: cada fila pierde los espacios del final (`leer_texto` la rellena hasta el ancho). Una letra = se repite entera; n >= 2 = las n-1 primeras
+		# son la CABEZA fija (a la izquierda) y la última se repite hasta el ancho de la sala. Una sala más estrecha que la fila (o que `ancho_min`) no vale.
+		var minimo: int = int(e.get("ancho_min", 0))
+		var rectas: Array = []
 		for i in range(filas.size()):
-			filas[i] = String(filas[i]).substr(0, 1).repeat(tw)
+			var fila_i: String = String(filas[i]).rstrip(" ")
+			rectas.append(fila_i if fila_i != "" else " ")
+			minimo = maxi(minimo, fila_i.length())
+		if tw < minimo:
+			return "no cabe (la plantilla pide una sala de al menos %d de ancho y esta mide %d)." % [minimo, r.size.x]
+		for i in range(filas.size()):
+			var fi: String = rectas[i]
+			filas[i] = fi.substr(0, fi.length() - 1) + fi.substr(fi.length() - 1, 1).repeat(tw - fi.length() + 1)
 		for y in range(r.position.y, r.end.y - th + 1):
 			sitios.append(Vector2i(r.position.x, y))
 	else:
@@ -3784,6 +3801,14 @@ func _estampar(s: Dictionary, e: Dictionary, filas: Array, tw: int, th: int, sit
 					_ocupar(c)
 					if paso:
 						_puentes[c] = true           # se cruza al resolver el puzle (helada): cuenta como paso
+				"c":
+					# 23/11: el cauce del juego (letra `c`): suelo ocupado (ni enemigos ni jarrones) que el puzle llena o vacía con sus piezas `cuenca`.
+					# No añade objeto «catalogo»: un cauce de 20 casillas llenaría la vista de interrogaciones (la vista lo pinta azul por su letra).
+					g[c.y * w + c.x] = SUELO
+					letras[c] = ch
+					_ocupar(c)
+					if not _letras_extra.contains(ch):
+						_letras_extra += ch
 				_:
 					g[c.y * w + c.x] = SUELO
 					letras[c] = ch
@@ -3852,7 +3877,7 @@ func _estampar(s: Dictionary, e: Dictionary, filas: Array, tw: int, th: int, sit
 
 ## Una línea `; pieza` / `; puzle` de la plantilla, llevada al mapa: comodines, casillas trasladadas e ids con el prefijo de la instancia.
 func _linea_de_catalogo(l: String, e: Dictionary, sitio: Vector2i, inst: String, nv: String, tw: int, th: int) -> String:
-	var t: String = l.substr(1).strip_edges().replace("$NIVEL", nv).replace("$ID", inst).replace("$X1", str(tw - 1)).replace("$Y1", str(th - 1))
+	var t: String = l.substr(1).strip_edges().replace("$NIVEL", nv).replace("$ID", inst).replace("$XC", str(int((tw - 1) * 0.5))).replace("$X1", str(tw - 1)).replace("$Y1", str(th - 1))
 	t = t.replace("$MODELO", "modelo=cueva" if String(p["estilo"]) == "cueva" else "")
 	var partes: PackedStringArray = t.split(" ", false)
 	var locales: Array = []
@@ -3870,7 +3895,7 @@ func _linea_de_catalogo(l: String, e: Dictionary, sitio: Vector2i, inst: String,
 		if kv.size() != 2:
 			continue
 		var valor: String = kv[1]
-		if ["celdas", "de", "sala", "en", "camino", "canal", "bloque", "rieles"].has(kv[0]) or valor.contains("casilla("):
+		if ["celdas", "de", "sala", "en", "camino", "canal", "bloque", "rieles", "ruta", "enlaces"].has(kv[0]) or valor.contains("casilla("):
 			var res: String = ""
 			var desde: int = 0
 			for m in pares.search_all(valor):

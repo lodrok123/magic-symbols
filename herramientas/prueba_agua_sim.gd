@@ -21,6 +21,9 @@ func _init() -> void:
 	_hielo_tiempo()
 	_hielo_consultas()
 	_canal_estrecho()
+	_paredes_borde()
+	_compuerta_sin_orientacion()
+	_limite_de_caudal()
 	_rendimiento()
 	print("FALLOS: %d" % _fallos)
 	quit(1 if _fallos > 0 else 0)
@@ -326,3 +329,204 @@ func _canal_estrecho() -> void:
 	_ok("12 sin agua en los cerrados del canal", a.prof[t[0]] == 0.0 and a.prof[t[1]] == 0.0 and a.prof[t[2]] == 0.0 and a.prof[t[6]] == 0.0 and a.prof[t[7]] == 0.0 and a.prof[t[8]] == 0.0)
 	a.quitar_estrecho(c)
 	_ok("12 quitar_estrecho la devuelve a 9 trocitos", a._trozos_abiertos(c).size() == 9)
+
+
+## 13 (26/11): PAREDES ENTRE TROCITOS. Un hoyo de una casilla (suelo 0) rodeado de suelo a 1,0 y lleno a 1,5 u (0,5 por encima del borde). Sin paredes el agua rebosa y se
+## reparte por el llano; con `paredes_casilla` en sus 4 lados el hoyo es un recipiente de verdad: retiene el nivel, no moja nada de fuera y conserva el volumen. Quitar la
+## pared devuelve el rebose. Las paredes son siempre simétricas.
+func _paredes_borde() -> void:
+	var lados: Array = [Vector2i(1, 0), Vector2i(-1, 0), Vector2i(0, 1), Vector2i(0, -1)]
+	var hoyo := Vector2i(2, 1)
+	var res: Dictionary = {}
+	for con_pared in [false, true]:
+		var a := AguaSim3D.new()
+		a.configurar(5, 3, 3, S, func(c: Vector2i) -> float: return 0.0 if c == hoyo else 1.0, func(_c: Vector2i) -> bool: return false)
+		if con_pared:
+			a.paredes_casilla(hoyo, lados, true)
+		a.llenar_casilla(hoyo, 1.5)
+		var v0: float = a.volumen_total()
+		_correr(a, 20.0)
+		var fuera: float = 0.0
+		for cy in range(3):
+			for cx in range(5):
+				if Vector2i(cx, cy) != hoyo:
+					fuera += a.profundidad_casilla(Vector2i(cx, cy))
+		res[con_pared] = {"fuera": fuera, "nivel": a.profundidad_casilla(hoyo), "dv": absf(a.volumen_total() - v0), "v0": v0, "a": a}
+	_ok("13 sin paredes el hoyo rebosa hasta el borde (control)", float(res[false]["nivel"]) < 1.05, "nivel %.3f, fuera %.3f" % [res[false]["nivel"], res[false]["fuera"]])
+	_ok("13 con paredes retiene su nivel (1,5 u) y no moja nada de fuera", absf(float(res[true]["nivel"]) - 1.5) < 1.0e-4 and float(res[true]["fuera"]) == 0.0, "nivel %.4f, fuera %.4f" % [res[true]["nivel"], res[true]["fuera"]])
+	_ok("13 y el volumen se conserva (con y sin paredes)", float(res[true]["dv"]) < 1.0e-4 * float(res[true]["v0"]) and float(res[false]["dv"]) < 0.5 * float(res[false]["v0"]),
+		"con paredes: %.6f u³ de diferencia; sin ellas: %.3f (el llano que moja se lo bebe el suelo), de %.2f u³" % [res[true]["dv"], res[false]["dv"], res[true]["v0"]])
+	var b: AguaSim3D = res[true]["a"]
+	var simetrica: bool = true
+	var n_bloq: int = 0
+	for i in range(b.w * b.h):
+		for k in range(4):
+			var j: int = b.vecinos[i * 4 + k]
+			if b.pared_borde[i * 4 + k] == 1:
+				n_bloq += 1
+				simetrica = simetrica and j >= 0 and b.pared_borde[j * 4 + (k ^ 1)] == 1
+	_ok("13 las paredes son simétricas (12 bordes de trocito por lado de la casilla, ×2 sentidos ×4 lados)", simetrica and n_bloq == 3 * 2 * 4, "%d entradas" % n_bloq)
+	b.paredes_casilla(hoyo, lados, false)
+	_correr(b, 20.0)
+	var fuera2: float = 0.0
+	for cy in range(3):
+		for cx in range(5):
+			if Vector2i(cx, cy) != hoyo:
+				fuera2 += b.profundidad_casilla(Vector2i(cx, cy))
+	_ok("13 quitar las paredes devuelve el rebose", b.profundidad_casilla(hoyo) < 1.05, "nivel %.3f" % b.profundidad_casilla(hoyo))
+	# El reparto al cerrar un trocito no manda agua por un borde con pared.
+	var c := AguaSim3D.new()
+	c.configurar(3, 1, 3, S, func(_c: Vector2i) -> float: return 0.0, func(_c: Vector2i) -> bool: return false)
+	c.pared_entre(Vector2i(0, 0), Vector2i(1, 0), true)
+	c.llenar_casilla(Vector2i(0, 0), 0.5)
+	c.solidificar_casilla(Vector2i(1, 0), true)
+	_ok("13 pared_entre fuera del mapa no hace nada y cerrar la vecina no pasa agua por la pared", c.profundidad_casilla(Vector2i(0, 0)) >= 0.5 - 1.0e-6)
+	c.pared_entre(Vector2i(0, 0), Vector2i(-1, 0), true)
+
+
+## Monta una compuerta de verdad (Compuerta3D) sobre la casilla `c` de la simulación `a` y la abre sin pasar por el árbol (`_aplicar`): lo mismo que haría `abrir()` sin el sonido.
+func _compuerta(a: AguaSim3D, c: Vector2i, vertical: Variant, tarda: float = 0.0, estrecha: bool = true) -> Compuerta3D:
+	Terreno3D.agua_sim = a
+	var k := Compuerta3D.new()
+	k.estrecha = estrecha
+	k.tarda = tarda
+	k.preparar(c, false, "", "", vertical)
+	a.solidificar_casilla(c, true)
+	return k
+
+
+func _abrir_compuerta(k: Compuerta3D) -> void:
+	k.abierta = true
+	k._aplicar(false)
+
+
+func _soltar_compuerta(k: Compuerta3D) -> void:
+	Terreno3D.cauces_abiertos.erase(k.celda)
+	Terreno3D.cauces_a_ras.erase(k.celda)
+	Terreno3D.agua_sim = null
+	k.free()
+
+
+## 14 (26/11): una compuerta deja pasar el agua sea cual sea su `vertical`. Pasillo este-oeste (5×1) y pasillo norte-sur (1×5), agua en las dos primeras casillas, compuerta en la
+## tercera; antes `vertical` mal puesto (no en el pasillo E-O, sí en el N-S) no dejaba pasar nada. Cerrada no pasa nada. Además `vertical` no dado orienta solo la losa.
+func _compuerta_sin_orientacion() -> void:
+	for eje in ["EO", "NS"]:
+		for vertical in [null, true, false]:
+			var a := AguaSim3D.new()
+			var ew: bool = eje == "EO"
+			a.configurar(5 if ew else 1, 1 if ew else 5, 3, S, func(_c: Vector2i) -> float: return 0.0, func(_c: Vector2i) -> bool: return false)
+			var celda: Callable = func(i: int) -> Vector2i: return Vector2i(i, 0) if ew else Vector2i(0, i)
+			a.llenar_casilla(celda.call(0), 0.8)
+			a.llenar_casilla(celda.call(1), 0.8)
+			var k: Compuerta3D = _compuerta(a, celda.call(2), vertical)
+			_correr(a, 5.0)
+			var cerrada_ok: bool = a.profundidad_casilla(celda.call(3)) == 0.0 and a.profundidad_casilla(celda.call(4)) == 0.0
+			var v0: float = a.volumen_total()
+			_abrir_compuerta(k)
+			_correr(a, 15.0)
+			var etiqueta: String = "%s vertical=%s" % [eje, "(sola)" if vertical == null else str(vertical)]
+			_ok("14 compuerta %s: cerrada no pasa y abierta sí (4.ª y 5.ª casillas reciben agua)" % etiqueta,
+				cerrada_ok and a.profundidad_casilla(celda.call(4)) > 0.05 and a.profundidad_casilla(celda.call(3)) > 0.05,
+				"casilla 3: %.3f, casilla 4: %.3f" % [a.profundidad_casilla(celda.call(3)), a.profundidad_casilla(celda.call(4))])
+			_ok("14 compuerta %s: el volumen se conserva (salvo la lámina fina que se bebe el suelo)" % etiqueta, absf(a.volumen_total() - v0) < 0.02 * v0, "%.3f -> %.3f" % [v0, a.volumen_total()])
+			if vertical == null:
+				_ok("14 compuerta %s: la losa se orienta sola (norte-sur en el pasillo E-O, y al revés)" % etiqueta, k.vertical == ew, "vertical=%s" % str(k.vertical))
+			_soltar_compuerta(k)
+
+
+## Un depósito de 2 casillas de fondo y `ancho_d` de ancho con agua a 0,4 u, vaciado por una compuerta de la columna siguiente (fila 1; la fila 0 de esa columna y la siguiente es pared)
+## hacia un desagüe de nivel fijo 0,02 u. `modo`: "estrecha" (el hueco de siempre), "entera" (abierta entera, sin límite) o la `tarda` en s. Devuelve {t25, t05, q, vol}: segundos hasta que
+## ninguna casilla del depósito pasa de 0,25 u y de 0,05 u (-1 si no llega en 120 s), el límite que puso la compuerta y el volumen inicial del depósito.
+func _vaciado(ancho_d: int, modo: Variant) -> Dictionary:
+	var a := AguaSim3D.new()
+	var gx: int = ancho_d
+	a.configurar(ancho_d + 2, 2, 3, S, func(_c: Vector2i) -> float: return 0.0, func(c: Vector2i) -> bool: return c.y == 0 and c.x >= gx)
+	var celdas: Array = []
+	var vol: float = 0.0
+	for cy in range(2):
+		for cx in range(ancho_d):
+			celdas.append(Vector2i(cx, cy))
+			a.llenar_casilla(Vector2i(cx, cy), 0.4)
+	vol = a.volumen_total()
+	a.fijar_nivel(Vector2i(gx + 1, 1), 0.02)
+	var tarda: float = float(modo) if (modo is float or modo is int) else 0.0
+	var k: Compuerta3D = _compuerta(a, Vector2i(gx, 1), null, tarda, str(modo) == "estrecha")
+	_abrir_compuerta(k)
+	var q: float = a.limite_de(Vector2i(gx, 1))
+	var t25: float = -1.0
+	var t05: float = -1.0
+	for paso in range(120 * 30):
+		a.paso(1.0 / 30.0)
+		var mx: float = 0.0
+		for c in celdas:
+			mx = maxf(mx, a.profundidad_casilla(c))
+		var t: float = float(paso + 1) / 30.0
+		if t25 < 0.0 and mx < 0.25:
+			t25 = t
+		if mx < 0.05:
+			t05 = t
+			break
+	_soltar_compuerta(k)
+	return {"t25": t25, "t05": t05, "q": q, "vol": vol}
+
+
+## 15 (26/11): LÍMITE DE CAUDAL. Primero lo que se puede garantizar: el tope se cumple y el volumen se conserva exactamente (un depósito a 1,0 u que se vacía por una casilla limitada
+## a 0,5 u³/s hacia un recipiente cerrado; mientras el depósito da más que q, el recipiente gana q·dt por paso, ni un pelo más). Después se MIDE el vaciado de un depósito de ancho 5 y
+## otro de 11 (ver `_vaciado`): con el hueco de siempre, con la compuerta entera sin límite y con `tarda` de 8, 20 y 40 s. RESULTADO HONESTO: el límite es una COTA MÍNIMA del tiempo, no
+## lo hace independiente del ancho: el agua del fondo de una sala ancha tarda en llegar a la boca por sí sola (el tiempo crece con el ancho al cuadrado), y con tarda=8 el tope ni llega a
+## actuar (da lo mismo que sin él). Solo con tarda grande (40 s) el ancho se nota menos. Se afirma lo que es verdad: q = V/tarda, el vaciado no baja de la cota, y el cociente 11/5 baja al subir tarda.
+func _limite_de_caudal() -> void:
+	var a := AguaSim3D.new()
+	a.configurar(7, 1, 3, S, func(_c: Vector2i) -> float: return 0.0, func(_c: Vector2i) -> bool: return false)
+	for cx in range(3):
+		a.llenar_casilla(Vector2i(cx, 0), 1.0)
+	for cx in range(4, 7):
+		a.llenar_casilla(Vector2i(cx, 0), 0.2)
+	a.limitar_paso(Vector2i(3, 0), 0.5)
+	a.llenar_casilla(Vector2i(3, 0), 0.6)
+	_ok("15 limite_de devuelve el tope puesto y INF si no hay", a.limite_de(Vector2i(3, 0)) == 0.5 and a.limite_de(Vector2i(2, 0)) == INF)
+	var v0: float = a.volumen_total()
+	var gana_max: float = 0.0
+	var der_ini: float = 0.0
+	var der_5s: float = 0.0
+	for cx in range(4, 7):
+		der_ini += a.profundidad_casilla(Vector2i(cx, 0))
+	var prev: float = der_ini
+	for paso in range(30 * 20):
+		a.paso(1.0 / 30.0)
+		var der: float = 0.0
+		for cx in range(4, 7):
+			der += a.profundidad_casilla(Vector2i(cx, 0))
+		# volumen que entra en el lado derecho este paso = (Δ de la suma de profundidades) · área de una casilla (sub² trocitos de l²) / sub² por trocito... la media por casilla × S²
+		gana_max = maxf(gana_max, (der - prev) * S * S * 30.0)
+		prev = der
+		if paso == 30 * 5 - 1:
+			der_5s = der
+	var gana_5s: float = (der_5s - der_ini) * S * S / 5.0
+	_ok("15 el tope se cumple: lo que sale de la casilla limitada nunca pasa de q (0,5 u³/s)", gana_max <= 0.5 * 1.001, "máximo %.4f u³/s" % gana_max)
+	_ok("15 y mientras la física da más, sale justo q (media de los 5 primeros s)", absf(gana_5s - 0.5) < 0.03, "%.4f u³/s" % gana_5s)
+	_ok("15 el volumen se conserva exactamente con el límite", absf(a.volumen_total() - v0) < 1.0e-4 * v0, "%.5f -> %.5f" % [v0, a.volumen_total()])
+	a.quitar_limite(Vector2i(3, 0))
+	_ok("15 quitar_limite lo retira", a.limite_de(Vector2i(3, 0)) == INF)
+	# Medidas de vaciado.
+	var modos: Array = ["estrecha", "entera", 8.0, 20.0, 40.0]
+	var res: Dictionary = {}
+	for modo in modos:
+		for ancho_d in [5, 11]:
+			res[[modo, ancho_d]] = _vaciado(ancho_d, modo)
+	for modo in modos:
+		var m5: Dictionary = res[[modo, 5]]
+		var m11: Dictionary = res[[modo, 11]]
+		print("      [15] %-8s ancho 5: <0,25 u en %5.1f s, <0,05 u en %5.1f s%s | ancho 11: %5.1f s y %5.1f s%s | cociente 11/5: %.2f (<0,25) y %.2f (<0,05)" % [
+			str(modo), m5["t25"], m5["t05"], (" (q %.2f)" % m5["q"]) if m5["q"] != INF else "", m11["t25"], m11["t05"], (" (q %.2f)" % m11["q"]) if m11["q"] != INF else "",
+			float(m11["t25"]) / maxf(float(m5["t25"]), 0.01), float(m11["t05"]) / maxf(float(m5["t05"]), 0.01)])
+	for t_ in [8.0, 20.0, 40.0]:
+		var m5: Dictionary = res[[t_, 5]]
+		var m11: Dictionary = res[[t_, 11]]
+		var cota: float = 0.95 * t_ * (1.0 - 0.05 / 0.4)        # bajar de 0,05 u de 0,4 u saca el 87,5 % del volumen: no puede ser antes que eso a caudal q
+		_ok("15 tarda=%d: q = volumen del depósito / tarda y el vaciado (<0,05 u) no baja de la cota (%.1f s)" % [int(t_), cota],
+			absf(float(m5["q"]) - float(m5["vol"]) / t_) < 0.02 * float(m5["q"]) and absf(float(m11["q"]) - float(m11["vol"]) / t_) < 0.02 * float(m11["q"]) and float(m5["t05"]) >= cota and float(m11["t05"]) >= cota,
+			"q5 %.3f, q11 %.3f; vaciado %.1f s (ancho 5) y %.1f s (ancho 11), cociente %.2f" % [m5["q"], m11["q"], m5["t05"], m11["t05"], float(m11["t05"]) / maxf(float(m5["t05"]), 0.01)])
+	var r8: float = float(res[[8.0, 11]]["t05"]) / float(res[[8.0, 5]]["t05"])
+	var r40: float = float(res[[40.0, 11]]["t05"]) / float(res[[40.0, 5]]["t05"])
+	_ok("15 el cociente de tiempos 11/5 baja al subir tarda (8 s: %.2f; 40 s: %.2f); NO llega a 1 (ver arriba)" % [r8, r40], r40 < r8 and r40 > 1.0)

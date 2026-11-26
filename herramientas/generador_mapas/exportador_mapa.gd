@@ -256,6 +256,8 @@ static func validar(m: Dictionary) -> PackedStringArray:
 	var abre: Dictionary = {}
 	for linea in m["lineas"]:
 		for trozo in String(linea).split(" ", false):
+			if trozo.begins_with("sostiene="):
+				abre[trozo.substr(9)] = true             # 23/11: una cuerda que sostiene el puente (o la puerta) lo abre al quemarse
 			if trozo.begins_with("hace=") or trozo.begins_with("y="):
 				var accion: PackedStringArray = trozo.substr(trozo.find("=") + 1).split(".")
 				if accion.size() >= 2 and (accion[1].begins_with("abrir") or accion[1].begins_with("tender") or accion[1].begins_with("alternar")):

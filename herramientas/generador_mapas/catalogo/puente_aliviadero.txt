@@ -1,0 +1,38 @@
+; catalogo puente_aliviadero
+; titulo El puente y el aliviadero
+; tipo paso
+; pide fuego
+; estira x
+; ancho_min 5
+; prueba anchos 5 8 12
+; prueba solucion A: golpe fuego cuerda desde $XC-1:3 | espera puente tendido | max 5 | cruza $XC:3 a $XC:0
+; prueba solucion B: golpe fuego tapon desde 1:3 | espera cuenca cauce todas_bajo 0.25 | max 20 | cruza $XC:3 a $XC:0
+; prueba solucion B_seco: golpe fuego tapon desde 1:3 | espera cuenca cauce todas_bajo 0.05 | max 60
+; prueba nada: golpe agua tapon desde 1:3 | nunca cuenca cauce bajo 0.25 | durante 15
+; prueba nada_cuerda: golpe agua cuerda desde $XC-1:3 | nunca puente tendido | durante 10
+;  Una acequia de lado a lado de la sala, dos casillas de ancho, llena a 0,4 u (con >= 0,25 u no se pisa), así que hay que cruzarla de otra manera.
+;  Hay DOS soluciones, las dos con fuego y las dos se resuelven desde la ORILLA SUR (la de entrada), sin que el disparo cruce el agua:
+;    A) El PUENTE: bajo el agua, en la columna central ($XC), hay un puente plegado atado a una cuerda que cuelga del poste de su cabecera sur, ya en la orilla. Un golpe de
+;       fuego a la cuerda la quema y el puente se TIENDE: sus dos losas se pisan.
+;    B) El ALIVIADERO: a la izquierda del todo la acequia tiene un desagüe (fijo a 0,02 u) separado del cauce por un TAPÓN DE HIELO (la compuerta), que se ve desde la orilla sur.
+;       Un golpe de fuego derrite el tapón y el agua se vacía por el desagüe: el cauce queda seco y se cruza por el fondo. (La cuerda no sirve de tapón: `Cuerda3D` CIERRA lo que
+;       sostiene al quemarse.)
+;  POR QUÉ el poste y el tapón están en la orilla sur (medido el 23/11): la flecha de fuego se APAGA al cruzar agua (muere a ~1 u de entrar en la primera casilla de agua), así que
+;  un poste al otro lado de la acequia, o un tapón con agua por medio, no se podrían encender desde la orilla de entrada.
+;  Dónde está cada cosa: fila 0 = orilla norte (con dos paredes a la izquierda); fila 1 = dos de pared (x0 y x1) y el cauce; fila 2 = desagüe (x0), tapón (x1) y cauce (x2 .. $X1);
+;  fila 3 = orilla sur. El cauce solo empieza en x2 para que el desagüe y el tapón no se pisen con el puente, que va en $XC (por eso `ancho_min 5`: con 5 de ancho $XC vale 2).
+;  Las paredes de las filas 0-1 van de dos en dos (como en piedra_pista): una pared suelta quedaría de punta, con agua o suelo por tres lados.
+;  Tapón: `tarda=8` (26/11): la compuerta se abre ENTERA y la simulación limita lo que sale de su casilla a (agua del cauce) / 8 u³/s: una COTA MÍNIMA (no baja de ~8 s), no un motor: en una sala
+;  ancha la física del interior tarda más sola y el tope ni se nota (con el hueco estrecho y 0,7 u el cauce de 11 de ancho tardaba ~25 s). Ya no hace falta `vertical=si estrecha=no`:
+;  la compuerta mira sola por qué lados da a agua (con `vertical=no` el agua no pasaba, medido el 23/11) y `vertical` es solo el dibujo de la losa, que se orienta sola. `nivel=0.4` se queda
+;  para que el cauce tenga poca agua que sacar (con 0,7 u la cola sería más larga).
+;  Las letras `c` son el cauce del juego (`cauce_hondo`: una `c` seca es un foso; con >= 0,25 u de agua no se pisa).
+##.
+##c
+ccc
+.
+; pieza cauce cuenca 2 1 celdas=2,1..$X1,2 nivel=0.4
+; pieza tapon compuerta 1 2 abre_con=fuego tarda=8
+; pieza desague cuenca 0 2 fijo=0.02
+; pieza puente puente $XC 1 celdas=$XC,1..$XC,2
+; pieza cuerda cuerda $XC 3 sostiene=puente

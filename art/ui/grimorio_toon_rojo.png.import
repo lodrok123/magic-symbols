@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://531yw8mj8sye"
-path="res://.godot/imported/rojo-2-sellos.png-78ae1e83a0cce0d11620f4271c7131b4.ctex"
+uid="uid://qyg418npxiar"
+path="res://.godot/imported/grimorio_toon_rojo.png-b8fa2079d6d954543861bdfe57223ba3.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://docs/diseno_grimorios/toon/rojo-2-sellos.png"
-dest_files=["res://.godot/imported/rojo-2-sellos.png-78ae1e83a0cce0d11620f4271c7131b4.ctex"]
+source_file="res://art/ui/grimorio_toon_rojo.png"
+dest_files=["res://.godot/imported/grimorio_toon_rojo.png-b8fa2079d6d954543861bdfe57223ba3.ctex"]
 
 [params]
 

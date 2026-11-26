@@ -84,6 +84,24 @@ func tender(desde: Vector3 = Vector3.INF) -> void:
 		_secuencia(orden[i] as Dictionary, i, i == orden.size() - 1)
 
 
+## 23/11: tendido YA, sin animación ni salpicaduras (la partida cargada: `tendido_si=` de la pieza `puente` de Puzle3D). Cada losa sale en su sitio, encendida, y avisa con `losa_lista`
+## (quien carga el nivel vuelve la casilla andable). No emite `completo`: al montar nadie lo oye y una regla `cuando=<puente>.tendido` no debe saltar al cargar.
+func tender_ya() -> void:
+	if tendido or _losas.is_empty():
+		return
+	tendido = true
+	for l in _losas:
+		var nodo: Node3D = (l as Dictionary)["nodo"]
+		var mat: Material = (l as Dictionary)["mat"]
+		nodo.position.y = _y_tope - GROSOR * 0.5
+		nodo.visible = true
+		if mat is ShaderMaterial:
+			(mat as ShaderMaterial).set_shader_parameter("energia", ENERGIA_RUNA)
+		elif mat != null:
+			(mat as StandardMaterial3D).emission_energy_multiplier = ENERGIA_RUNA
+		losa_lista.emit((l as Dictionary)["celda"] as Vector2i)
+
+
 func _secuencia(l: Dictionary, i: int, ultima: bool) -> void:
 	var nodo: Node3D = l["nodo"]
 	var mat: Material = l["mat"]
