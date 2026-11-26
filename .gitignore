@@ -88,6 +88,10 @@ arte/lostcave/*
 arte/stylescape/*
 !arte/stylescape/LEEME.md
 
+# Comparativa Unreal/Godot «bosque con ruinas» (26/11/2026): mallas y texturas de Pure Nature (BK) y Stylescape, licencia de Fab.
+# Se regenera con tools/ue_montar_prueba_bosque.py, tools/ue_exportar_prueba_bosque.py y tools/preparar_prueba_bosque.py.
+arte/comparativa_bosque/*
+
 # Python
 __pycache__/
 *.pyc

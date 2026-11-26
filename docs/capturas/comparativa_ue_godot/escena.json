@@ -1,0 +1,5134 @@
+{
+ "mapa": "/Game/MagicSymbols/MS_PruebaBosque",
+ "unidad": "cm",
+ "luz": {
+  "sol": {
+   "pitch": -70.76550085565243,
+   "yaw": -71.91181414708068,
+   "intensidad": 0.30000001192092896
+  }
+ },
+ "suelo": {
+  "textura": "/Game/PureNature_Meadows/Textures/Surfaces/T_Grass01_",
+  "repeticion": 30.0,
+  "rugosidad": 0.9
+ },
+ "camaras": [
+  {
+   "nombre": "Cam_Juego",
+   "pos": [
+    -2251.666049839541,
+    0,
+    1299.9999999999998
+   ],
+   "pitch": -30.0,
+   "yaw": 0.0,
+   "fov": 50.0
+  },
+  {
+   "nombre": "Cam_Detalle",
+   "pos": [
+    -1100,
+    450,
+    260
+   ],
+   "pitch": -10.0,
+   "yaw": -15.0,
+   "fov": 60.0
+  }
+ ],
+ "piezas": [
+  {
+   "malla": "/Engine/BasicShapes/Plane",
+   "pos": [
+    0,
+    0,
+    0
+   ],
+   "giro": 0,
+   "escala": [
+    60.0,
+    60.0,
+    1.0
+   ],
+   "material": "/Game/MagicSymbols/M_SueloPrueba",
+   "sin_terreno": []
+  },
+  {
+   "malla": "/Game/Stylescape/Ruins/Meshes/Merged/SM_Floor_4x4_01",
+   "pos": [
+    -200,
+    -200,
+    0
+   ],
+   "giro": 0,
+   "escala": [
+    1.0,
+    1.0,
+    1.0
+   ],
+   "material": null,
+   "sin_terreno": []
+  },
+  {
+   "malla": "/Game/Stylescape/Ruins/Meshes/Merged/SM_Floor_4x4_01",
+   "pos": [
+    -200,
+    200,
+    0
+   ],
+   "giro": 0,
+   "escala": [
+    1.0,
+    1.0,
+    1.0
+   ],
+   "material": null,
+   "sin_terreno": []
+  },
+  {
+   "malla": "/Game/Stylescape/Ruins/Meshes/Merged/SM_Floor_4x4_01",
+   "pos": [
+    200,
+    -200,
+    0
+   ],
+   "giro": 0,
+   "escala": [
+    1.0,
+    1.0,
+    1.0
+   ],
+   "material": null,
+   "sin_terreno": []
+  },
+  {
+   "malla": "/Game/Stylescape/Ruins/Meshes/Merged/SM_Floor_4x4_01",
+   "pos": [
+    200,
+    200,
+    0
+   ],
+   "giro": 0,
+   "escala": [
+    1.0,
+    1.0,
+    1.0
+   ],
+   "material": null,
+   "sin_terreno": []
+  },
+  {
+   "malla": "/Game/Stylescape/Ruins/Meshes/SM_Wall_Dmg_02",
+   "pos": [
+    -400,
+    0,
+    0
+   ],
+   "giro": 0,
+   "escala": [
+    1.0,
+    1.0,
+    1.0
+   ],
+   "material": null,
+   "sin_terreno": []
+  },
+  {
+   "malla": "/Game/Stylescape/Ruins/Meshes/SM_Wall_Dmg_03_Half_01",
+   "pos": [
+    0,
+    -400,
+    0
+   ],
+   "giro": 90,
+   "escala": [
+    1.0,
+    1.0,
+    1.0
+   ],
+   "material": null,
+   "sin_terreno": []
+  },
+  {
+   "malla": "/Game/Stylescape/Ruins/Meshes/SM_Wall_Dmg_04_Alt",
+   "pos": [
+    300,
+    400,
+    0
+   ],
+   "giro": 90,
+   "escala": [
+    1.0,
+    1.0,
+    1.0
+   ],
+   "material": null,
+   "sin_terreno": []
+  },
+  {
+   "malla": "/Game/Stylescape/Ruins/Meshes/SM_Wall_Arch_01",
+   "pos": [
+    400,
+    0,
+    0
+   ],
+   "giro": 0,
+   "escala": [
+    1.0,
+    1.0,
+    1.0
+   ],
+   "material": null,
+   "sin_terreno": []
+  },
+  {
+   "malla": "/Game/Stylescape/Ruins/Meshes/SM_Pillar_01_Dmg",
+   "pos": [
+    -400,
+    -400,
+    0
+   ],
+   "giro": 180,
+   "escala": [
+    1.0,
+    1.0,
+    1.0
+   ],
+   "material": null,
+   "sin_terreno": []
+  },
+  {
+   "malla": "/Game/Stylescape/Ruins/Meshes/SM_Pillar_01_Dmg",
+   "pos": [
+    -400,
+    400,
+    0
+   ],
+   "giro": 90,
+   "escala": [
+    1.0,
+    1.0,
+    1.0
+   ],
+   "material": null,
+   "sin_terreno": []
+  },
+  {
+   "malla": "/Game/Stylescape/Ruins/Meshes/SM_Pillar_01_Dmg",
+   "pos": [
+    400,
+    -400,
+    0
+   ],
+   "giro": 270,
+   "escala": [
+    1.0,
+    1.0,
+    1.0
+   ],
+   "material": null,
+   "sin_terreno": []
+  },
+  {
+   "malla": "/Game/Stylescape/Ruins/Meshes/SM_Pillar_03",
+   "pos": [
+    400,
+    400,
+    0
+   ],
+   "giro": 0,
+   "escala": [
+    1.0,
+    1.0,
+    1.0
+   ],
+   "material": null,
+   "sin_terreno": []
+  },
+  {
+   "malla": "/Game/Stylescape/Ruins/Meshes/SM_Rubble_01",
+   "pos": [
+    -299.29459933272005,
+    25.117403014682452,
+    0
+   ],
+   "giro": 131.64801008853078,
+   "escala": [
+    1.0,
+    1.0,
+    1.0
+   ],
+   "material": null,
+   "sin_terreno": []
+  },
+  {
+   "malla": "/Game/Stylescape/Ruins/Meshes/SM_Rubble_01",
+   "pos": [
+    286.79284420017154,
+    -199.7112734150368,
+    0
+   ],
+   "giro": 30.941004128101802,
+   "escala": [
+    1.0,
+    1.0,
+    1.0
+   ],
+   "material": null,
+   "sin_terreno": []
+  },
+  {
+   "malla": "/Game/Stylescape/Ruins/Meshes/SM_Rubble_02",
+   "pos": [
+    -301.10120349776673,
+    -286.50089065929444,
+    0
+   ],
+   "giro": 152.82690809130503,
+   "escala": [
+    1.0,
+    1.0,
+    1.0
+   ],
+   "material": null,
+   "sin_terreno": []
+  },
+  {
+   "malla": "/Game/Stylescape/Ruins/Meshes/SM_Rubble_01",
+   "pos": [
+    313.21479049524123,
+    91.43814101221597,
+    0
+   ],
+   "giro": 209.87888560574663,
+   "escala": [
+    1.0,
+    1.0,
+    1.0
+   ],
+   "material": null,
+   "sin_terreno": []
+  },
+  {
+   "malla": "/Game/Stylescape/Ruins/Meshes/SM_Rubble_01",
+   "pos": [
+    53.97206403224908,
+    -72.32366774445387,
+    0
+   ],
+   "giro": 351.4518380134512,
+   "escala": [
+    1.0,
+    1.0,
+    1.0
+   ],
+   "material": null,
+   "sin_terreno": []
+  },
+  {
+   "malla": "/Game/Stylescape/Ruins/Meshes/SM_HangingIvy_02",
+   "pos": [
+    -375,
+    0,
+    120
+   ],
+   "giro": 0,
+   "escala": [
+    1.0,
+    1.0,
+    1.0
+   ],
+   "material": null,
+   "sin_terreno": []
+  },
+  {
+   "malla": "/Game/Stylescape/Ruins/Meshes/SM_Crate_01",
+   "pos": [
+    -250,
+    250,
+    0
+   ],
+   "giro": 20,
+   "escala": [
+    1.0,
+    1.0,
+    1.0
+   ],
+   "material": null,
+   "sin_terreno": []
+  },
+  {
+   "malla": "/Game/PureNature_Meadows/Models/Trees/Meshes/Oak/Oak2/SM_Oak2",
+   "pos": [
+    1840.4407644529501,
+    -201.0713636484972,
+    0
+   ],
+   "giro": 104.25934307940345,
+   "escala": [
+    0.8932765250072312,
+    0.8932765250072312,
+    0.8932765250072312
+   ],
+   "material": null,
+   "sin_terreno": []
+  },
+  {
+   "malla": "/Game/PureNature_Meadows/Models/Trees/Meshes/Oak/Oak3/SM_Oak3",
+   "pos": [
+    1250.0406912984472,
+    245.42728281987078,
+    0
+   ],
+   "giro": 293.80548928321133,
+   "escala": [
+    0.9042179139771812,
+    0.9042179139771812,
+    0.9042179139771812
+   ],
+   "material": null,
+   "sin_terreno": []
+  },
+  {
+   "malla": "/Game/PureNature_Meadows/Models/Trees/Meshes/Elm/Elm2/SM_Elm2",
+   "pos": [
+    1346.1315553529812,
+    902.8367488618629,
+    0
+   ],
+   "giro": 134.06311538126323,
+   "escala": [
+    1.0143233397128673,
+    1.0143233397128673,
+    1.0143233397128673
+   ],
+   "material": null,
+   "sin_terreno": []
+  },
+  {
+   "malla": "/Game/PureNature_Meadows/Models/Trees/Meshes/Birch/Birch3/SM_Birch3",
+   "pos": [
+    739.6042501465656,
+    691.5969183013341,
+    0
+   ],
+   "giro": 74.14513661495755,
+   "escala": [
+    1.0541199919545357,
+    1.0541199919545357,
+    1.0541199919545357
+   ],
+   "material": null,
+   "sin_terreno": []
+  },
+  {
+   "malla": "/Game/PureNature_Meadows/Models/Trees/Meshes/Birch/Birch4/SM_Birch4",
+   "pos": [
+    551.8207204903913,
+    1154.7820173401226,
+    0
+   ],
+   "giro": 210.80227086274994,
+   "escala": [
+    0.9859553129112326,
+    0.9859553129112326,
+    0.9859553129112326
+   ],
+   "material": null,
+   "sin_terreno": []
+  },
+  {
+   "malla": "/Game/PureNature_Mountains/Models/Trees/Meshes/Pine/Pine4/SM_Pine4",
+   "pos": [
+    338.4417208221992,
+    1751.703314170603,
+    0
+   ],
+   "giro": 251.63799614264565,
+   "escala": [
+    0.9232289532166458,
+    0.9232289532166458,
+    0.9232289532166458
+   ],
+   "material": null,
+   "sin_terreno": []
+  },
+  {
+   "malla": "/Game/PureNature_Mountains/Models/Trees/Meshes/Fir/Fir3/SM_Fir3",
+   "pos": [
+    -240.1895919333108,
+    1482.1201259773595,
+    0
+   ],
+   "giro": 315.0494984064344,
+   "escala": [
+    1.068833586831765,
+    1.068833586831765,
+    1.068833586831765
+   ],
+   "material": null,
+   "sin_terreno": []
+  },
+  {
+   "malla": "/Game/PureNature_Mountains/Models/Trees/Meshes/Spruce/Spruce3/SM_Spruce3",
+   "pos": [
+    -729.5298953406822,
+    1839.8243976542637,
+    0
+   ],
+   "giro": 42.503680171786364,
+   "escala": [
+    0.9754368465355681,
+    0.9754368465355681,
+    0.9754368465355681
+   ],
+   "material": null,
+   "sin_terreno": []
+  },
+  {
+   "malla": "/Game/PureNature_Mountains/Models/Trees/Meshes/Fir/Fir3/SM_Fir3",
+   "pos": [
+    -1214.1683483472357,
+    -1371.8218791826057,
+    0
+   ],
+   "giro": 340.08519423885747,
+   "escala": [
+    0.9922295012258933,
+    0.9922295012258933,
+    0.9922295012258933
+   ],
+   "material": null,
+   "sin_terreno": []
+  },
+  {
+   "malla": "/Game/PureNature_Mountains/Models/Trees/Meshes/Spruce/Spruce3/SM_Spruce3",
+   "pos": [
+    -384.46263878034193,
+    -937.9669753123475,
+    0
+   ],
+   "giro": 252.5371276695926,
+   "escala": [
+    1.0441386563583006,
+    1.0441386563583006,
+    1.0441386563583006
+   ],
+   "material": null,
+   "sin_terreno": []
+  },
+  {
+   "malla": "/Game/PureNature_Meadows/Models/Trees/Meshes/Oak/Oak2/SM_Oak2",
+   "pos": [
+    -44.33598356358676,
+    -1812.4788443076259,
+    0
+   ],
+   "giro": 102.45439155389373,
+   "escala": [
+    0.9657374327340132,
+    0.9657374327340132,
+    0.9657374327340132
+   ],
+   "material": null,
+   "sin_terreno": []
+  },
+  {
+   "malla": "/Game/PureNature_Meadows/Models/Trees/Meshes/Oak/Oak3/SM_Oak3",
+   "pos": [
+    177.45713739779072,
+    -957.3835557740026,
+    0
+   ],
+   "giro": 166.2103030679157,
+   "escala": [
+    0.9004145136719633,
+    0.9004145136719633,
+    0.9004145136719633
+   ],
+   "material": null,
+   "sin_terreno": []
+  },
+  {
+   "malla": "/Game/PureNature_Meadows/Models/Trees/Meshes/Elm/Elm2/SM_Elm2",
+   "pos": [
+    334.11722776616887,
+    -955.1500508555042,
+    0
+   ],
+   "giro": 276.5638758501075,
+   "escala": [
+    0.8888020666056052,
+    0.8888020666056052,
+    0.8888020666056052
+   ],
+   "material": null,
+   "sin_terreno": []
+  },
+  {
+   "malla": "/Game/PureNature_Meadows/Models/Trees/Meshes/Birch/Birch3/SM_Birch3",
+   "pos": [
+    827.0600427781842,
+    -1080.2426972604073,
+    0
+   ],
+   "giro": 313.7119106854678,
+   "escala": [
+    0.8741743903600415,
+    0.8741743903600415,
+    0.8741743903600415
+   ],
+   "material": null,
+   "sin_terreno": []
+  },
+  {
+   "malla": "/Game/PureNature_Meadows/Models/Trees/Meshes/Birch/Birch4/SM_Birch4",
+   "pos": [
+    1274.3576437109773,
+    -841.1138807131823,
+    0
+   ],
+   "giro": 318.01817751894447,
+   "escala": [
+    1.0957839513507224,
+    1.0957839513507224,
+    1.0957839513507224
+   ],
+   "material": null,
+   "sin_terreno": []
+  },
+  {
+   "malla": "/Game/PureNature_Mountains/Models/Trees/Meshes/Pine/Pine4/SM_Pine4",
+   "pos": [
+    1218.0097481610808,
+    -244.67568513090012,
+    0
+   ],
+   "giro": 149.50674619621148,
+   "escala": [
+    0.9576313495994874,
+    0.9576313495994874,
+    0.9576313495994874
+   ],
+   "material": null,
+   "sin_terreno": []
+  },
+  {
+   "malla": "/Game/PureNature_Meadows/Models/Trees/Meshes/Bush/Bush2/SM_Bush2",
+   "pos": [
+    1163.2319088508739,
+    -1036.05889313024,
+    0
+   ],
+   "giro": 29.874490078079546,
+   "escala": [
+    0.7605193532465603,
+    0.7605193532465603,
+    0.7605193532465603
+   ],
+   "material": null,
+   "sin_terreno": []
+  },
+  {
+   "malla": "/Game/PureNature_Meadows/Models/Rocks/Meshes/SM_Stone5",
+   "pos": [
+    -332.76187862797934,
+    -513.7029505047949,
+    0
+   ],
+   "giro": 212.08446134361202,
+   "escala": [
+    0.8050986477194152,
+    0.8050986477194152,
+    0.8050986477194152
+   ],
+   "material": null,
+   "sin_terreno": []
+  },
+  {
+   "malla": "/Game/PureNature_Mountains/Models/Trees/Meshes/Bush/Bush3/SM_Bush3",
+   "pos": [
+    1018.609471011783,
+    26.20529947631736,
+    0
+   ],
+   "giro": 219.53247669251888,
+   "escala": [
+    0.8274446724447546,
+    0.8274446724447546,
+    0.8274446724447546
+   ],
+   "material": null,
+   "sin_terreno": []
+  },
+  {
+   "malla": "/Game/PureNature_Mountains/Models/Rocks/Meshes/SM_Stone4",
+   "pos": [
+    1028.6201713909031,
+    1034.9931746499406,
+    0
+   ],
+   "giro": 235.78792693787832,
+   "escala": [
+    0.9959138991057661,
+    0.9959138991057661,
+    0.9959138991057661
+   ],
+   "material": null,
+   "sin_terreno": []
+  },
+  {
+   "malla": "/Game/PureNature_Meadows/Models/Rocks/Meshes/SM_Stone5",
+   "pos": [
+    -1416.7353494408392,
+    395.77979037731365,
+    0
+   ],
+   "giro": 245.0070363822156,
+   "escala": [
+    0.9237086963426439,
+    0.9237086963426439,
+    0.9237086963426439
+   ],
+   "material": null,
+   "sin_terreno": []
+  },
+  {
+   "malla": "/Game/PureNature_Mountains/Models/Rocks/Meshes/SM_Stone2",
+   "pos": [
+    -797.113753859647,
+    594.0406295621877,
+    0
+   ],
+   "giro": 228.34424364685526,
+   "escala": [
+    0.724899128647475,
+    0.724899128647475,
+    0.724899128647475
+   ],
+   "material": null,
+   "sin_terreno": []
+  },
+  {
+   "malla": "/Game/PureNature_Meadows/Models/Trees/Meshes/Bush/Bush2/SM_Bush2",
+   "pos": [
+    737.4277382254671,
+    332.1117598470415,
+    0
+   ],
+   "giro": 39.57418980016793,
+   "escala": [
+    0.9402909042017925,
+    0.9402909042017925,
+    0.9402909042017925
+   ],
+   "material": null,
+   "sin_terreno": []
+  },
+  {
+   "malla": "/Game/PureNature_Mountains/Models/Rocks/Meshes/SM_Stone4",
+   "pos": [
+    933.5886650185342,
+    699.8544082571534,
+    0
+   ],
+   "giro": 36.527172488134745,
+   "escala": [
+    0.8454439688138284,
+    0.8454439688138284,
+    0.8454439688138284
+   ],
+   "material": null,
+   "sin_terreno": []
+  },
+  {
+   "malla": "/Game/PureNature_Mountains/Models/Rocks/Meshes/SM_Stone4",
+   "pos": [
+    1455.4478385194277,
+    235.21808672350204,
+    0
+   ],
+   "giro": 135.44257025031874,
+   "escala": [
+    0.9537638314135604,
+    0.9537638314135604,
+    0.9537638314135604
+   ],
+   "material": null,
+   "sin_terreno": []
+  },
+  {
+   "malla": "/Game/PureNature_Mountains/Models/Rocks/Meshes/SM_Stone2",
+   "pos": [
+    1155.522498678877,
+    -332.0286181311325,
+    0
+   ],
+   "giro": 44.22320307439017,
+   "escala": [
+    1.039574770593846,
+    1.039574770593846,
+    1.039574770593846
+   ],
+   "material": null,
+   "sin_terreno": []
+  },
+  {
+   "malla": "/Game/PureNature_Mountains/Models/Rocks/Meshes/SM_Stone2",
+   "pos": [
+    1064.9886064276825,
+    -46.18219591260756,
+    0
+   ],
+   "giro": 112.26683311848699,
+   "escala": [
+    0.7576469960873949,
+    0.7576469960873949,
+    0.7576469960873949
+   ],
+   "material": null,
+   "sin_terreno": []
+  },
+  {
+   "malla": "/Game/PureNature_Mountains/Models/Rocks/Meshes/SM_Stone2",
+   "pos": [
+    -2.7461341758287356,
+    -1340.3484112621536,
+    0
+   ],
+   "giro": 298.3879361237618,
+   "escala": [
+    0.7645754442105726,
+    0.7645754442105726,
+    0.7645754442105726
+   ],
+   "material": null,
+   "sin_terreno": []
+  },
+  {
+   "malla": "/Game/PureNature_Mountains/Models/Rocks/Meshes/SM_Stone4",
+   "pos": [
+    1534.6836703584754,
+    224.28169608888297,
+    0
+   ],
+   "giro": 130.2308852432438,
+   "escala": [
+    0.9760270343517435,
+    0.9760270343517435,
+    0.9760270343517435
+   ],
+   "material": null,
+   "sin_terreno": []
+  },
+  {
+   "malla": "/Game/PureNature_Mountains/Models/Trees/Meshes/Bush/Bush3/SM_Bush3",
+   "pos": [
+    1165.2832813924201,
+    -697.6153471966829,
+    0
+   ],
+   "giro": 352.2604473788302,
+   "escala": [
+    1.0453300121158677,
+    1.0453300121158677,
+    1.0453300121158677
+   ],
+   "material": null,
+   "sin_terreno": []
+  },
+  {
+   "malla": "/Game/PureNature_Meadows/Models/Plants/Meshes/SM_FlowerMeadow1",
+   "pos": [
+    941.7445723574492,
+    -1146.6470532990627,
+    0
+   ],
+   "giro": 326.9730757186944,
+   "escala": [
+    0.9778480849114728,
+    0.9778480849114728,
+    0.9778480849114728
+   ],
+   "material": null,
+   "sin_terreno": []
+  },
+  {
+   "malla": "/Game/PureNature_Meadows/Models/Mushroom/Meshes/SM_Mushroom3",
+   "pos": [
+    -1330.594770934854,
+    199.5221893449384,
+    0
+   ],
+   "giro": 118.67939821719445,
+   "escala": [
+    0.9115208365515926,
+    0.9115208365515926,
+    0.9115208365515926
+   ],
+   "material": null,
+   "sin_terreno": []
+  },
+  {
+   "malla": "/Game/PureNature_Mountains/Models/Plants/Meshes/SM_Fern1",
+   "pos": [
+    1495.253984513256,
+    2327.645042836276,
+    0
+   ],
+   "giro": 290.1882905228403,
+   "escala": [
+    1.2091664716626866,
+    1.2091664716626866,
+    1.2091664716626866
+   ],
+   "material": null,
+   "sin_terreno": []
+  },
+  {
+   "malla": "/Game/PureNature_Meadows/Models/Mushroom/Meshes/SM_Mushroom3",
+   "pos": [
+    1151.390497803428,
+    -1311.6504478483926,
+    0
+   ],
+   "giro": 177.40146344902004,
+   "escala": [
+    1.1655019962377107,
+    1.1655019962377107,
+    1.1655019962377107
+   ],
+   "material": null,
+   "sin_terreno": []
+  },
+  {
+   "malla": "/Game/PureNature_Meadows/Models/Plants/Meshes/SM_Daisy",
+   "pos": [
+    2350.097216174736,
+    1392.5478558332393,
+    0
+   ],
+   "giro": 93.30277077639236,
+   "escala": [
+    1.1462609708500617,
+    1.1462609708500617,
+    1.1462609708500617
+   ],
+   "material": null,
+   "sin_terreno": []
+  },
+  {
+   "malla": "/Game/PureNature_Meadows/Models/Plants/Meshes/SM_FlowerMeadow1",
+   "pos": [
+    2191.272366438421,
+    -253.30714671972737,
+    0
+   ],
+   "giro": 343.80022727567996,
+   "escala": [
+    0.9823179426809331,
+    0.9823179426809331,
+    0.9823179426809331
+   ],
+   "material": null,
+   "sin_terreno": []
+  },
+  {
+   "malla": "/Game/PureNature_Mountains/Models/Plants/Meshes/SM_Fern1",
+   "pos": [
+    -1341.78084961806,
+    -1311.1400316925058,
+    0
+   ],
+   "giro": 121.58549274187095,
+   "escala": [
+    1.0413266510667891,
+    1.0413266510667891,
+    1.0413266510667891
+   ],
+   "material": null,
+   "sin_terreno": []
+  },
+  {
+   "malla": "/Game/PureNature_Meadows/Models/Plants/Meshes/SM_GrassMeadows1",
+   "pos": [
+    2329.195185910761,
+    529.25830508836,
+    0
+   ],
+   "giro": 172.61043345415376,
+   "escala": [
+    1.1264890214205046,
+    1.1264890214205046,
+    1.1264890214205046
+   ],
+   "material": null,
+   "sin_terreno": [
+    0
+   ]
+  },
+  {
+   "malla": "/Game/PureNature_Meadows/Models/Plants/Meshes/SM_GrassMeadows3",
+   "pos": [
+    1438.2899752783687,
+    -1993.0632650381754,
+    0
+   ],
+   "giro": 327.51976951862025,
+   "escala": [
+    1.191151442049045,
+    1.191151442049045,
+    1.191151442049045
+   ],
+   "material": null,
+   "sin_terreno": []
+  },
+  {
+   "malla": "/Game/PureNature_Mountains/Models/Plants/Meshes/SM_Grass3",
+   "pos": [
+    1200.6742071862004,
+    -105.4428259487986,
+    0
+   ],
+   "giro": 156.2130272693094,
+   "escala": [
+    1.1179211107362703,
+    1.1179211107362703,
+    1.1179211107362703
+   ],
+   "material": null,
+   "sin_terreno": [
+    0
+   ]
+  },
+  {
+   "malla": "/Game/PureNature_Meadows/Models/Plants/Meshes/SM_Lupin2",
+   "pos": [
+    -1983.6006831828277,
+    2141.593657910488,
+    0
+   ],
+   "giro": 166.73779446258584,
+   "escala": [
+    1.1716763554021605,
+    1.1716763554021605,
+    1.1716763554021605
+   ],
+   "material": null,
+   "sin_terreno": []
+  },
+  {
+   "malla": "/Game/PureNature_Mountains/Models/Plants/Meshes/SM_Grass3",
+   "pos": [
+    -1992.3876026344776,
+    -1637.4909578560478,
+    0
+   ],
+   "giro": 9.917586255179703,
+   "escala": [
+    1.0954061512084756,
+    1.0954061512084756,
+    1.0954061512084756
+   ],
+   "material": null,
+   "sin_terreno": [
+    0
+   ]
+  },
+  {
+   "malla": "/Game/PureNature_Meadows/Models/Plants/Meshes/SM_Daisy",
+   "pos": [
+    -166.30136466615295,
+    748.1193117919311,
+    0
+   ],
+   "giro": 236.61658538496718,
+   "escala": [
+    0.9752037560787514,
+    0.9752037560787514,
+    0.9752037560787514
+   ],
+   "material": null,
+   "sin_terreno": []
+  },
+  {
+   "malla": "/Game/PureNature_Meadows/Models/Plants/Meshes/SM_GrassMeadows1",
+   "pos": [
+    233.56821113653996,
+    -1771.2775103546383,
+    0
+   ],
+   "giro": 287.7685242110525,
+   "escala": [
+    1.1631850281718175,
+    1.1631850281718175,
+    1.1631850281718175
+   ],
+   "material": null,
+   "sin_terreno": [
+    0
+   ]
+  },
+  {
+   "malla": "/Game/PureNature_Mountains/Models/Plants/Meshes/SM_Grass3",
+   "pos": [
+    -1906.694143059932,
+    1197.581896792345,
+    0
+   ],
+   "giro": 156.17139723269483,
+   "escala": [
+    1.2358714639947022,
+    1.2358714639947022,
+    1.2358714639947022
+   ],
+   "material": null,
+   "sin_terreno": [
+    0
+   ]
+  },
+  {
+   "malla": "/Game/PureNature_Mountains/Models/Plants/Meshes/SM_Fern2",
+   "pos": [
+    1565.5452087130611,
+    -1386.9967808248857,
+    0
+   ],
+   "giro": 76.60072524449224,
+   "escala": [
+    1.0505809599181242,
+    1.0505809599181242,
+    1.0505809599181242
+   ],
+   "material": null,
+   "sin_terreno": []
+  },
+  {
+   "malla": "/Game/PureNature_Meadows/Models/Mushroom/Meshes/SM_Mushroom3",
+   "pos": [
+    1265.6629652894912,
+    -835.2513220537382,
+    0
+   ],
+   "giro": 150.8445189916357,
+   "escala": [
+    0.8655368382517417,
+    0.8655368382517417,
+    0.8655368382517417
+   ],
+   "material": null,
+   "sin_terreno": []
+  },
+  {
+   "malla": "/Game/PureNature_Meadows/Models/Plants/Meshes/SM_Daisy",
+   "pos": [
+    1968.0818703146715,
+    -701.8366850243572,
+    0
+   ],
+   "giro": 238.4909389168438,
+   "escala": [
+    1.207523516209039,
+    1.207523516209039,
+    1.207523516209039
+   ],
+   "material": null,
+   "sin_terreno": []
+  },
+  {
+   "malla": "/Game/PureNature_Meadows/Models/Mushroom/Meshes/SM_Mushroom3",
+   "pos": [
+    80.45201613765721,
+    1570.2704757829097,
+    0
+   ],
+   "giro": 47.07477324796458,
+   "escala": [
+    0.8759181921314694,
+    0.8759181921314694,
+    0.8759181921314694
+   ],
+   "material": null,
+   "sin_terreno": []
+  },
+  {
+   "malla": "/Game/PureNature_Mountains/Models/Plants/Meshes/SM_Grass3",
+   "pos": [
+    50.62565870421622,
+    1789.466873650249,
+    0
+   ],
+   "giro": 219.07967002254495,
+   "escala": [
+    1.1880194827883335,
+    1.1880194827883335,
+    1.1880194827883335
+   ],
+   "material": null,
+   "sin_terreno": [
+    0
+   ]
+  },
+  {
+   "malla": "/Game/PureNature_Meadows/Models/Plants/Meshes/SM_GrassMeadows3",
+   "pos": [
+    -1680.948072468756,
+    -1720.5169389190821,
+    0
+   ],
+   "giro": 200.33122496479677,
+   "escala": [
+    0.9629910755244321,
+    0.9629910755244321,
+    0.9629910755244321
+   ],
+   "material": null,
+   "sin_terreno": []
+  },
+  {
+   "malla": "/Game/PureNature_Meadows/Models/Mushroom/Meshes/SM_Mushroom3",
+   "pos": [
+    1364.5078817542826,
+    -1890.6747978963442,
+    0
+   ],
+   "giro": 20.456125210657362,
+   "escala": [
+    0.8956530655805658,
+    0.8956530655805658,
+    0.8956530655805658
+   ],
+   "material": null,
+   "sin_terreno": []
+  },
+  {
+   "malla": "/Game/PureNature_Meadows/Models/Plants/Meshes/SM_Daisy",
+   "pos": [
+    -2197.4453053857887,
+    -1930.822688065267,
+    0
+   ],
+   "giro": 202.22257919633142,
+   "escala": [
+    1.1799965712950082,
+    1.1799965712950082,
+    1.1799965712950082
+   ],
+   "material": null,
+   "sin_terreno": []
+  },
+  {
+   "malla": "/Game/PureNature_Meadows/Models/Mushroom/Meshes/SM_Mushroom3",
+   "pos": [
+    1979.942574383098,
+    -272.4077108282936,
+    0
+   ],
+   "giro": 218.2095654634992,
+   "escala": [
+    0.8997016045925431,
+    0.8997016045925431,
+    0.8997016045925431
+   ],
+   "material": null,
+   "sin_terreno": []
+  },
+  {
+   "malla": "/Game/PureNature_Meadows/Models/Plants/Meshes/SM_Daisy",
+   "pos": [
+    -1069.5094066019371,
+    39.14954185314491,
+    0
+   ],
+   "giro": 182.7906693439216,
+   "escala": [
+    0.9238278996170233,
+    0.9238278996170233,
+    0.9238278996170233
+   ],
+   "material": null,
+   "sin_terreno": []
+  },
+  {
+   "malla": "/Game/PureNature_Mountains/Models/Plants/Meshes/SM_Fern2",
+   "pos": [
+    111.40633379943893,
+    1804.687891322872,
+    0
+   ],
+   "giro": 332.2023168312383,
+   "escala": [
+    1.2463774708780164,
+    1.2463774708780164,
+    1.2463774708780164
+   ],
+   "material": null,
+   "sin_terreno": []
+  },
+  {
+   "malla": "/Game/PureNature_Meadows/Models/Plants/Meshes/SM_Lupin2",
+   "pos": [
+    -1427.575069427498,
+    -251.86453567262515,
+    0
+   ],
+   "giro": 43.783903578305036,
+   "escala": [
+    1.0210590441375218,
+    1.0210590441375218,
+    1.0210590441375218
+   ],
+   "material": null,
+   "sin_terreno": []
+  },
+  {
+   "malla": "/Game/PureNature_Meadows/Models/Plants/Meshes/SM_GrassMeadows3",
+   "pos": [
+    -2051.7787216488564,
+    -1244.9339594243047,
+    0
+   ],
+   "giro": 76.56832785166779,
+   "escala": [
+    0.9513900376257898,
+    0.9513900376257898,
+    0.9513900376257898
+   ],
+   "material": null,
+   "sin_terreno": []
+  },
+  {
+   "malla": "/Game/PureNature_Meadows/Models/Plants/Meshes/SM_FlowerMeadow1",
+   "pos": [
+    -1812.7205408682912,
+    1329.2764361302834,
+    0
+   ],
+   "giro": 51.47243925272539,
+   "escala": [
+    1.2414164168285378,
+    1.2414164168285378,
+    1.2414164168285378
+   ],
+   "material": null,
+   "sin_terreno": []
+  },
+  {
+   "malla": "/Game/PureNature_Meadows/Models/Plants/Meshes/SM_GrassMeadows3",
+   "pos": [
+    2244.2149567986426,
+    -1345.9784121507855,
+    0
+   ],
+   "giro": 143.3724748982179,
+   "escala": [
+    1.04363038749544,
+    1.04363038749544,
+    1.04363038749544
+   ],
+   "material": null,
+   "sin_terreno": []
+  },
+  {
+   "malla": "/Game/PureNature_Mountains/Models/Plants/Meshes/SM_Grass3",
+   "pos": [
+    2351.382982772575,
+    1595.7344135181484,
+    0
+   ],
+   "giro": 254.2764788519431,
+   "escala": [
+    1.2970363062456438,
+    1.2970363062456438,
+    1.2970363062456438
+   ],
+   "material": null,
+   "sin_terreno": [
+    0
+   ]
+  },
+  {
+   "malla": "/Game/PureNature_Meadows/Models/Plants/Meshes/SM_FlowerMeadow1",
+   "pos": [
+    -688.2489924958145,
+    -1957.4686745828092,
+    0
+   ],
+   "giro": 7.013854098861536,
+   "escala": [
+    1.0770251239041642,
+    1.0770251239041642,
+    1.0770251239041642
+   ],
+   "material": null,
+   "sin_terreno": []
+  },
+  {
+   "malla": "/Game/PureNature_Meadows/Models/Plants/Meshes/SM_FlowerMeadow1",
+   "pos": [
+    -285.8011113470302,
+    -2313.2064920302196,
+    0
+   ],
+   "giro": 186.27618837813844,
+   "escala": [
+    0.9477270555207964,
+    0.9477270555207964,
+    0.9477270555207964
+   ],
+   "material": null,
+   "sin_terreno": []
+  },
+  {
+   "malla": "/Game/PureNature_Mountains/Models/Plants/Meshes/SM_Fern1",
+   "pos": [
+    2211.7186211689996,
+    -1858.3202009767328,
+    0
+   ],
+   "giro": 349.81054511294667,
+   "escala": [
+    0.8523897971364158,
+    0.8523897971364158,
+    0.8523897971364158
+   ],
+   "material": null,
+   "sin_terreno": []
+  },
+  {
+   "malla": "/Game/PureNature_Mountains/Models/Plants/Meshes/SM_Grass3",
+   "pos": [
+    -1125.2914927511051,
+    -2209.976688412475,
+    0
+   ],
+   "giro": 97.36059510767127,
+   "escala": [
+    0.8647777796528386,
+    0.8647777796528386,
+    0.8647777796528386
+   ],
+   "material": null,
+   "sin_terreno": [
+    0
+   ]
+  },
+  {
+   "malla": "/Game/PureNature_Mountains/Models/Plants/Meshes/SM_Fern2",
+   "pos": [
+    -373.1799298672265,
+    1974.7863176813225,
+    0
+   ],
+   "giro": 146.14121804961906,
+   "escala": [
+    1.068299445208801,
+    1.068299445208801,
+    1.068299445208801
+   ],
+   "material": null,
+   "sin_terreno": []
+  },
+  {
+   "malla": "/Game/PureNature_Mountains/Models/Plants/Meshes/SM_Grass3",
+   "pos": [
+    -830.1671830608057,
+    -1060.500953524357,
+    0
+   ],
+   "giro": 153.11413468646015,
+   "escala": [
+    0.8362070473615952,
+    0.8362070473615952,
+    0.8362070473615952
+   ],
+   "material": null,
+   "sin_terreno": [
+    0
+   ]
+  },
+  {
+   "malla": "/Game/PureNature_Mountains/Models/Plants/Meshes/SM_Fern2",
+   "pos": [
+    2104.0786033927816,
+    645.3096302234858,
+    0
+   ],
+   "giro": 30.1473094444265,
+   "escala": [
+    1.2281143181860745,
+    1.2281143181860745,
+    1.2281143181860745
+   ],
+   "material": null,
+   "sin_terreno": []
+  },
+  {
+   "malla": "/Game/PureNature_Meadows/Models/Plants/Meshes/SM_Daisy",
+   "pos": [
+    -2080.2118326025848,
+    1741.319851458462,
+    0
+   ],
+   "giro": 4.1566792286532905,
+   "escala": [
+    1.2971529452244346,
+    1.2971529452244346,
+    1.2971529452244346
+   ],
+   "material": null,
+   "sin_terreno": []
+  },
+  {
+   "malla": "/Game/PureNature_Mountains/Models/Plants/Meshes/SM_Grass3",
+   "pos": [
+    -394.7503950594926,
+    1994.0481758544356,
+    0
+   ],
+   "giro": 15.554048342178799,
+   "escala": [
+    1.1547683590592301,
+    1.1547683590592301,
+    1.1547683590592301
+   ],
+   "material": null,
+   "sin_terreno": [
+    0
+   ]
+  },
+  {
+   "malla": "/Game/PureNature_Mountains/Models/Plants/Meshes/SM_Fern2",
+   "pos": [
+    2103.0043998760502,
+    2252.2215185683644,
+    0
+   ],
+   "giro": 18.136698195431737,
+   "escala": [
+    0.90088412438425,
+    0.90088412438425,
+    0.90088412438425
+   ],
+   "material": null,
+   "sin_terreno": []
+  },
+  {
+   "malla": "/Game/PureNature_Mountains/Models/Plants/Meshes/SM_Fern1",
+   "pos": [
+    -902.4364604233112,
+    -935.9740901797115,
+    0
+   ],
+   "giro": 104.38590050076894,
+   "escala": [
+    1.0500442999309199,
+    1.0500442999309199,
+    1.0500442999309199
+   ],
+   "material": null,
+   "sin_terreno": []
+  },
+  {
+   "malla": "/Game/PureNature_Meadows/Models/Plants/Meshes/SM_GrassMeadows1",
+   "pos": [
+    -1546.0805557779422,
+    -734.3950937862774,
+    0
+   ],
+   "giro": 358.0196345609542,
+   "escala": [
+    0.8184746757721384,
+    0.8184746757721384,
+    0.8184746757721384
+   ],
+   "material": null,
+   "sin_terreno": [
+    0
+   ]
+  },
+  {
+   "malla": "/Game/PureNature_Mountains/Models/Plants/Meshes/SM_Fern1",
+   "pos": [
+    -2311.517295846449,
+    27.13911119875138,
+    0
+   ],
+   "giro": 185.12456812645368,
+   "escala": [
+    0.9228397597918021,
+    0.9228397597918021,
+    0.9228397597918021
+   ],
+   "material": null,
+   "sin_terreno": []
+  },
+  {
+   "malla": "/Game/PureNature_Meadows/Models/Plants/Meshes/SM_Lupin2",
+   "pos": [
+    -254.1333637375351,
+    759.9375421614695,
+    0
+   ],
+   "giro": 236.34339852780525,
+   "escala": [
+    1.072953125963412,
+    1.072953125963412,
+    1.072953125963412
+   ],
+   "material": null,
+   "sin_terreno": []
+  },
+  {
+   "malla": "/Game/PureNature_Mountains/Models/Plants/Meshes/SM_Fern2",
+   "pos": [
+    1865.8846518904948,
+    2257.499510288928,
+    0
+   ],
+   "giro": 247.58702484864892,
+   "escala": [
+    1.2912202702073987,
+    1.2912202702073987,
+    1.2912202702073987
+   ],
+   "material": null,
+   "sin_terreno": []
+  },
+  {
+   "malla": "/Game/PureNature_Mountains/Models/Plants/Meshes/SM_Grass3",
+   "pos": [
+    -755.0177979961225,
+    1594.9754076693575,
+    0
+   ],
+   "giro": 145.69117513446287,
+   "escala": [
+    0.973776090077616,
+    0.973776090077616,
+    0.973776090077616
+   ],
+   "material": null,
+   "sin_terreno": [
+    0
+   ]
+  },
+  {
+   "malla": "/Game/PureNature_Meadows/Models/Plants/Meshes/SM_GrassMeadows3",
+   "pos": [
+    -2138.935023415506,
+    -1776.8708104757625,
+    0
+   ],
+   "giro": 225.16139318585476,
+   "escala": [
+    1.2399271356150279,
+    1.2399271356150279,
+    1.2399271356150279
+   ],
+   "material": null,
+   "sin_terreno": []
+  },
+  {
+   "malla": "/Game/PureNature_Meadows/Models/Plants/Meshes/SM_Lupin2",
+   "pos": [
+    -332.44460237336716,
+    -2134.074780303781,
+    0
+   ],
+   "giro": 313.39361564918937,
+   "escala": [
+    1.1352716489543393,
+    1.1352716489543393,
+    1.1352716489543393
+   ],
+   "material": null,
+   "sin_terreno": []
+  },
+  {
+   "malla": "/Game/PureNature_Mountains/Models/Plants/Meshes/SM_Fern2",
+   "pos": [
+    -1046.7202449281783,
+    -1237.3779168360645,
+    0
+   ],
+   "giro": 16.285497288428687,
+   "escala": [
+    0.8926760142949706,
+    0.8926760142949706,
+    0.8926760142949706
+   ],
+   "material": null,
+   "sin_terreno": []
+  },
+  {
+   "malla": "/Game/PureNature_Meadows/Models/Plants/Meshes/SM_FlowerMeadow1",
+   "pos": [
+    -1108.6238105598231,
+    -2382.6109792026377,
+    0
+   ],
+   "giro": 346.2431520105408,
+   "escala": [
+    1.286311498973188,
+    1.286311498973188,
+    1.286311498973188
+   ],
+   "material": null,
+   "sin_terreno": []
+  },
+  {
+   "malla": "/Game/PureNature_Mountains/Models/Plants/Meshes/SM_Fern2",
+   "pos": [
+    225.95219577076068,
+    -1226.656829078911,
+    0
+   ],
+   "giro": 78.4317085770533,
+   "escala": [
+    0.89147894382875,
+    0.89147894382875,
+    0.89147894382875
+   ],
+   "material": null,
+   "sin_terreno": []
+  },
+  {
+   "malla": "/Game/PureNature_Mountains/Models/Plants/Meshes/SM_Fern2",
+   "pos": [
+    -790.4026371850989,
+    -1997.3253080376285,
+    0
+   ],
+   "giro": 180.99504229550385,
+   "escala": [
+    0.9004900271005161,
+    0.9004900271005161,
+    0.9004900271005161
+   ],
+   "material": null,
+   "sin_terreno": []
+  },
+  {
+   "malla": "/Game/PureNature_Mountains/Models/Plants/Meshes/SM_Fern2",
+   "pos": [
+    22.73106966870091,
+    -2376.237448781072,
+    0
+   ],
+   "giro": 294.13594120972766,
+   "escala": [
+    0.8719325706344514,
+    0.8719325706344514,
+    0.8719325706344514
+   ],
+   "material": null,
+   "sin_terreno": []
+  },
+  {
+   "malla": "/Game/PureNature_Mountains/Models/Plants/Meshes/SM_Fern2",
+   "pos": [
+    416.6435137391195,
+    -508.90252509734137,
+    0
+   ],
+   "giro": 109.52804168076183,
+   "escala": [
+    0.9164047832954031,
+    0.9164047832954031,
+    0.9164047832954031
+   ],
+   "material": null,
+   "sin_terreno": []
+  },
+  {
+   "malla": "/Game/PureNature_Meadows/Models/Plants/Meshes/SM_Lupin2",
+   "pos": [
+    1202.5950248927638,
+    756.2096319008292,
+    0
+   ],
+   "giro": 275.15208451009175,
+   "escala": [
+    1.1603386356857759,
+    1.1603386356857759,
+    1.1603386356857759
+   ],
+   "material": null,
+   "sin_terreno": []
+  },
+  {
+   "malla": "/Game/PureNature_Mountains/Models/Plants/Meshes/SM_Grass3",
+   "pos": [
+    -27.884382624752106,
+    -1035.9524229470812,
+    0
+   ],
+   "giro": 15.763704008970908,
+   "escala": [
+    1.217644771616947,
+    1.217644771616947,
+    1.217644771616947
+   ],
+   "material": null,
+   "sin_terreno": [
+    0
+   ]
+  },
+  {
+   "malla": "/Game/PureNature_Meadows/Models/Mushroom/Meshes/SM_Mushroom3",
+   "pos": [
+    1881.3233082168535,
+    611.1941967932476,
+    0
+   ],
+   "giro": 50.15073960691356,
+   "escala": [
+    1.0618786422642588,
+    1.0618786422642588,
+    1.0618786422642588
+   ],
+   "material": null,
+   "sin_terreno": []
+  },
+  {
+   "malla": "/Game/PureNature_Meadows/Models/Plants/Meshes/SM_GrassMeadows1",
+   "pos": [
+    20.981046026211516,
+    1607.7004484977265,
+    0
+   ],
+   "giro": 297.50728374071286,
+   "escala": [
+    1.0920307584031195,
+    1.0920307584031195,
+    1.0920307584031195
+   ],
+   "material": null,
+   "sin_terreno": [
+    0
+   ]
+  },
+  {
+   "malla": "/Game/PureNature_Mountains/Models/Plants/Meshes/SM_Fern1",
+   "pos": [
+    1885.5827347464374,
+    877.897773602403,
+    0
+   ],
+   "giro": 30.633013033999404,
+   "escala": [
+    0.8209310506771996,
+    0.8209310506771996,
+    0.8209310506771996
+   ],
+   "material": null,
+   "sin_terreno": []
+  },
+  {
+   "malla": "/Game/PureNature_Meadows/Models/Plants/Meshes/SM_Lupin2",
+   "pos": [
+    658.1754098191545,
+    2205.6771435111687,
+    0
+   ],
+   "giro": 300.8956319279896,
+   "escala": [
+    1.0792636232479673,
+    1.0792636232479673,
+    1.0792636232479673
+   ],
+   "material": null,
+   "sin_terreno": []
+  },
+  {
+   "malla": "/Game/PureNature_Mountains/Models/Plants/Meshes/SM_Fern1",
+   "pos": [
+    613.2821209016088,
+    605.8870028773727,
+    0
+   ],
+   "giro": 176.14595334951161,
+   "escala": [
+    0.801657163563924,
+    0.801657163563924,
+    0.801657163563924
+   ],
+   "material": null,
+   "sin_terreno": []
+  },
+  {
+   "malla": "/Game/PureNature_Meadows/Models/Mushroom/Meshes/SM_Mushroom3",
+   "pos": [
+    1428.9482499400924,
+    1191.6737770737877,
+    0
+   ],
+   "giro": 323.22872901463455,
+   "escala": [
+    0.8459709639076125,
+    0.8459709639076125,
+    0.8459709639076125
+   ],
+   "material": null,
+   "sin_terreno": []
+  },
+  {
+   "malla": "/Game/PureNature_Meadows/Models/Plants/Meshes/SM_Daisy",
+   "pos": [
+    124.75272653282946,
+    1179.49396622616,
+    0
+   ],
+   "giro": 90.78967132656842,
+   "escala": [
+    0.8372249999870868,
+    0.8372249999870868,
+    0.8372249999870868
+   ],
+   "material": null,
+   "sin_terreno": []
+  },
+  {
+   "malla": "/Game/PureNature_Mountains/Models/Plants/Meshes/SM_Fern1",
+   "pos": [
+    -1125.3205334620852,
+    1100.808182589104,
+    0
+   ],
+   "giro": 83.06500573708334,
+   "escala": [
+    1.1249661400010253,
+    1.1249661400010253,
+    1.1249661400010253
+   ],
+   "material": null,
+   "sin_terreno": []
+  },
+  {
+   "malla": "/Game/PureNature_Meadows/Models/Plants/Meshes/SM_GrassMeadows3",
+   "pos": [
+    -190.36769292537792,
+    1658.5500019512347,
+    0
+   ],
+   "giro": 172.44365906542538,
+   "escala": [
+    1.1418482813511757,
+    1.1418482813511757,
+    1.1418482813511757
+   ],
+   "material": null,
+   "sin_terreno": []
+  },
+  {
+   "malla": "/Game/PureNature_Mountains/Models/Plants/Meshes/SM_Fern1",
+   "pos": [
+    1281.4565079241088,
+    561.4752757355986,
+    0
+   ],
+   "giro": 27.88985502640825,
+   "escala": [
+    0.8737125364384537,
+    0.8737125364384537,
+    0.8737125364384537
+   ],
+   "material": null,
+   "sin_terreno": []
+  },
+  {
+   "malla": "/Game/PureNature_Mountains/Models/Plants/Meshes/SM_Fern2",
+   "pos": [
+    -1181.0866480517025,
+    1167.4428353149942,
+    0
+   ],
+   "giro": 223.61427042181944,
+   "escala": [
+    0.8667205043601588,
+    0.8667205043601588,
+    0.8667205043601588
+   ],
+   "material": null,
+   "sin_terreno": []
+  },
+  {
+   "malla": "/Game/PureNature_Mountains/Models/Plants/Meshes/SM_Fern1",
+   "pos": [
+    2268.0432440758314,
+    -1922.3084559851231,
+    0
+   ],
+   "giro": 243.2547564525988,
+   "escala": [
+    0.9454282392146846,
+    0.9454282392146846,
+    0.9454282392146846
+   ],
+   "material": null,
+   "sin_terreno": []
+  },
+  {
+   "malla": "/Game/PureNature_Meadows/Models/Mushroom/Meshes/SM_Mushroom3",
+   "pos": [
+    -161.572059374937,
+    -1831.1862590324738,
+    0
+   ],
+   "giro": 71.73001074942108,
+   "escala": [
+    1.2890628683785135,
+    1.2890628683785135,
+    1.2890628683785135
+   ],
+   "material": null,
+   "sin_terreno": []
+  },
+  {
+   "malla": "/Game/PureNature_Meadows/Models/Plants/Meshes/SM_Daisy",
+   "pos": [
+    2094.020836577839,
+    -2315.9786120800186,
+    0
+   ],
+   "giro": 27.527127080881336,
+   "escala": [
+    1.0533092572097043,
+    1.0533092572097043,
+    1.0533092572097043
+   ],
+   "material": null,
+   "sin_terreno": []
+  },
+  {
+   "malla": "/Game/PureNature_Meadows/Models/Plants/Meshes/SM_Lupin2",
+   "pos": [
+    2374.1239589256393,
+    2371.0414148088894,
+    0
+   ],
+   "giro": 75.54139919549014,
+   "escala": [
+    1.2727936384474339,
+    1.2727936384474339,
+    1.2727936384474339
+   ],
+   "material": null,
+   "sin_terreno": []
+  },
+  {
+   "malla": "/Game/PureNature_Mountains/Models/Plants/Meshes/SM_Grass3",
+   "pos": [
+    -1388.5977718372515,
+    391.0673650611552,
+    0
+   ],
+   "giro": 269.095024084029,
+   "escala": [
+    0.9309044843641681,
+    0.9309044843641681,
+    0.9309044843641681
+   ],
+   "material": null,
+   "sin_terreno": [
+    0
+   ]
+  },
+  {
+   "malla": "/Game/PureNature_Meadows/Models/Mushroom/Meshes/SM_Mushroom3",
+   "pos": [
+    -674.1428327820875,
+    496.1555535870907,
+    0
+   ],
+   "giro": 100.6444427316664,
+   "escala": [
+    0.8563387822484114,
+    0.8563387822484114,
+    0.8563387822484114
+   ],
+   "material": null,
+   "sin_terreno": []
+  },
+  {
+   "malla": "/Game/PureNature_Meadows/Models/Plants/Meshes/SM_Daisy",
+   "pos": [
+    -647.0950759154466,
+    -10.13782390216511,
+    0
+   ],
+   "giro": 141.8689871500461,
+   "escala": [
+    0.8795326344802621,
+    0.8795326344802621,
+    0.8795326344802621
+   ],
+   "material": null,
+   "sin_terreno": []
+  },
+  {
+   "malla": "/Game/PureNature_Meadows/Models/Plants/Meshes/SM_Lupin2",
+   "pos": [
+    2159.8059472452205,
+    871.6229599986182,
+    0
+   ],
+   "giro": 108.70237485904838,
+   "escala": [
+    0.8703536101288394,
+    0.8703536101288394,
+    0.8703536101288394
+   ],
+   "material": null,
+   "sin_terreno": []
+  },
+  {
+   "malla": "/Game/PureNature_Meadows/Models/Plants/Meshes/SM_FlowerMeadow1",
+   "pos": [
+    -748.9912971458623,
+    -882.8253822001452,
+    0
+   ],
+   "giro": 0.6268974903011815,
+   "escala": [
+    1.1753670205856586,
+    1.1753670205856586,
+    1.1753670205856586
+   ],
+   "material": null,
+   "sin_terreno": []
+  },
+  {
+   "malla": "/Game/PureNature_Mountains/Models/Plants/Meshes/SM_Fern1",
+   "pos": [
+    1627.731814322217,
+    -1823.8015315575237,
+    0
+   ],
+   "giro": 256.68848368689254,
+   "escala": [
+    1.250783281549468,
+    1.250783281549468,
+    1.250783281549468
+   ],
+   "material": null,
+   "sin_terreno": []
+  },
+  {
+   "malla": "/Game/PureNature_Meadows/Models/Plants/Meshes/SM_Lupin2",
+   "pos": [
+    -1008.8017969174784,
+    -613.3344030984397,
+    0
+   ],
+   "giro": 140.4579842058219,
+   "escala": [
+    1.234985963959905,
+    1.234985963959905,
+    1.234985963959905
+   ],
+   "material": null,
+   "sin_terreno": []
+  },
+  {
+   "malla": "/Game/PureNature_Mountains/Models/Plants/Meshes/SM_Fern2",
+   "pos": [
+    -2033.2766761526116,
+    2041.9943485755712,
+    0
+   ],
+   "giro": 307.5318960650005,
+   "escala": [
+    0.9403188522968808,
+    0.9403188522968808,
+    0.9403188522968808
+   ],
+   "material": null,
+   "sin_terreno": []
+  },
+  {
+   "malla": "/Game/PureNature_Mountains/Models/Plants/Meshes/SM_Grass3",
+   "pos": [
+    -2152.23591918912,
+    777.4952633007711,
+    0
+   ],
+   "giro": 89.75689790825467,
+   "escala": [
+    0.93286400748879,
+    0.93286400748879,
+    0.93286400748879
+   ],
+   "material": null,
+   "sin_terreno": [
+    0
+   ]
+  },
+  {
+   "malla": "/Game/PureNature_Meadows/Models/Plants/Meshes/SM_FlowerMeadow1",
+   "pos": [
+    52.62234147553545,
+    -1488.7245736175669,
+    0
+   ],
+   "giro": 282.6513628976009,
+   "escala": [
+    1.0138738180855906,
+    1.0138738180855906,
+    1.0138738180855906
+   ],
+   "material": null,
+   "sin_terreno": []
+  },
+  {
+   "malla": "/Game/PureNature_Meadows/Models/Plants/Meshes/SM_Lupin2",
+   "pos": [
+    -2260.745687056937,
+    1255.9457885347292,
+    0
+   ],
+   "giro": 328.83259948537864,
+   "escala": [
+    1.2703496491691209,
+    1.2703496491691209,
+    1.2703496491691209
+   ],
+   "material": null,
+   "sin_terreno": []
+  },
+  {
+   "malla": "/Game/PureNature_Meadows/Models/Plants/Meshes/SM_GrassMeadows1",
+   "pos": [
+    236.2951113022259,
+    1053.9483933655106,
+    0
+   ],
+   "giro": 336.04752677415973,
+   "escala": [
+    1.0054430076884495,
+    1.0054430076884495,
+    1.0054430076884495
+   ],
+   "material": null,
+   "sin_terreno": [
+    0
+   ]
+  },
+  {
+   "malla": "/Game/PureNature_Mountains/Models/Plants/Meshes/SM_Fern2",
+   "pos": [
+    551.5875489473824,
+    -1734.8518379512775,
+    0
+   ],
+   "giro": 174.80702890181306,
+   "escala": [
+    1.255952621723626,
+    1.255952621723626,
+    1.255952621723626
+   ],
+   "material": null,
+   "sin_terreno": []
+  },
+  {
+   "malla": "/Game/PureNature_Meadows/Models/Plants/Meshes/SM_Lupin2",
+   "pos": [
+    240.51933743874997,
+    -1580.338544648263,
+    0
+   ],
+   "giro": 123.71862695685454,
+   "escala": [
+    0.9488859327723935,
+    0.9488859327723935,
+    0.9488859327723935
+   ],
+   "material": null,
+   "sin_terreno": []
+  },
+  {
+   "malla": "/Game/PureNature_Mountains/Models/Plants/Meshes/SM_Fern2",
+   "pos": [
+    1147.356023981998,
+    2286.2216467672997,
+    0
+   ],
+   "giro": 146.23533544062315,
+   "escala": [
+    0.9193325120986859,
+    0.9193325120986859,
+    0.9193325120986859
+   ],
+   "material": null,
+   "sin_terreno": []
+  },
+  {
+   "malla": "/Game/PureNature_Meadows/Models/Plants/Meshes/SM_GrassMeadows3",
+   "pos": [
+    -80.72628173869725,
+    810.6047413719093,
+    0
+   ],
+   "giro": 60.23968839312949,
+   "escala": [
+    0.8808284807025291,
+    0.8808284807025291,
+    0.8808284807025291
+   ],
+   "material": null,
+   "sin_terreno": []
+  },
+  {
+   "malla": "/Game/PureNature_Meadows/Models/Plants/Meshes/SM_Daisy",
+   "pos": [
+    -1402.2118985436637,
+    1948.6075691637952,
+    0
+   ],
+   "giro": 198.13915520317173,
+   "escala": [
+    1.0264930378878838,
+    1.0264930378878838,
+    1.0264930378878838
+   ],
+   "material": null,
+   "sin_terreno": []
+  },
+  {
+   "malla": "/Game/PureNature_Meadows/Models/Plants/Meshes/SM_Lupin2",
+   "pos": [
+    -802.395558483299,
+    1244.3897169814268,
+    0
+   ],
+   "giro": 50.25458303989997,
+   "escala": [
+    0.8962035478803725,
+    0.8962035478803725,
+    0.8962035478803725
+   ],
+   "material": null,
+   "sin_terreno": []
+  },
+  {
+   "malla": "/Game/PureNature_Meadows/Models/Plants/Meshes/SM_GrassMeadows3",
+   "pos": [
+    -1964.5703610886899,
+    -758.61487784836,
+    0
+   ],
+   "giro": 114.94358693127012,
+   "escala": [
+    0.9841526674418061,
+    0.9841526674418061,
+    0.9841526674418061
+   ],
+   "material": null,
+   "sin_terreno": []
+  },
+  {
+   "malla": "/Game/PureNature_Meadows/Models/Plants/Meshes/SM_GrassMeadows1",
+   "pos": [
+    1484.9205340010308,
+    -1429.7191540985782,
+    0
+   ],
+   "giro": 269.8767387376843,
+   "escala": [
+    1.0063908293203931,
+    1.0063908293203931,
+    1.0063908293203931
+   ],
+   "material": null,
+   "sin_terreno": [
+    0
+   ]
+  },
+  {
+   "malla": "/Game/PureNature_Meadows/Models/Plants/Meshes/SM_GrassMeadows1",
+   "pos": [
+    -591.0440944347438,
+    -776.6251175840735,
+    0
+   ],
+   "giro": 179.33252230216473,
+   "escala": [
+    1.0871403841960627,
+    1.0871403841960627,
+    1.0871403841960627
+   ],
+   "material": null,
+   "sin_terreno": [
+    0
+   ]
+  },
+  {
+   "malla": "/Game/PureNature_Meadows/Models/Mushroom/Meshes/SM_Mushroom3",
+   "pos": [
+    -671.3028743550615,
+    896.4152635358241,
+    0
+   ],
+   "giro": 226.66568610453814,
+   "escala": [
+    1.2314306745254706,
+    1.2314306745254706,
+    1.2314306745254706
+   ],
+   "material": null,
+   "sin_terreno": []
+  },
+  {
+   "malla": "/Game/PureNature_Mountains/Models/Plants/Meshes/SM_Fern1",
+   "pos": [
+    -1363.3769240642255,
+    -1099.099770899172,
+    0
+   ],
+   "giro": 138.44187337094968,
+   "escala": [
+    1.1228958563724847,
+    1.1228958563724847,
+    1.1228958563724847
+   ],
+   "material": null,
+   "sin_terreno": []
+  },
+  {
+   "malla": "/Game/PureNature_Meadows/Models/Plants/Meshes/SM_GrassMeadows1",
+   "pos": [
+    -327.18390391074763,
+    -902.3231202834725,
+    0
+   ],
+   "giro": 45.80892750328523,
+   "escala": [
+    1.012599939515858,
+    1.012599939515858,
+    1.012599939515858
+   ],
+   "material": null,
+   "sin_terreno": [
+    0
+   ]
+  },
+  {
+   "malla": "/Game/PureNature_Meadows/Models/Plants/Meshes/SM_Daisy",
+   "pos": [
+    1265.7156906973064,
+    1460.396485564766,
+    0
+   ],
+   "giro": 0.06432761497524808,
+   "escala": [
+    0.9957605478548948,
+    0.9957605478548948,
+    0.9957605478548948
+   ],
+   "material": null,
+   "sin_terreno": []
+  },
+  {
+   "malla": "/Game/PureNature_Meadows/Models/Plants/Meshes/SM_Daisy",
+   "pos": [
+    2048.770913892771,
+    1562.8281901309992,
+    0
+   ],
+   "giro": 350.00680388228704,
+   "escala": [
+    0.9242326415445923,
+    0.9242326415445923,
+    0.9242326415445923
+   ],
+   "material": null,
+   "sin_terreno": []
+  },
+  {
+   "malla": "/Game/PureNature_Meadows/Models/Mushroom/Meshes/SM_Mushroom3",
+   "pos": [
+    -1876.5792051386688,
+    -1658.9837496733107,
+    0
+   ],
+   "giro": 349.8795068677293,
+   "escala": [
+    0.8544452069010233,
+    0.8544452069010233,
+    0.8544452069010233
+   ],
+   "material": null,
+   "sin_terreno": []
+  },
+  {
+   "malla": "/Game/PureNature_Meadows/Models/Plants/Meshes/SM_Daisy",
+   "pos": [
+    1561.8976851130228,
+    964.8178212886373,
+    0
+   ],
+   "giro": 30.60121684178952,
+   "escala": [
+    1.1884308078868175,
+    1.1884308078868175,
+    1.1884308078868175
+   ],
+   "material": null,
+   "sin_terreno": []
+  },
+  {
+   "malla": "/Game/PureNature_Meadows/Models/Plants/Meshes/SM_GrassMeadows1",
+   "pos": [
+    -2393.4430081022283,
+    -1796.871498850221,
+    0
+   ],
+   "giro": 232.38207949256736,
+   "escala": [
+    0.9518911308140863,
+    0.9518911308140863,
+    0.9518911308140863
+   ],
+   "material": null,
+   "sin_terreno": [
+    0
+   ]
+  },
+  {
+   "malla": "/Game/PureNature_Meadows/Models/Plants/Meshes/SM_Lupin2",
+   "pos": [
+    -1785.7591285774924,
+    -1191.3890530495714,
+    0
+   ],
+   "giro": 251.48949023324144,
+   "escala": [
+    0.8560663420686304,
+    0.8560663420686304,
+    0.8560663420686304
+   ],
+   "material": null,
+   "sin_terreno": []
+  },
+  {
+   "malla": "/Game/PureNature_Mountains/Models/Plants/Meshes/SM_Fern1",
+   "pos": [
+    -2062.3108398789427,
+    117.29607380177231,
+    0
+   ],
+   "giro": 139.70950107214952,
+   "escala": [
+    0.9117915168050199,
+    0.9117915168050199,
+    0.9117915168050199
+   ],
+   "material": null,
+   "sin_terreno": []
+  },
+  {
+   "malla": "/Game/PureNature_Mountains/Models/Plants/Meshes/SM_Fern2",
+   "pos": [
+    485.0923061782846,
+    -2349.7841285177597,
+    0
+   ],
+   "giro": 358.6946586210178,
+   "escala": [
+    0.9393018251617997,
+    0.9393018251617997,
+    0.9393018251617997
+   ],
+   "material": null,
+   "sin_terreno": []
+  },
+  {
+   "malla": "/Game/PureNature_Mountains/Models/Plants/Meshes/SM_Fern1",
+   "pos": [
+    -881.4862616809978,
+    1629.1737872519743,
+    0
+   ],
+   "giro": 171.10951922431568,
+   "escala": [
+    0.917384048353889,
+    0.917384048353889,
+    0.917384048353889
+   ],
+   "material": null,
+   "sin_terreno": []
+  },
+  {
+   "malla": "/Game/PureNature_Mountains/Models/Plants/Meshes/SM_Fern2",
+   "pos": [
+    -1214.1197551746068,
+    2210.948303168183,
+    0
+   ],
+   "giro": 19.91113728168201,
+   "escala": [
+    0.8970576126065487,
+    0.8970576126065487,
+    0.8970576126065487
+   ],
+   "material": null,
+   "sin_terreno": []
+  },
+  {
+   "malla": "/Game/PureNature_Meadows/Models/Plants/Meshes/SM_GrassMeadows3",
+   "pos": [
+    1847.272920887348,
+    706.4081103807403,
+    0
+   ],
+   "giro": 92.61220397071972,
+   "escala": [
+    1.13367752441884,
+    1.13367752441884,
+    1.13367752441884
+   ],
+   "material": null,
+   "sin_terreno": []
+  },
+  {
+   "malla": "/Game/PureNature_Meadows/Models/Plants/Meshes/SM_GrassMeadows1",
+   "pos": [
+    2040.7719744521864,
+    -1311.4268484255033,
+    0
+   ],
+   "giro": 250.49620271994593,
+   "escala": [
+    1.1591661208143713,
+    1.1591661208143713,
+    1.1591661208143713
+   ],
+   "material": null,
+   "sin_terreno": [
+    0
+   ]
+  },
+  {
+   "malla": "/Game/PureNature_Meadows/Models/Plants/Meshes/SM_GrassMeadows1",
+   "pos": [
+    -660.8645195043084,
+    -497.48059994889627,
+    0
+   ],
+   "giro": 286.9431181636455,
+   "escala": [
+    1.1695646108878766,
+    1.1695646108878766,
+    1.1695646108878766
+   ],
+   "material": null,
+   "sin_terreno": [
+    0
+   ]
+  },
+  {
+   "malla": "/Game/PureNature_Mountains/Models/Plants/Meshes/SM_Fern1",
+   "pos": [
+    23.416259316174546,
+    -1414.9507822145601,
+    0
+   ],
+   "giro": 112.2176673688632,
+   "escala": [
+    1.2100022472215193,
+    1.2100022472215193,
+    1.2100022472215193
+   ],
+   "material": null,
+   "sin_terreno": []
+  },
+  {
+   "malla": "/Game/PureNature_Mountains/Models/Plants/Meshes/SM_Fern2",
+   "pos": [
+    -1292.1176982481215,
+    -1337.074496804883,
+    0
+   ],
+   "giro": 39.24290375928338,
+   "escala": [
+    1.1117985073319254,
+    1.1117985073319254,
+    1.1117985073319254
+   ],
+   "material": null,
+   "sin_terreno": []
+  },
+  {
+   "malla": "/Game/PureNature_Meadows/Models/Plants/Meshes/SM_Daisy",
+   "pos": [
+    528.4718938105057,
+    1903.0856689211414,
+    0
+   ],
+   "giro": 150.13046955870507,
+   "escala": [
+    1.1326471263781825,
+    1.1326471263781825,
+    1.1326471263781825
+   ],
+   "material": null,
+   "sin_terreno": []
+  },
+  {
+   "malla": "/Game/PureNature_Meadows/Models/Plants/Meshes/SM_Lupin2",
+   "pos": [
+    2154.0542576838307,
+    -1697.3613409308123,
+    0
+   ],
+   "giro": 19.56901667015004,
+   "escala": [
+    0.8118143594790984,
+    0.8118143594790984,
+    0.8118143594790984
+   ],
+   "material": null,
+   "sin_terreno": []
+  },
+  {
+   "malla": "/Game/PureNature_Meadows/Models/Plants/Meshes/SM_Daisy",
+   "pos": [
+    1007.3212287474362,
+    -1516.2968375686994,
+    0
+   ],
+   "giro": 323.3402664686181,
+   "escala": [
+    1.241791818716377,
+    1.241791818716377,
+    1.241791818716377
+   ],
+   "material": null,
+   "sin_terreno": []
+  },
+  {
+   "malla": "/Game/PureNature_Mountains/Models/Plants/Meshes/SM_Grass3",
+   "pos": [
+    1117.0740764095385,
+    2388.14306542973,
+    0
+   ],
+   "giro": 118.52739355449427,
+   "escala": [
+    0.892756094979004,
+    0.892756094979004,
+    0.892756094979004
+   ],
+   "material": null,
+   "sin_terreno": [
+    0
+   ]
+  },
+  {
+   "malla": "/Game/PureNature_Meadows/Models/Plants/Meshes/SM_GrassMeadows1",
+   "pos": [
+    2092.231447391423,
+    1182.2805214267669,
+    0
+   ],
+   "giro": 112.25777148600481,
+   "escala": [
+    1.1626886583068199,
+    1.1626886583068199,
+    1.1626886583068199
+   ],
+   "material": null,
+   "sin_terreno": [
+    0
+   ]
+  },
+  {
+   "malla": "/Game/PureNature_Meadows/Models/Plants/Meshes/SM_Daisy",
+   "pos": [
+    1627.8095975118972,
+    2327.9178261171874,
+    0
+   ],
+   "giro": 60.93393921274504,
+   "escala": [
+    0.8014353620940522,
+    0.8014353620940522,
+    0.8014353620940522
+   ],
+   "material": null,
+   "sin_terreno": []
+  },
+  {
+   "malla": "/Game/PureNature_Meadows/Models/Plants/Meshes/SM_GrassMeadows3",
+   "pos": [
+    -1056.929144355191,
+    -712.9590718680686,
+    0
+   ],
+   "giro": 202.00640907241132,
+   "escala": [
+    1.1794024817921311,
+    1.1794024817921311,
+    1.1794024817921311
+   ],
+   "material": null,
+   "sin_terreno": []
+  },
+  {
+   "malla": "/Game/PureNature_Mountains/Models/Plants/Meshes/SM_Fern2",
+   "pos": [
+    -575.3774873031662,
+    1289.9140055742364,
+    0
+   ],
+   "giro": 295.922873686381,
+   "escala": [
+    1.0162246670117985,
+    1.0162246670117985,
+    1.0162246670117985
+   ],
+   "material": null,
+   "sin_terreno": []
+  },
+  {
+   "malla": "/Game/PureNature_Meadows/Models/Plants/Meshes/SM_FlowerMeadow1",
+   "pos": [
+    -2163.5647879151174,
+    -127.37255588594098,
+    0
+   ],
+   "giro": 194.9504531251066,
+   "escala": [
+    1.0231737494208895,
+    1.0231737494208895,
+    1.0231737494208895
+   ],
+   "material": null,
+   "sin_terreno": []
+  },
+  {
+   "malla": "/Game/PureNature_Meadows/Models/Plants/Meshes/SM_Daisy",
+   "pos": [
+    -848.1159079939537,
+    1139.135059010745,
+    0
+   ],
+   "giro": 10.901539827871037,
+   "escala": [
+    1.0054009148777017,
+    1.0054009148777017,
+    1.0054009148777017
+   ],
+   "material": null,
+   "sin_terreno": []
+  },
+  {
+   "malla": "/Game/PureNature_Meadows/Models/Plants/Meshes/SM_GrassMeadows1",
+   "pos": [
+    1496.7577323463543,
+    1280.0064112462737,
+    0
+   ],
+   "giro": 135.2043575983314,
+   "escala": [
+    1.0320253069049863,
+    1.0320253069049863,
+    1.0320253069049863
+   ],
+   "material": null,
+   "sin_terreno": [
+    0
+   ]
+  },
+  {
+   "malla": "/Game/PureNature_Mountains/Models/Plants/Meshes/SM_Fern1",
+   "pos": [
+    1456.0227842358368,
+    -2102.381291734602,
+    0
+   ],
+   "giro": 269.0232496159272,
+   "escala": [
+    1.2492758944839846,
+    1.2492758944839846,
+    1.2492758944839846
+   ],
+   "material": null,
+   "sin_terreno": []
+  },
+  {
+   "malla": "/Game/PureNature_Meadows/Models/Plants/Meshes/SM_GrassMeadows1",
+   "pos": [
+    -772.4662412533419,
+    -1092.889618815032,
+    0
+   ],
+   "giro": 94.38209048448232,
+   "escala": [
+    1.158317873215591,
+    1.158317873215591,
+    1.158317873215591
+   ],
+   "material": null,
+   "sin_terreno": [
+    0
+   ]
+  },
+  {
+   "malla": "/Game/PureNature_Meadows/Models/Plants/Meshes/SM_GrassMeadows1",
+   "pos": [
+    -880.878570405433,
+    -1076.974428984909,
+    0
+   ],
+   "giro": 259.76594501759746,
+   "escala": [
+    1.0977840785550312,
+    1.0977840785550312,
+    1.0977840785550312
+   ],
+   "material": null,
+   "sin_terreno": [
+    0
+   ]
+  },
+  {
+   "malla": "/Game/PureNature_Meadows/Models/Plants/Meshes/SM_GrassMeadows3",
+   "pos": [
+    1467.1600926153674,
+    2143.141076919441,
+    0
+   ],
+   "giro": 8.732413778950235,
+   "escala": [
+    0.9169331301274202,
+    0.9169331301274202,
+    0.9169331301274202
+   ],
+   "material": null,
+   "sin_terreno": []
+  },
+  {
+   "malla": "/Game/PureNature_Meadows/Models/Plants/Meshes/SM_Lupin2",
+   "pos": [
+    -119.09252230270477,
+    2192.5327229169807,
+    0
+   ],
+   "giro": 284.3275887547199,
+   "escala": [
+    1.2567719825727421,
+    1.2567719825727421,
+    1.2567719825727421
+   ],
+   "material": null,
+   "sin_terreno": []
+  },
+  {
+   "malla": "/Game/PureNature_Meadows/Models/Plants/Meshes/SM_Daisy",
+   "pos": [
+    1511.041205888051,
+    -1763.0050804102632,
+    0
+   ],
+   "giro": 65.8581233258088,
+   "escala": [
+    1.2012841616982826,
+    1.2012841616982826,
+    1.2012841616982826
+   ],
+   "material": null,
+   "sin_terreno": []
+  },
+  {
+   "malla": "/Game/PureNature_Mountains/Models/Plants/Meshes/SM_Grass3",
+   "pos": [
+    1144.742463945679,
+    1549.2252120534154,
+    0
+   ],
+   "giro": 218.61152324833944,
+   "escala": [
+    0.9638999054627209,
+    0.9638999054627209,
+    0.9638999054627209
+   ],
+   "material": null,
+   "sin_terreno": [
+    0
+   ]
+  },
+  {
+   "malla": "/Game/PureNature_Meadows/Models/Plants/Meshes/SM_GrassMeadows3",
+   "pos": [
+    -866.1658479888015,
+    -663.0794840872397,
+    0
+   ],
+   "giro": 184.27852087491934,
+   "escala": [
+    0.9958427047464463,
+    0.9958427047464463,
+    0.9958427047464463
+   ],
+   "material": null,
+   "sin_terreno": []
+  },
+  {
+   "malla": "/Game/PureNature_Meadows/Models/Plants/Meshes/SM_GrassMeadows1",
+   "pos": [
+    -1632.3005587825473,
+    -442.7675104832763,
+    0
+   ],
+   "giro": 173.4083655397152,
+   "escala": [
+    1.0723083098447261,
+    1.0723083098447261,
+    1.0723083098447261
+   ],
+   "material": null,
+   "sin_terreno": [
+    0
+   ]
+  },
+  {
+   "malla": "/Game/PureNature_Meadows/Models/Plants/Meshes/SM_GrassMeadows3",
+   "pos": [
+    -1628.6765463260733,
+    -352.5395077416438,
+    0
+   ],
+   "giro": 355.6165786533014,
+   "escala": [
+    0.9324456580899715,
+    0.9324456580899715,
+    0.9324456580899715
+   ],
+   "material": null,
+   "sin_terreno": []
+  },
+  {
+   "malla": "/Game/PureNature_Meadows/Models/Plants/Meshes/SM_Daisy",
+   "pos": [
+    -1996.4035317298997,
+    -1937.171622953644,
+    0
+   ],
+   "giro": 355.8355693185152,
+   "escala": [
+    1.2860583262404917,
+    1.2860583262404917,
+    1.2860583262404917
+   ],
+   "material": null,
+   "sin_terreno": []
+  },
+  {
+   "malla": "/Game/PureNature_Meadows/Models/Plants/Meshes/SM_Daisy",
+   "pos": [
+    -1568.6790620972051,
+    -1761.9304269490017,
+    0
+   ],
+   "giro": 223.3107525173911,
+   "escala": [
+    1.137054309379061,
+    1.137054309379061,
+    1.137054309379061
+   ],
+   "material": null,
+   "sin_terreno": []
+  },
+  {
+   "malla": "/Game/PureNature_Meadows/Models/Plants/Meshes/SM_GrassMeadows3",
+   "pos": [
+    1190.2898146592825,
+    1665.5379572107936,
+    0
+   ],
+   "giro": 280.71021305556314,
+   "escala": [
+    0.9469617087162366,
+    0.9469617087162366,
+    0.9469617087162366
+   ],
+   "material": null,
+   "sin_terreno": []
+  },
+  {
+   "malla": "/Game/PureNature_Mountains/Models/Plants/Meshes/SM_Fern2",
+   "pos": [
+    -1058.8948285501883,
+    -1115.203772557818,
+    0
+   ],
+   "giro": 265.7042739817546,
+   "escala": [
+    0.899595045445106,
+    0.899595045445106,
+    0.899595045445106
+   ],
+   "material": null,
+   "sin_terreno": []
+  },
+  {
+   "malla": "/Game/PureNature_Mountains/Models/Plants/Meshes/SM_Grass3",
+   "pos": [
+    -1212.3401933049054,
+    -1222.366574925041,
+    0
+   ],
+   "giro": 101.28747551366992,
+   "escala": [
+    1.2537841140414803,
+    1.2537841140414803,
+    1.2537841140414803
+   ],
+   "material": null,
+   "sin_terreno": [
+    0
+   ]
+  },
+  {
+   "malla": "/Game/PureNature_Mountains/Models/Plants/Meshes/SM_Fern2",
+   "pos": [
+    -1496.399355184868,
+    -2088.940343997374,
+    0
+   ],
+   "giro": 357.28154158995835,
+   "escala": [
+    1.0536622566219744,
+    1.0536622566219744,
+    1.0536622566219744
+   ],
+   "material": null,
+   "sin_terreno": []
+  },
+  {
+   "malla": "/Game/PureNature_Meadows/Models/Plants/Meshes/SM_Daisy",
+   "pos": [
+    -1289.3714672455556,
+    1480.5258786872305,
+    0
+   ],
+   "giro": 356.7440343896175,
+   "escala": [
+    0.8511662103403066,
+    0.8511662103403066,
+    0.8511662103403066
+   ],
+   "material": null,
+   "sin_terreno": []
+  },
+  {
+   "malla": "/Game/PureNature_Meadows/Models/Plants/Meshes/SM_Daisy",
+   "pos": [
+    -121.13875569730953,
+    1531.6929899852353,
+    0
+   ],
+   "giro": 329.1751993789931,
+   "escala": [
+    0.8201809327188216,
+    0.8201809327188216,
+    0.8201809327188216
+   ],
+   "material": null,
+   "sin_terreno": []
+  },
+  {
+   "malla": "/Game/PureNature_Mountains/Models/Plants/Meshes/SM_Fern1",
+   "pos": [
+    -990.348163858914,
+    -1827.7601820090597,
+    0
+   ],
+   "giro": 216.17759220501378,
+   "escala": [
+    1.2139625191062458,
+    1.2139625191062458,
+    1.2139625191062458
+   ],
+   "material": null,
+   "sin_terreno": []
+  },
+  {
+   "malla": "/Game/PureNature_Meadows/Models/Mushroom/Meshes/SM_Mushroom3",
+   "pos": [
+    -1468.0242801842544,
+    -2039.4403920565742,
+    0
+   ],
+   "giro": 311.80583822722167,
+   "escala": [
+    1.0245569288843952,
+    1.0245569288843952,
+    1.0245569288843952
+   ],
+   "material": null,
+   "sin_terreno": []
+  },
+  {
+   "malla": "/Game/PureNature_Meadows/Models/Plants/Meshes/SM_GrassMeadows1",
+   "pos": [
+    -1152.2485336661982,
+    1333.3261250766127,
+    0
+   ],
+   "giro": 38.08082244906292,
+   "escala": [
+    1.098073532841005,
+    1.098073532841005,
+    1.098073532841005
+   ],
+   "material": null,
+   "sin_terreno": [
+    0
+   ]
+  },
+  {
+   "malla": "/Game/PureNature_Meadows/Models/Plants/Meshes/SM_FlowerMeadow1",
+   "pos": [
+    575.7503038537366,
+    -1355.301974864441,
+    0
+   ],
+   "giro": 122.4059615350739,
+   "escala": [
+    0.8220832646041231,
+    0.8220832646041231,
+    0.8220832646041231
+   ],
+   "material": null,
+   "sin_terreno": []
+  },
+  {
+   "malla": "/Game/PureNature_Mountains/Models/Plants/Meshes/SM_Fern1",
+   "pos": [
+    2399.3940444557784,
+    -2216.467216035484,
+    0
+   ],
+   "giro": 293.3077392287309,
+   "escala": [
+    1.2094165538521455,
+    1.2094165538521455,
+    1.2094165538521455
+   ],
+   "material": null,
+   "sin_terreno": []
+  },
+  {
+   "malla": "/Game/PureNature_Mountains/Models/Plants/Meshes/SM_Fern2",
+   "pos": [
+    -436.8245001440141,
+    -615.3156214304533,
+    0
+   ],
+   "giro": 28.056515702804887,
+   "escala": [
+    0.8157332934263393,
+    0.8157332934263393,
+    0.8157332934263393
+   ],
+   "material": null,
+   "sin_terreno": []
+  },
+  {
+   "malla": "/Game/PureNature_Meadows/Models/Mushroom/Meshes/SM_Mushroom3",
+   "pos": [
+    -440.78378314777297,
+    1420.050587485911,
+    0
+   ],
+   "giro": 55.63877992410585,
+   "escala": [
+    1.0669985819278383,
+    1.0669985819278383,
+    1.0669985819278383
+   ],
+   "material": null,
+   "sin_terreno": []
+  },
+  {
+   "malla": "/Game/PureNature_Mountains/Models/Plants/Meshes/SM_Fern2",
+   "pos": [
+    734.6800862678047,
+    -490.69377081134735,
+    0
+   ],
+   "giro": 147.5240116996016,
+   "escala": [
+    0.9416505972586979,
+    0.9416505972586979,
+    0.9416505972586979
+   ],
+   "material": null,
+   "sin_terreno": []
+  },
+  {
+   "malla": "/Game/PureNature_Mountains/Models/Plants/Meshes/SM_Fern2",
+   "pos": [
+    -923.5403388317095,
+    2175.3064173946623,
+    0
+   ],
+   "giro": 268.3215233977677,
+   "escala": [
+    1.2418474374606525,
+    1.2418474374606525,
+    1.2418474374606525
+   ],
+   "material": null,
+   "sin_terreno": []
+  },
+  {
+   "malla": "/Game/PureNature_Meadows/Models/Plants/Meshes/SM_FlowerMeadow1",
+   "pos": [
+    -412.41587103204574,
+    -2312.576727953683,
+    0
+   ],
+   "giro": 232.01215588295884,
+   "escala": [
+    0.9953655582965601,
+    0.9953655582965601,
+    0.9953655582965601
+   ],
+   "material": null,
+   "sin_terreno": []
+  },
+  {
+   "malla": "/Game/PureNature_Meadows/Models/Plants/Meshes/SM_Lupin2",
+   "pos": [
+    -456.1274813294233,
+    2121.5395691112253,
+    0
+   ],
+   "giro": 324.5870093730395,
+   "escala": [
+    1.0118774023411397,
+    1.0118774023411397,
+    1.0118774023411397
+   ],
+   "material": null,
+   "sin_terreno": []
+  },
+  {
+   "malla": "/Game/PureNature_Meadows/Models/Plants/Meshes/SM_FlowerMeadow1",
+   "pos": [
+    1537.7691897328382,
+    -450.15511830583864,
+    0
+   ],
+   "giro": 165.9262448422582,
+   "escala": [
+    0.8812722896411087,
+    0.8812722896411087,
+    0.8812722896411087
+   ],
+   "material": null,
+   "sin_terreno": []
+  },
+  {
+   "malla": "/Game/PureNature_Meadows/Models/Plants/Meshes/SM_Lupin2",
+   "pos": [
+    -2328.79500204222,
+    247.42970976222023,
+    0
+   ],
+   "giro": 32.05120031707899,
+   "escala": [
+    1.1110972975463702,
+    1.1110972975463702,
+    1.1110972975463702
+   ],
+   "material": null,
+   "sin_terreno": []
+  },
+  {
+   "malla": "/Game/PureNature_Mountains/Models/Plants/Meshes/SM_Grass3",
+   "pos": [
+    -619.9506019145633,
+    21.422702253543775,
+    0
+   ],
+   "giro": 125.26017831255646,
+   "escala": [
+    0.8809073616607446,
+    0.8809073616607446,
+    0.8809073616607446
+   ],
+   "material": null,
+   "sin_terreno": [
+    0
+   ]
+  },
+  {
+   "malla": "/Game/PureNature_Meadows/Models/Plants/Meshes/SM_Lupin2",
+   "pos": [
+    -1575.430550855406,
+    -2077.9356440737424,
+    0
+   ],
+   "giro": 176.5834739154584,
+   "escala": [
+    1.202406807214561,
+    1.202406807214561,
+    1.202406807214561
+   ],
+   "material": null,
+   "sin_terreno": []
+  },
+  {
+   "malla": "/Game/PureNature_Mountains/Models/Plants/Meshes/SM_Grass3",
+   "pos": [
+    2241.005151440254,
+    -1452.759815396716,
+    0
+   ],
+   "giro": 301.4252246879582,
+   "escala": [
+    0.8217486693544186,
+    0.8217486693544186,
+    0.8217486693544186
+   ],
+   "material": null,
+   "sin_terreno": [
+    0
+   ]
+  },
+  {
+   "malla": "/Game/PureNature_Meadows/Models/Plants/Meshes/SM_Lupin2",
+   "pos": [
+    1981.4334326769049,
+    -890.2753453239961,
+    0
+   ],
+   "giro": 31.0659936481677,
+   "escala": [
+    1.1561551407737396,
+    1.1561551407737396,
+    1.1561551407737396
+   ],
+   "material": null,
+   "sin_terreno": []
+  },
+  {
+   "malla": "/Game/PureNature_Mountains/Models/Plants/Meshes/SM_Fern1",
+   "pos": [
+    903.4395155151751,
+    1877.4590549567747,
+    0
+   ],
+   "giro": 223.5791115881088,
+   "escala": [
+    1.1073645526407339,
+    1.1073645526407339,
+    1.1073645526407339
+   ],
+   "material": null,
+   "sin_terreno": []
+  },
+  {
+   "malla": "/Game/PureNature_Mountains/Models/Plants/Meshes/SM_Fern1",
+   "pos": [
+    -1458.6578668646446,
+    -129.8150116336751,
+    0
+   ],
+   "giro": 15.016527950081265,
+   "escala": [
+    1.2692745265286138,
+    1.2692745265286138,
+    1.2692745265286138
+   ],
+   "material": null,
+   "sin_terreno": []
+  },
+  {
+   "malla": "/Game/PureNature_Mountains/Models/Plants/Meshes/SM_Grass3",
+   "pos": [
+    -1648.9012819441664,
+    -675.8031920293558,
+    0
+   ],
+   "giro": 88.94120327717978,
+   "escala": [
+    1.1624413453625506,
+    1.1624413453625506,
+    1.1624413453625506
+   ],
+   "material": null,
+   "sin_terreno": [
+    0
+   ]
+  },
+  {
+   "malla": "/Game/PureNature_Meadows/Models/Mushroom/Meshes/SM_Mushroom3",
+   "pos": [
+    1907.016105387057,
+    -2202.724639754444,
+    0
+   ],
+   "giro": 303.29459780965783,
+   "escala": [
+    1.1361267225374605,
+    1.1361267225374605,
+    1.1361267225374605
+   ],
+   "material": null,
+   "sin_terreno": []
+  },
+  {
+   "malla": "/Game/PureNature_Meadows/Models/Plants/Meshes/SM_Lupin2",
+   "pos": [
+    805.902844841632,
+    -843.8265639162896,
+    0
+   ],
+   "giro": 215.82711729455036,
+   "escala": [
+    1.0750259185172977,
+    1.0750259185172977,
+    1.0750259185172977
+   ],
+   "material": null,
+   "sin_terreno": []
+  },
+  {
+   "malla": "/Game/PureNature_Meadows/Models/Plants/Meshes/SM_Lupin2",
+   "pos": [
+    609.8036090643227,
+    -930.1721102346949,
+    0
+   ],
+   "giro": 110.95618374455628,
+   "escala": [
+    0.9246294246082747,
+    0.9246294246082747,
+    0.9246294246082747
+   ],
+   "material": null,
+   "sin_terreno": []
+  },
+  {
+   "malla": "/Game/PureNature_Meadows/Models/Mushroom/Meshes/SM_Mushroom3",
+   "pos": [
+    -531.7821386274327,
+    -636.2399537519436,
+    0
+   ],
+   "giro": 157.80693370368337,
+   "escala": [
+    0.8116876401137862,
+    0.8116876401137862,
+    0.8116876401137862
+   ],
+   "material": null,
+   "sin_terreno": []
+  },
+  {
+   "malla": "/Game/PureNature_Mountains/Models/Plants/Meshes/SM_Fern1",
+   "pos": [
+    570.681023101959,
+    -50.392324974305666,
+    0
+   ],
+   "giro": 160.8547937488814,
+   "escala": [
+    1.1092876292019147,
+    1.1092876292019147,
+    1.1092876292019147
+   ],
+   "material": null,
+   "sin_terreno": []
+  },
+  {
+   "malla": "/Game/PureNature_Meadows/Models/Plants/Meshes/SM_Daisy",
+   "pos": [
+    1531.0571357591998,
+    1615.4167120302563,
+    0
+   ],
+   "giro": 144.12324457278388,
+   "escala": [
+    0.8335603286640938,
+    0.8335603286640938,
+    0.8335603286640938
+   ],
+   "material": null,
+   "sin_terreno": []
+  },
+  {
+   "malla": "/Game/PureNature_Meadows/Models/Plants/Meshes/SM_Daisy",
+   "pos": [
+    -678.8396562123655,
+    -646.4048948867394,
+    0
+   ],
+   "giro": 181.5631418202672,
+   "escala": [
+    1.128547887655969,
+    1.128547887655969,
+    1.128547887655969
+   ],
+   "material": null,
+   "sin_terreno": []
+  },
+  {
+   "malla": "/Game/PureNature_Meadows/Models/Plants/Meshes/SM_FlowerMeadow1",
+   "pos": [
+    -2204.87216819154,
+    -1774.699363151514,
+    0
+   ],
+   "giro": 279.94899108515415,
+   "escala": [
+    1.055740866362929,
+    1.055740866362929,
+    1.055740866362929
+   ],
+   "material": null,
+   "sin_terreno": []
+  },
+  {
+   "malla": "/Game/PureNature_Meadows/Models/Plants/Meshes/SM_Lupin2",
+   "pos": [
+    -2139.528331086914,
+    18.835505063562778,
+    0
+   ],
+   "giro": 234.98843626910798,
+   "escala": [
+    1.1921213862902884,
+    1.1921213862902884,
+    1.1921213862902884
+   ],
+   "material": null,
+   "sin_terreno": []
+  },
+  {
+   "malla": "/Game/PureNature_Meadows/Models/Plants/Meshes/SM_GrassMeadows3",
+   "pos": [
+    -2275.8888653372487,
+    -2081.3727737859185,
+    0
+   ],
+   "giro": 69.73462914960302,
+   "escala": [
+    1.2908640454921683,
+    1.2908640454921683,
+    1.2908640454921683
+   ],
+   "material": null,
+   "sin_terreno": []
+  },
+  {
+   "malla": "/Game/PureNature_Mountains/Models/Plants/Meshes/SM_Grass3",
+   "pos": [
+    -39.02416391796169,
+    2191.8685845492455,
+    0
+   ],
+   "giro": 247.00822445614148,
+   "escala": [
+    1.1605396484232824,
+    1.1605396484232824,
+    1.1605396484232824
+   ],
+   "material": null,
+   "sin_terreno": [
+    0
+   ]
+  },
+  {
+   "malla": "/Game/PureNature_Mountains/Models/Plants/Meshes/SM_Fern2",
+   "pos": [
+    -1338.591454070227,
+    1598.573196562435,
+    0
+   ],
+   "giro": 57.15628174380986,
+   "escala": [
+    1.2482686207202514,
+    1.2482686207202514,
+    1.2482686207202514
+   ],
+   "material": null,
+   "sin_terreno": []
+  },
+  {
+   "malla": "/Game/PureNature_Mountains/Models/Plants/Meshes/SM_Grass3",
+   "pos": [
+    -1080.0355587579422,
+    1515.007941355807,
+    0
+   ],
+   "giro": 91.49810359476842,
+   "escala": [
+    1.282163898348465,
+    1.282163898348465,
+    1.282163898348465
+   ],
+   "material": null,
+   "sin_terreno": [
+    0
+   ]
+  },
+  {
+   "malla": "/Game/PureNature_Meadows/Models/Plants/Meshes/SM_FlowerMeadow1",
+   "pos": [
+    556.1579527618992,
+    -1260.4839449258743,
+    0
+   ],
+   "giro": 13.259900447869079,
+   "escala": [
+    0.8910481937358732,
+    0.8910481937358732,
+    0.8910481937358732
+   ],
+   "material": null,
+   "sin_terreno": []
+  },
+  {
+   "malla": "/Game/PureNature_Meadows/Models/Plants/Meshes/SM_FlowerMeadow1",
+   "pos": [
+    -1626.0991345677937,
+    2094.7380523037255,
+    0
+   ],
+   "giro": 322.34871726976854,
+   "escala": [
+    0.8843710221056795,
+    0.8843710221056795,
+    0.8843710221056795
+   ],
+   "material": null,
+   "sin_terreno": []
+  },
+  {
+   "malla": "/Game/PureNature_Meadows/Models/Mushroom/Meshes/SM_Mushroom3",
+   "pos": [
+    1367.3727130058114,
+    -1847.6222359562257,
+    0
+   ],
+   "giro": 17.48576752152086,
+   "escala": [
+    1.2291444843999264,
+    1.2291444843999264,
+    1.2291444843999264
+   ],
+   "material": null,
+   "sin_terreno": []
+  },
+  {
+   "malla": "/Game/PureNature_Meadows/Models/Mushroom/Meshes/SM_Mushroom3",
+   "pos": [
+    2237.5436022145304,
+    -225.41475694727478,
+    0
+   ],
+   "giro": 208.8157269950385,
+   "escala": [
+    1.2412674676481674,
+    1.2412674676481674,
+    1.2412674676481674
+   ],
+   "material": null,
+   "sin_terreno": []
+  },
+  {
+   "malla": "/Game/PureNature_Meadows/Models/Plants/Meshes/SM_Lupin2",
+   "pos": [
+    -1897.8777676094205,
+    2366.182119931028,
+    0
+   ],
+   "giro": 265.6523237165914,
+   "escala": [
+    0.9857331106988867,
+    0.9857331106988867,
+    0.9857331106988867
+   ],
+   "material": null,
+   "sin_terreno": []
+  },
+  {
+   "malla": "/Game/PureNature_Mountains/Models/Plants/Meshes/SM_Grass3",
+   "pos": [
+    -596.4490417063864,
+    -629.0665062417802,
+    0
+   ],
+   "giro": 129.69049840493787,
+   "escala": [
+    1.1823195959679245,
+    1.1823195959679245,
+    1.1823195959679245
+   ],
+   "material": null,
+   "sin_terreno": [
+    0
+   ]
+  },
+  {
+   "malla": "/Game/PureNature_Meadows/Models/Plants/Meshes/SM_GrassMeadows1",
+   "pos": [
+    -277.0481861812841,
+    -1551.570918010224,
+    0
+   ],
+   "giro": 106.69802468371947,
+   "escala": [
+    1.0580533856662084,
+    1.0580533856662084,
+    1.0580533856662084
+   ],
+   "material": null,
+   "sin_terreno": [
+    0
+   ]
+  },
+  {
+   "malla": "/Game/PureNature_Meadows/Models/Plants/Meshes/SM_FlowerMeadow1",
+   "pos": [
+    -911.6522798810779,
+    2236.594747926779,
+    0
+   ],
+   "giro": 263.8939592290278,
+   "escala": [
+    1.1735598923034711,
+    1.1735598923034711,
+    1.1735598923034711
+   ],
+   "material": null,
+   "sin_terreno": []
+  },
+  {
+   "malla": "/Game/PureNature_Meadows/Models/Plants/Meshes/SM_Lupin2",
+   "pos": [
+    -1336.139947794744,
+    -1003.3362287502748,
+    0
+   ],
+   "giro": 150.36730754795727,
+   "escala": [
+    0.9820494975728633,
+    0.9820494975728633,
+    0.9820494975728633
+   ],
+   "material": null,
+   "sin_terreno": []
+  },
+  {
+   "malla": "/Game/PureNature_Meadows/Models/Plants/Meshes/SM_GrassMeadows1",
+   "pos": [
+    -2170.67344908631,
+    -55.706397512210515,
+    0
+   ],
+   "giro": 8.024228063087824,
+   "escala": [
+    0.8013077466455145,
+    0.8013077466455145,
+    0.8013077466455145
+   ],
+   "material": null,
+   "sin_terreno": [
+    0
+   ]
+  },
+  {
+   "malla": "/Game/PureNature_Meadows/Models/Plants/Meshes/SM_FlowerMeadow1",
+   "pos": [
+    -696.1796413515053,
+    -1889.4592694131582,
+    0
+   ],
+   "giro": 192.28071988175233,
+   "escala": [
+    1.0066192313417455,
+    1.0066192313417455,
+    1.0066192313417455
+   ],
+   "material": null,
+   "sin_terreno": []
+  },
+  {
+   "malla": "/Game/PureNature_Meadows/Models/Plants/Meshes/SM_FlowerMeadow1",
+   "pos": [
+    -954.4560817804957,
+    -1758.1117914610732,
+    0
+   ],
+   "giro": 224.61464120633758,
+   "escala": [
+    1.0374509057351329,
+    1.0374509057351329,
+    1.0374509057351329
+   ],
+   "material": null,
+   "sin_terreno": []
+  },
+  {
+   "malla": "/Game/PureNature_Mountains/Models/Plants/Meshes/SM_Fern1",
+   "pos": [
+    -1753.2062525470728,
+    2095.636396461824,
+    0
+   ],
+   "giro": 254.6901417803221,
+   "escala": [
+    1.0254265513114804,
+    1.0254265513114804,
+    1.0254265513114804
+   ],
+   "material": null,
+   "sin_terreno": []
+  },
+  {
+   "malla": "/Game/PureNature_Mountains/Models/Plants/Meshes/SM_Fern2",
+   "pos": [
+    -2094.3905125304427,
+    -1705.480174853125,
+    0
+   ],
+   "giro": 144.7030408096715,
+   "escala": [
+    0.9321199199823119,
+    0.9321199199823119,
+    0.9321199199823119
+   ],
+   "material": null,
+   "sin_terreno": []
+  },
+  {
+   "malla": "/Game/PureNature_Meadows/Models/Mushroom/Meshes/SM_Mushroom3",
+   "pos": [
+    -2344.8190192175903,
+    695.7473452406175,
+    0
+   ],
+   "giro": 321.36356060296123,
+   "escala": [
+    1.0973621325403604,
+    1.0973621325403604,
+    1.0973621325403604
+   ],
+   "material": null,
+   "sin_terreno": []
+  },
+  {
+   "malla": "/Game/PureNature_Meadows/Models/Mushroom/Meshes/SM_Mushroom3",
+   "pos": [
+    376.6679922492822,
+    489.03103842105065,
+    0
+   ],
+   "giro": 264.0680546866849,
+   "escala": [
+    0.9242485089790045,
+    0.9242485089790045,
+    0.9242485089790045
+   ],
+   "material": null,
+   "sin_terreno": []
+  },
+  {
+   "malla": "/Game/PureNature_Meadows/Models/Mushroom/Meshes/SM_Mushroom3",
+   "pos": [
+    1936.816656603798,
+    -2188.7904860426725,
+    0
+   ],
+   "giro": 9.081086413234027,
+   "escala": [
+    0.8928289414855421,
+    0.8928289414855421,
+    0.8928289414855421
+   ],
+   "material": null,
+   "sin_terreno": []
+  },
+  {
+   "malla": "/Game/PureNature_Meadows/Models/Plants/Meshes/SM_GrassMeadows3",
+   "pos": [
+    -1635.760221777707,
+    1976.36142178317,
+    0
+   ],
+   "giro": 4.4460339885223465,
+   "escala": [
+    1.0754614787429568,
+    1.0754614787429568,
+    1.0754614787429568
+   ],
+   "material": null,
+   "sin_terreno": []
+  },
+  {
+   "malla": "/Game/PureNature_Mountains/Models/Plants/Meshes/SM_Fern1",
+   "pos": [
+    2116.4189170810514,
+    -1717.1205849702978,
+    0
+   ],
+   "giro": 186.57291307233174,
+   "escala": [
+    1.1213468436410583,
+    1.1213468436410583,
+    1.1213468436410583
+   ],
+   "material": null,
+   "sin_terreno": []
+  },
+  {
+   "malla": "/Game/PureNature_Mountains/Models/Plants/Meshes/SM_Grass3",
+   "pos": [
+    708.4641924465877,
+    -406.82631206342717,
+    0
+   ],
+   "giro": 183.08736556304763,
+   "escala": [
+    0.8318835947672507,
+    0.8318835947672507,
+    0.8318835947672507
+   ],
+   "material": null,
+   "sin_terreno": [
+    0
+   ]
+  },
+  {
+   "malla": "/Game/PureNature_Meadows/Models/Plants/Meshes/SM_Daisy",
+   "pos": [
+    604.6263116058385,
+    2371.494479990688,
+    0
+   ],
+   "giro": 257.54350091387545,
+   "escala": [
+    0.803174701240505,
+    0.803174701240505,
+    0.803174701240505
+   ],
+   "material": null,
+   "sin_terreno": []
+  },
+  {
+   "malla": "/Game/PureNature_Meadows/Models/Plants/Meshes/SM_Daisy",
+   "pos": [
+    1653.2758868925857,
+    1176.899739942302,
+    0
+   ],
+   "giro": 28.97227963083816,
+   "escala": [
+    1.1277656303811343,
+    1.1277656303811343,
+    1.1277656303811343
+   ],
+   "material": null,
+   "sin_terreno": []
+  },
+  {
+   "malla": "/Game/PureNature_Mountains/Models/Plants/Meshes/SM_Fern2",
+   "pos": [
+    -1558.1197061795565,
+    2383.7302960854176,
+    0
+   ],
+   "giro": 83.62680756931834,
+   "escala": [
+    0.8194087815406417,
+    0.8194087815406417,
+    0.8194087815406417
+   ],
+   "material": null,
+   "sin_terreno": []
+  },
+  {
+   "malla": "/Game/PureNature_Mountains/Models/Plants/Meshes/SM_Fern2",
+   "pos": [
+    -789.5229259273797,
+    1198.3394953672237,
+    0
+   ],
+   "giro": 256.20632185721274,
+   "escala": [
+    0.9329938532258046,
+    0.9329938532258046,
+    0.9329938532258046
+   ],
+   "material": null,
+   "sin_terreno": []
+  },
+  {
+   "malla": "/Game/PureNature_Mountains/Models/Plants/Meshes/SM_Fern2",
+   "pos": [
+    1384.5600813844867,
+    111.57424349397661,
+    0
+   ],
+   "giro": 106.42211609424012,
+   "escala": [
+    1.2642853325796903,
+    1.2642853325796903,
+    1.2642853325796903
+   ],
+   "material": null,
+   "sin_terreno": []
+  },
+  {
+   "malla": "/Game/PureNature_Meadows/Models/Mushroom/Meshes/SM_Mushroom3",
+   "pos": [
+    1892.0542079327888,
+    -1989.978651521974,
+    0
+   ],
+   "giro": 5.48197434184734,
+   "escala": [
+    0.9301843259658759,
+    0.9301843259658759,
+    0.9301843259658759
+   ],
+   "material": null,
+   "sin_terreno": []
+  },
+  {
+   "malla": "/Game/PureNature_Mountains/Models/Plants/Meshes/SM_Grass3",
+   "pos": [
+    -1266.6753944734494,
+    1170.6175876656666,
+    0
+   ],
+   "giro": 268.6144859297948,
+   "escala": [
+    0.963435698270563,
+    0.963435698270563,
+    0.963435698270563
+   ],
+   "material": null,
+   "sin_terreno": [
+    0
+   ]
+  },
+  {
+   "malla": "/Game/PureNature_Mountains/Models/Plants/Meshes/SM_Fern1",
+   "pos": [
+    1824.7910280957403,
+    -822.9421162165074,
+    0
+   ],
+   "giro": 136.60161649230582,
+   "escala": [
+    1.2259639666627944,
+    1.2259639666627944,
+    1.2259639666627944
+   ],
+   "material": null,
+   "sin_terreno": []
+  },
+  {
+   "malla": "/Game/PureNature_Meadows/Models/Mushroom/Meshes/SM_Mushroom3",
+   "pos": [
+    2024.0539202514747,
+    2311.971247145041,
+    0
+   ],
+   "giro": 169.01746042050854,
+   "escala": [
+    1.2198556338646198,
+    1.2198556338646198,
+    1.2198556338646198
+   ],
+   "material": null,
+   "sin_terreno": []
+  },
+  {
+   "malla": "/Game/PureNature_Meadows/Models/Plants/Meshes/SM_Lupin2",
+   "pos": [
+    948.5674025910512,
+    1716.109229082469,
+    0
+   ],
+   "giro": 344.0507556562453,
+   "escala": [
+    0.9169142409054207,
+    0.9169142409054207,
+    0.9169142409054207
+   ],
+   "material": null,
+   "sin_terreno": []
+  },
+  {
+   "malla": "/Game/PureNature_Meadows/Models/Plants/Meshes/SM_Lupin2",
+   "pos": [
+    1846.8417873770295,
+    1388.17148966668,
+    0
+   ],
+   "giro": 224.1439450585814,
+   "escala": [
+    0.8389011746838859,
+    0.8389011746838859,
+    0.8389011746838859
+   ],
+   "material": null,
+   "sin_terreno": []
+  },
+  {
+   "malla": "/Game/PureNature_Meadows/Models/Plants/Meshes/SM_GrassMeadows1",
+   "pos": [
+    1971.7907013253944,
+    -1705.944405809154,
+    0
+   ],
+   "giro": 40.28149573806086,
+   "escala": [
+    1.1109845814442219,
+    1.1109845814442219,
+    1.1109845814442219
+   ],
+   "material": null,
+   "sin_terreno": [
+    0
+   ]
+  },
+  {
+   "malla": "/Game/PureNature_Meadows/Models/Plants/Meshes/SM_GrassMeadows1",
+   "pos": [
+    -1623.3059998203396,
+    2291.5587595167726,
+    0
+   ],
+   "giro": 11.113151125563645,
+   "escala": [
+    0.8692010957472966,
+    0.8692010957472966,
+    0.8692010957472966
+   ],
+   "material": null,
+   "sin_terreno": [
+    0
+   ]
+  },
+  {
+   "malla": "/Game/PureNature_Meadows/Models/Plants/Meshes/SM_GrassMeadows3",
+   "pos": [
+    689.0147078232094,
+    -2195.2976454374416,
+    0
+   ],
+   "giro": 265.24269474154755,
+   "escala": [
+    0.8328826340157464,
+    0.8328826340157464,
+    0.8328826340157464
+   ],
+   "material": null,
+   "sin_terreno": []
+  },
+  {
+   "malla": "/Game/PureNature_Meadows/Models/Mushroom/Meshes/SM_Mushroom3",
+   "pos": [
+    434.26944357521415,
+    -655.6506443269666,
+    0
+   ],
+   "giro": 320.8608779244039,
+   "escala": [
+    0.8329742091883519,
+    0.8329742091883519,
+    0.8329742091883519
+   ],
+   "material": null,
+   "sin_terreno": []
+  },
+  {
+   "malla": "/Game/PureNature_Meadows/Models/Plants/Meshes/SM_Lupin2",
+   "pos": [
+    1765.4028924383838,
+    1989.1621367185035,
+    0
+   ],
+   "giro": 38.561720019339496,
+   "escala": [
+    0.9028617069242911,
+    0.9028617069242911,
+    0.9028617069242911
+   ],
+   "material": null,
+   "sin_terreno": []
+  },
+  {
+   "malla": "/Game/PureNature_Meadows/Models/Plants/Meshes/SM_GrassMeadows3",
+   "pos": [
+    -1862.5453221609368,
+    -2234.7512501745896,
+    0
+   ],
+   "giro": 297.0216967948788,
+   "escala": [
+    1.1157682479629636,
+    1.1157682479629636,
+    1.1157682479629636
+   ],
+   "material": null,
+   "sin_terreno": []
+  },
+  {
+   "malla": "/Game/PureNature_Meadows/Models/Plants/Meshes/SM_GrassMeadows3",
+   "pos": [
+    -1020.6475683290244,
+    -1920.5899667982915,
+    0
+   ],
+   "giro": 285.1082255888805,
+   "escala": [
+    1.1231600977666432,
+    1.1231600977666432,
+    1.1231600977666432
+   ],
+   "material": null,
+   "sin_terreno": []
+  },
+  {
+   "malla": "/Game/PureNature_Mountains/Models/Plants/Meshes/SM_Fern2",
+   "pos": [
+    -986.5948920557903,
+    -784.7241130912766,
+    0
+   ],
+   "giro": 7.530646073254106,
+   "escala": [
+    0.9283511330563481,
+    0.9283511330563481,
+    0.9283511330563481
+   ],
+   "material": null,
+   "sin_terreno": []
+  },
+  {
+   "malla": "/Game/PureNature_Meadows/Models/Plants/Meshes/SM_FlowerMeadow1",
+   "pos": [
+    -1043.552540001582,
+    1035.6585059113017,
+    0
+   ],
+   "giro": 327.7202912829678,
+   "escala": [
+    1.1846187515705793,
+    1.1846187515705793,
+    1.1846187515705793
+   ],
+   "material": null,
+   "sin_terreno": []
+  },
+  {
+   "malla": "/Game/PureNature_Mountains/Models/Plants/Meshes/SM_Fern2",
+   "pos": [
+    489.64017046942627,
+    -114.802663873053,
+    0
+   ],
+   "giro": 222.57930836406175,
+   "escala": [
+    0.8154906801471705,
+    0.8154906801471705,
+    0.8154906801471705
+   ],
+   "material": null,
+   "sin_terreno": []
+  },
+  {
+   "malla": "/Game/PureNature_Meadows/Models/Plants/Meshes/SM_GrassMeadows1",
+   "pos": [
+    1310.5242525923077,
+    -735.447997965515,
+    0
+   ],
+   "giro": 193.63699588026904,
+   "escala": [
+    0.9082871284871924,
+    0.9082871284871924,
+    0.9082871284871924
+   ],
+   "material": null,
+   "sin_terreno": [
+    0
+   ]
+  },
+  {
+   "malla": "/Game/PureNature_Mountains/Models/Plants/Meshes/SM_Fern2",
+   "pos": [
+    1738.748746913545,
+    -1963.7302074000513,
+    0
+   ],
+   "giro": 61.33365360633054,
+   "escala": [
+    0.8006495286656757,
+    0.8006495286656757,
+    0.8006495286656757
+   ],
+   "material": null,
+   "sin_terreno": []
+  },
+  {
+   "malla": "/Game/PureNature_Meadows/Models/Plants/Meshes/SM_GrassMeadows1",
+   "pos": [
+    -1430.2311913370613,
+    1258.4688931888977,
+    0
+   ],
+   "giro": 1.5702009589174404,
+   "escala": [
+    1.0454114969659187,
+    1.0454114969659187,
+    1.0454114969659187
+   ],
+   "material": null,
+   "sin_terreno": [
+    0
+   ]
+  },
+  {
+   "malla": "/Game/PureNature_Mountains/Models/Plants/Meshes/SM_Grass3",
+   "pos": [
+    -40.87633984537342,
+    1424.5051083090266,
+    0
+   ],
+   "giro": 348.17622853852356,
+   "escala": [
+    1.0962774200260106,
+    1.0962774200260106,
+    1.0962774200260106
+   ],
+   "material": null,
+   "sin_terreno": [
+    0
+   ]
+  },
+  {
+   "malla": "/Game/PureNature_Mountains/Models/Plants/Meshes/SM_Grass3",
+   "pos": [
+    2194.591742700428,
+    72.67328240543839,
+    0
+   ],
+   "giro": 102.14271108423722,
+   "escala": [
+    0.9073571702029155,
+    0.9073571702029155,
+    0.9073571702029155
+   ],
+   "material": null,
+   "sin_terreno": [
+    0
+   ]
+  },
+  {
+   "malla": "/Game/PureNature_Meadows/Models/Plants/Meshes/SM_GrassMeadows3",
+   "pos": [
+    957.4999176810106,
+    -8.08510187419597,
+    0
+   ],
+   "giro": 337.9360752489522,
+   "escala": [
+    1.1834047730299928,
+    1.1834047730299928,
+    1.1834047730299928
+   ],
+   "material": null,
+   "sin_terreno": []
+  },
+  {
+   "malla": "/Game/PureNature_Meadows/Models/Mushroom/Meshes/SM_Mushroom3",
+   "pos": [
+    -46.59981293985584,
+    2357.353080409467,
+    0
+   ],
+   "giro": 283.2959276261989,
+   "escala": [
+    1.1139661003896753,
+    1.1139661003896753,
+    1.1139661003896753
+   ],
+   "material": null,
+   "sin_terreno": []
+  },
+  {
+   "malla": "/Game/PureNature_Meadows/Models/Plants/Meshes/SM_Lupin2",
+   "pos": [
+    -693.0381025618865,
+    -473.90127437694355,
+    0
+   ],
+   "giro": 321.0630205314359,
+   "escala": [
+    1.1726098503402356,
+    1.1726098503402356,
+    1.1726098503402356
+   ],
+   "material": null,
+   "sin_terreno": []
+  },
+  {
+   "malla": "/Game/PureNature_Meadows/Models/Plants/Meshes/SM_FlowerMeadow1",
+   "pos": [
+    -373.77602260892013,
+    700.1408824386845,
+    0
+   ],
+   "giro": 74.20204184301771,
+   "escala": [
+    0.9315977105053546,
+    0.9315977105053546,
+    0.9315977105053546
+   ],
+   "material": null,
+   "sin_terreno": []
+  },
+  {
+   "malla": "/Game/PureNature_Meadows/Models/Plants/Meshes/SM_Lupin2",
+   "pos": [
+    1925.8352832175597,
+    5.712860981396716,
+    0
+   ],
+   "giro": 353.66756169671044,
+   "escala": [
+    1.115372013425736,
+    1.115372013425736,
+    1.115372013425736
+   ],
+   "material": null,
+   "sin_terreno": []
+  },
+  {
+   "malla": "/Game/PureNature_Meadows/Models/Plants/Meshes/SM_GrassMeadows1",
+   "pos": [
+    2130.8164165344715,
+    -1790.973489348486,
+    0
+   ],
+   "giro": 125.45475996560742,
+   "escala": [
+    0.9633301024203457,
+    0.9633301024203457,
+    0.9633301024203457
+   ],
+   "material": null,
+   "sin_terreno": [
+    0
+   ]
+  },
+  {
+   "malla": "/Game/PureNature_Meadows/Models/Mushroom/Meshes/SM_Mushroom3",
+   "pos": [
+    -1654.431621980731,
+    1646.909145723816,
+    0
+   ],
+   "giro": 267.11541113555586,
+   "escala": [
+    0.8847752670316291,
+    0.8847752670316291,
+    0.8847752670316291
+   ],
+   "material": null,
+   "sin_terreno": []
+  },
+  {
+   "malla": "/Game/PureNature_Mountains/Models/Plants/Meshes/SM_Fern1",
+   "pos": [
+    -293.7694541551582,
+    1312.4888869719348,
+    0
+   ],
+   "giro": 45.38053661778082,
+   "escala": [
+    1.0310089865427499,
+    1.0310089865427499,
+    1.0310089865427499
+   ],
+   "material": null,
+   "sin_terreno": []
+  },
+  {
+   "malla": "/Game/PureNature_Mountains/Models/Plants/Meshes/SM_Fern1",
+   "pos": [
+    1848.6025105678018,
+    -1257.8860220538352,
+    0
+   ],
+   "giro": 96.29380157994304,
+   "escala": [
+    1.1773674953846864,
+    1.1773674953846864,
+    1.1773674953846864
+   ],
+   "material": null,
+   "sin_terreno": []
+  },
+  {
+   "malla": "/Game/PureNature_Mountains/Models/Plants/Meshes/SM_Grass3",
+   "pos": [
+    1567.3154655812627,
+    563.1957705471873,
+    0
+   ],
+   "giro": 350.91624117738877,
+   "escala": [
+    1.1615799446648456,
+    1.1615799446648456,
+    1.1615799446648456
+   ],
+   "material": null,
+   "sin_terreno": [
+    0
+   ]
+  },
+  {
+   "malla": "/Game/PureNature_Mountains/Models/Plants/Meshes/SM_Fern1",
+   "pos": [
+    493.8964792077095,
+    -726.5659989980097,
+    0
+   ],
+   "giro": 118.10702639881933,
+   "escala": [
+    0.8946367057363993,
+    0.8946367057363993,
+    0.8946367057363993
+   ],
+   "material": null,
+   "sin_terreno": []
+  },
+  {
+   "malla": "/Game/PureNature_Meadows/Models/Plants/Meshes/SM_GrassMeadows3",
+   "pos": [
+    2280.7113988984283,
+    1097.9150531861305,
+    0
+   ],
+   "giro": 59.25654967471102,
+   "escala": [
+    1.128949921211742,
+    1.128949921211742,
+    1.128949921211742
+   ],
+   "material": null,
+   "sin_terreno": []
+  },
+  {
+   "malla": "/Game/PureNature_Mountains/Models/Plants/Meshes/SM_Grass3",
+   "pos": [
+    -1461.9261723435084,
+    -1675.3915434897144,
+    0
+   ],
+   "giro": 286.15960738627535,
+   "escala": [
+    1.1666462983839379,
+    1.1666462983839379,
+    1.1666462983839379
+   ],
+   "material": null,
+   "sin_terreno": [
+    0
+   ]
+  },
+  {
+   "malla": "/Game/PureNature_Meadows/Models/Plants/Meshes/SM_GrassMeadows3",
+   "pos": [
+    -312.36958716557456,
+    -1458.283527757678,
+    0
+   ],
+   "giro": 101.08958567917215,
+   "escala": [
+    1.2426240562958315,
+    1.2426240562958315,
+    1.2426240562958315
+   ],
+   "material": null,
+   "sin_terreno": []
+  },
+  {
+   "malla": "/Game/PureNature_Meadows/Models/Plants/Meshes/SM_Lupin2",
+   "pos": [
+    -173.20150015598801,
+    -2339.4369578711585,
+    0
+   ],
+   "giro": 249.63816642822906,
+   "escala": [
+    1.0502432800117183,
+    1.0502432800117183,
+    1.0502432800117183
+   ],
+   "material": null,
+   "sin_terreno": []
+  },
+  {
+   "malla": "/Game/PureNature_Mountains/Models/Plants/Meshes/SM_Grass3",
+   "pos": [
+    635.4131446914648,
+    -176.25961224613366,
+    0
+   ],
+   "giro": 92.59688151877492,
+   "escala": [
+    1.1691201932903876,
+    1.1691201932903876,
+    1.1691201932903876
+   ],
+   "material": null,
+   "sin_terreno": [
+    0
+   ]
+  },
+  {
+   "malla": "/Game/PureNature_Meadows/Models/Plants/Meshes/SM_Lupin2",
+   "pos": [
+    -2373.5152337212876,
+    -1237.0356235025924,
+    0
+   ],
+   "giro": 252.4182904260761,
+   "escala": [
+    1.0937134196948262,
+    1.0937134196948262,
+    1.0937134196948262
+   ],
+   "material": null,
+   "sin_terreno": []
+  },
+  {
+   "malla": "/Game/PureNature_Mountains/Models/Plants/Meshes/SM_Fern1",
+   "pos": [
+    706.5652878697442,
+    1660.7690416061141,
+    0
+   ],
+   "giro": 244.65474803255336,
+   "escala": [
+    1.1207694110431354,
+    1.1207694110431354,
+    1.1207694110431354
+   ],
+   "material": null,
+   "sin_terreno": []
+  },
+  {
+   "malla": "/Game/PureNature_Meadows/Models/Plants/Meshes/SM_GrassMeadows3",
+   "pos": [
+    -221.26706483857015,
+    -897.5314643451663,
+    0
+   ],
+   "giro": 322.107922070093,
+   "escala": [
+    0.9211980610429423,
+    0.9211980610429423,
+    0.9211980610429423
+   ],
+   "material": null,
+   "sin_terreno": []
+  },
+  {
+   "malla": "/Game/PureNature_Mountains/Models/Plants/Meshes/SM_Grass3",
+   "pos": [
+    -479.36662269292583,
+    1020.6503974061498,
+    0
+   ],
+   "giro": 90.02195615916642,
+   "escala": [
+    1.011789922724454,
+    1.011789922724454,
+    1.011789922724454
+   ],
+   "material": null,
+   "sin_terreno": [
+    0
+   ]
+  },
+  {
+   "malla": "/Game/PureNature_Meadows/Models/Plants/Meshes/SM_Lupin2",
+   "pos": [
+    -215.06652761731266,
+    583.5301229430734,
+    0
+   ],
+   "giro": 186.57081576502472,
+   "escala": [
+    1.1305516091368994,
+    1.1305516091368994,
+    1.1305516091368994
+   ],
+   "material": null,
+   "sin_terreno": []
+  },
+  {
+   "malla": "/Game/PureNature_Meadows/Models/Plants/Meshes/SM_FlowerMeadow1",
+   "pos": [
+    1790.3656548164627,
+    1893.5732121881138,
+    0
+   ],
+   "giro": 280.1445919560459,
+   "escala": [
+    0.9943542131478765,
+    0.9943542131478765,
+    0.9943542131478765
+   ],
+   "material": null,
+   "sin_terreno": []
+  },
+  {
+   "malla": "/Game/PureNature_Meadows/Models/Plants/Meshes/SM_GrassMeadows1",
+   "pos": [
+    -48.76721233635135,
+    2278.17389153409,
+    0
+   ],
+   "giro": 90.44031825370763,
+   "escala": [
+    0.9089407435090937,
+    0.9089407435090937,
+    0.9089407435090937
+   ],
+   "material": null,
+   "sin_terreno": [
+    0
+   ]
+  },
+  {
+   "malla": "/Game/PureNature_Mountains/Models/Plants/Meshes/SM_Fern1",
+   "pos": [
+    1037.837175671757,
+    2166.3660385818857,
+    0
+   ],
+   "giro": 186.91919092353206,
+   "escala": [
+    0.8505434976784867,
+    0.8505434976784867,
+    0.8505434976784867
+   ],
+   "material": null,
+   "sin_terreno": []
+  },
+  {
+   "malla": "/Game/PureNature_Meadows/Models/Plants/Meshes/SM_FlowerMeadow1",
+   "pos": [
+    1043.0212667847459,
+    58.51757583998824,
+    0
+   ],
+   "giro": 187.8077772515018,
+   "escala": [
+    1.0051743259359522,
+    1.0051743259359522,
+    1.0051743259359522
+   ],
+   "material": null,
+   "sin_terreno": []
+  },
+  {
+   "malla": "/Game/PureNature_Mountains/Models/Plants/Meshes/SM_Grass3",
+   "pos": [
+    2150.268582948789,
+    -1391.570806850983,
+    0
+   ],
+   "giro": 141.29748482231162,
+   "escala": [
+    1.1813508187707216,
+    1.1813508187707216,
+    1.1813508187707216
+   ],
+   "material": null,
+   "sin_terreno": [
+    0
+   ]
+  },
+  {
+   "malla": "/Game/PureNature_Meadows/Models/Plants/Meshes/SM_FlowerMeadow1",
+   "pos": [
+    -1812.5057913384508,
+    2325.4480581522803,
+    0
+   ],
+   "giro": 229.52477142499825,
+   "escala": [
+    0.9262288588075236,
+    0.9262288588075236,
+    0.9262288588075236
+   ],
+   "material": null,
+   "sin_terreno": []
+  },
+  {
+   "malla": "/Game/PureNature_Meadows/Models/Plants/Meshes/SM_GrassMeadows3",
+   "pos": [
+    -567.1838736647067,
+    -2104.781627179086,
+    0
+   ],
+   "giro": 150.68969942299154,
+   "escala": [
+    1.0102735326758205,
+    1.0102735326758205,
+    1.0102735326758205
+   ],
+   "material": null,
+   "sin_terreno": []
+  },
+  {
+   "malla": "/Game/PureNature_Mountains/Models/Plants/Meshes/SM_Fern2",
+   "pos": [
+    951.6130569535767,
+    -709.7999961313515,
+    0
+   ],
+   "giro": 39.333050852968,
+   "escala": [
+    0.9517476914132783,
+    0.9517476914132783,
+    0.9517476914132783
+   ],
+   "material": null,
+   "sin_terreno": []
+  },
+  {
+   "malla": "/Game/PureNature_Mountains/Models/Plants/Meshes/SM_Fern1",
+   "pos": [
+    -477.7070782209148,
+    2177.2307226804414,
+    0
+   ],
+   "giro": 357.92289144199674,
+   "escala": [
+    1.2804257578848406,
+    1.2804257578848406,
+    1.2804257578848406
+   ],
+   "material": null,
+   "sin_terreno": []
+  },
+  {
+   "malla": "/Game/PureNature_Meadows/Models/Plants/Meshes/SM_GrassMeadows3",
+   "pos": [
+    -181.84056715919633,
+    -1610.2399302971658,
+    0
+   ],
+   "giro": 291.4460683421916,
+   "escala": [
+    1.1171492226167472,
+    1.1171492226167472,
+    1.1171492226167472
+   ],
+   "material": null,
+   "sin_terreno": []
+  },
+  {
+   "malla": "/Game/PureNature_Meadows/Models/Plants/Meshes/SM_FlowerMeadow1",
+   "pos": [
+    -1315.2633256445176,
+    2226.5482001160426,
+    0
+   ],
+   "giro": 239.77360360299596,
+   "escala": [
+    1.215349534968805,
+    1.215349534968805,
+    1.215349534968805
+   ],
+   "material": null,
+   "sin_terreno": []
+  },
+  {
+   "malla": "/Game/PureNature_Mountains/Models/Plants/Meshes/SM_Fern2",
+   "pos": [
+    1417.232745272368,
+    -416.2248920881434,
+    0
+   ],
+   "giro": 273.55965493154804,
+   "escala": [
+    1.1248037626041698,
+    1.1248037626041698,
+    1.1248037626041698
+   ],
+   "material": null,
+   "sin_terreno": []
+  },
+  {
+   "malla": "/Game/PureNature_Mountains/Models/Plants/Meshes/SM_Fern1",
+   "pos": [
+    1343.2641089109588,
+    -146.87220973684225,
+    0
+   ],
+   "giro": 96.2728143745073,
+   "escala": [
+    0.9880742486098837,
+    0.9880742486098837,
+    0.9880742486098837
+   ],
+   "material": null,
+   "sin_terreno": []
+  },
+  {
+   "malla": "/Game/PureNature_Mountains/Models/Plants/Meshes/SM_Grass3",
+   "pos": [
+    -1182.9640394607407,
+    -354.69855026655387,
+    0
+   ],
+   "giro": 173.36483449466687,
+   "escala": [
+    1.202718285924902,
+    1.202718285924902,
+    1.202718285924902
+   ],
+   "material": null,
+   "sin_terreno": [
+    0
+   ]
+  },
+  {
+   "malla": "/Game/PureNature_Mountains/Models/Plants/Meshes/SM_Fern2",
+   "pos": [
+    1434.7820978598006,
+    -681.7083747994702,
+    0
+   ],
+   "giro": 115.31538466094447,
+   "escala": [
+    1.042459604250242,
+    1.042459604250242,
+    1.042459604250242
+   ],
+   "material": null,
+   "sin_terreno": []
+  },
+  {
+   "malla": "/Game/PureNature_Meadows/Models/Plants/Meshes/SM_FlowerMeadow1",
+   "pos": [
+    592.1468724239298,
+    -1989.976763990006,
+    0
+   ],
+   "giro": 54.99113987640612,
+   "escala": [
+    0.9515843415798451,
+    0.9515843415798451,
+    0.9515843415798451
+   ],
+   "material": null,
+   "sin_terreno": []
+  },
+  {
+   "malla": "/Game/PureNature_Meadows/Models/Plants/Meshes/SM_FlowerMeadow1",
+   "pos": [
+    -551.4686802483966,
+    -1990.6563224351453,
+    0
+   ],
+   "giro": 282.2538353453619,
+   "escala": [
+    0.8702008550265723,
+    0.8702008550265723,
+    0.8702008550265723
+   ],
+   "material": null,
+   "sin_terreno": []
+  },
+  {
+   "malla": "/Game/PureNature_Meadows/Models/Plants/Meshes/SM_GrassMeadows1",
+   "pos": [
+    1590.3743986541103,
+    639.1791551991228,
+    0
+   ],
+   "giro": 236.62915977934344,
+   "escala": [
+    0.904874737381073,
+    0.904874737381073,
+    0.904874737381073
+   ],
+   "material": null,
+   "sin_terreno": [
+    0
+   ]
+  },
+  {
+   "malla": "/Game/PureNature_Meadows/Models/Plants/Meshes/SM_GrassMeadows3",
+   "pos": [
+    -2054.4019583717563,
+    -993.636551498417,
+    0
+   ],
+   "giro": 208.25536110538033,
+   "escala": [
+    1.2270869204165096,
+    1.2270869204165096,
+    1.2270869204165096
+   ],
+   "material": null,
+   "sin_terreno": []
+  },
+  {
+   "malla": "/Game/PureNature_Mountains/Models/Plants/Meshes/SM_Grass3",
+   "pos": [
+    -1508.8153203854954,
+    -230.59307289919616,
+    0
+   ],
+   "giro": 75.07472966217559,
+   "escala": [
+    1.0012421630012778,
+    1.0012421630012778,
+    1.0012421630012778
+   ],
+   "material": null,
+   "sin_terreno": [
+    0
+   ]
+  },
+  {
+   "malla": "/Game/PureNature_Mountains/Models/Rocks/Meshes/SM_Cliff4",
+   "pos": [
+    3200,
+    -400,
+    -300
+   ],
+   "giro": 200,
+   "escala": [
+    0.8,
+    0.8,
+    0.8
+   ],
+   "material": null,
+   "sin_terreno": []
+  }
+ ]
+}
