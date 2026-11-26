@@ -89,13 +89,13 @@
 ; pieza cat5_cofre cofre 19 8 aparece_si=cat5_pa.activo+cat5_pb.activo+cat5_pc.activo abierto=ptaguatierra.cat5.cofre da=oro:40+pocion:1
 ; pieza cat6_bloque bloque 29 24 material=hielo
 ; pieza cat6_placa pulsador 29 23 modo=presencia modelo=cueva
-; pieza cat7_embalse cuenca 39 19 celdas=39,19..40,20 nivel=0.9
-; pieza cat7_vaso cuenca 42 19 celdas=42,19..43,20
-; pieza cat7_dique compuerta 41 20 abre_con=explosion estrecha=no modelo=muro
-; pieza cat7_dique_alto compuerta 41 19 abre_con=explosion estrecha=no modelo=muro
-; pieza cat7_barril barril 41 21
-; pieza cat7_nivel nivel 43 20 objetivo=0.25
-; pieza cat7_cofre cofre 43 22 aparece_si=cat7_nivel.alcanzado abierto=ptaguatierra.cat7.cofre da=oro:40+pocion:1
+; pieza cat7_embalse cuenca 39 19 celdas=39,19..41,20 fondo=0.54 nivel=0.35
+; pieza cat7_vaso cuenca 43 19 celdas=43,19..43,20
+; pieza cat7_dique compuerta 42 20 abre_con=explosion estrecha=no modelo=muro
+; pieza cat7_dique_alto compuerta 42 19 abre_con=explosion estrecha=no modelo=muro
+; pieza cat7_barril barril 42 21
+; pieza cat7_nivel nivel 43 20 objetivo=0.4
+; pieza cat7_cofre cofre 39 22 aparece_si=cat7_nivel.alcanzado abierto=ptaguatierra.cat7.cofre da=oro:40+pocion:1
 ; puzle cat7_cae_entero cuando=cat7_dique.abierta hace=cat7_dique_alto.abrir
 ; pieza cofre_m1 cofre 18 39 abierto=ptaguatierra.cofre_m1.abierto da=oro:45 aparece_si=flag.ptaguatierra.cofre_m1.pz1
 ; pieza cofre_m2 cofre 26 23 abierto=ptaguatierra.cofre_m2.abierto da=oro:20 aparece_si=flag.ptaguatierra.cofre_m2.pz7

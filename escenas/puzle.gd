@@ -34,6 +34,7 @@ extends Node
 ##   cuenca     celdas=<lista> (la propia x,y)  nivel=<u> (no llena)  fijo=<u>|si     abre casillas c o canal al agua; `nivel` las llena a esa
 ##                                                                                   profundidad; `fijo=<u>` mantiene ese nivel (un desagüe);
 ##                                                                                   `fijo=si` lo mantiene en `nivel`
+##              26/11 `fondo=<u>`: sube el fondo de la simulación (no el dibujo): abierta a otra cuenca de fondo normal, se le vacía ENTERA (la presa)
 ##   manantial  caudal=<u³/s> (0.5)  volumen=<u³> (0 = infinito)  rampa (si)  inicia (si)  celdas=<lista>
 ##              En x,y echa agua. `rampa=si`: arranque suave de ReaccionesAgua3D.ARRANQUE_CAUCE (abre también las `celdas`; x,y va la primera);
 ##              `rampa=no`: echa el caudal de golpe. `inicia=no`: espera a la acción `abrir_cauce`. `sin_piedra=si` (24/10): no dibuja la pieza de canal de ruinas de
@@ -500,7 +501,7 @@ const CLAVES: Dictionary = {
 	"nexo": {},
 	"puerta": {"modelo": "s:llave|reja", "giro": "f", "llave": "flag", "gasta": "b", "abierto": "flag", "flag": "flag"},
 	"emisor": {},
-	"cuenca": {"celdas": "celdas", "nivel": "f", "fijo": "fijo"},
+	"cuenca": {"celdas": "celdas", "nivel": "f", "fijo": "fijo", "fondo": "f"},
 	"manantial": {"caudal": "f", "volumen": "f", "rampa": "b", "inicia": "b", "celdas": "celdas", "sin_piedra": "b", "bloque": "celdas", "terraza": "f", "pilares": "b", "espuma": "f"},
 	"tinaja": {"canal": "celdas"},
 	"totem": {},
@@ -2506,6 +2507,11 @@ func _crear(pz: Pieza) -> void:
 			pz.nodo = em
 		"cuenca":
 			_abrir_celdas(celdas)
+			if pz.p.has("fondo"):
+				# 26/11: el fondo de la simulación sube `fondo` u (Terreno3D.fondos_elevados): abierta a una cuenca de fondo normal, se vacía entera en ella.
+				for c in celdas:
+					Terreno3D.fondos_elevados[c] = maxf(float(pz.p["fondo"]), 0.0)
+					Terreno3D.agua_sim.refrescar_casilla(c as Vector2i)
 			var nivel_llenado: float = float(pz.p.get("nivel", -1.0))
 			if nivel_llenado >= 0.0:
 				for c in celdas:
@@ -3047,7 +3053,7 @@ func _reactivo(tipo: String, c: Vector2i) -> Reactivo3D:
 func _fondo(c: Vector2i) -> float:
 	if Terreno3D.es_canal_ruinas(c):
 		return Terreno3D.fondo_canal_en(c)
-	return Terreno3D.alto_agua - Terreno3D.LECHO_AGUA
+	return Terreno3D.alto_agua - Terreno3D.LECHO_AGUA + float(Terreno3D.fondos_elevados.get(c, 0.0))
 
 
 ## 24/10 (Pablo: «la cascada de C2 sin el puente de ruinas»): el canal `-` de la Cueva sigue siendo canal para la simulación (el agua corre por su cajón y cae al

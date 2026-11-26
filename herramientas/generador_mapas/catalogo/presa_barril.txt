@@ -2,13 +2,17 @@
 ; titulo Presa: el barril rompe el muro del agua
 ; tipo premio
 ; necesita fuego+flecha
-; validacion pendiente
+; validacion ajustes
+; nota_playtest 26/11: el sonido no es agua fluyendo; un estanque vacío que llene el otro; las rocas de la explosión deben desaparecer (corregido, falta volver a jugarlo)
 ; pide fuego
 ; resuelto nivel.alcanzado
 ;  26/11, Pablo: «una pared que bloquea una masa de agua; al destruir un barril explosivo la pared se destruye dejando pasar el agua».
-;  Arriba, un embalse lleno (2 × 2, a 0,9) y un vaso seco (2 × 2) separados por un muro de sillares de dos casillas (compuerta con
-;  `modelo=muro`: solo la abre una explosión). Pegado al muro, por el lado de la sala, un barril de pólvora. Una flecha de fuego lo prende,
-;  explota y el muro salta en pedazos: el agua del embalse corre al vaso, sube el nivel y aparece el cofre. Las dos casillas del muro caen a
+;  A la izquierda, un embalse lleno a ras de borde (3 × 2); a la derecha, un vaso seco (1 × 2); entre los dos, un muro de sillares de dos casillas
+;  (compuerta con `modelo=muro`: solo la abre una explosión). Pegado al muro, por el lado de la sala, un barril de pólvora. Una flecha de fuego lo
+;  prende, explota y el muro salta en pedazos (los cascotes se van a los 2 s): el agua corre (suena a agua corriendo mientras pasa) y el embalse se
+;  VACÍA ENTERO en el vaso (26/11, Pablo: «que un estanque esté vacío y llene el otro»: el embalse tiene el fondo de la simulación 0,54 u más
+;  alto, `fondo=0.54`; se ve el mismo foso, pero su agua baja toda al vaso y al hueco del muro: 6 casillas a 0,35 → 4 casillas a ~0,5,
+;  por debajo de su fondo elevado). Con el vaso lleno, aparece el cofre. Las dos casillas del muro caen a
 ;  la vez (la explosión solo alcanza la de abajo; la de arriba la tira una regla).
 #######
 #ccccc#
@@ -17,11 +21,11 @@
 #.....#
 ###.###
 ###.###
-; pieza embalse cuenca 1 1 celdas=1,1..2,2 nivel=0.9
-; pieza vaso cuenca 4 1 celdas=4,1..5,2
-; pieza dique compuerta 3 2 abre_con=explosion estrecha=no modelo=muro
-; pieza dique_alto compuerta 3 1 abre_con=explosion estrecha=no modelo=muro
-; pieza barril barril 3 3
-; pieza nivel nivel 5 2 objetivo=0.25
-; pieza cofre cofre 5 4 aparece_si=nivel.alcanzado abierto=$NIVEL.$ID.cofre da=oro:40+pocion:1
+; pieza embalse cuenca 1 1 celdas=1,1..3,2 fondo=0.54 nivel=0.35
+; pieza vaso cuenca 5 1 celdas=5,1..5,2
+; pieza dique compuerta 4 2 abre_con=explosion estrecha=no modelo=muro
+; pieza dique_alto compuerta 4 1 abre_con=explosion estrecha=no modelo=muro
+; pieza barril barril 4 3
+; pieza nivel nivel 5 2 objetivo=0.4
+; pieza cofre cofre 1 4 aparece_si=nivel.alcanzado abierto=$NIVEL.$ID.cofre da=oro:40+pocion:1
 ; puzle cae_entero cuando=dique.abierta hace=dique_alto.abrir

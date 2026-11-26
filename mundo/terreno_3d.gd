@@ -112,6 +112,10 @@ static func fondo_canal_en(c: Vector2i) -> float:
 ## ese fondo (`y_pies`), se entra CAYENDO (gravedad de Jugador3D) y se sale trepando el borde (la misma regla que el pozo de una cuenca abierta). Apagado = el cauce de antes
 ## (se pisa a ras de suelo; el fondo de la simulación queda 0,9 u más abajo, tapado por el bloque del lecho). Lo enciende la maqueta (`PruebaTest2.cauce_hondo`).
 static var cauce_hondo: bool = false
+## 26/11 (la presa, Pablo: «haz que un estanque esté vacío y llene el otro»): casilla de cuenca → cuántas u sube el FONDO DE LA SIMULACIÓN sobre el lecho
+## (`alto_agua − LECHO_AGUA`). Se sigue viendo el mismo foso; el agua de encima del fondo elevado se ve igual (la superficie es la de siempre), pero al
+## abrirse a una cuenca de fondo normal se vacía entera en ella (el agua baja). Lo pone la pieza `cuenca fondo=<u>` (Puzle3D); `montar_agua_sim` lo vacía.
+static var fondos_elevados: Dictionary = {}
 ## Casillas `c` que NO son foso aunque `cauce_hondo` esté encendido: las ocupa una pieza que se apoya en el suelo (la compuerta, `Compuerta3D.preparar`): cerrada es un dique a ras, y al
 ## abrirse ya es cuenca (`es_cuenca`). Sin esto el hielo de los puzles de fuego (F5) quedaba 0,94 u por encima de los pies de quien lo apunta. `montar_agua_sim` la vacía.
 static var cauces_a_ras: Dictionary = {}
@@ -833,6 +837,7 @@ static func montar_agua_sim(sub: int = 3) -> AguaSim3D:
 	agua_sim = null
 	cauces_abiertos.clear()
 	elevacion_canal.clear()
+	fondos_elevados.clear()
 	conductores.clear()
 	if not hay_mundo() or lado_del_mapa() == 0:
 		return null
@@ -843,7 +848,7 @@ static func montar_agua_sim(sub: int = 3) -> AguaSim3D:
 		if es_canal_ruinas(c):
 			return fondo_canal_en(c)              # el cajón de piedra: el agua llega a la altura de la pieza y se ve (más arriba si el canal está sobre una terraza)
 		if l == "~" or es_cauce_seco(c):
-			return alto_agua - LECHO_AGUA
+			return alto_agua - LECHO_AGUA + float(fondos_elevados.get(c, 0.0))
 		return alto_suelo + float(altura_en(c)) * ALTO_NIVEL
 	# Es pared: lo que bloquea (menos el agua), la tierra levantada (hace de presa, 11.4) y el cauce seco sin abrir (11.5).
 	var pared := func(c: Vector2i) -> bool:

@@ -46,6 +46,16 @@ func _escenario() -> void:
 	_ok("[legible] la tercera placa escribe la pista «TIERRA + BARRERA»", pista != null and pista.text == "TIERRA + BARRERA", pista.text if pista != null else "sin pista")
 	# Casi cenital: con la cámara baja, el muro sur de dos casillas tapa la fila de las rocas (las fotos de antes no las enseñaban).
 	await _foto("1_inicio.png", Vector3(0.0, 11.0, 1.5))
+	# 26/11 (Pablo: «revisa la hitbox de cuando empieza a empujar la pequeña»): a qué distancia del MODELO empieza a empujar, con cada roca.
+	for r in [rp, rm]:
+		var hueco: float = await _hueco_al_empezar(r)
+		var nombre_r: String = "pequeña" if r == rp else "mediana"
+		_ok("[legible] con la %s empieza a empujar pegada al modelo (hueco ≤ 0,25 u)" % nombre_r, hueco <= 0.25, "hueco %.2f u" % hueco)
+		var peor: float = 0.0
+		for lado in [-0.9, -0.6, -0.4, 0.4, 0.6, 0.9]:
+			var h: float = await _hueco_al_empezar(r, lado)
+			peor = maxf(peor, h)                       # sin empezar a empujar, _hueco_al_empezar devuelve INF
+		_ok("[legible] con la %s, llegando de lado, se desliza delante y empuja pegada al modelo (peor hueco ≤ 0,25 u)" % nombre_r, peor <= 0.25, "peor %.2f u" % peor)
 	# La pequeña (peso 1) a su placa: dos empujones hacia el norte, andando.
 	for i in 2:
 		await _empujar_andando(rp, Vector2i(0, -1))
@@ -61,6 +71,38 @@ func _escenario() -> void:
 	_ok("el bloque de tierra pisa la tercera placa", await _esperar(func() -> bool: return pc.activo, 3.0))
 	_ok("con las tres, aparece el cofre", await _esperar(func() -> bool: return not cofre.es_oculto, 3.0))
 	await _foto("3_resuelto.png")
+
+
+## Anda hacia la roca desde dos casillas al sur hasta que empieza a empujar (`empujando`) y devuelve el hueco entre su cuerpo y la cara sur del
+## modelo de la roca (su caja visible). No llega a moverla: suelta la tecla en cuanto empieza.
+func _hueco_al_empezar(r, lado: float = 0.0) -> float:
+	colocar_jugador(r.celda + Vector2i(0, 2))
+	jugador.position.x += lado
+	var pj: Node3D = jugador.get("pj") as Node3D
+	if pj != null:
+		pj.position = jugador.position
+	await avanzar_s(0.4)
+	var tecla: Key = KEY_W
+	_tecla(tecla, true)
+	var t: float = 0.0
+	while not bool(jugador.get("empujando")) and t < 4.0:
+		t += await avanzar_s(0.05)
+	var empezo: bool = bool(jugador.get("empujando"))
+	_tecla(tecla, false)
+	var cara_sur: float = -INF
+	for g in (r as Node).find_children("*", "GeometryInstance3D", true, false):
+		var ab: AABB = (g as GeometryInstance3D).global_transform * (g as GeometryInstance3D).get_aabb()
+		cara_sur = maxf(cara_sur, ab.end.z)
+	var cuerpo: float = 0.25                      # radio del cuerpo de la jugadora (aprox.)
+	var hueco: float = (jugador.position.z - cuerpo) - cara_sur
+	var ancho_modelo: Vector2 = Vector2(INF, -INF)
+	for g in (r as Node).find_children("*", "GeometryInstance3D", true, false):
+		var ab2: AABB = (g as GeometryInstance3D).global_transform * (g as GeometryInstance3D).get_aabb()
+		ancho_modelo = Vector2(minf(ancho_modelo.x, ab2.position.x), maxf(ancho_modelo.y, ab2.end.x))
+	print("  %s lado %+.2f: empuja=%s con la jugadora en x=%.2f z=%.2f; modelo x %.2f..%.2f, cara z=%.2f → hueco %.2f u (%.2f s)" % [r.celda, lado,
+		jugador.get("empujando"), jugador.position.x, jugador.position.z, ancho_modelo.x, ancho_modelo.y, cara_sur, hueco, t])
+	await avanzar_s(0.6)
+	return hueco if empezo else INF
 
 
 ## Se pone detrás de la roca y mantiene la tecla hacia ella, como la jugadora.

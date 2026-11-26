@@ -234,14 +234,24 @@ func _presa() -> void:
 	var ce: Vector2i = _c("embalse")
 	var cv: Vector2i = _c("vaso")
 	await avanzar_s(2.0)
-	_ok("3 presa: el embalse está lleno y el vaso seco; el muro aguanta", sim.profundidad_casilla(ce) > 0.6 and sim.profundidad_casilla(cv) < 0.05 and not muro.abierta,
-		"embalse %.2f vaso %.2f" % [sim.profundidad_casilla(ce), sim.profundidad_casilla(cv)])
+	var sup_e: float = sim.superficie_en(Terreno3D.centro_de(ce, 0.0))
+	_ok("3 presa: el embalse está lleno a ras de borde y el vaso seco; el muro aguanta", sup_e > Terreno3D.alto_suelo - 0.2 and sim.profundidad_casilla(cv) < 0.05 and not muro.abierta,
+		"superficie del embalse %.2f (suelo %.2f), vaso %.2f" % [sup_e, Terreno3D.alto_suelo, sim.profundidad_casilla(cv)])
 	_ok("3 presa [legible]: el muro se dibuja como muro de sillares (no el pedrusco)", muro.get("_muro") != null)
 	var bc: Vector2i = _c("barril")
-	_ok("3 presa: flecha de fuego al barril desde la entrada", await _lanzar("fuego", ["flecha"], bc, bc + Vector2i(0, 2)))
+	_ok("3 presa: flecha de fuego al barril desde la sala", await _lanzar("fuego", ["flecha"], bc, bc + Vector2i(0, 1)))
 	_ok("3 presa: explota y el muro cae entero (sus dos casillas)", await _esperar(func() -> bool: return muro.abierta and alto.abierta, 5.0))
+	await avanzar_s(0.5)
+	_ok("3 presa [legible]: mientras pasa el agua suena el bucle de agua corriendo", muro.get("_sonido_agua") != null)
 	_ok("3 presa: el agua pasa al vaso, sube el nivel y aparece el cofre", await _esperar(func() -> bool: return nivel.alcanzado and not cofre.es_oculto, 20.0),
 		"embalse %.2f vaso %.2f" % [sim.profundidad_casilla(ce), sim.profundidad_casilla(cv)])
+	await avanzar_s(6.0)
+	print("   corriente en el hueco tras vaciarse: %.3f u/s" % sim.corriente_en(muro.global_position).length())
+	var restos: int = muro.get_parent().find_children("RestosRoca*", "", true, false).size()
+	_ok("3 presa: el embalse se VACÍA entero y el vaso queda lleno (Pablo: «un estanque vacío y el otro lleno»)",
+		sim.profundidad_casilla(ce) < 0.03 and sim.profundidad_casilla(cv) > 0.42, "embalse %.2f vaso %.2f" % [sim.profundidad_casilla(ce), sim.profundidad_casilla(cv)])
+	_ok("3 presa: los cascotes del muro ya no están (se van a los ~3 s)", restos == 0, "%d grupos de cascotes" % restos)
+	_ok("3 presa: con el agua quieta, el sonido de agua se apaga solo", muro.get("_sonido_agua") == null)
 
 
 func _balanza() -> void:

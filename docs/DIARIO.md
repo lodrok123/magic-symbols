@@ -6650,3 +6650,33 @@ Pablo: «luz y pista del hechizo».
 - `captura_balanza`, con las dos comprobaciones nuevas «[legible]» (braseros encendidos y pista escrita): 0 fallos. Fotos en `docs/capturas/balanza/`.
 - `escenario_catalogo_puzles`, `escenario_catalogo_nuevos` y `generar_playtest_puzles`: 0 fallos.
 - PtAguaTierra regenerado: solo cambia la sala de la balanza.
+
+### 26/11/2026 · aviso de contexto PUZLES · balanza: empezar a empujar la roca pequeña; presa: un estanque se vacía en el otro
+Pablo: «6: revisa la hitbox de cuando empieza a empujar la roja pequeña; por lo demás bien. 7: revisa el sonido del agua, no es agua fluyendo; haz que un estanque esté vacío y llene el otro. Además, haz desaparecer las rocas con la explosión».
+
+**6 · Empujar la roca pequeña** (`jugador/jugador_3d.gd`, `_gestionar_empuje`)
+- La roca pequeña mide 0,5 u en una casilla de 2,3.
+- **El fallo:** llegando un poco de lado, la regla de «no colarse» cerraba el hueco junto al modelo y contaba como tocarlo. Con eso empezaba a empujar a casi una casilla de la roca (hueco medido: 2,86 u).
+- **El arreglo:**
+  - Solo empuja si el paso corto toca el modelo de verdad (`solo_sellado` de la fuente).
+  - Mientras aprieta contra la roca sin tocarla, se desliza de lado hacia su eje y empieza a empujar al llegar delante.
+- **Medida:** `captura_balanza` llega desde 7 posiciones laterales a cada roca. Ahora empieza a empujar a 0,09 u o menos del modelo (la mediana igual o mejor). Va como comprobación «[legible]».
+
+**7 · Presa**
+- **Un estanque se vacía en el otro:**
+  - La cuenca admite `fondo=<u>` (`puzle.gd` + `Terreno3D.fondos_elevados`): el fondo de la simulación sube sin cambiar el dibujo.
+  - El embalse (3 × 2, `fondo=0.54`, 0,35 de agua) se ve lleno a ras de borde. Abierto, se vacía entero en el vaso (1 × 2) y en el hueco del muro.
+  - **Medido:** embalse 0,00 y vaso 0,48 (el foso mide 0,94).
+  - El sensor de nivel pasa a 0,4 y el cofre a la esquina de abajo a la izquierda.
+- **Sonido:**
+  - Antes no sonaba agua: solo el derrumbe y el `compuerta_baja` de la compuerta.
+  - Ahora, al romperse el muro, suena el bucle de agua corriendo (`agua`, el «flowing water» de OpenGameArt). Su volumen sigue la corriente del hueco y se apaga cuando el agua se queda quieta, con un tope de 14 s.
+  - El muro ya no hace el `compuerta_baja`.
+- **Cascotes:** a los 2,2 s se encogen y desaparecen (`T_RESTOS`).
+
+**Pruebas**
+- `escenario_catalogo_nuevos`: 0 fallos. La presa comprueba el embalse lleno a ras, el bucle de agua mientras pasa, el embalse vacío y el vaso lleno, que no quedan cascotes y que el sonido se apaga solo.
+- `captura_presa`: 0 fallos, con fotos de antes, la explosión, el agua corriendo y el final en `docs/capturas/presa/`.
+- `captura_balanza`, `escenario_catalogo_puzles` y `escenario_puzles_agua`: 0 fallos.
+- `prueba_rocas_empujables`: los mismos 5 fallos de la sección 3 (Bosque 02) que ya estaban antes; ninguno nuevo.
+- **En la hoja:** las notas de Pablo y las dos plantillas en «ajustes», a la espera de que las vuelva a jugar.

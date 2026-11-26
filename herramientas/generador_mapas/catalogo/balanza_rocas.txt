@@ -2,7 +2,8 @@
 ; titulo Balanza: dos rocas y un bloque de tierra
 ; tipo premio
 ; necesita tierra+barrera
-; validacion pendiente
+; validacion ajustes
+; nota_playtest 26/11: revisa la hitbox de cuando empieza a empujar la roca pequeña; por lo demás bien (corregido, falta volver a jugarlo)
 ; pide empujar y tierra
 ; resuelto cofre.aparecido
 ;  La balanza de la mina de Lost Cave (LC2). Tres placas de peso (2, 1 y 1) y solo dos rocas: la mediana (pesa 2) y la pequeña (1), cada

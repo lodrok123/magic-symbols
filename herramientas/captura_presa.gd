@@ -35,20 +35,24 @@ func _escenario() -> void:
 	var ce: Vector2i = _pz.pieza(_pre + "embalse").celda
 	var cv: Vector2i = _pz.pieza(_pre + "vaso").celda
 	var bc: Vector2i = _pz.pieza(_pre + "barril").celda
-	colocar_jugador(bc + Vector2i(0, 2))
+	colocar_jugador(bc + Vector2i(-1, 2))
 	await avanzar_s(2.0)
-	_ok("antes: embalse lleno, vaso seco, muro en pie", sim.profundidad_casilla(ce) > 0.6 and sim.profundidad_casilla(cv) < 0.05 and not dique.abierta,
+	_ok("antes: embalse lleno a ras, vaso seco, muro en pie", sim.superficie_en(Terreno3D.centro_de(ce, 0.0)) > Terreno3D.alto_suelo - 0.2 and sim.profundidad_casilla(cv) < 0.05 and not dique.abierta,
 		"embalse %.2f vaso %.2f" % [sim.profundidad_casilla(ce), sim.profundidad_casilla(cv)])
 	await _foto("1_antes.png", bc)
-	_ok("flecha de fuego al barril", await _lanzar("fuego", ["flecha"], bc, bc + Vector2i(0, 2)))
+	_ok("flecha de fuego al barril", await _lanzar("fuego", ["flecha"], bc, bc + Vector2i(0, 1)))
 	await _esperar(func() -> bool: return dique.abierta, 5.0)
 	await avanzar_s(0.3)
 	await _foto("2_explota.png", bc)
 	_ok("el muro cae entero", dique.abierta and alto.abierta)
 	_ok("el agua pasa, sube el nivel y aparece el cofre", await _esperar(func() -> bool: return nivel.alcanzado and not cofre.es_oculto, 20.0),
 		"embalse %.2f vaso %.2f" % [sim.profundidad_casilla(ce), sim.profundidad_casilla(cv)])
-	await avanzar_s(2.0)
-	await _foto("3_agua_pasada.png", bc)
+	await avanzar_s(1.0)
+	await _foto("3_agua_corriendo.png", bc)
+	await avanzar_s(6.0)
+	_ok("al final: el embalse vacío y el vaso lleno; sin cascotes", sim.profundidad_casilla(ce) < 0.03 and sim.profundidad_casilla(cv) > 0.42
+		and maqueta.find_children("RestosRoca*", "", true, false).is_empty(), "embalse %.2f vaso %.2f" % [sim.profundidad_casilla(ce), sim.profundidad_casilla(cv)])
+	await _foto("4_final.png", bc)
 
 
 func _esperar(cond: Callable, max_s: float) -> bool:
@@ -87,11 +91,11 @@ func _foto(nombre: String, bc: Vector2i) -> void:
 	for cl in root.find_children("*", "CanvasLayer", true, false):
 		(cl as CanvasLayer).visible = false
 	var cam_juego: Camera3D = root.get_viewport().get_camera_3d()
-	var centro: Vector3 = Terreno3D.centro_de(bc + Vector2i(0, -1), Terreno3D.alto_suelo)
+	var centro: Vector3 = Terreno3D.centro_de(bc + Vector2i(-1, -1), Terreno3D.alto_suelo)
 	var cam := Camera3D.new()
 	cam.fov = 55.0
 	maqueta.add_child(cam)
-	cam.global_position = centro + Vector3(0.0, 6.0, 6.5)
+	cam.global_position = centro + Vector3(0.0, 8.0, 5.0)
 	cam.look_at(centro + Vector3(0.0, 0.3, 0.0))
 	cam.current = true
 	await avanzar(4)

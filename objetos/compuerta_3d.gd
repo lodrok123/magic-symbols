@@ -38,6 +38,16 @@ var _y_cerrada: float = 0.0
 ## (fragmentos, polvo, derrumbe) y no vuelve: un muro roto no se cierra a la vista (cerrar sigue tapando el agua, por código).
 var modelo: String = ""
 var _muro: Node3D = null
+var _sonido_agua: AudioStreamPlayer3D = null
+var _t_quieta: float = 0.0
+var _t_agua: float = 0.0
+const T_RESTOS: float = 2.2               ## s que quedan los cascotes del muro en el suelo antes de irse
+const T_ENCOGER: float = 0.7
+const CORRIENTE_PLENA: float = 1.2        ## u/s de corriente en el hueco a la que el agua suena a pleno (DB_AGUA)
+const CORRIENTE_QUIETA: float = 0.2       ## por debajo, el agua ya no corre (queda un vaivén residual de unas décimas)
+const T_SILENCIO: float = 1.0
+const T_MAX_AGUA: float = 14.0            ## tope: pase lo que pase, a los 14 s el agua deja de sonar
+const DB_AGUA: float = -6.0
 
 
 func preparar(p_celda: Vector2i, p_abierta: bool = false, p_abre_con: String = "", p_cierra_con: String = "", p_vertical: bool = true) -> void:
@@ -66,6 +76,7 @@ func _ready() -> void:
 	add_child(forma)
 	_dibujar()
 	_aplicar(false)
+	set_process(false)                          # solo procesa mientras suena el agua del muro roto (`_romper_muro`)
 
 
 func _dibujar() -> void:
@@ -124,9 +135,38 @@ func _romper_muro(animar: bool) -> void:
 	_muro.visible = false
 	if not animar or not is_inside_tree() or not (get_parent() is Node3D):
 		return
-	preload("res://presentacion/estados_blender_3d.gd").fragmentos(get_parent() as Node3D, global_transform, true)
+	var restos: Node3D = preload("res://presentacion/estados_blender_3d.gd").fragmentos(get_parent() as Node3D, global_transform, true)
 	VfxPuzle3D.polvo(get_parent() as Node3D, global_position + Vector3(0.0, 0.1, 0.0), 1.1)
 	Sfx.play(self, "derrumbe")
+	# 26/11 (Pablo: «haz desaparecer las rocas con la explosión»): los cascotes vuelan, caen y a los T_RESTOS s se encogen y se van (no se quedan en el canal).
+	if restos != null:
+		var tw: Tween = restos.create_tween()
+		tw.tween_interval(T_RESTOS)
+		for m in restos.find_children("*", "MeshInstance3D", true, false):
+			tw.parallel().tween_property(m, "scale", Vector3.ONE * 0.01, T_ENCOGER).set_ease(Tween.EASE_IN)
+		tw.tween_callback(restos.queue_free)
+	# 26/11 (Pablo: «el sonido del agua no es agua fluyendo»): agua corriendo en bucle mientras pasa agua por el hueco; se apaga sola cuando para.
+	_sonido_agua = Sfx3D.ambiente(self, "agua")
+	_t_quieta = 0.0
+	_t_agua = 0.0
+	set_process(true)
+
+
+## Mientras suena el agua: la corriente que cruza el hueco (AguaSim3D.corriente_en) sube y baja el volumen; con T_SILENCIO s casi quieta, se apaga.
+func _process(delta: float) -> void:
+	if _sonido_agua == null or not is_instance_valid(_sonido_agua):
+		set_process(false)
+		return
+	var sim: AguaSim3D = Terreno3D.agua_sim
+	var v: float = sim.corriente_en(global_position).length() if sim != null else 0.0
+	var fuerza: float = clampf(v / CORRIENTE_PLENA, 0.0, 1.0)
+	_sonido_agua.volume_db = lerpf(_sonido_agua.volume_db, lerpf(-30.0, DB_AGUA, fuerza), clampf(delta * 3.0, 0.0, 1.0))
+	_t_quieta = _t_quieta + delta if v < CORRIENTE_QUIETA else 0.0
+	_t_agua += delta
+	if _t_quieta >= T_SILENCIO or _t_agua >= T_MAX_AGUA:
+		Sfx3D.parar(_sonido_agua)
+		_sonido_agua = null
+		set_process(false)
 
 
 ## --- Contrato con los hechizos ---
@@ -178,7 +218,8 @@ func abrir() -> void:
 		return
 	abierta = true
 	_aplicar(true)
-	Sfx.play(self, "compuerta_baja")     # 13/11 (inventario SFX): antes no sonaba
+	if _muro == null:
+		Sfx.play(self, "compuerta_baja")     # 13/11 (inventario SFX): antes no sonaba. El muro (26/11) no: suena el derrumbe y el agua corriendo
 	cambio.emit(true)
 
 

@@ -1186,7 +1186,19 @@ func _gestionar_empuje(delta: float, mov: Vector3) -> bool:
 			var c_bloque: Vector2i = bloque.get("celda")
 			if Terreno3D.es_parcial(c_bloque, true):
 				# con forma conocida: pegada = un paso corto más hacia él ya choca con su contorno
-				if not Terreno3D.choca_huella(c_bloque, position + d3 * EMPUJE_TOQUE):
+				var toque: Vector3 = position + d3 * EMPUJE_TOQUE
+				if not Terreno3D.choca_huella(c_bloque, toque):
+					bloque = null
+				elif Terreno3D.fuente != null and Terreno3D.fuente.has_method("solo_sellado") and bool(Terreno3D.fuente.call("solo_sellado", c_bloque, toque)):
+					# 26/11 (Pablo: «revisa la hitbox de cuando empieza a empujar la roca pequeña»): lo que tiene delante es el hueco que la regla de no colarse
+					# cierra junto al modelo, no el modelo. Con una roca estrecha (la pequeña mide 0,5 u en una casilla de 2,3), llegando un poco de lado empezaba a
+					# empujar a casi una casilla de ella. Ahora solo empuja si el paso corto toca la roca de verdad; mientras tanto, apretando hacia ella, se desliza
+					# de lado hacia su eje (si no, la regla la dejaba parada contra un muro invisible) y empieza a empujar al llegar delante del modelo.
+					var bp: Vector3 = (bloque as Node3D).global_position
+					if dir.x != 0:
+						position.z = move_toward(position.z, bp.z, _vel_andar * delta)
+					else:
+						position.x = move_toward(position.x, bp.x, _vel_andar * delta)
 					bloque = null
 			else:
 				# sin forma (la casilla entera bloquea): lo de siempre, adelantada hacia el borde de su casilla
