@@ -1,0 +1,15 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://presentacion/fab_ue/variante_vegetal.gd" id="1_ink2p"]
+
+[node name="flor_heliconia" type="Node3D" unique_id=1501898539]
+script = ExtResource("1_ink2p")
+caja_original = AABB(-0.26896754, 0, -0.29759178, 0.5379351, 0.90000004, 0.59518355)
+metadata/id = "flor_heliconia"
+metadata/bloquea = false
+metadata/reactivo = false
+metadata/inflamable = true
+metadata/origen = "Pure Nature (BK, Fab) · elección de Pablo 26/11: 21b"
+metadata/uso = "flor de ambiente: borde de los corros de hierba"
+
+[node name="modelo" type="Node3D" parent="." unique_id=165769104]

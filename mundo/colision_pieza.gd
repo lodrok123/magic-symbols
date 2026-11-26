@@ -56,6 +56,7 @@ const MODO: Dictionary = {
 	# --- ya horneadas (mismos ids y misma intención que GeneradorPiezas.COLISION; "convexa" y "mesa" pasan a "contorno") ---
 	"arbol_redondo": "tronco", "arbol_redondo_2": "tronco_bajo", "pino": "tronco_bajo", "pino_2": "tronco",
 	"arbusto": "contorno", "arbusto_flores": "contorno", "arbusto_otono": "contorno", "seto_seco": "contorno",
+	"raices_obstaculo": "contorno",      # 26/11: raíces del pack Pure Nature como obstáculo para cortar caminos (elección de Pablo, 29b)
 	"roca_cristal": "contorno", "roca_grande": "contorno", "piedras": "contorno", "tocon": "contorno", "tronco": "contorno",
 	"valla": "contorno", "cartel": "contorno", "totem_runico": "contorno", "brasero": "contorno", "fogata": "contorno",
 	"puesto": "contorno", "puesto_mercado": "contorno", "dummy": "contorno", "caja_pequena": "contorno", "caja": "contorno",

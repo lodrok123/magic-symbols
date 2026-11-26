@@ -71,6 +71,15 @@ func _probar(id: String) -> String:
 	var co: AABB = Pieza3D._caja(orig, Transform3D.IDENTITY) if orig != null else AABB()
 	if orig != null:
 		orig.free()
+	# pieza NUEVA (no tiene original): se compara con su medida de TablaVariantes.MEDIDAS
+	if TablaVariantes.MEDIDAS.has(id):
+		var md: Dictionary = TablaVariantes.MEDIDAS[id]
+		co = AABB(Vector3.ZERO, Vector3(float(md.get("planta", 0.0)), float(md.get("alto", 0.0)), 0.0))
+		if ps != null and String(id) == "raices_obstaculo":
+			var r: Node3D = ps.instantiate() as Node3D
+			if r.get_node_or_null("cuerpo/forma_0") == null or not bool(r.get_meta("bloquea", false)):
+				problemas.append("las raíces no llevan cuerpo o no bloquean")
+			r.free()
 	for i in range(REPETIR):
 		var vis: Node3D = Pieza3D.crear_visual(id)
 		if vis == null:
@@ -79,6 +88,8 @@ func _probar(id: String) -> String:
 		var cb: AABB = Pieza3D._caja(vis, Transform3D.IDENTITY)
 		# plana (el musgo de agua): se compara lo que ocupa en planta; si no, el alto
 		var plana: bool = cb.size.y < maxf(cb.size.x, cb.size.z) * 0.15
+		if TablaVariantes.MEDIDAS.has(id):
+			plana = (TablaVariantes.MEDIDAS[id] as Dictionary).has("planta")
 		var mo: float = maxf(co.size.x, co.size.z) if plana else co.size.y
 		var mb: float = maxf(cb.size.x, cb.size.z) if plana else cb.size.y
 		if mo > 0.0 and Pieza3D.PLANAS.get(id) == null and absf(mb - mo) > mo * TOLERANCIA:

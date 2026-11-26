@@ -50,12 +50,23 @@ func _initialize() -> void:
 				usados[String(e)] = true
 	for e in d.get("decorar_suelo", []) + d.get("hierba_corta_suelo", []):
 		usados[String(e)] = true
+	for pz in d.get("piezas_nuevas", []):
+		usados[String(pz["pieza"])] = true
 	# 1. variantes con material del juego
 	for pn in usados:
 		if not _variante_juego(String(pn)):
 			fallos += 1
+	# 1b. piezas NUEVAS (26/11): su tabla, su medida y su escena en arte/piezas
+	var medidas: Dictionary = {}
+	for pz in d.get("piezas_nuevas", []):
+		var r: Dictionary = _pieza_nueva(pz)
+		if r.is_empty():
+			fallos += 1
+			continue
+		tabla[String(pz["id"])] = [JUEGO + String(pz["pieza"]) + ".tscn"]
+		medidas[String(pz["id"])] = r
 	# 2. la tabla
-	_escribir_tabla(tabla)
+	_escribir_tabla(tabla, medidas)
 	# 3. las piezas del juego que cambian
 	for id in tabla:
 		if not _marcar_pieza(String(id)):
@@ -104,24 +115,110 @@ func _variante_juego(pn: String) -> bool:
 	return err == OK
 
 
-func _escribir_tabla(tabla: Dictionary) -> void:
+func _escribir_tabla(tabla: Dictionary, medidas: Dictionary) -> void:
 	var texto: String = FileAccess.get_file_as_string(TABLA)
-	var lineas: PackedStringArray = []
-	var ids: Array = tabla.keys()
-	ids.sort()
-	for id in ids:
-		lineas.append("\t\"%s\": %s," % [id, JSON.stringify(tabla[id])])
-	var nuevo_bloque: String = "const VARIANTES: Dictionary = {\n" + "\n".join(lineas) + "\n}"
-	var i: int = texto.find("const VARIANTES: Dictionary = {")
-	var j: int = texto.find("}", i)
-	# el bloque acaba en la primera «}» a principio de línea tras la cabecera
-	j = texto.find("\n}", i)
-	j = (j + 2) if j >= 0 else texto.find("}", i) + 1
-	texto = texto.substr(0, i) + nuevo_bloque + texto.substr(j)
+	texto = _sustituir_dict(texto, "VARIANTES", tabla)
+	texto = _sustituir_dict(texto, "MEDIDAS", medidas)
 	var f := FileAccess.open(TABLA, FileAccess.WRITE)
 	f.store_string(texto)
 	f.close()
-	print("tabla: %d piezas -> %s" % [tabla.size(), TABLA])
+	print("tabla: %d piezas (%d nuevas) -> %s" % [tabla.size(), medidas.size(), TABLA])
+
+
+## Reescribe `const <nombre>: Dictionary = {...}` (vacío `{}` o de varias líneas) con `dic`, una entrada por línea y en orden.
+func _sustituir_dict(texto: String, nombre: String, dic: Dictionary) -> String:
+	var cab: String = "const %s: Dictionary = {" % nombre
+	var i: int = texto.find(cab)
+	if i < 0:
+		return texto
+	var j: int
+	if texto.substr(i + cab.length(), 1) == "}":
+		j = i + cab.length() + 1
+	else:
+		j = texto.find("\n}", i) + 2
+	var ids: Array = dic.keys()
+	ids.sort()
+	var lineas: PackedStringArray = []
+	for id in ids:
+		lineas.append("\t\"%s\": %s," % [id, JSON.stringify(dic[id])])
+	var bloque: String = (cab + "}") if lineas.is_empty() else (cab + "\n" + "\n".join(lineas) + "\n}")
+	return texto.substr(0, i) + bloque + texto.substr(j)
+
+
+## Una pieza NUEVA (no existía en el juego): su medida («al tamaño de» la pieza de referencia, o N casillas con «@Ncasillas»/«@1casilla»)
+## y su escena arte/piezas/<id>.tscn (VarianteVegetal, sin modelo propio: sale del pack al instanciarla; las que bloquean llevan cuerpo).
+## Devuelve la medida ({"alto"} o {"planta"}) o {} si falla.
+func _pieza_nueva(pz: Dictionary) -> Dictionary:
+	var id: String = pz["id"]
+	var ref: String = pz["tamano_de"]
+	var medida: Dictionary
+	# ¿la pieza del pack es plana? (las margaritas son mantos de 9 cm de alto: igualadas por la ALTURA de la flor de referencia salían
+	# cinco veces más anchas, puntitos sueltos por todo el suelo; las planas se igualan por lo que ocupa en planta la referencia)
+	var ps0: PackedScene = load(JUEGO + String(pz["pieza"]) + ".tscn") as PackedScene
+	var plana: bool = false
+	if ps0 != null:
+		var v0: Node3D = ps0.instantiate() as Node3D
+		var c0: AABB = TablaVariantes.caja(v0)
+		plana = c0.size.y < maxf(c0.size.x, c0.size.z) * 0.15
+		v0.free()
+	if ref.begins_with("@"):
+		var n: float = float(ref.trim_prefix("@").to_int())
+		medida = {"planta": snappedf(maxf(n, 1.0) * Pieza3D.S, 0.01)}
+	else:
+		var orig: Node3D = Pieza3D.crear_visual_original(ref)
+		if orig == null:
+			print("FALLO  %s: no existe la pieza de referencia %s" % [id, ref])
+			return {}
+		var c: AABB = Pieza3D._caja(orig, Transform3D.IDENTITY)
+		orig.free()
+		var alta: bool = c.size.y > maxf(c.size.x, c.size.z) * 0.35 and not plana
+		medida = {"alto": snappedf(c.size.y, 0.01)} if alta else {"planta": snappedf(maxf(c.size.x, c.size.z), 0.01)}
+	# la caja que tendrá ya escalada (para VarianteVegetal y para el cuerpo)
+	var ps: PackedScene = load(JUEGO + String(pz["pieza"]) + ".tscn") as PackedScene
+	if ps == null:
+		print("FALLO  %s: falta la variante %s" % [id, pz["pieza"]])
+		return {}
+	var v: Node3D = ps.instantiate() as Node3D
+	var cv: AABB = TablaVariantes.caja(v)
+	v.free()
+	var k: float = (float(medida["alto"]) / maxf(cv.size.y, 0.0001)) if medida.has("alto") else (float(medida["planta"]) / maxf(maxf(cv.size.x, cv.size.z), 0.0001))
+	var tam: Vector3 = cv.size * k
+	var bloquea: bool = String(pz["uso"]).contains("bloquea")
+	var raiz := Node3D.new()
+	raiz.name = id
+	raiz.set_script(load("res://presentacion/fab_ue/variante_vegetal.gd"))
+	raiz.set("caja_original", AABB(Vector3(-tam.x * 0.5, 0.0, -tam.z * 0.5), tam))
+	raiz.set_meta("id", id)
+	raiz.set_meta("bloquea", bloquea)
+	raiz.set_meta("reactivo", false)
+	raiz.set_meta("inflamable", not id.begins_with("seta") and not id.begins_with("musgo"))
+	raiz.set_meta("origen", "Pure Nature (BK, Fab) · elección de Pablo 26/11: %s" % pz["de"])
+	raiz.set_meta("uso", pz["uso"])
+	var modelo := Node3D.new()
+	modelo.name = "modelo"
+	raiz.add_child(modelo)
+	modelo.owner = raiz
+	if bloquea:
+		var cuerpo := StaticBody3D.new()
+		cuerpo.name = "cuerpo"
+		cuerpo.collision_layer = 1024
+		cuerpo.collision_mask = 0
+		raiz.add_child(cuerpo)
+		cuerpo.owner = raiz
+		var forma := CollisionShape3D.new()
+		forma.name = "forma_0"
+		var caja := BoxShape3D.new()
+		caja.size = Vector3(tam.x, minf(tam.y, 1.2), tam.z)
+		forma.shape = caja
+		forma.position = Vector3(0.0, caja.size.y * 0.5, 0.0)
+		cuerpo.add_child(forma)
+		forma.owner = raiz
+	var emp := PackedScene.new()
+	emp.pack(raiz)
+	var err: int = ResourceSaver.save(emp, "res://arte/piezas/%s.tscn" % id)
+	raiz.free()
+	print("%s    nueva %-24s %s  %s" % ["OK " if err == OK else "FALLO", id, str(medida), "(bloquea)" if bloquea else ""])
+	return medida if err == OK else {}
 
 
 ## Pone VarianteVegetal en la raíz de arte/piezas/<id>.tscn y le guarda la caja del modelo original (en el espacio de «modelo»).

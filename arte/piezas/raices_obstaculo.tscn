@@ -1,0 +1,26 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://presentacion/fab_ue/variante_vegetal.gd" id="1_g3ip2"]
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_0vbr5"]
+size = Vector3(4.6, 1.2, 2.7585988)
+
+[node name="raices_obstaculo" type="Node3D" unique_id=1855797612]
+script = ExtResource("1_g3ip2")
+caja_original = AABB(-2.3, 0, -1.3792994, 4.6, 3.6098046, 2.7585988)
+metadata/id = "raices_obstaculo"
+metadata/bloquea = true
+metadata/reactivo = false
+metadata/inflamable = true
+metadata/origen = "Pure Nature (BK, Fab) · elección de Pablo 26/11: 29b"
+metadata/uso = "obstáculo para bloquear caminos (se coloca a mano; bloquea)"
+
+[node name="modelo" type="Node3D" parent="." unique_id=1608008681]
+
+[node name="cuerpo" type="StaticBody3D" parent="." unique_id=1214059149]
+collision_layer = 1024
+collision_mask = 0
+
+[node name="forma_0" type="CollisionShape3D" parent="cuerpo" unique_id=1176848568]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.6, 0)
+shape = SubResource("BoxShape3D_0vbr5")

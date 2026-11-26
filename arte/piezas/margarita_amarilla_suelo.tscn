@@ -1,0 +1,15 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://presentacion/fab_ue/variante_vegetal.gd" id="1_0uoyq"]
+
+[node name="margarita_amarilla_suelo" type="Node3D" unique_id=1290817346]
+script = ExtResource("1_0uoyq")
+caja_original = AABB(-1.15, 0, -1.1207281, 2.3, 0.24644841, 2.2414563)
+metadata/id = "margarita_amarilla_suelo"
+metadata/bloquea = false
+metadata/reactivo = false
+metadata/inflamable = true
+metadata/origen = "Pure Nature (BK, Fab) · elección de Pablo 26/11: 17c"
+metadata/uso = "decorar el suelo: borde de los corros"
+
+[node name="modelo" type="Node3D" parent="." unique_id=1528124948]

@@ -1,0 +1,15 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://presentacion/fab_ue/variante_vegetal.gd" id="1_igs6f"]
+
+[node name="seta_pradera" type="Node3D" unique_id=807069615]
+script = ExtResource("1_igs6f")
+caja_original = AABB(-0.1266481, 0, -0.13793242, 0.2532962, 0.35, 0.27586484)
+metadata/id = "seta_pradera"
+metadata/bloquea = false
+metadata/reactivo = false
+metadata/inflamable = false
+metadata/origen = "Pure Nature (BK, Fab) · elección de Pablo 26/11: 5a"
+metadata/uso = "grupos de setas (adornos)"
+
+[node name="modelo" type="Node3D" parent="." unique_id=1753176046]

@@ -60,6 +60,9 @@ func _cambiar() -> void:
 	var base_n := Vector3(caja_n.position.x + caja_n.size.x * 0.5, caja_n.position.y, caja_n.position.z + caja_n.size.z * 0.5)
 	var base_o := Vector3(o.position.x + o.size.x * 0.5, o.position.y, o.position.z + o.size.z * 0.5)
 	nuevo.position = base_o - base_n * k
+	# casi sin grosor (el musgo de agua): un poco por encima del suelo para que no se pelee con él
+	if caja_n.size.y * k < Pieza3D.ALZAR_PLANA:
+		nuevo.position.y += Pieza3D.ALZAR_PLANA
 	modelo.add_child(nuevo)
 	variante = ruta
 	set_meta("variante_pack", ruta)

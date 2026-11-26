@@ -493,5 +493,65 @@
  ],
  "_nota_hierba_corta_suelo": "Pablo: 26b (savanna_watermoss) también en el suelo como hierba corta, alternándola",
  "tamano": "al_de_la_actual",
- "_nota_tamano": "Pablo 26/11: cada pieza nueva se escala para ocupar lo mismo que la actual a la que sustituye"
+ "_nota_tamano": "Pablo 26/11: cada pieza nueva se escala para ocupar lo mismo que la actual a la que sustituye",
+ "piezas_nuevas": [
+  {
+   "id": "seta_pradera",
+   "pieza": "pn_meadows_mushroom3",
+   "tamano_de": "setas",
+   "uso": "grupos de setas (adornos)",
+   "de": "5a"
+  },
+  {
+   "id": "seta_amarilla_alta",
+   "pieza": "pn_meadows_mushroom1",
+   "tamano_de": "setas_amarillas",
+   "uso": "grupos de setas (adornos)",
+   "de": "6b"
+  },
+  {
+   "id": "seta_amarilla_fina",
+   "pieza": "pn_fantasyforest_smallmushroom_3",
+   "tamano_de": "setas_amarillas",
+   "uso": "grupos de setas (adornos)",
+   "de": "6c"
+  },
+  {
+   "id": "flor_heliconia",
+   "pieza": "pn_jungle_heliconia2",
+   "tamano_de": "flor_reactiva",
+   "uso": "flor de ambiente: borde de los corros de hierba",
+   "de": "21b"
+  },
+  {
+   "id": "raices_obstaculo",
+   "pieza": "pn_fantasyforest_bigroots_1",
+   "tamano_de": "@2casillas",
+   "uso": "obstáculo para bloquear caminos (se coloca a mano; bloquea)",
+   "de": "29b"
+  },
+  {
+   "id": "margarita_amarilla_suelo",
+   "pieza": "pn_mountains_daisy",
+   "tamano_de": "@1casilla",
+   "uso": "decorar el suelo: borde de los corros",
+   "de": "17c",
+   "_nota_tamano": "26/11: al tamaño de la flor que sustituye el manto (plano, 9 cm) quedaba invisible desde la cámara del juego; una casilla"
+  },
+  {
+   "id": "margarita_blanca_suelo",
+   "pieza": "pn_meadows_daisy",
+   "tamano_de": "@1casilla",
+   "uso": "decorar el suelo: borde de los corros",
+   "de": "18a",
+   "_nota_tamano": "26/11: al tamaño de la flor que sustituye el manto (plano, 9 cm) quedaba invisible desde la cámara del juego; una casilla"
+  },
+  {
+   "id": "musgo_suelo",
+   "pieza": "pn_savanna_watermoss",
+   "tamano_de": "@1casilla",
+   "uso": "hierba corta en el suelo, alternando: borde de los corros",
+   "de": "26b"
+  }
+ ]
 }

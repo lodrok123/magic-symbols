@@ -16,6 +16,7 @@ const VARIANTES: Dictionary = {
 	"arbusto_bayas": ["res://arte/pure_nature/juego/pn_meadows_bush2.tscn","res://arte/pure_nature/juego/pn_fantasyforest_bush2.tscn"],
 	"arbusto_flores": ["res://arte/pure_nature/juego/pn_meadows_bush3.tscn"],
 	"arbusto_otono": ["res://arte/pure_nature/juego/pn_mountains_bush3.tscn"],
+	"flor_heliconia": ["res://arte/pure_nature/juego/pn_jungle_heliconia2.tscn"],
 	"flor_reactiva": ["res://arte/pure_nature/juego/pn_meadows_lupin2.tscn","res://arte/pure_nature/juego/pn_jungle_anthurium2.tscn",""],
 	"flores_amarillas": ["res://arte/pure_nature/juego/pn_mountains_daisy.tscn"],
 	"flores_blancas": ["res://arte/pure_nature/juego/pn_meadows_daisy.tscn","res://arte/pure_nature/juego/pn_meadows_flowermeadow4.tscn",""],
@@ -25,15 +26,36 @@ const VARIANTES: Dictionary = {
 	"helechos_cueva": ["res://arte/pure_nature/juego/pn_fantasyforest_largefern3.tscn","res://arte/pure_nature/juego/pn_jungle_asplenium2.tscn","res://arte/pure_nature/juego/pn_islands_ferneil1.tscn",""],
 	"hierba_crecida": ["res://arte/pure_nature/juego/pn_meadows_grassmeadows3.tscn","res://arte/pure_nature/juego/pn_fantasyforest_grass2.tscn","res://arte/pure_nature/juego/pn_jungle_grass1.tscn"],
 	"hierba_espesa": ["res://arte/pure_nature/juego/pn_mountains_grass3.tscn",""],
+	"margarita_amarilla_suelo": ["res://arte/pure_nature/juego/pn_mountains_daisy.tscn"],
+	"margarita_blanca_suelo": ["res://arte/pure_nature/juego/pn_meadows_daisy.tscn"],
+	"musgo_suelo": ["res://arte/pure_nature/juego/pn_savanna_watermoss.tscn"],
 	"nenufar_flor": ["res://arte/pure_nature/juego/pn_asianvalley_lotus_4.tscn","res://arte/pure_nature/juego/pn_savanna_lillypads1.tscn"],
 	"planta_agua": ["res://arte/pure_nature/juego/pn_meadows_reeds.tscn","res://arte/pure_nature/juego/pn_savanna_watermoss.tscn","res://arte/pure_nature/juego/pn_jungle_thinfern1.tscn"],
 	"planta_hojas": ["res://arte/pure_nature/juego/pn_jungle_elephant2.tscn","res://arte/pure_nature/juego/pn_jungle_philo2.tscn","res://arte/pure_nature/juego/pn_fantasyforest_shrubleaf2.tscn",""],
 	"planta_violeta": ["res://arte/pure_nature/juego/pn_meadows_lavender.tscn","res://arte/pure_nature/juego/pn_meadows_lupin1.tscn","res://arte/pure_nature/juego/pn_mountains_lupin2.tscn"],
+	"raices_obstaculo": ["res://arte/pure_nature/juego/pn_fantasyforest_bigroots_1.tscn"],
 	"roca_grande": ["res://arte/pure_nature/juego/pn_savanna_bigboulders_0.tscn","res://arte/pure_nature/juego/pn_jungle_jungleboulder_3.tscn",""],
 	"roca_musgosa": ["res://arte/pure_nature/juego/pn_meadows_stone4.tscn","res://arte/pure_nature/juego/pn_mountains_stone4.tscn",""],
 	"rocas_pequenas": ["res://arte/pure_nature/juego/pn_mountains_boulder2.tscn",""],
+	"seta_amarilla_alta": ["res://arte/pure_nature/juego/pn_meadows_mushroom1.tscn"],
+	"seta_amarilla_fina": ["res://arte/pure_nature/juego/pn_fantasyforest_smallmushroom_3.tscn"],
+	"seta_pradera": ["res://arte/pure_nature/juego/pn_meadows_mushroom3.tscn"],
 	"seta_reactiva": ["res://arte/pure_nature/juego/pn_fantasyforest_bigmushroom_2_1.tscn",""],
 	"setas_pantano": ["res://arte/pure_nature/juego/pn_fantasyforest_mushroomsstack_7.tscn",""],
+}
+
+
+## Tamaño de las PIEZAS NUEVAS (las que no existían en el juego y no están en Pieza3D.MEDIDA): {"alto": u} o {"planta": u}, medido de la
+## pieza actual que Pablo dio como referencia («al tamaño de la actual»). REGENERADO por la misma herramienta.
+const MEDIDAS: Dictionary = {
+	"flor_heliconia": {"alto":0.9},
+	"margarita_amarilla_suelo": {"planta":2.3},
+	"margarita_blanca_suelo": {"planta":2.3},
+	"musgo_suelo": {"planta":2.3},
+	"raices_obstaculo": {"planta":4.6},
+	"seta_amarilla_alta": {"alto":0.35},
+	"seta_amarilla_fina": {"alto":0.35},
+	"seta_pradera": {"alto":0.35},
 }
 
 

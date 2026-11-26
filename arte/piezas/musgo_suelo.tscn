@@ -1,0 +1,15 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://presentacion/fab_ue/variante_vegetal.gd" id="1_ohw6a"]
+
+[node name="musgo_suelo" type="Node3D" unique_id=1081448849]
+script = ExtResource("1_ohw6a")
+caja_original = AABB(-1.15, 0, -1.15, 2.3, 2.3e-06, 2.3)
+metadata/id = "musgo_suelo"
+metadata/bloquea = false
+metadata/reactivo = false
+metadata/inflamable = false
+metadata/origen = "Pure Nature (BK, Fab) · elección de Pablo 26/11: 26b"
+metadata/uso = "hierba corta en el suelo, alternando: borde de los corros"
+
+[node name="modelo" type="Node3D" parent="." unique_id=1836808889]

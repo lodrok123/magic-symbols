@@ -1,0 +1,15 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://presentacion/fab_ue/variante_vegetal.gd" id="1_3caes"]
+
+[node name="seta_amarilla_fina" type="Node3D" unique_id=1971218966]
+script = ExtResource("1_3caes")
+caja_original = AABB(-0.09917253, 0, -0.098436646, 0.19834507, 0.35, 0.19687329)
+metadata/id = "seta_amarilla_fina"
+metadata/bloquea = false
+metadata/reactivo = false
+metadata/inflamable = false
+metadata/origen = "Pure Nature (BK, Fab) · elección de Pablo 26/11: 6c"
+metadata/uso = "grupos de setas (adornos)"
+
+[node name="modelo" type="Node3D" parent="." unique_id=521341117]
