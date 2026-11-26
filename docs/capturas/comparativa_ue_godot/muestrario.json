@@ -7,25 +7,39 @@
     0.819152057170868
    ],
    "fov": 50.0,
-   "nombre": "Cam_AsianValley",
+   "nombre": "Cam_Fondos",
    "pos": [
     30.0,
-    250.26513671875,
-    -168.888031005859
+    325.248260498047,
+    -232.972030639648
    ]
   },
   {
    "dir": [
-    0.0000000716125398980694,
-    -0.57357656955719,
-    0.819151937961578
+    0.0000000716125541089241,
+    -0.573576331138611,
+    0.819152116775513
+   ],
+   "fov": 50.0,
+   "nombre": "Cam_AsianValley",
+   "pos": [
+    30.0,
+    32.6938552856445,
+    388.159790039063
+   ]
+  },
+  {
+   "dir": [
+    0.0000000716125541089241,
+    -0.573576331138611,
+    0.819152116775513
    ],
    "fov": 50.0,
    "nombre": "Cam_FantasyForest",
    "pos": [
     30.0,
     32.6938552856445,
-    307.912963867188
+    421.499450683594
    ]
   },
   {
@@ -39,35 +53,35 @@
    "pos": [
     30.0,
     32.6938552856445,
-    343.701904296875
+    457.288391113281
    ]
   },
   {
    "dir": [
-    0.0000000716125541089241,
-    -0.573576331138611,
-    0.819152116775513
+    0.0000000716125398980694,
+    -0.57357656955719,
+    0.819151937961578
    ],
    "fov": 50.0,
    "nombre": "Cam_Jungle",
    "pos": [
     30.0,
     32.6938552856445,
-    370.240356445313
+    483.826904296875
    ]
   },
   {
    "dir": [
-    0.0000000716125541089241,
-    -0.573576331138611,
-    0.819152116775513
+    0.0000000716125398980694,
+    -0.57357656955719,
+    0.819151937961578
    ],
    "fov": 50.0,
    "nombre": "Cam_Meadows",
    "pos": [
     30.0,
     32.6938552856445,
-    397.543090820313
+    511.129638671875
    ]
   },
   {
@@ -81,356 +95,32 @@
    "pos": [
     30.0,
     69.9361343383789,
-    404.467987060547
+    518.054504394531
    ]
   },
   {
    "dir": [
-    0.0000000716125470034967,
-    -0.5735764503479,
-    0.819152057170868
+    0.0000000716125398980694,
+    -0.57357656955719,
+    0.819151937961578
    ],
    "fov": 50.0,
    "nombre": "Cam_Savanna",
    "pos": [
     30.0,
-    116.520477294922,
-    450.871917724609
+    32.6938552856445,
+    631.381652832031
    ]
   }
  ],
  "escala": 0.575,
  "piezas": [
   {
-   "id": "pn_asianvalley_bamboo8",
-   "pos": [
-    0.560571491718292,
-    0.0,
-    45.9053993225098
-   ],
-   "ruta_ue": "/Game/PureNature_AsianValley/Models/Trees/Bamboo/Bamboo8/SM_Bamboo8"
-  },
-  {
-   "id": "pn_asianvalley_bamboo7",
-   "pos": [
-    2.73663735389709,
-    0.0,
-    46.252986907959
-   ],
-   "ruta_ue": "/Game/PureNature_AsianValley/Models/Trees/Bamboo/Bamboo7/SM_Bamboo7"
-  },
-  {
-   "id": "pn_asianvalley_bamboo5",
-   "pos": [
-    5.35866689682007,
-    0.0,
-    46.8659362792969
-   ],
-   "ruta_ue": "/Game/PureNature_AsianValley/Models/Trees/Bamboo/Bamboo5/SM_Bamboo5"
-  },
-  {
-   "id": "pn_asianvalley_bamboo10",
-   "pos": [
-    9.84855365753174,
-    0.0,
-    48.1918029785156
-   ],
-   "ruta_ue": "/Game/PureNature_AsianValley/Models/Trees/Bamboo/Bamboo10/SM_Bamboo10"
-  },
-  {
-   "id": "pn_asianvalley_bamboo9",
-   "pos": [
-    15.5282707214355,
-    0.0,
-    47.689624786377
-   ],
-   "ruta_ue": "/Game/PureNature_AsianValley/Models/Trees/Bamboo/Bamboo9/SM_Bamboo9"
-  },
-  {
-   "id": "pn_asianvalley_bamboo4",
-   "pos": [
-    20.1201877593994,
-    0.0,
-    47.5347785949707
-   ],
-   "ruta_ue": "/Game/PureNature_AsianValley/Models/Trees/Bamboo/Bamboo4/SM_Bamboo4"
-  },
-  {
-   "id": "pn_asianvalley_bamboo11",
-   "pos": [
-    23.8854064941406,
-    0.0,
-    47.2972793579102
-   ],
-   "ruta_ue": "/Game/PureNature_AsianValley/Models/Trees/Bamboo/Bamboo11/SM_Bamboo11"
-  },
-  {
-   "id": "pn_asianvalley_bamboo6",
-   "pos": [
-    28.4125537872314,
-    0.0,
-    45.9962310791016
-   ],
-   "ruta_ue": "/Game/PureNature_AsianValley/Models/Trees/Bamboo/Bamboo6/SM_Bamboo6"
-  },
-  {
-   "id": "pn_asianvalley_osmanthus7",
-   "pos": [
-    31.9013786315918,
-    0.0,
-    46.8127403259277
-   ],
-   "ruta_ue": "/Game/PureNature_AsianValley/Models/Trees/Osmanthus/Osmanthus7/SM_Osmanthus7"
-  },
-  {
-   "id": "pn_asianvalley_osmanthus6",
-   "pos": [
-    36.1729354858398,
-    0.0,
-    46.698673248291
-   ],
-   "ruta_ue": "/Game/PureNature_AsianValley/Models/Trees/Osmanthus/Osmanthus6/SM_Osmanthus6"
-  },
-  {
-   "id": "pn_asianvalley_bamboo3",
-   "pos": [
-    39.6348266601563,
-    0.0,
-    47.2237854003906
-   ],
-   "ruta_ue": "/Game/PureNature_AsianValley/Models/Trees/Bamboo/Bamboo3/SM_Bamboo3"
-  },
-  {
-   "id": "pn_asianvalley_bigbush2",
-   "pos": [
-    44.0962219238281,
-    0.0,
-    47.8426208496094
-   ],
-   "ruta_ue": "/Game/PureNature_AsianValley/Models/Trees/Bush/BigBush2/SM_BigBush2"
-  },
-  {
-   "id": "pn_asianvalley_osmanthus5",
-   "pos": [
-    48.8782768249512,
-    0.0,
-    46.2222328186035
-   ],
-   "ruta_ue": "/Game/PureNature_AsianValley/Models/Trees/Osmanthus/Osmanthus5/SM_Osmanthus5"
-  },
-  {
-   "id": "pn_asianvalley_osmanthus4",
-   "pos": [
-    52.5758323669434,
-    0.0,
-    46.2655792236328
-   ],
-   "ruta_ue": "/Game/PureNature_AsianValley/Models/Trees/Osmanthus/Osmanthus4/SM_Osmanthus4"
-  },
-  {
-   "id": "pn_asianvalley_bamboo2",
-   "pos": [
-    55.5660591125488,
-    0.0,
-    45.9340438842773
-   ],
-   "ruta_ue": "/Game/PureNature_AsianValley/Models/Trees/Bamboo/Bamboo2/SM_Bamboo2"
-  },
-  {
-   "id": "pn_asianvalley_osmanthus3",
-   "pos": [
-    58.4559707641602,
-    0.0,
-    46.4144401550293
-   ],
-   "ruta_ue": "/Game/PureNature_AsianValley/Models/Trees/Osmanthus/Osmanthus3/SM_Osmanthus3"
-  },
-  {
-   "id": "pn_asianvalley_osmanthus2",
-   "pos": [
-    1.38390743732452,
-    0.0,
-    53.5715370178223
-   ],
-   "ruta_ue": "/Game/PureNature_AsianValley/Models/Trees/Osmanthus/Osmanthus2/SM_Osmanthus2"
-  },
-  {
-   "id": "pn_asianvalley_osmanthus1_yellow",
-   "pos": [
-    4.70609045028687,
-    0.0,
-    53.5293045043945
-   ],
-   "ruta_ue": "/Game/PureNature_AsianValley/Models/Trees/Osmanthus/Osmanthus1/SM_Osmanthus1_yellow"
-  },
-  {
-   "id": "pn_asianvalley_osmanthus1",
-   "pos": [
-    8.19290065765381,
-    0.0,
-    53.5293045043945
-   ],
-   "ruta_ue": "/Game/PureNature_AsianValley/Models/Trees/Osmanthus/Osmanthus1/SM_Osmanthus1"
-  },
-  {
-   "id": "pn_asianvalley_bigbush1",
-   "pos": [
-    13.3522653579712,
-    0.0,
-    55.2417335510254
-   ],
-   "ruta_ue": "/Game/PureNature_AsianValley/Models/Trees/Bush/BigBush1/SM_BigBush1"
-  },
-  {
-   "id": "pn_asianvalley_bamboo1",
-   "pos": [
-    17.7209148406982,
-    0.0,
-    52.9447326660156
-   ],
-   "ruta_ue": "/Game/PureNature_AsianValley/Models/Trees/Bamboo/Bamboo1/SM_Bamboo1"
-  },
-  {
-   "id": "pn_asianvalley_bush3",
-   "pos": [
-    20.1858196258545,
-    0.0,
-    53.3688545227051
-   ],
-   "ruta_ue": "/Game/PureNature_AsianValley/Models/Trees/Bush/Bush3/SM_Bush3"
-  },
-  {
-   "id": "pn_asianvalley_bush2",
-   "pos": [
-    23.099084854126,
-    0.0,
-    53.1508903503418
-   ],
-   "ruta_ue": "/Game/PureNature_AsianValley/Models/Trees/Bush/Bush2/SM_Bush2"
-  },
-  {
-   "id": "pn_asianvalley_bush1",
-   "pos": [
-    25.3323669433594,
-    0.0,
-    52.8576126098633
-   ],
-   "ruta_ue": "/Game/PureNature_AsianValley/Models/Trees/Bush/Bush1/SM_Bush1"
-  },
-  {
-   "id": "pn_asianvalley_rock_4",
-   "pos": [
-    27.0657730102539,
-    0.0,
-    52.6703186035156
-   ],
-   "ruta_ue": "/Game/PureNature_AsianValley/Models/Rocks/SM_Rock_4"
-  },
-  {
-   "id": "pn_asianvalley_rock_1",
-   "pos": [
-    28.6774044036865,
-    0.0,
-    52.6514930725098
-   ],
-   "ruta_ue": "/Game/PureNature_AsianValley/Models/Rocks/SM_Rock_1"
-  },
-  {
-   "id": "pn_asianvalley_rock_5",
-   "pos": [
-    30.3390846252441,
-    0.0,
-    52.6444854736328
-   ],
-   "ruta_ue": "/Game/PureNature_AsianValley/Models/Rocks/SM_Rock_5"
-  },
-  {
-   "id": "pn_asianvalley_rubbledense_3",
-   "pos": [
-    33.7056617736816,
-    0.0,
-    53.7425651550293
-   ],
-   "ruta_ue": "/Game/PureNature_AsianValley/Models/Rocks/SM_RubbleDense_3"
-  },
-  {
-   "id": "pn_asianvalley_rock_3",
-   "pos": [
-    37.5510940551758,
-    0.0,
-    52.6563186645508
-   ],
-   "ruta_ue": "/Game/PureNature_AsianValley/Models/Rocks/SM_Rock_3"
-  },
-  {
-   "id": "pn_asianvalley_rubbledense_1",
-   "pos": [
-    39.9509391784668,
-    0.0,
-    53.6765251159668
-   ],
-   "ruta_ue": "/Game/PureNature_AsianValley/Models/Rocks/SM_RubbleDense_1"
-  },
-  {
-   "id": "pn_asianvalley_rubbledense_2",
-   "pos": [
-    44.2800750732422,
-    0.0,
-    54.109203338623
-   ],
-   "ruta_ue": "/Game/PureNature_AsianValley/Models/Rocks/SM_RubbleDense_2"
-  },
-  {
-   "id": "pn_asianvalley_rock_0",
-   "pos": [
-    47.4355888366699,
-    0.0,
-    52.6546287536621
-   ],
-   "ruta_ue": "/Game/PureNature_AsianValley/Models/Rocks/SM_Rock_0"
-  },
-  {
-   "id": "pn_asianvalley_rubblesparse_2",
-   "pos": [
-    50.6594161987305,
-    0.0,
-    53.6923828125
-   ],
-   "ruta_ue": "/Game/PureNature_AsianValley/Models/Rocks/SM_RubbleSparse_2"
-  },
-  {
-   "id": "pn_asianvalley_rubblesparse_1",
-   "pos": [
-    54.3061981201172,
-    0.0,
-    52.9283103942871
-   ],
-   "ruta_ue": "/Game/PureNature_AsianValley/Models/Rocks/SM_RubbleSparse_1"
-  },
-  {
-   "id": "pn_asianvalley_rock_2",
-   "pos": [
-    56.3573684692383,
-    0.0,
-    52.6387901306152
-   ],
-   "ruta_ue": "/Game/PureNature_AsianValley/Models/Rocks/SM_Rock_2"
-  },
-  {
-   "id": "pn_asianvalley_rubblesparse_3",
-   "pos": [
-    1.5719085931778,
-    0.0,
-    60.8806838989258
-   ],
-   "ruta_ue": "/Game/PureNature_AsianValley/Models/Rocks/SM_RubbleSparse_3"
-  },
-  {
    "id": "pn_asianvalley_asianhill_5",
    "pos": [
-    23.1974506378174,
+    18.8903045654297,
     0.0,
-    78.5152206420898
+    64.57373046875
    ],
    "ruta_ue": "/Game/PureNature_AsianValley/Models/Hills/SM_AsianHill_5"
   },
@@ -439,7 +129,7 @@
    "pos": [
     21.9865951538086,
     0.0,
-    121.09937286377
+    107.15788269043
    ],
    "ruta_ue": "/Game/PureNature_AsianValley/Models/Hills/SM_AsianHill_2"
   },
@@ -448,7 +138,7 @@
    "pos": [
     20.3394584655762,
     0.0,
-    163.578521728516
+    149.637023925781
    ],
    "ruta_ue": "/Game/PureNature_AsianValley/Models/Hills/SM_AsianHill_4"
   },
@@ -457,7 +147,7 @@
    "pos": [
     21.9950065612793,
     0.0,
-    207.625305175781
+    193.683822631836
    ],
    "ruta_ue": "/Game/PureNature_AsianValley/Models/Hills/SM_AsianHill_3"
   },
@@ -466,7 +156,7 @@
    "pos": [
     25.4086608886719,
     0.0,
-    254.994979858398
+    241.053482055664
    ],
    "ruta_ue": "/Game/PureNature_AsianValley/Models/Hills/SM_AsianHill_1"
   },
@@ -475,691 +165,1024 @@
    "pos": [
     23.1291255950928,
     0.0,
-    303.248168945313
+    289.306671142578
    ],
    "ruta_ue": "/Game/PureNature_AsianValley/Models/Hills/SM_AsianHill_0"
   },
   {
+   "id": "pn_savanna_kilimanjaro",
+   "pos": [
+    48.6618881225586,
+    0.0,
+    368.713409423828
+   ],
+   "ruta_ue": "/Game/PureNature_Savanna/Models/Mountain/SM_Kilimanjaro"
+  },
+  {
+   "id": "pn_asianvalley_bamboo8",
+   "pos": [
+    0.560571491718292,
+    0.0,
+    424.966583251953
+   ],
+   "ruta_ue": "/Game/PureNature_AsianValley/Models/Trees/Bamboo/Bamboo8/SM_Bamboo8"
+  },
+  {
+   "id": "pn_asianvalley_bamboo7",
+   "pos": [
+    2.73663735389709,
+    0.0,
+    425.314178466797
+   ],
+   "ruta_ue": "/Game/PureNature_AsianValley/Models/Trees/Bamboo/Bamboo7/SM_Bamboo7"
+  },
+  {
+   "id": "pn_asianvalley_bamboo5",
+   "pos": [
+    5.35866689682007,
+    0.0,
+    425.927124023438
+   ],
+   "ruta_ue": "/Game/PureNature_AsianValley/Models/Trees/Bamboo/Bamboo5/SM_Bamboo5"
+  },
+  {
+   "id": "pn_asianvalley_bamboo10",
+   "pos": [
+    9.84855365753174,
+    0.0,
+    427.252990722656
+   ],
+   "ruta_ue": "/Game/PureNature_AsianValley/Models/Trees/Bamboo/Bamboo10/SM_Bamboo10"
+  },
+  {
+   "id": "pn_asianvalley_bamboo9",
+   "pos": [
+    15.5282707214355,
+    0.0,
+    426.750823974609
+   ],
+   "ruta_ue": "/Game/PureNature_AsianValley/Models/Trees/Bamboo/Bamboo9/SM_Bamboo9"
+  },
+  {
+   "id": "pn_asianvalley_bamboo4",
+   "pos": [
+    20.1201877593994,
+    0.0,
+    426.595977783203
+   ],
+   "ruta_ue": "/Game/PureNature_AsianValley/Models/Trees/Bamboo/Bamboo4/SM_Bamboo4"
+  },
+  {
+   "id": "pn_asianvalley_bamboo11",
+   "pos": [
+    23.8854064941406,
+    0.0,
+    426.358459472656
+   ],
+   "ruta_ue": "/Game/PureNature_AsianValley/Models/Trees/Bamboo/Bamboo11/SM_Bamboo11"
+  },
+  {
+   "id": "pn_asianvalley_bamboo6",
+   "pos": [
+    28.4125537872314,
+    0.0,
+    425.057434082031
+   ],
+   "ruta_ue": "/Game/PureNature_AsianValley/Models/Trees/Bamboo/Bamboo6/SM_Bamboo6"
+  },
+  {
+   "id": "pn_asianvalley_osmanthus7",
+   "pos": [
+    31.9013786315918,
+    0.0,
+    425.873931884766
+   ],
+   "ruta_ue": "/Game/PureNature_AsianValley/Models/Trees/Osmanthus/Osmanthus7/SM_Osmanthus7"
+  },
+  {
+   "id": "pn_asianvalley_osmanthus6",
+   "pos": [
+    36.1729354858398,
+    0.0,
+    425.759857177734
+   ],
+   "ruta_ue": "/Game/PureNature_AsianValley/Models/Trees/Osmanthus/Osmanthus6/SM_Osmanthus6"
+  },
+  {
+   "id": "pn_asianvalley_bamboo3",
+   "pos": [
+    39.6348266601563,
+    0.0,
+    426.284973144531
+   ],
+   "ruta_ue": "/Game/PureNature_AsianValley/Models/Trees/Bamboo/Bamboo3/SM_Bamboo3"
+  },
+  {
+   "id": "pn_asianvalley_bigbush2",
+   "pos": [
+    44.0962219238281,
+    0.0,
+    426.90380859375
+   ],
+   "ruta_ue": "/Game/PureNature_AsianValley/Models/Trees/Bush/BigBush2/SM_BigBush2"
+  },
+  {
+   "id": "pn_asianvalley_osmanthus5",
+   "pos": [
+    48.8782768249512,
+    0.0,
+    425.283416748047
+   ],
+   "ruta_ue": "/Game/PureNature_AsianValley/Models/Trees/Osmanthus/Osmanthus5/SM_Osmanthus5"
+  },
+  {
+   "id": "pn_asianvalley_osmanthus4",
+   "pos": [
+    52.5758323669434,
+    0.0,
+    425.326782226563
+   ],
+   "ruta_ue": "/Game/PureNature_AsianValley/Models/Trees/Osmanthus/Osmanthus4/SM_Osmanthus4"
+  },
+  {
+   "id": "pn_asianvalley_bamboo2",
+   "pos": [
+    55.5660591125488,
+    0.0,
+    424.995239257813
+   ],
+   "ruta_ue": "/Game/PureNature_AsianValley/Models/Trees/Bamboo/Bamboo2/SM_Bamboo2"
+  },
+  {
+   "id": "pn_asianvalley_osmanthus3",
+   "pos": [
+    58.4559707641602,
+    0.0,
+    425.475646972656
+   ],
+   "ruta_ue": "/Game/PureNature_AsianValley/Models/Trees/Osmanthus/Osmanthus3/SM_Osmanthus3"
+  },
+  {
+   "id": "pn_asianvalley_osmanthus2",
+   "pos": [
+    1.38390743732452,
+    0.0,
+    432.632720947266
+   ],
+   "ruta_ue": "/Game/PureNature_AsianValley/Models/Trees/Osmanthus/Osmanthus2/SM_Osmanthus2"
+  },
+  {
+   "id": "pn_asianvalley_osmanthus1_yellow",
+   "pos": [
+    4.70609045028687,
+    0.0,
+    432.590484619141
+   ],
+   "ruta_ue": "/Game/PureNature_AsianValley/Models/Trees/Osmanthus/Osmanthus1/SM_Osmanthus1_yellow"
+  },
+  {
+   "id": "pn_asianvalley_osmanthus1",
+   "pos": [
+    8.19290065765381,
+    0.0,
+    432.590484619141
+   ],
+   "ruta_ue": "/Game/PureNature_AsianValley/Models/Trees/Osmanthus/Osmanthus1/SM_Osmanthus1"
+  },
+  {
+   "id": "pn_asianvalley_bigbush1",
+   "pos": [
+    13.3522653579712,
+    0.0,
+    434.302917480469
+   ],
+   "ruta_ue": "/Game/PureNature_AsianValley/Models/Trees/Bush/BigBush1/SM_BigBush1"
+  },
+  {
+   "id": "pn_asianvalley_bamboo1",
+   "pos": [
+    17.7209148406982,
+    0.0,
+    432.005920410156
+   ],
+   "ruta_ue": "/Game/PureNature_AsianValley/Models/Trees/Bamboo/Bamboo1/SM_Bamboo1"
+  },
+  {
+   "id": "pn_asianvalley_bush3",
+   "pos": [
+    20.1858196258545,
+    0.0,
+    432.430053710938
+   ],
+   "ruta_ue": "/Game/PureNature_AsianValley/Models/Trees/Bush/Bush3/SM_Bush3"
+  },
+  {
+   "id": "pn_asianvalley_bush2",
+   "pos": [
+    23.099084854126,
+    0.0,
+    432.212097167969
+   ],
+   "ruta_ue": "/Game/PureNature_AsianValley/Models/Trees/Bush/Bush2/SM_Bush2"
+  },
+  {
+   "id": "pn_asianvalley_bush1",
+   "pos": [
+    25.3323669433594,
+    0.0,
+    431.918792724609
+   ],
+   "ruta_ue": "/Game/PureNature_AsianValley/Models/Trees/Bush/Bush1/SM_Bush1"
+  },
+  {
+   "id": "pn_asianvalley_rock_4",
+   "pos": [
+    27.0657730102539,
+    0.0,
+    431.731506347656
+   ],
+   "ruta_ue": "/Game/PureNature_AsianValley/Models/Rocks/SM_Rock_4"
+  },
+  {
+   "id": "pn_asianvalley_rock_1",
+   "pos": [
+    28.6774044036865,
+    0.0,
+    431.712677001953
+   ],
+   "ruta_ue": "/Game/PureNature_AsianValley/Models/Rocks/SM_Rock_1"
+  },
+  {
+   "id": "pn_asianvalley_rock_5",
+   "pos": [
+    30.3390846252441,
+    0.0,
+    431.705688476563
+   ],
+   "ruta_ue": "/Game/PureNature_AsianValley/Models/Rocks/SM_Rock_5"
+  },
+  {
+   "id": "pn_asianvalley_rubbledense_3",
+   "pos": [
+    33.7056617736816,
+    0.0,
+    432.803741455078
+   ],
+   "ruta_ue": "/Game/PureNature_AsianValley/Models/Rocks/SM_RubbleDense_3"
+  },
+  {
+   "id": "pn_asianvalley_rock_3",
+   "pos": [
+    37.5510940551758,
+    0.0,
+    431.717498779297
+   ],
+   "ruta_ue": "/Game/PureNature_AsianValley/Models/Rocks/SM_Rock_3"
+  },
+  {
+   "id": "pn_asianvalley_rubbledense_1",
+   "pos": [
+    39.9509391784668,
+    0.0,
+    432.737731933594
+   ],
+   "ruta_ue": "/Game/PureNature_AsianValley/Models/Rocks/SM_RubbleDense_1"
+  },
+  {
+   "id": "pn_asianvalley_rubbledense_2",
+   "pos": [
+    44.2800750732422,
+    0.0,
+    433.17041015625
+   ],
+   "ruta_ue": "/Game/PureNature_AsianValley/Models/Rocks/SM_RubbleDense_2"
+  },
+  {
+   "id": "pn_asianvalley_rock_0",
+   "pos": [
+    47.4355888366699,
+    0.0,
+    431.7158203125
+   ],
+   "ruta_ue": "/Game/PureNature_AsianValley/Models/Rocks/SM_Rock_0"
+  },
+  {
+   "id": "pn_asianvalley_rubblesparse_2",
+   "pos": [
+    50.6594161987305,
+    0.0,
+    432.753570556641
+   ],
+   "ruta_ue": "/Game/PureNature_AsianValley/Models/Rocks/SM_RubbleSparse_2"
+  },
+  {
+   "id": "pn_asianvalley_rubblesparse_1",
+   "pos": [
+    54.3061981201172,
+    0.0,
+    431.989501953125
+   ],
+   "ruta_ue": "/Game/PureNature_AsianValley/Models/Rocks/SM_RubbleSparse_1"
+  },
+  {
+   "id": "pn_asianvalley_rock_2",
+   "pos": [
+    56.3573684692383,
+    0.0,
+    431.699981689453
+   ],
+   "ruta_ue": "/Game/PureNature_AsianValley/Models/Rocks/SM_Rock_2"
+  },
+  {
+   "id": "pn_asianvalley_rubblesparse_3",
+   "pos": [
+    1.5719085931778,
+    0.0,
+    439.941864013672
+   ],
+   "ruta_ue": "/Game/PureNature_AsianValley/Models/Rocks/SM_RubbleSparse_3"
+  },
+  {
    "id": "pn_asianvalley_thincliff_3",
    "pos": [
-    48.3479690551758,
+    5.77385520935059,
     0.0,
-    280.544616699219
+    439.229309082031
    ],
    "ruta_ue": "/Game/PureNature_AsianValley/Models/Cliffs/SM_ThinCliff_3"
   },
   {
    "id": "pn_asianvalley_cliff_5",
    "pos": [
-    52.1742858886719,
+    9.60017204284668,
     0.0,
-    280.327941894531
+    439.012634277344
    ],
    "ruta_ue": "/Game/PureNature_AsianValley/Models/Cliffs/SM_Cliff_5"
   },
   {
    "id": "pn_asianvalley_cliff_4",
    "pos": [
-    2.90989232063293,
+    14.8676147460938,
     0.0,
-    329.148803710938
+    439.122283935547
    ],
    "ruta_ue": "/Game/PureNature_AsianValley/Models/Cliffs/SM_Cliff_4"
   },
   {
    "id": "pn_asianvalley_waterfall01",
    "pos": [
-    6.90671682357788,
+    18.8644390106201,
     0.0,
-    328.316711425781
+    438.290191650391
    ],
    "ruta_ue": "/Game/PureNature_AsianValley/Models/Water/SM_WaterFall01"
   },
   {
    "id": "pn_asianvalley_bamboo_12",
    "pos": [
-    8.04460430145264,
+    20.002326965332,
     0.0,
-    328.079498291016
+    438.052978515625
    ],
    "ruta_ue": "/Game/PureNature_AsianValley/Models/Props/SM_Bamboo_12"
   },
   {
    "id": "pn_asianvalley_bamboo_9",
    "pos": [
-    8.935302734375,
+    20.8930244445801,
     0.0,
-    328.070373535156
+    438.043853759766
    ],
    "ruta_ue": "/Game/PureNature_AsianValley/Models/Props/SM_Bamboo_9"
   },
   {
    "id": "pn_asianvalley_bamboo_10",
    "pos": [
-    9.82600116729736,
+    21.7837238311768,
     0.0,
-    328.079498291016
+    438.052978515625
    ],
    "ruta_ue": "/Game/PureNature_AsianValley/Models/Props/SM_Bamboo_10"
   },
   {
    "id": "pn_asianvalley_bamboo_7",
    "pos": [
-    10.7166996002197,
+    22.6744213104248,
     0.0,
-    328.069519042969
+    438.042999267578
    ],
    "ruta_ue": "/Game/PureNature_AsianValley/Models/Props/SM_Bamboo_7"
   },
   {
-   "id": "pn_asianvalley_bamboo_8",
-   "pos": [
-    11.5973205566406,
-    0.0,
-    328.069519042969
-   ],
-   "ruta_ue": "/Game/PureNature_AsianValley/Models/Props/SM_Bamboo_8"
-  },
-  {
    "id": "pn_asianvalley_bamboo_11",
    "pos": [
-    12.488018989563,
+    23.5651206970215,
     0.0,
-    328.079498291016
+    438.052978515625
    ],
    "ruta_ue": "/Game/PureNature_AsianValley/Models/Props/SM_Bamboo_11"
   },
   {
+   "id": "pn_asianvalley_bamboo_8",
+   "pos": [
+    24.4558181762695,
+    0.0,
+    438.042999267578
+   ],
+   "ruta_ue": "/Game/PureNature_AsianValley/Models/Props/SM_Bamboo_8"
+  },
+  {
    "id": "pn_asianvalley_bamboo_ladder",
    "pos": [
-    13.5222902297974,
+    25.4800128936768,
     0.0,
-    328.052825927734
+    438.026306152344
    ],
    "ruta_ue": "/Game/PureNature_AsianValley/Models/Props/SM_Bamboo_ladder"
   },
   {
    "id": "pn_asianvalley_bamboo_6",
    "pos": [
-    14.5397596359253,
+    26.4974822998047,
     0.0,
-    328.069519042969
+    438.042999267578
    ],
    "ruta_ue": "/Game/PureNature_AsianValley/Models/Props/SM_Bamboo_6"
   },
   {
    "id": "pn_asianvalley_bamboo_4",
    "pos": [
-    15.4204597473145,
+    27.3781814575195,
     0.0,
-    328.069549560547
+    438.043029785156
    ],
    "ruta_ue": "/Game/PureNature_AsianValley/Models/Props/SM_Bamboo_4"
   },
   {
    "id": "pn_asianvalley_bamboo_5",
    "pos": [
-    16.3011512756348,
+    28.2588729858398,
     0.0,
-    328.069549560547
+    438.043029785156
    ],
    "ruta_ue": "/Game/PureNature_AsianValley/Models/Props/SM_Bamboo_5"
   },
   {
    "id": "pn_asianvalley_bamboo_3",
    "pos": [
-    17.1816349029541,
+    29.1393566131592,
     0.0,
-    328.069732666016
+    438.043212890625
    ],
    "ruta_ue": "/Game/PureNature_AsianValley/Models/Props/SM_Bamboo_3"
   },
   {
    "id": "pn_asianvalley_bamboo_1",
    "pos": [
-    18.0620613098145,
+    30.0197830200195,
     0.0,
-    328.069488525391
+    438.04296875
    ],
    "ruta_ue": "/Game/PureNature_AsianValley/Models/Props/SM_Bamboo_1"
   },
   {
    "id": "pn_asianvalley_bamboo_2",
    "pos": [
-    18.9426383972168,
+    30.9003601074219,
     0.0,
-    328.069488525391
+    438.04296875
    ],
    "ruta_ue": "/Game/PureNature_AsianValley/Models/Props/SM_Bamboo_2"
   },
   {
    "id": "pn_asianvalley_bamboo_barrier_3",
    "pos": [
-    20.9676933288574,
+    32.9254150390625,
     0.0,
-    328.250640869141
+    438.22412109375
    ],
    "ruta_ue": "/Game/PureNature_AsianValley/Models/Props/SM_Bamboo_barrier_3"
   },
   {
    "id": "pn_asianvalley_bamboo_barrier_1",
    "pos": [
-    23.441349029541,
+    35.3990707397461,
     0.0,
-    328.063598632813
+    438.037078857422
    ],
    "ruta_ue": "/Game/PureNature_AsianValley/Models/Props/SM_Bamboo_barrier_1"
   },
   {
    "id": "pn_asianvalley_bamboo_barrier_2",
    "pos": [
-    25.2116107940674,
+    37.1693344116211,
     0.0,
-    328.063598632813
+    438.037078857422
    ],
    "ruta_ue": "/Game/PureNature_AsianValley/Models/Props/SM_Bamboo_barrier_2"
   },
   {
    "id": "pn_asianvalley_bamboo_raftbent",
    "pos": [
-    26.8283958435059,
+    38.7861175537109,
     0.0,
-    328.898712158203
+    438.872192382813
    ],
    "ruta_ue": "/Game/PureNature_AsianValley/Models/Props/SM_Bamboo_raftbent"
   },
   {
    "id": "pn_asianvalley_bamboo_raft",
    "pos": [
-    28.2171363830566,
+    40.1748580932617,
     0.0,
-    328.896392822266
+    438.869873046875
    ],
    "ruta_ue": "/Game/PureNature_AsianValley/Models/Props/SM_Bamboo_raft"
   },
   {
    "id": "pn_asianvalley_astilb_3",
    "pos": [
-    29.5877742767334,
+    41.5454978942871,
     0.0,
-    328.385772705078
+    438.359252929688
    ],
    "ruta_ue": "/Game/PureNature_AsianValley/Models/Plants/SM_Astilb_3"
   },
   {
    "id": "pn_asianvalley_ricegrown_2",
    "pos": [
-    30.8627395629883,
+    42.8204612731934,
     0.0,
-    328.846954345703
+    438.820434570313
    ],
    "ruta_ue": "/Game/PureNature_AsianValley/Models/Plants/SM_RiceGrown_2"
   },
   {
    "id": "pn_asianvalley_astilb_1",
    "pos": [
-    32.0353202819824,
+    43.9930419921875,
     0.0,
-    328.266571044922
+    438.240051269531
    ],
    "ruta_ue": "/Game/PureNature_AsianValley/Models/Plants/SM_Astilb_1"
   },
   {
    "id": "pn_asianvalley_jenny_3",
    "pos": [
-    33.4305267333984,
+    45.3882484436035,
     0.0,
-    328.362426757813
+    438.335906982422
    ],
    "ruta_ue": "/Game/PureNature_AsianValley/Models/Plants/SM_Jenny_3"
   },
   {
    "id": "pn_asianvalley_ricegrown_1",
    "pos": [
-    34.8003005981445,
+    46.7580223083496,
     0.0,
-    328.817504882813
+    438.790985107422
    ],
    "ruta_ue": "/Game/PureNature_AsianValley/Models/Plants/SM_RiceGrown_1"
   },
   {
    "id": "pn_asianvalley_astilb_2",
    "pos": [
-    36.0020370483398,
+    47.9597587585449,
     0.0,
-    328.269805908203
+    438.243286132813
    ],
    "ruta_ue": "/Game/PureNature_AsianValley/Models/Plants/SM_Astilb_2"
   },
   {
-   "id": "pn_asianvalley_rice_green_3",
-   "pos": [
-    37.1821517944336,
-    0.0,
-    328.12060546875
-   ],
-   "ruta_ue": "/Game/PureNature_AsianValley/Models/Plants/SM_Rice_green_3"
-  },
-  {
    "id": "pn_asianvalley_rice_3",
    "pos": [
-    38.2787590026855,
+    49.1398735046387,
     0.0,
-    328.12060546875
+    438.094085693359
    ],
    "ruta_ue": "/Game/PureNature_AsianValley/Models/Plants/SM_Rice_3"
   },
   {
+   "id": "pn_asianvalley_rice_green_3",
+   "pos": [
+    50.2364807128906,
+    0.0,
+    438.094085693359
+   ],
+   "ruta_ue": "/Game/PureNature_AsianValley/Models/Plants/SM_Rice_green_3"
+  },
+  {
    "id": "pn_asianvalley_rice_1",
    "pos": [
-    39.3169593811035,
+    51.2746810913086,
     0.0,
-    328.142364501953
+    438.115844726563
    ],
    "ruta_ue": "/Game/PureNature_AsianValley/Models/Plants/SM_Rice_1"
   },
   {
    "id": "pn_asianvalley_rice_green_1",
    "pos": [
-    40.3336868286133,
+    52.2914085388184,
     0.0,
-    328.142364501953
+    438.115844726563
    ],
    "ruta_ue": "/Game/PureNature_AsianValley/Models/Plants/SM_Rice_green_1"
   },
   {
    "id": "pn_asianvalley_rice_green_2",
    "pos": [
-    41.4098968505859,
+    53.367618560791,
     0.0,
-    328.238922119141
+    438.21240234375
    ],
    "ruta_ue": "/Game/PureNature_AsianValley/Models/Plants/SM_Rice_green_2"
   },
   {
    "id": "pn_asianvalley_rice_2",
    "pos": [
-    42.4679832458496,
+    54.4257049560547,
     0.0,
-    328.238922119141
+    438.21240234375
    ],
    "ruta_ue": "/Game/PureNature_AsianValley/Models/Plants/SM_Rice_2"
   },
   {
    "id": "pn_asianvalley_jenny_2",
    "pos": [
-    43.6566429138184,
+    55.6143646240234,
     0.0,
-    328.375793457031
+    438.349273681641
    ],
    "ruta_ue": "/Game/PureNature_AsianValley/Models/Plants/SM_Jenny_2"
   },
   {
    "id": "pn_asianvalley_jenny_1",
    "pos": [
-    44.9423789978027,
+    56.9001007080078,
     0.0,
-    328.237548828125
+    438.211029052734
    ],
    "ruta_ue": "/Game/PureNature_AsianValley/Models/Plants/SM_Jenny_1"
   },
   {
    "id": "pn_asianvalley_ricerow_2",
    "pos": [
-    46.0568008422852,
+    58.0145225524902,
     0.0,
-    328.913940429688
+    438.887420654297
    ],
    "ruta_ue": "/Game/PureNature_AsianValley/Models/Plants/SM_RiceRow_2"
   },
   {
    "id": "pn_asianvalley_pakchoi_2",
    "pos": [
-    47.2407150268555,
+    59.1984367370605,
     0.0,
-    328.268707275391
+    438.2421875
    ],
    "ruta_ue": "/Game/PureNature_AsianValley/Models/Plants/SM_Pakchoi_2"
   },
   {
    "id": "pn_asianvalley_pakchoi_3",
    "pos": [
-    48.4531860351563,
+    0.169969916343689,
     0.0,
-    328.273895263672
+    444.0224609375
    ],
    "ruta_ue": "/Game/PureNature_AsianValley/Models/Plants/SM_Pakchoi_3"
   },
   {
    "id": "pn_asianvalley_ricerow_1",
    "pos": [
-    49.5605659484863,
+    1.27735090255737,
     0.0,
-    328.957702636719
+    444.706298828125
    ],
    "ruta_ue": "/Game/PureNature_AsianValley/Models/Plants/SM_RiceRow_1"
   },
   {
    "id": "pn_asianvalley_cyrtomiumdark_3",
    "pos": [
-    50.6455001831055,
+    2.36228322982788,
     0.0,
-    328.257507324219
+    444.006072998047
    ],
    "ruta_ue": "/Game/PureNature_AsianValley/Models/Plants/SM_CyrtomiumDark_3"
   },
   {
    "id": "pn_asianvalley_cyrtomium_3",
    "pos": [
-    51.8275032043457,
+    3.54428696632385,
     0.0,
-    328.257507324219
+    444.006072998047
    ],
    "ruta_ue": "/Game/PureNature_AsianValley/Models/Plants/SM_Cyrtomium_3"
   },
   {
    "id": "pn_asianvalley_lotus_1",
    "pos": [
-    53.0497055053711,
+    4.76648712158203,
     0.0,
-    328.287994384766
+    444.036590576172
    ],
    "ruta_ue": "/Game/PureNature_AsianValley/Models/Plants/SM_Lotus_1"
   },
   {
    "id": "pn_asianvalley_ricerow_3",
    "pos": [
-    54.2351875305176,
+    5.95197200775146,
     0.0,
-    328.850891113281
+    444.599487304688
    ],
    "ruta_ue": "/Game/PureNature_AsianValley/Models/Plants/SM_RiceRow_3"
   },
   {
    "id": "pn_asianvalley_pakchoi_1",
    "pos": [
-    55.4002227783203,
+    7.11700677871704,
     0.0,
-    328.236755371094
+    443.985321044922
    ],
    "ruta_ue": "/Game/PureNature_AsianValley/Models/Plants/SM_Pakchoi_1"
   },
   {
    "id": "pn_asianvalley_lotus_2",
    "pos": [
-    56.6523818969727,
+    8.36916446685791,
     0.0,
-    328.299346923828
+    444.047912597656
    ],
    "ruta_ue": "/Game/PureNature_AsianValley/Models/Plants/SM_Lotus_2"
   },
   {
    "id": "pn_asianvalley_radish_2",
    "pos": [
-    57.821964263916,
+    9.5387487411499,
     0.0,
-    328.157379150391
+    443.905944824219
    ],
    "ruta_ue": "/Game/PureNature_AsianValley/Models/Plants/SM_Radish_2"
   },
   {
    "id": "pn_asianvalley_radish_5",
    "pos": [
-    58.7307929992676,
+    10.4475746154785,
     0.0,
-    328.059478759766
+    443.808044433594
    ],
    "ruta_ue": "/Game/PureNature_AsianValley/Models/Plants/SM_Radish_5"
   },
   {
    "id": "pn_asianvalley_radish_8",
    "pos": [
-    59.6379852294922,
+    11.3547687530518,
     0.0,
-    328.134613037109
+    443.883178710938
    ],
    "ruta_ue": "/Game/PureNature_AsianValley/Models/Plants/SM_Radish_8"
   },
   {
    "id": "pn_asianvalley_money_3",
    "pos": [
-    0.20689944922924,
+    12.4539546966553,
     0.0,
-    331.262939453125
+    443.972442626953
    ],
    "ruta_ue": "/Game/PureNature_AsianValley/Models/Plants/SM_Money_3"
   },
   {
    "id": "pn_asianvalley_radish_7",
    "pos": [
-    1.27001225948334,
+    13.5170669555664,
     0.0,
-    331.118347167969
+    443.827850341797
    ],
    "ruta_ue": "/Game/PureNature_AsianValley/Models/Plants/SM_Radish_7"
   },
   {
    "id": "pn_asianvalley_radish_6",
    "pos": [
-    2.1888222694397,
+    14.4358768463135,
     0.0,
-    331.121765136719
+    443.831237792969
    ],
    "ruta_ue": "/Game/PureNature_AsianValley/Models/Plants/SM_Radish_6"
   },
   {
    "id": "pn_asianvalley_radish_4",
    "pos": [
-    3.19954800605774,
+    15.4466028213501,
     0.0,
-    331.224365234375
+    443.933868408203
    ],
    "ruta_ue": "/Game/PureNature_AsianValley/Models/Plants/SM_Radish_4"
   },
   {
    "id": "pn_asianvalley_cyrtomium_2",
    "pos": [
-    4.34484052658081,
+    16.5918960571289,
     0.0,
-    331.253997802734
+    443.963500976563
    ],
    "ruta_ue": "/Game/PureNature_AsianValley/Models/Plants/SM_Cyrtomium_2"
   },
   {
    "id": "pn_asianvalley_cyrtomiumdark_2",
    "pos": [
-    5.50073528289795,
+    17.7477893829346,
     0.0,
-    331.253997802734
+    443.963500976563
    ],
    "ruta_ue": "/Game/PureNature_AsianValley/Models/Plants/SM_CyrtomiumDark_2"
   },
   {
    "id": "pn_asianvalley_cardinal_2",
    "pos": [
-    6.56201219558716,
+    18.8090667724609,
     0.0,
-    331.168182373047
+    443.877685546875
    ],
    "ruta_ue": "/Game/PureNature_AsianValley/Models/Plants/SM_Cardinal_2"
   },
   {
    "id": "pn_asianvalley_grass_3",
    "pos": [
-    7.79926633834839,
+    20.0463218688965,
     0.0,
-    331.418701171875
+    444.128173828125
    ],
    "ruta_ue": "/Game/PureNature_AsianValley/Models/Plants/SM_Grass_3"
   },
   {
    "id": "pn_asianvalley_grassrice",
    "pos": [
-    9.27202033996582,
+    21.5190753936768,
     0.0,
-    331.418701171875
+    444.128173828125
    ],
    "ruta_ue": "/Game/PureNature_AsianValley/Models/Plants/SM_GrassRice"
   },
   {
    "id": "pn_asianvalley_radish_3",
    "pos": [
-    10.5082788467407,
+    22.7553329467773,
     0.0,
-    331.194641113281
+    443.904144287109
    ],
    "ruta_ue": "/Game/PureNature_AsianValley/Models/Plants/SM_Radish_3"
   },
   {
    "id": "pn_asianvalley_lotus_3",
    "pos": [
-    11.6571378707886,
+    23.9041919708252,
     0.0,
-    331.391662597656
+    444.101135253906
    ],
    "ruta_ue": "/Game/PureNature_AsianValley/Models/Plants/SM_Lotus_3"
   },
   {
    "id": "pn_asianvalley_cardinal_1",
    "pos": [
-    12.8191595077515,
+    25.0662136077881,
     0.0,
-    331.152893066406
+    443.862396240234
    ],
    "ruta_ue": "/Game/PureNature_AsianValley/Models/Plants/SM_Cardinal_1"
   },
   {
    "id": "pn_asianvalley_money_2",
    "pos": [
-    13.8592357635498,
+    26.1062908172607,
     0.0,
-    331.246215820313
+    443.955718994141
    ],
    "ruta_ue": "/Game/PureNature_AsianValley/Models/Plants/SM_Money_2"
   },
   {
    "id": "pn_asianvalley_lotus_4",
    "pos": [
-    15.0671634674072,
+    27.3142185211182,
     0.0,
-    331.338043212891
+    444.047546386719
    ],
    "ruta_ue": "/Game/PureNature_AsianValley/Models/Plants/SM_Lotus_4"
   },
   {
    "id": "pn_asianvalley_grass_2",
    "pos": [
-    16.4316654205322,
+    28.6787204742432,
     0.0,
-    331.405853271484
+    444.115325927734
    ],
    "ruta_ue": "/Game/PureNature_AsianValley/Models/Plants/SM_Grass_2"
   },
   {
    "id": "pn_asianvalley_cyrtomiumdark_1",
    "pos": [
-    17.640775680542,
+    29.8878307342529,
     0.0,
-    331.189422607422
+    443.89892578125
    ],
    "ruta_ue": "/Game/PureNature_AsianValley/Models/Plants/SM_CyrtomiumDark_1"
   },
   {
    "id": "pn_asianvalley_cyrtomium_1",
    "pos": [
-    18.6667957305908,
+    30.9138507843018,
     0.0,
-    331.189422607422
+    443.89892578125
    ],
    "ruta_ue": "/Game/PureNature_AsianValley/Models/Plants/SM_Cyrtomium_1"
   },
   {
    "id": "pn_asianvalley_lotus_5",
    "pos": [
-    20.0603141784668,
+    32.3073692321777,
     0.0,
-    331.561767578125
+    444.271240234375
    ],
    "ruta_ue": "/Game/PureNature_AsianValley/Models/Plants/SM_Lotus_5"
   },
   {
    "id": "pn_asianvalley_lotus_6",
    "pos": [
-    21.3811569213867,
+    33.6282119750977,
     0.0,
-    331.106231689453
+    443.815734863281
    ],
    "ruta_ue": "/Game/PureNature_AsianValley/Models/Plants/SM_Lotus_6"
   },
   {
    "id": "pn_asianvalley_grass_1",
    "pos": [
-    22.4974632263184,
+    34.7445182800293,
     0.0,
-    331.376037597656
+    444.085540771484
    ],
    "ruta_ue": "/Game/PureNature_AsianValley/Models/Plants/SM_Grass_1"
   },
   {
    "id": "pn_asianvalley_money_1",
    "pos": [
-    23.6193809509277,
+    35.8664360046387,
     0.0,
-    331.198364257813
+    443.907867431641
    ],
    "ruta_ue": "/Game/PureNature_AsianValley/Models/Plants/SM_Money_1"
   },
   {
    "id": "pn_asianvalley_radish_1",
    "pos": [
-    24.671314239502,
+    36.9183692932129,
     0.0,
-    331.193054199219
+    443.902557373047
    ],
    "ruta_ue": "/Game/PureNature_AsianValley/Models/Plants/SM_Radish_1"
   },
   {
    "id": "pn_asianvalley_cabbage_2",
    "pos": [
-    25.6392650604248,
+    37.8863182067871,
     0.0,
-    331.206298828125
+    443.915771484375
    ],
    "ruta_ue": "/Game/PureNature_AsianValley/Models/Plants/SM_Cabbage_2"
   },
   {
    "id": "pn_asianvalley_cabbage_3",
    "pos": [
-    26.7154750823975,
+    38.9625282287598,
     0.0,
-    331.210388183594
+    443.919891357422
    ],
    "ruta_ue": "/Game/PureNature_AsianValley/Models/Plants/SM_Cabbage_3"
   },
   {
    "id": "pn_asianvalley_cabbage_1",
    "pos": [
-    27.7987728118896,
+    40.0458297729492,
     0.0,
-    331.212493896484
+    443.921997070313
    ],
    "ruta_ue": "/Game/PureNature_AsianValley/Models/Plants/SM_Cabbage_1"
   },
   {
    "id": "pn_asianvalley_grass_4",
    "pos": [
-    29.0434055328369,
+    41.2904586791992,
     0.0,
-    331.364288330078
+    444.073791503906
    ],
    "ruta_ue": "/Game/PureNature_AsianValley/Models/Plants/SM_Grass_4"
   },
   {
    "id": "pn_asianvalley_grass_5",
    "pos": [
-    30.3349876403809,
+    42.5820426940918,
     0.0,
-    331.222595214844
+    443.932098388672
    ],
    "ruta_ue": "/Game/PureNature_AsianValley/Models/Plants/SM_Grass_5"
   },
@@ -1168,7 +1191,7 @@
    "pos": [
     8.08716106414795,
     0.0,
-    343.582550048828
+    457.169067382813
    ],
    "ruta_ue": "/Game/PureNature_FantasyForest/Models/Trees/Meshes/BigTree/BigTree3/SM_BigTree3"
   },
@@ -1177,7 +1200,7 @@
    "pos": [
     23.1853313446045,
     0.0,
-    343.111267089844
+    456.697784423828
    ],
    "ruta_ue": "/Game/PureNature_FantasyForest/Models/Trees/Meshes/BigTree/BigTree4/SM_BigTree4"
   },
@@ -1186,7 +1209,7 @@
    "pos": [
     37.1799392700195,
     0.0,
-    344.085327148438
+    457.671844482422
    ],
    "ruta_ue": "/Game/PureNature_FantasyForest/Models/Trees/Meshes/BigTree/BigTree2/SM_BigTree2"
   },
@@ -1195,7 +1218,7 @@
    "pos": [
     49.6769866943359,
     0.0,
-    344.7587890625
+    458.345275878906
    ],
    "ruta_ue": "/Game/PureNature_FantasyForest/Models/Trees/Meshes/BigTree/BigTree1/SM_BigTree1"
   },
@@ -1204,7 +1227,7 @@
    "pos": [
     8.91752052307129,
     0.0,
-    356.946319580078
+    470.532836914063
    ],
    "ruta_ue": "/Game/PureNature_FantasyForest/Models/Trees/Meshes/BigRoots/SM_BigRoots_1"
   },
@@ -1213,7 +1236,7 @@
    "pos": [
     19.1850261688232,
     0.0,
-    356.803100585938
+    470.389587402344
    ],
    "ruta_ue": "/Game/PureNature_FantasyForest/Models/Trees/Meshes/BigRoots/SM_BigRoots_2"
   },
@@ -1222,7 +1245,7 @@
    "pos": [
     22.6636142730713,
     0.0,
-    353.590240478516
+    467.1767578125
    ],
    "ruta_ue": "/Game/PureNature_FantasyForest/Models/Trees/Meshes/Bush/Bush3/SM_Bush3"
   },
@@ -1231,7 +1254,7 @@
    "pos": [
     25.5768795013428,
     0.0,
-    353.372283935547
+    466.958801269531
    ],
    "ruta_ue": "/Game/PureNature_FantasyForest/Models/Trees/Meshes/Bush/Bush2/SM_Bush2"
   },
@@ -1240,7 +1263,7 @@
    "pos": [
     27.8101615905762,
     0.0,
-    353.079010009766
+    466.665496826172
    ],
    "ruta_ue": "/Game/PureNature_FantasyForest/Models/Trees/Meshes/Bush/Bush1/SM_Bush1"
   },
@@ -1249,7 +1272,7 @@
    "pos": [
     29.4092082977295,
     0.0,
-    352.599060058594
+    466.185546875
    ],
    "ruta_ue": "/Game/PureNature_FantasyForest/Models/Trees/Meshes/SmallRoots/SM_SmallRoot1"
   },
@@ -1258,7 +1281,7 @@
    "pos": [
     30.7239685058594,
     0.0,
-    352.770660400391
+    466.357147216797
    ],
    "ruta_ue": "/Game/PureNature_FantasyForest/Models/Trees/Meshes/SmallRoots/SM_SmallRoot2"
   },
@@ -1267,7 +1290,7 @@
    "pos": [
     35.921257019043,
     0.0,
-    354.923156738281
+    468.509674072266
    ],
    "ruta_ue": "/Game/PureNature_FantasyForest/Models/Rocks/Meshes/SM_Cliff2"
   },
@@ -1276,7 +1299,7 @@
    "pos": [
     44.9297866821289,
     0.0,
-    355.154327392578
+    468.740814208984
    ],
    "ruta_ue": "/Game/PureNature_FantasyForest/Models/Rocks/Meshes/SM_Cliff1"
   },
@@ -1285,7 +1308,7 @@
    "pos": [
     51.5279808044434,
     0.0,
-    353.824371337891
+    467.410888671875
    ],
    "ruta_ue": "/Game/PureNature_FantasyForest/Models/Rocks/Meshes/SM_MossyRock_5"
   },
@@ -1294,7 +1317,7 @@
    "pos": [
     54.9230194091797,
     0.0,
-    353.444976806641
+    467.031494140625
    ],
    "ruta_ue": "/Game/PureNature_FantasyForest/Models/Rocks/Meshes/SM_MossyRock_4"
   },
@@ -1303,7 +1326,7 @@
    "pos": [
     57.4479331970215,
     0.0,
-    352.879577636719
+    466.466094970703
    ],
    "ruta_ue": "/Game/PureNature_FantasyForest/Models/Rocks/Meshes/SM_MossyRock_3"
   },
@@ -1312,7 +1335,7 @@
    "pos": [
     59.4712371826172,
     0.0,
-    352.934875488281
+    466.521362304688
    ],
    "ruta_ue": "/Game/PureNature_FantasyForest/Models/Rocks/Meshes/SM_MossyRock_2"
   },
@@ -1321,7 +1344,7 @@
    "pos": [
     0.481228440999985,
     0.0,
-    361.749816894531
+    475.336334228516
    ],
    "ruta_ue": "/Game/PureNature_FantasyForest/Models/Rocks/Meshes/SM_MossyRock_1"
   },
@@ -1330,7 +1353,7 @@
    "pos": [
     2.94159913063049,
     0.0,
-    361.417114257813
+    475.003631591797
    ],
    "ruta_ue": "/Game/PureNature_FantasyForest/Models/Ivy/Meshes/SM_IvyHeart05"
   },
@@ -1339,7 +1362,7 @@
    "pos": [
     4.01735830307007,
     0.0,
-    361.426300048828
+    475.012817382813
    ],
    "ruta_ue": "/Game/PureNature_FantasyForest/Models/Ivy/Meshes/SM_IvyHeart08"
   },
@@ -1348,7 +1371,7 @@
    "pos": [
     5.21008777618408,
     0.0,
-    361.386260986328
+    474.972778320313
    ],
    "ruta_ue": "/Game/PureNature_FantasyForest/Models/Ivy/Meshes/SM_IvyHeart02"
   },
@@ -1357,7 +1380,7 @@
    "pos": [
     6.85508966445923,
     0.0,
-    361.395843505859
+    474.982360839844
    ],
    "ruta_ue": "/Game/PureNature_FantasyForest/Models/Ivy/Meshes/SM_IvyHeart04"
   },
@@ -1366,7 +1389,7 @@
    "pos": [
     8.01808643341064,
     0.0,
-    361.36669921875
+    474.953186035156
    ],
    "ruta_ue": "/Game/PureNature_FantasyForest/Models/Ivy/Meshes/SM_IvyHeart03"
   },
@@ -1375,7 +1398,7 @@
    "pos": [
     9.43635654449463,
     0.0,
-    361.616455078125
+    475.202972412109
    ],
    "ruta_ue": "/Game/PureNature_FantasyForest/Models/Ivy/Meshes/SM_IvyHeart10"
   },
@@ -1384,7 +1407,7 @@
    "pos": [
     10.7962961196899,
     0.0,
-    361.405944824219
+    474.992431640625
    ],
    "ruta_ue": "/Game/PureNature_FantasyForest/Models/Ivy/Meshes/SM_IvyHeart07"
   },
@@ -1393,7 +1416,7 @@
    "pos": [
     12.06263256073,
     0.0,
-    361.515625
+    475.102142333984
    ],
    "ruta_ue": "/Game/PureNature_FantasyForest/Models/Ivy/Meshes/SM_IvyHeart09"
   },
@@ -1402,7 +1425,7 @@
    "pos": [
     13.2110719680786,
     0.0,
-    361.383056640625
+    474.969573974609
    ],
    "ruta_ue": "/Game/PureNature_FantasyForest/Models/Ivy/Meshes/SM_IvyHeart01"
   },
@@ -1411,7 +1434,7 @@
    "pos": [
     14.8186130523682,
     0.0,
-    361.377044677734
+    474.963562011719
    ],
    "ruta_ue": "/Game/PureNature_FantasyForest/Models/Ivy/Meshes/SM_IvyHeart06"
   },
@@ -1420,7 +1443,7 @@
    "pos": [
     16.3783493041992,
     0.0,
-    361.339202880859
+    474.925720214844
    ],
    "ruta_ue": "/Game/PureNature_FantasyForest/Models/Ivy/Meshes/SM_Mushmush5"
   },
@@ -1429,7 +1452,7 @@
    "pos": [
     17.2996997833252,
     0.0,
-    361.340850830078
+    474.927368164063
    ],
    "ruta_ue": "/Game/PureNature_FantasyForest/Models/Ivy/Meshes/SM_Mushmush4"
   },
@@ -1438,7 +1461,7 @@
    "pos": [
     18.187479019165,
     0.0,
-    361.338348388672
+    474.924865722656
    ],
    "ruta_ue": "/Game/PureNature_FantasyForest/Models/Ivy/Meshes/SM_Mushmush3"
   },
@@ -1447,7 +1470,7 @@
    "pos": [
     19.0776634216309,
     0.0,
-    361.332244873047
+    474.918762207031
    ],
    "ruta_ue": "/Game/PureNature_FantasyForest/Models/Ivy/Meshes/SM_Mushmush2"
   },
@@ -1456,7 +1479,7 @@
    "pos": [
     19.9526519775391,
     0.0,
-    361.333221435547
+    474.919738769531
    ],
    "ruta_ue": "/Game/PureNature_FantasyForest/Models/Ivy/Meshes/SM_Mushmush1"
   },
@@ -1465,7 +1488,7 @@
    "pos": [
     22.7685451507568,
     0.0,
-    363.381958007813
+    476.968475341797
    ],
    "ruta_ue": "/Game/PureNature_FantasyForest/Models/Mushroom/Meshes/SM_BigMushroom_2_7"
   },
@@ -1474,7 +1497,7 @@
    "pos": [
     25.8478107452393,
     0.0,
-    362.771240234375
+    476.357727050781
    ],
    "ruta_ue": "/Game/PureNature_FantasyForest/Models/Mushroom/Meshes/SM_BigMushroom_2_6"
   },
@@ -1483,7 +1506,7 @@
    "pos": [
     30.5370826721191,
     0.0,
-    362.957336425781
+    476.543853759766
    ],
    "ruta_ue": "/Game/PureNature_FantasyForest/Models/Mushroom/Meshes/SM_BigMushroom_1_4"
   },
@@ -1492,7 +1515,7 @@
    "pos": [
     33.2407608032227,
     0.0,
-    362.823211669922
+    476.409729003906
    ],
    "ruta_ue": "/Game/PureNature_FantasyForest/Models/Mushroom/Meshes/SM_BigMushroom_2_5"
   },
@@ -1501,7 +1524,7 @@
    "pos": [
     38.1966743469238,
     0.0,
-    362.281799316406
+    475.868316650391
    ],
    "ruta_ue": "/Game/PureNature_FantasyForest/Models/Mushroom/Meshes/SM_BigMushroom_1_3"
   },
@@ -1510,7 +1533,7 @@
    "pos": [
     40.3929710388184,
     0.0,
-    362.398071289063
+    475.984588623047
    ],
    "ruta_ue": "/Game/PureNature_FantasyForest/Models/Mushroom/Meshes/SM_BigMushroom_1_2"
   },
@@ -1519,7 +1542,7 @@
    "pos": [
     44.1093902587891,
     0.0,
-    362.685272216797
+    476.271759033203
    ],
    "ruta_ue": "/Game/PureNature_FantasyForest/Models/Mushroom/Meshes/SM_BigMushroom_2_2"
   },
@@ -1528,7 +1551,7 @@
    "pos": [
     47.222339630127,
     0.0,
-    362.782318115234
+    476.368835449219
    ],
    "ruta_ue": "/Game/PureNature_FantasyForest/Models/Mushroom/Meshes/SM_BigMushroom_2_1"
   },
@@ -1537,7 +1560,7 @@
    "pos": [
     49.3841171264648,
     0.0,
-    362.059844970703
+    475.646331787109
    ],
    "ruta_ue": "/Game/PureNature_FantasyForest/Models/Mushroom/Meshes/SM_BigMushroom_1_5"
   },
@@ -1546,7 +1569,7 @@
    "pos": [
     52.0235595703125,
     0.0,
-    361.759063720703
+    475.345581054688
    ],
    "ruta_ue": "/Game/PureNature_FantasyForest/Models/Mushroom/Meshes/SM_BigMushroom_1_6"
   },
@@ -1555,7 +1578,7 @@
    "pos": [
     55.3111610412598,
     0.0,
-    362.201293945313
+    475.787811279297
    ],
    "ruta_ue": "/Game/PureNature_FantasyForest/Models/Mushroom/Meshes/SM_BigMushroom_1_1"
   },
@@ -1564,7 +1587,7 @@
    "pos": [
     57.9135475158691,
     0.0,
-    362.16064453125
+    475.747131347656
    ],
    "ruta_ue": "/Game/PureNature_FantasyForest/Models/Mushroom/Meshes/SM_BigMushroom_2_3"
   },
@@ -1573,7 +1596,7 @@
    "pos": [
     1.00199210643768,
     0.0,
-    367.267822265625
+    480.854309082031
    ],
    "ruta_ue": "/Game/PureNature_FantasyForest/Models/Mushroom/Meshes/SM_BigMushroom_2_4"
   },
@@ -1582,7 +1605,7 @@
    "pos": [
     3.91649961471558,
     0.0,
-    367.477111816406
+    481.063598632813
    ],
    "ruta_ue": "/Game/PureNature_FantasyForest/Models/Mushroom/Meshes/SM_BigMushroom_3_1"
   },
@@ -1591,7 +1614,7 @@
    "pos": [
     6.40265846252441,
     0.0,
-    366.282104492188
+    479.868621826172
    ],
    "ruta_ue": "/Game/PureNature_FantasyForest/Models/Mushroom/Meshes/SM_MushroomsStack_3"
   },
@@ -1600,7 +1623,7 @@
    "pos": [
     8.70747661590576,
     0.0,
-    367.429534912109
+    481.016021728516
    ],
    "ruta_ue": "/Game/PureNature_FantasyForest/Models/Mushroom/Meshes/SM_BigMushroom_3_2"
   },
@@ -1609,7 +1632,7 @@
    "pos": [
     10.9680509567261,
     0.0,
-    366.513763427734
+    480.100280761719
    ],
    "ruta_ue": "/Game/PureNature_FantasyForest/Models/Mushroom/Meshes/SM_Mushroom3"
   },
@@ -1618,7 +1641,7 @@
    "pos": [
     12.1413297653198,
     0.0,
-    366.460784912109
+    480.047271728516
    ],
    "ruta_ue": "/Game/PureNature_FantasyForest/Models/Mushroom/Meshes/SM_MushroomsStack_9"
   },
@@ -1627,7 +1650,7 @@
    "pos": [
     13.4962615966797,
     0.0,
-    366.281158447266
+    479.86767578125
    ],
    "ruta_ue": "/Game/PureNature_FantasyForest/Models/Mushroom/Meshes/SM_MushroomsStack_2"
   },
@@ -1636,7 +1659,7 @@
    "pos": [
     14.8183355331421,
     0.0,
-    366.535522460938
+    480.122039794922
    ],
    "ruta_ue": "/Game/PureNature_FantasyForest/Models/Mushroom/Meshes/SM_Mushroom6"
   },
@@ -1645,7 +1668,7 @@
    "pos": [
     16.8403263092041,
     0.0,
-    367.094665527344
+    480.681182861328
    ],
    "ruta_ue": "/Game/PureNature_FantasyForest/Models/Mushroom/Meshes/SM_BigMushroom_3_4"
   },
@@ -1654,7 +1677,7 @@
    "pos": [
     18.7270793914795,
     0.0,
-    366.506378173828
+    480.092895507813
    ],
    "ruta_ue": "/Game/PureNature_FantasyForest/Models/Mushroom/Meshes/SM_MushroomsStack_5"
   },
@@ -1663,7 +1686,7 @@
    "pos": [
     19.9205951690674,
     0.0,
-    366.400238037109
+    479.986724853516
    ],
    "ruta_ue": "/Game/PureNature_FantasyForest/Models/Mushroom/Meshes/SM_Mushroom2"
   },
@@ -1672,7 +1695,7 @@
    "pos": [
     21.0236644744873,
     0.0,
-    366.406402587891
+    479.992919921875
    ],
    "ruta_ue": "/Game/PureNature_FantasyForest/Models/Mushroom/Meshes/SM_MushroomsStack_6"
   },
@@ -1681,7 +1704,7 @@
    "pos": [
     22.2960796356201,
     0.0,
-    366.266845703125
+    479.853363037109
    ],
    "ruta_ue": "/Game/PureNature_FantasyForest/Models/Mushroom/Meshes/SM_MushroomsStack_1"
   },
@@ -1690,7 +1713,7 @@
    "pos": [
     23.4890727996826,
     0.0,
-    366.398071289063
+    479.984588623047
    ],
    "ruta_ue": "/Game/PureNature_FantasyForest/Models/Mushroom/Meshes/SM_MushroomsStack_4"
   },
@@ -1699,7 +1722,7 @@
    "pos": [
     24.4982719421387,
     0.0,
-    366.353851318359
+    479.940368652344
    ],
    "ruta_ue": "/Game/PureNature_FantasyForest/Models/Mushroom/Meshes/SM_Mushroom5"
   },
@@ -1708,7 +1731,7 @@
    "pos": [
     25.4633235931396,
     0.0,
-    366.3994140625
+    479.985931396484
    ],
    "ruta_ue": "/Game/PureNature_FantasyForest/Models/Mushroom/Meshes/SM_Mushroom1"
   },
@@ -1717,7 +1740,7 @@
    "pos": [
     26.4505596160889,
     0.0,
-    366.304351806641
+    479.890869140625
    ],
    "ruta_ue": "/Game/PureNature_FantasyForest/Models/Mushroom/Meshes/SM_SmallMushroom_9"
   },
@@ -1726,7 +1749,7 @@
    "pos": [
     27.4378986358643,
     0.0,
-    366.322937011719
+    479.909454345703
    ],
    "ruta_ue": "/Game/PureNature_FantasyForest/Models/Mushroom/Meshes/SM_SmallMushroom_6"
   },
@@ -1735,7 +1758,7 @@
    "pos": [
     28.4501800537109,
     0.0,
-    366.356811523438
+    479.943298339844
    ],
    "ruta_ue": "/Game/PureNature_FantasyForest/Models/Mushroom/Meshes/SM_MushroomsStack_8"
   },
@@ -1744,7 +1767,7 @@
    "pos": [
     29.4317150115967,
     0.0,
-    366.319915771484
+    479.906433105469
    ],
    "ruta_ue": "/Game/PureNature_FantasyForest/Models/Mushroom/Meshes/SM_SmallMushroom_3"
   },
@@ -1753,7 +1776,7 @@
    "pos": [
     30.4174423217773,
     0.0,
-    366.2900390625
+    479.876525878906
    ],
    "ruta_ue": "/Game/PureNature_FantasyForest/Models/Mushroom/Meshes/SM_SmallMushroom_12"
   },
@@ -1762,7 +1785,7 @@
    "pos": [
     31.4363975524902,
     0.0,
-    366.340972900391
+    479.927490234375
    ],
    "ruta_ue": "/Game/PureNature_FantasyForest/Models/Mushroom/Meshes/SM_SmallMushroom_2"
   },
@@ -1771,7 +1794,7 @@
    "pos": [
     33.2333641052246,
     0.0,
-    367.104888916016
+    480.69140625
    ],
    "ruta_ue": "/Game/PureNature_FantasyForest/Models/Mushroom/Meshes/SM_BigMushroom_3_3"
   },
@@ -1780,7 +1803,7 @@
    "pos": [
     35.018238067627,
     0.0,
-    366.406982421875
+    479.993469238281
    ],
    "ruta_ue": "/Game/PureNature_FantasyForest/Models/Mushroom/Meshes/SM_MushroomsStack_7"
   },
@@ -1789,7 +1812,7 @@
    "pos": [
     35.9567375183105,
     0.0,
-    366.290100097656
+    479.876617431641
    ],
    "ruta_ue": "/Game/PureNature_FantasyForest/Models/Mushroom/Meshes/SM_SmallMushroom_8"
   },
@@ -1798,7 +1821,7 @@
    "pos": [
     36.8988418579102,
     0.0,
-    366.327270507813
+    479.913787841797
    ],
    "ruta_ue": "/Game/PureNature_FantasyForest/Models/Mushroom/Meshes/SM_Mushroom4"
   },
@@ -1807,7 +1830,7 @@
    "pos": [
     37.8270263671875,
     0.0,
-    366.319488525391
+    479.905975341797
    ],
    "ruta_ue": "/Game/PureNature_FantasyForest/Models/Mushroom/Meshes/SM_SmallMushroom_4"
   },
@@ -1816,7 +1839,7 @@
    "pos": [
     38.7911033630371,
     0.0,
-    366.331512451172
+    479.918029785156
    ],
    "ruta_ue": "/Game/PureNature_FantasyForest/Models/Mushroom/Meshes/SM_SmallMushroom_7"
   },
@@ -1825,7 +1848,7 @@
    "pos": [
     39.9530601501465,
     0.0,
-    366.521331787109
+    480.107849121094
    ],
    "ruta_ue": "/Game/PureNature_FantasyForest/Models/Mushroom/Meshes/SM_TinderFungus_2"
   },
@@ -1834,7 +1857,7 @@
    "pos": [
     41.096263885498,
     0.0,
-    366.284484863281
+    479.871002197266
    ],
    "ruta_ue": "/Game/PureNature_FantasyForest/Models/Mushroom/Meshes/SM_SmallMushroom_5"
   },
@@ -1843,7 +1866,7 @@
    "pos": [
     42.0318145751953,
     0.0,
-    366.304168701172
+    479.890686035156
    ],
    "ruta_ue": "/Game/PureNature_FantasyForest/Models/Mushroom/Meshes/SM_SmallMushroom_10"
   },
@@ -1852,7 +1875,7 @@
    "pos": [
     43.0113143920898,
     0.0,
-    366.327789306641
+    479.914306640625
    ],
    "ruta_ue": "/Game/PureNature_FantasyForest/Models/Mushroom/Meshes/SM_SmallMushroom_1"
   },
@@ -1861,7 +1884,7 @@
    "pos": [
     43.9835357666016,
     0.0,
-    366.328491210938
+    479.915008544922
    ],
    "ruta_ue": "/Game/PureNature_FantasyForest/Models/Mushroom/Meshes/SM_SmallMushroom_11"
   },
@@ -1870,7 +1893,7 @@
    "pos": [
     45.1526374816895,
     0.0,
-    366.519470214844
+    480.105987548828
    ],
    "ruta_ue": "/Game/PureNature_FantasyForest/Models/Mushroom/Meshes/SM_TinderFungus_1"
   },
@@ -1879,7 +1902,7 @@
    "pos": [
     46.3896255493164,
     0.0,
-    366.434295654297
+    480.020812988281
    ],
    "ruta_ue": "/Game/PureNature_FantasyForest/Models/Mushroom/Meshes/SM_TinderFungus_3"
   },
@@ -1888,7 +1911,7 @@
    "pos": [
     47.5103607177734,
     0.0,
-    366.403686523438
+    479.990173339844
    ],
    "ruta_ue": "/Game/PureNature_FantasyForest/Models/Mushroom/Meshes/SM_TinderFungus_4"
   },
@@ -1897,7 +1920,7 @@
    "pos": [
     49.4045944213867,
     0.0,
-    367.182006835938
+    480.768493652344
    ],
    "ruta_ue": "/Game/PureNature_FantasyForest/Models/Plants/Meshes/SM_Grass3"
   },
@@ -1906,7 +1929,7 @@
    "pos": [
     51.4797515869141,
     0.0,
-    366.555969238281
+    480.142456054688
    ],
    "ruta_ue": "/Game/PureNature_FantasyForest/Models/Plants/Meshes/SM_Shrub2"
   },
@@ -1915,7 +1938,7 @@
    "pos": [
     52.9011344909668,
     0.0,
-    366.675567626953
+    480.262084960938
    ],
    "ruta_ue": "/Game/PureNature_FantasyForest/Models/Plants/Meshes/SM_Shrub3"
   },
@@ -1924,7 +1947,7 @@
    "pos": [
     54.3198776245117,
     0.0,
-    366.577850341797
+    480.164337158203
    ],
    "ruta_ue": "/Game/PureNature_FantasyForest/Models/Plants/Meshes/SM_LargeFern3"
   },
@@ -1933,7 +1956,7 @@
    "pos": [
     55.6510009765625,
     0.0,
-    366.482971191406
+    480.069488525391
    ],
    "ruta_ue": "/Game/PureNature_FantasyForest/Models/Plants/Meshes/SM_Spider3"
   },
@@ -1942,7 +1965,7 @@
    "pos": [
     56.8842430114746,
     0.0,
-    366.430786132813
+    480.017272949219
    ],
    "ruta_ue": "/Game/PureNature_FantasyForest/Models/Plants/Meshes/SM_Spider2"
   },
@@ -1951,7 +1974,7 @@
    "pos": [
     58.1124839782715,
     0.0,
-    366.535034179688
+    480.121551513672
    ],
    "ruta_ue": "/Game/PureNature_FantasyForest/Models/Plants/Meshes/SM_ShrubLeaf3"
   },
@@ -1960,7 +1983,7 @@
    "pos": [
     59.3127861022949,
     0.0,
-    366.381988525391
+    479.968505859375
    ],
    "ruta_ue": "/Game/PureNature_FantasyForest/Models/Plants/Meshes/SM_Spider1"
   },
@@ -1969,7 +1992,7 @@
    "pos": [
     0.246862426400185,
     0.0,
-    369.837310791016
+    483.423828125
    ],
    "ruta_ue": "/Game/PureNature_FantasyForest/Models/Plants/Meshes/SM_LargeFern2"
   },
@@ -1978,7 +2001,7 @@
    "pos": [
     1.96325850486755,
     0.0,
-    370.366577148438
+    483.953063964844
    ],
    "ruta_ue": "/Game/PureNature_FantasyForest/Models/Plants/Meshes/SM_Grass2"
   },
@@ -1987,7 +2010,7 @@
    "pos": [
     3.70297837257385,
     0.0,
-    369.800048828125
+    483.386566162109
    ],
    "ruta_ue": "/Game/PureNature_FantasyForest/Models/Plants/Meshes/SM_ShrubLeaf2"
   },
@@ -1996,7 +2019,7 @@
    "pos": [
     4.98298215866089,
     0.0,
-    369.974182128906
+    483.560668945313
    ],
    "ruta_ue": "/Game/PureNature_FantasyForest/Models/Plants/Meshes/SM_Shrub1"
   },
@@ -2005,7 +2028,7 @@
    "pos": [
     6.23043918609619,
     0.0,
-    369.727935791016
+    483.314453125
    ],
    "ruta_ue": "/Game/PureNature_FantasyForest/Models/Plants/Meshes/SM_LargeFern1"
   },
@@ -2014,7 +2037,7 @@
    "pos": [
     7.63670873641968,
     0.0,
-    370.004669189453
+    483.591186523438
    ],
    "ruta_ue": "/Game/PureNature_FantasyForest/Models/Plants/Meshes/SM_Grass1"
   },
@@ -2023,7 +2046,7 @@
    "pos": [
     9.03011322021484,
     0.0,
-    369.730224609375
+    483.316741943359
    ],
    "ruta_ue": "/Game/PureNature_FantasyForest/Models/Plants/Meshes/SM_ShrubLeaf1"
   },
@@ -2032,7 +2055,7 @@
    "pos": [
     10.3181619644165,
     0.0,
-    369.961242675781
+    483.547729492188
    ],
    "ruta_ue": "/Game/PureNature_FantasyForest/Models/Plants/Meshes/SM_DeadLeaves4"
   },
@@ -2041,7 +2064,7 @@
    "pos": [
     11.6414737701416,
     0.0,
-    369.746673583984
+    483.333190917969
    ],
    "ruta_ue": "/Game/PureNature_FantasyForest/Models/Plants/Meshes/SM_GrassMoss"
   },
@@ -2050,7 +2073,7 @@
    "pos": [
     13.0247364044189,
     0.0,
-    369.952026367188
+    483.538543701172
    ],
    "ruta_ue": "/Game/PureNature_FantasyForest/Models/Plants/Meshes/SM_Branches"
   },
@@ -2059,7 +2082,7 @@
    "pos": [
     14.5875988006592,
     0.0,
-    369.910217285156
+    483.496704101563
    ],
    "ruta_ue": "/Game/PureNature_FantasyForest/Models/Plants/Meshes/SM_DeadLeaves2"
   },
@@ -2068,7 +2091,7 @@
    "pos": [
     16.0885810852051,
     0.0,
-    369.923980712891
+    483.510498046875
    ],
    "ruta_ue": "/Game/PureNature_FantasyForest/Models/Plants/Meshes/SM_DeadLeaves3"
   },
@@ -2077,7 +2100,7 @@
    "pos": [
     17.4796104431152,
     0.0,
-    369.797027587891
+    483.383544921875
    ],
    "ruta_ue": "/Game/PureNature_FantasyForest/Models/Plants/Meshes/SM_DeadLeaves1"
   },
@@ -2086,7 +2109,7 @@
    "pos": [
     2.09710764884949,
     0.0,
-    380.198486328125
+    493.785003662109
    ],
    "ruta_ue": "/Game/PureNature_Islands/Models/Trees/Meshes/Coconut/Coconut6/SM_Coconut6"
   },
@@ -2095,7 +2118,7 @@
    "pos": [
     7.162353515625,
     0.0,
-    379.122009277344
+    492.708526611328
    ],
    "ruta_ue": "/Game/PureNature_Islands/Models/Trees/Meshes/Coconut/Coconut4/SM_Coconut4"
   },
@@ -2104,7 +2127,7 @@
    "pos": [
     12.2973232269287,
     0.0,
-    381.635040283203
+    495.221557617188
    ],
    "ruta_ue": "/Game/PureNature_Islands/Models/Trees/Meshes/Coconut/Coconut5/SM_Coconut5"
   },
@@ -2113,7 +2136,7 @@
    "pos": [
     18.4808406829834,
     0.0,
-    380.477935791016
+    494.064453125
    ],
    "ruta_ue": "/Game/PureNature_Islands/Models/Trees/Meshes/Pandanace/Pandanace3/SM_Pandanace3"
   },
@@ -2122,7 +2145,7 @@
    "pos": [
     23.7857723236084,
     0.0,
-    380.430084228516
+    494.0166015625
    ],
    "ruta_ue": "/Game/PureNature_Islands/Models/Trees/Meshes/Coconut/Coconut3/SM_Coconut3"
   },
@@ -2131,7 +2154,7 @@
    "pos": [
     29.2273540496826,
     0.0,
-    379.036560058594
+    492.623046875
    ],
    "ruta_ue": "/Game/PureNature_Islands/Models/Trees/Meshes/Pandanace/Pandanace1/SM_Pandanace1"
   },
@@ -2140,7 +2163,7 @@
    "pos": [
     35.8213157653809,
     0.0,
-    379.449127197266
+    493.035614013672
    ],
    "ruta_ue": "/Game/PureNature_Islands/Models/Trees/Meshes/Pandanace/Pandanace2/SM_Pandanace2"
   },
@@ -2149,7 +2172,7 @@
    "pos": [
     41.353401184082,
     0.0,
-    379.076965332031
+    492.663482666016
    ],
    "ruta_ue": "/Game/PureNature_Islands/Models/Trees/Meshes/Coconut/Coconut2/SM_Coconut2"
   },
@@ -2158,7 +2181,7 @@
    "pos": [
     44.707763671875,
     0.0,
-    377.954498291016
+    491.540985107422
    ],
    "ruta_ue": "/Game/PureNature_Islands/Models/Trees/Meshes/Coconut/Coconut1/SM_Coconut1"
   },
@@ -2167,7 +2190,7 @@
    "pos": [
     47.3472366333008,
     0.0,
-    378.270172119141
+    491.856658935547
    ],
    "ruta_ue": "/Game/PureNature_Islands/Models/Trees/Meshes/Bush/Bush3/SM_Bush3"
   },
@@ -2176,7 +2199,7 @@
    "pos": [
     50.2605018615723,
     0.0,
-    378.052215576172
+    491.638702392578
    ],
    "ruta_ue": "/Game/PureNature_Islands/Models/Trees/Meshes/Bush/Bush2/SM_Bush2"
   },
@@ -2185,7 +2208,7 @@
    "pos": [
     52.493782043457,
     0.0,
-    377.758911132813
+    491.345428466797
    ],
    "ruta_ue": "/Game/PureNature_Islands/Models/Trees/Meshes/Bush/Bush1/SM_Bush1"
   },
@@ -2194,7 +2217,7 @@
    "pos": [
     54.6803512573242,
     0.0,
-    378.060638427734
+    491.647155761719
    ],
    "ruta_ue": "/Game/PureNature_Islands/Models/Trees/Meshes/Coconut/SM_DryPalm1"
   },
@@ -2203,7 +2226,7 @@
    "pos": [
     57.3731994628906,
     0.0,
-    378.35009765625
+    491.936584472656
    ],
    "ruta_ue": "/Game/PureNature_Islands/Models/Trees/Meshes/Coconut/SM_DryPalm2"
   },
@@ -2212,7 +2235,7 @@
    "pos": [
     10.5775022506714,
     0.0,
-    390.572875976563
+    504.159393310547
    ],
    "ruta_ue": "/Game/PureNature_Islands/Models/Rocks/Meshes/SM_IslandCliff2"
   },
@@ -2221,7 +2244,7 @@
    "pos": [
     32.1962242126465,
     0.0,
-    391.148529052734
+    504.735046386719
    ],
    "ruta_ue": "/Game/PureNature_Islands/Models/Rocks/Meshes/SM_IslandCliff1"
   },
@@ -2230,7 +2253,7 @@
    "pos": [
     43.6205406188965,
     0.0,
-    384.850067138672
+    498.436584472656
    ],
    "ruta_ue": "/Game/PureNature_Islands/Models/Rocks/Meshes/SM_Boulder_11"
   },
@@ -2239,7 +2262,7 @@
    "pos": [
     45.2441329956055,
     0.0,
-    384.723419189453
+    498.309936523438
    ],
    "ruta_ue": "/Game/PureNature_Islands/Models/Rocks/Meshes/SM_Boulder_12"
   },
@@ -2248,7 +2271,7 @@
    "pos": [
     46.9776916503906,
     0.0,
-    384.811645507813
+    498.398162841797
    ],
    "ruta_ue": "/Game/PureNature_Islands/Models/Rocks/Meshes/SM_Boulder_15"
   },
@@ -2257,7 +2280,7 @@
    "pos": [
     48.8646392822266,
     0.0,
-    384.845825195313
+    498.432312011719
    ],
    "ruta_ue": "/Game/PureNature_Islands/Models/Rocks/Meshes/SM_Boulder_8"
   },
@@ -2266,7 +2289,7 @@
    "pos": [
     50.7344017028809,
     0.0,
-    384.869171142578
+    498.455657958984
    ],
    "ruta_ue": "/Game/PureNature_Islands/Models/Rocks/Meshes/SM_Boulder_9"
   },
@@ -2275,7 +2298,7 @@
    "pos": [
     52.4452972412109,
     0.0,
-    384.809265136719
+    498.395782470703
    ],
    "ruta_ue": "/Game/PureNature_Islands/Models/Rocks/Meshes/SM_Boulder_13"
   },
@@ -2284,7 +2307,7 @@
    "pos": [
     54.182315826416,
     0.0,
-    384.702972412109
+    498.289459228516
    ],
    "ruta_ue": "/Game/PureNature_Islands/Models/Rocks/Meshes/SM_Boulder_14"
   },
@@ -2293,7 +2316,7 @@
    "pos": [
     55.9214057922363,
     0.0,
-    384.783966064453
+    498.370483398438
    ],
    "ruta_ue": "/Game/PureNature_Islands/Models/Rocks/Meshes/SM_Boulder_10"
   },
@@ -2302,7 +2325,7 @@
    "pos": [
     58.0362930297852,
     0.0,
-    385.171844482422
+    498.758361816406
    ],
    "ruta_ue": "/Game/PureNature_Islands/Models/Underwater/Meshes/SM_BigKelp2"
   },
@@ -2311,7 +2334,7 @@
    "pos": [
     1.06830525398254,
     0.0,
-    399.416778564453
+    513.003295898438
    ],
    "ruta_ue": "/Game/PureNature_Islands/Models/Underwater/Meshes/SM_BigKelp3"
   },
@@ -2320,7 +2343,7 @@
    "pos": [
     4.56461143493652,
     0.0,
-    399.672576904297
+    513.259094238281
    ],
    "ruta_ue": "/Game/PureNature_Islands/Models/Underwater/Meshes/SM_BigKelp4"
   },
@@ -2329,7 +2352,7 @@
    "pos": [
     8.84934520721436,
     0.0,
-    399.734985351563
+    513.321472167969
    ],
    "ruta_ue": "/Game/PureNature_Islands/Models/Underwater/Meshes/SM_BigKelp1"
   },
@@ -2338,7 +2361,7 @@
    "pos": [
     10.6615123748779,
     0.0,
-    399.037017822266
+    512.62353515625
    ],
    "ruta_ue": "/Game/PureNature_Islands/Models/Underwater/Meshes/SM_Glocus3"
   },
@@ -2347,7 +2370,7 @@
    "pos": [
     11.9240446090698,
     0.0,
-    398.865844726563
+    512.452392578125
    ],
    "ruta_ue": "/Game/PureNature_Islands/Models/Underwater/Meshes/SM_Aquila3"
   },
@@ -2356,7 +2379,7 @@
    "pos": [
     13.1011905670166,
     0.0,
-    399.012023925781
+    512.598510742188
    ],
    "ruta_ue": "/Game/PureNature_Islands/Models/Underwater/Meshes/SM_Glocus2"
   },
@@ -2365,7 +2388,7 @@
    "pos": [
     14.49498462677,
     0.0,
-    399.095977783203
+    512.682495117188
    ],
    "ruta_ue": "/Game/PureNature_Islands/Models/Underwater/Meshes/SM_Silvabor3"
   },
@@ -2374,7 +2397,7 @@
    "pos": [
     16.0231056213379,
     0.0,
-    399.100952148438
+    512.687438964844
    ],
    "ruta_ue": "/Game/PureNature_Islands/Models/Underwater/Meshes/SM_Silvabor2"
   },
@@ -2383,7 +2406,7 @@
    "pos": [
     17.4332866668701,
     0.0,
-    398.984069824219
+    512.570556640625
    ],
    "ruta_ue": "/Game/PureNature_Islands/Models/Underwater/Meshes/SM_Cerfolet3"
   },
@@ -2392,7 +2415,7 @@
    "pos": [
     18.7055950164795,
     0.0,
-    398.994903564453
+    512.581420898438
    ],
    "ruta_ue": "/Game/PureNature_Islands/Models/Underwater/Meshes/SM_Glocus1"
   },
@@ -2401,7 +2424,7 @@
    "pos": [
     20.204439163208,
     0.0,
-    399.149230957031
+    512.735717773438
    ],
    "ruta_ue": "/Game/PureNature_Islands/Models/Underwater/Meshes/SM_Homis2"
   },
@@ -2410,7 +2433,7 @@
    "pos": [
     21.6785354614258,
     0.0,
-    398.954803466797
+    512.541320800781
    ],
    "ruta_ue": "/Game/PureNature_Islands/Models/Underwater/Meshes/SM_Cerfolet2"
   },
@@ -2419,7 +2442,7 @@
    "pos": [
     22.8723983764648,
     0.0,
-    398.868133544922
+    512.454650878906
    ],
    "ruta_ue": "/Game/PureNature_Islands/Models/Underwater/Meshes/SM_Aquila2"
   },
@@ -2428,7 +2451,7 @@
    "pos": [
     24.0146408081055,
     0.0,
-    398.989807128906
+    512.576293945313
    ],
    "ruta_ue": "/Game/PureNature_Islands/Models/Underwater/Meshes/SM_Silvabor1"
   },
@@ -2437,7 +2460,7 @@
    "pos": [
     25.2325210571289,
     0.0,
-    398.985076904297
+    512.571594238281
    ],
    "ruta_ue": "/Game/PureNature_Islands/Models/Underwater/Meshes/SM_Homis1"
   },
@@ -2446,7 +2469,7 @@
    "pos": [
     26.4412689208984,
     0.0,
-    398.960327148438
+    512.546813964844
    ],
    "ruta_ue": "/Game/PureNature_Islands/Models/Underwater/Meshes/SM_Flagilis3"
   },
@@ -2455,7 +2478,7 @@
    "pos": [
     27.8884601593018,
     0.0,
-    399.271301269531
+    512.857788085938
    ],
    "ruta_ue": "/Game/PureNature_Islands/Models/Underwater/Meshes/SM_Frondura3"
   },
@@ -2464,7 +2487,7 @@
    "pos": [
     29.3254871368408,
     0.0,
-    398.883544921875
+    512.470031738281
    ],
    "ruta_ue": "/Game/PureNature_Islands/Models/Underwater/Meshes/SM_Flagilis2"
   },
@@ -2473,7 +2496,7 @@
    "pos": [
     30.8923892974854,
     0.0,
-    399.430511474609
+    513.017028808594
    ],
    "ruta_ue": "/Game/PureNature_Islands/Models/Underwater/Meshes/SM_Ferneil2"
   },
@@ -2482,7 +2505,7 @@
    "pos": [
     32.488468170166,
     0.0,
-    398.917236328125
+    512.503723144531
    ],
    "ruta_ue": "/Game/PureNature_Islands/Models/Underwater/Meshes/SM_Cerfolet1"
   },
@@ -2491,7 +2514,7 @@
    "pos": [
     33.5192832946777,
     0.0,
-    398.857025146484
+    512.443542480469
    ],
    "ruta_ue": "/Game/PureNature_Islands/Models/Underwater/Meshes/SM_Aquila1"
   },
@@ -2500,7 +2523,7 @@
    "pos": [
     34.7923736572266,
     0.0,
-    399.188812255859
+    512.775329589844
    ],
    "ruta_ue": "/Game/PureNature_Islands/Models/Underwater/Meshes/SM_Frondura2"
   },
@@ -2509,7 +2532,7 @@
    "pos": [
     36.0944747924805,
     0.0,
-    398.871368408203
+    512.457885742188
    ],
    "ruta_ue": "/Game/PureNature_Islands/Models/Underwater/Meshes/SM_Flagilis1"
   },
@@ -2518,7 +2541,7 @@
    "pos": [
     37.3999290466309,
     0.0,
-    399.03173828125
+    512.618225097656
    ],
    "ruta_ue": "/Game/PureNature_Islands/Models/Underwater/Meshes/SM_Whister3"
   },
@@ -2527,7 +2550,7 @@
    "pos": [
     38.7689208984375,
     0.0,
-    399.037750244141
+    512.624267578125
    ],
    "ruta_ue": "/Game/PureNature_Islands/Models/Underwater/Meshes/SM_Escala3"
   },
@@ -2536,7 +2559,7 @@
    "pos": [
     40.0826530456543,
     0.0,
-    398.976013183594
+    512.5625
    ],
    "ruta_ue": "/Game/PureNature_Islands/Models/Underwater/Meshes/SM_Algae1"
   },
@@ -2545,7 +2568,7 @@
    "pos": [
     41.50439453125,
     0.0,
-    399.222564697266
+    512.80908203125
    ],
    "ruta_ue": "/Game/PureNature_Islands/Models/Underwater/Meshes/SM_Algae2"
   },
@@ -2554,7 +2577,7 @@
    "pos": [
     43.2237396240234,
     0.0,
-    399.058563232422
+    512.645080566406
    ],
    "ruta_ue": "/Game/PureNature_Islands/Models/Underwater/Meshes/SM_Ferneil1"
   },
@@ -2563,7 +2586,7 @@
    "pos": [
     44.6616744995117,
     0.0,
-    399.025421142578
+    512.611938476563
    ],
    "ruta_ue": "/Game/PureNature_Islands/Models/Underwater/Meshes/SM_Frondura1"
   },
@@ -2572,7 +2595,7 @@
    "pos": [
     45.8476409912109,
     0.0,
-    398.895263671875
+    512.481750488281
    ],
    "ruta_ue": "/Game/PureNature_Islands/Models/Underwater/Meshes/SM_Whister2"
   },
@@ -2581,7 +2604,7 @@
    "pos": [
     46.8867721557617,
     0.0,
-    398.869812011719
+    512.456298828125
    ],
    "ruta_ue": "/Game/PureNature_Islands/Models/Underwater/Meshes/SM_Whister1"
   },
@@ -2590,7 +2613,7 @@
    "pos": [
     48.038028717041,
     0.0,
-    399.027038574219
+    512.613525390625
    ],
    "ruta_ue": "/Game/PureNature_Islands/Models/Underwater/Meshes/SM_Pekel1"
   },
@@ -2599,7 +2622,7 @@
    "pos": [
     49.369873046875,
     0.0,
-    398.970367431641
+    512.556884765625
    ],
    "ruta_ue": "/Game/PureNature_Islands/Models/Underwater/Meshes/SM_Escala1"
   },
@@ -2608,7 +2631,7 @@
    "pos": [
     50.8805885314941,
     0.0,
-    399.177124023438
+    512.763671875
    ],
    "ruta_ue": "/Game/PureNature_Islands/Models/Underwater/Meshes/SM_Pekel2"
   },
@@ -2617,7 +2640,7 @@
    "pos": [
     52.4500350952148,
     0.0,
-    398.978729248047
+    512.565246582031
    ],
    "ruta_ue": "/Game/PureNature_Islands/Models/Underwater/Meshes/SM_Escala2"
   },
@@ -2626,7 +2649,7 @@
    "pos": [
     53.8556938171387,
     0.0,
-    399.077423095703
+    512.663940429688
    ],
    "ruta_ue": "/Game/PureNature_Islands/Models/Underwater/Meshes/SM_Muck2"
   },
@@ -2635,7 +2658,7 @@
    "pos": [
     55.0488967895508,
     0.0,
-    398.813812255859
+    512.400329589844
    ],
    "ruta_ue": "/Game/PureNature_Islands/Models/Underwater/Meshes/SM_Couec2"
   },
@@ -2644,7 +2667,7 @@
    "pos": [
     56.1519432067871,
     0.0,
-    399.002288818359
+    512.588806152344
    ],
    "ruta_ue": "/Game/PureNature_Islands/Models/Underwater/Meshes/SM_Verdivalis2"
   },
@@ -2653,7 +2676,7 @@
    "pos": [
     57.3676071166992,
     0.0,
-    398.843933105469
+    512.430419921875
    ],
    "ruta_ue": "/Game/PureNature_Islands/Models/Underwater/Meshes/SM_Plaveina2"
   },
@@ -2662,7 +2685,7 @@
    "pos": [
     58.4454765319824,
     0.0,
-    398.89990234375
+    512.486389160156
    ],
    "ruta_ue": "/Game/PureNature_Islands/Models/Underwater/Meshes/SM_Plaveina1"
   },
@@ -2671,7 +2694,7 @@
    "pos": [
     59.6159019470215,
     0.0,
-    399.031036376953
+    512.617553710938
    ],
    "ruta_ue": "/Game/PureNature_Islands/Models/Underwater/Meshes/SM_Muck1"
   },
@@ -2680,7 +2703,7 @@
    "pos": [
     0.279452979564667,
     0.0,
-    402.037475585938
+    515.623962402344
    ],
    "ruta_ue": "/Game/PureNature_Islands/Models/Underwater/Meshes/SM_Pepette2"
   },
@@ -2689,7 +2712,7 @@
    "pos": [
     1.56234085559845,
     0.0,
-    402.000793457031
+    515.587341308594
    ],
    "ruta_ue": "/Game/PureNature_Islands/Models/Underwater/Meshes/SM_Plaveina3"
   },
@@ -2698,7 +2721,7 @@
    "pos": [
     2.71274590492249,
     0.0,
-    401.871673583984
+    515.458190917969
    ],
    "ruta_ue": "/Game/PureNature_Islands/Models/Underwater/Meshes/SM_Fesh1"
   },
@@ -2707,7 +2730,7 @@
    "pos": [
     3.84632539749146,
     0.0,
-    401.939331054688
+    515.525817871094
    ],
    "ruta_ue": "/Game/PureNature_Islands/Models/Underwater/Meshes/SM_Lucida2"
   },
@@ -2716,7 +2739,7 @@
    "pos": [
     4.87479257583618,
     0.0,
-    401.784362792969
+    515.370849609375
    ],
    "ruta_ue": "/Game/PureNature_Islands/Models/Underwater/Meshes/SM_Couec1"
   },
@@ -2725,7 +2748,7 @@
    "pos": [
     6.12653398513794,
     0.0,
-    402.112945556641
+    515.699462890625
    ],
    "ruta_ue": "/Game/PureNature_Islands/Models/Underwater/Meshes/SM_Lucida3"
   },
@@ -2734,7 +2757,7 @@
    "pos": [
     7.57772350311279,
     0.0,
-    401.956634521484
+    515.543151855469
    ],
    "ruta_ue": "/Game/PureNature_Islands/Models/Underwater/Meshes/SM_Fesh3"
   },
@@ -2743,7 +2766,7 @@
    "pos": [
     8.81510734558105,
     0.0,
-    401.911682128906
+    515.498168945313
    ],
    "ruta_ue": "/Game/PureNature_Islands/Models/Underwater/Meshes/SM_Fesh2"
   },
@@ -2752,7 +2775,7 @@
    "pos": [
     9.91626453399658,
     0.0,
-    401.851928710938
+    515.438415527344
    ],
    "ruta_ue": "/Game/PureNature_Islands/Models/Underwater/Meshes/SM_Verdivalis1"
   },
@@ -2761,7 +2784,7 @@
    "pos": [
     10.9914855957031,
     0.0,
-    401.916015625
+    515.502502441406
    ],
    "ruta_ue": "/Game/PureNature_Islands/Models/Underwater/Meshes/SM_Sylphide1"
   },
@@ -2770,7 +2793,7 @@
    "pos": [
     12.2609548568726,
     0.0,
-    402.046569824219
+    515.633056640625
    ],
    "ruta_ue": "/Game/PureNature_Islands/Models/Underwater/Meshes/SM_Sylphide2"
   },
@@ -2779,7 +2802,7 @@
    "pos": [
     13.4782266616821,
     0.0,
-    401.850799560547
+    515.437316894531
    ],
    "ruta_ue": "/Game/PureNature_Islands/Models/Underwater/Meshes/SM_Pepette1"
   },
@@ -2788,7 +2811,7 @@
    "pos": [
     14.5402421951294,
     0.0,
-    401.898651123047
+    515.485168457031
    ],
    "ruta_ue": "/Game/PureNature_Islands/Models/Underwater/Meshes/SM_Lucida1"
   },
@@ -2797,7 +2820,7 @@
    "pos": [
     15.6381130218506,
     0.0,
-    401.877319335938
+    515.463806152344
    ],
    "ruta_ue": "/Game/PureNature_Islands/Models/Underwater/Meshes/SM_Gonegin1"
   },
@@ -2806,7 +2829,7 @@
    "pos": [
     16.890697479248,
     0.0,
-    402.014373779297
+    515.600891113281
    ],
    "ruta_ue": "/Game/PureNature_Islands/Models/Underwater/Meshes/SM_Gonegin2"
   },
@@ -2815,7 +2838,7 @@
    "pos": [
     18.0171184539795,
     0.0,
-    401.811492919922
+    515.398010253906
    ],
    "ruta_ue": "/Game/PureNature_Islands/Models/Props/Meshes/Shells/SM_Shell2"
   },
@@ -2824,7 +2847,7 @@
    "pos": [
     18.9336032867432,
     0.0,
-    401.823913574219
+    515.410400390625
    ],
    "ruta_ue": "/Game/PureNature_Islands/Models/Props/Meshes/Shells/SM_Starfish1"
   },
@@ -2833,7 +2856,7 @@
    "pos": [
     19.8369140625,
     0.0,
-    401.752868652344
+    515.33935546875
    ],
    "ruta_ue": "/Game/PureNature_Islands/Models/Props/Meshes/Shells/SM_Pearl"
   },
@@ -2842,7 +2865,7 @@
    "pos": [
     20.7038612365723,
     0.0,
-    401.817077636719
+    515.403564453125
    ],
    "ruta_ue": "/Game/PureNature_Islands/Models/Props/Meshes/Shells/SM_Shell1_Down"
   },
@@ -2851,7 +2874,7 @@
    "pos": [
     21.6065902709961,
     0.0,
-    401.817932128906
+    515.404418945313
    ],
    "ruta_ue": "/Game/PureNature_Islands/Models/Props/Meshes/Shells/SM_Shell1_Up"
   },
@@ -2860,7 +2883,7 @@
    "pos": [
     22.5468311309814,
     0.0,
-    401.822845458984
+    515.409362792969
    ],
    "ruta_ue": "/Game/PureNature_Islands/Models/Props/Meshes/Shells/SM_Starfish2"
   },
@@ -2869,7 +2892,7 @@
    "pos": [
     23.747652053833,
     0.0,
-    402.0888671875
+    515.675354003906
    ],
    "ruta_ue": "/Game/PureNature_Islands/Models/Plants/Meshes/SM_Cordyline2"
   },
@@ -2878,7 +2901,7 @@
    "pos": [
     25.288200378418,
     0.0,
-    402.109619140625
+    515.696105957031
    ],
    "ruta_ue": "/Game/PureNature_Islands/Models/Plants/Meshes/SM_Cordyline3"
   },
@@ -2887,7 +2910,7 @@
    "pos": [
     26.7229900360107,
     0.0,
-    402.038818359375
+    515.625305175781
    ],
    "ruta_ue": "/Game/PureNature_Islands/Models/Plants/Meshes/SM_Aloe3"
   },
@@ -2896,7 +2919,7 @@
    "pos": [
     28.777717590332,
     0.0,
-    402.66064453125
+    516.247131347656
    ],
    "ruta_ue": "/Game/PureNature_Islands/Models/Plants/Meshes/SM_Grass3"
   },
@@ -2905,7 +2928,7 @@
    "pos": [
     30.8258647918701,
     0.0,
-    402.067077636719
+    515.653564453125
    ],
    "ruta_ue": "/Game/PureNature_Islands/Models/Plants/Meshes/SM_Cordyline1"
   },
@@ -2914,7 +2937,7 @@
    "pos": [
     32.2317237854004,
     0.0,
-    402.088409423828
+    515.674926757813
    ],
    "ruta_ue": "/Game/PureNature_Islands/Models/Plants/Meshes/SM_Aloe2"
   },
@@ -2923,7 +2946,7 @@
    "pos": [
     33.5417251586914,
     0.0,
-    401.940216064453
+    515.526733398438
    ],
    "ruta_ue": "/Game/PureNature_Islands/Models/Plants/Meshes/SM_Aloe1"
   },
@@ -2932,7 +2955,7 @@
    "pos": [
     35.262035369873,
     0.0,
-    402.526214599609
+    516.112731933594
    ],
    "ruta_ue": "/Game/PureNature_Islands/Models/Plants/Meshes/SM_Grass2"
   },
@@ -2941,7 +2964,7 @@
    "pos": [
     37.2301597595215,
     0.0,
-    402.164337158203
+    515.750854492188
    ],
    "ruta_ue": "/Game/PureNature_Islands/Models/Plants/Meshes/SM_Grass1"
   },
@@ -2950,7 +2973,7 @@
    "pos": [
     39.5116500854492,
     0.0,
-    402.685974121094
+    516.2724609375
    ],
    "ruta_ue": "/Game/PureNature_Islands/Models/Plants/Meshes/SM_Branches"
   },
@@ -2959,7 +2982,7 @@
    "pos": [
     41.7849540710449,
     0.0,
-    402.165435791016
+    515.751953125
    ],
    "ruta_ue": "/Game/PureNature_Islands/Models/Plants/Meshes/SM_Blindweed"
   },
@@ -2968,7 +2991,7 @@
    "pos": [
     4.22869920730591,
     0.0,
-    416.182434082031
+    529.768920898438
    ],
    "ruta_ue": "/Game/PureNature_Jungle/Models/Trees/Meshes/Kapokier/Kapokier3/SM_Kapokier3"
   },
@@ -2977,7 +3000,7 @@
    "pos": [
     15.4891195297241,
     0.0,
-    413.006652832031
+    526.593139648438
    ],
    "ruta_ue": "/Game/PureNature_Jungle/Models/Trees/Meshes/Kapokier/Kapokier4/SM_Kapokier4"
   },
@@ -2986,7 +3009,7 @@
    "pos": [
     21.9718418121338,
     0.0,
-    414.738952636719
+    528.325439453125
    ],
    "ruta_ue": "/Game/PureNature_Jungle/Models/Trees/Meshes/Banana/Banana5/SM_Banana5"
   },
@@ -2995,7 +3018,7 @@
    "pos": [
     28.7417049407959,
     0.0,
-    412.776184082031
+    526.362670898438
    ],
    "ruta_ue": "/Game/PureNature_Jungle/Models/Trees/Meshes/Kapokier/Kapokier1/SM_Kapokier1"
   },
@@ -3004,7 +3027,7 @@
    "pos": [
     34.7533836364746,
     0.0,
-    415.965393066406
+    529.551879882813
    ],
    "ruta_ue": "/Game/PureNature_Jungle/Models/Trees/Meshes/Banana/Banana6/SM_Banana6"
   },
@@ -3013,7 +3036,7 @@
    "pos": [
     40.647102355957,
     0.0,
-    412.403503417969
+    525.989990234375
    ],
    "ruta_ue": "/Game/PureNature_Jungle/Models/Trees/Meshes/Kapokier/Kapokier2/SM_Kapokier2"
   },
@@ -3022,7 +3045,7 @@
    "pos": [
     48.9898262023926,
     0.0,
-    412.272247314453
+    525.858764648438
    ],
    "ruta_ue": "/Game/PureNature_Jungle/Models/Trees/Meshes/Banana/Banana4/SM_Banana4"
   },
@@ -3031,7 +3054,7 @@
    "pos": [
     53.8130187988281,
     0.0,
-    410.875
+    524.461486816406
    ],
    "ruta_ue": "/Game/PureNature_Jungle/Models/Trees/Meshes/Banana/Banana3/SM_Banana3"
   },
@@ -3040,7 +3063,7 @@
    "pos": [
     58.0430107116699,
     0.0,
-    411.518493652344
+    525.10498046875
    ],
    "ruta_ue": "/Game/PureNature_Jungle/Models/Trees/Meshes/Banana/Banana2/SM_Banana2"
   },
@@ -3049,7 +3072,7 @@
    "pos": [
     1.11388087272644,
     0.0,
-    419.845489501953
+    533.432006835938
    ],
    "ruta_ue": "/Game/PureNature_Jungle/Models/Trees/Meshes/Banana/Banana1/SM_Banana1"
   },
@@ -3058,7 +3081,7 @@
    "pos": [
     3.76982998847961,
     0.0,
-    419.330139160156
+    532.916625976563
    ],
    "ruta_ue": "/Game/PureNature_Jungle/Models/Trees/Meshes/Rattle/Rattle3/SM_Rattle3"
   },
@@ -3067,7 +3090,7 @@
    "pos": [
     5.39848041534424,
     0.0,
-    419.256774902344
+    532.84326171875
    ],
    "ruta_ue": "/Game/PureNature_Jungle/Models/Trees/Meshes/Rattle/Rattle2/SM_Rattle2"
   },
@@ -3076,7 +3099,7 @@
    "pos": [
     6.7828106880188,
     0.0,
-    419.088256835938
+    532.6748046875
    ],
    "ruta_ue": "/Game/PureNature_Jungle/Models/Trees/Meshes/Rattle/Rattle1/SM_Rattle1"
   },
@@ -3085,7 +3108,7 @@
    "pos": [
     8.29557514190674,
     0.0,
-    419.452270507813
+    533.038757324219
    ],
    "ruta_ue": "/Game/PureNature_Jungle/Models/Trees/Meshes/Tropica/Tropica3/SM_Tropica3"
   },
@@ -3094,7 +3117,7 @@
    "pos": [
     9.93284320831299,
     0.0,
-    419.230041503906
+    532.816528320313
    ],
    "ruta_ue": "/Game/PureNature_Jungle/Models/Trees/Meshes/Musa/Musa3/SM_Musa3"
   },
@@ -3103,7 +3126,7 @@
    "pos": [
     11.2121162414551,
     0.0,
-    419.112091064453
+    532.698608398438
    ],
    "ruta_ue": "/Game/PureNature_Jungle/Models/Trees/Meshes/Musa/Musa2/SM_Musa2"
   },
@@ -3112,7 +3135,7 @@
    "pos": [
     12.5395307540894,
     0.0,
-    419.265411376953
+    532.851928710938
    ],
    "ruta_ue": "/Game/PureNature_Jungle/Models/Trees/Meshes/Tropica/Tropica2/SM_Tropica2"
   },
@@ -3121,7 +3144,7 @@
    "pos": [
     13.8753175735474,
     0.0,
-    419.207122802734
+    532.793640136719
    ],
    "ruta_ue": "/Game/PureNature_Jungle/Models/Trees/Meshes/Tropica/Tropica1/SM_Tropica1"
   },
@@ -3130,7 +3153,7 @@
    "pos": [
     15.1470861434937,
     0.0,
-    419.14306640625
+    532.729553222656
    ],
    "ruta_ue": "/Game/PureNature_Jungle/Models/Trees/Meshes/Musa/Musa1/SM_Musa1"
   },
@@ -3139,7 +3162,7 @@
    "pos": [
     16.932056427002,
     0.0,
-    419.699310302734
+    533.285827636719
    ],
    "ruta_ue": "/Game/PureNature_Jungle/Models/Rocks/Meshes/SM_JungleBoulder_3"
   },
@@ -3148,7 +3171,7 @@
    "pos": [
     19.1733455657959,
     0.0,
-    419.53955078125
+    533.126037597656
    ],
    "ruta_ue": "/Game/PureNature_Jungle/Models/Rocks/Meshes/SM_JungleBoulder_2"
   },
@@ -3157,7 +3180,7 @@
    "pos": [
     21.0491638183594,
     0.0,
-    419.363861083984
+    532.950378417969
    ],
    "ruta_ue": "/Game/PureNature_Jungle/Models/Rocks/Meshes/SM_JungleBoulder_1"
   },
@@ -3166,7 +3189,7 @@
    "pos": [
     22.6123332977295,
     0.0,
-    419.121673583984
+    532.708190917969
    ],
    "ruta_ue": "/Game/PureNature_Jungle/Models/Rocks/Meshes/SM_JungleBoulder_0"
   },
@@ -3175,7 +3198,7 @@
    "pos": [
     23.935094833374,
     0.0,
-    419.14404296875
+    532.730529785156
    ],
    "ruta_ue": "/Game/PureNature_Jungle/Models/Rocks/Meshes/SM_Block_2"
   },
@@ -3184,7 +3207,7 @@
    "pos": [
     25.0904808044434,
     0.0,
-    419.029327392578
+    532.615844726563
    ],
    "ruta_ue": "/Game/PureNature_Jungle/Models/Rocks/Meshes/SM_Block_1"
   },
@@ -3193,7 +3216,7 @@
    "pos": [
     26.0729541778564,
     0.0,
-    419.028137207031
+    532.614624023438
    ],
    "ruta_ue": "/Game/PureNature_Jungle/Models/Rocks/Meshes/SM_Block_3"
   },
@@ -3202,7 +3225,7 @@
    "pos": [
     28.4639720916748,
     0.0,
-    420.356750488281
+    533.943237304688
    ],
    "ruta_ue": "/Game/PureNature_Jungle/Models/Cliff/Meshes/SM_JungleCliff_0"
   },
@@ -3211,7 +3234,7 @@
    "pos": [
     32.1734161376953,
     0.0,
-    420.20703125
+    533.793518066406
    ],
    "ruta_ue": "/Game/PureNature_Jungle/Models/Cliff/Meshes/SM_JungleCliff_1"
   },
@@ -3220,7 +3243,7 @@
    "pos": [
     35.7631416320801,
     0.0,
-    420.382415771484
+    533.968933105469
    ],
    "ruta_ue": "/Game/PureNature_Jungle/Models/Cliff/Meshes/SM_JungleCliff_4"
   },
@@ -3229,7 +3252,7 @@
    "pos": [
     39.2922859191895,
     0.0,
-    420.211791992188
+    533.798278808594
    ],
    "ruta_ue": "/Game/PureNature_Jungle/Models/Cliff/Meshes/SM_JungleCliff_3"
   },
@@ -3238,7 +3261,7 @@
    "pos": [
     42.693717956543,
     0.0,
-    420.211120605469
+    533.797607421875
    ],
    "ruta_ue": "/Game/PureNature_Jungle/Models/Cliff/Meshes/SM_JungleCliff_2"
   },
@@ -3247,7 +3270,7 @@
    "pos": [
     45.5750694274902,
     0.0,
-    419.758422851563
+    533.344909667969
    ],
    "ruta_ue": "/Game/PureNature_Jungle/Models/Plants/Meshes/SM_Elephant4"
   },
@@ -3256,7 +3279,7 @@
    "pos": [
     47.7473411560059,
     0.0,
-    419.441558837891
+    533.028076171875
    ],
    "ruta_ue": "/Game/PureNature_Jungle/Models/Plants/Meshes/SM_Elephant3"
   },
@@ -3265,7 +3288,7 @@
    "pos": [
     49.8097877502441,
     0.0,
-    419.606536865234
+    533.193054199219
    ],
    "ruta_ue": "/Game/PureNature_Jungle/Models/Plants/Meshes/SM_Elephant2"
   },
@@ -3274,7 +3297,7 @@
    "pos": [
     52.0171089172363,
     0.0,
-    419.621185302734
+    533.207702636719
    ],
    "ruta_ue": "/Game/PureNature_Jungle/Models/Plants/Meshes/SM_BigFern3"
   },
@@ -3283,7 +3306,7 @@
    "pos": [
     53.8812980651855,
     0.0,
-    419.421569824219
+    533.008056640625
    ],
    "ruta_ue": "/Game/PureNature_Jungle/Models/Plants/Meshes/SM_Elephant1"
   },
@@ -3292,7 +3315,7 @@
    "pos": [
     55.838981628418,
     0.0,
-    419.689239501953
+    533.275756835938
    ],
    "ruta_ue": "/Game/PureNature_Jungle/Models/Plants/Meshes/SM_ThinFern5"
   },
@@ -3301,7 +3324,7 @@
    "pos": [
     58.4024963378906,
     0.0,
-    419.830657958984
+    533.417175292969
    ],
    "ruta_ue": "/Game/PureNature_Jungle/Models/Plants/Meshes/SM_Grass3"
   },
@@ -3310,7 +3333,7 @@
    "pos": [
     0.58894270658493,
     0.0,
-    423.226043701172
+    536.812561035156
    ],
    "ruta_ue": "/Game/PureNature_Jungle/Models/Plants/Meshes/SM_ThinFern4"
   },
@@ -3319,7 +3342,7 @@
    "pos": [
     2.53928971290588,
     0.0,
-    423.131744384766
+    536.71826171875
    ],
    "ruta_ue": "/Game/PureNature_Jungle/Models/Plants/Meshes/SM_Asplenium3"
   },
@@ -3328,7 +3351,7 @@
    "pos": [
     4.15898704528809,
     0.0,
-    422.951873779297
+    536.538391113281
    ],
    "ruta_ue": "/Game/PureNature_Jungle/Models/Plants/Meshes/SM_Shrub2"
   },
@@ -3337,7 +3360,7 @@
    "pos": [
     5.52773475646973,
     0.0,
-    422.977203369141
+    536.563720703125
    ],
    "ruta_ue": "/Game/PureNature_Jungle/Models/Plants/Meshes/SM_Philo2"
   },
@@ -3346,7 +3369,7 @@
    "pos": [
     6.87240362167358,
     0.0,
-    422.956939697266
+    536.54345703125
    ],
    "ruta_ue": "/Game/PureNature_Jungle/Models/Plants/Meshes/SM_Anthurium3"
   },
@@ -3355,7 +3378,7 @@
    "pos": [
     8.45425033569336,
     0.0,
-    423.153167724609
+    536.739685058594
    ],
    "ruta_ue": "/Game/PureNature_Jungle/Models/Plants/Meshes/SM_Philo3"
   },
@@ -3364,7 +3387,7 @@
    "pos": [
     10.2392959594727,
     0.0,
-    423.173492431641
+    536.760009765625
    ],
    "ruta_ue": "/Game/PureNature_Jungle/Models/Plants/Meshes/SM_BigFern2"
   },
@@ -3373,7 +3396,7 @@
    "pos": [
     11.964527130127,
     0.0,
-    423.071502685547
+    536.658020019531
    ],
    "ruta_ue": "/Game/PureNature_Jungle/Models/Plants/Meshes/SM_Shrub3"
   },
@@ -3382,7 +3405,7 @@
    "pos": [
     13.5287895202637,
     0.0,
-    423.142303466797
+    536.728820800781
    ],
    "ruta_ue": "/Game/PureNature_Jungle/Models/Plants/Meshes/SM_ThinFern3"
   },
@@ -3391,7 +3414,7 @@
    "pos": [
     15.2054100036621,
     0.0,
-    423.007293701172
+    536.593811035156
    ],
    "ruta_ue": "/Game/PureNature_Jungle/Models/Plants/Meshes/SM_Asplenium2"
   },
@@ -3400,7 +3423,7 @@
    "pos": [
     16.6555194854736,
     0.0,
-    422.812133789063
+    536.398620605469
    ],
    "ruta_ue": "/Game/PureNature_Jungle/Models/Plants/Meshes/SM_Anthurium2"
   },
@@ -3409,7 +3432,7 @@
    "pos": [
     17.9003486633301,
     0.0,
-    422.878082275391
+    536.464599609375
    ],
    "ruta_ue": "/Game/PureNature_Jungle/Models/Plants/Meshes/SM_ThinFern1"
   },
@@ -3418,7 +3441,7 @@
    "pos": [
     19.5118350982666,
     0.0,
-    423.181427001953
+    536.767944335938
    ],
    "ruta_ue": "/Game/PureNature_Jungle/Models/Plants/Meshes/SM_BigFern1"
   },
@@ -3427,7 +3450,7 @@
    "pos": [
     21.042610168457,
     0.0,
-    422.850250244141
+    536.436767578125
    ],
    "ruta_ue": "/Game/PureNature_Jungle/Models/Plants/Meshes/SM_Anthurium1"
   },
@@ -3436,7 +3459,7 @@
    "pos": [
     22.1227188110352,
     0.0,
-    422.763549804688
+    536.350036621094
    ],
    "ruta_ue": "/Game/PureNature_Jungle/Models/Plants/Meshes/SM_Heliconia2"
   },
@@ -3445,7 +3468,7 @@
    "pos": [
     23.3711585998535,
     0.0,
-    422.923492431641
+    536.510009765625
    ],
    "ruta_ue": "/Game/PureNature_Jungle/Models/Plants/Meshes/SM_Asplenium1"
   },
@@ -3454,7 +3477,7 @@
    "pos": [
     24.5302600860596,
     0.0,
-    422.738098144531
+    536.324645996094
    ],
    "ruta_ue": "/Game/PureNature_Jungle/Models/Plants/Meshes/SM_Heliconia3"
   },
@@ -3463,7 +3486,7 @@
    "pos": [
     25.9196643829346,
     0.0,
-    423.054443359375
+    536.640991210938
    ],
    "ruta_ue": "/Game/PureNature_Jungle/Models/Plants/Meshes/SM_Philo1"
   },
@@ -3472,7 +3495,7 @@
    "pos": [
     27.7600784301758,
     0.0,
-    423.443481445313
+    537.030029296875
    ],
    "ruta_ue": "/Game/PureNature_Jungle/Models/Plants/Meshes/SM_Grass2"
   },
@@ -3481,7 +3504,7 @@
    "pos": [
     29.6455421447754,
     0.0,
-    423.026641845703
+    536.613159179688
    ],
    "ruta_ue": "/Game/PureNature_Jungle/Models/Plants/Meshes/SM_ThinFern2"
   },
@@ -3490,7 +3513,7 @@
    "pos": [
     31.1021537780762,
     0.0,
-    423.051086425781
+    536.637573242188
    ],
    "ruta_ue": "/Game/PureNature_Jungle/Models/Plants/Meshes/SM_Shrub1"
   },
@@ -3499,7 +3522,7 @@
    "pos": [
     32.291187286377,
     0.0,
-    422.752838134766
+    536.33935546875
    ],
    "ruta_ue": "/Game/PureNature_Jungle/Models/Plants/Meshes/SM_Heliconia1"
   },
@@ -3508,7 +3531,7 @@
    "pos": [
     33.614631652832,
     0.0,
-    423.081604003906
+    536.668090820313
    ],
    "ruta_ue": "/Game/PureNature_Jungle/Models/Plants/Meshes/SM_Grass1"
   },
@@ -3517,7 +3540,7 @@
    "pos": [
     35.2634620666504,
     0.0,
-    423.028961181641
+    536.615478515625
    ],
    "ruta_ue": "/Game/PureNature_Jungle/Models/Plants/Meshes/SM_Branches"
   },
@@ -3526,7 +3549,7 @@
    "pos": [
     5.4547176361084,
     0.0,
-    435.407165527344
+    548.99365234375
    ],
    "ruta_ue": "/Game/PureNature_Meadows/Models/Trees/Meshes/Oak/Oak6/SM_Oak6"
   },
@@ -3535,7 +3558,7 @@
    "pos": [
     16.1342258453369,
     0.0,
-    434.893249511719
+    548.479797363281
    ],
    "ruta_ue": "/Game/PureNature_Meadows/Models/Trees/Meshes/Oak/Oak4/SM_Oak4"
   },
@@ -3544,7 +3567,7 @@
    "pos": [
     26.1274662017822,
     0.0,
-    436.079650878906
+    549.666137695313
    ],
    "ruta_ue": "/Game/PureNature_Meadows/Models/Trees/Meshes/Oak/Oak5/SM_Oak5"
   },
@@ -3553,7 +3576,7 @@
    "pos": [
     35.8065376281738,
     0.0,
-    434.033447265625
+    547.619934082031
    ],
    "ruta_ue": "/Game/PureNature_Meadows/Models/Trees/Meshes/Birch/Birch6/SM_Birch6"
   },
@@ -3562,7 +3585,7 @@
    "pos": [
     43.1061134338379,
     0.0,
-    433.441467285156
+    547.027954101563
    ],
    "ruta_ue": "/Game/PureNature_Meadows/Models/Trees/Meshes/Birch/Birch5/SM_Birch5"
   },
@@ -3571,7 +3594,7 @@
    "pos": [
     50.9930610656738,
     0.0,
-    434.604370117188
+    548.190856933594
    ],
    "ruta_ue": "/Game/PureNature_Meadows/Models/Trees/Meshes/Elm/Elm6/SM_Elm6"
   },
@@ -3580,7 +3603,7 @@
    "pos": [
     58.1173706054688,
     0.0,
-    432.768524169922
+    546.355041503906
    ],
    "ruta_ue": "/Game/PureNature_Meadows/Models/Trees/Meshes/Birch/Birch4/SM_Birch4"
   },
@@ -3589,7 +3612,7 @@
    "pos": [
     3.67027497291565,
     0.0,
-    446.308715820313
+    559.895202636719
    ],
    "ruta_ue": "/Game/PureNature_Meadows/Models/Trees/Meshes/Elm/Elm5/SM_Elm5"
   },
@@ -3598,7 +3621,7 @@
    "pos": [
     11.9027090072632,
     0.0,
-    445.937805175781
+    559.524353027344
    ],
    "ruta_ue": "/Game/PureNature_Meadows/Models/Trees/Meshes/Oak/Oak3/SM_Oak3"
   },
@@ -3607,7 +3630,7 @@
    "pos": [
     18.7058696746826,
     0.0,
-    446.209808349609
+    559.796325683594
    ],
    "ruta_ue": "/Game/PureNature_Meadows/Models/Trees/Meshes/Elm/Elm3/SM_Elm3"
   },
@@ -3616,7 +3639,7 @@
    "pos": [
     26.2912864685059,
     0.0,
-    446.074493408203
+    559.661010742188
    ],
    "ruta_ue": "/Game/PureNature_Meadows/Models/Trees/Meshes/Oak/Oak2/SM_Oak2"
   },
@@ -3625,7 +3648,7 @@
    "pos": [
     34.7457885742188,
     0.0,
-    446.682281494141
+    560.268798828125
    ],
    "ruta_ue": "/Game/PureNature_Meadows/Models/Trees/Meshes/Elm/Elm4/SM_Elm4"
   },
@@ -3634,7 +3657,7 @@
    "pos": [
     42.6886177062988,
     0.0,
-    445.737213134766
+    559.32373046875
    ],
    "ruta_ue": "/Game/PureNature_Meadows/Models/Trees/Meshes/Elm/Elm2/SM_Elm2"
   },
@@ -3643,7 +3666,7 @@
    "pos": [
     47.661319732666,
     0.0,
-    443.759216308594
+    557.345764160156
    ],
    "ruta_ue": "/Game/PureNature_Meadows/Models/Trees/Meshes/Cypres/Cypres3/SM_Cypres3"
   },
@@ -3652,7 +3675,7 @@
    "pos": [
     51.1980171203613,
     0.0,
-    444.758728027344
+    558.34521484375
    ],
    "ruta_ue": "/Game/PureNature_Meadows/Models/Trees/Meshes/Birch/Birch3/SM_Birch3"
   },
@@ -3661,7 +3684,7 @@
    "pos": [
     56.4946212768555,
     0.0,
-    445.199005126953
+    558.785522460938
    ],
    "ruta_ue": "/Game/PureNature_Meadows/Models/Trees/Meshes/Oak/Oak1/SM_Oak1"
   },
@@ -3670,7 +3693,7 @@
    "pos": [
     0.780662357807159,
     0.0,
-    452.296966552734
+    565.883483886719
    ],
    "ruta_ue": "/Game/PureNature_Meadows/Models/Trees/Meshes/Cypres/Cypres2/SM_Cypres2"
   },
@@ -3679,7 +3702,7 @@
    "pos": [
     4.73276948928833,
     0.0,
-    454.160034179688
+    567.746520996094
    ],
    "ruta_ue": "/Game/PureNature_Meadows/Models/Trees/Meshes/Elm/Elm1/SM_Elm1"
   },
@@ -3688,7 +3711,7 @@
    "pos": [
     9.2861270904541,
     0.0,
-    453.191314697266
+    566.77783203125
    ],
    "ruta_ue": "/Game/PureNature_Meadows/Models/Trees/Meshes/Birch/Birch2/SM_Birch2"
   },
@@ -3697,7 +3720,7 @@
    "pos": [
     12.8937349319458,
     0.0,
-    452.962738037109
+    566.549255371094
    ],
    "ruta_ue": "/Game/PureNature_Meadows/Models/Trees/Meshes/Birch/Birch1/SM_Birch1"
   },
@@ -3706,7 +3729,7 @@
    "pos": [
     15.507698059082,
     0.0,
-    452.073425292969
+    565.659973144531
    ],
    "ruta_ue": "/Game/PureNature_Meadows/Models/Trees/Meshes/Cypres/Cypres1/SM_Cypres1"
   },
@@ -3715,7 +3738,7 @@
    "pos": [
     17.9416656494141,
     0.0,
-    452.599182128906
+    566.185668945313
    ],
    "ruta_ue": "/Game/PureNature_Meadows/Models/Trees/Meshes/Bush/Bush3/SM_Bush3"
   },
@@ -3724,7 +3747,7 @@
    "pos": [
     20.6890850067139,
     0.0,
-    452.316162109375
+    565.902648925781
    ],
    "ruta_ue": "/Game/PureNature_Meadows/Models/Trees/Meshes/Bush/Bush2/SM_Bush2"
   },
@@ -3733,7 +3756,7 @@
    "pos": [
     22.7045879364014,
     0.0,
-    452.123107910156
+    565.709655761719
    ],
    "ruta_ue": "/Game/PureNature_Meadows/Models/Trees/Meshes/Bush/Bush1/SM_Bush1"
   },
@@ -3742,7 +3765,7 @@
    "pos": [
     27.1285915374756,
     0.0,
-    453.717651367188
+    567.304138183594
    ],
    "ruta_ue": "/Game/PureNature_Meadows/Models/Rocks/Meshes/SM_Cliff1"
   },
@@ -3751,7 +3774,7 @@
    "pos": [
     32.3625640869141,
     0.0,
-    452.607727050781
+    566.194213867188
    ],
    "ruta_ue": "/Game/PureNature_Meadows/Models/Rocks/Meshes/SM_Stone5"
   },
@@ -3760,7 +3783,7 @@
    "pos": [
     35.9922866821289,
     0.0,
-    452.607727050781
+    566.194213867188
    ],
    "ruta_ue": "/Game/PureNature_Meadows/Models/Rocks/Meshes/SM_Stone5b"
   },
@@ -3769,7 +3792,7 @@
    "pos": [
     39.067756652832,
     0.0,
-    452.411224365234
+    565.997741699219
    ],
    "ruta_ue": "/Game/PureNature_Meadows/Models/Rocks/Meshes/SM_Stone4"
   },
@@ -3778,7 +3801,7 @@
    "pos": [
     41.4485816955566,
     0.0,
-    451.899230957031
+    565.485717773438
    ],
    "ruta_ue": "/Game/PureNature_Meadows/Models/Rocks/Meshes/SM_Stone3"
   },
@@ -3787,7 +3810,7 @@
    "pos": [
     43.5695533752441,
     0.0,
-    452.105651855469
+    565.692138671875
    ],
    "ruta_ue": "/Game/PureNature_Meadows/Models/Rocks/Meshes/SM_Stone2"
   },
@@ -3796,7 +3819,7 @@
    "pos": [
     45.3595504760742,
     0.0,
-    451.913513183594
+    565.5
    ],
    "ruta_ue": "/Game/PureNature_Meadows/Models/Rocks/Meshes/SM_Stone1"
   },
@@ -3805,7 +3828,7 @@
    "pos": [
     47.4076805114746,
     0.0,
-    451.633636474609
+    565.220153808594
    ],
    "ruta_ue": "/Game/PureNature_Meadows/Models/Props/Meshes/SM_Barrier1"
   },
@@ -3814,7 +3837,7 @@
    "pos": [
     49.8611373901367,
     0.0,
-    451.633636474609
+    565.220153808594
    ],
    "ruta_ue": "/Game/PureNature_Meadows/Models/Props/Meshes/SM_Barrier2"
   },
@@ -3823,7 +3846,7 @@
    "pos": [
     52.2568969726563,
     0.0,
-    451.661224365234
+    565.247741699219
    ],
    "ruta_ue": "/Game/PureNature_Meadows/Models/Props/Meshes/SM_Barrier3"
   },
@@ -3832,7 +3855,7 @@
    "pos": [
     54.1030158996582,
     0.0,
-    451.794494628906
+    565.380981445313
    ],
    "ruta_ue": "/Game/PureNature_Meadows/Models/Mushroom/Meshes/SM_Mushroom3"
   },
@@ -3841,7 +3864,7 @@
    "pos": [
     55.3831748962402,
     0.0,
-    451.816284179688
+    565.402770996094
    ],
    "ruta_ue": "/Game/PureNature_Meadows/Models/Mushroom/Meshes/SM_Mushroom6"
   },
@@ -3850,7 +3873,7 @@
    "pos": [
     56.6919097900391,
     0.0,
-    451.680969238281
+    565.267456054688
    ],
    "ruta_ue": "/Game/PureNature_Meadows/Models/Mushroom/Meshes/SM_Mushroom2"
   },
@@ -3859,7 +3882,7 @@
    "pos": [
     57.7167167663574,
     0.0,
-    451.634613037109
+    565.221130371094
    ],
    "ruta_ue": "/Game/PureNature_Meadows/Models/Mushroom/Meshes/SM_Mushroom5"
   },
@@ -3868,7 +3891,7 @@
    "pos": [
     58.6817665100098,
     0.0,
-    451.680145263672
+    565.266662597656
    ],
    "ruta_ue": "/Game/PureNature_Meadows/Models/Mushroom/Meshes/SM_Mushroom1"
   },
@@ -3877,7 +3900,7 @@
    "pos": [
     59.6027030944824,
     0.0,
-    451.608001708984
+    565.194519042969
    ],
    "ruta_ue": "/Game/PureNature_Meadows/Models/Mushroom/Meshes/SM_Mushroom4"
   },
@@ -3886,7 +3909,7 @@
    "pos": [
     0.322452664375305,
     0.0,
-    457.649688720703
+    571.236206054688
    ],
    "ruta_ue": "/Game/PureNature_Meadows/Models/Plants/Meshes/SM_GrassMeadows4"
   },
@@ -3895,7 +3918,7 @@
    "pos": [
     1.79786777496338,
     0.0,
-    457.691009521484
+    571.277526855469
    ],
    "ruta_ue": "/Game/PureNature_Meadows/Models/Plants/Meshes/SM_Carot2"
   },
@@ -3904,7 +3927,7 @@
    "pos": [
     3.29473543167114,
     0.0,
-    457.805023193359
+    571.391540527344
    ],
    "ruta_ue": "/Game/PureNature_Meadows/Models/Plants/Meshes/SM_FlowerMeadow1"
   },
@@ -3913,7 +3936,7 @@
    "pos": [
     4.7956862449646,
     0.0,
-    457.700286865234
+    571.286804199219
    ],
    "ruta_ue": "/Game/PureNature_Meadows/Models/Plants/Meshes/SM_Wheat"
   },
@@ -3922,7 +3945,7 @@
    "pos": [
     6.30977725982666,
     0.0,
-    457.700286865234
+    571.286804199219
    ],
    "ruta_ue": "/Game/PureNature_Meadows/Models/Plants/Meshes/SM_Barley"
   },
@@ -3931,7 +3954,7 @@
    "pos": [
     7.82386875152588,
     0.0,
-    457.700286865234
+    571.286804199219
    ],
    "ruta_ue": "/Game/PureNature_Meadows/Models/Plants/Meshes/SM_Lavender"
   },
@@ -3940,7 +3963,7 @@
    "pos": [
     9.16527938842773,
     0.0,
-    457.481475830078
+    571.067993164063
    ],
    "ruta_ue": "/Game/PureNature_Meadows/Models/Plants/Meshes/SM_Reeds"
   },
@@ -3949,7 +3972,7 @@
    "pos": [
     10.4997854232788,
     0.0,
-    457.717651367188
+    571.30419921875
    ],
    "ruta_ue": "/Game/PureNature_Meadows/Models/Plants/Meshes/SM_GrassMeadows3"
   },
@@ -3958,7 +3981,7 @@
    "pos": [
     12.0502901077271,
     0.0,
-    457.691131591797
+    571.277648925781
    ],
    "ruta_ue": "/Game/PureNature_Meadows/Models/Plants/Meshes/SM_GrassMeadows1"
   },
@@ -3967,7 +3990,7 @@
    "pos": [
     13.4904937744141,
     0.0,
-    457.714080810547
+    571.300598144531
    ],
    "ruta_ue": "/Game/PureNature_Meadows/Models/Plants/Meshes/SM_FlowerMeadow3"
   },
@@ -3976,7 +3999,7 @@
    "pos": [
     14.8690805435181,
     0.0,
-    457.611785888672
+    571.198303222656
    ],
    "ruta_ue": "/Game/PureNature_Meadows/Models/Plants/Meshes/SM_FlowerMeadow4"
   },
@@ -3985,7 +4008,7 @@
    "pos": [
     16.2799701690674,
     0.0,
-    457.7392578125
+    571.325744628906
    ],
    "ruta_ue": "/Game/PureNature_Meadows/Models/Plants/Meshes/SM_FlowerMeadow2"
   },
@@ -3994,7 +4017,7 @@
    "pos": [
     17.8294792175293,
     0.0,
-    457.7392578125
+    571.325744628906
    ],
    "ruta_ue": "/Game/PureNature_Meadows/Models/Plants/Meshes/SM_GrassMeadows2"
   },
@@ -4003,7 +4026,7 @@
    "pos": [
     19.2031517028809,
     0.0,
-    457.592132568359
+    571.178649902344
    ],
    "ruta_ue": "/Game/PureNature_Meadows/Models/Plants/Meshes/SM_Carot1"
   },
@@ -4012,7 +4035,7 @@
    "pos": [
     20.5412464141846,
     0.0,
-    457.731414794922
+    571.317932128906
    ],
    "ruta_ue": "/Game/PureNature_Meadows/Models/Plants/Meshes/SM_Gorse2"
   },
@@ -4021,7 +4044,7 @@
    "pos": [
     21.9392681121826,
     0.0,
-    457.617919921875
+    571.204406738281
    ],
    "ruta_ue": "/Game/PureNature_Meadows/Models/Plants/Meshes/SM_Lupin2"
   },
@@ -4030,7 +4053,7 @@
    "pos": [
     23.1084442138672,
     0.0,
-    457.505157470703
+    571.091674804688
    ],
    "ruta_ue": "/Game/PureNature_Meadows/Models/Plants/Meshes/SM_Lupin1"
   },
@@ -4039,7 +4062,7 @@
    "pos": [
     24.2658405303955,
     0.0,
-    457.618011474609
+    571.204528808594
    ],
    "ruta_ue": "/Game/PureNature_Meadows/Models/Plants/Meshes/SM_Gorse1"
   },
@@ -4048,7 +4071,7 @@
    "pos": [
     25.6538944244385,
     0.0,
-    457.734375
+    571.320861816406
    ],
    "ruta_ue": "/Game/PureNature_Meadows/Models/Plants/Meshes/SM_Grass3"
   },
@@ -4057,7 +4080,7 @@
    "pos": [
     27.0603275299072,
     0.0,
-    457.594818115234
+    571.181335449219
    ],
    "ruta_ue": "/Game/PureNature_Meadows/Models/Plants/Meshes/SM_Berries"
   },
@@ -4066,7 +4089,7 @@
    "pos": [
     28.3803272247314,
     0.0,
-    457.681457519531
+    571.267944335938
    ],
    "ruta_ue": "/Game/PureNature_Meadows/Models/Plants/Meshes/SM_Grass2"
   },
@@ -4075,7 +4098,7 @@
    "pos": [
     29.618091583252,
     0.0,
-    457.543579101563
+    571.130065917969
    ],
    "ruta_ue": "/Game/PureNature_Meadows/Models/Plants/Meshes/SM_Grass4"
   },
@@ -4084,7 +4107,7 @@
    "pos": [
     30.7408561706543,
     0.0,
-    457.538970947266
+    571.12548828125
    ],
    "ruta_ue": "/Game/PureNature_Meadows/Models/Plants/Meshes/SM_Grass1"
   },
@@ -4093,7 +4116,7 @@
    "pos": [
     32.1241188049316,
     0.0,
-    457.744323730469
+    571.330871582031
    ],
    "ruta_ue": "/Game/PureNature_Meadows/Models/Plants/Meshes/SM_Sorrel"
   },
@@ -4102,7 +4125,7 @@
    "pos": [
     33.5816764831543,
     0.0,
-    457.611907958984
+    571.198425292969
    ],
    "ruta_ue": "/Game/PureNature_Meadows/Models/Plants/Meshes/SM_Daisy"
   },
@@ -4111,7 +4134,7 @@
    "pos": [
     34.9183082580566,
     0.0,
-    457.657806396484
+    571.244323730469
    ],
    "ruta_ue": "/Game/PureNature_Meadows/Models/Plants/Meshes/SM_CommonYellow"
   },
@@ -4120,7 +4143,7 @@
    "pos": [
     36.2980880737305,
     0.0,
-    457.657806396484
+    571.244323730469
    ],
    "ruta_ue": "/Game/PureNature_Meadows/Models/Plants/Meshes/SM_CommonPink"
   },
@@ -4129,7 +4152,7 @@
    "pos": [
     37.6778678894043,
     0.0,
-    457.657806396484
+    571.244323730469
    ],
    "ruta_ue": "/Game/PureNature_Meadows/Models/Plants/Meshes/SM_CommonBlue"
   },
@@ -4138,7 +4161,7 @@
    "pos": [
     2.87127995491028,
     0.0,
-    467.161529541016
+    580.748046875
    ],
    "ruta_ue": "/Game/PureNature_Mountains/Models/Trees/Meshes/Fir/Fir6/SM_Fir6"
   },
@@ -4147,7 +4170,7 @@
    "pos": [
     8.51361179351807,
     0.0,
-    466.166809082031
+    579.753295898438
    ],
    "ruta_ue": "/Game/PureNature_Mountains/Models/Trees/Meshes/Spruce/Spruce6/SM_Spruce6"
   },
@@ -4156,7 +4179,7 @@
    "pos": [
     13.7278966903687,
     0.0,
-    466.62744140625
+    580.213928222656
    ],
    "ruta_ue": "/Game/PureNature_Mountains/Models/Trees/Meshes/Fir/Fir5/SM_Fir5"
   },
@@ -4165,7 +4188,7 @@
    "pos": [
     18.9020233154297,
     0.0,
-    466.269805908203
+    579.856323242188
    ],
    "ruta_ue": "/Game/PureNature_Mountains/Models/Trees/Meshes/Spruce/Spruce5/SM_Spruce5"
   },
@@ -4174,7 +4197,7 @@
    "pos": [
     22.8201732635498,
     0.0,
-    465.483642578125
+    579.070129394531
    ],
    "ruta_ue": "/Game/PureNature_Mountains/Models/Trees/Meshes/Spruce/Spruce4/SM_Spruce4"
   },
@@ -4183,7 +4206,7 @@
    "pos": [
     26.3753261566162,
     0.0,
-    465.770568847656
+    579.357116699219
    ],
    "ruta_ue": "/Game/PureNature_Mountains/Models/Trees/Meshes/Fir/Fir4/SM_Fir4"
   },
@@ -4192,7 +4215,7 @@
    "pos": [
     30.068826675415,
     0.0,
-    465.510040283203
+    579.096557617188
    ],
    "ruta_ue": "/Game/PureNature_Mountains/Models/Trees/Meshes/Pine/Pine6/SM_Pine6"
   },
@@ -4201,7 +4224,7 @@
    "pos": [
     33.3644371032715,
     0.0,
-    465.397216796875
+    578.983764648438
    ],
    "ruta_ue": "/Game/PureNature_Mountains/Models/Trees/Meshes/Spruce/Spruce3/SM_Spruce3"
   },
@@ -4210,7 +4233,7 @@
    "pos": [
     37.0849494934082,
     0.0,
-    465.968170166016
+    579.5546875
    ],
    "ruta_ue": "/Game/PureNature_Mountains/Models/Trees/Meshes/Fir/Fir3/SM_Fir3"
   },
@@ -4219,7 +4242,7 @@
    "pos": [
     40.932315826416,
     0.0,
-    465.84814453125
+    579.434692382813
    ],
    "ruta_ue": "/Game/PureNature_Mountains/Models/Trees/Meshes/Pine/Pine5/SM_Pine5"
   },
@@ -4228,7 +4251,7 @@
    "pos": [
     43.6888046264648,
     0.0,
-    465.307037353516
+    578.8935546875
    ],
    "ruta_ue": "/Game/PureNature_Mountains/Models/Trees/Meshes/Spruce/Spruce2/SM_Spruce2"
   },
@@ -4237,7 +4260,7 @@
    "pos": [
     46.7006721496582,
     0.0,
-    465.436767578125
+    579.023315429688
    ],
    "ruta_ue": "/Game/PureNature_Mountains/Models/Trees/Meshes/Fir/Fir2/SM_Fir2"
   },
@@ -4246,7 +4269,7 @@
    "pos": [
     49.4857368469238,
     0.0,
-    465.225860595703
+    578.812377929688
    ],
    "ruta_ue": "/Game/PureNature_Mountains/Models/Trees/Meshes/Pine/Pine4/SM_Pine4"
   },
@@ -4255,7 +4278,7 @@
    "pos": [
     52.0818672180176,
     0.0,
-    465.01708984375
+    578.603576660156
    ],
    "ruta_ue": "/Game/PureNature_Mountains/Models/Trees/Meshes/Spruce/Spruce1/SM_Spruce1"
   },
@@ -4264,7 +4287,7 @@
    "pos": [
     54.9509925842285,
     0.0,
-    465.283355712891
+    578.869873046875
    ],
    "ruta_ue": "/Game/PureNature_Mountains/Models/Trees/Meshes/Fir/Fir1/SM_Fir1"
   },
@@ -4273,7 +4296,7 @@
    "pos": [
     57.6045837402344,
     0.0,
-    465.049926757813
+    578.636413574219
    ],
    "ruta_ue": "/Game/PureNature_Mountains/Models/Trees/Meshes/Pine/Pine3/SM_Pine3"
   },
@@ -4282,7 +4305,7 @@
    "pos": [
     0.490814238786697,
     0.0,
-    471.640747070313
+    585.227233886719
    ],
    "ruta_ue": "/Game/PureNature_Mountains/Models/Trees/Meshes/Pine/Pine2/SM_Pine2"
   },
@@ -4291,7 +4314,7 @@
    "pos": [
     3.35605549812317,
     0.0,
-    472.059387207031
+    585.645874023438
    ],
    "ruta_ue": "/Game/PureNature_Mountains/Models/Trees/Meshes/Pine/Pine1/SM_Pine1"
   },
@@ -4300,7 +4323,7 @@
    "pos": [
     5.84646368026733,
     0.0,
-    472.113067626953
+    585.699584960938
    ],
    "ruta_ue": "/Game/PureNature_Mountains/Models/Trees/Meshes/Bush/Bush3/SM_Bush3"
   },
@@ -4309,7 +4332,7 @@
    "pos": [
     8.59388256072998,
     0.0,
-    471.830047607422
+    585.416564941406
    ],
    "ruta_ue": "/Game/PureNature_Mountains/Models/Trees/Meshes/Bush/Bush2/SM_Bush2"
   },
@@ -4318,7 +4341,7 @@
    "pos": [
     10.6093873977661,
     0.0,
-    471.636993408203
+    585.223510742188
    ],
    "ruta_ue": "/Game/PureNature_Mountains/Models/Trees/Meshes/Bush/Bush1/SM_Bush1"
   },
@@ -4327,7 +4350,7 @@
    "pos": [
     20.0110282897949,
     0.0,
-    476.905822753906
+    590.492309570313
    ],
    "ruta_ue": "/Game/PureNature_Mountains/Models/Rocks/Meshes/SM_Cliff5"
   },
@@ -4336,7 +4359,7 @@
    "pos": [
     33.4877967834473,
     0.0,
-    474.560333251953
+    588.146850585938
    ],
    "ruta_ue": "/Game/PureNature_Mountains/Models/Rocks/Meshes/SM_Cliff4"
   },
@@ -4345,7 +4368,7 @@
    "pos": [
     46.6632537841797,
     0.0,
-    476.590393066406
+    590.176879882813
    ],
    "ruta_ue": "/Game/PureNature_Mountains/Models/Rocks/Meshes/SM_Cliff6"
   },
@@ -4354,7 +4377,7 @@
    "pos": [
     15.479640007019,
     0.0,
-    495.550628662109
+    609.137145996094
    ],
    "ruta_ue": "/Game/PureNature_Mountains/Models/Rocks/Meshes/SM_Cliff2"
   },
@@ -4363,7 +4386,7 @@
    "pos": [
     35.2431983947754,
     0.0,
-    488.009429931641
+    601.595947265625
    ],
    "ruta_ue": "/Game/PureNature_Mountains/Models/Rocks/Meshes/SM_Cliff7"
   },
@@ -4372,7 +4395,7 @@
    "pos": [
     46.2200012207031,
     0.0,
-    490.581481933594
+    604.16796875
    ],
    "ruta_ue": "/Game/PureNature_Mountains/Models/Rocks/Meshes/SM_Cliff3"
   },
@@ -4381,7 +4404,7 @@
    "pos": [
     18.4396152496338,
     0.0,
-    525.081970214844
+    638.66845703125
    ],
    "ruta_ue": "/Game/PureNature_Mountains/Models/Rocks/Meshes/SM_Cliff1"
   },
@@ -4390,7 +4413,7 @@
    "pos": [
     46.1141128540039,
     0.0,
-    518.053466796875
+    631.639953613281
    ],
    "ruta_ue": "/Game/PureNature_Mountains/Models/Rocks/Meshes/SM_Cliff8"
   },
@@ -4399,7 +4422,7 @@
    "pos": [
     56.7575378417969,
     0.0,
-    509.415924072266
+    623.00244140625
    ],
    "ruta_ue": "/Game/PureNature_Mountains/Models/Rocks/Meshes/SM_Stone5"
   },
@@ -4408,7 +4431,7 @@
    "pos": [
     0.861154854297638,
     0.0,
-    543.482299804688
+    657.068786621094
    ],
    "ruta_ue": "/Game/PureNature_Mountains/Models/Rocks/Meshes/SM_Stone4"
   },
@@ -4417,7 +4440,7 @@
    "pos": [
     3.24197769165039,
     0.0,
-    542.970275878906
+    656.556823730469
    ],
    "ruta_ue": "/Game/PureNature_Mountains/Models/Rocks/Meshes/SM_Stone3"
   },
@@ -4426,7 +4449,7 @@
    "pos": [
     5.36294889450073,
     0.0,
-    543.176696777344
+    656.763244628906
    ],
    "ruta_ue": "/Game/PureNature_Mountains/Models/Rocks/Meshes/SM_Stone2"
   },
@@ -4435,7 +4458,7 @@
    "pos": [
     7.15294742584229,
     0.0,
-    542.984558105469
+    656.571105957031
    ],
    "ruta_ue": "/Game/PureNature_Mountains/Models/Rocks/Meshes/SM_Stone1b"
   },
@@ -4444,7 +4467,7 @@
    "pos": [
     8.73837661743164,
     0.0,
-    542.984558105469
+    656.571105957031
    ],
    "ruta_ue": "/Game/PureNature_Mountains/Models/Rocks/Meshes/SM_Stone1"
   },
@@ -4453,7 +4476,7 @@
    "pos": [
     10.5151100158691,
     0.0,
-    542.969116210938
+    656.555603027344
    ],
    "ruta_ue": "/Game/PureNature_Mountains/Models/Rocks/Meshes/SM_Boulder2"
   },
@@ -4462,7 +4485,7 @@
    "pos": [
     12.6174039840698,
     0.0,
-    542.992614746094
+    656.579162597656
    ],
    "ruta_ue": "/Game/PureNature_Mountains/Models/Rocks/Meshes/SM_Boulder3"
   },
@@ -4471,7 +4494,7 @@
    "pos": [
     14.4270467758179,
     0.0,
-    542.772888183594
+    656.359375
    ],
    "ruta_ue": "/Game/PureNature_Mountains/Models/Rocks/Meshes/SM_Boulder1"
   },
@@ -4480,7 +4503,7 @@
    "pos": [
     16.073148727417,
     0.0,
-    543.092834472656
+    656.679382324219
    ],
    "ruta_ue": "/Game/PureNature_Mountains/Models/Rocks/Meshes/SM_Pebble3"
   },
@@ -4489,7 +4512,7 @@
    "pos": [
     17.9761848449707,
     0.0,
-    543.164916992188
+    656.75146484375
    ],
    "ruta_ue": "/Game/PureNature_Mountains/Models/Rocks/Meshes/SM_Pebble2"
   },
@@ -4498,7 +4521,7 @@
    "pos": [
     19.7473411560059,
     0.0,
-    543.053405761719
+    656.639892578125
    ],
    "ruta_ue": "/Game/PureNature_Mountains/Models/Rocks/Meshes/SM_Pebble1"
   },
@@ -4507,7 +4530,7 @@
    "pos": [
     21.1303787231445,
     0.0,
-    542.890197753906
+    656.476684570313
    ],
    "ruta_ue": "/Game/PureNature_Mountains/Models/Plants/Meshes/SM_GrassMountain4"
   },
@@ -4516,7 +4539,7 @@
    "pos": [
     22.6057949066162,
     0.0,
-    542.931518554688
+    656.51806640625
    ],
    "ruta_ue": "/Game/PureNature_Mountains/Models/Plants/Meshes/SM_Carot2"
   },
@@ -4525,7 +4548,7 @@
    "pos": [
     23.9431209564209,
     0.0,
-    542.721984863281
+    656.308471679688
    ],
    "ruta_ue": "/Game/PureNature_Mountains/Models/Plants/Meshes/SM_Reeds"
   },
@@ -4534,7 +4557,7 @@
    "pos": [
     25.2776279449463,
     0.0,
-    542.958190917969
+    656.544677734375
    ],
    "ruta_ue": "/Game/PureNature_Mountains/Models/Plants/Meshes/SM_GrassMountain3"
   },
@@ -4543,7 +4566,7 @@
    "pos": [
     26.8281326293945,
     0.0,
-    542.931640625
+    656.518127441406
    ],
    "ruta_ue": "/Game/PureNature_Mountains/Models/Plants/Meshes/SM_GrassMountain1"
   },
@@ -4552,7 +4575,7 @@
    "pos": [
     28.3616161346436,
     0.0,
-    543.036254882813
+    656.622802734375
    ],
    "ruta_ue": "/Game/PureNature_Mountains/Models/Plants/Meshes/SM_GrassMountain2"
   },
@@ -4561,7 +4584,7 @@
    "pos": [
     29.7962646484375,
     0.0,
-    542.832641601563
+    656.419189453125
    ],
    "ruta_ue": "/Game/PureNature_Mountains/Models/Plants/Meshes/SM_Carot1"
   },
@@ -4570,7 +4593,7 @@
    "pos": [
     31.7448348999023,
     0.0,
-    543.533813476563
+    657.120300292969
    ],
    "ruta_ue": "/Game/PureNature_Mountains/Models/Plants/Meshes/SM_Grass3"
   },
@@ -4579,7 +4602,7 @@
    "pos": [
     33.8336601257324,
     0.0,
-    542.971923828125
+    656.558471679688
    ],
    "ruta_ue": "/Game/PureNature_Mountains/Models/Plants/Meshes/SM_Gorse2"
   },
@@ -4588,7 +4611,7 @@
    "pos": [
     35.2316818237305,
     0.0,
-    542.8583984375
+    656.444946289063
    ],
    "ruta_ue": "/Game/PureNature_Mountains/Models/Plants/Meshes/SM_Lupin2"
   },
@@ -4597,7 +4620,7 @@
    "pos": [
     36.4008598327637,
     0.0,
-    542.745666503906
+    656.332153320313
    ],
    "ruta_ue": "/Game/PureNature_Mountains/Models/Plants/Meshes/SM_Lupin1"
   },
@@ -4606,7 +4629,7 @@
    "pos": [
     37.5582580566406,
     0.0,
-    542.858520507813
+    656.445007324219
    ],
    "ruta_ue": "/Game/PureNature_Mountains/Models/Plants/Meshes/SM_Gorse1"
   },
@@ -4615,7 +4638,7 @@
    "pos": [
     38.8147163391113,
     0.0,
-    542.952331542969
+    656.538879394531
    ],
    "ruta_ue": "/Game/PureNature_Mountains/Models/Plants/Meshes/SM_Fern2"
   },
@@ -4624,7 +4647,7 @@
    "pos": [
     40.3533477783203,
     0.0,
-    542.95263671875
+    656.539123535156
    ],
    "ruta_ue": "/Game/PureNature_Mountains/Models/Plants/Meshes/SM_Fern1"
   },
@@ -4633,7 +4656,7 @@
    "pos": [
     42.1674880981445,
     0.0,
-    543.3994140625
+    656.985900878906
    ],
    "ruta_ue": "/Game/PureNature_Mountains/Models/Plants/Meshes/SM_Grass2"
   },
@@ -4642,7 +4665,7 @@
    "pos": [
     44.0794067382813,
     0.0,
-    543.049194335938
+    656.635681152344
    ],
    "ruta_ue": "/Game/PureNature_Mountains/Models/Plants/Meshes/SM_Grass4"
   },
@@ -4651,7 +4674,7 @@
    "pos": [
     45.6992301940918,
     0.0,
-    543.037475585938
+    656.6240234375
    ],
    "ruta_ue": "/Game/PureNature_Mountains/Models/Plants/Meshes/SM_Grass1"
   },
@@ -4660,7 +4683,7 @@
    "pos": [
     47.1697998046875,
     0.0,
-    542.835327148438
+    656.421813964844
    ],
    "ruta_ue": "/Game/PureNature_Mountains/Models/Plants/Meshes/SM_Berries"
   },
@@ -4669,7 +4692,7 @@
    "pos": [
     48.6131706237793,
     0.0,
-    542.98486328125
+    656.571350097656
    ],
    "ruta_ue": "/Game/PureNature_Mountains/Models/Plants/Meshes/SM_Sorrel"
   },
@@ -4678,7 +4701,7 @@
    "pos": [
     50.2348022460938,
     0.0,
-    542.98486328125
+    656.571350097656
    ],
    "ruta_ue": "/Game/PureNature_Mountains/Models/Plants/Meshes/SM_Branchs"
   },
@@ -4687,7 +4710,7 @@
    "pos": [
     51.6923637390137,
     0.0,
-    542.852416992188
+    656.438903808594
    ],
    "ruta_ue": "/Game/PureNature_Mountains/Models/Plants/Meshes/SM_DaisyBlue"
   },
@@ -4696,7 +4719,7 @@
    "pos": [
     52.9858474731445,
     0.0,
-    542.852416992188
+    656.438903808594
    ],
    "ruta_ue": "/Game/PureNature_Mountains/Models/Plants/Meshes/SM_Daisy"
   },
@@ -4705,7 +4728,7 @@
    "pos": [
     2.25032258033752,
     0.0,
-    552.584228515625
+    666.170715332031
    ],
    "ruta_ue": "/Game/PureNature_Savanna/Models/Trees/Baobab/Baobab2/SM_Baobab2"
   },
@@ -4714,7 +4737,7 @@
    "pos": [
     6.86451435089111,
     0.0,
-    552.823120117188
+    666.409606933594
    ],
    "ruta_ue": "/Game/PureNature_Savanna/Models/Trees/Baobab/Baobab3/SM_Baobab3"
   },
@@ -4723,7 +4746,7 @@
    "pos": [
     13.1895275115967,
     0.0,
-    554.385437011719
+    667.971984863281
    ],
    "ruta_ue": "/Game/PureNature_Savanna/Models/Trees/Acacia/Acacia8/SM_Acacia8"
   },
@@ -4732,7 +4755,7 @@
    "pos": [
     22.0921306610107,
     0.0,
-    553.284057617188
+    666.87060546875
    ],
    "ruta_ue": "/Game/PureNature_Savanna/Models/Trees/Baobab/Baobab4/SM_Baobab4"
   },
@@ -4741,7 +4764,7 @@
    "pos": [
     27.1682891845703,
     0.0,
-    551.898742675781
+    665.485229492188
    ],
    "ruta_ue": "/Game/PureNature_Savanna/Models/Trees/Baobab/Baobab8/SM_Baobab8"
   },
@@ -4750,7 +4773,7 @@
    "pos": [
     31.8400249481201,
     0.0,
-    553.079711914063
+    666.666198730469
    ],
    "ruta_ue": "/Game/PureNature_Savanna/Models/Trees/Baobab/Baobab6/SM_Baobab6"
   },
@@ -4759,7 +4782,7 @@
    "pos": [
     37.6124839782715,
     0.0,
-    552.488830566406
+    666.075378417969
    ],
    "ruta_ue": "/Game/PureNature_Savanna/Models/Trees/Baobab/Baobab1/SM_Baobab1"
   },
@@ -4768,7 +4791,7 @@
    "pos": [
     45.2605934143066,
     0.0,
-    554.573425292969
+    668.159912109375
    ],
    "ruta_ue": "/Game/PureNature_Savanna/Models/Trees/Acacia/Acacia7/SM_Acacia7"
   },
@@ -4777,7 +4800,7 @@
    "pos": [
     52.7210845947266,
     0.0,
-    551.890869140625
+    665.477416992188
    ],
    "ruta_ue": "/Game/PureNature_Savanna/Models/Trees/Baobab/Baobab7/SM_Baobab7"
   },
@@ -4786,7 +4809,7 @@
    "pos": [
     2.48620629310608,
     0.0,
-    561.835632324219
+    675.422119140625
    ],
    "ruta_ue": "/Game/PureNature_Savanna/Models/Trees/Baobab/Baobab5/SM_Baobab5"
   },
@@ -4795,7 +4818,7 @@
    "pos": [
     9.47872638702393,
     0.0,
-    562.424987792969
+    676.011535644531
    ],
    "ruta_ue": "/Game/PureNature_Savanna/Models/Trees/Acacia/Acacia5/SM_Acacia5"
   },
@@ -4804,7 +4827,7 @@
    "pos": [
     19.9932975769043,
     0.0,
-    562.770568847656
+    676.357055664063
    ],
    "ruta_ue": "/Game/PureNature_Savanna/Models/Trees/Acacia/Acacia4/SM_Acacia4"
   },
@@ -4813,7 +4836,7 @@
    "pos": [
     29.2792015075684,
     0.0,
-    563.049133300781
+    676.635620117188
    ],
    "ruta_ue": "/Game/PureNature_Savanna/Models/Trees/Acacia/Acacia6/SM_Acacia6"
   },
@@ -4822,7 +4845,7 @@
    "pos": [
     38.0913581848145,
     0.0,
-    561.375427246094
+    674.9619140625
    ],
    "ruta_ue": "/Game/PureNature_Savanna/Models/Trees/Acacia/Acacia2/SM_Acacia2"
   },
@@ -4831,7 +4854,7 @@
    "pos": [
     43.5951194763184,
     0.0,
-    561.963195800781
+    675.549682617188
    ],
    "ruta_ue": "/Game/PureNature_Savanna/Models/Trees/Acacia/Acacia3/SM_Acacia3"
   },
@@ -4840,7 +4863,7 @@
    "pos": [
     49.4103126525879,
     0.0,
-    560.266662597656
+    673.853210449219
    ],
    "ruta_ue": "/Game/PureNature_Savanna/Models/Trees/Acacia/Acacia1/SM_Acacia1"
   },
@@ -4849,7 +4872,7 @@
    "pos": [
     52.9844017028809,
     0.0,
-    560.372497558594
+    673.958984375
    ],
    "ruta_ue": "/Game/PureNature_Savanna/Models/Trees/Bush/Bush3/SM_Bush3"
   },
@@ -4858,7 +4881,7 @@
    "pos": [
     55.8976669311523,
     0.0,
-    560.154541015625
+    673.741027832031
    ],
    "ruta_ue": "/Game/PureNature_Savanna/Models/Trees/Bush/Bush2/SM_Bush2"
   },
@@ -4867,7 +4890,7 @@
    "pos": [
     58.1309471130371,
     0.0,
-    559.861267089844
+    673.44775390625
    ],
    "ruta_ue": "/Game/PureNature_Savanna/Models/Trees/Bush/Bush1/SM_Bush1"
   },
@@ -4876,7 +4899,7 @@
    "pos": [
     1.74137806892395,
     0.0,
-    568.731994628906
+    682.318481445313
    ],
    "ruta_ue": "/Game/PureNature_Savanna/Models/Rocks/BigBoulders/SM_BigBoulders_0"
   },
@@ -4885,7 +4908,7 @@
    "pos": [
     5.9893684387207,
     0.0,
-    568.936828613281
+    682.523315429688
    ],
    "ruta_ue": "/Game/PureNature_Savanna/Models/Rocks/BigBoulders/SM_BigBoulders_1"
   },
@@ -4894,7 +4917,7 @@
    "pos": [
     10.2909307479858,
     0.0,
-    568.909484863281
+    682.496032714844
    ],
    "ruta_ue": "/Game/PureNature_Savanna/Models/Rocks/BigBoulders/SM_BigBoulders_2"
   },
@@ -4903,7 +4926,7 @@
    "pos": [
     14.5675668716431,
     0.0,
-    568.926574707031
+    682.513061523438
    ],
    "ruta_ue": "/Game/PureNature_Savanna/Models/Rocks/BigBoulders/SM_BigBoulders_5"
   },
@@ -4912,7 +4935,7 @@
    "pos": [
     18.878490447998,
     0.0,
-    568.885192871094
+    682.471740722656
    ],
    "ruta_ue": "/Game/PureNature_Savanna/Models/Rocks/BigBoulders/SM_BigBoulders_3"
   },
@@ -4921,7 +4944,7 @@
    "pos": [
     23.1601619720459,
     0.0,
-    568.891479492188
+    682.47802734375
    ],
    "ruta_ue": "/Game/PureNature_Savanna/Models/Rocks/BigBoulders/SM_BigBoulders_4"
   },
@@ -4930,7 +4953,7 @@
    "pos": [
     27.8889198303223,
     0.0,
-    569.200927734375
+    682.787414550781
    ],
    "ruta_ue": "/Game/PureNature_Savanna/Models/Rocks/Rubble/SM_RubbleDense_2"
   },
@@ -4939,7 +4962,7 @@
    "pos": [
     32.4197425842285,
     0.0,
-    569.780395507813
+    683.366943359375
    ],
    "ruta_ue": "/Game/PureNature_Savanna/Models/Rocks/Rubble/SM_RubbleDense_3"
   },
@@ -4948,7 +4971,7 @@
    "pos": [
     36.8225173950195,
     0.0,
-    568.965270996094
+    682.5517578125
    ],
    "ruta_ue": "/Game/PureNature_Savanna/Models/Rocks/Rubble/SM_RubbleSparse_2"
   },
@@ -4957,7 +4980,7 @@
    "pos": [
     41.0102119445801,
     0.0,
-    568.624267578125
+    682.210815429688
    ],
    "ruta_ue": "/Game/PureNature_Savanna/Models/Rocks/Rubble/SM_RubbleDense_1"
   },
@@ -4966,7 +4989,7 @@
    "pos": [
     44.9074783325195,
     0.0,
-    568.937744140625
+    682.524230957031
    ],
    "ruta_ue": "/Game/PureNature_Savanna/Models/Rocks/Rubble/SM_RubbleSparse_3"
   },
@@ -4975,7 +4998,7 @@
    "pos": [
     48.7928886413574,
     0.0,
-    568.188781738281
+    681.775268554688
    ],
    "ruta_ue": "/Game/PureNature_Savanna/Models/Rocks/Rubble/SM_RubbleSparse_1"
   },
@@ -4984,7 +5007,7 @@
    "pos": [
     50.2263946533203,
     0.0,
-    567.214416503906
+    680.800964355469
    ],
    "ruta_ue": "/Game/PureNature_Savanna/Models/Rocks/Boulders/SM_BoulderSavanna_4"
   },
@@ -4993,7 +5016,7 @@
    "pos": [
     51.0589408874512,
     0.0,
-    567.216979980469
+    680.803466796875
    ],
    "ruta_ue": "/Game/PureNature_Savanna/Models/Rocks/Boulders/SM_BoulderSavanna_3"
   },
@@ -5002,7 +5025,7 @@
    "pos": [
     51.883846282959,
     0.0,
-    567.212585449219
+    680.799072265625
    ],
    "ruta_ue": "/Game/PureNature_Savanna/Models/Rocks/Boulders/SM_BoulderSavanna_2"
   },
@@ -5011,7 +5034,7 @@
    "pos": [
     52.7189331054688,
     0.0,
-    567.225280761719
+    680.811767578125
    ],
    "ruta_ue": "/Game/PureNature_Savanna/Models/Rocks/Boulders/SM_BoulderSavanna_6"
   },
@@ -5020,7 +5043,7 @@
    "pos": [
     53.5510482788086,
     0.0,
-    567.210876464844
+    680.79736328125
    ],
    "ruta_ue": "/Game/PureNature_Savanna/Models/Rocks/Boulders/SM_BoulderSavanna_1"
   },
@@ -5029,7 +5052,7 @@
    "pos": [
     54.3794059753418,
     0.0,
-    567.225280761719
+    680.811767578125
    ],
    "ruta_ue": "/Game/PureNature_Savanna/Models/Rocks/Boulders/SM_BoulderSavanna_5"
   },
@@ -5038,7 +5061,7 @@
    "pos": [
     55.2047462463379,
     0.0,
-    567.20458984375
+    680.791076660156
    ],
    "ruta_ue": "/Game/PureNature_Savanna/Models/Rocks/Rocks/SM_RockSavanna_6"
   },
@@ -5047,7 +5070,7 @@
    "pos": [
     56.0121040344238,
     0.0,
-    567.203002929688
+    680.78955078125
    ],
    "ruta_ue": "/Game/PureNature_Savanna/Models/Rocks/Rocks/SM_RockSavanna_2"
   },
@@ -5056,7 +5079,7 @@
    "pos": [
     56.8202323913574,
     0.0,
-    567.208679199219
+    680.795227050781
    ],
    "ruta_ue": "/Game/PureNature_Savanna/Models/Rocks/Rocks/SM_RockSavanna_5"
   },
@@ -5065,7 +5088,7 @@
    "pos": [
     57.6309814453125,
     0.0,
-    567.210266113281
+    680.796752929688
    ],
    "ruta_ue": "/Game/PureNature_Savanna/Models/Rocks/Rocks/SM_RockSavanna_10"
   },
@@ -5074,7 +5097,7 @@
    "pos": [
     58.4398880004883,
     0.0,
-    567.202331542969
+    680.788818359375
    ],
    "ruta_ue": "/Game/PureNature_Savanna/Models/Rocks/Rocks/SM_RockSavanna_1"
   },
@@ -5083,7 +5106,7 @@
    "pos": [
     59.2470092773438,
     0.0,
-    567.206604003906
+    680.793151855469
    ],
    "ruta_ue": "/Game/PureNature_Savanna/Models/Rocks/Rocks/SM_RockSavanna_8"
   },
@@ -5092,7 +5115,7 @@
    "pos": [
     0.0044945077970624,
     0.0,
-    572.7734375
+    686.359924316406
    ],
    "ruta_ue": "/Game/PureNature_Savanna/Models/Rocks/Rocks/SM_RockSavanna_7"
   },
@@ -5101,7 +5124,7 @@
    "pos": [
     0.81254905462265,
     0.0,
-    572.773864746094
+    686.360412597656
    ],
    "ruta_ue": "/Game/PureNature_Savanna/Models/Rocks/Rocks/SM_RockSavanna_4"
   },
@@ -5110,7 +5133,7 @@
    "pos": [
     1.61998963356018,
     0.0,
-    572.773132324219
+    686.359680175781
    ],
    "ruta_ue": "/Game/PureNature_Savanna/Models/Rocks/Rocks/SM_RockSavanna_3"
   },
@@ -5119,196 +5142,187 @@
    "pos": [
     2.42843580245972,
     0.0,
-    572.774780273438
+    686.361267089844
    ],
    "ruta_ue": "/Game/PureNature_Savanna/Models/Rocks/Rocks/SM_RockSavanna_9"
   },
   {
-   "id": "pn_savanna_kilimanjaro",
-   "pos": [
-    48.6618881225586,
-    0.0,
-    628.207397460938
-   ],
-   "ruta_ue": "/Game/PureNature_Savanna/Models/Mountain/SM_Kilimanjaro"
-  },
-  {
    "id": "pn_savanna_bank_4",
    "pos": [
-    2.32821321487427,
+    5.56120157241821,
     0.0,
-    680.54443359375
+    688.543640136719
    ],
    "ruta_ue": "/Game/PureNature_Savanna/Models/Banks/SM_Bank_4"
   },
   {
    "id": "pn_savanna_bank_5",
    "pos": [
-    7.69906568527222,
+    10.9320545196533,
     0.0,
-    680.485961914063
+    688.485168457031
    ],
    "ruta_ue": "/Game/PureNature_Savanna/Models/Banks/SM_Bank_5"
   },
   {
    "id": "pn_savanna_bank_3",
    "pos": [
-    12.9618663787842,
+    16.1948547363281,
     0.0,
-    680.389282226563
+    688.388488769531
    ],
    "ruta_ue": "/Game/PureNature_Savanna/Models/Banks/SM_Bank_3"
   },
   {
    "id": "pn_savanna_waterfall01",
    "pos": [
-    16.3068466186523,
+    19.5398349761963,
     0.0,
-    678.642639160156
+    686.641906738281
    ],
    "ruta_ue": "/Game/PureNature_Savanna/Models/Water/SM_WaterFall01"
   },
   {
    "id": "pn_savanna_bank_1",
    "pos": [
-    19.5406761169434,
+    22.7736644744873,
     0.0,
-    680.660522460938
+    688.659729003906
    ],
    "ruta_ue": "/Game/PureNature_Savanna/Models/Banks/SM_Bank_1"
   },
   {
    "id": "pn_savanna_bank_0",
    "pos": [
-    24.9073963165283,
+    28.1403846740723,
     0.0,
-    680.560913085938
+    688.560119628906
    ],
    "ruta_ue": "/Game/PureNature_Savanna/Models/Banks/SM_Bank_0"
   },
   {
    "id": "pn_savanna_bank_2",
    "pos": [
-    30.6288833618164,
+    33.861873626709,
     0.0,
-    680.669616699219
+    688.668823242188
    ],
    "ruta_ue": "/Game/PureNature_Savanna/Models/Banks/SM_Bank_2"
   },
   {
    "id": "pn_savanna_watermoss",
    "pos": [
-    36.7953453063965,
+    40.0283355712891,
     0.0,
-    681.230163574219
+    689.229370117188
    ],
    "ruta_ue": "/Game/PureNature_Savanna/Models/Water/SM_WaterMoss"
   },
   {
    "id": "pn_savanna_wetgrass2",
    "pos": [
-    40.8879432678223,
+    44.1209297180176,
     0.0,
-    678.85986328125
+    686.859069824219
    ],
    "ruta_ue": "/Game/PureNature_Savanna/Models/Plants/SM_Wetgrass2"
   },
   {
    "id": "pn_savanna_wetgrass1",
    "pos": [
-    42.4473686218262,
+    45.6803550720215,
     0.0,
-    678.665161132813
+    686.664367675781
    ],
    "ruta_ue": "/Game/PureNature_Savanna/Models/Plants/SM_Wetgrass1"
   },
   {
    "id": "pn_savanna_savannagrass3",
    "pos": [
-    43.7156066894531,
+    46.9485931396484,
     0.0,
-    678.560424804688
+    686.559631347656
    ],
    "ruta_ue": "/Game/PureNature_Savanna/Models/Plants/SM_SavannaGrass3"
   },
   {
    "id": "pn_savanna_ulmaria2",
    "pos": [
-    44.9891052246094,
+    48.222095489502,
     0.0,
-    678.643920898438
+    686.643188476563
    ],
    "ruta_ue": "/Game/PureNature_Savanna/Models/Plants/SM_Ulmaria2"
   },
   {
    "id": "pn_savanna_ulmaria1",
    "pos": [
-    46.223331451416,
+    49.4563179016113,
     0.0,
-    678.500854492188
+    686.500061035156
    ],
    "ruta_ue": "/Game/PureNature_Savanna/Models/Plants/SM_Ulmaria1"
   },
   {
    "id": "pn_savanna_savannagrass2",
    "pos": [
-    47.4126739501953,
+    50.6456642150879,
     0.0,
-    678.576721191406
+    686.575927734375
    ],
    "ruta_ue": "/Game/PureNature_Savanna/Models/Plants/SM_SavannaGrass2"
   },
   {
    "id": "pn_savanna_savannagrass1",
    "pos": [
-    48.750114440918,
+    51.9831008911133,
     0.0,
-    678.597045898438
+    686.596252441406
    ],
    "ruta_ue": "/Game/PureNature_Savanna/Models/Plants/SM_SavannaGrass1"
   },
   {
    "id": "pn_savanna_tallgrassdry",
    "pos": [
-    49.8519172668457,
+    53.084903717041,
     0.0,
-    678.410583496094
+    686.409790039063
    ],
    "ruta_ue": "/Game/PureNature_Savanna/Models/Plants/SM_TallGrassDry"
   },
   {
    "id": "pn_savanna_andropogon",
    "pos": [
-    50.7679672241211,
+    54.0009536743164,
     0.0,
-    678.405151367188
+    686.404357910156
    ],
    "ruta_ue": "/Game/PureNature_Savanna/Models/Plants/SM_Andropogon"
   },
   {
    "id": "pn_savanna_lillypads1",
    "pos": [
-    51.6732215881348,
+    54.9062118530273,
     0.0,
-    678.409301757813
+    686.408508300781
    ],
    "ruta_ue": "/Game/PureNature_Savanna/Models/Plants/SM_Lillypads1"
   },
   {
    "id": "pn_savanna_lillypads3",
    "pos": [
-    52.6542358398438,
+    55.8872261047363,
     0.0,
-    678.471313476563
+    686.470520019531
    ],
    "ruta_ue": "/Game/PureNature_Savanna/Models/Plants/SM_Lillypads3"
   },
   {
    "id": "pn_savanna_lillypads2",
    "pos": [
-    53.6571655273438,
+    56.8901557922363,
     0.0,
-    678.425048828125
+    686.424255371094
    ],
    "ruta_ue": "/Game/PureNature_Savanna/Models/Plants/SM_Lillypads2"
   }

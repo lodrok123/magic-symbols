@@ -278,7 +278,8 @@ func _montar_muestrario() -> bool:
 	var indice: Dictionary = JSON.parse_string(FileAccess.get_file_as_string(ruta))
 	var por_pack: Dictionary = {}
 	for id in indice:
-		var p: String = indice[id]["pack"]
+		# las piezas de «fondo» (montañas, colinas: decenas de metros) van todas juntas en su bloque, para no alejar la cámara de cada pack
+		var p: String = "Fondos" if indice[id]["categoria"] == "fondo" else String(indice[id]["pack"])
 		if not por_pack.has(p):
 			por_pack[p] = []
 		por_pack[p].append(indice[id])

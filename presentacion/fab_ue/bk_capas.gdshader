@@ -1,6 +1,8 @@
-// ROCAS Y TRONCOS DE PURE NATURE (BK) en Godot (26/11/2026, comparativa Unreal/Godot). Aproxima:
-//   · MM_BK_StandardLayered (rocas, acantilado): textura base × detalle repetido, y una CAPA (hierba) encima de las caras que miran
-//     hacia arriba («Blend Normal», «Blend Sharpness», «Blend Bias»).
+// ROCAS Y TRONCOS DE PURE NATURE (BK) en Godot (26/11/2026, comparativa Unreal/Godot). Traduce:
+//   · MM_BK_StandardLayered (rocas, acantilado), según su grafo (docs/fab_ue/grafos/MM_BK_StandardLayered.txt):
+//       color = mezcla(base, base × detalle, «Blend Normal»)      (el detalle NO se multiplica entero)
+//       capa  = WorldAlignedBlend(«Blend Sharpness», «Blend Bias») = saturar(normal_arriba × dureza + sesgo)
+//   · MM_BK_Banks (orillas de Savanna): igual, pero la capa va donde marca el canal B de la máscara (no por inclinación).
 //   · MM_BK_VegetationTrunk (troncos): textura × «Main Color», y la capa (musgo/hierba) que sube desde el suelo hasta «Offset» cm con
 //     una transición de «Falloff» cm.
 // La máscara del pack (_mask): G = oclusión. Lo demás de la máscara no se usa.
@@ -18,14 +20,16 @@ uniform float rugosidad = 0.9;
 uniform sampler2D detalle : source_color, filter_linear_mipmap_anisotropic, repeat_enable;
 uniform bool hay_detalle = false;
 uniform float repeticion_detalle = 3.0;
+uniform float detalle_mezcla = 1.0;      // «Blend Normal» de BK
 // capa
 uniform sampler2D capa_albedo : source_color, filter_linear_mipmap_anisotropic, repeat_enable;
 uniform bool hay_capa = false;
 uniform vec3 capa_tinte = vec3(1.0);
 uniform float repeticion_capa = 5.0;
 uniform bool capa_por_altura = false;    // troncos: desde el suelo; rocas: caras hacia arriba
-uniform float capa_umbral = 0.55;        // rocas: a partir de qué «cuánto mira arriba» (0..1) aparece la capa
-uniform float capa_dureza = 6.0;
+uniform bool capa_por_mascara = false;   // orillas (MM_BK_Banks): el canal B de la máscara
+uniform float capa_sesgo = 0.1;          // «Blend Bias»
+uniform float capa_dureza = 2.0;         // «Blend Sharpness»
 uniform float capa_alto = 0.4;           // troncos: m desde el suelo
 uniform float capa_transicion = 1.0;     // troncos: m de transición
 uniform vec3 emision = vec3(0.0);        // MM_BK_StandardEmissive (lineal)
@@ -43,14 +47,16 @@ void vertex() {
 void fragment() {
 	vec3 c = texture(albedo, UV).rgb * tinte;
 	if (hay_detalle) {
-		c *= texture(detalle, UV * repeticion_detalle).rgb;
+		c = mix(c, c * texture(detalle, UV * repeticion_detalle).rgb, detalle_mezcla);
 	}
 	float w = 0.0;
 	if (hay_capa) {
 		if (capa_por_altura) {
 			w = clamp(1.0 - (v_sobre_base - capa_alto) / max(capa_transicion, 0.01), 0.0, 1.0);
+		} else if (capa_por_mascara) {
+			w = texture(mascara, UV).b;
 		} else {
-			w = clamp((v_normal_mundo.y - capa_umbral) * capa_dureza, 0.0, 1.0);
+			w = clamp(v_normal_mundo.y * capa_dureza + capa_sesgo, 0.0, 1.0);
 		}
 		c = mix(c, texture(capa_albedo, UV * repeticion_capa).rgb * capa_tinte, w);
 	}

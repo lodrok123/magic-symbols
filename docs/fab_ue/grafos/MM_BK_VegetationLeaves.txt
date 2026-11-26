@@ -1,0 +1,156 @@
+# /Game/PureNature_Meadows/MasterMaterials/MM_BK_VegetationLeaves
+two_sided=False blend=<BlendMode.BLEND_MASKED: 1> shading=<MaterialShadingModel.MSM_SUBSURFACE: 2>
+== MP_MATERIAL_ATTRIBUTES
+  MakeMaterialAttributes
+    <0>
+      Reroute
+        <0>
+          LinearInterpolate const_a=0.0 const_b=1.0 const_alpha=0.5
+            <0>
+              TextureSampleParameter2D parameter_name=Texture texture=T_BirchLeaves_a
+            <1>
+              Multiply const_a=0.0 const_b=1.0
+                <0>
+                  LinearInterpolate const_a=0.0 const_b=1.0 const_alpha=0.5
+                    <0>
+                      TextureSampleParameter2D parameter_name=Texture texture=T_BirchLeaves_a  (repetido)
+                    <1>
+                      LinearInterpolate const_a=0.0 const_b=1.0 const_alpha=0.5
+                        <0>
+                          VectorParameter parameter_name=Main Color default_value=(0.053, 0.151, 0.000, 1.000)
+                        <1>
+                          VectorParameter parameter_name=Gradient Color default_value=(0.209, 0.297, 0.113, 1.000)
+                        <2>
+                          MaterialFunctionCall material_function=WorldAlignedBlend
+                            <2>
+                              ScalarParameter parameter_name=Gradient Contrast default_value=1.5
+                            <3>
+                              ScalarParameter parameter_name=Gradient Offset default_value=0.5
+                    <2>
+                      VertexColor
+                <1>
+                  TextureSampleParameter2D parameter_name=Texture texture=T_BirchLeaves_a  (repetido)
+            <2>
+              VertexColor  (repetido)
+    <2>
+      Constant r=0.10000000149011612
+    <3>
+      Constant r=1.0
+    <7>
+      Reroute
+        <0>
+          Multiply const_a=0.0 const_b=1.0
+            <0>
+              Saturate
+                <0>
+                  MaterialFunctionCall material_function=DitherTemporalAA
+                    <0>
+                      LinearInterpolate const_a=0.0 const_b=1.0 const_alpha=0.5
+                        <0>
+                          Clamp
+                            <0>
+                              Multiply const_a=0.0 const_b=1.0
+                                <0>
+                                  OneMinus
+                                    <0>
+                                      Multiply const_a=0.0 const_b=2.0
+                                        <0>
+                                          OneMinus
+                                            <0>
+                                              Abs
+                                                <0>
+                                                  DotProduct
+                                                    <0>
+                                                      MaterialFunctionCall material_function=CameraDirectionVector
+                                                    <1>
+                                                      Normalize
+                                                        <0>
+                                                          CrossProduct
+                                                            <0>
+                                                              DDY
+                                                                <0>
+                                                                  WorldPosition
+                                                            <1>
+                                                              DDX
+                                                                <0>
+                                                                  WorldPosition  (repetido)
+                                <1>
+                                  Power
+                                    <0>
+                                      Power
+                                        <0>
+                                          TextureSampleParameter2D parameter_name=Texture texture=T_BirchLeaves_a  (repetido)
+                                        <1>
+                                          OneMinus
+                                            <0>
+                                              Clamp
+                                                <0>
+                                                  Divide const_a=1.0 const_b=5000.0
+                                                    <0>
+                                                      Subtract const_a=1.0 const_b=3000.0
+                                                        <0>
+                                                          PixelDepth
+                                                <1>
+                                                  ScalarParameter parameter_name=Minimum Mask Expand default_value=0.10000000149011612
+                                                <2>
+                                                  ScalarParameter parameter_name=Maximum Mask Expand default_value=0.800000011920929
+                                    <1>
+                                      ScalarParameter parameter_name=Hiding Power default_value=0.25
+                        <1>
+                          Reroute
+                            <0>
+                              Power  (repetido)
+                        <2>
+                          VertexColor
+            <1>
+              OneMinus
+                <0>
+                  Multiply const_a=0.0 const_b=1.0
+                    <0>
+                      OneMinus
+                        <0>
+                          Abs
+                            <0>
+                              DotProduct
+                                <0>
+                                  CameraVectorWS
+                                <1>
+                                  Normalize
+                                    <0>
+                                      CrossProduct
+                                        <0>
+                                          DDY
+                                            <0>
+                                              WorldPosition
+                                        <1>
+                                          DDX
+                                            <0>
+                                              WorldPosition  (repetido)
+                    <1>
+                      ScalarParameter parameter_name=AngleFade default_value=1.0
+    <8>
+      LinearInterpolate const_a=0.0 const_b=1.0 const_alpha=0.5
+        <0>
+          VertexNormalWS
+        <1>
+          MaterialFunctionCall material_function=BlendAngleCorrectedNormals
+            <0>
+              TextureSampleParameter2D parameter_name=NormalTex texture=T_BirchLeaves_n
+            <1>
+              VertexNormalWS  (repetido)
+        <2>
+          ScalarParameter parameter_name=Normal Intensity default_value=0.20000000298023224
+    <10>
+      MaterialFunctionCall material_function=SimpleGrassWind
+        <0>
+          ScalarParameter parameter_name=Wind Power default_value=0.20000000298023224
+        <1>
+          VertexColor
+        <2>
+          ScalarParameter parameter_name=Wind Speed default_value=1.0
+        <3>
+          MaterialFunctionCall material_function=MF_TreeSway
+            <0>
+              ScalarParameter parameter_name=SwayIntensity default_value=2.0
+    <11>
+      Multiply const_a=0.0 const_b=1.0  (repetido)

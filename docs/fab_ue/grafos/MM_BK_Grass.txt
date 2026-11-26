@@ -1,0 +1,108 @@
+# /Game/PureNature_Meadows/MasterMaterials/MM_BK_Grass
+two_sided=True blend=<BlendMode.BLEND_MASKED: 1> shading=<MaterialShadingModel.MSM_TWO_SIDED_FOLIAGE: 6>
+== MP_BASE_COLOR
+  LinearInterpolate const_a=0.0 const_b=1.0 const_alpha=0.5
+    <0>
+      TextureSampleParameter2D parameter_name=Albedo texture=T_GrassMeadow_a
+    <1>
+      Multiply const_a=0.0 const_b=1.0
+        <0>
+          LinearInterpolate const_a=0.0 const_b=1.0 const_alpha=0.5
+            <0>
+              Reroute
+                <0>
+                  LinearInterpolate const_a=0.0 const_b=1.0 const_alpha=0.5
+                    <0>
+                      VectorParameter parameter_name=Color 01 default_value=(0.000, 0.000, 0.000, 1.000)
+                    <1>
+                      VectorParameter parameter_name=Color 02 default_value=(1.000, 1.000, 1.000, 1.000)
+                    <2>
+                      Clamp
+                        <0>
+                          Multiply const_a=0.0 const_b=1.0
+                            <0>
+                              TextureSampleParameter2D parameter_name=Noise texture=T__NoiseGrass
+                                <0>
+                                  Divide const_a=1.0 const_b=2.0
+                                    <0>
+                                      WorldPosition
+                                    <1>
+                                      ScalarParameter parameter_name=Noise Scale default_value=10000.0
+                            <1>
+                              ScalarParameter parameter_name=Noise Contrast default_value=1.5
+            <1>
+              Reroute
+                <0>
+                  RuntimeVirtualTextureSampleParameter parameter_name=RVT
+            <2>
+              ScalarParameter parameter_name=(0) Custom Color <> Terrain Color (1) default_value=0.0
+        <1>
+          TextureSampleParameter2D parameter_name=Albedo texture=T_GrassMeadow_a  (repetido)
+    <2>
+      ScalarParameter parameter_name=Color Power default_value=0.0
+== MP_OPACITY_MASK
+  Multiply const_a=0.0 const_b=1.0
+    <0>
+      TextureSampleParameter2D parameter_name=Albedo texture=T_GrassMeadow_a
+    <1>
+      MaterialFunctionCall material_function=DitherTemporalAA
+        <0>
+          OneMinus
+            <0>
+              Clamp
+                <0>
+                  Divide const_a=1.0 const_b=2.0
+                    <0>
+                      Distance
+                        <0>
+                          CameraPositionWS
+                        <1>
+                          WorldPosition
+                    <1>
+                      Constant r=100000.0
+== MP_ROUGHNESS
+  Reroute
+    <0>
+      Clamp
+        <0>
+          Add const_a=0.0 const_b=1.0
+            <0>
+              ScalarParameter parameter_name=Roughness default_value=0.5
+            <1>
+              OneMinus
+                <0>
+                  Reroute
+                    <0>
+                      VertexColor
+== MP_NORMAL
+  MaterialFunctionCall material_function=BlendAngleCorrectedNormals
+    <0>
+      Reroute
+        <0>
+          Reroute
+            <0>
+              RuntimeVirtualTextureSampleParameter parameter_name=RVT
+    <1>
+      Multiply const_a=0.0 const_b=1.0
+        <0>
+          LinearInterpolate const_a=0.0 const_b=1.0 const_alpha=0.5
+            <0>
+              TextureSampleParameter2D parameter_name=Normal texture=T_Grass01_n
+                <0>
+                  Divide const_a=1.0 const_b=2.0
+                    <0>
+                      WorldPosition
+                    <1>
+                      ScalarParameter parameter_name=Noise Scale default_value=10000.0
+            <1>
+              TextureSampleParameter2D parameter_name=Normal texture=T_Grass01_n
+            <2>
+              ScalarParameter parameter_name=Local / Worldspace UVs default_value=0.0
+        <1>
+          MaterialFunctionCall material_function=MakeFloat3
+            <0>
+              ScalarParameter parameter_name=Normal Power default_value=0.0
+            <1>
+              ScalarParameter parameter_name=Normal Power default_value=0.0  (repetido)
+            <2>
+              Constant r=1.0

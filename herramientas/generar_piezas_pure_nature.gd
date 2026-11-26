@@ -16,7 +16,9 @@ const RAIZ: String = "res://arte/pure_nature/"
 const ESCALA: float = 0.575
 const ORIGEN: String = "Pure Nature (BK, Fab)"
 ## Categoría por la carpeta del pack (Models/<Trees|Rocks|Plants|...>/).
-const CATEGORIAS: Dictionary = {"Trees": "arbol", "Rocks": "roca", "Plants": "planta", "Mushroom": "seta", "Props": "adorno", "Ground": "suelo"}
+## «fondo»: montañas y colinas lejanas (el Kilimanjaro de Savanna mide 180 m); no son piezas de escenario y en el muestrario van aparte.
+const CATEGORIAS: Dictionary = {"Trees": "arbol", "Rocks": "roca", "Plants": "planta", "Mushroom": "seta", "Props": "adorno", "Ground": "suelo",
+	"Mountain": "fondo", "Mountains": "fondo", "Hills": "fondo"}
 
 var _traductor: MaterialesUE
 var _guardados: Dictionary = {}

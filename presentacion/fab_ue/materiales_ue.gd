@@ -112,17 +112,21 @@ func material(clave: String, alto_malla: float = 10.0) -> Material:
 			sh.set_shader_parameter("tinte", v3(ve.get("Color")))
 			sh.set_shader_parameter("fuerza_normal", float(es.get("Normal Power", 1.0)))
 			sh.set_shader_parameter("oclusion", float(es.get("Occlusion", 0.7)))
+			# 26/11, según el grafo de Unreal (docs/fab_ue/grafos): el detalle se mezcla al «Blend Normal» y la capa es WorldAlignedBlend
+			# (Sharpness, Bias); en las orillas, la capa la marca el canal B de la máscara.
 			if tx.get("Detail Albedo") != null:
 				sh.set_shader_parameter("hay_detalle", true)
 				sh.set_shader_parameter("detalle", tex(tx.get("Detail Albedo")))
 				sh.set_shader_parameter("repeticion_detalle", float(es.get("Detail Tiling", 3.0)))
+				sh.set_shader_parameter("detalle_mezcla", clampf(float(es.get("Blend Normal", 0.5)), 0.0, 1.0))
 			if tx.get("Layer Albedo") != null:
 				sh.set_shader_parameter("hay_capa", true)
 				sh.set_shader_parameter("capa_albedo", tex(tx.get("Layer Albedo")))
 				sh.set_shader_parameter("capa_tinte", v3(ve.get("Layer Color")))
 				sh.set_shader_parameter("repeticion_capa", float(es.get("Layer Tiling", 5.0)))
-				sh.set_shader_parameter("capa_umbral", 0.3 + float(es.get("Blend Normal", 0.25)))
-				sh.set_shader_parameter("capa_dureza", clampf(float(es.get("Blend Sharpness", 5.0)), 2.0, 20.0))
+				sh.set_shader_parameter("capa_dureza", float(es.get("Blend Sharpness", 2.0)))
+				sh.set_shader_parameter("capa_sesgo", float(es.get("Blend Bias", 0.1)))
+				sh.set_shader_parameter("capa_por_mascara", padre == "MM_BK_Banks" and tx.get("Mask") != null)
 			if padre == "MM_BK_StandardOpacity":
 				sh.set_shader_parameter("recorte_alfa", true)
 			if padre == "MM_BK_StandardEmissive":

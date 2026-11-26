@@ -1,0 +1,122 @@
+# /Game/PureNature_Meadows/MasterMaterials/MM_BK_VegetationTrunk
+two_sided=False blend=<BlendMode.BLEND_OPAQUE: 0> shading=<MaterialShadingModel.MSM_DEFAULT_LIT: 1>
+== MP_MATERIAL_ATTRIBUTES
+  MakeMaterialAttributes
+    <0>
+      LinearInterpolate const_a=0.0 const_b=1.0 const_alpha=0.5
+        <0>
+          Multiply const_a=0.0 const_b=1.0
+            <0>
+              VectorParameter parameter_name=Main Color default_value=(1.000, 1.000, 1.000, 1.000)
+            <1>
+              TextureSampleParameter2D parameter_name=Albedo texture=T_BirchTrunk_a
+                <0>
+                  Multiply const_a=0.0 const_b=1.0
+                    <0>
+                      TextureCoordinate coordinate_index=0 u_tiling=1.0 v_tiling=1.0
+                    <1>
+                      ScalarParameter parameter_name=Tiling Main default_value=1.0
+        <1>
+          Multiply const_a=0.0 const_b=1.0
+            <0>
+              VectorParameter parameter_name=Layer Color default_value=(1.000, 1.000, 1.000, 1.000)
+            <1>
+              TextureSampleParameter2D parameter_name=Layer Albedo texture=T_BirchTrunk_a
+                <0>
+                  Multiply const_a=0.0 const_b=1.0
+                    <0>
+                      TextureCoordinate coordinate_index=0 u_tiling=1.0 v_tiling=1.0
+                    <1>
+                      ScalarParameter parameter_name=Tiling Layer default_value=1.0
+        <2>
+          Power
+            <0>
+              OneMinus
+                <0>
+                  Saturate
+                    <0>
+                      ComponentMask r=False g=False b=True a=False
+                        <0>
+                          Divide const_a=1.0 const_b=2.0
+                            <0>
+                              Subtract const_a=1.0 const_b=1.0
+                                <0>
+                                  WorldPosition
+                                <1>
+                                  Add const_a=0.0 const_b=1.0
+                                    <0>
+                                      VertexInterpolator
+                                        <0>
+                                          MaterialFunctionCall material_function=ObjectPivotPoint
+                                    <1>
+                                      ScalarParameter parameter_name=Offset default_value=1.0
+                            <1>
+                              Multiply const_a=0.0 const_b=1.0
+                                <0>
+                                  ScalarParameter parameter_name=Falloff default_value=10.0
+                                <1>
+                                  TextureSampleParameter2D parameter_name=Noise texture=T__NoiseColorVar1
+            <1>
+              ScalarParameter parameter_name=Contrast default_value=1.0
+    <3>
+      LinearInterpolate const_a=0.0 const_b=1.0 const_alpha=0.5
+        <0>
+          OneMinus
+            <0>
+              TextureSampleParameter2D parameter_name=Mask texture=T_BirchTrunk_mask
+        <1>
+          OneMinus
+            <0>
+              TextureSampleParameter2D parameter_name=Layer Mask texture=T_BirchTrunk_mask
+        <2>
+          Power  (repetido)
+    <8>
+      LinearInterpolate const_a=0.0 const_b=1.0 const_alpha=0.5
+        <0>
+          MaterialFunctionCall material_function=FlattenNormal
+            <0>
+              TextureSampleParameter2D parameter_name=Normal texture=T_BirchTrunk_n
+                <0>
+                  Multiply const_a=0.0 const_b=1.0  (repetido)
+            <1>
+              OneMinus
+                <0>
+                  ScalarParameter parameter_name=Normal Power default_value=1.0
+        <1>
+          MaterialFunctionCall material_function=FlattenNormal
+            <0>
+              TextureSampleParameter2D parameter_name=Layer Normal texture=T_BirchTrunk_n
+                <0>
+                  Multiply const_a=0.0 const_b=1.0  (repetido)
+            <1>
+              OneMinus
+                <0>
+                  ScalarParameter parameter_name=Layer Normal Power default_value=1.0
+        <2>
+          Power  (repetido)
+    <10>
+      MaterialFunctionCall material_function=MF_TreeSway
+        <0>
+          ScalarParameter parameter_name=SwayIntensity default_value=2.0
+    <14>
+      LinearInterpolate const_a=0.0 const_b=1.0 const_alpha=0.5
+        <0>
+          Multiply const_a=0.0 const_b=1.0
+            <0>
+              LinearInterpolate const_a=0.0 const_b=1.0 const_alpha=0.5
+                <0>
+                  OneMinus
+                    <0>
+                      TextureSampleParameter2D parameter_name=Mask texture=T_BirchTrunk_mask  (repetido)
+                <1>
+                  OneMinus
+                    <0>
+                      TextureSampleParameter2D parameter_name=Layer Mask texture=T_BirchTrunk_mask  (repetido)
+                <2>
+                  Power  (repetido)
+            <1>
+              VertexColor
+        <2>
+          OneMinus
+            <0>
+              ScalarParameter parameter_name=Ambient Occlusion default_value=1.0

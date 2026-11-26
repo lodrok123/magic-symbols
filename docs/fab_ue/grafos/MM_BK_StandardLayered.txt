@@ -1,0 +1,232 @@
+# /Game/PureNature_Meadows/MasterMaterials/MM_BK_StandardLayered
+two_sided=False blend=<BlendMode.BLEND_OPAQUE: 0> shading=<MaterialShadingModel.MSM_DEFAULT_LIT: 1>
+== MP_BASE_COLOR
+  LinearInterpolate const_a=0.0 const_b=1.0 const_alpha=0.5
+    <0>
+      LinearInterpolate const_a=0.0 const_b=1.0 const_alpha=0.5
+        <0>
+          LinearInterpolate const_a=0.0 const_b=1.0 const_alpha=0.5
+            <0>
+              LinearInterpolate const_a=0.0 const_b=1.0 const_alpha=0.5
+                <0>
+                  TextureSampleParameter2D parameter_name=Albedo texture=T_Devtex_a
+                    <0>
+                      Multiply const_a=0.0 const_b=1.0
+                        <0>
+                          TextureCoordinate coordinate_index=0 u_tiling=1.0 v_tiling=1.0
+                        <1>
+                          ScalarParameter parameter_name=Tiling default_value=1.0
+                <1>
+                  Multiply const_a=0.0 const_b=1.0
+                    <0>
+                      VectorParameter parameter_name=Color default_value=(1.000, 1.000, 1.000, 1.000)
+                    <1>
+                      TextureSampleParameter2D parameter_name=Albedo texture=T_Devtex_a  (repetido)
+                <2>
+                  VectorParameter parameter_name=Color default_value=(1.000, 1.000, 1.000, 1.000)  (repetido)
+            <1>
+              RuntimeVirtualTextureSampleParameter parameter_name=RVTColor
+            <2>
+              OneMinus
+                <0>
+                  Saturate
+                    <0>
+                      Multiply const_a=0.0 const_b=1.0
+                        <0>
+                          Power
+                            <0>
+                              Divide const_a=1.0 const_b=2.0
+                                <0>
+                                  Add const_a=0.0 const_b=1.0
+                                    <0>
+                                      Subtract const_a=1.0 const_b=1.0
+                                        <0>
+                                          ComponentMask r=False g=False b=True a=False
+                                            <0>
+                                              WorldPosition
+                                        <1>
+                                          RuntimeVirtualTextureSampleParameter parameter_name=RVTHeight
+                                    <1>
+                                      ScalarParameter parameter_name=Bias default_value=0.0
+                                <1>
+                                  ScalarParameter parameter_name=Distance default_value=0.5
+                            <1>
+                              ScalarParameter parameter_name=Contrast default_value=0.20000000298023224
+                        <1>
+                          ScalarParameter parameter_name=Intensity default_value=1.0
+        <1>
+          Multiply const_a=0.0 const_b=1.0
+            <0>
+              LinearInterpolate const_a=0.0 const_b=1.0 const_alpha=0.5  (repetido)
+            <1>
+              TextureSampleParameter2D parameter_name=Detail Albedo texture=T__RockDetail_a
+                <0>
+                  Multiply const_a=0.0 const_b=1.0
+                    <0>
+                      TextureCoordinate coordinate_index=0 u_tiling=1.0 v_tiling=1.0
+                    <1>
+                      ScalarParameter parameter_name=Detail Tiling default_value=1.0
+        <2>
+          ScalarParameter parameter_name=Blend Normal default_value=0.5
+    <1>
+      StaticSwitchParameter parameter_name=Multiply Color default_value=True
+        <0>
+          LinearInterpolate const_a=0.0 const_b=1.0 const_alpha=0.5
+            <0>
+              Multiply const_a=0.0 const_b=1.0
+                <0>
+                  VectorParameter parameter_name=Layer Color default_value=(1.000, 1.000, 1.000, 1.000)
+                <1>
+                  TextureSampleParameter2D parameter_name=Layer Albedo texture=T_Grass01_a
+                    <0>
+                      Multiply const_a=0.0 const_b=1.0
+                        <0>
+                          TextureCoordinate coordinate_index=0 u_tiling=1.0 v_tiling=1.0
+                        <1>
+                          ScalarParameter parameter_name=Layer Tiling default_value=1.0
+            <1>
+              TextureSampleParameter2D parameter_name=Layer Albedo texture=T_Grass01_a  (repetido)
+            <2>
+              VectorParameter parameter_name=Layer Color default_value=(1.000, 1.000, 1.000, 1.000)  (repetido)
+        <1>
+          LinearInterpolate const_a=0.0 const_b=1.0 const_alpha=0.5
+            <0>
+              TextureSampleParameter2D parameter_name=Layer Albedo texture=T_Grass01_a  (repetido)
+            <1>
+              VectorParameter parameter_name=Layer Color default_value=(1.000, 1.000, 1.000, 1.000)  (repetido)
+            <2>
+              VectorParameter parameter_name=Layer Color default_value=(1.000, 1.000, 1.000, 1.000)  (repetido)
+    <2>
+      MaterialFunctionCall material_function=WorldAlignedBlend
+        <2>
+          ScalarParameter parameter_name=Blend Sharpness default_value=2.0
+        <3>
+          ScalarParameter parameter_name=Blend Bias default_value=0.10000000149011612
+== MP_ROUGHNESS
+  OneMinus
+    <0>
+      Clamp
+        <0>
+          Multiply const_a=0.0 const_b=1.0
+            <0>
+              ScalarParameter parameter_name=Roughness default_value=0.0
+            <1>
+              LinearInterpolate const_a=0.0 const_b=1.0 const_alpha=0.5
+                <0>
+                  TextureSampleParameter2D parameter_name=Mask texture=T_Devtex_m
+                    <0>
+                      Multiply const_a=0.0 const_b=1.0
+                        <0>
+                          TextureCoordinate coordinate_index=0 u_tiling=1.0 v_tiling=1.0
+                        <1>
+                          ScalarParameter parameter_name=Tiling default_value=1.0
+                <1>
+                  TextureSampleParameter2D parameter_name=Layer Mask texture=T_Grass01_m
+                    <0>
+                      Multiply const_a=0.0 const_b=1.0
+                        <0>
+                          TextureCoordinate coordinate_index=0 u_tiling=1.0 v_tiling=1.0
+                        <1>
+                          ScalarParameter parameter_name=Layer Tiling default_value=1.0
+                <2>
+                  MaterialFunctionCall material_function=WorldAlignedBlend
+                    <2>
+                      Clamp
+                        <0>
+                          ScalarParameter parameter_name=Blend Sharpness default_value=2.0
+                    <3>
+                      Clamp
+                        <0>
+                          ScalarParameter parameter_name=Blend Bias default_value=0.10000000149011612
+== MP_NORMAL
+  LinearInterpolate const_a=0.0 const_b=1.0 const_alpha=0.5
+    <0>
+      LinearInterpolate const_a=0.0 const_b=1.0 const_alpha=0.5
+        <0>
+          MaterialFunctionCall material_function=FlattenNormal
+            <0>
+              TextureSampleParameter2D parameter_name=Normal texture=T_Devtex_n
+                <0>
+                  Multiply const_a=0.0 const_b=1.0
+                    <0>
+                      TextureCoordinate coordinate_index=0 u_tiling=1.0 v_tiling=1.0
+                    <1>
+                      ScalarParameter parameter_name=Tiling default_value=1.0
+            <1>
+              OneMinus
+                <0>
+                  ScalarParameter parameter_name=Normal Power default_value=1.0
+        <1>
+          MaterialFunctionCall material_function=BlendAngleCorrectedNormals
+            <0>
+              MaterialFunctionCall material_function=FlattenNormal  (repetido)
+            <1>
+              TextureSampleParameter2D parameter_name=Detail Normal texture=T__RockDetail_n
+                <0>
+                  Multiply const_a=0.0 const_b=1.0
+                    <0>
+                      TextureCoordinate coordinate_index=0 u_tiling=1.0 v_tiling=1.0
+                    <1>
+                      ScalarParameter parameter_name=Detail Tiling default_value=1.0
+        <2>
+          ScalarParameter parameter_name=Blend Normal default_value=0.5
+    <1>
+      LinearInterpolate const_a=0.0 const_b=1.0 const_alpha=0.5
+        <0>
+          MaterialFunctionCall material_function=FlattenNormal
+            <0>
+              TextureSampleParameter2D parameter_name=Normal texture=T_Devtex_n  (repetido)
+            <1>
+              OneMinus
+                <0>
+                  ScalarParameter parameter_name=Layer Normal Power default_value=1.0
+        <1>
+          MaterialFunctionCall material_function=BlendAngleCorrectedNormals
+            <0>
+              MaterialFunctionCall material_function=FlattenNormal  (repetido)
+            <1>
+              TextureSampleParameter2D parameter_name=Layer Normal texture=T_Grass01_n
+                <0>
+                  Multiply const_a=0.0 const_b=1.0
+                    <0>
+                      TextureCoordinate coordinate_index=0 u_tiling=1.0 v_tiling=1.0
+                    <1>
+                      ScalarParameter parameter_name=Layer Tiling default_value=1.0
+        <2>
+          ScalarParameter parameter_name=Blend Normal default_value=0.5
+    <2>
+      MaterialFunctionCall material_function=WorldAlignedBlend
+        <2>
+          ScalarParameter parameter_name=Blend Sharpness default_value=2.0
+        <3>
+          ScalarParameter parameter_name=Blend Bias default_value=0.10000000149011612
+== MP_AMBIENT_OCCLUSION
+  LinearInterpolate const_a=1.0 const_b=1.0 const_alpha=0.5
+    <1>
+      Power
+        <0>
+          LinearInterpolate const_a=0.0 const_b=1.0 const_alpha=0.5
+            <0>
+              TextureSampleParameter2D parameter_name=Mask texture=T_Devtex_m
+                <0>
+                  Multiply const_a=0.0 const_b=1.0
+                    <0>
+                      TextureCoordinate coordinate_index=0 u_tiling=1.0 v_tiling=1.0
+                    <1>
+                      ScalarParameter parameter_name=Tiling default_value=1.0
+            <1>
+              TextureSampleParameter2D parameter_name=Layer Mask texture=T_Grass01_m
+                <0>
+                  Multiply const_a=0.0 const_b=1.0
+                    <0>
+                      TextureCoordinate coordinate_index=0 u_tiling=1.0 v_tiling=1.0
+                    <1>
+                      ScalarParameter parameter_name=Layer Tiling default_value=1.0
+            <2>
+              MaterialFunctionCall material_function=WorldAlignedBlend
+                <2>
+                  ScalarParameter parameter_name=Blend Sharpness default_value=2.0
+                <3>
+                  ScalarParameter parameter_name=Blend Bias default_value=0.10000000149011612
+    <2>
+      ScalarParameter parameter_name=Occlusion default_value=0.699999988079071
