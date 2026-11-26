@@ -2602,7 +2602,7 @@ func burbuja_recibe(elemento: String, punto: Vector3, atacante: Combate3D = null
 		return false
 	var reventada: bool = _barrera_activa.reventar(elemento, punto, atacante)
 	if reventada:
-		Sfx.play_en(self, "escudo_roto", punto)     # 13/11 (inventario SFX): antes no sonaba
+		Sfx.play_en(self, "burbuja_rota", punto)     # 25/11: estallido amortiguado B aprobado, separado de madera
 	return reventada
 
 

@@ -1,0 +1,204 @@
+[
+  {
+    "id": 31,
+    "titulo": "Impacto sobre el cuerpo del enemigo",
+    "estado": "Aceptado",
+    "nota": "Aceptadas las cuatro variantes actuales, sin cambios de nivel.",
+    "entrada": {
+      "catalogo": "Sfx3D",
+      "nombre": "golpe_carne",
+      "linea": 45,
+      "cfg": {
+        "f": [
+          "kenney_golpe_carne_0.ogg",
+          "kenney_golpe_carne_1.ogg",
+          "kenney_golpe_carne_2.ogg"
+        ],
+        "f_sn": [
+          "sn_golpe_carne_0.ogg",
+          "sn_golpe_carne_1.ogg",
+          "sn_golpe_carne_2.ogg",
+          "sn_golpe_carne_3.ogg"
+        ],
+        "f_sint": [
+          "golpe_carne_0.wav",
+          "golpe_carne_1.wav"
+        ],
+        "db": -9,
+        "tono": 0.12
+      },
+      "selected": "f_sn",
+      "files": [
+        "sn_golpe_carne_0.ogg",
+        "sn_golpe_carne_1.ogg",
+        "sn_golpe_carne_2.ogg",
+        "sn_golpe_carne_3.ogg"
+      ],
+      "references": [
+        "enemigos/combate_3d.gd:374: var snd_golpe: String = \"golpe_carne\"        ## 29/10 (gamefeel lote 4): el cuerpo al encajar un hechizo (`Sensacion3D.golpe_enemigo`); \"\" = sin sonido",
+        "presentacion/sensacion_3d.gd:1085: var snd: String = String(e.get(\"snd_golpe\")) if e.get(\"snd_golpe\") != null else \"golpe_carne\""
+      ]
+    }
+  },
+  {
+    "id": 32,
+    "titulo": "Impacto sobre el gólem de piedra",
+    "estado": "Aceptado",
+    "nota": "Variantes 1 y 2 elegidas para dar variedad al impacto de roca sobre el gólem. Se excluye la tercera de la selección grabada. Conserva −8 dB y variación de tono. La llamada existente es la respuesta del cuerpo de piedra al recibir un hechizo; no se añade un filtro exclusivo por elemento.",
+    "entrada": {
+      "catalogo": "Sfx3D",
+      "nombre": "golpe_piedra",
+      "linea": 46,
+      "cfg": {
+        "f": [
+          "kenney_golpe_piedra_0.ogg",
+          "kenney_golpe_piedra_1.ogg"
+        ],
+        "f_sint": [
+          "golpe_piedra.wav"
+        ],
+        "db": -8,
+        "tono": 0.08
+      },
+      "selected": "f",
+      "files": [
+        "kenney_golpe_piedra_0.ogg",
+        "kenney_golpe_piedra_1.ogg"
+      ],
+      "references": [
+        "enemigos/golem_3d.gd:120: snd_golpe = \"golpe_piedra\"             # 29/10 (gamefeel lote 4): el núcleo o el cuerpo tumbado encajan un golpe de verdad"
+      ]
+    }
+  },
+  {
+    "id": 33,
+    "titulo": "Golpe del limo y daño a su cuerpo",
+    "estado": "Aceptado",
+    "nota": "Aceptado. Se conserva la misma señal compartida entre golpe del limo y daño a su cuerpo.",
+    "entrada": {
+      "catalogo": "Sfx3D",
+      "nombre": "limo_golpe",
+      "linea": 50,
+      "cfg": {
+        "f": [
+          "limo_golpe.wav"
+        ],
+        "f_sn": [
+          "sn_limo_golpe_0.ogg"
+        ],
+        "db": -9,
+        "tono": 0.12
+      },
+      "selected": "f_sn",
+      "files": [
+        "sn_limo_golpe_0.ogg"
+      ],
+      "references": [
+        "enemigos/limo_3d.gd:120: snd_golpe = \"limo_golpe\"",
+        "enemigos/limo_3d.gd:882: Sfx3D.play(self, \"limo_golpe\")     # 13/11 (inventario SFX): antes no sonaba",
+        "enemigos/limo_3d.gd:897: PlayLog.event(\"limo_golpe\", {\"acierta\": dentro, \"dano\": dano_golpe() if dentro else 0.0})"
+      ]
+    }
+  },
+  {
+    "id": 34,
+    "titulo": "Rotura de hielo en piezas del puzle",
+    "estado": "Aceptado",
+    "nota": "Variante 1 elegida. Se conserva el nivel de −9 dB y el respaldo de la instalación sin Sonniss.",
+    "entrada": {
+      "catalogo": "Sfx",
+      "nombre": "hielo_quiebra",
+      "linea": 120,
+      "cfg": {
+        "f": [
+          "hielo_quiebra.wav"
+        ],
+        "f_sn": [
+          "sn_hielo_quiebra_0.ogg"
+        ],
+        "db": -9,
+        "tono": 0.08
+      },
+      "selected": "f_sn",
+      "files": [
+        "sn_hielo_quiebra_0.ogg"
+      ],
+      "references": [
+        "presentacion/pieza_puzle_3d.gd:626: _suena(\"hielo_quiebra\", animar)"
+      ]
+    }
+  },
+  {
+    "id": 35,
+    "titulo": "Explosión de geoda o pieza del puzle",
+    "estado": "Aceptado",
+    "nota": "Aceptada la explosión de geoda o pieza del puzle, sin cambios.",
+    "entrada": {
+      "catalogo": "Sfx",
+      "nombre": "explosion",
+      "linea": 122,
+      "cfg": {
+        "f": [
+          "explosion.wav"
+        ],
+        "f_sn": [
+          "sn_explosion_0.ogg"
+        ],
+        "db": -6,
+        "tono": 0.06
+      },
+      "selected": "f_sn",
+      "files": [
+        "sn_explosion_0.ogg"
+      ],
+      "references": [
+        "objetos/compuerta_3d.gd:52: var por_hechizo: bool = (abre_con != \"\" and abre_con != \"explosion\") or (cierra_con != \"\" and cierra_con != \"explosion\")",
+        "objetos/compuerta_3d.gd:54: if abre_con == \"explosion\" or cierra_con == \"explosion\":",
+        "objetos/compuerta_3d.gd:73: if abre_con == \"explosion\":",
+        "objetos/compuerta_3d.gd:131: if not abierta and abre_con == \"explosion\":",
+        "objetos/compuerta_3d.gd:133: elif abierta and cierra_con == \"explosion\":",
+        "objetos/geoda_pulso_3d.gd:145: Sfx.play(self, \"explosion\")",
+        "presentacion/pieza_puzle_3d.gd:35: \"barril\": [\"entero\", \"mecha\", \"explosion\"],",
+        "presentacion/pieza_puzle_3d.gd:240: _sombra.visible = id != \"nada\" and id != \"explosion\"",
+        "presentacion/pieza_puzle_3d.gd:815: \"explosion\":",
+        "presentacion/pieza_puzle_3d.gd:820: _suena(\"explosion\", animar)",
+        "presentacion/vfx/bloques/bloques_vfx.gd:134: \"explosion\":",
+        "presentacion/vfx/bloques/bloques_vfx.gd:272: g.explosiveness = float(c.get(\"explosion\", 0.0))",
+        "presentacion/vfx/bloques/bloques_vfx.gd:351: var e: Node3D = _nuevo(\"explosion\", \"Explosion_\" + el)",
+        "presentacion/vfx/bloques/bloques_vfx.gd:358: \"radio\": 0.05, \"vel\": Vector2.ZERO, \"un_disparo\": true, \"explosion\": 1.0, \"aditivo\": true, \"prioridad\": 2, \"azar_vida\": 0.2,",
+        "presentacion/vfx/bloques/bloques_vfx.gd:363: \"radio\": 0.2, \"vel\": Vector2(0.6, 1.5), \"frenado\": Vector2(1.8, 2.6), \"gravedad\": Vector3(0, 0.5, 0), \"un_disparo\": true, \"explosion\": 0.95,",
+        "presentacion/vfx/bloques/bloques_vfx.gd:368: \"radio\": 0.12, \"dir\": Vector3.UP, \"abanico\": 75.0, \"vel\": EXPLOSION_VEL_TROZOS, \"gravedad\": Vector3(0, -9.8, 0), \"un_disparo\": true, \"explosion\": 1.0,",
+        "presentacion/vfx/bloques/bloques_vfx.gd:374: \"un_disparo\": true, \"explosion\": 1.0, \"curva\": [Vector2(0.0, 0.5), Vector2(0.3, 1.0), Vector2(1.0, 0.3)],",
+        "presentacion/vfx/bloques/bloques_vfx.gd:645: \"radio\": 0.08, \"dir\": Vector3.UP, \"abanico\": 65.0, \"vel\": Vector2(1.4, 3.0), \"gravedad\": Vector3(0, -9.8, 0), \"un_disparo\": true, \"explosion\": 1.0, \"local\": false,"
+      ]
+    }
+  },
+  {
+    "id": 36,
+    "titulo": "Impacto de la maza al conectar",
+    "estado": "Aceptado",
+    "nota": "Aceptado el impacto de maza al conectar, sin cambios.",
+    "entrada": {
+      "catalogo": "Sfx3D",
+      "nombre": "maza_impacto",
+      "linea": 64,
+      "cfg": {
+        "f": [
+          "kenney_golpe_carne_0.ogg"
+        ],
+        "f_sn": [
+          "sn_maza_impacto_0.ogg"
+        ],
+        "db": -10,
+        "tono": 0.1
+      },
+      "selected": "f_sn",
+      "files": [
+        "sn_maza_impacto_0.ogg"
+      ],
+      "references": [
+        "enemigos/combate_3d.gd:2924: Sfx3D.play(self, \"maza_impacto\")     # 13/11 (inventario SFX): antes no sonaba (el arma al conectar)"
+      ]
+    }
+  }
+]

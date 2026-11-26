@@ -1,0 +1,112 @@
+[
+  {
+    "id": 19,
+    "n": "no_puedes_ui",
+    "cat": "Sfx",
+    "titulo": "Acción no permitida en menús",
+    "cuando": "Una acción de interfaz no se puede realizar: compra sin recursos, selección inválida u otra negativa.",
+    "motivo": "Hay cuatro variantes: tres de unos 0,10–0,16 s y otra de 0,50 s. La negativa se repite en distintas pantallas y debe ser coherente con el clic ya elegido.",
+    "propuesta": "Elegir una señal breve y reconocible de rechazo; conservar variantes solo si comunican lo mismo.",
+    "pregunta": "¿Cuál comunica mejor que no puedes hacer esa acción? ¿Alguna parece un error del ordenador o resulta demasiado insistente?",
+    "entrada": {
+      "catalogo": "Sfx",
+      "nombre": "no_puedes_ui",
+      "files": [
+        "kenney_error_0.ogg",
+        "kenney_error_1.ogg",
+        "kenney_error_2.ogg",
+        "kenney_error_3.ogg"
+      ]
+    }
+  },
+  {
+    "id": 20,
+    "n": "goblin_grito",
+    "cat": "Sfx3D",
+    "titulo": "Alerta del goblin",
+    "cuando": "El goblin descubre a la jugadora; es su voz de alerta, no su sonido de muerte.",
+    "motivo": "Tres tomas de aproximadamente 0,79, 1,02 y 0,36 s, con 3,1 dB de rango RMS de archivo completo.",
+    "propuesta": "Conservar las voces que parezcan de la misma criatura y que permitan reconocer el aviso durante el combate.",
+    "pregunta": "¿Encajan con el tamaño y carácter del goblin? ¿Cuál conservarías y cuál parece de otra criatura?",
+    "entrada": {
+      "catalogo": "Sfx3D",
+      "nombre": "goblin_grito",
+      "files": [
+        "sn_goblin_grito_0.ogg",
+        "sn_goblin_grito_1.ogg",
+        "sn_goblin_grito_2.ogg"
+      ]
+    }
+  },
+  {
+    "id": 21,
+    "n": "veneno_bola",
+    "cat": "Sfx3D",
+    "titulo": "Lanzamiento de la bola de veneno",
+    "cuando": "El chamán suelta su proyectil venenoso; el impacto del charco ya tiene su variante elegida.",
+    "motivo": "Tres variantes de aproximadamente 0,77, 0,61 y 0,95 s, con 3,2 dB de rango RMS de archivo completo.",
+    "propuesta": "Elegir una salida con identidad de veneno que encaje con el impacto de la variante 3 que ya aprobaste.",
+    "pregunta": "¿Cuál comunica mejor que sale una bola de veneno? ¿Qué cambiarías de su peso, textura o duración?",
+    "entrada": {
+      "catalogo": "Sfx3D",
+      "nombre": "veneno_bola",
+      "files": [
+        "lc_veneno_bola_0.ogg",
+        "lc_veneno_bola_1.ogg",
+        "lc_veneno_bola_2.ogg"
+      ]
+    }
+  },
+  {
+    "id": 22,
+    "n": "puerta_abre",
+    "cat": "Sfx",
+    "titulo": "Apertura de puerta",
+    "cuando": "Se abre una puerta de puzle o se comunica su apertura.",
+    "motivo": "Dos tomas de aproximadamente 0,92 y 1,41 s. La apertura necesita encajar con el cierre de la variante 2 que elegiste.",
+    "propuesta": "Conservar el movimiento de mecanismo que corresponda a esa puerta; ajustar duración y nivel si tapa otros eventos.",
+    "pregunta": "¿Cuál parece la misma puerta que al cerrarse? ¿Alguna tarda demasiado o suena demasiado pesada?",
+    "entrada": {
+      "catalogo": "Sfx",
+      "nombre": "puerta_abre",
+      "files": [
+        "puerta_abre_0.ogg",
+        "puerta_abre_1.ogg"
+      ]
+    }
+  },
+  {
+    "id": 23,
+    "n": "libro_cierra",
+    "cat": "Sfx",
+    "titulo": "Cierre del libro y pantallas",
+    "cuando": "Al cerrar el libro y varias pantallas; también existe algún uso en objetos del mundo.",
+    "motivo": "Una sola toma de unos 0,23 s. Conviene comprobar si encaja con los nuevos sonidos de papel y escritura, y con los distintos contextos donde se reutiliza.",
+    "propuesta": "Conservarla si comunica bien un cierre de libro; si no, buscar un cierre de tapa y papel acorde con el grimorio.",
+    "pregunta": "¿Se entiende como cerrar un libro? ¿Encaja con el grimorio y resulta suficientemente discreto?",
+    "entrada": {
+      "catalogo": "Sfx",
+      "nombre": "libro_cierra",
+      "files": [
+        "libro_cierra.ogg"
+      ]
+    }
+  },
+  {
+    "id": 24,
+    "n": "dano_jugadora",
+    "cat": "Sfx",
+    "titulo": "Daño recibido por la jugadora",
+    "cuando": "La jugadora recibe un golpe. En el juego el tono varía con la cantidad de daño.",
+    "motivo": "Una toma de unos 0,67 s para un evento frecuente e importante. Su función es distinguir el daño recibido del golpe que damos a un enemigo.",
+    "propuesta": "Conservarla si la señal de daño propio es clara; ajustar nivel o duración si se impone sobre los avisos de combate.",
+    "pregunta": "¿Se entiende que la jugadora ha recibido daño? ¿Qué sensación te transmite y qué cambiarías?",
+    "entrada": {
+      "catalogo": "Sfx",
+      "nombre": "dano_jugadora",
+      "files": [
+        "sn_dano_jugadora_0.ogg"
+      ]
+    }
+  }
+]

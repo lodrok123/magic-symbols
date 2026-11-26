@@ -1,0 +1,42 @@
+[
+  {
+    "variante": "A",
+    "descripcion": "Impacto grave con resonancia corta",
+    "archivo": "muerte_a.wav",
+    "fuente": "C:\\Users\\pablo\\Downloads\\sonniss_gdc2026\\The Noisery - Moaning Metal\\DSGNImpt_Metal Hit Thud Thump Low Ring Geofon 1_The Noisery_Moaning Metal.wav",
+    "inicio_s": 0,
+    "duracion_s": 1.1,
+    "ganancia_db": -4.047341125058097,
+    "rms_dbfs": -22,
+    "pico_dbfs": -8.779926433686228,
+    "integrado": false,
+    "licencia": "Sonniss GDC 2026; misma licencia local que audio/sn_*, sin publicar fuentes como archivos sueltos"
+  },
+  {
+    "variante": "B",
+    "descripcion": "Transición oscura con caída suave",
+    "archivo": "muerte_b.wav",
+    "fuente": "C:\\Users\\pablo\\Downloads\\sonniss_gdc2026\\Cinematic Sound Design - Ultra Transitions & Impacts\\Transition Braam Slow Dark Creepy.wav",
+    "inicio_s": 0.2000453514739229,
+    "duracion_s": 1.4,
+    "ganancia_db": 2.8690169191447286,
+    "rms_dbfs": -22,
+    "pico_dbfs": -8.136209795539363,
+    "integrado": true,
+    "licencia": "Sonniss GDC 2026; misma licencia local que audio/sn_*, sin publicar fuentes como archivos sueltos",
+    "destino": "audio/sn_muerte_sobria.wav"
+  },
+  {
+    "variante": "C",
+    "descripcion": "Descenso grave breve",
+    "archivo": "muerte_c.wav",
+    "fuente": "C:\\Users\\pablo\\Downloads\\sonniss_gdc2026\\344 Audio - Bass Drops & Downers Vol. 1\\DSGNBass_Bass Drop & Downer Fast 16_344 Audio_Bass Drops & Downers.wav",
+    "inicio_s": 0.04399092970521542,
+    "duracion_s": 0.85,
+    "ganancia_db": -7.223688526772888,
+    "rms_dbfs": -22,
+    "pico_dbfs": -14.399038110669387,
+    "integrado": false,
+    "licencia": "Sonniss GDC 2026; misma licencia local que audio/sn_*, sin publicar fuentes como archivos sueltos"
+  }
+]

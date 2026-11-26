@@ -6474,3 +6474,127 @@ Pablo: «6 aceptado», tras jugarlo con el cofre dentro de la sala.
 - Pablo: «ok sustituye 12». Se utiliza el recorte corto A de 2 s, propuesto para el impacto: copia exacta en `audio/derrumbe_piedra_muerte.wav`. La cola larga sigue disponible en QA.
 - `Sfx.CATALOGO.derrumbe_muerte` selecciona el nuevo archivo, conserva −12 dB y elimina la variación aleatoria de tono. Se mantiene el contrato de muerte elemental de tierra; no cambia el derrumbe de otros objetos.
 - Procedencia del vídeo facilitado por Pablo anotada en audio/LICENCIAS.md sin atribuirle CC0 ni autor desconocido. Página y registro de validación actualizados. Sin commit.
+
+### 25/11/2026 · commit de SFX 1–12 y lista de la tercera tanda
+- Pablo: «ok haz commit de los 12 sonidos despues redacta una lista de lo siguiente». Commit `0a05edda`: 60 archivos, con los ajustes de los doce casos, nueve WAV nuevos, metadatos, conexiones de tienda/página, procesador, pruebas y registros de validación. Solo los comentarios SFX del Lanzador y los fragmentos documentales de esta tarea en archivos compartidos; otros cambios quedan fuera. Sin push.
+- Comprobaciones ya pasadas durante la aplicación: recursos de catálogo, compra/venta, paso de página, mezcla de carga y escritura, y arranque/parada del arrastre. Revisión final del índice sin errores de espacios ni archivos de arte, mapas, combate o reglas de hechizos.
+- Después del commit se prepara la lista 13–18: pasos en hierba, tierra y roca, cierre de puerta, maullidos del gato y equipar objetos. Continúa la selección técnica para que Pablo escuche y valide; sin modificar estos sonidos.
+- `docs/ESCUCHA_SFX_TANDA3_2026-11-25.html`: seis casos y trece reproductores. Se explica que tierra y roca comparten la segunda toma de grava. Modo original con margen común de −3 dB para evitar saturar los picos de las puertas, conservando diferencias entre variantes; modo juego con ganancias de catálogo y bus de interfaz en equipamiento. Sin distancia ni oclusión.
+- Archivos presentes, seis casos consecutivos, almacenamiento de notas separado y JavaScript verificados. Generador y `tanda3.json` en `output/auditoria_sfx_2026-11-25/`. La tercera tanda se redacta después del commit y queda sin commit.
+
+### 25/11/2026 · aplicadas las decisiones de SFX 13–18
+- Pablo acepta las seis entradas: hierba variante 1 (`oga_paso_hojas_0.ogg`), tierra variante 1 (`oga_paso_barro_0.ogg`), roca variante 2 (`oga_paso_grava_0.ogg`), cierre de puerta variante 2 (`puerta_cierra_1.ogg`) más bajo, gato variante 3 (`oga_gato_maullido_2.ogg`) y equipar variante 2 (`kenney_equipar_1.ogg`).
+- Selecciones fijadas en los catálogos; niveles y variación de tono anteriores conservados salvo puerta, que baja 3 dB de −6 a −9 dB. Sin archivos de audio nuevos ni cambios de jugabilidad. Se conservan los respaldos de depuración de gato/equipar.
+- Registro en `output/sfx_tanda3_validacion_2026-11-25/decisiones_pablo.json`; página `docs/VALIDACION_SFX_TANDA3_2026-11-25.html` con las seis selecciones. Preescucha con el margen común de −3 dB de la tanda original y otros −3 dB en puerta, sin distancia ni variación aleatoria.
+- Prueba de recursos `prueba_sonidos_grabados`: cero fallos. Selecciones comprobadas contra las variantes numeradas, nivel de puerta −9 dB, archivos presentes y JavaScript válido. Sin commit.
+
+### 25/11/2026 · cuarta tanda de escucha de SFX
+- Pablo pide otra tanda. Se preparan los casos 19–24: rechazo de interfaz, alerta del goblin, salida de la bola de veneno, apertura de puerta, cierre de libro/pantallas y daño recibido por la jugadora. Sin modificar sonidos o catálogos.
+- `docs/ESCUCHA_SFX_TANDA4_2026-11-25.html`: seis casos y catorce reproductores, notas y resumen para el chat, numeración 19–24 y almacenamiento de notas separado. Selección por duración, repetición y función; sin afirmar escucha por el revisor.
+- Se relacionan apertura con el cierre ya elegido, lanzamiento de veneno con el impacto aprobado, y cierre de libro con papel/escritura. Las tomas únicas de libro y daño se presentan para validar identidad, no como defectos acústicos demostrados.
+- Comparación original con margen común de −3 dB. Modo juego aproximado por catálogo; interfaz incluye −6 dB en rechazo y cierre del libro, sin simular distancia, cambios de tono por daño o excepciones de cada llamada.
+- Verificados catorce archivos presentes, selección vigente, seis identificadores consecutivos y JavaScript válido. Datos y generador de tanda4 en `output/auditoria_sfx_2026-11-25/`. Sin commit.
+
+### 25/11/2026 · decisiones de los SFX 19–24 y alternativas de rechazo
+- Pablo rechaza las cuatro negativas de interfaz y pide algo más sutil. Acepta goblin variante 3 más baja, apertura variante 1, cierre de libro sin cambios y daño recibido más bajo. Se fijan goblin `sn_goblin_grito_2.ogg` a −9 dB (−3 dB), apertura `puerta_abre_0.ogg`, cierre sin cambios y daño a −10 dB (−3 dB).
+- Caso 21: el comentario destina el sonido al IMPACTO, no a la salida. Se preguntó la variante y Pablo eligió la 2. `veneno_charco` ahora usa `lc_veneno_bola_1.ogg`, a −12 dB (−3 dB) y mantiene el tono base ×0,85 de la petición anterior. Sustituye la selección del caso 9. `veneno_bola` no cambia: el lanzamiento no se considera validado por esta elección.
+- Caso 19 pendiente: tres propuestas en `output/sfx_tanda4_validacion_2026-11-25/`: A retroceso Kenney filtrado (64 ms, CC0), B dos notas bajas descendentes de síntesis propia (180 ms) y C toque grave de ruido filtrado (90 ms). Preparadas a nivel bajo, sin integrarlas ni afirmar escucha por el revisor. Datos de origen y métricas en `alternativas_19.json`; generador en `generar_rechazos.py`.
+- `docs/VALIDACION_SFX_TANDA4_2026-11-25.html`: registro de decisiones y ocho reproductores, con A/B/C pendientes. Veneno se preescucha al tono ×0,85; las bajadas de 3 dB se añaden al margen común de la tanda original. Sin simulación espacial ni variaciones aleatorias.
+- Prueba de recursos: cero fallos. Ocho archivos de escucha presentes y JavaScript válido; sin commit. Pendiente que Pablo elija A/B/C u otra dirección para la negativa de menús.
+
+### 25/11/2026 · caso 19 aprobado: opción C
+- Tras concretar la alternativa, Pablo elige C. Copia exacta del toque grave de 90 ms en `audio/ui_rechazo_sutil.wav`, sin normalizar ni cambiar el timbre aprobado.
+- `no_puedes_ui` utiliza solo ese archivo, a −12 dB y sin variación de tono; el modo sin grabados también apunta a C. El rechazo del mundo conserva su sonido anterior.
+- Procedencia de síntesis propia anotada en audio/LICENCIAS.md. Registro y página de validación reflejan la aprobación, sin alternativas pendientes para el caso 19. Sin commit.
+
+### 25/11/2026 · quinta tanda de escucha de SFX
+- Pablo pide la siguiente tanda. Casos 25–30: golpe bloqueado por escudo, rotura de escudo/burbuja, recarga de página/esquiva lista, negativa de acción en el mundo y muertes de goblin y limo.
+- `docs/ESCUCHA_SFX_TANDA5_2026-11-25.html`: seis muestras de la selección actual, sin alternativas aleatorias en esas entradas. Se propone valorar función y legibilidad, sin declarar defectuoso un sonido por tener una sola toma.
+- Se relacionan bloqueo y rotura, disponibilidad y rechazo, y las muertes con las voces/acciones ya elegidas. El rechazo del mundo no es el de menús C aprobado. Se explica el tono base ×0,8 de la muerte del goblin y las diferencias de tono de la recarga según su uso.
+- Selecciones vigentes y seis archivos comprobados; notas separadas con clave tanda5, identificadores 25–30 y JavaScript válido. Generador y datos en `output/auditoria_sfx_2026-11-25/`. Sin cambios de sonido, sin commit.
+
+### 25/11/2026 · revisión de la quinta tanda de SFX
+- Pablo rechaza golpe y rotura de escudo, pide recarga muy sutil y rechazo C para el mundo, acepta muerte del goblin con menos nivel y muerte del limo sin ajustes.
+- Aplicado: `recarga_lista` de −16 a −24 dB; `no_puedes` usa solo C (`ui_rechazo_sutil.wav`) a −20 dB sin variar tono; `goblin_muere` de −5 a −8 dB. `limo_muere` conservado.
+- Casos 25–26 pendientes de escuchar: dos impactos de madera Kenney CC0, una composición de rotura de madera de esas fuentes y un estallido de aire filtrado de síntesis propia. Propuestas fuera del juego, sin sustituir aún los escudos. La señal 3D compartida con enemigos de piedra se conserva.
+- `docs/VALIDACION_SFX_TANDA5_2026-11-25.html`: ocho muestras, selecciones y procedencia. Generador y decisiones en `output/sfx_tanda5_validacion_2026-11-25/`.
+- Prueba de recursos: `FALLOS: 0`. Ocho muestras presentes y JavaScript de la página válido. Sin commit.
+
+### 25/11/2026 · madera aprobada, rotura rechazada y variedad del goblin
+- Pablo acepta todo salvo la rotura A, que identifica como puerta abriéndose. Se integran ambos impactos de madera aceptados en `Sfx.escudo_golpe`, con selección aleatoria; el estallido B pasa a `burbuja_rota` y a la llamada de burbuja del lanzador. La señal de rotura de escudo conserva provisionalmente la anterior hasta validar sustitución; los impactos 3D de gólem/chamán se conservan.
+- `goblin_muere` baja otros 5 dB, de −8 a −13 dB. Dos variantes de montaje de la grabación actual (recortes y velocidades distintos), fuera del catálogo hasta escucharlas; no se presentan como tomas nuevas.
+- Nuevas propuestas de fractura C/D: ataque breve de Kenney chop CC0 con transitorios de síntesis propia, sin utilizar creak1. Pendientes de validación sonora, sin afirmar escucha por parte del revisor.
+- `docs/VALIDACION_SFX_TANDA5_REVISION2_2026-11-25.html` reúne cinco muestras. Generadores, métricas y registro de decisiones en `output/sfx_tanda5_validacion_2026-11-25/`. Procedencia de los tres archivos integrados anotada en `audio/LICENCIAS.md`.
+- Importación completada y prueba de recursos: `FALLOS: 0`. Cinco muestras presentes, JavaScript válido y diff sin errores de espacios. Sin commit.
+
+### 25/11/2026 · referencia de madera y tres muertes del goblin aprobadas
+- Pablo facilita `20261125-1554-59.1685590.mp4` como referencia de madera rompiéndose y aprueba las tres variantes del goblin con otros 5 dB menos.
+- Integradas A/B/C en `goblin_muere.f_sn`, usando la selección existente sin repetición consecutiva. B/C copias exactas de los montajes escuchados, sin reprocesarlas. Catálogo de −13 a −18 dB; mantiene base ×0,8 y variación ±0,05. Respaldo sin Sonniss conservado.
+- Extraído el audio del vídeo a mono 44,1 kHz. Propuesta corta: segundos 1,32–2,22, 0,9 s, fundidos 4/35 ms, sin normalizar ni variar tono. Referencia y recorte fuera del juego para validar; no se declara escucha por parte del revisor. Autor/licencia originales no identificados.
+- `docs/VALIDACION_SFX_MADERA_GOBLIN_2026-11-25.html`: referencia completa, recorte y tres variantes al nuevo nivel. Datos y extracción en `output/sfx_tanda5_validacion_2026-11-25/`; procedencia de las variantes anotada en audio/LICENCIAS.md.
+- Importación y prueba de recursos: `FALLOS: 0`. Cinco muestras presentes y JavaScript válido. Sin commit.
+
+### 25/11/2026 · referencia sustituta de madera y goblin a media duración
+- Pablo descarta por contaminación el audio anterior de madera y facilita `20261125-1603-17.2680289.mp4`. Se extraen los primeros 4,9 s, evitando un error de decodificación del extremo final del contenedor. Recortes A 0,68–1,56 y B 2,07–2,68 s, con fundidos 3/25 ms y pico limitado a −3 dB solo mediante reducción de ganancia. Sin capas añadidas; pendientes de escuchar, fuera del juego. Autor/licencia originales no identificados.
+- Solicita conservar solo la primera mitad de las tres muertes del goblin. Integradas `sn_goblin_muere_corto_0..2.wav`: 0,788/0,547/0,681 s, sin normalizar, con fundido final de 8 ms. Catálogo mantiene −18 dB, base ×0,8 y selección de variantes existente. El respaldo sin Sonniss conserva sus sonidos anteriores.
+- Generación `revision_4.py` comprueba mitad exacta de muestras e identidad del inicio salvo el fundido final. Página `docs/VALIDACION_SFX_MADERA_GOBLIN_CORTO_2026-11-25.html`, cinco muestras presentes y JavaScript válido. Procedencia y regeneración documentadas en audio/LICENCIAS.md. Sin commit.
+- Importación completada y prueba de recursos de esta revisión: `FALLOS: 0`; diff sin errores de espacios.
+
+### 25/11/2026 · quinta tanda aceptada: madera 26A y goblin corto
+- Pablo acepta 26A para corte de madera o madera cayendo y acepta el caso 29 recortado.
+- Copia exacta de 26A en `audio/madera_rotura.wav`; `Sfx.escudo_roto` utiliza solo ese archivo, sin prioridad del cristal rechazado. Conserva nivel y variación del catálogo. Burbuja mantiene su entrada separada aprobada. Sin nuevos disparadores para otros objetos.
+- Las tres variantes cortas de muerte del goblin quedan aceptadas, con −18 dB. Página de validación, índice y registro `aprobacion_final.json` actualizados; procedencia de la referencia anotada sin atribuir licencia no identificada.
+- Identidad de la copia comprobada; importación completada y prueba de recursos `FALLOS: 0`. Cinco muestras de escucha presentes, JavaScript válido y diff sin errores de espacios. Sin commit.
+
+### 25/11/2026 · sexta tanda de escucha de SFX
+- Pablo pide continuar. Casos 31–36: impacto en cuerpo enemigo, golpe sobre gólem de piedra, golpe del limo, fractura de hielo en piezas de puzle, explosión de geoda/puzle y maza al conectar.
+- Inventario actualizado desde los catálogos vigentes: 161 entradas, sin archivos seleccionados ausentes. Se conservan las métricas históricas para las trece muestras sin modificar de esta tanda. Ninguno de los seis casos repite una entrada de las tandas anteriores.
+- Se explican los usos compartidos del golpe del limo y se distingue la explosión de puzle de la del barril del mundo. Hielo: diferencias RMS como señal técnica para comparar, sin atribuir igual diferencia de sonoridad percibida. Validación artística pendiente de Pablo; no se declara escucha del revisor.
+- `docs/ESCUCHA_SFX_TANDA6_2026-11-25.html`: trece reproductores, modo original/juego aproximado, notas locales con clave propia tanda6 y resumen para el chat. Generador y datos en `output/auditoria_sfx_2026-11-25/`. Trece archivos presentes y JavaScript válido. Sin cambios al juego, sin commit.
+
+### 25/11/2026 · sexta tanda de SFX aceptada
+- Pablo acepta 31–36. Para impacto sobre gólem elige variantes 1 y 2 por variedad y concreta uso con roca; para fractura de hielo elige variante 1.
+- `Sfx3D.golpe_piedra.f` conserva solo `kenney_golpe_piedra_0.ogg` y `_1.ogg`. Selección aleatoria existente, nivel −8 dB y tono conservados. Comprobada la ruta `Golem3D.snd_golpe` → `Sensacion3D.golpe_enemigo`; es impacto al recibir hechizo y también se dispara para otros elementos: no se interpreta «cuando se le golpea con roca» como petición de exclusividad.
+- `Sfx.hielo_quiebra.f_sn` conserva solo `sn_hielo_quiebra_0.ogg`, a −9 dB. Respaldos sin Sonniss o sin grabados conservados. Impactos de carne, limo, explosión de puzle y maza aceptados sin modificar sus muestras o niveles.
+- `docs/VALIDACION_SFX_TANDA6_2026-11-25.html`, generador y decisiones en `output/sfx_tanda6_validacion_2026-11-25/`. Diez muestras presentes, JavaScript válido; inventario sin recursos seleccionados ausentes y prueba de recursos `FALLOS: 0`. Sin commit.
+
+### 25/11/2026 · séptima tanda de escucha de SFX
+- Pablo pide otra tanda. Casos 37–42: apertura de libro/pantallas, inventario, beber poción, recompensa al abrir cofre, puzle resuelto y pantalla de muerte.
+- Selección vigente de los catálogos y referencias comprobadas. Se distingue cofre_revelado (logro de cofre abierto) de aparición de cofre. Poción: muestra de 0,35 s y botón de bucle para valorar repetición. Libro y bolsa: referencias de uso en interfaz con bus −6 dB, advirtiendo que otros usos tienen mezcla distinta.
+- `docs/ESCUCHA_SFX_TANDA7_2026-11-25.html`: seis muestras, notas con clave independiente tanda7, resumen para el chat y modo original/juego aproximado. Razones de revisión basadas en duración y función, sin declarar escucha del revisor ni defectos artísticos no validados.
+- Generadores y `tanda7.json` en `output/auditoria_sfx_2026-11-25/`. Seis archivos presentes; seis entradas no repetidas en las tandas previas, bucle y JavaScript válidos. Sin cambios al juego ni commit.
+
+### 25/11/2026 · séptima tanda: 37–41 aceptados, muerte a cambiar
+- Pablo acepta apertura de libro, inventario, beber poción, recompensa de cofre y puzle resuelto sin ajustes. Rechaza la señal de pantalla de muerte porque parece cómica.
+- La pista actual es `Cartoon Transition Bass Down`, según la procedencia ya documentada. Se preparan tres direcciones alternativas de otras fuentes locales Sonniss: A impacto grave de The Noisery (1,10 s), B transición oscura de Cinematic Sound Design (1,40 s), C descenso grave breve de 344 Audio (0,85 s). Sin modificar el catálogo hasta validación.
+- Recortes con fundidos, nivel RMS objetivo −22 dBFS y techo de pico −6 dBFS. Procedencia, tiempos y ganancias en `output/sfx_tanda7_validacion_2026-11-25/propuestas_muerte.json`. El lector RIFF local permite procesar directamente las fuentes WAV cuyo extremo daba error en el decodificador de Blender.
+- `docs/VALIDACION_SFX_TANDA7_2026-11-25.html`: alternativas primero y cinco casos aceptados, modo original/juego aproximado y bucle de poción. Ocho muestras presentes, sin saturación en propuestas generadas y JavaScript válido. Sin cambios al juego ni commit; no se repiten pruebas del juego al no cambiar código ni recursos seleccionados.
+
+### 25/11/2026 · pantalla de muerte: opción B aceptada
+- Pablo acepta B del caso 42. Copia exacta de `muerte_b.wav` a `audio/sn_muerte_sobria.wav`, con igualdad binaria y huella registradas; `Sfx.muerte.f_sn` selecciona solo B. Conserva −8 dB y tono fijo, más bus Interfaz; respaldo sin Sonniss conservado.
+- Procedencia y regeneración anotadas en audio/LICENCIAS.md, respetando exclusión `audio/sn_*`. Página, decisiones e índice reflejan seis casos aceptados y B integrada; A/C solo como comparación histórica. No se reprocesa el sonido aprobado.
+- Recurso importado y prueba de recursos `FALLOS: 0`. El proceso de editor informa un aviso «Safe save failed» durante el arranque; la importación de la muestra y su carga en la prueba independiente sí quedan verificadas. Ocho muestras de escucha presentes y JavaScript válido. Sin commit.
+
+### 26/11/2026 · octava tanda de escucha: magia elemental
+- Pablo autoriza la tanda 43–48: señales generales de fuego, agua, hielo, rayo, viento y tierra. 4/3/4/4/4/4 variantes actuales del pack Lost Cave; no se modifican ni se copian los assets.
+- Inventario actualizado: 161 entradas, sin recursos seleccionados ausentes. Comprobada la selección por fase en `Lanzador3D._sonar_fase_v2`: los sonidos específicos tienen prioridad; el elemento general se usa como respaldo. La escritura aprobada acompaña a la carga. La página aclara que se escucha solo la señal general, sin mezclar escritura ni efectos específicos.
+- `docs/ESCUCHA_SFX_TANDA8_2026-11-26.html`: reproductores original/juego aproximado, decisiones y notas con clave independiente de tanda8 y fecha del 26/11. Razones técnicas por duración y uso, sin declarar escucha del revisor. Generadores y `tanda8.json` junto al inventario en `output/auditoria_sfx_2026-11-25/`.
+- Veintitrés muestras presentes, seis entradas no repetidas, fecha y clave comprobadas, JavaScript válido. Sin cambios al juego ni commit.
+
+### 26/11/2026 · octava tanda: selecciones e impactos, nuevas propuestas
+- Pablo rechaza fuego (pide crepitar) y viento; aprueba hielo 3 y rayo 1; pide agua 2 mucho más sutil para impacto; acepta tierra para impacto.
+- `Sfx.hielo.f_lc` fija `lc_hielo_2.ogg` y `Sfx.rayo.f_lc` fija `lc_rayo_0.ogg`. Nueva `agua_impacto`: `lc_agua_1.ogg`, −19 dB, 12 dB menos que la señal general, variación ±0,05. Nueva `tierra_impacto`: cuatro variantes, −8 dB, variación ±0,10. Selección por fase existente les da prioridad; las señales generales de agua/tierra no se consideran aprobadas por esto, ni se modifican cargas.
+- Propuestas no integradas: fuego A de grabación CC0 de AntumDeluge, fuego B crepitar de 344 Audio/Sonniss; viento A Extreme Winds de 344 Audio, viento B Chimney Wind de InMotionAudio/Sonniss. Recortes con fundidos 40/160 ms, RMS objetivo −24 dBFS y techo −6 dBFS. Procedencia y edición completas en `output/sfx_tanda8_validacion_2026-11-26/propuestas.json`; el revisor no afirma escucha.
+- `docs/VALIDACION_SFX_TANDA8_2026-11-26.html`: once muestras, decisiones y modos original/nivel de catálogo. Generadores y registro junto a las propuestas. Fuego y viento anteriores siguen provisionales hasta elegir sustitución. Sin commit.
+- Prueba de recursos `FALLOS: 0`. En prueba ampliada pasan selección de agua/tierra por impacto, respaldo de viento y carga sin afectar. Su resultado global es `FALLOS: 4` por expectativas antiguas de rechazo UI, número de pasos de goblin y maullidos; además hay error previo de constructor bool en otra sección. No se cambian sonidos aprobados para satisfacer esas expectativas. Se actualiza en esa prueba el caso de elemento sin impacto específico de agua a viento y se comprueban las nuevas rutas aprobadas. Once muestras presentes y JavaScript válido; diff sin errores de espacios.
+
+### 26/11/2026 · aclaración de destinos y fuego A elegido
+- Pablo aclara que todos los sonidos mostrados son para impacto salvo fuego, destinado a carga y cualquier fuego ardiendo en bucle. Elige viento A y tierra 1; después concreta fuego A.
+- Hielo 3 y rayo 1 se trasladan a `hielo_impacto` y `rayo_impacto`; las señales generales recuperan su selección anterior sin considerarla aprobada. `agua_impacto` conserva variante 2 a −19 dB. `tierra_impacto` fija variante 1. `viento_impacto` usa copia exacta de A como `sn_viento_impacto_a.wav`, −11 dB. Cada fase de impacto utiliza su entrada específica, sin cambiar cargas de esos cinco elementos.
+- `fuego_carga` utiliza copia exacta de fuego A en `fuego_carga_crepitar.wav`. `fuego_carga_bucle` y `arde_bucle` usan la fuente de origen CC0 `oga_fuego_crepita_loop.wav`; se elimina prioridad Sonniss de arde_bucle para respetar A. El ambiente 3D de fuego ya usa esa misma fuente. Se conservan niveles por evento y no se crea un impacto de fuego a partir del crepitar.
+- Procedencia en audio/LICENCIAS.md; página, decisiones y destinos actualizados en la carpeta de validación. Copias de A comprobadas por igualdad binaria. Prueba aislada `prueba_rutas.gd` ejecuta la sección de rutas de la prueba ampliada sin sus comprobaciones antiguas de variantes: impactos de cinco elementos, respaldo y cargas pasan; carga sostenida y arde_bucle cargan WAV con bucle activado. `FALLOS: 0`, con avisos de limpieza de objetos del escenario al salir. Prueba de recursos: `FALLOS: 0`. Seis muestras presentes, JavaScript válido y diff sin errores de espacios. Sin commit.
+
+### 26/11/2026 · commit de los SFX aprobados 13–48
+- Pablo pide commit de los sonidos. Se agrupan las selecciones, niveles, impactos por elemento, carga/bucles de fuego, separación de burbuja y madera, y variantes cortas del goblin. Incluye archivos redistribuibles, licencias, pruebas, escuchas, decisiones y generadores de regeneración local.
+- Las fuentes y derivados Sonniss conservan su exclusión del repositorio; no se fuerzan assets ignorados. Las pruebas más recientes de recursos y rutas específicas terminan en `FALLOS: 0`; se conservan sus registros y los avisos de limpieza del escenario.
+- Commit preparado con índice separado y contenido parcial de lanzador, índice documental y diario para no incorporar cambios de otras tareas. Los shaders ya preparados en el índice original se conservan. Sin push.

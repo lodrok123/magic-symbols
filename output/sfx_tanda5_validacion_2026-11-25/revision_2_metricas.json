@@ -1,0 +1,22 @@
+[
+  {
+    "archivo": "escudo_fractura_c.wav",
+    "duracion_s": 0.24,
+    "pico_db": -4.0
+  },
+  {
+    "archivo": "escudo_fractura_d.wav",
+    "duracion_s": 0.34,
+    "pico_db": -4.0
+  },
+  {
+    "archivo": "goblin_muerte_b.wav",
+    "duracion_s": 1.0943310657596372,
+    "pico_db": -4.0
+  },
+  {
+    "archivo": "goblin_muerte_c.wav",
+    "duracion_s": 1.3616780045351473,
+    "pico_db": -4.0
+  }
+]

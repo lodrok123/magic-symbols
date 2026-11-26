@@ -1,0 +1,104 @@
+[
+  {
+    "id": 25,
+    "n": "escudo_golpe",
+    "cat": "Sfx",
+    "titulo": "Golpe bloqueado por escudo",
+    "cuando": "Una barrera o protección recibe y bloquea un golpe. La misma señal se reutiliza en algunas protecciones enemigas.",
+    "motivo": "Una toma de unos 0,29 s para un evento que puede repetirse durante el combate. Debe comunicar bloqueo y distinguirse de la rotura.",
+    "propuesta": "Conservarla si el bloqueo se reconoce; ajustar material, duración o intensidad según tu valoración.",
+    "pregunta": "¿Se entiende que la protección aguanta el golpe? ¿Qué cambiarías de su textura o fuerza?",
+    "entrada": {
+      "catalogo": "Sfx",
+      "nombre": "escudo_golpe",
+      "files": [
+        "sn_escudo_golpe_0.ogg"
+      ]
+    }
+  },
+  {
+    "id": 26,
+    "n": "escudo_roto",
+    "cat": "Sfx",
+    "titulo": "Rotura de escudo o burbuja",
+    "cuando": "Se rompe una barrera o revienta una burbuja protectora.",
+    "motivo": "Una toma de aproximadamente 1,40 s. La pérdida de la protección necesita diferenciarse claramente del golpe bloqueado del caso 25.",
+    "propuesta": "Conservarla si comunica rotura; revisar la cola y el balance con el golpe que la provoca.",
+    "pregunta": "¿Se entiende que has perdido la protección? ¿La duración y el material encajan con una barrera mágica?",
+    "entrada": {
+      "catalogo": "Sfx",
+      "nombre": "escudo_roto",
+      "files": [
+        "sn_escudo_roto_0.ogg"
+      ]
+    }
+  },
+  {
+    "id": 27,
+    "n": "recarga_lista",
+    "cat": "Sfx",
+    "titulo": "Página o esquiva disponible otra vez",
+    "cuando": "Una página termina de recargarse o vuelve a estar disponible la voltereta. Las páginas usan un tono algo más alto que la esquiva.",
+    "motivo": "Una única señal de unos 0,15 s, a nivel bajo en el catálogo. Debe reconocerse sin invadir cada pocos segundos el combate.",
+    "propuesta": "Conservarla si sirve como aviso discreto de disponibilidad; ajustar su claridad frente al resto de acciones.",
+    "pregunta": "¿Se entiende como algo que vuelve a estar listo? ¿Te resulta demasiado mecánico, débil o repetitivo?",
+    "entrada": {
+      "catalogo": "Sfx",
+      "nombre": "recarga_lista",
+      "files": [
+        "sn_recarga_lista_0.ogg"
+      ]
+    }
+  },
+  {
+    "id": 28,
+    "n": "no_puedes",
+    "cat": "Sfx",
+    "titulo": "Acción no permitida durante el juego",
+    "cuando": "Se intenta una acción que no puede ejecutarse en el mundo, como lanzar sin recursos o sin estar listo. Es distinto de la negativa de los menús.",
+    "motivo": "Una toma de unos 0,45 s. El rechazo de interfaz ya usa la opción C; falta decidir si este contexto necesita otra señal.",
+    "propuesta": "Valorar esta negativa en relación con la C sutil ya aprobada para menús; conservar la distinción solo si ayuda.",
+    "pregunta": "¿Conservarías este aviso para el mundo o usarías también la opción C de los menús? ¿Qué cambiarías?",
+    "entrada": {
+      "catalogo": "Sfx",
+      "nombre": "no_puedes",
+      "files": [
+        "sn_no_puedes_0.ogg"
+      ]
+    }
+  },
+  {
+    "id": 29,
+    "n": "goblin_muere",
+    "cat": "Sfx3D",
+    "titulo": "Muerte del goblin",
+    "cuando": "Muere un goblin; es una señal distinta de su alerta, cuya variante 3 ya elegiste.",
+    "motivo": "La toma dura unos 1,58 s; el juego aplica tono base ×0,8, por lo que se alarga. Hay una sola interpretación seleccionada.",
+    "propuesta": "Conservarla si encaja con la voz de alerta y el tamaño del personaje; recortar o bajar si domina el final del golpe.",
+    "pregunta": "¿Parece el mismo goblin que al alertar? ¿La voz y la duración encajan con su muerte?",
+    "entrada": {
+      "catalogo": "Sfx3D",
+      "nombre": "goblin_muere",
+      "files": [
+        "sn_goblin_muere_0.ogg"
+      ]
+    }
+  },
+  {
+    "id": 30,
+    "n": "limo_muere",
+    "cat": "Sfx3D",
+    "titulo": "Muerte del limo",
+    "cuando": "El limo revienta al quedarse sin vida; puede coincidir con un remate elemental.",
+    "motivo": "Una única toma de unos 1,33 s. Debe comunicar la desintegración de un cuerpo blando sin tapar el golpe o reacción que lo mata.",
+    "propuesta": "Conservarla si el material del limo se reconoce; revisar cola y nivel en relación con el resto de muertes.",
+    "pregunta": "¿Se oye un limo que revienta? ¿Qué cambiarías de textura, duración o intensidad?",
+    "entrada": {
+      "catalogo": "Sfx3D",
+      "nombre": "limo_muere",
+      "files": [
+        "sn_limo_muere_0.ogg"
+      ]
+    }
+  }
+]

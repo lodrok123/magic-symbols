@@ -1,0 +1,27 @@
+{
+  "variantes": [
+    {
+      "archivo": "sn_goblin_muere_corto_0.wav",
+      "fuente": "goblin_muerte_fuente.wav",
+      "duracion_antes_s": 1.57578231292517,
+      "duracion_s": 0.787891156462585,
+      "fundido_final_ms": 8
+    },
+    {
+      "archivo": "sn_goblin_muere_corto_1.wav",
+      "fuente": "goblin_muerte_b.wav",
+      "duracion_antes_s": 1.0943310657596372,
+      "duracion_s": 0.5471655328798186,
+      "fundido_final_ms": 8
+    },
+    {
+      "archivo": "sn_goblin_muere_corto_2.wav",
+      "fuente": "goblin_muerte_c.wav",
+      "duracion_antes_s": 1.3616780045351473,
+      "duracion_s": 0.6808390022675737,
+      "fundido_final_ms": 8
+    }
+  ],
+  "db": -18,
+  "integrado": true
+}

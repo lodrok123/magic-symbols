@@ -1,0 +1,220 @@
+{
+  "casos": [
+    {
+      "id": 43,
+      "titulo": "Fuego A: carga y fuego ardiendo en bucle",
+      "estado": "Aceptado · aplicado",
+      "nota": "A es para carga y fuego ardiendo, no para impacto. Carga breve: copia exacta del recorte elegido. Carga sostenida y arde_bucle: grabación completa de origen oga_fuego_crepita_loop.wav, preparada para bucle, sin la envolvente del recorte. El ambiente de fuego 3D ya utiliza esa misma fuente. Se conservan los niveles de cada uso.",
+      "nombre": "fuego_carga",
+      "entrada": {
+        "catalogo": "Sfx",
+        "nombre": "fuego_carga",
+        "linea": 136,
+        "cfg": {
+          "f": [
+            "fuego_carga_crepitar.wav"
+          ],
+          "db": -9,
+          "tono": 0.04
+        },
+        "selected": "f",
+        "files": [
+          "fuego_carga_crepitar.wav"
+        ],
+        "references": [
+          "objetos/dragon_jefe_3d.gd:624: Sfx.play(self, \"fuego_carga\")",
+          "objetos/dragon_jefe_3d.gd:653: Sfx.play(self, \"fuego_carga\")",
+          "objetos/muro_agrietado_3d.gd:273: Sfx.play(self, \"fuego_carga\")",
+          "objetos/secuencia_braseros_3d.gd:21: const SFX_ACIERTO: String = \"fuego_carga\"",
+          "objetos/trampa_dragon_3d.gd:302: Sfx.play(self, \"fuego_carga\")"
+        ]
+      }
+    },
+    {
+      "id": 44,
+      "titulo": "Impacto de agua: variante 2",
+      "estado": "Mejorable · ajuste aplicado",
+      "nota": "Variante 2 a −19 dB, 12 dB más baja que la señal general. Solo impacto; la carga conserva su entrada propia.",
+      "nombre": "agua_impacto",
+      "entrada": {
+        "catalogo": "Sfx",
+        "nombre": "agua_impacto",
+        "linea": 59,
+        "cfg": {
+          "f_lc": [
+            "lc_agua_1.ogg"
+          ],
+          "f": [
+            "elem_agua.wav"
+          ],
+          "db": -19,
+          "tono": 0.05
+        },
+        "selected": "f_lc",
+        "files": [
+          "lc_agua_1.ogg"
+        ],
+        "references": []
+      }
+    },
+    {
+      "id": 45,
+      "titulo": "Impacto de hielo: variante 3",
+      "estado": "Aceptado · aplicado",
+      "nota": "Variante 3 asignada a hielo_impacto. La elección no corresponde a carga ni a la señal general.",
+      "nombre": "hielo_impacto",
+      "entrada": {
+        "catalogo": "Sfx",
+        "nombre": "hielo_impacto",
+        "linea": 60,
+        "cfg": {
+          "f_lc": [
+            "lc_hielo_2.ogg"
+          ],
+          "f": [
+            "oga_congelar_1.wav"
+          ],
+          "db": -8,
+          "tono": 0.08
+        },
+        "selected": "f_lc",
+        "files": [
+          "lc_hielo_2.ogg"
+        ],
+        "references": []
+      }
+    },
+    {
+      "id": 46,
+      "titulo": "Impacto de rayo: variante 1",
+      "estado": "Aceptado · aplicado",
+      "nota": "Variante 1 asignada a rayo_impacto. La elección no corresponde a carga ni a la señal general.",
+      "nombre": "rayo_impacto",
+      "entrada": {
+        "catalogo": "Sfx",
+        "nombre": "rayo_impacto",
+        "linea": 61,
+        "cfg": {
+          "f_lc": [
+            "lc_rayo_0.ogg"
+          ],
+          "f": [
+            "oga_relampago_0.wav",
+            "oga_relampago_1.wav"
+          ],
+          "db": -10,
+          "tono": 0.08
+        },
+        "selected": "f_lc",
+        "files": [
+          "lc_rayo_0.ogg"
+        ],
+        "references": [
+          "presentacion/vfx/toy/chispas_repo.gd:29: const DE_SERIE: Dictionary = {\"rayo_impacto\": true, \"rayo_pilar\": true, \"rayo_proyectil\": true, \"electrificado\": true, \"electrificado_capsula\": true,     # 11/11 (Pablo: «enciéndelas todas»): los arcos en la cápsula de serie",
+          "presentacion/vfx/toy/chispas_repo.gd:375: if not activa(\"rayo_impacto\") or not imp.is_inside_tree() or imp.has_meta(&\"chispas_repo\"):",
+          "presentacion/vfx/toy/impacto_rayo_toy.gd:268: ChispasRepo.enganchar_impacto_rayo(self)        # 11/11: chispas tipo repo de gas (ChispasRepo.capas[\"rayo_impacto\"]): una capa más, las chispas de siempre siguen"
+        ]
+      }
+    },
+    {
+      "id": 47,
+      "titulo": "Impacto de viento: A",
+      "estado": "Aceptado · aplicado",
+      "nota": "Copia exacta de la propuesta A, fuente Extreme Winds de 344 Audio/Sonniss. Asignada a viento_impacto, manteniendo −11 dB y variación de tono.",
+      "nombre": "viento_impacto",
+      "entrada": {
+        "catalogo": "Sfx",
+        "nombre": "viento_impacto",
+        "linea": 62,
+        "cfg": {
+          "f_sn": [
+            "sn_viento_impacto_a.wav"
+          ],
+          "f": [
+            "elem_viento.wav"
+          ],
+          "db": -11,
+          "tono": 0.12
+        },
+        "selected": "f_sn",
+        "files": [
+          "sn_viento_impacto_a.wav"
+        ],
+        "references": []
+      }
+    },
+    {
+      "id": 48,
+      "titulo": "Impacto de tierra: variante 1",
+      "estado": "Aceptado · aplicado",
+      "nota": "Solo la variante 1 en tierra_impacto, manteniendo −8 dB y variación de tono.",
+      "nombre": "tierra_impacto",
+      "entrada": {
+        "catalogo": "Sfx",
+        "nombre": "tierra_impacto",
+        "linea": 63,
+        "cfg": {
+          "f_lc": [
+            "lc_tierra_0.ogg"
+          ],
+          "f": [
+            "elem_tierra.wav"
+          ],
+          "db": -8,
+          "tono": 0.1
+        },
+        "selected": "f_lc",
+        "files": [
+          "lc_tierra_0.ogg"
+        ],
+        "references": []
+      }
+    }
+  ],
+  "propuestas": [
+    {
+      "archivo": "fuego_a.wav",
+      "fuente": "E:\\magic-symbols\\audio\\oga_fuego_crepita_loop.wav",
+      "inicio_s": 1,
+      "duracion_s": 1,
+      "origen": "Crepitar de fuego real · AntumDeluge, OpenGameArt, CC0",
+      "ganancia_db": 5.496677052446205,
+      "rms_dbfs": -25.546845597745044,
+      "pico_dbfs": -6.000000000000001,
+      "integrado": false
+    },
+    {
+      "archivo": "fuego_b.wav",
+      "fuente": "C:\\Users\\pablo\\Downloads\\sonniss_gdc2026\\344 Audio - Haunting Ambiences Vol. 5\\FIRECrkl_Fire Crackling, Popping, Witch's Cauldron_344 Audio_Haunting Ambiences Vol 5.wav",
+      "inicio_s": 2,
+      "duracion_s": 1.1,
+      "origen": "Crepitar y chasquidos · 344 Audio, Sonniss GDC 2026",
+      "ganancia_db": 16.882940595544703,
+      "rms_dbfs": -24,
+      "pico_dbfs": -9.630087089911767,
+      "integrado": false
+    },
+    {
+      "archivo": "viento_a.wav",
+      "fuente": "C:\\Users\\pablo\\Downloads\\sonniss_gdc2026\\344 Audio - Extreme Winds Vol. 1\\WINDDsgn_EXT, Eye Of The Storm_344 Audio_Extreme Winds Vol 1.wav",
+      "inicio_s": 4,
+      "duracion_s": 1,
+      "origen": "Ráfaga de viento · 344 Audio, Sonniss GDC 2026",
+      "ganancia_db": -1.4239514331616796,
+      "rms_dbfs": -24,
+      "pico_dbfs": -12.545940747845105,
+      "integrado": false
+    },
+    {
+      "archivo": "viento_b.wav",
+      "fuente": "C:\\Users\\pablo\\Downloads\\sonniss_gdc2026\\InMotionAudio - Chimney Wind\\WINDInt_ChimneyWind05_InMotionAudio_ChimneyWind.wav",
+      "inicio_s": 1,
+      "duracion_s": 1,
+      "origen": "Aire de chimenea · InMotionAudio, Sonniss GDC 2026",
+      "ganancia_db": 16.000372951091265,
+      "rms_dbfs": -24,
+      "pico_dbfs": -12.325022929053336,
+      "integrado": false
+    }
+  ]
+}

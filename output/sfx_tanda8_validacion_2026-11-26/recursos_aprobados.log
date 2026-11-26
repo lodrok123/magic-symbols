@@ -1,0 +1,22 @@
+Godot Engine v4.7.2.stable.official.ed1daf0bf - https://godotengine.org
+
+OK    1 todos los sonidos del catálogo existen y se cargan  203 archivos · faltan []
+OK    2 Sfx tiene «descarga_electrica» con un archivo grabado (oga_)
+OK    2 Sfx tiene «chasquidos_electricos» con un archivo grabado (oga_)
+OK    2 Sfx tiene «congelar» con un archivo grabado (oga_)
+OK    2 Sfx tiene «rayo» con un archivo grabado (oga_)
+OK    2 Sfx tiene «hielo» con un archivo grabado (oga_)
+OK    2 Sfx tiene «arde_bucle» con un archivo grabado (oga_)
+OK    2 la capa común de conjuro usa escritura grabada, no el conjuro genérico rechazado
+OK    2 Sfx3D tiene «paso_hierba» con pisadas grabadas
+OK    2 Sfx3D tiene «paso_tierra» con pisadas grabadas
+OK    2 Sfx3D tiene «paso_roca» con pisadas grabadas
+OK    2 Sfx3D tiene «paso_madera» con pisadas grabadas
+OK    3 el crepitar del fuego (.wav) sale en bucle
+OK    3 el agua corriendo (.ogg) sale en bucle
+OK    3 el recurso importado no se toca (el bucle va en una copia)
+OK    5 los sonidos «f_lc» existen y se cargan  51 archivos · faltan []
+OK    5 archivos_de: «f_lc» manda con PACK_MAGIA encendido  []
+OK    4 las entradas con «f_sn» tienen todos sus archivos o ninguno  69 archivos sn_ aquí · a medias []
+OK    4 archivos_de: «f_sn» si están y SONNISS encendido; «f» si no  []
+FALLOS: 0

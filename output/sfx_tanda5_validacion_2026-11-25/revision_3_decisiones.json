@@ -1,0 +1,26 @@
+{
+  "referencia": {
+    "archivo": "madera_rotura_referencia.wav",
+    "inicio_s": 0.0091156462585034,
+    "fin_s": 3.0438548752834467,
+    "duracion_s": 3.0347392290249435,
+    "ganancia_db": 0.0,
+    "integrado": false,
+    "procedencia": "Vídeo facilitado por Pablo; autor y licencia originales no identificados"
+  },
+  "goblin": {
+    "variantes": [
+      "sn_goblin_muere_0.ogg",
+      "sn_goblin_muere_1.wav",
+      "sn_goblin_muere_2.wav"
+    ],
+    "db": -18,
+    "integrado": true
+  },
+  "recorte_corto": {
+    "archivo": "madera_rotura_corta.wav",
+    "inicio_s": 1.32,
+    "fin_s": 2.22,
+    "integrado": false
+  }
+}

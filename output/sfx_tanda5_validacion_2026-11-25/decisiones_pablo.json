@@ -1,0 +1,98 @@
+[
+  {
+    "id": 25,
+    "titulo": "Golpe bloqueado por escudo",
+    "estado": "A cambiar · propuestas pendientes",
+    "nota": "Dos impactos de madera Kenney CC0, recortados y con envolvente corta. No se han integrado; falta tu validación. Los sonidos de piedra de otros enemigos se conservan.",
+    "clips": [
+      [
+        "A · Impacto de madera medio",
+        "../output/sfx_tanda5_validacion_2026-11-25/escudo_golpe_a.wav",
+        1,
+        1
+      ],
+      [
+        "B · Impacto de madera pesado",
+        "../output/sfx_tanda5_validacion_2026-11-25/escudo_golpe_b.wav",
+        1,
+        1
+      ]
+    ]
+  },
+  {
+    "id": 26,
+    "titulo": "Rotura de escudo o burbuja",
+    "estado": "A cambiar · propuestas pendientes",
+    "nota": "A combina corte, crujido e impactos de madera Kenney CC0. B es un estallido de aire filtrado de síntesis propia. El código comparte actualmente la señal de rotura; estas propuestas no están integradas.",
+    "clips": [
+      [
+        "A · Rotura de madera",
+        "../output/sfx_tanda5_validacion_2026-11-25/escudo_rotura_a.wav",
+        1,
+        1
+      ],
+      [
+        "B · Estallido de burbuja amortiguado",
+        "../output/sfx_tanda5_validacion_2026-11-25/burbuja_rotura_b.wav",
+        1,
+        1
+      ]
+    ]
+  },
+  {
+    "id": 27,
+    "titulo": "Página o esquiva disponible otra vez",
+    "estado": "Mejorable · ajuste aplicado",
+    "nota": "Aviso reducido 8 dB: catálogo de −16 a −24 dB. Se mantiene la muestra. La página conserva el tono ligeramente más alto que la esquiva.",
+    "clips": [
+      [
+        "Aviso ajustado · esquiva",
+        "../audio/sn_recarga_lista_0.ogg",
+        0.28183829312644537,
+        1
+      ]
+    ]
+  },
+  {
+    "id": 28,
+    "titulo": "Acción no permitida durante el juego",
+    "estado": "Sustitución aplicada · opción C",
+    "nota": "Usa el rechazo C aprobado, con catálogo a −20 dB y sin variación de tono. La muestra ya tiene un nivel bajo. Aquí se presenta con margen de −3 dB para facilitar la escucha; el juego aplica su nivel de catálogo.",
+    "clips": [
+      [
+        "C · Toque sutil",
+        "../audio/ui_rechazo_sutil.wav",
+        0.7079457843841379,
+        1
+      ]
+    ]
+  },
+  {
+    "id": 29,
+    "titulo": "Muerte del goblin",
+    "estado": "Aceptado · volumen ajustado",
+    "nota": "Misma selección, 3 dB menos: de −5 a −8 dB. Conserva el tono base ×0,8.",
+    "clips": [
+      [
+        "Selección aceptada · −3 dB",
+        "../audio/sn_goblin_muere_0.ogg",
+        0.5011872336272722,
+        0.8
+      ]
+    ]
+  },
+  {
+    "id": 30,
+    "titulo": "Muerte del limo",
+    "estado": "Aceptado · conservado",
+    "nota": "Se conserva el sonido y su nivel.",
+    "clips": [
+      [
+        "Selección aceptada",
+        "../audio/sn_limo_muere_0.ogg",
+        0.7079457843841379,
+        1
+      ]
+    ]
+  }
+]

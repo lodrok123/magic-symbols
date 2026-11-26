@@ -1,0 +1,24 @@
+[
+  {
+    "archivo": "rechazo_a.wav",
+    "segundos": 0.06390022675736962,
+    "rms_dbfs": -35.15229806730059,
+    "origen": "Kenney Interface Sounds / back_001.ogg, CC0; filtro suave a 1,6 kHz",
+    "integrado": false
+  },
+  {
+    "archivo": "rechazo_b.wav",
+    "segundos": 0.18,
+    "rms_dbfs": -30,
+    "origen": "Sintesis propia: dos notas bajas descendentes, 330 y 275 Hz",
+    "integrado": false
+  },
+  {
+    "archivo": "rechazo_c.wav",
+    "segundos": 0.09,
+    "rms_dbfs": -31.732539122868204,
+    "origen": "Sintesis propia: ruido filtrado grave con envolvente corta",
+    "integrado": true,
+    "archivo_juego": "audio/ui_rechazo_sutil.wav"
+  }
+]

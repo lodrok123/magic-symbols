@@ -27,28 +27,30 @@ const CATALOGO: Dictionary = {
 	# en la hierba, barro y grava en la tierra, piedra y grava en la roca y madera en los puentes. Pocas tomas por suelo: la variación la pone el
 	# tono (±10 %). Volumen bajo a propósito (Pablo: «muy fuerte, un sonido sutil»): se ajusta de oído aquí. Las sintetizadas suaves
 	# (paso_suave_*, tools/gen_pasos_suaves.py) siguen en audio/ por si se prefieren.
-	"paso_hierba": {"f": ["oga_paso_hojas_0.ogg", "oga_paso_hojas_1.ogg"], "db": -16.0, "tono": 0.10, "unidad": 3.0, "alcance": 10.0},
-	"paso_tierra": {"f": ["oga_paso_barro_0.ogg", "oga_paso_grava_0.ogg"], "db": -16.0, "tono": 0.10, "unidad": 3.0, "alcance": 10.0},
-	"paso_roca": {"f": ["oga_paso_piedra_0.ogg", "oga_paso_grava_0.ogg"], "db": -16.0, "tono": 0.10, "unidad": 3.0, "alcance": 10.0},
-	"paso_madera": {"f": ["oga_paso_madera_1.ogg"], "db": -16.0, "tono": 0.08,   # 25/11: variante 2 aprobada
+	"paso_hierba": {"f": ["oga_paso_hojas_0.ogg"], "db": -16.0, "tono": 0.10, "unidad": 3.0, "alcance": 10.0},   # 25/11: variante 1 aprobada
+	"paso_tierra": {"f": ["oga_paso_barro_0.ogg"], "db": -16.0, "tono": 0.10, "unidad": 3.0, "alcance": 10.0},   # 25/11: variante 1 aprobada
+	"paso_roca": {"f": ["oga_paso_grava_0.ogg"], "db": -16.0, "tono": 0.10, "unidad": 3.0, "alcance": 10.0},   # 25/11: variante 2 aprobada
+	# 25/11: variante 2 de madera aprobada.
+	"paso_madera": {"f": ["oga_paso_madera_1.ogg"], "db": -16.0, "tono": 0.08,
 		"unidad": 3.0, "alcance": 10.0},
 	# 10/11: «f_sn» = voces de criatura del lote GDC 2026 de Sonniss (subidas de tono al cocerlas: de orco a goblin). Solo suenan si los archivos están en esta máquina (`Sfx.archivos_de`).
-	"goblin_grito": {"f": ["goblin_grito_0.ogg", "goblin_grito_1.ogg", "goblin_grito_2.ogg"], "f_sn": ["sn_goblin_grito_0.ogg", "sn_goblin_grito_1.ogg", "sn_goblin_grito_2.ogg"],
-		"db": -6.0, "tono": 0.10},
+	"goblin_grito": {"f": ["goblin_grito_0.ogg", "goblin_grito_1.ogg", "goblin_grito_2.ogg"], "f_sn": ["sn_goblin_grito_2.ogg"],
+		"db": -9.0, "tono": 0.10},   # 25/11: alerta variante 3 aprobada, 3 dB más baja
 	# Al morir: los mismos gritos, más graves y más cortos de oído (tono 0,8) para que no se confunda con el aviso.
-	"goblin_muere": {"f": ["goblin_grito_0.ogg", "goblin_grito_1.ogg", "goblin_grito_2.ogg"], "f_sn": ["sn_goblin_muere_0.ogg"],
-		"db": -5.0, "tono": 0.05, "base": 0.8},
+	"goblin_muere": {"f": ["goblin_grito_0.ogg", "goblin_grito_1.ogg", "goblin_grito_2.ogg"], "f_sn": ["sn_goblin_muere_corto_0.wav", "sn_goblin_muere_corto_1.wav", "sn_goblin_muere_corto_2.wav"],
+		"db": -18.0, "tono": 0.05, "base": 0.8},   # 25/11: solo la primera mitad de cada variante, mismo nivel
 	# 29/10 (gamefeel lote 4, audio/gen_sfx_sensacion.py): el CUERPO que encaja un hechizo (`Combate3D.snd_golpe`: carne, piedra del gólem, chapoteo del limo) y el limo
 	# que revienta. Aquí y no en Sfx porque son del enemigo: con distancia y veda por emisor (tres goblins golpeados a la vez suenan tres veces).
 	# 2/11 (tarea R): «f» grabado (Kenney Impact, CC0), «f_sint» lo sintetizado de antes (suena con Sfx.GRABADOS = false).
 	"golpe_carne":  {"f": ["kenney_golpe_carne_0.ogg", "kenney_golpe_carne_1.ogg", "kenney_golpe_carne_2.ogg"], "f_sn": ["sn_golpe_carne_0.ogg", "sn_golpe_carne_1.ogg", "sn_golpe_carne_2.ogg", "sn_golpe_carne_3.ogg"], "f_sint": ["golpe_carne_0.wav", "golpe_carne_1.wav"], "db": -9.0, "tono": 0.12},
-	"golpe_piedra": {"f": ["kenney_golpe_piedra_0.ogg", "kenney_golpe_piedra_1.ogg", "kenney_golpe_piedra_2.ogg"], "f_sint": ["golpe_piedra.wav"], "db": -8.0, "tono": 0.08},
+	"golpe_piedra": {"f": ["kenney_golpe_piedra_0.ogg", "kenney_golpe_piedra_1.ogg"], "f_sint": ["golpe_piedra.wav"], "db": -8.0, "tono": 0.08},   # 25/11: variantes 1 y 2 aprobadas para impacto de roca sobre gólem
 	# Pasos de los enemigos (tarea R): el gólem pesa (concreto, tono ×0,6, fuerte); el goblin es ligero (hierba y madera, tono ×1,2). Los dispara el propio enemigo al andar (`PasosEnemigo3D`).
 	"paso_golem":   {"f": ["kenney_paso_golem_0.ogg", "kenney_paso_golem_1.ogg", "kenney_paso_golem_2.ogg", "kenney_paso_golem_3.ogg"], "db": -4.0, "tono": 0.06, "base": 0.6, "unidad": 4.0, "alcance": 16.0},
 	"paso_goblin":  {"f": ["kenney_paso_goblin_0.ogg"], "db": -14.0, "tono": 0.08, "base": 1.2, "unidad": 3.0, "alcance": 11.0},   # 25/11: variante 1 aprobada
 	"limo_golpe":   {"f": ["limo_golpe.wav"], "f_sn": ["sn_limo_golpe_0.ogg"], "db": -9.0, "tono": 0.12},
 	"limo_muere":   {"f": ["limo_muere.wav"], "f_sn": ["sn_limo_muere_0.ogg"], "db": -7.0, "tono": 0.06},
-	"gato_maullido": {"f": ["oga_gato_maullido_0.wav", "oga_gato_maullido_1.wav", "oga_gato_maullido_2.ogg"], "f_sint": ["gato_maullido_0.ogg", "gato_maullido_1.ogg"],
+	# 25/11: variante 3 de maullido aprobada.
+	"gato_maullido": {"f": ["oga_gato_maullido_2.ogg"], "f_sint": ["gato_maullido_0.ogg", "gato_maullido_1.ogg"],
 		"db": -9.0, "tono": 0.08},
 	"conversacion_voz": {"f": ["conversacion_voz_0.ogg", "conversacion_voz_1.ogg", "conversacion_voz_2.ogg"],
 		"db": -10.0, "tono": 0.06},
@@ -71,7 +73,7 @@ const CATALOGO: Dictionary = {
 	"limo_divide":  {"f": ["limo_golpe.wav"], "f_sn": ["sn_limo_divide_0.ogg"], "db": -9.0, "tono": 0.10},
 	# 13/11 (pack de magia de Leonardo Calvo, CC BY 4.0): el chamán suelta la bola de veneno, la bola revienta en el suelo y las raíces del Elemental brotan. Antes no sonaban.
 	"veneno_bola":   {"f": ["limo_golpe.wav"], "f_lc": ["lc_veneno_bola_0.ogg", "lc_veneno_bola_1.ogg", "lc_veneno_bola_2.ogg"], "db": -10.0, "tono": 0.08},
-	"veneno_charco": {"f": ["limo_muere.wav"], "f_lc": ["lc_veneno_charco_2.ogg"], "db": -9.0, "tono": 0.03, "base": 0.85},   # 25/11: variante 3, más grave
+	"veneno_charco": {"f": ["limo_muere.wav"], "f_lc": ["lc_veneno_bola_1.ogg"], "db": -12.0, "tono": 0.03, "base": 0.85},   # 25/11: caso 21 variante 2 destinada al impacto; 3 dB menos, conserva tono grave
 	"raices_brotan": {"f": ["derrumbe.wav"], "f_lc": ["lc_raices_brotan_0.ogg", "lc_raices_brotan_1.ogg", "lc_raices_brotan_2.ogg"], "db": -8.0, "tono": 0.06},
 	"arco":         {"f": ["arco.wav"], "db": -10.0, "tono": 0.08},                                        # el arquero suelta la flecha (antes «arco» estaba en Sfx y nadie lo pedía)
 	# 24/11 (Pablo: «sonido metálico al circular»): la VAGONETA (Vagoneta3D). «junta» = el traqueteo de la rueda al pasar cada junta de raíl (una por casilla);

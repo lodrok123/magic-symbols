@@ -51,10 +51,16 @@ static var CATALOGO: Dictionary = {
 	"fuego":   {"f_lc": ["lc_fuego_0.ogg", "lc_fuego_1.ogg", "lc_fuego_2.ogg", "lc_fuego_3.ogg"], "f": ["elem_fuego.wav"],   "db": -8.0,  "tono": 0.10},
 	"agua":    {"f_lc": ["lc_agua_0.ogg", "lc_agua_1.ogg", "lc_agua_2.ogg"], "f": ["elem_agua.wav"],    "db": -7.0,  "tono": 0.10},
 	# 27/10: hielo y rayo GRABADOS (OpenGameArt, CC0: «Ice spells» de bart y «Electricity Game Sound Pack» de faxcorp; audio/LICENCIAS.md).
-	"hielo":   {"f_lc": ["lc_hielo_0.ogg", "lc_hielo_1.ogg", "lc_hielo_2.ogg", "lc_hielo_3.ogg"], "f": ["oga_congelar_1.wav"], "db": -8.0,  "tono": 0.08},
+	"hielo":   {"f_lc": ["lc_hielo_0.ogg", "lc_hielo_1.ogg", "lc_hielo_2.ogg", "lc_hielo_3.ogg"], "f": ["oga_congelar_1.wav"], "db": -8.0, "tono": 0.08},
 	"rayo":    {"f_lc": ["lc_rayo_0.ogg", "lc_rayo_1.ogg", "lc_rayo_2.ogg", "lc_rayo_3.ogg"], "f": ["oga_relampago_0.wav", "oga_relampago_1.wav"], "db": -10.0, "tono": 0.08},
 	"viento":  {"f_lc": ["lc_viento_0.ogg", "lc_viento_1.ogg", "lc_viento_2.ogg", "lc_viento_3.ogg"], "f": ["elem_viento.wav"], "f_sn": ["sn_viento_0.ogg"],  "db": -11.0, "tono": 0.12},
 	"tierra":  {"f_lc": ["lc_tierra_0.ogg", "lc_tierra_1.ogg", "lc_tierra_2.ogg", "lc_tierra_3.ogg"], "f": ["elem_tierra.wav"],  "db": -8.0,  "tono": 0.10},
+	# 26/11: las elecciones de esta tanda son para IMPACTO; las señales generales anteriores quedan sin validar.
+	"agua_impacto": {"f_lc": ["lc_agua_1.ogg"], "f": ["elem_agua.wav"], "db": -19.0, "tono": 0.05},
+	"hielo_impacto": {"f_lc": ["lc_hielo_2.ogg"], "f": ["oga_congelar_1.wav"], "db": -8.0, "tono": 0.08},
+	"rayo_impacto": {"f_lc": ["lc_rayo_0.ogg"], "f": ["oga_relampago_0.wav", "oga_relampago_1.wav"], "db": -10.0, "tono": 0.08},
+	"viento_impacto": {"f_sn": ["sn_viento_impacto_a.wav"], "f": ["elem_viento.wav"], "db": -11.0, "tono": 0.12},
+	"tierra_impacto": {"f_lc": ["lc_tierra_0.ogg"], "f": ["elem_tierra.wav"], "db": -8.0, "tono": 0.10},
 	"tiempo":  {"f": ["elem_tiempo.wav"],  "db": -10.0, "tono": 0.05},
 
 	# --- Magia del mundo (sintetizados).
@@ -66,16 +72,17 @@ static var CATALOGO: Dictionary = {
 	"arco":     {"f": ["arco.wav"],     "db": -9.0,  "tono": 0.08},
 	"pira":     {"f": ["pira.wav"],     "db": -6.0,  "tono": 0.0},
 	"dano":     {"f": ["dano.wav"], "f_sn": ["sn_dano_0.ogg"],     "db": -7.0,  "tono": 0.10},
-	"muerte":   {"f": ["muerte.wav"], "f_sn": ["sn_muerte_0.ogg"],   "db": -8.0,  "tono": 0.0},     # 31/10 (tarea U2): −4 → −8; suena en la pantalla de muerte por play_ui
+	"muerte":   {"f": ["muerte.wav"], "f_sn": ["sn_muerte_sobria.wav"], "db": -8.0, "tono": 0.0},   # 25/11: caso 42, opción B aprobada; pantalla de muerte por play_ui
 
 	# --- Foley (Kenney, CC0).
 	"paso": {"f": ["paso_0.ogg", "paso_1.ogg", "paso_2.ogg",
 			"paso_3.ogg", "paso_4.ogg", "paso_5.ogg"],
 		"db": -14.0, "tono": 0.08},
-	"puerta_abre":   {"f": ["puerta_abre_0.ogg", "puerta_abre_1.ogg"],
+	# 25/11: apertura variante 1 aprobada.
+	"puerta_abre":   {"f": ["puerta_abre_0.ogg"],
 		"db": -5.0, "tono": 0.05},
-	"puerta_cierra": {"f": ["puerta_cierra_0.ogg", "puerta_cierra_1.ogg"],
-		"db": -6.0, "tono": 0.05},
+	"puerta_cierra": {"f": ["puerta_cierra_1.ogg"],
+		"db": -9.0, "tono": 0.05},   # 25/11: variante 2 aprobada, 3 dB más baja
 	"libro_abre":    {"f": ["libro_abre.ogg"], "f_sn": ["sn_libro_abre_0.ogg"],   "db": -7.0, "tono": 0.04},
 	"libro_cierra":  {"f": ["libro_cierra.ogg"], "db": -7.0, "tono": 0.04},
 	# 25/11 (Pablo): recortes cortos del tramo 50–55 s; un único sonido por hoja.
@@ -116,7 +123,7 @@ static var CATALOGO: Dictionary = {
 	"boton_clic":        {"f": ["boton_clic.wav"], "f_sn": ["sn_boton_clic_0.ogg"],        "db": -8.0,  "tono": 0.05},
 	"placa_hunde":       {"f": ["placa_hunde.wav"],       "db": -7.0,  "tono": 0.06},
 	"compuerta_baja":    {"f": ["compuerta_baja.wav"],    "db": -7.0,  "tono": 0.05},
-	"hielo_quiebra":     {"f": ["hielo_quiebra.wav"], "f_sn": ["sn_hielo_quiebra_0.ogg", "sn_hielo_quiebra_1.ogg", "sn_hielo_quiebra_2.ogg"], "db": -9.0,  "tono": 0.08},
+	"hielo_quiebra":     {"f": ["hielo_quiebra.wav"], "f_sn": ["sn_hielo_quiebra_0.ogg"], "db": -9.0, "tono": 0.08},   # 25/11: variante 1 aprobada
 	"mecha":             {"f": ["mecha.wav"],             "db": -11.0, "tono": 0.04},
 	"explosion":         {"f": ["explosion.wav"], "f_sn": ["sn_explosion_0.ogg"], "db": -6.0,  "tono": 0.06},
 	"rueda_chirria":     {"f": ["rueda_chirria.wav"],     "db": -13.0, "tono": 0.1},
@@ -126,9 +133,9 @@ static var CATALOGO: Dictionary = {
 	# --- Fases del conjuro V2 (18/10, Pipeline; audio/gen_sfx_hechizos.py, diario 160/162). Las llama Lanzador3D._sonar_fase_v2: «<elemento>_carga» al
 	# empezar el conjuro, y «<nombre derivado>_impacto» (x_mano · alto · abajo) al materializarse el volumen. «<elemento>_disparo» no lleva sonido
 	# propio: sigue siendo el elem_* de arriba. Primera versión sintetizada: SE AFINA ESCUCHANDO (estos dB y el tono son un punto de partida).
-	"fuego_carga":  {"f": ["fuego_carga.wav"],  "db": -9.0,  "tono": 0.04},
-	# Bucle MIENTRAS se carga/apunta (20/10, Pablo): se pide con `Sfx.bucle`, no con `play`. Lo genera audio/gen_sfx_hechizos.py::fuego_carga_bucle.
-	"fuego_carga_bucle": {"f": ["fuego_carga_bucle.wav"], "db": -14.0, "tono": 0.0},
+	"fuego_carga":  {"f": ["fuego_carga_crepitar.wav"], "db": -9.0, "tono": 0.04},   # 26/11: crepitar A aprobado para carga
+	# 26/11: misma fuente real A mientras se carga/apunta, en bucle; no se repite el recorte con fundidos de la carga breve.
+	"fuego_carga_bucle": {"f": ["oga_fuego_crepita_loop.wav"], "db": -14.0, "tono": 0.0},
 	"agua_carga":   {"f": ["agua_carga.wav"],   "db": -9.0,  "tono": 0.04},
 	"hielo_carga":  {"f": ["hielo_carga.wav"],  "db": -11.0, "tono": 0.03},
 	"rayo_carga":   {"f": ["rayo_carga.wav"], "f_sn": ["sn_rayo_carga_0.ogg"],   "db": -9.0,  "tono": 0.04},
@@ -144,15 +151,16 @@ static var CATALOGO: Dictionary = {
 	"siseo_apagado":    {"f": ["siseo_apagado.wav"], "f_sn": ["sn_siseo_apagado_0.ogg"],    "db": -9.0,  "tono": 0.08},
 	"chapoteo":         {"f": ["chapoteo.wav"],         "db": -8.0,  "tono": 0.10},
 	"hundido_burbujas": {"f": ["hundido_burbujas.wav"], "f_sn": ["sn_hundido_burbujas_0.ogg"], "db": -8.0,  "tono": 0.05},
-	"arde_bucle":       {"f": ["oga_fuego_crepita_loop.wav"], "f_sn": ["sn_arde_bucle_0.ogg"], "db": -12.0, "tono": 0.0},     # 27/10: el crepitar grabado (CC0)
-	"escudo_golpe":     {"f": ["escudo_golpe.wav"], "f_sn": ["sn_escudo_golpe_0.ogg"],     "db": -8.0,  "tono": 0.10},
-	"escudo_roto":      {"f": ["escudo_roto.wav"], "f_sn": ["sn_escudo_roto_0.ogg"],      "db": -6.0,  "tono": 0.06},
+	"arde_bucle":       {"f": ["oga_fuego_crepita_loop.wav"], "db": -12.0, "tono": 0.0},   # 26/11: crepitar A mientras arde, sin prioridad de otra fuente
+	"escudo_golpe":     {"f": ["escudo_madera_golpe_0.wav", "escudo_madera_golpe_1.wav"], "db": -8.0, "tono": 0.05},
+	"burbuja_rota":     {"f": ["burbuja_rotura_sutil.wav"], "db": -6.0, "tono": 0.06},
+	"escudo_roto":      {"f": ["madera_rotura.wav"], "db": -6.0, "tono": 0.06},   # 25/11: 26A aprobado para corte/caída de madera
 	"aturdido":         {"f": ["aturdido.wav"], "f_sn": ["sn_aturdido_0.ogg"],         "db": -11.0, "tono": 0.05},
 	"empujado":         {"f": ["empujado.wav"],         "db": -11.0, "tono": 0.10},
 	# 28/10 (Juego, gamefeel lote 1; audio/gen_sfx_sensacion.py): la salida común de todo hechizo, el «no puedes» seco y el aviso de ataque de un enemigo (C3).
 	"lanzar_salida":    {"f": ["lanzar_salida.wav"],    "db": -12.0, "tono": 0.06},
-	"no_puedes":        {"f": ["no_puedes.wav"], "f_sn": ["sn_no_puedes_0.ogg"],        "db": -8.0,  "tono": 0.05},
-	"no_puedes_ui":     {"f": ["kenney_error_0.ogg", "kenney_error_1.ogg", "kenney_error_2.ogg", "kenney_error_3.ogg"], "f_sint": ["no_puedes.wav"], "db": -12.0, "tono": 0.04},   # 2/11 (R): el «no» de los MENÚS; el del mundo (arriba) no cambia
+	"no_puedes":        {"f": ["ui_rechazo_sutil.wav"], "db": -20.0, "tono": 0.0},   # 25/11: opción C también en el mundo, muy sutil
+	"no_puedes_ui":     {"f": ["ui_rechazo_sutil.wav"], "f_sint": ["ui_rechazo_sutil.wav"], "db": -12.0, "tono": 0.0},   # 25/11: opción C aprobada; síntesis sutil también en modo sin grabados
 	"aviso_ataque":     {"f": ["aviso_ataque.wav"],     "db": -13.0, "tono": 0.03},
 	"tiempo_tic":       {"f": ["tiempo_tic.wav"], "f_sn": ["sn_tiempo_tic_0.ogg"],       "db": -10.0, "tono": 0.0},
 	"reaccion_grande":  {"f": ["reaccion_grande.wav"], "f_sn": ["sn_reaccion_grande_0.ogg"],  "db": -7.0,  "tono": 0.04},
@@ -163,10 +171,10 @@ static var CATALOGO: Dictionary = {
 	# 29/10 (gamefeel lote 4, Juego; audio/gen_sfx_sensacion.py). El cuerpo que encaja un golpe (`Combate3D.snd_golpe` por familia), la jugadora que lo encaja, el latido
 	# de la vida baja (bucle, `Sensacion3D.DirectorSensacion`), la voltereta, el clic de «ya puedes otra vez», el proyectil contra el mundo y el aro de carga (bucle).
 	# (golpe_carne, golpe_piedra, limo_golpe y limo_muere están en Sfx3D.CATALOGO: son del cuerpo del enemigo y llevan distancia, como su grito.)
-	"dano_jugadora":    {"f": ["dano_jugadora.wav"], "f_sn": ["sn_dano_jugadora_0.ogg"], "db": -7.0,  "tono": 0.08},
+	"dano_jugadora":    {"f": ["dano_jugadora.wav"], "f_sn": ["sn_dano_jugadora_0.ogg"], "db": -10.0, "tono": 0.08},   # 25/11: aceptado, 3 dB más bajo
 	"latido":           {"f": ["latido.wav"],           "db": -8.0,  "tono": 0.0},
 	"voltereta":        {"f": ["voltereta.wav"], "f_sn": ["sn_voltereta_1.ogg"], "db": -17.0, "tono": 0.0},   # 25/11: variante 2, 3 dB más discreta
-	"recarga_lista":    {"f": ["recarga_lista.wav"], "f_sn": ["sn_recarga_lista_0.ogg"],    "db": -16.0, "tono": 0.03},
+	"recarga_lista":    {"f": ["recarga_lista.wav"], "f_sn": ["sn_recarga_lista_0.ogg"],    "db": -24.0, "tono": 0.03},   # 25/11: aviso muy sutil, 8 dB menos
 	"golpe_mundo":      {"f": ["golpe_mundo.wav"],      "db": -11.0, "tono": 0.10},
 	"carga_bucle":      {"f": ["carga_bucle.wav"], "f_sn": ["sn_carga_bucle_0.ogg"],      "db": -18.0, "tono": 0.0},
 	"secado":           {"f": ["secado.wav"],           "db": -13.0, "tono": 0.08},
@@ -194,7 +202,7 @@ static var CATALOGO: Dictionary = {
 	"golpe_ui":   {"f": ["golpe_ui.wav"],   "db": -8.0,  "tono": 0.0},
 	"comprar":    {"f": ["kenney_comprar_0.ogg"], "f_sint": ["comprar.wav"], "db": -9.9382, "tono": 0.0},   # variante 1, −20 % de amplitud
 	"ui_tick":    {"f": ["kenney_clic_1.ogg"], "f_sint": ["ui_tick.wav"], "db": -20.0, "tono": 0.0},   # clic 2 de la escucha (índice de archivo 1)
-	"ui_equipar": {"f": ["kenney_equipar_0.ogg", "kenney_equipar_1.ogg"], "f_sint": ["ui_equipar.wav"], "db": -12.0, "tono": 0.0},
+	"ui_equipar": {"f": ["kenney_equipar_1.ogg"], "f_sint": ["ui_equipar.wav"], "db": -12.0, "tono": 0.0},   # 25/11: variante 2 aprobada
 	# 31/10 (gamefeel tarea U): el barrido al vaciar la página del grimorio y el tono suave de la vuelta tras morir (audio/gen_sfx_interfaz.py).
 	"barrido":    {"f": ["barrido.wav"], "f_sn": ["sn_barrido_0.ogg"],    "db": -12.0, "tono": 0.04},
 	"reaparecer": {"f_lc": ["lc_reaparecer_0.ogg"], "f": ["reaparecer.wav"], "db": -14.0, "tono": 0.0},

@@ -1,0 +1,20 @@
+{
+  "video": "20261125-1603-17.2680289.mp4",
+  "recortes": [
+    {
+      "archivo": "madera_nueva_a.wav",
+      "inicio_s": 0.68,
+      "fin_s": 1.56,
+      "ganancia_db": -3.0,
+      "integrado": false
+    },
+    {
+      "archivo": "madera_nueva_b.wav",
+      "inicio_s": 2.07,
+      "fin_s": 2.68,
+      "ganancia_db": -3.0,
+      "integrado": false
+    }
+  ],
+  "procedencia": "Referencia facilitada por Pablo; autor y licencia originales no identificados"
+}

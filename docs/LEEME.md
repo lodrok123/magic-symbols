@@ -47,3 +47,18 @@ borradores: su dueño los integra en los vivos y los borra.
 - [Cambios tras validar los SFX](VALIDACION_SFX_2026-11-25.html): recortes de papel, escritura con el elemento, variantes de interfaz elegidas y piedra aprobada con nivel sutil.
 - [Segunda escucha de SFX](ESCUCHA_SFX_TANDA2_2026-11-25.html): casos 7–12, pasos de madera y goblin, impacto de veneno, congelación, voltereta y muerte por tierra; variantes y notas para validar.
 - [Segunda tanda aplicada](VALIDACION_SFX_TANDA2_2026-11-25.html): variantes 7–11 fijadas; veneno más grave y voltereta más discreta. Desmoronamiento del caso 12 sustituido por el recorte corto aprobado.
+- [Tercera escucha de SFX](ESCUCHA_SFX_TANDA3_2026-11-25.html): casos 13–18, pasos en hierba/tierra/roca, cierre de puerta, maullidos y equipamiento; lista, variantes y notas para validar.
+- [Tercera tanda aplicada](VALIDACION_SFX_TANDA3_2026-11-25.html): seis variantes aceptadas, cierre de puerta 3 dB más bajo y preescucha de las selecciones.
+- [Cuarta escucha de SFX](ESCUCHA_SFX_TANDA4_2026-11-25.html): casos 19–24, rechazo de interfaz, alerta del goblin, salida de veneno, apertura de puerta, cierre de libro y daño de la jugadora.
+- [Cuarta tanda aplicada](VALIDACION_SFX_TANDA4_2026-11-25.html): goblin, impacto de veneno y daño más bajos, apertura elegida, libro conservado y rechazo sutil C aprobado e integrado.
+- [Quinta escucha de SFX](ESCUCHA_SFX_TANDA5_2026-11-25.html): casos 25–30, golpe y rotura de escudo, recarga lista, rechazo en el mundo y muertes de goblin y limo.
+- [Quinta tanda revisada](VALIDACION_SFX_TANDA5_2026-11-25.html): ajustes 27–30 aplicados y propuestas de madera y rotura para validar los casos 25–26.
+- [Rotura de madera y variedad del goblin](VALIDACION_SFX_TANDA5_REVISION2_2026-11-25.html): golpes de madera y burbuja aprobados integrados; nuevas fracturas C/D y variantes de montaje para la muerte del goblin, otros 5 dB más baja.
+- [Referencia de madera y goblin aprobado](VALIDACION_SFX_MADERA_GOBLIN_2026-11-25.html): recorte de 0,9 s del vídeo de referencia para validar; tres muertes del goblin integradas a −18 dB.
+- [Nueva madera y goblin corto](VALIDACION_SFX_MADERA_GOBLIN_CORTO_2026-11-25.html): 26A aceptado e integrado para madera; tres muertes del goblin cortas aceptadas, a −18 dB.
+- [Sexta escucha de SFX](ESCUCHA_SFX_TANDA6_2026-11-25.html): casos 31–36, impactos de carne, piedra y limo, fractura de hielo, explosión de puzle y golpe de maza; trece muestras para validar.
+- [Sexta tanda aceptada](VALIDACION_SFX_TANDA6_2026-11-25.html): seis casos aprobados; piedra con variantes 1 y 2, hielo con variante 1 y resto conservado.
+- [Séptima escucha de SFX](ESCUCHA_SFX_TANDA7_2026-11-25.html): casos 37–42, apertura de libro, inventario, beber poción, recompensa de cofre, puzle resuelto y pantalla de muerte.
+- [Séptima tanda revisada](VALIDACION_SFX_TANDA7_2026-11-25.html): 37–41 aceptados; opción B aceptada e integrada para la pantalla de muerte.
+- [Octava escucha de SFX](ESCUCHA_SFX_TANDA8_2026-11-26.html): casos 43–48, señales generales de fuego, agua, hielo, rayo, viento y tierra; 23 variantes para validar.
+- [Octava tanda revisada](VALIDACION_SFX_TANDA8_2026-11-26.html): impactos de agua 2 sutil, hielo 3, rayo 1, viento A y tierra 1; fuego A para carga y bucles de fuego ardiendo.

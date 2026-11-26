@@ -1,0 +1,62 @@
+{
+  "fecha": "2026-11-25",
+  "estado": "Aceptado y aplicado",
+  "casos": [
+    {
+      "id": 13,
+      "titulo": "Pasos sobre hierba",
+      "clave": "paso_hierba",
+      "catalogo": "Sfx3D",
+      "variante": 1,
+      "archivo": "oga_paso_hojas_0.ogg",
+      "nota": "Aprobada variante 1"
+    },
+    {
+      "id": 14,
+      "titulo": "Pasos sobre tierra",
+      "clave": "paso_tierra",
+      "catalogo": "Sfx3D",
+      "variante": 1,
+      "archivo": "oga_paso_barro_0.ogg",
+      "nota": "Aprobada variante 1"
+    },
+    {
+      "id": 15,
+      "titulo": "Pasos sobre roca",
+      "clave": "paso_roca",
+      "catalogo": "Sfx3D",
+      "variante": 2,
+      "archivo": "oga_paso_grava_0.ogg",
+      "nota": "Aprobada variante 2"
+    },
+    {
+      "id": 16,
+      "titulo": "Cierre de puerta",
+      "clave": "puerta_cierra",
+      "catalogo": "Sfx",
+      "variante": 2,
+      "archivo": "puerta_cierra_1.ogg",
+      "nota": "Aprobada variante 2 pero con un sonido mas bajo",
+      "ajuste_db": -3,
+      "nivel_catalogo_db": -9
+    },
+    {
+      "id": 17,
+      "titulo": "Maullidos del gato",
+      "clave": "gato_maullido",
+      "catalogo": "Sfx3D",
+      "variante": 3,
+      "archivo": "oga_gato_maullido_2.ogg",
+      "nota": "Aprobada variante 3"
+    },
+    {
+      "id": 18,
+      "titulo": "Equipar un objeto",
+      "clave": "ui_equipar",
+      "catalogo": "Sfx",
+      "variante": 2,
+      "archivo": "kenney_equipar_1.ogg",
+      "nota": "Aprobada variante 2"
+    }
+  ]
+}

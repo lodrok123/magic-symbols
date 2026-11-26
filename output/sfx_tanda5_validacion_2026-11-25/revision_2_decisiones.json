@@ -1,0 +1,49 @@
+{
+  "aceptado": [
+    25,
+    27,
+    28,
+    30,
+    "26 burbuja B"
+  ],
+  "rechazado": [
+    "26 madera A"
+  ],
+  "goblin_db": -13,
+  "pendientes": [
+    "26 madera C/D",
+    "29 variantes B/C"
+  ],
+  "clips": [
+    [
+      "26C · Fractura breve",
+      "../output/sfx_tanda5_validacion_2026-11-25/escudo_fractura_c.wav",
+      1,
+      1
+    ],
+    [
+      "26D · Fractura en dos tiempos",
+      "../output/sfx_tanda5_validacion_2026-11-25/escudo_fractura_d.wav",
+      1,
+      1
+    ],
+    [
+      "29A · Actual, otros 5 dB menos",
+      "../audio/sn_goblin_muere_0.ogg",
+      0.22387211385683395,
+      0.8
+    ],
+    [
+      "29B · Recorte corto, tono algo más alto",
+      "../output/sfx_tanda5_validacion_2026-11-25/goblin_muerte_b.wav",
+      0.22387211385683395,
+      0.8
+    ],
+    [
+      "29C · Otro inicio, tono algo más grave",
+      "../output/sfx_tanda5_validacion_2026-11-25/goblin_muerte_c.wav",
+      0.22387211385683395,
+      0.8
+    ]
+  ]
+}

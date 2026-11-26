@@ -1,0 +1,26 @@
+[
+  {
+    "archivo": "escudo_golpe_a.wav",
+    "duracion_s": 0.14235827664399092,
+    "origen": "Kenney Impact Sounds / impactWood_medium_000.ogg, CC0",
+    "integrado": false
+  },
+  {
+    "archivo": "escudo_golpe_b.wav",
+    "duracion_s": 0.1598639455782313,
+    "origen": "Kenney Impact Sounds / impactWood_heavy_000.ogg, CC0",
+    "integrado": false
+  },
+  {
+    "archivo": "escudo_rotura_a.wav",
+    "duracion_s": 0.8,
+    "origen": "Composición de impactos/corte/crujido de madera Kenney, CC0",
+    "integrado": false
+  },
+  {
+    "archivo": "burbuja_rotura_b.wav",
+    "duracion_s": 0.25,
+    "origen": "Síntesis propia: estallido de aire filtrado, sin resonancia de cristal",
+    "integrado": false
+  }
+]

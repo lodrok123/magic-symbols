@@ -1,5 +1,26 @@
 # De dónde sale cada sonido
 
+## Magia: destinos aprobados para impacto y carga (26/11/2026)
+
+- `fuego_carga_crepitar.wav`: copia exacta de la propuesta fuego A, recorte de 1–2 s de `oga_fuego_crepita_loop.wav` (AntumDeluge, Fire Crackling, OpenGameArt, CC0). Fundidos 40/160 ms y nivel del recorte documentados en `output/sfx_tanda8_validacion_2026-11-26/propuestas.json`. Para fuego ardiendo y carga sostenida se usa la grabación de origen `oga_fuego_crepita_loop.wav`, que ya está preparada como bucle; no se repite el recorte con fundidos. El ambiente 3D de fuego ya utilizaba esa fuente.
+- `sn_viento_impacto_a.wav`: copia exacta de viento A, segundos 4–5 de `WINDDsgn_EXT, Eye Of The Storm_344 Audio_Extreme Winds Vol 1.wav`, 344 Audio, Sonniss GDC 2026. Fundidos 40/160 ms, ajuste −1,423951 dB, RMS −24 dBFS. Misma licencia Sonniss y exclusión `audio/sn_*` documentadas abajo. Regeneración con `output/sfx_tanda8_validacion_2026-11-26/preparar_propuestas.py` y copia de `viento_a.wav` a este destino.
+- Las pistas existentes `lc_agua_1.ogg`, `lc_hielo_2.ogg`, `lc_rayo_0.ogg` y `lc_tierra_0.ogg` se asignan respectivamente a impactos de agua, hielo, rayo y tierra; conservan su procedencia del pack indicada en la tabla original. No se atribuyen a carga por esta aprobación.
+
+## Pantalla de muerte: opción B aprobada (25/11/2026)
+
+`sn_muerte_sobria.wav`: copia exacta de `muerte_b.wav`, propuesta B aceptada por Pablo. Fuente: `Transition Braam Slow Dark Creepy.wav`, Cinematic Sound Design — Ultra Transitions & Impacts, lote Sonniss GDC 2026. Inicio 0,200045 s, duración 1,40 s, fundidos 8/220 ms, ajuste +2,869017 dB (RMS −22 dBFS, pico −8,13621 dBFS). Mantiene la licencia Sonniss documentada abajo y la exclusión `audio/sn_*` del repositorio. Generación local: `output/sfx_tanda7_validacion_2026-11-25/preparar_muerte.py`, después copia de `muerte_b.wav` a este destino. `Sfx.muerte` conserva −8 dB y sin variación de tono; usa el bus Interfaz. Sustituye la pista cómica anterior; mantiene el respaldo sin Sonniss.
+
+## Escudo de madera y burbuja aprobados (25/11/2026)
+
+`madera_rotura.wav`: copia exacta de 26A (`madera_nueva_a.wav`), aprobado por Pablo para corte de madera o madera cayendo. Procede del vídeo facilitado `20261125-1603-17.2680289.mp4`, intervalo 0,68–1,56 s, fundidos 3/25 ms y reducción de ganancia de 3 dB. Autor y licencia originales no identificados; no se atribuye CC0. Extracción y recorte: `extraer_madera_nueva.py` y `revision_4.py` en `output/sfx_tanda5_validacion_2026-11-25/`. Seleccionado en `Sfx.escudo_roto`; burbuja conserva su señal separada.
+
+Revisión posterior: `sn_goblin_muere_corto_0.wav`, `sn_goblin_muere_corto_1.wav` y `sn_goblin_muere_corto_2.wav` sustituyen a las variantes largas en el catálogo. Conservan su primera mitad exacta y añaden solo un fundido final de 8 ms, sin normalizar. Se generan con `output/sfx_tanda5_validacion_2026-11-25/revision_4.py` después de la extracción y montajes anteriores; comparten procedencia y licencia Sonniss y la exclusión `audio/sn_*` del repositorio.
+
+Muerte del goblin: `sn_goblin_muere_1.wav` y `sn_goblin_muere_2.wav` son los montajes B/C aprobados de `sn_goblin_muere_0.ogg` (grabación Flutter Death de Epic Stock Media, lote Sonniss GDC 2026, tabla más abajo). Comparten su licencia y exclusión `audio/sn_*` del repositorio. Regeneración local: extraer_goblin.gd → revision_2.py → revision_3.py, en `output/sfx_tanda5_validacion_2026-11-25/`. El último script copia B/C a audio; nivel de catálogo −18 dB.
+
+- `escudo_madera_golpe_0.wav` y `escudo_madera_golpe_1.wav`: recortes con fundidos y ajuste de nivel de `impactWood_medium_000.ogg` y `impactWood_heavy_000.ogg`, Kenney Impact Sounds, CC0. Fuentes en `audio/fuentes/kenney_impact-sounds/Audio/`.
+- `burbuja_rotura_sutil.wav`: estallido de aire de síntesis propia (ruido filtrado y envolvente de 250 ms). Generador: `output/sfx_tanda5_validacion_2026-11-25/generar_escudo.py`, opción B aprobada. Separado de la rotura de madera pendiente de validar.
+
 ## Sintetizados — `tools/gen_sfx.py`
 
 Todo lo elemental y lo mágico. Se generan con código, igual que los
@@ -80,6 +101,10 @@ Ganancias, fundidos e intervalos exactos en `output/sfx_validacion_2026-11-25/re
 ### Desmoronamiento por tierra — referencia facilitada por Pablo (25/11/2026)
 
 `derrumbe_piedra_muerte.wav`: audio extraído del vídeo adjunto `20261125-1045-37.4288775.mp4`, segundos 0,45–2,45; fundidos de 30 ms y ganancia de +8 dB. Sustitución del caso 12 autorizada por Pablo. Autor y licencia de la grabación original no identificados; no se atribuye CC0. Procedencia y recortes conservados en `output/sfx_tanda2_validacion_2026-11-25/`.
+
+### Rechazo sutil de interfaz — síntesis propia (25/11/2026)
+
+`ui_rechazo_sutil.wav`: opción C aprobada por Pablo para el caso 19. Toque grave de 90 ms, ruido filtrado a 850 Hz con ataque de 2 ms, caída de 18 ms y fundidos de 4 ms. Copia exacta de `output/sfx_tanda4_validacion_2026-11-25/rechazo_c.wav`; generador `generar_rechazos.py` de esa carpeta. Síntesis propia con semilla fija, sin muestras externas ni atribución requerida.
 
 ## Sintetizado — `tools/gen_vagoneta_rueda.py` (25/11/2026)
 

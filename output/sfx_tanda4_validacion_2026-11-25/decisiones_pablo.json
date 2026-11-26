@@ -1,0 +1,58 @@
+{
+  "fecha": "2026-11-25",
+  "casos": [
+    {
+      "id": 19,
+      "titulo": "Acción no permitida en menús",
+      "estado": "Aceptado y aplicado",
+      "nota": "Opción C",
+      "archivo": "ui_rechazo_sutil.wav",
+      "accion": "Toque grave breve de 90 ms integrado, copia exacta de la opción C. Mantiene el nivel sutil de la muestra y usa −12 dB de catálogo, sin variar el tono. También se conserva C en el modo sin grabados."
+    },
+    {
+      "id": 20,
+      "titulo": "Alerta del goblin",
+      "estado": "Aceptado y aplicado",
+      "nota": "Variante 3 con menos db",
+      "archivo": "sn_goblin_grito_2.ogg",
+      "ajuste_db": -3,
+      "accion": "Variante 3 del lote Sonniss fijada, de −6 a −9 dB. Se conserva el respaldo de la instalación sin Sonniss."
+    },
+    {
+      "id": 21,
+      "titulo": "Impacto de la bola de veneno",
+      "estado": "Aceptado y aplicado al impacto",
+      "nota": "Si para el impacto de la bola de veneno. Menos db. Aclaración: Variante 2.",
+      "archivo": "lc_veneno_bola_1.ogg",
+      "ajuste_db": -3,
+      "tono": 0.85,
+      "accion": "La segunda muestra del caso 21 se asigna a veneno_charco, el impacto. Baja de −9 a −12 dB y conserva el tono grave ×0,85 pedido anteriormente. Sustituye la selección previa del caso 9. El lanzamiento veneno_bola no se modifica ni se considera validado por esta elección."
+    },
+    {
+      "id": 22,
+      "titulo": "Apertura de puerta",
+      "estado": "Aceptado y aplicado",
+      "nota": "Variante 1 aceptada",
+      "archivo": "puerta_abre_0.ogg",
+      "accion": "Solo la primera variante; nivel y variación de tono anteriores conservados."
+    },
+    {
+      "id": 23,
+      "titulo": "Cierre del libro y pantallas",
+      "estado": "Aceptado",
+      "nota": "Aceptado",
+      "archivo": "libro_cierra.ogg",
+      "accion": "Conservado sin cambios."
+    },
+    {
+      "id": 24,
+      "titulo": "Daño recibido por la jugadora",
+      "estado": "Aceptado y aplicado",
+      "nota": "Baja un poco los db",
+      "archivo": "sn_dano_jugadora_0.ogg",
+      "ajuste_db": -3,
+      "accion": "Misma toma, de −7 a −10 dB. Se conserva el cambio de tono por cantidad de daño."
+    }
+  ],
+  "pendiente": null
+}

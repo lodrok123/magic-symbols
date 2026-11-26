@@ -1,0 +1,37 @@
+Godot Engine v4.7.2.stable.official.ed1daf0bf - https://godotengine.org
+
+OK    0 la escena PruebaSalaGolem.tscn carga
+Diario de la prueba: E:/magic-symbols/output/sfx_tanda8_validacion_2026-11-26/rutas_aprobadas/appdata/Godot/app_userdata/Magic_Symbols/playtest_logs/run_2026-11-26T11-06-07.jsonl
+OK    0 la escena monta el Lanzador3D, el jugador y la simulación de agua  tras 0 fotogramas
+WARNING: Pj3D[golem_piedra]: el clip 'attack' (attack) arrastra la cadera 1.75 alturas de cadera: se verá fuera de su sitio
+   at: push_warning (core/variant/variant_utility.cpp:1033)
+   GDScript backtrace (most recent call first):
+       [0] cargar (res://jugador/pj_3d.gd:405)
+       [1] _personaje (res://presentacion/prueba_test2.gd:5349)
+       [2] invocar_golem (res://enemigos/golem_3d.gd:82)
+       [3] _crear (res://escenas/puzle.gd:2688)
+       [4] iniciar (res://escenas/puzle.gd:1436)
+       [5] _arrancar (res://escenas/puzle.gd:1410)
+OK    0 el jugador puede lanzar (velo de precalentado levantado)  3030 ms de pared
+OK    6 sin «fuego_impacto» suena el derivado de siempre (x_mano_impacto)  x_mano_impacto
+OK    6 con «fuego_impacto» en el catálogo se prefiere al derivado  fuego_impacto
+OK    6 otro elemento sin impacto específico (tiempo) sigue con el derivado
+OK    6 agua usa el impacto aprobado
+OK    6 tierra usa el impacto aprobado
+OK    6 hielo usa su impacto específico
+OK    6 rayo usa su impacto específico
+OK    6 viento usa su impacto específico
+OK    6 la fase «carga» no se ve afectada
+OK    fuego real en bucle para fuego_carga_bucle
+OK    fuego real en bucle para arde_bucle
+FALLOS: 0
+ERROR: 3 RID allocations of type 'N13RendererDummy15MaterialStorage13DummyMaterialE' were leaked at exit.
+ERROR: 2 RID allocations of type 'N13RendererDummy15MaterialStorage11DummyShaderE' were leaked at exit.
+ERROR: 1 RID allocations of type 'N13RendererDummy9DummyMeshE' were leaked at exit.
+ERROR: 1 RID allocations of type 'N17RendererSceneCull8InstanceE' were leaked at exit.
+ERROR: Pages in use exist at exit in PagedAllocator: N20RasterizerSceneDummy21GeometryInstanceDummyE
+   at: ~PagedAllocator (./core/templates/paged_allocator.h:170)
+WARNING: Leaked instance dependency: Bug - did not call instance_notify_deleted when freeing.
+   at: ~Dependency (servers/rendering/storage/utilities.cpp:56)
+WARNING: 5 ObjectDB instances were leaked at exit (run with `--verbose` for details).
+   at: cleanup (core/object/object.cpp:2536)

@@ -1,0 +1,17 @@
+{
+  "26": {
+    "variante": "A",
+    "uso_aprobado": "corte de madera o madera cayendo",
+    "asset": "audio/madera_rotura.wav",
+    "entrada": "Sfx.escudo_roto",
+    "sha256": "9a53ad0c98af7e669560330b4e4add5ee5a57f50ca9c07641ca4a33cd13d0d95",
+    "integrado": true
+  },
+  "29": {
+    "estado": "aceptado",
+    "variantes": 3,
+    "duracion": "primera mitad de cada variante",
+    "db": -18,
+    "integrado": true
+  }
+}

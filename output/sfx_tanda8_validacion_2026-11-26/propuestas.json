@@ -1,0 +1,46 @@
+[
+  {
+    "archivo": "fuego_a.wav",
+    "fuente": "E:\\magic-symbols\\audio\\oga_fuego_crepita_loop.wav",
+    "inicio_s": 1.0,
+    "duracion_s": 1.0,
+    "origen": "Crepitar de fuego real · AntumDeluge, OpenGameArt, CC0",
+    "ganancia_db": 5.496677052446205,
+    "rms_dbfs": -25.546845597745044,
+    "pico_dbfs": -6.000000000000001,
+    "integrado": false
+  },
+  {
+    "archivo": "fuego_b.wav",
+    "fuente": "C:\\Users\\pablo\\Downloads\\sonniss_gdc2026\\344 Audio - Haunting Ambiences Vol. 5\\FIRECrkl_Fire Crackling, Popping, Witch's Cauldron_344 Audio_Haunting Ambiences Vol 5.wav",
+    "inicio_s": 2.0,
+    "duracion_s": 1.1,
+    "origen": "Crepitar y chasquidos · 344 Audio, Sonniss GDC 2026",
+    "ganancia_db": 16.882940595544703,
+    "rms_dbfs": -24.0,
+    "pico_dbfs": -9.630087089911767,
+    "integrado": false
+  },
+  {
+    "archivo": "viento_a.wav",
+    "fuente": "C:\\Users\\pablo\\Downloads\\sonniss_gdc2026\\344 Audio - Extreme Winds Vol. 1\\WINDDsgn_EXT, Eye Of The Storm_344 Audio_Extreme Winds Vol 1.wav",
+    "inicio_s": 4.0,
+    "duracion_s": 1.0,
+    "origen": "Ráfaga de viento · 344 Audio, Sonniss GDC 2026",
+    "ganancia_db": -1.4239514331616796,
+    "rms_dbfs": -24.0,
+    "pico_dbfs": -12.545940747845105,
+    "integrado": false
+  },
+  {
+    "archivo": "viento_b.wav",
+    "fuente": "C:\\Users\\pablo\\Downloads\\sonniss_gdc2026\\InMotionAudio - Chimney Wind\\WINDInt_ChimneyWind05_InMotionAudio_ChimneyWind.wav",
+    "inicio_s": 1.0,
+    "duracion_s": 1.0,
+    "origen": "Aire de chimenea · InMotionAudio, Sonniss GDC 2026",
+    "ganancia_db": 16.000372951091265,
+    "rms_dbfs": -24.0,
+    "pico_dbfs": -12.325022929053336,
+    "integrado": false
+  }
+]

@@ -1,0 +1,17 @@
+<!doctype html>
+<html lang="es"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>SFX · Referencia de madera y goblin aprobado</title>
+<style>:root{color-scheme:dark}body{font:16px/1.6 system-ui;background:#121c28;color:#e6eef7;max-width:960px;margin:32px auto;padding:0 20px 60px}section{background:#1c2b3d;border:1px solid #435e7c;border-radius:12px;padding:22px;margin:20px 0}audio{width:100%}</style>
+<h1>Referencia de madera y goblin aprobado</h1>
+<section><h2>26 · Rotura de madera: referencia facilitada</h2>
+<p>Audio extraído del vídeo 20261125-1554-59.1685590.mp4. El recorte corto toma 1,32–2,22 s, con fundidos de 4 y 35 ms, sin normalizar ni cambiar el tono. Conservamos la referencia completa para comparar. El revisor no ha escuchado los archivos; el recorte es una propuesta pendiente de validar, fuera del juego.</p>
+<h3>Recorte corto · 0,9 s</h3><audio controls preload="none" data-gain="1" data-pitch="1" src="../output/sfx_tanda5_validacion_2026-11-25/madera_rotura_corta.wav"></audio>
+<h3>Referencia completa</h3><audio controls preload="none" data-gain="1" data-pitch="1" src="../output/sfx_tanda5_validacion_2026-11-25/madera_rotura_referencia.wav"></audio>
+<p>La rotura de burbuja mantiene el estallido B aprobado. Autor y licencia originales de la referencia de madera no identificados.</p></section>
+<section><h2>29 · Muerte del goblin: tres variantes integradas</h2><p>A, B y C aprobadas e integradas. Catálogo de −13 a −18 dB: otros 5 dB menos. Se elige una variante al azar sin repetir la anterior de esta señal. Las muestras aplican −18 dB y el tono base ×0,8; el juego añade su pequeña variación de tono y la atenuación por distancia.</p>
+<h3>A · Original</h3><audio controls preload="none" data-gain="0.12589254117941673" data-pitch="0.8" src="../audio/sn_goblin_muere_0.ogg"></audio>
+<h3>B · Recorte corto</h3><audio controls preload="none" data-gain="0.12589254117941673" data-pitch="0.8" src="../audio/sn_goblin_muere_1.wav"></audio>
+<h3>C · Otro inicio y tono algo más grave</h3><audio controls preload="none" data-gain="0.12589254117941673" data-pitch="0.8" src="../audio/sn_goblin_muere_2.wav"></audio>
+<p>B y C son montajes de la misma grabación Sonniss, con recortes y velocidades distintos. Conservan la misma procedencia y licencia que A.</p></section>
+<script>const players=[...document.querySelectorAll('audio')];for(const a of players){a.volume=Number(a.dataset.gain);a.playbackRate=Number(a.dataset.pitch);a.preservesPitch=false;a.addEventListener('play',()=>{for(const b of players)if(b!==a)b.pause()})}</script>
+</html>
