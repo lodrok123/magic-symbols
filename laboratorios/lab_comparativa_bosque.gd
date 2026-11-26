@@ -28,7 +28,11 @@ const UE_SOL_ENERGIA: float = 1.5
 const UE_SOL_COLOR: Color = Color(1.0, 0.98, 0.95)
 ## 3.ª (26/11): con (0,18·0,42·0,95), la saturación 1,2 y ACES, las caras en sombra salían AZUL PURO (depurar: sin ajuste o con cielo
 ## gris desaparecía). Ahora un azul menos saturado y AgX, que no satura los colores intensos.
-const UE_CIELO_ARRIBA: Color = Color(0.30, 0.50, 0.88)
+## 5.ª (26/11): seguían ~500 píxeles azul puro en los huecos en sombra de los pilares. Con SDFGI la luz de ambiente ES el cielo (bajar
+## ambient_light_sky_contribution no hacía nada). Barrido con -- --depurar --cielos: (0,30·0,50·0,88) 525 píxeles, (0,36·0,53·0,82) 423,
+## (0,42·0,56·0,77) 0, sin mover apenas suelo, muro ni tapas. Pero ese cielo es más luminoso y el muestrario se aclaró (+35 sobre Unreal):
+## el mismo tono con la luminosidad de antes.
+const UE_CIELO_ARRIBA: Color = Color(0.38, 0.50, 0.70)
 const UE_CIELO_HORIZONTE: Color = Color(0.62, 0.78, 0.98)
 const UE_AMBIENTE_ENERGIA: float = 0.7
 ## 4.ª (26/11): con AgX el suelo bajó a 130·176·91 (Unreal 154·211·95): más exposición y saturación para compensar.
@@ -495,13 +499,25 @@ func _depurar() -> void:
 	_aplicar_luz()
 	_elegir_camara(0)
 	# 26/11, 3.ª tanda: manchas azul puro en los costados en sombra de los pilares (vista del juego); se prueba qué lo causa.
-	var variantes: Array = ["base", "sin_sdfgi", "sin_ssil", "sin_ssao", "sin_ajuste", "cielo_gris"]
+	# 4.ª (26/11): siguen ~500 píxeles azul puro en los huecos de los ladrillos de los pilares; además: el borde de luz (rim) y el brillo.
+	var variantes: Array = ["base", "sin_sdfgi", "sin_ssil", "sin_ssao", "sin_ajuste", "cielo_gris", "sin_borde", "sin_brillo", "sin_glow"]
+	# 5.ª: la causa es el azul del cielo (con SDFGI, ambient_light_sky_contribution no cuenta). Barrido de azules del cielo, de más a menos saturado.
+	var cielos: Dictionary = {"cielo_1": Color(0.30, 0.50, 0.88), "cielo_2": Color(0.36, 0.53, 0.82), "cielo_3": Color(0.42, 0.56, 0.77), "cielo_4": Color(0.48, 0.59, 0.72)}
+	if OS.get_cmdline_user_args().has("--cielos"):
+		variantes = cielos.keys()
 	for v in variantes:
 		_aplicar_luz()
+		if cielos.has(v):
+			(_entorno.sky.sky_material as ProceduralSkyMaterial).sky_top_color = cielos[v]
 		_entorno.sdfgi_enabled = v != "sin_sdfgi"
 		_entorno.ssil_enabled = v != "sin_ssil"
 		_entorno.ssao_enabled = v != "sin_ssao"
 		_entorno.adjustment_enabled = v != "sin_ajuste"
+		_entorno.glow_enabled = v != "sin_glow"
+		for m in _traductor._mats.values():
+			if m is ShaderMaterial and (m as ShaderMaterial).shader.resource_path.ends_with("ruinas_pack.gdshader"):
+				(m as ShaderMaterial).set_shader_parameter("borde_fuerza", 0.0 if v == "sin_borde" else 0.15)
+				(m as ShaderMaterial).set_shader_parameter("sin_brillo", v == "sin_brillo")
 		if v == "cielo_gris":
 			var cm := _entorno.sky.sky_material as ProceduralSkyMaterial
 			cm.sky_top_color = Color(0.6, 0.6, 0.6)

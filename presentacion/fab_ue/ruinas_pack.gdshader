@@ -23,6 +23,7 @@ uniform float capa_relieve = 50.0;       // «Blend Normal» de Unreal
 uniform float musgo_caras_planas_menos = 0.85;   // cuánto musgo se quita en las caras que miran arriba (0 = nada, 1 = todo)
 uniform vec3 borde_color = vec3(0.68, 0.94, 1.0);
 uniform float borde_fuerza = 0.15;
+uniform bool sin_brillo = false;         // depuración: sin reflejo especular
 
 varying vec3 v_mundo;
 varying vec3 v_normal_mundo;
@@ -57,7 +58,7 @@ void fragment() {
 	// 4.º (26/11): con la rugosidad del AORM tal cual (media 0,11 en los muros) la piedra reflejaba el cielo azul como mojada: manchas
 	// azules en las caras en sombra. En Unreal se ve mate: la textura solo modula un poco una rugosidad alta.
 	ROUGHNESS = mix(0.75 + 0.25 * m.g, 0.85, w);
-	SPECULAR = 0.25;
+	SPECULAR = sin_brillo ? 0.0 : 0.25;
 	vec3 nm = texture(normal_tex, UV).rgb;
 	NORMAL_MAP = mix(nm, vec3(0.5, 0.5, 1.0), clamp(aplanar, 0.0, 1.0));
 	float fres = pow(1.0 - clamp(dot(NORMAL, VIEW), 0.0, 1.0), 4.0);
