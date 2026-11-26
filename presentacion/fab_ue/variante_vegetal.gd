@@ -39,7 +39,7 @@ func _cambiar() -> void:
 	if ps == null:
 		return
 	var nuevo: Node3D = ps.instantiate() as Node3D
-	var caja_n: AABB = TablaVariantes.caja(nuevo)
+	var caja_n: AABB = TablaVariantes.caja_visible(String(get_meta("id", name)), nuevo)   # árboles y arbustos: raíces bajo tierra
 	if caja_n.size.length() < 0.0001:
 		nuevo.free()
 		return

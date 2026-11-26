@@ -52,6 +52,11 @@ func _probar(id: String) -> String:
 					cont = n
 				var var_n: Node3D = cont.get_node_or_null("variante") as Node3D
 				var c: AABB = TablaVariantes.caja(cont) if var_n == null else (var_n.transform * TablaVariantes.caja(var_n))
+				# 26/11: árboles y arbustos llevan enterrado lo de debajo de su origen: cuenta lo que asoma sobre el suelo de la original
+				if TablaVariantes.entierra(id):
+					if c.position.y > o.position.y - 0.01:
+						problemas.append("A %s no entierra las raíces" % v.get_file())
+					c = _sobre(c, o.position.y)
 				# misma regla que VarianteVegetal: por la altura si las dos son altas; si no, por lo que ocupan en planta
 				var alta: bool = o.size.y > maxf(o.size.x, o.size.z) * 0.35 and c.size.y > maxf(c.size.x, c.size.z) * 0.15
 				var mo: float = _medida(o, alta)
@@ -85,7 +90,7 @@ func _probar(id: String) -> String:
 		if vis == null:
 			problemas.append("B crear_visual devuelve null")
 			break
-		var cb: AABB = Pieza3D._caja(vis, Transform3D.IDENTITY)
+		var cb: AABB = _sobre(Pieza3D._caja(vis, Transform3D.IDENTITY), 0.0)   # lo enterrado (raíces) no cuenta
 		# plana (el musgo de agua): se compara lo que ocupa en planta; si no, el alto
 		var plana: bool = cb.size.y < maxf(cb.size.x, cb.size.z) * 0.15
 		if TablaVariantes.MEDIDAS.has(id):
@@ -101,3 +106,11 @@ func _probar(id: String) -> String:
 	if problemas.is_empty():
 		return "OK     %-16s variantes vistas: %s" % [id, lista]
 	return "FALLO  %-16s %s  (vistas: %s)" % [id, " · ".join(problemas.slice(0, 3)), lista]
+
+
+## La parte de la caja `c` por encima de la altura `suelo` (lo de debajo está enterrado).
+func _sobre(c: AABB, suelo: float) -> AABB:
+	if c.position.y < suelo and c.end.y > suelo:
+		c.size.y = c.end.y - suelo
+		c.position.y = suelo
+	return c

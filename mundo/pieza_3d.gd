@@ -395,6 +395,9 @@ static func visual_variante(id: String, ruta: String) -> Node3D:
 		return null
 	var v: Node3D = ps.instantiate() as Node3D
 	var cv: AABB = _caja(v, Transform3D.IDENTITY)
+	# árboles y arbustos del pack: lo de debajo de su origen (raíces, base del tronco) va enterrado, como en Unreal
+	if TablaVariantes.entierra(id):
+		return _normalizar(v, id, TablaVariantes.caja_visible(id, v))
 	# pieza NUEVA (no existía en el juego): su tamaño viene de TablaVariantes.MEDIDAS (el de la pieza que se dio como referencia)
 	if TablaVariantes.MEDIDAS.has(id):
 		return _normalizar_a(v, cv, TablaVariantes.MEDIDAS[id])
@@ -455,7 +458,8 @@ static func _normalizar_planta(modelo: Node3D, id: String, caja: AABB) -> Node3D
 	return raiz
 
 
-static func _normalizar(modelo: Node3D, id: String) -> Node3D:
+## `caja_fija` (26/11): la caja que se iguala, si no es la de todas las mallas (las variantes del pack con raíces bajo su origen).
+static func _normalizar(modelo: Node3D, id: String, caja_fija: AABB = AABB()) -> Node3D:
 	var t: Dictionary = _constantes()
 	# 15/10: un modelo animado (el cofre) llega en la pose de reposo del GLB, que no es la del clip «cerrado» (la tapa asoma por detrás).
 	# Se mide con «cerrado» aplicado: así el tamaño y el centro salen de la pieza tal como se ve en el nivel, no de la tapa suelta.
@@ -463,7 +467,7 @@ static func _normalizar(modelo: Node3D, id: String) -> Node3D:
 	if anim is AnimationPlayer and (anim as AnimationPlayer).has_animation("cerrado"):
 		(anim as AnimationPlayer).play("cerrado")
 		(anim as AnimationPlayer).advance(0.0)
-	var caja: AABB = _caja(modelo, Transform3D.IDENTITY)
+	var caja: AABB = caja_fija if caja_fija.size.y > 0.0 else _caja(modelo, Transform3D.IDENTITY)
 	var raiz := Node3D.new()
 	raiz.add_child(modelo)
 	if caja.size.y <= 0.0001:

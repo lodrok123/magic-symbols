@@ -90,6 +90,29 @@ static func elegir_en(id: String, pos: Vector3) -> String:
 	return String(l[posmod(hash(Vector2i(roundi(pos.x * 10.0), roundi(pos.z * 10.0))), l.size())])
 
 
+## 26/11 (Pablo: «algunos árboles tienen raíces, entiérralas»): los árboles y arbustos del pack traen las raíces y la base del tronco
+## POR DEBAJO de su origen (en Unreal el origen es el suelo y eso queda enterrado: un 4-20 % del alto en los árboles, 13-31 % en los
+## arbustos). Para las piezas que empiezan por uno de estos prefijos, la caja que cuenta es la de por encima del origen: se igualan por
+## lo que se ve y lo de debajo queda bajo tierra. Las rocas NO (su origen está en el centro) ni raices_obstaculo (casi todo bajo el origen).
+const ENTERRAR_BAJO_ORIGEN: Array = ["arbol", "arbusto"]
+
+
+static func entierra(id: String) -> bool:
+	for p in ENTERRAR_BAJO_ORIGEN:
+		if id.begins_with(String(p)):
+			return true
+	return false
+
+
+## La caja de la variante `n` de `id` que se iguala a la pieza original: la de todas sus mallas, o solo lo de encima del origen si `entierra(id)`.
+static func caja_visible(id: String, n: Node3D) -> AABB:
+	var c: AABB = caja(n)
+	if entierra(id) and c.position.y < 0.0 and c.end.y > 0.0:
+		c.size.y = c.end.y
+		c.position.y = 0.0
+	return c
+
+
 ## Caja de todas las mallas de `n` en el espacio de `n` (sin la transformación del propio `n`).
 static func caja(n: Node3D) -> AABB:
 	var res := AABB()
