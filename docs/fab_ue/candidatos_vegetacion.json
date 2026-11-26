@@ -1,0 +1,57 @@
+{
+ "_nota": "26/11/2026. Para cada pieza de vegetación del juego (arte/piezas/<actual>.tscn), 3 candidatos del pack Pure Nature (arte/pure_nature/piezas/pn_<candidato>.tscn). Se ven lado a lado en LabComparativaBosque, tecla 4. Claude propone; Pablo decide: «elegido» = el candidato que se queda (vacío = sin decidir; «actual» = no se cambia). Las piezas con mecánica (reactiva, quemada, resina) solo cambian de modelo.",
+ "grupos": [
+  {"nombre": "Arbustos", "filas": [
+   {"actual": "arbusto", "candidatos": ["meadows_bush1", "mountains_bush2", "fantasyforest_bush1"], "elegido": ""},
+   {"actual": "arbusto_bayas", "candidatos": ["meadows_berries", "meadows_bush2", "fantasyforest_bush2"], "elegido": ""},
+   {"actual": "arbusto_flores", "candidatos": ["meadows_flowermeadow2", "meadows_gorse2", "meadows_bush3"], "elegido": ""},
+   {"actual": "arbusto_otono", "candidatos": ["mountains_bush3", "asianvalley_bush1", "savanna_bush1"], "elegido": ""}
+  ]},
+  {"nombre": "Setas (1)", "filas": [
+   {"actual": "setas", "candidatos": ["meadows_mushroom3", "fantasyforest_mushroomsstack_1", "fantasyforest_smallmushroom_1"], "elegido": ""},
+   {"actual": "setas_amarillas", "candidatos": ["fantasyforest_mushroom2", "meadows_mushroom1", "fantasyforest_smallmushroom_3"], "elegido": ""},
+   {"actual": "setas_azules", "candidatos": ["fantasyforest_mushmush1", "fantasyforest_smallmushroom_5", "fantasyforest_mushroom4"], "elegido": ""},
+   {"actual": "setas_marrones", "candidatos": ["meadows_mushroom6", "fantasyforest_mushroom1", "fantasyforest_mushroomsstack_3"], "elegido": ""}
+  ]},
+  {"nombre": "Setas (2)", "filas": [
+   {"actual": "setas_rojas", "candidatos": ["meadows_mushroom2", "fantasyforest_smallmushroom_8", "fantasyforest_mushroomsstack_5"], "elegido": ""},
+   {"actual": "setas_pantano", "candidatos": ["fantasyforest_mushmush3", "fantasyforest_mushroomsstack_7", "fantasyforest_tinderfungus_2"], "elegido": ""},
+   {"actual": "seta_reactiva", "candidatos": ["fantasyforest_bigmushroom_2_1", "fantasyforest_mushroom5", "meadows_mushroom4"], "elegido": ""},
+   {"actual": "seta_quemada", "candidatos": ["fantasyforest_tinderfungus_1", "meadows_mushroom5", "fantasyforest_smallmushroom_10"], "elegido": ""}
+  ]},
+  {"nombre": "Helechos y plantas", "filas": [
+   {"actual": "helecho", "candidatos": ["mountains_fern1", "fantasyforest_largefern1", "jungle_thinfern1"], "elegido": ""},
+   {"actual": "helecho_ancho", "candidatos": ["fantasyforest_largefern2", "jungle_bigfern1", "mountains_fern2"], "elegido": ""},
+   {"actual": "helechos_cueva", "candidatos": ["fantasyforest_largefern3", "jungle_asplenium2", "islands_ferneil1"], "elegido": ""},
+   {"actual": "planta_hojas", "candidatos": ["jungle_elephant2", "jungle_philo2", "fantasyforest_shrubleaf2"], "elegido": ""}
+  ]},
+  {"nombre": "Flores", "filas": [
+   {"actual": "flores_amarillas", "candidatos": ["meadows_flowermeadow1", "meadows_commonyellow", "mountains_daisy"], "elegido": ""},
+   {"actual": "flores_blancas", "candidatos": ["meadows_daisy", "savanna_ulmaria1", "meadows_flowermeadow4"], "elegido": ""},
+   {"actual": "flores_colores", "candidatos": ["meadows_flowermeadow3", "mountains_daisyblue", "asianvalley_astilb_2"], "elegido": ""},
+   {"actual": "planta_violeta", "candidatos": ["meadows_lavender", "meadows_lupin1", "mountains_lupin2"], "elegido": ""},
+   {"actual": "flor_reactiva", "candidatos": ["meadows_lupin2", "jungle_heliconia2", "jungle_anthurium2"], "elegido": ""}
+  ]},
+  {"nombre": "Hierba", "filas": [
+   {"actual": "hierba_alta", "candidatos": ["meadows_grassmeadows1", "mountains_grassmountain2", "savanna_tallgrassdry"], "elegido": ""},
+   {"actual": "hierba_crecida", "candidatos": ["meadows_grassmeadows3", "fantasyforest_grass2", "jungle_grass1"], "elegido": ""},
+   {"actual": "hierba_espesa", "candidatos": ["mountains_grass3", "meadows_grass3", "fantasyforest_grassmoss"], "elegido": ""}
+  ]},
+  {"nombre": "Agua", "filas": [
+   {"actual": "nenufar_flor", "candidatos": ["asianvalley_lotus_1", "asianvalley_lotus_4", "savanna_lillypads1"], "elegido": ""},
+   {"actual": "planta_agua", "candidatos": ["meadows_reeds", "savanna_watermoss", "asianvalley_lotus_3"], "elegido": ""}
+  ]},
+  {"nombre": "Árboles", "filas": [
+   {"actual": "arbol_redondo", "candidatos": ["meadows_oak1", "meadows_elm1", "asianvalley_osmanthus5"], "elegido": ""},
+   {"actual": "arbol_redondo_2", "candidatos": ["meadows_elm3", "meadows_oak2", "fantasyforest_bigtree1"], "elegido": ""},
+   {"actual": "arbol_viejo", "candidatos": ["fantasyforest_bigtree3", "fantasyforest_bigroots_1", "jungle_kapokier2"], "elegido": ""},
+   {"actual": "arbol_manglar", "candidatos": ["jungle_kapokier1", "islands_pandanace1", "jungle_banana3"], "elegido": ""},
+   {"actual": "arbol_sumicio", "candidatos": ["meadows_birch3", "mountains_pine4", "meadows_cypres2"], "elegido": ""}
+  ]},
+  {"nombre": "Rocas", "filas": [
+   {"actual": "roca_grande", "candidatos": ["meadows_stone5", "savanna_bigboulders_0", "jungle_jungleboulder_3"], "elegido": ""},
+   {"actual": "roca_musgosa", "candidatos": ["fantasyforest_mossyrock_5", "meadows_stone4", "mountains_stone4"], "elegido": ""},
+   {"actual": "rocas_pequenas", "candidatos": ["mountains_boulder2", "fantasyforest_mossyrock_2", "islands_boulder_9"], "elegido": ""}
+  ]}
+ ]
+}

@@ -11,6 +11,7 @@ extends Node3D
 ##            · «juego»:  la luz y el posproceso de NUESTRO bosque (LuzZona3D «bosque», Posproceso3D, Paleta3D), sin luz rebotada
 ##          G luz rebotada (SDFGI) sí/no
 ##          3 MUESTRARIO de todas las piezas Pure Nature (pn_*), un bloque por pack; ← → cambian de pack
+##          4 CANDIDATOS para sustituir la vegetación del juego (docs/fab_ue/candidatos_vegetacion.json); ← → cambian de pieza
 ## Fotos del muestrario:  Godot --path . res://laboratorios/LabComparativaBosque.tscn -- --muestrario   (muestrario_<pack>.png)
 ## Captura sin tocar nada:  Godot --path . res://laboratorios/LabComparativaBosque.tscn -- --captura
 ##   deja docs/capturas/comparativa_ue_godot/godot_<luz>_<cámara>.png, junto a las unreal_<cámara>.png, y comparativa_<cámara>.png (las tres juntas).
@@ -102,6 +103,172 @@ func _ready() -> void:
 		_capturar_muestrario()
 	elif OS.get_cmdline_user_args().has("--medir"):
 		_medir()
+	elif OS.get_cmdline_user_args().has("--candidatos"):
+		_capturar_candidatos()
+
+
+## --- CANDIDATOS (26/11): sustituir la vegetación del juego por la del pack. Por grupo (arbustos, setas…), una fila por pieza del juego:
+## la ACTUAL (arte/piezas) y sus candidatos a, b, c (arte/pure_nature), a la escala del juego, con su código encima («3 · setas_azules»,
+## «3a», «3b», «3c») y una figura de 1 u (la jugadora) a la izquierda. Tecla 4 y ← →. La lista: docs/fab_ue/candidatos_vegetacion.json.
+const CANDIDATOS: String = "res://docs/fab_ue/candidatos_vegetacion.json"
+const CANDIDATOS_ORIGEN: Vector3 = Vector3(-250.0, 0.0, 0.0)   ## lejos de la comparativa y del muestrario
+var _grupos: Array = []
+var _grupo: int = -1
+var _nodo_grupo: Node3D
+var _cam_candidatos: Camera3D
+
+
+func _cargar_candidatos() -> bool:
+	if not _grupos.is_empty():
+		return true
+	if not FileAccess.file_exists(CANDIDATOS):
+		push_warning("falta " + CANDIDATOS)
+		return false
+	var d: Dictionary = JSON.parse_string(FileAccess.get_file_as_string(CANDIDATOS))
+	var n: int = 0
+	for g in d["grupos"]:
+		var filas: Array = []
+		for f in g["filas"]:
+			n += 1
+			filas.append({"num": n, "actual": f["actual"], "candidatos": f["candidatos"]})
+		_grupos.append({"nombre": g["nombre"], "filas": filas})
+	var suelo := MeshInstance3D.new()
+	var pl := PlaneMesh.new()
+	pl.size = Vector2(160.0, 160.0)
+	suelo.mesh = pl
+	suelo.position = CANDIDATOS_ORIGEN + Vector3(30.0, -0.01, 40.0)
+	suelo.material_override = _material("x__suelo__", AABB())
+	add_child(suelo)
+	_cam_candidatos = Camera3D.new()
+	_cam_candidatos.fov = 50.0
+	_cam_candidatos.far = 400.0
+	_cam_candidatos.keep_aspect = Camera3D.KEEP_WIDTH
+	add_child(_cam_candidatos)
+	return true
+
+
+func _caja_de(n: Node) -> AABB:
+	var caja := AABB()
+	var primera := true
+	for mi in n.find_children("*", "MeshInstance3D", true, false):
+		var t: Transform3D = (n as Node3D).global_transform.affine_inverse() * (mi as MeshInstance3D).global_transform
+		var c: AABB = t * (mi as MeshInstance3D).get_aabb()
+		caja = c if primera else caja.merge(c)
+		primera = false
+	return caja
+
+
+func _rotulo(texto: String, pos: Vector3, tam: int) -> void:
+	var l := Label3D.new()
+	l.text = texto
+	l.font_size = tam
+	l.outline_size = tam / 4
+	l.billboard = BaseMaterial3D.BILLBOARD_ENABLED
+	l.no_depth_test = true
+	l.pixel_size = 0.01
+	l.position = pos
+	_nodo_grupo.add_child(l)
+
+
+## 2.º (26/11): UNA FILA cada vez (la pieza del juego y sus candidatos a, b, c), encuadrada a su tamaño: con el grupo entero las setas
+## y flores salían diminutas y los rótulos se pisaban. La actual a la izquierda; la figura rosa es la jugadora (1 u).
+var _filas: Array = []                   ## todas las filas de todos los grupos, en orden
+var _fila: int = -1
+
+
+func _ver_fila(i: int) -> void:
+	if _cargando or not _cargar_candidatos():
+		return
+	if _filas.is_empty():
+		for g in _grupos:
+			for f in g["filas"]:
+				var f2: Dictionary = f.duplicate()
+				f2["grupo"] = g["nombre"]
+				_filas.append(f2)
+	_cargando = true
+	_fila = posmod(i, _filas.size())
+	var f: Dictionary = _filas[_fila]
+	_hud.text = "Cargando %d · %s…" % [f["num"], f["actual"]]
+	await get_tree().process_frame
+	await get_tree().process_frame
+	if _nodo_grupo != null:
+		_nodo_grupo.queue_free()
+	_nodo_grupo = Node3D.new()
+	_nodo_grupo.position = CANDIDATOS_ORIGEN
+	add_child(_nodo_grupo)
+	var rutas: Array = ["res://arte/piezas/%s.tscn" % f["actual"]]
+	for c in f["candidatos"]:
+		rutas.append("res://arte/pure_nature/piezas/pn_%s.tscn" % c)
+	var piezas: Array = []
+	var ancho_max: float = 0.6
+	var alto_max: float = 0.6
+	for r in rutas:
+		var ps: PackedScene = load(r) as PackedScene
+		var n: Node3D = ps.instantiate() if ps != null else Node3D.new()
+		_nodo_grupo.add_child(n)
+		var caja: AABB = _caja_de(n)
+		ancho_max = maxf(ancho_max, maxf(caja.size.x, caja.size.z))
+		alto_max = maxf(alto_max, caja.size.y)
+		piezas.append([n, caja])
+	var paso: float = ancho_max * 1.25
+	var esc_texto: float = clampf(maxf(ancho_max, alto_max) * 0.0025, 0.002, 0.03)
+	for j in range(piezas.size()):
+		var n: Node3D = piezas[j][0]
+		var caja: AABB = piezas[j][1]
+		var x: float = paso * (j + 1)
+		n.position = Vector3(x - (caja.position.x + caja.size.x * 0.5), 0.0, -(caja.position.z + caja.size.z * 0.5))
+		var l := Label3D.new()
+		# solo el código: con los nombres largos los rótulos se pisaban (los nombres van en la lista de candidatos)
+		l.text = ("%d (actual)" % f["num"]) if j == 0 else ("%d%s" % [f["num"], "abc"[j - 1]])
+		l.font_size = 72
+		l.outline_size = 16
+		l.pixel_size = esc_texto
+		l.billboard = BaseMaterial3D.BILLBOARD_ENABLED
+		l.no_depth_test = true
+		l.modulate = Color(1.0, 0.92, 0.55) if j == 0 else Color.WHITE
+		l.position = Vector3(x, caja.size.y + alto_max * 0.12 + 0.1, 0.0)
+		_nodo_grupo.add_child(l)
+	var fig := MeshInstance3D.new()
+	var cap := CapsuleMesh.new()
+	cap.height = 1.0
+	cap.radius = 0.18
+	fig.mesh = cap
+	fig.position = Vector3(paso * 0.2, 0.5, -paso * 0.3)
+	var mf := StandardMaterial3D.new()
+	mf.albedo_color = Color(0.9, 0.3, 0.6)
+	fig.material_override = mf
+	_nodo_grupo.add_child(fig)
+	# cámara de frente (X a la derecha), 25° por encima, encuadrando la fila entera
+	var ancho: float = paso * 4.6
+	var centro: Vector3 = CANDIDATOS_ORIGEN + Vector3(paso * 2.6, alto_max * 0.5, 0.0)
+	var dist: float = maxf(ancho * 0.5 / tan(deg_to_rad(_cam_candidatos.fov * 0.5)), alto_max * 2.2) * 1.05
+	var ang: float = deg_to_rad(25.0)
+	_cam_candidatos.position = centro + Vector3(0.0, sin(ang) * dist, cos(ang) * dist)
+	_cam_candidatos.look_at(centro, Vector3.UP)
+	_cam_candidatos.current = true
+	_cargando = false
+	_hud.text = "Candidatos · %s · fila %d de %d (← →) · contesta con el código, p. ej. «%db»" % [f["grupo"], _fila + 1, _filas.size(), f["num"]]
+
+
+func _ver_grupo(i: int) -> void:
+	await _ver_fila(max(i, 0))
+
+
+func _capturar_candidatos() -> void:
+	_luz = "unreal"
+	_aplicar_luz()
+	if not _cargar_candidatos():
+		get_tree().quit()
+		return
+	await _ver_fila(0)
+	for i in range(_filas.size()):
+		await _ver_fila(i)
+		for fr in range(60):
+			await get_tree().process_frame
+		await RenderingServer.frame_post_draw
+		get_viewport().get_texture().get_image().save_png(CAPTURAS + "candidato_%02d.png" % _filas[i]["num"])
+		print("captura candidato_%02d  %s" % [_filas[i]["num"], _filas[i]["actual"]])
+	get_tree().quit()
 
 
 ## Mide (`-- --medir`) lo que tarda en arrancar y en ver cada pack del muestrario (lo mismo que pulsar 3 y →), y la memoria de vídeo.
@@ -459,11 +626,17 @@ func _unhandled_input(ev: InputEvent) -> void:
 			_elegir_camara(min(1, _camaras.size() - 1))
 		KEY_3:
 			_ver_bloque(max(_bloque, 0))
+		KEY_4:
+			_ver_fila(max(_fila, 0))
 		KEY_RIGHT:
-			if _bloque >= 0:
+			if _cam_candidatos != null and _cam_candidatos.current:
+				_ver_fila(_fila + 1)
+			elif _bloque >= 0:
 				_ver_bloque(_bloque + 1)
 		KEY_LEFT:
-			if _bloque >= 0:
+			if _cam_candidatos != null and _cam_candidatos.current:
+				_ver_fila(_fila - 1)
+			elif _bloque >= 0:
 				_ver_bloque(_bloque - 1)
 		KEY_L:
 			_luz = "juego" if _luz == "unreal" else "unreal"
