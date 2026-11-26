@@ -96,6 +96,9 @@ static func parametros_defecto() -> Dictionary:
 		# terreno: `terreno` pinta tierra en los pasillos y losas en la sala del tesoro (para que haya juntas entre suelos distintos);
 		# `acabado` = el acabado de serie de la maqueta (orillas y juntas); con false la escena se exporta con él apagado.
 		"terreno": true, "acabado": true,
+		# 26/11: `decorado` = la variedad de decorado por bioma (pack Pure Nature en árboles, arbustos y rocas) y la capa de riqueza del suelo de hierba
+		# (hierba corta, flores, trébol, restos de ruina). Solo cambia la escena exportada (`decorado_bioma`, `riqueza_suelo`), no el plano.
+		"decorado": true,
 		# `camara_sala`: la cámara se frena en el borde de cada sala y se acerca poco a poco en las pequeñas (CamaraSalas).
 		"camara_sala": true,
 		# 24/11 (Pablo: «filtrar por las runas de la jugadora»): `kit` = el de Lanzador3D.PROGRESIONES que lleva la escena exportada; `runas` = los sellos y
@@ -3826,7 +3829,9 @@ func _estampar(s: Dictionary, e: Dictionary, filas: Array, tw: int, th: int, sit
 		var t: PackedStringArray = l2.substr(1).strip_edges().split(" ", false)
 		if t.size() >= 5 and t[0] == "pieza":
 			var cp: Vector2i = Vector2i(t[3].to_int(), t[4].to_int())
-			if not _dentro(cp) or _tipo(cp) == MURO:
+			# 26/11: las trampas de pared (cabeza de dragón, mascarón) van METIDAS en un muro `#` de la plantilla (las demás piezas, en suelo); `exenta=si` es un tótem de suelo.
+			var en_muro_vale: bool = (t[2] == "trampa_dragon" or t[2] == "trampa_flechas") and not " ".join(t).contains("exenta=si") and _dentro(cp) and _tipo(cp) == MURO
+			if not _dentro(cp) or (_tipo(cp) == MURO and not en_muro_vale):
 				mal = true
 			_ocupar(cp)
 			# Un brasero con línea propia ya está dibujado por su letra T. Lo demás, con el icono de su tipo si lo tiene.

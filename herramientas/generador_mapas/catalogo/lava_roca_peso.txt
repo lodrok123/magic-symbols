@@ -1,0 +1,23 @@
+; catalogo lava_roca_peso
+; titulo La roca sobre la lava enfriada
+; tipo premio
+; necesita agua+flecha
+; validacion pendiente
+; pide agua y empujar
+; resuelto peso.activo
+; prueba solucion A: golpe agua rio desde 2:2 | empuja roca e 4 | espera peso activo | espera cofre cerrado | max 15 | abre cofre
+; prueba nada: nunca peso activo | durante 6
+; prueba nada_sin_agua: empuja roca e 1 | nunca peso activo | durante 3
+;  Q15 del laboratorio de agua («lava con peso», propuesta 7 del catálogo de 18/11). Un río de lava de dos casillas separa la sala de un rincón de una casilla que solo se alcanza por la lava; en él,
+;  una placa de PESO (1). La roca pequeña de la sala pesa 1. Hay que ENFRIAR la lava con agua (una flecha desde la orilla enfría las dos casillas), rodear la roca, EMPUJARLA hacia el este por la roca
+;  enfriada hasta la placa (cuatro casillas, ~10 s) y dejarla encima: el cofre aparece. La roca enfriada vuelve a ser lava a los 22 s (`vuelve`): si la lava vuelve con la roca encima sin llegar a la
+;  placa, la roca se HUNDE entre vapor y reaparece en su casilla del mapa a los 1,2 s, así que se puede reintentar.
+...#####
+...#####
+......##
+...#####
+...#####
+; pieza rio lava 3 2 celdas=3,2..4,2 vuelve=22
+; pieza roca roca_empujable 1 2 tam=pequena
+; pieza peso pulsador 5 2 modo=presencia peso=1 $MODELO
+; pieza cofre cofre 0 0 aparece_si=peso.activo abierto=$NIVEL.$ID.cofre da=oro:35+pocion:1

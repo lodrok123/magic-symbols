@@ -1,6 +1,8 @@
 ; catalogo cofre_balsa
 ; titulo El cofre que viene a ti
 ; tipo premio
+; necesita agua+flecha | fuego+flecha
+; validacion pendiente
 ; pide agua o fuego
 ; prueba solucion A: golpe agua riego desde 2:7 | espera balsa atracada | espera alcanzable cofre | max 30
 ; prueba solucion B: golpe fuego tapon desde 4:5 | espera cuenca foso todas_bajo 0.25 | espera alcanzable cofre | max 15

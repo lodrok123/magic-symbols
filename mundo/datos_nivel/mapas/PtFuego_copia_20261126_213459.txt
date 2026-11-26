@@ -1,0 +1,104 @@
+########################################################
+########################...........#####################
+########################...........#####################
+#############..........#...........#####################
+#############..........#...........#####################
+#############.#######..#...........#####################
+#############.#.....#..#...........#####################
+#############.#.....#..g...........#####################
+#############.#.....#..#...........#####################
+#############.###.###..#...........#####################
+#############.###.###..#...........#####################
+#############..........#...........#####################
+#####.......#..........#################################
+#####.......#####g######################################
+#####.#####.#####.######################################
+#####.##.##.#####.######################################
+#####.##.##.##T.T.T.T###################################
+#####.##.##.##.......###...........#####################
+#####.##.##.#####.######...........#####################
+#####.##.##.#####.######..#######..#####################
+#####.......#####g######..###.###..#####################
+#####.......g..........#..###.###..#####################
+#####.......#..........#...........#####################
+#############..........#..zzzz.....#####################
+#############..T...T...g...........#####################
+#############..........#...........#####################
+#############....T.....#...........#####################
+#############..........#...........#####################
+#############..........#################################
+#############..........#################################
+#############..........#################################
+#################g######################################
+#################..#####################################
+################T.T#####################################
+################...#####################################
+#################..####.........########################
+#################..####.........########################
+#################g#####.........########################
+###############.......g.........########################
+#######################....S....########################
+#######################.........########################
+#######################.........########################
+#######################.........########################
+#######################.........########################
+#######################.........########################
+########################################################
+; ======================================================================================================================
+;  GENERADO por herramientas/generador_mapas. 2026-11-24. Nivel «PtFuego», 56 × 46, algoritmo «pagina», semilla 1.
+;  9 salas, 8 puertas, 0 enemigos, 3 cofres, 0 jarrones. Escena: escenas/PruebaPtFuego.tscn. Mientras esta cabecera siga aquí, la herramienta puede volver a escribir
+;  este archivo (guarda copia si lo has retocado). Para adoptarlo como nivel hecho a mano, borra la palabra GENERADO de la línea de arriba.
+; ======================================================================================================================
+; # pared · . suelo · ~ agua honda · S inicio · W goblin guerrero · A goblin arquero · T brasero · g tierra pisada (pasillos) · R losas (o basalto bajo la lava) · G elemental del bosque
+; generador {"acabado":true,"agua":8,"algoritmo":"pagina","alto":46,"ancho":56,"ancho_camino":2,"ancho_pasillo":2,"ancho_precipicio":2,"ancho_rio":2,"apertura":55,"arqueros":0,"b_braseros":true,"b_placa":true,"b_precipicio":true,"b_puente":true,"barreras":0,"braseros":0.0,"bucles":10,"bucles_claros":30,"callejones":100,"camara_sala":true,"campamentos":0,"charcas":0,"claros":6,"densidad_salas":1.0,"enemigos":0.0,"estilo":"cueva","forma":"rectangulo","hierba_alta":15,"jarrones":0.0,"kit":"demo","lado_max":11,"lado_min":7,"lados_salida":"","llave":false,"luz":"cueva","metodo":"fractal","n_salas":9,"nombre":"PtFuego","octavas":4,"paredes":"kit","pasillos":20,"paso_tierra":0,"puertas":50,"puzles":0,"recto":60,"region_min":12,"relleno":56,"reparto":"dispersas","rio":"ns","rotulo":true,"runas":"","sala_jefe":"no","sala_max":4,"sala_min":2,"salas_cerradas":0,"salida_a":"","semilla":1,"silueta":60,"simetria":false,"sinuosidad":50,"solo_aceptados":false,"suavizados":2,"tamano_claro":5,"tamano_sala":10.0,"terreno":true,"tesoro":false}
+; puzles 2>braseros_puerta 3>braseros_premio 4>rele_braseros 5>cristal_receptor 6>barril_muro 7>contrafuego
+; anadidos cofre|comun|oro:45|16,34 cofre|comun|oro:20|15,16 cofre|comun|oro:30|19,8
+; apariciones a0<pz2 a1<pz4 a2<pz5
+;
+; zona 1,1..54,44 cueva mezcla=0.8 rotulo=PtFuego
+;
+; camara 23,35..31,44
+; camara 15,38..21,38
+; camara 16,32..18,36
+; camara 13,21..22,30
+; camara 14,14..20,19
+; camara 13,3..22,12
+; camara 5,12..11,22
+; camara 24,17..34,27
+; camara 24,1..34,11
+;
+; pieza inicio entrada 27 39
+; pieza cat1_luces contador 17 34 de=16,33+18,33 modelo=totem
+; pieza cat1_luz_a brasero 16 33 luz=2.4 modelo=cueva
+; pieza cat1_luz_b brasero 18 33 luz=2.4 modelo=cueva
+; pieza cat2_luces contador 17 24 de=15,24+19,24+17,26 modelo=totem
+; pieza cat2_premio cofre 17 25 aparece_si=flag.ptfuego.cat2.hecho abierto=ptfuego.cat2.cofre da=oro:40
+; puzle cat2_listo cuando=cat2_luces.todos hace=flag.poner(ptfuego.cat2.hecho)
+; pieza cat3_a brasero 14 16 rele=cat3_b modelo=cueva
+; pieza cat3_b brasero 16 16 rele=cat3_c modelo=cueva
+; pieza cat3_c brasero 18 16 rele=cat3_d modelo=cueva
+; pieza cat3_d brasero 20 16 dura=6 modelo=cueva
+; pieza cat3_luces contador 17 17 de=14,16+20,16 modelo=totem
+; pieza cat4_cristal cristal 15 6 cada=0
+; pieza cat4_veta veta 16 6 celdas=16,6..18,6
+; pieza cat4_receptor receptor 19 6 elemento=fuego flag=ptfuego.cat4.fuego
+; pieza cat5_cofre cofre 8 15 abierto=ptfuego.cat5.cofre da=oro:30+pocion:1
+; pieza cat5_muro muro 8 16 golpes=2
+; pieza cat5_barril barril 8 17
+; pieza cat6_barril barril 30 23
+; pieza cat6_puerta puerta 29 21
+; puzle cat6_marca cuando=cat6_barril.explota hace=flag.poner(ptfuego.cat6.hecho)
+; puzle cat6_abre cuando=flag.ptfuego.cat6.hecho hace=cat6_puerta.abrir
+; pieza cat6_cofre cofre 29 20 aparece_si=flag.ptfuego.cat6.hecho abierto=ptfuego.cat6.cofre da=oro:60+seta_asada:2
+; pieza cofre_m1 cofre 16 34 abierto=ptfuego.cofre_m1.abierto da=oro:45 aparece_si=flag.ptfuego.cofre_m1.pz2
+; pieza cofre_m2 cofre 15 16 abierto=ptfuego.cofre_m2.abierto da=oro:20 aparece_si=flag.ptfuego.cofre_m2.pz4
+; pieza cofre_m3 cofre 19 8 abierto=ptfuego.cofre_m3.abierto da=oro:30 aparece_si=flag.ptfuego.cofre_m3.pz5
+; puzle apa_cofre_m1_pz2 cuando=cat1_luces.todos hace=flag.poner(ptfuego.cofre_m1.pz2)
+; puzle apa_cofre_m2_pz4 cuando=cat3_luces.todos hace=flag.poner(ptfuego.cofre_m2.pz4)
+; puzle apa_cofre_m3_pz5 cuando=cat4_receptor.activado hace=flag.poner(ptfuego.cofre_m3.pz5)
+; zona 16,32..18,36 cueva mezcla=0.5 nombre=pt_braseros_puerta rotulo=1._Dos_braseros_que_abren
+; zona 13,21..22,30 cueva mezcla=0.5 nombre=pt_braseros_premio rotulo=2._Tres_braseros_y_un_cofre
+; zona 14,14..20,19 cueva mezcla=0.5 nombre=pt_rele_braseros rotulo=3._Relé_de_braseros
+; zona 24,17..34,27 cueva mezcla=0.5 nombre=pt_contrafuego rotulo=4._Contrafuego_setos_y_barril
+; zona 5,12..11,22 cueva mezcla=0.5 nombre=pt_barril_muro rotulo=5._Voladura_barril_contra_el_muro
+; zona 13,3..22,12 cueva mezcla=0.5 nombre=pt_cristal_receptor rotulo=6._Cristal_dormido_y_receptor_de_fuego

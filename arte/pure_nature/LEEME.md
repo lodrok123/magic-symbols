@@ -52,6 +52,16 @@ Hay 7 (26/11/2026): Asian Valley, Fantasy Forest, Islands, Jungle, Meadows, Moun
    La prueba tiene que acabar en `fallos=0`. **Sin este paso (o sin el pack) el juego usa las piezas originales**: no se rompe nada.
    Para comparar con las originales: la variable de entorno `MS_SIN_VARIANTES=1`.
 
+8. **Decorado por bioma del generador de mapas** (26/11): las piezas `pn_*` que lista `presentacion/tabla_decorado_bioma.gd` (árboles de la masa,
+   rocas, hierba corta y flores de los niveles generados) también necesitan su versión del juego. Se crean desde ESA tabla (también las de peso 0,
+   por si se sube el peso después); hay que repetirlo al añadir una fila `pn_…`:
+
+       tools\Godot_v4.7.2-stable_win64.exe --headless --path . --script res://herramientas/generar_decorado_bioma.gd
+       tools\Godot_v4.7.2-stable_win64.exe --headless --path . --script res://herramientas/prueba_tabla_decorado.gd
+
+   Las dos acaban en `fallos=0` / `FALLOS: 0`. Sin este paso (o sin el pack) la tabla se salta las filas `pn_…` y el nivel sale con las piezas del juego.
+   Para ver todas las piezas de la tabla a la escala del juego: `herramientas/captura_muestrario_decorado.gd` (fotos en `docs/capturas/…/muestrario/`).
+
 ## Qué hay aquí (todo fuera de git)
 
 `mallas/` FBX · `texturas/` PNG · `informe.json` las recetas de material · `materiales/` `.tres` · `mallas_res/` · `piezas/` ·

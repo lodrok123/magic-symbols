@@ -1,0 +1,78 @@
+############################################################
+#########################,..,###############################
+########################,..,################################
+#######################,.~,###########..,###################
+########..#############,~~,#########.....,##################
+######.......##########,.~,#####,,W.......,#################
+#####...A.....##########,.~,####,,vvv......,,###############
+###,..#######.###########,..,,,#,,.Wvv..W..W,###############
+###,..#.....#..###########,.~~.,,,vvvggg....,###############
+###,..#.....#..############,,v~~,,vggggg.v..,###############
+###v..#.....#..#####,,########,~~gggggg..v.,################
+###v..###.###..,,,T,...v..###,ggRRRgg....vv#################
+#########.###..gg,.........WgggggRR.....vv##################
+#######....W..Wggggg.A...vgggggg,~~,..W#####################
+#######....####gggggAgg.gggggg,,~.,,,#######################
+#######~~######,,vgggggggWgg,#,~.,##########################
+#######gg#########,vvggggg..,,~.,###########################
+#######gg#########vvv..gg.v.~~.,############################
+#######gg,.########,...gggvv~~v#############################
+#####,.ggg...########..ggg#v~.v#############################
+####,..ggg....########..ggv~.,##############################
+####,...gA....##########gR~~,###############################
+####....gggvvv##########RRv,################################
+###,,...gggvv.##########gR~,################################
+###,W...ggg...##########gg~.,###############################
+####,...gggvv.##########ggR~,###############################
+####,W..ggWv.#########..ggR~,W##############################
+#######ggAvv#########....gR~.,,#############################
+#######gggvv#########....gg~~.W,############################
+#######  ##,########v....gg.~~~.,###########################
+#######  ##########,,....ggg...~.,##########################
+#######gg,#########,,...vggggv.~~,######,.vv...#############
+#######gg,,,,######,,..vv.gggggRR#######..v.....############
+######.gg...,,######,,.v...ggggRRggg###..vv.....############
+######.gg....vv######,,....,W,vRRgggggggggvv.....###########
+#####..ggg...,v#######,,..##,#T.~vgggggggggSgg...###########
+###,vv.gAg...###########,######v~~.,,,,,ggggggv..,##########
+##,,....ggW..##################v~.,#,,,vv........,##########
+##,,..A.gg.A..##############,,,..,######,........,##########
+####,........##############v.~~~,########.......,###########
+####,..W....#############,,..,,,##########..,,,,T###########
+####,..vv..#############,..~,#################,,############
+####T,..,##############,.~,,################################
+#####,,,################,~~,################################
+######,#################,.~,,###############################
+#########################,~~.,##############################
+##########################,,..v#############################
+############################v..,############################
+#############################,~.,###########################
+############################################################
+; ======================================================================================================================
+;  GENERADO por herramientas/generador_mapas. 2026-11-26. Nivel «BosqueGenPrueba», 60 × 50, algoritmo «bosque», semilla 7.
+;  7 salas, 0 puertas, 25 enemigos, 1 cofres, 7 jarrones. Escena: escenas/PruebaBosqueGenPrueba.tscn. Mientras esta cabecera siga aquí, la herramienta puede volver a escribir
+;  este archivo (guarda copia si lo has retocado). Para adoptarlo como nivel hecho a mano, borra la palabra GENERADO de la línea de arriba.
+; ======================================================================================================================
+; # pared · . suelo · ~ agua honda · S inicio · W goblin guerrero · A goblin arquero · T brasero · g tierra pisada (pasillos) · R losas (o basalto bajo la lava) · G elemental del bosque
+; bosque: g camino de tierra · . claro · , hierba corta · v hierba alta (arde) · R vado de piedras · ~ río
+; PASO DE TIERRA: precipicio de 4 casillas (letra espacio, sin suelo) desde (7, 29), 2 de hondo en el camino: se cruza con el puente de tierra (barrera + líneas) lanzado desde el borde.
+; PRECIPICIO «precipicio_1» en (7, 29): 4 casillas sin suelo (letra espacio), 2 de hondo. Barrera sin activador: se cruza con el puente de tierra (barrera + líneas) lanzado desde el borde.
+; generador {"acabado":true,"agua":8,"algoritmo":"bosque","alto":50,"ancho":60,"ancho_camino":2,"ancho_pasillo":2,"ancho_precipicio":2,"ancho_rio":2,"apertura":55,"arqueros":30,"b_braseros":true,"b_placa":true,"b_precipicio":true,"b_puente":true,"barreras":2,"braseros":1.0,"bucles":30,"bucles_claros":30,"callejones":100,"camara_sala":true,"campamentos":0,"charcas":20,"claros":6,"decorado":true,"densidad_salas":1.0,"enemigos":1.0,"estilo":"bosque","forma":"rectangulo","hierba_alta":15,"jarrones":1.0,"kit":"pruebas","lado_max":8,"lado_min":4,"lados_salida":"","llave":true,"luz":"bosque","metodo":"fractal","n_salas":9,"nombre":"BosqueGenPrueba","octavas":4,"paredes":"kit","pasillos":30,"paso_tierra":0,"puertas":50,"puzles":0,"recto":60,"region_min":12,"relleno":56,"reparto":"dispersas","rio":"ns","rotulo":true,"runas":"","sala_jefe":"no","sala_max":4,"sala_min":2,"salas_cerradas":40,"salida_a":"","semilla":7,"silueta":60,"simetria":true,"sinuosidad":50,"solo_aceptados":false,"suavizados":2,"tamano_claro":5,"tamano_sala":10.0,"terreno":true,"tesoro":true}
+;
+; zona 1,1..58,48 bosque mezcla=0.8 rotulo=BosqueGenPrueba
+;
+; pieza inicio entrada 43 35
+; pieza cat1_cristal cristal 7 8 cada=0
+; pieza cat1_veta veta 8 8 celdas=8,8..10,8
+; pieza cat1_receptor receptor 11 8 elemento=fuego flag=bosquegenprueba.cat1.fuego
+; pieza puente_2 puente 7 15 celdas=7,15+8,15
+; pieza tesoro cofre 8 37 abierto=bosquegenprueba.tesoro.cofre da=oro:60+pocion:1
+; pieza jarron_1 jarron 40 31 botin=oro
+; pieza jarron_2 jarron 12 5 botin=pocion
+; pieza jarron_3 jarron 41 4 botin=oro
+; pieza jarron_4 jarron 13 33 botin=pocion
+; pieza jarron_5 jarron 30 27 botin=oro
+; pieza jarron_6 jarron 13 20 botin=oro
+; pieza jarron_7 jarron 22 11 botin=oro
+; puzle resuelve_puente_2 cuando=cat1_receptor.activado hace=flag.poner(bosquegenprueba.puente_2.abierta)
+; puzle abre_puente_2 cuando=flag.bosquegenprueba.puente_2.abierta hace=puente_2.tender

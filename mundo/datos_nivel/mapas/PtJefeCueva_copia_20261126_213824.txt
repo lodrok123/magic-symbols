@@ -1,0 +1,74 @@
+########################################################
+########################################################
+########################################################
+#############..........#################################
+#############..........#################################
+#############..........#################################
+#############..........#################################
+#############..........#################################
+#############..........#################################
+#############..........#################################
+#############..........#################################
+#############..........#################################
+#############..........#################################
+#################g######################################
+#################.######################################
+#################.######################################
+#################.######################################
+#################.######################################
+#################.######################################
+#################.######################################
+#################g######################################
+#############xxxxyxxxxx#################################
+#############xot...t..x#################################
+#############x........x#################################
+#############x........x#################################
+#############x........x#################################
+#############x....T...x#################################
+#############x........x#################################
+#############x........x#################################
+#############x..V.....x#################################
+#############xxxxyxxxxx#################################
+#################g######################################
+#################..#####################################
+#################..#####################################
+#################..#####################################
+#################..####.........########################
+#################..####.........########################
+#################g#####.........########################
+###############.......g.........########################
+#######################....S....########################
+#######################.........########################
+#######################.........########################
+#######################.........########################
+#######################.........########################
+#######################.........########################
+########################################################
+; ======================================================================================================================
+;  GENERADO por herramientas/generador_mapas. 2026-11-24. Nivel «PtJefeCueva», 56 × 46, algoritmo «pagina», semilla 1.
+;  6 salas, 5 puertas, 3 enemigos, 2 cofres, 0 jarrones. Escena: escenas/PruebaPtJefeCueva.tscn. Mientras esta cabecera siga aquí, la herramienta puede volver a escribir
+;  este archivo (guarda copia si lo has retocado). Para adoptarlo como nivel hecho a mano, borra la palabra GENERADO de la línea de arriba.
+; ======================================================================================================================
+; # pared · . suelo · ~ agua honda · S inicio · W goblin guerrero · A goblin arquero · T brasero · g tierra pisada (pasillos) · R losas (o basalto bajo la lava) · G elemental del bosque
+; generador {"acabado":true,"agua":8,"algoritmo":"pagina","alto":46,"ancho":56,"ancho_camino":2,"ancho_pasillo":2,"ancho_precipicio":2,"ancho_rio":2,"apertura":55,"arqueros":0,"b_braseros":true,"b_placa":true,"b_precipicio":true,"b_puente":true,"barreras":0,"braseros":0.0,"bucles":10,"bucles_claros":30,"callejones":100,"camara_sala":true,"campamentos":1,"charcas":0,"claros":6,"densidad_salas":1.0,"enemigos":0.0,"estilo":"cueva","forma":"rectangulo","hierba_alta":15,"jarrones":0.0,"kit":"demo","lado_max":11,"lado_min":7,"lados_salida":"","llave":false,"luz":"cueva","metodo":"fractal","n_salas":6,"nombre":"PtJefeCueva","octavas":4,"paredes":"kit","pasillos":20,"paso_tierra":0,"puertas":50,"puzles":0,"recto":60,"region_min":12,"relleno":56,"reparto":"dispersas","rio":"ns","rotulo":true,"runas":"","sala_jefe":"jefe_golem","sala_max":4,"sala_min":2,"salas_cerradas":0,"salida_a":"","semilla":1,"silueta":60,"simetria":false,"sinuosidad":50,"solo_aceptados":false,"suavizados":2,"tamano_claro":5,"tamano_sala":10.0,"terreno":true,"tesoro":false}
+;
+; zona 1,1..54,44 cueva mezcla=0.8 rotulo=PtJefeCueva
+;
+; camara 23,35..31,44
+; camara 15,38..21,38
+; camara 17,32..18,36
+; camara 14,21..21,30
+; camara 17,14..17,19
+; camara 13,3..22,12
+;
+; pieza inicio entrada 27 39
+; pieza camp1_vigia vigia 14 22 de=13,21..22,30 flag=ptjefecueva.campamento_1.limpio
+; pieza camp1_cofre cofre 17 25 modelo=epico aparece_si=flag.ptjefecueva.campamento_1.limpio abierto=ptjefecueva.campamento_1.cofre da=capucha_musgo:1
+; zona 13,21..22,30 fuego mezcla=1 id=campamento_1 titulo=El_campamento_goblin botin=campamento
+; pieza jefe1_cofre cofre 17 7 modelo=legendario aparece_si=flag.ptjefecueva.jefe1.limpio abierto=ptjefecueva.jefe1.cofre da=oro:150+pocion_grande:2+fragmento_savia:1
+; pieza jefe1_golem golem 17 8
+; pieza jefe1_limo_1 limo 15 9
+; pieza jefe1_limo_2 limo 19 9
+; pieza jefe1_vigia vigia 13 3 de=13,3..22,12 flag=ptjefecueva.jefe1.limpio
+; pieza jefe1_cerrojo cerrojo 17 13 celdas=17,13 sala=13,3..22,12 hasta=ptjefecueva.jefe1.limpio
+; puzle jefe1_abre cuando=jefe1_vigia.todos_derrotados hace=jefe1_cerrojo.abrir

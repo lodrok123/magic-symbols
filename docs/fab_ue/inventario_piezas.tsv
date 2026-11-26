@@ -1,0 +1,779 @@
+id	pack	categoria	ruta_tscn	tam_x	tam_y	tam_z	usada_en_juego	tiene_version_juego	bioma_sugerido	uso_sugerido	nota	categoria_fina	biomas_secundarios	visible_camara
+pn_asianvalley_asianhill_0	asianvalley	fondo	res://arte/pure_nature/piezas/pn_asianvalley_asianhill_0.tscn	46.081	29.158	47.911		no	ninguno	no_usar	fondo lejano (colina o monte de 30-100 u): no es decorado de sala	fondo		si
+pn_asianvalley_asianhill_1	asianvalley	fondo	res://arte/pure_nature/piezas/pn_asianvalley_asianhill_1.tscn	51.936	43.805	45.662		no	ninguno	no_usar	fondo lejano (colina o monte de 30-100 u): no es decorado de sala	fondo		si
+pn_asianvalley_asianhill_2	asianvalley	fondo	res://arte/pure_nature/piezas/pn_asianvalley_asianhill_2.tscn	44.227	48.288	45.605		no	ninguno	no_usar	fondo lejano (colina o monte de 30-100 u): no es decorado de sala	fondo		si
+pn_asianvalley_asianhill_3	asianvalley	fondo	res://arte/pure_nature/piezas/pn_asianvalley_asianhill_3.tscn	42.799	44.174	47.860		no	ninguno	no_usar	fondo lejano (colina o monte de 30-100 u): no es decorado de sala	fondo		si
+pn_asianvalley_asianhill_4	asianvalley	fondo	res://arte/pure_nature/piezas/pn_asianvalley_asianhill_4.tscn	40.439	48.230	38.822		no	ninguno	no_usar	fondo lejano (colina o monte de 30-100 u): no es decorado de sala	fondo		si
+pn_asianvalley_asianhill_5	asianvalley	fondo	res://arte/pure_nature/piezas/pn_asianvalley_asianhill_5.tscn	36.670	48.298	38.427		no	ninguno	no_usar	fondo lejano (colina o monte de 30-100 u): no es decorado de sala	fondo		si
+pn_asianvalley_astilb_1	asianvalley	planta	res://arte/pure_nature/piezas/pn_asianvalley_astilb_1.tscn	0.428	0.421	0.475		no	bosque	flor_pequena	pequeña: mejor en grupos o reescalada	flor		poco
+pn_asianvalley_astilb_2	asianvalley	planta	res://arte/pure_nature/piezas/pn_asianvalley_astilb_2.tscn	0.427	0.405	0.481	flores_colores	si	bosque	flor_pequena	pequeña: mejor en grupos o reescalada	flor		poco
+pn_asianvalley_astilb_3	asianvalley	planta	res://arte/pure_nature/piezas/pn_asianvalley_astilb_3.tscn	0.632	0.469	0.713		no	bosque	flor_pequena		flor		si
+pn_asianvalley_bamboo1	asianvalley	arbol	res://arte/pure_nature/piezas/pn_asianvalley_bamboo1.tscn	1.252	2.646	1.195		no	ninguno	muro_arboles		bambu	pantano	si
+pn_asianvalley_bamboo10	asianvalley	arbol	res://arte/pure_nature/piezas/pn_asianvalley_bamboo10.tscn	5.121	5.910	6.453		no	ninguno	muro_arboles		bambu	pantano	si
+pn_asianvalley_bamboo11	asianvalley	arbol	res://arte/pure_nature/piezas/pn_asianvalley_bamboo11.tscn	4.617	5.380	4.843		no	ninguno	muro_arboles		bambu	pantano	si
+pn_asianvalley_bamboo2	asianvalley	arbol	res://arte/pure_nature/piezas/pn_asianvalley_bamboo2.tscn	1.464	3.484	1.411		no	ninguno	muro_arboles		bambu	pantano	si
+pn_asianvalley_bamboo3	asianvalley	arbol	res://arte/pure_nature/piezas/pn_asianvalley_bamboo3.tscn	1.857	4.078	2.534		no	ninguno	muro_arboles		bambu	pantano	si
+pn_asianvalley_bamboo4	asianvalley	arbol	res://arte/pure_nature/piezas/pn_asianvalley_bamboo4.tscn	1.820	5.442	2.884		no	ninguno	muro_arboles		bambu	pantano	si
+pn_asianvalley_bamboo5	asianvalley	arbol	res://arte/pure_nature/piezas/pn_asianvalley_bamboo5.tscn	1.918	5.964	2.251		no	ninguno	muro_arboles		bambu	pantano	si
+pn_asianvalley_bamboo6	asianvalley	arbol	res://arte/pure_nature/piezas/pn_asianvalley_bamboo6.tscn	2.153	4.953	1.856		no	ninguno	muro_arboles		bambu	pantano	si
+pn_asianvalley_bamboo7	asianvalley	arbol	res://arte/pure_nature/piezas/pn_asianvalley_bamboo7.tscn	1.575	6.220	1.515		no	ninguno	muro_arboles		bambu	pantano	si
+pn_asianvalley_bamboo8	asianvalley	arbol	res://arte/pure_nature/piezas/pn_asianvalley_bamboo8.tscn	1.133	6.385	1.216		no	ninguno	muro_arboles		bambu	pantano	si
+pn_asianvalley_bamboo9	asianvalley	arbol	res://arte/pure_nature/piezas/pn_asianvalley_bamboo9.tscn	5.488	5.574	5.071		no	ninguno	muro_arboles		bambu	pantano	si
+pn_asianvalley_bamboo_1	asianvalley	adorno	res://arte/pure_nature/piezas/pn_asianvalley_bamboo_1.tscn	0.081	0.690	0.081		no	ninguno	decor_claro		vara_bambu	pantano	si
+pn_asianvalley_bamboo_10	asianvalley	adorno	res://arte/pure_nature/piezas/pn_asianvalley_bamboo_10.tscn	0.101	1.725	0.101		no	ninguno	decor_claro		vara_bambu	pantano	si
+pn_asianvalley_bamboo_11	asianvalley	adorno	res://arte/pure_nature/piezas/pn_asianvalley_bamboo_11.tscn	0.101	1.716	0.101		no	ninguno	decor_claro		vara_bambu	pantano	si
+pn_asianvalley_bamboo_12	asianvalley	adorno	res://arte/pure_nature/piezas/pn_asianvalley_bamboo_12.tscn	0.101	1.729	0.101		no	ninguno	decor_claro		vara_bambu	pantano	si
+pn_asianvalley_bamboo_2	asianvalley	adorno	res://arte/pure_nature/piezas/pn_asianvalley_bamboo_2.tscn	0.081	0.681	0.081		no	ninguno	decor_claro		vara_bambu	pantano	si
+pn_asianvalley_bamboo_3	asianvalley	adorno	res://arte/pure_nature/piezas/pn_asianvalley_bamboo_3.tscn	0.080	0.694	0.081		no	ninguno	decor_claro		vara_bambu	pantano	si
+pn_asianvalley_bamboo_4	asianvalley	adorno	res://arte/pure_nature/piezas/pn_asianvalley_bamboo_4.tscn	0.081	1.190	0.081		no	ninguno	decor_claro		vara_bambu	pantano	si
+pn_asianvalley_bamboo_5	asianvalley	adorno	res://arte/pure_nature/piezas/pn_asianvalley_bamboo_5.tscn	0.081	1.190	0.081		no	ninguno	decor_claro		vara_bambu	pantano	si
+pn_asianvalley_bamboo_6	asianvalley	adorno	res://arte/pure_nature/piezas/pn_asianvalley_bamboo_6.tscn	0.081	1.203	0.081		no	ninguno	decor_claro		vara_bambu	pantano	si
+pn_asianvalley_bamboo_7	asianvalley	adorno	res://arte/pure_nature/piezas/pn_asianvalley_bamboo_7.tscn	0.081	1.725	0.081		no	ninguno	decor_claro		vara_bambu	pantano	si
+pn_asianvalley_bamboo_8	asianvalley	adorno	res://arte/pure_nature/piezas/pn_asianvalley_bamboo_8.tscn	0.081	1.716	0.081		no	ninguno	decor_claro		vara_bambu	pantano	si
+pn_asianvalley_bamboo_9	asianvalley	adorno	res://arte/pure_nature/piezas/pn_asianvalley_bamboo_9.tscn	0.081	1.729	0.082		no	ninguno	decor_claro		vara_bambu	pantano	si
+pn_asianvalley_bamboo_barrier_1	asianvalley	adorno	res://arte/pure_nature/piezas/pn_asianvalley_bamboo_barrier_1.tscn	0.970	0.349	0.077		no	ninguno	decor_claro		estructura_bambu	pantano	si
+pn_asianvalley_bamboo_barrier_2	asianvalley	adorno	res://arte/pure_nature/piezas/pn_asianvalley_bamboo_barrier_2.tscn	0.970	0.348	0.077		no	ninguno	decor_claro		estructura_bambu	pantano	si
+pn_asianvalley_bamboo_barrier_3	asianvalley	adorno	res://arte/pure_nature/piezas/pn_asianvalley_bamboo_barrier_3.tscn	2.371	0.452	0.386		no	ninguno	decor_claro		estructura_bambu	pantano	si
+pn_asianvalley_bamboo_ladder	asianvalley	adorno	res://arte/pure_nature/piezas/pn_asianvalley_bamboo_ladder.tscn	0.361	1.384	0.061		no	ninguno	decor_claro		estructura_bambu	pantano	si
+pn_asianvalley_bamboo_raft	asianvalley	adorno	res://arte/pure_nature/piezas/pn_asianvalley_bamboo_raft.tscn	0.589	0.101	1.734		no	ninguno	decor_claro		estructura_bambu	pantano	si
+pn_asianvalley_bamboo_raftbent	asianvalley	adorno	res://arte/pure_nature/piezas/pn_asianvalley_bamboo_raftbent.tscn	0.589	0.127	1.739		no	ninguno	decor_claro		estructura_bambu	pantano	si
+pn_asianvalley_bigbush1	asianvalley	arbol	res://arte/pure_nature/piezas/pn_asianvalley_bigbush1.tscn	5.867	2.735	5.889		no	bosque	decor_claro		arbusto		si
+pn_asianvalley_bigbush2	asianvalley	arbol	res://arte/pure_nature/piezas/pn_asianvalley_bigbush2.tscn	5.542	3.881	5.564		no	bosque	decor_claro		arbusto		si
+pn_asianvalley_bush1	asianvalley	arbol	res://arte/pure_nature/piezas/pn_asianvalley_bush1.tscn	1.092	1.024	1.197		no	bosque	decor_claro		arbusto		si
+pn_asianvalley_bush2	asianvalley	arbol	res://arte/pure_nature/piezas/pn_asianvalley_bush2.tscn	1.652	1.378	1.631		no	bosque	decor_claro		arbusto		si
+pn_asianvalley_bush3	asianvalley	arbol	res://arte/pure_nature/piezas/pn_asianvalley_bush3.tscn	2.426	1.531	2.435		no	bosque	decor_claro		arbusto		si
+pn_asianvalley_cabbage_1	asianvalley	planta	res://arte/pure_nature/piezas/pn_asianvalley_cabbage_1.tscn	0.290	0.119	0.288		no	ninguno	hierba_corta	cultivo de huerto; pequeña: mejor en grupos o reescalada	cultivo		poco
+pn_asianvalley_cabbage_2	asianvalley	planta	res://arte/pure_nature/piezas/pn_asianvalley_cabbage_2.tscn	0.275	0.137	0.276		no	ninguno	hierba_corta	cultivo de huerto; pequeña: mejor en grupos o reescalada	cultivo		poco
+pn_asianvalley_cabbage_3	asianvalley	planta	res://arte/pure_nature/piezas/pn_asianvalley_cabbage_3.tscn	0.277	0.126	0.284		no	ninguno	hierba_corta	cultivo de huerto; pequeña: mejor en grupos o reescalada	cultivo		poco
+pn_asianvalley_cardinal_1	asianvalley	planta	res://arte/pure_nature/piezas/pn_asianvalley_cardinal_1.tscn	0.119	0.192	0.184		no	bosque	flor_pequena	a tamaño nativo no se ve desde la cámara: solo en mantos o reescalada	flor		no
+pn_asianvalley_cardinal_2	asianvalley	planta	res://arte/pure_nature/piezas/pn_asianvalley_cardinal_2.tscn	0.166	0.213	0.200		no	bosque	flor_pequena	a tamaño nativo no se ve desde la cámara: solo en mantos o reescalada	flor		no
+pn_asianvalley_cliff_4	asianvalley	adorno	res://arte/pure_nature/piezas/pn_asianvalley_cliff_4.tscn	5.819	4.225	2.239		no	bosque	roca	acantilado pequeño: zona de roca grande	acantilado	cueva	si
+pn_asianvalley_cliff_5	asianvalley	adorno	res://arte/pure_nature/piezas/pn_asianvalley_cliff_5.tscn	3.114	5.199	2.020		no	bosque	roca	acantilado pequeño: zona de roca grande	acantilado	cueva	si
+pn_asianvalley_cyrtomium_1	asianvalley	planta	res://arte/pure_nature/piezas/pn_asianvalley_cyrtomium_1.tscn	0.226	0.163	0.252		no	bosque	adorno_borde	pequeña: mejor en grupos o reescalada	helecho	cueva	poco
+pn_asianvalley_cyrtomium_2	asianvalley	planta	res://arte/pure_nature/piezas/pn_asianvalley_cyrtomium_2.tscn	0.356	0.217	0.353		no	bosque	adorno_borde	pequeña: mejor en grupos o reescalada	helecho	cueva	poco
+pn_asianvalley_cyrtomium_3	asianvalley	planta	res://arte/pure_nature/piezas/pn_asianvalley_cyrtomium_3.tscn	0.382	0.271	0.440		no	bosque	adorno_borde	pequeña: mejor en grupos o reescalada	helecho	cueva	poco
+pn_asianvalley_cyrtomiumdark_1	asianvalley	planta	res://arte/pure_nature/piezas/pn_asianvalley_cyrtomiumdark_1.tscn	0.226	0.163	0.252		no	bosque	adorno_borde	pequeña: mejor en grupos o reescalada	helecho	cueva	poco
+pn_asianvalley_cyrtomiumdark_2	asianvalley	planta	res://arte/pure_nature/piezas/pn_asianvalley_cyrtomiumdark_2.tscn	0.356	0.217	0.353		no	bosque	adorno_borde	pequeña: mejor en grupos o reescalada	helecho	cueva	poco
+pn_asianvalley_cyrtomiumdark_3	asianvalley	planta	res://arte/pure_nature/piezas/pn_asianvalley_cyrtomiumdark_3.tscn	0.382	0.271	0.440		no	bosque	adorno_borde	pequeña: mejor en grupos o reescalada	helecho	cueva	poco
+pn_asianvalley_grass_1	asianvalley	planta	res://arte/pure_nature/piezas/pn_asianvalley_grass_1.tscn	0.492	0.153	0.581		no	bosque	hierba_corta	pequeña: mejor en grupos o reescalada	hierba		poco
+pn_asianvalley_grass_2	asianvalley	planta	res://arte/pure_nature/piezas/pn_asianvalley_grass_2.tscn	0.600	0.169	0.700		no	bosque	hierba_corta		hierba		si
+pn_asianvalley_grass_3	asianvalley	planta	res://arte/pure_nature/piezas/pn_asianvalley_grass_3.tscn	0.673	0.203	0.693		no	bosque	hierba_corta		hierba		si
+pn_asianvalley_grass_4	asianvalley	planta	res://arte/pure_nature/piezas/pn_asianvalley_grass_4.tscn	0.562	0.060	0.564		no	bosque	hierba_corta	pequeña: mejor en grupos o reescalada	hierba		poco
+pn_asianvalley_grass_5	asianvalley	planta	res://arte/pure_nature/piezas/pn_asianvalley_grass_5.tscn	0.465	0.049	0.420		no	bosque	hierba_corta	pequeña: mejor en grupos o reescalada	hierba		poco
+pn_asianvalley_grassrice	asianvalley	planta	res://arte/pure_nature/piezas/pn_asianvalley_grassrice.tscn	0.673	0.203	0.693		no	ninguno	hierba_corta	cultivo de huerto	cultivo		si
+pn_asianvalley_jenny_1	asianvalley	planta	res://arte/pure_nature/piezas/pn_asianvalley_jenny_1.tscn	0.375	0.365	0.417		no	bosque	flor_pequena	pequeña: mejor en grupos o reescalada	flor		poco
+pn_asianvalley_jenny_2	asianvalley	planta	res://arte/pure_nature/piezas/pn_asianvalley_jenny_2.tscn	0.597	0.376	0.693		no	bosque	flor_pequena		flor		si
+pn_asianvalley_jenny_3	asianvalley	planta	res://arte/pure_nature/piezas/pn_asianvalley_jenny_3.tscn	0.763	0.412	0.666		no	bosque	flor_pequena		flor		si
+pn_asianvalley_lotus_1	asianvalley	planta	res://arte/pure_nature/piezas/pn_asianvalley_lotus_1.tscn	0.484	0.267	0.518		no	pantano	adorno_borde	sobre el agua o en la orilla; pequeña: mejor en grupos o reescalada	agua		poco
+pn_asianvalley_lotus_2	asianvalley	planta	res://arte/pure_nature/piezas/pn_asianvalley_lotus_2.tscn	0.489	0.251	0.540		no	pantano	adorno_borde	sobre el agua o en la orilla; pequeña: mejor en grupos o reescalada	agua		poco
+pn_asianvalley_lotus_3	asianvalley	planta	res://arte/pure_nature/piezas/pn_asianvalley_lotus_3.tscn	0.588	0.193	0.647		no	pantano	adorno_borde	sobre el agua o en la orilla	agua		si
+pn_asianvalley_lotus_4	asianvalley	planta	res://arte/pure_nature/piezas/pn_asianvalley_lotus_4.tscn	0.516	0.176	0.540	nenufar_flor	si	pantano	adorno_borde	sobre el agua o en la orilla; pequeña: mejor en grupos o reescalada	agua		poco
+pn_asianvalley_lotus_5	asianvalley	planta	res://arte/pure_nature/piezas/pn_asianvalley_lotus_5.tscn	0.965	0.159	0.987		no	pantano	adorno_borde	sobre el agua o en la orilla	agua		si
+pn_asianvalley_lotus_6	asianvalley	planta	res://arte/pure_nature/piezas/pn_asianvalley_lotus_6.tscn	0.077	0.157	0.076		no	pantano	adorno_borde	sobre el agua o en la orilla; a tamaño nativo no se ve desde la cámara: solo en mantos o reescalada	agua		no
+pn_asianvalley_money_1	asianvalley	planta	res://arte/pure_nature/piezas/pn_asianvalley_money_1.tscn	0.227	0.149	0.268		no	ninguno	hierba_corta	cultivo de huerto; pequeña: mejor en grupos o reescalada	cultivo		poco
+pn_asianvalley_money_2	asianvalley	planta	res://arte/pure_nature/piezas/pn_asianvalley_money_2.tscn	0.339	0.186	0.348		no	ninguno	hierba_corta	cultivo de huerto; pequeña: mejor en grupos o reescalada	cultivo		poco
+pn_asianvalley_money_3	asianvalley	planta	res://arte/pure_nature/piezas/pn_asianvalley_money_3.tscn	0.411	0.242	0.367		no	ninguno	hierba_corta	cultivo de huerto; pequeña: mejor en grupos o reescalada	cultivo		poco
+pn_asianvalley_osmanthus1	asianvalley	arbol	res://arte/pure_nature/piezas/pn_asianvalley_osmanthus1.tscn	2.687	2.752	2.804		no	bosque	muro_arboles		arbol		si
+pn_asianvalley_osmanthus1_yellow	asianvalley	arbol	res://arte/pure_nature/piezas/pn_asianvalley_osmanthus1_yellow.tscn	2.687	2.752	2.804		no	bosque	muro_arboles		arbol		si
+pn_asianvalley_osmanthus2	asianvalley	arbol	res://arte/pure_nature/piezas/pn_asianvalley_osmanthus2.tscn	2.626	2.826	2.696		no	bosque	muro_arboles		arbol		si
+pn_asianvalley_osmanthus3	asianvalley	arbol	res://arte/pure_nature/piezas/pn_asianvalley_osmanthus3.tscn	2.953	3.378	2.973		no	bosque	muro_arboles		arbol		si
+pn_asianvalley_osmanthus4	asianvalley	arbol	res://arte/pure_nature/piezas/pn_asianvalley_osmanthus4.tscn	2.923	3.543	2.791		no	bosque	muro_arboles		arbol		si
+pn_asianvalley_osmanthus5	asianvalley	arbol	res://arte/pure_nature/piezas/pn_asianvalley_osmanthus5.tscn	2.582	3.572	2.792	arbol_redondo	si	bosque	muro_arboles		arbol		si
+pn_asianvalley_osmanthus6	asianvalley	arbol	res://arte/pure_nature/piezas/pn_asianvalley_osmanthus6.tscn	3.594	4.203	3.433		no	bosque	muro_arboles		arbol		si
+pn_asianvalley_osmanthus7	asianvalley	arbol	res://arte/pure_nature/piezas/pn_asianvalley_osmanthus7.tscn	3.231	4.654	3.433		no	bosque	muro_arboles		arbol		si
+pn_asianvalley_pakchoi_1	asianvalley	planta	res://arte/pure_nature/piezas/pn_asianvalley_pakchoi_1.tscn	0.429	0.257	0.426		no	ninguno	hierba_corta	cultivo de huerto; pequeña: mejor en grupos o reescalada	cultivo		poco
+pn_asianvalley_pakchoi_2	asianvalley	planta	res://arte/pure_nature/piezas/pn_asianvalley_pakchoi_2.tscn	0.499	0.286	0.449		no	ninguno	hierba_corta	cultivo de huerto; pequeña: mejor en grupos o reescalada	cultivo		poco
+pn_asianvalley_pakchoi_3	asianvalley	planta	res://arte/pure_nature/piezas/pn_asianvalley_pakchoi_3.tscn	0.394	0.277	0.473		no	ninguno	hierba_corta	cultivo de huerto; pequeña: mejor en grupos o reescalada	cultivo		poco
+pn_asianvalley_radish_1	asianvalley	planta	res://arte/pure_nature/piezas/pn_asianvalley_radish_1.tscn	0.164	0.145	0.251		no	ninguno	hierba_corta	cultivo de huerto; pequeña: mejor en grupos o reescalada	cultivo		poco
+pn_asianvalley_radish_2	asianvalley	planta	res://arte/pure_nature/piezas/pn_asianvalley_radish_2.tscn	0.174	0.251	0.154		no	ninguno	hierba_corta	cultivo de huerto; pequeña: mejor en grupos o reescalada	cultivo		poco
+pn_asianvalley_radish_3	asianvalley	planta	res://arte/pure_nature/piezas/pn_asianvalley_radish_3.tscn	0.173	0.197	0.252		no	ninguno	hierba_corta	cultivo de huerto; pequeña: mejor en grupos o reescalada	cultivo		poco
+pn_asianvalley_radish_4	asianvalley	planta	res://arte/pure_nature/piezas/pn_asianvalley_radish_4.tscn	0.328	0.230	0.304		no	ninguno	hierba_corta	cultivo de huerto; pequeña: mejor en grupos o reescalada	cultivo		poco
+pn_asianvalley_radish_5	asianvalley	planta	res://arte/pure_nature/piezas/pn_asianvalley_radish_5.tscn	0.099	0.249	0.094		no	ninguno	hierba_corta	cultivo de huerto; a tamaño nativo no se ve desde la cámara: solo en mantos o reescalada	cultivo		no
+pn_asianvalley_radish_6	asianvalley	planta	res://arte/pure_nature/piezas/pn_asianvalley_radish_6.tscn	0.122	0.238	0.104		no	ninguno	hierba_corta	cultivo de huerto; a tamaño nativo no se ve desde la cámara: solo en mantos o reescalada	cultivo		no
+pn_asianvalley_radish_7	asianvalley	planta	res://arte/pure_nature/piezas/pn_asianvalley_radish_7.tscn	0.106	0.241	0.064		no	ninguno	hierba_corta	cultivo de huerto; a tamaño nativo no se ve desde la cámara: solo en mantos o reescalada	cultivo		no
+pn_asianvalley_radish_8	asianvalley	planta	res://arte/pure_nature/piezas/pn_asianvalley_radish_8.tscn	0.160	0.247	0.217		no	ninguno	hierba_corta	cultivo de huerto; a tamaño nativo no se ve desde la cámara: solo en mantos o reescalada	cultivo		no
+pn_asianvalley_rice_1	asianvalley	planta	res://arte/pure_nature/piezas/pn_asianvalley_rice_1.tscn	0.217	0.401	0.226		no	ninguno	hierba_corta	cultivo de huerto; pequeña: mejor en grupos o reescalada	cultivo		poco
+pn_asianvalley_rice_2	asianvalley	planta	res://arte/pure_nature/piezas/pn_asianvalley_rice_2.tscn	0.258	0.400	0.325		no	ninguno	hierba_corta	cultivo de huerto; pequeña: mejor en grupos o reescalada	cultivo		poco
+pn_asianvalley_rice_3	asianvalley	planta	res://arte/pure_nature/piezas/pn_asianvalley_rice_3.tscn	0.297	0.404	0.226		no	ninguno	hierba_corta	cultivo de huerto; pequeña: mejor en grupos o reescalada	cultivo		poco
+pn_asianvalley_rice_green_1	asianvalley	planta	res://arte/pure_nature/piezas/pn_asianvalley_rice_green_1.tscn	0.217	0.401	0.226		no	ninguno	hierba_corta	cultivo de huerto; pequeña: mejor en grupos o reescalada	cultivo		poco
+pn_asianvalley_rice_green_2	asianvalley	planta	res://arte/pure_nature/piezas/pn_asianvalley_rice_green_2.tscn	0.258	0.400	0.325		no	ninguno	hierba_corta	cultivo de huerto; pequeña: mejor en grupos o reescalada	cultivo		poco
+pn_asianvalley_rice_green_3	asianvalley	planta	res://arte/pure_nature/piezas/pn_asianvalley_rice_green_3.tscn	0.297	0.404	0.226		no	ninguno	hierba_corta	cultivo de huerto; pequeña: mejor en grupos o reescalada	cultivo		poco
+pn_asianvalley_ricegrown_1	asianvalley	planta	res://arte/pure_nature/piezas/pn_asianvalley_ricegrown_1.tscn	0.377	0.412	1.623		no	ninguno	hierba_corta	cultivo de huerto	cultivo		si
+pn_asianvalley_ricegrown_2	asianvalley	planta	res://arte/pure_nature/piezas/pn_asianvalley_ricegrown_2.tscn	0.318	0.428	1.708		no	ninguno	hierba_corta	cultivo de huerto	cultivo		si
+pn_asianvalley_ricerow_1	asianvalley	planta	res://arte/pure_nature/piezas/pn_asianvalley_ricerow_1.tscn	0.167	0.276	1.864		no	ninguno	hierba_corta	cultivo de huerto	cultivo		si
+pn_asianvalley_ricerow_2	asianvalley	planta	res://arte/pure_nature/piezas/pn_asianvalley_ricerow_2.tscn	0.254	0.288	1.790		no	ninguno	hierba_corta	cultivo de huerto	cultivo		si
+pn_asianvalley_ricerow_3	asianvalley	planta	res://arte/pure_nature/piezas/pn_asianvalley_ricerow_3.tscn	0.287	0.261	1.664		no	ninguno	hierba_corta	cultivo de huerto	cultivo		si
+pn_asianvalley_rock_0	asianvalley	roca	res://arte/pure_nature/piezas/pn_asianvalley_rock_0.tscn	0.811	0.394	0.802		no	bosque	roca		roca	cueva	si
+pn_asianvalley_rock_1	asianvalley	roca	res://arte/pure_nature/piezas/pn_asianvalley_rock_1.tscn	0.867	0.467	0.795		no	bosque	roca		roca	cueva	si
+pn_asianvalley_rock_2	asianvalley	roca	res://arte/pure_nature/piezas/pn_asianvalley_rock_2.tscn	0.790	0.372	0.772		no	bosque	roca		roca	cueva	si
+pn_asianvalley_rock_3	asianvalley	roca	res://arte/pure_nature/piezas/pn_asianvalley_rock_3.tscn	0.840	0.423	0.813		no	bosque	roca		roca	cueva	si
+pn_asianvalley_rock_4	asianvalley	roca	res://arte/pure_nature/piezas/pn_asianvalley_rock_4.tscn	0.755	0.474	0.837		no	bosque	roca		roca	cueva	si
+pn_asianvalley_rock_5	asianvalley	roca	res://arte/pure_nature/piezas/pn_asianvalley_rock_5.tscn	0.856	0.453	0.784		no	bosque	roca		roca	cueva	si
+pn_asianvalley_rubbledense_1	asianvalley	roca	res://arte/pure_nature/piezas/pn_asianvalley_rubbledense_1.tscn	2.640	0.421	2.637		no	bosque	roca		escombro	cueva	si
+pn_asianvalley_rubbledense_2	asianvalley	roca	res://arte/pure_nature/piezas/pn_asianvalley_rubbledense_2.tscn	4.020	0.417	3.752		no	bosque	roca		escombro	cueva	si
+pn_asianvalley_rubbledense_3	asianvalley	roca	res://arte/pure_nature/piezas/pn_asianvalley_rubbledense_3.tscn	4.763	0.437	3.654		no	bosque	roca		escombro	cueva	si
+pn_asianvalley_rubblesparse_1	asianvalley	roca	res://arte/pure_nature/piezas/pn_asianvalley_rubblesparse_1.tscn	2.021	0.389	1.927		no	bosque	roca		escombro	cueva	si
+pn_asianvalley_rubblesparse_2	asianvalley	roca	res://arte/pure_nature/piezas/pn_asianvalley_rubblesparse_2.tscn	3.700	0.390	3.238		no	bosque	roca		escombro	cueva	si
+pn_asianvalley_rubblesparse_3	asianvalley	roca	res://arte/pure_nature/piezas/pn_asianvalley_rubblesparse_3.tscn	3.507	0.346	4.975		no	bosque	roca		escombro	cueva	si
+pn_asianvalley_thincliff_3	asianvalley	adorno	res://arte/pure_nature/piezas/pn_asianvalley_thincliff_3.tscn	2.936	6.338	2.457		no	bosque	roca	acantilado pequeño: zona de roca grande	acantilado	cueva	si
+pn_asianvalley_waterfall01	asianvalley	adorno	res://arte/pure_nature/piezas/pn_asianvalley_waterfall01.tscn	0.575	1.737	0.667		no	ninguno	adorno_borde	sobre el agua o en la orilla; no revisada a ojo: probable malla de cascada/orilla que pide material de agua propio	agua		si
+pn_fantasyforest_bigmushroom_1_1	fantasyforest	seta	res://arte/pure_nature/piezas/pn_fantasyforest_bigmushroom_1_1.tscn	1.598	1.925	1.549		no	bosque	decor_claro		seta	pantano,cueva	si
+pn_fantasyforest_bigmushroom_1_2	fantasyforest	seta	res://arte/pure_nature/piezas/pn_fantasyforest_bigmushroom_1_2.tscn	1.701	3.003	1.412		no	bosque	decor_claro		seta	pantano,cueva	si
+pn_fantasyforest_bigmushroom_1_3	fantasyforest	seta	res://arte/pure_nature/piezas/pn_fantasyforest_bigmushroom_1_3.tscn	2.186	3.858	2.203		no	bosque	decor_claro		seta	pantano,cueva	si
+pn_fantasyforest_bigmushroom_1_4	fantasyforest	seta	res://arte/pure_nature/piezas/pn_fantasyforest_bigmushroom_1_4.tscn	3.292	5.028	3.307		no	bosque	decor_claro		seta	pantano,cueva	si
+pn_fantasyforest_bigmushroom_1_5	fantasyforest	seta	res://arte/pure_nature/piezas/pn_fantasyforest_bigmushroom_1_5.tscn	1.826	2.483	1.558		no	bosque	decor_claro		seta	pantano,cueva	si
+pn_fantasyforest_bigmushroom_1_6	fantasyforest	seta	res://arte/pure_nature/piezas/pn_fantasyforest_bigmushroom_1_6.tscn	1.930	1.976	1.092		no	bosque	decor_claro		seta	pantano,cueva	si
+pn_fantasyforest_bigmushroom_2_1	fantasyforest	seta	res://arte/pure_nature/piezas/pn_fantasyforest_bigmushroom_2_1.tscn	2.758	2.914	2.950	seta_reactiva	si	bosque	decor_claro		seta	pantano,cueva	si
+pn_fantasyforest_bigmushroom_2_2	fantasyforest	seta	res://arte/pure_nature/piezas/pn_fantasyforest_bigmushroom_2_2.tscn	2.292	2.977	2.819		no	bosque	decor_claro		seta	pantano,cueva	si
+pn_fantasyforest_bigmushroom_2_3	fantasyforest	seta	res://arte/pure_nature/piezas/pn_fantasyforest_bigmushroom_2_3.tscn	1.468	1.706	1.786		no	bosque	decor_claro		seta	pantano,cueva	si
+pn_fantasyforest_bigmushroom_2_4	fantasyforest	seta	res://arte/pure_nature/piezas/pn_fantasyforest_bigmushroom_2_4.tscn	1.885	1.493	1.840		no	bosque	decor_claro		seta	pantano,cueva	si
+pn_fantasyforest_bigmushroom_2_5	fantasyforest	seta	res://arte/pure_nature/piezas/pn_fantasyforest_bigmushroom_2_5.tscn	3.255	4.952	3.034		no	bosque	decor_claro		seta	pantano,cueva	si
+pn_fantasyforest_bigmushroom_2_6	fantasyforest	seta	res://arte/pure_nature/piezas/pn_fantasyforest_bigmushroom_2_6.tscn	2.734	5.817	3.046		no	bosque	decor_claro		seta	pantano,cueva	si
+pn_fantasyforest_bigmushroom_2_7	fantasyforest	seta	res://arte/pure_nature/piezas/pn_fantasyforest_bigmushroom_2_7.tscn	3.835	7.056	4.154		no	bosque	decor_claro		seta	pantano,cueva	si
+pn_fantasyforest_bigmushroom_3_1	fantasyforest	seta	res://arte/pure_nature/piezas/pn_fantasyforest_bigmushroom_3_1.tscn	2.527	0.716	2.519		no	bosque	decor_claro		seta	pantano,cueva	si
+pn_fantasyforest_bigmushroom_3_2	fantasyforest	seta	res://arte/pure_nature/piezas/pn_fantasyforest_bigmushroom_3_2.tscn	2.345	0.645	2.413		no	bosque	decor_claro		seta	pantano,cueva	si
+pn_fantasyforest_bigmushroom_3_3	fantasyforest	seta	res://arte/pure_nature/piezas/pn_fantasyforest_bigmushroom_3_3.tscn	1.731	0.331	1.726		no	bosque	decor_claro		seta	pantano,cueva	si
+pn_fantasyforest_bigmushroom_3_4	fantasyforest	seta	res://arte/pure_nature/piezas/pn_fantasyforest_bigmushroom_3_4.tscn	1.721	0.517	1.708		no	bosque	decor_claro		seta	pantano,cueva	si
+pn_fantasyforest_bigroots_1	fantasyforest	arbol	res://arte/pure_nature/piezas/pn_fantasyforest_bigroots_1.tscn	10.757	8.442	6.451	raices_obstaculo	si	bosque	tronco		raiz	pantano	si
+pn_fantasyforest_bigroots_2	fantasyforest	arbol	res://arte/pure_nature/piezas/pn_fantasyforest_bigroots_2.tscn	9.238	6.914	8.032		no	bosque	tronco		raiz	pantano	si
+pn_fantasyforest_bigtree1	fantasyforest	arbol	res://arte/pure_nature/piezas/pn_fantasyforest_bigtree1.tscn	14.363	14.838	13.619	arbol_redondo_2	si	bosque	muro_arboles	copa muy ancha (14 u): solapa varias casillas	arbol		si
+pn_fantasyforest_bigtree2	fantasyforest	arbol	res://arte/pure_nature/piezas/pn_fantasyforest_bigtree2.tscn	12.346	14.944	12.446		no	bosque	muro_arboles	copa muy ancha (12 u): solapa varias casillas	arbol		si
+pn_fantasyforest_bigtree3	fantasyforest	arbol	res://arte/pure_nature/piezas/pn_fantasyforest_bigtree3.tscn	15.044	17.542	13.378	arbol_viejo	si	bosque	muro_arboles	copa muy ancha (15 u): solapa varias casillas	arbol		si
+pn_fantasyforest_bigtree4	fantasyforest	arbol	res://arte/pure_nature/piezas/pn_fantasyforest_bigtree4.tscn	13.380	15.358	11.794		no	bosque	muro_arboles	copa muy ancha (13 u): solapa varias casillas	arbol		si
+pn_fantasyforest_branches	fantasyforest	planta	res://arte/pure_nature/piezas/pn_fantasyforest_branches.tscn	0.822	0.075	0.746		no	bosque	tronco		rama	pantano	si
+pn_fantasyforest_bush1	fantasyforest	arbol	res://arte/pure_nature/piezas/pn_fantasyforest_bush1.tscn	1.092	1.024	1.197	arbusto	si	bosque	decor_claro		arbusto		si
+pn_fantasyforest_bush2	fantasyforest	arbol	res://arte/pure_nature/piezas/pn_fantasyforest_bush2.tscn	1.652	1.378	1.631	arbusto_bayas	si	bosque	decor_claro		arbusto		si
+pn_fantasyforest_bush3	fantasyforest	arbol	res://arte/pure_nature/piezas/pn_fantasyforest_bush3.tscn	2.426	1.531	2.435		no	bosque	decor_claro		arbusto		si
+pn_fantasyforest_cliff1	fantasyforest	roca	res://arte/pure_nature/piezas/pn_fantasyforest_cliff1.tscn	8.056	3.448	5.359		no	ninguno	no_usar	acantilado de 8 u: no cabe en una sala (casilla = 2,3 u); sirve de telón	acantilado		si
+pn_fantasyforest_cliff2	fantasyforest	roca	res://arte/pure_nature/piezas/pn_fantasyforest_cliff2.tscn	8.359	3.784	4.897		no	ninguno	no_usar	acantilado de 8 u: no cabe en una sala (casilla = 2,3 u); sirve de telón	acantilado		si
+pn_fantasyforest_deadleaves1	fantasyforest	planta	res://arte/pure_nature/piezas/pn_fantasyforest_deadleaves1.tscn	0.484	0.030	0.436		no	bosque	adorno_borde	pequeña: mejor en grupos o reescalada	hojarasca	pantano	poco
+pn_fantasyforest_deadleaves2	fantasyforest	planta	res://arte/pure_nature/piezas/pn_fantasyforest_deadleaves2.tscn	0.704	0.073	0.662		no	bosque	adorno_borde		hojarasca	pantano	si
+pn_fantasyforest_deadleaves3	fantasyforest	planta	res://arte/pure_nature/piezas/pn_fantasyforest_deadleaves3.tscn	0.698	0.073	0.690		no	bosque	adorno_borde		hojarasca	pantano	si
+pn_fantasyforest_deadleaves4	fantasyforest	planta	res://arte/pure_nature/piezas/pn_fantasyforest_deadleaves4.tscn	0.702	0.096	0.764		no	bosque	adorno_borde		hojarasca	pantano	si
+pn_fantasyforest_grass1	fantasyforest	planta	res://arte/pure_nature/piezas/pn_fantasyforest_grass1.tscn	0.876	0.195	0.851		no	bosque	hierba_corta		hierba		si
+pn_fantasyforest_grass2	fantasyforest	planta	res://arte/pure_nature/piezas/pn_fantasyforest_grass2.tscn	1.460	0.238	1.575	hierba_crecida	si	bosque	hierba_corta		hierba		si
+pn_fantasyforest_grass3	fantasyforest	planta	res://arte/pure_nature/piezas/pn_fantasyforest_grass3.tscn	1.899	0.646	1.844		no	bosque	hierba_corta		hierba		si
+pn_fantasyforest_grassmoss	fantasyforest	planta	res://arte/pure_nature/piezas/pn_fantasyforest_grassmoss.tscn	0.345	0.077	0.335		no	bosque	hierba_corta	pequeña: mejor en grupos o reescalada	hierba		poco
+pn_fantasyforest_ivyheart01	fantasyforest	adorno	res://arte/pure_nature/piezas/pn_fantasyforest_ivyheart01.tscn	0.257	0.850	0.183		no	bosque	adorno_borde		hiedra	ruinas	si
+pn_fantasyforest_ivyheart02	fantasyforest	adorno	res://arte/pure_nature/piezas/pn_fantasyforest_ivyheart02.tscn	0.265	1.350	0.186		no	bosque	adorno_borde		hiedra	ruinas	si
+pn_fantasyforest_ivyheart03	fantasyforest	adorno	res://arte/pure_nature/piezas/pn_fantasyforest_ivyheart03.tscn	0.613	1.257	0.179		no	bosque	adorno_borde		hiedra	ruinas	si
+pn_fantasyforest_ivyheart04	fantasyforest	adorno	res://arte/pure_nature/piezas/pn_fantasyforest_ivyheart04.tscn	0.778	1.283	0.180		no	bosque	adorno_borde		hiedra	ruinas	si
+pn_fantasyforest_ivyheart05	fantasyforest	adorno	res://arte/pure_nature/piezas/pn_fantasyforest_ivyheart05.tscn	1.207	1.398	0.223		no	bosque	adorno_borde		hiedra	ruinas	si
+pn_fantasyforest_ivyheart06	fantasyforest	adorno	res://arte/pure_nature/piezas/pn_fantasyforest_ivyheart06.tscn	1.362	0.307	0.143		no	bosque	adorno_borde		hiedra	ruinas	si
+pn_fantasyforest_ivyheart07	fantasyforest	adorno	res://arte/pure_nature/piezas/pn_fantasyforest_ivyheart07.tscn	0.496	0.929	0.201		no	bosque	adorno_borde		hiedra	ruinas	si
+pn_fantasyforest_ivyheart08	fantasyforest	adorno	res://arte/pure_nature/piezas/pn_fantasyforest_ivyheart08.tscn	0.503	1.394	0.241		no	bosque	adorno_borde		hiedra	ruinas	si
+pn_fantasyforest_ivyheart09	fantasyforest	adorno	res://arte/pure_nature/piezas/pn_fantasyforest_ivyheart09.tscn	0.436	0.889	0.420		no	bosque	adorno_borde		hiedra	ruinas	si
+pn_fantasyforest_ivyheart10	fantasyforest	adorno	res://arte/pure_nature/piezas/pn_fantasyforest_ivyheart10.tscn	0.624	1.192	0.622		no	bosque	adorno_borde		hiedra	ruinas	si
+pn_fantasyforest_largefern1	fantasyforest	planta	res://arte/pure_nature/piezas/pn_fantasyforest_largefern1.tscn	0.283	0.202	0.212		no	bosque	adorno_borde	pequeña: mejor en grupos o reescalada	helecho	cueva	poco
+pn_fantasyforest_largefern2	fantasyforest	planta	res://arte/pure_nature/piezas/pn_fantasyforest_largefern2.tscn	0.433	0.272	0.499	helecho_ancho	si	bosque	adorno_borde	pequeña: mejor en grupos o reescalada	helecho	cueva	poco
+pn_fantasyforest_largefern3	fantasyforest	planta	res://arte/pure_nature/piezas/pn_fantasyforest_largefern3.tscn	0.552	0.362	0.640	helechos_cueva	si	bosque	adorno_borde		helecho	cueva	si
+pn_fantasyforest_mossyrock_1	fantasyforest	roca	res://arte/pure_nature/piezas/pn_fantasyforest_mossyrock_1.tscn	0.959	0.481	0.899		no	bosque	roca		roca	cueva,pantano	si
+pn_fantasyforest_mossyrock_2	fantasyforest	roca	res://arte/pure_nature/piezas/pn_fantasyforest_mossyrock_2.tscn	0.988	0.486	0.939		no	bosque	roca		roca	cueva,pantano	si
+pn_fantasyforest_mossyrock_3	fantasyforest	roca	res://arte/pure_nature/piezas/pn_fantasyforest_mossyrock_3.tscn	1.489	0.587	0.818		no	bosque	roca		roca	cueva,pantano	si
+pn_fantasyforest_mossyrock_4	fantasyforest	roca	res://arte/pure_nature/piezas/pn_fantasyforest_mossyrock_4.tscn	1.937	0.777	1.952		no	bosque	roca		roca	cueva,pantano	si
+pn_fantasyforest_mossyrock_5	fantasyforest	roca	res://arte/pure_nature/piezas/pn_fantasyforest_mossyrock_5.tscn	3.392	1.219	2.677		no	bosque	roca		roca	cueva,pantano	si
+pn_fantasyforest_mushmush1	fantasyforest	adorno	res://arte/pure_nature/piezas/pn_fantasyforest_mushmush1.tscn	0.060	0.117	0.055		no	bosque	adorno_borde	a tamaño nativo no se ve desde la cámara: solo en mantos o reescalada	seta	pantano,cueva	no
+pn_fantasyforest_mushmush2	fantasyforest	adorno	res://arte/pure_nature/piezas/pn_fantasyforest_mushmush2.tscn	0.090	0.195	0.053		no	bosque	adorno_borde	a tamaño nativo no se ve desde la cámara: solo en mantos o reescalada	seta	pantano,cueva	no
+pn_fantasyforest_mushmush3	fantasyforest	adorno	res://arte/pure_nature/piezas/pn_fantasyforest_mushmush3.tscn	0.090	0.229	0.065		no	bosque	adorno_borde	a tamaño nativo no se ve desde la cámara: solo en mantos o reescalada	seta	pantano,cueva	no
+pn_fantasyforest_mushmush4	fantasyforest	adorno	res://arte/pure_nature/piezas/pn_fantasyforest_mushmush4.tscn	0.085	0.270	0.070		no	bosque	adorno_borde	pequeña: mejor en grupos o reescalada	seta	pantano,cueva	poco
+pn_fantasyforest_mushmush5	fantasyforest	adorno	res://arte/pure_nature/piezas/pn_fantasyforest_mushmush5.tscn	0.158	0.273	0.067		no	bosque	adorno_borde	pequeña: mejor en grupos o reescalada	seta	pantano,cueva	poco
+pn_fantasyforest_mushroom1	fantasyforest	seta	res://arte/pure_nature/piezas/pn_fantasyforest_mushroom1.tscn	0.199	0.401	0.195		no	bosque	adorno_borde	pequeña: mejor en grupos o reescalada	seta	pantano,cueva	poco
+pn_fantasyforest_mushroom2	fantasyforest	seta	res://arte/pure_nature/piezas/pn_fantasyforest_mushroom2.tscn	0.292	0.462	0.323		no	bosque	adorno_borde	pequeña: mejor en grupos o reescalada	seta	pantano,cueva	poco
+pn_fantasyforest_mushroom3	fantasyforest	seta	res://arte/pure_nature/piezas/pn_fantasyforest_mushroom3.tscn	0.440	0.607	0.479		no	bosque	adorno_borde		seta	pantano,cueva	si
+pn_fantasyforest_mushroom4	fantasyforest	seta	res://arte/pure_nature/piezas/pn_fantasyforest_mushroom4.tscn	0.087	0.310	0.080		no	bosque	adorno_borde	pequeña: mejor en grupos o reescalada	seta	pantano,cueva	poco
+pn_fantasyforest_mushroom5	fantasyforest	seta	res://arte/pure_nature/piezas/pn_fantasyforest_mushroom5.tscn	0.172	0.426	0.219		no	bosque	adorno_borde	pequeña: mejor en grupos o reescalada	seta	pantano,cueva	poco
+pn_fantasyforest_mushroom6	fantasyforest	seta	res://arte/pure_nature/piezas/pn_fantasyforest_mushroom6.tscn	0.647	0.518	0.584		no	bosque	adorno_borde		seta	pantano,cueva	si
+pn_fantasyforest_mushroomsstack_1	fantasyforest	seta	res://arte/pure_nature/piezas/pn_fantasyforest_mushroomsstack_1.tscn	0.591	0.432	0.522		no	bosque	adorno_borde	pequeña: mejor en grupos o reescalada	seta	pantano,cueva	poco
+pn_fantasyforest_mushroomsstack_2	fantasyforest	seta	res://arte/pure_nature/piezas/pn_fantasyforest_mushroomsstack_2.tscn	0.603	0.573	0.614		no	bosque	adorno_borde		seta	pantano,cueva	si
+pn_fantasyforest_mushroomsstack_3	fantasyforest	seta	res://arte/pure_nature/piezas/pn_fantasyforest_mushroomsstack_3.tscn	0.763	0.652	0.781		no	bosque	adorno_borde		seta	pantano,cueva	si
+pn_fantasyforest_mushroomsstack_4	fantasyforest	seta	res://arte/pure_nature/piezas/pn_fantasyforest_mushroomsstack_4.tscn	0.258	0.427	0.306		no	bosque	adorno_borde	pequeña: mejor en grupos o reescalada	seta	pantano,cueva	poco
+pn_fantasyforest_mushroomsstack_5	fantasyforest	seta	res://arte/pure_nature/piezas/pn_fantasyforest_mushroomsstack_5.tscn	0.472	0.488	0.508		no	bosque	adorno_borde	pequeña: mejor en grupos o reescalada	seta	pantano,cueva	poco
+pn_fantasyforest_mushroomsstack_6	fantasyforest	seta	res://arte/pure_nature/piezas/pn_fantasyforest_mushroomsstack_6.tscn	0.304	0.451	0.315		no	bosque	adorno_borde	pequeña: mejor en grupos o reescalada	seta	pantano,cueva	poco
+pn_fantasyforest_mushroomsstack_7	fantasyforest	seta	res://arte/pure_nature/piezas/pn_fantasyforest_mushroomsstack_7.tscn	0.237	0.326	0.257	setas_pantano	si	bosque	adorno_borde	pequeña: mejor en grupos o reescalada	seta	pantano,cueva	poco
+pn_fantasyforest_mushroomsstack_8	fantasyforest	seta	res://arte/pure_nature/piezas/pn_fantasyforest_mushroomsstack_8.tscn	0.219	0.391	0.256		no	bosque	adorno_borde	pequeña: mejor en grupos o reescalada	seta	pantano,cueva	poco
+pn_fantasyforest_mushroomsstack_9	fantasyforest	seta	res://arte/pure_nature/piezas/pn_fantasyforest_mushroomsstack_9.tscn	0.367	0.587	0.413		no	bosque	adorno_borde	pequeña: mejor en grupos o reescalada	seta	pantano,cueva	poco
+pn_fantasyforest_shrub1	fantasyforest	planta	res://arte/pure_nature/piezas/pn_fantasyforest_shrub1.tscn	0.652	0.220	0.783		no	bosque	adorno_borde		arbusto		si
+pn_fantasyforest_shrub2	fantasyforest	planta	res://arte/pure_nature/piezas/pn_fantasyforest_shrub2.tscn	0.538	0.595	0.608		no	bosque	adorno_borde		arbusto		si
+pn_fantasyforest_shrub3	fantasyforest	planta	res://arte/pure_nature/piezas/pn_fantasyforest_shrub3.tscn	0.797	0.478	0.866		no	bosque	decor_claro		arbusto		si
+pn_fantasyforest_shrubleaf1	fantasyforest	planta	res://arte/pure_nature/piezas/pn_fantasyforest_shrubleaf1.tscn	0.293	0.115	0.276		no	bosque	adorno_borde	pequeña: mejor en grupos o reescalada	arbusto		poco
+pn_fantasyforest_shrubleaf2	fantasyforest	planta	res://arte/pure_nature/piezas/pn_fantasyforest_shrubleaf2.tscn	0.370	0.233	0.427	planta_hojas	si	bosque	adorno_borde	pequeña: mejor en grupos o reescalada	arbusto		poco
+pn_fantasyforest_shrubleaf3	fantasyforest	planta	res://arte/pure_nature/piezas/pn_fantasyforest_shrubleaf3.tscn	0.482	0.316	0.560		no	bosque	adorno_borde	pequeña: mejor en grupos o reescalada	arbusto		poco
+pn_fantasyforest_smallmushroom_1	fantasyforest	seta	res://arte/pure_nature/piezas/pn_fantasyforest_smallmushroom_1.tscn	0.180	0.280	0.189		no	bosque	adorno_borde	pequeña: mejor en grupos o reescalada	seta	pantano,cueva	poco
+pn_fantasyforest_smallmushroom_10	fantasyforest	seta	res://arte/pure_nature/piezas/pn_fantasyforest_smallmushroom_10.tscn	0.162	0.281	0.157		no	bosque	adorno_borde	pequeña: mejor en grupos o reescalada	seta	pantano,cueva	poco
+pn_fantasyforest_smallmushroom_11	fantasyforest	seta	res://arte/pure_nature/piezas/pn_fantasyforest_smallmushroom_11.tscn	0.165	0.279	0.164		no	bosque	adorno_borde	pequeña: mejor en grupos o reescalada	seta	pantano,cueva	poco
+pn_fantasyforest_smallmushroom_12	fantasyforest	seta	res://arte/pure_nature/piezas/pn_fantasyforest_smallmushroom_12.tscn	0.166	0.355	0.152		no	bosque	adorno_borde	pequeña: mejor en grupos o reescalada	seta	pantano,cueva	poco
+pn_fantasyforest_smallmushroom_2	fantasyforest	seta	res://arte/pure_nature/piezas/pn_fantasyforest_smallmushroom_2.tscn	0.207	0.349	0.206		no	bosque	adorno_borde	pequeña: mejor en grupos o reescalada	seta	pantano,cueva	poco
+pn_fantasyforest_smallmushroom_3	fantasyforest	seta	res://arte/pure_nature/piezas/pn_fantasyforest_smallmushroom_3.tscn	0.217	0.382	0.215	seta_amarilla_fina	si	bosque	adorno_borde	pequeña: mejor en grupos o reescalada	seta	pantano,cueva	poco
+pn_fantasyforest_smallmushroom_4	fantasyforest	seta	res://arte/pure_nature/piezas/pn_fantasyforest_smallmushroom_4.tscn	0.147	0.305	0.157		no	bosque	adorno_borde	pequeña: mejor en grupos o reescalada	seta	pantano,cueva	poco
+pn_fantasyforest_smallmushroom_5	fantasyforest	seta	res://arte/pure_nature/piezas/pn_fantasyforest_smallmushroom_5.tscn	0.167	0.287	0.186		no	bosque	adorno_borde	pequeña: mejor en grupos o reescalada	seta	pantano,cueva	poco
+pn_fantasyforest_smallmushroom_6	fantasyforest	seta	res://arte/pure_nature/piezas/pn_fantasyforest_smallmushroom_6.tscn	0.191	0.396	0.182		no	bosque	adorno_borde	pequeña: mejor en grupos o reescalada	seta	pantano,cueva	poco
+pn_fantasyforest_smallmushroom_7	fantasyforest	seta	res://arte/pure_nature/piezas/pn_fantasyforest_smallmushroom_7.tscn	0.167	0.292	0.173		no	bosque	adorno_borde	pequeña: mejor en grupos o reescalada	seta	pantano,cueva	poco
+pn_fantasyforest_smallmushroom_8	fantasyforest	seta	res://arte/pure_nature/piezas/pn_fantasyforest_smallmushroom_8.tscn	0.167	0.320	0.168		no	bosque	adorno_borde	pequeña: mejor en grupos o reescalada	seta	pantano,cueva	poco
+pn_fantasyforest_smallmushroom_9	fantasyforest	seta	res://arte/pure_nature/piezas/pn_fantasyforest_smallmushroom_9.tscn	0.178	0.399	0.165		no	bosque	adorno_borde	pequeña: mejor en grupos o reescalada	seta	pantano,cueva	poco
+pn_fantasyforest_smallroot1	fantasyforest	arbol	res://arte/pure_nature/piezas/pn_fantasyforest_smallroot1.tscn	0.530	0.135	0.396		no	bosque	tronco		raiz	pantano	poco
+pn_fantasyforest_smallroot2	fantasyforest	arbol	res://arte/pure_nature/piezas/pn_fantasyforest_smallroot2.tscn	0.447	0.100	0.477		no	bosque	tronco		raiz	pantano	poco
+pn_fantasyforest_spider1	fantasyforest	planta	res://arte/pure_nature/piezas/pn_fantasyforest_spider1.tscn	0.246	0.273	0.244		no	bosque	adorno_borde	pequeña: mejor en grupos o reescalada; planta sin identificar por el nombre	planta_baja	cueva	poco
+pn_fantasyforest_spider2	fantasyforest	planta	res://arte/pure_nature/piezas/pn_fantasyforest_spider2.tscn	0.447	0.325	0.341		no	bosque	adorno_borde	pequeña: mejor en grupos o reescalada; planta sin identificar por el nombre	planta_baja	cueva	poco
+pn_fantasyforest_spider3	fantasyforest	planta	res://arte/pure_nature/piezas/pn_fantasyforest_spider3.tscn	0.420	0.355	0.446		no	bosque	adorno_borde	pequeña: mejor en grupos o reescalada; planta sin identificar por el nombre	planta_baja	cueva	poco
+pn_fantasyforest_tinderfungus_1	fantasyforest	seta	res://arte/pure_nature/piezas/pn_fantasyforest_tinderfungus_1.tscn	0.523	0.248	0.516		no	bosque	adorno_borde	pequeña: mejor en grupos o reescalada	seta	pantano,cueva	poco
+pn_fantasyforest_tinderfungus_2	fantasyforest	seta	res://arte/pure_nature/piezas/pn_fantasyforest_tinderfungus_2.tscn	0.517	0.289	0.514		no	bosque	adorno_borde	pequeña: mejor en grupos o reescalada	seta	pantano,cueva	poco
+pn_fantasyforest_tinderfungus_3	fantasyforest	seta	res://arte/pure_nature/piezas/pn_fantasyforest_tinderfungus_3.tscn	0.352	0.218	0.353		no	bosque	adorno_borde	pequeña: mejor en grupos o reescalada	seta	pantano,cueva	poco
+pn_fantasyforest_tinderfungus_4	fantasyforest	seta	res://arte/pure_nature/piezas/pn_fantasyforest_tinderfungus_4.tscn	0.288	0.096	0.290		no	bosque	adorno_borde	pequeña: mejor en grupos o reescalada	seta	pantano,cueva	poco
+pn_islands_algae1	islands	adorno	res://arte/pure_nature/piezas/pn_islands_algae1.tscn	0.443	0.391	0.453		no	ninguno	adorno_borde	sobre el agua o en la orilla; pequeña: mejor en grupos o reescalada	agua		poco
+pn_islands_algae2	islands	adorno	res://arte/pure_nature/piezas/pn_islands_algae2.tscn	0.934	0.390	0.903		no	ninguno	adorno_borde	sobre el agua o en la orilla	agua		si
+pn_islands_aloe1	islands	planta	res://arte/pure_nature/piezas/pn_islands_aloe1.tscn	0.387	0.545	0.400		no	ninguno	adorno_borde	pequeña: mejor en grupos o reescalada	planta_hoja		poco
+pn_islands_aloe2	islands	planta	res://arte/pure_nature/piezas/pn_islands_aloe2.tscn	0.628	0.619	0.658		no	ninguno	adorno_borde		planta_hoja		si
+pn_islands_aloe3	islands	planta	res://arte/pure_nature/piezas/pn_islands_aloe3.tscn	0.566	0.725	0.596		no	ninguno	adorno_borde		planta_hoja		si
+pn_islands_aquila1	islands	adorno	res://arte/pure_nature/piezas/pn_islands_aquila1.tscn	0.211	0.457	0.228		no	ninguno	adorno_borde	pequeña: mejor en grupos o reescalada; nombre inventado por el autor (planta de isla); no identificada a ojo	planta_isla	pantano	poco
+pn_islands_aquila2	islands	adorno	res://arte/pure_nature/piezas/pn_islands_aquila2.tscn	0.318	0.717	0.256		no	ninguno	adorno_borde	nombre inventado por el autor (planta de isla); no identificada a ojo	planta_isla	pantano	si
+pn_islands_aquila3	islands	adorno	res://arte/pure_nature/piezas/pn_islands_aquila3.tscn	0.340	1.098	0.285		no	ninguno	decor_claro	nombre inventado por el autor (planta de isla); no identificada a ojo	planta_isla	pantano	si
+pn_islands_bigkelp1	islands	adorno	res://arte/pure_nature/piezas/pn_islands_bigkelp1.tscn	1.439	3.105	1.451		no	ninguno	adorno_borde	sobre el agua o en la orilla	agua		si
+pn_islands_bigkelp2	islands	adorno	res://arte/pure_nature/piezas/pn_islands_bigkelp2.tscn	1.799	4.992	1.585		no	ninguno	adorno_borde	sobre el agua o en la orilla	agua		si
+pn_islands_bigkelp3	islands	adorno	res://arte/pure_nature/piezas/pn_islands_bigkelp3.tscn	2.415	4.098	1.735		no	ninguno	adorno_borde	sobre el agua o en la orilla	agua		si
+pn_islands_bigkelp4	islands	adorno	res://arte/pure_nature/piezas/pn_islands_bigkelp4.tscn	4.141	3.945	2.189		no	ninguno	adorno_borde	sobre el agua o en la orilla	agua		si
+pn_islands_blindweed	islands	planta	res://arte/pure_nature/piezas/pn_islands_blindweed.tscn	0.860	0.131	0.853		no	ninguno	hierba_corta		hierba		si
+pn_islands_boulder_10	islands	roca	res://arte/pure_nature/piezas/pn_islands_boulder_10.tscn	0.830	0.584	0.856		no	bosque	roca		roca	cueva	si
+pn_islands_boulder_11	islands	roca	res://arte/pure_nature/piezas/pn_islands_boulder_11.tscn	0.814	0.763	0.991		no	bosque	roca		roca	cueva	si
+pn_islands_boulder_12	islands	roca	res://arte/pure_nature/piezas/pn_islands_boulder_12.tscn	0.835	0.725	0.734		no	bosque	roca		roca	cueva	si
+pn_islands_boulder_13	islands	roca	res://arte/pure_nature/piezas/pn_islands_boulder_13.tscn	0.828	0.638	0.904		no	bosque	roca		roca	cueva	si
+pn_islands_boulder_14	islands	roca	res://arte/pure_nature/piezas/pn_islands_boulder_14.tscn	1.047	0.606	0.691		no	bosque	roca		roca	cueva	si
+pn_islands_boulder_15	islands	roca	res://arte/pure_nature/piezas/pn_islands_boulder_15.tscn	1.032	0.696	0.910		no	bosque	roca		roca	cueva	si
+pn_islands_boulder_8	islands	roca	res://arte/pure_nature/piezas/pn_islands_boulder_8.tscn	1.142	0.676	0.979		no	bosque	roca		roca	cueva	si
+pn_islands_boulder_9	islands	roca	res://arte/pure_nature/piezas/pn_islands_boulder_9.tscn	0.996	0.645	1.025		no	bosque	roca		roca	cueva	si
+pn_islands_branches	islands	planta	res://arte/pure_nature/piezas/pn_islands_branches.tscn	2.087	0.190	1.894		no	bosque	tronco		rama		si
+pn_islands_bush1	islands	arbol	res://arte/pure_nature/piezas/pn_islands_bush1.tscn	1.092	1.024	1.197		no	bosque	decor_claro		arbusto		si
+pn_islands_bush2	islands	arbol	res://arte/pure_nature/piezas/pn_islands_bush2.tscn	1.652	1.378	1.631		no	bosque	decor_claro		arbusto		si
+pn_islands_bush3	islands	arbol	res://arte/pure_nature/piezas/pn_islands_bush3.tscn	2.426	1.531	2.435		no	bosque	decor_claro		arbusto		si
+pn_islands_cerfolet1	islands	adorno	res://arte/pure_nature/piezas/pn_islands_cerfolet1.tscn	0.287	0.478	0.336		no	ninguno	adorno_borde	pequeña: mejor en grupos o reescalada; nombre inventado por el autor (planta de isla); no identificada a ojo	planta_isla	pantano	poco
+pn_islands_cerfolet2	islands	adorno	res://arte/pure_nature/piezas/pn_islands_cerfolet2.tscn	0.409	0.765	0.411		no	ninguno	adorno_borde	nombre inventado por el autor (planta de isla); no identificada a ojo	planta_isla	pantano	si
+pn_islands_cerfolet3	islands	adorno	res://arte/pure_nature/piezas/pn_islands_cerfolet3.tscn	0.486	0.813	0.469		no	ninguno	adorno_borde	nombre inventado por el autor (planta de isla); no identificada a ojo	planta_isla	pantano	si
+pn_islands_coconut1	islands	arbol	res://arte/pure_nature/piezas/pn_islands_coconut1.tscn	1.749	2.589	1.689		no	ninguno	muro_arboles		palmera		si
+pn_islands_coconut2	islands	arbol	res://arte/pure_nature/piezas/pn_islands_coconut2.tscn	3.042	4.977	2.959		no	ninguno	muro_arboles		palmera		si
+pn_islands_coconut3	islands	arbol	res://arte/pure_nature/piezas/pn_islands_coconut3.tscn	4.331	6.497	3.878		no	ninguno	muro_arboles		palmera		si
+pn_islands_coconut4	islands	arbol	res://arte/pure_nature/piezas/pn_islands_coconut4.tscn	4.349	8.241	3.589		no	ninguno	muro_arboles		palmera		si
+pn_islands_coconut5	islands	arbol	res://arte/pure_nature/piezas/pn_islands_coconut5.tscn	4.103	7.916	5.108		no	ninguno	muro_arboles		palmera		si
+pn_islands_coconut6	islands	arbol	res://arte/pure_nature/piezas/pn_islands_coconut6.tscn	4.223	10.204	3.869		no	ninguno	muro_arboles		palmera		si
+pn_islands_cordyline1	islands	planta	res://arte/pure_nature/piezas/pn_islands_cordyline1.tscn	0.589	0.630	0.609		no	ninguno	adorno_borde		planta_hoja		si
+pn_islands_cordyline2	islands	planta	res://arte/pure_nature/piezas/pn_islands_cordyline2.tscn	0.695	0.844	0.673		no	ninguno	adorno_borde		planta_hoja		si
+pn_islands_cordyline3	islands	planta	res://arte/pure_nature/piezas/pn_islands_cordyline3.tscn	0.733	0.735	0.726		no	ninguno	adorno_borde		planta_hoja		si
+pn_islands_couec1	islands	adorno	res://arte/pure_nature/piezas/pn_islands_couec1.tscn	0.084	0.212	0.091		no	ninguno	adorno_borde	a tamaño nativo no se ve desde la cámara: solo en mantos o reescalada; nombre inventado por el autor (planta de isla); no identificada a ojo	planta_isla	pantano	no
+pn_islands_couec2	islands	adorno	res://arte/pure_nature/piezas/pn_islands_couec2.tscn	0.136	0.296	0.129		no	ninguno	adorno_borde	pequeña: mejor en grupos o reescalada; nombre inventado por el autor (planta de isla); no identificada a ojo	planta_isla	pantano	poco
+pn_islands_drypalm1	islands	arbol	res://arte/pure_nature/piezas/pn_islands_drypalm1.tscn	1.662	0.147	1.813		no	ninguno	adorno_borde		hojarasca		si
+pn_islands_drypalm2	islands	arbol	res://arte/pure_nature/piezas/pn_islands_drypalm2.tscn	2.123	0.127	2.392		no	ninguno	adorno_borde		hojarasca		si
+pn_islands_escala1	islands	adorno	res://arte/pure_nature/piezas/pn_islands_escala1.tscn	0.485	0.316	0.451		no	ninguno	adorno_borde	pequeña: mejor en grupos o reescalada; nombre inventado por el autor (planta de isla); no identificada a ojo	planta_isla	pantano	poco
+pn_islands_escala2	islands	adorno	res://arte/pure_nature/piezas/pn_islands_escala2.tscn	0.538	0.316	0.526		no	ninguno	adorno_borde	pequeña: mejor en grupos o reescalada; nombre inventado por el autor (planta de isla); no identificada a ojo	planta_isla	pantano	poco
+pn_islands_escala3	islands	adorno	res://arte/pure_nature/piezas/pn_islands_escala3.tscn	0.565	0.409	0.600		no	ninguno	adorno_borde	pequeña: mejor en grupos o reescalada; nombre inventado por el autor (planta de isla); no identificada a ojo	planta_isla	pantano	poco
+pn_islands_ferneil1	islands	adorno	res://arte/pure_nature/piezas/pn_islands_ferneil1.tscn	0.772	0.366	0.618	helechos_cueva	si	ninguno	adorno_borde		helecho	pantano	si
+pn_islands_ferneil2	islands	adorno	res://arte/pure_nature/piezas/pn_islands_ferneil2.tscn	1.305	0.485	1.362		no	ninguno	decor_claro		helecho	pantano	si
+pn_islands_fesh1	islands	adorno	res://arte/pure_nature/piezas/pn_islands_fesh1.tscn	0.294	0.220	0.266		no	ninguno	adorno_borde	pequeña: mejor en grupos o reescalada; nombre inventado por el autor (planta de isla); no identificada a ojo	planta_isla	pantano	poco
+pn_islands_fesh2	islands	adorno	res://arte/pure_nature/piezas/pn_islands_fesh2.tscn	0.392	0.202	0.346		no	ninguno	adorno_borde	pequeña: mejor en grupos o reescalada; nombre inventado por el autor (planta de isla); no identificada a ojo	planta_isla	pantano	poco
+pn_islands_fesh3	islands	adorno	res://arte/pure_nature/piezas/pn_islands_fesh3.tscn	0.483	0.202	0.436		no	ninguno	adorno_borde	pequeña: mejor en grupos o reescalada; nombre inventado por el autor (planta de isla); no identificada a ojo	planta_isla	pantano	poco
+pn_islands_flagilis1	islands	adorno	res://arte/pure_nature/piezas/pn_islands_flagilis1.tscn	0.362	0.422	0.251		no	ninguno	adorno_borde	pequeña: mejor en grupos o reescalada; nombre inventado por el autor (planta de isla); no identificada a ojo	planta_isla	pantano	poco
+pn_islands_flagilis2	islands	adorno	res://arte/pure_nature/piezas/pn_islands_flagilis2.tscn	0.287	0.493	0.257		no	ninguno	adorno_borde	pequeña: mejor en grupos o reescalada; nombre inventado por el autor (planta de isla); no identificada a ojo	planta_isla	pantano	poco
+pn_islands_flagilis3	islands	adorno	res://arte/pure_nature/piezas/pn_islands_flagilis3.tscn	0.388	0.522	0.387		no	ninguno	adorno_borde	pequeña: mejor en grupos o reescalada; nombre inventado por el autor (planta de isla); no identificada a ojo	planta_isla	pantano	poco
+pn_islands_frondura1	islands	adorno	res://arte/pure_nature/piezas/pn_islands_frondura1.tscn	0.504	0.357	0.552		no	ninguno	adorno_borde	pequeña: mejor en grupos o reescalada; nombre inventado por el autor (planta de isla); no identificada a ojo	planta_isla	pantano	poco
+pn_islands_frondura2	islands	adorno	res://arte/pure_nature/piezas/pn_islands_frondura2.tscn	0.699	0.454	0.879		no	ninguno	adorno_borde	nombre inventado por el autor (planta de isla); no identificada a ojo	planta_isla	pantano	si
+pn_islands_frondura3	islands	adorno	res://arte/pure_nature/piezas/pn_islands_frondura3.tscn	0.928	0.510	1.044		no	ninguno	decor_claro	nombre inventado por el autor (planta de isla); no identificada a ojo	planta_isla	pantano	si
+pn_islands_glocus1	islands	adorno	res://arte/pure_nature/piezas/pn_islands_glocus1.tscn	0.458	0.797	0.491		no	ninguno	adorno_borde	nombre inventado por el autor (planta de isla); no identificada a ojo	planta_isla	pantano	si
+pn_islands_glocus2	islands	adorno	res://arte/pure_nature/piezas/pn_islands_glocus2.tscn	0.465	1.073	0.525		no	ninguno	decor_claro	nombre inventado por el autor (planta de isla); no identificada a ojo	planta_isla	pantano	si
+pn_islands_glocus3	islands	adorno	res://arte/pure_nature/piezas/pn_islands_glocus3.tscn	0.534	1.336	0.575		no	ninguno	decor_claro	nombre inventado por el autor (planta de isla); no identificada a ojo	planta_isla	pantano	si
+pn_islands_gonegin1	islands	adorno	res://arte/pure_nature/piezas/pn_islands_gonegin1.tscn	0.308	0.125	0.277		no	ninguno	adorno_borde	pequeña: mejor en grupos o reescalada; nombre inventado por el autor (planta de isla); no identificada a ojo	planta_isla	pantano	poco
+pn_islands_gonegin2	islands	adorno	res://arte/pure_nature/piezas/pn_islands_gonegin2.tscn	0.598	0.120	0.551		no	ninguno	adorno_borde	pequeña: mejor en grupos o reescalada; nombre inventado por el autor (planta de isla); no identificada a ojo	planta_isla	pantano	poco
+pn_islands_grass1	islands	planta	res://arte/pure_nature/piezas/pn_islands_grass1.tscn	0.876	0.195	0.851		no	bosque	hierba_corta		hierba		si
+pn_islands_grass2	islands	planta	res://arte/pure_nature/piezas/pn_islands_grass2.tscn	1.460	0.238	1.575		no	bosque	hierba_corta		hierba		si
+pn_islands_grass3	islands	planta	res://arte/pure_nature/piezas/pn_islands_grass3.tscn	1.899	0.646	1.844		no	bosque	hierba_corta		hierba		si
+pn_islands_homis1	islands	adorno	res://arte/pure_nature/piezas/pn_islands_homis1.tscn	0.408	0.651	0.471		no	ninguno	adorno_borde	nombre inventado por el autor (planta de isla); no identificada a ojo	planta_isla	pantano	si
+pn_islands_homis2	islands	adorno	res://arte/pure_nature/piezas/pn_islands_homis2.tscn	0.939	0.788	0.800		no	ninguno	decor_claro	nombre inventado por el autor (planta de isla); no identificada a ojo	planta_isla	pantano	si
+pn_islands_islandcliff1	islands	roca	res://arte/pure_nature/piezas/pn_islands_islandcliff1.tscn	20.439	8.725	13.593		no	ninguno	no_usar	acantilado de 20 u: no cabe en una sala (casilla = 2,3 u); sirve de telón	acantilado		si
+pn_islands_islandcliff2	islands	roca	res://arte/pure_nature/piezas/pn_islands_islandcliff2.tscn	21.173	9.601	12.429		no	ninguno	no_usar	acantilado de 21 u: no cabe en una sala (casilla = 2,3 u); sirve de telón	acantilado		si
+pn_islands_lucida1	islands	adorno	res://arte/pure_nature/piezas/pn_islands_lucida1.tscn	0.288	0.153	0.320		no	ninguno	adorno_borde	pequeña: mejor en grupos o reescalada; nombre inventado por el autor (planta de isla); no identificada a ojo	planta_isla	pantano	poco
+pn_islands_lucida2	islands	adorno	res://arte/pure_nature/piezas/pn_islands_lucida2.tscn	0.373	0.216	0.401		no	ninguno	adorno_borde	pequeña: mejor en grupos o reescalada; nombre inventado por el autor (planta de isla); no identificada a ojo	planta_isla	pantano	poco
+pn_islands_lucida3	islands	adorno	res://arte/pure_nature/piezas/pn_islands_lucida3.tscn	0.820	0.204	0.748		no	ninguno	adorno_borde	nombre inventado por el autor (planta de isla); no identificada a ojo	planta_isla	pantano	si
+pn_islands_muck1	islands	adorno	res://arte/pure_nature/piezas/pn_islands_muck1.tscn	0.546	0.259	0.563		no	ninguno	adorno_borde	pequeña: mejor en grupos o reescalada; nombre inventado por el autor (planta de isla); no identificada a ojo	planta_isla	pantano	poco
+pn_islands_muck2	islands	adorno	res://arte/pure_nature/piezas/pn_islands_muck2.tscn	0.651	0.312	0.656		no	ninguno	adorno_borde	nombre inventado por el autor (planta de isla); no identificada a ojo	planta_isla	pantano	si
+pn_islands_pandanace1	islands	arbol	res://arte/pure_nature/piezas/pn_islands_pandanace1.tscn	5.640	5.758	4.044	arbol_manglar	si	pantano	muro_arboles		palmera		si
+pn_islands_pandanace2	islands	arbol	res://arte/pure_nature/piezas/pn_islands_pandanace2.tscn	5.863	5.409	4.848		no	pantano	muro_arboles		palmera		si
+pn_islands_pandanace3	islands	arbol	res://arte/pure_nature/piezas/pn_islands_pandanace3.tscn	5.779	7.428	6.403		no	pantano	muro_arboles		palmera		si
+pn_islands_pearl	islands	adorno	res://arte/pure_nature/piezas/pn_islands_pearl.tscn	0.029	0.030	0.028		no	ninguno	no_usar	pieza de playa (concha, estrella, perla)	marino		no
+pn_islands_pekel1	islands	adorno	res://arte/pure_nature/piezas/pn_islands_pekel1.tscn	0.492	0.323	0.555		no	ninguno	adorno_borde	pequeña: mejor en grupos o reescalada; nombre inventado por el autor (planta de isla); no identificada a ojo	planta_isla	pantano	poco
+pn_islands_pekel2	islands	adorno	res://arte/pure_nature/piezas/pn_islands_pekel2.tscn	1.023	0.316	0.855		no	ninguno	decor_claro	nombre inventado por el autor (planta de isla); no identificada a ojo	planta_isla	pantano	si
+pn_islands_pepette1	islands	adorno	res://arte/pure_nature/piezas/pn_islands_pepette1.tscn	0.236	0.171	0.224		no	ninguno	adorno_borde	a tamaño nativo no se ve desde la cámara: solo en mantos o reescalada; nombre inventado por el autor (planta de isla); no identificada a ojo	planta_isla	pantano	no
+pn_islands_pepette2	islands	adorno	res://arte/pure_nature/piezas/pn_islands_pepette2.tscn	0.559	0.254	0.597		no	ninguno	adorno_borde	pequeña: mejor en grupos o reescalada; nombre inventado por el autor (planta de isla); no identificada a ojo	planta_isla	pantano	poco
+pn_islands_plaveina1	islands	adorno	res://arte/pure_nature/piezas/pn_islands_plaveina1.tscn	0.195	0.264	0.301		no	ninguno	adorno_borde	pequeña: mejor en grupos o reescalada; nombre inventado por el autor (planta de isla); no identificada a ojo	planta_isla	pantano	poco
+pn_islands_plaveina2	islands	adorno	res://arte/pure_nature/piezas/pn_islands_plaveina2.tscn	0.361	0.265	0.189		no	ninguno	adorno_borde	pequeña: mejor en grupos o reescalada; nombre inventado por el autor (planta de isla); no identificada a ojo	planta_isla	pantano	poco
+pn_islands_plaveina3	islands	adorno	res://arte/pure_nature/piezas/pn_islands_plaveina3.tscn	0.407	0.243	0.524		no	ninguno	adorno_borde	pequeña: mejor en grupos o reescalada; nombre inventado por el autor (planta de isla); no identificada a ojo	planta_isla	pantano	poco
+pn_islands_shell1_down	islands	adorno	res://arte/pure_nature/piezas/pn_islands_shell1_down.tscn	0.104	0.030	0.091		no	ninguno	no_usar	pieza de playa (concha, estrella, perla)	marino		no
+pn_islands_shell1_up	islands	adorno	res://arte/pure_nature/piezas/pn_islands_shell1_up.tscn	0.103	0.027	0.093		no	ninguno	no_usar	pieza de playa (concha, estrella, perla)	marino		no
+pn_islands_shell2	islands	adorno	res://arte/pure_nature/piezas/pn_islands_shell2.tscn	0.055	0.058	0.145		no	ninguno	no_usar	pieza de playa (concha, estrella, perla)	marino		no
+pn_islands_silvabor1	islands	adorno	res://arte/pure_nature/piezas/pn_islands_silvabor1.tscn	0.427	0.671	0.481		no	ninguno	adorno_borde	nombre inventado por el autor (planta de isla); no identificada a ojo	planta_isla	pantano	si
+pn_islands_silvabor2	islands	adorno	res://arte/pure_nature/piezas/pn_islands_silvabor2.tscn	0.734	0.871	0.703		no	ninguno	adorno_borde	nombre inventado por el autor (planta de isla); no identificada a ojo	planta_isla	pantano	si
+pn_islands_silvabor3	islands	adorno	res://arte/pure_nature/piezas/pn_islands_silvabor3.tscn	0.722	1.042	0.693		no	ninguno	decor_claro	nombre inventado por el autor (planta de isla); no identificada a ojo	planta_isla	pantano	si
+pn_islands_starfish1	islands	adorno	res://arte/pure_nature/piezas/pn_islands_starfish1.tscn	0.178	0.037	0.170		no	ninguno	no_usar	pieza de playa (concha, estrella, perla)	marino		no
+pn_islands_starfish2	islands	adorno	res://arte/pure_nature/piezas/pn_islands_starfish2.tscn	0.176	0.023	0.168		no	ninguno	no_usar	pieza de playa (concha, estrella, perla)	marino		no
+pn_islands_sylphide1	islands	adorno	res://arte/pure_nature/piezas/pn_islands_sylphide1.tscn	0.340	0.178	0.354		no	ninguno	adorno_borde	pequeña: mejor en grupos o reescalada; nombre inventado por el autor (planta de isla); no identificada a ojo	planta_isla	pantano	poco
+pn_islands_sylphide2	islands	adorno	res://arte/pure_nature/piezas/pn_islands_sylphide2.tscn	0.599	0.176	0.616		no	ninguno	adorno_borde	nombre inventado por el autor (planta de isla); no identificada a ojo	planta_isla	pantano	si
+pn_islands_verdivalis1	islands	adorno	res://arte/pure_nature/piezas/pn_islands_verdivalis1.tscn	0.210	0.193	0.226		no	ninguno	adorno_borde	a tamaño nativo no se ve desde la cámara: solo en mantos o reescalada; nombre inventado por el autor (planta de isla); no identificada a ojo	planta_isla	pantano	no
+pn_islands_verdivalis2	islands	adorno	res://arte/pure_nature/piezas/pn_islands_verdivalis2.tscn	0.470	0.265	0.506		no	ninguno	adorno_borde	pequeña: mejor en grupos o reescalada; nombre inventado por el autor (planta de isla); no identificada a ojo	planta_isla	pantano	poco
+pn_islands_whister1	islands	adorno	res://arte/pure_nature/piezas/pn_islands_whister1.tscn	0.210	0.343	0.241		no	ninguno	adorno_borde	pequeña: mejor en grupos o reescalada; nombre inventado por el autor (planta de isla); no identificada a ojo	planta_isla	pantano	poco
+pn_islands_whister2	islands	adorno	res://arte/pure_nature/piezas/pn_islands_whister2.tscn	0.268	0.343	0.292		no	ninguno	adorno_borde	pequeña: mejor en grupos o reescalada; nombre inventado por el autor (planta de isla); no identificada a ojo	planta_isla	pantano	poco
+pn_islands_whister3	islands	adorno	res://arte/pure_nature/piezas/pn_islands_whister3.tscn	0.592	0.413	0.565		no	ninguno	adorno_borde	pequeña: mejor en grupos o reescalada; nombre inventado por el autor (planta de isla); no identificada a ojo	planta_isla	pantano	poco
+pn_jungle_anthurium1	jungle	planta	res://arte/pure_nature/piezas/pn_jungle_anthurium1.tscn	0.417	0.313	0.391		no	pantano	flor_pequena	pequeña: mejor en grupos o reescalada	flor		poco
+pn_jungle_anthurium2	jungle	planta	res://arte/pure_nature/piezas/pn_jungle_anthurium2.tscn	0.367	0.363	0.301	flor_reactiva	si	pantano	flor_pequena	pequeña: mejor en grupos o reescalada	flor		poco
+pn_jungle_anthurium3	jungle	planta	res://arte/pure_nature/piezas/pn_jungle_anthurium3.tscn	0.604	0.568	0.595		no	pantano	flor_pequena		flor		si
+pn_jungle_asplenium1	jungle	planta	res://arte/pure_nature/piezas/pn_jungle_asplenium1.tscn	0.640	0.284	0.590		no	pantano	adorno_borde		helecho	cueva,bosque	si
+pn_jungle_asplenium2	jungle	planta	res://arte/pure_nature/piezas/pn_jungle_asplenium2.tscn	0.867	0.369	0.812	helechos_cueva	si	pantano	adorno_borde		helecho	cueva,bosque	si
+pn_jungle_asplenium3	jungle	planta	res://arte/pure_nature/piezas/pn_jungle_asplenium3.tscn	1.039	0.606	0.991		no	pantano	decor_claro		helecho	cueva,bosque	si
+pn_jungle_banana1	jungle	arbol	res://arte/pure_nature/piezas/pn_jungle_banana1.tscn	2.447	3.573	2.244		no	ninguno	muro_arboles		palmera		si
+pn_jungle_banana2	jungle	arbol	res://arte/pure_nature/piezas/pn_jungle_banana2.tscn	3.181	4.481	3.061		no	ninguno	muro_arboles		palmera		si
+pn_jungle_banana3	jungle	arbol	res://arte/pure_nature/piezas/pn_jungle_banana3.tscn	3.435	8.166	3.602		no	ninguno	muro_arboles		palmera		si
+pn_jungle_banana4	jungle	arbol	res://arte/pure_nature/piezas/pn_jungle_banana4.tscn	4.732	9.087	4.485		no	ninguno	muro_arboles		palmera		si
+pn_jungle_banana5	jungle	arbol	res://arte/pure_nature/piezas/pn_jungle_banana5.tscn	4.141	11.540	5.600		no	ninguno	muro_arboles		palmera		si
+pn_jungle_banana6	jungle	arbol	res://arte/pure_nature/piezas/pn_jungle_banana6.tscn	5.901	10.633	6.805		no	ninguno	muro_arboles		palmera		si
+pn_jungle_bigfern1	jungle	planta	res://arte/pure_nature/piezas/pn_jungle_bigfern1.tscn	1.073	0.333	1.019	helecho_ancho	si	pantano	decor_claro		helecho	cueva,bosque	si
+pn_jungle_bigfern2	jungle	planta	res://arte/pure_nature/piezas/pn_jungle_bigfern2.tscn	1.032	0.546	1.086		no	pantano	decor_claro		helecho	cueva,bosque	si
+pn_jungle_bigfern3	jungle	planta	res://arte/pure_nature/piezas/pn_jungle_bigfern3.tscn	1.454	1.117	1.425		no	pantano	decor_claro		helecho	cueva,bosque	si
+pn_jungle_block_1	jungle	roca	res://arte/pure_nature/piezas/pn_jungle_block_1.tscn	0.241	0.468	0.241		no	ninguno	roca		roca		poco
+pn_jungle_block_2	jungle	roca	res://arte/pure_nature/piezas/pn_jungle_block_2.tscn	0.470	0.470	0.471		no	ninguno	roca		roca		poco
+pn_jungle_block_3	jungle	roca	res://arte/pure_nature/piezas/pn_jungle_block_3.tscn	0.124	0.467	0.239		no	ninguno	roca		roca		poco
+pn_jungle_branches	jungle	planta	res://arte/pure_nature/piezas/pn_jungle_branches.tscn	0.822	0.075	0.746		no	pantano	tronco		rama	bosque	si
+pn_jungle_elephant1	jungle	planta	res://arte/pure_nature/piezas/pn_jungle_elephant1.tscn	0.684	0.820	0.847		no	pantano	adorno_borde		planta_hoja		si
+pn_jungle_elephant2	jungle	planta	res://arte/pure_nature/piezas/pn_jungle_elephant2.tscn	1.329	1.295	1.269	planta_hojas	si	pantano	decor_claro		planta_hoja		si
+pn_jungle_elephant3	jungle	planta	res://arte/pure_nature/piezas/pn_jungle_elephant3.tscn	1.172	1.509	1.106		no	pantano	decor_claro		planta_hoja		si
+pn_jungle_elephant4	jungle	planta	res://arte/pure_nature/piezas/pn_jungle_elephant4.tscn	1.610	1.788	1.661		no	pantano	decor_claro		planta_hoja		si
+pn_jungle_grass1	jungle	planta	res://arte/pure_nature/piezas/pn_jungle_grass1.tscn	0.876	0.195	0.851	hierba_crecida	si	pantano	hierba_corta		hierba	bosque	si
+pn_jungle_grass2	jungle	planta	res://arte/pure_nature/piezas/pn_jungle_grass2.tscn	1.460	0.238	1.575		no	pantano	hierba_corta		hierba	bosque	si
+pn_jungle_grass3	jungle	planta	res://arte/pure_nature/piezas/pn_jungle_grass3.tscn	1.899	0.646	1.844		no	pantano	hierba_corta		hierba	bosque	si
+pn_jungle_heliconia1	jungle	planta	res://arte/pure_nature/piezas/pn_jungle_heliconia1.tscn	0.141	0.202	0.146		no	pantano	flor_pequena	a tamaño nativo no se ve desde la cámara: solo en mantos o reescalada	flor		no
+pn_jungle_heliconia2	jungle	planta	res://arte/pure_nature/piezas/pn_jungle_heliconia2.tscn	0.170	0.285	0.188	flor_heliconia	si	pantano	flor_pequena	pequeña: mejor en grupos o reescalada	flor		poco
+pn_jungle_heliconia3	jungle	planta	res://arte/pure_nature/piezas/pn_jungle_heliconia3.tscn	0.195	0.269	0.153		no	pantano	flor_pequena	pequeña: mejor en grupos o reescalada	flor		poco
+pn_jungle_jungleboulder_0	jungle	roca	res://arte/pure_nature/piezas/pn_jungle_jungleboulder_0.tscn	0.575	0.512	0.425		no	pantano	roca		roca	bosque	poco
+pn_jungle_jungleboulder_1	jungle	roca	res://arte/pure_nature/piezas/pn_jungle_jungleboulder_1.tscn	0.955	0.812	0.910		no	pantano	roca		roca	bosque	si
+pn_jungle_jungleboulder_2	jungle	roca	res://arte/pure_nature/piezas/pn_jungle_jungleboulder_2.tscn	1.194	1.341	1.261		no	pantano	roca		roca	bosque	si
+pn_jungle_jungleboulder_3	jungle	roca	res://arte/pure_nature/piezas/pn_jungle_jungleboulder_3.tscn	1.689	1.725	1.574	roca_grande	si	pantano	roca		roca	bosque	si
+pn_jungle_junglecliff_0	jungle	adorno	res://arte/pure_nature/piezas/pn_jungle_junglecliff_0.tscn	3.057	2.643	2.896		no	pantano	roca	acantilado pequeño: zona de roca grande	acantilado		si
+pn_jungle_junglecliff_1	jungle	adorno	res://arte/pure_nature/piezas/pn_jungle_junglecliff_1.tscn	2.762	2.248	2.590		no	pantano	roca	acantilado pequeño: zona de roca grande	acantilado		si
+pn_jungle_junglecliff_2	jungle	adorno	res://arte/pure_nature/piezas/pn_jungle_junglecliff_2.tscn	2.559	1.684	2.600		no	pantano	roca	acantilado pequeño: zona de roca grande	acantilado		si
+pn_jungle_junglecliff_3	jungle	adorno	res://arte/pure_nature/piezas/pn_jungle_junglecliff_3.tscn	2.634	1.901	2.606		no	pantano	roca	acantilado pequeño: zona de roca grande	acantilado		si
+pn_jungle_junglecliff_4	jungle	adorno	res://arte/pure_nature/piezas/pn_jungle_junglecliff_4.tscn	2.822	1.920	2.947		no	pantano	roca	acantilado pequeño: zona de roca grande	acantilado		si
+pn_jungle_kapokier1	jungle	arbol	res://arte/pure_nature/piezas/pn_jungle_kapokier1.tscn	6.252	10.750	5.318	arbol_manglar	si	pantano	muro_arboles		arbol	bosque	si
+pn_jungle_kapokier2	jungle	arbol	res://arte/pure_nature/piezas/pn_jungle_kapokier2.tscn	7.360	9.839	6.122	arbol_viejo	si	pantano	muro_arboles		arbol	bosque	si
+pn_jungle_kapokier3	jungle	arbol	res://arte/pure_nature/piezas/pn_jungle_kapokier3.tscn	9.428	19.534	8.476		no	pantano	muro_arboles	copa muy ancha (9 u): solapa varias casillas	arbol	bosque	si
+pn_jungle_kapokier4	jungle	arbol	res://arte/pure_nature/piezas/pn_jungle_kapokier4.tscn	8.715	15.035	8.013		no	pantano	muro_arboles	copa muy ancha (9 u): solapa varias casillas	arbol	bosque	si
+pn_jungle_musa1	jungle	arbol	res://arte/pure_nature/piezas/pn_jungle_musa1.tscn	0.338	0.244	0.404		no	ninguno	adorno_borde	pequeña: mejor en grupos o reescalada	arbusto		poco
+pn_jungle_musa2	jungle	arbol	res://arte/pure_nature/piezas/pn_jungle_musa2.tscn	0.304	0.532	0.367		no	ninguno	adorno_borde	pequeña: mejor en grupos o reescalada	arbusto		poco
+pn_jungle_musa3	jungle	arbol	res://arte/pure_nature/piezas/pn_jungle_musa3.tscn	0.671	0.533	0.624		no	ninguno	adorno_borde		arbusto		si
+pn_jungle_philo1	jungle	planta	res://arte/pure_nature/piezas/pn_jungle_philo1.tscn	0.768	0.239	0.910		no	pantano	decor_claro		planta_hoja		si
+pn_jungle_philo2	jungle	planta	res://arte/pure_nature/piezas/pn_jungle_philo2.tscn	0.607	0.571	0.671	planta_hojas	si	pantano	adorno_borde		planta_hoja		si
+pn_jungle_philo3	jungle	planta	res://arte/pure_nature/piezas/pn_jungle_philo3.tscn	0.941	0.556	1.024		no	pantano	decor_claro		planta_hoja		si
+pn_jungle_rattle1	jungle	arbol	res://arte/pure_nature/piezas/pn_jungle_rattle1.tscn	0.487	0.775	0.390		no	pantano	adorno_borde		arbusto	bosque	si
+pn_jungle_rattle2	jungle	arbol	res://arte/pure_nature/piezas/pn_jungle_rattle2.tscn	0.863	1.109	0.651		no	pantano	decor_claro		arbusto	bosque	si
+pn_jungle_rattle3	jungle	arbol	res://arte/pure_nature/piezas/pn_jungle_rattle3.tscn	0.842	1.758	0.752		no	pantano	decor_claro		arbusto	bosque	si
+pn_jungle_shrub1	jungle	planta	res://arte/pure_nature/piezas/pn_jungle_shrub1.tscn	0.652	0.220	0.783		no	pantano	adorno_borde		arbusto	bosque	si
+pn_jungle_shrub2	jungle	planta	res://arte/pure_nature/piezas/pn_jungle_shrub2.tscn	0.538	0.595	0.608		no	pantano	adorno_borde		arbusto	bosque	si
+pn_jungle_shrub3	jungle	planta	res://arte/pure_nature/piezas/pn_jungle_shrub3.tscn	0.797	0.478	0.866		no	pantano	decor_claro		arbusto	bosque	si
+pn_jungle_thinfern1	jungle	planta	res://arte/pure_nature/piezas/pn_jungle_thinfern1.tscn	0.532	0.337	0.444	planta_agua	si	pantano	adorno_borde	pequeña: mejor en grupos o reescalada	helecho	cueva,bosque	poco
+pn_jungle_thinfern2	jungle	planta	res://arte/pure_nature/piezas/pn_jungle_thinfern2.tscn	0.693	0.223	0.759		no	pantano	adorno_borde		helecho	cueva,bosque	si
+pn_jungle_thinfern3	jungle	planta	res://arte/pure_nature/piezas/pn_jungle_thinfern3.tscn	0.848	0.439	0.854		no	pantano	adorno_borde		helecho	cueva,bosque	si
+pn_jungle_thinfern4	jungle	planta	res://arte/pure_nature/piezas/pn_jungle_thinfern4.tscn	1.194	0.617	1.156		no	pantano	decor_claro		helecho	cueva,bosque	si
+pn_jungle_thinfern5	jungle	planta	res://arte/pure_nature/piezas/pn_jungle_thinfern5.tscn	1.634	0.775	1.628		no	pantano	decor_claro		helecho	cueva,bosque	si
+pn_jungle_tropica1	jungle	arbol	res://arte/pure_nature/piezas/pn_jungle_tropica1.tscn	0.583	0.450	0.630		no	pantano	adorno_borde		arbusto	bosque	si
+pn_jungle_tropica2	jungle	arbol	res://arte/pure_nature/piezas/pn_jungle_tropica2.tscn	0.642	0.494	0.648		no	pantano	adorno_borde		arbusto	bosque	si
+pn_jungle_tropica3	jungle	arbol	res://arte/pure_nature/piezas/pn_jungle_tropica3.tscn	0.911	0.722	1.003		no	pantano	decor_claro		arbusto	bosque	si
+pn_meadows_barley	meadows	planta	res://arte/pure_nature/piezas/pn_meadows_barley.tscn	0.714	0.662	0.658		no	ninguno	hierba_corta	cultivo de huerto	cultivo		si
+pn_meadows_barrier1	meadows	adorno	res://arte/pure_nature/piezas/pn_meadows_barrier1.tscn	1.710	0.691	0.186		no	ninguno	decor_claro		valla		si
+pn_meadows_barrier2	meadows	adorno	res://arte/pure_nature/piezas/pn_meadows_barrier2.tscn	1.597	0.686	0.186		no	ninguno	decor_claro		valla		si
+pn_meadows_barrier3	meadows	adorno	res://arte/pure_nature/piezas/pn_meadows_barrier3.tscn	1.595	0.684	0.241		no	ninguno	decor_claro		valla		si
+pn_meadows_berries	meadows	planta	res://arte/pure_nature/piezas/pn_meadows_berries.tscn	0.465	0.120	0.447		no	bosque	adorno_borde	pequeña: mejor en grupos o reescalada	planta_baja		poco
+pn_meadows_birch1	meadows	arbol	res://arte/pure_nature/piezas/pn_meadows_birch1.tscn	2.742	3.892	2.203		no	bosque	muro_arboles		arbol		si
+pn_meadows_birch2	meadows	arbol	res://arte/pure_nature/piezas/pn_meadows_birch2.tscn	2.473	5.142	2.296		no	bosque	muro_arboles		arbol		si
+pn_meadows_birch3	meadows	arbol	res://arte/pure_nature/piezas/pn_meadows_birch3.tscn	3.517	6.821	3.485	arbol_sumicio	si	bosque	muro_arboles		arbol		si
+pn_meadows_birch4	meadows	arbol	res://arte/pure_nature/piezas/pn_meadows_birch4.tscn	3.771	9.942	5.453		no	bosque	muro_arboles		arbol		si
+pn_meadows_birch5	meadows	arbol	res://arte/pure_nature/piezas/pn_meadows_birch5.tscn	4.841	10.323	7.064		no	bosque	muro_arboles		arbol		si
+pn_meadows_birch6	meadows	arbol	res://arte/pure_nature/piezas/pn_meadows_birch6.tscn	8.322	10.410	8.060		no	bosque	muro_arboles	copa muy ancha (8 u): solapa varias casillas	arbol		si
+pn_meadows_bush1	meadows	arbol	res://arte/pure_nature/piezas/pn_meadows_bush1.tscn	1.177	1.028	1.103	arbusto	si	bosque	decor_claro		arbusto		si
+pn_meadows_bush2	meadows	arbol	res://arte/pure_nature/piezas/pn_meadows_bush2.tscn	1.364	1.293	1.480	arbusto_bayas	si	bosque	decor_claro		arbusto		si
+pn_meadows_bush3	meadows	arbol	res://arte/pure_nature/piezas/pn_meadows_bush3.tscn	2.249	1.717	2.176	arbusto_flores	si	bosque	decor_claro		arbusto		si
+pn_meadows_carot1	meadows	planta	res://arte/pure_nature/piezas/pn_meadows_carot1.tscn	0.398	0.646	0.441		no	ninguno	hierba_corta	cultivo de huerto	cultivo		si
+pn_meadows_carot2	meadows	planta	res://arte/pure_nature/piezas/pn_meadows_carot2.tscn	0.706	0.679	0.639		no	ninguno	hierba_corta	cultivo de huerto	cultivo		si
+pn_meadows_cliff1	meadows	roca	res://arte/pure_nature/piezas/pn_meadows_cliff1.tscn	6.039	6.787	4.358		no	bosque	roca	acantilado pequeño: zona de roca grande	acantilado	cueva	si
+pn_meadows_commonblue	meadows	planta	res://arte/pure_nature/piezas/pn_meadows_commonblue.tscn	0.580	0.031	0.573		no	bosque	flor_pequena	pequeña: mejor en grupos o reescalada	flor		poco
+pn_meadows_commonpink	meadows	planta	res://arte/pure_nature/piezas/pn_meadows_commonpink.tscn	0.580	0.031	0.573		no	bosque	flor_pequena	pequeña: mejor en grupos o reescalada	flor		poco
+pn_meadows_commonyellow	meadows	planta	res://arte/pure_nature/piezas/pn_meadows_commonyellow.tscn	0.580	0.031	0.573		no	bosque	flor_pequena	pequeña: mejor en grupos o reescalada	flor		poco
+pn_meadows_cypres1	meadows	arbol	res://arte/pure_nature/piezas/pn_meadows_cypres1.tscn	1.211	2.819	1.158		no	bosque	muro_arboles		conifera	ruinas	si
+pn_meadows_cypres2	meadows	arbol	res://arte/pure_nature/piezas/pn_meadows_cypres2.tscn	1.491	5.920	1.459	arbol_sumicio	si	bosque	muro_arboles		conifera	ruinas	si
+pn_meadows_cypres3	meadows	arbol	res://arte/pure_nature/piezas/pn_meadows_cypres3.tscn	2.274	8.382	2.235		no	bosque	muro_arboles		conifera	ruinas	si
+pn_meadows_daisy	meadows	planta	res://arte/pure_nature/piezas/pn_meadows_daisy.tscn	0.493	0.053	0.481	flores_blancas;margarita_blanca_suelo	si	bosque	flor_pequena	pequeña: mejor en grupos o reescalada	flor		poco
+pn_meadows_elm1	meadows	arbol	res://arte/pure_nature/piezas/pn_meadows_elm1.tscn	5.000	5.559	5.031	arbol_redondo	si	bosque	muro_arboles		arbol		si
+pn_meadows_elm2	meadows	arbol	res://arte/pure_nature/piezas/pn_meadows_elm2.tscn	5.898	8.565	5.987		no	bosque	muro_arboles		arbol		si
+pn_meadows_elm3	meadows	arbol	res://arte/pure_nature/piezas/pn_meadows_elm3.tscn	6.389	8.977	7.806		no	bosque	muro_arboles		arbol		si
+pn_meadows_elm4	meadows	arbol	res://arte/pure_nature/piezas/pn_meadows_elm4.tscn	8.730	8.745	7.143		no	bosque	muro_arboles	copa muy ancha (9 u): solapa varias casillas	arbol		si
+pn_meadows_elm5	meadows	arbol	res://arte/pure_nature/piezas/pn_meadows_elm5.tscn	7.158	9.818	8.004		no	bosque	muro_arboles	copa muy ancha (8 u): solapa varias casillas	arbol		si
+pn_meadows_elm6	meadows	arbol	res://arte/pure_nature/piezas/pn_meadows_elm6.tscn	8.846	10.295	7.008		no	bosque	muro_arboles	copa muy ancha (9 u): solapa varias casillas	arbol		si
+pn_meadows_flowermeadow1	meadows	planta	res://arte/pure_nature/piezas/pn_meadows_flowermeadow1.tscn	0.688	0.667	0.867		no	bosque	flor_pequena		flor		si
+pn_meadows_flowermeadow2	meadows	planta	res://arte/pure_nature/piezas/pn_meadows_flowermeadow2.tscn	0.750	0.648	0.736		no	bosque	flor_pequena		flor		si
+pn_meadows_flowermeadow3	meadows	planta	res://arte/pure_nature/piezas/pn_meadows_flowermeadow3.tscn	0.685	0.654	0.685	flores_colores	si	bosque	flor_pequena		flor		si
+pn_meadows_flowermeadow4	meadows	planta	res://arte/pure_nature/piezas/pn_meadows_flowermeadow4.tscn	0.472	0.652	0.481	flores_blancas	si	bosque	flor_pequena		flor		si
+pn_meadows_gorse1	meadows	planta	res://arte/pure_nature/piezas/pn_meadows_gorse1.tscn	0.428	0.547	0.493		no	bosque	flor_pequena	pequeña: mejor en grupos o reescalada	flor		poco
+pn_meadows_gorse2	meadows	planta	res://arte/pure_nature/piezas/pn_meadows_gorse2.tscn	0.678	0.627	0.720		no	bosque	flor_pequena		flor		si
+pn_meadows_grass1	meadows	planta	res://arte/pure_nature/piezas/pn_meadows_grass1.tscn	0.345	0.077	0.335		no	bosque	hierba_corta	pequeña: mejor en grupos o reescalada	hierba		poco
+pn_meadows_grass2	meadows	planta	res://arte/pure_nature/piezas/pn_meadows_grass2.tscn	0.575	0.094	0.620		no	bosque	hierba_corta		hierba		si
+pn_meadows_grass3	meadows	planta	res://arte/pure_nature/piezas/pn_meadows_grass3.tscn	0.748	0.254	0.726		no	bosque	hierba_corta		hierba		si
+pn_meadows_grass4	meadows	planta	res://arte/pure_nature/piezas/pn_meadows_grass4.tscn	0.301	0.092	0.344		no	bosque	hierba_corta	pequeña: mejor en grupos o reescalada	hierba		poco
+pn_meadows_grassmeadows1	meadows	planta	res://arte/pure_nature/piezas/pn_meadows_grassmeadows1.tscn	0.596	0.654	0.639		no	bosque	hierba_corta		hierba		si
+pn_meadows_grassmeadows2	meadows	planta	res://arte/pure_nature/piezas/pn_meadows_grassmeadows2.tscn	0.750	0.648	0.736		no	bosque	hierba_corta		hierba		si
+pn_meadows_grassmeadows3	meadows	planta	res://arte/pure_nature/piezas/pn_meadows_grassmeadows3.tscn	0.793	0.657	0.617	hierba_crecida	si	bosque	hierba_corta		hierba		si
+pn_meadows_grassmeadows4	meadows	planta	res://arte/pure_nature/piezas/pn_meadows_grassmeadows4.tscn	0.645	0.703	0.556		no	bosque	hierba_corta		hierba		si
+pn_meadows_lavender	meadows	planta	res://arte/pure_nature/piezas/pn_meadows_lavender.tscn	0.714	0.662	0.658	planta_violeta	si	bosque	flor_pequena		flor		si
+pn_meadows_lupin1	meadows	planta	res://arte/pure_nature/piezas/pn_meadows_lupin1.tscn	0.241	0.566	0.276	planta_violeta	si	bosque	flor_pequena	pequeña: mejor en grupos o reescalada	flor		poco
+pn_meadows_lupin2	meadows	planta	res://arte/pure_nature/piezas/pn_meadows_lupin2.tscn	0.531	0.625	0.507	flor_reactiva	si	bosque	flor_pequena		flor		si
+pn_meadows_mushroom1	meadows	seta	res://arte/pure_nature/piezas/pn_meadows_mushroom1.tscn	0.199	0.401	0.195	seta_amarilla_alta	si	bosque	adorno_borde	pequeña: mejor en grupos o reescalada	seta	pantano	poco
+pn_meadows_mushroom2	meadows	seta	res://arte/pure_nature/piezas/pn_meadows_mushroom2.tscn	0.292	0.462	0.323		no	bosque	adorno_borde	pequeña: mejor en grupos o reescalada	seta	pantano	poco
+pn_meadows_mushroom3	meadows	seta	res://arte/pure_nature/piezas/pn_meadows_mushroom3.tscn	0.440	0.607	0.479	seta_pradera	si	bosque	adorno_borde		seta	pantano	si
+pn_meadows_mushroom4	meadows	seta	res://arte/pure_nature/piezas/pn_meadows_mushroom4.tscn	0.087	0.310	0.080		no	bosque	adorno_borde	pequeña: mejor en grupos o reescalada	seta	pantano	poco
+pn_meadows_mushroom5	meadows	seta	res://arte/pure_nature/piezas/pn_meadows_mushroom5.tscn	0.172	0.426	0.219		no	bosque	adorno_borde	pequeña: mejor en grupos o reescalada	seta	pantano	poco
+pn_meadows_mushroom6	meadows	seta	res://arte/pure_nature/piezas/pn_meadows_mushroom6.tscn	0.647	0.518	0.584		no	bosque	adorno_borde		seta	pantano	si
+pn_meadows_oak1	meadows	arbol	res://arte/pure_nature/piezas/pn_meadows_oak1.tscn	4.986	6.653	5.034	arbol_redondo	si	bosque	muro_arboles		arbol		si
+pn_meadows_oak2	meadows	arbol	res://arte/pure_nature/piezas/pn_meadows_oak2.tscn	6.678	8.950	6.609	arbol_redondo_2	si	bosque	muro_arboles		arbol		si
+pn_meadows_oak3	meadows	arbol	res://arte/pure_nature/piezas/pn_meadows_oak3.tscn	6.891	9.109	6.176		no	bosque	muro_arboles		arbol		si
+pn_meadows_oak4	meadows	arbol	res://arte/pure_nature/piezas/pn_meadows_oak4.tscn	8.625	12.277	10.118		no	bosque	muro_arboles	copa muy ancha (10 u): solapa varias casillas	arbol		si
+pn_meadows_oak5	meadows	arbol	res://arte/pure_nature/piezas/pn_meadows_oak5.tscn	10.030	12.086	11.705		no	bosque	muro_arboles	copa muy ancha (12 u): solapa varias casillas	arbol		si
+pn_meadows_oak6	meadows	arbol	res://arte/pure_nature/piezas/pn_meadows_oak6.tscn	10.752	14.843	10.852		no	bosque	muro_arboles	copa muy ancha (11 u): solapa varias casillas	arbol		si
+pn_meadows_reeds	meadows	planta	res://arte/pure_nature/piezas/pn_meadows_reeds.tscn	0.378	0.659	0.294	planta_agua	si	pantano	adorno_borde	sobre el agua o en la orilla	orilla	bosque	si
+pn_meadows_sorrel	meadows	planta	res://arte/pure_nature/piezas/pn_meadows_sorrel.tscn	0.822	0.075	0.746		no	bosque	hierba_corta		hierba		si
+pn_meadows_stone1	meadows	roca	res://arte/pure_nature/piezas/pn_meadows_stone1.tscn	0.785	0.574	0.745		no	bosque	roca		roca	cueva	si
+pn_meadows_stone2	meadows	roca	res://arte/pure_nature/piezas/pn_meadows_stone2.tscn	1.200	0.862	1.130		no	bosque	roca		roca	cueva	si
+pn_meadows_stone3	meadows	roca	res://arte/pure_nature/piezas/pn_meadows_stone3.tscn	1.437	0.862	0.717		no	bosque	roca		roca	cueva	si
+pn_meadows_stone4	meadows	roca	res://arte/pure_nature/piezas/pn_meadows_stone4.tscn	1.723	1.148	1.737	roca_musgosa	si	bosque	roca		roca	cueva	si
+pn_meadows_stone5	meadows	roca	res://arte/pure_nature/piezas/pn_meadows_stone5.tscn	2.830	1.722	2.135		no	bosque	roca		roca	cueva	si
+pn_meadows_stone5b	meadows	roca	res://arte/pure_nature/piezas/pn_meadows_stone5b.tscn	2.830	1.722	2.135		no	bosque	roca		roca	cueva	si
+pn_meadows_wheat	meadows	planta	res://arte/pure_nature/piezas/pn_meadows_wheat.tscn	0.714	0.662	0.658		no	ninguno	hierba_corta	cultivo de huerto	cultivo		si
+pn_mountains_berries	mountains	planta	res://arte/pure_nature/piezas/pn_mountains_berries.tscn	0.465	0.120	0.447		no	bosque	adorno_borde	pequeña: mejor en grupos o reescalada	planta_baja		poco
+pn_mountains_boulder1	mountains	roca	res://arte/pure_nature/piezas/pn_mountains_boulder1.tscn	0.582	0.287	0.322		no	bosque	roca		roca	cueva	poco
+pn_mountains_boulder2	mountains	roca	res://arte/pure_nature/piezas/pn_mountains_boulder2.tscn	1.167	0.536	0.714	rocas_pequenas	si	bosque	roca		roca	cueva	si
+pn_mountains_boulder3	mountains	roca	res://arte/pure_nature/piezas/pn_mountains_boulder3.tscn	1.438	0.491	0.762		no	bosque	roca		roca	cueva	si
+pn_mountains_branchs	mountains	planta	res://arte/pure_nature/piezas/pn_mountains_branchs.tscn	0.822	0.075	0.746		no	bosque	tronco		rama		si
+pn_mountains_bush1	mountains	arbol	res://arte/pure_nature/piezas/pn_mountains_bush1.tscn	1.177	1.028	1.103		no	bosque	decor_claro		arbusto		si
+pn_mountains_bush2	mountains	arbol	res://arte/pure_nature/piezas/pn_mountains_bush2.tscn	1.364	1.293	1.480	arbusto	si	bosque	decor_claro		arbusto		si
+pn_mountains_bush3	mountains	arbol	res://arte/pure_nature/piezas/pn_mountains_bush3.tscn	2.249	1.717	2.176	arbusto_otono	si	bosque	decor_claro		arbusto		si
+pn_mountains_carot1	mountains	planta	res://arte/pure_nature/piezas/pn_mountains_carot1.tscn	0.398	0.646	0.441		no	ninguno	hierba_corta	cultivo de huerto	cultivo		si
+pn_mountains_carot2	mountains	planta	res://arte/pure_nature/piezas/pn_mountains_carot2.tscn	0.706	0.679	0.639		no	ninguno	hierba_corta	cultivo de huerto	cultivo		si
+pn_mountains_cliff1	mountains	roca	res://arte/pure_nature/piezas/pn_mountains_cliff1.tscn	36.875	17.229	33.463		no	ninguno	no_usar	acantilado de 37 u: no cabe en una sala (casilla = 2,3 u); sirve de telón	acantilado		si
+pn_mountains_cliff2	mountains	roca	res://arte/pure_nature/piezas/pn_mountains_cliff2.tscn	30.957	17.255	23.997		no	ninguno	no_usar	acantilado de 31 u: no cabe en una sala (casilla = 2,3 u); sirve de telón	acantilado		si
+pn_mountains_cliff3	mountains	roca	res://arte/pure_nature/piezas/pn_mountains_cliff3.tscn	13.356	17.240	14.065		no	ninguno	no_usar	acantilado de 17 u: no cabe en una sala (casilla = 2,3 u); sirve de telón	acantilado		si
+pn_mountains_cliff4	mountains	roca	res://arte/pure_nature/piezas/pn_mountains_cliff4.tscn	9.363	17.262	7.002		no	ninguno	no_usar	acantilado de 17 u: no cabe en una sala (casilla = 2,3 u); sirve de telón	acantilado		si
+pn_mountains_cliff5	mountains	roca	res://arte/pure_nature/piezas/pn_mountains_cliff5.tscn	15.999	17.266	11.698		no	ninguno	no_usar	acantilado de 17 u: no cabe en una sala (casilla = 2,3 u); sirve de telón	acantilado		si
+pn_mountains_cliff6	mountains	roca	res://arte/pure_nature/piezas/pn_mountains_cliff6.tscn	15.365	17.259	11.068		no	ninguno	no_usar	acantilado de 17 u: no cabe en una sala (casilla = 2,3 u); sirve de telón	acantilado		si
+pn_mountains_cliff7	mountains	roca	res://arte/pure_nature/piezas/pn_mountains_cliff7.tscn	6.973	17.250	8.909		no	ninguno	no_usar	acantilado de 17 u: no cabe en una sala (casilla = 2,3 u); sirve de telón	acantilado		si
+pn_mountains_cliff8	mountains	roca	res://arte/pure_nature/piezas/pn_mountains_cliff8.tscn	16.867	8.637	19.411		no	ninguno	no_usar	acantilado de 19 u: no cabe en una sala (casilla = 2,3 u); sirve de telón	acantilado		si
+pn_mountains_daisy	mountains	planta	res://arte/pure_nature/piezas/pn_mountains_daisy.tscn	0.493	0.053	0.481	margarita_amarilla_suelo	si	bosque	flor_pequena	pequeña: mejor en grupos o reescalada	flor		poco
+pn_mountains_daisyblue	mountains	planta	res://arte/pure_nature/piezas/pn_mountains_daisyblue.tscn	0.493	0.053	0.481		no	bosque	flor_pequena	pequeña: mejor en grupos o reescalada	flor		poco
+pn_mountains_fern1	mountains	planta	res://arte/pure_nature/piezas/pn_mountains_fern1.tscn	0.558	0.261	0.650	helecho	si	bosque	adorno_borde		helecho		si
+pn_mountains_fern2	mountains	planta	res://arte/pure_nature/piezas/pn_mountains_fern2.tscn	0.707	0.463	0.600	helecho_ancho	si	bosque	adorno_borde		helecho		si
+pn_mountains_fir1	mountains	arbol	res://arte/pure_nature/piezas/pn_mountains_fir1.tscn	2.185	5.447	2.233		no	bosque	muro_arboles		conifera		si
+pn_mountains_fir2	mountains	arbol	res://arte/pure_nature/piezas/pn_mountains_fir2.tscn	2.296	6.398	2.271		no	bosque	muro_arboles		conifera		si
+pn_mountains_fir3	mountains	arbol	res://arte/pure_nature/piezas/pn_mountains_fir3.tscn	3.440	7.829	3.420		no	bosque	muro_arboles		conifera		si
+pn_mountains_fir4	mountains	arbol	res://arte/pure_nature/piezas/pn_mountains_fir4.tscn	3.038	10.470	3.041		no	bosque	muro_arboles		conifera		si
+pn_mountains_fir5	mountains	arbol	res://arte/pure_nature/piezas/pn_mountains_fir5.tscn	4.878	13.985	4.550		no	bosque	muro_arboles		conifera		si
+pn_mountains_fir6	mountains	arbol	res://arte/pure_nature/piezas/pn_mountains_fir6.tscn	5.801	15.703	6.016		no	bosque	muro_arboles		conifera		si
+pn_mountains_gorse1	mountains	planta	res://arte/pure_nature/piezas/pn_mountains_gorse1.tscn	0.428	0.547	0.493		no	bosque	flor_pequena	pequeña: mejor en grupos o reescalada	flor		poco
+pn_mountains_gorse2	mountains	planta	res://arte/pure_nature/piezas/pn_mountains_gorse2.tscn	0.678	0.627	0.720		no	bosque	flor_pequena		flor		si
+pn_mountains_grass1	mountains	planta	res://arte/pure_nature/piezas/pn_mountains_grass1.tscn	0.876	0.195	0.851		no	bosque	hierba_corta		hierba		si
+pn_mountains_grass2	mountains	planta	res://arte/pure_nature/piezas/pn_mountains_grass2.tscn	1.460	0.238	1.575		no	bosque	hierba_corta		hierba		si
+pn_mountains_grass3	mountains	planta	res://arte/pure_nature/piezas/pn_mountains_grass3.tscn	1.899	0.646	1.844	hierba_espesa	si	bosque	hierba_corta		hierba		si
+pn_mountains_grass4	mountains	planta	res://arte/pure_nature/piezas/pn_mountains_grass4.tscn	0.764	0.235	0.874		no	bosque	hierba_corta		hierba		si
+pn_mountains_grassmountain1	mountains	planta	res://arte/pure_nature/piezas/pn_mountains_grassmountain1.tscn	0.596	0.654	0.639		no	bosque	hierba_corta		hierba		si
+pn_mountains_grassmountain2	mountains	planta	res://arte/pure_nature/piezas/pn_mountains_grassmountain2.tscn	0.871	0.651	0.849		no	bosque	hierba_corta		hierba		si
+pn_mountains_grassmountain3	mountains	planta	res://arte/pure_nature/piezas/pn_mountains_grassmountain3.tscn	0.793	0.657	0.617		no	bosque	hierba_corta		hierba		si
+pn_mountains_grassmountain4	mountains	planta	res://arte/pure_nature/piezas/pn_mountains_grassmountain4.tscn	0.645	0.703	0.556		no	bosque	hierba_corta		hierba		si
+pn_mountains_lupin1	mountains	planta	res://arte/pure_nature/piezas/pn_mountains_lupin1.tscn	0.241	0.566	0.276		no	bosque	flor_pequena	pequeña: mejor en grupos o reescalada	flor		poco
+pn_mountains_lupin2	mountains	planta	res://arte/pure_nature/piezas/pn_mountains_lupin2.tscn	0.531	0.625	0.507	planta_violeta	si	bosque	flor_pequena		flor		si
+pn_mountains_pebble1	mountains	roca	res://arte/pure_nature/piezas/pn_mountains_pebble1.tscn	0.701	0.062	0.867		no	bosque	roca		roca	cueva	si
+pn_mountains_pebble2	mountains	roca	res://arte/pure_nature/piezas/pn_mountains_pebble2.tscn	1.070	0.072	1.088		no	bosque	roca		roca	cueva	si
+pn_mountains_pebble3	mountains	roca	res://arte/pure_nature/piezas/pn_mountains_pebble3.tscn	1.119	0.075	1.011		no	bosque	roca		roca	cueva	si
+pn_mountains_pine1	mountains	arbol	res://arte/pure_nature/piezas/pn_mountains_pine1.tscn	1.614	3.492	1.781		no	bosque	muro_arboles		conifera		si
+pn_mountains_pine2	mountains	arbol	res://arte/pure_nature/piezas/pn_mountains_pine2.tscn	1.608	4.781	1.654		no	bosque	muro_arboles		conifera		si
+pn_mountains_pine3	mountains	arbol	res://arte/pure_nature/piezas/pn_mountains_pine3.tscn	1.802	5.337	1.935		no	bosque	muro_arboles		conifera		si
+pn_mountains_pine4	mountains	arbol	res://arte/pure_nature/piezas/pn_mountains_pine4.tscn	1.848	5.713	1.770	arbol_sumicio	si	bosque	muro_arboles		conifera		si
+pn_mountains_pine5	mountains	arbol	res://arte/pure_nature/piezas/pn_mountains_pine5.tscn	2.344	7.202	2.108		no	bosque	muro_arboles		conifera		si
+pn_mountains_pine6	mountains	arbol	res://arte/pure_nature/piezas/pn_mountains_pine6.tscn	2.642	9.162	2.652		no	bosque	muro_arboles		conifera		si
+pn_mountains_reeds	mountains	planta	res://arte/pure_nature/piezas/pn_mountains_reeds.tscn	0.378	0.659	0.294		no	pantano	adorno_borde	sobre el agua o en la orilla	orilla	bosque	si
+pn_mountains_sorrel	mountains	planta	res://arte/pure_nature/piezas/pn_mountains_sorrel.tscn	0.822	0.075	0.746		no	bosque	hierba_corta		hierba		si
+pn_mountains_spruce1	mountains	arbol	res://arte/pure_nature/piezas/pn_mountains_spruce1.tscn	1.665	5.452	1.612		no	bosque	muro_arboles		conifera		si
+pn_mountains_spruce2	mountains	arbol	res://arte/pure_nature/piezas/pn_mountains_spruce2.tscn	2.002	6.407	2.061		no	bosque	muro_arboles		conifera		si
+pn_mountains_spruce3	mountains	arbol	res://arte/pure_nature/piezas/pn_mountains_spruce3.tscn	2.457	7.839	2.323		no	bosque	muro_arboles		conifera		si
+pn_mountains_spruce4	mountains	arbol	res://arte/pure_nature/piezas/pn_mountains_spruce4.tscn	2.407	10.500	2.415		no	bosque	muro_arboles		conifera		si
+pn_mountains_spruce5	mountains	arbol	res://arte/pure_nature/piezas/pn_mountains_spruce5.tscn	3.880	13.549	4.006		no	bosque	muro_arboles		conifera		si
+pn_mountains_spruce6	mountains	arbol	res://arte/pure_nature/piezas/pn_mountains_spruce6.tscn	3.857	15.275	3.690		no	bosque	muro_arboles		conifera		si
+pn_mountains_stone1	mountains	roca	res://arte/pure_nature/piezas/pn_mountains_stone1.tscn	0.785	0.574	0.745		no	bosque	roca		roca	cueva	si
+pn_mountains_stone1b	mountains	roca	res://arte/pure_nature/piezas/pn_mountains_stone1b.tscn	0.785	0.574	0.745		no	bosque	roca		roca	cueva	si
+pn_mountains_stone2	mountains	roca	res://arte/pure_nature/piezas/pn_mountains_stone2.tscn	1.200	0.862	1.130		no	bosque	roca		roca	cueva	si
+pn_mountains_stone3	mountains	roca	res://arte/pure_nature/piezas/pn_mountains_stone3.tscn	1.437	0.862	0.717		no	bosque	roca		roca	cueva	si
+pn_mountains_stone4	mountains	roca	res://arte/pure_nature/piezas/pn_mountains_stone4.tscn	1.723	1.148	1.737	roca_musgosa	si	bosque	roca		roca	cueva	si
+pn_mountains_stone5	mountains	roca	res://arte/pure_nature/piezas/pn_mountains_stone5.tscn	2.830	1.722	2.135		no	bosque	roca		roca	cueva	si
+pn_savanna_acacia1	savanna	arbol	res://arte/pure_nature/piezas/pn_savanna_acacia1.tscn	4.404	4.120	3.987		no	ninguno	muro_arboles		arbol		si
+pn_savanna_acacia2	savanna	arbol	res://arte/pure_nature/piezas/pn_savanna_acacia2.tscn	5.592	4.923	4.883		no	ninguno	muro_arboles		arbol		si
+pn_savanna_acacia3	savanna	arbol	res://arte/pure_nature/piezas/pn_savanna_acacia3.tscn	5.086	4.396	5.215		no	ninguno	muro_arboles		arbol		si
+pn_savanna_acacia4	savanna	arbol	res://arte/pure_nature/piezas/pn_savanna_acacia4.tscn	9.367	5.325	6.875		no	ninguno	muro_arboles	copa muy ancha (9 u): solapa varias casillas	arbol		si
+pn_savanna_acacia5	savanna	arbol	res://arte/pure_nature/piezas/pn_savanna_acacia5.tscn	8.481	5.638	6.624		no	ninguno	muro_arboles	copa muy ancha (8 u): solapa varias casillas	arbol		si
+pn_savanna_acacia6	savanna	arbol	res://arte/pure_nature/piezas/pn_savanna_acacia6.tscn	8.415	5.048	7.144		no	ninguno	muro_arboles	copa muy ancha (8 u): solapa varias casillas	arbol		si
+pn_savanna_acacia7	savanna	arbol	res://arte/pure_nature/piezas/pn_savanna_acacia7.tscn	9.974	6.455	7.901		no	ninguno	muro_arboles	copa muy ancha (10 u): solapa varias casillas	arbol		si
+pn_savanna_acacia8	savanna	arbol	res://arte/pure_nature/piezas/pn_savanna_acacia8.tscn	8.495	7.780	8.001		no	ninguno	muro_arboles	copa muy ancha (8 u): solapa varias casillas	arbol		si
+pn_savanna_andropogon	savanna	planta	res://arte/pure_nature/piezas/pn_savanna_andropogon.tscn	0.105	0.061	0.106		no	ninguno	hierba_corta	a tamaño nativo no se ve desde la cámara: solo en mantos o reescalada	hierba		no
+pn_savanna_bank_0	savanna	adorno	res://arte/pure_nature/piezas/pn_savanna_bank_0.tscn	4.826	1.723	4.390		no	pantano	adorno_borde	sobre el agua o en la orilla; no revisada a ojo: probable malla de cascada/orilla que pide material de agua propio	orilla		si
+pn_savanna_bank_1	savanna	adorno	res://arte/pure_nature/piezas/pn_savanna_bank_1.tscn	4.300	1.726	4.619		no	pantano	adorno_borde	sobre el agua o en la orilla; no revisada a ojo: probable malla de cascada/orilla que pide material de agua propio	orilla		si
+pn_savanna_bank_2	savanna	adorno	res://arte/pure_nature/piezas/pn_savanna_bank_2.tscn	5.000	1.713	4.612		no	pantano	adorno_borde	sobre el agua o en la orilla; no revisada a ojo: probable malla de cascada/orilla que pide material de agua propio	orilla		si
+pn_savanna_bank_3	savanna	adorno	res://arte/pure_nature/piezas/pn_savanna_bank_3.tscn	4.513	2.010	4.084		no	pantano	adorno_borde	sobre el agua o en la orilla; no revisada a ojo: probable malla de cascada/orilla que pide material de agua propio	orilla		si
+pn_savanna_bank_4	savanna	adorno	res://arte/pure_nature/piezas/pn_savanna_bank_4.tscn	4.670	2.613	4.373		no	pantano	adorno_borde	sobre el agua o en la orilla; no revisada a ojo: probable malla de cascada/orilla que pide material de agua propio	orilla		si
+pn_savanna_bank_5	savanna	adorno	res://arte/pure_nature/piezas/pn_savanna_bank_5.tscn	4.436	2.363	4.273		no	pantano	adorno_borde	sobre el agua o en la orilla; no revisada a ojo: probable malla de cascada/orilla que pide material de agua propio	orilla		si
+pn_savanna_baobab1	savanna	arbol	res://arte/pure_nature/piezas/pn_savanna_baobab1.tscn	4.497	6.878	4.288		no	ninguno	muro_arboles		arbol		si
+pn_savanna_baobab2	savanna	arbol	res://arte/pure_nature/piezas/pn_savanna_baobab2.tscn	4.036	7.881	4.302		no	ninguno	muro_arboles		arbol		si
+pn_savanna_baobab3	savanna	arbol	res://arte/pure_nature/piezas/pn_savanna_baobab3.tscn	4.407	7.881	4.764		no	ninguno	muro_arboles		arbol		si
+pn_savanna_baobab4	savanna	arbol	res://arte/pure_nature/piezas/pn_savanna_baobab4.tscn	5.733	7.591	5.763		no	ninguno	muro_arboles		arbol		si
+pn_savanna_baobab5	savanna	arbol	res://arte/pure_nature/piezas/pn_savanna_baobab5.tscn	4.973	6.334	5.026		no	ninguno	muro_arboles		arbol		si
+pn_savanna_baobab6	savanna	arbol	res://arte/pure_nature/piezas/pn_savanna_baobab6.tscn	5.358	6.918	5.392		no	ninguno	muro_arboles		arbol		si
+pn_savanna_baobab7	savanna	arbol	res://arte/pure_nature/piezas/pn_savanna_baobab7.tscn	2.991	6.417	2.752		no	ninguno	muro_arboles		arbol		si
+pn_savanna_baobab8	savanna	arbol	res://arte/pure_nature/piezas/pn_savanna_baobab8.tscn	2.391	7.536	2.679		no	ninguno	muro_arboles		arbol		si
+pn_savanna_bigboulders_0	savanna	roca	res://arte/pure_nature/piezas/pn_savanna_bigboulders_0.tscn	3.425	2.254	3.059	roca_grande	si	bosque	roca		roca		si
+pn_savanna_bigboulders_1	savanna	roca	res://arte/pure_nature/piezas/pn_savanna_bigboulders_1.tscn	3.521	2.170	3.453		no	bosque	roca		roca		si
+pn_savanna_bigboulders_2	savanna	roca	res://arte/pure_nature/piezas/pn_savanna_bigboulders_2.tscn	3.489	2.116	3.441		no	bosque	roca		roca		si
+pn_savanna_bigboulders_3	savanna	roca	res://arte/pure_nature/piezas/pn_savanna_bigboulders_3.tscn	3.486	1.956	3.342		no	bosque	roca		roca		si
+pn_savanna_bigboulders_4	savanna	roca	res://arte/pure_nature/piezas/pn_savanna_bigboulders_4.tscn	3.498	1.855	3.393		no	bosque	roca		roca		si
+pn_savanna_bigboulders_5	savanna	roca	res://arte/pure_nature/piezas/pn_savanna_bigboulders_5.tscn	3.486	2.006	3.489		no	bosque	roca		roca		si
+pn_savanna_bouldersavanna_1	savanna	roca	res://arte/pure_nature/piezas/pn_savanna_bouldersavanna_1.tscn	0.013	0.022	0.022		no	ninguno	no_usar	escala de importación rota (0.022 u; sus hermanas miden 2-5 u): hoy invisible; arreglable reescalando el FBX	escombro		no
+pn_savanna_bouldersavanna_2	savanna	roca	res://arte/pure_nature/piezas/pn_savanna_bouldersavanna_2.tscn	0.019	0.026	0.025		no	ninguno	no_usar	escala de importación rota (0.026 u; sus hermanas miden 2-5 u): hoy invisible; arreglable reescalando el FBX	escombro		no
+pn_savanna_bouldersavanna_3	savanna	roca	res://arte/pure_nature/piezas/pn_savanna_bouldersavanna_3.tscn	0.031	0.030	0.034		no	ninguno	no_usar	escala de importación rota (0.034 u; sus hermanas miden 2-5 u): hoy invisible; arreglable reescalando el FBX	escombro		no
+pn_savanna_bouldersavanna_4	savanna	roca	res://arte/pure_nature/piezas/pn_savanna_bouldersavanna_4.tscn	0.035	0.035	0.029		no	ninguno	no_usar	escala de importación rota (0.035 u; sus hermanas miden 2-5 u): hoy invisible; arreglable reescalando el FBX	escombro		no
+pn_savanna_bouldersavanna_5	savanna	roca	res://arte/pure_nature/piezas/pn_savanna_bouldersavanna_5.tscn	0.043	0.018	0.050		no	ninguno	no_usar	escala de importación rota (0.050 u; sus hermanas miden 2-5 u): hoy invisible; arreglable reescalando el FBX	escombro		no
+pn_savanna_bouldersavanna_6	savanna	roca	res://arte/pure_nature/piezas/pn_savanna_bouldersavanna_6.tscn	0.051	0.025	0.050		no	ninguno	no_usar	escala de importación rota (0.051 u; sus hermanas miden 2-5 u): hoy invisible; arreglable reescalando el FBX	escombro		no
+pn_savanna_bush1	savanna	arbol	res://arte/pure_nature/piezas/pn_savanna_bush1.tscn	1.092	1.024	1.197		no	bosque	decor_claro		arbusto		si
+pn_savanna_bush2	savanna	arbol	res://arte/pure_nature/piezas/pn_savanna_bush2.tscn	1.652	1.378	1.631		no	bosque	decor_claro		arbusto		si
+pn_savanna_bush3	savanna	arbol	res://arte/pure_nature/piezas/pn_savanna_bush3.tscn	2.426	1.531	2.435		no	bosque	decor_claro		arbusto		si
+pn_savanna_kilimanjaro	savanna	fondo	res://arte/pure_nature/piezas/pn_savanna_kilimanjaro.tscn	101.192	16.691	103.973		no	ninguno	no_usar	fondo lejano (colina o monte de 30-100 u): no es decorado de sala	fondo		si
+pn_savanna_lillypads1	savanna	planta	res://arte/pure_nature/piezas/pn_savanna_lillypads1.tscn	0.100	0.006	0.108	nenufar_flor	si	pantano	adorno_borde	sobre el agua o en la orilla; a tamaño nativo no se ve desde la cámara: solo en mantos o reescalada	agua		no
+pn_savanna_lillypads2	savanna	planta	res://arte/pure_nature/piezas/pn_savanna_lillypads2.tscn	0.144	0.005	0.140		no	pantano	adorno_borde	sobre el agua o en la orilla; a tamaño nativo no se ve desde la cámara: solo en mantos o reescalada	agua		no
+pn_savanna_lillypads3	savanna	planta	res://arte/pure_nature/piezas/pn_savanna_lillypads3.tscn	0.262	0.006	0.232		no	pantano	adorno_borde	sobre el agua o en la orilla; pequeña: mejor en grupos o reescalada	agua		poco
+pn_savanna_rocksavanna_1	savanna	roca	res://arte/pure_nature/piezas/pn_savanna_rocksavanna_1.tscn	0.005	0.010	0.005		no	ninguno	no_usar	escala de importación rota (0.010 u; sus hermanas miden 2-5 u): hoy invisible; arreglable reescalando el FBX	escombro		no
+pn_savanna_rocksavanna_10	savanna	roca	res://arte/pure_nature/piezas/pn_savanna_rocksavanna_10.tscn	0.013	0.011	0.020		no	ninguno	no_usar	escala de importación rota (0.020 u; sus hermanas miden 2-5 u): hoy invisible; arreglable reescalando el FBX	escombro		no
+pn_savanna_rocksavanna_2	savanna	roca	res://arte/pure_nature/piezas/pn_savanna_rocksavanna_2.tscn	0.007	0.013	0.006		no	ninguno	no_usar	escala de importación rota (0.013 u; sus hermanas miden 2-5 u): hoy invisible; arreglable reescalando el FBX	escombro		no
+pn_savanna_rocksavanna_3	savanna	roca	res://arte/pure_nature/piezas/pn_savanna_rocksavanna_3.tscn	0.008	0.006	0.011		no	ninguno	no_usar	escala de importación rota (0.011 u; sus hermanas miden 2-5 u): hoy invisible; arreglable reescalando el FBX	escombro		no
+pn_savanna_rocksavanna_4	savanna	roca	res://arte/pure_nature/piezas/pn_savanna_rocksavanna_4.tscn	0.007	0.008	0.012		no	ninguno	no_usar	escala de importación rota (0.012 u; sus hermanas miden 2-5 u): hoy invisible; arreglable reescalando el FBX	escombro		no
+pn_savanna_rocksavanna_5	savanna	roca	res://arte/pure_nature/piezas/pn_savanna_rocksavanna_5.tscn	0.009	0.012	0.017		no	ninguno	no_usar	escala de importación rota (0.017 u; sus hermanas miden 2-5 u): hoy invisible; arreglable reescalando el FBX	escombro		no
+pn_savanna_rocksavanna_6	savanna	roca	res://arte/pure_nature/piezas/pn_savanna_rocksavanna_6.tscn	0.007	0.015	0.009		no	ninguno	no_usar	escala de importación rota (0.015 u; sus hermanas miden 2-5 u): hoy invisible; arreglable reescalando el FBX	escombro		no
+pn_savanna_rocksavanna_7	savanna	roca	res://arte/pure_nature/piezas/pn_savanna_rocksavanna_7.tscn	0.009	0.009	0.011		no	ninguno	no_usar	escala de importación rota (0.011 u; sus hermanas miden 2-5 u): hoy invisible; arreglable reescalando el FBX	escombro		no
+pn_savanna_rocksavanna_8	savanna	roca	res://arte/pure_nature/piezas/pn_savanna_rocksavanna_8.tscn	0.009	0.009	0.013		no	ninguno	no_usar	escala de importación rota (0.013 u; sus hermanas miden 2-5 u): hoy invisible; arreglable reescalando el FBX	escombro		no
+pn_savanna_rocksavanna_9	savanna	roca	res://arte/pure_nature/piezas/pn_savanna_rocksavanna_9.tscn	0.009	0.006	0.014		no	ninguno	no_usar	escala de importación rota (0.014 u; sus hermanas miden 2-5 u): hoy invisible; arreglable reescalando el FBX	escombro		no
+pn_savanna_rubbledense_1	savanna	roca	res://arte/pure_nature/piezas/pn_savanna_rubbledense_1.tscn	2.571	0.666	3.224		no	cueva	roca		escombro	ruinas	si
+pn_savanna_rubbledense_2	savanna	roca	res://arte/pure_nature/piezas/pn_savanna_rubbledense_2.tscn	4.109	1.320	3.898		no	cueva	roca		escombro	ruinas	si
+pn_savanna_rubbledense_3	savanna	roca	res://arte/pure_nature/piezas/pn_savanna_rubbledense_3.tscn	4.014	1.258	4.768		no	cueva	roca		escombro	ruinas	si
+pn_savanna_rubblesparse_1	savanna	roca	res://arte/pure_nature/piezas/pn_savanna_rubblesparse_1.tscn	1.935	0.439	1.947		no	cueva	roca		escombro	ruinas	si
+pn_savanna_rubblesparse_2	savanna	roca	res://arte/pure_nature/piezas/pn_savanna_rubblesparse_2.tscn	3.539	0.778	3.351		no	cueva	roca		escombro	ruinas	si
+pn_savanna_rubblesparse_3	savanna	roca	res://arte/pure_nature/piezas/pn_savanna_rubblesparse_3.tscn	3.535	0.481	3.589		no	cueva	roca		escombro	ruinas	si
+pn_savanna_savannagrass1	savanna	planta	res://arte/pure_nature/piezas/pn_savanna_savannagrass1.tscn	0.552	0.181	0.484		no	ninguno	hierba_corta	pequeña: mejor en grupos o reescalada	hierba		poco
+pn_savanna_savannagrass2	savanna	planta	res://arte/pure_nature/piezas/pn_savanna_savannagrass2.tscn	0.488	0.264	0.466		no	ninguno	hierba_corta	pequeña: mejor en grupos o reescalada	hierba		poco
+pn_savanna_savannagrass3	savanna	planta	res://arte/pure_nature/piezas/pn_savanna_savannagrass3.tscn	0.300	0.378	0.378		no	ninguno	hierba_corta	pequeña: mejor en grupos o reescalada	hierba		poco
+pn_savanna_tallgrassdry	savanna	planta	res://arte/pure_nature/piezas/pn_savanna_tallgrassdry.tscn	0.121	0.063	0.111		no	ninguno	hierba_corta	a tamaño nativo no se ve desde la cámara: solo en mantos o reescalada	hierba		no
+pn_savanna_ulmaria1	savanna	planta	res://arte/pure_nature/piezas/pn_savanna_ulmaria1.tscn	0.269	0.351	0.291		no	pantano	flor_pequena	pequeña: mejor en grupos o reescalada	flor		poco
+pn_savanna_ulmaria2	savanna	planta	res://arte/pure_nature/piezas/pn_savanna_ulmaria2.tscn	0.600	0.361	0.578		no	pantano	flor_pequena	pequeña: mejor en grupos o reescalada	flor		poco
+pn_savanna_waterfall01	savanna	adorno	res://arte/pure_nature/piezas/pn_savanna_waterfall01.tscn	0.575	1.737	0.667		no	pantano	adorno_borde	sobre el agua o en la orilla; no revisada a ojo: probable malla de cascada/orilla que pide material de agua propio	agua		si
+pn_savanna_watermoss	savanna	adorno	res://arte/pure_nature/piezas/pn_savanna_watermoss.tscn	5.750	0.000	5.750	musgo_suelo;planta_agua	si	pantano	adorno_borde	sobre el agua o en la orilla	agua		si
+pn_savanna_wetgrass1	savanna	planta	res://arte/pure_nature/piezas/pn_savanna_wetgrass1.tscn	0.684	0.820	0.620		no	pantano	adorno_borde	sobre el agua o en la orilla	orilla		si
+pn_savanna_wetgrass2	savanna	planta	res://arte/pure_nature/piezas/pn_savanna_wetgrass2.tscn	0.835	0.823	1.009		no	pantano	adorno_borde	sobre el agua o en la orilla	orilla		si
+ss_arch_01	stylescape	muro	res://arte/stylescape/piezas/ss_arch_01.tscn	3.614	1.256	0.375		n/a	ruinas	ruina		arco		si
+ss_crate_01	stylescape	adorno	res://arte/stylescape/piezas/ss_crate_01.tscn	0.460	0.460	0.460	paredes_stylescape	n/a	ruinas	ruina		caja	cueva	poco
+ss_doorframe_01	stylescape	muro	res://arte/stylescape/piezas/ss_doorframe_01.tscn	1.462	1.694	0.250		n/a	ruinas	ruina		puerta_ventana		si
+ss_edge_stones_01	stylescape	muro	res://arte/stylescape/piezas/ss_edge_stones_01.tscn	0.317	1.726	0.293		n/a	ruinas	ruina		escombro	cueva,bosque	si
+ss_edge_stones_01_half_01	stylescape	muro	res://arte/stylescape/piezas/ss_edge_stones_01_half_01.tscn	0.293	0.867	0.293		n/a	ruinas	ruina		escombro	cueva,bosque	si
+ss_edge_stones_01_half_02	stylescape	muro	res://arte/stylescape/piezas/ss_edge_stones_01_half_02.tscn	0.335	0.864	0.300		n/a	ruinas	ruina		escombro	cueva,bosque	si
+ss_edge_stones_02	stylescape	muro	res://arte/stylescape/piezas/ss_edge_stones_02.tscn	0.385	1.730	0.383		n/a	ruinas	ruina		escombro	cueva,bosque	si
+ss_edge_stones_03	stylescape	muro	res://arte/stylescape/piezas/ss_edge_stones_03.tscn	0.240	1.729	0.208		n/a	ruinas	ruina		escombro	cueva,bosque	si
+ss_floor_2x2_01_topface	stylescape	adorno	res://arte/stylescape/piezas/ss_floor_2x2_01_topface.tscn	1.150	0.000	1.150		n/a	ruinas	ruina	losa de suelo (cara superior)	suelo		si
+ss_floor_2x2_02_topface	stylescape	adorno	res://arte/stylescape/piezas/ss_floor_2x2_02_topface.tscn	1.151	0.000	1.151		n/a	ruinas	ruina	losa de suelo (cara superior)	suelo		si
+ss_floor_2x2_03_topface	stylescape	adorno	res://arte/stylescape/piezas/ss_floor_2x2_03_topface.tscn	1.150	0.000	1.150		n/a	ruinas	ruina	losa de suelo (cara superior)	suelo		si
+ss_floor_3x2_01	stylescape	adorno	res://arte/stylescape/piezas/ss_floor_3x2_01.tscn	1.726	0.063	1.151		n/a	ruinas	ruina		suelo		si
+ss_floor_3x2_02	stylescape	adorno	res://arte/stylescape/piezas/ss_floor_3x2_02.tscn	1.727	0.063	1.151		n/a	ruinas	ruina		suelo		si
+ss_floor_4x2_01	stylescape	adorno	res://arte/stylescape/piezas/ss_floor_4x2_01.tscn	2.301	0.063	1.151		n/a	ruinas	ruina		suelo		si
+ss_floor_4x2_02	stylescape	adorno	res://arte/stylescape/piezas/ss_floor_4x2_02.tscn	2.301	0.066	1.151		n/a	ruinas	ruina		suelo		si
+ss_floor_4x2_03	stylescape	adorno	res://arte/stylescape/piezas/ss_floor_4x2_03.tscn	2.301	0.063	1.151		n/a	ruinas	ruina		suelo		si
+ss_floor_4x4_01	stylescape	adorno	res://arte/stylescape/piezas/ss_floor_4x4_01.tscn	2.301	0.063	2.301		n/a	ruinas	ruina		suelo		si
+ss_floor_4x4_01_alt	stylescape	adorno	res://arte/stylescape/piezas/ss_floor_4x4_01_alt.tscn	2.301	0.063	2.301		n/a	ruinas	ruina		suelo		si
+ss_floor_4x4_01_dmg	stylescape	adorno	res://arte/stylescape/piezas/ss_floor_4x4_01_dmg.tscn	2.301	0.064	2.301		n/a	ruinas	ruina		suelo		si
+ss_floor_4x4_02	stylescape	adorno	res://arte/stylescape/piezas/ss_floor_4x4_02.tscn	2.301	0.066	2.301		n/a	ruinas	ruina		suelo		si
+ss_floor_4x4_03	stylescape	adorno	res://arte/stylescape/piezas/ss_floor_4x4_03.tscn	2.301	0.063	2.301		n/a	ruinas	ruina		suelo		si
+ss_floor_4x4_03_alt	stylescape	adorno	res://arte/stylescape/piezas/ss_floor_4x4_03_alt.tscn	2.301	0.063	2.301		n/a	ruinas	ruina		suelo		si
+ss_floor_4x4_03_dmg	stylescape	adorno	res://arte/stylescape/piezas/ss_floor_4x4_03_dmg.tscn	2.304	0.147	2.301		n/a	ruinas	ruina		suelo		si
+ss_floor_4x4_topface_01	stylescape	adorno	res://arte/stylescape/piezas/ss_floor_4x4_topface_01.tscn	2.300	0.000	2.300	paredes_stylescape	n/a	ruinas	ruina	losa de suelo (cara superior)	suelo		si
+ss_floor_4x4_topface_02	stylescape	adorno	res://arte/stylescape/piezas/ss_floor_4x4_topface_02.tscn	2.301	0.000	2.301	paredes_stylescape	n/a	ruinas	ruina	losa de suelo (cara superior)	suelo		si
+ss_floor_4x4_topface_03	stylescape	adorno	res://arte/stylescape/piezas/ss_floor_4x4_topface_03.tscn	2.300	0.000	2.300	paredes_stylescape	n/a	ruinas	ruina	losa de suelo (cara superior)	suelo		si
+ss_floor_6x4_01	stylescape	adorno	res://arte/stylescape/piezas/ss_floor_6x4_01.tscn	3.451	0.063	2.301		n/a	ruinas	ruina		suelo		si
+ss_floor_6x4_01_alt	stylescape	adorno	res://arte/stylescape/piezas/ss_floor_6x4_01_alt.tscn	3.451	0.063	2.301		n/a	ruinas	ruina		suelo		si
+ss_floor_6x4_02	stylescape	adorno	res://arte/stylescape/piezas/ss_floor_6x4_02.tscn	3.451	0.066	2.301		n/a	ruinas	ruina		suelo		si
+ss_floor_6x4_03	stylescape	adorno	res://arte/stylescape/piezas/ss_floor_6x4_03.tscn	3.451	0.063	2.301		n/a	ruinas	ruina		suelo		si
+ss_floor_6x4_03_alt	stylescape	adorno	res://arte/stylescape/piezas/ss_floor_6x4_03_alt.tscn	3.451	0.063	2.301		n/a	ruinas	ruina		suelo		si
+ss_floor_6x4_03_dmg	stylescape	adorno	res://arte/stylescape/piezas/ss_floor_6x4_03_dmg.tscn	3.451	0.147	2.304		n/a	ruinas	ruina		suelo		si
+ss_floor_6x4_topface_01	stylescape	adorno	res://arte/stylescape/piezas/ss_floor_6x4_topface_01.tscn	3.450	0.000	2.300		n/a	ruinas	ruina	losa de suelo (cara superior)	suelo		si
+ss_floor_6x4_topface_02	stylescape	adorno	res://arte/stylescape/piezas/ss_floor_6x4_topface_02.tscn	3.451	0.000	2.301		n/a	ruinas	ruina	losa de suelo (cara superior)	suelo		si
+ss_floor_6x4_topface_03	stylescape	adorno	res://arte/stylescape/piezas/ss_floor_6x4_topface_03.tscn	3.450	0.000	2.300		n/a	ruinas	ruina	losa de suelo (cara superior)	suelo		si
+ss_floor_ceiling_01_1x1	stylescape	adorno	res://arte/stylescape/piezas/ss_floor_ceiling_01_1x1.tscn	0.576	0.063	0.576		n/a	ruinas	ruina	interior/techo: solo con cámara que lo permita	techo_suelo		poco
+ss_floor_ceiling_01_2x1	stylescape	adorno	res://arte/stylescape/piezas/ss_floor_ceiling_01_2x1.tscn	1.151	0.063	0.576		n/a	ruinas	ruina	interior/techo: solo con cámara que lo permita	techo_suelo		si
+ss_floor_ceiling_01_dmg	stylescape	adorno	res://arte/stylescape/piezas/ss_floor_ceiling_01_dmg.tscn	1.150	0.066	1.150		n/a	ruinas	ruina	interior/techo: solo con cámara que lo permita	techo_suelo		si
+ss_floor_ceiling_01_dmg_alt	stylescape	adorno	res://arte/stylescape/piezas/ss_floor_ceiling_01_dmg_alt.tscn	1.150	0.066	1.150		n/a	ruinas	ruina	interior/techo: solo con cámara que lo permita	techo_suelo		si
+ss_floor_ceiling_02_1x1	stylescape	adorno	res://arte/stylescape/piezas/ss_floor_ceiling_02_1x1.tscn	0.576	0.063	0.576		n/a	ruinas	ruina	interior/techo: solo con cámara que lo permita	techo_suelo		poco
+ss_floor_ceiling_02_2x1	stylescape	adorno	res://arte/stylescape/piezas/ss_floor_ceiling_02_2x1.tscn	1.151	0.063	0.576		n/a	ruinas	ruina	interior/techo: solo con cámara que lo permita	techo_suelo		si
+ss_floor_ceiling_02_dmg_01	stylescape	adorno	res://arte/stylescape/piezas/ss_floor_ceiling_02_dmg_01.tscn	1.151	0.063	1.151		n/a	ruinas	ruina	interior/techo: solo con cámara que lo permita	techo_suelo		si
+ss_floor_ceiling_02_dmg_02	stylescape	adorno	res://arte/stylescape/piezas/ss_floor_ceiling_02_dmg_02.tscn	1.151	0.063	1.151		n/a	ruinas	ruina	interior/techo: solo con cámara que lo permita	techo_suelo		si
+ss_floor_ceiling_02_dmg_03	stylescape	adorno	res://arte/stylescape/piezas/ss_floor_ceiling_02_dmg_03.tscn	1.151	0.063	1.151		n/a	ruinas	ruina	interior/techo: solo con cámara que lo permita	techo_suelo		si
+ss_floor_ceiling_02_dmg_04	stylescape	adorno	res://arte/stylescape/piezas/ss_floor_ceiling_02_dmg_04.tscn	1.151	0.064	1.151		n/a	ruinas	ruina	interior/techo: solo con cámara que lo permita	techo_suelo		si
+ss_floor_ceiling_2x2_01	stylescape	adorno	res://arte/stylescape/piezas/ss_floor_ceiling_2x2_01.tscn	1.151	0.063	1.151		n/a	ruinas	ruina	interior/techo: solo con cámara que lo permita	techo_suelo		si
+ss_floor_ceiling_2x2_01_alt	stylescape	adorno	res://arte/stylescape/piezas/ss_floor_ceiling_2x2_01_alt.tscn	1.151	0.063	1.151		n/a	ruinas	ruina	interior/techo: solo con cámara que lo permita	techo_suelo		si
+ss_floor_ceiling_2x2_02	stylescape	adorno	res://arte/stylescape/piezas/ss_floor_ceiling_2x2_02.tscn	1.151	0.063	1.151		n/a	ruinas	ruina	interior/techo: solo con cámara que lo permita	techo_suelo		si
+ss_floor_ceiling_2x2_02_alt	stylescape	adorno	res://arte/stylescape/piezas/ss_floor_ceiling_2x2_02_alt.tscn	1.151	0.063	1.151		n/a	ruinas	ruina	interior/techo: solo con cámara que lo permita	techo_suelo		si
+ss_floor_ceiling_2x2_03	stylescape	adorno	res://arte/stylescape/piezas/ss_floor_ceiling_2x2_03.tscn	1.151	0.063	1.151		n/a	ruinas	ruina	interior/techo: solo con cámara que lo permita	techo_suelo		si
+ss_floor_ceiling_2x2_03_alt	stylescape	adorno	res://arte/stylescape/piezas/ss_floor_ceiling_2x2_03_alt.tscn	1.151	0.063	1.151		n/a	ruinas	ruina	interior/techo: solo con cámara que lo permita	techo_suelo		si
+ss_floor_ceiling_2x2_03_tilt	stylescape	adorno	res://arte/stylescape/piezas/ss_floor_ceiling_2x2_03_tilt.tscn	1.153	0.147	1.151		n/a	ruinas	ruina	interior/techo: solo con cámara que lo permita	techo_suelo		si
+ss_hangingivy_01	stylescape	adorno	res://arte/stylescape/piezas/ss_hangingivy_01.tscn	0.858	0.587	0.205	paredes_stylescape	n/a	ruinas	adorno_borde	cuelga de lo alto de un muro	hiedra	bosque,pantano	si
+ss_hangingivy_02	stylescape	adorno	res://arte/stylescape/piezas/ss_hangingivy_02.tscn	0.779	1.225	0.354	paredes_stylescape	n/a	ruinas	adorno_borde	cuelga de lo alto de un muro	hiedra	bosque,pantano	si
+ss_hangingivy_03	stylescape	adorno	res://arte/stylescape/piezas/ss_hangingivy_03.tscn	0.771	0.559	0.196	paredes_stylescape	n/a	ruinas	adorno_borde	cuelga de lo alto de un muro	hiedra	bosque,pantano	si
+ss_hangingivy_04	stylescape	adorno	res://arte/stylescape/piezas/ss_hangingivy_04.tscn	0.827	0.031	0.641		n/a	ruinas	adorno_borde	cuelga de lo alto de un muro	hiedra	bosque,pantano	si
+ss_hangingivy_05	stylescape	adorno	res://arte/stylescape/piezas/ss_hangingivy_05.tscn	1.236	1.026	0.012	paredes_stylescape	n/a	ruinas	adorno_borde	cuelga de lo alto de un muro	hiedra	bosque,pantano	si
+ss_hangingivy_06	stylescape	adorno	res://arte/stylescape/piezas/ss_hangingivy_06.tscn	0.560	0.493	0.024	paredes_stylescape	n/a	ruinas	adorno_borde	cuelga de lo alto de un muro	hiedra	bosque,pantano	poco
+ss_pillar_01	stylescape	muro	res://arte/stylescape/piezas/ss_pillar_01.tscn	1.035	1.726	1.035		n/a	ruinas	ruina		pilar		si
+ss_pillar_01_dmg	stylescape	muro	res://arte/stylescape/piezas/ss_pillar_01_dmg.tscn	1.035	1.726	1.035		n/a	ruinas	ruina		pilar		si
+ss_pillar_02	stylescape	muro	res://arte/stylescape/piezas/ss_pillar_02.tscn	0.863	1.777	0.862		n/a	ruinas	ruina		pilar		si
+ss_pillar_03	stylescape	muro	res://arte/stylescape/piezas/ss_pillar_03.tscn	0.767	0.863	0.761	paredes_stylescape	n/a	ruinas	ruina		pilar		si
+ss_pillar_04	stylescape	muro	res://arte/stylescape/piezas/ss_pillar_04.tscn	0.612	1.777	0.592	paredes_stylescape	n/a	ruinas	ruina		pilar		si
+ss_pillar_05	stylescape	muro	res://arte/stylescape/piezas/ss_pillar_05.tscn	0.537	1.746	0.497		n/a	ruinas	ruina		pilar		si
+ss_rafter_01	stylescape	adorno	res://arte/stylescape/piezas/ss_rafter_01.tscn	1.150	0.091	0.092		n/a	ruinas	ruina	interior/techo: solo con cámara que lo permita	viga		si
+ss_rafter_02	stylescape	adorno	res://arte/stylescape/piezas/ss_rafter_02.tscn	1.256	0.171	0.102		n/a	ruinas	ruina	interior/techo: solo con cámara que lo permita	viga		si
+ss_rafter_ceiling	stylescape	adorno	res://arte/stylescape/piezas/ss_rafter_ceiling.tscn	0.635	1.666	0.628		n/a	ruinas	ruina	interior/techo: solo con cámara que lo permita	viga		si
+ss_rafter_dmg	stylescape	adorno	res://arte/stylescape/piezas/ss_rafter_dmg.tscn	0.731	0.085	0.092		n/a	ruinas	ruina	interior/techo: solo con cámara que lo permita	viga		si
+ss_rafter_intersection	stylescape	adorno	res://arte/stylescape/piezas/ss_rafter_intersection.tscn	1.150	0.094	1.150		n/a	ruinas	ruina	interior/techo: solo con cámara que lo permita	viga		si
+ss_railing_01_01	stylescape	muro	res://arte/stylescape/piezas/ss_railing_01_01.tscn	0.575	0.092	0.374		n/a	ruinas	ruina		baranda		poco
+ss_railing_01_02	stylescape	muro	res://arte/stylescape/piezas/ss_railing_01_02.tscn	1.150	0.092	0.374		n/a	ruinas	ruina		baranda		si
+ss_railing_01_03	stylescape	muro	res://arte/stylescape/piezas/ss_railing_01_03.tscn	1.725	0.092	0.374		n/a	ruinas	ruina		baranda		si
+ss_railing_01_04	stylescape	muro	res://arte/stylescape/piezas/ss_railing_01_04.tscn	2.300	0.092	0.374		n/a	ruinas	ruina		baranda		si
+ss_railing_02_01	stylescape	muro	res://arte/stylescape/piezas/ss_railing_02_01.tscn	0.575	0.300	0.319		n/a	ruinas	ruina		baranda		poco
+ss_railing_02_02	stylescape	muro	res://arte/stylescape/piezas/ss_railing_02_02.tscn	1.150	0.300	0.319		n/a	ruinas	ruina		baranda		si
+ss_railing_02_03	stylescape	muro	res://arte/stylescape/piezas/ss_railing_02_03.tscn	1.725	0.300	0.319		n/a	ruinas	ruina		baranda		si
+ss_railing_02_04	stylescape	muro	res://arte/stylescape/piezas/ss_railing_02_04.tscn	2.300	0.300	0.319		n/a	ruinas	ruina		baranda		si
+ss_railing_02_corner	stylescape	muro	res://arte/stylescape/piezas/ss_railing_02_corner.tscn	0.908	0.300	0.908		n/a	ruinas	ruina		baranda		si
+ss_railing_pillar_01	stylescape	muro	res://arte/stylescape/piezas/ss_railing_pillar_01.tscn	0.173	0.305	0.173		n/a	ruinas	ruina		pilar		poco
+ss_railing_pillar_01_corner	stylescape	muro	res://arte/stylescape/piezas/ss_railing_pillar_01_corner.tscn	0.614	0.531	0.614		n/a	ruinas	ruina		pilar		si
+ss_rubble_01	stylescape	adorno	res://arte/stylescape/piezas/ss_rubble_01.tscn	0.682	0.400	0.519	paredes_stylescape	n/a	ruinas	ruina		escombro	cueva,bosque	si
+ss_rubble_02	stylescape	adorno	res://arte/stylescape/piezas/ss_rubble_02.tscn	0.588	0.558	0.504	paredes_stylescape	n/a	ruinas	ruina		escombro	cueva,bosque	poco
+ss_sombra_base	stylescape	sombra	res://arte/stylescape/piezas/ss_sombra_base.tscn	0.000	0.000	0.000	paredes_stylescape	n/a	ruinas	no_usar	auxiliar: franja de sombra de contacto que ya pone paredes_stylescape	sombra		no
+ss_stairs_half	stylescape	muro	res://arte/stylescape/piezas/ss_stairs_half.tscn	1.673	0.819	1.255		n/a	ruinas	ruina		escalera		si
+ss_stairs_railing	stylescape	muro	res://arte/stylescape/piezas/ss_stairs_railing.tscn	1.955	1.084	0.288		n/a	ruinas	ruina		escalera		si
+ss_stairs_railing_01	stylescape	muro	res://arte/stylescape/piezas/ss_stairs_railing_01.tscn	1.150	0.866	0.288		n/a	ruinas	ruina		escalera		si
+ss_stairs_railing_01_alt	stylescape	muro	res://arte/stylescape/piezas/ss_stairs_railing_01_alt.tscn	0.805	0.692	0.288		n/a	ruinas	ruina		escalera		si
+ss_stairs_railing_01_alt_2	stylescape	muro	res://arte/stylescape/piezas/ss_stairs_railing_01_alt_2.tscn	0.460	0.519	0.288		n/a	ruinas	ruina		escalera		poco
+ss_stairs_railing_3	stylescape	muro	res://arte/stylescape/piezas/ss_stairs_railing_3.tscn	0.807	0.575	0.288		n/a	ruinas	ruina		escalera		si
+ss_stairs_railing_3_alt_2	stylescape	muro	res://arte/stylescape/piezas/ss_stairs_railing_3_alt_2.tscn	0.462	0.575	0.288		n/a	ruinas	ruina		escalera		poco
+ss_stairs_railing_5_alt	stylescape	muro	res://arte/stylescape/piezas/ss_stairs_railing_5_alt.tscn	1.610	0.977	0.288		n/a	ruinas	ruina		escalera		si
+ss_stairs_railing_end	stylescape	muro	res://arte/stylescape/piezas/ss_stairs_railing_end.tscn	0.554	0.460	0.549		n/a	ruinas	ruina		escalera		poco
+ss_stairs_railing_merged_01	stylescape	muro	res://arte/stylescape/piezas/ss_stairs_railing_merged_01.tscn	1.955	1.267	0.288		n/a	ruinas	ruina		escalera		si
+ss_stairs_railing_merged_02	stylescape	muro	res://arte/stylescape/piezas/ss_stairs_railing_merged_02.tscn	1.612	2.069	0.288		n/a	ruinas	ruina		escalera		si
+ss_stairs_wood_2floor_end	stylescape	adorno	res://arte/stylescape/piezas/ss_stairs_wood_2floor_end.tscn	2.053	1.041	1.150		n/a	ruinas	ruina		escalera		si
+ss_stairs_wood_2floor_start	stylescape	adorno	res://arte/stylescape/piezas/ss_stairs_wood_2floor_start.tscn	2.015	0.972	1.151		n/a	ruinas	ruina		escalera		si
+ss_stairs_wood_3floor_end	stylescape	adorno	res://arte/stylescape/piezas/ss_stairs_wood_3floor_end.tscn	2.110	1.207	1.150		n/a	ruinas	ruina		escalera		si
+ss_stairs_wood_3floor_mid	stylescape	adorno	res://arte/stylescape/piezas/ss_stairs_wood_3floor_mid.tscn	2.231	1.506	1.150		n/a	ruinas	ruina		escalera		si
+ss_stairs_wood_3floor_start	stylescape	adorno	res://arte/stylescape/piezas/ss_stairs_wood_3floor_start.tscn	2.026	1.196	1.151		n/a	ruinas	ruina		escalera		si
+ss_stairs_wood_full	stylescape	adorno	res://arte/stylescape/piezas/ss_stairs_wood_full.tscn	2.354	0.978	1.151		n/a	ruinas	ruina		escalera		si
+ss_stairs_wood_tower_end	stylescape	adorno	res://arte/stylescape/piezas/ss_stairs_wood_tower_end.tscn	1.998	1.035	1.150		n/a	ruinas	ruina		escalera		si
+ss_stairs_wood_tower_start	stylescape	adorno	res://arte/stylescape/piezas/ss_stairs_wood_tower_start.tscn	1.857	0.978	1.151		n/a	ruinas	ruina		escalera		si
+ss_stone_01	stylescape	adorno	res://arte/stylescape/piezas/ss_stone_01.tscn	0.356	0.163	0.179	paredes_stylescape	n/a	ruinas	ruina		escombro	cueva,bosque	poco
+ss_stone_02	stylescape	adorno	res://arte/stylescape/piezas/ss_stone_02.tscn	0.356	0.163	0.179	paredes_stylescape	n/a	ruinas	ruina		escombro	cueva,bosque	poco
+ss_stone_03	stylescape	adorno	res://arte/stylescape/piezas/ss_stone_03.tscn	0.356	0.163	0.179	paredes_stylescape	n/a	ruinas	ruina		escombro	cueva,bosque	poco
+ss_wall_01	stylescape	muro	res://arte/stylescape/piezas/ss_wall_01.tscn	0.575	1.724	0.288		n/a	ruinas	ruina		muro		si
+ss_wall_01_corner	stylescape	muro	res://arte/stylescape/piezas/ss_wall_01_corner.tscn	0.288	1.724	0.287	paredes_stylescape	n/a	ruinas	ruina		muro		si
+ss_wall_02	stylescape	muro	res://arte/stylescape/piezas/ss_wall_02.tscn	1.150	1.724	0.288	paredes_stylescape	n/a	ruinas	ruina		muro		si
+ss_wall_03	stylescape	muro	res://arte/stylescape/piezas/ss_wall_03.tscn	1.725	1.724	0.288		n/a	ruinas	ruina		muro		si
+ss_wall_04	stylescape	muro	res://arte/stylescape/piezas/ss_wall_04.tscn	2.300	1.724	0.288	paredes_stylescape	n/a	ruinas	ruina		muro		si
+ss_wall_arch_01	stylescape	muro	res://arte/stylescape/piezas/ss_wall_arch_01.tscn	2.300	1.724	0.575		n/a	ruinas	ruina		muro		si
+ss_wall_archdetail_01	stylescape	muro	res://arte/stylescape/piezas/ss_wall_archdetail_01.tscn	0.575	0.736	0.232		n/a	ruinas	ruina		muro_arco		si
+ss_wall_archdetail_02	stylescape	muro	res://arte/stylescape/piezas/ss_wall_archdetail_02.tscn	1.150	0.736	0.232		n/a	ruinas	ruina		muro_arco		si
+ss_wall_archdetail_03	stylescape	muro	res://arte/stylescape/piezas/ss_wall_archdetail_03.tscn	1.725	0.736	0.232		n/a	ruinas	ruina		muro_arco		si
+ss_wall_archdetail_04	stylescape	muro	res://arte/stylescape/piezas/ss_wall_archdetail_04.tscn	2.300	0.736	0.232		n/a	ruinas	ruina		muro_arco		si
+ss_wall_archdetail_cornerinside	stylescape	muro	res://arte/stylescape/piezas/ss_wall_archdetail_cornerinside.tscn	0.635	0.737	0.633		n/a	ruinas	ruina		muro_arco		si
+ss_wall_archdetail_corneroutside	stylescape	muro	res://arte/stylescape/piezas/ss_wall_archdetail_corneroutside.tscn	0.807	0.736	0.807		n/a	ruinas	ruina		muro_arco		si
+ss_wall_corner_thick_05	stylescape	muro	res://arte/stylescape/piezas/ss_wall_corner_thick_05.tscn	0.863	1.725	0.863		n/a	ruinas	ruina		muro_grueso		si
+ss_wall_dmg_01	stylescape	muro	res://arte/stylescape/piezas/ss_wall_dmg_01.tscn	1.338	1.743	0.288		n/a	ruinas	ruina		muro_danado		si
+ss_wall_dmg_01_alt	stylescape	muro	res://arte/stylescape/piezas/ss_wall_dmg_01_alt.tscn	0.763	1.743	0.288		n/a	ruinas	ruina		muro_danado		si
+ss_wall_dmg_01_half_01	stylescape	muro	res://arte/stylescape/piezas/ss_wall_dmg_01_half_01.tscn	0.760	0.880	0.288		n/a	ruinas	ruina		muro_bajo		si
+ss_wall_dmg_01_half_02	stylescape	muro	res://arte/stylescape/piezas/ss_wall_dmg_01_half_02.tscn	0.763	0.863	0.288		n/a	ruinas	ruina		muro_bajo		si
+ss_wall_dmg_02	stylescape	muro	res://arte/stylescape/piezas/ss_wall_dmg_02.tscn	2.300	1.724	0.293	paredes_stylescape	n/a	ruinas	ruina		muro_danado		si
+ss_wall_dmg_02_alt	stylescape	muro	res://arte/stylescape/piezas/ss_wall_dmg_02_alt.tscn	1.725	1.724	0.293		n/a	ruinas	ruina		muro_danado		si
+ss_wall_dmg_02_half_01	stylescape	muro	res://arte/stylescape/piezas/ss_wall_dmg_02_half_01.tscn	1.725	0.861	0.288	paredes_stylescape	n/a	ruinas	ruina		muro_bajo		si
+ss_wall_dmg_02_half_02	stylescape	muro	res://arte/stylescape/piezas/ss_wall_dmg_02_half_02.tscn	0.850	0.863	0.293		n/a	ruinas	ruina		muro_bajo		si
+ss_wall_dmg_03	stylescape	muro	res://arte/stylescape/piezas/ss_wall_dmg_03.tscn	2.300	1.724	0.288	paredes_stylescape	n/a	ruinas	ruina		muro_danado		si
+ss_wall_dmg_03_alt	stylescape	muro	res://arte/stylescape/piezas/ss_wall_dmg_03_alt.tscn	1.150	1.724	0.288	paredes_stylescape	n/a	ruinas	ruina		muro_danado		si
+ss_wall_dmg_03_half_01	stylescape	muro	res://arte/stylescape/piezas/ss_wall_dmg_03_half_01.tscn	1.150	0.861	0.288	paredes_stylescape	n/a	ruinas	ruina		muro_bajo		si
+ss_wall_dmg_03_half_02	stylescape	muro	res://arte/stylescape/piezas/ss_wall_dmg_03_half_02.tscn	0.902	0.863	0.288		n/a	ruinas	ruina		muro_bajo		si
+ss_wall_dmg_04	stylescape	muro	res://arte/stylescape/piezas/ss_wall_dmg_04.tscn	2.300	1.724	0.303	paredes_stylescape	n/a	ruinas	ruina		muro_danado		si
+ss_wall_dmg_04_alt	stylescape	muro	res://arte/stylescape/piezas/ss_wall_dmg_04_alt.tscn	1.150	1.724	0.303	paredes_stylescape	n/a	ruinas	ruina		muro_danado		si
+ss_wall_dmg_04_half_01	stylescape	muro	res://arte/stylescape/piezas/ss_wall_dmg_04_half_01.tscn	0.911	0.861	0.303		n/a	ruinas	ruina		muro_bajo		si
+ss_wall_dmg_04_half_02	stylescape	muro	res://arte/stylescape/piezas/ss_wall_dmg_04_half_02.tscn	1.150	0.863	0.288	paredes_stylescape	n/a	ruinas	ruina		muro_bajo		si
+ss_wall_door_01	stylescape	muro	res://arte/stylescape/piezas/ss_wall_door_01.tscn	2.300	1.724	0.288		n/a	ruinas	ruina		puerta_ventana		si
+ss_wall_door_thick_01	stylescape	muro	res://arte/stylescape/piezas/ss_wall_door_thick_01.tscn	2.300	1.724	0.576		n/a	ruinas	ruina		puerta_ventana		si
+ss_wall_half_01	stylescape	muro	res://arte/stylescape/piezas/ss_wall_half_01.tscn	0.575	0.862	0.288		n/a	ruinas	ruina		muro_bajo		si
+ss_wall_half_02	stylescape	muro	res://arte/stylescape/piezas/ss_wall_half_02.tscn	1.150	0.863	0.288	paredes_stylescape	n/a	ruinas	ruina		muro_bajo		si
+ss_wall_half_03	stylescape	muro	res://arte/stylescape/piezas/ss_wall_half_03.tscn	1.725	0.863	0.288		n/a	ruinas	ruina		muro_bajo		si
+ss_wall_half_04	stylescape	muro	res://arte/stylescape/piezas/ss_wall_half_04.tscn	2.300	0.863	0.288	paredes_stylescape	n/a	ruinas	ruina		muro_bajo		si
+ss_wall_half_corner	stylescape	muro	res://arte/stylescape/piezas/ss_wall_half_corner.tscn	0.288	0.862	0.287	paredes_stylescape	n/a	ruinas	ruina		muro_bajo		si
+ss_wall_ledge_corner	stylescape	muro	res://arte/stylescape/piezas/ss_wall_ledge_corner.tscn	0.612	0.228	0.607		n/a	ruinas	ruina		cornisa		si
+ss_wall_ledge_thick_01	stylescape	muro	res://arte/stylescape/piezas/ss_wall_ledge_thick_01.tscn	0.748	0.160	0.575		n/a	ruinas	ruina		cornisa		si
+ss_wall_ledge_thick_02	stylescape	muro	res://arte/stylescape/piezas/ss_wall_ledge_thick_02.tscn	1.150	0.160	0.748		n/a	ruinas	ruina		cornisa		si
+ss_wall_ledge_thick_03	stylescape	muro	res://arte/stylescape/piezas/ss_wall_ledge_thick_03.tscn	1.725	0.160	0.748		n/a	ruinas	ruina		cornisa		si
+ss_wall_ledge_thick_04	stylescape	muro	res://arte/stylescape/piezas/ss_wall_ledge_thick_04.tscn	2.300	0.160	0.748	paredes_stylescape	n/a	ruinas	ruina		cornisa		si
+ss_wall_ledge_thick_04_bottom	stylescape	muro	res://arte/stylescape/piezas/ss_wall_ledge_thick_04_bottom.tscn	2.300	0.288	0.863		n/a	ruinas	ruina		cornisa		si
+ss_wall_ledge_thick_corner	stylescape	muro	res://arte/stylescape/piezas/ss_wall_ledge_thick_corner.tscn	0.785	0.228	0.785		n/a	ruinas	ruina		cornisa		si
+ss_wall_ledge_thick_corner_big	stylescape	muro	res://arte/stylescape/piezas/ss_wall_ledge_thick_corner_big.tscn	1.075	0.228	1.075		n/a	ruinas	ruina		cornisa		si
+ss_wall_ledgedetail_01	stylescape	muro	res://arte/stylescape/piezas/ss_wall_ledgedetail_01.tscn	0.575	0.160	0.094		n/a	ruinas	ruina		cornisa		poco
+ss_wall_ledgedetail_02	stylescape	muro	res://arte/stylescape/piezas/ss_wall_ledgedetail_02.tscn	1.150	0.160	0.094		n/a	ruinas	ruina		cornisa		si
+ss_wall_ledgedetail_03	stylescape	muro	res://arte/stylescape/piezas/ss_wall_ledgedetail_03.tscn	1.725	0.160	0.094		n/a	ruinas	ruina		cornisa		si
+ss_wall_ledgedetail_04	stylescape	adorno	res://arte/stylescape/piezas/ss_wall_ledgedetail_04.tscn	2.300	0.160	0.094	paredes_stylescape	n/a	ruinas	ruina		cornisa		si
+ss_wall_ledgedetail_inside	stylescape	muro	res://arte/stylescape/piezas/ss_wall_ledgedetail_inside.tscn	0.575	0.160	0.575		n/a	ruinas	ruina		cornisa		poco
+ss_wall_ledgedetail_outside	stylescape	muro	res://arte/stylescape/piezas/ss_wall_ledgedetail_outside.tscn	0.669	0.160	0.669		n/a	ruinas	ruina		cornisa		si
+ss_wall_loopholes_01	stylescape	muro	res://arte/stylescape/piezas/ss_wall_loopholes_01.tscn	2.300	1.724	0.288	paredes_stylescape	n/a	ruinas	ruina		muro_ventana		si
+ss_wall_loopholes_half	stylescape	muro	res://arte/stylescape/piezas/ss_wall_loopholes_half.tscn	1.150	1.724	0.288	paredes_stylescape	n/a	ruinas	ruina		muro_bajo		si
+ss_wall_loopholes_thick_01	stylescape	muro	res://arte/stylescape/piezas/ss_wall_loopholes_thick_01.tscn	2.300	1.724	0.575		n/a	ruinas	ruina		muro_grueso		si
+ss_wall_loopholes_thick_half	stylescape	muro	res://arte/stylescape/piezas/ss_wall_loopholes_thick_half.tscn	1.150	1.724	0.575		n/a	ruinas	ruina		muro_grueso		si
+ss_wall_thick_01	stylescape	muro	res://arte/stylescape/piezas/ss_wall_thick_01.tscn	0.575	1.724	0.575		n/a	ruinas	ruina		muro_grueso		si
+ss_wall_thick_02	stylescape	muro	res://arte/stylescape/piezas/ss_wall_thick_02.tscn	1.150	1.724	0.575		n/a	ruinas	ruina		muro_grueso		si
+ss_wall_thick_03	stylescape	muro	res://arte/stylescape/piezas/ss_wall_thick_03.tscn	1.725	1.724	0.575		n/a	ruinas	ruina		muro_grueso		si
+ss_wall_thick_04	stylescape	muro	res://arte/stylescape/piezas/ss_wall_thick_04.tscn	2.300	1.724	0.575	paredes_stylescape	n/a	ruinas	ruina		muro_grueso		si
+ss_wall_thick_archdetail_01	stylescape	muro	res://arte/stylescape/piezas/ss_wall_thick_archdetail_01.tscn	1.023	0.736	0.575		n/a	ruinas	ruina		muro_arco		si
+ss_wall_thick_archdetail_02	stylescape	muro	res://arte/stylescape/piezas/ss_wall_thick_archdetail_02.tscn	1.150	0.736	1.023		n/a	ruinas	ruina		muro_arco		si
+ss_wall_thick_archdetail_03	stylescape	muro	res://arte/stylescape/piezas/ss_wall_thick_archdetail_03.tscn	1.725	0.736	1.023		n/a	ruinas	ruina		muro_arco		si
+ss_wall_thick_archdetail_04	stylescape	muro	res://arte/stylescape/piezas/ss_wall_thick_archdetail_04.tscn	2.300	0.736	1.023		n/a	ruinas	ruina		muro_arco		si
+ss_wall_thick_dmg_01	stylescape	muro	res://arte/stylescape/piezas/ss_wall_thick_dmg_01.tscn	1.338	1.743	0.624		n/a	ruinas	ruina		muro_grueso		si
+ss_wall_thick_dmg_01_alt	stylescape	muro	res://arte/stylescape/piezas/ss_wall_thick_dmg_01_alt.tscn	0.763	1.743	0.624		n/a	ruinas	ruina		muro_grueso		si
+ss_wall_thick_dmg_01_half_01	stylescape	muro	res://arte/stylescape/piezas/ss_wall_thick_dmg_01_half_01.tscn	0.763	0.863	0.575		n/a	ruinas	ruina		muro_grueso		si
+ss_wall_thick_dmg_01_half_02	stylescape	muro	res://arte/stylescape/piezas/ss_wall_thick_dmg_01_half_02.tscn	0.760	0.880	0.602		n/a	ruinas	ruina		muro_grueso		si
+ss_wall_thick_dmg_02	stylescape	muro	res://arte/stylescape/piezas/ss_wall_thick_dmg_02.tscn	2.300	1.724	0.586		n/a	ruinas	ruina		muro_grueso		si
+ss_wall_thick_dmg_02_alt	stylescape	muro	res://arte/stylescape/piezas/ss_wall_thick_dmg_02_alt.tscn	1.725	1.724	0.586		n/a	ruinas	ruina		muro_grueso		si
+ss_wall_thick_dmg_02_half_01	stylescape	muro	res://arte/stylescape/piezas/ss_wall_thick_dmg_02_half_01.tscn	0.850	0.863	0.586		n/a	ruinas	ruina		muro_grueso		si
+ss_wall_thick_dmg_02_half_02	stylescape	muro	res://arte/stylescape/piezas/ss_wall_thick_dmg_02_half_02.tscn	1.725	0.861	0.575		n/a	ruinas	ruina		muro_grueso		si
+ss_wall_thick_dmg_03	stylescape	muro	res://arte/stylescape/piezas/ss_wall_thick_dmg_03.tscn	2.311	1.724	0.633		n/a	ruinas	ruina		muro_grueso		si
+ss_wall_thick_dmg_03_alt	stylescape	muro	res://arte/stylescape/piezas/ss_wall_thick_dmg_03_alt.tscn	1.161	1.724	0.633		n/a	ruinas	ruina		muro_grueso		si
+ss_wall_thick_dmg_03_half_01	stylescape	muro	res://arte/stylescape/piezas/ss_wall_thick_dmg_03_half_01.tscn	1.161	0.863	0.626		n/a	ruinas	ruina		muro_grueso		si
+ss_wall_thick_dmg_03_half_02	stylescape	muro	res://arte/stylescape/piezas/ss_wall_thick_dmg_03_half_02.tscn	0.911	0.861	0.606		n/a	ruinas	ruina		muro_grueso		si
+ss_wall_thick_dmg_04	stylescape	muro	res://arte/stylescape/piezas/ss_wall_thick_dmg_04.tscn	2.300	1.724	0.592		n/a	ruinas	ruina		muro_grueso		si
+ss_wall_thick_dmg_04_alt	stylescape	muro	res://arte/stylescape/piezas/ss_wall_thick_dmg_04_alt.tscn	1.150	1.724	0.592		n/a	ruinas	ruina		muro_grueso		si
+ss_wall_thick_dmg_04_half_01	stylescape	muro	res://arte/stylescape/piezas/ss_wall_thick_dmg_04_half_01.tscn	0.902	0.863	0.592		n/a	ruinas	ruina		muro_grueso		si
+ss_wall_thick_dmg_04_half_02	stylescape	muro	res://arte/stylescape/piezas/ss_wall_thick_dmg_04_half_02.tscn	1.150	0.861	0.575		n/a	ruinas	ruina		muro_grueso		si
+ss_wall_thick_half_01	stylescape	muro	res://arte/stylescape/piezas/ss_wall_thick_half_01.tscn	0.575	0.862	0.575		n/a	ruinas	ruina		muro_grueso		si
+ss_wall_thick_half_02	stylescape	muro	res://arte/stylescape/piezas/ss_wall_thick_half_02.tscn	1.150	0.863	0.575		n/a	ruinas	ruina		muro_grueso		si
+ss_wall_thick_half_03	stylescape	muro	res://arte/stylescape/piezas/ss_wall_thick_half_03.tscn	1.725	0.862	0.575		n/a	ruinas	ruina		muro_grueso		si
+ss_wall_thick_half_04	stylescape	muro	res://arte/stylescape/piezas/ss_wall_thick_half_04.tscn	2.300	0.862	0.575	paredes_stylescape	n/a	ruinas	ruina		muro_grueso		si
+ss_wall_window_archdetail	stylescape	muro	res://arte/stylescape/piezas/ss_wall_window_archdetail.tscn	2.300	0.736	0.232		n/a	ruinas	ruina		muro_arco		si
+ss_wall_window_archdetail_half	stylescape	muro	res://arte/stylescape/piezas/ss_wall_window_archdetail_half.tscn	1.150	0.736	0.232		n/a	ruinas	ruina		muro_arco		si
+ss_wall_windows_01	stylescape	muro	res://arte/stylescape/piezas/ss_wall_windows_01.tscn	2.300	1.724	0.288	paredes_stylescape	n/a	ruinas	ruina		muro_ventana		si
+ss_wall_windows_half	stylescape	muro	res://arte/stylescape/piezas/ss_wall_windows_half.tscn	1.150	1.724	0.288	paredes_stylescape	n/a	ruinas	ruina		muro_bajo		si
+ss_wall_windows_half_thick	stylescape	muro	res://arte/stylescape/piezas/ss_wall_windows_half_thick.tscn	1.150	1.724	0.575		n/a	ruinas	ruina		muro_grueso		si
+ss_wall_windows_thick_01	stylescape	muro	res://arte/stylescape/piezas/ss_wall_windows_thick_01.tscn	2.300	1.724	0.576		n/a	ruinas	ruina		muro_grueso		si
+ss_windowframe_01	stylescape	muro	res://arte/stylescape/piezas/ss_windowframe_01.tscn	0.729	0.957	0.199		n/a	ruinas	ruina		puerta_ventana		si
+ss_wood_floor_2x1	stylescape	adorno	res://arte/stylescape/piezas/ss_wood_floor_2x1.tscn	1.151	0.063	0.576		n/a	ruinas	ruina		suelo		si
+ss_wood_floor_2x2	stylescape	adorno	res://arte/stylescape/piezas/ss_wood_floor_2x2.tscn	1.151	0.063	1.151		n/a	ruinas	ruina		suelo		si
+ss_wood_stair_plank	stylescape	adorno	res://arte/stylescape/piezas/ss_wood_stair_plank.tscn	1.064	0.029	0.167		n/a	ruinas	ruina		escalera		si
+ss_wooddoor_double	stylescape	adorno	res://arte/stylescape/piezas/ss_wooddoor_double.tscn	1.284	1.563	0.114		n/a	ruinas	ruina		puerta_ventana		si
+ss_wooddoor_single	stylescape	adorno	res://arte/stylescape/piezas/ss_wooddoor_single.tscn	0.645	1.563	0.115		n/a	ruinas	ruina		puerta_ventana		si

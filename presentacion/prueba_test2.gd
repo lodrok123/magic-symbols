@@ -923,6 +923,17 @@ const ESCALA_VFX_NUEVO: float = 0.6
 ## juntas y los bordes de Monte Sumicio (ver `_aplicar_juntas_entremezcladas`). Poner a false en la escena de un nivel para dejarlo como estaba.
 @export var orilla_integrada: bool = true
 @export var juntas_entremezcladas: bool = true
+## 26/11 (Pablo: «integra en el generador los assets de Unreal»): la VARIEDAD del decorado por bioma. `decorado_bioma`: los árboles, arbustos, rocas y
+## flores de las piezas del pack Pure Nature (y los restos del pack Stylescape) que lista `presentacion/tabla_decorado_bioma.gd` se mezclan con los
+## de siempre. false = solo lo de siempre (las listas de antes, ahora también leídas de la tabla): los niveles hechos a mano no cambian. El exportador del
+## generador de mapas lo enciende en las escenas que genera.
+@export var decorado_bioma: bool = false
+## 26/11 (Pablo: «que el suelo con hierba también genere hierba corta, flores pequeñas, etc.»): la CAPA DE RIQUEZA del suelo de hierba
+## (`presentacion/riqueza_suelo_3d.gd`): matas de hierba corta de varios modelos, flores en corros, trébol y musgo, rocas pequeñas y ramas, y de vez
+## en cuando un resto de ruina suelto. Solo decorado (sin colisión) y por lotes. false = apagada. Las constantes con nombre para afinarla, en ese script.
+@export var riqueza_suelo: bool = false
+## Semilla del mapa generado (el exportador la escribe): entra en el azar de la variedad y de la riqueza, para que dos mapas distintos no repitan el reparto.
+@export var semilla_decorado: int = 0
 ## 20/11: cámara confinada a la sala (CamaraSalas): se frena en el borde de la sala de las líneas `; camara` del mapa (en los
 ## pasillos, en el del mapa) y en las salas que no caben en el encuadre se acerca poco a poco. Apagado de serie; lo encienden
 ## las escenas del generador de mapas.
@@ -1354,6 +1365,7 @@ func _ready() -> void:
 	_colocar_empujables()
 	_crono("canal, agua, extras, nivel, empujables")
 	_sembrar_adornos()
+	_sembrar_riqueza_suelo()
 	_crono("adornos")
 	_construir_lotes()
 	_crono("lotes")
@@ -1759,38 +1771,24 @@ func _preparar_contacto_suelo(mat: ShaderMaterial) -> void:
 ## 17/11 (Pablo: «traslada todos los cambios de terreno a todos los mapas… sí, a todos»): las JUNTAS Y LOS BORDES que se afinaron en Monte
 ## Sumicio el 14/11, en todos los niveles: más relieve en el suelo y en la hierba, la franja pintada de la junta casi lisa, sin franja de hojas
 ## y con la frontera de la hierba rota por ruido fino (matas y calvas entremezcladas con la tierra y la piedra). Los valores son los de
-## `escenas/monte_sumicio_mundo.gd` (allí está el porqué de cada uno); si se cambian allí, hay que cambiarlos aquí. Sumicio vuelve a poner
-## los suyos en `_vestir_suelo`. En estilo «cueva» no se aplica: todo el suelo es roca y el borde de hierba ya está apagado.
+## `presentacion/acabado_suelo.gd` (allí está el porqué de cada uno). 26/11: ya NO hay dos copias: Monte Sumicio (`_vestir_suelo`) y todos los
+## niveles de la maqueta, también los del generador de mapas, leen ESE script; lo que se afine allí llega a los dos.
+## En estilo «cueva» no se aplica: todo el suelo es roca y el borde de hierba ya está apagado.
 ## `juntas_entremezcladas = false` en la escena deja el nivel con las juntas de antes.
-const JUNTAS_RUGOSIDAD: float = 2.5
-const JUNTAS_RELIEVE_HIERBA: float = 0.4
-const JUNTAS_RELIEVE_JUNTA: float = 0.4
-const JUNTAS_BORDE_EXTIENDE: float = 1.0
-const JUNTAS_BORDE_FUNDIDO: float = 1.0
-const JUNTAS_BORDE_FUERZA: float = 0.0
-const JUNTAS_MEZCLA_HIERBA: float = 1.2
-const JUNTAS_BORDE_TINTE: Color = Color(0.82, 0.87, 0.64)
+const AcabadoSuelo = preload("res://presentacion/acabado_suelo.gd")
 
 
 func _aplicar_juntas_entremezcladas() -> void:
-	if not juntas_entremezcladas or _mat_suelo == null or estilo == "cueva":
+	if not juntas_entremezcladas or _mat_suelo == null or AcabadoSuelo.ESTILOS_SIN_JUNTAS.has(estilo):
 		return
 	# La «junta suave» que acompaña a la orilla integrada funde la hierba con la tierra en un degradado borroso: justo lo que Pablo rechazó en
 	# Sumicio el 14/11 («debajo la hierba pasa a la tierra en un degradado borroso»). Donde van estas juntas, esa se apaga (las teclas de la
 	# maqueta siguen pudiendo encenderla para comparar). Se hace ANTES de `_preparar_contacto_suelo`, que es quien se lo pasa al shader.
 	_junta_vegetal_suave = false
 	_junta_piedra_suave = false
-	if estilo != "pantano":
-		# En el Pantano el relieve de Sumicio sobre el barro mojado sale como un grano brillante por todo el suelo: allí se queda el de siempre.
-		_rugosidad = JUNTAS_RUGOSIDAD
-		_mat_suelo.set_shader_parameter("rugosidad", _rugosidad)
-	_mat_suelo.set_shader_parameter("relieve_hierba", JUNTAS_RELIEVE_HIERBA)
-	_mat_suelo.set_shader_parameter("relieve_junta", JUNTAS_RELIEVE_JUNTA)
-	_mat_suelo.set_shader_parameter("borde_extiende", JUNTAS_BORDE_EXTIENDE)
-	_mat_suelo.set_shader_parameter("borde_fundido", JUNTAS_BORDE_FUNDIDO)
-	_mat_suelo.set_shader_parameter("borde_fuerza", JUNTAS_BORDE_FUERZA)
-	_mat_suelo.set_shader_parameter("mezcla_hierba", JUNTAS_MEZCLA_HIERBA)
-	_mat_suelo.set_shader_parameter("borde_tinte", JUNTAS_BORDE_TINTE)
+	# (En el Pantano el relieve de Sumicio sobre el barro mojado sale como un grano brillante por todo el suelo: allí se queda la rugosidad de siempre.
+	# Eso lo decide `AcabadoSuelo.ESTILOS_SIN_RUGOSIDAD`.)
+	_rugosidad = AcabadoSuelo.aplicar(_mat_suelo, estilo, _rugosidad)
 
 
 func _pintar_contacto(c: Vector2i) -> void:
@@ -1898,7 +1896,11 @@ func _generar_manta_bosque() -> ImageTexture:
 	var medida: int = _lado * MUESTRAS
 	var pixeles_por_unidad: float = float(MUESTRAS) / S
 	var img := Image.create_empty(medida, medida, false, Image.FORMAT_R8)
-	for id in VERDES_COPA:
+	var ids_copa: Array = VERDES_COPA.keys()
+	for id_l in _lotes:
+		if not VERDES_COPA.has(id_l) and TablaDecorado.copa_como(String(id_l)) != "":
+			ids_copa.append(id_l)      # 26/11: los árboles del pack de la tabla de decorado también dan su mancha de sombra verde al suelo
+	for id in ids_copa:
 		for transformacion: Transform3D in _lotes.get(id, []):
 			var pos: Vector3 = transformacion.origin
 			var centro := Vector2(pos.x, pos.z) * pixeles_por_unidad
@@ -3355,6 +3357,12 @@ func _en_piezas_sueltas(id: String) -> bool:
 
 ## Copia de una pieza escalada a su medida, con la base en y = 0. null si no está en ninguna biblioteca.
 func _pieza(id: String, con_variantes: bool = true) -> Node3D:
+	# 26/11: pieza de la TABLA DE DECORADO que viene de un pack (`pn_…` de Pure Nature con el material del juego, `lost_…` de Lost Cave): su visual lo da Pieza3D
+	if TablaDecorado.es_externa(id):
+		var ext: Node3D = Pieza3D.visual_decorado(id)
+		if ext == null and not _avisos.has("sin pieza " + id):
+			_avisos.append("sin pieza " + id)
+		return _a_paleta(ext, id) if ext != null else null
 	# 26/11: vegetación que Pablo eligió sustituir por la del pack Pure Nature (TablaVariantes), al tamaño de la pieza que sustituye
 	var variante: Node3D = Pieza3D.visual_variante(id, TablaVariantes.elegir(id)) if con_variantes else null
 	if variante != null: return _a_paleta(variante, id)
@@ -3442,9 +3450,45 @@ const FRENTE_A_CAMARA: Array = ["cartel", "totem_runico", "brasero", "fogata", "
 	"cristal_sanctuario", "portal_salida", "arco_ruina", "arco_puerta", "telarana", "pilar"]
 const ALARGADAS: Array = ["tronco", "troncos_apilados", "tronco_musgoso", "tronco_enredadera", "tronco_seco", "tronco_resina",
 	"tronco_sin_resina", "seto_seco", "arbusto_otono", "valla", "valla_lianas", "empalizada_goblin", "banco", "laja_piedra"]
-## 4/11 (Pablo): en los muros solo los árboles DETALLADOS (pino, árbol viejo y sauce de `s_stylized_trees`); el redondo claro de la
-## biblioteca vieja (`arbol_redondo`) ya no sale. Peso de cada uno en el reparto (el pino da ritmo vertical; el sauce, el menos frecuente).
-const ARBOLES_MURO: Array = [["pino", 5], ["arbol_viejo", 4], ["sauce", 2]]
+## 26/11: los árboles de los muros, los arbustos de la masa, el decorado de los claros y las flores de borde ya no son listas de aquí: salen de
+## `presentacion/tabla_decorado_bioma.gd`, por estilo y por papel (con los pesos de siempre; allí se mete, se quita o se veta una pieza).
+## (4/11, Pablo: en los muros solo los árboles DETALLADOS: pino, árbol viejo y sauce; el redondo claro de la biblioteca vieja ya no sale.)
+const TablaDecorado = preload("res://presentacion/tabla_decorado_bioma.gd")
+
+
+## Una pieza del papel `papel` (ver la tabla) para el estilo de este nivel. `k` es el entero del reparto (un hash de la casilla, o `rng.randi()`).
+## Con `decorado_bioma` apagado salen solo las piezas del juego (las listas de antes de la tabla); con él encendido, también las del pack, y la
+## semilla del mapa entra en el reparto. "" si el papel no tiene piezas.
+func _del_papel(papel: String, k: int) -> String:
+	if decorado_bioma:
+		return TablaDecorado.elegir(estilo, papel, k + semilla_decorado * 40503, true)
+	return TablaDecorado.elegir(estilo, papel, k, false)
+
+
+## 26/11: cuántos modelos DISTINTOS de un mismo papel hay como mucho en cada TROZO de 7×7 casillas (el tamaño de un lote, `BLOQUE_LOTE`). Cada modelo distinto es
+## un MultiMesh más por trozo (y cada uno, una llamada de dibujo más): con los 20 modelos de árbol de la tabla mezclados al azar, un trozo llevaba 20 lotes. Así,
+## cada trozo lleva unos pocos (elegidos por peso, según el trozo y la semilla) y el bosque cambia de especie de un trozo a otro, como un bosque de verdad.
+## 0 = sin límite. Solo con `decorado_bioma`.
+const MODELOS_POR_TROZO: Dictionary = {"arbol_masa": 4, "arbol_borde": 3, "masa_menor": 2, "decor_claro": 4, "adorno_borde": 4}
+const LADO_TROZO: int = 7
+
+
+## Como `_del_papel`, pero limitado a `MODELOS_POR_TROZO` modelos distintos en el trozo de la casilla `c`.
+func _del_papel_en(papel: String, k: int, c: Vector2i) -> String:
+	var n: int = int(MODELOS_POR_TROZO.get(papel, 0))
+	if not decorado_bioma or n <= 0 or c.x < 0:
+		return _del_papel(papel, k)
+	var lista: Array = TablaDecorado.filas(estilo, papel, true)
+	if lista.size() <= n:
+		return _del_papel(papel, k)
+	var sub: Array = []
+	var i: int = 0
+	while sub.size() < n and i < n * 6:
+		var id: String = TablaDecorado.elegir_de(lista, _hash(floori(c.x / float(LADO_TROZO)), floori(c.y / float(LADO_TROZO)), 800 + i * 13 + papel.length() * 7 + semilla_decorado))
+		if id != "" and not sub.has(id):
+			sub.append(id)
+		i += 1
+	return String(sub[posmod(k, sub.size())]) if not sub.is_empty() else _del_papel(papel, k)
 
 
 func _giro_por_defecto(id: String, h: int) -> float:
@@ -3475,7 +3519,9 @@ func _es_tramo(c: Vector2i) -> bool:
 ## cada uno con giro libre por casilla y la escala de _poner (0,88-1,12).
 func _muro_pantano(c: Vector2i, h: int) -> void:
 	var k: int = (h >> 3) % 10
-	var id: String = "arbol_manglar"
+	var id: String = _del_papel_en("arbol_borde" if _borde_de_muro(c) else "arbol_masa", h >> 4, c)      # 26/11: el manglar de siempre + (con `decorado_bioma`) árboles del pack
+	if id == "":
+		id = "arbol_manglar"
 	if k == 4 and not _borde_de_muro(c):
 		id = "sauce"
 	elif k == 5 and ResourceLoader.exists("res://arte/piezas/arbol_muerto.tscn"):
@@ -3494,16 +3540,10 @@ func _arbol_de_muro(h: int, c: Vector2i = Vector2i(-1, -1)) -> String:
 	if estilo == "pantano":          # 8/11: los muros del pantano son manglares (el sauce, de vez en cuando, en el fondo)
 		return "arbol_manglar" if (c.x >= 0 and _borde_de_muro(c)) or (h >> 3) % 4 != 0 else "sauce"
 	if c.x >= 0 and _borde_de_muro(c):
-		return "pino"
-	var total: int = 0
-	for a in ARBOLES_MURO:
-		total += int(a[1])
-	var k: int = (h >> 3) % total
-	for a in ARBOLES_MURO:
-		k -= int(a[1])
-		if k < 0:
-			return String(a[0])
-	return "pino"
+		var borde: String = _del_papel_en("arbol_borde", h >> 3, c)
+		return borde if borde != "" else "pino"
+	var arbol: String = _del_papel_en("arbol_masa", h >> 3, c)
+	return arbol if arbol != "" else "pino"
 
 
 ## ¿La casilla de muro `c` toca (en las 8 direcciones) una casilla que no es muro? Fuera del mapa cuenta como muro.
@@ -3957,8 +3997,9 @@ func _plantilla(id: String, ruta: String = "") -> Array:
 			else:
 				for i in range(malla.get_surface_count()):
 					_preparar_contacto_roca(malla.surface_get_material(i), caja)
-		if _contacto_tex != null and transparencia_jugador and VERDES_COPA.has(id):
-			var objetivo: Color = VERDES_COPA[id]
+		var copa_como: String = id if VERDES_COPA.has(id) else TablaDecorado.copa_como(id)      # 26/11: los árboles del pack de la tabla, con el verde del que se les parece
+		if _contacto_tex != null and transparencia_jugador and VERDES_COPA.has(copa_como):
+			var objetivo: Color = VERDES_COPA[copa_como]
 			if parte[2] != null:
 				_preparar_paleta_copa(parte[2] as Material, objetivo)
 			else:
@@ -4029,6 +4070,10 @@ func _alternar_vistas() -> void:
 		mm.set_instance_transform(entrada["indice"], entrada["bajo" if _vistas_abiertas else "original"])
 
 
+## 26/11: los ids de la capa de riqueza del suelo (matas, flores, ramas…) no proyectan sombra: son diminutos y cada lote con sombra cuesta una pasada más.
+var _ids_sin_sombra: Dictionary = {}
+
+
 func _construir_lotes() -> void:
 	for id in _lotes:
 		var trozos: Dictionary = {}
@@ -4054,7 +4099,7 @@ func _construir_lotes() -> void:
 				var mi := MultiMeshInstance3D.new()
 				mi.name = "lote_%s_%d_%d" % [String(id), k.x, k.y]
 				mi.multimesh = mm
-				if SIN_SOMBRA.has(String(id)):
+				if SIN_SOMBRA.has(String(id)) or _ids_sin_sombra.has(String(id)):
 					mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 				if parte[2] != null:
 					mi.material_override = parte[2] as Material
@@ -4062,7 +4107,7 @@ func _construir_lotes() -> void:
 				_n_lotes += 1
 				# Bloque 4 EoW: la sombra de árboles y pinos la proyecta una copia REDUCIDA (MallaReducida3D) que no se ve; el árbol de verdad ya no la
 				# proyecta. Medido en el Bosque: la pasada de sombra dibujaba ≈ 3,8 M de triángulos de 4,35 M por fotograma.
-				if sombra_reducida and SOMBRA_REDUCIDA.has(String(id)) and mi.cast_shadow != GeometryInstance3D.SHADOW_CASTING_SETTING_OFF:
+				if sombra_reducida and (SOMBRA_REDUCIDA.has(String(id)) or TablaDecorado.copa_como(String(id)) != "") and mi.cast_shadow != GeometryInstance3D.SHADOW_CASTING_SETTING_OFF:
 					var reducida: Mesh = MallaReducida3D.reducir(mm.mesh, FRACCION_SOMBRA)
 					if reducida != mm.mesh:
 						var mms := MultiMesh.new()
@@ -4349,7 +4394,12 @@ func _colocar_letras() -> void:
 	# "caja_cristal" también: los empujables son cubos (_colocar_empujables).
 	# 12/11: sin "tocon" en la siembra al azar. Un tocón ya es un objeto sólido que arde (TOCONES): sembrado por hash cerraba casillas de paso que el mapa no pedía
 	# (en el lab de playtest tapaba (27,6) y desviaba la ruta del goblin). Los tocones los pone el nivel a mano; su hueco en la siembra lo ocupan las setas.
-	var decor: Array = ["arbusto", "arbusto_flores", "piedras", "setas", "setas", "arbusto", "piedras"]
+	# 26/11: el decorado suelto de los claros (antes la lista `decor` de aquí: arbusto, arbusto con flores, piedras y setas) sale de la tabla, papel `decor_claro`.
+	# Con `decorado_bioma`, además, ni una pieza suelta sobre la casilla de una pieza de puzle (cofre, jarrón, brasero…): las del pack son más grandes que las piedrecitas de siempre.
+	var casillas_puzle: Dictionary = {}
+	if decorado_bioma:
+		for q in _celdas_puzle_del_mapa():
+			casillas_puzle[q] = true
 	for y in range(_lado):
 		for x in range(_mapa[y].length()):
 			var c := Vector2i(x, y)
@@ -4373,7 +4423,9 @@ func _colocar_letras() -> void:
 					elif estilo == "pantano":
 						_muro_pantano(c, h)
 					elif h % 6 == 0:
-						_poner("arbusto" if h % 2 == 0 else "roca_grande", c, ALTO, true)
+						# (de siempre: arbusto o roca grande a partes iguales, por `h % 2`; con `decorado_bioma`, también arbustos y rocas con musgo del pack)
+						var menor: String = _del_papel_en("masa_menor", h, c)
+						_poner(menor if menor != "" else ("arbusto" if h % 2 == 0 else "roca_grande"), c, ALTO, true)
 					else:
 						# Toda casilla de pared lleva un árbol: antes 1 de cada 4 quedaba sin modelo y era un hueco que parecía
 						# paso pero bloqueaba (pared invisible). Juego, 2026-10-06.
@@ -4559,8 +4611,10 @@ func _colocar_letras() -> void:
 								_decor_lostcave(c)
 							else:
 								_poner(String(DECOR_CUEVA[_hash(x, y, 5) % DECOR_CUEVA.size()]), c, ALTO, false)
-					elif h % 9 == 0 and _tipo_suelo(c) == 0 and nivel != "pruebas":      # el banco de pruebas va limpio
-						_poner(String(decor[_hash(x, y, 5) % decor.size()]), c, ALTO, false)
+					elif h % 9 == 0 and _tipo_suelo(c) == 0 and nivel != "pruebas" and not casillas_puzle.has(c):      # el banco de pruebas va limpio
+						var suelto: String = _del_papel_en("decor_claro", _hash(x, y, 5), c)
+						if suelto != "":
+							_poner(suelto, c, ALTO, false)
 
 	_en_marcador = false
 	_colocar_barreras_fuego()
@@ -5671,7 +5725,7 @@ const ADORNOS: Dictionary = {
 	"separacion": 3,         ## casillas entre centros de grupos (Chebyshev): grupos pocos y bien separados
 	# flores y matas bajas en el BORDE de los corros de hierba (piezas que ya existen en arte/piezas; sin colisión, van a los lotes)
 	# 26/11 (Pablo): + flores del pack para decorar el suelo (17c, 18a), la heliconia como flor de ambiente (21b) y el musgo como hierba corta (26b)
-	"borde_ids": ["flores_amarillas", "flores_colores", "helecho_ancho", "margarita_amarilla_suelo", "margarita_blanca_suelo", "flor_heliconia", "musgo_suelo"],
+	# (la lista de piezas, `borde_ids`, vive ahora en la tabla: `tabla_decorado_bioma.gd`, papel `adorno_borde`)
 	"borde_mata": Vector2(0.12, 0.88),   ## valor del campo de matas en que un punto cuenta como borde de corro (la banda del smoothstep de las matas es estrecha)
 	"borde_prob": 0.30,      ## probabilidad por casilla de llevar una pieza de borde (la mayoría se descarta por no estar en la banda o por tener algo cerca)
 	"borde_escala": Vector2(0.7, 1.05),
@@ -5760,6 +5814,21 @@ var _adornos_piedras: int = 0
 var _adornos_pos: Array[Vector3] = []     ## donde quedaron (para las pruebas)
 
 
+## 26/11: la capa de riqueza del suelo de hierba (matas de hierba corta, flores en corros, rocas pequeñas, ramas, restos de ruina): ver `riqueza_suelo_3d.gd`.
+## Solo con `riqueza_suelo` y por lotes (`decorado_por_lotes`). Las cuentas quedan en `riqueza_cuentas` (para las pruebas y las capturas).
+const RiquezaSuelo = preload("res://presentacion/riqueza_suelo_3d.gd")
+var riqueza_cuentas: Dictionary = {}
+
+
+func _sembrar_riqueza_suelo() -> void:
+	riqueza_cuentas = {}
+	if not riqueza_suelo or not decorado_por_lotes or estilo == "cueva":
+		return
+	var t0: int = Time.get_ticks_msec()
+	riqueza_cuentas = RiquezaSuelo.new().sembrar(self, S, ALTO - HUNDIR, estilo, semilla_decorado, decorado_bioma)
+	print("Riqueza del suelo: ", riqueza_cuentas, " en ", Time.get_ticks_msec() - t0, " ms")
+
+
 ## Pone los grupitos de adornos en los claros (antes de `_construir_lotes`: van a los mismos lotes que el resto del decorado, sin colisión).
 ## Sin azar de verdad: cada grupo sale de la casilla, así que es igual en cada partida.
 func _sembrar_adornos() -> void:
@@ -5814,9 +5883,8 @@ func _adorno_borde(c: Vector2i, ocupado: Dictionary) -> void:
 		return
 	if not _lejos_de_no_hierba(p, c) or _cerca_de_algo(p, ocupado):
 		return
-	var ids: Array = ADORNOS["borde_ids"]
-	var real: String = _id_real(String(ids[rng.randi() % ids.size()]))
-	if _plantilla(real).is_empty():
+	var real: String = _id_real(_del_papel_en("adorno_borde", rng.randi(), c))      # 26/11: la lista de flores y matas bajas sale de la tabla (papel `adorno_borde`)
+	if real == "" or _plantilla(real).is_empty():
 		return
 	var esc_r: Vector2 = ADORNOS["borde_escala"]
 	var esc: float = rng.randf_range(esc_r.x, esc_r.y)

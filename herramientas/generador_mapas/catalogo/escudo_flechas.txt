@@ -1,0 +1,23 @@
+; catalogo escudo_flechas
+; titulo Escudo de tierra contra las flechas
+; tipo premio
+; necesita tierra+barrera
+; validacion pendiente
+; pide tierra y barrera
+; resuelto cofre.abierto
+; prueba solucion A: golpe tierra 3:6 con barrera desde 3:3 | cruza 3:2 a 4:5 sin_dano | abre cofre
+; prueba nada: cruza 3:1 a 3:3 | reposo 3 | espera jugador herido | max 2; prueba nada_cofre: nunca cofre abierto | durante 5
+;  T5 del laboratorio de tierra («protegerse construyendo»). Una antecámara y un pasillo de una casilla que baja hasta un mascarón de piedra metido en el muro del fondo, que dispara una flecha normal
+;  cada segundo por el pasillo (12 de daño y aturde: cada flechazo deja a la jugadora en la línea de tiro y no se llega). El pasillo gira al este justo antes de la boca, hacia un cofre. Duerme (`cerca=4`)
+;  hasta que la jugadora entra en el pasillo. Solución: levantar un BLOQUE DE TIERRA (tierra + barrera) justo delante de la boca desde tres casillas: tapa todas las flechas mientras dura y
+;  se cruza en ~2 s hasta el codo, que sigue en la línea pero detrás del bloque. Sin él, las flechas dan.
+.......
+.......
+###.###
+###.###
+###.###
+###...#
+###.###
+#######
+; pieza trampa trampa_flechas 3 7 mira=n cada=1.0 elemento=ninguno alcance=6 cerca=4
+; pieza cofre cofre 5 5 abierto=$NIVEL.$ID.cofre da=oro:35+pocion:1

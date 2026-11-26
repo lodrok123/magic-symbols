@@ -7,29 +7,17 @@ func _construir_suelo(_dibujar: bool = true) -> void:
 	super._construir_suelo(false)
 
 
-## Fuerza del relieve (normal) del suelo en Monte Sumicio: 0 liso · 0,5 la de los demás niveles · 1 el máximo de la tecla B · 2 Sumicio (por encima del máximo de la tecla).
-const RUGOSIDAD_SUMICIO := 2.5
-## Relieve de más SOLO en la hierba (14/11, Pablo: «¿por qué no afecta en la hierba?»): por defecto la hierba lleva la mitad que el camino
-## y la luz en rampa la satura a blanco. 0 = como en los demás niveles.
-const RELIEVE_HIERBA_SUMICIO := 0.4    ## con 1 o más, el ruido de la normal se ve granulado sobre la hierba pintada
-## Relieve que conserva la franja pintada de la junta hierba→tierra/camino (14/11, Pablo: «esta junta ha vuelto a afectarse»): 0 = lisa,
-## con su dibujo limpio; 1 = el relieve del suelo también encima. Las rayas eran de la textura estirada (ver BORDE_EXTIENDE); lisa del todo
-## quedaba más clara que la hierba de al lado.
-const RELIEVE_JUNTA_SUMICIO := 0.4
-## La franja de hojas de la junta se EXTIENDE en coordenadas de mundo en vez de estirarse sobre la frontera (14/11, Pablo: «sospecho que
-## estás estirando la textura en vez de extenderla»): 1 = extendida (sin abanicos en curvas y esquinas) · 0 = como en los demás niveles.
-const BORDE_EXTIENDE_SUMICIO := 1.0
-## Fundido de esa franja hacia la tierra (14/11, Pablo: «debería tener la textura como un fade y entremezclarse con la tierra»): 1 = se
-## desvanece con el corte roto por ruido fino (calvas de tierra entre las hojas) · 0 = banda maciza, como en los demás niveles.
-const BORDE_FUNDIDO_SUMICIO := 1.0
-## Tinte de esa franja: el de serie (0,80 0,90 0,72) es para la hierba del bosque y aquí salía menta; este la acerca al verde de Sumicio.
-const BORDE_TINTE_SUMICIO := Color(0.82, 0.87, 0.64)
-## 14/11, 3.ª pasada (Pablo: «sigo sin verlo bien. Mira la junta»): con la cámara del juego la franja de hojas se ve como un hilo pálido con
-## manchas verdes planas sueltas, y debajo la hierba pasa a la tierra en un degradado borroso. Lo que se usa ahora: SIN franja de hojas
-## (BORDE_FUERZA 0, así que los cuatro valores de arriba no hacen nada) y con la frontera de la hierba rota por ruido fino (MEZCLA_HIERBA):
-## matas de hierba sobre la tierra y el empedrado y calvas en la hierba, entremezcladas. Para volver a la franja: BORDE_FUERZA 1, MEZCLA 0.
-const BORDE_FUERZA_SUMICIO := 0.0
-const MEZCLA_HIERBA_SUMICIO := 1.2     ## 0 = degradado liso · 0,8 suave · 1,4 muy deshilachado
+## 26/11: las juntas y los bordes de Sumicio (relieve, relieve de la junta, borde extendido y fundido, mezcla de hierba, tinte) viven en
+## `presentacion/acabado_suelo.gd`, que leen TAMBIÉN todos los niveles de la maqueta (los del generador de mapas incluidos). Se afinan allí, con el porqué
+## de cada valor; aquí solo quedan los nombres de siempre apuntando a ese script.
+const RUGOSIDAD_SUMICIO := AcabadoSuelo.RUGOSIDAD
+const RELIEVE_HIERBA_SUMICIO := AcabadoSuelo.RELIEVE_HIERBA
+const RELIEVE_JUNTA_SUMICIO := AcabadoSuelo.RELIEVE_JUNTA
+const BORDE_EXTIENDE_SUMICIO := AcabadoSuelo.BORDE_EXTIENDE
+const BORDE_FUNDIDO_SUMICIO := AcabadoSuelo.BORDE_FUNDIDO
+const BORDE_TINTE_SUMICIO := AcabadoSuelo.BORDE_TINTE
+const BORDE_FUERZA_SUMICIO := AcabadoSuelo.BORDE_FUERZA
+const MEZCLA_HIERBA_SUMICIO := AcabadoSuelo.MEZCLA_HIERBA
 
 
 ## Letra de suelo que pintó el GridMap en cada casilla (sin los marcadores encima).
@@ -133,15 +121,8 @@ func _vestir_suelo() -> void:
 	if _mat_suelo == null:
 		return
 	# 14/11 (Pablo: «¿puedes subir la normal del suelo?»): más relieve que en el resto de niveles (0,5). La tecla B sigue ciclando 0 · 0,5 · 1.
-	_rugosidad = RUGOSIDAD_SUMICIO
-	_mat_suelo.set_shader_parameter("rugosidad", _rugosidad)
-	_mat_suelo.set_shader_parameter("relieve_hierba", RELIEVE_HIERBA_SUMICIO)
-	_mat_suelo.set_shader_parameter("relieve_junta", RELIEVE_JUNTA_SUMICIO)
-	_mat_suelo.set_shader_parameter("borde_extiende", BORDE_EXTIENDE_SUMICIO)
-	_mat_suelo.set_shader_parameter("borde_fundido", BORDE_FUNDIDO_SUMICIO)
-	_mat_suelo.set_shader_parameter("borde_fuerza", BORDE_FUERZA_SUMICIO)
-	_mat_suelo.set_shader_parameter("mezcla_hierba", MEZCLA_HIERBA_SUMICIO)
-	_mat_suelo.set_shader_parameter("borde_tinte", BORDE_TINTE_SUMICIO)
+	# 26/11: los mismos ajustes que lleva ya la maqueta para todo nivel (`_aplicar_juntas_entremezcladas`); se repiten aquí por si esa pasada se apagó.
+	_rugosidad = AcabadoSuelo.aplicar(_mat_suelo, "sumicio", _rugosidad)
 	# El tipo «piedra» de Sumicio es el empedrado (las losas claras del bosque no van aquí).
 	if ResourceLoader.exists(SUELO + "empedrado_sumicio.png"):
 		_mat_suelo.set_shader_parameter("t_piedra", _tex(SUELO + "empedrado_sumicio.png"))

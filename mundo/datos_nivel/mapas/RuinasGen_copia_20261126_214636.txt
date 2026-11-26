@@ -1,0 +1,86 @@
+########################################
+####gg#..........T#RRRRRRRR#############
+####ggg..........W#RRRRRRRR#############
+#######.W.........#RRRRRRRR#############
+#.....#...........#RRRRRRRR#.T.T.#gg####
+#.....g...........#RRRRRRRT#.....ggg####
+#.....#...........##g#######.....#gg####
+#.....#.........W.#gggggggg#..W..#gg####
+#TA...#...W.......gggggggggg....T#gg####
+########g#########################gg####
+#ggggggggggggggggg#..........T#ggggg####
+#gggggggggggggggggg...........#ggggg####
+#gg#############gg#..........A#gg#######
+#gg#...........#gg#.........W.#gg#######
+#gg#...........gggg...........#gg#######
+#gg#...........#gg#.........W.#gg#######
+#gg#...A.......#gg#...........#ggggg####
+#ggg...........#ggg...........gggggg####
+#gg#......W....#gg#####g###########g####
+#gg#....W......#gg#.....#.......T#....T#
+#ggg...........#gg#.~~..#........#.....#
+#gg#...........#gg#.~~..#........#.....#
+#gg#...........#gg#.~~..#........#.....#
+#gg#TW.........#ggg.~~..#W.....W.g...A.#
+#gg#####g#####g##g#.~~..##########.....#
+#gg####gg#........#....W#######gg#....W#
+#gg####ggg........g.....#######ggg.....#
+#gg####gg#........#.....#######gg#######
+#gggggggg#...S....#.....#######gggggggg#
+#gggggggg#........#T....#######gggggggg#
+##########........#####g#############gg#
+##########........####ggggggggggggggggg#
+##########T.......####ggggggggggggggggg#
+########################################
+; ======================================================================================================================
+;  GENERADO por herramientas/generador_mapas. 2026-11-25. Nivel «RuinasGen», 40 × 34, algoritmo «salas», semilla 3.
+;  10 salas, 25 puertas, 18 enemigos, 2 cofres, 10 jarrones. Escena: escenas/PruebaRuinasGen.tscn. Mientras esta cabecera siga aquí, la herramienta puede volver a escribir
+;  este archivo (guarda copia si lo has retocado). Para adoptarlo como nivel hecho a mano, borra la palabra GENERADO de la línea de arriba.
+; ======================================================================================================================
+; # pared · . suelo · ~ agua honda · S inicio · W goblin guerrero · A goblin arquero · T brasero · g tierra pisada (pasillos) · R losas (o basalto bajo la lava) · G elemental del bosque
+; generador {"acabado":true,"agua":8,"algoritmo":"salas","alto":34,"ancho":40,"ancho_camino":2,"ancho_pasillo":2,"ancho_precipicio":2,"ancho_rio":2,"apertura":55,"arqueros":30,"b_braseros":true,"b_placa":true,"b_precipicio":true,"b_puente":true,"barreras":2,"braseros":1.0,"bucles":30,"bucles_claros":30,"callejones":100,"camara_sala":true,"campamentos":0,"charcas":20,"claros":6,"densidad_salas":1.0,"enemigos":1.0,"estilo":"ruinas","forma":"rectangulo","hierba_alta":15,"jarrones":1.0,"kit":"pruebas","lado_max":8,"lado_min":4,"lados_salida":"","llave":true,"luz":"ruinas","metodo":"fractal","n_salas":9,"nombre":"RuinasGen","octavas":4,"paredes":"kit","pasillos":30,"paso_tierra":0,"puertas":50,"puzles":0,"recto":60,"region_min":12,"relleno":56,"reparto":"dispersas","rio":"ns","rotulo":true,"runas":"","sala_jefe":"no","sala_max":4,"sala_min":2,"salas_cerradas":40,"salida_a":"","semilla":3,"silueta":60,"simetria":true,"sinuosidad":50,"solo_aceptados":false,"suavizados":2,"tamano_claro":5,"tamano_sala":10.0,"terreno":true,"tesoro":true}
+;
+; zona 1,1..38,32 ruinas mezcla=0.8 rotulo=RuinasGen
+;
+; camara 28,4..32,8
+; camara 19,19..23,29
+; camara 10,25..17,32
+; camara 4,13..14,23
+; camara 7,1..17,8
+; camara 19,10..29,17
+; camara 25,19..32,23
+; camara 19,1..26,5
+; camara 34,19..38,26
+; camara 1,4..5,8
+;
+; pieza inicio entrada 13 28
+; pieza puerta_tesoro puerta 20 6 modelo=llave llave=ruinasgen.tesoro.llave gasta=no abierto=ruinasgen.tesoro.puerta
+; pieza cat1_luces contador 30 5 de=29,4+31,4 modelo=totem
+; pieza puerta_1 puerta 33 23
+; pieza cat2_placa pulsador 28 20 modo=agua
+; pieza puerta_2 puerta 6 5
+; pieza tesoro cofre 22 3 abierto=ruinasgen.tesoro.cofre da=oro:60+pocion:1
+; pieza vigia_0 vigia 28 4 de=28,4..32,8 flag=ruinasgen.sala_0.limpia
+; pieza cerrojo_0 cerrojo 33 5 celdas=33,5+27,8 sala=28,4..32,8 hasta=ruinasgen.sala_0.limpia
+; puzle abre_0 cuando=vigia_0.todos_derrotados hace=cerrojo_0.abrir
+; pieza vigia_1 vigia 19 19 de=19,19..23,29 flag=ruinasgen.sala_1.limpia
+; pieza cerrojo_1 cerrojo 23 18 celdas=23,18+18,23+18,26+23,30 sala=19,19..23,29 hasta=ruinasgen.sala_1.limpia
+; puzle abre_1 cuando=vigia_1.todos_derrotados hace=cerrojo_1.abrir
+; pieza vigia_3 vigia 4 13 de=4,13..14,23 flag=ruinasgen.sala_3.limpia
+; pieza cerrojo_3 cerrojo 15 14 celdas=15,14+3,17+3,20+8,24+14,24 sala=4,13..14,23 hasta=ruinasgen.sala_3.limpia
+; puzle abre_3 cuando=vigia_3.todos_derrotados hace=cerrojo_3.abrir
+; pieza cofre_llave cofre 30 6 aparece_si=flag.ruinasgen.sala_0.limpia abierto=ruinasgen.tesoro.llave
+; pieza jarron_1 jarron 28 4 botin=oro
+; pieza jarron_2 jarron 20 19 botin=oro
+; pieza jarron_3 jarron 11 25 botin=oro
+; pieza jarron_4 jarron 7 13 botin=oro
+; pieza jarron_5 jarron 8 1 botin=oro
+; pieza jarron_6 jarron 24 10 botin=oro
+; pieza jarron_7 jarron 31 19 botin=pocion
+; pieza jarron_8 jarron 23 1 botin=pocion
+; pieza jarron_9 jarron 37 19 botin=oro
+; pieza jarron_10 jarron 4 4 botin=oro
+; puzle resuelve_puerta_1 cuando=cat1_luces.todos hace=flag.poner(ruinasgen.puerta_1.abierta)
+; puzle abre_puerta_1 cuando=flag.ruinasgen.puerta_1.abierta hace=puerta_1.abrir
+; puzle resuelve_puerta_2 cuando=cat2_placa.pulsado hace=flag.poner(ruinasgen.puerta_2.abierta)
+; puzle abre_puerta_2 cuando=flag.ruinasgen.puerta_2.abierta hace=puerta_2.abrir

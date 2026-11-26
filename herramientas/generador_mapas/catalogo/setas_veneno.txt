@@ -1,0 +1,24 @@
+; catalogo setas_veneno
+; titulo El pasillo de las setas de veneno
+; tipo premio
+; necesita fuego+flecha | agua+flecha
+; validacion pendiente
+; pide fuego (o agua)
+; resuelto cofre.abierto
+; prueba solucion A: golpe fuego seta_a desde 3:6 | reposo 1 | golpe fuego seta_b desde 3:4 | reposo 1.5 | cruza 3:7 a 3:1 sin_dano | abre cofre
+; prueba nada: cruza 3:7 a 3:1 con_dano
+; prueba nada_cofre: nunca cofre abierto | durante 5
+;  F12 del laboratorio de fuego («niebla del pantano», propuesta 6 del catálogo de 18/11). Un pasillo de una casilla con dos setas venenosas que exhalan cada 10 s una nube de 9 s: casi siempre hay
+;  nube en el pasillo y no hay ventana por la que cruzar sin envenenarse. El FUEGO a una seta o a su nube PRENDE EL GAS (la nube se consume en medio segundo y la seta arde 6 s sin exhalar): primero
+;  la de delante, desde la entrada, y luego la del fondo, desde la casilla ya limpia. Quedan ~16 s sin veneno para llegar al cofre del final. El agua a una seta la atasca 8 s (y apaga su llama).
+###.###
+###.###
+###.###
+###.###
+###.###
+###.###
+###.###
+.......
+; pieza seta_b respiradero 3 2 cada=10 vida=9 radio=1 crece=1.5 desfase=7 quema=0.5 arde=6
+; pieza seta_a respiradero 3 4 cada=10 vida=9 radio=1 crece=1.5 desfase=8 quema=0.5 arde=6
+; pieza cofre cofre 3 0 abierto=$NIVEL.$ID.cofre da=oro:35+pocion:1

@@ -1,0 +1,21 @@
+; catalogo choque_termico
+; titulo Choque térmico: la roca al rojo
+; tipo premio
+; necesita fuego+agua+flecha
+; validacion pendiente
+; pide fuego y agua
+; resuelto muro.roto
+; prueba solucion A: golpe fuego muro desde 2:3 | golpe agua muro desde 2:3 | espera muro roto | max 6 | abre cofre
+; prueba nada: nunca muro roto | durante 8
+; prueba nada_fuego: golpe fuego muro desde 2:3 | nunca muro roto | durante 10
+; prueba nada_agua: golpe agua muro desde 2:3 | nunca muro roto | durante 6
+; prueba nada_tierra: golpe tierra muro desde 2:3 | golpe tierra muro desde 2:3 | golpe tierra muro desde 2:3 | nunca muro roto | durante 5
+;  F14 del laboratorio de fuego, en pequeño. Un nicho con un cofre tapado por una ROCA TÉRMICA (más oscura y con vetas). Los golpes de tierra y las explosiones no la rompen: el FUEGO la pone
+;  al rojo 8 s (se ve y alumbra) y el AGUA mientras sigue caliente la parte (vapor). Fría, el agua no le hace nada; si se espera, se enfría sola y hay que calentarla otra vez.
+;  Solución: fuego a la roca y, sin esperar, agua. Dos sellos para una sola idea (un choque térmico), sin reacciones nuevas. Se juega desde la casilla de delante.
+#####
+##.##
+##.##
+.....
+; pieza cofre cofre 2 1 abierto=$NIVEL.$ID.cofre da=oro:30+pocion:1
+; pieza muro muro 2 2 termica=si

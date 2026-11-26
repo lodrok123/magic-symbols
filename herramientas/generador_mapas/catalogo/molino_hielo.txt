@@ -1,0 +1,26 @@
+; catalogo molino_hielo
+; titulo El molino tras la compuerta de hielo
+; tipo premio
+; necesita fuego+flecha
+; validacion pendiente
+; pide fuego
+; resuelto molino.girando
+; prueba solucion A: golpe fuego compuerta desde 3:6 | espera molino girando | max 20 | espera cofre cerrado | max 4 | abre cofre
+; prueba nada: reposo 10 | nunca molino girando | durante 8
+;  Q9 del laboratorio de agua («el molino»), con el grifo de hielo en vez del botón. Un manantial echa agua sin parar por un canal de una casilla, pero una COMPUERTA DE HIELO lo cierra: el agua se
+;  queda parada tras ella y la rueda del molino, metida en ese tramo, no gira. Un golpe de fuego derrite el hielo, el agua corre hacia el desagüe y la rueda gira con la corriente (`hechizo=no`: un
+;  golpe de agua no la mueve, solo la corriente de verdad). Al girar aparece el cofre. El hielo se derrite desde la orilla de entrada: la flecha de fuego se apagaría si cruzara agua.
+#######
+###c###
+###c###
+###c###
+###c###
+###c###
+##...##
+.......
+; pieza manantial manantial 3 1 caudal=1.5 rampa=no
+; pieza canal cuenca 3 2 celdas=3,2..3,3
+; pieza molino molino 3 2 umbral=0.3 hechizo=no
+; pieza compuerta compuerta 3 4 abre_con=fuego vertical=no
+; pieza desague cuenca 3 5 fijo=0.02
+; pieza cofre cofre 2 6 aparece_si=molino.girando abierto=$NIVEL.$ID.cofre da=oro:35+pocion:1

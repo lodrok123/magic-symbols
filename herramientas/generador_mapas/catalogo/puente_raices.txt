@@ -1,6 +1,8 @@
 ; catalogo puente_raices
 ; titulo El puente de zarcillos
 ; tipo paso
+; necesita agua+flecha
+; validacion pendiente
 ; pide agua
 ;  23/11/2026 (PUENTE DE ZARCILLOS, fase 1 con modelos provisionales; el archivo conserva el nombre `puente_raices` por compatibilidad con el catálogo). Una galería inundada de 5 × 2 (x2..6, y3..4: agua honda «~», no se pisa: no se nada) separa la orilla de abajo (de cara a la cámara) de la de arriba. En la orilla de
 ;  abajo, en (4,5), hay una PIEDRA CON SURCO sobre un bancal y, en su borde hacia el agua, un NUDO de zarcillos dormido (verde oliva). Un golpe de Agua a la casilla la moja y GERMINA: el agua sube en el hueco de la piedra, un hilo baja por el surco, el nudo se abre y, desde él, un PUENTE DE ZARCILLOS

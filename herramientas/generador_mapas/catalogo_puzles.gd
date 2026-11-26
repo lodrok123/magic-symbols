@@ -33,11 +33,16 @@ extends RefCounted
 ##   ; prueba mapa ancho=70 alto=60 sala_min=4  parámetros del mapa generado donde se prueba (para plantillas grandes que no caben en el mapa por defecto).
 ##   ; prueba solucion A: golpe fuego cuerda | espera puente tendido | max 6
 ##                                   una prueba jugada con hechizos reales: golpes, esperas hasta una condición, tope de tiempo. También `prueba nada: …` con `nunca … | durante <s>`.
+##                                   26/11: más pasos (todos documentados en `comprobar_puzles_agua.gd`): `cruza x:y a x:y sin_dano|con_dano` (anda de verdad y mide la vida), `empuja <pieza> n|e|s|o [veces]`
+##                                   y `abre <cofre> [desde x:y]` (E de verdad). Toda plantilla nueva lleva una solución que RESUELVE y una prueba `nada` que no resuelve sin hacer nada.
 ##   ; cueva pieza …               una línea que solo se escribe si el estilo del mapa es «cueva» (el brasero con el modelo de la Cueva)
 ##   <filas del plano>               # pared · . suelo · ~ agua · c cauce del juego (suelo ocupado, SIN icono «?» por casilla; la vista lo pinta azul) ·
 ##                                   espacio = no tocar · cualquier otra letra = suelo con esa letra del juego (y un icono «?» en la vista)
 ##   ; pieza … / ; puzle …           como en un mapa. Los ids son locales (al colocar se les pone delante `cat<n>_`). Las casillas de la plantilla (x y de la pieza y las listas de
 ##                                   `celdas`, `de`, `sala`, `en`, `camino`, `canal`, `bloque`, `ruta` y `enlaces`) se trasladan a donde cae la plantilla.
+##                                   26/11: una `trampa_dragon` o `trampa_flechas` (no `exenta=si`) va sobre una `#` de la plantilla (la cabeza metida en el muro); cualquier otra pieza, sobre suelo.
+##                                   Cuidado con los ids: el generador cambia por `cat<n>_<id>` todo valor que sea EXACTAMENTE el id de otra pieza de la plantilla, así que un id no puede llamarse como el valor de una
+##                                   clave (`agua`, `fuego`, `s`, `e`, `n`, `o`, `si`, `no`…).
 ##
 ## Comodines en las líneas: `$NIVEL` (el nivel en minúsculas), `$ID` (`cat<n>`, para flags: `$NIVEL.$ID.hecho`), `$X1` y `$Y1`
 ## (última columna y fila de la plantilla ya estirada), `$XC` (la columna central de la plantilla ya estirada, `(ancho-1)/2` entero; 23/11) y `$MODELO` (`modelo=cueva` si el estilo del mapa es «cueva»; si no, nada). Añadir un puzle = añadir un archivo; no hay que tocar código.

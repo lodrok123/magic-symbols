@@ -289,6 +289,8 @@ static func visual_aprobado(id: String) -> Node3D:
 
 
 static func crear_visual(id_pedido: String, usar_aprobados: bool = true) -> Node3D:
+	if TablaDecorado.es_externa(id_pedido):
+		return visual_decorado(id_pedido)      # 26/11: pieza de la tabla de decorado por bioma (pack Pure Nature o Lost Cave)
 	if usar_aprobados:
 		# 26/11: vegetación que Pablo eligió sustituir por la del pack Pure Nature (TablaVariantes; docs/fab_ue/candidatos_vegetacion.json).
 		# Se normaliza con el MEDIDA de la pieza que sustituye: sale a su mismo tamaño. "" = la original (o el pack no está en esta máquina).
@@ -402,6 +404,31 @@ static func forma_colision(id_pedido: String) -> Dictionary:
 			f["radio"] = r
 	_formas[id] = f
 	return f
+
+
+## 26/11: el visual de una pieza de la TABLA DE DECORADO POR BIOMA (`presentacion/tabla_decorado_bioma.gd`) que viene de un pack:
+##   · `pn_…` (Pure Nature): su versión del juego (arte/pure_nature/juego/, material del juego: arde, se moja, se hiela) escalada a la medida de su
+##     fila de la tabla ({"alto": u} o {"planta": u}), centrada en planta y con la base en y = 0. Los árboles y arbustos entierran lo de debajo de su origen.
+##   · `lost_…` (Lost Cave): su escena, que ya viene a su medida.
+## null si la escena no está en esta máquina (pack sin generar).
+const TablaDecorado = preload("res://presentacion/tabla_decorado_bioma.gd")
+
+
+static func visual_decorado(id: String) -> Node3D:
+	var ruta: String = TablaDecorado.ruta_de(id)
+	if ruta == "" or not ResourceLoader.exists(ruta):
+		return null
+	var ps: PackedScene = load(ruta) as PackedScene
+	if ps == null:
+		return null
+	var v: Node3D = ps.instantiate() as Node3D
+	if id.begins_with("lost_"):
+		return v
+	var medida: Dictionary = TablaDecorado.medida_de(id)
+	if medida.is_empty():
+		medida = {"alto": 1.0}
+	var caja: AABB = TablaVariantes.caja_visible("arbol", v) if TablaDecorado.entierra(id) else TablaVariantes.caja(v)
+	return _normalizar_a(v, caja, medida)
 
 
 ## 26/11: el visual de la variante `ruta` (TablaVariantes: vegetación del pack Pure Nature) para la pieza `id`, normalizado como la pieza

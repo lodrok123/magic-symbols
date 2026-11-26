@@ -1,0 +1,28 @@
+; catalogo retener_cuenca
+; titulo Retener el agua: tapón de tierra
+; tipo premio
+; necesita tierra+barrera+agua+flecha
+; validacion pendiente
+; pide tierra, barrera y agua
+; resuelto nivel.alcanzado
+; prueba solucion A: golpe tierra 3:3 con barrera desde 3:5 | golpe agua riego desde 3:5 | espera nivel alcanzado | espera cofre cerrado | max 25 | abre cofre
+; prueba nada: nunca nivel alcanzado | durante 6
+; prueba nada_sin_tapon: golpe agua riego desde 3:5 | nunca nivel alcanzado | durante 20
+;  T1b del laboratorio de tierra y agua («retener»; en la demo sustituye a la presa de hielo). Un canal de una casilla de ancho: arriba un manantial cerrado (lo abre el pulsador de agua), debajo un vaso
+;  de una casilla con un detector de nivel y, más abajo, una BOCA seca que da a un desagüe que se lo lleva todo. Sin tapón el agua se escurre y el vaso nunca sube. La TIERRA no se levanta sobre agua
+;  (regla de `Lanzador3D.puede_construir_en`, umbral 0,25 u), así que el tapón va ANTES: tierra + barrera en la boca desde dos casillas, y después agua al pulsador. El vaso llega a su nivel
+;  y aparece el cofre (el tapón dura 25 s). Si se riega antes de tapar, no sube: se espera a que se vacíe y se reintenta (el pulsador se rearma).
+#######
+###c###
+###c###
+###c###
+###c###
+##...##
+.......
+; pieza manantial manantial 3 1 caudal=0.8 volumen=0 rampa=no inicia=no
+; pieza vaso cuenca 3 2 celdas=3,2..3,3
+; pieza desague cuenca 3 4 fijo=0.02
+; pieza nivel nivel 3 2 objetivo=0.3
+; pieza riego pulsador 2 5 modo=agua rearme=2
+; puzle llena cuando=riego.pulsado hace=manantial.abrir_cauce(0.8,20)
+; pieza cofre cofre 4 5 aparece_si=nivel.alcanzado abierto=$NIVEL.$ID.cofre da=oro:35+pocion:1

@@ -1,0 +1,23 @@
+; catalogo placa_isla
+; titulo La placa de la isla
+; tipo premio
+; necesita tierra+barrera
+; validacion pendiente
+; pide tierra y barrera
+; resuelto isla.activo
+; prueba solucion A: golpe tierra isla con barrera desde 3:4 | espera isla activo | max 4 | espera cofre cerrado | max 4 | abre cofre
+; prueba nada: nunca isla activo | durante 6
+; prueba nada_agua: golpe agua isla desde 3:4 | nunca isla activo | durante 4
+;  T1 del laboratorio de tierra («placa a distancia»). Una placa de peso (1) en una isla de una casilla rodeada de agua honda, fuera de alcance andando. Un bloque de tierra levantado encima la
+;  pisa: tierra + barrera desde la orilla, a tres casillas (el bloque nace donde apuntas, dentro del anillo de la jugadora). Con la placa pulsada aparece el cofre; el bloque dura 25 s pero el cofre
+;  se queda. Es la «tierra a distancia»: la barrera hace de peso, no de muro.
+#######
+##c.c##
+##ccc##
+##ccc##
+##...##
+##...##
+.......
+; pieza lago cuenca 2 1 celdas=2,1+4,1+2,2..4,3 nivel=0.4
+; pieza isla pulsador 3 1 modo=presencia peso=1 $MODELO
+; pieza cofre cofre 2 5 aparece_si=isla.activo abierto=$NIVEL.$ID.cofre da=oro:35+pocion:1

@@ -1,0 +1,21 @@
+; catalogo dos_riegos
+; titulo Dos riegos a la vez
+; tipo premio
+; necesita agua+linea
+; validacion pendiente
+; pide agua y línea
+; resuelto cofre.aparecido
+; prueba solucion A: golpe agua riego_a con linea_x+linea_x desde 1:1 | espera cofre cerrado | max 4 | abre cofre
+; prueba nada: nunca cofre cerrado | durante 5
+; prueba nada_sueltas: golpe agua riego_a desde 1:1 | reposo 1 | golpe agua riego_b desde 3:1 | nunca cofre cerrado | durante 3
+;  Q11 del laboratorio de agua («dos riegos a la vez», propuesta 4 del catálogo de 18/11). Dos pulsadores de AGUA en la misma fila, a dos casillas, con un rearme cortísimo (0,35 s). El cofre aparece
+;  cuando se pulsa uno y el otro sigue activo: hay que mojar los dos casi a la vez. Dos flechas sueltas no llegan: la primera para en el primer pulsador y la segunda tarda más de 0,35 s.
+;  UNA LÍNEA de agua (dos glifos ᛁ: un haz de cuatro casillas que golpea todo su recorrido en el mismo fotograma) lanzada desde un lado, en la fila, los moja a los dos. Enseña la línea.
+.......
+.......
+.......
+; pieza riego_a pulsador 2 1 modo=agua rearme=0.35
+; pieza riego_b pulsador 4 1 modo=agua rearme=0.35
+; puzle a_luego_b cuando=riego_a.pulsado si=riego_b.activo hace=flag.poner($NIVEL.$ID.riegos)
+; puzle b_luego_a cuando=riego_b.pulsado si=riego_a.activo hace=flag.poner($NIVEL.$ID.riegos)
+; pieza cofre cofre 3 2 aparece_si=flag.$NIVEL.$ID.riegos abierto=$NIVEL.$ID.cofre da=oro:30+pocion:1

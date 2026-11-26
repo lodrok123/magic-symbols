@@ -1,8 +1,14 @@
 ; catalogo veta_dos_caminos
 ; titulo La veta de los dos caminos
 ; tipo salida
+; necesita fuego+flecha
+; validacion pendiente
 ; activa receptor.activado
 ; pide tierra y fuego
+; prueba solucion A: golpe tierra 5:5 con barrera desde 5:6 | golpe fuego cristal desde 2:6 | espera receptor activo | max 10
+; prueba solucion B: usa prisma | golpe fuego cristal desde 2:6 | espera receptor activo | max 12
+; prueba solucion C: golpe fuego prisma desde 2:3 | reposo 1 | golpe fuego cristal desde 2:6 | espera receptor activo | max 12
+; prueba nada: golpe fuego cristal desde 2:6 | nunca receptor activo | durante 8
 ;  Un cristal dormido (2,5) que solo late al golpearlo, un receptor de fuego (8,5) y entre los dos una veta con DOS trayectos hasta el receptor:
 ;    · el CORTO (3,5 .. 7,5, dos tramos) tiene un hueco en (5,5): solo conduce con un bloque de tierra encima;
 ;    · el LARGO sube por x=2, cruza por arriba (y=1) y baja por x=8; no tiene huecos, pero el PRISMA de su esquina (2,1) nace mirando a la pared (n) y se traga el pulso.

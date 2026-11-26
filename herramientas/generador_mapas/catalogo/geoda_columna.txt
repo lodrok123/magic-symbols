@@ -1,0 +1,24 @@
+; catalogo geoda_columna
+; titulo La geoda que tumba la columna
+; tipo premio
+; necesita fuego+flecha | agua+flecha | tierra+flecha
+; validacion pendiente
+; pide un hechizo al cristal
+; resuelto columna.caida
+; prueba solucion A: golpe fuego cristal desde 4:5 | espera geoda explotada | max 6 | espera columna caida | max 4 | abre cofre
+; prueba nada: nunca columna caida | durante 6
+; prueba nada_tierra_a_la_columna: golpe tierra columna desde 3:4 | golpe tierra columna desde 3:4 | golpe tierra columna desde 3:4 | nunca columna caida | durante 4
+;  Cueva C3, en un cuarto. Un nicho con un cofre tapado por una COLUMNA AGRIETADA (`golpes=99`: los pulsos y la tierra no le hacen nada, solo la tumba una explosión). Pegada a ella, una GEODA que
+;  explota cuando le llega un pulso. Un cristal resonante dormido (solo late cuando le dan un hechizo) manda su pulso por una veta hasta la geoda: el cristal late, la geoda carga 0,9 s y explota
+;  (daña a lo de alrededor y avisa a todo lo explosionable a una casilla), la columna cae y se abre el nicho. Cualquier sello vale; el pulso lleva su color pero la explosión es la misma.
+#######
+###.###
+###.###
+##...##
+##...##
+.......
+; pieza cofre cofre 3 1 abierto=$NIVEL.$ID.cofre da=oro:35+pocion:1
+; pieza columna columna 3 2 golpes=99 cae=s
+; pieza geoda geoda 3 3 flag=$NIVEL.$ID.geoda
+; pieza veta veta 2 3 celdas=2,3..2,4
+; pieza cristal cristal 2 5 cada=0

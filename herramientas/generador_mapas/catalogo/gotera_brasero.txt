@@ -1,0 +1,25 @@
+; catalogo gotera_brasero
+; titulo Brasero bajo la gotera
+; tipo premio
+; necesita fuego+flecha
+; validacion pendiente
+; pide fuego (y tierra o fuego a la cuerda)
+; resuelto cofre.abierto
+; prueba solucion A: golpe fuego cuerda desde 4:4 | espera cuerda rota | max 4 | golpe fuego brasero desde 3:4 | espera brasero encendido | max 3 | nunca brasero apagado | durante 10 | abre cofre
+; prueba solucion B: golpe tierra 1:2 con barrera desde 3:2 | golpe fuego brasero desde 3:4 | espera brasero encendido | max 3 | nunca brasero apagado | durante 6 | abre cofre
+; prueba nada: golpe fuego brasero desde 3:4 | espera brasero encendido | max 3 | espera brasero apagado | max 9
+; prueba nada_cofre: nunca cofre abierto | durante 5
+;  F16 del laboratorio de fuego. Una cabeza de dragón que escupe AGUA (una gotera: no hiere) en el muro de arriba lanza cada 7 s un chorro de 1,5 s por la columna del brasero y lo APAGA. El cofre
+;  está sellado mientras el brasero no arda (`abre_si`), así que hay que encenderlo y abrir con E antes de que vuelva el chorro, o CORTAR EL AGUA: quemar la cuerda de la válvula (la gotera se
+;  apaga para siempre) o tapar la boca con una barrera de tierra delante. Tres maneras, una sola idea: el agua es el obstáculo del fuego.
+#######
+#######
+.......
+.......
+.T.....
+.......
+; pieza gotera trampa_dragon 1 1 mira=s ciclo=1.5,5.5 alcance=4 elemento=agua agua=no
+; pieza brasero brasero 1 4
+; pieza cuerda cuerda 4 2
+; pieza cofre cofre 5 4 abre_si=brasero.encendido abierto=$NIVEL.$ID.cofre da=oro:35+pocion:1
+; puzle corta cuando=cuerda.rota hace=gotera.apagar

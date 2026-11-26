@@ -182,6 +182,14 @@ static func texto_escena(m: Dictionary) -> String:
 		# El acabado del terreno (orillas y juntas) es de serie en la maqueta desde el 17/11; sin la casilla, se apaga en esta escena.
 		l.append("orilla_integrada = false")
 		l.append("juntas_entremezcladas = false")
+	if not cueva and bool(p.get("decorado", true)):
+		# 26/11: la variedad de decorado por bioma (árboles, arbustos y rocas del pack Pure Nature mezclados con los de siempre, ver
+		# presentacion/tabla_decorado_bioma.gd) y la capa de riqueza del suelo de hierba (hierba corta, flores, trébol, restos de ruina: presentacion/riqueza_suelo_3d.gd).
+		# En la maqueta están APAGADAS por defecto (los niveles hechos a mano no cambian); las escenas generadas las encienden. `decorado = false` en los
+		# parámetros del mapa las deja apagadas. La semilla del mapa entra en el reparto para que dos mapas distintos no repitan el decorado.
+		l.append("decorado_bioma = true")
+		l.append("riqueza_suelo = true")
+		l.append("semilla_decorado = %d" % int(p.get("semilla", 0)))
 	if bool(p.get("camara_sala", true)):
 		# 20/11: cámara confinada a la sala; en los mapas sin líneas `; camara` (algoritmo cueva), solo al mapa.
 		l.append("camara_por_sala = true")
@@ -286,7 +294,9 @@ static func validar(m: Dictionary) -> PackedStringArray:
 			continue
 		var cx: int = t[3].to_int()
 		var cy: int = t[4].to_int()
-		if cx < 1 or cy < 1 or cx > w - 2 or cy > h - 2 or filas[cy][cx] == "#":
+		# 26/11: las trampas de pared (cabeza de dragón, mascarón) de las plantillas del catálogo van METIDAS en un muro; `exenta=si` es un tótem de suelo.
+		var trampa_en_muro: bool = (t[2] == "trampa_dragon" or t[2] == "trampa_flechas") and not String(linea).contains("exenta=si")
+		if cx < 1 or cy < 1 or cx > w - 2 or cy > h - 2 or (filas[cy][cx] == "#" and not trampa_en_muro):
 			err.append("La pieza %s cae en pared o fuera del mapa (%d, %d)." % [t[1], cx, cy])
 		elif filas[cy][cx] == "~" and t[2] != "puente" and not t[1].begins_with("cat"):
 			err.append("La pieza %s cae en el agua (%d, %d)." % [t[1], cx, cy])

@@ -21,6 +21,11 @@ const GRUPOS: Array = [
 	["PtVagonetas", "Vagonetas", "demo", ["vagoneta_pista", "vagoneta_curva", "vagoneta_boton", "vagoneta_aguja"], {}],
 	["PtAguaTierra", "Agua y tierra", "demo", ["riega_pulsador", "puente_cuerda", "rio_lava", "escondite_muro", "hielo_pista", "balanza_rocas", "presa_barril"], {}],
 	["PtEmpujePulso", "Empuje y pulso", "demo", ["piedra_pista", "piedra_premio", "pared_hueca_nicho", "prisma_rojo_azul", "estatuas_sellos"], {}],
+	# 26/11 (catálogo variado: 13 plantillas nuevas + las 5 de agua de la fusión). Solo lo que se resuelve con fuego, agua y tierra y los glifos de la demo.
+	["PtFuego2", "Fuego 2 (chorros, setas, mural)", "demo", ["dragon_brasero", "gotera_brasero", "setas_veneno", "geoda_columna", "braseros_orden", "choque_termico", "veta_dos_caminos"], {}],
+	["PtAgua2", "Agua 2 (riegos, lava, balsa, puentes)", "demo", ["dos_riegos", "lava_roca_peso", "dragon_seto_cofre", "puente_raices", "cofre_balsa", "puente_aliviadero"], {}],
+	# (los grandes primero: la colocación es «la primera sala libre donde cabe», sin marcha atrás)
+	["PtTierra2", "Tierra 2 (escudo, isla, presa, molinos)", "demo", ["molino_paso_bajo", "escudo_flechas", "placa_isla", "retener_cuenca", "molino_hielo"], {}],
 	["PtJefeCueva", "Jefe de la cueva", "demo", [], {"sala_jefe": "jefe_golem", "campamentos": 1, "n_salas": 6}],
 	["PtJefeBosque", "Jefe del bosque", "demo", [], {"algoritmo": "bosque", "estilo": "bosque", "luz": "bosque", "sala_jefe": "jefe_elemental", "campamentos": 1, "claros": 5, "ancho": 50, "alto": 44}],
 	["PtHielo", "Hielo (fuera de la demo)", "pruebas", ["charca_helada"], {}],

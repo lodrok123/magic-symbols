@@ -1,0 +1,107 @@
+########################################################
+########################...........#####################
+########################...........#####################
+#############..........#...........#####################
+######################.###.........#####################
+######################.###ccccccccc#####################
+################ccc###.#ccccccccccc#####################
+################ccc###.g...........#####################
+################ccc###.#...........#####################
+###############...c.##.#...........#####################
+###############...c.##.#...........#####################
+#############..........#...........#####################
+#############..........#################################
+#################g######################################
+#####.....#######.######################################
+#####~~~~~#######.######################################
+#####~~~~~#######.######################################
+#####.....#######.######...........#####################
+#####.....#######.######...........#####################
+###.........#####.######..#######..#####################
+#####.......#####g######..#######..#####################
+#####.......g..........#...........#####################
+#####.......#..........#...zzzzz...#####################
+#############....#####.#...........#####################
+#############....#####.g...........#####################
+#############.......##.#...........#####################
+#############....#####.#...........#####################
+#############....#####.#...........#####################
+#############..........#################################
+#############..........#################################
+#############..........#################################
+#################g######################################
+#################..#####################################
+#################..#####################################
+#################..#####################################
+#################..####.........########################
+#################..####.........########################
+#################g#####.........########################
+###############.......g.........########################
+###############.......#....S....########################
+###############.......#.........########################
+#######################.........########################
+#######################.........########################
+#######################.........########################
+#######################.........########################
+########################################################
+; ======================================================================================================================
+;  GENERADO por herramientas/generador_mapas. 2026-11-26. Nivel «PtAgua2», 56 × 46, algoritmo «pagina», semilla 1.
+;  9 salas, 8 puertas, 0 enemigos, 0 cofres, 0 jarrones. Escena: escenas/PruebaPtAgua2.tscn. Mientras esta cabecera siga aquí, la herramienta puede volver a escribir
+;  este archivo (guarda copia si lo has retocado). Para adoptarlo como nivel hecho a mano, borra la palabra GENERADO de la línea de arriba.
+; ======================================================================================================================
+; # pared · . suelo · ~ agua honda · S inicio · W goblin guerrero · A goblin arquero · T brasero · g tierra pisada (pasillos) · R losas (o basalto bajo la lava) · G elemental del bosque
+; generador {"acabado":true,"agua":8,"algoritmo":"pagina","alto":46,"ancho":56,"ancho_camino":2,"ancho_pasillo":2,"ancho_precipicio":2,"ancho_rio":2,"apertura":55,"arqueros":0,"b_braseros":true,"b_placa":true,"b_precipicio":true,"b_puente":true,"barreras":0,"braseros":0.0,"bucles":10,"bucles_claros":30,"callejones":100,"camara_sala":true,"campamentos":0,"charcas":0,"claros":6,"decorado":true,"densidad_salas":1.0,"enemigos":0.0,"estilo":"cueva","forma":"rectangulo","hierba_alta":15,"jarrones":0.0,"kit":"demo","lado_max":11,"lado_min":7,"lados_salida":"","llave":false,"luz":"cueva","metodo":"fractal","n_salas":9,"nombre":"PtAgua2","octavas":4,"paredes":"kit","pasillos":20,"paso_tierra":0,"puertas":50,"puzles":0,"recto":60,"region_min":12,"relleno":56,"reparto":"dispersas","rio":"ns","rotulo":true,"runas":"","sala_jefe":"no","sala_max":4,"sala_min":2,"salas_cerradas":0,"salida_a":"","semilla":1,"silueta":60,"simetria":false,"sinuosidad":50,"solo_aceptados":false,"suavizados":2,"tamano_claro":5,"tamano_sala":10.0,"terreno":true,"tesoro":false}
+; puzles 1>dos_riegos 3>lava_roca_peso 5>cofre_balsa 6>puente_raices 7>dragon_seto_cofre 8>puente_aliviadero
+;
+; zona 1,1..54,44 cueva mezcla=0.8 rotulo=PtAgua2
+;
+; camara 23,35..31,44
+; camara 15,38..21,40
+; camara 17,32..18,36
+; camara 13,21..22,30
+; camara 17,14..17,19
+; camara 13,3..22,12
+; camara 3,14..11,22
+; camara 24,17..34,27
+; camara 24,1..34,11
+;
+; pieza inicio entrada 27 39
+; pieza cat1_riego_a pulsador 17 39 modo=agua rearme=0.35
+; pieza cat1_riego_b pulsador 19 39 modo=agua rearme=0.35
+; puzle cat1_a_luego_b cuando=cat1_riego_a.pulsado si=cat1_riego_b.activo hace=flag.poner(ptagua2.cat1.riegos)
+; puzle cat1_b_luego_a cuando=cat1_riego_b.pulsado si=cat1_riego_a.activo hace=flag.poner(ptagua2.cat1.riegos)
+; pieza cat1_cofre cofre 18 40 aparece_si=flag.ptagua2.cat1.riegos abierto=ptagua2.cat1.cofre da=oro:30+pocion:1
+; pieza cat2_rio lava 17 25 celdas=17,25..18,25 vuelve=22
+; pieza cat2_roca roca_empujable 15 25 tam=pequena
+; pieza cat2_peso pulsador 19 25 modo=presencia peso=1 modelo=cueva
+; pieza cat2_cofre cofre 14 23 aparece_si=cat2_peso.activo abierto=ptagua2.cat2.cofre da=oro:35+pocion:1
+; pieza cat3_foso cuenca 16 6 celdas=16,6..18,8 nivel=0.35
+; pieza cat3_manantial manantial 16 6 caudal=0.6 volumen=0 rampa=no inicia=no
+; pieza cat3_riego pulsador 15 10 modo=agua rearme=2
+; puzle cat3_llena cuando=cat3_riego.pulsado hace=cat3_manantial.abrir_cauce(0.6,20)
+; pieza cat3_tapon compuerta 18 9 abre_con=fuego vertical=no
+; pieza cat3_desague cuenca 18 10 fijo=0.02
+; pieza cat3_balsa balsa 18 6 ruta=17,6+16,6+16,7+16,8 cofre=cat3_cofre calado=0.5 vel=1.5
+; pieza cat3_cofre cofre 18 6 abierto=ptagua2.cat3.cofre da=oro:40
+; pieza cat4_hueco bancal 7 17 flag=ptagua2.cat4.germino modelo=surco dir=n
+; pieza cat4_trama puente 7 16 celdas=7,16+7,15 estilo=zarcillos dir=n tendido_si=flag.ptagua2.cat4.germino
+; puzle cat4_crece cuando=cat4_hueco.germino hace=cat4_trama.tender
+; pieza cat5_dragon trampa_dragon 31 20 mira=s ciclo=1.0,6.0 alcance=3 cerca=8
+; pieza cat5_seto_1 seto 27 22 mojable=si
+; pieza cat5_seto_2 seto 28 22 mojable=si
+; pieza cat5_seto_3 seto 29 22 mojable=si
+; pieza cat5_seto_4 seto 30 22 mojable=si
+; pieza cat5_seto_5 seto 31 22 mojable=si
+; pieza cat5_barril barril 26 22
+; pieza cat5_cofre cofre 26 23 abre_si=!cat5_barril.explotado abierto=ptagua2.cat5.cofre da=oro:35+pocion:1
+; pieza cat6_cauce cuenca 26 5 celdas=26,5..34,6 nivel=0.4
+; pieza cat6_tapon compuerta 25 6 abre_con=fuego tarda=8
+; pieza cat6_desague cuenca 24 6 fijo=0.02
+; pieza cat6_puente puente 29 5 celdas=29,5..29,6
+; pieza cat6_cuerda cuerda 29 7 sostiene=cat6_puente
+; zona 15,38..21,40 cueva mezcla=0.5 nombre=pt_dos_riegos rotulo=1._Dos_riegos_a_la_vez
+; zona 13,21..22,30 cueva mezcla=0.5 nombre=pt_lava_roca_peso rotulo=2._La_roca_sobre_la_lava_enfriada
+; zona 3,12..11,22 cueva mezcla=0.5 nombre=pt_puente_raices rotulo=3._El_puente_de_zarcillos
+; zona 24,17..34,27 cueva mezcla=0.5 nombre=pt_dragon_seto_cofre rotulo=4._El_dragón_que_enciende_la_mecha
+; zona 24,1..34,11 cueva mezcla=0.5 nombre=pt_puente_aliviadero rotulo=5._El_puente_y_el_aliviadero
+; zona 13,3..22,12 cueva mezcla=0.5 nombre=pt_cofre_balsa rotulo=6._El_cofre_que_viene_a_ti

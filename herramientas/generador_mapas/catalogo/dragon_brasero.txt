@@ -1,0 +1,25 @@
+; catalogo dragon_brasero
+; titulo El brasero tras el chorro
+; tipo premio
+; necesita fuego+flecha
+; validacion pendiente
+; pide fuego
+; resuelto cofre.abierto
+; prueba solucion A: golpe fuego brasero desde 4:4 | espera dragon apagada | max 4 | cruza 3:4 a 3:1 sin_dano | abre cofre
+; prueba nada: reposo 3 | cruza 3:4 a 3:1 con_dano
+; prueba nada_cofre: nunca cofre abierto | durante 5
+;  X7 (Mages of Mystralia, O13): «dispara a través del peligro para apagarlo un momento». Un pasillo de tres casillas de ancho está cortado por el chorro continuo de una cabeza de dragón metida
+;  en el muro de la izquierda (90 s de fuego y 1 s de pausa: no hay hueco para cruzar). Al otro lado del chorro hay un brasero apagado y, más al fondo, el cofre. Una flecha de fuego desde el sur
+;  CRUZA el chorro (el fuego no apaga al fuego) y enciende el brasero; el brasero apaga la trampa 4 s y se apaga solo a los 3 s (`dura`): la jugadora cruza corriendo y abre el cofre.
+;  Sin dar al brasero, el chorro hiere. La regla es la de siempre («botón apaga trampa»): solo cambia el disparador (`cuando=brasero.encendido hace=dragon.apagar(4)`).
+#######
+##...##
+##..T##
+##...##
+##...##
+##...##
+##...##
+; pieza dragon trampa_dragon 1 3 mira=e ciclo=90,1 alcance=3
+; pieza brasero brasero 4 2 dura=3
+; pieza cofre cofre 2 1 abierto=$NIVEL.$ID.cofre da=oro:35+pocion:1
+; puzle apaga cuando=brasero.encendido hace=dragon.apagar(4)

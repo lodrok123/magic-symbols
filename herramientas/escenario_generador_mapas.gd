@@ -105,6 +105,27 @@ func _escenario() -> void:
 	var bloqueo_objeto: Dictionary = {}
 	for o in m["objetos"]:
 		bloqueo_objeto[o["c"]] = true
+	# 26/11: una pieza `lava` ocupa TODAS sus `celdas` y no se pisa hasta enfriarla (es su puzle), pero el generador solo apunta como objeto
+	# la casilla de la pieza. Sin esto, la segunda casilla de lava de «lava_roca_peso» contaba como «suelo que sale sólido».
+	var tramo: RegEx = RegEx.create_from_string("(\\d+),(\\d+)\\.\\.(\\d+),(\\d+)")
+	var suelta: RegEx = RegEx.create_from_string("(\\d+),(\\d+)")
+	for linea in m["lineas"]:
+		var tl: PackedStringArray = String(linea).substr(1).strip_edges().split(" ", false)
+		if tl.size() < 5 or tl[0] != "pieza" or tl[2] != "lava":
+			continue
+		for parte in tl:
+			if not String(parte).begins_with("celdas="):
+				continue
+			for trozo in String(parte).substr(7).split("+", false):
+				var mt: RegExMatch = tramo.search(trozo)
+				if mt != null:
+					for ly in range(mini(mt.get_string(2).to_int(), mt.get_string(4).to_int()), maxi(mt.get_string(2).to_int(), mt.get_string(4).to_int()) + 1):
+						for lx in range(mini(mt.get_string(1).to_int(), mt.get_string(3).to_int()), maxi(mt.get_string(1).to_int(), mt.get_string(3).to_int()) + 1):
+							bloqueo_objeto[Vector2i(lx, ly)] = true
+				else:
+					var ms: RegExMatch = suelta.search(trozo)
+					if ms != null:
+						bloqueo_objeto[Vector2i(ms.get_string(1).to_int(), ms.get_string(2).to_int())] = true
 	var mal_suelo: int = 0
 	var mal_pared: int = 0
 	var miradas: int = 0

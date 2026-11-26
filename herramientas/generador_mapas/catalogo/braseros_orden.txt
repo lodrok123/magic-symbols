@@ -1,0 +1,22 @@
+; catalogo braseros_orden
+; titulo Braseros en orden y mural de barro
+; tipo premio
+; necesita fuego+agua+flecha
+; validacion pendiente
+; pide fuego y agua
+; resuelto orden.completa
+; prueba solucion A: golpe agua mural desde 2:4 | espera mural limpio | max 6 | golpe fuego 4:0 desde 4:2 | golpe fuego 0:4 desde 0:2 | golpe fuego 4:4 desde 4:2 | golpe fuego 0:0 desde 0:2 | espera orden completa | max 6 | abre cofre
+; prueba nada: nunca orden completa | durante 8
+; prueba nada_desorden: golpe fuego 0:4 desde 0:2 | golpe fuego 4:0 desde 4:2 | golpe fuego 4:4 desde 4:2 | golpe fuego 0:0 desde 0:2 | nunca orden completa | durante 5
+; prueba nada_mural_sin_agua: nunca mural limpio | durante 6
+;  F15 del laboratorio de fuego. Cuatro braseros en las esquinas que hay que encender EN ORDEN: encender uno que no toca los apaga TODOS (también el nuevo) y se empieza de nuevo.
+;  La pista del orden es un MURAL: una losa en el suelo del centro tapada de BARRO. Un golpe de AGUA la moja, el barro se va y deja ver un plano de la sala con un número por brasero
+;  (1 = el primero). Con los cuatro encendidos en orden aparece el cofre. Orden de este puzle: arriba a la derecha, abajo a la izquierda, abajo a la derecha, arriba a la izquierda.
+T...T
+.....
+.....
+.....
+T...T
+; pieza orden secuencia 2 3 de=4,0+0,4+4,4+0,0 flag=$NIVEL.$ID.orden
+; pieza mural mural 2 2 de=4,0+0,4+4,4+0,0 flag=$NIVEL.$ID.mural
+; pieza cofre cofre 2 1 aparece_si=flag.$NIVEL.$ID.orden abierto=$NIVEL.$ID.cofre da=oro:40+pocion:1

@@ -1,6 +1,8 @@
 ; catalogo puente_aliviadero
 ; titulo El puente y el aliviadero
 ; tipo paso
+; necesita fuego+flecha
+; validacion pendiente
 ; pide fuego
 ; estira x
 ; ancho_min 5

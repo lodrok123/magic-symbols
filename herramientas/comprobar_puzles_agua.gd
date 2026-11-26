@@ -28,11 +28,16 @@ extends "res://herramientas/catalogo_jugar.gd"
 ##     max <s>                          tope para las `espera` (cuenta desde el último golpe). Si no se cumple a tiempo, FALLO (se sigue esperando hasta 3 × el tope solo para medir cuánto
 ##                                      tardaría de verdad y decirlo). Sin `max` el tope es de 60 s.
 ##     durante <s>                      lo que dura un `nunca`.
-##     cruza x:y a x:y                  la jugadora anda DE VERDAD (WASD) de una casilla a otra: tiene que llegar y SIN nadar (un cruce a nado no vale).
+##     cruza x:y a x:y [sin_dano|con_dano]  la jugadora anda DE VERDAD (WASD) de una casilla a otra: tiene que llegar y SIN nadar (un cruce a nado no vale).
+##                                      26/11 `sin_dano`: no puede perder vida por el camino (la trampa tiene que estar apagada o tapada) · `con_dano`: TIENE que perder (sin la solución la trampa hiere: prueba de «nada»).
+##     empuja <pieza> n|e|s|o [veces]   26/11: un empujón (o varios) de verdad a una roca, un bloque o una vagoneta, desde la casilla de atrás (como `r.empujar(dir, true)`).
+##     usa <pieza> [veces]              26/11: E de verdad junto a la pieza (girar un prisma, cambiar una aguja…).
+##     abre <cofre> [desde x:y]         26/11: la jugadora se pone junto al cofre y pulsa E de verdad; el cofre tiene que abrirse (sellado por `abre_si` o sin aparecer, no abre).
 ##   Condiciones:
 ##     cuenca <pieza> <op> <u>          nivel de agua de las casillas de una pieza `cuenca` (sus `celdas`, o la suya), en u. Operadores: `bajo` / `sobre` (la MEDIA de sus casillas),
 ##                                      `todas_bajo` (TODAS por debajo: es la que dice si un cauce largo se pisa entero) y `alguna_sobre`. Con 0,25 u o más una casilla no se pisa.
 ##     alcanzable <pieza>               hay una casilla pisable a ≤ 2,7 u (el alcance de E) de la pieza (el cofre sobre la balsa que se mueve).
+##     jugador herido | sano            26/11: la jugadora ha perdido vida (o no) desde que empezó la prueba (trampas, veneno).
 ##     <pieza> [no] <estado>            el estado de una pieza por la tabla `CONDICIONES` de `escenas/puzle.gd`: `compuerta abierta`, `puente tendido`, `molino girando`, `balsa atracada`,
 ##                                      `nivel alcanzado`, `cofre abierto`, `cuerda rota`… `no` lo niega.
 ## EJEMPLOS:
@@ -48,10 +53,11 @@ const RADIO_TIRO: int = 4                              ## hasta dónde busca una
 var _resultados: Array = []
 var _sin_sala: Dictionary = {}                         ## "plantilla/ancho" → por qué no se pudo montar (para no repetir la búsqueda)
 var _n: int = 0
+var _vida_prueba: float = 100.0                        ## la vida de la jugadora al empezar la prueba (para `jugador herido|sano`)
 
 
 func _escenario() -> void:
-	prefijo = "CatComp"
+	prefijo = "CatComp%d_" % (OS.get_process_id() % 100000)       # 26/11: único por proceso (se pueden lanzar varias pasadas a la vez sin pisarse los mapas temporales)
 	_limpiar()
 	var solo: PackedStringArray = OS.get_cmdline_user_args()
 	var t0: float = Time.get_ticks_msec() * 0.001
@@ -115,6 +121,7 @@ func _una(cid: String, e: Dictionary, ancho: int, texto: String, etq: String) ->
 	var durante: float = float(plan["durante"])
 	r["nunca"] = segs.any(func(s: Dictionary) -> bool: return String(s["k"]) == "nunca")
 	await avanzar_s(REPOSO_INICIAL)
+	_vida_prueba = float(jugador.get("vida"))
 	var t_golpe: float = reloj.t
 	var t_fin: float = -1.0
 	for s in segs:
@@ -151,11 +158,70 @@ func _una(cid: String, e: Dictionary, ancho: int, texto: String, etq: String) ->
 			"cruza":
 				colocar_jugador(s["a"] as Vector2i)
 				await avanzar_s(0.3)
+				var vida0: float = float(jugador.get("vida"))
 				var llego: bool = await _andar(s["b"] as Vector2i, 15.0)
 				if not llego:
-					return _fin(r, false, "la jugadora no llega andando de %s a %s (acaba en %s)" % [str(s["a"]), str(s["b"]), str(celda_jugador())])
+					return _fin(r, false, "la jugadora no llega andando de %s a %s (acaba en %s, vida %.0f de %.0f al empezar)" % [str(s["a"]), str(s["b"]), str(celda_jugador()), float(jugador.get("vida")), vida0])
 				if _nado_s > 0.0:
 					return _fin(r, false, "el cruce de %s a %s se hizo NADANDO (%.1f s): no vale" % [str(s["a"]), str(s["b"]), _nado_s])
+				var perdio: float = vida0 - float(jugador.get("vida"))
+				if String(s["dano"]) == "sin" and perdio > 0.01:
+					return _fin(r, false, "el cruce de %s a %s hizo perder %.0f de vida y tenía que ser limpio" % [str(s["a"]), str(s["b"]), perdio])
+				if String(s["dano"]) == "con" and perdio <= 0.01:
+					return _fin(r, false, "el cruce de %s a %s no hizo perder vida y tenía que doler (la trampa no hace su efecto)" % [str(s["a"]), str(s["b"])])
+			"empuja":
+				var nodo: Node = _z.nodo(String(s["id"]))
+				if nodo == null or not nodo.has_method("empujar"):
+					return _fin(r, false, "`empuja`: la pieza «%s» no se puede empujar" % String(s["id"]))
+				for paso_e in int(s["n"]):
+					colocar_jugador((nodo.get("celda") as Vector2i) - (s["dir"] as Vector2i))
+					await avanzar(3)
+					var cedio: bool = bool(nodo.call("empujar", s["dir"], true))
+					await _hasta(func() -> bool: return not bool(nodo.get("moviendo")), 12.0)
+					await avanzar(2)
+					if not cedio:
+						return _fin(r, false, "`empuja`: la pieza «%s» no cede al empujón %d hacia %s (está en %s)" % [String(s["id"]), paso_e + 1, str(s["dir"]), str(nodo.get("celda"))])
+			"usa":
+				var pieza: Node = _z.nodo(String(s["id"]))
+				if pieza == null:
+					return _fin(r, false, "`usa`: no hay pieza «%s»" % String(s["id"]))
+				var pp: Vector3 = (pieza as Node3D).global_position
+				var zona_u: Array = []
+				var cu: Vector2i = Terreno3D.celda_de(pp)
+				for yy in range(cu.y - 2, cu.y + 3):
+					for xx in range(cu.x - 2, cu.x + 3):
+						zona_u.append(Vector2i(xx, yy))
+				var junto: Vector2i = _mas_cerca(pp, zona_u)["c"] as Vector2i
+				if junto == Vector2i(-1, -1):
+					return _fin(r, false, "`usa`: no hay casilla pisable junto a «%s»" % String(s["id"]))
+				for k_u in int(s["n"]):
+					colocar_jugador(junto)
+					await avanzar_s(0.4)
+					_tecla(KEY_E, true)
+					await avanzar(2)
+					_tecla(KEY_E, false)
+					await avanzar_s(0.6)
+				t_golpe = reloj.t
+			"abre":
+				var cofre: Node = _z.nodo(String(s["id"]))
+				if cofre == null:
+					return _fin(r, false, "`abre`: no hay pieza «%s»" % String(s["id"]))
+				var pc: Vector3 = (cofre as Node3D).global_position
+				var mejor: Vector2i = s["desde"] as Vector2i
+				if mejor == Vector2i(-1, -1):
+					var zona: Array = []
+					var cc: Vector2i = Terreno3D.celda_de(pc)
+					for yy in range(cc.y - 3, cc.y + 4):
+						for xx in range(cc.x - 3, cc.x + 4):
+							zona.append(Vector2i(xx, yy))
+					mejor = _mas_cerca(pc, zona)["c"] as Vector2i
+				if mejor == Vector2i(-1, -1):
+					return _fin(r, false, "`abre`: no hay casilla pisable junto al cofre «%s»" % String(s["id"]))
+				colocar_jugador(mejor)
+				await avanzar_s(0.3)
+				if not await _pulsar_e_cofre(cofre, 6.0):
+					return _fin(r, false, "`abre`: con E desde %s el cofre «%s» no se abre (alcance, sellado o sin aparecer)" % [str(mejor), String(s["id"])])
+				t_fin = maxf(t_fin, 0.0)
 	if t_fin < 0.0 and not segs.any(func(s: Dictionary) -> bool: return String(s["k"]) == "cruza"):
 		return _fin(r, false, "la prueba no tiene ninguna `espera`, `nunca` ni `cruza`: no comprueba nada")
 	r["t"] = t_fin
@@ -254,12 +320,34 @@ func _parsear(cuerpo: String) -> Dictionary:
 			"cruza":
 				var a: Variant = _casilla(t[1]) if t.size() > 1 else null
 				var b: Variant = _casilla(t[3]) if t.size() > 3 else null
-				if a == null or b == null or t[2] != "a":
-					plan["err"] = "«%s»: se escribe `cruza x:y a x:y`" % p
+				if a == null or b == null or t[2] != "a" or (t.size() > 4 and not ["sin_dano", "con_dano"].has(t[4])):
+					plan["err"] = "«%s»: se escribe `cruza x:y a x:y [sin_dano|con_dano]`" % p
 					return plan
-				(plan["segs"] as Array).append({"k": "cruza", "a": a, "b": b})
+				(plan["segs"] as Array).append({"k": "cruza", "a": a, "b": b, "dano": (t[4].trim_suffix("_dano") if t.size() > 4 else "")})
+			"empuja":
+				# empuja <pieza> <n|s|e|o> [veces]: un empujón andando contra una roca, un bloque o una vagoneta (como `r.empujar(dir, true)`), desde la casilla de atrás.
+				var dirs: Dictionary = {"n": Vector2i(0, -1), "s": Vector2i(0, 1), "e": Vector2i(1, 0), "o": Vector2i(-1, 0)}
+				if t.size() < 3 or not dirs.has(t[2]) or _id_pieza(t[1]) == "":
+					plan["err"] = "«%s»: se escribe `empuja <pieza> n|s|e|o [veces]` (con una pieza de la plantilla)" % p
+					return plan
+				(plan["segs"] as Array).append({"k": "empuja", "id": _id_pieza(t[1]), "dir": dirs[t[2]], "n": (t[3].to_int() if t.size() > 3 else 1)})
+			"usa":
+				# usa <pieza> [veces]: E de verdad junto a la pieza (girar un prisma, cambiar una aguja…).
+				if t.size() < 2 or _id_pieza(t[1]) == "":
+					plan["err"] = "«%s»: se escribe `usa <pieza> [veces]` (con una pieza de la plantilla)" % p
+					return plan
+				(plan["segs"] as Array).append({"k": "usa", "id": _id_pieza(t[1]), "n": (t[2].to_int() if t.size() > 2 else 1)})
+			"abre":
+				# abre <cofre> [desde x:y]: la jugadora se pone junto al cofre y pulsa E de verdad (el cofre sellado o sin aparecer no abre).
+				var desde_c: Variant = Vector2i(-1, -1)
+				if t.size() > 3 and t[2] == "desde":
+					desde_c = _casilla(t[3])
+				if t.size() < 2 or _id_pieza(t[1]) == "" or desde_c == null:
+					plan["err"] = "«%s»: se escribe `abre <cofre> [desde x:y]` (con una pieza de la plantilla)" % p
+					return plan
+				(plan["segs"] as Array).append({"k": "abre", "id": _id_pieza(t[1]), "desde": desde_c})
 			_:
-				plan["err"] = "paso desconocido «%s» (golpe, reposo, espera, nunca, max, durante, cruza)" % t[0]
+				plan["err"] = "paso desconocido «%s» (golpe, reposo, espera, nunca, max, durante, cruza, empuja, abre)" % t[0]
 				return plan
 	if (plan["segs"] as Array).any(func(s: Dictionary) -> bool: return String(s["k"]) == "nunca") and float(plan["durante"]) <= 0.0:
 		plan["err"] = "un `nunca` necesita `durante <s>`"
@@ -311,6 +399,11 @@ func _parsear_cond(t: PackedStringArray) -> Dictionary:
 		if celdas.is_empty():
 			return {"err": "«%s»: la plantilla no tiene la pieza «%s»" % [txt, t[1]]}
 		return {"k": "cuenca", "celdas": celdas, "op": t[2], "v": t[3].to_float(), "txt": txt}
+	if t[0] == "jugador":
+		# 26/11: `jugador herido` (ha perdido vida desde que empezó la prueba) | `jugador sano` (no ha perdido nada): para las trampas y el veneno.
+		if t.size() < 2 or not ["herido", "sano"].has(t[1]):
+			return {"err": "«%s»: se escribe `jugador herido|sano`" % txt}
+		return {"k": "jugador", "estado": t[1], "txt": txt}
 	if t[0] == "alcanzable":
 		var id: String = _id_pieza(t[1]) if t.size() > 1 else ""
 		if id == "":
@@ -352,6 +445,9 @@ func _cumple(c: Dictionary) -> bool:
 					return mx < v
 				_:
 					return mx > v
+		"jugador":
+			var herido: bool = float(jugador.get("vida")) < _vida_prueba - 0.01
+			return herido if String(c["estado"]) == "herido" else not herido
 		"alcanzable":
 			var nodo: Node3D = _z.nodo(String(c["id"])) as Node3D
 			if nodo == null:

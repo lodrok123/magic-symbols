@@ -1,0 +1,29 @@
+; catalogo dragon_seto_cofre
+; titulo El dragón que enciende la mecha
+; tipo premio
+; necesita agua+flecha
+; validacion pendiente
+; pide agua
+; resuelto cofre.abierto
+; prueba solucion A: golpe agua seto_3 desde 3:5 | nunca barril explotado | durante 22 | abre cofre
+; prueba solucion B: golpe agua dragon desde 5:2 | espera dragon apagada | max 3
+; prueba nada: cruza 2:5 a 3:5 | espera barril explotado | max 30
+; prueba nada_cofre: nunca cofre abierto | durante 5
+;  F13 del laboratorio de fuego. Una cabeza de dragón metida en el muro de arriba escupe un chorro de fuego (1 s de fuego, 6 s de descanso) justo sobre el último seto de una fila de cinco, que lleva
+;  el fuego hasta un BARRIL de pólvora pegado al cofre: al reventar, el derrumbe SELLA el cofre (`abre_si`: el barril no ha explotado). Hay que impedir la mecha: AGUA a un seto del medio (queda mojado
+;  y el fuego se corta: el cortafuegos) o agua a la cabeza del dragón (la apaga 8 s, solo retrasa). Sin hacer nada, a los pocos segundos el barril revienta y el cofre se pierde.
+#######
+#######
+.......
+.zzzzz.
+.......
+.......
+.......
+; pieza dragon trampa_dragon 5 1 mira=s ciclo=1.0,6.0 alcance=3 cerca=8
+; pieza seto_1 seto 1 3 mojable=si
+; pieza seto_2 seto 2 3 mojable=si
+; pieza seto_3 seto 3 3 mojable=si
+; pieza seto_4 seto 4 3 mojable=si
+; pieza seto_5 seto 5 3 mojable=si
+; pieza barril barril 0 3
+; pieza cofre cofre 0 4 abre_si=!barril.explotado abierto=$NIVEL.$ID.cofre da=oro:35+pocion:1

@@ -1,6 +1,8 @@
 ; catalogo molino_paso_bajo
 ; titulo El molino y la pasarela
 ; tipo salida
+; necesita tierra+barrera
+; validacion pendiente
 ; activa meta.pulsado
 ; pide tierra
 ; prueba mapa ancho=70 alto=60 sala_min=4 sala_max=7 estilo=cueva luz=cueva
