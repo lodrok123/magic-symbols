@@ -1071,6 +1071,10 @@ func _catalogo() -> void:
 					if q.y < 0 or q.y >= fp.size() or q.x < 0 or q.x >= String(fp[q.y]).length() or String(fp[q.y])[q.x] != "#":
 						abiertos += 1
 				_ok(abiertos <= 2, "ninguna pared de «%s» queda de punta" % cid, "(%d, %d) con %d lados abiertos" % [x, y, abiertos])
+		# 27/11: las plantillas `; solo_mano si` (las SALAS MUESTRARIO de piezas, de 28 a 44 casillas de ancho) no caben en los mapas de 40 × 34 de esta prueba y solo se ponen a mano en los niveles de
+		# revisión de assets: su colocación (y que el mapa siga válido) la comprueba `prueba_niveles_cueva_ruinas.gd` con los niveles de verdad. Aquí solo se les pide lo de arriba (paredes sin punta).
+		if bool((cat[cid] as Dictionary).get("solo_mano", false)):
+			continue
 		var puestos: int = 0
 		for alg in ["salas", "pagina"]:
 			for s in range(1, 9):
@@ -1090,7 +1094,9 @@ func _catalogo() -> void:
 					break
 		# Las plantillas muy anchas (molino_paso_bajo mide 15) solo caben en las pocas salas generadas que llegan a ese ancho: para ellas basta con que
 		# aparezcan en 2 de 16 mapas (con los anchos de sala por defecto casi ninguna sala las admite; no es un fallo de la plantilla).
-		var min_mapas: int = 2 if int(cat[cid]["ancho"]) >= 14 else 8
+		# 27/11: lo mismo para las plantillas que dicen en su `; prueba mapa` que necesitan un mapa más grande que el de 40 × 34 de esta prueba (las de ruinas y cueva de 9 a 12 casillas de ancho: caben
+		# en 4 a 7 de los 16 mapas, y se prueban puestas y jugadas en mapas grandes con `comprobar_puzles_agua.gd` y `prueba_niveles_cueva_ruinas.gd`).
+		var min_mapas: int = 2 if (int(cat[cid]["ancho"]) >= 14 or not (cat[cid]["mapa"] as Dictionary).is_empty()) else 8
 		_ok(puestos >= min_mapas, "«%s» se puede poner en al menos %d de 16 mapas" % [cid, min_mapas], "%d" % puestos)
 	# Salas pequeñas (2-3 casillas): la plantilla de 5 × 3 no cabe y el suelo se ajusta.
 	# 24/11: con más plantillas de activador de barrera, el mapa de base cambia y alguna sala ya es lo bastante grande: puesto sin excavar

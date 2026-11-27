@@ -48,6 +48,9 @@ extends Node
 ##   decorado   modelo=<pieza> (obligatoria)  giro=<grados> (0)  escala=<x> (1)         24/10: una pieza de ADORNO sin mecánica en su casilla (geoda_resonante, estalagmita_resonante…). No bloquea.
 ##              dx=<casillas> dz=<casillas> (0)  24/11: la corre desde el centro de su casilla (las rocas de pared de LostCave van medio fuera del suelo, sobre la oscuridad)
 ##              27/10: también estalagmitas_a|b, cueva_pared_baja, boca_cueva, llave_pequena, bloque_enlace, roca_musgosa, raices_musgo, rocas_salpicadura, helechos_cueva, musgo_colgante
+##   muestrario pack=ss|lc|kit (ss)  grupo=<nombre> ("" = todo el pack)  ancho=<casillas> (12)  alto=<casillas> (8)  luz=si|no (sí en `lc` y `kit`, no en `ss`: una rejilla de luces blancas sin sombra para ver las piezas en la cueva)  celdas=<x0,y0..x1,y1> (el rectángulo: la maqueta no pone decorado automático ni hierba dentro)       27/11 (revisión de assets): SALA MUESTRARIO de las piezas de un pack, a escala del juego, en
+##              filas por categoría y con el id de cada una en un rótulo que mira a la cámara (objetos/muestrario_piezas_3d.gd: packs y grupos). x,y = esquina de arriba a la izquierda del rectángulo
+##              (casillas de SUELO); `alto` ha de bastar (si no, avisa con lo que pide). Las pieza del pack se ponen como un `decorado` (con `ss_*` también valen en `decorado modelo=`). No añade mecánica
 ##   brasero    modelo=cueva (24/10): el modelo `brasero_cueva` en vez del del Bosque (mismo reactivo; `Reactivo3D.cambiar_visual`)
 ##   brasero    rele=<id> espera=<s> (1.5) dura=<s> (6)  luz=<x> (1)               el brasero de la MAQUETA (letra «T»), enlazado por casilla. Sin claves es
 ##                                                                                   el de siempre. Con `rele` (el id de OTRO brasero), al encenderse enciende a ése
@@ -527,6 +530,8 @@ const CLAVES: Dictionary = {
 	"brasero": {"rele": "id", "espera": "f", "dura": "f", "luz": "f", "modelo": "s:cueva", "por_hierba": "b", "encendido": "b"},
 	# 27/10: todo el kit de la Cueva se puede poner de adorno desde el mapa (estalagmitas, pared baja, boca, llave, bloque de enlace, rocas y raíces con musgo)
 	"decorado": {"modelo": "decorado:geoda_resonante|estalagmita_resonante|estalagmita_rota|rocas_salpicadura|helechos_cueva|musgo_colgante|estalagmitas_a|estalagmitas_b|cueva_pared_baja|boca_cueva|llave_pequena|bloque_enlace|roca_musgosa|raices_musgo", "giro": "f", "escala": "f", "dx": "f", "dz": "f"},
+	# 27/11: sala muestrario de piezas de un pack (objetos/muestrario_piezas_3d.gd): x,y = esquina de arriba a la izquierda; `ancho` y `alto` en casillas
+	"muestrario": {"pack": "s:ss|lc|kit", "grupo": "nombre", "ancho": "f", "alto": "f", "luz": "b", "celdas": "celdas"},
 	"seto": {"mojable": "b"},
 	"contador": {"de": "celdas", "minimo": "f", "modelo": "s:placa|totem"},
 	"cuerda": {"sostiene": "id"},
@@ -2452,9 +2457,12 @@ static func _aviso_linea(avisos: Array, n: int, linea: String, msg: String) -> v
 const RUTA_PIEZAS_ARTE: String = "res://arte/piezas/"
 ## 24/11: las piezas del pack Stylized Lost Cave (`lost_*`) viven aparte, fuera de git (arte/lostcave/LEEME.md).
 const RUTA_PIEZAS_LOSTCAVE: String = "res://arte/lostcave/piezas/"
+const RUTA_PIEZAS_STYLESCAPE: String = "res://arte/stylescape/piezas/"
+const MUESTRARIO = preload("res://objetos/muestrario_piezas_3d.gd")
 
 static func _ruta_pieza_arte(id: String) -> String:
-	return (RUTA_PIEZAS_LOSTCAVE if id.begins_with("lost_") else RUTA_PIEZAS_ARTE) + id + ".tscn"
+	# 27/11: también las `ss_*` del pack Stylescape: Ruins (arte/stylescape/piezas) pueden ir de `decorado` (las salas muestrario y los niveles de revisión de assets)
+	return (RUTA_PIEZAS_LOSTCAVE if id.begins_with("lost_") else (RUTA_PIEZAS_STYLESCAPE if id.begins_with("ss_") else RUTA_PIEZAS_ARTE)) + id + ".tscn"
 
 ## ¿Existe la escena `arte/piezas/<id>.tscn` (o `arte/lostcave/piezas/lost_*.tscn`)? (decorado con una pieza que no es de la lista cerrada de CLAVES).
 static func _pieza_arte_existe(id: String) -> bool:
@@ -3707,6 +3715,38 @@ func _crear(pz: Pieza) -> void:
 				_avisar_pieza(pz, "decorado necesita «modelo=<pieza>» y que la pieza exista")
 				return
 			pz.nodo = dec
+		"muestrario":
+			# 27/11: sala muestrario de un pack (objetos/muestrario_piezas_3d.gd): cada pieza en su fila, a escala del juego, con su id en un rótulo que mira a la cámara. No bloquea nada (salvo lo que ya bloquee la propia pieza).
+			var cas_mu: float = Terreno3D.casilla
+			var plan_mu: Dictionary = MUESTRARIO.plan(String(pz.p.get("pack", "ss")), String(pz.p.get("grupo", "")), float(pz.p.get("ancho", 12.0)) * cas_mu)
+			var raiz_mu := Node3D.new()
+			raiz_mu.name = pz.id
+			cont.add_child(raiz_mu)
+			var esq_mu: Vector3 = Terreno3D.centro_de(pz.celda, Terreno3D.y_pies(pz.celda) - 0.02) - Vector3(cas_mu * 0.5, 0.0, cas_mu * 0.5)
+			for it_mu in (plan_mu["piezas"] as Array):
+				var d_mu: Dictionary = it_mu
+				_colocar_pieza_arte(String(d_mu["id"]), raiz_mu, "m_" + String(d_mu["id"]), esq_mu + Vector3(float(d_mu["x"]), 0.0, float(d_mu["z"])), 0.0, Vector3.ONE)
+				_rotulo_muestrario(raiz_mu, String(d_mu["id"]), esq_mu + Vector3(float(d_mu["rx"]), 0.12, float(d_mu["rz"])), false)
+			for cab_mu in (plan_mu["cabeceras"] as Array):
+				_rotulo_muestrario(raiz_mu, String((cab_mu as Dictionary)["texto"]), esq_mu + Vector3(float((cab_mu as Dictionary)["x"]), 0.12, float((cab_mu as Dictionary)["z"])), true)
+			if float(plan_mu["fondo"]) > float(pz.p.get("alto", 8.0)) * cas_mu:
+				_avisar_pieza(pz, "el muestrario no cabe: pide %.1f casillas de alto y la pieza dice alto=%s" % [float(plan_mu["fondo"]) / cas_mu, str(pz.p.get("alto", 8.0))])
+			# `luz` (por defecto sí en la cueva: `lc` y `kit`; las ruinas se ven a la luz del día): una rejilla de luces blancas sin sombra, cada 5 casillas, para poder JUZGAR las piezas (la cueva del juego está casi a oscuras).
+			if bool(pz.p.get("luz", String(pz.p.get("pack", "ss")) != "ss")):
+				var paso_l: float = 5.0 * cas_mu
+				var n_x: int = maxi(1, int(ceil(float(pz.p.get("ancho", 12.0)) * cas_mu / paso_l)))
+				var n_y: int = maxi(1, int(ceil(float(pz.p.get("alto", 8.0)) * cas_mu / paso_l)))
+				for ly in range(n_y):
+					for lx in range(n_x):
+						var luz_mu := OmniLight3D.new()
+						luz_mu.light_color = Color(1.0, 0.96, 0.88)
+						luz_mu.light_energy = 1.7
+						luz_mu.omni_range = paso_l * 1.1
+						luz_mu.light_specular = 0.0
+						luz_mu.shadow_enabled = false
+						luz_mu.position = esq_mu + Vector3((float(lx) + 0.5) * paso_l, 4.0, (float(ly) + 0.5) * paso_l)
+						raiz_mu.add_child(luz_mu)
+			pz.nodo = raiz_mu
 		"colmena":
 			var cm := Colmena3D.new()
 			cm.name = pz.id
@@ -3935,6 +3975,23 @@ func _colocar_pieza(id: String, cont: Node, nombre: String, pos: Vector3, giro: 
 	if id in ["pilar_cascada", "pilar_cascada_ancho", "musgo_colgante"]:
 		_apagar_verde(n)
 	return n
+
+
+## 27/11: el rótulo con el id de una pieza del muestrario (Label3D que mira a la cámara, siempre visible; `grande` = el título de una categoría).
+func _rotulo_muestrario(padre: Node3D, texto: String, pos: Vector3, grande: bool) -> void:
+	var l := Label3D.new()
+	l.text = texto
+	l.billboard = BaseMaterial3D.BILLBOARD_ENABLED
+	l.no_depth_test = true
+	l.shaded = false
+	l.font_size = 40 if grande else 24
+	l.outline_size = 10
+	l.pixel_size = 0.0075 if not grande else 0.0095
+	l.modulate = Color(1.0, 0.82, 0.45) if grande else Color(1.0, 1.0, 1.0)
+	l.outline_modulate = Color(0.0, 0.0, 0.0, 1.0)
+	l.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT if grande else HORIZONTAL_ALIGNMENT_CENTER
+	l.position = pos
+	padre.add_child(l)
 
 
 ## 7/11: instancia `arte/piezas/<id>.tscn` tal cual (su escala y su `cuerpo` ya vienen horneados) en `pos`. Si la maqueta tiene el circulo de transparencia (`transparencia_jugador`),

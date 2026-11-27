@@ -1,0 +1,30 @@
+; catalogo dragon_muro_brasero
+; titulo El chorro que espera tras el muro
+; tipo premio
+; necesita tierra+flecha
+; validacion pendiente
+; bioma ruinas
+; pide tierra
+; resuelto cofre.aparecido
+; prueba mapa ancho=60 alto=50 estilo=ruinas luz=ruinas
+; prueba solucion A: golpe tierra muro desde 4:3 | golpe tierra muro desde 4:3 | espera br encendido | espera cofre cerrado | max 10 | abre cofre
+; prueba nada: nunca br encendido | durante 10
+; prueba nada_fuego: golpe fuego muro desde 4:3 | nunca br encendido | durante 8
+; prueba nada_un_golpe: golpe tierra muro desde 4:3 | nunca br encendido | durante 8
+; prueba nada_cofre: nunca cofre cerrado | durante 4
+;  RUINAS · trampas A FAVOR (27/11). Una sala pequeña con una cabeza de DRAGÓN metida en el muro de la izquierda que escupe fuego (1,5 s encendida, 2 s de descanso) por la fila del medio hacia el muro
+;  de enfrente. En ese muro hay un hueco de una casilla tapado con un MURO AGRIETADO (dos golpes de tierra) y, detrás, un nicho con un BRASERO apagado. El chorro llega justo hasta el muro agrietado y
+;  se para: el brasero queda a salvo de la jugadora (la tapa la piedra) y del fuego. Dos hechizos de tierra rompen el muro; a partir de ahí el chorro del propio dragón llega al nicho, enciende el brasero
+;  y un cofre aparece en la sala. El fuego de la jugadora no rompe el muro (solo la tierra o una explosión): hay que romper la piedra y dejar que la trampa haga el resto.
+##########
+##########
+##....####
+##.....T##
+##....####
+##....####
+##....####
+..........
+; pieza dragon trampa_dragon 1 3 mira=e ciclo=1.5,2.0 alcance=6
+; pieza muro muro 6 3 golpes=2
+; pieza br brasero 7 3
+; pieza cofre cofre 3 5 aparece_si=br.encendido abierto=$NIVEL.$ID.cofre da=oro:35+pocion:1

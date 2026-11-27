@@ -1,0 +1,240 @@
+######################################################################################################################
+###############################gg#........#ggggggggggggggggggggggggggggg#######gggggggg##########.......T#ggggggggggg#
+###############################ggg........gggggggggggggggggggggggggggggg#######gggggggg##########........#ggggggggggg#
+###############################gg#........#gg##########gg#############gg#######gg##g##g##########........#gg#gg####gg#
+###############################gg#........#gg##########gg#ggggg#######gg#gggggggg#.............T#........#gg#gg####gg#
+###############################ggg........#gg##########gg#ggggg#######gg#gggggggg#..............#........ggg#gg####gg#
+###############################gg#........#gg##########gg#gg#gg#######gg#gg####gg#..............#........#gg#gg####gg#
+###############################gg#........#ggggg#######gg#gg#gg#######ggggg####gg#..............#........#gg#gg####gg#
+###############################gg#........#ggggg#######gg#gg#gg#######ggggg####gg#..............#........ggg#gg####gg#
+###############################gg#........####gg#######gg#gg##g########g#######gg#..............#####g#######gg####gg#
+#######gggggggggggggg##########gg#........#ggggg####ggggg#gg#.############.####gg#..............#gggggggggggggg####gg#
+#######gggggggggggggg##########gg#........#ggggg####ggggg#gg#.############.####ggg..............#gggggggggggggg####gg#
+#######gg###########g##########gg#........#gg#######gg####gg#.##...RR...##.####gg#..............#gg################gg#
+#######gg####T.......#ggggggggggg#........#gg#######ggggg#gg#.##...RR...##.####gg#..............#gg#ggggggggggggggggg#
+#######gg####........#ggggggggggg#.......T#gg#######ggggg#ggg.##...RR...##.####gg#..............#gg#ggggggggggggggggg#
+#######gg####........#gg#gg########g#######gg##########gg#gg#.##...RR...##.####gg#..............#gg##g##g##########gg#
+#######gg####........#gg#gggggggggggggg####gg##########gg#gg#.##...RR...##.####gg#..............#gg#.............T#gg#
+#######gg####........#gg#gggggggggggggg####gg##########gg#gg#.##...#######.####ggg..............ggg#..............#gg#
+#######gg####........#gg#############gg####gg##########gg#gg#.##...#######.####gg##g#############gg#..............#gg#
+#######gg####........#gggggggggggggg#gggggggg##########gg#gg#..............#ggggg#ggggggggggggggggg#..............#gg#
+#######gg####........#gggggggggggggg#gggggggg##########gg#gg#..............#ggggg#ggggggggggggggggg#..............#gg#
+#######gg####........##g##g#####g#gg###################gg#gg##############g#gg###################gg#..............#gg#
+#######gg#gg#........#...........#gg###################gg#ggggggggggggggggg#gg#gggggggggggggggggggg#..............#gg#
+#######gg#ggg........g...........#gg###################gg#ggggggggggggggggg#gg#gggggggggggggggggggg#..............ggg#
+#######gg#gg#........#...........#gg###################gg##########gg#######gg#gg################gg#..............#gg#
+#######gg#gg#........#...........#gg###################gggggggg#ggggg#######gg#gg##########gggggggg#..............#gg#
+#######gg#gg#........#...........ggg###################gggggggg#ggggg#######gg#gg##########ggggggggg..............#gg#
+#######gg#gg########g#...........############################gg#gg##########gg#gg##########gg#####g##g##g########g#gg#
+#######ggggg#T.......#...........##########ggggggggggggggggg#gg#gg##########gg#ggggggggggg#gg#........#ggggggggggg#gg#
+#######ggggg#........#..........T##########ggggggggggggggggg#gg#gg##########gg#ggggggggggg#ggg........#ggggggggggg#gg#
+##########gg#........##g###################gg#############gg#gg#gg##########gg##########gg#gg#........#gg##########gg#
+##########gg#........#........#gggggggggggggg#############ggggg#gg##########gg##########gg#gg#........#gg##########gg#
+##########ggg........#........#gggggggggggggg#############ggggg#gg##########gg##########gg#gg#........ggg##########gg#
+##########gg#........#........#gg###############################gg##########gg##########gg#gg#........#gg##########gg#
+#ggggggggggg#........#........#gg###################gggggggggggggggggggggggggg##########gg#gg#........#gggggggggggggg#
+#ggggggggggg#........g........ggg###################gggggggggggggggggggggggggg##########gg#gg#T.......#gggggggggggggg#
+#gg##############g####........#gg###################gg##################################gg#gg########g###########g####
+#gg#######ggggggggggg#........#ggggg###############################ggggggggggg##########gg#gg#gggggggg#.............T#
+#gg#######ggggggggggg#.......T#ggggg###############################ggggggggggg##########gg#gg#gggggggg#..............#
+#gg#######gg#######gg##g##g####gg#gg#............................##gg#######gg##########gg#gg#gg####gg#..............#
+#gg#######gg#######ggggg#gggggggg#gg#............................gggg#gggggggggggggggggggg#ggggg####gg#..............#
+#gg#######gg#######ggggg#gggggggg#gg#............................gggg#gggggggggggggggggggg#ggggg####gg#..............#
+#gg#######gg##########gg##########gg#............................g####gg##g########g################gg#..............#
+#gg#######gg##########gg##########gg#............................g####gg###########.#gggggggggggggg#gg#..............#
+#gg#######gg##########gg##########gg#............................g####gg####c###.##.#gggggggggggggg#gg#..............#
+#gg#######gg##########gg##########gg#............................g####gg####c###.##.#gg####gg####gg#gg##g#####g#####g#
+#gg#######gg##########gg##########gg#............................g####gg####c###.##.#ggggg#gg####gg#gg#gggggggggggggg#
+#gg#######gg##########gg##########gg#............................g####gg####c###.##.#ggggg#gg####gg#gg#gggggggggggggg#
+#gg#######gg##########gg##########gg#............................g####gg####c###.##.####gg#gg####gg#gg##g##########gg#
+#ggggggggggg##########gg##########gg#............................g####gg###.........#gg#gg#gg####gg#gg#...........#gg#
+#ggggggggggg##########gg##########gg################gg##########gg####gg###.........ggg#gg#gg####gg#gg#...........#gg#
+##g##g################gg##########gg################gg##########gg####gg###.........#gg#gg#gg####gg#gg#...........#gg#
+#.......T#############gggggggggggggg################gg####ggggg#gg#ggggg#...........#ggggg#gg####gg#gg#...........#gg#
+#........#############gggggggggggggg################gg####ggggg#gg#gggggg...........gggggg#gg####gg#ggg...........ggg#
+#........###########################################gg####gg#gg#gg#gg##############g#######gg####gg#gg#...........#gg#
+#........#........####gggggggg####ggggg#############gggggggg#gg#gg#gg#ggggggggggg#........#gg####gg#gg#...........#gg#
+#........g........####gggggggg####ggggg#############gggggggg#gg#gg#gg#gggggggggggg........#gg####gg#gg#...........ggg#
+#........#........####gg####gg####gg#gg######################gg#gg#gg#gg#######gg#........#gg####gg#gg#...........#gg#
+#........#........#gg#gg####gg#ggggg#ggggggggggggggggg#######gg#gg#ggggg#ggggg#gg#...######gg####gg#gg#...........#gg#
+#........#........ggg#gg####gg#ggggg#ggggggggggggggggg#######gg#gg#ggggg#ggggg#ggg...#####ggg####gg#gg#T..........#gg#
+#........#........#gg#gg####gg#gg##g##g#############gg#######gg#gg#######gg#gg#gg#......###gg####gg#gg#############gg#
+#........#........#gg#gg####ggggg#...........#######ggggggggggg#gg#######gg#gg#gg#...######gg####gg#ggggggggggggggggg#
+#........#........#gg#gg####gggggg...........#######ggggggggggg#gg#######gg#gg#gg#...######gg####gg#ggggggggggggggggg#
+#........#........#gg#gg##########...........###################gg#######gg#gg#gg#........#gg####gg########g#######gg#
+#........#........#gg#ggggg#ggggg#...........###################gg####ggggg#ggggg#........#gg####gg#.............T#gg#
+#........#........#gg#ggggg#ggggg#...........###################gg####ggggg#ggggg#........ggg####gg#..............#gg#
+##g##g##g#........#gg####gg#gg#gg#...........###################gg#####g########g##########gg####gg#..............#gg#
+#gggggggg#........#gg####gg#gg#gg#...........###################gg#..............#ggggggggggg####gg#..............#gg#
+#gggggggg#T.......#gg####gg#gg#gg#T..........###################gg#..............#ggggggggggg####gg#..............#gg#
+#######gg########g#gg####gg#gg#gg###############################gg#..............#gg####gg#######gg#..............#gg#
+#gggggggggggggggggggg####ggggg#gg###############################gg#.###########..#gg####ggggg#ggggg#..............#gg#
+#gggggggggggggggggggg####ggggg#gg###############################ggg.###########..#gg####ggggg#gggggg..............ggg#
+#gg##########gg##g##g#####g##g#gg###############################gg#.##ccccccc##..#gg#######gg#gg###################gg#
+#gg#ggggggggggg#..............#gg################ggggggggggg####gg#.##..c....##..#gg#######gg#gg###################gg#
+#gg#ggggggggggg#.###########..#gg################ggggggggggg####ggg.##..c....##..#gg#######gg#gg###################gg#
+#gg##g#######gg#.###########..#gg################gg#######gg####gg#.##..c....##..#gg#######gg#gg###################gg#
+#gg#........#gg#.#####ccc###..#gg################gg#######gg####gg#.##.......##..#gggggggg#gg#gg#############gggggggg#
+#gg#........#gg#.##cccccc###..ggg################gg#######gg####ggg..............ggggggggg#gg#gg#############gggggggg#
+#gg#........#gg#.##...ccc###..#gg################gg#######gg####gg#..............#######gg#gg#gg#############gg#######
+#gg#........#gg#.##...........#gg################gg#gggggggggggggg#..............#######gg#gg#gg#############gg#######
+#ggg........ggg#.##...........#gg################gg#gggggggggggggg#..............#######gg#gg#gg#############gg#######
+#gg#........####..............#gg################gg##g##g###########g###########g#######gg#gg#gg#############gg#######
+#gg#........####..............#gggggggggggggggggggg#........#..........T#ggggggggggg####gg#gg#gggggggg#######gg#######
+#ggg........####..............#gggggggggggggggggggg#........#...........#ggggggggggg####gg#gg#gggggggg#######gg#######
+#gg#........#####g###########g######################........#...........#gg#######gg####gg#gg#gg#####g#######gg#######
+#gg#........#gggggggg#.###########..#ggggggggggg#gg########.#...........#gg#######gg####gg#gg#gg#...........#gg#######
+#gg#T.......#ggggggggg.###########..#ggggggggggg#ggg###c###.#...........ggg#######gg####gg#gg#gg#...........ggg#######
+#gg########g#gg####gg#.#####ccc###..#gg#######gg#gg####c###.#...........#gg#######gg####gg#gg#gg#...........#gg#######
+#gggggggggggggg####gg#.##cccccc###..#gg#######ggggg####c###.#.....S.....#gg#ggggg#gg#ggggg#gg#gg#...........#gg#######
+#gggggggggggggg####gg#.##...ccc###..ggg#######gggggg###c###.g...........ggg#ggggg#gg#ggggg#gg#ggg...........#gg#######
+###################gg#.##...........#gg###############...##.#...........#gg#gg#gg#gg#gg####gg####...........#gg#######
+#gggggggggggggg####gg#.##...........#gg#############........#...........#gg#gg#ggggg#gg####ggggg#...........#gg#######
+#gggggggggggggg####gg#..............#gg#############........#...........#gg#gg#ggggg#gg####ggggg#T..........ggg#######
+#gg##########gg####gg###########g####gg#############........#...........#gg#gg#######gg#######gg#####g#######gg#######
+#gg##########gggggggg#######ggggggggggg#############........#...........#gg#ggggggggggg#######gggggggg#######gg#######
+#gg##########gggggggg#######ggggggggggg#############........#...........ggg#ggggggggggg#######gggggggg#######gg#######
+#gg#########################gg#gg####################g########g#####g####gg#########################gg#######gg#######
+#ggggggggggggggggggggggggggggg#gggggggggggggggggggggggggggggggggggggggggggg#########################ggggggggggg#######
+#ggggggggggggggggggggggggggggg#gggggggggggggggggggggggggggggggggggggggggggg#########################ggggggggggg#######
+######################################################################################################################
+; ======================================================================================================================
+;  GENERADO por herramientas/generador_mapas. 2026-11-27. Nivel «CuevaPrueba», 118 × 100, algoritmo «salas», semilla 2.
+;  26 salas, 114 puertas, 3 enemigos, 1 cofres, 18 jarrones. Escena: escenas/PruebaCuevaPrueba.tscn. Mientras esta cabecera siga aquí, la herramienta puede volver a escribir
+;  este archivo (guarda copia si lo has retocado). Para adoptarlo como nivel hecho a mano, borra la palabra GENERADO de la línea de arriba.
+; ======================================================================================================================
+; # pared · . suelo · ~ agua honda · S inicio · W goblin guerrero · A goblin arquero · T brasero · g tierra pisada (pasillos) · R losas (o basalto bajo la lava) · G elemental del bosque
+; generador {"acabado":true,"agua":8,"algoritmo":"salas","alto":100,"ancho":120,"ancho_camino":2,"ancho_pasillo":2,"ancho_precipicio":2,"ancho_rio":2,"apertura":55,"arqueros":0,"b_braseros":true,"b_placa":true,"b_precipicio":true,"b_puente":true,"barreras":0,"braseros":1.0,"bucles":30,"bucles_claros":30,"cabana":"","cabana_en":"","callejones":100,"camara_sala":true,"campamentos":0,"charcas":0,"claros":6,"decorado":true,"densidad_salas":0.3,"enemigos":0.0,"estilo":"cueva","forma":"rectangulo","hierba_alta":15,"jarrones":1.0,"kit":"demo","lado_max":8,"lado_min":4,"lados_salida":"","llave":false,"luz":"cueva","metodo":"fractal","n_salas":9,"nombre":"CuevaPrueba","octavas":4,"paredes":"kit","pasillos":30,"paso_tierra":0,"puertas":50,"puzles":0,"recto":60,"region_min":12,"relleno":56,"reparto":"dispersas","rio":"ns","rotulo":true,"rotulos_claros":true,"runas":"","sala_jefe":"no","sala_max":5,"sala_min":3,"salas_cerradas":0,"salas_grandes":"28x13","salida_a":"","semilla":2,"silueta":60,"simetria":true,"sinuosidad":50,"solo_aceptados":false,"suavizados":2,"tamano_claro":5,"tamano_sala":10.0,"terreno":true,"tesoro":true,"titulo_nivel":"Cueva de prueba (revisión de assets)","titulos_claros":""}
+; puzles 0>lava_roca_peso 5>dique_pozo_placa 6>desvia_arroyo 7>columna_puente_lava 18>muro_cauce_balsa 20>fuga_reja_reloj 24>retener_cuenca 25>muestrario_cueva_kit
+; anadidos enemigo|limo||17,20 enemigo|limo_agua||27,26 enemigo|golem||110,41
+;
+; zona 1,1..116,98 cueva mezcla=0.8 rotulo=Cueva_de_prueba_(revisión_de_assets)
+;
+; camara 82,55..89,65
+; camara 103,49..113,59
+; camara 22,31..29,38
+; camara 22,22..32,29
+; camara 10,55..17,68
+; camara 16,73..29,83
+; camara 67,67..80,80
+; camara 61,10..74,20
+; camara 103,37..116,44
+; camara 100,64..113,71
+; camara 82,4..95,17
+; camara 34,1..41,14
+; camara 100,16..113,26
+; camara 97,1..104,8
+; camara 4,76..11,86
+; camara 61,82..71,95
+; camara 1,52..8,65
+; camara 34,61..44,68
+; camara 22,85..35,92
+; camara 13,28..20,35
+; camara 73,43..83,53
+; camara 97,85..107,92
+; camara 13,13..20,26
+; camara 94,28..101,35
+; camara 52,82..59,95
+; camara 37,39..64,49
+;
+; pieza inicio entrada 66 88
+; pieza cat1_rio lava 85 60 celdas=85,60..86,60 vuelve=22
+; pieza cat1_roca roca_empujable 83 60 tam=pequena
+; pieza cat1_peso pulsador 87 60 modo=presencia peso=1 modelo=cueva
+; pieza cat1_cofre cofre 82 58 aparece_si=cat1_peso.activo abierto=cuevaprueba.cat1.cofre da=oro:35+pocion:1
+; pieza cat2_pozo cuenca 22 76 celdas=22,76..24,78 nivel=0.45
+; pieza cat2_dique compuerta 21 77 modelo=muro estrecha=no tarda=12 vertical=no
+; pieza cat2_canal cuenca 20 77
+; pieza cat2_desague cuenca 19 77 fijo=0.02
+; pieza cat2_grieta muro 20 77 golpes=2
+; pieza cat2_placa pulsador 23 77 modo=presencia
+; pieza cat2_cofre cofre 21 80 aparece_si=flag.cuevaprueba.cat2.hecho abierto=cuevaprueba.cat2.cofre da=oro:40+pocion:1
+; puzle cat2_cede cuando=cat2_grieta.roto hace=cat2_dique.abrir
+; puzle cat2_premio cuando=cat2_placa.pulsado hace=flag.poner(cuevaprueba.cat2.hecho)
+; pieza cat3_cauce cuenca 70 72 celdas=70,72..76,72+72,73..72,75
+; pieza cat3_manantial manantial 70 72 caudal=1.0 rampa=no
+; pieza cat3_sumidero cuenca 76 72 fijo=0.02
+; pieza cat3_nivel nivel 72 75 objetivo=0.3
+; pieza cat3_cofre cofre 76 74 aparece_si=cat3_nivel.alcanzado abierto=cuevaprueba.cat3.cofre da=oro:35+pocion:1
+; pieza cat4_cristal cristal 64 12 cada=0
+; pieza cat4_veta veta 64 13
+; pieza cat4_geoda geoda 65 13 flag=cuevaprueba.cat4.geoda
+; pieza cat4_rio lava 67 12 celdas=67,12..68,16
+; pieza cat4_columna columna 66 13 golpes=99 cae=e puente=cat4_rio largo=2 flag=cuevaprueba.cat4.puente
+; pieza cat4_cofre cofre 70 14 abierto=cuevaprueba.cat4.cofre da=oro:40+pocion:1
+; pieza cat5_foso cuenca 28 87 celdas=28,87..30,89 nivel=0.35
+; pieza cat5_canal cuenca 25 88 celdas=25,88..27,88
+; pieza cat5_manantial manantial 25 88 caudal=1.2 volumen=0 rampa=no inicia=no
+; pieza cat5_muro muro 26 88 golpes=2
+; puzle cat5_brota cuando=cat5_muro.roto hace=cat5_manantial.abrir_cauce(1.2,40)
+; pieza cat5_balsa balsa 30 87 ruta=29,87+28,87+28,88+28,89 cofre=cat5_cofre calado=0.5 vel=1.5
+; pieza cat5_cofre cofre 30 87 abierto=cuevaprueba.cat5.cofre da=oro:40
+; pieza cat6_manantial manantial 76 44 caudal=1.0 volumen=0 rampa=no inicia=no
+; pieza cat6_vaso cuenca 76 45 celdas=76,45..76,46
+; pieza cat6_fuga compuerta 76 47 caudal=0.35 vertical=no
+; pieza cat6_desague cuenca 76 48 fijo=0.02
+; pieza cat6_nivel nivel 76 46 objetivo=0.3
+; pieza cat6_riego pulsador 75 51 modo=agua rearme=2
+; pieza cat6_verja puerta 80 46 modelo=reja
+; pieza cat6_cofre cofre 80 44 abierto=cuevaprueba.cat6.cofre da=oro:40+pocion:1
+; puzle cat6_llena cuando=cat6_riego.pulsado hace=cat6_manantial.abrir_cauce(1.0,12) y=cat6_fuga.abrir
+; puzle cat6_abre cuando=cat6_nivel.alcanzado hace=cat6_verja.abrir
+; puzle cat6_cierra cuando=cat6_nivel.perdido hace=cat6_verja.cerrar
+; pieza cat7_manantial manantial 55 86 caudal=0.8 volumen=0 rampa=no inicia=no
+; pieza cat7_vaso cuenca 55 87 celdas=55,87..55,88
+; pieza cat7_desague cuenca 55 89 fijo=0.02
+; pieza cat7_nivel nivel 55 87 objetivo=0.3
+; pieza cat7_riego pulsador 54 90 modo=agua rearme=2
+; puzle cat7_llena cuando=cat7_riego.pulsado hace=cat7_manantial.abrir_cauce(0.8,20)
+; pieza cat7_cofre cofre 56 90 aparece_si=cat7_nivel.alcanzado abierto=cuevaprueba.cat7.cofre da=oro:35+pocion:1
+; pieza cat8_muestra muestrario 39 39 pack=kit grupo=todo ancho=24 alto=10 celdas=39,39..62,48
+; pieza tesoro cofre 37 7 abierto=cuevaprueba.tesoro.cofre da=oro:60+pocion:1
+; pieza brasero_1 brasero 103 59 luz=2.4 modelo=cueva
+; pieza jarron_1 jarron 112 49 botin=oro
+; pieza brasero_2 brasero 29 38 luz=2.4 modelo=cueva
+; pieza jarron_2 jarron 26 31 botin=oro
+; pieza brasero_3 brasero 32 29 luz=2.4 modelo=cueva
+; pieza jarron_3 jarron 30 22 botin=oro
+; pieza brasero_4 brasero 10 68 luz=2.4 modelo=cueva
+; pieza jarron_4 jarron 16 55 botin=oro
+; pieza brasero_5 brasero 116 37 luz=2.4 modelo=cueva
+; pieza jarron_5 jarron 109 37 botin=pocion
+; pieza brasero_6 brasero 113 64 luz=2.4 modelo=cueva
+; pieza jarron_6 jarron 110 64 botin=oro
+; pieza brasero_7 brasero 95 4 luz=2.4 modelo=cueva
+; pieza jarron_7 jarron 92 4 botin=oro
+; pieza brasero_8 brasero 41 14 luz=2.4 modelo=cueva
+; pieza jarron_8 jarron 38 1 botin=oro
+; pieza brasero_9 brasero 113 16 luz=2.4 modelo=cueva
+; pieza jarron_9 jarron 112 16 botin=oro
+; pieza brasero_10 brasero 104 1 luz=2.4 modelo=cueva
+; pieza jarron_10 jarron 101 1 botin=oro
+; pieza brasero_11 brasero 4 86 luz=2.4 modelo=cueva
+; pieza jarron_11 jarron 11 76 botin=pocion
+; pieza brasero_12 brasero 71 82 luz=2.4 modelo=cueva
+; pieza jarron_12 jarron 66 82 botin=pocion
+; pieza brasero_13 brasero 8 52 luz=2.4 modelo=cueva
+; pieza jarron_13 jarron 7 52 botin=pocion
+; pieza brasero_14 brasero 34 68 luz=2.4 modelo=cueva
+; pieza jarron_14 jarron 40 61 botin=oro
+; pieza brasero_15 brasero 13 28 luz=2.4 modelo=cueva
+; pieza jarron_15 jarron 14 28 botin=oro
+; pieza brasero_16 brasero 97 92 luz=2.4 modelo=cueva
+; pieza jarron_16 jarron 103 85 botin=oro
+; pieza brasero_17 brasero 13 13 luz=2.4 modelo=cueva
+; pieza jarron_17 jarron 18 13 botin=pocion
+; pieza brasero_18 brasero 94 35 luz=2.4 modelo=cueva
+; pieza jarron_18 jarron 95 28 botin=oro
+; pieza enemigo_m1 limo 17 20
+; pieza enemigo_m2 limo 27 26 elemento=agua
+; pieza enemigo_m3 golem 110 41
+; zona 82,55..89,65 cueva mezcla=0.5 nombre=pz_lava_roca_peso rotulo=La_roca_sobre_la_lava_enfriada
+; zona 16,73..29,83 cueva mezcla=0.5 nombre=pz_dique_pozo_placa rotulo=El_pozo_con_la_placa_bajo_el_agua
+; zona 67,67..80,80 cueva mezcla=0.5 nombre=pz_desvia_arroyo rotulo=El_arroyo_y_la_presa_de_tierra
+; zona 61,10..74,20 cueva mezcla=0.5 nombre=pz_columna_puente_lava rotulo=La_columna_que_se_tumba_de_puente
+; zona 34,1..41,14 cueva mezcla=0.5 nombre=claro_11 rotulo=El_claro_del_tesoro
+; zona 61,82..71,95 cueva mezcla=0.5 nombre=claro_15 rotulo=La_entrada
+; zona 22,85..35,92 cueva mezcla=0.5 nombre=pz_muro_cauce_balsa rotulo=El_muro_que_tapa_el_cauce_y_la_balsa
+; zona 73,43..83,53 cueva mezcla=0.5 nombre=pz_fuga_reja_reloj rotulo=La_fuga_y_la_reja_con_plazo
+; zona 52,82..59,95 cueva mezcla=0.5 nombre=pz_retener_cuenca rotulo=Retener_el_agua_tapón_de_tierra
+; zona 37,37..64,49 cueva mezcla=0.5 nombre=pz_muestrario_cueva_kit rotulo=Muestrario_de_la_cueva_·_el_kit_propio

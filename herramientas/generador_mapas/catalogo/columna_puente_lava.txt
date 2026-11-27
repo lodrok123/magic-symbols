@@ -1,0 +1,33 @@
+; catalogo columna_puente_lava
+; titulo La columna que se tumba de puente
+; tipo premio
+; necesita fuego+flecha | agua+flecha | tierra+flecha
+; validacion pendiente
+; bioma cueva
+; pide un hechizo al cristal
+; resuelto columna.caida
+; prueba mapa ancho=70 alto=60 sala_min=4 sala_max=7 estilo=cueva luz=cueva
+; prueba solucion A: golpe fuego cristal desde 4:2 | espera geoda explotada | espera columna caida | max 14 | cruza 3:4 a 7:3 | abre cofre
+; prueba solucion B: golpe tierra cristal desde 4:2 | espera columna caida | max 14 | cruza 3:4 a 7:3 | abre cofre
+; prueba nada: nunca columna caida | durante 8
+; prueba nada_cofre: nunca cofre abierto | durante 4
+;  CUEVA · tierra, agua o fuego (27/11; la columna-puente de la Cueva Resonante C3, `docs/CUEVA_RESONANTE.md`). Un río de LAVA de dos casillas de ancho parte la sala en dos: en la orilla de la entrada
+;  hay un CRISTAL resonante dormido (solo late cuando le da un hechizo, el que sea), su veta, una GEODA pegada a la veta y, junto a la geoda, una COLUMNA agrietada en el borde del río. En la otra orilla,
+;  un cofre. El hechizo hace latir el cristal; el pulso corre por la veta y la geoda se carga 0,9 s y EXPLOTA, tumba la columna y esta se tiende sobre la lava (`puente=rio largo=2`: la lava de la plantilla): un PUENTE para siempre
+;  (no se hunde ni vuelve a ser lava) por el que se cruza. Cualquier sello vale; la lava, sin la columna, no se pisa ni se salta.
+############
+############
+##...RR...##
+##...RR...##
+##...RR...##
+##...RR...##
+##...RR...##
+##...#######
+##...#######
+............
+; pieza cristal cristal 2 2 cada=0
+; pieza veta veta 2 3
+; pieza geoda geoda 3 3 flag=$NIVEL.$ID.geoda
+; pieza rio lava 5 2 celdas=5,2..6,6
+; pieza columna columna 4 3 golpes=99 cae=e puente=rio largo=2 flag=$NIVEL.$ID.puente
+; pieza cofre cofre 8 4 abierto=$NIVEL.$ID.cofre da=oro:40+pocion:1

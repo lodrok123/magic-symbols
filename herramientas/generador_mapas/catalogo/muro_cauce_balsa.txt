@@ -1,0 +1,32 @@
+; catalogo muro_cauce_balsa
+; titulo El muro que tapa el cauce y la balsa
+; tipo premio
+; necesita tierra+flecha
+; validacion pendiente
+; bioma cueva
+; pide tierra
+; resuelto balsa.atracada
+; prueba mapa ancho=70 alto=60 sala_min=4 sala_max=7 estilo=cueva luz=cueva
+; prueba solucion A: golpe tierra muro desde 3:5 | golpe tierra muro desde 3:5 | espera balsa atracada | espera alcanzable cofre | max 60
+; prueba nada: nunca balsa atracada | durante 20
+; prueba nada_agua: golpe agua muro desde 3:5 | golpe agua muro desde 3:5 | nunca balsa atracada | durante 15
+; prueba nada_un_golpe: golpe tierra muro desde 3:5 | nunca balsa atracada | durante 15
+;  CUEVA · agua y tierra (27/11). Un foso de 3 × 3 al fondo, medio inundado (0,35 u: no se pisa, pero la balsa aún no flota, que pide 0,5 u), con una BALSA en su esquina del fondo que lleva el cofre: desde la
+;  orilla queda a más de 2,7 u y no se alcanza. El agua que lo llenaría está CERRADA tras un MURO AGRIETADO que tapa un cauce de tres casillas que entra por el oeste (el manantial, al fondo del cauce, no se ve
+;  ni se alcanza). Dos golpes de TIERRA rompen el muro (el fuego y el agua no le hacen nada) y el agua corre por el cauce hasta el foso; con 0,5 u la balsa flota, deriva por (6,2) (5,2) (5,3) (5,4) y atraca en el
+;  muelle, a una casilla de la orilla, y el cofre se puede abrir con E. Es el `cofre_balsa` con otro disparador: aquí el verbo es ROMPER (tierra), no regar.
+###########
+###########
+#####ccc###
+##cccccc###
+##...ccc###
+##.........
+##.........
+...........
+; pieza foso cuenca 5 2 celdas=5,2..7,4 nivel=0.35
+; pieza canal cuenca 2 3 celdas=2,3..4,3
+; pieza manantial manantial 2 3 caudal=1.2 volumen=0 rampa=no inicia=no
+; pieza muro muro 3 3 golpes=2
+; puzle brota cuando=muro.roto hace=manantial.abrir_cauce(1.2,40)
+; pieza balsa balsa 7 2 ruta=6,2+5,2+5,3+5,4 cofre=cofre calado=0.5 vel=1.5
+; pieza cofre cofre 7 2 abierto=$NIVEL.$ID.cofre da=oro:40

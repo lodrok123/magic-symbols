@@ -23,6 +23,7 @@ var _d: Vector2 = Vector2.ZERO
 var _nivel_actual: String = ""
 var _m: Dictionary = {}                  ## el mapa regenerado del nivel actual
 var _puente_hecho: bool = false
+var avisos_permitidos: Array = []        ## trozos de aviso del generador que no cuentan como fallo (vacío en los niveles de bosque; los de revisión de assets admiten los de la cámara de salas)
 
 
 func _escenario() -> void:
@@ -144,7 +145,10 @@ func _comprobar_estatico() -> void:
 	_ok("1 %s: el generador no da errores" % nombre, (m["errores"] as Array).is_empty(), str(m["errores"]))
 	var avisos: Array = []
 	for a in m["avisos"]:
-		if not (String(a).begins_with("El cofre que ponías en") and String(a).contains("era el sitio válido más cercano")):
+		var permitido: bool = String(a).begins_with("El cofre que ponías en") and String(a).contains("era el sitio válido más cercano")
+		for ok_a in avisos_permitidos:                  # 27/11: los niveles de revisión de assets (pasillos de «pagina» de 1 × n que la cámara de salas no encuadra)
+			permitido = permitido or String(a).contains(String(ok_a))
+		if not permitido:
 			avisos.append(a)
 	_ok("1 %s: sin avisos del generador (salvo el cofre que se corre una casilla de su activador)" % nombre, avisos.is_empty(), str(avisos))
 	# 2 · La escena.
@@ -163,6 +167,11 @@ func _comprobar_estatico() -> void:
 	for fila in m["filas"]:
 		letras += String(fila).count("W") + String(fila).count("A")
 	var montados: int = get_nodes_in_group("combate3d").size()
+	# 27/11: los enemigos que no van por letra (limo, gólem, chamán… en la cueva de los niveles de revisión de assets) se montan desde su `; pieza`: también cuentan (en los niveles de bosque no hay ninguno).
+	for linea_e in m["lineas"]:
+		var te: PackedStringArray = String(linea_e).substr(1).strip_edges().split(" ", false)
+		if te.size() >= 5 and te[0] == "pieza" and ["limo", "golem", "chaman", "mouro", "gatopedro", "goblin_escudo"].has(te[2]):
+			letras += 1
 	_ok("2 %s: un enemigo montado por cada W y A del plano (%d)" % [nombre, letras], montados == letras, "%d montados, %d letras, %d en stats" % [montados, letras, int(m["stats"]["enemigos"])])
 	if pz != null:
 		var faltan: PackedStringArray = PackedStringArray()

@@ -4289,6 +4289,18 @@ func _contrafuerte_ss(c: Vector2i) -> Vector2i:
 				var t: PackedStringArray = linea.strip_edges().trim_prefix(";").strip_edges().split(" ", false)
 				if t.size() >= 5 and t[0] == "pieza" and t[3].is_valid_int() and t[4].is_valid_int():
 					_celdas_pieza_ss[Vector2i(int(t[3]), int(t[4]))] = true
+					if t[2] == "muestrario":
+						# 27/11: una sala muestrario de piezas (`; pieza … muestrario … celdas=x0,y0..x1,y1`): ni escombros ni piedras del decorado automático entre las piezas que se quieren revisar.
+						for k in t:
+							if k.begins_with("celdas="):
+								var ab: PackedStringArray = k.substr(7).split("..")
+								if ab.size() == 2:
+									var a0: PackedStringArray = ab[0].split(",")
+									var a1: PackedStringArray = ab[1].split(",")
+									if a0.size() == 2 and a1.size() == 2:
+										for yy in range(int(a0[1]), int(a1[1]) + 1):
+											for xx in range(int(a0[0]), int(a1[0]) + 1):
+												_celdas_pieza_ss[Vector2i(xx, yy)] = true
 				if t.size() < 5 or t[0] != "pieza" or not t[2] in ["trampa_flechas", "trampa_dragon"] or linea.contains("exenta=si"):
 					continue
 				var mira: String = "s"

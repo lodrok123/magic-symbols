@@ -1,0 +1,40 @@
+; catalogo fuga_reja_reloj
+; titulo La fuga y la reja con plazo
+; tipo premio
+; necesita agua+flecha
+; validacion pendiente
+; bioma cueva
+; pide agua
+; resuelto cofre.abierto
+; prueba mapa ancho=70 alto=60 sala_min=4 sala_max=7 estilo=cueva luz=cueva
+; prueba solucion A: golpe agua riego desde 2:6 | espera verja abierta | max 40 | cruza 7:6 a 7:2 sin_dano | abre cofre
+; prueba ventana: golpe agua riego desde 2:6 | espera verja abierta | max 40 | espera verja cerrada | max 30
+; prueba nada: nunca verja abierta | durante 10
+; prueba nada_fuego: golpe fuego riego desde 2:6 | nunca verja abierta | durante 12
+; prueba nada_cofre: nunca cofre abierto | durante 5
+;  CUEVA · agua con plazo (27/11). Un canal de una casilla que baja por la pared izquierda: arriba un manantial CERRADO, en medio un vaso con un detector de nivel y, al pie, una compuerta-fuga y un desagüe que
+;  se lo lleva todo. Una reja cierra el nicho de un cofre, al otro lado de la sala, y solo está abierta mientras el detector ve agua suficiente (0,3 u). Un pulsador de AGUA (hechizo de agua, desde la orilla) abre
+;  el manantial y, a la vez, la compuerta-fuga, que deja salir como mucho 0,35 u³/s: el vaso se llena más rápido de lo que se vacía, el nivel sube hasta 0,3, la reja se abre; cuando el manantial se agota
+;  (solo da 12 u³) la fuga lo vacía y la reja se cierra. Hay una VENTANA de unos segundos para cruzar la sala corriendo, pasar la reja y abrir el cofre del nicho. Si se cierra antes, se vuelve a regar.
+;  Es el reloj de agua de verdad: la compuerta con `caudal` (la fuga es un grifo estrecho, no un agujero) y el manantial con volumen finito.
+##########
+###c###.##
+###c###.##
+###c###.##
+###c###.##
+###c###.##
+##........
+##........
+##........
+..........
+; pieza manantial manantial 3 1 caudal=1.0 volumen=0 rampa=no inicia=no
+; pieza vaso cuenca 3 2 celdas=3,2..3,3
+; pieza fuga compuerta 3 4 caudal=0.35 vertical=no
+; pieza desague cuenca 3 5 fijo=0.02
+; pieza nivel nivel 3 3 objetivo=0.3
+; pieza riego pulsador 2 8 modo=agua rearme=2
+; pieza verja puerta 7 3 modelo=reja
+; pieza cofre cofre 7 1 abierto=$NIVEL.$ID.cofre da=oro:40+pocion:1
+; puzle llena cuando=riego.pulsado hace=manantial.abrir_cauce(1.0,12) y=fuga.abrir
+; puzle abre cuando=nivel.alcanzado hace=verja.abrir
+; puzle cierra cuando=nivel.perdido hace=verja.cerrar

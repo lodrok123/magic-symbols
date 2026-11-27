@@ -37,9 +37,12 @@ def plantillas():
 			continue
 		e = {"id": f[:-4], "titulo": f[:-4], "tipo": "premio", "necesita": "", "validacion": "pendiente", "ruta": os.path.join(CATALOGO, f)}
 		for l in open(e["ruta"], encoding="utf8"):
-			m = re.match(r";\s*(catalogo|titulo|tipo|necesita|validacion)\s+(.*)", l.rstrip("\n"))
+			m = re.match(r";\s*(catalogo|titulo|tipo|necesita|validacion|solo_mano)\s+(.*)", l.rstrip("\n"))
 			if m:
 				e[m.group(1) if m.group(1) != "catalogo" else "id"] = m.group(2).strip()
+		# Los muestrarios de piezas (`; solo_mano si`) no son puzles: no se validan en playtest.
+		if e.get("solo_mano", "") == "si":
+			continue
 		res[e["id"]] = e
 	return res
 

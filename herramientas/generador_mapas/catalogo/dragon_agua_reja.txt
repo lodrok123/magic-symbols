@@ -1,0 +1,33 @@
+; catalogo dragon_agua_reja
+; titulo El dragón que se apaga con agua y la reja del botón
+; tipo premio
+; necesita agua+flecha
+; validacion pendiente
+; bioma ruinas
+; pide agua (dos veces)
+; resuelto cofre.abierto
+; prueba mapa ancho=60 alto=50 estilo=ruinas luz=ruinas
+; prueba solucion A: golpe agua dragon desde 2:5 | golpe agua boton desde 4:8 | espera verja abierta | max 3 | cruza 4:6 a 4:2 sin_dano | abre cofre
+; prueba nada_sin_agua: golpe agua boton desde 4:8 | reposo 2 | cruza 4:6 a 4:4 con_dano
+; prueba nada_sin_boton: golpe agua dragon desde 2:5 | nunca verja abierta | durante 4
+; prueba nada_cofre: nunca cofre abierto | durante 5
+;  RUINAS · trampa de dragón + botón + plazo (27/11). Una sala con el nicho de un cofre al norte, cerrado por una REJA, y, en mitad de la sala, un pasillo de fuego: una cabeza de DRAGÓN metida en el muro de la
+;  izquierda escupe 90 s de fuego y descansa 1 (10 de daño por tick) por toda la fila de en medio, de pared a pared: no hay hueco para cruzar ni forma de rodearla. La reja la abre un BOTÓN DE MAGIA del rincón de
+;  abajo a la derecha (el rótulo pide «agua + flecha»; el botón de piedra acepta cualquier hechizo, pero un hechizo de fuego solo no apaga al dragón): una vez pulsado, se queda abierta. Hay que preparar todo ANTES de correr: un hechizo de AGUA a la cabeza del dragón (se apaga 8 s) y otro al botón
+;  (el orden da igual), y cruzar la fila (unos 2 s), pasar la reja y abrir el cofre del nicho DENTRO DE LOS 8 s del dragón apagado: el plazo es el de la trampa. Sin agua el chorro hiere; con agua pero sin botón
+;  la reja no se mueve. Dos hechizos de agua y un reloj: el de la trampa apagada.
+#########
+####.####
+####.####
+####.####
+##.....##
+##.....##
+##.....##
+##.....##
+##.....##
+.........
+; pieza dragon trampa_dragon 1 5 mira=e ciclo=90,1 alcance=5
+; pieza cofre cofre 4 1 abierto=$NIVEL.$ID.cofre da=oro:40+pocion:1
+; pieza verja puerta 4 3 modelo=reja
+; pieza boton pulsador 6 8 modo=magia rearme=8 pista=agua+flecha $MODELO
+; puzle abre cuando=boton.pulsado hace=verja.abrir

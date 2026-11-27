@@ -1,0 +1,33 @@
+; catalogo totem_a_favor
+; titulo El tótem que enciende el brasero
+; tipo premio
+; necesita -
+; validacion pendiente
+; bioma ruinas
+; pide empujar (sin hechizos)
+; resuelto cofre.abierto
+; prueba mapa ancho=60 alto=50 estilo=ruinas luz=ruinas
+; prueba solucion A: empuja roca n 1 | espera br encendido | espera verja abierta | max 10 | abre cofre
+; prueba nada: nunca br encendido | durante 10
+; prueba nada_empuje_en_linea: empuja roca e 1 | nunca br encendido | durante 10
+; prueba nada_cofre: nunca cofre abierto | durante 5
+;  RUINAS · trampas A FAVOR (27/11). Una sala de ruinas con un TÓTEM de piedra (un mascarón de pie, sin pared) en el lado izquierdo que lanza cada 3 s una FLECHA DE FUEGO por la fila del medio hacia un
+;  brasero apagado del otro lado. Entre los dos hay una ROCA pequeña atravesada en la fila que se come todas las flechas. Arriba a la derecha, una reja cierra el nicho de un cofre y solo se abre cuando arde
+;  el brasero. La jugadora no necesita fuego: empuja la roca FUERA de la fila (un empujón al norte desde abajo, o al sur) y el propio tótem hace el trabajo: la siguiente flecha enciende el brasero y
+;  la reja sube. Empujarlo a lo largo de la fila no vale (sigue en la línea de tiro). Quien se quede parada en la fila recibe una flecha (12). Con fuego propio también se enciende el brasero apuntando desde
+;  la fila, pero entonces se pierde la gracia: el diseño enseña que las trampas de las ruinas se pueden usar.
+###########
+########.##
+########.##
+##.......##
+##....T..##
+##.......##
+##.......##
+##.......##
+...........
+; pieza totem trampa_flechas 2 4 mira=e exenta=si cada=3.0 elemento=fuego alcance=5
+; pieza roca roca_empujable 4 4 tam=pequena
+; pieza br brasero 6 4
+; pieza verja puerta 8 2 modelo=reja
+; pieza cofre cofre 8 1 abierto=$NIVEL.$ID.cofre da=oro:35+pocion:1
+; puzle abre cuando=br.encendido hace=verja.abrir

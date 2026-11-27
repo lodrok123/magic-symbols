@@ -256,6 +256,7 @@ func generar(parametros: Dictionary = {}, retoques: Dictionary = {}, enlaces_man
 		_:
 			p["algoritmo"] = "salas"
 			_gen_salas()
+	_tallar_salas_grandes()                  # 27/11: las salas grandes que se piden aparte (los muestrarios de piezas), si el parámetro `salas_grandes` está
 	_retoques = retoques.duplicate()
 	_aplicar_retoques(retoques)
 	_cerrar_borde()
@@ -1532,6 +1533,139 @@ func _nueva_sala(rect: Rect2i) -> int:
 	return salas.size() - 1
 
 
+## 27/11 (salas muestrario de piezas, `docs/REVISION_ASSETS_CUEVA_RUINAS_2026-11-27.md`): `salas_grandes` = «32x22;32x23» (ancho × alto en casillas, separadas por «;»; NO está en `parametros_defecto`
+## a propósito: si estuviera, todos los `; generador` de los mapas ya exportados cambiarían). Talla, DESPUÉS del algoritmo, una sala vacía de ese tamaño en un sitio que no pise ninguna otra sala (el laberinto de pasillos sí
+## se pisa: la sala grande queda unida a los pasillos que la tocan, y de entre los sitios válidos se elige el que menos pasillos estropea). La sala nace con `rol = "grande"`: no es el inicio ni lleva enemigos, jarrones ni tesoro, y solo se llena si se le pide
+## una plantilla del catálogo a mano (`; puzles`), que cabe justa. Una sala grande sin hueco avisa y no se talla (el resto del mapa queda como si no se hubiera pedido).
+func _tallar_salas_grandes() -> void:
+	var texto: String = String(p.get("salas_grandes", ""))
+	if texto.strip_edges() == "":
+		return
+	for par in texto.split(";", false):
+		var dim: PackedStringArray = par.strip_edges().split("x")
+		if dim.size() != 2 or not dim[0].is_valid_int() or not dim[1].is_valid_int():
+			avisos.append("salas_grandes: «%s» no es <ancho>x<alto>." % par)
+			continue
+		var tw: int = dim[0].to_int()
+		var th: int = dim[1].to_int()
+		if tw + 4 > w or th + 4 > h:
+			avisos.append("La sala grande de %dx%d no cabe en un mapa de %d x %d." % [tw, th, w, h])
+			continue
+		# Dos sumas acumuladas: las casillas que ocupan las salas (con una de margen) y las que ya se pisan (pasillos del laberinto, agua…).
+		var en_sala: PackedInt32Array = PackedInt32Array()
+		en_sala.resize(w * h)
+		for s in salas:
+			var rs: Rect2i = (s["rect"] as Rect2i).grow(1)
+			for y in range(maxi(0, rs.position.y), mini(h, rs.end.y)):
+				for x in range(maxi(0, rs.position.x), mini(w, rs.end.x)):
+					en_sala[y * w + x] = 1
+		var suma_sala: PackedInt32Array = PackedInt32Array()
+		var suma_piso: PackedInt32Array = PackedInt32Array()
+		suma_sala.resize((w + 1) * (h + 1))
+		suma_piso.resize((w + 1) * (h + 1))
+		for y in range(h):
+			for x in range(w):
+				var k: int = (y + 1) * (w + 1) + x + 1
+				suma_sala[k] = suma_sala[y * (w + 1) + x + 1] + suma_sala[(y + 1) * (w + 1) + x] - suma_sala[y * (w + 1) + x] + en_sala[y * w + x]
+				suma_piso[k] = suma_piso[y * (w + 1) + x + 1] + suma_piso[(y + 1) * (w + 1) + x] - suma_piso[y * (w + 1) + x] + (1 if g[y * w + x] != MURO else 0)
+		# Entre los sitios que no pisan ninguna sala (el laberinto de pasillos sí se puede pisar), el que toca más pasillos: así queda unida, y la que menos estropea entre las que sí.
+		var mejor: Rect2i = Rect2i()
+		var mejor_piso: int = -1
+		for y0 in range(2, h - th - 2):
+			for x0 in range(2, w - tw - 2):
+				var x1: int = x0 - 1
+				var y1: int = y0 - 1
+				var x2: int = x0 + tw + 1
+				var y2: int = y0 + th + 1
+				if suma_sala[y2 * (w + 1) + x2] - suma_sala[y1 * (w + 1) + x2] - suma_sala[y2 * (w + 1) + x1] + suma_sala[y1 * (w + 1) + x1] != 0:
+					continue
+				var piso: int = suma_piso[y2 * (w + 1) + x2] - suma_piso[y1 * (w + 1) + x2] - suma_piso[y2 * (w + 1) + x1] + suma_piso[y1 * (w + 1) + x1]
+				if piso < 6:
+					continue                                  # toca tan poco lo ya pisable que quedaría suelta
+				if mejor_piso < 0 or piso < mejor_piso:
+					mejor_piso = piso
+					mejor = Rect2i(x0, y0, tw, th)
+		var union: Vector2i = Vector2i(-1, -1)          # solo si no toca ningún pasillo: dónde empieza el pasillo que la une
+		var fuente: Vector2i = Vector2i(-1, -1)
+		if mejor_piso < 0:
+			# Ningún sitio toca lo ya pisable (mapas con pocos pasillos, «pagina»): el más cercano a ello, unido con un pasillo de dos casillas.
+			var dist: PackedInt32Array = PackedInt32Array()
+			dist.resize(w * h)
+			dist.fill(-1)
+			var origen: PackedInt32Array = PackedInt32Array()
+			origen.resize(w * h)
+			var cola: PackedInt32Array = PackedInt32Array()
+			for i in range(w * h):
+				if g[i] != MURO:
+					dist[i] = 0
+					origen[i] = i
+					cola.append(i)
+			var q: int = 0
+			while q < cola.size():
+				var i2: int = cola[q]
+				q += 1
+				for d in DIRS:
+					var x: int = i2 % w + d.x
+					var y: int = i2 / w + d.y
+					if x < 1 or y < 1 or x >= w - 1 or y >= h - 1 or dist[y * w + x] >= 0:
+						continue
+					dist[y * w + x] = dist[i2] + 1
+					origen[y * w + x] = origen[i2]
+					cola.append(y * w + x)
+			var mejor_d: int = 1 << 30
+			for y0 in range(2, h - th - 2):
+				for x0 in range(2, w - tw - 2):
+					var x1: int = x0 - 1
+					var y1: int = y0 - 1
+					var x2: int = x0 + tw + 1
+					var y2: int = y0 + th + 1
+					if suma_sala[y2 * (w + 1) + x2] - suma_sala[y1 * (w + 1) + x2] - suma_sala[y2 * (w + 1) + x1] + suma_sala[y1 * (w + 1) + x1] != 0:
+						continue
+					var cx: int = x0 + tw / 2
+					var cy: int = y0 + th / 2
+					for pt in [Vector2i(cx, y0 - 2), Vector2i(x0 + tw + 1, cy), Vector2i(cx, y0 + th + 1), Vector2i(x0 - 2, cy)]:
+						if pt.x < 1 or pt.y < 1 or pt.x >= w - 1 or pt.y >= h - 1:
+							continue
+						var dd: int = dist[pt.y * w + pt.x]
+						if dd >= 0 and dd < mejor_d:
+							mejor_d = dd
+							mejor = Rect2i(x0, y0, tw, th)
+							union = pt
+							fuente = Vector2i(origen[pt.y * w + pt.x] % w, origen[pt.y * w + pt.x] / w)
+			if union.x < 0:
+				avisos.append("No hay hueco sin salas para la sala grande de %dx%d (se queda sin tallar)." % [tw, th])
+				continue
+		for y in range(mejor.position.y, mejor.end.y):
+			for x in range(mejor.position.x, mejor.end.x):
+				g[y * w + x] = SUELO
+		if union.x >= 0:
+			# Del punto de unión recto hasta la sala y, desde él, en L hasta la casilla pisable más cercana.
+			var borde: Vector2i = Vector2i(clampi(union.x, mejor.position.x, mejor.end.x - 1), clampi(union.y, mejor.position.y, mejor.end.y - 1))
+			_tallar_tramo(union, borde, false)
+			_tallar_tramo(union, fuente, true)
+		_nueva_sala(mejor)
+		salas.back()["rol"] = "grande"
+
+
+## Talla (SUELO) un tramo de dos casillas de ancho de `a` a `b`: primero en vertical y luego en horizontal (`en_ele` falso) o al revés.
+func _tallar_tramo(a: Vector2i, b: Vector2i, en_ele: bool) -> void:
+	var c: Vector2i = a
+	var paso_x: int = signi(b.x - a.x)
+	var paso_y: int = signi(b.y - a.y)
+	while c.x != b.x or c.y != b.y:
+		if en_ele and c.x != b.x:
+			c.x += paso_x
+		elif c.y != b.y:
+			c.y += paso_y
+		else:
+			c.x += paso_x
+		for dx in range(2):
+			for dy in range(2):
+				var q: Vector2i = c + Vector2i(dx, dy)
+				if q.x >= 1 and q.y >= 1 and q.x < w - 1 and q.y < h - 1 and g[q.y * w + q.x] == MURO:
+					g[q.y * w + q.x] = SUELO
+
+
 func _aplicar_retoques(retoques: Dictionary) -> void:
 	for c in retoques:
 		var t: int = LETRA.find(String(retoques[c]))
@@ -1840,7 +1974,8 @@ const CAMPAMENTO_TITULO: String = "Campamento goblin (sala de enemigos)"
 
 ## 24/11: ¿puede el generador repartir SOLA esta plantilla? Se resuelve con las runas elegidas y, si el mapa pide «solo aceptados», está aceptada en playtest.
 func _vale_plantilla(e: Dictionary) -> bool:
-	return Catalogo.se_puede(e, runas()) and (not bool(p.get("solo_aceptados", false)) or Catalogo.aceptado(e))
+	# 27/11: las plantillas con `; bioma` (ruinas, cueva) solo se reparten solas en mapas de ese estilo; las `; solo_mano si` (muestrarios) nunca.
+	return Catalogo.se_puede(e, runas()) and (not bool(p.get("solo_aceptados", false)) or Catalogo.aceptado(e)) and Catalogo.vale_en_estilo(e, String(p.get("estilo", "")))
 
 
 ## 24/11: las runas (sellos y glifos) que tiene la jugadora en este mapa: las del parámetro `runas` si las hay; si no, las del `kit`.
@@ -2281,7 +2416,7 @@ func _poblar() -> void:
 		s_ini = salas[int(_b_salas[0])]                 # el bosque ya eligió el claro del inicio (pegado a su lado, si lo pidió)
 	elif String(p["algoritmo"]) != "pagina" or not bool(salas[0]["viva"]):
 		for s in vivas:
-			if (s["rect"] as Rect2i).end.y > (s_ini["rect"] as Rect2i).end.y:
+			if (s["rect"] as Rect2i).end.y > (s_ini["rect"] as Rect2i).end.y and String(s["rol"]) != "grande":       # 27/11: una sala grande tallada aparte nunca es la del inicio
 				s_ini = s
 	else:
 		s_ini = salas[0]
@@ -3856,7 +3991,7 @@ func _colocar_catalogo(vivas: Array, nv: String) -> void:
 				s = v
 		if s.is_empty():
 			avisos.append("El puzle «%s» estaba puesto en la sala %d, que ya no existe." % [cid, int(sid)])
-		elif String(s["rol"]) != "":
+		elif String(s["rol"]) != "" and String(s["rol"]) != "grande":
 			avisos.append("El puzle «%s» no se pone en la sala %d: es la sala de %s." % [cid, int(sid), String(s["rol"])])
 		elif cid == CAMPAMENTO:
 			# 24/11 (Pablo: «los campamentos como "puzzles", para meter salas de enemigos temáticas»): la sala queda reservada y el

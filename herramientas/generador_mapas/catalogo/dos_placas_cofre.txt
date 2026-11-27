@@ -1,0 +1,29 @@
+; catalogo dos_placas_cofre
+; titulo El cofre que pide dos placas a la vez
+; tipo premio
+; necesita -
+; validacion pendiente
+; bioma ruinas
+; pide empujar (sin hechizos)
+; resuelto cofre.abierto
+; prueba mapa ancho=60 alto=50 estilo=ruinas luz=ruinas
+; prueba solucion A: empuja roca o 2 | cruza 5:3 a 7:1 | abre cofre desde 7:1
+; prueba nada: nunca cofre abierto | durante 5
+; prueba nada_solo_placa: cruza 5:3 a 7:1 | reposo 2 | nunca cofre abierto | durante 3
+;  RUINAS · pulsadores (27/11). Una sala cuadrada con un cofre en el rincón de arriba a la derecha SELLADO (`abre_si`: solo se abre si las dos placas están hundidas a la vez; sin eso, E avisa y no abre).
+;  Una placa de PESO (1) en el rincón de abajo a la izquierda, que la jugadora sola no baja (la jugadora no cuenta): se llena con la ROCA pequeña de la sala, que se empuja hacia el oeste en línea recta
+;  (dos empujones) y se queda ahí. Otra placa, de presencia, PEGADA al cofre: hay que PISARLA y, sin soltarla, pulsar E sobre el cofre. Es «la roca y la jugadora»: ninguna de las dos puede abrirlo sola
+;  (la jugadora no puede estar a la vez en las dos placas) y el orden da igual. Sin hechizos. (Antes fue «la sala que se cierra»: cerrar la salida pedía un `cerrojo` con vigía, que las pruebas del
+;  generador exigen para todo cerrojo de un mapa; se queda como idea para cuando haya un cerrojo de sala sin vigía.)
+###########
+##.......##
+##.......##
+##.......##
+##.......##
+##.......##
+##.......##
+...........
+; pieza cofre cofre 8 1 abre_si=pa.activo+pb.activo abierto=$NIVEL.$ID.cofre da=oro:40+pocion:1
+; pieza pa pulsador 2 6 modo=presencia peso=1 $MODELO
+; pieza pb pulsador 7 1 modo=presencia $MODELO
+; pieza roca roca_empujable 4 6 tam=pequena

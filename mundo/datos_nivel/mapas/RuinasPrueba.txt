@@ -1,0 +1,149 @@
+############################################################################
+############################################################################
+############################################################################
+############################################################################
+############################################################################
+############################################################################
+############################################################################
+############################################################################
+############################################################################
+############################################################################
+############################################################################
+############..........T#####################################################
+############...........#####################################################
+############...........#####################################################
+############...........#####TRRRRRRRRRRR####################################
+############...........#####RRRRRRRRRRRR####################################
+############...........#####RRRRRRRRRRRR####################################
+############...........#####RRRRRRRRRRRR####################################
+############...........#####RRRRRRRRRRRR####################################
+############...........#####RRRRRRRRRRRR####################################
+############...........#####RRRRRRWRRRRR####################################
+############...........#####RRRRRRRRRRRR####################################
+############...........#####RRRRRRRRRRRR####################################
+############g###############RRRRRRRRRRRR####################################
+##............#............#RRRRRRRRRRRR####################################
+##............#............gRRRRRRRRRRRR####################################
+##............#............#RRRRRRRRRRRR####################################
+##............#.############################################################
+##............#.##.......###################################################
+##............#.##.......##############.#########..#...........#############
+##............g.##.......##############.####.####..#.#######################
+##............#.##.......##############.####.####..#.#######################
+##............#.##.......##############.####.####..#.##....#################
+##............#.##.......#####....A...g.##.....##..#.##.....T###############
+##............#............############.##.....##..g.##....#################
+##............#............############.##.....##..#.##....#################
+##............#............############.##.....##..#.##....#################
+##T...........#............############.##.....##..#...........#############
+####################g##################............#...........#############
+##############..............###########............#...........#############
+##############..............########################g#######################
+##############.###########..#############.............######################
+##############.########.##..#############.............######################
+##############.########.##..#############...#######...######################
+######.......#.##.......##..#############...##...##...######################
+######.......g.##....T..##..#############...##..T##...######################
+#########.####.##.......##..#############...##...##...######################
+#########.####.##.......##..#############...##...##...######################
+#########.####.##.......##..#############...##...##...######################
+#########...##..............#############...##...##...######################
+#########.####..............#############.............######################
+##############..............#############.............######################
+#####################g####################g#################################
+####...........#......#####...#.............################################
+####.#########.#......##.##...#.............################################
+####.####.####.#......##.##...#.............################################
+####.####.####.#......##.##...#.............################################
+####.##.....##.#......##.##...#.............################################
+####.##.....##.g......##.##...g......S......################################
+####.##.....##.#......##.##...#.............################################
+####.##.....##.#......##.##...#.............################################
+####.##.....##.#......##.##...#.............################################
+####...........#......##.##...#.............################################
+####...........#..............#.............################################
+####...........################............T################################
+############################################################################
+; ======================================================================================================================
+;  GENERADO por herramientas/generador_mapas. 2026-11-27. Nivel «RuinasPrueba», 76 × 66, algoritmo «pagina», semilla 5.
+;  13 salas, 12 puertas, 2 enemigos, 1 cofres, 4 jarrones. Escena: escenas/PruebaRuinasPrueba.tscn. Mientras esta cabecera siga aquí, la herramienta puede volver a escribir
+;  este archivo (guarda copia si lo has retocado). Para adoptarlo como nivel hecho a mano, borra la palabra GENERADO de la línea de arriba.
+; ======================================================================================================================
+; # pared · . suelo · ~ agua honda · S inicio · W goblin guerrero · A goblin arquero · T brasero · g tierra pisada (pasillos) · R losas (o basalto bajo la lava) · G elemental del bosque
+; generador {"acabado":true,"agua":8,"algoritmo":"pagina","alto":66,"ancho":76,"ancho_camino":2,"ancho_pasillo":2,"ancho_precipicio":2,"ancho_rio":2,"apertura":55,"arqueros":0,"b_braseros":true,"b_placa":true,"b_precipicio":true,"b_puente":true,"barreras":0,"braseros":1.0,"bucles":25,"bucles_claros":30,"cabana":"","cabana_en":"","callejones":100,"camara_sala":true,"campamentos":0,"charcas":0,"claros":6,"decorado":true,"densidad_salas":1.0,"enemigos":0.0,"estilo":"ruinas","forma":"rectangulo","hierba_alta":15,"jarrones":1.0,"kit":"demo","lado_max":14,"lado_min":11,"lados_salida":"","llave":false,"luz":"ruinas","metodo":"fractal","n_salas":13,"nombre":"RuinasPrueba","octavas":4,"paredes":"kit","pasillos":30,"paso_tierra":0,"puertas":50,"puzles":0,"recto":60,"region_min":12,"relleno":56,"reparto":"dispersas","rio":"ns","rotulo":true,"rotulos_claros":true,"runas":"","sala_jefe":"no","sala_max":4,"sala_min":2,"salas_cerradas":0,"salida_a":"","semilla":5,"silueta":60,"simetria":false,"sinuosidad":50,"solo_aceptados":false,"suavizados":2,"tamano_claro":5,"tamano_sala":10.0,"terreno":true,"tesoro":true,"titulo_nivel":"Ruinas de prueba (puzles)","titulos_claros":""}
+; puzles 1>mascarones_relevo 2>totem_a_favor 3>escudo_flechas 4>placa_y_boton 5>dos_placas_cofre 9>dragon_brasero 10>dragon_muro_brasero 11>dragon_agua_reja
+; anadidos enemigo|guerrero||34,20 enemigo|arquero||34,33
+;
+; zona 1,1..74,64 ruinas mezcla=0.8 rotulo=Ruinas_de_prueba_(puzles)
+;
+; camara 31,53..43,64
+; camara 16,53..29,63
+; camara 14,39..27,51
+; camara 6,44..12,50
+; camara 4,53..14,64
+; camara 15,24..26,37
+; camara 28,14..39,26
+; camara 2,24..13,37
+; camara 12,11..22,22
+; camara 41,41..53,51
+; camara 52,29..62,39
+; camara 39,29..50,39
+; camara 30,33..37,33
+;
+; pieza inicio entrada 37 58
+; pieza cat1_b1 trampa_flechas 25 55 mira=o cada=1.2 elemento=ninguno alcance=3 desfase=0.0
+; pieza cat1_b2 trampa_flechas 23 56 mira=e cada=1.2 elemento=ninguno alcance=3 desfase=0.6
+; pieza cat1_a1 trampa_flechas 25 59 mira=o cada=1.2 elemento=ninguno alcance=3 desfase=0.0
+; pieza cat1_a2 trampa_flechas 23 60 mira=e cada=1.2 elemento=ninguno alcance=3 desfase=0.6
+; pieza cat1_p2 pulsador 24 58 modo=presencia
+; pieza cat1_p1 pulsador 24 62 modo=presencia
+; pieza cat1_cofre cofre 24 54 abierto=ruinasprueba.cat1.cofre da=oro:35+pocion:1
+; puzle cat1_relevo_a cuando=cat1_p1.pulsado hace=cat1_a1.apagar(6) y=cat1_a2.apagar(6)
+; puzle cat1_relevo_b cuando=cat1_p2.pulsado hace=cat1_b1.apagar(6) y=cat1_b2.apagar(6)
+; pieza cat2_totem trampa_flechas 17 45 mira=e exenta=si cada=3.0 elemento=fuego alcance=5
+; pieza cat2_roca roca_empujable 19 45 tam=pequena
+; pieza cat2_br brasero 21 45
+; pieza cat2_verja puerta 23 43 modelo=reja
+; pieza cat2_cofre cofre 23 42 abierto=ruinasprueba.cat2.cofre da=oro:35+pocion:1
+; puzle cat2_abre cuando=cat2_br.encendido hace=cat2_verja.abrir
+; pieza cat3_trampa trampa_flechas 9 51 mira=n cada=1.0 elemento=ninguno alcance=6 cerca=4
+; pieza cat3_cofre cofre 11 49 abierto=ruinasprueba.cat3.cofre da=oro:35+pocion:1
+; pieza cat4_cofre cofre 9 55 abierto=ruinasprueba.cat4.cofre da=oro:35+pocion:1
+; pieza cat4_verja puerta 9 56 modelo=reja
+; pieza cat4_roca roca_empujable 8 57 tam=pequena
+; pieza cat4_placa pulsador 11 57 modo=presencia peso=1
+; pieza cat4_boton pulsador 7 61 modo=magia rearme=9 pista=fuego+flecha
+; puzle cat4_abre_por_placa cuando=cat4_placa.pulsado si=cat4_boton.activo hace=cat4_verja.abrir
+; puzle cat4_abre_por_boton cuando=cat4_boton.pulsado si=cat4_placa.activo hace=cat4_verja.abrir
+; pieza cat5_cofre cofre 24 28 abre_si=cat5_pa.activo+cat5_pb.activo abierto=ruinasprueba.cat5.cofre da=oro:40+pocion:1
+; pieza cat5_pa pulsador 18 33 modo=presencia peso=1
+; pieza cat5_pb pulsador 23 28 modo=presencia
+; pieza cat5_roca roca_empujable 20 33 tam=pequena
+; pieza cat6_dragon trampa_dragon 45 46 mira=e ciclo=90,1 alcance=3
+; pieza cat6_brasero brasero 48 45 dura=3
+; pieza cat6_cofre cofre 46 44 abierto=ruinasprueba.cat6.cofre da=oro:35+pocion:1
+; puzle cat6_apaga cuando=cat6_brasero.encendido hace=cat6_dragon.apagar(4)
+; pieza cat7_dragon trampa_dragon 54 33 mira=e ciclo=1.5,2.0 alcance=6
+; pieza cat7_muro muro 59 33 golpes=2
+; pieza cat7_br brasero 60 33
+; pieza cat7_cofre cofre 56 35 aparece_si=cat7_br.encendido abierto=ruinasprueba.cat7.cofre da=oro:35+pocion:1
+; pieza cat8_dragon trampa_dragon 41 34 mira=e ciclo=90,1 alcance=5
+; pieza cat8_cofre cofre 44 30 abierto=ruinasprueba.cat8.cofre da=oro:40+pocion:1
+; pieza cat8_verja puerta 44 32 modelo=reja
+; pieza cat8_boton pulsador 46 37 modo=magia rearme=8 pista=agua+flecha
+; puzle cat8_abre cuando=cat8_boton.pulsado hace=cat8_verja.abrir
+; pieza tesoro cofre 33 20 abierto=ruinasprueba.tesoro.cofre da=oro:60+pocion:1
+; pieza jarron_1 jarron 38 53 botin=oro
+; pieza jarron_2 jarron 30 14 botin=pocion
+; pieza jarron_3 jarron 4 24 botin=oro
+; pieza jarron_4 jarron 13 11 botin=oro
+; zona 31,53..43,64 ruinas mezcla=0.5 nombre=claro_0 rotulo=La_entrada
+; zona 16,53..29,63 ruinas mezcla=0.5 nombre=pz_mascarones_relevo rotulo=Los_mascarones_y_las_dos_placas
+; zona 14,39..27,51 ruinas mezcla=0.5 nombre=pz_totem_a_favor rotulo=El_tótem_que_enciende_el_brasero
+; zona 6,44..12,51 ruinas mezcla=0.5 nombre=pz_escudo_flechas rotulo=Escudo_de_tierra_contra_las_flechas
+; zona 4,53..14,64 ruinas mezcla=0.5 nombre=pz_placa_y_boton rotulo=La_placa_de_peso_y_el_botón_de_magia
+; zona 15,24..26,37 ruinas mezcla=0.5 nombre=pz_dos_placas_cofre rotulo=El_cofre_que_pide_dos_placas_a_la_vez
+; zona 28,14..39,26 ruinas mezcla=0.5 nombre=claro_6 rotulo=El_claro_del_tesoro
+; zona 41,41..53,51 ruinas mezcla=0.5 nombre=pz_dragon_brasero rotulo=El_brasero_tras_el_chorro
+; zona 52,29..62,39 ruinas mezcla=0.5 nombre=pz_dragon_muro_brasero rotulo=El_chorro_que_espera_tras_el_muro
+; zona 39,29..50,39 ruinas mezcla=0.5 nombre=pz_dragon_agua_reja rotulo=El_dragón_que_se_apaga_con_agua_y_la_reja_del_botón

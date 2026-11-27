@@ -1,0 +1,38 @@
+; catalogo mascarones_relevo
+; titulo Los mascarones y las dos placas
+; tipo premio
+; necesita -
+; validacion pendiente
+; bioma ruinas
+; pide cruzar (sin hechizos)
+; resuelto cofre.abierto
+; prueba mapa ancho=60 alto=50 estilo=ruinas luz=ruinas
+; prueba solucion A: cruza 2:9 a 2:2 sin_dano | abre cofre
+; prueba nada: cruza 2:8 a 2:6 | espera jugador herido | max 4
+; prueba nada_segundo: cruza 2:4 a 2:2 | espera jugador herido | max 4
+; prueba nada_cofre: nunca cofre abierto | durante 5
+;  RUINAS · pulsadores y trampas (27/11, revisión de assets de las ruinas). Un pasillo de una casilla de ancho y diez de largo que sube hasta un cofre. En sus muros hay MASCARONES de piedra (flechas normales,
+;  12 de daño) que disparan de lado a lado, alternados por parejas: la pareja A (filas 6 y 7) y la pareja B (filas 2 y 3). Entre unas y otras, dos PLACAS de presencia en mitad del pasillo (no se pueden rodear):
+;  la de la entrada (2,9) apaga la pareja A 6 s y la del medio (2,5) apaga la pareja B 6 s. Es un RELEVO: cada placa solo cubre el tramo que viene detrás, así que hay que cruzar corriendo sin parar
+;  y pisando las dos en orden (sin hechizos). Quien se salta una placa (entrando por el costado, o al volver a cruzar con la placa ya soltada) cruza bajo las flechas y las recibe.
+;  Pensado para las RUINAS: los mascarones llevan su contrafuerte del pack Stylescape (`presentacion/paredes_stylescape.gd`) y las placas son las de losa lisa.
+#####
+##.##
+##.##
+##.##
+##.##
+##.##
+##.##
+##.##
+##.##
+##.##
+.....
+; pieza b1 trampa_flechas 3 2 mira=o cada=1.2 elemento=ninguno alcance=3 desfase=0.0
+; pieza b2 trampa_flechas 1 3 mira=e cada=1.2 elemento=ninguno alcance=3 desfase=0.6
+; pieza a1 trampa_flechas 3 6 mira=o cada=1.2 elemento=ninguno alcance=3 desfase=0.0
+; pieza a2 trampa_flechas 1 7 mira=e cada=1.2 elemento=ninguno alcance=3 desfase=0.6
+; pieza p2 pulsador 2 5 modo=presencia $MODELO
+; pieza p1 pulsador 2 9 modo=presencia $MODELO
+; pieza cofre cofre 2 1 abierto=$NIVEL.$ID.cofre da=oro:35+pocion:1
+; puzle relevo_a cuando=p1.pulsado hace=a1.apagar(6) y=a2.apagar(6)
+; puzle relevo_b cuando=p2.pulsado hace=b1.apagar(6) y=b2.apagar(6)

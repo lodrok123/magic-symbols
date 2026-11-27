@@ -1,0 +1,30 @@
+; catalogo desvia_arroyo
+; titulo El arroyo y la presa de tierra
+; tipo premio
+; necesita tierra+barrera
+; validacion pendiente
+; bioma cueva
+; pide tierra y barrera
+; resuelto nivel.alcanzado
+; prueba mapa ancho=70 alto=60 sala_min=4 sala_max=7 estilo=cueva luz=cueva
+; prueba solucion A: golpe tierra 6:2 con barrera desde 6:4 | espera nivel alcanzado | espera cofre cerrado | max 15 | abre cofre
+; prueba nada: nunca nivel alcanzado | durante 12
+; prueba nada_presa_antes: golpe tierra 3:2 con barrera desde 3:4 | nunca nivel alcanzado | durante 12
+; prueba nada_cofre: nunca cofre cerrado | durante 4
+;  T3 del laboratorio de tierra («desvía el arroyo»), tal como lo probó `escenario_puzles_tierra.gd`. Un ARROYO de cauce poco profundo (< 0,25 u: se puede construir en él) corre de oeste a este desde un
+;  manantial (1 u³/s) hasta un sumidero, y a mitad sale un BRAZO sin salida hacia el sur con un detector de nivel al fondo. Sin hacer nada el agua pasa de largo y el brazo se queda en ~0,19. Un bloque de
+;  TIERRA (tierra + barrera, desde dos casillas al sur) levantado en el cauce DESPUÉS del brazo hace de PRESA: el agua remonta por el brazo hasta ~0,4 en unos 6 s, el detector (0,3) lo ve y aparece el cofre.
+;  La presa caduca a los 25 s pero el cofre ya está. Una presa ANTES del brazo (aguas arriba) lo deja seco: hay que ver de dónde viene el agua. Es «desviar el caudal con una barrera de tierra».
+###########
+###########
+##ccccccc##
+##..c....##
+##..c....##
+##..c....##
+##.......##
+...........
+; pieza cauce cuenca 2 2 celdas=2,2..8,2+4,3..4,5
+; pieza manantial manantial 2 2 caudal=1.0 rampa=no
+; pieza sumidero cuenca 8 2 fijo=0.02
+; pieza nivel nivel 4 5 objetivo=0.3
+; pieza cofre cofre 8 4 aparece_si=nivel.alcanzado abierto=$NIVEL.$ID.cofre da=oro:35+pocion:1

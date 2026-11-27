@@ -94,7 +94,9 @@ func _escenario() -> void:
 		var n_piezas: int = 0
 		for linea in m["lineas"]:
 			var t: PackedStringArray = String(linea).substr(1).strip_edges().split(" ", false)
-			if t[0] != "pieza" or t[2] == "entrada":
+			# 27/11: `cuenca` y `manantial` son solo DATOS del agua (no tienen nodo; así lo trata también prueba_niveles_bosque.gd). Con `-- cueva` el reparto al azar caía a veces en una plantilla con cuenca
+			# (placa_isla) y la prueba daba «faltan: cat4_lago» sin que faltase nada.
+			if t[0] != "pieza" or t[2] == "entrada" or t[2] == "cuenca" or t[2] == "manantial":
 				continue
 			n_piezas += 1
 			if pz.nodo(t[1]) == null:

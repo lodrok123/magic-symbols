@@ -1,0 +1,35 @@
+; catalogo placa_y_boton
+; titulo La placa de peso y el botón de magia
+; tipo premio
+; necesita fuego+flecha | agua+flecha | tierra+flecha
+; validacion pendiente
+; bioma ruinas
+; pide empujar y un hechizo (cualquiera)
+; resuelto cofre.abierto
+; prueba mapa ancho=60 alto=50 estilo=ruinas luz=ruinas
+; prueba solucion A: empuja roca e 3 | golpe fuego boton desde 4:7 | espera verja abierta | max 4 | abre cofre
+; prueba solucion B: golpe fuego boton desde 4:7 | empuja roca e 3 | espera verja abierta | max 4 | abre cofre
+; prueba nada: golpe fuego boton desde 4:7 | nunca verja abierta | durante 5
+; prueba nada_roca: empuja roca e 3 | nunca verja abierta | durante 5
+; prueba nada_cofre: nunca cofre abierto | durante 5
+;  RUINAS · pulsadores (27/11). Una sala de ruinas con una reja que cierra el nicho de un cofre y DOS mecanismos que la abren solo si están activos a la vez: (1) una PLACA DE PESO (1) en el rincón
+;  del fondo a la derecha, que la jugadora sola no baja (la jugadora no cuenta): se llena con la ROCA pequeña de la sala (pesa 1), que se empuja en línea recta hacia el este (tres empujones) y se queda ahí,
+;  pegado a la pared; (2) un BOTÓN DE MAGIA en el rincón de abajo a la izquierda, que pide un hechizo (el rótulo sugiere «fuego + flecha», pero el botón de piedra acepta CUALQUIER hechizo) y se queda pulsado 9 s. Si se da al botón sin el bloque,
+;  o se deja la roca sin dar al botón, la reja no se mueve; el orden da igual (roca primero, o botón y luego roca antes de que suelte, 9 s). Con las dos cosas la reja se abre para siempre.
+;  Es «hechizo + peso»: una placa que se queda y otra que dura.
+#########
+####.####
+####.####
+##.....##
+##.....##
+##.....##
+##.....##
+##.....##
+.........
+; pieza cofre cofre 4 1 abierto=$NIVEL.$ID.cofre da=oro:35+pocion:1
+; pieza verja puerta 4 2 modelo=reja
+; pieza roca roca_empujable 3 3 tam=pequena
+; pieza placa pulsador 6 3 modo=presencia peso=1 $MODELO
+; pieza boton pulsador 2 7 modo=magia rearme=9 pista=fuego+flecha $MODELO
+; puzle abre_por_placa cuando=placa.pulsado si=boton.activo hace=verja.abrir
+; puzle abre_por_boton cuando=boton.pulsado si=placa.activo hace=verja.abrir

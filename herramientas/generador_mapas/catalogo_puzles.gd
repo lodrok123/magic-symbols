@@ -36,6 +36,9 @@ extends RefCounted
 ##                                   26/11: más pasos (todos documentados en `comprobar_puzles_agua.gd`): `cruza x:y a x:y sin_dano|con_dano` (anda de verdad y mide la vida), `empuja <pieza> n|e|s|o [veces]`
 ##                                   y `abre <cofre> [desde x:y]` (E de verdad). Toda plantilla nueva lleva una solución que RESUELVE y una prueba `nada` que no resuelve sin hacer nada.
 ##   ; cueva pieza …               una línea que solo se escribe si el estilo del mapa es «cueva» (el brasero con el modelo de la Cueva)
+##   ; bioma ruinas [cueva …]      (27/11) los ESTILOS del mapa (`estilo` del generador: cueva | bosque | pantano | ruinas) donde el REPARTO AUTOMÁTICO puede poner la plantilla. Sin la línea, vale en todos
+##                                   (las 41 de antes). Solo filtra el reparto automático (`puzles` > 0): a mano (pestaña «Puzles» o `; puzles` del mapa) se puede poner en cualquier estilo.
+##   ; solo_mano si                (27/11) el reparto automático NUNCA la elige (las salas «muestrario» de piezas, que solo tienen sentido en los niveles de revisión de assets)
 ##   <filas del plano>               # pared · . suelo · ~ agua · c cauce del juego (suelo ocupado, SIN icono «?» por casilla; la vista lo pinta azul) ·
 ##                                   espacio = no tocar · cualquier otra letra = suelo con esa letra del juego (y un icono «?» en la vista)
 ##   ; pieza … / ; puzle …           como en un mapa. Los ids son locales (al colocar se les pone delante `cat<n>_`). Las casillas de la plantilla (x y de la pieza y las listas de
@@ -56,6 +59,14 @@ const MARCA_VALIDACION: Dictionary = {"pendiente": "○", "ajustes": "✎", "ace
 
 static func aceptado(e: Dictionary) -> bool:
 	return String(e.get("validacion", "pendiente")) == "aceptado"
+
+
+## 27/11: ¿puede el reparto AUTOMÁTICO poner la plantilla en un mapa de este estilo? Sin `; bioma` vale en todos; `; solo_mano si` no se reparte nunca solo.
+static func vale_en_estilo(e: Dictionary, estilo: String) -> bool:
+	if bool(e.get("solo_mano", false)):
+		return false
+	var b: Array = e.get("bioma", [])
+	return b.is_empty() or b.has(estilo)
 
 static var _cache: Dictionary = {}
 
@@ -84,7 +95,7 @@ static func _leer() -> Dictionary:
 
 static func leer_texto(texto: String, id_defecto: String = "") -> Dictionary:
 	var e: Dictionary = {"id": id_defecto, "titulo": id_defecto, "tipo": "premio", "pide": "", "activa": "", "resuelto": "", "estira": "", "ancho_min": 0, "barrera": false, "filas": [], "lineas": [], "lineas_cueva": [], "ancho": 0, "alto": 0,
-		"necesita": [], "validacion": "pendiente", "notas": [], "cofre_salida": Vector2i(-1, -1), "anchos": [], "pruebas": [], "mapa": {}}
+		"necesita": [], "validacion": "pendiente", "notas": [], "cofre_salida": Vector2i(-1, -1), "anchos": [], "pruebas": [], "mapa": {}, "bioma": [], "solo_mano": false}
 	for linea in texto.split("\n"):
 		var l: String = String(linea).replace("\r", "")
 		if l.strip_edges() == "":
@@ -108,6 +119,11 @@ static func leer_texto(texto: String, id_defecto: String = "") -> Dictionary:
 					e["necesita"] = leer_necesita(resto)
 				"validacion":
 					e["validacion"] = resto if VALIDACIONES.has(resto) else "pendiente"
+				"bioma":
+					for b in resto.split(" ", false):
+						(e["bioma"] as Array).append(String(b))
+				"solo_mano":
+					e["solo_mano"] = resto == "si"
 				"nota_playtest":
 					(e["notas"] as Array).append(resto)
 				"activa":

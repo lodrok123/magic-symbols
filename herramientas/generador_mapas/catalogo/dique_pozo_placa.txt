@@ -1,0 +1,35 @@
+; catalogo dique_pozo_placa
+; titulo El pozo con la placa bajo el agua
+; tipo premio
+; necesita tierra+flecha
+; validacion pendiente
+; bioma cueva
+; pide tierra
+; resuelto cofre.aparecido
+; prueba mapa ancho=70 alto=60 sala_min=4 sala_max=7 estilo=cueva luz=cueva
+; prueba solucion A: golpe tierra grieta desde 3:5 | golpe tierra grieta desde 3:5 | espera cuenca pozo todas_bajo 0.25 | cruza 5:5 a 6:3 | espera cofre cerrado | max 45 | abre cofre
+; prueba nada: nunca cuenca pozo bajo 0.3 | durante 15
+; prueba nada_un_golpe: golpe tierra grieta desde 3:5 | nunca cuenca pozo bajo 0.3 | durante 15
+; prueba nada_agua: golpe agua grieta desde 3:5 | golpe agua grieta desde 3:5 | nunca cuenca pozo bajo 0.3 | durante 15
+; prueba nada_cofre: nunca cofre cerrado | durante 4
+;  CUEVA · vaciar con tierra (27/11). Un POZO de tres por tres casillas, lleno hasta 0,45 u (no se pisa), con una placa de presión en el medio que no se ve bajo el agua. En su lado oeste, un DIQUE de sillares
+;  (compuerta con el aspecto del muro agrietado) lo separa de un cauce de dos casillas que acaba en un desagüe, y delante del dique, tapando el cauce, un MURO AGRIETADO. La jugadora rompe el muro con dos golpes de tierra
+;  desde la orilla (el agua y el fuego no se lo hacen); el dique, sin su apoyo, CEDE: salta en pedazos y el pozo se vacía por el cauce hacia el desagüe en ~12 s (`tarda=12`: el agua no puede salir más rápido; es
+;  el reloj del puzle). Con el pozo seco (se pisa el fondo: «cauce hondo», se baja trepando) se llega a la placa; al pisarla aparece el cofre en la orilla. Sin tierra no se vacía; con un solo golpe tampoco.
+###########
+###########
+#####ccc###
+##cccccc###
+##...ccc###
+##.........
+##.........
+...........
+; pieza pozo cuenca 5 2 celdas=5,2..7,4 nivel=0.45
+; pieza dique compuerta 4 3 modelo=muro estrecha=no tarda=12 vertical=no
+; pieza canal cuenca 3 3
+; pieza desague cuenca 2 3 fijo=0.02
+; pieza grieta muro 3 3 golpes=2
+; pieza placa pulsador 6 3 modo=presencia
+; pieza cofre cofre 4 6 aparece_si=flag.$NIVEL.$ID.hecho abierto=$NIVEL.$ID.cofre da=oro:40+pocion:1
+; puzle cede cuando=grieta.roto hace=dique.abrir
+; puzle premio cuando=placa.pulsado hace=flag.poner($NIVEL.$ID.hecho)
