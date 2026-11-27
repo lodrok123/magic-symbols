@@ -1,0 +1,87 @@
+[
+  {
+    "id": 49,
+    "n": "agua_carga",
+    "cat": "Sfx",
+    "titulo": "Carga del hechizo de agua",
+    "cuando": "Comienza la fase de carga de un hechizo de agua. Esta señal se acompaña de la escritura ya aprobada. Se presenta aislada para valorar el elemento.",
+    "motivo": "Revisamos la anticipación: debe preparar la salida y distinguirse del impacto. La entrada actual es de inicio de carga; esta escucha no demuestra que exista un bucle sostenido para este elemento.",
+    "propuesta": "Valorar si la muestra actual sirve para iniciar la carga; después preparar su continuidad en bucle si se mantiene el hechizo listo.",
+    "pregunta": "¿Se entiende que estás reuniendo agua antes de soltarla? ¿Cambiarías textura, intensidad o duración?",
+    "entrada": {
+      "catalogo": "Sfx",
+      "nombre": "agua_carga",
+      "files": [
+        "agua_carga.wav"
+      ]
+    }
+  },
+  {
+    "id": 50,
+    "n": "hielo_carga",
+    "cat": "Sfx",
+    "titulo": "Carga del hechizo de hielo",
+    "cuando": "Comienza la fase de carga de un hechizo de hielo. Esta señal se acompaña de la escritura ya aprobada. Se presenta aislada para valorar el elemento.",
+    "motivo": "Revisamos la anticipación: debe preparar la salida y distinguirse del impacto. La entrada actual es de inicio de carga; esta escucha no demuestra que exista un bucle sostenido para este elemento.",
+    "propuesta": "Valorar si la muestra actual sirve para iniciar la carga; después preparar su continuidad en bucle si se mantiene el hechizo listo.",
+    "pregunta": "¿Comunica formación de frío o hielo sin confundirse con la fractura del impacto?",
+    "entrada": {
+      "catalogo": "Sfx",
+      "nombre": "hielo_carga",
+      "files": [
+        "hielo_carga.wav"
+      ]
+    }
+  },
+  {
+    "id": 51,
+    "n": "rayo_carga",
+    "cat": "Sfx",
+    "titulo": "Carga del hechizo de rayo",
+    "cuando": "Comienza la fase de carga de un hechizo de rayo. Esta señal se acompaña de la escritura ya aprobada. Se presenta aislada para valorar el elemento.",
+    "motivo": "Revisamos la anticipación: debe preparar la salida y distinguirse del impacto. La entrada actual es de inicio de carga; esta escucha no demuestra que exista un bucle sostenido para este elemento.",
+    "propuesta": "Valorar si la muestra actual sirve para iniciar la carga; después preparar su continuidad en bucle si se mantiene el hechizo listo.",
+    "pregunta": "¿Parece una acumulación eléctrica antes de descargar? ¿Resulta demasiado agresiva para mantener la preparación?",
+    "entrada": {
+      "catalogo": "Sfx",
+      "nombre": "rayo_carga",
+      "files": [
+        "sn_rayo_carga_0.ogg"
+      ]
+    }
+  },
+  {
+    "id": 52,
+    "n": "viento_carga",
+    "cat": "Sfx",
+    "titulo": "Carga del hechizo de viento",
+    "cuando": "Comienza la fase de carga de un hechizo de viento. Esta señal se acompaña de la escritura ya aprobada. Se presenta aislada para valorar el elemento.",
+    "motivo": "Revisamos la anticipación: debe preparar la salida y distinguirse del impacto. La entrada actual es de inicio de carga; esta escucha no demuestra que exista un bucle sostenido para este elemento.",
+    "propuesta": "Valorar si la muestra actual sirve para iniciar la carga; después preparar su continuidad en bucle si se mantiene el hechizo listo.",
+    "pregunta": "¿Comunica aire reuniéndose antes de salir? ¿La diferenciarías del golpe de viento A aprobado?",
+    "entrada": {
+      "catalogo": "Sfx",
+      "nombre": "viento_carga",
+      "files": [
+        "viento_carga.wav"
+      ]
+    }
+  },
+  {
+    "id": 53,
+    "n": "tierra_carga",
+    "cat": "Sfx",
+    "titulo": "Carga del hechizo de tierra",
+    "cuando": "Comienza la fase de carga de un hechizo de tierra. Esta señal se acompaña de la escritura ya aprobada. Se presenta aislada para valorar el elemento.",
+    "motivo": "Revisamos la anticipación: debe preparar la salida y distinguirse del impacto. La entrada actual es de inicio de carga; esta escucha no demuestra que exista un bucle sostenido para este elemento.",
+    "propuesta": "Valorar si la muestra actual sirve para iniciar la carga; después preparar su continuidad en bucle si se mantiene el hechizo listo.",
+    "pregunta": "¿Parece que se reúne tierra o roca? ¿La distinguirías del impacto de tierra 1 aprobado?",
+    "entrada": {
+      "catalogo": "Sfx",
+      "nombre": "tierra_carga",
+      "files": [
+        "tierra_carga.wav"
+      ]
+    }
+  }
+]

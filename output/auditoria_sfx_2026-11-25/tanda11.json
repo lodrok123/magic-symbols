@@ -1,0 +1,126 @@
+[
+  {
+    "id": 59,
+    "elemento": "fuego",
+    "titulo": "Salida del hechizo de fuego",
+    "nota": "Debe comunicar el impulso al salir la llama. El crepitar ya aprobado es de carga y fuego ardiendo, no valida este lanzamiento.",
+    "grupos": [
+      {
+        "nombre": "fuego",
+        "uso": "Salida actual",
+        "files": [
+          "lc_fuego_0.ogg",
+          "lc_fuego_1.ogg",
+          "lc_fuego_2.ogg",
+          "lc_fuego_3.ogg"
+        ],
+        "db": -8
+      }
+    ]
+  },
+  {
+    "id": 60,
+    "elemento": "agua",
+    "titulo": "Salida del hechizo de agua",
+    "nota": "Valora la expulsión de agua, sin confundirla con la salpicadura de impacto 2 aprobada.",
+    "grupos": [
+      {
+        "nombre": "agua",
+        "uso": "Salida actual",
+        "files": [
+          "lc_agua_0.ogg",
+          "lc_agua_1.ogg",
+          "lc_agua_2.ogg"
+        ],
+        "db": -7
+      }
+    ]
+  },
+  {
+    "id": 61,
+    "elemento": "hielo",
+    "titulo": "Salida del hechizo de hielo",
+    "nota": "El juego usa hielo_flecha si la forma viaja y hielo para el resto. Puedes elegir una variante distinta para cada grupo o pedir un sonido común para ambos.",
+    "grupos": [
+      {
+        "nombre": "hielo_flecha",
+        "uso": "Flecha / forma que viaja",
+        "files": [
+          "lc_hielo_flecha_0.ogg",
+          "lc_hielo_flecha_1.ogg",
+          "lc_hielo_flecha_2.ogg",
+          "lc_hielo_flecha_3.ogg"
+        ],
+        "db": -8
+      },
+      {
+        "nombre": "hielo",
+        "uso": "Otras formas",
+        "files": [
+          "lc_hielo_0.ogg",
+          "lc_hielo_1.ogg",
+          "lc_hielo_2.ogg",
+          "lc_hielo_3.ogg"
+        ],
+        "db": -8
+      }
+    ]
+  },
+  {
+    "id": 62,
+    "elemento": "rayo",
+    "titulo": "Salida del hechizo de rayo",
+    "nota": "Debe comunicar la descarga al soltar, distinta del chisporroteo sostenido de carga.",
+    "grupos": [
+      {
+        "nombre": "rayo",
+        "uso": "Salida actual",
+        "files": [
+          "lc_rayo_0.ogg",
+          "lc_rayo_1.ogg",
+          "lc_rayo_2.ogg",
+          "lc_rayo_3.ogg"
+        ],
+        "db": -10
+      }
+    ]
+  },
+  {
+    "id": 63,
+    "elemento": "viento",
+    "titulo": "Salida del hechizo de viento",
+    "nota": "Valora la salida de una ráfaga. El viento A aprobado antes está asignado a impacto, no valida estas muestras de salida.",
+    "grupos": [
+      {
+        "nombre": "viento",
+        "uso": "Salida actual",
+        "files": [
+          "lc_viento_0.ogg",
+          "lc_viento_1.ogg",
+          "lc_viento_2.ogg",
+          "lc_viento_3.ogg"
+        ],
+        "db": -11
+      }
+    ]
+  },
+  {
+    "id": 64,
+    "elemento": "tierra",
+    "titulo": "Salida del hechizo de tierra",
+    "nota": "Debe comunicar lanzar o soltar la roca. Algunas fuentes combinan whoosh e impacto: indica si hay que conservar solo el inicio para no adelantar el choque.",
+    "grupos": [
+      {
+        "nombre": "tierra",
+        "uso": "Salida actual",
+        "files": [
+          "lc_tierra_0.ogg",
+          "lc_tierra_1.ogg",
+          "lc_tierra_2.ogg",
+          "lc_tierra_3.ogg"
+        ],
+        "db": -8
+      }
+    ]
+  }
+]

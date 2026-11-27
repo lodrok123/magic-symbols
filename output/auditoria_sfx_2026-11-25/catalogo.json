@@ -194,6 +194,7 @@
       "presentacion/prueba_test2.gd:6164: \"fuego\", \"magma\":",
       "presentacion/prueba_test2.gd:6846: var elems: Array = [\"fuego\", \"agua\", \"rayo\"]",
       "presentacion/prueba_test2.gd:7398: for el in [\"fuego\", \"agua\", \"rayo\"]:",
+      "presentacion/sensacion_3d.gd:1222: _sonido_elemental = elemento != \"fuego\" and Sfx.CATALOGO.has(nombre)",
       "presentacion/ui/libro_rojo.gd:49: const FAMILIA_SELLOS: Array = [\"fuego\", \"agua\", \"tierra\", \"viento\", \"rayo\", \"hielo\"]",
       "presentacion/ui/libro_rojo.gd:55: \"fuego\": [\"Quema y prende lo que arde.\", \"cualquier glifo\"],",
       "presentacion/ui/libro_rojo.gd:83: \"fuego\": \"Fuego\", \"agua\": \"Agua\", \"tierra\": \"Tierra\", \"viento\": \"Viento\", \"rayo\": \"Rayo\", \"hielo\": \"Hielo\",",
@@ -2580,67 +2581,155 @@
   },
   {
     "catalogo": "Sfx",
-    "nombre": "agua_carga",
-    "linea": 139,
+    "nombre": "agua_carga_bucle",
+    "linea": 140,
     "cfg": {
       "f": [
-        "agua_carga.wav"
+        "agua_carga_bucle.wav"
+      ],
+      "db": -13,
+      "tono": 0
+    },
+    "selected": "f",
+    "files": [
+      "agua_carga_bucle.wav"
+    ],
+    "references": []
+  },
+  {
+    "catalogo": "Sfx",
+    "nombre": "hielo_carga_bucle",
+    "linea": 141,
+    "cfg": {
+      "f": [
+        "hielo_carga.wav"
+      ],
+      "f_sn": [
+        "sn_hielo_carga_bucle.wav"
+      ],
+      "db": -15,
+      "tono": 0
+    },
+    "selected": "f_sn",
+    "files": [
+      "sn_hielo_carga_bucle.wav"
+    ],
+    "references": []
+  },
+  {
+    "catalogo": "Sfx",
+    "nombre": "rayo_carga_bucle",
+    "linea": 142,
+    "cfg": {
+      "f": [
+        "oga_rayo_carga_bucle.wav"
+      ],
+      "db": -13,
+      "tono": 0
+    },
+    "selected": "f",
+    "files": [
+      "oga_rayo_carga_bucle.wav"
+    ],
+    "references": []
+  },
+  {
+    "catalogo": "Sfx",
+    "nombre": "viento_carga_bucle",
+    "linea": 143,
+    "cfg": {
+      "f": [
+        "viento_carga_bucle.wav"
+      ],
+      "db": -22,
+      "tono": 0
+    },
+    "selected": "f",
+    "files": [
+      "viento_carga_bucle.wav"
+    ],
+    "references": []
+  },
+  {
+    "catalogo": "Sfx",
+    "nombre": "tierra_carga_bucle",
+    "linea": 144,
+    "cfg": {
+      "f": [
+        "tierra_carga_bucle.wav"
+      ],
+      "db": -12,
+      "tono": 0
+    },
+    "selected": "f",
+    "files": [
+      "tierra_carga_bucle.wav"
+    ],
+    "references": []
+  },
+  {
+    "catalogo": "Sfx",
+    "nombre": "agua_carga",
+    "linea": 145,
+    "cfg": {
+      "f": [
+        "agua_carga_grave.wav"
       ],
       "db": -9,
       "tono": 0.04
     },
     "selected": "f",
     "files": [
-      "agua_carga.wav"
+      "agua_carga_grave.wav"
     ],
     "references": []
   },
   {
     "catalogo": "Sfx",
     "nombre": "hielo_carga",
-    "linea": 140,
+    "linea": 146,
     "cfg": {
       "f": [
         "hielo_carga.wav"
       ],
+      "f_sn": [
+        "sn_hielo_carga_fisuras.wav"
+      ],
       "db": -11,
       "tono": 0.03
     },
-    "selected": "f",
+    "selected": "f_sn",
     "files": [
-      "hielo_carga.wav"
+      "sn_hielo_carga_fisuras.wav"
     ],
     "references": []
   },
   {
     "catalogo": "Sfx",
     "nombre": "rayo_carga",
-    "linea": 141,
+    "linea": 147,
     "cfg": {
       "f": [
-        "rayo_carga.wav"
-      ],
-      "f_sn": [
-        "sn_rayo_carga_0.ogg"
+        "oga_rayo_carga_chasquidos.wav"
       ],
       "db": -9,
       "tono": 0.04
     },
-    "selected": "f_sn",
+    "selected": "f",
     "files": [
-      "sn_rayo_carga_0.ogg"
+      "oga_rayo_carga_chasquidos.wav"
     ],
     "references": []
   },
   {
     "catalogo": "Sfx",
     "nombre": "viento_carga",
-    "linea": 142,
+    "linea": 148,
     "cfg": {
       "f": [
         "viento_carga.wav"
       ],
-      "db": -12,
+      "db": -22,
       "tono": 0.05
     },
     "selected": "f",
@@ -2652,7 +2741,7 @@
   {
     "catalogo": "Sfx",
     "nombre": "tierra_carga",
-    "linea": 143,
+    "linea": 149,
     "cfg": {
       "f": [
         "tierra_carga.wav"
@@ -2669,7 +2758,7 @@
   {
     "catalogo": "Sfx",
     "nombre": "tiempo_carga",
-    "linea": 144,
+    "linea": 150,
     "cfg": {
       "f": [
         "tiempo_carga.wav"
@@ -2686,7 +2775,7 @@
   {
     "catalogo": "Sfx",
     "nombre": "x_mano_impacto",
-    "linea": 145,
+    "linea": 151,
     "cfg": {
       "f": [
         "x_mano_impacto.wav"
@@ -2703,7 +2792,7 @@
   {
     "catalogo": "Sfx",
     "nombre": "alto_impacto",
-    "linea": 146,
+    "linea": 152,
     "cfg": {
       "f": [
         "alto_impacto.wav"
@@ -2720,7 +2809,7 @@
   {
     "catalogo": "Sfx",
     "nombre": "abajo_impacto",
-    "linea": 147,
+    "linea": 153,
     "cfg": {
       "f": [
         "abajo_impacto.wav"
@@ -2737,7 +2826,7 @@
   {
     "catalogo": "Sfx",
     "nombre": "siseo_apagado",
-    "linea": 151,
+    "linea": 157,
     "cfg": {
       "f": [
         "siseo_apagado.wav"
@@ -2760,7 +2849,7 @@
   {
     "catalogo": "Sfx",
     "nombre": "chapoteo",
-    "linea": 152,
+    "linea": 158,
     "cfg": {
       "f": [
         "chapoteo.wav"
@@ -2786,7 +2875,7 @@
   {
     "catalogo": "Sfx",
     "nombre": "hundido_burbujas",
-    "linea": 153,
+    "linea": 159,
     "cfg": {
       "f": [
         "hundido_burbujas.wav"
@@ -2808,7 +2897,7 @@
   {
     "catalogo": "Sfx",
     "nombre": "arde_bucle",
-    "linea": 154,
+    "linea": 160,
     "cfg": {
       "f": [
         "oga_fuego_crepita_loop.wav"
@@ -2828,7 +2917,7 @@
   {
     "catalogo": "Sfx",
     "nombre": "escudo_golpe",
-    "linea": 155,
+    "linea": 161,
     "cfg": {
       "f": [
         "escudo_madera_golpe_0.wav",
@@ -2856,7 +2945,7 @@
   {
     "catalogo": "Sfx",
     "nombre": "burbuja_rota",
-    "linea": 156,
+    "linea": 162,
     "cfg": {
       "f": [
         "burbuja_rotura_sutil.wav"
@@ -2875,7 +2964,7 @@
   {
     "catalogo": "Sfx",
     "nombre": "escudo_roto",
-    "linea": 157,
+    "linea": 163,
     "cfg": {
       "f": [
         "madera_rotura.wav"
@@ -2897,7 +2986,7 @@
   {
     "catalogo": "Sfx",
     "nombre": "aturdido",
-    "linea": 158,
+    "linea": 164,
     "cfg": {
       "f": [
         "aturdido.wav"
@@ -2927,7 +3016,7 @@
   {
     "catalogo": "Sfx",
     "nombre": "empujado",
-    "linea": 159,
+    "linea": 165,
     "cfg": {
       "f": [
         "empujado.wav"
@@ -2961,7 +3050,7 @@
   {
     "catalogo": "Sfx",
     "nombre": "lanzar_salida",
-    "linea": 161,
+    "linea": 167,
     "cfg": {
       "f": [
         "lanzar_salida.wav"
@@ -2980,7 +3069,7 @@
   {
     "catalogo": "Sfx",
     "nombre": "no_puedes",
-    "linea": 162,
+    "linea": 168,
     "cfg": {
       "f": [
         "ui_rechazo_sutil.wav"
@@ -3007,7 +3096,7 @@
   {
     "catalogo": "Sfx",
     "nombre": "no_puedes_ui",
-    "linea": 163,
+    "linea": 169,
     "cfg": {
       "f": [
         "ui_rechazo_sutil.wav"
@@ -3044,7 +3133,7 @@
   {
     "catalogo": "Sfx",
     "nombre": "aviso_ataque",
-    "linea": 164,
+    "linea": 170,
     "cfg": {
       "f": [
         "aviso_ataque.wav"
@@ -3063,7 +3152,7 @@
   {
     "catalogo": "Sfx",
     "nombre": "tiempo_tic",
-    "linea": 165,
+    "linea": 171,
     "cfg": {
       "f": [
         "tiempo_tic.wav"
@@ -3079,13 +3168,13 @@
       "sn_tiempo_tic_0.ogg"
     ],
     "references": [
-      "presentacion/sensacion_3d.gd:1415: Sfx.play(jugadora, \"tiempo_tic\", tono)"
+      "presentacion/sensacion_3d.gd:1423: Sfx.play(jugadora, \"tiempo_tic\", tono)"
     ]
   },
   {
     "catalogo": "Sfx",
     "nombre": "reaccion_grande",
-    "linea": 166,
+    "linea": 172,
     "cfg": {
       "f": [
         "reaccion_grande.wav"
@@ -3107,7 +3196,7 @@
   {
     "catalogo": "Sfx",
     "nombre": "moneda",
-    "linea": 167,
+    "linea": 173,
     "cfg": {
       "f": [
         "kenney_monedas_0.ogg",
@@ -3141,7 +3230,7 @@
   {
     "catalogo": "Sfx",
     "nombre": "combate_loop",
-    "linea": 169,
+    "linea": 175,
     "cfg": {
       "f": [
         "combate_loop.wav"
@@ -3160,7 +3249,7 @@
   {
     "catalogo": "Sfx",
     "nombre": "sala_limpia",
-    "linea": 170,
+    "linea": 176,
     "cfg": {
       "f": [
         "sala_limpia.wav"
@@ -3184,7 +3273,7 @@
   {
     "catalogo": "Sfx",
     "nombre": "dano_jugadora",
-    "linea": 174,
+    "linea": 180,
     "cfg": {
       "f": [
         "dano_jugadora.wav"
@@ -3206,7 +3295,7 @@
   {
     "catalogo": "Sfx",
     "nombre": "latido",
-    "linea": 175,
+    "linea": 181,
     "cfg": {
       "f": [
         "latido.wav"
@@ -3237,7 +3326,7 @@
   {
     "catalogo": "Sfx",
     "nombre": "voltereta",
-    "linea": 176,
+    "linea": 182,
     "cfg": {
       "f": [
         "voltereta.wav"
@@ -3267,7 +3356,7 @@
   {
     "catalogo": "Sfx",
     "nombre": "recarga_lista",
-    "linea": 177,
+    "linea": 183,
     "cfg": {
       "f": [
         "recarga_lista.wav"
@@ -3291,7 +3380,7 @@
   {
     "catalogo": "Sfx",
     "nombre": "golpe_mundo",
-    "linea": 178,
+    "linea": 184,
     "cfg": {
       "f": [
         "golpe_mundo.wav"
@@ -3310,7 +3399,7 @@
   {
     "catalogo": "Sfx",
     "nombre": "carga_bucle",
-    "linea": 179,
+    "linea": 185,
     "cfg": {
       "f": [
         "carga_bucle.wav"
@@ -3326,13 +3415,13 @@
       "sn_carga_bucle_0.ogg"
     ],
     "references": [
-      "presentacion/sensacion_3d.gd:1216: _zumbido = Sfx.bucle(lanz, \"carga_bucle\", Sensacion3D.TONO_CARGA.x)"
+      "presentacion/sensacion_3d.gd:1223: _zumbido = Sfx.bucle(lanz, nombre if _sonido_elemental else \"carga_bucle\", 1.0 if _sonido_elemental else Sensacion3D.TONO_CARGA.x)"
     ]
   },
   {
     "catalogo": "Sfx",
     "nombre": "secado",
-    "linea": 180,
+    "linea": 186,
     "cfg": {
       "f": [
         "secado.wav"
@@ -3354,7 +3443,7 @@
   {
     "catalogo": "Sfx",
     "nombre": "derretido",
-    "linea": 181,
+    "linea": 187,
     "cfg": {
       "f": [
         "derretido.wav"
@@ -3376,7 +3465,7 @@
   {
     "catalogo": "Sfx",
     "nombre": "logro_pista",
-    "linea": 185,
+    "linea": 191,
     "cfg": {
       "f": [
         "logro_pista.wav"
@@ -3400,7 +3489,7 @@
   {
     "catalogo": "Sfx",
     "nombre": "logro_acierto",
-    "linea": 186,
+    "linea": 192,
     "cfg": {
       "f": [
         "logro_acierto.wav"
@@ -3425,7 +3514,7 @@
   {
     "catalogo": "Sfx",
     "nombre": "objetivo_cumplido",
-    "linea": 187,
+    "linea": 193,
     "cfg": {
       "f": [
         "objetivo_cumplido.wav"
@@ -3447,7 +3536,7 @@
   {
     "catalogo": "Sfx",
     "nombre": "puzle_resuelto",
-    "linea": 188,
+    "linea": 194,
     "cfg": {
       "f": [
         "puzle_resuelto.wav"
@@ -3476,7 +3565,7 @@
   {
     "catalogo": "Sfx",
     "nombre": "mision_completada",
-    "linea": 189,
+    "linea": 195,
     "cfg": {
       "f": [
         "mision_completada.wav"
@@ -3495,7 +3584,7 @@
   {
     "catalogo": "Sfx",
     "nombre": "logro_brillo",
-    "linea": 190,
+    "linea": 196,
     "cfg": {
       "f": [
         "logro_brillo.wav"
@@ -3519,7 +3608,7 @@
   {
     "catalogo": "Sfx",
     "nombre": "logro_fanfarria",
-    "linea": 191,
+    "linea": 197,
     "cfg": {
       "f": [
         "logro_fanfarria.wav"
@@ -3538,7 +3627,7 @@
   {
     "catalogo": "Sfx",
     "nombre": "cofre_revelado",
-    "linea": 192,
+    "linea": 198,
     "cfg": {
       "f": [
         "cofre_revelado.wav"
@@ -3560,7 +3649,7 @@
   {
     "catalogo": "Sfx",
     "nombre": "bolsa",
-    "linea": 196,
+    "linea": 202,
     "cfg": {
       "f": [
         "kenney_bolsa_tela.ogg",
@@ -3597,7 +3686,7 @@
   {
     "catalogo": "Sfx",
     "nombre": "brasero_linde_paso",
-    "linea": 197,
+    "linea": 203,
     "cfg": {
       "f": [
         "brasero_linde_paso.wav"
@@ -3616,7 +3705,7 @@
   {
     "catalogo": "Sfx",
     "nombre": "brasero_linde_resuelto",
-    "linea": 198,
+    "linea": 204,
     "cfg": {
       "f": [
         "brasero_linde_resuelto.wav"
@@ -3635,7 +3724,7 @@
   {
     "catalogo": "Sfx",
     "nombre": "pocion",
-    "linea": 199,
+    "linea": 205,
     "cfg": {
       "f": [
         "pocion.wav"
@@ -3690,7 +3779,7 @@
   {
     "catalogo": "Sfx",
     "nombre": "pocion_fin",
-    "linea": 200,
+    "linea": 206,
     "cfg": {
       "f": [
         "pocion.wav"
@@ -3711,7 +3800,7 @@
   {
     "catalogo": "Sfx",
     "nombre": "recoger",
-    "linea": 201,
+    "linea": 207,
     "cfg": {
       "f": [
         "kenney_recoger_0.ogg"
@@ -3744,7 +3833,7 @@
   {
     "catalogo": "Sfx",
     "nombre": "golpe_ui",
-    "linea": 202,
+    "linea": 208,
     "cfg": {
       "f": [
         "golpe_ui.wav"
@@ -3763,7 +3852,7 @@
   {
     "catalogo": "Sfx",
     "nombre": "comprar",
-    "linea": 203,
+    "linea": 209,
     "cfg": {
       "f": [
         "kenney_comprar_0.ogg"
@@ -3787,7 +3876,7 @@
   {
     "catalogo": "Sfx",
     "nombre": "ui_tick",
-    "linea": 204,
+    "linea": 210,
     "cfg": {
       "f": [
         "kenney_clic_1.ogg"
@@ -3832,7 +3921,7 @@
   {
     "catalogo": "Sfx",
     "nombre": "ui_equipar",
-    "linea": 205,
+    "linea": 211,
     "cfg": {
       "f": [
         "kenney_equipar_1.ogg"
@@ -3870,7 +3959,7 @@
   {
     "catalogo": "Sfx",
     "nombre": "barrido",
-    "linea": 207,
+    "linea": 213,
     "cfg": {
       "f": [
         "barrido.wav"
@@ -3892,7 +3981,7 @@
   {
     "catalogo": "Sfx",
     "nombre": "reaparecer",
-    "linea": 208,
+    "linea": 214,
     "cfg": {
       "f_lc": [
         "lc_reaparecer_0.ogg"
@@ -3916,7 +4005,7 @@
   {
     "catalogo": "Sfx",
     "nombre": "cofre_tapa",
-    "linea": 210,
+    "linea": 216,
     "cfg": {
       "f": [
         "kenney_cofre_tapa_0.ogg",
@@ -3943,7 +4032,7 @@
   {
     "catalogo": "Sfx",
     "nombre": "ping_debil",
-    "linea": 212,
+    "linea": 218,
     "cfg": {
       "f": [
         "ping_debil.wav"
@@ -3965,7 +4054,7 @@
   {
     "catalogo": "Sfx",
     "nombre": "golpe_sordo",
-    "linea": 213,
+    "linea": 219,
     "cfg": {
       "f": [
         "golpe_sordo.wav"
@@ -3989,7 +4078,7 @@
   {
     "catalogo": "Sfx",
     "nombre": "pira_muerte",
-    "linea": 215,
+    "linea": 221,
     "cfg": {
       "f": [
         "pira.wav"
@@ -4008,7 +4097,7 @@
   {
     "catalogo": "Sfx",
     "nombre": "derrumbe_muerte",
-    "linea": 216,
+    "linea": 222,
     "cfg": {
       "f": [
         "derrumbe_piedra_muerte.wav"
@@ -4027,7 +4116,7 @@
   {
     "catalogo": "Sfx",
     "nombre": "hielo_rompe",
-    "linea": 217,
+    "linea": 223,
     "cfg": {
       "f": [
         "hielo_rompe.wav"
@@ -4049,7 +4138,7 @@
   {
     "catalogo": "Sfx",
     "nombre": "chispazo",
-    "linea": 218,
+    "linea": 224,
     "cfg": {
       "f_lc": [
         "lc_chispazo_0.ogg",
@@ -4078,7 +4167,7 @@
   {
     "catalogo": "Sfx",
     "nombre": "salpicadura",
-    "linea": 219,
+    "linea": 225,
     "cfg": {
       "f_lc": [
         "lc_salpicadura_0.ogg",
@@ -4117,7 +4206,7 @@
   {
     "catalogo": "Sfx",
     "nombre": "magma",
-    "linea": 222,
+    "linea": 228,
     "cfg": {
       "f_lc": [
         "lc_magma_0.ogg",
@@ -4194,7 +4283,7 @@
   {
     "catalogo": "Sfx",
     "nombre": "naturaleza",
-    "linea": 223,
+    "linea": 229,
     "cfg": {
       "f": [
         "elem_tierra.wav"
@@ -4234,7 +4323,7 @@
   {
     "catalogo": "Sfx",
     "nombre": "explosion_barril",
-    "linea": 224,
+    "linea": 230,
     "cfg": {
       "f": [
         "explosion.wav"
@@ -4258,7 +4347,7 @@
   {
     "catalogo": "Sfx",
     "nombre": "salto",
-    "linea": 225,
+    "linea": 231,
     "cfg": {
       "f": [
         "voltereta.wav"
@@ -4285,7 +4374,7 @@
   {
     "catalogo": "Sfx",
     "nombre": "aterrizar",
-    "linea": 226,
+    "linea": 232,
     "cfg": {
       "f": [
         "golpe_sordo.wav"
@@ -4307,7 +4396,7 @@
   {
     "catalogo": "Sfx",
     "nombre": "flecha_clava",
-    "linea": 227,
+    "linea": 233,
     "cfg": {
       "f": [
         "kenney_clavar_0.ogg",
@@ -4331,7 +4420,7 @@
   {
     "catalogo": "Sfx",
     "nombre": "trueno",
-    "linea": 228,
+    "linea": 234,
     "cfg": {
       "f_lc": [
         "lc_trueno_0.ogg",
@@ -4360,7 +4449,7 @@
   {
     "catalogo": "Sfx",
     "nombre": "sintetizar",
-    "linea": 229,
+    "linea": 235,
     "cfg": {
       "f": [
         "pocion.wav"
@@ -4382,7 +4471,7 @@
   {
     "catalogo": "Sfx",
     "nombre": "tinta_sube",
-    "linea": 230,
+    "linea": 236,
     "cfg": {
       "f": [
         "logro_fanfarria.wav"
@@ -4402,14 +4491,51 @@
   },
   {
     "catalogo": "Sfx",
-    "nombre": "hielo_flecha",
-    "linea": 233,
+    "nombre": "fuego_flecha",
+    "linea": 240,
     "cfg": {
       "f_lc": [
-        "lc_hielo_flecha_0.ogg",
-        "lc_hielo_flecha_1.ogg",
-        "lc_hielo_flecha_2.ogg",
-        "lc_hielo_flecha_3.ogg"
+        "lc_fuego_0.ogg"
+      ],
+      "f": [
+        "elem_fuego.wav"
+      ],
+      "db": -8,
+      "tono": 0.1
+    },
+    "selected": "f_lc",
+    "files": [
+      "lc_fuego_0.ogg"
+    ],
+    "references": []
+  },
+  {
+    "catalogo": "Sfx",
+    "nombre": "agua_flecha",
+    "linea": 241,
+    "cfg": {
+      "f_lc": [
+        "lc_agua_0.ogg"
+      ],
+      "f": [
+        "elem_agua.wav"
+      ],
+      "db": -7,
+      "tono": 0.1
+    },
+    "selected": "f_lc",
+    "files": [
+      "lc_agua_0.ogg"
+    ],
+    "references": []
+  },
+  {
+    "catalogo": "Sfx",
+    "nombre": "hielo_flecha",
+    "linea": 242,
+    "cfg": {
+      "f_lc": [
+        "lc_hielo_flecha_0.ogg"
       ],
       "f": [
         "oga_congelar_1.wav"
@@ -4419,10 +4545,68 @@
     },
     "selected": "f_lc",
     "files": [
-      "lc_hielo_flecha_0.ogg",
-      "lc_hielo_flecha_1.ogg",
-      "lc_hielo_flecha_2.ogg",
-      "lc_hielo_flecha_3.ogg"
+      "lc_hielo_flecha_0.ogg"
+    ],
+    "references": []
+  },
+  {
+    "catalogo": "Sfx",
+    "nombre": "rayo_flecha",
+    "linea": 243,
+    "cfg": {
+      "f_lc": [
+        "lc_rayo_0.ogg"
+      ],
+      "f": [
+        "oga_relampago_0.wav",
+        "oga_relampago_1.wav"
+      ],
+      "db": -10,
+      "tono": 0.08
+    },
+    "selected": "f_lc",
+    "files": [
+      "lc_rayo_0.ogg"
+    ],
+    "references": []
+  },
+  {
+    "catalogo": "Sfx",
+    "nombre": "viento_flecha",
+    "linea": 244,
+    "cfg": {
+      "f_lc": [
+        "lc_viento_0.ogg"
+      ],
+      "f": [
+        "elem_viento.wav"
+      ],
+      "db": -11,
+      "tono": 0.12
+    },
+    "selected": "f_lc",
+    "files": [
+      "lc_viento_0.ogg"
+    ],
+    "references": []
+  },
+  {
+    "catalogo": "Sfx",
+    "nombre": "tierra_flecha",
+    "linea": 245,
+    "cfg": {
+      "f_lc": [
+        "lc_tierra_0.ogg"
+      ],
+      "f": [
+        "elem_tierra.wav"
+      ],
+      "db": -8,
+      "tono": 0.1
+    },
+    "selected": "f_lc",
+    "files": [
+      "lc_tierra_0.ogg"
     ],
     "references": []
   },
@@ -5413,6 +5597,7 @@
       "presentacion/prueba_test2.gd:6164: \"fuego\", \"magma\":",
       "presentacion/prueba_test2.gd:6846: var elems: Array = [\"fuego\", \"agua\", \"rayo\"]",
       "presentacion/prueba_test2.gd:7398: for el in [\"fuego\", \"agua\", \"rayo\"]:",
+      "presentacion/sensacion_3d.gd:1222: _sonido_elemental = elemento != \"fuego\" and Sfx.CATALOGO.has(nombre)",
       "presentacion/ui/libro_rojo.gd:49: const FAMILIA_SELLOS: Array = [\"fuego\", \"agua\", \"tierra\", \"viento\", \"rayo\", \"hielo\"]",
       "presentacion/ui/libro_rojo.gd:55: \"fuego\": [\"Quema y prende lo que arde.\", \"cualquier glifo\"],",
       "presentacion/ui/libro_rojo.gd:83: \"fuego\": \"Fuego\", \"agua\": \"Agua\", \"tierra\": \"Tierra\", \"viento\": \"Viento\", \"rayo\": \"Rayo\", \"hielo\": \"Hielo\",",
