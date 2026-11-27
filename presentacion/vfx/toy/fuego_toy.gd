@@ -794,7 +794,7 @@ static func describir(h: Hechizo, casilla_m: float = 2.3) -> Dictionary:
 		z_haz = Hechizo.HAZ_ANCHO * casilla_m * 0.5 * HazGas.escala_de(h)       # 12/11: × k (HazGas.ESCALA_BASE con una ᛁ .. ESCALA_MAX con MAX_GLIFOS): solo dibujo
 	elif vuela:
 		fig = Figura.BOLA
-	elif h.solidez > 0.0:
+	elif h.solidez > 0.0 or h.muro_geo:       # 27/11 (experimental: muro por geometría): el muro de fuego (solidez 0) se dibuja como el de una barrera
 		fig = Figura.MURO if alargado else Figura.BARRERA
 	elif nombre == "alto":
 		fig = Figura.PILAR

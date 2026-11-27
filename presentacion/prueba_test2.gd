@@ -6,7 +6,7 @@ extends Node3D
 ## (bosque.glb, objetos.glb, magia.glb), partículas (fuego, humo, brasas, esporas, destellos, pétalos) y los
 ## personajes chibi del pipeline. Es solo visual: se pasea con la chibi; no hay hechizos ni pruebas.
 ##
-## Teclas: WASD mover · Shift correr · + / - zoom (la inclinación está fija a 60°, ver INCLINACION) · H sombras · P partículas
+## Teclas: WASD mover · Shift correr · + / - zoom (la inclinación está fija, ver INCLINACION; 27/11/2026 PRUEBA de Pablo: 45º, antes 60º, bloqueada desde el 6/10; para volver, poner 60) · H sombras · P partículas
 ##         K decorado on/off · G hierba 3D on/off · L luz plana/suave de personajes · [ / ] tamaño de la chibi
 ##
 ## Rendimiento (docs/PLAN_ACCION_TEST2.md §1.3): el decorado va por LOTES (un MultiMesh por pieza y malla, no un
@@ -36,7 +36,8 @@ const ZOOM_MINIMO: float = 2.0
 const SEGUIMIENTO: float = 14.0
 ## Inclinación de la cámara, BLOQUEADA (Pablo, 6/10: «de momento lockeamos en 60 grados, siguiendo al personaje»). Solo el zoom +/- sigue libre.
 ## Para volver a probar otros ángulos, cambiar esta constante (las teclas R/F y 1/2/3 se quitaron).
-const INCLINACION: float = 60.0
+## 27/11/2026 · PRUEBA de Pablo: 45º (antes 60º, bloqueada desde el 6/10); para volver, poner 60.
+const INCLINACION: float = 45.0
 
 const RAIZ: String = "res://arte/modelos/"
 const SUELO: String = "res://arte/suelo_meshy/"

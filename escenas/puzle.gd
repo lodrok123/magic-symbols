@@ -20,6 +20,8 @@ extends Node
 ## (`celdas=4,10..4,12+1,12..2,12`). Booleanos: si | no (también true/false, 1/0).
 ##
 ## PIEZAS (tipo → claves, entre paréntesis el valor por defecto) y qué clase de `objetos/` es:
+##   coca       pozas=<lista> (obligatoria)  bajio=<casilla> (la propia x,y)  vida=<n> (150)   Coca3D (27/11, prototipo de primitivas): serpiente de agua; emerge por las `pozas` libres (agua sin sólido encima), echa un chorro
+##              con aviso y, si todas se tapan, sale por el `bajio` y queda varada: con la runa encendida recibe daño de todo. No muere: a vida 0 se calma. Señales `calmada`, `emerge`, `chorro`, `varada`
 ##   pulsador   modo=magia|agua|presencia (magia)  rearme=<s> (0)  modelo=cueva          Pulsador3D: botón, pulsador de agua o placa (modelo=cueva: la placa de piedra de la Cueva)
 ##              26/11 `pista=tierra+barrera`: escribe bajo su rótulo el hechizo que pide (sellos y glifos del libro unidos con «+»)
 ##   compuerta  abierta (no)  abre_con=fuego|agua|hielo|rayo|explosion  cierra_con=…  estrecha (si)  vertical (sola)  caudal=<u³/s>  tarda=<s>   Compuerta3D
@@ -346,7 +348,7 @@ const SENAL_DEFECTO: Dictionary = {
 	"guardian": "levanta", "puente": "tendido", "trampa_dragon": "escupe", "trampa_flechas": "dispara",
 	"colmena": "cae_panal", "nube_veneno": "disipada", "respiradero": "exhala", "balsa": "atraca", "secuencia": "completa", "mural": "limpio", "nido": "suelta", "musgo": "recogida", "helecho_cueva": "recogida", "seta_palida": "recogida",
 	"flor": "recogida", "raiz": "recogida", "lavanda": "recogida", "bayas": "recogida", "helecho": "recogida", "flor_silvestre": "recogida",
-	"bancal": "germino", "mamoa": "tapada", "dragon_jefe": "derrotado", "verraco": "derrotado",
+	"bancal": "germino", "mamoa": "tapada", "dragon_jefe": "derrotado", "verraco": "derrotado", "coca": "calmada",
 }
 ## Señal de usuario → [señal de Godot, cuántos argumentos trae, filtro]: un filtro `true`/`false` deja pasar solo ese valor del primer argumento.
 const SENALES: Dictionary = {
@@ -399,6 +401,8 @@ const SENALES: Dictionary = {
 	"dragon_jefe": {"derrotado": ["derrotado", 0, null], "presentado": ["presentado", 0, null], "aliento": ["aliento_empieza", 0, null], "aturdido": ["aturdido", 0, null], "expuesto": ["expuesto", 0, null]},
 	# X2 de PLAN_COMBATE (22/11): el Verraco (enemigos/verraco_3d.gd).
 	"verraco": {"derrotado": ["derrotado", 0, null], "embiste": ["embiste", 0, null], "choca": ["choca", 1, null], "frena": ["frena", 0, null], "expuesto": ["expuesto", 0, null]},
+	# 27/11: la Coca de Redondela, serpiente de agua que no muere, se calma (enemigos/coca_3d.gd).
+	"coca": {"calmada": ["calmada", 0, null], "emerge": ["emerge", 1, null], "chorro": ["chorro", 0, null], "varada": ["varada", 0, null]},
 	"colmena": {"cae_panal": ["panal_cae", 0, null], "arde": ["arde", 0, null]},
 	"nube_veneno": {"disipada": ["disipada", 0, null]},
 	"respiradero": {"exhala": ["exhala", 0, null], "apagado": ["apagado", 0, null], "prende": ["prende", 0, null], "se_apaga_llama": ["se_apaga_llama", 0, null]},
@@ -592,6 +596,8 @@ const CLAVES: Dictionary = {
 	"dragon_jefe": {"mira": "s:n|e|s|o", "alcance": "f", "cerca": "f", "vida": "f", "nombre": "nombre", "epiteto": "nombre"},
 	# X2 de PLAN_COMBATE (22/11): el Verraco, élite de granito que embiste (enemigos/verraco_3d.gd).
 	"verraco": {"mira": "s:n|e|s|o", "vida": "f"},
+	# 27/11: la Coca (enemigos/coca_3d.gd): `pozas` son las casillas de agua por las que emerge, `bajio` la poza poco profunda de la orilla (una casilla).
+	"coca": {"pozas": "celdas", "bajio": "celdas", "vida": "f"},
 }
 ## C3: pieza del cofre, cuánto de cerca hay que estar para abrirlo con E (la casilla mide 2,3; igual que el Bosque), cada cuánto miran su estado
 ## las piezas lógicas (vigía, cerrojo, cofre) y los avisos de un vigía que no encuentra enemigos.
@@ -2346,7 +2352,7 @@ func al_reaparecer() -> void:
 			en_encuentro.append_array((p.nodo as VigiaPuzle).vistos)
 		elif p.tipo == "cerrojo" and p.nodo is CerrojoPuzle:
 			(p.nodo as CerrojoPuzle).reiniciar()
-		elif (p.tipo == "dragon_jefe" or p.tipo == "verraco") and p.nodo != null and is_instance_valid(p.nodo) and p.nodo.has_method("reiniciar"):
+		elif (p.tipo == "dragon_jefe" or p.tipo == "verraco" or p.tipo == "coca") and p.nodo != null and is_instance_valid(p.nodo) and p.nodo.has_method("reiniciar"):
 			p.nodo.call("reiniciar")
 	# 3) Los enemigos sueltos que siguen vivos: dejan de perseguirla y se curan.
 	for n in get_tree().get_nodes_in_group("combate3d"):
@@ -3296,6 +3302,14 @@ func _crear(pz: Pieza) -> void:
 			cont.add_child(vr)
 			vr.preparar(pz.celda, String(pz.p.get("mira", "s")), float(pz.p.get("vida", Verraco3D.VIDA)), mundo as Node)
 			pz.nodo = vr
+		"coca":
+			var cc := Coca3D.new()
+			cc.name = pz.id
+			cont.add_child(cc)
+			var pozas_c: Array = pz.p.get("pozas", [pz.celda])
+			var bajio_c: Array = pz.p.get("bajio", [pz.celda])
+			cc.preparar(pozas_c, (bajio_c[0] if not bajio_c.is_empty() else pz.celda) as Vector2i, float(pz.p.get("vida", Coca3D.VIDA)), mundo as Node)
+			pz.nodo = cc
 		"dragon_jefe":
 			var dj := DragonJefe3D.new()
 			dj.name = pz.id
