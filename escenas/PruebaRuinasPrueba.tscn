@@ -16,6 +16,7 @@ kit = "demo"
 decorado_bioma = true
 riqueza_suelo = true
 semilla_decorado = 5
+ruinas_completas = true
 camara_por_sala = true
 metadata/generador_mapas = true
 

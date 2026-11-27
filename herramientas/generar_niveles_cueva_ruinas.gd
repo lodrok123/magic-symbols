@@ -34,9 +34,11 @@ const BASE: Dictionary = {
 const NIVELES: Array = [
 	{
 		"nombre": "RuinasPrueba", "semilla_ini": 1, "semilla": 5,           # semilla fija (la primera que cumple todo); 0 = buscar desde semilla_ini
-		"descripcion": "Ruinas: 6 puzles nuevos de pulsadores y trampas + 2 de los que ya había (dragon_brasero, escudo_flechas), con goblins. Las salas muestrario están en RuinasPruebaMuestrario (los niveles de ruinas grandes consumen muchísima memoria al cargar: ver el documento).",
+		"descripcion": "Ruinas COMPLETAS: entrada, recorrido, 6 puzles nuevos de pulsadores y trampas + 2 de los que ya había (dragon_brasero, escudo_flechas), goblins, cofre y sala final del tesoro, con el suelo de losas rotas y el vestido de piedra (`ruinas_completas`). Las salas muestrario están en RuinasPruebaMuestrario.",
+		# 27/11 (Pablo: «para las ruinas también pon el suelo; quiero el ejemplo de un nivel completo de bioma ruinas»): `ruinas_completas` = el suelo de losas rotas y el vestido de piedra
+		# (pilares, arcos en las puertas, escombros: presentacion/ruinas_completas_3d.gd). Mismo tamaño y semilla que antes: el plano no cambia, solo la escena exportada.
 		"params": {"estilo": "ruinas", "luz": "ruinas", "titulo_nivel": "Ruinas de prueba (puzles)", "algoritmo": "pagina", "ancho": 76, "alto": 66, "n_salas": 13, "lado_min": 11, "lado_max": 14,
-			"simetria": false, "pasillos": 30, "bucles": 25, "enemigos": 0.0, "arqueros": 0},
+			"simetria": false, "pasillos": 30, "bucles": 25, "enemigos": 0.0, "arqueros": 0, "ruinas_completas": true},
 		"muestrarios": [],
 		"puzles": ["mascarones_relevo", "dragon_brasero", "placa_y_boton", "totem_a_favor", "dos_placas_cofre", "dragon_muro_brasero", "dragon_agua_reja", "escudo_flechas"],
 		"enemigos_extra": ["guerrero", "arquero"], "avisos_ok": AVISOS_CAMARA,

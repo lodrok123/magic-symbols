@@ -94,9 +94,13 @@ func sembrar(m: Node, S: float, y: float, estilo: String, semilla: int, con_pack
 			var c := Vector2i(cx, cz)
 			var l: String = m._letra(c)
 			var es_hierba: bool = DENSIDAD["letra_hierba"].has(l)
-			if not es_hierba and not (estilo == "ruinas" and l == "R"):
+			# 27/11 (`ruinas_completas`): una casilla con losa entera pintada en el suelo no lleva hierba ni flores, pero sí restos de ruina (escombros, piedras)
+			var enlosada: bool = not (m._rc_enlosada as Dictionary).is_empty() and (m._rc_enlosada as Dictionary).has(c)
+			if enlosada:
+				es_hierba = false
+			if not es_hierba and not (estilo == "ruinas" and (l == "R" or enlosada)):
 				continue
-			if not _apta(m, c, puzle):
+			if not _apta(m, c, puzle, enlosada):
 				continue
 			var d: int = int(dist.get(c, 99))
 			var centro: float = smoothstep(1.0, float(DENSIDAD["radio_centro"]), float(d))
@@ -136,13 +140,13 @@ func _mancha(m: Node, c: Vector2i, sal: int, ajustes: Dictionary) -> float:
 
 
 ## ¿Se puede poner decorado suelto en la casilla? Hierba o tierra pisable, sin nada de juego encima.
-func _apta(m: Node, c: Vector2i, puzle: Dictionary) -> bool:
+func _apta(m: Node, c: Vector2i, puzle: Dictionary, enlosada: bool = false) -> bool:
 	if m._bloqueadas.has(c) or m._sin_hierba.has(c) or m._celdas_pieza.has(c) or puzle.has(c):
 		return false
 	if m._germinadas.has(c) or m._junto_a_agua(c):
 		return false
 	var t: int = m._tipo_suelo(c)
-	return t == 0 or m._letra(c) == "R"
+	return t == 0 or m._letra(c) == "R" or enlosada
 
 
 ## Distancia (en casillas, 1 = pegada) de cada casilla de hierba hasta la casilla más cercana que NO es hierba (`#`, camino, agua, losas, marcadores…).

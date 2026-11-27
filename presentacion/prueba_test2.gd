@@ -928,6 +928,11 @@ const ESCALA_VFX_NUEVO: float = 0.6
 ## de siempre. false = solo lo de siempre (las listas de antes, ahora también leídas de la tabla): los niveles hechos a mano no cambian. El exportador del
 ## generador de mapas lo enciende en las escenas que genera.
 @export var decorado_bioma: bool = false
+## 27/11 (Pablo: «para las ruinas también pon el suelo; quiero el ejemplo de un nivel completo de bioma ruinas»): el SUELO y el VESTIDO del estilo «ruinas»
+## (`presentacion/ruinas_completas_3d.gd`): salas y pasillos enlosados con losas rotas y la hierba asomando, pilares pegados a los muros, un arco sobre cada
+## puerta y escombros sobre la hierba. Solo con `estilo = "ruinas"`; es aspecto (la colisión y la rejilla no cambian). false = como antes: los niveles ya
+## exportados no cambian. El exportador del generador lo enciende con el parámetro `ruinas_completas`.
+@export var ruinas_completas: bool = false
 ## 26/11 (Pablo: «que el suelo con hierba también genere hierba corta, flores pequeñas, etc.»): la CAPA DE RIQUEZA del suelo de hierba
 ## (`presentacion/riqueza_suelo_3d.gd`): matas de hierba corta de varios modelos, flores en corros, trébol y musgo, rocas pequeñas y ramas, y de vez
 ## en cuando un resto de ruina suelto. Solo decorado (sin colisión) y por lotes. false = apagada. Las constantes con nombre para afinarla, en ese script.
@@ -1125,6 +1130,12 @@ var _contraste: float = 2.5
 var _rugosidad: float = 0.5     ## relieve del suelo (tecla B): 0 · 0,5 · 1
 var _hierba: Hierba3D = null
 var _sin_hierba: Dictionary = {}          ## casillas con runa en el suelo: la hierba no la tapa
+## 27/11 (`ruinas_completas`): lo que decide `RuinasCompletas.planificar` para el suelo de las ruinas. `_rc_tipo`: casilla -> tipo de suelo que PINTA el shader (solo el mapa de tipos de
+## `_img_mapa`: `_tipo_suelo`, que decide qué crece y arde, no cambia); `_rc_enlosada`: casillas con losa entera (no crece hierba); `_rc_piezas`: losas del pack encima [id, casilla, giro, y extra].
+var _rc_tipo: Dictionary = {}
+var _rc_enlosada: Dictionary = {}
+var _rc_piezas: Array = []
+var ruinas_cuentas: Dictionary = {}        ## lo que ha puesto `RuinasCompletas.vestir` (para las pruebas y el informe)
 var _img_mapa: Image = null
 var _arte_entorno: Node3D = null            ## ArteEntorno3D: lo que se ve de los estados escombro/vapor y de la hierba germinada
 var _tex_mapa: ImageTexture = null         ## la textura de `_img_mapa` que lee el shader del suelo (se actualiza al germinar una casilla)
@@ -1354,6 +1365,10 @@ func _ready() -> void:
 	_colocar_letras()
 	if _ruinas_ss():
 		_extras_ss()      # 26/11: piezas del pack puestas a mano (`; ss`) y el muestrario (`; muestrario_ss`)
+	if _ruinas_completas_activas():
+		ruinas_cuentas = RuinasCompletas.vestir(self, S, ALTO)      # 27/11: losas sueltas, pilares, arcos y escombros del bioma ruinas
+		print("Ruinas completas: ", _rc_tipo.size(), " casillas repintadas, ", (ruinas_cuentas["losas"]), " losas del pack en ", (ruinas_cuentas["lotes"]), " lotes, ", (ruinas_cuentas["pilares"]), " pilares, ",
+			(ruinas_cuentas["arcos"]), " arcos, ", (ruinas_cuentas["hiedras"]), " hiedras, ", (ruinas_cuentas["escombros"]), " escombros")
 	_crono("letras")
 	_montar_canal()
 	_montar_agua_fisica()
@@ -1978,12 +1993,19 @@ func _antes_de_cargar_partida() -> void:
 func _construir_suelo(dibujar: bool = true) -> void:
 	# Mapa de tipos para el shader.
 	_germinadas.clear()       # un mapa nuevo empieza sin germinaciones de la partida anterior
+	_rc_tipo = {}
+	_rc_enlosada = {}
+	_rc_piezas = []
+	if _ruinas_completas_activas():
+		RuinasCompletas.planificar(self)       # 27/11: el enlosado roto de las ruinas (solo cambia el mapa de tipos que pinta el shader)
 	var img := Image.create_empty(_lado, _lado, false, Image.FORMAT_RGBA8)
 	for y in range(_lado):
 		for x in range(_lado):
 			var t: int = _tipo_suelo(Vector2i(x, y))
 			if t == 0 and ORILLA_SIEMPRE and _junto_a_agua(Vector2i(x, y)):
 				t = 1       # 16/10 (Pablo): la orilla de arena va SIEMPRE alrededor del agua (solo el color del suelo: la hierba y su fuego no cambian)
+			if not _rc_tipo.is_empty() and _rc_tipo.has(Vector2i(x, y)):
+				t = int(_rc_tipo[Vector2i(x, y)])
 			img.set_pixel(x, y, Color(1.0 if t == 0 else 0.0, 1.0 if t == 1 else 0.0, 1.0 if t == 2 else 0.0, 1.0 if t == 3 else 0.0))
 	_img_mapa = img
 	_img_zona_v = null
@@ -3157,7 +3179,7 @@ func _bilineal(img: Image, uv: Vector2, repetir: bool) -> Color:
 func _peso_hierba(x: float, z: float) -> float:
 	var celda := Vector2i(floori(x / S), floori(z / S))
 	var l: String = _letra(celda)
-	if _es_agua(l) or (_bloqueadas.has(celda) and l != "#") or _sin_hierba.has(celda):
+	if _es_agua(l) or (_bloqueadas.has(celda) and l != "#") or _sin_hierba.has(celda) or _rc_enlosada.has(celda):
 		return 0.0
 	var c := Vector2(x, z) / S
 	var r: Color = _bilineal(_img_campo, c / float(_lado), true)
@@ -4250,6 +4272,12 @@ func _ruinas_ss() -> bool:
 	return estilo == "ruinas" and PAREDES_SS.disponible()
 
 
+## 27/11: el suelo y el vestido de las «ruinas completas» (ver `presentacion/ruinas_completas_3d.gd`): solo con el interruptor, el estilo «ruinas» y el pack generado.
+const RuinasCompletas = preload("res://presentacion/ruinas_completas_3d.gd")
+func _ruinas_completas_activas() -> bool:
+	return ruinas_completas and _ruinas_ss()
+
+
 func _enlosada(q: Vector2i) -> bool:
 	return _en_mapa(q) and _letra(q) == "R"
 
@@ -4262,13 +4290,15 @@ func _muro_de_ruina(q: Vector2i) -> bool:
 func _adornos_ss(c: Vector2i, l: String) -> void:
 	_contrafuerte_ss(Vector2i(-1, -1))          # lee las piezas del mapa una vez
 	if _celdas_pieza_ss.has(c):
-		if l == "R":
+		if l == "R" and not ruinas_completas:      # (con `ruinas_completas`, el enlosado de la sala del tesoro es el del suelo, pintado, y no una losa lisa por casilla)
 			var lp: Array = PAREDES_SS.losa_de(c, ALTO)
 			_poner_escena(String(lp[0]), c, lp[1], false)      # bajo una pieza del mapa, solo la losa
 		return
 	var en: bool = _en_marcador
 	_en_marcador = false
 	for p in PAREDES_SS.adornos_suelo(c, l, Callable(self, "_muro_de_ruina"), ALTO):
+		if ruinas_completas and String(p[0]).begins_with("ss_floor_4x4_topface"):
+			continue          # 27/11: la losa lisa de la sala enlosada: ahora va pintada en el suelo (ver `ruinas_completas`)
 		_poner_escena(String(p[0]), c, p[1], false)
 	_en_marcador = en
 
@@ -4355,6 +4385,8 @@ func _paredes_ss(c: Vector2i) -> bool:
 		# (sobre la hierba, en la puerta sur del patio).
 		for sx in [-1, 1]:
 			for sz in [-1, 1]:
+				if ruinas_completas:
+					break         # 27/11: con `ruinas_completas`, el suelo bajo el muro ya va pintado (`RuinasCompletas.planificar`)
 				if _enlosada(c + Vector2i(0, sz)) or _enlosada(c + Vector2i(sx, 0)):
 					var h: int = _hash(c.x * 2 + (sx + 1) / 2, c.y * 2 + (sz + 1) / 2, 11)
 					var pos: Vector3 = _centro_celda(c, ALTO) + Vector3(float(sx), 0.0, float(sz)) * S * 0.25 + Vector3(0.0, 0.015, 0.0)
@@ -4365,6 +4397,10 @@ func _paredes_ss(c: Vector2i) -> bool:
 ## Una pieza con ESCENA propia ya a su medida (las lost_* del pack: arte/lostcave/piezas/<id>.tscn) en la transformación `t`. Se apunta en el
 ## registro como las de `_poner` (así sale en el nivel horneado: HorneadorNivel busca las lost_* en su carpeta) y sus materiales pasan por
 ## Ocluso3D como el decorado en lotes.
+## 27/11: las escenas de pieza ya cargadas (ruta -> PackedScene), con una referencia FUERTE. Antes `_poner_escena` hacía `load(ruta).instantiate()` y soltaba la escena: al cambiar el material
+## de cada copia por el de `Ocluso3D` (que solo se queda con las texturas de color y normal), el material y las texturas de AO/rugosidad de la pieza se quedaban sin dueño, se liberaban y la copia
+## siguiente los volvía a leer del disco y a subir a la GPU: un nivel de ruinas de 76 × 66 (3.700 piezas) gastaba 43 s y hasta 8 GB de RAM solo en esto. Con la escena guardada, sus recursos se cargan una vez.
+var _escenas_pieza: Dictionary = {}
 func _poner_escena(id: String, c: Vector2i, t: Transform3D, bloquea: bool) -> Node3D:
 	_registro.append([id, c, t, bloquea, "marcador" if _en_marcador else "decor"])
 	if _modo_escena or (_modo_nivel and not _en_marcador):
@@ -4374,7 +4410,11 @@ func _poner_escena(id: String, c: Vector2i, t: Transform3D, bloquea: bool) -> No
 	var ruta: String = (PAREDES_SS.RUTA if id.begins_with("ss_") else PAREDES_LC.RUTA) + id + ".tscn"     # 25/11: ss_ = muros del pack Stylescape
 	if not ResourceLoader.exists(ruta):
 		return null
-	var n: Node3D = (load(ruta) as PackedScene).instantiate() as Node3D
+	var paquete: PackedScene = _escenas_pieza.get(ruta) as PackedScene
+	if paquete == null:
+		paquete = load(ruta) as PackedScene
+		_escenas_pieza[ruta] = paquete
+	var n: Node3D = paquete.instantiate() as Node3D
 	n.transform = t
 	if transparencia_jugador:
 		for h in n.find_children("*", "MeshInstance3D", true, false):

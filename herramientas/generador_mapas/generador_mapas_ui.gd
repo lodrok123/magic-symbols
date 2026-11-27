@@ -142,6 +142,7 @@ const CAMPOS: Array = [
 	{"k": "terreno", "r": "Pintar terreno", "t": "bool", "a": "Los pasillos van de tierra pisada y la sala del tesoro, enlosada (en estilo cueva no se enlosa).\nSin esto todo el suelo es igual y no hay juntas entre suelos que enseñar."},
 	{"k": "acabado", "r": "Acabado del terreno", "t": "bool", "a": "Orillas del agua como en Bosque 01 (orilla integrada, ribera curva con cantos) y juntas y bordes como en Monte Sumicio\n(más relieve, hierba entremezclada con la tierra y la piedra). En estilo cueva solo las orillas.\nEs el acabado de serie de todos los niveles del juego; sin la casilla, este nivel se exporta sin él."},
 	{"k": "decorado", "r": "Decorado con variedad", "t": "bool", "a": "Árboles, arbustos y rocas de los packs (Pure Nature) mezclados con los de siempre, y una capa de riqueza sobre el suelo de hierba:\nhierba corta, flores en corros, trébol, ramas y, de vez en cuando, un resto de ruina. Todo es solo decorado (sin colisión).\nQué piezas y con qué peso: presentacion/tabla_decorado_bioma.gd. Cuánta cantidad: presentacion/riqueza_suelo_3d.gd.\nSin la casilla, la escena se exporta con la variedad apagada (el decorado de siempre)."},
+	{"k": "ruinas_completas", "r": "Ruinas completas (suelo y vestido)", "t": "bool", "a": "Solo con el estilo «ruinas»: el suelo de las salas y los pasillos se enlosa con losas ROTAS (con la hierba asomando por donde falta losa) y el nivel se\nviste con piezas del pack Stylescape: pilares pegados a los muros, un arco sobre cada puerta y escombros. Todo es aspecto (la colisión y la rejilla no cambian).\nSin la casilla, el estilo ruinas queda como antes (prado con muros finos). Qué y cuánto: presentacion/ruinas_completas_3d.gd."},
 	{"k": "camara_sala", "r": "Cámara por sala", "t": "bool", "a": "La cámara se frena en el borde de cada sala (no enseña lo que hay detrás de las paredes) y en las salas\npequeñas se acerca poco a poco; al salir a una sala grande vuelve al zoom de antes. En los pasillos solo la frena el borde del mapa.\nCon el algoritmo cueva no hay salas cerradas: se frena solo en el borde del mapa. Las salas que obligan a acercar mucho salen en los avisos."},
 	{"k": "salida_a", "r": "Salidas (Nivel:entrada, …)", "t": "texto", "a": "Vacío = sin salida. Cada salida es Nivel:entrada, con el nombre del nivel tal como está en Niveles.ESCENAS (MonteSumicio, Bosque_02, Cueva…).\nVarias, separadas por comas: Bosque_02:boca_cueva, MonteSumicio:inicio\nLa primera va en la sala de inicio; cada una de las demás, en una sala lejana, con su propia llegada (entrada_2, entrada_3…).\nPara dar NOMBRE a la llegada (por donde se entra aquí viniendo de aquel nivel): Nivel:entrada=llegada.\nEjemplo para un Bosque 02 nuevo: MonteSumicio:desde_fraga=desde_sumicio, Cueva:desde_bosque=boca_cueva"},
 ]
@@ -813,7 +814,7 @@ func _fila(lista: VBoxContainer, campo: Dictionary) -> void:
 			c = sb
 		"bool":
 			var cb: CheckBox = CheckBox.new()
-			cb.button_pressed = bool(_par[k])
+			cb.button_pressed = bool(_par.get(k, false))      # (27/11: `ruinas_completas` es un parámetro opcional: no está en los de serie)
 			cb.toggled.connect(func(si: bool) -> void: _cambio(k, si))
 			c = cb
 		"texto":

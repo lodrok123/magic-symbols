@@ -99,6 +99,9 @@ static func parametros_defecto() -> Dictionary:
 		# 26/11: `decorado` = la variedad de decorado por bioma (pack Pure Nature en árboles, arbustos y rocas) y la capa de riqueza del suelo de hierba
 		# (hierba corta, flores, trébol, restos de ruina). Solo cambia la escena exportada (`decorado_bioma`, `riqueza_suelo`), no el plano.
 		"decorado": true,
+		# (27/11: el parámetro OPCIONAL `ruinas_completas` —con estilo «ruinas», el suelo de losas rotas y el vestido de piedra de presentacion/ruinas_completas_3d.gd— NO está aquí a
+		# propósito: como `titulo_nivel` o `salas_grandes`, solo existe en los mapas que lo piden, y así la línea `; generador {…}` de todos los .txt que ya existen no cambia.
+		# El exportador lo lee con `p.get("ruinas_completas", false)`: solo cambia la escena exportada, no el plano.)
 		# `camara_sala`: la cámara se frena en el borde de cada sala y se acerca poco a poco en las pequeñas (CamaraSalas).
 		"camara_sala": true,
 		# 24/11 (Pablo: «filtrar por las runas de la jugadora»): `kit` = el de Lanzador3D.PROGRESIONES que lleva la escena exportada; `runas` = los sellos y

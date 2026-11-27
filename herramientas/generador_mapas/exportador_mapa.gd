@@ -196,6 +196,10 @@ static func texto_escena(m: Dictionary) -> String:
 		l.append("decorado_bioma = true")
 		l.append("riqueza_suelo = true")
 		l.append("semilla_decorado = %d" % int(p.get("semilla", 0)))
+	if String(p["estilo"]) == "ruinas" and bool(p.get("ruinas_completas", false)):
+		# 27/11: el suelo de losas rotas y el vestido de piedra del bioma ruinas (presentacion/ruinas_completas_3d.gd). Apagado en la maqueta por defecto: las escenas de ruinas
+		# que ya estaban exportadas no cambian; solo las que se exportan con el parámetro `ruinas_completas`.
+		l.append("ruinas_completas = true")
 	if bool(p.get("camara_sala", true)):
 		# 20/11: cámara confinada a la sala; en los mapas sin líneas `; camara` (algoritmo cueva), solo al mapa.
 		l.append("camara_por_sala = true")

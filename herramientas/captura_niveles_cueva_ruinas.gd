@@ -8,11 +8,17 @@ extends "res://herramientas/escenario_base.gd"
 ##   godot --path . --script res://herramientas/captura_niveles_cueva_ruinas.gd [-- nivel=CuevaPrueba] [-- solo=arriba,puzles,muestrarios] [-- sueltas]
 ##   `sueltas`: guarda también las fotos sueltas de cada sala de puzle en `user://capturas_sueltas/` (fuera del repositorio; si no, solo la hoja).
 ## Salida: docs/capturas/cueva_ruinas_2026-11-27/. Lo que se lee del mapa se regenera con el generador desde el propio .txt.
+##
+## MODO `completo` (27/11, «el ejemplo de un nivel completo de bioma ruinas»): solo RuinasPrueba, a `docs/capturas/ruinas_completo_2026-11-27/`: la vista cenital (`RuinasPrueba_arriba.jpg`) y
+## una foto SUELTA por sitio con la cámara del juego (1600 × 900, la jugadora en el sitio, los goblins a la vista): la entrada, una puerta con su arco, un pasillo, dos o tres salas de puzle,
+## la sala de enemigos y la sala del tesoro (`NN_<sitio>.jpg`). Con `solo=zonas` + `zona=x,y` + `foto=nombre` hace una sola foto de esa casilla (para repasar un detalle).
+##   godot --path . --script res://herramientas/captura_niveles_cueva_ruinas.gd -- completo
 
 const Generador = preload("res://herramientas/generador_mapas/generador_mazmorra.gd")
 const Exportador = preload("res://herramientas/generador_mapas/exportador_mapa.gd")
 const Catalogo = preload("res://herramientas/generador_mapas/catalogo_puzles.gd")
 const DIR: String = "res://docs/capturas/cueva_ruinas_2026-11-27"
+const DIR_COMPLETO: String = "res://docs/capturas/ruinas_completo_2026-11-27"
 const NIVELES: Array = ["RuinasPrueba", "RuinasPruebaMuestrario", "CuevaPrueba", "CuevaPruebaLostCave"]
 const S: float = 2.3
 const ZOOM_PUZLE: float = 1.5            ## las fotos de las salas de puzle: la cámara del juego con el zoom × 1,35 (se ve entera la plantilla, que mide hasta 11 casillas de alto)
@@ -24,7 +30,10 @@ const COLUMNAS_HOJA: int = 3
 var _dir: String = ""
 var _solo: Array = []
 var _sueltas: bool = false
-var _luz_foto: OmniLight3D = null          ## luz extra de las fotos de cueva
+var _completo: bool = false                ## el modo `completo` (ver arriba)
+var _zona: Vector2i = Vector2i(-1, -1)     ## con `zona=x,y`: una sola foto de esa casilla (modo completo)
+var _foto: String = "zona"                 ## con `foto=nombre`: el nombre de esa foto
+var _luz_foto: OmniLight3D = null         ## luz extra de las fotos de cueva
 var _dir_sueltas: String = ""            ## las fotos sueltas van a `user://capturas_sueltas` (son intermedios para mirar: no al repositorio)
 
 
@@ -37,12 +46,21 @@ func _escenario() -> void:
 			_solo = a.substr(5).split(",")
 		elif a == "sueltas":
 			_sueltas = true
-	_dir = ProjectSettings.globalize_path(DIR)
+		elif a == "completo":
+			_completo = true
+		elif a.begins_with("zona="):
+			var xy: PackedStringArray = a.substr(5).split(",")
+			_zona = Vector2i(int(xy[0]), int(xy[1]))
+		elif a.begins_with("foto="):
+			_foto = a.substr(5)
+	_dir = ProjectSettings.globalize_path(DIR_COMPLETO if _completo else DIR)
 	DirAccess.make_dir_recursive_absolute(_dir)
 	_dir_sueltas = ProjectSettings.globalize_path("user://capturas_sueltas")
 	DirAccess.make_dir_recursive_absolute(_dir_sueltas)
 	root.get_window().size = Vector2i(1600, 900)
 	for n in NIVELES:
+		if _completo and n != "RuinasPrueba":
+			continue
 		if nivel == "" or nivel == n:
 			await _nivel(n)
 
@@ -75,7 +93,7 @@ func _nivel(nombre: String) -> void:
 	for cl in root.find_children("*", "CanvasLayer", true, false):
 		(cl as CanvasLayer).visible = false
 	for g in (maqueta.get("_goblins") as Array):
-		if is_instance_valid(g):
+		if is_instance_valid(g) and not _completo:
 			(g as Node3D).visible = false
 	root.get_window().size = Vector2i(1600, 900)
 	await avanzar(10)
@@ -93,13 +111,20 @@ func _nivel(nombre: String) -> void:
 	var salas: Dictionary = {}
 	for s in m["salas"]:
 		salas[int(s["id"])] = s
-	if _quiero("arriba"):
+	if _quiero("arriba") and _zona.x < 0:
 		await _general(Rect2i(0, 0, int(m["ancho"]), int(m["alto"])), 2000, "%s/%s_arriba.jpg" % [_dir, nombre])
 		root.get_window().size = Vector2i(1600, 900)
 		await avanzar(10)
 	# Las salas de puzle (no muestrario), en orden de cercanía a la entrada.
 	var con_puzle: Array = (m["puzles"] as Dictionary).keys()
 	con_puzle.sort_custom(func(a, b) -> bool: return int(salas[a]["dist"]) < int(salas[b]["dist"]))
+	if _completo:
+		await _vistas_completo(nombre, m, filas, salas, con_puzle)
+		maqueta.get_parent().remove_child(maqueta)
+		maqueta.queue_free()
+		maqueta = null
+		await avanzar(5)
+		return
 	if _quiero("puzles"):
 		var fotos: Array = []
 		var n: int = 0
@@ -148,6 +173,109 @@ func _nivel(nombre: String) -> void:
 	maqueta.queue_free()
 	maqueta = null
 	await avanzar(5)
+
+
+## MODO `completo`: una foto suelta con la cámara del juego por sitio del nivel (entrada, puerta con arco, pasillo, salas de puzle, enemigos, tesoro). Cada foto: la jugadora en la casilla,
+## 70 fotogramas para que la cámara y el decorado se asienten, y la captura del viewport.
+func _vistas_completo(nombre: String, m: Dictionary, filas: PackedStringArray, salas: Dictionary, con_puzle: Array) -> void:
+	var sitios: Array = []        # [nombre del archivo, casilla]
+	if _zona.x >= 0:
+		sitios.append([_foto, _zona])
+	else:
+		var inicio: Vector2i = Vector2i(-1, -1)
+		var enemigos: Array = []
+		var tesoro: Array = []
+		for y in range(filas.size()):
+			for x in range(filas[y].length()):
+				var ch: String = filas[y][x]
+				if ch == "S":
+					inicio = Vector2i(x, y)
+				elif ch == "W" or ch == "A":
+					enemigos.append(Vector2i(x, y))
+				elif ch == "R":
+					tesoro.append(Vector2i(x, y))
+		sitios.append(["01_entrada", _suelo_junto(inicio, filas)])
+		# la puerta (casilla `g` con muro a los dos lados) más cercana a la entrada, y el tramo de pasillo más largo (casillas con muro a los dos lados)
+		var puertas: Array = []
+		var corredor: Dictionary = {}
+		for y in range(1, filas.size() - 1):
+			for x in range(1, filas[y].length() - 1):
+				var ch2: String = filas[y][x]
+				if not ".gT".contains(ch2):
+					continue
+				var he: bool = filas[y][x - 1] == "#" and filas[y][x + 1] == "#" and filas[y - 1][x] != "#" and filas[y + 1][x] != "#"
+				var ve: bool = filas[y - 1][x] == "#" and filas[y + 1][x] == "#" and filas[y][x - 1] != "#" and filas[y][x + 1] != "#"
+				if ch2 == "g" and (he or ve):
+					puertas.append([Vector2i(x, y), he])
+				if ve:
+					corredor[Vector2i(x, y)] = true
+		# primero las puertas en un muro que corre por X (el arco se ve de frente), de más cerca a más lejos de la entrada
+		puertas.sort_custom(func(a, b) -> bool:
+			if bool(a[1]) != bool(b[1]):
+				return bool(a[1])
+			return (a[0] as Vector2i).distance_to(Vector2(inicio)) < (b[0] as Vector2i).distance_to(Vector2(inicio)))
+		# la puerta con arco más cercana a la entrada (los arcos los dice la propia maqueta: `ruinas_cuentas["arcos_en"]`), de las del muro que corre por X si hay (el arco se ve de frente)
+		var arcos: Array = (maqueta.get("ruinas_cuentas") as Dictionary).get("arcos_en", [])
+		arcos.sort_custom(func(a, b) -> bool:
+			var ha: bool = filas[(a as Vector2i).y][(a as Vector2i).x - 1] == "#"
+			var hb: bool = filas[(b as Vector2i).y][(b as Vector2i).x - 1] == "#"
+			if ha != hb:
+				return ha
+			return (a as Vector2i).distance_to(Vector2(inicio)) < (b as Vector2i).distance_to(Vector2(inicio)))
+		if not arcos.is_empty():
+			var pu: Vector2i = arcos[0]
+			var de_frente: bool = filas[pu.y][pu.x - 1] == "#"
+			# (la cámara se frena en el borde de la sala: para ver el arco entero, la jugadora al OTRO lado de la puerta, a dos casillas, y el arco de frente por delante)
+			sitios.append(["02_puerta_con_arco", _suelo_junto(pu + (Vector2i(0, -2) if de_frente else Vector2i(2, 0)), filas)])
+			if arcos.size() > 1:
+				var pu2: Vector2i = arcos[arcos.size() / 2]
+				sitios.append(["10_otro_arco", _suelo_junto(pu2 + (Vector2i(0, -2) if filas[pu2.y][pu2.x - 1] == "#" else Vector2i(2, 0)), filas)])
+		var mejor: Vector2i = Vector2i(-1, -1)
+		var mejor_largo: int = 0
+		for q in corredor:
+			if corredor.has(q + Vector2i(0, -1)):
+				continue
+			var largo: int = 0
+			while corredor.has((q as Vector2i) + Vector2i(0, largo)):
+				largo += 1
+			if largo > mejor_largo:
+				mejor_largo = largo
+				mejor = (q as Vector2i) + Vector2i(0, largo - 1)
+		if mejor.x >= 0:
+			sitios.append(["03_pasillo", mejor])
+		var n: int = 0
+		for sid in con_puzle:
+			var cid: String = String((m["puzles"] as Dictionary)[sid])
+			if cid.begins_with("muestrario_"):
+				continue
+			var c: Vector2i = _entrada_plantilla(m, salas[sid], cid, filas)
+			if c.x < 0:
+				c = _suelo_cerca(filas, salas[sid]["rect"])
+			if c.x < 0:
+				continue
+			n += 1
+			if n in [1, 3, 5, 7]:
+				sitios.append(["%02d_puzle_%s" % [3 + (n + 1) / 2, cid], c])
+		# la sala de enemigos: el goblin que guarda la sala del tesoro (la jugadora a dos casillas al sur de él) y, con el otro goblin (el arquero, en un callejón de una casilla entre masa de árboles:
+		# la cámara solo ve follaje), el resto del nivel no tiene más enemigos (el generador reparte uno por sala libre y esta semilla da para dos); el tesoro: junto al cofre de la sala final
+		for q in enemigos:
+			if filas[(q as Vector2i).y][(q as Vector2i).x] == "W":
+				sitios.append(["08_enemigos", _suelo_junto((q as Vector2i) + Vector2i(0, 2), filas)])
+				break
+		for l in m["lineas"]:
+			var t: PackedStringArray = String(l).substr(1).strip_edges().split(" ", false)
+			if t.size() >= 5 and t[0] == "pieza" and t[1] == "tesoro" and t[2] == "cofre":
+				sitios.append(["09_tesoro", _suelo_junto(Vector2i(t[3].to_int(), t[4].to_int() + 2), filas)])
+				sitios.append(["11_tesoro_pared_norte", _suelo_junto(Vector2i(t[3].to_int(), t[4].to_int() - 5), filas)])
+	for s in sitios:
+		var c2: Vector2i = s[1]
+		_poner(c2)
+		await avanzar(70)
+		var img: Image = root.get_viewport().get_texture().get_image()
+		img.convert(Image.FORMAT_RGB8)
+		var ruta: String = "%s/%s.jpg" % [_dir, String(s[0])]
+		img.save_jpg(ruta, 0.82)
+		print("foto: ", ruta, " jugadora en ", c2)
 
 
 ## La sala muestrario: la pieza `muestrario` del mapa dice dónde empieza y qué tamaño tiene; se recorre en trozos con la cámara del juego ampliada.
