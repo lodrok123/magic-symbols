@@ -1,0 +1,23 @@
+#################
+#...............#
+#...............#
+#..~~~~~~~~.....#
+#..~~~~~~~~.....#
+#..~~~~~~~~.....#
+#..~~~~~~~~.....#
+#...............#
+#.......S.......#
+#################
+; ======================================================================================================================================================
+;  LA SALA DE LA COCA (27/11/2026). Banco de pruebas de la COCA (enemigos/coca_3d.gd; arte/meshy/PROMPTS_COCA.md §0). Kit `pruebas` (fuego, agua y tierra). PROTOTIPO de primitivas.
+;  Lo que se prueba a mano:
+;    · Un lago (x 3..10, y 3..6) con tres POZAS (5,4) (7,5) (9,4) y un BAJÍO junto a la orilla (3,6).
+;    · La Coca emerge por una poza, te acecha (gira hacia ti), se recoge (POSE, quieta, con el aviso del chorro en el suelo) y escupe un CHORRO que te hiere y te aparta. Una barrera en medio lo recorta.
+;    · Fuera de VARADA es invulnerable («Escamas»). Si TAPAS las tres pozas (un sólido sobre el agua) sale por el bajío y queda VARADA 4 s con la runa encendida: ahí recibe daño de todo.
+;    · A vida 0 no muere: se calma (se yergue, la runa da media vuelta) y deja de atacar.
+; ======================================================================================================================================================
+; # pared · . suelo · ~ agua · S inicio
+;
+; zona 1,1..15,8 cueva mezcla=0.8
+;
+; pieza coca coca 5 4 pozas=5,4+7,5+9,4 bajio=3,6 vida=150

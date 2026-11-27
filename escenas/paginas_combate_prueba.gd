@@ -5,11 +5,14 @@ const FUEGO: int = Runes.Type.SHAPE_TRIANGLE
 const AGUA: int = Runes.Type.SHAPE_CIRCLE
 const VIENTO: int = Runes.Type.SHAPE_LINES
 const MURO: Array = ["barrera", "linea_x", "linea_x", "altura", "altura", "altura"]
+## 27/11/2026 · experimental: muro por geometría. El mismo muro SIN `barrera`: lo decide la raya vertical (`Hechizo.muro_geo`) y la protección el elemento (agua bloquea, fuego solo quema). Tecla B.
+const MURO_GEOMETRIA: Array = ["linea_z", "linea_z", "altura", "altura", "altura"]
 const FUEGO_ASCENDENTE: Array = ["altura", "altura", "altura", "pulso"]
 const AGUA_MAX_POR_MURO: float = 0.18  ## casillas cúbicas por lanzamiento de prueba
 const MODOS: Array[String] = ["Botón", "Icono", "Dibujo"]
 
 @export var patio_tactico: bool = false
+@export var sin_barrera: bool = true    ## 27/11 (experimental): el muro de las páginas 1 y 3 sin glifo `barrera` (geometría); la tecla B alterna con la receta de siempre
 
 var _lanzador: Lanzador3D
 var _panel: PanelContainer
@@ -36,6 +39,10 @@ var _refresco_avisos: float = 0.0
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
 	_montar.call_deferred()
+
+
+func _exit_tree() -> void:
+	Hechizo.MURO_POR_GEOMETRIA = false      # 27/11: que el interruptor experimental no se filtre a otras escenas ni pruebas
 
 
 func _montar() -> void:
@@ -66,9 +73,11 @@ func _montar() -> void:
 
 
 func _actualizar_paginas() -> void:
+	Hechizo.MURO_POR_GEOMETRIA = sin_barrera      # 27/11 (experimental): antes de construir las recetas, que lo leen al construirse
+	var muro: Array = MURO_GEOMETRIA if sin_barrera else MURO
 	var segunda: Dictionary = _ficha(FUEGO, ["flecha", "flecha", "flecha"] if _flecha else FUEGO_ASCENDENTE, not _flecha)
-	var tercera: Dictionary = _ficha(VIENTO, ["flecha", "flecha"], false) if patio_tactico and not _muro_agua else _ficha(AGUA, MURO, true)
-	_lanzador.fichas_combate = [_ficha(FUEGO, MURO, _a_distancia), segunda, tercera]
+	var tercera: Dictionary = _ficha(VIENTO, ["flecha", "flecha"], false) if patio_tactico and not _muro_agua else _ficha(AGUA, muro, true)
+	_lanzador.fichas_combate = [_ficha(FUEGO, muro, _a_distancia), segunda, tercera]
 	_recetas.clear()
 	for ficha in _lanzador.fichas_combate:
 		_recetas.append(_montar_receta(ficha))
@@ -86,6 +95,11 @@ func _unhandled_key_input(evento: InputEvent) -> void:
 		return
 	if evento.keycode == KEY_M:
 		_modo = (_modo + 1) % MODOS.size()
+		get_viewport().set_input_as_handled()
+	elif evento.keycode == KEY_B:
+		sin_barrera = not sin_barrera
+		_actualizar_paginas()
+		PlayLog.event("variante_combate", {"muro_sin_barrera": sin_barrera})
 		get_viewport().set_input_as_handled()
 	elif patio_tactico and evento.keycode == KEY_4:
 		_flecha = not _flecha
@@ -220,8 +234,9 @@ func _process(delta: float) -> void:
 	if not _panel.visible:
 		return
 	var origen: String = "POSICIÓN" if _a_distancia else "LOCAL"
-	_texto.text = "%s  ·  M cambia la prueba\nX edita el muro · %s\n%s  %s\n%s  %s\n%s  %s\nMantén para apuntar · suelta para lanzar" % [
-		MODOS[_modo], origen,
+	var variante: String = "GEOMETRÍA (sin barrera)" if sin_barrera else "BARRERA"
+	_texto.text = "%s  ·  M cambia la prueba\nX edita el muro · %s\nB · muro: %s\n%s  %s\n%s  %s\n%s  %s\nMantén para apuntar · suelta para lanzar" % [
+		MODOS[_modo], origen, variante,
 		Controles.texto_teclas("pagina_1"), _resumen(0, "Muro de fuego"),
 		Controles.texto_teclas("pagina_2"), _resumen(1, "Flecha de fuego" if _flecha else "Fuego ascendente"),
 		Controles.texto_teclas("pagina_3"), _resumen(2, "Empuje de viento" if patio_tactico and not _muro_agua else "Muro de agua")]

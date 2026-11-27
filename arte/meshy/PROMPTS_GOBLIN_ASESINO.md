@@ -1,77 +1,60 @@
-# Goblin asesino (enemigo nuevo, 22 de octubre de 2026)
+# Goblin asesino, rediseño sin dagas (27 de noviembre de 2026)
 
-Pedido de Pablo: un goblin asesino con la idea de los goblins enemigos (`goblin_warrior_chibi`,
-`goblin_archer_chibi`), un gorro como el de `goblin_base` (copa de fieltro con el borde vuelto) pero de
-**cuero** y con la **punta larga**, ataque con **dos armas** y movimiento **agazapado**.
+Sustituye al del 22 de octubre. Pablo: las dagas no hacen falta y el modelo no encaja con el estilo. El anterior tenía la
+piel amarilla del aldeano (`goblin_base`), cuero oscuro realista y dos sables negros; los goblins enemigos
+(`goblin_warrior_chibi`, `goblin_archer_chibi`) son de piel verde pálida, trapo y piel raídos, cuerda y pies descalzos.
 
-**Cómo se reparte el trabajo:**
-- **El modelo va en A-pose y con las manos vacías.** Las dos armas son piezas aparte que se cuelgan de
-  las manos en Godot (`Equipo3D`, como el escudo del goblin). Si las armas vienen pegadas a la malla, no
-  se pueden cambiar, el autorig las deforma y las manos no cierran bien.
-- **Lo agazapado es una animación, no la pose del modelo.** El modelo de pie y recto; el andar agazapado
-  y el ataque doble son clips (Meshy, Mixamo o Tripo).
-- **La punta del gorro, rígida.** Larga, pero de cuero endurecido que se curva hacia atrás y queda por
-  encima de los hombros. Si cae sobre la espalda, el autorig la pega a la columna y se deforma al andar.
+**Qué cambia:**
+- **Ataca con las manos.** Uñas largas y oscuras. Los dos cortes del ataque doble pasan a ser dos zarpazos.
+- **Misma familia:** piel, orejas, telas y paleta del guerrero y el arquero.
+- **Silueta propia:** gorro de punta larga curvada (se conserva la idea, pero de fieltro remendado), pañuelo que le tapa la
+  boca y capa corta de tiras de hierba y hojas, porque nace en la hierba alta.
+
+**Cómo se reparte el trabajo (igual que antes):**
+- **A-pose y manos vacías.** No hay armas que colgar.
+- **Lo agazapado es una animación**, no la pose del modelo.
+- **La punta del gorro, rígida** y por encima de los hombros. **La capa, corta:** hasta media espalda, sin tocar los brazos.
 
 ---
 
 ## 1. Imagen de concepto
 
-**Referencia de estilo:** una captura de frente de `arte/modelos/goblin_warrior_chibi.glb` (mismo estilo,
-misma cabeza, orejas y ojos). Si el generador admite dos referencias, añade la imagen del gorro.
+**Referencia de estilo:** una captura de frente de `arte/modelos/goblin_warrior_chibi.glb`.
 
-> Same 3D chibi goblin style, same body proportions, same head, big pointed ears and eyes as the reference
-> goblin, about 3 heads tall. New character: a goblin ASSASSIN, lean and wiry, olive-green skin, sharp sly
-> narrow eyes, a thin confident smirk, a small scar across the nose. Headwear: a fitted dark brown LEATHER
-> cap with a thick rolled-up leather brim around the head (like a folded beanie), stitched seams, and a
-> LONG pointed tip made of stiff hardened leather that curves backwards in a gentle arc and stays above the
-> shoulders (not flopping down onto the back). The ears come out under the brim. Outfit: dark charcoal and
-> brown fitted leather jerkin with straps crossing the chest, a hooded short scarf wrapped around the neck
-> and lower face pulled down, leather bracers on the forearms, dark cloth wraps on the hands with bare
-> fingers, a wide belt with small pouches and two EMPTY dagger sheaths on the hips, tight dark trousers
-> wrapped with cloth strips at the shins, soft leather wraps on the feet with bare toes. Muted palette:
-> charcoal, dark brown, deep olive, a touch of dull red on the scarf. EMPTY HANDS: no daggers, no weapons,
-> no props in the hands. Standing upright, full body, front view, symmetrical A-pose with arms 35 degrees
-> away from the body, palms down, fingers apart, legs slightly apart, plain light background, soft even
-> lighting.
+> Same 3D chibi goblin style, same body proportions, same head, big pointed ears with pink inner ear and same PALE GREEN
+> skin as the reference goblin, about 3 heads tall. New character: a goblin STALKER, lean and wiry with slightly longer
+> arms, sly narrow eyes. Hands: long thin fingers ending in long dark pointed claws, ragged cloth wraps around the
+> forearms. Headwear: a patched brown FELT cap with a rolled brim and a LONG pointed tip that curves backwards in a stiff
+> arc and stays above the shoulders; the ears come out under the brim. A ragged cloth scarf covering the mouth and nose.
+> A SHORT cape of dry grass strips and leaves, moss green and straw, tied at the neck and ending at mid-back, not touching
+> the arms. Torn brown cloth tunic, rope belt, ragged short trousers, cloth wraps on the shins, bare feet. Muted palette:
+> warm browns, straw, moss green. EMPTY HANDS: no daggers, no weapons, no sheaths, no props. Standing upright, full body,
+> front view, symmetrical A-pose with arms 35 degrees away from the body, palms down, fingers apart, legs slightly apart,
+> plain light background, soft even lighting.
 
 **Si sale mal:**
-- **Agachado o encorvado:** *"standing straight, upright posture, A-pose"*.
-- **Con armas en las manos:** *"hands completely empty and open, sheaths are empty"*.
-- **La punta del gorro cae por la espalda:** *"the cap tip is stiff and short enough to stay above the
-  shoulders, curving backwards"*.
-- **Ojos de chibi enormes:** *"small narrow eyes, no sparkles"*.
+- **Piel amarilla u oliva oscura:** *"pale light green skin exactly like the reference"*.
+- **Cuero oscuro, hebillas, aspecto realista:** *"ragged cloth and rope only, no leather armour, no buckles"*.
+- **Garras de metal o guanteletes:** *"natural claws, bare hands"*.
+- **La capa cae sobre los brazos:** *"cape short and narrow, only on the back"*.
+- **Agachado:** *"standing straight, upright posture, A-pose"*.
 
 ## 2. Meshy, de imagen a 3D
 
-> chibi goblin assassin, leather cap with long stiff pointed tip, A-pose, empty hands, game character,
-> ready for rig, no weapons
+> chibi goblin stalker, pale green skin, felt cap with long stiff curved tip, grass cape, clawed bare hands, A-pose, empty
+> hands, game character, ready for rig, no weapons
 
-Nombre al instalar: `goblin_asesino`. Altura en el juego: 0,85, como la familia goblin.
+Nombre al instalar: `goblin_asesino` (sustituye al actual). Altura en el juego: 0,85, como la familia goblin.
+Rig con Mixamo (`mixamorig:*`), para que sigan valiendo los clips que ya tiene.
 
-## 3. Las dos armas (aparte)
+## 3. Al instalarlo (código)
 
-Dos dagas curvas de goblin, una para cada mano. Mismo estilo, pocas caras:
+- Quitar las dos `daga_goblin` que le cuelga `Equipo3D`, y lo que las comprueba en `herramientas/prueba_goblin_asesino.gd`
+  y `captura_goblin_asesino.gd`.
+- `attack`: los mismos dos cortes cruzados sirven de zarpazos; revisar `Pj3D.MOMENTOS_CORTE["goblin_asesino"]` con el clip.
+- El alcance (`ANCHO_CORTE_ASESINO`, `RANGO_ATAQUE + 0.5`) se midió con sables: sin ellos, acortar el frente unos 0,3.
 
-> stylized chibi game prop: a short curved goblin dagger, crude dark iron blade with a notch, wrapped
-> leather grip, small bone pommel, hand-painted texture, single object, no hand, plain background
+## 4. Animaciones
 
-- **Una sola malla** sirve para las dos manos; en Godot se refleja para la izquierda.
-- **Si quieres que no sean iguales,** pide una segunda: *"a short straight goblin stiletto, thin dark
-  iron blade, cloth-wrapped grip"*.
-- Nombre al instalar: `daga_goblin` (y `estilete_goblin`).
-
-## 4. Animaciones que hacen falta
-
-| Rol | Qué | Notas |
-|---|---|---|
-| `idle` | de pie, alerta, balanceo ligero | con las manos donde irían las dagas, un poco abiertas |
-| `walk` agazapado | andar bajo, rodillas dobladas, torso adelantado | es su forma normal de moverse |
-| `run` agazapado | carrera baja y rápida | |
-| `attack` doble | dos cortes cruzados, una mano y luego la otra | el juego engancha el golpe al instante del corte |
-| `hit` | golpe recibido | |
-| `death` | muerte | que acabe tumbado en el suelo, no flotando |
-| `empujado` / `levantarse` | | se pueden reutilizar los de los goblins si el esqueleto es Mixamo |
-
-Si lo riggeas con Mixamo (huesos `mixamorig:*`), comparte nombres con `goblin_base` y los goblins
-enemigos: los clips de empujado, levantarse y ahogarse que ya hay le sirven.
+Las mismas de la versión anterior (`idle`, `walk` y `run` agazapados, `attack` doble, `hit`, `death`, `empujado`,
+`levantarse`). En `idle`, las manos abiertas y bajas, con las uñas a la vista.

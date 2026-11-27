@@ -106,7 +106,7 @@ const RESISTENCIA_POR_SOLIDEZ: float = 30.0
 ## Altura de la mano sobre el suelo en u (la de siempre para un proyectil): `altura_salida` la guarda en metros (÷ casilla).
 const ALTURA_MANO_U: float = 0.9
 ## Propiedades de solo lectura (derivadas): `copiar()` no las copia.
-const SOLO_LECTURA: PackedStringArray = ["semiejes", "semiejes_glifos", "volumen", "superficie", "masa", "resistencia", "flota", "anclado", "protege", "se_expande", "se_repite", "rebota", "haz", "alcance_haz", "persistente", "solido_quieto",
+const SOLO_LECTURA: PackedStringArray = ["semiejes", "semiejes_glifos", "volumen", "superficie", "masa", "resistencia", "flota", "anclado", "protege", "se_expande", "se_repite", "rebota", "haz", "muro_geo", "alcance_haz", "persistente", "solido_quieto",
 	"volumen_viaja", "proyectil", "orbita", "columna", "estalla", "radio_estallido"]       # 3/11 (R1-R5): las reglas de combinar glifos son derivados de solo lectura
 ## 3/11/2026 (R5, decisión de Pablo: «ᛚ ᚷ ᚷ ⧖ = explosión de agua»): lo que se ensancha el estallido de un volumen líquido que ha crecido respecto a su tamaño final (casillas), y lo que vive como mínimo antes de estallar (s).
 const ESTALLIDO_MARGEN_CAS: float = 0.75
@@ -361,7 +361,7 @@ func longitud_plataforma_tierra() -> int:
 ## le da solidez o alcance de proyectil deja de serlo.
 var haz: bool:
 	get:
-		return Sigils.HAZ_ACTIVO and glifos_linea() > 0 and solidez <= 0.0 and distancia_max <= 0.0 and (estado_materia != "solido" or SOLIDOS_CON_HAZ.has(elemento)) and not orbita     # 29/10: un sólido con ᛁ es un bloque ancho o largo, no un chorro (el haz no construye) · 6/11 (Pablo, «haz de púas»): la TIERRA es la excepción (ver SOLIDOS_CON_HAZ) · 3/11 (R3): ni lo que orbita
+		return Sigils.HAZ_ACTIVO and glifos_linea() > 0 and solidez <= 0.0 and distancia_max <= 0.0 and (estado_materia != "solido" or SOLIDOS_CON_HAZ.has(elemento)) and not orbita and not muro_geo     # 27/11 (experimental: muro por geometría): ᛁ horizontal sin barrera es un muro, no un haz · 29/10: un sólido con ᛁ es un bloque ancho o largo, no un chorro (el haz no construye) · 6/11 (Pablo, «haz de púas»): la TIERRA es la excepción (ver SOLIDOS_CON_HAZ) · 3/11 (R3): ni lo que orbita
 ## Alcance del haz en m (0 si no es haz).
 var alcance_haz: float:
 	get:
@@ -383,6 +383,11 @@ var recarga: float = 0.0
 ## De dónde viene el valor de cada campo (HC5): "defecto" · "elemento" · "glifo:<nombre>" · "calidad". Los componentes de semiejes llevan «semiejes.x».
 var origen: Dictionary = {}
 var _tocados: Dictionary = {}          ## campos que algún glifo ha tocado (para `desde` y para contar propiedades)
+
+
+## 27/11/2026 · EXPERIMENTAL «muro por geometría» (apagado en todo el juego; solo lo enciende la escena de prueba de la Sala del Chamán, `paginas_combate_prueba.gd`, tecla B). Encendido, un muro defensivo ya no necesita
+## el glifo `barrera`: lo decide la GEOMETRÍA (una raya vertical `linea_z`, ver `muro_geo`) y la protección la decide el ELEMENTO (el agua bloquea, el fuego solo quema). Apagado, todo es exactamente como antes.
+static var MURO_POR_GEOMETRIA: bool = false
 
 
 ## Cuántas veces se ha llamado a `construir` (H1 del PLAN_SISTEMA_HECHIZOS, 29/10). Solo lo leen las pruebas: un lanzamiento del libro construye UNA vez (`_preparar_pagina`) y la previsión, ninguna.
@@ -441,6 +446,8 @@ static func construir(elemento_rune: RuneData, contadores: Dictionary, calidad_t
 			mod["de"] = "glifo:%s" % nombre
 			lista.append(mod)
 	h._aplicar(lista, "glifo", true)
+	if h.muro_geo:
+		h._intercambiar_ejes_muro_geo()      # 27/11 (experimental: muro por geometría): las ᛁ verticales dan el ancho del muro
 	if not corte.is_empty():
 		h._poner_disparador(corte)          # antes de derivar: el hijo entra en el coste (`Dano.K_HIJO`) y en los eventos
 	# 29/10 (DANO_Y_TINTA): el daño base sale de la potencia (nº de glifos) y del elemento. 6/11 (bloque A1): también hielo y rayo (`Dano.MULT_ELEMENTO` los lleva); el `damage` del .tres (20 / 55) ya no cuenta.
@@ -559,7 +566,59 @@ func _aplicar_orden(orden: Array) -> void:
 ## (`GeometriaV2.es_muro`: lo adelanta DISTANCIA_MURO y no ocupa la casilla de quien lanza) y lo que decide sus medidas mínimas (`_minimos_de_forma`).
 var es_muro: bool:
 	get:
-		return solidez > 0.0 and not en_punto and (glifos_linea() > 0 or not viaja)
+		return (solidez > 0.0 or muro_geo) and not en_punto and (glifos_linea() > 0 or not viaja)       # 27/11 (experimental: muro por geometría): `muro_geo` cuenta como la solidez de una barrera
+
+
+## 27/11/2026 · EXPERIMENTAL «muro por geometría» (`MURO_POR_GEOMETRIA`, apagado de serie): ¿es un muro que decide la GEOMETRÍA y no el glifo `barrera`? Se deduce SOLO de glifos y propiedades, sin estado guardado:
+## el interruptor encendido, ninguna `barrera`, un elemento no sólido (la tierra y el hielo no se tocan en esta prueba), alguna raya VERTICAL (`linea_z`) y al menos tantas como horizontales (`linea_x`; ronda 2: la ᛁ
+## horizontal es el haz y la vertical el muro),
+## sin flecha (no viaja) y ni suelo ni órbita. NO depende de `en_punto`: con `posicion` nace donde apuntas y sigue siendo un muro. Sus consecuencias están en `haz`, `es_muro`, `figura()` y `_muro_geo_derivar`.
+var muro_geo: bool:
+	get:
+		var verticales: int = maxi(int(glifos.get("linea_z", 0)), 0)
+		return MURO_POR_GEOMETRIA and not glifos.has("barrera") and estado_materia != "solido" and verticales > 0 and verticales >= maxi(int(glifos.get("linea_x", 0)), 0) and distancia_max <= 0.0 and not suelo and not orbita
+
+
+## 27/11/2026 · experimental: muro por geometría, ronda 2. `linea_z` suma al semieje Z (fondo) y un muro necesita ANCHO de través: en un `muro_geo` las rayas verticales dan el ancho y las horizontales el fondo, es decir,
+## se INTERCAMBIAN X↔Z (semiejes, `_glifos_x/z` y su origen) justo después de aplicar los glifos y ANTES de `_derivar` (forma, coste, mínimos). Como `PASO_ANCHO_V2 == PASO_FONDO_V2` y los topes son iguales, N `linea_z`
+## sale con EXACTAMENTE las medidas que daban N `linea_x` con barrera. Solo lo llama `construir` (una vez); `con()`, `copiar()` y `_derivar` no lo repiten, y la marca `origen["muro_geo_ejes"]` lo impide igualmente.
+func _intercambiar_ejes_muro_geo() -> void:
+	if String(origen.get("muro_geo_ejes", "")) != "":
+		return
+	origen["muro_geo_ejes"] = "forma:muro_geo"
+	var t: float = semieje_x
+	semieje_x = semieje_z
+	semieje_z = t
+	t = _glifos_x
+	_glifos_x = _glifos_z
+	_glifos_z = t
+	var ox: Variant = origen.get("semiejes.x")
+	var oz: Variant = origen.get("semiejes.z")
+	if oz != null:
+		origen["semiejes.x"] = oz
+	else:
+		origen.erase("semiejes.x")
+	if ox != null:
+		origen["semiejes.z"] = ox
+	else:
+		origen.erase("semiejes.z")
+
+
+## 27/11/2026 · experimental: muro por geometría. Lo que le da a un `muro_geo` lo que una barrera le daría con sus glifos: la DURACIÓN base (`Sigils.BARRERA_DURA_BASE_S`, una sola vez) y la protección que decide el
+## ELEMENTO: un líquido (agua) recibe solidez 1,5 como la 1.ª barrera (bloquea proyectiles); un plasma (fuego) o un gas no la reciben: no bloquean, solo hacen su zona de daño de siempre. Idempotente:
+## `con()` y `_derivar` lo repiten, así que la duración se marca en `origen["muro_geo"]` (y `copiar()` se lleva la marca).
+func _muro_geo_derivar() -> void:
+	if not muro_geo:
+		return
+	if String(origen.get("muro_geo", "")) == "":
+		origen["muro_geo"] = "forma:muro_geo"
+		permanencia = minf(permanencia + Sigils.BARRERA_DURA_BASE_S, maxf(LIM_VIDA_S - persiste, 0.0))
+		if String(origen.get("permanencia", "defecto")) in ["", "defecto"]:
+			origen["permanencia"] = "forma:muro_geo"
+	if estado_materia == "liquido" and solidez <= 0.0:
+		solidez = 1.5
+		_tocados["solidez"] = true          # cuenta como propiedad usada: HechizoVivo lee la solidez de `geo()["props"]`
+		origen["solidez"] = "forma:muro_geo"
 
 
 ## Los «suelos» de una FORMA (paso 4 de la cabecera): un muro mide como mínimo `Sigils.MURO_ANCHO_MIN_V2` de semieje X y `MURO_ALTO_MIN_V2` de Y (1 casilla × 2 niveles).
@@ -709,6 +768,7 @@ func _contar_glifos_dano() -> int:
 ## 5. Lo que sale de lo anterior.
 func _derivar() -> void:
 	viaja = distancia_max > 0.0
+	_muro_geo_derivar()      # 27/11 (experimental: muro por geometría): la duración base y la solidez del líquido, ANTES del coste (la solidez cuenta como propiedad, como la de una barrera)
 	# 23/11: el nombre (animación y cast point) sale de lo que dieron los glifos: los mínimos de la forma muro (`_minimos_de_forma`) no cambian el gesto
 	forma = "x_mano" if (haz or (estado_materia == "solido" and Sigils.HAZ_ACTIVO and glifos_linea() > 0 and solidez <= 0.0 and distancia_max <= 0.0 and not orbita)) else nombre_derivado(_glifos_x, _glifos_y, _glifos_z, viaja)       # un haz sale con la mano al frente (= GeometriaV2.nombre_derivado con g["haz"])
 	niveles = maxi(1, roundi(2.0 * semieje_y))
@@ -789,7 +849,7 @@ func propiedades_usadas() -> Dictionary:
 func geo() -> Dictionary:
 	return {"x": semieje_x, "y": semieje_y, "z": semieje_z, "props": propiedades_usadas(), "x_glifos": _glifos_x, "y_glifos": _glifos_y, "z_glifos": _glifos_z,
 		"nombre": forma, "viaja": viaja, "y_tope": niveles - 1, "valida": true, "aviso": "", "haz": haz,
-		"muro": es_muro}       # 23/11 (Pablo): toda barrera que nace en la mano es un muro delante, ya no rodea · 31/10 (REV 01): ᛜ + ᛁ = muro delante, no burbuja (`GeometriaV2.es_muro`); lo que nace donde apuntas ya está delante
+		"muro": es_muro, "muro_geo": muro_geo}       # 23/11 (Pablo): toda barrera que nace en la mano es un muro delante, ya no rodea · 31/10 (REV 01): ᛜ + ᛁ = muro delante, no burbuja (`GeometriaV2.es_muro`); lo que nace donde apuntas ya está delante
 
 
 ## Cuántas ᛁ (`linea_x` + `linea_z`) lleva el hechizo.
@@ -869,7 +929,7 @@ static func ordenar_acciones(lista: Array) -> Array:
 func figura() -> String:
 	if haz:
 		return "haz"
-	if solidez > 0.0:
+	if solidez > 0.0 or muro_geo:       # 27/11 (experimental: muro por geometría): el fuego-muro no tiene solidez pero se dibuja como muro
 		return "barrera"
 	if viaja or velocidad > 0.0:
 		return "proyectil"

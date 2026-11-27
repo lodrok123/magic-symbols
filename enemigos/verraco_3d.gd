@@ -3,23 +3,26 @@ extends Node3D
 
 ## X2 de docs/PLAN_COMBATE_2026-11-22.md · EL VERRACO (docs/ENEMIGOS_MITOLOGIA_2026-11-22.md §2; Pablo, 22/11: «Sí, ese orden»). Dueño: Juego. PLACEHOLDER de primitivas, como el dragón.
 ##
-## Un jabalí de granito vetón que despierta. Filosofía (§0, del jefe sombra de Mystralia, O27): INVULNERABLE por defecto; la ventana se abre con el entorno.
+## Un jabalí vivo con ARMADURA puesta (barda de cuero, hueso y tablas atada con correas). Filosofía (§0, del jefe sombra de Mystralia, O27): con la armadura puesta no hay daño; la ventana la abre el entorno.
 ##   · ACECHA: mira a la jugadora. Si la ve en línea libre y a ≤ VISTA_CASILLAS, se prepara.
 ##   · POSE (C25, A5): pezuña y cabeza baja, QUIETO, POSE_S; una línea en el suelo (`AvisoAtaque3D.rectangulo`, ventana de esquiva de 0,25 s del cuerpo a cuerpo).
 ##     Si en ese tiempo aparece una BARRERA NUEVA en su línea, FRENA y no embiste (hay que ponerla cuando ya ha arrancado: la tierra tarda 0,70 s en salir, C18).
-##   · EMBISTE en línea recta a VEL_EMBESTIDA hasta la jugadora + PASADA_CASILLAS. Si choca contra algo SÓLIDO (pared, columna, barrera de tierra), SE AGRIETA y queda ATURDIDO;
+##   · EMBISTE en línea recta a VEL_EMBESTIDA hasta la jugadora + PASADA_CASILLAS. Si choca contra algo SÓLIDO (pared, columna, barrera de tierra) queda ATURDIDO ATURDIDO_S;
 ##     si no choca, se para y vuelve a acechar. Sobre suelo MOJADO patina y sigue (hasta PATINA_EXTRA_CASILLAS más): se estrella más lejos de lo que calculaba.
 ##     A la jugadora que pilla la hiere (DANO_EMBESTIDA) y la aparta (la voltereta la libra).
-##   · Con GRIETAS_NUCLEO grietas SE PARTE: el NÚCLEO queda a tiro EXPUESTO_S (×MULT_NUCLEO, silueta blanca); luego se recompone.
-## Los hechizos al cuerpo no le hacen nada: golpe sordo y «Granito» (lo ineficaz, C20). Al morir la jugadora vuelve como al empezar (`reiniciar`, G1).
+##   · CON ARMADURA (estado inicial): ningún hechizo, del elemento que sea, le hace daño (golpe sordo y «Armadura», lo ineficaz, C20). Cada choque le arranca UNA placa
+##     (`placas_rotas`, de PLACAS: testuz, lomo, flancos). Al último choque CAE LA ARMADURA (`sin_armadura`, señal `expuesto`) y NO vuelve: solo `reiniciar` la devuelve.
+##   · SIN ARMADURA: cualquier hechizo le hace daño, ×1; mientras está ATURDIDO, ×MULT_NUCLEO. Sigue acechando y embistiendo igual; si choca contra algo sólido
+##     recibe DANO_CHOQUE y queda aturdido. El agua sigue haciéndolo patinar, con o sin armadura.
+## Al morir la jugadora vuelve como al empezar (`reiniciar`, G1).
 
 signal embiste
-signal choca(grietas: int)
+signal choca(placas: int)
 signal frena
 signal expuesto
 signal derrotado
 
-enum Fase { ACECHA, POSE, EMBISTE, ATURDIDO, EXPUESTO, MUERTO }
+enum Fase { ACECHA, POSE, EMBISTE, ATURDIDO, MUERTO }
 
 static var VIDA: float = 90.0
 static var VISTA_CASILLAS: float = 7.0
@@ -29,23 +32,24 @@ static var PASADA_CASILLAS: float = 2.0       ## cuánto se pasa de donde estaba
 static var PATINA_EXTRA_CASILLAS: float = 4.0 ## lo más que alarga la embestida el suelo mojado
 static var ATURDIDO_S: float = 2.0
 static var REPOSO_S: float = 1.2              ## tras una embestida sin choque o un frenazo, antes de volver a prepararse
-static var GRIETAS_NUCLEO: int = 3
-static var EXPUESTO_S: float = 6.0
+static var PLACAS: int = 3                    ## choques que aguanta la armadura (una placa por choque)
 static var MULT_NUCLEO: float = 1.5
 static var DANO_EMBESTIDA: float = 25.0
 static var EMPUJE_JUGADORA: float = 2200.0    ## la unidad de `Jugador3D.push` (la del 2D)
+static var DANO_CHOQUE: float = 20.0           ## lo que se hace al chocar sin armadura
 static var DANO_BARRERA: float = 40.0         ## lo que le quita a la barrera contra la que se estrella
 static var TEMBLOR_CHOQUE: float = 0.45
 const ANCHO_LINEA: float = 0.55               ## media anchura de la línea del suelo y de su golpe
 const RADIO_CUERPO: float = 0.75
-const COLOR_GRANITO: Color = Color(0.74, 0.67, 0.57)        ## granito cálido: con el gris frío, la luz azul de la cueva lo volvía azul (fotos del 22/11)
-const COLOR_GRIETA: Color = Color(0.08, 0.07, 0.06)
-const COLOR_NUCLEO: Color = Color(1.0, 0.55, 0.15)
+const COLOR_CERDA: Color = Color(0.27, 0.18, 0.12)          ## cerda marrón oscuro
+const COLOR_PLACA: Color = Color(0.72, 0.55, 0.36)          ## cuero claro de la barda
+const COLOR_DANO: Color = Color(1.0, 0.55, 0.15)
 
 var fase: int = Fase.ACECHA
 var vida: float = VIDA
 var vida_max: float = VIDA
-var grietas: int = 0
+var placas_rotas: int = 0
+var sin_armadura: bool = false                ## cae al último choque y solo `reiniciar` la devuelve
 var celda: Vector2i = Vector2i.ZERO
 var casa: Vector3 = Vector3.ZERO
 var dir: Vector3 = Vector3(0, 0, 1)
@@ -63,16 +67,14 @@ var choques: int = 0
 var frenazos: int = 0
 var patinazos: int = 0
 var golpes_sin_efecto: int = 0
-var golpes_nucleo: int = 0
+var golpes_dano: int = 0
 var golpes_jugadora: int = 0
 var reinicios: int = 0
 var ultimo_choque: String = ""
 
 var _raiz: Node3D = null
 var _cabeza: Node3D = null
-var _grietas_mallas: Array[MeshInstance3D] = []
-var _nucleo: MeshInstance3D = null
-var _cruz: MeshInstance3D = null
+var _placas: Array[Node3D] = []              ## testuz, lomo, flancos: una se oculta por choque
 var _mat: StandardMaterial3D = null
 var _cuerpo: CuerpoVerraco = null
 var _destello: float = 0.0
@@ -154,16 +156,6 @@ func _physics_process(delta: float) -> void:
 			_embestir(delta)
 		Fase.ATURDIDO:
 			if _t >= ATURDIDO_S:
-				_cambiar(Fase.EXPUESTO if grietas >= GRIETAS_NUCLEO else Fase.ACECHA)
-				if fase == Fase.EXPUESTO:
-					_exponer()
-		Fase.EXPUESTO:
-			if _t >= EXPUESTO_S:
-				grietas = 0                              # se recompone: vuelta a empezar
-				_pintar_grietas()
-				_nucleo.visible = false
-				_cruz.visible = true
-				Combate3D.flotante(get_parent(), global_position + Vector3(0, 2.0, 0), "Se recompone", COLOR_GRANITO, 1.0)
 				_cambiar(Fase.ACECHA)
 	_animar(delta)
 
@@ -206,7 +198,7 @@ func _pose() -> void:
 	if libre < _libre_u - 0.3 and libre < _queda_u:
 		frenazos += 1
 		_quitar_aviso()
-		Combate3D.flotante(get_parent(), global_position + Vector3(0, 2.0, 0), "¡Frena!", COLOR_GRANITO, 1.0)
+		Combate3D.flotante(get_parent(), global_position + Vector3(0, 2.0, 0), "¡Frena!", COLOR_PLACA, 1.0)
 		PlayLog.event("verraco_frena", {"libre": snappedf(libre, 0.01)})
 		frena.emit()
 		_cambiar(Fase.ACECHA)
@@ -294,25 +286,31 @@ func _chocar(que: String, punto: Vector3) -> void:
 		return
 	choques += 1
 	ultimo_choque = que
-	grietas = mini(grietas + 1, GRIETAS_NUCLEO)
-	_pintar_grietas()
 	if que == "barrera":
 		var l: Lanzador3D = lanzador()
 		if l != null:
 			l.solidez_para(Vector3(punto.x, Terreno3D.y_pies(Terreno3D.celda_de(punto)) + 0.8, punto.z), DANO_BARRERA)
 	_temblar(TEMBLOR_CHOQUE)
 	Sensacion3D.golpe_sordo(self)
-	Combate3D.flotante(get_parent(), global_position + Vector3(0, 2.0, 0), "¡Se agrieta! (%d/%d)" % [grietas, GRIETAS_NUCLEO], COLOR_GRANITO, 1.1)
-	PlayLog.event("verraco_choca", {"contra": que, "grietas": grietas})
-	choca.emit(grietas)
-	_cambiar(Fase.ATURDIDO)
+	if not sin_armadura:
+		placas_rotas = mini(placas_rotas + 1, PLACAS)
+		_pintar_placas()
+		Combate3D.flotante(get_parent(), global_position + Vector3(0, 2.0, 0), "¡Placa rota! (%d/%d)" % [placas_rotas, PLACAS], COLOR_PLACA, 1.1)
+	PlayLog.event("verraco_choca", {"contra": que, "placas": placas_rotas})
+	choca.emit(placas_rotas)
+	if not sin_armadura and placas_rotas >= PLACAS:
+		_soltar_armadura()
+	elif sin_armadura:
+		recibir(DANO_CHOQUE)
+	if fase != Fase.MUERTO:
+		_cambiar(Fase.ATURDIDO)
 
 
-func _exponer() -> void:
-	_nucleo.visible = true
-	_cruz.visible = false                                # se parte la joroba y asoma el núcleo
+## Al último choque la barda se desata y cae: ya no se la vuelve a poner.
+func _soltar_armadura() -> void:
+	sin_armadura = true
 	_temblar(TEMBLOR_CHOQUE * 1.5)
-	Combate3D.flotante(get_parent(), global_position + Vector3(0, 2.2, 0), "¡Se parte!", COLOR_NUCLEO, 1.3)
+	Combate3D.flotante(get_parent(), global_position + Vector3(0, 2.2, 0), "¡Cae la armadura!", COLOR_DANO, 1.3)
 	PlayLog.event("verraco_expuesto", {})
 	expuesto.emit()
 
@@ -321,29 +319,29 @@ func _exponer() -> void:
 #  Hechizos
 # ---------------------------------------------------------------------------------------------------------------------
 
-## Granito: solo le hace daño lo que le llega con el núcleo a la vista (partido, EXPUESTO).
+## Con armadura no hay daño (de ningún elemento); sin ella, daño normal, y ×MULT_NUCLEO si está aturdido.
 func on_spell_hit(rune_data: RuneData, _direccion: Vector3 = Vector3.ZERO, hechizo: Hechizo = null) -> void:
 	if fase == Fase.MUERTO:
 		return
-	if fase != Fase.EXPUESTO:
+	if not sin_armadura:
 		golpes_sin_efecto += 1
 		Sensacion3D.golpe_sordo(self)
 		if golpes_sin_efecto % 3 == 1:
-			Combate3D.flotante(get_parent(), global_position + Vector3(0, 2.0, 0), "Granito", Contacto.COLOR_INEFICAZ, 0.9)
+			Combate3D.flotante(get_parent(), global_position + Vector3(0, 2.0, 0), "Armadura", Contacto.COLOR_INEFICAZ, 0.9)
 		return
 	var d: float = hechizo.dano if hechizo != null else 0.0
 	if d <= 0.0 and rune_data != null and rune_data.get("damage") != null:
 		d = float(rune_data.get("damage"))
-	golpes_nucleo += 1
+	golpes_dano += 1
 	_destello = 0.1
-	recibir(d * MULT_NUCLEO)
+	recibir(d * (MULT_NUCLEO if fase == Fase.ATURDIDO else 1.0))
 
 
 func recibir(d: float) -> void:
 	if d <= 0.0 or fase == Fase.MUERTO:
 		return
 	vida = maxf(vida - d, 0.0)
-	Combate3D.flotante(get_parent(), global_position + Vector3(0, 2.2, 0), str(int(round(d))), COLOR_NUCLEO, 1.1)
+	Combate3D.flotante(get_parent(), global_position + Vector3(0, 2.2, 0), str(int(round(d))), COLOR_DANO, 1.1)
 	if vida <= 0.0:
 		_morir()
 
@@ -361,19 +359,16 @@ func _morir() -> void:
 	tw.tween_property(_raiz, "scale", Vector3(1.2, 0.05, 1.2), 0.6).set_ease(Tween.EASE_IN)
 
 
-## G1 (morir y reintentar): vuelve a su sitio, entero y sin grietas. Vencido, se queda vencido.
+## G1 (morir y reintentar): vuelve a su sitio, entero y con la armadura puesta. Vencido, se queda vencido.
 func reiniciar() -> void:
 	if fase == Fase.MUERTO:
 		return
 	_quitar_aviso()
 	global_position = casa
 	vida = vida_max
-	grietas = 0
-	_pintar_grietas()
-	if _nucleo != null:
-		_nucleo.visible = false
-	if _cruz != null:
-		_cruz.visible = true
+	placas_rotas = 0
+	sin_armadura = false
+	_pintar_placas()
 	reinicios += 1
 	_cambiar(Fase.ACECHA)
 
@@ -391,7 +386,7 @@ func _temblar(intensidad: float) -> void:
 
 
 # ---------------------------------------------------------------------------------------------------------------------
-#  Dibujo (primitivas: un jabalí de granito)
+#  Dibujo (primitivas: un jabalí con barda)
 # ---------------------------------------------------------------------------------------------------------------------
 
 func _caja(nombre: String, tam: Vector3, pos: Vector3, mat: Material, padre: Node3D) -> MeshInstance3D:
@@ -406,18 +401,30 @@ func _caja(nombre: String, tam: Vector3, pos: Vector3, mat: Material, padre: Nod
 	return mi
 
 
+func _placa(nombre: String, mat: Material, padre: Node3D, partes: Array) -> void:
+	var n := Node3D.new()
+	n.name = nombre
+	padre.add_child(n)
+	for pt in partes:
+		_caja(nombre + "_p", pt[0], pt[1], mat, n)
+	_placas.append(n)
+
+
 func _construir() -> void:
 	_raiz = Node3D.new()
 	_raiz.name = "Raiz"
 	add_child(_raiz)
 	_mat = StandardMaterial3D.new()
-	_mat.albedo_color = COLOR_GRANITO
+	_mat.albedo_color = COLOR_CERDA
 	_mat.roughness = 1.0
 	var oscuro := StandardMaterial3D.new()
-	oscuro.albedo_color = COLOR_GRANITO.darkened(0.3)
+	oscuro.albedo_color = COLOR_CERDA.darkened(0.35)
 	oscuro.roughness = 1.0
+	var cuero := StandardMaterial3D.new()
+	cuero.albedo_color = COLOR_PLACA
+	cuero.roughness = 0.9
 	_caja("Lomo", Vector3(1.1, 0.9, 1.7), Vector3(0.0, 0.95, 0.0), _mat, _raiz)
-	_cruz = _caja("Cruz", Vector3(1.0, 0.35, 0.6), Vector3(0.0, 1.5, 0.45), _mat, _raiz)            # la joroba del jabalí
+	_caja("Cruz", Vector3(1.0, 0.35, 0.6), Vector3(0.0, 1.5, 0.45), _mat, _raiz)            # la joroba del jabalí
 	for x in [-0.35, 0.35]:
 		for z in [-0.55, 0.55]:
 			_caja("Pata", Vector3(0.28, 0.55, 0.28), Vector3(x, 0.28, z), oscuro, _raiz)
@@ -432,39 +439,19 @@ func _construir() -> void:
 	for x in [-0.22, 0.22]:
 		var cm: MeshInstance3D = _caja("Colmillo", Vector3(0.08, 0.3, 0.08), Vector3(x, 0.05, 0.75), colmillo, _cabeza)
 		cm.rotation.x = -0.5
-	# Las grietas: rayas oscuras sobre el lomo, una por choque.
-	var mg := StandardMaterial3D.new()
-	mg.albedo_color = COLOR_GRIETA
-	mg.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-	for i in range(GRIETAS_NUCLEO):
-		var g: MeshInstance3D = _caja("Grieta%d" % i, Vector3(0.06, 0.05, 1.1), Vector3(-0.3 + 0.3 * float(i), 1.41, -0.05), mg, _raiz)
-		g.rotation.y = 0.35 * float(i - 1)
-		g.visible = false
-		_grietas_mallas.append(g)
-	var mn := StandardMaterial3D.new()
-	mn.albedo_color = COLOR_NUCLEO
-	mn.emission_enabled = true
-	mn.emission = COLOR_NUCLEO
-	mn.emission_energy_multiplier = 2.5
-	_nucleo = MeshInstance3D.new()
-	_nucleo.name = "Nucleo"
-	var sm := SphereMesh.new()
-	sm.radius = 0.4
-	sm.height = 0.8
-	_nucleo.mesh = sm
-	_nucleo.material_override = mn
-	_nucleo.position = Vector3(0.0, 1.55, 0.1)                 # asoma por encima del lomo partido (dentro del cuerpo no se veía: fotos del 22/11)
-	_nucleo.visible = false
-	_raiz.add_child(_nucleo)
+	# La barda: tres placas de cuero (testuz, lomo, flancos), una por choque.
+	_placa("PlacaTestuz", cuero, _cabeza, [[Vector3(0.86, 0.2, 0.55), Vector3(0.0, 0.36, 0.2)]])
+	_placa("PlacaLomo", cuero, _raiz, [[Vector3(1.2, 0.14, 1.2), Vector3(0.0, 1.43, -0.15)]])
+	_placa("PlacaFlancos", cuero, _raiz, [[Vector3(0.1, 0.65, 1.3), Vector3(-0.58, 0.95, 0.0)], [Vector3(0.1, 0.65, 1.3), Vector3(0.58, 0.95, 0.0)]])
 	_cuerpo = CuerpoVerraco.new()
 	_cuerpo.name = "Cuerpo"
 	add_child(_cuerpo)
 	_cuerpo.montar(self)
 
 
-func _pintar_grietas() -> void:
-	for i in range(_grietas_mallas.size()):
-		_grietas_mallas[i].visible = i < grietas
+func _pintar_placas() -> void:
+	for i in range(_placas.size()):
+		_placas[i].visible = i >= placas_rotas
 
 
 func _orientar() -> void:
@@ -491,9 +478,6 @@ func _animar(_delta: float) -> void:
 		Fase.ATURDIDO:
 			cabeza_x = -0.2
 			_raiz.rotation.z = 0.08 * sin(_t * 9.0)         # tambaleo
-		Fase.EXPUESTO:
-			inclina = -0.1
-			sube = -0.25                                    # partido, hundido
 		Fase.MUERTO:
 			return
 	if fase != Fase.ATURDIDO:
@@ -504,5 +488,3 @@ func _animar(_delta: float) -> void:
 	_mat.emission_enabled = _destello > 0.0
 	_mat.emission = Color.WHITE
 	_mat.emission_energy_multiplier = 2.0
-	if _nucleo.visible:
-		_nucleo.scale = Vector3.ONE * (1.0 + 0.12 * sin(_t * 6.0))

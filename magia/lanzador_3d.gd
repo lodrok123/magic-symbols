@@ -2631,6 +2631,33 @@ static func reaccion_burbuja(barrera: String, recibido: String, punto: Vector3) 
 	return nombre
 
 
+## 27/11 (decisión de Pablo): la tierra puede levantarse sobre agua SOLO en las POZAS de la Coca (casilla → true). Las registra `Coca3D` (`registrar_poza`) y las olvida al salir del árbol.
+var pozas_tapables: Dictionary = {}
+
+
+func registrar_poza(c: Vector2i) -> void:
+	pozas_tapables[c] = true
+
+
+func olvidar_poza(c: Vector2i) -> void:
+	pozas_tapables.erase(c)
+
+
+## ¿Un enemigo con `ocupa(c)` (la Coca, emergida) está en la casilla `c`? Sobre ella no se levanta tierra.
+func _la_coca_ocupa(c: Vector2i) -> bool:
+	for n in get_tree().get_nodes_in_group("coca"):
+		if is_instance_valid(n) and n.has_method("ocupa") and bool(n.call("ocupa", c)):
+			return true
+	return false
+
+
+## ¿Lo ÚNICO que bloquea la casilla `c` es su agua? Solo se pregunta de una poza registrada: sin barrera viva encima, el bloqueo de la letra «~» no cuenta.
+func _solo_agua_bloquea(c: Vector2i) -> bool:
+	if not pozas_tapables.has(c) or letra_de(c) != "~":
+		return false
+	return solidez_en(centro_de(c, Terreno3D.alto_suelo + 0.8)) == null
+
+
 ## ¿Se puede construir un bloque (tierra, hielo) de `niveles` de alto en la casilla `c`? "" = sí; si no, el MOTIVO en una frase corta para el aviso. Es la regla que usa `construir_tierra`
 ## (fuera del mapa, agua o puente, bloqueada, cornisa permanente, encima de la jugadora o de un enemigo) más el tope de altura que se sube (`Jugador3D.MAX_NIVELES_SUBIBLES`), sacada aquí
 ## para poder preguntarla EN SECO antes de cobrar (`rechazo_de_construccion`): sin esto, un sólido que no cabía se rechazaba en silencio con la tinta y la recarga ya gastadas.
@@ -2642,15 +2669,19 @@ func puede_construir_en(c: Vector2i, niveles: int = 1, sobre_agua: bool = false)
 		return "no hay suelo"
 	if Terreno3D.plataformas_tierra.has(c):
 		return "ya hay una plataforma"
+	# 27/11 (la Coca): una POZA registrada (`registrar_poza`) admite la tierra aunque sea agua: ni «es agua», ni la letra «~», ni el bloqueo que es solo del agua. El agua que no es poza, igual que siempre.
+	var poza: bool = pozas_tapables.has(c)
+	if poza and _la_coca_ocupa(c):
+		return "está la Coca"
 	# El agua de un río está «bloqueada» por sí misma: el hielo que la hiela no se rechaza por eso (hielo quieto sobre agua = helarla, como antes), la tierra sí.
 	var hiela_agua: bool = sobre_agua and es_agua(c)
 	if not sobre_agua:
-		if es_agua(c):
+		if es_agua(c) and not poza:
 			return "es agua"
 		var l: String = letra_de(c)
-		if l == "~" or l == "b":
+		if (l == "~" and not poza) or l == "b":
 			return "es agua o puente"
-	if bloqueada(c) and not hiela_agua:
+	if bloqueada(c) and not hiela_agua and not _solo_agua_bloquea(c):
 		return "la casilla está ocupada"
 	if Terreno3D.permanentes.has(c):
 		return "hay una cornisa"
@@ -2683,7 +2714,7 @@ func rechazo_de_construccion(datos: Dictionary, origen: Vector3, dir: Vector3 = 
 			return "Posición: apunta al menos a una casilla de ti"
 		if distancia > ALCANCE_ORIGEN * Terreno3D.casilla + TOLERANCIA_ALCANCE_U:
 			return "queda fuera de tu alcance"
-		if not en_mapa(destino) or Terreno3D.es_vacio(destino) or bloqueada(destino):
+		if not en_mapa(destino) or Terreno3D.es_vacio(destino) or (bloqueada(destino) and not _solo_agua_bloquea(destino)):
 			return "el punto necesita suelo libre"
 		if not linea_libre(yo, origen):
 			return "algo tapa el punto"
@@ -2705,6 +2736,8 @@ func rechazo_de_construccion(datos: Dictionary, origen: Vector3, dir: Vector3 = 
 			for c in GeometriaV2.celdas(h.geo(), Vector2(origen.x, origen.z), d2.normalized(), Terreno3D.casilla):
 				if Terreno3D.plataformas_tierra.has(c):
 					return "ya hay una plataforma"
+				if pozas_tapables.has(c) and _la_coca_ocupa(c):
+					return "está la Coca"        # 27/11: la barrera de tierra no se levanta (ni su bloque ni su muro) sobre la poza de la que sale la Coca
 		return ""
 	if h.en_punto:
 		var lejos: Vector3 = origen - (jugador as Node3D).position
@@ -2718,6 +2751,8 @@ func rechazo_de_construccion(datos: Dictionary, origen: Vector3, dir: Vector3 = 
 
 
 func _rechazo_anclaje_tierra(c: Vector2i) -> String:
+	if pozas_tapables.has(c):
+		return "es agua"                    # la poza admite un BLOQUE, no una losa o puente: la losa quedaría flotando sobre el agua
 	var motivo: String = puede_construir_en(c)
 	if motivo != "":
 		return motivo
@@ -3112,7 +3147,7 @@ class GeometriaV2 extends RefCounted:
 	const DISTANCIA_MURO: float = 1.0
 
 	static func adelanto(g: Dictionary) -> float:
-		if (g.get("props", {}) as Dictionary).has("solidez"):
+		if (g.get("props", {}) as Dictionary).has("solidez") or bool(g.get("muro_geo", false)):       # 27/11 (experimental: muro por geometría): el muro de fuego no tiene solidez, pero también se adelanta
 			if not es_muro(g):
 				return 0.0
 			return DISTANCIA_MURO + float(g["z"]) - Sigils.RADIO_BASE_V2
@@ -3121,7 +3156,7 @@ class GeometriaV2 extends RefCounted:
 	## ¿Es una barrera con forma de muro? (ᛜ + algún ᛁ: la clave `muro` de `Hechizo.geo()`, que cuenta glifos; ᚷ y la carga también agrandan los semiejes y no hacen muro).
 	## Sin esa clave (un `g` que no sale de `Hechizo.geo()`) no es muro.
 	static func es_muro(g: Dictionary) -> bool:
-		return (g.get("props", {}) as Dictionary).has("solidez") and bool(g.get("muro", false))
+		return ((g.get("props", {}) as Dictionary).has("solidez") or bool(g.get("muro_geo", false))) and bool(g.get("muro", false))       # 27/11 (experimental: muro por geometría): `muro_geo` hace de solidez
 
 	## Volumen del elipsoide, en casillas cúbicas.
 	static func volumen(g: Dictionary) -> float:
@@ -3497,6 +3532,7 @@ class ZonaV2 extends Node3D:
 	var _acum: float = 0.0
 	var edad: float = 0.0                ## 6/11 (B7): s que lleva abierta (la gracia del fuego amigo cuenta desde aquí)
 	var avisada_jugadora: bool = false   ## 6/11 (B7): ya salió el «¡Te quemas!» de esta zona (solo la primera vez)
+	var sin_dano_propio: bool = false    ## 27/11 (experimental: muro por geometría): la zona de un muro `muro_geo` de la jugadora no la hiere a ella (sí a enemigos y objetos)
 	var ajena: bool = false              ## 13/11: la dejó un lanzamiento ajeno (una trampa de pared, `Linaje.ajeno`): no es fuego amigo de la jugadora (B7)
 
 	func pulso() -> void:

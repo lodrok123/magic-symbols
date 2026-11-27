@@ -336,7 +336,7 @@ func _en_hechizo(estado: String, elemento: String, g: Dictionary, origen: Vector
 		haz(el, hz["desde"] as Vector3, hz["hasta"] as Vector3, vida, float(hz.get("ancho", HAZ_ANCHO_REF_U)), suelo_y, raiz)
 		_vigilar(raiz, hv, vida)
 		return
-	var forma: String = "barrera" if props.has("solidez") else ("pulso" if props.has("crece") else "esfera")
+	var forma: String = "barrera" if (props.has("solidez") or bool(g.get("muro_geo", false))) else ("pulso" if props.has("crece") else "esfera")
 	var d: Vector3 = Vector3(dir.x, 0.0, dir.z)
 	d = d.normalized() if d.length() > 0.01 else Vector3.RIGHT
 	for s in sitios:

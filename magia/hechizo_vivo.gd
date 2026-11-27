@@ -1471,6 +1471,7 @@ func _abrir_zona(ctx: Dictionary) -> int:
 	var z := Lanzador3D.ZonaV2.new()
 	z.lanz = lanz
 	z.ajena = linaje != null and linaje.ajeno
+	z.sin_dano_propio = h.muro_geo           # 27/11 (experimental: muro por geometría): el muro que lanzas no te quema a ti
 	z.rune = rune
 	z.elemento = String(ctx["elemento"])
 	z.dir = ctx["dir"]
@@ -1569,7 +1570,7 @@ static func pulso_plasma(lanzador: Lanzador3D, z: Lanzador3D.ZonaV2) -> void:
 		else:
 			z.tocados[e.get_instance_id()] = true
 			lanzador._golpear(e, z.rune, d, (e as Node3D).global_position, 0, false, z.origen)
-	if z.dano_periodico > 0.0 and not z.ajena:
+	if z.dano_periodico > 0.0 and not z.ajena and not z.sin_dano_propio:
 		var quitado: float = golpe_propio(lanzador, z.celdas, z.elemento, z.edad, not z.avisada_jugadora)
 		if quitado > 0.0:
 			z.avisada_jugadora = true

@@ -1,5 +1,5 @@
 extends "res://herramientas/escenario_base.gd"
-## Fotos del VERRACO (X2 de PLAN_COMBATE, 22/11) en la Sala del Verraco: quieto, en pose con su línea en el suelo, embistiendo, agrietado tras chocar y partido con el núcleo.
+## Fotos del VERRACO (X2 de PLAN_COMBATE, 22/11) en la Sala del Verraco: quieto, en pose con su línea en el suelo, embistiendo, con una placa rota tras chocar y sin armadura.
 ## NECESITA VENTANA:
 ##   godot --path . --resolution 1280x720 --script res://herramientas/captura_verraco.gd -- [carpeta]   (por defecto res://docs/capturas/verraco)
 
@@ -11,7 +11,7 @@ func _foto(archivo: String) -> void:
 	await RenderingServer.frame_post_draw
 	var img: Image = root.get_viewport().get_texture().get_image()
 	img.save_png(_dir.path_join(archivo + ".png"))          # la pantalla entera: la cámara sigue a la jugadora y él queda a un lado
-	print("foto ", archivo, "  fase ", vr.fase, "  grietas ", vr.grietas)
+	print("foto ", archivo, "  fase ", vr.fase, "  placas rotas ", vr.placas_rotas)
 
 
 func _escenario() -> void:
@@ -47,16 +47,16 @@ func _escenario() -> void:
 	while vr.fase != Verraco3D.Fase.ATURDIDO:
 		await process_frame
 	await avanzar_s(0.3)
-	await _foto("04_agrietado")
-	vr.grietas = Verraco3D.GRIETAS_NUCLEO - 1
-	vr._pintar_grietas()
+	await _foto("04_placa_rota")
+	vr.placas_rotas = Verraco3D.PLACAS - 1
+	vr._pintar_placas()
 	await avanzar_s(Verraco3D.ATURDIDO_S)
 	colocar_jugador(Vector2i(2, 2))
 	vr._quitar_aviso()
 	vr.global_position = Terreno3D.centro_de(Vector2i(6, 2), Terreno3D.y_pies(Vector2i(6, 2)))
 	vr._cambiar(Verraco3D.Fase.ACECHA)
 	vr._t = 99.0
-	while vr.fase != Verraco3D.Fase.EXPUESTO:
+	while not vr.sin_armadura:
 		await process_frame
 	await avanzar_s(0.4)
-	await _foto("05_partido_nucleo")
+	await _foto("05_sin_armadura")
